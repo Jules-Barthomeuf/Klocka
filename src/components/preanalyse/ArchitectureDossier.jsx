@@ -22,7 +22,7 @@ import { apercuAdmin } from "@/lib/vue";
 // documents, analyse, plateforme, dossier bancaire) gardent leurs écrans.
 
 /** La porte du serveur (etape_max, 1 à 5) qu'une étape de la frise demande. */
-export const PORTE = { reception: 1, preanalyse: 2, documents: 3, analyse: 3, plateforme: 4, clients: 4, offre: 4, bancaire: 5 };
+export const PORTE = { reception: 1, preanalyse: 2, documents: 3, analyse: 3, video: 3, plateforme: 4, clients: 4, offre: 4, bancaire: 5 };
 
 const VUE_PAR_PORTE = { 1: "reception", 2: "preanalyse", 3: "analyse", 4: "plateforme", 5: "bancaire" };
 

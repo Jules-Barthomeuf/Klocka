@@ -57,7 +57,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
               }`}
               style={{ borderColor: active ? couleur.pastille : J["bord"] }}
             >
-              <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.08em] text-brume truncate">
+              <span className="block text-[11px] font-semibold uppercase tracking-[.08em] text-brume truncate">
                 {k.libelle}
               </span>
               <span
@@ -73,7 +73,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
 
       {/* L'en-tête du verdict lu */}
       <div className="border-t border-trait pt-5">
-        <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.08em] text-brume">{detail.libelle}</span>
+        <span className="block text-[11px] font-semibold uppercase tracking-[.08em] text-brume">{detail.libelle}</span>
         <span className="block mt-1 text-[24px] leading-tight font-medium" style={{ color: c.texte }}>
           {detail.valeur}
         </span>
@@ -84,7 +84,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
       <div className="grid lg:grid-cols-2 gap-x-8 gap-y-6">
         <div className="flex flex-col gap-6 min-w-0">
           <section>
-            <h4 className="m-0 mb-2 font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
+            <h4 className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
               Le calcul, pas à pas
             </h4>
             <ol className="m-0 p-0 list-none flex flex-col divide-y divide-relief border-y border-relief">
@@ -101,7 +101,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
           </section>
 
           <section>
-            <h4 className="m-0 mb-2 font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
+            <h4 className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
               Ce qui affaiblit la conclusion
             </h4>
             <ul className="m-0 p-0 list-none flex flex-col gap-2">
@@ -117,7 +117,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
 
         <div className="flex flex-col gap-6 min-w-0">
           <section>
-            <h4 className="m-0 mb-2 font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
+            <h4 className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
               Les {detail.comparables.length} comparables
             </h4>
             <ul className="m-0 p-0 list-none flex flex-col divide-y divide-relief border-y border-relief">
@@ -150,7 +150,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
           </section>
 
           <section>
-            <h4 className="m-0 mb-2 font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
+            <h4 className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
               Les pages lues
             </h4>
             <ul className="m-0 p-0 list-none flex flex-col gap-3">
@@ -169,7 +169,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
                     <ExternalLink className="w-3 h-3 mt-[3px] flex-shrink-0" />
                   </a>
                   {src.capture && (
-                    <code className="block mt-0.5 font-mono text-[11px] text-brume break-all">{src.capture}</code>
+                    <code className="block mt-0.5 text-[11px] text-brume break-all">{src.capture}</code>
                   )}
                 </li>
               ))}

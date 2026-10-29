@@ -112,7 +112,7 @@ export default function EchelleFourchettes({
           return (
             <div key={l.cle} className="flex items-center py-3" style={{ gap: "var(--ecart)" }}>
               <p
-                className="alx-mont m-0 flex-none text-[11px] font-medium uppercase tracking-[.14em] text-ardoise"
+                className="m-0 flex-none text-[11px] font-medium uppercase tracking-[.14em] text-ardoise"
                 style={{ width: "var(--lib)" }}
               >
                 {l.libelle}

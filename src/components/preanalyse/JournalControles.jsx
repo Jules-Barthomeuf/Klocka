@@ -97,7 +97,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
             Voir l’analyse <ArrowRight className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className="ml-auto font-mono text-[11px] text-brume tabular-nums">{chrono(temps)}</span>
+        <span className="ml-auto text-[11px] text-brume tabular-nums">{chrono(temps)}</span>
       </div>
     </div>
   );

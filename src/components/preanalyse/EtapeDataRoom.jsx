@@ -13,7 +13,7 @@ import { Mono, Section, eur } from "./CadreEtapes";
 
 function Source({ s, onPreuve, texte }) {
   if (!s?.document_id) return texte ? <Mono className="normal-case tracking-[.08em] text-brume">{texte}</Mono> : null;
-  return <button onClick={() => onPreuve(s)} className="font-mono text-[11px] tracking-[.06em] text-brume hover:text-encre whitespace-nowrap">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 28)}{s.page ? ` p. ${s.page}` : ""}</button>;
+  return <button onClick={() => onPreuve(s)} className="text-[11px] tracking-[.06em] text-brume hover:text-encre whitespace-nowrap">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 28)}{s.page ? ` p. ${s.page}` : ""}</button>;
 }
 
 

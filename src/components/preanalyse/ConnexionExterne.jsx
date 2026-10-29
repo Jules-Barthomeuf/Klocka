@@ -122,7 +122,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
       aria-live="polite"
       aria-label={`Connexion à ${service}`}
       className="fixed inset-0 z-[90] bg-black grid grid-cols-[minmax(340px,52fr)_48fr] max-md:grid-cols-1"
-      style={{ transition: "opacity .65s ease", opacity: opacite, fontFamily: "'Instrument Sans', -apple-system, sans-serif" }}
+      style={{ transition: "opacity .65s ease", opacity: opacite, fontFamily: "inherit" }}
     >
       {/* Gauche : ce que Klocka fait */}
       <div className="flex flex-col justify-between items-start py-14 pr-6 pl-[120px] max-md:pl-6 max-md:py-10">
@@ -135,7 +135,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
           <div className="text-[12.5px] tracking-[.14em] text-brume">ÉTAPE {i + 1} / {etapes.length}</div>
           <div
             className="mt-[18px] text-white leading-[1.1] tracking-[-.01em] min-h-[2.2em]"
-            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, fontSize: "clamp(30px, 3.2vw, 40px)", textWrap: "pretty" }}
+            style={{ fontWeight: 400, fontSize: "clamp(30px, 3.2vw, 40px)", textWrap: "pretty" }}
           >
             {e.ligne.slice(0, frappes)}
             <span style={{ color: MENTHE, animation: "kl-curseur 1s step-end infinite" }}>|</span>

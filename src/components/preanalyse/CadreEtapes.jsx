@@ -3,7 +3,7 @@ import React from "react";
 // Le cadre des étapes d'analyse : la barre des étapes en haut, l'en-tête de
 // l'étape, le contenu, le pied. Les libellés techniques sont en mono.
 
-export const Mono = ({ children, className = "" }) => <span className={`font-mono text-[11px] tracking-[.18em] uppercase text-brume ${className}`}>{children}</span>;
+export const Mono = ({ children, className = "" }) => <span className={`text-[11px] tracking-[.18em] uppercase text-brume ${className}`}>{children}</span>;
 export const eur = (v) => (v == null ? "—" : `${Math.round(v).toLocaleString("fr-FR")} €`);
 export const fourchette = (f, suffixe = " €") => (!f || f[0] == null ? "—" : f[0] === f[1] ? `${Math.round(f[0]).toLocaleString("fr-FR")}${suffixe}` : `${Math.round(f[0]).toLocaleString("fr-FR")} – ${Math.round(f[1]).toLocaleString("fr-FR")}${suffixe}`);
 
@@ -29,7 +29,7 @@ export default function CadreEtapes({ etapes, etape, etapeMax = etape, compteurs
       <div className="flex items-stretch border-b border-trait overflow-x-auto">
         {etapes.map((x) => (
           <button key={x.n} onClick={() => x.n <= etapeMax && onEtape?.(x.n)} disabled={apercu || x.n > etapeMax} className={`flex-1 min-w-[180px] text-left px-5 py-3.5 flex items-baseline justify-between gap-3 border-b-2 -mb-px transition-colors ${x.n === etape ? "border-encre text-encre" : x.n <= etapeMax ? "border-transparent text-craie hover:text-encre" : "border-transparent text-brume"}`}>
-            <span className="text-[13.5px] font-light"><span className="font-mono text-[11px] mr-2 text-brume">{x.n}</span>{x.titre}</span>
+            <span className="text-[13.5px] font-light"><span className="text-[11px] mr-2 text-brume">{x.n}</span>{x.titre}</span>
             <Mono className={x.n === etape ? "text-ardoise" : ""}>{compteurs[x.n] ?? ""}</Mono>
           </button>
         ))}

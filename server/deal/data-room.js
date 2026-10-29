@@ -94,12 +94,12 @@ async function proposerParDefaut({ piece, zone, contexte }) {
  * Propose un nom pour chaque pièce qui n'en a pas encore (toutes avec `force`). Quatre lectures à la fois.
  * Une pièce illisible garde une proposition faite de sa zone et de son nom d'origine.
  */
-export async function proposerNoms(dealId, { uploadDir, user, force = false, proposer = proposerParDefaut } = {}) {
+export async function proposerNoms(dealId, { uploadDir, user, force = false, seulement = null, proposer = proposerParDefaut } = {}) {
   const r = piecesRangees(dealId, user);
   if (!r) return { ok: false, error: 'Dossier introuvable' };
   const { chargerPiece } = await import('./espace.js');
   const { mesurer } = await import('../llm-couts.js');
-  const aFaire = r.pieces.filter((p) => force || !p.nom_propose);
+  const aFaire = r.pieces.filter((p) => (!seulement || seulement.includes(p.id)) && (force || !p.nom_propose));
   const resultats = {};
   let i = 0;
   const travailleur = async () => {
@@ -145,9 +145,16 @@ export function texteContexte(deal, pieces) {
  * Klocka, déposée dans le sous-dossier de sa famille, et le Doc du contexte refait. Un dossier de test ne touche
  * jamais Google.
  */
-export async function rangerDansDrive(dealId, noms = {}, { uploadDir, user, drive = null } = {}) {
+export async function rangerDansDrive(dealId, noms = {}, { uploadDir, user, drive = null, seulement = null } = {}) {
   const r = piecesRangees(dealId, user);
   if (!r) return { ok: false, error: 'Dossier introuvable' };
+  // Ajouter au Drive les seules pièces cochées (29 oct. 2026, Jules : les pièces reçues après coup, une fois les
+  // premières rangées) : les autres ne sont ni renommées ni renvoyées ; le Doc du contexte reprend tout le dossier.
+  const toutes = r.pieces;
+  if (Array.isArray(seulement)) {
+    r.pieces = r.pieces.filter((p) => seulement.includes(p.id));
+    if (!r.pieces.length) return { ok: false, error: 'Aucune pièce cochée.' };
+  }
   // Les noms validés deviennent les noms de Klocka d'abord, quoi qu'il arrive au Drive ensuite (29 oct. 2026, Jules :
   // « les documents renommés avec le nom choisi pour le Drive ») : un seul nom par pièce, partout.
   const { renommerDocument } = await import('./espace.js');
@@ -155,6 +162,14 @@ export async function rangerDansDrive(dealId, noms = {}, { uploadDir, user, driv
   for (const p of r.pieces) {
     const voulu = propre(noms[p.id] || p.nom_propose || '');
     if (voulu && voulu !== p.nom && renommerDocument(dealId, p.id, voulu)?.ok !== false) { p.nom = voulu; renommees += 1; }
+  }
+  // Le nom validé devient aussi le nom proposé gardé : la Data Room, la colonne Source et le Drive disent le même.
+  if (r.pieces.length) {
+    const brutNoms = dealDe(dealId);
+    const etatNoms = structuredClone(brutNoms.analyse_pieces || {});
+    etatNoms.docs = etatNoms.docs || {};
+    for (const p of r.pieces) if (etatNoms.docs[p.id]) etatNoms.docs[p.id] = { ...etatNoms.docs[p.id], nom_propose: p.nom };
+    Records.update('Deal', brutNoms.id, { analyse_pieces: etatNoms });
   }
   const deal = dealDe(dealId);
   if (deal.test) return { ok: true, renommees, ranges: 0, test: true, erreurs: [], ...lireDepots(dealId) };
@@ -179,7 +194,7 @@ export async function rangerDansDrive(dealId, noms = {}, { uploadDir, user, driv
     titre: nomDossierDrive(deal),
     dossierId: deal.drive_folder_id || null,
     groupes: [...groupes.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([sousDossier, fichiers]) => ({ sousDossier, fichiers: fichiers.filter((f) => !f.manquant) })),
-    contexte: texteContexte(deal, r.pieces),
+    contexte: texteContexte(deal, toutes),
   });
   const frais = dealDe(dealId);
   const le = new Date().toISOString();

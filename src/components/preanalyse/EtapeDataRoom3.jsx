@@ -17,7 +17,7 @@ const plus = (f) => (!f || (f[0] === 0 && f[1] === 0) ? "—" : `+${Math.round(f
 
 function Sources({ liste, onPreuve }) {
   if (!liste?.length) return <Mono className="normal-case tracking-[.06em] text-brume">calcul</Mono>;
-  return <span className="flex flex-wrap gap-x-3">{liste.map((s, i) => <button key={i} onClick={() => onPreuve(s)} className="font-mono text-[11px] tracking-[.06em] text-brume hover:text-encre">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 26)}{s.page ? ` p. ${s.page}` : ""}</button>)}</span>;
+  return <span className="flex flex-wrap gap-x-3">{liste.map((s, i) => <button key={i} onClick={() => onPreuve(s)} className="text-[11px] tracking-[.06em] text-brume hover:text-encre">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 26)}{s.page ? ` p. ${s.page}` : ""}</button>)}</span>;
 }
 
 export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu = false, dialog, setDialog }) {

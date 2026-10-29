@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { SlidersHorizontal, AlertTriangle, Save, Loader2, Check } from "lucide-react";
+import { SlidersHorizontal, AlertTriangle, Loader2, Check } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -104,9 +104,12 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
   // Tant que l'apport n'a pas été touché, il suit les 15 % du prix de revient.
   const apportTouche = useRef(parametres?.apport != null);
 
-  // Le dossier change (autre lot, réanalyse) : on repart de ses chiffres.
+  // Le dossier change (autre lot, réanalyse) : on repart de ses chiffres. Pas quand le changement vient de notre
+  // propre enregistrement : les travaux et la vacance, qui ne s'enregistrent pas, resteraient sinon remis à zéro.
   const signature = JSON.stringify(parametres || {});
+  const vientDeMoi = useRef(false);
   useEffect(() => {
+    if (vientDeMoi.current) { vientDeMoi.current = false; return; }
     setEtat(etatInitial(parametres));
     setVacancesLocatives(Array(25).fill(0));
     setTravauxBailleur(travauxParDefaut());
@@ -115,15 +118,24 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
     if (parametres?.apport != null) setApport(parametres.apport);
   }, [signature]);
 
-  // Enregistrer : les hypothèses jouées, telles quelles, sur le lot.
+  // Enregistrer tout seul (29 oct. 2026, Jules) : le dernier chiffre tapé reste sur le lot, une seconde après
+  // la dernière retouche, sans bouton.
   const enregistrer = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/lots/${lotIndex}/simulateur`, { body: { ...etat, apport } }),
-    onSuccess: () => { toast.success("Chiffres enregistrés", { description: "Vous les retrouverez en revenant sur le dossier." }); onEnregistre?.(); },
-    onError: (e) => toast.error(e?.message || "Enregistrement impossible"),
+    mutationFn: (corps) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/lots/${lotIndex}/simulateur`, { body: corps }),
+    onSuccess: () => { vientDeMoi.current = true; onEnregistre?.(); },
+    onError: (e) => toast.error(e?.message || "Chiffres non enregistrés"),
   });
-  const enregistreLe = parametres?.enregistre_le ? new Date(parametres.enregistre_le) : null;
+  // Seulement après une retouche à la main : ouvrir l'onglet n'écrit rien (l'apport qui suit les 15 % non plus).
+  const retouche = useRef(false);
+  const aEnvoyer = JSON.stringify({ ...etat, apport });
+  useEffect(() => {
+    if (!dealId || !retouche.current) return undefined;
+    const t = setTimeout(() => { retouche.current = false; enregistrer.mutate(JSON.parse(aEnvoyer)); }, 1000);
+    return () => clearTimeout(t);
+  }, [aEnvoyer, dealId]);
 
   const maj = (cle, valeur) => {
+    retouche.current = true;
     if (cle === "apport") {
       apportTouche.current = true;
       setApport(valeur);
@@ -249,16 +261,11 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
               >
                 <SlidersHorizontal className="w-3 h-3" /> Simulateur
               </button>
-              {dealId && (
-                <button
-                  onClick={() => enregistrer.mutate()}
-                  disabled={enregistrer.isPending}
-                  title={enregistreLe ? `Enregistré le ${enregistreLe.toLocaleDateString("fr-FR")} à ${enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "Garder ces chiffres sur le dossier"}
-                  className="flex items-center gap-1.5 px-3 h-7 max-md:h-8 rounded-full bg-menthe text-fond font-semibold hover:bg-menthe-survol text-[11px] disabled:opacity-40"
-                >
-                  {enregistrer.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : enregistreLe ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
-                  {enregistreLe ? "Enregistrer à nouveau" : "Enregistrer les chiffres"}
-                </button>
+              {dealId && (enregistrer.isPending || parametres?.enregistre_le) && (
+                <span className="flex items-center gap-1.5 text-[11px] text-ardoise" aria-live="polite">
+                  {enregistrer.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 text-menthe" />}
+                  {enregistrer.isPending ? "Enregistrement" : "Enregistré"}
+                </span>
               )}
             </div>
           </div>

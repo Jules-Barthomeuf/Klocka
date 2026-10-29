@@ -41,14 +41,14 @@ export function monterAnalysePieces(app) {
   // Après le dépôt (29 oct. 2026, Jules) : des noms proposés, le rangement dans le Drive, puis la lecture. Voir deal/data-room.js.
   app.post(`${base}/depots/noms`, wrap(async (req, res) => {
     const { proposerNoms } = await import('../deal/data-room.js');
-    const r = await proposerNoms(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), force: !!req.body?.force });
+    const r = await proposerNoms(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), force: !!req.body?.force, seulement: Array.isArray(req.body?.seulement) ? req.body.seulement.map(String) : null });
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
 
   app.post(`${base}/depots/drive`, wrap(async (req, res) => {
     const { rangerDansDrive } = await import('../deal/data-room.js');
-    const r = await rangerDansDrive(req.params.dealId, req.body?.noms || {}, { uploadDir: UPLOAD_DIR, user: currentUser(req) });
+    const r = await rangerDansDrive(req.params.dealId, req.body?.noms || {}, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulement: Array.isArray(req.body?.seulement) ? req.body.seulement.map(String) : null });
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
@@ -114,6 +114,14 @@ export function monterAnalysePieces(app) {
     const r = A.deciderCase(req.params.dealId, req.params.grille, req.params.critere, req.body || {}, currentUser(req));
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
+  }));
+
+  // Les versions du dossier : Annuler et Rétablir, les flèches à droite de « Tous les dossiers » (29 oct. 2026, Jules).
+  app.get(`${base}/versions`, wrap((req, res) => ok(res, A.versionsDe(req.params.dealId))));
+  app.post(`${base}/versions/:sens(annuler|retablir)`, wrap((req, res) => {
+    const r = A.changerDeVersion(req.params.dealId, req.params.sens);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, { ...r, ...A.versionsDe(req.params.dealId) });
   }));
 
   app.post(`${base}/ecarts/:cle`, wrap((req, res) => {

@@ -22,11 +22,10 @@ import { GABARITS } from "./gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
 import GrilleCriteres, { prechargerGrilles } from "@/components/preanalyse/GrilleCriteres";
-import SyntheseAnalyse, { HistoriqueAnalyse, useSyntheseAnalyse } from "@/components/preanalyse/SyntheseAnalyse";
-import { GrillesPieces, useAnalysePieces } from "@/components/preanalyse/AnalysePieces";
+import { useSyntheseAnalyse } from "@/components/preanalyse/SyntheseAnalyse";
+import { FlechesVersions, GrillesPieces, useAnalysePieces } from "@/components/preanalyse/AnalysePieces";
+import VideoFilmee from "@/components/preanalyse/VideoFilmee";
 import DepotsDossier, { ActionsDataRoom } from "@/components/preanalyse/DepotsDossier";
-import TableauBienAnalyse from "@/components/preanalyse/TableauBienAnalyse";
-import SectionBien from "@/components/preanalyse/SectionBien";
 import ApercuProjetPlateforme from "@/components/preanalyse/ApercuProjetPlateforme";
 import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
@@ -43,11 +42,24 @@ import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 // Le bien et le simulateur ouvrent la série, à gauche du bail.
 // Le module d'analyse (spec du 17 oct. 2026) : Synthèse en tête, le Simulateur après le Marché (il consomme tous les
 // onglets précédents), l'Historique à la fin.
+// Les étapes du menu : la frise sans la Data Room, devenue un onglet de l'Analyse (29 oct. 2026, Jules). Numérotées
+// à la suite pour l'écran ; `vrai` garde le numéro de la frise, celui des étapes validées.
+// Email et Plateforme retirés le même jour : rentrer le projet est un geste de la Pré-analyse et de l'Analyse.
+// Vidéo, après Analyse (29 oct. 2026, Jules) : la vidéo du bien filmée, importée pour les clients. Elle n'est pas une étape de la frise ; elle se
+// valide avec l'Analyse.
+const ETAPES_MENU = (() => {
+  const l = FRISE.filter((e) => !["reception", "documents", "plateforme"].includes(e.id)).map((e) => ({ ...e, vrai: e.n }));
+  l.splice(l.findIndex((e) => e.id === "analyse") + 1, 0, { id: "video", label: "Vidéo", sous: "Vidéo filmée", vrai: FRISE.find((e) => e.id === "analyse").n });
+  return l.map((e, i) => ({ ...e, n: i + 1 }));
+})();
+
 const GRILLES_ANALYSE = [
 // L'analyse pièce par pièce (29 oct. 2026, Jules) : les pièces se rangent dans la Data Room, une zone par type ;
 // Bail, Quittances, Copropriété et Diagnostics lisent les grilles case par case (AnalysePieces.jsx), plus la matrice.
-  { id: "synthese", titre: "Synthèse", grilles: null },
-  { id: "bien", titre: "Bien", grilles: null },
+  // La Data Room aussi dans l'Analyse, en premier onglet (29 oct. 2026, Jules) : y déposer une pièce reçue après coup.
+  { id: "data_room", titre: "Data Room", grilles: null },
+  // L'onglet Synthèse retiré (29 oct. 2026, Jules).
+  // L'onglet Bien retiré (29 oct. 2026, Jules).
   { id: "bail", titre: "Bail", grilles: null, parPiece: true },
   { id: "quittances", titre: "Quittances", grilles: null, parPiece: true },
   { id: "copropriete", titre: "Copropriété", grilles: null, parPiece: true },
@@ -63,8 +75,6 @@ import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
 import { ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
 import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
 import { useAValiderDossier } from "@/components/haka/PanneauAValiderDossier";
-import { HistoriqueLayer } from "@/components/layer/FriseFaits";
-import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 
 // Une analyse K-Data rangée dans l'affaire se lit ici, dans une fenêtre qui
 // montre l'outil sur l'adresse, tel quel. On la regarde, on la ferme : la
@@ -358,7 +368,16 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // Sans dossier (dépôt direct d'une fiche) l'étape se lit sur la porte ; avec un dossier, sur la frise.
   const montre = (id) => (dossier ? vue === id : PORTE[id] === etape);
   const [preuveGrille, setPreuveGrille] = useState(null);
-  const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "synthese"; } catch { return "synthese"; } });
+  const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { const g = localStorage.getItem("klocka_grille_analyse"); return g && !["synthese", "historique", "bien", "notes"].includes(g) ? g : "data_room"; } catch { return "data_room"; } });
+  // La Data Room n'est plus une étape du menu (29 oct. 2026, Jules) : c'est le premier onglet de l'Analyse. Ce qui
+  // ouvrait l'étape (la porte d'un dossier qui attend ses pièces, la vue gardée de la session) ouvre cet onglet.
+  const dataRoomOuverte = vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room");
+  useEffect(() => {
+    if (!dossier) return;
+    if (vue === "documents") { setVue("analyse"); setGrilleAnalyse("data_room"); }
+    else if (vue === "reception") setVue("preanalyse");
+    else if (vue === "plateforme") setVue("analyse");
+  }, [vue, dossier?.deal_id]);
   // Chaque onglet dit dans son titre combien de signalements y restent à traiter.
   const synthese = useSyntheseAnalyse(dossier?.deal_id, { enabled: !apercu });
   const analysePieces = useAnalysePieces(dossier?.deal_id, { enabled: !apercu });
@@ -537,7 +556,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               {aValider.length} à valider
             </button>
           )}
-          {vue === "documents" && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={() => allerA("analyse")} />}
+          {["preanalyse", "analyse"].includes(vue) && !apercu && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
+            {(vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room")) && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={() => { allerA("analyse"); if (grilleAnalyse === "data_room") setGrilleAnalyse("bail"); }} />}
           {actionsBarre}
           {!apercu && <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
             onAbandonner={() => {
@@ -579,9 +599,13 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {/* k-actions-dossier : en mode IA, le « … » se range sous la cloche (index.css), même taille, même colonne. */}
             <div className="k-actions-dossier flex flex-none flex-wrap items-center justify-end gap-2">
             {/* La Data Room : ses deux gestes à gauche du « ⋯ » (29 oct. 2026, Jules). */}
-            {vue === "documents" && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={() => allerA("analyse")} />}
-            {actionsBarre}
-            {!apercu && (
+            {["preanalyse", "analyse"].includes(vue) && !apercu && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
+            {(vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room")) && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={() => { allerA("analyse"); if (grilleAnalyse === "data_room") setGrilleAnalyse("bail"); }} />}
+            {/* Retour et Avant des versions, à gauche de Mode IA (29 oct. 2026, Jules). */}
+            {!apercu && <FlechesVersions dealId={dossier.deal_id} />}
+            {/* Sur l'onglet Data Room, ni Mode IA / Normal ni « ⋯ » (29 oct. 2026, Jules), comme à l'étape Data Room. */}
+            {!dataRoomOuverte && actionsBarre}
+            {!apercu && !dataRoomOuverte && (
               <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
                 onAbandonner={() => {
                   if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
@@ -594,7 +618,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             </div>
           </div>}
           {/* Les étapes passent dans le menu de droite (18 oct. 2026, Jules) ; au téléphone, la frise reste en haut. */}
-          <div className="md:hidden"><FriseDossier vue={vue} atteinte={etapesValidees + 1} onAller={allerA} occupe={deblocageEnCours} /></div>
+          <div className="md:hidden"><FriseDossier vue={vue} etapes={ETAPES_MENU} estFaite={(e) => e.vrai <= etapesValidees} onAller={allerA} occupe={deblocageEnCours} /></div>
         </>
       )}
 
@@ -636,7 +660,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           <div id="tables-analyse" className="space-y-5 pt-6">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
             <Onglets
-              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData, { cle: "historique", titre: "Historique" }]}
+              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData]}
               valeur={grilleAnalyse}
               onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))}
               taille="page"
@@ -645,10 +669,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {/* Changer d'onglet : le contenu entre en fondu en montant un peu (18 oct. 2026). */}
             <motion.div key={grilleAnalyse} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="space-y-5">
             {GRILLES_ANALYSE.find((g) => g.id === grilleAnalyse)?.parPiece && <GrillesPieces dossier={dossier} onglet={grilleAnalyse} apercu={apercu} />}
-            {grilleAnalyse === "synthese" && <SyntheseAnalyse dossier={dossier} apercu={apercu} onOnglet={(id) => setGrilleAnalyse(id)} />}
-            {/* L'onglet Bien (18 oct. 2026, maquette de Jules) : le tableau Ligne / Ce qu'on y lit / Sources / Statut, puis la fiche commerciale. */}
-            {grilleAnalyse === "bien" && !apercu && <TableauBienAnalyse dealId={dossier?.deal_id} />}
-            {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
+            {grilleAnalyse === "data_room" && <DepotsDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />}
             {grilleAnalyse === "marche" && (
               <div className="flex flex-col gap-4">
                 {/* Les quatre lectures de marché vivent maintenant dans les
@@ -657,18 +678,10 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 <JournalAnalyste dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
               </div>
             )}
-            {/* L'Intelligence (14 oct. 2026) : ce qui a été dit, décidé ou promis sur ce dossier, avec sa source. */}
-            {grilleAnalyse === "historique" && (
-              <div className="flex flex-col gap-4">
-                <HistoriqueAnalyse dealId={dossier?.deal_id} />
-                <CeQueKlockaSait type="dossier" id={dossier?.deal_id} titre="Synthèse de l'Intelligence" />
-                <HistoriqueLayer type="dossier" id={dossier?.deal_id} />
-              </div>
-            )}
+            {/* L'onglet Historique retiré (29 oct. 2026, Jules). */}
             {grilleAnalyse === "simulateur" && (
-              dossier?.lots?.[0]?.simulateur
-                ? <SimulateurDossier parametres={dossier.lots[0].simulateur} dealId={dossier.deal_id} lotIndex={0} onEnregistre={onRefresh} />
-                : <p className="m-0 py-8 text-[13.5px] text-brume">Le simulateur se remplit à la pré-analyse : lancez-la d'abord.</p>
+              // Toujours là (29 oct. 2026, Jules) : les chiffres du dossier s'il en a, sinon vide ; ce qu'on tape s'enregistre seul.
+              <SimulateurDossier parametres={dossier?.lots?.[0]?.simulateur || {}} dealId={apercu ? null : dossier?.deal_id} lotIndex={0} onEnregistre={onRefresh} />
             )}
             {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse && g.grilles).map((g) => (
               <GrilleCriteres key={g.id} grilles={g.grilles} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
@@ -682,6 +695,12 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           </div>
         )}
         {montre("analyse") && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
+        {dossier && vue === "video" && (
+          <div className="mx-auto max-w-[900px] space-y-4 pt-6">
+            <p className="m-0 text-center text-[20px] leading-[1.2] tracking-[-0.01em] text-encre">Vidéo</p>
+            <VideoFilmee dealId={dossier.deal_id} apercu={apercu} />
+          </div>
+        )}
         {dossier && vue === "reception" && <VueReception dossier={dossier} />}
         {dossier && vue === "clients" && <VueClients dossier={dossier} />}
         {dossier && vue === "offre" && <VueOffre dossier={dossier} apercu={apercu} />}
@@ -694,7 +713,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       </div>
       </div>
       {dossier && (
-        <MenuEtapesDroite items={FRISE.map((e) => ({ cle: e.id, titre: e.label, n: e.n, faite: e.n <= etapesValidees }))} valeur={vue} onChange={allerA} occupe={deblocageEnCours} onValider={apercu ? null : validerEtape} />
+        <MenuEtapesDroite items={ETAPES_MENU.map((e) => ({ cle: e.id, titre: e.label, n: e.n, faite: e.vrai <= etapesValidees }))} valeur={vue} onChange={allerA} occupe={deblocageEnCours} onValider={apercu ? null : (n) => validerEtape(ETAPES_MENU[n - 1].vrai)} />
       )}
       </div>
       {/* Le simulateur de la pré-analyse passe sous les deux colonnes : toute la largeur, la colonne de droite comprise. */}
@@ -1440,6 +1459,36 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
 // ---------------------------------------------------------------------------
 // Étape 4 — Plateforme : entrée du deal dans la plateforme (projet pré-rempli), puis la vidéo
 // ---------------------------------------------------------------------------
+
+/**
+ * Rentrer le projet (29 oct. 2026, Jules) : plus une étape, un geste en haut à droite de la Pré-analyse et de
+ * l'Analyse. Le projet existe : « Voir le projet ». Même création que l'ancienne étape Plateforme.
+ */
+function BoutonProjet({ dossier, onRefresh }) {
+  const navigate = useNavigate();
+  const creer = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/0/projet`),
+    onSuccess: (r) => {
+      toast.success(`Projet créé : ${r.titre}`, r.champs_remplis?.length ? { description: `${r.champs_remplis.length} champ(s) pré-rempli(s)` } : undefined);
+      onRefresh?.();
+      navigate(`/Projets?id=${r.project_id}`);
+    },
+    onError: (e) => toast.error(e?.message || "Création du projet impossible"),
+  });
+  const pilule = "inline-flex h-9 items-center gap-2 rounded-full border px-4 text-[13.5px] transition-colors disabled:opacity-60";
+  if (dossier.projet_id) {
+    return (
+      <button type="button" onClick={() => navigate(`/Projets?id=${dossier.projet_id}`)} className={`${pilule} border-trait text-craie hover:border-bord-vif hover:text-encre`} style={{ background: "transparent" }}>
+        <Briefcase className="h-3.5 w-3.5" /> Voir le projet
+      </button>
+    );
+  }
+  return (
+    <button type="button" onClick={() => creer.mutate()} disabled={creer.isPending} className={`${pilule} border-menthe text-encre hover:bg-menthe/10`} style={{ background: "transparent" }}>
+      {creer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Briefcase className="h-3.5 w-3.5" />} Rentrer le projet
+    </button>
+  );
+}
 
 function EtapePlateforme({ dossier, onRefresh, apercu }) {
   const navigate = useNavigate();

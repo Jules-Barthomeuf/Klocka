@@ -1,3 +1,4 @@
+import FlechesHistorique from "@/components/ui/fleches-historique";
 import { motion } from "framer-motion";
 import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -472,6 +473,7 @@ export default function Analyse() {
             )}
             {/* Le titre au centre, les onglets en pilule dessous, comme la Prospection. */}
             <header className="k-entree relative mb-8 flex flex-col items-center gap-6 text-center">
+              <FlechesHistorique className="self-start md:absolute md:left-0 md:top-1" />
               <div className="flex flex-wrap items-center justify-end gap-2.5 self-end md:absolute md:right-14 md:top-0 md:self-auto">
                 <LienMandats />
                 <span className={`text-[14px] max-md:text-[13px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>{aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente</span>

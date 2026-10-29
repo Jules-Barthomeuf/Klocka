@@ -56,6 +56,8 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
   const cleOuvert = petitEcran ? `${memoire}.tel` : memoire;
   const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem(cleOuvert) === "ouvert"; } catch { return false; } });
   const basculer = () => setOuvert((o) => { try { localStorage.setItem(cleOuvert, o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
+  // Une page choisie dans le menu ouvert : on y arrive menu fermé (29 oct. 2026, Jules).
+  const fermer = () => { setOuvert(false); try { localStorage.setItem(cleOuvert, "ferme"); } catch { /* navigation privée */ } };
   const ici = Math.max(0, items.findIndex((o) => o.cle === valeur));
   // Au téléphone, le menu part du haut de l'écran, sous le titre, et non du milieu (26 oct. 2026) : au milieu, il couvrait
   // le bouton Envoyer du chat. Il se glisse plus bas s'il gêne ; sa position est gardée à part.
@@ -98,7 +100,7 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
                 const actif = valeur === o.cle;
                 return (
                   <div key={o.cle} className="flex items-center gap-1">
-                  <button type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-current={actif ? "step" : undefined}
+                  <button type="button" onClick={() => { onChange(o.cle); fermer(); }} disabled={occupe} aria-current={actif ? "step" : undefined}
                     className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : o.faite ? "text-craie hover:bg-rail-actif hover:text-encre" : "text-brume hover:bg-rail-actif hover:text-craie"}`} style={actif ? undefined : { background: "transparent" }}>
                     <span className={`grid h-[20px] w-[20px] flex-none place-items-center rounded-full border text-[10.5px] tabular-nums transition-colors duration-300 ${o.faite ? "border-menthe bg-menthe text-sur-menthe" : actif ? "border-encre bg-encre text-fond" : "border-encre/[0.18] text-brume"}`}>
                       {o.faite ? <Check className="h-3 w-3" /> : numeros ? o.n : null}
@@ -124,8 +126,10 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
             {items.map((o) => {
               const actif = valeur === o.cle;
               return (
-                <button key={o.cle} type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-label={o.titre} title={o.titre}
-                  className="grid h-4 w-4 place-items-center" style={{ background: "transparent" }}>
+                <button key={o.cle} type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-label={o.titre}
+                  className="group/point relative grid h-4 w-4 place-items-center" style={{ background: "transparent" }}>
+                  {/* Le nom au survol, à gauche, tout de suite (29 oct. 2026, Jules) : pas besoin d'ouvrir le menu. */}
+                  <span className="pointer-events-none absolute right-full top-1/2 mr-4 hidden -translate-y-1/2 whitespace-nowrap rounded-full border border-bord-doux bg-rail px-3 py-1 text-[13px] text-encre shadow-[0_8px_24px_rgb(0_0_0/0.25)] group-hover/point:block">{o.titre}</span>
                   {/* Un simple span : avec `layout`, le déplacement de la barre (transform du parent) était pris pour un changement de place des points, qui la rattrapaient en différé (18 oct. 2026, Jules). */}
                   <span className={`block rounded-full transition-[width,height,background-color] duration-200 ${actif ? "h-3 w-3 bg-encre" : o.faite ? "h-2 w-2 bg-menthe" : "h-2 w-2 bg-encre/[0.18]"}`} />
                 </button>

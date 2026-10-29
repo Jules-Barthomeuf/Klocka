@@ -39,7 +39,7 @@ function Coquille({ titre, enTete, onFermer, children, large = false }) {
 function Champ({ libelle, children }) {
   return (
     <div>
-      <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume mb-1">{libelle}</span>
+      <span className="block text-[11px] font-semibold uppercase tracking-[.1em] text-brume mb-1">{libelle}</span>
       <div className="text-[12.5px] leading-6 text-craie">{children}</div>
     </div>
   );
@@ -56,8 +56,8 @@ export function PanneauTracabilite({ entree, onFermer }) {
       onFermer={onFermer}
       enTete={
         <div className="min-w-0">
-          <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.08em] text-brume">{encart.libelle}</span>
-          <span className="block mt-1 font-mono text-[24px] leading-tight text-encre">{encart.valeur}</span>
+          <span className="block text-[11px] font-semibold uppercase tracking-[.08em] text-brume">{encart.libelle}</span>
+          <span className="block mt-1 text-[24px] leading-tight text-encre">{encart.valeur}</span>
         </div>
       }
     >
@@ -70,7 +70,7 @@ export function PanneauTracabilite({ entree, onFermer }) {
         </Champ>
 
         <Champ libelle="RELEVÉ À">
-          <span className="font-mono tabular-nums">{chrono(entree.t)} après le lancement</span>
+          <span className="tabular-nums">{chrono(entree.t)} après le lancement</span>
         </Champ>
 
         {encart.url && (
@@ -89,13 +89,13 @@ export function PanneauTracabilite({ entree, onFermer }) {
 
         {encart.capture && (
           <Champ libelle="CAPTURE D'ÉCRAN">
-            <code className="font-mono text-[11px] text-ardoise break-all">{encart.capture}</code>
+            <code className="text-[11px] text-ardoise break-all">{encart.capture}</code>
           </Champ>
         )}
 
         {encart.calcul && (
           <Champ libelle="CALCUL">
-            <code className="font-mono text-[11px] text-ardoise break-all">{encart.calcul}</code>
+            <code className="text-[11px] text-ardoise break-all">{encart.calcul}</code>
           </Champ>
         )}
 
@@ -131,7 +131,7 @@ export function PanneauJournalDetaille({ entrees, onFermer }) {
         {alEnvers.map((e, i) => {
           const c = ton(e.ton);
           return (
-            <li key={`${e.t}-${i}`} className="font-mono text-[11px] leading-5 break-words">
+            <li key={`${e.t}-${i}`} className="text-[11px] leading-5 break-words">
               <span className="text-brume tabular-nums">{e.quand || chrono(e.t)}</span>{" "}
               <span style={{ color: c.etiquette }}>[{e.source}]</span>{" "}
               <span className="text-ardoise">{e.texte}</span>

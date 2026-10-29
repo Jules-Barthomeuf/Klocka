@@ -543,6 +543,14 @@ export function creerCoquille({ nom, responsables = [], user = null, contact_age
 export async function enregistrerSimulateur(dealId, indexLot, parametres = {}, user) {
   const dossier = Records.findBy('Deal', 'deal_id', dealId);
   if (!dossier) return { error: 'Dossier introuvable' };
+  // Un dossier sans pré-analyse n'a pas encore de lot : le simulateur reste ouvert et ses chiffres se gardent
+  // sur un lot neuf, sans rejouer de fiche (29 oct. 2026, Jules).
+  if (!dossier.lots?.[indexLot] && indexLot === 0) {
+    const propres = Object.fromEntries(Object.entries(parametres || {}).filter(([, v]) => v !== undefined && typeof v !== 'function' && !(Array.isArray(v) && v.length > 30)));
+    const lots = [{ lot: {}, simulateur: { ...propres, enregistre_le: new Date().toISOString(), enregistre_par: user?.email || null } }];
+    Records.update('Deal', dossier.id, { lots });
+    return { deal_id: dealId, lot: { simulateur: lots[0].simulateur, index: 0 } };
+  }
   const entree = dossier.lots?.[indexLot];
   if (!entree) return { error: 'Lot introuvable' };
 

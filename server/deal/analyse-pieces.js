@@ -483,13 +483,26 @@ function documentsDe(brut) {
   return (brut.documents_espace || []).map((d) => {
     const x = etat.docs?.[d.id] || null;
     return {
-      id: d.id, nom: d.nom, url: d.url, mime: d.mime || null, ajoute_le: d.ajoute_le || null,
+      id: d.id, nom: d.nom, url: d.url, mime: d.mime || null, ajoute_le: d.ajoute_le || null, titre: nomLisible(d, x),
       type: x?.type || null, range_par: x?.par || null, extraction: x?.extraction || null,
       lus: x?.valeurs ? Object.values(x.valeurs).filter((v) => v.valeur).length : 0,
       questions: x?.questions || [],
       suggestion: x?.type ? null : suggestion(d),
     };
   });
+}
+
+/**
+ * Le nom d'une pièce à l'écran (29 oct. 2026, Jules : « je veux juste voir le nom corrigé, Bail commercial ») : le
+ * nom proposé pour le Drive, sinon le nom du fichier s'il se lit, sinon le type de la pièce ; sans extension.
+ * Un nom de scanner (« doc01657520260325093508-1.pdf ») ne se montre jamais.
+ */
+export function nomLisible(d, x) {
+  const sans = (n) => String(n || '').replace(/\.[a-z0-9]{2,5}$/i, '').trim();
+  const machine = (n) => /^(doc|scan|img|image|dsc|pxl|document|file|fichier)?[\s_-]*\d[\d_\s.-]{5,}$/i.test(sans(n)) || /^(img|dsc|pxl|scan)[\s_-]*\d{3,}/i.test(sans(n)) || !/[a-zà-ÿ]{2}/i.test(sans(n));
+  if (x?.nom_propose) return sans(x.nom_propose);
+  if (d?.nom && !machine(d.nom)) return sans(d.nom);
+  return TYPES.find((t) => t.id === x?.type)?.titre || 'Pièce';
 }
 
 /** Une grille, case par case : la valeur montrée, son état, ses sources, l'alerte de la règle. */
@@ -505,7 +518,7 @@ function lireGrille(gid, brut, docs, ctx) {
     const sources = pieces
       .map((d) => {
         const v = etat.docs?.[d.id]?.valeurs?.[c.id];
-        return v?.valeur ? { document_id: d.id, document_nom: d.nom, document_url: d.url, mime: d.mime, type: d.type, valeur: v.valeur, page: v.page, citation: v.citation, verifiee: v.verifiee ?? null, donnees: v.donnees || {} } : null;
+        return v?.valeur ? { document_id: d.id, document_nom: d.nom, document_titre: d.titre, document_url: d.url, mime: d.mime, type: d.type, valeur: v.valeur, page: v.page, citation: v.citation, verifiee: v.verifiee ?? null, donnees: v.donnees || {} } : null;
       })
       .filter(Boolean);
     const retenue = (humain?.source && sources.find((s) => s.document_id === humain.source)) || sources[0] || null;
@@ -632,7 +645,7 @@ export function lireAnalyse(dealId) {
  * Le geste de l'analyste sur une case : vérifier (la valeur montrée devient la sienne), corriger, dire
  * introuvable, retenir une pièce plutôt qu'une autre, noter, ou réinitialiser (retour à la lecture).
  */
-export function deciderCase(dealId, grilleId, critereId, { action, valeur, source, note } = {}, user) {
+export function deciderCase(dealId, grilleId, critereId, { action, valeur, source, note, main = false } = {}, user) {
   // L'onglet Bien a ses propres lignes (« bien.surface », « bien.vendeur »…) : modifiables comme les grilles.
   const grille = grilleDe(grilleId);
   const connue = grilleId === 'bien' ? /^[a-z_]{2,40}$/.test(String(critereId)) : !!grille?.criteres.some((c) => c.id === critereId);
@@ -641,48 +654,89 @@ export function deciderCase(dealId, grilleId, critereId, { action, valeur, sourc
   const signe = { par: user?.email || null, le: new Date().toISOString() };
   let erreur = null;
   const fait = majEtat(dealId, (etat) => {
-    const avant = etat.cases[cle] || {};
+    const original = etat.cases[cle];
+    const avant = original || {};
     switch (action) {
       case 'verifier': {
         const v = String(valeur ?? '').trim();
         if (!v) { erreur = 'Rien à vérifier : la case est vide.'; return false; }
-        // Valider une valeur saisie à la main la garde de côté, pour le tour suivant de l'état.
-        etat.cases[cle] = { ...avant, ...signe, statut: 'verifie', valeur: v.slice(0, 2000), valeur_main: avant.statut === 'corrige' ? avant.valeur : avant.valeur_main || null };
-        return;
+        // Une valeur saisie à la main passe en OK (`main`, 29 oct. 2026, Jules) et reste de côté pour le tour suivant
+        // de l'état ; valider la lecture garde celle d'avant.
+        etat.cases[cle] = { ...avant, ...signe, statut: 'verifie', valeur: v.slice(0, 2000), valeur_main: main ? v.slice(0, 2000) : avant.statut === 'corrige' ? avant.valeur : avant.valeur_main || null };
+        break;
       }
       case 'corriger': {
         const v = String(valeur ?? '').trim();
         if (!v) { erreur = 'La valeur corrigée est vide.'; return false; }
         etat.cases[cle] = { ...avant, ...signe, statut: 'corrige', valeur: v.slice(0, 2000) };
-        return;
+        break;
       }
       case 'introuvable':
         etat.cases[cle] = { ...avant, ...signe, statut: 'introuvable', valeur: null };
-        return;
+        break;
       case 'retenir':
         // Retenir une autre pièce rend la case à la lecture de cette pièce, non vérifiée.
         etat.cases[cle] = { note: avant.note || null, ...signe, statut: null, valeur: null, source: source || null };
-        return;
+        break;
       case 'noter': {
         const t = String(note ?? '').trim().slice(0, 2000);
         etat.cases[cle] = { ...avant, note: t || null, ...(Object.keys(avant).length ? {} : signe) };
-        return;
+        break;
       }
       case 'reinitialiser': {
         // La valeur saisie à la main reste de côté : un clic de plus sur l'état la remet (29 oct. 2026, Jules).
         const main = avant.statut === 'corrige' ? avant.valeur : avant.valeur_main || null;
         if (avant.note || main) etat.cases[cle] = { note: avant.note || null, valeur_main: main, par: avant.par, le: avant.le };
         else delete etat.cases[cle];
-        return;
+        break;
       }
       default:
         erreur = 'Geste inconnu';
         return false;
     }
+    retenirVersion(etat, cle, original, user);
   });
   if (erreur) return { ok: false, error: erreur };
   if (!fait) return { ok: false, error: 'Dossier introuvable' };
   return { ok: true };
+}
+
+// Les versions du dossier (29 oct. 2026, Jules : « retour en arrière ou en avant à la version ») : chaque geste sur
+// une case garde la case d'avant et celle d'après ; Annuler remet l'une, Rétablir l'autre. Un geste nouveau efface
+// ce qu'on pouvait rétablir. Gardées sur le dossier, partagées par l'équipe, les 200 dernières.
+const VERSIONS_MAX = 200;
+function retenirVersion(etat, cle, avant, user) {
+  const apres = etat.cases[cle] ?? null;
+  if (JSON.stringify(avant ?? null) === JSON.stringify(apres)) return;
+  etat.versions = [...(etat.versions || []), { cle, avant: avant ?? null, apres, par: user?.email || null, le: new Date().toISOString() }].slice(-VERSIONS_MAX);
+  etat.a_retablir = [];
+}
+
+function poserCase(etat, cle, contenu) {
+  if (contenu) etat.cases[cle] = contenu;
+  else delete etat.cases[cle];
+}
+
+/** Revenir d'une version (`sens` : 'annuler' ou 'retablir'). */
+export function changerDeVersion(dealId, sens) {
+  let rien = false;
+  const fait = majEtat(dealId, (etat) => {
+    const depuis = sens === 'retablir' ? (etat.a_retablir || []) : (etat.versions || []);
+    const v = depuis.at(-1);
+    if (!v) { rien = true; return false; }
+    poserCase(etat, v.cle, sens === 'retablir' ? v.apres : v.avant);
+    if (sens === 'retablir') { etat.a_retablir = depuis.slice(0, -1); etat.versions = [...(etat.versions || []), v]; }
+    else { etat.versions = depuis.slice(0, -1); etat.a_retablir = [...(etat.a_retablir || []), v]; }
+  });
+  if (rien) return { ok: false, error: sens === 'retablir' ? 'Rien à rétablir.' : 'Rien à annuler.' };
+  if (!fait) return { ok: false, error: 'Dossier introuvable' };
+  return { ok: true };
+}
+
+/** Combien de versions on peut défaire et refaire. */
+export function versionsDe(dealId) {
+  const etat = dealDe(dealId)?.analyse_pieces || {};
+  return { annuler: (etat.versions || []).length, retablir: (etat.a_retablir || []).length };
 }
 
 /** La valeur retenue d'un écart (`fiche`, `bail`, `quittances`, `kbis`), ou rien pour rouvrir. */

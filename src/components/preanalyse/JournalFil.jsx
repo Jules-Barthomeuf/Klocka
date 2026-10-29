@@ -17,7 +17,7 @@ export function Entree({ entree, temps, onEncart, actif }) {
 
   return (
     <li className="ja-entree relative flex gap-3 sm:gap-4">
-      <time className="flex-shrink-0 w-[52px] sm:w-[60px] pt-[3px] font-mono text-[11px] leading-5 text-brume tabular-nums">
+      <time className="flex-shrink-0 w-[52px] sm:w-[60px] pt-[3px] text-[11px] leading-5 text-brume tabular-nums">
         {chrono(entree.t)}
       </time>
 
@@ -37,7 +37,7 @@ export function Entree({ entree, temps, onEncart, actif }) {
             ligne. */}
         <p className="m-0 text-[13.5px] leading-6" style={{ color: c.texte }}>
           <span
-            className="font-pill text-[11px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] mr-2 rounded-[3px] border leading-[14px] inline-block align-[2px] whitespace-nowrap"
+            className="text-[11px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] mr-2 rounded-[3px] border leading-[14px] inline-block align-[2px] whitespace-nowrap"
             style={{ color: c.etiquette, borderColor: c.bord }}
           >
             {entree.source}
@@ -70,9 +70,9 @@ export function EncartDonnee({ encart, couleur, souligne, onClick }) {
         borderLeftColor: couleur.pastille,
       }}
     >
-      <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.08em] text-brume">{encart.libelle}</span>
+      <span className="block text-[11px] font-semibold uppercase tracking-[.08em] text-brume">{encart.libelle}</span>
       <span className="mt-1 flex items-baseline justify-between gap-3">
-        <span className="font-mono text-[18px] leading-tight text-encre">{encart.valeur}</span>
+        <span className="text-[18px] leading-tight text-encre">{encart.valeur}</span>
         <span className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] text-brume group-hover:text-menthe transition-colors">
           source <ExternalLink className="w-3 h-3" />
         </span>

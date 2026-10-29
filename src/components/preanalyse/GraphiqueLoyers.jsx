@@ -9,7 +9,7 @@ import { J } from "@/design/jetons";
 // dessous, et si les sources se recouvrent.
 
 const fmt = (n) => (n == null ? "—" : Math.round(n).toLocaleString("fr-FR"));
-const MONT = { fontFamily: "Montserrat, 'Instrument Sans', system-ui, sans-serif" };
+const MONT = { fontFamily: "inherit" };
 const NUM = { fontVariantNumeric: "tabular-nums" };
 
 /** L'échelle : de quarante en quarante, avec de l'air aux deux bouts. Pure. */

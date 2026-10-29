@@ -1,3 +1,4 @@
+import FlechesHistorique from "@/components/ui/fleches-historique";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -173,6 +174,8 @@ export default function Offres() {
 
   return (
     <div className="relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
+      {/* Retour et Avant (29 oct. 2026, Jules) : en haut à gauche ; une conversation ouverte les porte dans sa barre. */}
+      {!conversation && <FlechesHistorique className="absolute left-5 top-4 z-10 md:left-6" />}
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
       <div className={scinde ? `k-page-presentation k-dossier-ia relative grid h-[100dvh] overflow-hidden duration-500 ease-out animate-in fade-in-0 ${tire ? "select-none" : ""}` : ""} style={scinde ? { gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` } : undefined}>
         <div className={scinde ? "k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5" : conversation ? "px-5 md:px-8" : "px-5 py-6 md:px-10 md:py-9"}>
@@ -187,7 +190,7 @@ export default function Offres() {
               )}
               <div className={scinde ? (conversation ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5") : conversation ? "w-full" : "w-full mt-8 max-w-[660px] max-md:mt-6"}>
                 <ChatDashboard espace="offre" libelleAccueil="Toutes les offres" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse} reglages={reglagesChat}
-                  barreApercu={scinde && conversation} onTravail={setTravail} contexte={courante ? { loi_id: courante } : null} onConversationId={setConversationId} />
+                  barreApercu={scinde && conversation} onTravail={setTravail} contexte={courante ? { loi_id: courante } : null} onConversationId={setConversationId} avantRetour={<FlechesHistorique />} />
               </div>
             </header>
           </div>

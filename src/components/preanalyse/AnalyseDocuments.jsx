@@ -10,6 +10,7 @@ import LectureDossier from "./LectureDossier";
 import PenseeIA from "@/components/PenseeIA";
 import { J } from "@/design/jetons";
 import { fenetreDuPassage, motsDeLImage } from "@/lib/ocr-passage";
+import { DocumentClassique } from "@/components/preanalyse/MiniaturePiece";
 
 // L'étape Analyse : un onglet Documents (la liste cochable) puis un onglet par
 // document extrait, chacun présentant ses données extraites. Chaque ligne
@@ -109,7 +110,7 @@ function TextePage({ dealId, documentId, page, citation }) {
 // surligné »). pdf.js dessine la page et lit sa couche texte ; les morceaux de texte qui portent la citation reçoivent
 // un aplat ambre. La citation absente de la page dite est cherchée dans les autres. Un scan n'a pas de couche texte :
 // la page s'affiche, la citation reste au-dessus.
-async function pdfjs() {
+export async function pdfjs() {
   const lib = await import("pdfjs-dist");
   const { default: worker } = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
   lib.GlobalWorkerOptions.workerSrc = worker;
@@ -232,7 +233,7 @@ export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }
         </div>
       )}
       {etat.erreur ? (
-        <p className="m-0 px-4 py-6 text-center text-[12.5px] text-alerte">{etat.erreur}</p>
+        <PasAffichable />
       ) : (
         <div className="relative mx-auto" style={{ width: etat.largeur || undefined, height: etat.hauteur || undefined }}>
           <canvas ref={toile} className="block" />
@@ -263,9 +264,103 @@ export function SourceSeule({ dealId, doc, page = null, citation = null }) {
   });
   const estPdf = /pdf/i.test(local?.type || doc.mime || doc.url || "");
   if (isLoading) return <div className="grid flex-1 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>;
-  if (isError || !local) return <p className="m-0 px-6 py-10 text-center text-[12.5px] text-alerte">Le document n'a pas pu être ouvert.</p>;
+  if (isError || !local) return <PasAffichable />;
   if (estPdf) return <PagePdfSurlignee url={local.url} page={page} citation={citation} />;
+  // Une photo ou une image : l'image elle-même, jamais son texte (29 oct. 2026, Jules : « même si c'est une photo
+  // je veux voir la photo »). Le texte lu ne reste que pour ce qu'un navigateur ne sait pas montrer (Word, Excel).
+  if (/^image\//i.test(local.type || doc.mime || "") || /\.(png|jpe?g|webp|gif|bmp)$/i.test(doc.nom || doc.url || "")) return <ImageSurlignee url={local.url} citation={citation} />;
+  // Un fichier Word : mis en page par mammoth, sur une feuille blanche, le paragraphe cité surligné.
+  if (/wordprocessingml|msword/i.test(local.type || doc.mime || "") || /\.docx$/i.test(doc.nom || doc.url || "")) return <WordSurligne url={local.url} citation={citation} />;
   return <div className="flex-1 overflow-y-auto"><TextePage dealId={dealId} documentId={doc.id} page={page} citation={citation} /></div>;
+}
+
+/** Une pièce qui ne s'affiche pas : l'icône d'un document classique, au centre (29 oct. 2026, Jules). */
+function PasAffichable() {
+  return (
+    <div className="grid flex-1 place-items-center px-6 py-16">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <DocumentClassique taille={64} />
+        <p className="m-0 text-[12.5px] text-ardoise">Cette pièce ne s'affiche pas ici.</p>
+      </div>
+    </div>
+  );
+}
+
+const sansAccents = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Une pièce Word, telle qu'on la lirait : sa mise en page simple (titres, paragraphes, tableaux), le passage cité surligné. */
+function WordSurligne({ url, citation = null }) {
+  const feuille = useRef(null);
+  const [etat, setEtat] = useState({ html: null, erreur: false });
+  useEffect(() => {
+    let fini = false;
+    (async () => {
+      try {
+        const m = await import("mammoth/mammoth.browser.js");
+        const lib = m.default || m;
+        const r = await lib.convertToHtml({ arrayBuffer: await (await fetch(url)).arrayBuffer() });
+        if (!fini) setEtat({ html: r.value, erreur: false });
+      } catch {
+        if (!fini) setEtat({ html: null, erreur: true });
+      }
+    })();
+    return () => { fini = true; };
+  }, [url]);
+  useEffect(() => {
+    const el = feuille.current;
+    if (!el || !etat.html || !citation) return;
+    const debut = sansAccents(citation).slice(0, 48);
+    const bloc = [...el.querySelectorAll("p, li, td, h1, h2, h3")].find((b) => sansAccents(b.textContent).includes(debut));
+    if (bloc) { bloc.classList.add("k-passage-cite"); bloc.scrollIntoView({ block: "center" }); }
+  }, [etat.html, citation]);
+  if (etat.erreur) return <PasAffichable />;
+  if (!etat.html) return <div className="grid flex-1 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>;
+  return (
+    <div className="flex-1 overflow-y-auto bg-fond p-4">
+      {/* La feuille reste blanche et son texte noir quel que soit le thème : c'est la pièce, pas l'interface. */}
+      <div ref={feuille} className="k-feuille-word mx-auto max-w-[720px] rounded-[4px] bg-white px-10 py-12 text-[13.5px] leading-[1.6] text-black shadow-[0_8px_30px_rgb(0_0_0/0.3)] max-md:px-5" dangerouslySetInnerHTML={{ __html: etat.html }} />
+    </div>
+  );
+}
+
+/** Une pièce en image, le passage cité surligné dessus par l'OCR, comme sur un scan. */
+function ImageSurlignee({ url, citation = null }) {
+  const image = useRef(null);
+  const [marques, setMarques] = useState([]);
+  const [lecture, setLecture] = useState(false);
+  const [erreur, setErreur] = useState(false);
+  const premiere = useRef(null);
+  const chargee = async () => {
+    const el = image.current;
+    if (!el || !citation) return;
+    setLecture(true);
+    try {
+      const k0 = Math.min(1, 2000 / el.naturalWidth);
+      const c = document.createElement("canvas");
+      c.width = Math.round(el.naturalWidth * k0);
+      c.height = Math.round(el.naturalHeight * k0);
+      c.getContext("2d").drawImage(el, 0, 0, c.width, c.height);
+      const mots = await motsDeLImage(url, c);
+      const f = fenetreDuPassage(mots, citation);
+      const k = el.clientWidth / c.width;
+      setMarques(f ? mots.slice(f[0], f[1] + 1).map((m) => ({ left: m.bbox.x0 * k, top: m.bbox.y0 * k - 1, width: (m.bbox.x1 - m.bbox.x0) * k, height: (m.bbox.y1 - m.bbox.y0) * k + 2 })) : []);
+    } catch { /* l'image reste, sans surlignage */ }
+    setLecture(false);
+  };
+  useEffect(() => { premiere.current?.scrollIntoView({ block: "center" }); }, [marques]);
+  if (erreur) return <PasAffichable />;
+  return (
+    <div className="flex-1 overflow-y-auto bg-fond">
+      <div className="relative mx-auto w-full">
+        <img ref={image} src={url} alt="" onLoad={chargee} onError={() => setErreur(true)} className="block h-auto w-full" draggable={false} />
+        {marques.map((m, i) => (
+          <span key={i} ref={i === 0 ? premiere : undefined} className="pointer-events-none absolute rounded-[2px] bg-ambre/40 mix-blend-multiply ring-1 ring-ambre/60"
+            style={{ left: m.left, top: m.top, width: m.width, height: m.height }} />
+        ))}
+        {lecture && <span className="absolute bottom-3 left-3 grid h-8 w-8 place-items-center rounded-full bg-surface-pleine/90 shadow-[0_6px_18px_rgb(0_0_0/0.18)]" title="Lecture de l'image pour retrouver le passage"><Loader2 className="h-4 w-4 animate-spin text-ambre" /></span>}
+      </div>
+    </div>
+  );
 }
 
 export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteur = null }) {

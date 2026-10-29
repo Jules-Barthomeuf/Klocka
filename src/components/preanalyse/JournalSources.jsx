@@ -30,7 +30,7 @@ export function Recoupement({ recoupement }) {
   return (
     <div className="rounded-[14px] border px-[22px] py-5" style={{ borderColor: alerte ? "rgba(224,164,94,0.35)" : "rgba(255,255,255,0.08)", background: alerte ? "rgba(224,164,94,0.04)" : "transparent" }}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="alx-mont text-[11px] font-medium uppercase tracking-[.14em]" style={{ color: teinte }}>
+        <span className="text-[11px] font-medium uppercase tracking-[.14em]" style={{ color: teinte }}>
           {alerte ? "Écart entre les sources" : "Les sources concordent"}
         </span>
         {ecart != null && (

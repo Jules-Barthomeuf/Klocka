@@ -1299,3 +1299,10 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* Le K de Klocka dans l animation de chargement : le fut suit la couleur du texte du theme (blanc sur fond sombre). */
 .loader-logo-k .logo-klocka-noir { fill: currentColor; }
 .loader-logo-k .logo-klocka-menthe { fill: rgb(var(--k-menthe-rgb)); }
+
+/* Une pièce Word dans le panneau de la source (29 oct. 2026, Jules) : une feuille, pas l'interface. */
+.k-feuille-word p, .k-feuille-word li { margin: 0 0 .6em; }
+.k-feuille-word h1, .k-feuille-word h2, .k-feuille-word h3 { margin: 1em 0 .5em; font-weight: 600; }
+.k-feuille-word table { border-collapse: collapse; margin: .6em 0; }
+.k-feuille-word td, .k-feuille-word th { border: 1px solid rgb(0 0 0 / .2); padding: 4px 8px; vertical-align: top; }
+.k-feuille-word .k-passage-cite { background: rgb(var(--k-ambre-rgb) / .35); box-shadow: 0 0 0 3px rgb(var(--k-ambre-rgb) / .35); border-radius: 2px; }

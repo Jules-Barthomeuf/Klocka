@@ -16,7 +16,7 @@ import { nomDossierDrive } from '../deal/nom-drive.js';
 import { creerProjetDepuisDeal, completerAvantProjet } from '../deal/projet.js';
 import fs from 'fs';
 import path from 'path';
-import { UPLOAD_DIR, compteAutorise, currentUser, ok, upload, wrap } from '../contexte.js';
+import { UPLOAD_DIR, compteAutorise, currentUser, ok, upload, uploadVideo, wrap } from '../contexte.js';
 
 /** Monte les routes « preanalyse » sur l'application. */
 export function monterPreanalyse(app) {
@@ -1145,6 +1145,35 @@ export function monterPreanalyse(app) {
   app.get('/api/preanalyse/dossiers/:dealId/lots/:index/video', wrap(async (req, res) => {
     const { statutVideo } = await import('../video/index.js');
     ok(res, statutVideo(req.params.dealId, Number(req.params.index)));
+  }));
+
+  // La vidéo filmée du dossier (29 oct. 2026, Jules : « on peut importer la vidéo filmée directe pour l'envoyer aux
+  // clients ») : une par dossier, la nouvelle remplace l'ancienne, son fichier compris.
+  const fichierDe = (url) => (url && url.startsWith('/uploads/') ? path.join(UPLOAD_DIR, path.basename(url)) : null);
+  const retirerFichier = (url) => { const f = fichierDe(url); if (f) fs.promises.unlink(f).catch(() => {}); };
+  app.get('/api/preanalyse/dossiers/:dealId/video-filmee', wrap((req, res) => {
+    const d = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
+    ok(res, { video: d.video_filmee || null });
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/video-filmee', (req, res, next) => uploadVideo.single('video')(req, res, (e) => {
+    if (e) return res.status(400).json({ error: e.code === 'LIMIT_FILE_SIZE' ? 'La vidéo dépasse 500 Mo.' : 'La vidéo n\'a pas pu être reçue.' });
+    next();
+  }), wrap((req, res) => {
+    const d = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!req.file) return res.status(400).json({ error: 'Choisissez une vidéo (MP4, MOV).' });
+    if (!d) { fs.promises.unlink(req.file.path).catch(() => {}); return res.status(404).json({ error: 'Dossier introuvable' }); }
+    const video = { url: `/uploads/${req.file.filename}`, nom: req.file.originalname, mime: req.file.mimetype, taille: req.file.size, par: currentUser(req)?.email || null, le: new Date().toISOString() };
+    retirerFichier(d.video_filmee?.url);
+    Records.update('Deal', d.id, { video_filmee: video });
+    ok(res, { video });
+  }));
+  app.delete('/api/preanalyse/dossiers/:dealId/video-filmee', wrap((req, res) => {
+    const d = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
+    retirerFichier(d.video_filmee?.url);
+    Records.update('Deal', d.id, { video_filmee: null });
+    ok(res, { video: null });
   }));
 
   // Changement de statut manuel (décision sans mail, réception de documents…).

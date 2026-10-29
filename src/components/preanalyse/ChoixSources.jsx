@@ -71,7 +71,7 @@ export default function ChoixSources({ onLancer, apercu = false, libelle = "Mett
           className="absolute top-[calc(100%+8px)] right-0 z-40 w-[min(340px,calc(100vw-40px))] rounded-[14px] border border-bord-doux bg-surface shadow-[0_18px_50px_rgba(0,0,0,.55)] py-2"
         >
           <div className="flex items-baseline justify-between gap-2 px-3 pt-1 pb-2">
-            <span className="font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-menthe">Ce qu’on relit</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[.1em] text-menthe">Ce qu’on relit</span>
             <button
               type="button"
               onClick={() => setCochees(toutes ? [] : SOURCES.map((s) => s.cle))}

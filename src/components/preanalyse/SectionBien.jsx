@@ -41,7 +41,7 @@ const LIBELLES_FICHE = {
   locataire_activite: "Activité",
 };
 
-const Kicker = ({ children }) => <p className="font-pill m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">{children}</p>;
+const Kicker = ({ children }) => <p className="m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">{children}</p>;
 
 // Une ligne du bien : le libellé, la valeur, et à droite d'où elle vient.
 // Trois colonnes fixes, pour que les valeurs s'alignent d'une partie à l'autre.
@@ -111,7 +111,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
           className="group flex w-full items-center gap-3 pb-2.5 pt-3.5 text-left"
           style={{ background: "transparent" }}
         >
-          <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">{p.titre}</span>
+          <span className="text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">{p.titre}</span>
           {!apercu && (nbPieces > 0 || p.lieu) && (
             <span className="text-[12px] text-brume">{p.lieu ? "le lieu" : `${nbPieces} pièce${nbPieces > 1 ? "s" : ""}`}</span>
           )}

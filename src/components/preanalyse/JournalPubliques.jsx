@@ -18,7 +18,7 @@ export function SecondPointDeVue({ comparaison, ecart }) {
   return (
     <div className="rounded-[14px] border border-trait px-[22px] py-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="alx-mont text-[11px] font-medium uppercase tracking-[.14em] text-menthe">Ce qui s'est vendu autour · DVF</span>
+        <span className="text-[11px] font-medium uppercase tracking-[.14em] text-menthe">Ce qui s'est vendu autour · DVF</span>
         <span className="text-[13.5px] font-medium tabular-nums text-encre">
           {fmt(comparaison.prix_m2)} €/m² · {comparaison.n} vente{comparaison.n > 1 ? "s" : ""} dans {fmt(comparaison.rayon)} m
           {comparaison.periode ? ` · ${String(comparaison.periode.du).slice(0, 4)}–${String(comparaison.periode.au).slice(0, 4)}` : ""}
@@ -134,7 +134,7 @@ export function OngletBodacc({ vitalite }) {
               return (
                 <>
                   <span className="w-[66px] flex-shrink-0 text-[12.5px] tabular-nums text-ardoise">{jour(e.date)}</span>
-                  <span className="alx-mont w-[80px] flex-shrink-0 text-[11px] font-medium uppercase tracking-[.1em]" style={{ color: teinte }}>{e.famille === "collective" ? "procédure" : e.famille}</span>
+                  <span className="w-[80px] flex-shrink-0 text-[11px] font-medium uppercase tracking-[.1em]" style={{ color: teinte }}>{e.famille === "collective" ? "procédure" : e.famille}</span>
                   <span className="w-[64px] flex-shrink-0 truncate whitespace-nowrap text-[12.5px] text-ardoise" title={e.numero || ""}>n° {e.numero || "?"}</span>
                   <span className="min-w-0 flex-1 truncate text-[13.5px] text-craie" title={e.activite || ""}>
                     {e.commercant || "—"}

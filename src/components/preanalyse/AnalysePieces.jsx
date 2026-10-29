@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
-import { RefreshCw, X } from "lucide-react";
-import { useAuthPeutEtre } from "@/lib/AuthContext";
+import { ChevronLeft, ChevronRight, RefreshCw, X } from "lucide-react";
+import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
+import TexteEnPlace from "@/components/ui/texte-en-place";
+import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
 import { SourceSeule, Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
 
 // L'analyse pièce par pièce (29 oct. 2026, Jules) : les pièces se déposent dans la Data Room, une zone par
@@ -31,9 +33,50 @@ export function useGeste(dealId) {
   return useMutation({
     mutationFn: ({ chemin, corps, form }) =>
       base44.request("POST", `/api/preanalyse/dossiers/${dealId}/analyse-pieces/${chemin}`, form ? { body: form, isForm: true } : { body: corps || {} }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: cle(dealId) }); queryClient.invalidateQueries({ queryKey: ["bien-analyse", dealId] }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: cle(dealId) });
+      queryClient.invalidateQueries({ queryKey: ["bien-analyse", dealId] });
+      queryClient.invalidateQueries({ queryKey: ["versions-dossier", dealId] });
+    },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+}
+
+/**
+ * Retour et Avant d'un dossier (29 oct. 2026, Jules) : à droite de « Tous les dossiers », ils défont et refont les
+ * versions du dossier (chaque geste sur une case du tableau), comme Annuler et Rétablir ; ⌘Z et ⇧⌘Z aussi.
+ */
+export function FlechesVersions({ dealId }) {
+  const q = useQuery({
+    queryKey: ["versions-dossier", dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/analyse-pieces/versions`),
+    enabled: !!dealId,
+  });
+  const geste = useGeste(dealId);
+  const n = q.data || { annuler: 0, retablir: 0 };
+  const changer = (sens) => { if (!geste.isPending && n[sens]) geste.mutate({ chemin: `versions/${sens}` }); };
+  useEffect(() => {
+    const touche = (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      const cible = e.target;
+      if (cible?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(cible?.tagName)) return;
+      e.preventDefault();
+      changer(e.shiftKey ? "retablir" : "annuler");
+    };
+    window.addEventListener("keydown", touche);
+    return () => window.removeEventListener("keydown", touche);
+  });
+  const rond = "grid h-8 w-8 place-items-center rounded-full border border-trait text-ardoise transition-colors hover:border-bord-doux hover:text-encre disabled:pointer-events-none disabled:opacity-35";
+  return (
+    <div className="flex flex-none items-center gap-1.5">
+      <button type="button" onClick={() => changer("annuler")} disabled={!n.annuler || geste.isPending} aria-label="Version précédente" title="Version précédente (⌘Z)" className={rond} style={{ background: "transparent" }}>
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <button type="button" onClick={() => changer("retablir")} disabled={!n.retablir || geste.isPending} aria-label="Version suivante" title="Version suivante (⇧⌘Z)" className={rond} style={{ background: "transparent" }}>
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
 }
 
 // --- Une case modifiable et son état à trois choix (29 oct. 2026, Jules : « tout dans le tableau doit être modifiable ;
@@ -41,48 +84,33 @@ export function useGeste(dealId) {
 // l'onglet Bien (TableauBienAnalyse.jsx).
 export const prenom = (email) => { const t = String(email || "").split("@")[0].split(/[._-]/)[0]; return t ? t[0].toUpperCase() + t.slice(1) : "l'équipe"; };
 
-/** La valeur d'une case : un clic l'ouvre en saisie ; Entrée enregistre, Maj+Entrée va à la ligne, Échap annule. */
+/** La valeur d'une case : on écrit directement dedans (29 oct. 2026, Jules), Entrée ou quitter la case enregistre. */
 export function ValeurModifiable({ valeur, vide = "Non trouvé", onEnregistrer, occupe = false, apres = null }) {
-  const [texte, setTexte] = useState(null);
-  const enregistrer = () => { const t = (texte || "").trim(); setTexte(null); if (t && t !== String(valeur || "").trim()) onEnregistrer(t); };
-  if (texte != null) {
-    return (
-      <div onClick={(e) => e.stopPropagation()}>
-        <textarea autoFocus value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={enregistrer} rows={Math.min(6, Math.max(2, texte.split("\n").length))}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enregistrer(); } if (e.key === "Escape") setTexte(null); }}
-          className="w-full resize-y rounded-[10px] border border-menthe bg-surface px-3 py-2 text-[14px] leading-[1.5] text-encre outline-none max-md:text-[16px]" />
-      </div>
-    );
-  }
   return (
     <div className="min-w-0">
-      <button type="button" disabled={occupe} onClick={(e) => { e.stopPropagation(); setTexte(valeur || ""); }} title="Cliquer pour modifier"
-        className="-mx-1.5 -my-1 block w-[calc(100%+12px)] rounded-[8px] px-1.5 py-1 text-left transition-colors hover:bg-encre/[0.05]" style={{ background: "transparent" }}>
-        {valeur ? <span className="block whitespace-pre-line text-[14.5px] leading-[1.5] text-encre">{valeur}</span> : <span className="text-[14.5px] text-ardoise">{vide}</span>}
-      </button>
+      <TexteEnPlace valeur={valeur || ""} placeholder={vide} onEnregistrer={(t) => { if (t) onEnregistrer(t); }}
+        className="whitespace-pre-line text-[14.5px] leading-[1.5] text-encre placeholder:text-encre max-md:text-[16px]" />
       {apres}
     </div>
   );
 }
 
 /**
- * L'état d'une case : un clic le fait tourner, sans menu (29 oct. 2026, Jules) : Lu par l'IA, puis Modifié par, puis
- * OK, puis Lu par l'IA. Toute la case prend la couleur : grise lue par l'IA, jaune modifiée, verte OK (jetons fixes
- * `vert` et `jaune`, qui ne suivent pas l'accent choisi dans Compte). Une case sans valeur ne tourne pas.
- * `defaut` : le mot et la teinte d'une case sans valeur (Non trouvé, Pièce absente).
+ * L'état d'une case, deux seulement (29 oct. 2026, Jules) : grise « Lu par l'IA », verte « OK ». Une valeur modifiée
+ * passe en OK ; un clic sur la case fait passer de l'un à l'autre, sans menu. Toute la case prend la couleur (jeton
+ * fixe `vert`, qui ne suit pas l'accent choisi dans Compte). Une case sans valeur ne tourne pas ; une case « corrigée »
+ * d'avant se lit OK. `defaut` : le mot et la teinte d'une case sans valeur (Non trouvé, Pièce absente).
  */
-export const SUIVANT = { ia: "corrige", corrige: "verifie", verifie: "ia" };
+export const SUIVANT = { ia: "verifie", corrige: "ia", verifie: "ia" };
 export function EtatTrois({ etat, par, valeur, defaut, onChoix, occupe = false }) {
-  const auth = useAuthPeutEtre();
   const tourne = ["ia", "corrige", "verifie"].includes(etat) && !!valeur;
-  const [mot, classe] = etat === "corrige" ? [`Modifié par ${prenom(par || auth?.user?.email)}`, "bg-jaune/15 text-jaune"]
-    : etat === "verifie" ? ["OK", "bg-vert/15 text-vert"]
-    : etat === "ia" ? ["Lu par l'IA", "bg-rail-actif text-craie"]
+  const [mot, classe] = etat === "verifie" || etat === "corrige" ? ["OK", "bg-vert/15 text-vert"]
+    : etat === "ia" ? ["Lu par l'IA", "bg-rail-actif text-encre"]
     : [defaut[0], String(defaut[1] || "").split(" ").filter((c) => !c.startsWith("bg-")).join(" ")];
   const suivant = () => { if (tourne && !occupe) onChoix(SUIVANT[etat]); };
   return (
     <div role={tourne ? "button" : undefined} tabIndex={tourne ? 0 : undefined} aria-disabled={occupe || undefined}
-      title={tourne ? `Cliquer : ${{ corrige: "Modifié par", verifie: "OK", ia: "Lu par l'IA" }[SUIVANT[etat]]}` : undefined}
+      title={tourne ? `Cliquer : ${SUIVANT[etat] === "ia" ? "Lu par l'IA" : "OK"}` : undefined}
       onClick={(e) => { e.stopPropagation(); suivant(); }}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); suivant(); } }}
       className={`select-none text-[13px] transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 ${tourne ? "cursor-pointer hover:brightness-110" : ""} ${occupe ? "opacity-70" : ""} ${classe}`}>
@@ -92,33 +120,70 @@ export function EtatTrois({ etat, par, valeur, defaut, onChoix, occupe = false }
 }
 
 /** Le geste d'un choix d'état ou d'une saisie, en appel à la case. */
-export const corpsDuChoix = (id, valeur, valeurMain = null) => (id === "ia" ? { action: "reinitialiser" } : id === "corrige" ? { action: "corriger", valeur: valeurMain || valeur } : { action: "verifier", valeur });
+// Revenir à OK remet la valeur saisie à la main s'il y en a une ; modifier une valeur la met en OK (`main`).
+export const corpsDuChoix = (id, valeur, valeurMain = null) => (id === "ia" ? { action: "reinitialiser" } : { action: "verifier", valeur: valeurMain || valeur });
+export const corpsDeLaSaisie = (valeur) => ({ action: "verifier", valeur, main: true });
 
 const date = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
 const qui = (email) => (email ? email.split("@")[0] : "l'équipe");
 
 // --- Les grilles d'un onglet ------------------------------------------------------------------------------
 const ETAT = {
-  ia: ["Lu par l'IA", "bg-rail-actif text-craie", true],
+  ia: ["Lu par l'IA", "bg-rail-actif text-encre", true],
   verifie: ["Vérifiée", "text-menthe", false],
   corrige: ["Corrigée", "text-menthe", false],
-  introuvable: ["Introuvable", "text-brume", false],
-  manquant: ["Pièce absente", "text-brume", false],
-  lecture: ["Lecture…", "text-brume", false],
-  non_lu: ["Pas encore lue", "text-brume", false],
+  introuvable: ["Introuvable", "text-encre", false],
+  manquant: ["Pièce absente", "text-encre", false],
+  lecture: ["Lecture…", "text-encre", false],
+  non_lu: ["Pas encore lue", "text-encre", false],
 };
-const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.2fr)_120px]";
+// La colonne Notes, en dernier (29 oct. 2026, Jules : « une nouvelle colonne dans les tableaux », pas un onglet).
+const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.2fr)_120px_minmax(0,1.2fr)]";
 // Des traits verticaux entre les colonnes (29 oct. 2026, Jules) ; au téléphone, une colonne, sans trait.
 // Le remplissage est dans les cellules, pas dans la ligne : les traits courent d'une ligne à l'autre sans coupure.
-const CELLULES = "px-2 max-lg:gap-y-1.5 lg:border-l lg:border-trait lg:px-0 lg:py-0 lg:divide-x lg:divide-trait lg:[&>*]:px-4";
+// Des traits un peu plus marqués que le filet courant (29 oct. 2026, Jules) : `bord-doux`.
+const CELLULES = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-bord-doux lg:[&>*]:px-4";
 // La source se nomme par sa pièce, pas par son fichier (« Bail p. 4 », pas « doc0165…pdf »).
 const TYPE_COURT = { bail: "Bail", avenants: "Avenant", quittances: "Quittance", pv_ag: "PV d'AG", rcp: "Règlement", diagnostics: "Diagnostic", taxe_fonciere: "Taxe foncière", kbis: "Kbis" };
+
+/**
+ * Les sources d'une case (29 oct. 2026, Jules) : la vraie vignette de chaque pièce, toujours à la même taille, et le
+ * nom de celle de devant à sa droite avec la page (« Bail commercial · page 4 »). Plusieurs sources s'empilent l'une
+ * derrière l'autre ; survoler une vignette la met devant et montre son nom. Un clic ouvre la page et son passage.
+ */
+const VIGNETTE = 40;
+const DECALAGE = 12;
+function SourcesEmpilees({ sources, retenue, onOuvrir }) {
+  const depart = Math.max(0, sources.findIndex((s) => s.document_id === retenue));
+  const [devant, setDevant] = useState(depart);
+  useEffect(() => { setDevant(depart); }, [depart, sources.length]);
+  if (!sources.length) return <div />;
+  const s = sources[Math.min(devant, sources.length - 1)];
+  const titre = s.document_titre || TYPE_COURT[s.type] || "Pièce";
+  return (
+    <div className="flex min-w-0 items-center gap-3" onMouseLeave={() => setDevant(depart)}>
+      <div className="relative flex-none" style={{ width: VIGNETTE + DECALAGE * (sources.length - 1), height: Math.round(VIGNETTE * 1.3) + 4 * (sources.length - 1) }}>
+        {sources.map((x, i) => (
+          <button key={x.document_id} type="button" onMouseEnter={() => setDevant(i)} onFocus={() => setDevant(i)}
+            onClick={(ev) => { ev.stopPropagation(); onOuvrir(x); }} aria-label={`Ouvrir ${x.document_titre || "la pièce"}${x.page ? `, page ${x.page}` : ""}`}
+            className="absolute top-0 transition-transform duration-150 hover:-translate-y-0.5" style={{ left: i * DECALAGE, top: i * 4, zIndex: i === devant ? 10 : sources.length - i, background: "transparent" }}>
+            <MiniaturePiece url={x.document_url} largeur={VIGNETTE} className={x.verifiee === false ? "ring-1 ring-ambre" : ""} />
+          </button>
+        ))}
+      </div>
+      <button type="button" onClick={(ev) => { ev.stopPropagation(); onOuvrir(s); }} className="min-w-0 text-left text-[13px] leading-[1.35] text-encre hover:opacity-80" style={{ background: "transparent" }}>
+        <span className="line-clamp-2">{titre}{s.page ? <span className="text-craie"> · page {s.page}</span> : null}</span>
+      </button>
+    </div>
+  );
+}
 
 export function GrillesPieces({ dossier, onglet, apercu = false }) {
   const dealId = dossier?.deal_id;
   const { data, isLoading, isError } = useAnalysePieces(dealId, { enabled: !apercu });
   const geste = useGeste(dealId);
   const [ouverte, setOuverte] = useState(null);
+  const notes = useNotesTableaux(dealId);
 
   if (apercu) return <p className="m-0 py-8 text-[13.5px] text-brume">Les grilles se lisent sur un vrai dossier.</p>;
   if (isLoading) return <Chargement titre="Les grilles" etats={["Les pièces rangées", "Les valeurs relevées", "Les écarts"]} />;
@@ -141,41 +206,37 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
     <div className="space-y-8">
       {grilles.map((g) => (
         <section key={g.id}>
-          <div className="flex flex-wrap items-baseline gap-x-3 px-2 pb-2">
-            <p className="m-0 text-[15px] text-encre">{g.titre}</p>
-            {!g.pieces.length && <p className="m-0 text-[12.5px] text-brume">Aucune pièce : déposez-la dans la Data Room.</p>}
+          {/* Le nom de la grille au centre et au pas « intertitre » (29 oct. 2026, Jules : « on ne voit pas assez »). */}
+          <div className="flex flex-col items-center gap-1 px-2 pb-4 text-center">
+            <p className="m-0 text-[20px] leading-[1.2] tracking-[-0.01em] text-encre">{g.titre}</p>
+            {!g.pieces.length && <p className="m-0 text-[12.5px] text-encre">Aucune pièce : déposez-la dans la Data Room.</p>}
           </div>
           {/* Tout le tableau a ses lignes (29 oct. 2026, Jules) : le cadre ferme à droite et en bas. */}
-          <div className="lg:border-b lg:border-r lg:border-trait">
-          <div className={`grid ${COLONNES} ${CELLULES} border-t border-trait py-3 text-[13px] text-ardoise max-lg:hidden lg:[&>*]:py-3`}>
-            <span>Ligne</span><span>Ce qu'on y lit</span><span>Source</span><span>État</span>
+          <div className="overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux">
+          <div className={`grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3 lg:border-t-0 text-[13px] text-craie max-lg:hidden lg:[&>*]:py-3`}>
+            <span /><span>Ce qu'on y lit</span><span>Source</span><span>État</span><span>Notes</span>
           </div>
           {g.lignes.map((l) => {
             const [mot, classe, puce] = ETAT[l.statut] || ETAT.introuvable;
             const choisie = ouverte?.case?.grille === g.id && ouverte?.case?.id === l.id;
             return (
               <div key={l.id}
-                className={`grid ${COLONNES} ${CELLULES} border-t border-trait py-3.5 transition-colors lg:[&>*]:py-3.5 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 ${choisie ? "bg-menthe/[0.06]" : ""}`}>
+                className={`group/ligne grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3.5 transition-colors lg:[&>*]:py-3.5 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 ${choisie ? "bg-menthe/[0.06]" : ""}`}>
                 {/* Le libellé ouvre la source ; la valeur se modifie ; l'état se choisit (29 oct. 2026, Jules). */}
                 <button type="button" onClick={() => ouvrirCase(g, l)} title={l.sources.length ? "Voir la source" : l.regle} className="m-0 text-left text-[14.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l.libelle}</button>
                 <ValeurModifiable valeur={l.valeur} occupe={geste.isPending}
                   vide={l.statut === "manquant" ? "Pas encore de pièce" : l.statut === "lecture" ? "En cours de lecture" : l.statut === "non_lu" ? "Pièce pas encore lue" : "Non trouvé dans les pièces"}
-                  onEnregistrer={(t) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: { action: "corriger", valeur: t } })}
+                  onEnregistrer={(t) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: corpsDeLaSaisie(t) })}
                   apres={<>
                     {l.alerte && l.statut !== "corrige" && <p className="m-0 mt-0.5 text-[13px] leading-[1.45] text-ambre">{l.alerte.motif}</p>}
                     {l.a_choisir && <p className="m-0 mt-0.5 text-[13px] text-ambre">Les pièces ne disent pas la même chose : choisissez celle à retenir.</p>}
                     {l.relue && <p className="m-0 mt-0.5 text-[12.5px] text-ambre">La relecture lit autre chose : « {String(l.relue).slice(0, 80)} ».</p>}
                   </>} />
-                <div className="flex flex-wrap content-start gap-1.5">
-                  {l.sources.slice(0, 3).map((s) => (
-                    <button key={s.document_id} type="button" onClick={(ev) => { ev.stopPropagation(); setOuverte({ seul: true, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation }); }} title={s.citation || undefined}
-                      className={`inline-flex h-7 max-w-full items-center truncate rounded-full border px-2.5 text-[12.5px] transition-colors hover:text-encre ${s.verifiee === false ? "border-ambre/40 text-ambre" : "border-trait text-craie hover:border-bord-vif"} ${l.sources.length > 1 && s.document_id === l.retenue ? "border-menthe" : ""}`} style={{ background: "transparent" }}>
-                      {TYPE_COURT[s.type] || court(s.document_nom)}{s.page ? ` p. ${s.page}` : ""}
-                    </button>
-                  ))}
-                </div>
+                <SourcesEmpilees sources={l.sources.slice(0, 3)} retenue={l.retenue}
+                  onOuvrir={(s) => setOuverte({ seul: true, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation })} />
                 <EtatTrois etat={l.statut} par={l.par} valeur={l.valeur} defaut={[mot, classe, puce]} occupe={geste.isPending}
                   onChoix={(id) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: corpsDuChoix(id, l.valeur, l.valeur_main) })} />
+                <div className="min-w-0"><NoteCellule dealId={dealId} tableau={`pieces-${g.id}`} ligne={l.id} note={notes[`pieces-${g.id}.${l.id}`]} /></div>
               </div>
             );
           })}
@@ -187,7 +248,6 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
   );
 }
 
-const court = (nom) => String(nom || "Pièce").replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 24);
 function docDe(data, id) {
   const d = [...data.a_ranger, ...data.emplacements.flatMap((e) => e.documents)].find((x) => x.id === id);
   return d ? { id: d.id, nom: d.nom, url: d.url, mime: d.mime } : null;
@@ -195,16 +255,21 @@ function docDe(data, id) {
 
 // --- Le panneau de droite : la case, la pièce surlignée, une question libre ---------------------------------
 function PanneauPiece({ dealId, ouverte, caseOuverte = null, onChange, onFermer }) {
+  // Échap ferme, et un clic ailleurs dans la page aussi (29 oct. 2026, Jules) ; un clic sur une autre source
+  // ferme celle-ci et ouvre l'autre.
+  const zone = useRef(null);
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape") onFermer(); };
+    const ailleurs = (e) => { if (zone.current && !zone.current.contains(e.target) && !e.target.closest?.("[role=dialog], [data-sonner-toaster]")) onFermer(); };
     window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
+    document.addEventListener("pointerdown", ailleurs);
+    return () => { window.removeEventListener("keydown", k); document.removeEventListener("pointerdown", ailleurs); };
   }, [onFermer]);
   const doc = ouverte.doc;
   // Un clic sur une source : la page et son passage surligné, rien d'autre (29 oct. 2026, Jules).
   if (ouverte.seul && doc) {
     return createPortal(
-      <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col border-l border-bord bg-fond shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[760px]">
+      <div ref={zone} className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col border-l border-bord bg-fond shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[760px]">
         <button type="button" onClick={onFermer} className="absolute right-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-full bg-surface-pleine/90 text-ardoise shadow-[0_6px_18px_rgb(0_0_0/0.18)] hover:text-encre max-md:top-[max(12px,env(safe-area-inset-top))]" aria-label="Fermer" title="Fermer (Échap)"><X className="h-4 w-4" /></button>
         <SourceSeule dealId={dealId} doc={doc} page={ouverte.page} citation={ouverte.citation} />
       </div>,
@@ -212,7 +277,7 @@ function PanneauPiece({ dealId, ouverte, caseOuverte = null, onChange, onFermer 
     );
   }
   return createPortal(
-    <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col gap-3 overflow-y-auto overscroll-contain border-l border-bord bg-fond p-4 shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[760px] max-md:p-3 max-md:pt-[max(12px,env(safe-area-inset-top))]">
+    <div ref={zone} className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col gap-3 overflow-y-auto overscroll-contain border-l border-bord bg-fond p-4 shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[760px] max-md:p-3 max-md:pt-[max(12px,env(safe-area-inset-top))]">
       {caseOuverte && ouverte.case && <EditeurCase dealId={dealId} grille={ouverte.case} l={caseOuverte} docOuvert={doc?.id} onSource={(s) => onChange({ ...ouverte, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation })} onFermer={onFermer} />}
       {doc ? (
         <>

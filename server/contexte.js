@@ -120,6 +120,18 @@ export const upload = multer({
   limits: { fileSize: TAILLE_MAX_FICHIER, files: 20 },
 });
 
+// La vidéo filmée d'un dossier (29 oct. 2026, Jules) : un seul fichier, une vidéo, 500 Mo au plus (quelques minutes
+// filmées au téléphone). Elle remplace la précédente : le disque n'en garde qu'une par dossier.
+export const TAILLE_MAX_VIDEO = 500 * 1024 * 1024;
+export const uploadVideo = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`),
+  }),
+  limits: { fileSize: TAILLE_MAX_VIDEO, files: 1 },
+  fileFilter: (req, file, cb) => cb(null, /^video\//.test(file.mimetype) || /\.(mp4|mov|m4v|webm)$/i.test(file.originalname)),
+});
+
 /**
  * Un utilisateur ne relève que les boîtes qu'il a lui-même connectées.
  * Partagé par les routes de la boîte de réception, des dossiers et de

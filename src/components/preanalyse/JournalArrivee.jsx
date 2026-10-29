@@ -72,7 +72,7 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
           <span
             key={c.cle}
             title={c.libelle}
-            className="inline-flex items-center rounded-full border border-bord-doux bg-surface px-3 py-1 font-pill text-[11px] font-medium uppercase tracking-[.04em] text-craie"
+            className="inline-flex items-center rounded-full border border-bord-doux bg-surface px-3 py-1 text-[11px] font-medium uppercase tracking-[.04em] text-craie"
           >
             {c.valeur}
           </span>
@@ -159,7 +159,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
     <div className="pb-9 pt-[6px]">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <span className="text-[18px] font-medium tracking-[-.01em] text-encre">Analyse du {analyse.le}</span>
-        <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe hover:bg-menthe-clair disabled:opacity-30 transition-colors" />
+        <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="inline-flex items-center gap-2 rounded-full bg-menthe px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe hover:bg-menthe-clair disabled:opacity-30 transition-colors" />
       </div>
 
       <Onglets items={ONGLETS} valeur={onglet} onChange={setOnglet} className="mt-6" />
@@ -181,7 +181,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-bord"} ${i % 2 ? "max-md:border-r-0 max-md:pr-0" : "max-md:pl-0"}`}
                   style={{ background: "transparent" }}
                 >
-                  <span className="alx-mont flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">
                     {c.libelle}
                     <InfoBulle texte={c.detail} />
                   </span>

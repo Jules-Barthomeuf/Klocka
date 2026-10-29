@@ -12,7 +12,7 @@ import { Mono, Section } from "./CadreEtapes";
 const TEINTE = { ok: "text-vert", ko: "text-alerte", a_verifier: "text-ambre", inconnu: "text-brume", action: "text-ambre", absent: "text-brume", a_lire: "text-bleu" };
 function Source({ s, onPreuve }) {
   if (!s?.document_id) return null;
-  return <button onClick={() => onPreuve(s)} className="font-mono text-[11px] tracking-[.06em] text-brume hover:text-encre whitespace-nowrap">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 26)}{s.page ? ` p. ${s.page}` : ""}</button>;
+  return <button onClick={() => onPreuve(s)} className="text-[11px] tracking-[.06em] text-brume hover:text-encre whitespace-nowrap">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 26)}{s.page ? ` p. ${s.page}` : ""}</button>;
 }
 const Th = ({ children, droite }) => <th className={`font-normal py-2 ${droite ? "text-right" : "text-left"}`}><Mono>{children}</Mono></th>;
 

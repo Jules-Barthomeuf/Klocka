@@ -128,3 +128,78 @@ test("faire tourner l'état : la valeur saisie à la main reste de côté quand 
   assert.equal(ligne().valeur, '3 000 €');
   assert.equal(ligne().valeur_main, '6 000 €', 'gardée pour le clic suivant');
 });
+
+test('les versions : Annuler remet la case d\'avant, Rétablir celle d\'après, un geste nouveau efface ce qu\'on pouvait rétablir', async () => {
+  dossier('DR7', [{ id: 'b', nom: 'bail.pdf' }]);
+  A.rangerPiece('DR7', 'b', 'bail', null, { lire: false });
+  await A.lirePiece('DR7', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { depot: { valeur: '3 000 €' } } }) });
+  const ligne = () => A.lireAnalyse('DR7').grilles[0].lignes.find((x) => x.id === 'depot');
+  assert.equal(A.changerDeVersion('DR7', 'annuler').ok, false, 'rien à annuler');
+  A.deciderCase('DR7', 'bail', 'depot', { action: 'corriger', valeur: '6 000 €' }, { email: 'nora@klocka.immo' });
+  A.deciderCase('DR7', 'bail', 'depot', { action: 'verifier', valeur: '6 000 €' }, null);
+  assert.deepEqual(A.versionsDe('DR7'), { annuler: 2, retablir: 0 });
+  A.changerDeVersion('DR7', 'annuler');
+  assert.equal(ligne().statut, 'corrige');
+  A.changerDeVersion('DR7', 'annuler');
+  assert.equal(ligne().statut, 'ia');
+  assert.equal(ligne().valeur, '3 000 €');
+  A.changerDeVersion('DR7', 'retablir');
+  assert.equal(ligne().statut, 'corrige');
+  assert.equal(ligne().valeur, '6 000 €');
+  assert.deepEqual(A.versionsDe('DR7'), { annuler: 1, retablir: 1 });
+  A.deciderCase('DR7', 'bail', 'depot', { action: 'introuvable' }, null);
+  assert.deepEqual(A.versionsDe('DR7'), { annuler: 2, retablir: 0 });
+});
+
+test("le simulateur d'un dossier sans lot : ses chiffres se gardent sur un lot neuf, le dernier chiffre l'emporte", async () => {
+  const { enregistrerSimulateur } = await import('./index.js');
+  Records.create('Deal', { deal_id: 'DR8', nom: 'Sans lot' });
+  const r = await enregistrerSimulateur('DR8', 0, { prixBienFAI: 350 }, { email: 'nora@klocka.immo' });
+  assert.equal(r.error, undefined);
+  assert.equal(Records.findBy('Deal', 'deal_id', 'DR8').lots[0].simulateur.prixBienFAI, 350);
+  await enregistrerSimulateur('DR8', 0, { prixBienFAI: 420 }, null);
+  assert.equal(Records.findBy('Deal', 'deal_id', 'DR8').lots[0].simulateur.prixBienFAI, 420);
+});
+
+test("modifier une valeur la met en OK ; repasser par « Lu par l'IA » puis OK remet la valeur saisie", async () => {
+  dossier('DR9', [{ id: 'b', nom: 'bail.pdf' }]);
+  A.rangerPiece('DR9', 'b', 'bail', null, { lire: false });
+  await A.lirePiece('DR9', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { depot: { valeur: '3 000 €' } } }) });
+  const ligne = () => A.lireAnalyse('DR9').grilles[0].lignes.find((x) => x.id === 'depot');
+  A.deciderCase('DR9', 'bail', 'depot', { action: 'verifier', valeur: '6 000 €', main: true }, { email: 'nora@klocka.immo' });
+  assert.equal(ligne().statut, 'verifie');
+  assert.equal(ligne().valeur, '6 000 €');
+  A.deciderCase('DR9', 'bail', 'depot', { action: 'reinitialiser' }, null);
+  assert.equal(ligne().statut, 'ia');
+  assert.equal(ligne().valeur, '3 000 €');
+  A.deciderCase('DR9', 'bail', 'depot', { action: 'verifier', valeur: ligne().valeur_main }, null);
+  assert.equal(ligne().valeur, '6 000 €');
+});
+
+test("ajouter au Drive : seules les pièces cochées partent, les autres ne sont ni renommées ni renvoyées", async () => {
+  dossier('DR10', [{ id: 'b', nom: 'bail.pdf' }, { id: 'p1', nom: 'pv1.pdf' }, { id: 'p2', nom: 'pv2.pdf' }]);
+  A.rangerPiece('DR10', 'b', 'bail', null, { lire: false });
+  A.rangerPiece('DR10', 'p1', 'pv_ag', null, { lire: false });
+  A.rangerPiece('DR10', 'p2', 'pv_ag', null, { lire: false });
+  let recu = null;
+  const drive = { rangerDataRoom: async (compte, o) => { recu = o; return { folder_id: 'F2', folder_url: 'https://drive/F2', liens: Object.fromEntries(o.groupes.flatMap((g) => g.fichiers).map((f) => [f.id, { drive_file_id: `id-${f.id}`, drive_url: `https://drive/${f.id}` }])), erreurs: [] }; } };
+  const r = await D.rangerDansDrive('DR10', { p1: 'PV AG 2026.pdf', p2: 'Ne pas prendre.pdf' }, { uploadDir, drive, seulement: ['p1'] });
+  assert.equal(r.ok, true);
+  assert.deepEqual(recu.groupes.flatMap((g) => g.fichiers.map((f) => f.id)), ['p1']);
+  const deal = Records.findBy('Deal', 'deal_id', 'DR10');
+  assert.equal(deal.documents_espace.find((d) => d.id === 'p1').nom, 'PV AG 2026.pdf');
+  assert.equal(deal.documents_espace.find((d) => d.id === 'p2').nom, 'pv2.pdf');
+  assert.equal(deal.documents_espace.find((d) => d.id === 'p2').drive_range_le, undefined);
+  assert.equal((await D.rangerDansDrive('DR10', {}, { uploadDir, drive, seulement: [] })).ok, false);
+});
+
+test("un nom corrigé avant le Drive devient le nom de la Data Room, de la colonne Source et du Drive", async () => {
+  dossier('DR11', [{ id: 'b', nom: 'doc0165752026.pdf' }]);
+  A.rangerPiece('DR11', 'b', 'bail', null, { lire: false });
+  await D.proposerNoms('DR11', { uploadDir, proposer: async () => ({ intitule: 'Bail commercial', precision: 'MACSF', date: '27.05.2005' }) });
+  const drive = { rangerDataRoom: async (c, o) => ({ folder_id: 'F', folder_url: 'u', liens: Object.fromEntries(o.groupes.flatMap((g) => g.fichiers).map((f) => [f.id, { drive_file_id: 'x', drive_url: 'y' }])), erreurs: [] }) };
+  await D.rangerDansDrive('DR11', { b: 'Bail commercial MACSF corrigé.pdf' }, { uploadDir, drive });
+  const doc = A.lireDepots('DR11').emplacements.flatMap((e) => e.documents).find((d) => d.id === 'b');
+  assert.equal(doc.nom, 'Bail commercial MACSF corrigé.pdf');
+  assert.equal(doc.nom_propose, 'Bail commercial MACSF corrigé.pdf');
+});

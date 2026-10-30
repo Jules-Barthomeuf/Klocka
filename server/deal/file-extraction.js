@@ -131,6 +131,7 @@ async function tourner() {
       const tache = attente.shift();
       try {
         await traiter(tache);
+        import('./projet.js').then((m) => m.projetSuitLeDossier(tache.dealId, tache.user)).catch(() => {});
       } catch (e) {
         console.warn(`[file-extraction] ${tache.docId} : ${e?.message || e}`);
         marquer(tache.dealId, tache.docId, {

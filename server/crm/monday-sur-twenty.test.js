@@ -118,3 +118,9 @@ test("l'id de colonne Monday passe avant un nom de champ identique (« date » =
   assert.deepEqual(api.journal.at(-1)[3], { prochaineRelance: '2026-11-03' });
   META[0].fields.pop();
 });
+
+test('mandataireDuTexte : l\'adresse du mandataire dans les critères d\'un prospect', async () => {
+  const { mandataireDuTexte } = await import('./monday-sur-twenty.js');
+  assert.equal(mandataireDuTexte('Statut Klocka : À appeler\nAjouté par le mandataire Test.Mandataire@kpartners.fr depuis Klocka.'), 'test.mandataire@kpartners.fr');
+  assert.equal(mandataireDuTexte('rien'), null);
+});

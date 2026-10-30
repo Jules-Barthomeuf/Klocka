@@ -183,7 +183,19 @@ async function valeursTwenty(o, colonnes = {}, nom = null) {
     }
     out[f.name] = x;
   }
+  // Le mandataire d'une fiche K Partners (30 oct. 2026) : lu dans « Ajouté par le mandataire … depuis Klocka », il
+  // remplit « E-mail du mandataire », sur lequel le rôle Mandataire de Twenty CRM ne montre à chacun que ses fiches.
+  if (parNom.has('mandataireEmail')) {
+    const m = mandataireDuTexte(Object.values(out).map((v) => (typeof v === 'string' ? v : v?.markdown || v?.blocknote || '')).join('\n'));
+    if (m) out.mandataireEmail = m;
+  }
   return out;
+}
+
+/** Pure : l'adresse du mandataire dans « Ajouté par le mandataire x@y.fr depuis Klocka. », ou null. */
+export function mandataireDuTexte(texte = '') {
+  const m = String(texte || '').match(/Ajouté par le mandataire\s+([^\s@]+@[^\s]+?)\s+depuis Klocka/i);
+  return m ? m[1].toLowerCase() : null;
 }
 
 /** Pure : un enregistrement Twenty dans la forme d'une ligne lireTableau de Monday. */

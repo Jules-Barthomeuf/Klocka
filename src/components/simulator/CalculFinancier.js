@@ -15,6 +15,19 @@ export const TRAVAUX_PAR_DEFAUT = [[10, 10000], [20, 10000]];
 /** Les mêmes travaux, sous la forme de liste qu'attend le formulaire projet. */
 export const travauxParDefautListe = () => TRAVAUX_PAR_DEFAUT.map(([annee, montant]) => ({ annee, montant }));
 
+/**
+ * Pure : les travaux d'un projet, en liste. Un projet qui n'a jamais enregistré de travaux (rentré depuis un dossier
+ * avant le 30 oct. 2026, aucun champ sim_travaux_*) prend ceux par défaut ; un projet dont on a retiré les travaux
+ * (champs présents, à zéro) les garde à zéro.
+ */
+export function travauxDuProjet(p = {}) {
+  const jamais = !Object.keys(p || {}).some((k) => k.startsWith("sim_travaux_montant"));
+  if (jamais) return travauxParDefautListe();
+  const liste = [];
+  for (let i = 1; i <= 20; i++) if (p[`sim_travaux_montant${i}`]) liste.push({ annee: p[`sim_travaux_annee${i}`] || i, montant: p[`sim_travaux_montant${i}`] });
+  return liste;
+}
+
 /** Le tableau des travaux bailleur d'un projet neuf : 25 années, deux postes. */
 export function travauxParDefaut() {
   const t = Array(25).fill(0);
@@ -337,11 +350,7 @@ export function parametresDuProjet(p = {}) {
   const prixBienFAI = p.sim_prix_bien_fai || p.sim_prix_bien_negocie || p.prix_acquisition || 0;
   const sansFees = !!p.sim_no_fees_klocka;
   const travauxBailleur = Array(25).fill(0);
-  for (let i = 1; i <= 20; i++) {
-    const annee = p[`sim_travaux_annee${i}`];
-    const montant = p[`sim_travaux_montant${i}`];
-    if (annee && montant && annee <= 25) travauxBailleur[annee - 1] = montant;
-  }
+  for (const { annee, montant } of travauxDuProjet(p)) if (annee && montant && annee <= 25) travauxBailleur[annee - 1] = montant;
   const params = {
     surface: p.sim_surface || p.surface_m2 || 0,
     loyerInitialHTHC: p.sim_loyer_initial_ht || p.loyer_annuel_ht || 0,

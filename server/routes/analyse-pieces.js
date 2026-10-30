@@ -35,6 +35,7 @@ export function monterAnalysePieces(app) {
       if (req.body?.contexte) A.poserContexte(req.params.dealId, r.document.id, req.body.contexte, user);
       ajoutes.push(r.document.id);
     }
+    import('../deal/projet.js').then((m) => m.projetSuitLeDossier(req.params.dealId, user)).catch(() => {});
     ok(res, { ok: true, documents: ajoutes });
   }));
 

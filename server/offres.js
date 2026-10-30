@@ -58,12 +58,14 @@ export async function lireLettre(id, { marque = null } = {}) {
  * premier geste crée la lettre (POST /api/offres).
  */
 export async function lettreVierge({ deal_id = null, marque = null } = {}) {
-  const { champs, deal } = await champsDuDossier(deal_id);
-  const { origines } = await champsDuDossier(deal_id);
+  const { champs, origines, deal } = await champsDuDossier(deal_id);
   return lettreLue({ id: null, champs, origines, textes: {}, modele: 'classique', marque: marque === 'kp' ? 'kp' : null, deal_id: deal?.deal_id || null, projet_id: deal?.projet_id || null });
 }
 
-/** Ce que le dossier (et son projet) disent déjà de la lettre, et d'où chaque champ vient. */
+/**
+ * Ce que le dossier (et son projet) disent déjà de la lettre, et d'où chaque champ vient. « À l'attention de » :
+ * l'agent lié au bien dans Twenty CRM et son agence (30 oct. 2026, Jules), sinon l'agent relevé sur le dossier.
+ */
 async function champsDuDossier(dealId) {
   const deal = dealId ? Records.findBy('Deal', 'deal_id', String(dealId)) : null;
   if (!deal) return { champs: {}, origines: {}, deal: null };
@@ -72,7 +74,11 @@ async function champsDuDossier(dealId) {
   const projet = deal.projet_id ? Records.get('Project', deal.projet_id) : null;
   const duProjet = projet ? sansVide(champsDepuisProjet(projet)) : {};
   const champs = { ...sansVide(champsDepuisDeal(deal)), ...duProjet };
-  return { champs, origines: Object.fromEntries(Object.keys(champs).map((k) => [k, k in duProjet ? 'projet' : 'dossier'])), deal };
+  const origines = Object.fromEntries(Object.keys(champs).map((k) => [k, k in duProjet ? 'projet' : 'dossier']));
+  const { attentionDuBien, attentionAPoser } = await import('./offres-agent.js');
+  const agent = await attentionDuBien({ projet, deal });
+  for (const [k, v] of Object.entries(attentionAPoser(champs, agent))) { champs[k] = v; origines[k] = agent.origine; }
+  return { champs, origines, deal };
 }
 
 /** La dernière lettre d'un dossier, ou null. */
@@ -214,7 +220,8 @@ export async function contexteLettre(id) {
   if (!d) return null;
   const c = d.lettre.champs;
   const champs = Object.entries(c).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${v}`).join(' ; ');
-  const paragraphes = d.blocs.filter((b) => b.type === 'p').map((b) => `${b.cle} : ${String(b.texte).replace(/\*\*/g, '').slice(0, 90)}${b.retouche ? ' (retouché)' : ''}`).join('\n');
+  // Une liste à tirets : une ligne par tiret, à réécrire en entier (« \n » entre les tirets).
+  const paragraphes = d.blocs.filter((b) => b.type === 'p' || b.type === 'liste').map((b) => `${b.cle}${b.type === 'liste' ? ' (liste à tirets)' : ''} : ${String(b.texte).replace(/\*\*/g, '').replace(/\n/g, ' / ').slice(0, b.type === 'liste' ? 400 : 90)}${b.retouche ? ' (retouché)' : ''}`).join('\n');
   // Une lettre commencée à la main depuis la page vierge : l'offre décrite au chat la remplit, sans en créer une autre.
   const commencee = d.manquants.length ? `\nElle est partie vierge et n'est pas finie (manque : ${d.manquants.map((m) => m.cle).join(', ')}) : l'offre décrite au chat la remplit, avec ce loi_id.` : '';
   return `La LOI ouverte à droite : loi_id=${id}.\nSes champs : ${champs || 'aucun'}\nSes paragraphes (clé : début) :\n${paragraphes}${commencee}`;
@@ -235,7 +242,14 @@ const LIBELLES = {
 };
 // Le champ de la lettre, et celui du lot relevé dans le dossier.
 const DU_LOT = { adresse_bien: 'adresse', surface_m2: 'surface_m2', locataire: 'locataire_nom', fin_bail: 'bail_echeance', prix: 'prix_fai' };
-const DEFAUTS = ['lieu', 'duree_ans', 'taux', 'validite', 'limite_documents', 'fin_exclusivite'];
+// L'apport et les échéances se calculent (30 oct. 2026, Jules) : la fiche de source dit comment.
+const DETAIL_DEFAUT = {
+  apport: '15 % du prix, arrondi à la dizaine de milliers.',
+  validite: 'Sept jours après la lettre, reportée au lundi si elle tombe un vendredi ou un week-end.',
+  limite_documents: 'Neuf jours après la lettre, reportée au lundi si elle tombe un vendredi ou un week-end.',
+  fin_exclusivite: 'Vingt-trois jours après la lettre, reportée au lundi si elle tombe un vendredi ou un week-end.',
+};
+const DEFAUTS = ['lieu', 'apport', 'duree_ans', 'taux', 'validite', 'limite_documents', 'fin_exclusivite'];
 
 function valeurLisible(cle, v) {
   if (v == null || v === '') return '';
@@ -267,6 +281,7 @@ const NATURE_ORIGINE = {
   projet: ['projet', 'Repris de la fiche du projet.'],
   chat: ['chat', 'Dit dans le chat.'],
   main: ['main', 'Saisi dans la lettre.'],
+  crm: ['crm', "Repris de Twenty CRM : l'agent lié au bien et son agence."],
 };
 
 /**
@@ -278,13 +293,13 @@ function sourcesDesChamps(l, fns) {
   const champs = l.champs || {};
   const { deal, origine } = originesDe(l, fns);
   const c = fns.completer(champs);
-  const requis = new Set(['acquereur_nom', 'vendeur_societe', 'adresse_bien', 'prix', 'apport']);
+  const requis = new Set(['acquereur_nom', 'adresse_bien', 'prix']);
   const out = {};
   for (const cle of Object.keys(LIBELLES)) {
     const v = champs[cle];
     if (v == null || v === '') {
       if (requis.has(cle)) out[cle] = { nature: 'a_remplir', origine: LIBELLES[cle], detail: 'Pas encore dit : écrivez-le dans la lettre, ou dites-le au chat.' };
-      else if (DEFAUTS.includes(cle)) out[cle] = { nature: 'modele', origine: `${LIBELLES[cle]} : ${valeurLisible(cle, c[cle])}`, detail: 'Valeur par défaut du modèle de la maison.' };
+      else if (DEFAUTS.includes(cle) && c[cle] != null) out[cle] = { nature: 'modele', origine: `${LIBELLES[cle]} : ${valeurLisible(cle, c[cle])}`, detail: DETAIL_DEFAUT[cle] || 'Valeur par défaut du modèle de la maison.' };
       continue;
     }
     const o = origine(cle);
@@ -308,7 +323,7 @@ export async function sourcesDe(id) {
   const egal = (a, b) => a != null && b != null && String(a) === String(b);
   const origine = (cle) => l.origines?.[cle]
     || (egal(champs[cle], duProjet[cle]) ? 'projet' : egal(champs[cle], duDossier[cle]) ? 'dossier' : 'chat');
-  const groupes = { dossier: [], projet: [], chat: [], main: [] };
+  const groupes = { dossier: [], projet: [], crm: [], chat: [], main: [] };
   for (const [cle, v] of Object.entries(champs)) {
     if (v == null || v === '' || !LIBELLES[cle]) continue;
     const o = origine(cle);
@@ -318,7 +333,7 @@ export async function sourcesDe(id) {
   }
   const { completer } = await import('./ak/loi.js');
   const c = completer(champs);
-  const defauts = DEFAUTS.filter((k) => champs[k] == null || champs[k] === '').map((cle) => ({ cle, libelle: LIBELLES[cle], valeur: valeurLisible(cle, c[cle]) }));
+  const defauts = DEFAUTS.filter((k) => (champs[k] == null || champs[k] === '') && c[k] != null).map((cle) => ({ cle, libelle: LIBELLES[cle], valeur: valeurLisible(cle, c[cle]) }));
   const src = deal?.source || {};
   const sources = [];
   if (groupes.dossier.length) {
@@ -332,6 +347,7 @@ export async function sourcesDe(id) {
     });
   }
   if (groupes.projet.length) sources.push({ id: 'projet', type: 'projet', titre: projet.titre || projet.adresse_complete || 'Le projet', detail: 'La fiche du projet', champs: groupes.projet, lien: `/Projet?id=${projet.id}` });
+  if (groupes.crm.length) sources.push({ id: 'crm', type: 'crm', titre: 'Twenty CRM', detail: "L'agent lié au bien", champs: groupes.crm });
   if (groupes.chat.length) sources.push({ id: 'chat', type: 'chat', titre: 'Votre demande', detail: 'Dit dans le chat', champs: groupes.chat });
   if (groupes.main.length) sources.push({ id: 'main', type: 'main', titre: 'La lettre', detail: 'Saisi dans la lettre', champs: groupes.main });
   if (defauts.length) sources.push({ id: 'modele', type: 'modele', titre: 'Le modèle de la maison', detail: 'Valeurs par défaut', champs: defauts });

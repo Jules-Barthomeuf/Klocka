@@ -6,6 +6,8 @@ import { Search, X, ArrowRight } from "lucide-react";
 import { Avatar } from "@/components/mandataire/AvatarClient";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
+import MesAcquereurs from "@/components/mandataire/MesAcquereurs";
+import { Onglets } from "@/components/ui/kit";
 import { J } from "@/design/jetons";
 import Chargement from "@/components/ui/Chargement";
 
@@ -55,6 +57,8 @@ export default function MandataireClients() {
   const [recherche, setRecherche] = useState("");
   const [famille, setFamille] = useState("Tous");
   const [ouverte, setOuverte] = useState(null);
+  // Deux onglets (30 oct. 2026, Jules) : les clients de Klocka, et le fichier acquéreurs du mandataire.
+  const [onglet, setOnglet] = useState("klocka");
 
   const q = recherche.trim().toLowerCase();
   const re = FAMILLES.find(([f]) => f === famille)?.[1] || null;
@@ -74,6 +78,7 @@ export default function MandataireClients() {
             <span className="text-[15px] text-ardoise">{demandes.length} client{demandes.length > 1 ? "s" : ""} · {aTravailler} à prospecter</span>
           )}
         </div>
+        {onglet === "klocka" && (
         <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Affichage">
           {[["cartes", "Cartes"], ["tableau", "Tableau"]].map(([cle, mot]) => (
             <button key={cle} type="button" role="tab" aria-selected={vue === cle} onClick={() => changerVue(cle)}
@@ -81,7 +86,11 @@ export default function MandataireClients() {
               style={vue === cle ? undefined : { background: "transparent" }}>{mot}</button>
           ))}
         </div>
+        )}
       </header>
+
+      <Onglets taille="page" valeur={onglet} onChange={setOnglet} items={[{ cle: "klocka", titre: "Clients Klocka" }, { cle: "acquereurs", titre: "Mes acquéreurs" }]} />
+      {onglet === "acquereurs" ? <MesAcquereurs /> : (<>
 
       <p className="m-0 -mt-3 text-[14px] text-ardoise">Les clients restent anonymes. Vous trouvez le bien, Klocka fait le lien avec eux.</p>
 
@@ -116,6 +125,7 @@ export default function MandataireClients() {
       {lignes.length > 0 && vue === "tableau" && <TableauClients lignes={lignes} onOuvrir={setOuverte} />}
 
       {d && <FicheClient d={d} onFermer={() => setOuverte(null)} onProspecter={() => prospecter(d)} />}
+      </>)}
     </div>
   );
 }

@@ -22,6 +22,8 @@ import * as taches from '../taches.js';
 import * as file from '../file.js';
 import { sourceMail, sourceFiche, sourceEvaluation, source } from '../sources.js';
 import { bienDuDossier, chercherDoublons } from '../doublons.js';
+// Le prix et l'agence du dossier qui arrive, pour la phrase « aujourd'hui 420 k€ chez Y » de la Mémoire.
+const bienPrixAgence = (deal) => ({ prix: bienDuDossier(deal).prix, agent: { agence: deal?.apercu?.agence || null, nom: deal?.apercu?.agent_nom || null } });
 import { proprietaireDeLaBoite, boiteQuiEnvoie } from '../proprietaire.js';
 import { piecesFiche } from '../../deal/fiches-auto.js';
 
@@ -165,7 +167,18 @@ taches.enregistrer(COMPETENCE, {
         const deal = Records.findBy('Deal', 'deal_id', deal_id);
         const bien = bienDuDossier(deal);
         const candidats = chercherDoublons(bien, Records.list('Deal').filter((d) => d.deal_id !== deal_id && !d.archived));
-        if (!candidats.length) return { niveau: 'different', sauter: ['trancher_doublon'] };
+        // La Mémoire Klocka (30 oct. 2026, Jules) : le même bien déjà vu, chez qui et à quel prix ; la phrase reste
+        // sur le dossier et s'ajoute à la proposition quand il y en a une.
+        let historique = null;
+        try {
+          const M = await import('../../memoire/memoire.js');
+          const cle = M.normaliserCle(bien);
+          const biens = cle ? Records.filter('BienMemoire', { cle_adresse: cle }) : Records.list('BienMemoire');
+          const prixDuBien = bienPrixAgence(deal);
+          historique = M.phraseHistorique({ ...bien, ...prixDuBien }, M.chercherDansMemoire(bien, biens.filter((b) => b.deal_id !== deal_id)));
+          if (historique) Records.update('Deal', deal.id, { memoire_historique: historique });
+        } catch (e) { console.warn('[mémoire] historique :', e?.message || e); }
+        if (!candidats.length) return { niveau: 'different', sauter: ['trancher_doublon'], historique };
         const mail = Records.get('MailRecu', charge.mail_id);
         if (candidats[0].niveau === 'identique') {
           await rattacher({ nouveau: deal, existantId: candidats[0].deal_id, mail, pour, tache });
@@ -173,7 +186,7 @@ taches.enregistrer(COMPETENCE, {
         }
         const p = await file.proposer({
           type: 'rattacher_ou_creer', titre: `Même adresse déjà en dossier : ${candidats[0].titre}`,
-          resume: candidats[0].niveau === 'meme_adresse' ? 'Même adresse, mais pas le même prix. Rattacher la fiche au dossier existant, ou créer un dossier à part ?' : 'Une adresse proche est déjà en dossier. Rattacher, ou créer un dossier à part ?',
+          resume: (historique ? `${historique} ` : '') + (candidats[0].niveau === 'meme_adresse' ? 'Même adresse, mais pas le même prix. Rattacher la fiche au dossier existant, ou créer un dossier à part ?' : 'Une adresse proche est déjà en dossier. Rattacher, ou créer un dossier à part ?'),
           charge: { nouveau_deal_id: deal_id, candidats }, sources: [sourceMail(mail, lienDossier(deal_id)), source({ outil: 'dossiers', libelle: `Dossier existant : ${candidats[0].titre}`, lien: lienDossier(candidats[0].deal_id) })],
           pour, dossier: deal_id, competence: COMPETENCE, version: VERSION, tache_id: tache.id, etape: 'trancher_doublon', cout_usd: tache.cout_usd,
           cle: `doublon:${deal_id}`, actions: ['choisir', 'rejeter'], choix: [{ cle: 'rattacher', libelle: 'Rattacher au dossier existant' }, { cle: 'creer', libelle: 'Créer un dossier à part' }],

@@ -55,6 +55,7 @@ import { monterMonday } from './routes/monday.js';
 import { monterAk } from './routes/ak.js';
 import { monterHaka } from './routes/haka.js';
 import { monterFiches } from './routes/fiches.js';
+import { monterMemoire } from './routes/memoire.js';
 import { monterOffres } from './routes/offres.js';
 import { monterModeles } from './routes/modeles.js';
 import { monterPresentations } from './routes/presentations.js';
@@ -92,6 +93,7 @@ import { monterKVacance } from './routes/kvacance.js';
 import { monterKData } from './routes/kdata.js';
 import { monterOutils } from './routes/outils.js';
 import { monterReunions } from './routes/reunions.js';
+import { suivreMemoire, resumerEtRepartir } from './memoire-routes.js';
 // Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
 import {
   UPLOAD_DIR,
@@ -201,6 +203,7 @@ app.set('trust proxy', 1);
 // moins d'un. Cela vaut aussi pour l'API — une liste de projets est du JSON,
 // c'est-à-dire du texte très répétitif.
 app.use(compression());
+app.use(suivreMemoire);
 app.use(EN_PRODUCTION ? cors({ origin: APP_URL_PROD, credentials: true }) : cors());
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -1270,6 +1273,8 @@ monterAk(app);
 // Haka (17 oct. 2026) : la file « À valider » et ses tâches ; rien d'actif sans HAKA_FILE.
 monterHaka(app);
 monterFiches(app);
+// La Mémoire Klocka (30 oct. 2026) : les biens gardés, le lecteur des boîtes.
+monterMemoire(app);
 monterOffres(app);
 monterModeles(app);
 monterPresentations(app);
@@ -1306,6 +1311,8 @@ import('./mandataire-matin.js').then((m) => m.planifier()).catch((e) => console.
 import('./preparation-rdv.js').then((m) => m.planifier()).catch((e) => console.error('[preparation] :', e.message));
 import('./visites-acquereur.js').then((m) => m.planifier()).catch((e) => console.error('[visites] :', e.message));
 import('./dossier-vente.js').then((m) => m.planifier()).catch((e) => console.error('[dossier de vente] :', e.message));
+// La Mémoire Klocka (30 oct. 2026) : le lecteur des boîtes autorisées reprend au démarrage ce qu'il n'a pas fini.
+import('./memoire/scraper.js').then((m) => m.planifier()).catch((e) => console.error('[mémoire] :', e.message));
 // Le Layer (15 oct. 2026) : la file de ses tâches repart au démarrage, et les sources restées en attente d'extraction avec elle.
 // Haka (17 oct. 2026) : ses tâches reprennent au démarrage ; un pas externe surpris en cours devient incertain, jamais rejoué.
 import('./haka/drapeaux.js').then(async (D) => { if (!D.FILE) return; await import('./haka/declencheurs.js'); (await import('./haka/competences/relances-matin.js')).planifier(); const r = await (await import('./haka/taches.js')).reprendre(); if (r.reprises || r.incertaines) console.log(`[haka] ${r.reprises} tâche(s) reprise(s), ${r.incertaines} incertaine(s)`); }).catch((e) => console.error('[haka] reprise :', e.message));
@@ -1399,6 +1406,9 @@ if (fs.existsSync(DIST_DIR)) {
 // La mémoire, écrite dans le journal (22 oct. 2026, Jules : « 502 Bad Gateway tout le temps ») : celle de tout le
 // conteneur (Node, Chromium, processus enfants) comme Render la compte, et celle de Node. Toutes les heures, et toutes
 // les dix minutes au-dessus de 1,4 Go : un prochain arrêt pour mémoire dira ce qui tournait.
+// Le 30 oct. 2026 (quatre arrêts le matin) : Node montait à 1,9 Go pour un tas de 50 à 200 Mo, la mémoire native prise
+// par un pic n'était jamais rendue. « npm start » lance donc Node avec MALLOC_ARENA_MAX=2 (glibc garde moins de réserves
+// qu'il ne rend pas) et un tas plafonné à 1 200 Mo (le ramasse-miettes travaille avant que le conteneur touche 2 Go).
 if (EN_PRODUCTION) {
   const lireConteneur = () => {
     for (const f of ['/sys/fs/cgroup/memory.current', '/sys/fs/cgroup/memory/memory.usage_in_bytes']) {
@@ -1414,7 +1424,9 @@ if (EN_PRODUCTION) {
     if (!haut && Date.now() - dernier < 3600_000) return;
     dernier = Date.now();
     const mo = (n) => `${Math.round(n / 1e6)} Mo`;
-    console.log(`[memoire] conteneur ${c ? mo(c) : '?'} · Node ${mo(m.rss)} (tas ${mo(m.heapUsed)}/${mo(m.heapTotal)}, hors tas ${mo(m.external)})${haut ? ' · HAUT' : ''}`);
+    // Les routes qui ont fait monter Node depuis le relevé d'avant (30 oct. 2026) : un pic dit enfin son origine.
+    const routes = resumerEtRepartir();
+    console.log(`[memoire] conteneur ${c ? mo(c) : '?'} · Node ${mo(m.rss)} (tas ${mo(m.heapUsed)}/${mo(m.heapTotal)}, hors tas ${mo(m.external)})${haut ? ' · HAUT' : ''}${routes ? ` · ${routes}` : ''}`);
   }, 10 * 60_000).unref();
 }
 

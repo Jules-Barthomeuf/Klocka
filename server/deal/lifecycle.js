@@ -115,6 +115,12 @@ export function changerStatut(deal, statut, { user, note } = {}) {
   import('../layer.js')
     .then((m) => m.surDecision({ ...deal, ...patch }, statut, { user, note }))
     .catch(() => {});
+  // La Mémoire Klocka (30 oct. 2026) : un dossier abandonné y laisse sa fiche, comme un dossier supprimé.
+  if (statut === 'abandonne') {
+    import('../memoire/drapeaux.js')
+      .then(async (M) => { if (M.MEMOIRE) (await import('../memoire/memoire.js')).memoriser({ ...deal, ...patch }, { origine: 'abandon', par: user }); })
+      .catch((e) => console.warn('[mémoire] abandon :', e?.message || e));
+  }
   return { ok: true, deal: { ...deal, ...patch } };
 }
 

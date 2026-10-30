@@ -682,7 +682,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {/* L'onglet Historique retiré (29 oct. 2026, Jules). */}
             {grilleAnalyse === "simulateur" && (
               // Toujours là (29 oct. 2026, Jules) : les chiffres du dossier s'il en a, sinon vide ; ce qu'on tape s'enregistre seul.
-              <SimulateurDossier parametres={dossier?.lots?.[0]?.simulateur || {}} dealId={apercu ? null : dossier?.deal_id} lotIndex={0} onEnregistre={onRefresh} />
+              <SimulateurDossier parametres={dossier?.lots?.[0]?.simulateur || {}} depuisAnalyse={analysePieces.data?.simulateur} dealId={apercu ? null : dossier?.deal_id} lotIndex={0} onEnregistre={onRefresh} />
             )}
             {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse && g.grilles).map((g) => (
               <GrilleCriteres key={g.id} grilles={g.grilles} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />

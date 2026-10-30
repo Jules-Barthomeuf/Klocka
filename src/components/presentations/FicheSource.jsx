@@ -21,6 +21,8 @@ const NATURES = {
   dossier: { mot: "Fiche du dossier", ton: "text-menthe" },
   chat: { mot: "Dit dans le chat", ton: "text-craie" },
   main: { mot: "Saisi à la main", ton: "text-craie" },
+  // « À l'attention de » : l'agent lié au bien dans Twenty CRM (30 oct. 2026).
+  crm: { mot: "Twenty CRM", ton: "text-menthe" },
 };
 
 /**

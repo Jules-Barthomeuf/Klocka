@@ -202,10 +202,10 @@ const NOMBRES = new Set(["prix", "apport", "surface_m2", "duree_ans", "taux"]);
 const DATES = new Set(["validite", "limite_documents", "fin_exclusivite", "fin_bail"]);
 // Les champs que chaque paragraphe du modèle reprend : ils se remplissent depuis le panneau.
 const CHAMPS_DU_BLOC = {
-  date: ["lieu"], objet: ["adresse_bien"], "offre-1": ["acquereur_nom", "adresse_bien"], "offre-2": ["surface_m2", "locataire", "fin_bail"],
-  "offre-3": ["prix"], financement: ["apport", "duree_ans", "taux"], exclusivite: ["fin_exclusivite", "limite_documents"], pieces: ["locataire"], validite: ["validite"],
+  date: ["lieu"], objet: ["adresse_bien"], "offre-1": ["acquereur_nom", "adresse_bien"], "offre-liste": ["surface_m2", "locataire", "fin_bail", "prix"],
+  financement: ["apport", "duree_ans", "taux"], exclusivite: ["fin_exclusivite", "limite_documents"], "pieces-liste": ["locataire"], validite: ["validite"],
 };
-const TYPES = { date: "Date", objet: "Objet", h2: "Titre", h3: "Sous-titre", p: "Paragraphe" };
+const TYPES = { date: "Date", objet: "Objet", h2: "Titre", h3: "Sous-titre", p: "Paragraphe", liste: "Liste à tirets" };
 
 /** Pure : la source de chaque élément de la lettre (« champ:prix », « bloc:offre-3 »), pour le mode Sources. */
 export function sourcesDesCibles(d) {
@@ -289,7 +289,7 @@ function PanneauLoi({ d, cible, sources, onChamp, onTexte, onStyle, onFermer }) 
         </GroupePanneau>
       )}
       <GroupePanneau titre="Texte">
-        <TextePanneau key={b.texte} valeur={b.texte} onGarde={(t) => onTexte(cle, t)} />
+        <TextePanneau key={b.texte} valeur={b.texte} liste={b.type === "liste"} onGarde={(t) => onTexte(cle, t)} />
         {b.retouche && (
           <button type="button" onClick={() => onTexte(cle, "")} className="inline-flex items-center gap-1.5 self-start text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
             <RotateCcw className="h-3.5 w-3.5" />Revenir au texte du modèle
@@ -307,7 +307,7 @@ function PanneauLoi({ d, cible, sources, onChamp, onTexte, onStyle, onFermer }) 
 }
 
 /** Le texte d'un élément, à réécrire ; « **…** » met en gras. */
-function TextePanneau({ valeur, onGarde }) {
+function TextePanneau({ valeur, onGarde, liste = false }) {
   const [t, setT] = useState(String(valeur ?? ""));
   const change = t.trim() !== String(valeur ?? "").trim();
   return (
@@ -315,7 +315,7 @@ function TextePanneau({ valeur, onGarde }) {
       <textarea value={t} onChange={(e) => setT(e.target.value)} rows={Math.min(12, Math.max(3, Math.ceil(t.length / 38)))}
         className="w-full resize-y rounded-[10px] border border-trait bg-surface px-3 py-2 text-[13.5px] leading-[1.5] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11.5px] text-brume">Entre **astérisques** : en gras</span>
+        <span className="text-[11.5px] text-brume">{liste ? "Un tiret par ligne ; " : ""}entre **astérisques** : en gras</span>
         <button type="button" onClick={() => onGarde(t)} disabled={!change}
           className="inline-flex h-8 items-center rounded-full bg-menthe px-3.5 text-[12.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">Garder</button>
       </div>
@@ -420,7 +420,7 @@ function ChoixModele({ d, enCours, onChoisir, onChamp, onTexte }) {
 // Ce qu'une ligne vide des parties invite à écrire (la lettre vierge, ou une lettre incomplète).
 const VIDES = {
   acquereur_nom: "Nom de l'acquéreur", acquereur_societe: "Sa société", acquereur_adresse: "Son adresse",
-  vendeur_societe: "Le vendeur (société ou nom)", attention_nom: "À l'attention de (nom)", attention_representant: "Représentant (texte libre)", attention_adresse: "Son adresse",
+  vendeur_societe: "Le vendeur", attention_nom: "À l'attention de (nom)", attention_representant: "Représentant (texte libre)", attention_adresse: "Son adresse",
 };
 
 // Les noms au-dessus des signatures : chacun est un champ de la lettre.
@@ -502,6 +502,7 @@ function LettreMenthe({ d, onChamp, onTexte, apercu = false }) {
               <Editable key={`${s.titre.cle}:${s.titre.texte}`} {...par(s.titre)} gras={false} as="h2" className="loi-h2" />
               {s.contenu.map((b) => (b.type === "h3"
                 ? <Editable key={`${b.cle}:${b.texte}`} {...par(b)} gras={false} className="loi-h3" />
+                : b.type === "liste" ? <Liste key={`${b.cle}:${b.texte}`} b={b} onTexte={onTexte} apercu={apercu} cible={`bloc:${b.cle}`} />
                 : <Paragraphe key={`${b.cle}:${b.texte}`} b={b} {...par(b)} onTexte={onTexte} apercu={apercu} />))}
             </div>
           </section>
@@ -520,8 +521,11 @@ function LettreMenthe({ d, onChamp, onTexte, apercu = false }) {
           <div key={`${b.cle}:${b.texte}`} className="loi-m-salut"><Paragraphe b={b} {...par(b)} onTexte={onTexte} apercu={apercu} /></div>
         )))}
       </div>
-      <Zone cle="pied" as="footer" className="loi-pied"><span>{cadre.pied_gauche}</span><span>{cadre.pied_droite}</span></Zone>
-      <Zone cle="bande" as="div" className="loi-m-bande" />
+      {/* Le bas de page : à l'impression, posé en bas de chaque page (lettre-intention.css). */}
+      <div className="loi-bas">
+        <Zone cle="pied" as="footer" className="loi-pied"><span>{cadre.pied_gauche}</span><span>{cadre.pied_droite}</span></Zone>
+        <Zone cle="bande" as="div" className="loi-m-bande" />
+      </div>
     </article>
   );
 }
@@ -537,6 +541,28 @@ function Paragraphe({ b, onTexte, apercu, ...par }) {
         </button>
       )}
       <Editable {...par} className="loi-p" />
+    </div>
+  );
+}
+
+/**
+ * Une liste à tirets (30 oct. 2026, Jules : « sous forme de tirets », comme la LOI de référence) : chaque tiret se
+ * retape sur place ; vidé, il disparaît. Le texte de la liste a un tiret par ligne.
+ */
+function Liste({ b, onTexte, apercu, cible }) {
+  const lignes = String(b.texte || "").split("\n").map((l) => l.replace(/^\s*[-–•]\s*/, "").trim()).filter(Boolean);
+  const garder = (i, t) => onTexte(b.cle, lignes.map((l, j) => (j === i ? t : l)).filter((l) => l.trim()).join("\n"));
+  return (
+    <div className={b.retouche ? "loi-retouche" : ""}>
+      {b.retouche && !apercu && (
+        <button type="button" title="Revenir au texte du modèle" aria-label="Revenir au texte du modèle" onClick={() => onTexte(b.cle, "")}
+          className="float-right -mr-9 mt-0.5 grid h-6 w-6 place-items-center rounded-full text-[color:var(--loi-vert)] opacity-60 hover:opacity-100" style={{ background: "transparent" }}>
+          <RotateCcw className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <ul className="loi-tirets">
+        {lignes.map((l, i) => <Editable key={`${i}:${l}`} as="li" valeur={l} lecture={apercu} cible={cible} onGarde={(t) => garder(i, t)} />)}
+      </ul>
     </div>
   );
 }
@@ -588,6 +614,7 @@ function LettreClassique({ d, onChamp, onTexte, apercu = false }) {
             );
           }
           if (b.type === "h3") return <Editable key={k} {...commun} gras={false} className="loi-h3" />;
+          if (b.type === "liste") return <Liste key={k} b={b} onTexte={onTexte} apercu={apercu} cible={commun.cible} />;
           if (b.type === "signatures") {
             return (
               <div key={b.cle} className="loi-signatures">
@@ -608,7 +635,9 @@ function LettreClassique({ d, onChamp, onTexte, apercu = false }) {
           );
         })}
       </div>
-      <Zone cle="pied" as="footer" className="loi-pied"><span>{cadre.pied_gauche}</span><span>{cadre.pied_droite}</span></Zone>
+      <div className="loi-bas">
+        <Zone cle="pied" as="footer" className="loi-pied"><span>{cadre.pied_gauche}</span><span>{cadre.pied_droite}</span></Zone>
+      </div>
     </article>
   );
 }

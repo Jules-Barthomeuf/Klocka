@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Pages from "@/components/ui/Pages";
 import { Onglets } from "@/components/ui/kit";
 import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
 import { createPageUrl } from "@/utils";
@@ -48,7 +49,7 @@ import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres"
 import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
 
-import { travauxParDefautListe } from "@/components/simulator/CalculFinancier";
+import { travauxDuProjet, travauxParDefautListe } from "@/components/simulator/CalculFinancier";
 import Chargement from "@/components/ui/Chargement";
 // Au téléphone (moins de 768 px), l'éditeur s'ouvre en plein écran.
 const REQUETE_TELEPHONE = "(max-width: 767px)";
@@ -100,6 +101,9 @@ export default function AdminProjets() {
   const [vueProjet, setVueProjet] = useState("edition");
   // L'élément cliqué en Éditeur (28 oct. 2026) : le panneau de droite s'ouvre sur lui, avec Design.
   const [elementChoisi, setElementChoisi] = useState(null);
+  // Le volet de mise en forme ne s'ouvre plus à chaque saisie (30 oct. 2026, Jules) : un petit bouton « Aa » le demande.
+  const [formeOuverte, setFormeOuverte] = useState(false);
+  useEffect(() => { if (!elementChoisi) setFormeOuverte(false); }, [elementChoisi]);
   const [travailAK, setTravailAK] = useState({ enCours: false, etapes: [] });
   const [sourcesProjet, setSourcesProjet] = useState(null);
   const [survolSource, setSurvolSource] = useState(null);
@@ -338,10 +342,21 @@ export default function AdminProjets() {
 
   // Pas d'initialData : un tableau vide ferait passer le chargement (et toute
   // erreur réseau) pour « aucun projet », sans indice ni recours.
-  const { data: projects = [], isLoading: chargementProjets, isError: erreurProjets, refetch: rechargerProjets } = useQuery({
-    queryKey: ['all-projects'],
-    queryFn: () => base44.entities.Project.list("-created_date"),
+  // 20 projets par page, le plus récent d'abord (30 oct. 2026, Jules) : le serveur filtre et ne renvoie que la page.
+  // La recherche part un quart de seconde après la dernière touche, et tout changement de filtre ramène à la page 1.
+  const [pageProjets, setPageProjets] = useState(1);
+  const [chercheProjets, setChercheProjets] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setChercheProjets(searchTerm.trim()), 250);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+  useEffect(() => { setPageProjets(1); }, [chercheProjets, showArchived, statusFilter]);
+  const { data: pageDeProjets, isLoading: chargementProjets, isError: erreurProjets, refetch: rechargerProjets } = useQuery({
+    queryKey: ['all-projects', 'page', pageProjets, chercheProjets, showArchived, statusFilter],
+    queryFn: () => base44.request("GET", `/api/projets/page?page=${pageProjets}&q=${encodeURIComponent(chercheProjets)}&archives=${showArchived ? 1 : 0}&statut=${encodeURIComponent(statusFilter)}`),
+    placeholderData: (avant) => avant,
   });
+  const projects = useMemo(() => pageDeProjets?.projets || [], [pageDeProjets]);
 
   // À qui chaque projet pourrait correspondre, d'après les investisseurs tenus
   // dans Monday. Un seul appel pour toute la page.
@@ -373,9 +388,11 @@ export default function AdminProjets() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const idDemande = params.get('id');
-    if (!idDemande || editingProject || !projects.length || !users.length) return;
+    if (!idDemande || editingProject || !pageDeProjets || !users.length) return;
+    // Le projet demandé n'est pas forcément sur la page affichée : on le lit seul.
     const projet = projects.find((p) => p.id === idDemande);
     if (projet) handleEdit(projet);
+    else base44.entities.Project.get(idDemande).then((p) => { if (p) handleEdit(p); }).catch(() => {});
   }, [projects, users]);  
 
   const getShadowForProject = (projectId) => shadowProjects.find(s => s.project_id === projectId);
@@ -486,13 +503,8 @@ export default function AdminProjets() {
   const handleEdit = (project) => {
     setEditingProject(project);
     setApercuProjet(null);
-    const travaux = [];
-    for (let i = 1; i <= 20; i++) {
-      if (project[`sim_travaux_montant${i}`]) {
-        travaux.push({ annee: i, montant: project[`sim_travaux_montant${i}`] });
-      }
-    }
-    setTravauxList(travaux);
+    // Les travaux par défaut (années 10 et 20) pour un projet qui n'en a jamais enregistré (30 oct. 2026, Jules).
+    setTravauxList(travauxDuProjet(project));
     
     const adminEmails = users.filter(u => u.role === "admin").map(u => u.email);
     const updatedClientEmails = Array.from(new Set([...(project.client_emails || []), ...adminEmails]));
@@ -540,6 +552,7 @@ export default function AdminProjets() {
       // les remettait à zéro.
       champs_personnalises: project.champs_personnalises || [],
       champs_masques: project.champs_masques || [],
+      frise_perso: project.frise_perso || null,
       valeurs_forcees: project.valeurs_forcees || {},
       styles: project.styles || {},
       bail_analyse: project.bail_analyse || {},
@@ -1435,14 +1448,20 @@ export default function AdminProjets() {
     const barreHautProjet = (
       <BarreEditeur titre={formData.titre || "Projet"} statut={statutAuto || ""} mode={vueProjet} onMode={setVueProjet} actions={actionsProjet} />
     );
+    const ongletsProjet = (className) => (
+      <Onglets taille="page" className={className} items={[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => ({ cle: o.value, titre: o.label }))}
+        valeur={ongletPage === "images" ? null : ongletPage} onChange={changerOnglet} />
+    );
+    const pageAvecOnglets = !majAK && ongletPage !== "images" && ongletPage !== "simulateur" && !!projetAffiche;
     const barreProjet = (
       <div className="pb-2">
         {/* Le retour reste ici : la barre du chat n'apparaît qu'une fois la conversation lancée. */}
         <button type="button" onClick={goToProjectsList} className="flex flex-none items-center gap-1.5 text-xs text-ardoise transition-colors hover:text-encre max-md:min-h-[36px]" style={{ background: "transparent" }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Tous les projets
         </button>
-        <Onglets taille="page" className="mt-5" items={[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => ({ cle: o.value, titre: o.label }))}
-          valeur={ongletPage === "images" ? null : ongletPage} onChange={changerOnglet} />
+        {/* Sur la page du projet, les onglets passent sous « Simulateur complet » (30 oct. 2026, Jules) ; ailleurs
+            (simulateur, photos), ils restent ici. */}
+        {!pageAvecOnglets && ongletsProjet("mt-5")}
       </div>
     );
     // Le panneau de l'élément cliqué en Éditeur : son design, gardé sur le projet (styles[nom du champ]).
@@ -1455,9 +1474,10 @@ export default function AdminProjets() {
       const el = typeof document !== "undefined" ? zoneApercu.current?.querySelector(`[data-champ="${CSS.escape(cible)}"]`) : null;
       return el ? Math.round(parseFloat(getComputedStyle(el).fontSize) * 0.75 * 2) / 2 : null;
     };
-    const panneauElement = vueProjet === "edition" && elementChoisi && !champsOuverts && !majAK && !telephone ? (
+    const peutMettreEnForme = vueProjet === "edition" && elementChoisi && !champsOuverts && !majAK && !telephone;
+    const panneauElement = peutMettreEnForme && formeOuverte ? (
       <PanneauEditeur key={elementChoisi.cible} titre={elementChoisi.texte || "Élément"}
-        sousTitre={elementChoisi.genre === "texte" ? "Texte de la page" : "Valeur de la page"} onFermer={() => setElementChoisi(null)}>
+        sousTitre={elementChoisi.genre === "texte" ? "Texte de la page" : "Valeur de la page"} onFermer={() => setFormeOuverte(false)}>
         <p className="m-0 mb-4 text-[12.5px] leading-[1.5] text-ardoise">La valeur se modifie sur la page. Le design s'applique partout où la page la montre, pour le client aussi.</p>
         <GroupePanneau titre="Design">
           <div style={COULEURS_DOC_PROJET}>
@@ -1593,6 +1613,7 @@ export default function AdminProjets() {
             <div className={scindeProjet ? "px-8 pt-6" : ""}>
             <ProjetContent
               sansBarreOnglets={scindeProjet}
+              ongletsSous={scindeProjet ? ongletsProjet("") : null}
               project={projetAffiche}
               isAdmin={false}
               showAsClient
@@ -1623,6 +1644,12 @@ export default function AdminProjets() {
         </div>
         {vueProjet === "sources" && survolSource?.source && survolSource.cadre && (
           <FicheSource source={survolSource.source} ancre={survolSource.ancre} cadre={survolSource.cadre} />
+        )}
+        {peutMettreEnForme && !formeOuverte && (
+          <button type="button" onClick={() => setFormeOuverte(true)} title={`Mettre en forme « ${elementChoisi.texte || "l'élément"} »`}
+            className="absolute bottom-5 right-5 z-30 inline-flex h-9 items-center gap-2 rounded-full border border-bord-doux bg-surface-pleine px-3.5 text-[13px] text-craie shadow-[0_8px_24px_rgb(0_0_0/0.18)] transition-colors hover:border-bord-vif hover:text-encre">
+            <span className="font-serif text-[15px] leading-none">Aa</span> Mettre en forme
+          </button>
         )}
         </div>
         {panneauElement}
@@ -1822,19 +1849,10 @@ export default function AdminProjets() {
 
   // --- Rendu de la liste : filtres appliqués une seule fois, réutilisés par le
   // bandeau de chiffres et par la grille.
-  const projetsVisibles = projects.filter((project) => {
-    const q = searchTerm.toLowerCase();
-    const matchSearch = !searchTerm
-      || project.titre?.toLowerCase().includes(q)
-      || project.adresse_complete?.toLowerCase().includes(q)
-      || project.client_email?.toLowerCase().includes(q);
-    const matchStatus = statusFilter === "all" || project.statut === statusFilter;
-    const matchArchived = showArchived ? project.archived : !project.archived;
-    return matchSearch && matchStatus && matchArchived;
-  });
-
-  const actifs = projects.filter((p) => !p.archived);
-  const nbArchives = projects.filter((p) => p.archived).length;
+  // La page reçue est déjà filtrée par le serveur (recherche, statut, archivés).
+  const projetsVisibles = projects;
+  const nbArchives = pageDeProjets?.nb_archives || 0;
+  const aucunProjet = !pageDeProjets?.nb_projets;
 
   return (
     <div className="relative min-h-screen px-5 py-7 text-encre md:px-10 md:py-9">
@@ -1922,14 +1940,14 @@ export default function AdminProjets() {
             <div className="col-span-full border-t border-encre/[0.35] pt-10 pb-16 text-center">
               <Building2 className="w-8 h-8 text-encre/15 mx-auto mb-5" />
               <h2 className="text-[24px] font-light text-encre mb-2">
-                {projects.length === 0 ? "Aucun projet" : "Aucun projet ne correspond"}
+                {aucunProjet ? "Aucun projet" : "Aucun projet ne correspond"}
               </h2>
               <p className="text-ardoise text-sm mb-6">
-                {projects.length === 0
+                {aucunProjet
                   ? "Créez le premier dossier pour commencer."
                   : "Élargissez la recherche ou changez de filtre."}
               </p>
-              {projects.length === 0 ? (
+              {aucunProjet ? (
                 <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
                   className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase border border-bord-doux text-encre hover:bg-encre/[0.08] transition-colors">
                   <Plus className="w-4 h-4" /> Créer un projet
@@ -1943,6 +1961,8 @@ export default function AdminProjets() {
             </div>
           )}
         </div>
+
+        {!chargementProjets && !erreurProjets && <Pages page={pageProjets} total={pageDeProjets?.total || 0} parPage={pageDeProjets?.par_page || 20} onPage={setPageProjets} />}
 
         {/* Shadow Editor Dialog */}
         <ShadowEditorDialog

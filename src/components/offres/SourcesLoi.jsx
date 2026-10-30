@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, ExternalLink, FileText, FolderOpen, Loader2, MessageSquare, PenLine, X } from "lucide-react";
+import { BookOpen, Building2, ExternalLink, FileText, FolderOpen, Loader2, MessageSquare, PenLine, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 // Les sources d'une LOI, sous la réponse du chat de la page Offres : d'où
@@ -11,7 +11,7 @@ import { base44 } from "@/api/base44Client";
 // fenêtre, sans quitter la page : les champs pris, et le document reçu avec
 // la phrase relevée surlignée, ou le PDF lui-même.
 
-const ICONES = { dossier: FileText, projet: FolderOpen, chat: MessageSquare, main: PenLine, modele: BookOpen };
+const ICONES = { dossier: FileText, projet: FolderOpen, crm: Building2, chat: MessageSquare, main: PenLine, modele: BookOpen };
 
 /** Les liens sous la réponse. `sources` : { loi_id, liens: [{ id, titre, detail }] }. */
 export default function SourcesLoi({ sources }) {

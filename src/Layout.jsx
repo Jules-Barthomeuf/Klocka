@@ -385,6 +385,12 @@ function LayoutContent({ children, currentPageName }) {
   // suit que la vue admin : un admin qui regarde la vue mandataire ou client
   // voit exactement ce que voit un mandataire ou un client.
   const vueAdmin = vue === "admin";
+  // La vue dite à la racine (30 oct. 2026, Jules) : dans le Mandataire, plus de jaune ; `ambre` et `jaune`
+  // y prennent le sable des notes de l'IA de l'Analyse (`lu-ia`, index.css), fenêtres et menus compris.
+  useEffect(() => {
+    document.documentElement.dataset.vue = vue;
+    return () => { delete document.documentElement.dataset.vue; };
+  }, [vue]);
   // L'agent testeur : un outil de super admin, qu'il peut masquer dans Personnalisation (12 oct. 2026).
   // L'agent testeur retiré de l'écran le 16 oct. 2026 (Jules) : ni bouton, ni onglet dans le Suivi.
   const testeurVisible = false;
@@ -531,7 +537,7 @@ function LayoutContent({ children, currentPageName }) {
     Semaine: { to: createPageUrl("Semaine"), icon: CalendarDays, actif: isActivePage("Semaine") },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     AValider: { to: createPageUrl("AValider"), icon: ClipboardCheck, actif: isActivePage("AValider"), badge: hakaAValider || null, badgeColor: "bg-menthe text-sur-menthe" },
-    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
+    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires") || isActivePage("MemoireKlocka"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },

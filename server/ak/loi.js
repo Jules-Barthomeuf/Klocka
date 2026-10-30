@@ -14,13 +14,15 @@ import path from 'path';
 import { CHEMIN_UPLOADS } from '../db.js';
 import { finDeBail } from './outils.js';
 
-/** Les champs sans lesquels la lettre ne se rédige pas, et leur question. */
+/**
+ * Les champs sans lesquels la lettre ne se rédige pas, et leur question. Le vendeur n'en est plus (30 oct. 2026,
+ * Jules) : sans nom, la lettre écrit « Le vendeur » ; « À l'attention de » vient de Twenty CRM (offres-agent.js).
+ * L'apport non plus : 15 % du prix, arrondi (apportParDefaut).
+ */
 export const CHAMPS_REQUIS = [
   ['acquereur_nom', "le nom de l'acquéreur (la personne qui signe)"],
-  ['vendeur_societe', 'le vendeur (société ou nom)'],
   ['adresse_bien', 'l\'adresse du local'],
   ['prix', 'le prix FAI TTC'],
-  ['apport', "l'apport"],
 ];
 
 const UNITES = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
@@ -59,7 +61,41 @@ export function enLettres(n) {
 const euros = (n) => `${Math.round(Number(n) || 0).toLocaleString('fr-FR')} €`;
 // Une date telle qu'on l'écrit : « 30/04/2032 » comme « 2032-04-30 ».
 const jour = (d) => { if (!d) return ''; const x = d instanceof Date ? d : finDeBail(d) || new Date(d); return Number.isNaN(x.getTime()) ? String(d) : x.toLocaleDateString('fr-FR', { timeZone: 'UTC' }); };
-const plusJours = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+/** « 2026-10-30 » + n jours, en « AAAA-MM-JJ ». Pure. */
+const plusJours = (iso, n) => new Date(Date.parse(`${String(iso).slice(0, 10)}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+
+/**
+ * Pure : la date reportée au lundi quand elle tombe en fin de semaine (30 oct. 2026, Jules : « pas un weekend ni en
+ * fin de semaine ») : un vendredi, un samedi ou un dimanche passe au lundi suivant.
+ */
+export function jourOuvre(iso) {
+  const j = new Date(`${String(iso).slice(0, 10)}T00:00:00Z`).getUTCDay();
+  return j === 5 ? plusJours(iso, 3) : j === 6 ? plusJours(iso, 2) : j === 0 ? plusJours(iso, 1) : String(iso).slice(0, 10);
+}
+
+/**
+ * Pure : les échéances par défaut d'une lettre datée `date`, chacune un lundi à jeudi : la validité à 7 jours, la
+ * remise des documents à 9 (jamais avant la validité), la fin de l'exclusivité à 23 (au moins deux semaines après
+ * la remise des documents).
+ */
+export function echeances(date) {
+  const validite = jourOuvre(plusJours(date, 7));
+  const limite = jourOuvre([plusJours(date, 9), validite].sort().at(-1));
+  const fin = jourOuvre([plusJours(date, 23), plusJours(limite, 14)].sort().at(-1));
+  return { validite, limite_documents: limite, fin_exclusivite: fin };
+}
+
+/**
+ * Pure : l'apport par défaut (30 oct. 2026, Jules) : 15 % du prix, arrondi à la dizaine de milliers (67 500 → 70 000) ;
+ * au millier sous 50 000 €.
+ */
+export function apportParDefaut(prix) {
+  const n = Number(prix);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const brut = n * 0.15;
+  const pas = brut >= 50000 ? 10000 : 1000;
+  return Math.max(pas, Math.round(brut / pas) * pas);
+}
 const html = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** Les champs qui manquent, avec leur question. Pure. */
@@ -69,18 +105,19 @@ export function manquants(champs = {}) {
 
 /** Les champs complétés par leurs valeurs par défaut. Pure. */
 export function completer(champs = {}) {
+  const dits = Object.fromEntries(Object.entries(champs).filter(([, v]) => v !== undefined && v !== null && v !== ''));
+  const date = /^\d{4}-\d{2}-\d{2}/.test(String(dits.date || '')) ? String(dits.date).slice(0, 10) : new Date().toISOString().slice(0, 10);
   return {
     lieu: 'Nice',
-    date: new Date().toISOString().slice(0, 10),
+    date,
     duree_ans: 20,
     taux: 4,
-    validite: plusJours(7),
-    limite_documents: plusJours(9),
-    fin_exclusivite: plusJours(23),
+    ...echeances(date),
+    apport: apportParDefaut(dits.prix),
     surface_m2: null,
     locataire: null,
     fin_bail: null,
-    ...Object.fromEntries(Object.entries(champs).filter(([, v]) => v !== undefined && v !== null && v !== '')),
+    ...dits,
   };
 }
 
@@ -150,7 +187,8 @@ export function couleursLoi(marque) {
  * le PDF et le Word en sortent tous. Chaque bloc a sa clé : une retouche à la
  * main (`textes[cle]`) remplace son texte et survit aux changements de
  * champs. `**…**` met en gras. Pure.
- * Types : date, objet, h2 (avec `num`), h3, p, signatures.
+ * Types : date, objet, h2 (avec `num`), h3, p, liste, signatures. Une liste (30 oct. 2026, Jules : « sous forme
+ * de tirets », comme la LOI de référence « LOI OC - 1 av Mirabeau ») : un tiret par ligne de son texte.
  */
 export function blocs(brut) {
   const c = completer(brut);
@@ -164,42 +202,74 @@ export function blocs(brut) {
   const montant = (n, libelle) => (n == null || n === '' ? `[${libelle}]` : `${euros(n)} (${enLettres(n)} euros)`);
   const acquereur = trou(c.acquereur_nom, "nom de l'acquéreur");
   const adresse = trou(c.adresse_bien, 'adresse du local');
-  const occupe = c.locataire
-    ? `, actuellement loué à l'enseigne ${c.locataire}${c.fin_bail ? ` via un bail commercial arrivant à échéance le ${g(jour(c.fin_bail))}` : ' via un bail commercial'}`
-    : ', actuellement loué via un bail commercial';
+  const conseil = c.marque === 'kp' ? 'K Partners' : 'KLOCKA';
+  const liste = (...lignes) => lignes.filter(Boolean).join('\n');
+  // Le texte suit ce que la lettre sait : sans surface, sans locataire ou sans fin de bail, la ligne se resserre.
+  const occupation = c.locataire
+    ? `Local actuellement loué à l'enseigne ${c.locataire} via un bail commercial${c.fin_bail ? ` arrivant à échéance le ${g(jour(c.fin_bail))}` : ''}.`
+    : 'Local actuellement loué via un bail commercial.';
   return [
     bloc('date', 'date', `À ${c.lieu}, le ${jour(c.date)}`),
     bloc('objet', 'objet', `Objet : Lettre d'intention d'achat d'un local commercial situé au ${adresse}`),
     bloc('h-conseil', 'h2', 'Identification du conseil', { num: num(null, '00') }),
     ...(c.marque === 'kp' ? [
       // La lettre K Partners (28 oct. 2026, Jules) : le conseil est K Partners ; ses mentions légales restent celles de la carte.
-      bloc('conseil-1', 'p', "L'acquéreur est assisté dans cette opération par **K Partners**, réseau d'agents commerciaux en immobilier d'entreprise, au titre de la carte professionnelle mentionnée ci-dessous."),
-      bloc('conseil-2', 'p', 'Carte professionnelle n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ». Assurance RCP et garantie souscrites auprès de GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.'),
+      bloc('conseil-intro', 'p', "L'acquéreur est assisté dans cette opération par :"),
+      bloc('conseil', 'liste', liste(
+        "Le réseau **K Partners**, réseau d'agents commerciaux en immobilier d'entreprise.",
+        'Carte professionnelle : n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ».',
+        'Assurance RCP et garantie : GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.',
+      )),
     ] : [
-      bloc('conseil-1', 'p', "L'acquéreur est assisté dans cette opération par le cabinet **KLOCKA**, société par actions simplifiée (SAS) au capital social de 1 000 € (mille euros), dont le siège social est situé au 229 rue Saint-Honoré, 75001 Paris, immatriculée au R.C.S de Paris sous le numéro 932 230 394 et représentée par Paul de ZULUETA Y DE BESSON en qualité de Président."),
-      bloc('conseil-2', 'p', 'KLOCKA est titulaire de la carte professionnelle n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ». Son assurance RCP et sa garantie sont souscrites auprès de GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.'),
+      bloc('conseil-intro', 'p', "L'acquéreur est assisté dans cette opération par le cabinet :"),
+      bloc('conseil', 'liste', liste(
+        'La société **KLOCKA**.',
+        'Forme juridique : société par actions simplifiée (SAS) au capital social de 1 000 € (mille euros).',
+        'Siège social : 229 rue Saint-Honoré, 75001 Paris.',
+        'Immatriculation : R.C.S de Paris sous le numéro 932 230 394.',
+        'Représentation : représentée par Paul de ZULUETA Y DE BESSON en qualité de Président.',
+        'Carte professionnelle : n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ».',
+        'Assurance RCP et garantie : GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.',
+      )),
     ]),
     bloc('h-offre', 'h2', "L'offre", { num: num('I.', '01') }),
-    bloc('offre-1', 'p', `Je soussigné, ${acquereur}, ai l'honneur de vous proposer l'achat d'un local commercial situé au **${adresse}**.`),
-    bloc('offre-2', 'p', `Il s'agit d'un local commercial${c.surface_m2 ? ` d'une surface totale d'environ ${g(`${String(c.surface_m2).replace('.', ',')} m²`)}` : ''}${occupe}.`),
-    bloc('offre-3', 'p', `Le prix de vente FAI TTC proposé est de **${montant(c.prix, 'prix FAI TTC')}**. Les honoraires de notre conseil, ${c.marque === 'kp' ? 'K Partners' : 'KLOCKA'}, seront également à notre charge.`),
+    bloc('offre-1', 'p', `Je soussigné, ${acquereur}, ai l'honneur de vous proposer l'achat d'un local commercial situé à l'adresse suivante : **${adresse}**.`),
+    bloc('offre-liste', 'liste', liste(
+      `Désignation du bien : il s'agit d'un local commercial${c.surface_m2 ? ` d'une surface totale d'environ ${g(`${String(c.surface_m2).replace('.', ',')} m²`)}` : ''}.`,
+      occupation,
+      `Le prix de vente FAI TTC proposé est de **${montant(c.prix, 'prix FAI TTC')}**.`,
+    )),
+    bloc('honoraires', 'p', `À noter : les honoraires de notre conseil, ${conseil}, seront également à notre charge.`),
     bloc('h-conditions', 'h2', 'Conditions suspensives', { num: num('II.', '02') }),
     bloc('h-financement', 'h3', '1. Financement'),
     bloc('financement', 'p', `Cette opération sera financée par un apport personnel de ${g(montant(c.apport, 'apport'))} et au moyen d'un crédit bancaire d'une durée maximale de ${c.duree_ans} ans avec un taux cible de ${String(c.taux).replace('.', ',')}% (hors assurance).`),
     bloc('h-exclusivite', 'h3', '2. Exclusivité et Due Diligence'),
     bloc('exclusivite', 'p', `Une période d'exclusivité permettant la Due Diligence à accorder à l'acquéreur. Cette période s'achèvera le **${jour(c.fin_exclusivite)}**, sous réserve que l'ensemble des documents de la dataroom soient communiqués de façon exhaustive d'ici le **${jour(c.limite_documents)}**. L'offre pourra être confirmée à l'issue de cette période si l'analyse des documents s'avère satisfaisante et conforme, par mes conseils, à l'exécution de l'acquisition.`),
-    bloc('pieces', 'p', `Le vendeur s'engage à mettre à disposition les quittances de loyers sur les 3 dernières années ainsi que la situation de compte avec les dates de règlement${c.locataire ? `, le Kbis de la société ${c.locataire}` : ''}, les plans cotés des locaux concernés par la vente et l'ensemble des diagnostics réglementaires dans le cadre de cette vente.`),
-    bloc('confirmations', 'p', "Il confirmera l'absence de désordre ou de litige entre le locataire actuel et le propriétaire, ainsi que l'absence de travaux majeurs dans la copropriété à la charge de l'acquéreur. Il communiquera également les trois derniers procès-verbaux d'assemblée générale, le règlement de copropriété, qui ne devra indiquer aucune contradiction avec l'activité du preneur actuel, et le détail de la taxe foncière avec sa répartition et sa refacturation au preneur."),
-    bloc('autres', 'p', "Plus généralement, le vendeur transmettra tout autre document nécessaire à l'analyse du présent projet."),
+    bloc('pieces-intro', 'p', "Le vendeur s'engage à mettre à disposition :"),
+    bloc('pieces-liste', 'liste', liste(
+      'Les quittances de loyers sur les 3 dernières années et la situation de compte avec les dates de règlement.',
+      "La confirmation de l'absence de désordre ou de litige entre le locataire actuel et le propriétaire.",
+      "La confirmation de l'absence de travaux majeurs dans la copropriété à la charge de l'acquéreur.",
+      "Les trois derniers procès-verbaux d'assemblée générale.",
+      "Le règlement de copropriété, n'indiquant aucune contradiction avec l'activité du preneur actuel.",
+      'Le détail de la taxe foncière, de sa répartition et de sa refacturation au preneur.',
+      'Les plans cotés des locaux concernés par la vente.',
+      c.locataire ? `Le Kbis de la société ${c.locataire}.` : null,
+      "L'ensemble des diagnostics réglementaires dans le cadre de cette vente.",
+      "Tout autre document nécessaire à l'analyse du présent projet.",
+    )),
     bloc('h-diagnostics', 'h3', '3. Diagnostics'),
     bloc('diagnostics', 'p', 'La réalisation des diagnostics réglementaires ne révélant aucune non conformité majeure.'),
     bloc('h-modalites', 'h2', 'Modalités générales', { num: num('III.', '03') }),
-    bloc('substitution', 'p', 'Je me réserve la faculté de me substituer toute structure (personne morale) dans laquelle je suis partie prenante.'),
-    bloc('validite', 'p', `La présente offre est valable jusqu'au **${jour(c.validite)}**.`),
+    bloc('substitution', 'p', '**Clause de substitution :** je me réserve la faculté de me substituer toute structure (personne morale) dans laquelle je suis partie prenante.'),
+    bloc('validite', 'p', `**Validité de l'offre :** la présente offre est valable jusqu'au **${jour(c.validite)}**.`),
     bloc('salutations', 'p', "Nous vous prions d'agréer, Monsieur, l'expression de nos salutations distinguées."),
-    { cle: 'signatures', type: 'signatures', gauche: [acquereur, c.acquereur_societe].filter(Boolean), droite: [trou(c.vendeur_societe, 'vendeur'), 'Bon pour accord'] },
+    { cle: 'signatures', type: 'signatures', gauche: [acquereur, c.acquereur_societe].filter(Boolean), droite: [c.vendeur_societe || 'Le vendeur', 'Bon pour accord'] },
   ];
 }
+
+/** Les tirets d'une liste : une ligne chacun, sans le tiret qu'on aurait tapé devant. Pure. */
+export const tirets = (texte) => String(texte ?? '').split('\n').map((l) => l.replace(/^\s*[-–•]\s*/, '').trim()).filter(Boolean);
 
 const htmlGras = (texte) => segments(texte).map((s) => (s.gras ? `<b>${html(s.t)}</b>` : html(s.t))).join('');
 
@@ -210,7 +280,7 @@ export function lettre(brut) {
   const k = cadre(c);
   const style = `body{font-family:Montserrat,Arial,Helvetica,sans-serif;font-size:10.5pt;line-height:1.6;color:#2a2a2a;margin:0;padding:0 14mm}
     p{margin:0 0 9px} h2{font-size:15pt;font-weight:500;color:#1d1d1d;margin:26px 0 10px} h2.conseil{color:#7fa898} h2 span{color:#7fa898;font-size:9pt;margin-right:8px}
-    h3{font-size:10.5pt;margin:14px 0 4px} .haut{display:flex;justify-content:space-between;gap:24px} .attention{background:#eff3f1;padding:12px 18px}
+    h3{font-size:10.5pt;margin:14px 0 4px} .haut{display:flex;justify-content:space-between;gap:24px} .attention{background:#eff3f1;padding:12px 18px} ul.tirets{margin:0 0 9px;padding-left:18px;list-style:'- '} ul.tirets li{margin:0 0 3px}
     .label{font-size:8pt;letter-spacing:.18em;color:#777} .date{text-align:right;color:#555} .objet{font-size:14pt;border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:10px 0;margin:16px 0}
     .signatures{display:flex;gap:28px;margin-top:30px} .signatures div{flex:1}`;
   const corps = [
@@ -223,6 +293,7 @@ export function lettre(brut) {
     else if (b.type === 'h2') corps.push(`<h2${b.num ? '' : ' class="conseil"'}>${b.num ? `<span>${html(b.num)}</span>` : ''}${html(b.texte)}</h2>`);
     else if (b.type === 'h3') corps.push(`<h3>${html(b.texte)}</h3>`);
     else if (b.type === 'signatures') corps.push(`<div class="signatures"><div>${b.gauche.map((l, i) => `<p>${i === 0 ? `<b>${html(l)}</b>` : html(l)}</p>`).join('')}<p class="label">SIGNATURE</p></div><div>${b.droite.map((l, i) => `<p>${i === 0 ? `<b>${html(l)}</b>` : html(l)}</p>`).join('')}<p class="label">DATE ET SIGNATURE</p></div></div>`);
+    else if (b.type === 'liste') corps.push(`<ul class="tirets">${tirets(b.texte).map((l) => `<li>${htmlGras(l)}</li>`).join('')}</ul>`);
     else corps.push(`<p>${htmlGras(b.texte)}</p>`);
   }
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${html(k.titre)}</title><style>${style}</style></head><body>${corps.join('\n')}</body></html>`;
@@ -303,13 +374,17 @@ export async function pdf(brut) {
   decor();
   const place = (h) => { if (y + h > BAS) { d.addPage(); decor(); y = HAUT; } };
   // Un paragraphe aux mots gras ou non : les mots se posent un à un.
-  const riche = (texte, { taille = 10, interligne = 5.4, apres = 3.5, x0 = G, largeur = LARGEUR } = {}) => {
+  // `puce` : un tiret posé à cette abscisse devant la première ligne (une liste).
+  const riche = (texte, { taille = 10, interligne = 5.4, apres = 3.5, x0 = G, largeur = LARGEUR, puce = null } = {}) => {
     // Les espaces insécables (« 200 000 € ») : Helvetica ne les a pas. Ils
     // tiennent les mots ensemble pendant la coupe, puis s'écrivent en espace.
     const mots = segments(texte).flatMap((s) => s.t.replace(/[\u202f\u00a0]/g, '\uE000').split(/(\s+)/).filter((m) => m !== '').map((m) => ({ m: m.replace(/\uE000/g, ' '), gras: s.gras })));
     let ligne = []; let l = 0;
+    let premiere = true;
     const poser = () => {
       place(interligne);
+      if (puce != null && premiere) { police('normal', taille); d.text('-', puce, y); }
+      premiere = false;
       let x = x0;
       for (const w of ligne) { police(w.gras ? 'bold' : 'normal', taille); d.text(w.m, x, y); x += d.getTextWidth(w.m); }
       y += interligne; ligne = []; l = 0;
@@ -365,6 +440,7 @@ export async function pdf(brut) {
       box(b.gauche, G, 'SIGNATURE'); box(b.droite, 112, 'DATE ET SIGNATURE');
       y += 40;
     }
+    else if (b.type === 'liste') { for (const l of tirets(b.texte)) riche(l, { x0: G + 5, largeur: LARGEUR - 5, apres: 1.2, puce: G + 1 }); y += 2.3; }
     else riche(b.texte);
   }
   return Buffer.from(d.output('arraybuffer'));
@@ -384,8 +460,8 @@ export async function docx(brut) {
   const VERT = C.hex.accent; const GRIS = C.hex.gris;
   const run = (texte, { gras = false, couleur = null, taille = 20, espace = null, fond = null } = {}) => new TextRun({ text: String(texte), bold: gras, color: couleur || undefined, font: C.police, size: taille, ...(espace ? { characterSpacing: espace } : {}), ...(fond ? { shading: { type: ShadingType.CLEAR, color: 'auto', fill: fond } } : {}) });
   const logo = logoDocx(c, { ImageRun, run, largeur: 22, taille: 24 });
-  const para = (runs, { align = AlignmentType.LEFT, avant = 0, apres = 120 } = {}) =>
-    new Paragraph({ children: Array.isArray(runs) ? runs : [runs], alignment: align, spacing: { before: avant, after: apres, line: 320 } });
+  const para = (runs, { align = AlignmentType.LEFT, avant = 0, apres = 120, retrait = null } = {}) =>
+    new Paragraph({ children: Array.isArray(runs) ? runs : [runs], alignment: align, spacing: { before: avant, after: apres, line: 320 }, ...(retrait ? { indent: retrait } : {}) });
   const sansBord = { top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } };
   const p = parties(c);
   const cellule = (label, lignes, fond = null) => new TableCell({
@@ -404,6 +480,10 @@ export async function docx(brut) {
       enfants.push(para(run(''), { apres: 240 }));
       const bloc = (lignes, sous) => new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: sansBord, children: [...lignes.map((l, i) => para(run(l, { gras: i === 0, couleur: i === 0 ? null : GRIS }), { apres: 0 })), para(run(''), { apres: 900 }), para(run(sous, { taille: 14, couleur: VERT, espace: 40 }))] });
       enfants.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: sansBord, rows: [new TableRow({ children: [bloc(b.gauche, 'SIGNATURE'), bloc(b.droite, 'DATE ET SIGNATURE')] })] }));
+    }
+    else if (b.type === 'liste') {
+      const lignes = tirets(b.texte);
+      lignes.forEach((l, i) => enfants.push(para([run('-\t'), ...segments(l).map((s) => run(s.t, { gras: s.gras }))], { apres: i === lignes.length - 1 ? 160 : 40, retrait: { left: 340, hanging: 340 } })));
     }
     else enfants.push(para(segments(b.texte).map((s) => run(s.t, { gras: s.gras }))));
   }
@@ -453,11 +533,14 @@ function pdfMenthe(c, jsPDF) {
   };
   const nouvellePage = () => { d.addPage(); pied(); y = HAUT; d.setDrawColor(...C.trait); d.line(G, y - 4, D, y - 4); y += 4; };
   const place = (h) => { if (y + h > BAS) nouvellePage(); };
-  const riche = (texte, { taille = 10, interligne = 5.4, apres = 3.2, x0 = XT, largeur = LT } = {}) => {
+  const riche = (texte, { taille = 10, interligne = 5.4, apres = 3.2, x0 = XT, largeur = LT, puce = null } = {}) => {
     const mots = segments(texte).flatMap((s) => s.t.replace(/[\u202f\u00a0]/g, '\uE000').split(/(\s+)/).filter((m) => m !== '').map((m) => ({ m: m.replace(/\uE000/g, ' '), gras: s.gras })));
     let ligne = []; let l = 0;
+    let premiere = true;
     const poser = () => {
       place(interligne);
+      if (puce != null && premiere) { police('normal', taille); d.text('-', puce, y); }
+      premiere = false;
       let x = x0;
       for (const w of ligne) { police(w.gras ? 'bold' : 'normal', taille, w.gras ? NOIR : ENCRE); d.text(w.m, x, y); x += d.getTextWidth(w.m); }
       y += interligne; ligne = []; l = 0;
@@ -516,7 +599,8 @@ function pdfMenthe(c, jsPDF) {
     } else if (b.cle === 'salutations') {
       // Les salutations sortent des sections, sur toute la largeur.
       y += 4; riche(b.texte, { x0: G, largeur: LARGEUR, apres: 4 });
-    } else riche(b.texte);
+    } else if (b.type === 'liste') { for (const l of tirets(b.texte)) riche(l, { x0: XT + 5, largeur: LT - 5, apres: 1.2, puce: XT + 1 }); y += 2; }
+    else riche(b.texte);
   }
   return Buffer.from(d.output('arraybuffer'));
 }
@@ -527,8 +611,8 @@ async function docxMenthe(c) {
   const C = couleursLoi(c.marque);
   const VERT = C.hex.bande; const GRIS = C.hex.gris; const NOIR = C.hex.noir; const TRAIT = C.hex.trait;
   const run = (texte, { gras = false, couleur = null, taille = 20, espace = null, maj = false, fond = null } = {}) => new TextRun({ text: String(texte), bold: gras, color: couleur || undefined, font: C.police, size: taille, allCaps: maj, ...(espace ? { characterSpacing: espace } : {}), ...(fond ? { shading: { type: ShadingType.CLEAR, color: 'auto', fill: fond } } : {}) });
-  const para = (runs, { align = AlignmentType.LEFT, avant = 0, apres = 120, bas = null } = {}) =>
-    new Paragraph({ children: Array.isArray(runs) ? runs : [runs], alignment: align, spacing: { before: avant, after: apres, line: 320 }, ...(bas ? { border: { bottom: bas } } : {}) });
+  const para = (runs, { align = AlignmentType.LEFT, avant = 0, apres = 120, bas = null, retrait = null } = {}) =>
+    new Paragraph({ children: Array.isArray(runs) ? runs : [runs], alignment: align, spacing: { before: avant, after: apres, line: 320 }, ...(bas ? { border: { bottom: bas } } : {}), ...(retrait ? { indent: retrait } : {}) });
   const aucun = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
   const sansBord = { top: aucun, bottom: aucun, left: aucun, right: aucun };
   const cellule = (enfants, largeur) => new TableCell({ width: { size: largeur, type: WidthType.PERCENTAGE }, borders: sansBord, children: enfants });
@@ -567,6 +651,10 @@ async function docxMenthe(c) {
     }
     if (!section) continue;
     if (b.type === 'h3') section.contenu.push(para(run(b.texte, { taille: 15, couleur: GRIS, espace: 40, maj: true }), { avant: 100, apres: 60 }));
+    else if (b.type === 'liste') {
+      const lignes = tirets(b.texte);
+      lignes.forEach((l, i) => section.contenu.push(para([run('-\t'), ...segments(l).map((x) => run(x.t, { gras: x.gras, couleur: x.gras ? NOIR : null }))], { apres: i === lignes.length - 1 ? 160 : 40, retrait: { left: 340, hanging: 340 } })));
+    }
     else section.contenu.push(para(segments(b.texte).map((x) => run(x.t, { gras: x.gras, couleur: x.gras ? NOIR : null }))));
   }
   fermer();

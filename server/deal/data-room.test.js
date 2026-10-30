@@ -240,10 +240,28 @@ test("rentrer le projet puis le mettre à jour depuis le dossier : chiffres du l
   const r = await P.mettreAJourProjetDepuisDeal('DR13', null);
   assert.equal(r.ok, true);
   const projet = Records.get('Project', id);
-  assert.equal(projet.echeance_bail, '31/12/2034');
+  assert.equal(projet.echeance_bail, '2034-12-31', 'en date, pour la frise et la durée restante');
   assert.equal(projet.loyer_annuel_ht, 18000);
   assert.deepEqual(projet.photos, ['p.jpg']);
   assert.equal(projet.nom_locataire, 'Gardé', 'une case vide du dossier n\'efface rien');
+});
+
+test("une pièce lue met le projet à jour toute seule : les cases vides se remplissent, les autres attendent une vérification", async () => {
+  const P = await import('./projet.js');
+  Records.create('Deal', { deal_id: 'DR15', nom: 'Vannes', documents_espace: [{ id: 'k', nom: 'kbis.pdf', url: '/uploads/k15.pdf', mime: 'application/pdf' }],
+    lots: [{ lot: { surface_m2: { absent: false, valeur: 60 } } }] });
+  fs.writeFileSync(path.join(uploadDir, 'k15.pdf'), 'kbis');
+  P.creerProjetDepuisDeal('DR15', 0, null);
+  const id = Records.findBy('Deal', 'deal_id', 'DR15').projet_id;
+  Records.update('Project', id, { activite_locataire: 'Boulangerie' });
+  A.rangerPiece('DR15', 'k', 'kbis', null, { lire: false });
+  await A.lirePiece('DR15', 'k', { uploadDir, lire: async () => JSON.stringify({ criteres: { denomination: { valeur: 'SARL Le Fournil' }, activite: { valeur: 'Restauration rapide' } } }) });
+  await P.projetSuitLeDossier('DR15', null);
+  const projet = Records.get('Project', id);
+  assert.equal(projet.nom_locataire, 'SARL Le Fournil');
+  assert.equal(projet.activite_locataire, 'Boulangerie', 'une case remplie ne change que par une valeur vérifiée');
+  assert.ok(projet.maj_depuis_dossier_le);
+  assert.equal(await P.projetSuitLeDossier('inconnu'), null);
 });
 
 test("la vacance lit l'adresse donnée sans virgule ni code postal, rangée tout entière dans la ville", async () => {
@@ -310,9 +328,32 @@ test("rentrer le projet après l'Analyse : le Kbis nomme le local dans le titre,
   const r = P.creerProjetDepuisDeal('DR18', 0, null, { analyse: A.lireAnalyse('DR18') });
   assert.notEqual(r.ok, false);
   const projet = Records.get('Project', Records.findBy('Deal', 'deal_id', 'DR18').projet_id);
-  assert.match(projet.titre, /^Restaurant Le Perroquet Bleu - /);
-  assert.equal(projet.echeance_bail, '31/12/2034');
+  assert.equal(projet.titre, 'Restaurant Le Perroquet Bleu', "le nom seul, l'adresse est écrite en dessous (30 oct. 2026)");
+  assert.equal(projet.echeance_bail, '2034-12-31', 'en date, pour la frise et la durée restante');
   assert.equal(projet.loyer_annuel_ht, 24000);
   assert.match(projet.questions_ouverture, /la surface du local/);
   assert.doesNotMatch(projet.questions_ouverture, /l'échéance du bail/);
+});
+
+test("décocher une source sur une ligne de Marché, puis la recocher", () => {
+  Records.create('Deal', { deal_id: 'DR19' });
+  assert.equal(A.deciderCase('DR19', 'marche', 'loyer_marche', { action: 'exclure', source: 'Data-B' }, null).ok, true);
+  assert.deepEqual(A.lireAnalyse('DR19').cases_marche.loyer_marche.exclues, ['Data-B']);
+  A.deciderCase('DR19', 'marche', 'loyer_marche', { action: 'exclure', source: 'Data-B' }, null);
+  assert.deepEqual(A.lireAnalyse('DR19').cases_marche.loyer_marche.exclues, []);
+});
+
+test("le projet rentré reprend la taxe foncière de l'avis lu et pose les travaux des années 10 et 20", async () => {
+  const P = await import('./projet.js');
+  Records.create('Deal', { deal_id: 'DR40', nom: 'Toulouse', documents_espace: [{ id: 't', nom: 'avis.pdf', url: '/uploads/t40.pdf', mime: 'application/pdf' }],
+    lots: [{ lot: { surface_m2: { absent: false, valeur: 50 } }, simulateur: { chargesCopropriete: 900 } }] });
+  fs.writeFileSync(path.join(uploadDir, 't40.pdf'), 'avis');
+  A.rangerPiece('DR40', 't', 'taxe_fonciere', null, { lire: false });
+  await A.lirePiece('DR40', 't', { uploadDir, lire: async () => JSON.stringify({ criteres: { montant: { valeur: '1 850 €', donnees: { montant: 1850 } } } }) });
+  P.creerProjetDepuisDeal('DR40', 0, null, { analyse: A.lireAnalyse('DR40') });
+  const projet = Records.get('Project', Records.findBy('Deal', 'deal_id', 'DR40').projet_id);
+  assert.equal(projet.sim_taxe_fonciere, 1850);
+  assert.equal(projet.sim_charges_copropriete, 900);
+  assert.equal(projet.sim_travaux_montant10, 10000);
+  assert.equal(projet.sim_travaux_annee20, 20);
 });

@@ -1,4 +1,5 @@
 import FlechesHistorique from "@/components/ui/fleches-historique";
+import Pages from "@/components/ui/Pages";
 import { motion } from "framer-motion";
 import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -63,9 +64,18 @@ export default function Analyse() {
 
   const [dossier, setDossier] = useState(null);
 
+  // 20 dossiers par page (30 oct. 2026, Jules) : le serveur trie, filtre et ne renvoie que la page ; la recherche part
+  // au serveur un quart de seconde après la dernière touche, et ramène à la première page.
+  const [page, setPage] = useState(1);
+  const [cherche, setCherche] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => { setCherche(recherche.trim()); setPage(1); }, 250);
+    return () => clearTimeout(t);
+  }, [recherche]);
   const { data: pipeline, isLoading } = useQuery({
-    queryKey: ["preanalyse-pipeline"],
-    queryFn: () => base44.request("GET", "/api/preanalyse/pipeline"),
+    queryKey: ["preanalyse-pipeline", "page", page, cherche],
+    queryFn: () => base44.request("GET", `/api/preanalyse/pipeline?page=${page}&q=${encodeURIComponent(cherche)}`),
+    placeholderData: (avant) => avant,
     refetchOnWindowFocus: true,
   });
 
@@ -199,14 +209,10 @@ export default function Analyse() {
   const changerVue = (v) => { const suivant = new URLSearchParams(params); if (v === "analyse") suivant.set("vue", "analyse"); else suivant.delete("vue"); setParams(suivant); };
   const aRelancer = pipeline?.a_relancer || 0;
 
-  const nbDossiers = (pipeline?.dossiers || []).filter((d) => !d.archived).length;
+  const nbDossiers = pipeline?.nb_dossiers ?? 0;
   // Tous les dossiers, en une seule liste, du plus récemment modifié au plus ancien (18 oct. 2026, Jules).
-  const tous = useMemo(() => {
-    const t = recherche.trim().toLowerCase();
-    return (pipeline?.dossiers || [])
-      .filter((d) => !d.archived && (!t || `${d.titre || ""} ${d.nom_fichier || ""} ${d.ville || ""} ${d.responsable || ""}`.toLowerCase().includes(t)))
-      .sort((a, b) => String(b.maj_le || "").localeCompare(String(a.maj_le || "")));
-  }, [pipeline, recherche]);
+  // La page reçue est déjà filtrée et triée par le serveur.
+  const tous = pipeline?.dossiers || [];
   // Les trois derniers ouverts (modifiés) en cartes, les autres en lignes dans l'ordre choisi.
   const ouvrirResponsables = (d) => {
     const actuels = (d.responsables?.length ? d.responsables : [String(d.responsable || "").split("@")[0]]).map((x) => ADMINS.find((a) => a.toLowerCase() === String(x).split(/[.\s]/)[0].toLowerCase()) || x).filter(Boolean);
@@ -450,18 +456,22 @@ export default function Analyse() {
               </div>
             )}
             {/* Le titre au centre, les onglets en pilule dessous, comme la Prospection. */}
-            <header className="k-entree relative mb-8 flex flex-col items-center gap-6 text-center">
-              <FlechesHistorique className="self-start md:absolute md:left-0 md:top-1" />
-              <div className="flex flex-wrap items-center justify-end gap-2.5 self-end md:absolute md:right-14 md:top-0 md:self-auto">
+            {/* Une seule ligne (30 oct. 2026, Jules) : les flèches et le titre à gauche, les gestes à droite. Plus d'absolu : avec
+                Mandats, Mémoire, les relances et Nouveau dossier, le groupe passait sur un titre centré. */}
+            <header className="k-entree relative mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 md:pr-14">
+              <div className="flex items-center gap-4">
+                <FlechesHistorique />
+                <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Dossiers</h1>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2.5">
                 <LienMandats />
+                <LienMemoire />
                 <span className={`text-[14px] max-md:text-[13px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>{aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente</span>
                 <button onClick={() => setCreationOuverte(true)}
                   className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol">
                   <Plus className="w-4 h-4" /> Nouveau dossier
                 </button>
               </div>
-              <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Dossiers</h1>
-              {/* La pilule « Dossiers · n » retirée (18 oct. 2026, Jules) : le titre suffit. */}
             </header>
 
             {/* Recherche, et ce que fait la page toute seule. */}
@@ -497,6 +507,7 @@ export default function Analyse() {
                 {!tous.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Aucun dossier ne correspond.</p>}
               </div>
             )}
+            {!isLoading && <Pages page={page} total={pipeline?.total || 0} parPage={pipeline?.par_page || 20} onPage={setPage} />}
           </div>
         )}
 
@@ -606,6 +617,16 @@ function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
       {d.pourquoi && <p className="m-0 mt-1.5 flex items-center gap-1.5 text-[12.5px] text-ambre">{d.a_relancer && <Clock className="h-3 w-3" />}{d.pourquoi}</p>}
       <span onClick={(e) => e.stopPropagation()}>{menu}</span>
     </article>
+  );
+}
+
+/** La Mémoire Klocka (30 oct. 2026) : les fiches des biens gardées, à côté des Mandats. */
+function LienMemoire() {
+  const { data } = useQuery({ queryKey: ["memoire-compte"], queryFn: () => base44.request("GET", "/api/memoire?limite=1"), staleTime: 60_000, retry: false });
+  return (
+    <Link to="/Memoire" className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux px-4 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre max-md:h-9">
+      Mémoire{data?.total > 0 && <span className="tabular-nums text-ardoise">{data.total}</span>}
+    </Link>
   );
 }
 

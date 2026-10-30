@@ -1,4 +1,5 @@
 import React from "react";
+import { titreSansAdresse } from "@/lib/titre-projet";
 import { rendementGlobalNetDuProjet } from "@/components/simulator/CalculFinancier";
 import { nombreForce } from "./EditionEnPlace";
 
@@ -125,7 +126,7 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 px-5 pb-4">
-          <h2 className="m-0 truncate text-[21px] font-normal leading-[1.2] tracking-[-0.01em] text-white">{project.titre}</h2>
+          <h2 className="m-0 truncate text-[21px] font-normal leading-[1.2] tracking-[-0.01em] text-white">{titreSansAdresse(project.titre, project.adresse_complete)}</h2>
           {project.adresse_complete && <p className="m-0 mt-1 truncate text-[13.5px] text-white/60">{project.adresse_complete}</p>}
           {sousLigne}
         </div>

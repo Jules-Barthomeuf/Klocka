@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
-import { ChevronLeft, ChevronRight, RefreshCw, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw, X } from "lucide-react";
 import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
@@ -207,6 +207,40 @@ const noteIA = (l) => (["verifie", "corrige"].includes(l.statut) ? null : [
   l.relue ? `La relecture lit autre chose : « ${String(l.relue).slice(0, 80)} ».` : null,
 ].filter(Boolean).join(" ") || null);
 
+/**
+ * « Ajouter une pièce » (30 oct. 2026, Jules : « sans être obligé d'aller dans la Data Room ») : la pièce se range
+ * d'elle-même dans l'emplacement de la grille (le bail dans « Bail », l'avis dans « Avis de taxe foncière »…), puis se lit.
+ */
+export function AjouterPiece({ dealId, type }) {
+  const queryClient = useQueryClient();
+  const ref = useRef(null);
+  const [occupe, setOccupe] = useState(false);
+  const importer = async (fichiers) => {
+    if (!fichiers.length) return;
+    setOccupe(true);
+    try {
+      const form = new FormData();
+      for (const f of fichiers) { form.append("fichiers", f); form.append("noms", f.name); }
+      const url = (chemin) => `/api/preanalyse/dossiers/${dealId}/analyse-pieces/${chemin}`;
+      const r = await base44.request("POST", url(`emplacements/${type}`), { body: form, isForm: true });
+      for (const id of r?.documents || []) await base44.request("POST", url(`documents/${id}/relire`), { body: {} });
+      toast.success(fichiers.length > 1 ? `${fichiers.length} pièces ajoutées, lecture en cours` : "Pièce ajoutée, lecture en cours");
+      queryClient.invalidateQueries({ queryKey: cle(dealId) });
+      queryClient.invalidateQueries({ queryKey: ["depots", dealId] });
+    } catch (e) { toast.error(e?.message || "Import impossible"); }
+    setOccupe(false);
+  };
+  return (
+    <>
+      <input ref={ref} type="file" multiple className="hidden" onChange={(ev) => { importer([...ev.target.files]); ev.target.value = ""; }} />
+      <button type="button" onClick={() => ref.current?.click()} disabled={occupe}
+        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe shadow-[0_8px_24px_rgb(0_0_0/0.18)] hover:bg-menthe-survol disabled:opacity-60">
+        {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Ajouter une pièce
+      </button>
+    </>
+  );
+}
+
 export function GrillesPieces({ dossier, onglet, apercu = false }) {
   const dealId = dossier?.deal_id;
   const { data, isLoading, isError } = useAnalysePieces(dealId, { enabled: !apercu });
@@ -241,7 +275,7 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
           </div>
           {!g.pieces.length && (
             <div className="absolute inset-x-0 bottom-0 top-0 z-10 grid place-items-center lg:top-[46px]">
-              <p className="m-0 rounded-full border border-bord-doux bg-fond/80 px-4 py-2 text-[13.5px] text-encre shadow-[0_8px_24px_rgb(0_0_0/0.25)]">Aucune pièce : déposez-la dans la Data Room.</p>
+              <AjouterPiece dealId={dealId} type={g.id} />
             </div>
           )}
           <div className={g.pieces.length ? "" : "pointer-events-none select-none blur-[3px]"} aria-hidden={g.pieces.length ? undefined : true}>

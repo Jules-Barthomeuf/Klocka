@@ -1,4 +1,4 @@
-// Le titre d'un projet créé depuis un dossier : « Nom du local - Adresse ».
+// Le titre d'un projet créé depuis un dossier : le nom du local, sans l'adresse (30 oct. 2026).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,8 +17,8 @@ test("le nom du local : l'activité puis l'enseigne, sans forme juridique", () =
   assert.equal(nomDuLocal(null, null), '');
 });
 
-test("le titre : nom du local, espace, tiret, espace, adresse", () => {
-  assert.equal(titreProjet('Chez Truc', '12 rue de la Paix, 75002 Paris', 'Pizzeria'), 'Pizzeria Chez Truc - 12 rue de la Paix, 75002 Paris');
-  assert.equal(titreProjet(null, '12 rue de la Paix, 75002 Paris'), 'Murs commerciaux - 12 rue de la Paix, 75002 Paris');
-  assert.equal(titreProjet('SAS Patounes', null), 'Patounes - Murs commerciaux');
+test("le titre : le nom du local seul, l'adresse est écrite en dessous", () => {
+  assert.equal(titreProjet('Chez Truc', '12 rue de la Paix, 75002 Paris', 'Pizzeria'), 'Pizzeria Chez Truc');
+  assert.equal(titreProjet(null, '12 rue de la Paix, 75002 Paris'), 'Murs commerciaux');
+  assert.equal(titreProjet('SAS Patounes', null), 'Patounes');
 });

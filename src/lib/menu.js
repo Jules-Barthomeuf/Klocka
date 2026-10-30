@@ -9,6 +9,8 @@ export const ENTREES_ADMIN = [
   { cle: "Semaine", label: "Agenda" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
+  // La Mémoire Klocka (30 oct. 2026) : les fiches des biens gardées, hors menu (un lien depuis Dossiers), avec son cadenas.
+  { cle: "MemoireKlocka", label: "Mémoire" },
   // Haka (17 oct. 2026) : la file À valider ; visible quand HAKA_FILE est allumé.
   { cle: "AValider", label: "À valider" },
   { cle: "Offres", label: "Offres" },

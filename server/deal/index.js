@@ -150,6 +150,11 @@ export async function analyserFiche(entree, ctx = {}) {
   // apparaît au prochain rafraîchissement du dossier.
   // Sans clic (veille des boîtes, Haka), pas de recherche web : le point de marché attend un geste (18 oct. 2026).
   if (!ctx.automatique) completerContexteMarche(dossier);
+  // La Mémoire Klocka (30 oct. 2026) : chaque fiche entrée y a sa ligne « dossier » (le taux de biens retenus, et le
+  // lecteur de nuit sait qu'elle est déjà connue). Sans attente, jamais bloquant.
+  import('../memoire/drapeaux.js')
+    .then(async (M) => { if (M.MEMOIRE) (await import('../memoire/memoire.js')).memoriser(dossier, { origine: 'dossier', par: ctx.user }); })
+    .catch((e) => console.warn('[mémoire] dossier :', e?.message || e));
   // L'agent, lui, est attendu : c'est à lui qu'on écrit ensuite, et celui
   // qui a déposé la fiche doit savoir s'il est au dossier et dans Monday.
   // Un dossier venu d'un mandataire K Partners n'a pas d'agent immobilier :

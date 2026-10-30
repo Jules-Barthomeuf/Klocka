@@ -157,3 +157,32 @@ export function jalonsDuBail(frise, { maintenant = new Date(), ferme = null, max
     })),
   };
 }
+
+/**
+ * Pure : la frise retouchée à la main (30 oct. 2026, Jules : « ajouter, modifier ou supprimer un point »). `perso`,
+ * gardé sur le projet sous `frise_perso` : { retires: [cle], modifies: { cle: { date, label } }, ajoutes: [{ id, date,
+ * label }] }. Les dates sont en ISO ; chaque point se replace sur la ligne d'après sa date, entre le début et la fin.
+ */
+export function personnaliserJalons(jalons, perso, bornee, { maintenant = new Date() } = {}) {
+  if (!perso) return jalons;
+  const retires = new Set(perso.retires || []);
+  const modifies = perso.modifies || {};
+  const enDate = (v) => { const d = new Date(`${String(v).slice(0, 10)}T12:00:00`); return Number.isNaN(d.getTime()) ? null : d; };
+  const tous = [
+    ...jalons.filter((j) => !retires.has(j.cle)).map((j) => {
+      const m = modifies[j.cle];
+      const date = (m?.date && enDate(m.date)) || j.date;
+      return { ...j, date, label: m?.label || j.label, texte: m?.date ? dateLongue(date) : j.texte };
+    }),
+    ...(perso.ajoutes || []).map((a) => ({ cle: a.id, date: enDate(a.date), label: a.label || "Point", ajoute: true }))
+      .filter((a) => a.date).map((a) => ({ ...a, texte: dateLongue(a.date) })),
+  ].sort((a, b) => a.date - b.date);
+  const d = bornee?.debut ? enDate(bornee.debut)?.getTime() : null;
+  const f = bornee?.fin ? enDate(bornee.fin)?.getTime() : null;
+  const mesurable = d && f && f > d;
+  return tous.map((j, i) => ({
+    ...j,
+    position: mesurable ? Math.min(1, Math.max(0, (j.date.getTime() - d) / (f - d))) : tous.length > 1 ? i / (tous.length - 1) : 0,
+    passe: j.date.getTime() <= maintenant.getTime(),
+  }));
+}

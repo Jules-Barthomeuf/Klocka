@@ -21,7 +21,7 @@ import SimScenarios from "../components/simulator/layout/SimScenarios";
 import SimParametresAvances from "../components/simulator/layout/SimParametresAvances";
 import { calculerTVADeductible } from "../components/simulator";
 
-import { travauxParDefaut } from "@/components/simulator/CalculFinancier";
+import { travauxDuProjet, travauxParDefaut } from "@/components/simulator/CalculFinancier";
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
   const pvif = Math.pow(1 + rate, nper);
@@ -176,11 +176,7 @@ export default function SimulateurRentabilite() {
       setGestionLocative(selectedProject.sim_gestion_locative || 0);
       setChargesDiverses(selectedProject.sim_charges_diverses || 0);
       const newTravaux = Array(25).fill(0);
-      for (let i = 1; i <= 20; i++) {
-        const annee = selectedProject[`sim_travaux_annee${i}`];
-        const montant = selectedProject[`sim_travaux_montant${i}`];
-        if (annee && montant) newTravaux[annee - 1] = montant;
-      }
+      for (const { annee, montant } of travauxDuProjet(selectedProject)) if (annee && montant && annee <= 25) newTravaux[annee - 1] = montant;
       setTravauxBailleur(newTravaux);
       setAnneeRevente(selectedProject.sim_annee_revente || 20);
       setTauxCommissionAgentRevente(selectedProject.sim_commission_agent_revente || 5);

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { titreSansAdresse } from "@/lib/titre-projet";
 import { adresseAChercher } from "@/lib/adresse-projet";
 import { EditionContext, ValeurEditable, ValeurForcee, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer, Bloc, nombreForce, COULEURS_DOC_PROJET } from "./EditionEnPlace";
 import { rendementGlobalNetDuProjet } from "@/components/simulator/CalculFinancier";
@@ -38,21 +39,55 @@ function TabHeader({ title, subtitle = null, right = undefined }) {
   );
 }
 
-function KpiStrip({ items, className = "" }) {
+// `zone` : où se rangent les chiffres ajoutés à la main dans cette bande (champs_personnalises, style « chiffre »).
+function KpiStrip({ items, className = "", zone = null, project = null }) {
   const edition = useEdition();
-  const list = (items || []).filter(Boolean).filter((it) => !estMasque(edition, it.champ));
-  if (!list.length) return null;
+  const enEdition = !!edition?.onChamp;
+  const [menu, setMenu] = useState(false);
+  const tous = project?.champs_personnalises || [];
+  const ajoutes = zone ? tous.map((c, i) => ({ ...c, i })).filter((c) => c.zone === zone && c.style === "chiffre") : [];
+  const list = [
+    ...(items || []).filter(Boolean).filter((it) => !estMasque(edition, it.champ)),
+    ...ajoutes.map((c) => ({ value: c.valeur || "—", label: c.label || "Titre", champ: `champs_personnalises.${c.i}.valeur`, champLabel: `champs_personnalises.${c.i}.label`, typeChamp: "text", ajoute: c.i })),
+  ];
+  // Ce qu'on a supprimé se remet, et un chiffre libre s'ajoute (30 oct. 2026, Jules : « comment on en rajoute une ? »).
+  const masques = (items || []).filter(Boolean).filter((it) => estMasque(edition, it.champ));
+  const remettre = (champ) => { edition.onChamp("champs_masques", (edition.masques || []).filter((m) => m !== champ), true); setMenu(false); };
+  const ajouter = () => { edition.onChamp("champs_personnalises", [...tous, { id: `chiffre-${Date.now()}`, zone, style: "chiffre", label: "Titre", valeur: "" }], true); setMenu(false); };
+  const retirer = (i) => edition.onChamp("champs_personnalises", tous.filter((_, k) => k !== i), true);
+  const peutAjouter = enEdition && (zone || masques.length);
+  if (!list.length && !peutAjouter) return null;
   return (
     <div className={`mb-5 ${className}`}>
       <Carte className="flex flex-wrap overflow-hidden">
         {list.map((it, i) => (
-          <div key={i} className={`flex-[1_1_200px] flex flex-col gap-2.5 p-7 max-md:p-5 ${i > 0 ? "border-l border-trait max-md:border-l-0 max-md:border-t" : ""}`}>
-            <span className="text-[13px] text-ardoise flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></span>
+          <div key={it.champ || i} className={`flex-[1_1_200px] flex flex-col gap-2.5 p-7 max-md:p-5 ${i > 0 ? "border-l border-trait max-md:border-l-0 max-md:border-t" : ""}`}>
+            <span className="text-[13px] text-ardoise flex items-center gap-1">
+              {it.champLabel ? <ValeurEditable champ={it.champLabel} type="text">{it.label}</ValeurEditable> : it.label}
+              {it.ajoute != null
+                ? enEdition && <button type="button" onClick={() => retirer(it.ajoute)} aria-label="Supprimer de la page" title="Supprimer de la page" className="text-bord-vif hover:text-red-400 transition-colors text-[12.5px] leading-none px-1 flex-shrink-0">×</button>
+                : <BoutonMasquer champ={it.champ} />}
+            </span>
             <span className={`text-[32px] max-md:text-[26px] font-medium tracking-[-0.02em] leading-tight whitespace-nowrap max-md:whitespace-normal ${it.accent ? "text-menthe" : "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
               <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
             </span>
           </div>
         ))}
+        {peutAjouter && (
+          <div className={`relative flex flex-[0_0_auto] items-center p-7 max-md:p-5 ${list.length ? "border-l border-trait max-md:border-l-0 max-md:border-t" : ""}`}>
+            <button type="button" onClick={() => setMenu((m) => !m)} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-dashed border-bord-doux px-3.5 text-[13px] text-ardoise transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+              + Ajouter
+            </button>
+            {menu && (
+              <div className="absolute right-4 top-[calc(100%-12px)] z-30 min-w-[220px] rounded-[12px] border border-bord-doux bg-surface-pleine p-1.5 shadow-[0_12px_32px_rgb(0_0_0/0.18)]">
+                {masques.map((it) => (
+                  <button key={it.champ} type="button" onClick={() => remettre(it.champ)} className="block w-full rounded-[8px] px-3 py-2 text-left text-[13.5px] text-craie hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>{it.label}</button>
+                ))}
+                {zone && <button type="button" onClick={ajouter} className={`block w-full rounded-[8px] px-3 py-2 text-left text-[13.5px] text-craie hover:bg-relief hover:text-encre ${masques.length ? "border-t border-trait" : ""}`} style={{ background: "transparent" }}>Un chiffre libre</button>}
+              </div>
+            )}
+          </div>
+        )}
       </Carte>
     </div>
   );
@@ -125,7 +160,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, ongletsSous = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -362,7 +397,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         ) : mapUrl ? (
           <iframe src={mapUrl} className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du projet" />
         ) : (
-          <div className="absolute inset-0" style={{ background: "repeating-linear-gradient(135deg, rgb(var(--k-encre-rgb) / .05) 0 12px, rgb(var(--k-encre-rgb) / .02) 12px 24px)" }} />
+          // Sans photo ni carte, la trame est sombre dans les deux thèmes : le titre posé dessus reste blanc (30 oct. 2026).
+          <div className="k-sur-photo absolute inset-0" style={{ background: "repeating-linear-gradient(135deg, rgb(var(--k-encre-rgb) / .05) 0 12px, rgb(var(--k-encre-rgb) / .02) 12px 24px), rgb(var(--k-surface-pleine-rgb))" }} />
         )}
         {/* En Street View comme sur la carte, ni voile ni habillage : la vue se manipule. */}
         {!vue && (
@@ -414,7 +450,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         <div className={`k-sur-photo pointer-events-none relative mt-auto flex flex-wrap items-end justify-between gap-x-10 gap-y-5 pb-2 pr-4 max-md:pr-0 [&_button]:pointer-events-auto [&_input]:pointer-events-auto ${vue ? "hidden" : ""}`} style={{ color: "white" }}>
           <div className="flex-[1_1_360px] min-w-0 max-w-[760px]">
             <h1 className="m-0 text-[40px] max-md:text-[28px] font-medium leading-[1.1] tracking-[-0.02em]" style={{ textWrap: "pretty", color: "white" }}>
-              <ValeurEditable champ="titre" type="text">{project.titre}</ValeurEditable>
+              <ValeurEditable champ="titre" type="text">{titreSansAdresse(project.titre, project.adresse_complete)}</ValeurEditable>
             </h1>
             {/* L'adresse, modifiable sur place dans l'éditeur (la carte et le secteur en partent). */}
             {modeEdition && onChamp && (
@@ -452,6 +488,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 className="h-11 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">
                 Simulateur complet →
               </button>
+              {ongletsSous && <div className="mt-8 max-md:mt-6">{ongletsSous}</div>}
             </div>
           )}
           {!apercuOnglet && !sansBarreOnglets && (
@@ -572,7 +609,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               )}
 
               <Bloc id="copro-chiffres" titre="Chiffres de la copropriété">
-              <KpiStrip items={[
+              <KpiStrip zone="copro-chiffres" project={project} items={[
                 // En édition, chaque case est là même vide, pour être remplie (14 oct. 2026, Jules : « chaque chiffre modifiable »).
                 (modeEdition || project.quote_part_lot > 0) && { value: project.quote_part_lot > 0 ? `${project.quote_part_lot} %` : '—', label: 'Quote-part du lot', champ: 'quote_part_lot' },
                 (modeEdition || project.charges_copropriete > 0) && { value: project.charges_copropriete > 0 ? `${fmtNum(project.charges_copropriete)} €` : '—', label: 'Charges annuelles', champ: 'charges_copropriete' },

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import Pages from "@/components/ui/Pages";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Loader2, LocateFixed, Pencil, Search, Trash2, X } from "lucide-react";
@@ -350,6 +351,13 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
       .sort((a, b) => rangFile(a, maintenant) - rangFile(b, maintenant) || echeance(a) - echeance(b));
   }, [fiches, q, filtre]);
   const compte = (k) => (fiches || []).filter((FILTRES.find(([x]) => x === k) || FILTRES[0])[2]).length;
+  // 50 commerces par page (30 oct. 2026, Jules : « pas toute la liste des milliers de commerces ») : la recherche, les
+  // filtres, « tout cocher » et la carte portent sur toute la liste ; seul le tableau n'en dessine que 50.
+  const PAR_PAGE = 50;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [q, filtre, listeId]);
+  const pageCourante = Math.min(page, Math.max(1, Math.ceil(lignes.length / PAR_PAGE)));
+  const affichees = lignes.slice((pageCourante - 1) * PAR_PAGE, pageCourante * PAR_PAGE);
   // Les cases suivent la liste : une fiche partie n'est plus cochée.
   useEffect(() => { setCoches((c) => new Set([...c].filter((id) => (fiches || []).some((p) => p.id === id)))); }, [fiches]);
   const tout = lignes.length > 0 && lignes.every((p) => coches.has(p.id));
@@ -410,7 +418,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
       {/* Au téléphone, plus de tableau (25 oct. 2026) : une ligne par commerce, le nom, la pastille du statut, la prochaine
           action ; un toucher ouvre la fiche au milieu de l'écran. */}
       <ul className="m-0 mt-4 list-none overflow-hidden rounded-[14px] border border-bord-doux bg-rail p-0 md:hidden">
-        {lignes.map((p) => (
+        {affichees.map((p) => (
           <li key={p.id} className="border-b border-trait last:border-b-0">
             <button type="button" onClick={() => setOuvert(p.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left" style={{ background: "transparent" }}>
               <span className="min-w-0 flex-1">
@@ -446,7 +454,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
             </tr>
           </thead>
           <tbody>
-            {lignes.map((p) => {
+            {affichees.map((p) => {
               // On appelle le propriétaire des murs, pas la boulangerie. Un
               // propriétaire-occupant se joint par le commerce : même numéro.
               const tel = p.telephone || (p.cible?.proprietaire_occupant ? p.cible?.telephone : null) || null;
@@ -501,6 +509,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
           </tbody>
         </table>
       </div>
+      <Pages page={pageCourante} total={lignes.length} parPage={PAR_PAGE} onPage={setPage} />
       <AnimatePresence>
         {ouvert && (fiches || []).some((p) => p.id === ouvert) && (
           <PanneauCommerce key={ouvert} p={(fiches || []).find((p) => p.id === ouvert)} onFermer={() => setOuvert(null)} />

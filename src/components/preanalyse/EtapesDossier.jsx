@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { FRISE } from "@/lib/dossiers-architecture";
@@ -45,7 +45,7 @@ export function FriseDossier({ vue, atteinte = 1, onAller, occupe = false, etape
  * Les étapes du dossier, à droite (18 oct. 2026, Jules, maquette) : par-dessus la page, jamais dans sa mise en page.
  * Fermé : une fine pilule collée au bord droit, un chevron, un point par étape (faite en couleur d'accent, ouverte
  * en blanc et plus grande, à venir en gris) et « 4/8 » ; un point mène à son étape. Ouvert : le menu, en surimpression,
- * avec une ombre. Le choix ouvert / fermé est gardé dans le navigateur.
+ * avec une ombre. À la souris, il s'ouvre au survol ; au doigt, le choix ouvert / fermé est gardé dans le navigateur.
  */
 // `telephone` : il sert aussi au téléphone, à la place de la frise, collé au bord (25 oct. 2026, Jules, pour les biens).
 // `intitule`, `numeros`, `memoire` : le même menu pour des onglets (la Prospection, 25 oct. 2026, Jules) : son titre, pas de
@@ -54,7 +54,15 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
   const [petitEcran] = useState(() => telephone && typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
   // Au téléphone, l'état ouvert / fermé est gardé à part, et fermé par défaut (26 oct. 2026).
   const cleOuvert = petitEcran ? `${memoire}.tel` : memoire;
-  const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem(cleOuvert) === "ouvert"; } catch { return false; } });
+  // À la souris, le menu s'ouvre au survol et se referme quand elle s'en va (30 oct. 2026, Jules) : il part fermé et le
+  // choix n'est plus gardé. Au doigt, rien ne survole : le chevron ouvre et ferme, comme avant.
+  const [survol] = useState(() => typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+  const [ouvert, setOuvert] = useState(() => { if (survol) return false; try { return localStorage.getItem(cleOuvert) === "ouvert"; } catch { return false; } });
+  const minuterie = useRef(null);
+  useEffect(() => () => clearTimeout(minuterie.current), []);
+  // Un léger délai dans les deux sens : la souris qui passe sans s'arrêter n'ouvre rien, celle qui sort un instant ne ferme rien.
+  const entrer = () => { if (!survol) return; clearTimeout(minuterie.current); minuterie.current = setTimeout(() => setOuvert(true), 120); };
+  const sortir = () => { if (!survol) return; clearTimeout(minuterie.current); minuterie.current = setTimeout(() => setOuvert(false), 300); };
   const basculer = () => setOuvert((o) => { try { localStorage.setItem(cleOuvert, o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
   // Une page choisie dans le menu ouvert : on y arrive menu fermé (29 oct. 2026, Jules).
   const fermer = () => { setOuvert(false); try { localStorage.setItem(cleOuvert, "ferme"); } catch { /* navigation privée */ } };
@@ -85,7 +93,7 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
   // Au téléphone, le menu revient à droite comme sur ordinateur (27 oct. 2026, Jules : « un truc à droite qu'on ouvre ») ;
   // il remplace le menu du fil d'Ariane. Fermé, une pastille étroite au bord droit, à mi-hauteur, qui se glisse.
   return (
-    <div className={`fixed z-40 ${petitEcran ? "right-1.5 top-1/2" : telephone ? "right-4 top-1/2 max-md:right-2" : "right-4 top-1/2 max-md:hidden"}`}
+    <div onMouseEnter={entrer} onMouseLeave={sortir} className={`fixed z-40 ${petitEcran ? "right-1.5 top-1/2" : telephone ? "right-4 top-1/2 max-md:right-2" : "right-4 top-1/2 max-md:hidden"}`}
       style={{ transform: `translateY(calc(-50% + ${decalage}px))` }}>
       <AnimatePresence mode="wait" initial={false}>
         {ouvert ? (

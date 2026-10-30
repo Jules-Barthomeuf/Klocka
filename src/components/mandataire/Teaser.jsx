@@ -217,7 +217,7 @@ export default function TeaserBien({ marcheId, mode = "edition" }) {
         </SurvolSources>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12.5px] text-brume">
-        <span className={manque ? "text-ambre" : undefined}>{mode === "sources" ? "Survolez un champ pour voir d'où il vient." : mode === "lecture" ? "Le teaser tel que l'acquéreur le lira." : `${manque ? "Complétez ce qui est en ambre : " : ""}cliquez sur un texte pour le corriger et le mettre en forme, ou sur la photo pour la changer.`}</span>
+        <span className={manque ? "text-ambre" : undefined}>{mode === "sources" ? "Survolez un champ pour voir d'où il vient." : mode === "lecture" ? "Le teaser tel que l'acquéreur le lira." : `${manque ? "Complétez ce qui est en sable : " : ""}cliquez sur un texte pour le corriger et le mettre en forme, ou sur la photo pour la changer.`}</span>
         <button type="button" onClick={() => recomposer.mutate(t.classe)} disabled={recomposer.isPending} className="inline-flex items-center gap-1.5 text-ardoise hover:text-encre" style={{ background: "transparent" }}>
           <RotateCcw className="h-3.5 w-3.5" />Recomposer depuis le mandat et l'avis
         </button>

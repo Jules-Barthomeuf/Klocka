@@ -49,7 +49,11 @@
 .loi-h2 .loi-num { color: var(--loi-vert); font-size: 8pt; font-weight: 700; margin-right: 8px; }
 .loi-h3 { font-size: 10pt; font-weight: 700; color: var(--loi-noir); margin: 5mm 0 1.5mm; }
 .loi-p { margin: 0 0 3.2mm; }
-.loi-p b, .loi-p strong { font-weight: 700; color: var(--loi-noir); }
+.loi-p b, .loi-p strong, .loi-tirets b, .loi-tirets strong { font-weight: 700; color: var(--loi-noir); }
+/* Les listes à tirets (30 oct. 2026), comme la LOI de référence : le tiret en retrait, le texte aligné dessous. */
+.loi-tirets { list-style: none; margin: 0 0 3.2mm; padding: 0; }
+.loi-tirets li { position: relative; padding-left: 5mm; margin: 0 0 1.2mm; }
+.loi-tirets li::before { content: "-"; position: absolute; left: 1mm; top: 0; }
 
 .loi-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 10mm; }
 .loi-signatures p { margin: 0; }
@@ -109,7 +113,7 @@
   font-family: "Hanken Grotesk", system-ui, sans-serif;
 }
 .loi-kp.loi-menthe { --loi-menthe: #3f47b8; }
-.loi-kp .loi-parties .loi-nom, .loi-kp .loi-signatures .loi-nom, .loi-kp .loi-h3, .loi-kp .loi-p b, .loi-kp .loi-p strong, .loi-kp .loi-h2 .loi-num { font-weight: 600; }
+.loi-kp .loi-parties .loi-nom, .loi-kp .loi-signatures .loi-nom, .loi-kp .loi-h3, .loi-kp .loi-p b, .loi-kp .loi-p strong, .loi-kp .loi-tirets b, .loi-kp .loi-tirets strong, .loi-kp .loi-h2 .loi-num { font-weight: 600; }
 .loi-kp .loi-m-titre, .loi-kp .loi-m-adresse, .loi-kp .loi-m-section .loi-h2 { font-weight: 500; letter-spacing: -0.03em; }
 .loi-kp .loi-objet, .loi-kp .loi-h2 { letter-spacing: -0.02em; }
 .loi-kp.loi-menthe .loi-m-bande { background: linear-gradient(135deg, #4a52c9 0%, #3f47b8 55%, #262a85 100%); }
@@ -151,10 +155,15 @@
 
 /* La page d'impression (29 oct. 2026) : la lettre seule, en A4, sans ombre ; l'encart et les signatures ne se coupent pas. */
 .loi-impression { background: #ffffff; }
-.loi-impression .loi-papier { box-shadow: none; max-width: none; margin: 0; min-height: 297mm; }
-.loi-attention, .loi-signatures, .loi-objet, .loi-parties { break-inside: avoid; }
+.loi-impression .loi-papier { box-shadow: none; max-width: none; margin: 0; }
+.loi-attention, .loi-signatures, .loi-objet, .loi-parties, .loi-tirets li { break-inside: avoid; }
 .loi-h2, .loi-h3 { break-after: avoid; }
 @media print {
   @page { size: A4; margin: 0; }
   html, body { margin: 0; background: #ffffff; }
+  /* Le pied toujours en bas de page (30 oct. 2026, Jules : « il est au milieu car il suit le texte ») : fixé, il se
+     répète au bas de chaque page ; le corps garde en haut et en bas de chaque page la place du pied (clone). */
+  .loi-impression .loi-bas { position: fixed; left: 0; right: 0; bottom: 0; background: #ffffff; }
+  .loi-impression .loi-corps { padding-bottom: 24mm; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  .loi-impression .loi-menthe .loi-corps { padding-bottom: 30mm; }
 }

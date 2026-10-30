@@ -141,7 +141,7 @@ export function Detail({ m, types, rafraichir }) {
                 {o.conditions && <p className="m-0 mt-1 text-[13px] text-ardoise">{o.conditions}</p>}
                 {o.argumentaire && <p className="m-0 mt-2 text-[13.5px] leading-[1.55] text-craie"><span className="text-menthe">Argumentaire · </span>{o.argumentaire}</p>}
                 {o.reponse ? (
-                  <p className="m-0 mt-2 text-[13px]" style={{ color: o.reponse === "acceptee" ? J["menthe"] : o.reponse === "refusee" ? J["alerte"] : J["ambre"] }}>{REPONSES[o.reponse]}</p>
+                  <p className="m-0 mt-2 text-[13px]" style={{ color: o.reponse === "acceptee" ? J["menthe"] : o.reponse === "refusee" ? J["alerte"] : J["lu-ia"] }}>{REPONSES[o.reponse]}</p>
                 ) : (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {Object.entries(REPONSES).map(([k, mot]) => <Bouton key={k} onClick={() => repondre.mutate({ offre: o.id, reponse: k })} disabled={repondre.isPending}>{mot}</Bouton>)}

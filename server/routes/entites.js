@@ -34,6 +34,31 @@ function accesEntite(req, res, entity, { ecriture = false } = {}) {
 
 /** Monte les routes « entities » sur l'application. */
 export function monterEntites(app) {
+
+  // La liste des Projets par pages (30 oct. 2026, Jules : « que les plus récents ») : 20 par page, le plus récent
+  // d'abord, la recherche et les archivés filtrés ici ; la page n'envoie plus les centaines de projets d'un coup.
+  // Mêmes droits que la liste générique.
+  app.get('/api/projets/page', wrap((req, res) => {
+    const user = accesEntite(req, res, 'Project');
+    if (!user) return;
+    const PAR_PAGE = 20;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const q = String(req.query.q || '').trim().toLowerCase();
+    const archives = req.query.archives === '1';
+    const statut = String(req.query.statut || 'all');
+    const visibles = filtrerListe(user, 'Project', Records.list('Project', { sort: '-created_date' }));
+    const gardes = visibles.filter((p) => (archives ? p.archived : !p.archived)
+      && (statut === 'all' || p.statut === statut)
+      && (!q || [p.titre, p.adresse_complete, p.client_email].some((x) => String(x || '').toLowerCase().includes(q))));
+    ok(res, {
+      projets: gardes.slice((page - 1) * PAR_PAGE, page * PAR_PAGE),
+      total: gardes.length,
+      page,
+      par_page: PAR_PAGE,
+      nb_projets: visibles.length,
+      nb_archives: visibles.filter((p) => p.archived).length,
+    });
+  }));
   app.get('/api/entities/:entity', wrap((req, res) => {
     const { entity } = req.params;
     const user = accesEntite(req, res, entity);

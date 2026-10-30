@@ -90,6 +90,48 @@ function extraireAdresse(de) {
   return (m ? m[1] : de || '').trim().toLowerCase() || null;
 }
 
+/** Pure : un message Gmail (format=full) ramené à la forme d'un MailRecu. */
+export function resumerMessage(msg, compte) {
+  const de = entete(msg.payload, 'from');
+  return {
+    compte,
+    gmail_message_id: msg.id,
+    thread_id: msg.threadId || null,
+    message_id_rfc: entete(msg.payload, 'message-id') || null,
+    de,
+    de_email: extraireAdresse(de),
+    objet: entete(msg.payload, 'subject') || '(sans objet)',
+    date: msg.internalDate ? new Date(Number(msg.internalDate)).toISOString() : null,
+    extrait: msg.snippet || '',
+    texte: texteDuMessage(msg.payload),
+    pieces_jointes: nomsPiecesJointes(msg.payload),
+    lu: !(msg.labelIds || []).includes('UNREAD'),
+    deal_id: null,
+  };
+}
+
+/**
+ * La Mémoire Klocka (30 oct. 2026) : une page de la boîte entière, filtrée par Gmail (`q`), avec le jeton de la page
+ * suivante. Rien n'est écrit : c'est au lecteur de nuit de garder son point de reprise.
+ * @returns {Promise<{ ids: string[], suivant: string|null, estimation: number|null }>}
+ */
+export async function listerMessagesGmail(compteEmail, { q = '', pageToken = null, max = 25 } = {}) {
+  const account = compteLisible(compteEmail);
+  const token = await accessTokenFor(account);
+  const params = new URLSearchParams({ maxResults: String(Math.min(500, Math.max(1, max))), includeSpamTrash: 'false' });
+  if (q) params.set('q', q);
+  if (pageToken) params.set('pageToken', pageToken);
+  const liste = await gmailGet(token, `/messages?${params}`);
+  return { ids: (liste.messages || []).map((m) => m.id), suivant: liste.nextPageToken || null, estimation: liste.resultSizeEstimate ?? null };
+}
+
+/** Un message lu en entier, à la forme d'un MailRecu, sans l'enregistrer. */
+export async function lireMessage(compteEmail, gmailMessageId) {
+  const account = compteLisible(compteEmail);
+  const token = await accessTokenFor(account);
+  return resumerMessage(await gmailGet(token, `/messages/${gmailMessageId}?format=full`), account.email);
+}
+
 /**
  * Relève les derniers messages de la boîte et crée les MailRecu inconnus.
  * @returns {{ nouveaux: number, total: number }}
@@ -126,22 +168,7 @@ export async function releverBoite(compteEmail, { max = 25, repecher = false } =
     if (connus.has(id)) continue;
     try {
       const msg = await gmailGet(token, `/messages/${id}?format=full`);
-      const de = entete(msg.payload, 'from');
-      const mail = {
-        compte: account.email,
-        gmail_message_id: msg.id,
-        thread_id: msg.threadId || null,
-        message_id_rfc: entete(msg.payload, 'message-id') || null,
-        de,
-        de_email: extraireAdresse(de),
-        objet: entete(msg.payload, 'subject') || '(sans objet)',
-        date: msg.internalDate ? new Date(Number(msg.internalDate)).toISOString() : null,
-        extrait: msg.snippet || '',
-        texte: texteDuMessage(msg.payload),
-        pieces_jointes: nomsPiecesJointes(msg.payload),
-        lu: !(msg.labelIds || []).includes('UNREAD'),
-        deal_id: null,
-      };
+      const mail = resumerMessage(msg, account.email);
 
       // Une alerte d'un site d'annonces (SeLoger, Leboncoin…) n'est pas une
       // fiche : elle part à la prospection, qui en tire les agences à appeler.

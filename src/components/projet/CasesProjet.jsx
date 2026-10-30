@@ -8,7 +8,7 @@ import { InfoDot, nf } from "./SecteurChiffres";
 import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
 import { ChiffresStrip } from "./SecteurChiffres";
 import { dureeJusque } from "./durees";
-import { friseDuProjet, friseBornee, jalonsDuBail, fermeDuProjet } from "@/lib/frise-bail";
+import { friseDuProjet, friseBornee, jalonsDuBail, fermeDuProjet, personnaliserJalons } from "@/lib/frise-bail";
 export { friseDuProjet };
 
 // Les cases de la page projet : un titre, une valeur courte, un détail, un
@@ -182,12 +182,14 @@ function Jalon({ jalon }) {
  * frise des échéances. Elle coiffe les deux vues de l'onglet.
  */
 export function CarteBail({ frise, lignes, onSource, project = null }) {
+  const edition = useEdition();
   if (!frise?.debut && !frise?.fin) return null;
   // Le bout qui manque se déduit d'un bail de neuf ans : sans lui, l'unique
   // date se posait à droite et aujourd'hui n'avait pas de place.
   const bornee = friseBornee(frise);
   const { jalons, part } = jalonsDuBail(bornee, { ferme: bailFerme(lignes, project) });
-  const marques = jalons.map((j) => (j.cle === bornee.estime ? { ...j, label: `${j.label} estimée` } : j));
+  const perso = edition?.valeurs?.frise_perso || project?.frise_perso || null;
+  const marques = personnaliserJalons(jalons.map((j) => (j.cle === bornee.estime ? { ...j, label: `${j.label} estimée` } : j)), perso, bornee);
   const restant = forcee(project, "bail_restant") || (frise.fin ? dureeJusque(frise.fin, { court: true }) : null);
 
   return (
@@ -241,6 +243,45 @@ export function CarteBail({ frise, lignes, onSource, project = null }) {
           {marques.map((j) => <Jalon key={j.cle} jalon={j} />)}
         </div>
       </div>
+      {edition?.onChamp && <PointsDeLaFrise marques={marques} perso={perso} onChange={(p) => edition.onChamp("frise_perso", p, true)} />}
+    </div>
+  );
+}
+
+/**
+ * Les points de la frise, à la main, dans l'éditeur (30 oct. 2026, Jules) : la date et le nom de chaque point se
+ * changent, un point se retire, un autre s'ajoute. Les points calculés (triennales, échéance) restent la base ; ce
+ * qu'on en fait est gardé à part sur le projet (`frise_perso`) et « Rétablir » y revient.
+ */
+function PointsDeLaFrise({ marques, perso, onChange }) {
+  const p = { retires: [], modifies: {}, ajoutes: [], ...(perso || {}) };
+  const isoDe = (d) => (d instanceof Date && !Number.isNaN(d.getTime()) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : "");
+  const changer = (j, quoi, v) => {
+    if (j.ajoute) onChange({ ...p, ajoutes: p.ajoutes.map((a) => (a.id === j.cle ? { ...a, [quoi]: v } : a)) });
+    else onChange({ ...p, modifies: { ...p.modifies, [j.cle]: { ...(p.modifies[j.cle] || {}), [quoi]: v } } });
+  };
+  const retirer = (j) => (j.ajoute ? onChange({ ...p, ajoutes: p.ajoutes.filter((a) => a.id !== j.cle) }) : onChange({ ...p, retires: [...p.retires, j.cle] }));
+  const ajouter = () => onChange({ ...p, ajoutes: [...p.ajoutes, { id: `point-${Date.now()}`, date: isoDe(new Date()), label: "Nouveau point" }] });
+  const touche = p.retires.length || Object.keys(p.modifies).length || p.ajoutes.length;
+  const champ = "h-8 rounded-[8px] border border-trait bg-surface px-2.5 text-[13px] text-encre outline-none focus:border-menthe max-md:text-[16px]";
+  return (
+    <div className="mt-2 border-t border-trait pt-4">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-[12.5px] text-ardoise">Points de la frise</span>
+        {touche ? <button type="button" onClick={() => onChange(null)} className="text-[12.5px] text-brume hover:text-encre" style={{ background: "transparent" }}>Rétablir la frise calculée</button> : null}
+      </div>
+      <div className="space-y-1.5">
+        {marques.map((j) => (
+          <div key={`${j.cle}:${isoDe(j.date)}:${j.label}`} className="flex items-center gap-2">
+            <input type="date" defaultValue={isoDe(j.date)} onBlur={(e) => e.target.value && e.target.value !== isoDe(j.date) && changer(j, "date", e.target.value)} aria-label={`Date : ${j.label}`} className={`${champ} w-[150px] flex-none`} />
+            <input defaultValue={j.label} onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== j.label && changer(j, "label", e.target.value.trim())} aria-label="Nom du point" className={`${champ} min-w-0 flex-1`} />
+            <button type="button" onClick={() => retirer(j)} aria-label={`Retirer « ${j.label} »`} title="Retirer ce point" className="grid h-8 w-8 flex-none place-items-center rounded-full text-brume hover:text-red-400" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={ajouter} className="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-full border border-dashed border-bord-doux px-3 text-[12.5px] text-ardoise hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+        <Plus className="h-3.5 w-3.5" /> Ajouter un point
+      </button>
     </div>
   );
 }
@@ -416,6 +457,24 @@ function LigneFiscalite({ c, onSource }) {
   );
 }
 
+const TitreCarte = ({ children }) => (
+  <div className="text-[16px] font-medium text-encre">{children}</div>
+);
+// Hors du rendu de ResumeBail (30 oct. 2026, Jules : « pas possible de saisir » le loyer de signature) : défini dedans,
+// il était recréé à chaque rendu, et le clic qui ouvre le panneau de droite refermait aussitôt le champ.
+function ChiffreSous({ c, complement }) {
+  return (
+    <div>
+      <div className={`text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-none ${c?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+        <ValeurEditable champ={c ? cheminCase("bail", c.id, "valeur") : null} type="text">{c?.valeur || "—"}</ValeurEditable>
+      </div>
+      <div className="text-[14px] text-ardoise mt-2">
+        <ValeurEditable champ={c ? cheminCase("bail", c.id, "titre") : null} type="text">{c?.titre || ""}</ValeurEditable>{complement ? <> · {complement}</> : ""}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Le résumé du bail : le loyer en grand à gauche, ce qui s'y ajoute (charges,
  * TVA, taxes) à droite. Les huit cases du serveur se répartissent entre les
@@ -448,25 +507,11 @@ export function ResumeBail({ cases, project, onSource }) {
   const depotMoisForce = forcee(vf, "depot_mois");
   if (!loyer?.valeur && !signature?.valeur && !depot?.valeur && !fiscalite.length) return null;
 
-  const Titre = ({ children }) => (
-    <div className="text-[16px] font-medium text-encre">{children}</div>
-  );
-  const Sous = ({ c, complement }) => (
-    <div>
-      <div className={`text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-none ${c?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-        <ValeurEditable champ={c ? cheminCase("bail", c.id, "valeur") : null} type="text">{c?.valeur || "—"}</ValeurEditable>
-      </div>
-      <div className="text-[14px] text-ardoise mt-2">
-        <ValeurEditable champ={c ? cheminCase("bail", c.id, "titre") : null} type="text">{c?.titre || ""}</ValeurEditable>{complement ? <> · {complement}</> : ""}
-      </div>
-    </div>
-  );
-
   return (
     <div className="grid lg:grid-cols-2 gap-5 items-start">
       <Bloc id="bail-loyer" titre="Le loyer">
       <div className="k-carte p-7 max-md:p-5">
-        <Titre>Le loyer</Titre>
+        <TitreCarte>Le loyer</TitreCarte>
         <div className="py-7 max-md:py-5">
           <div className="flex items-baseline gap-3 flex-wrap">
             <span className={`text-[44px] max-md:text-[30px] font-medium tracking-[-0.01em] leading-none ${loyer?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -483,8 +528,8 @@ export function ResumeBail({ cases, project, onSource }) {
           // Au téléphone, l'une sous l'autre : deux chiffres en euros ne
           // tiennent pas côte à côte sur 280 px.
           <div className="grid grid-cols-2 max-md:grid-cols-1 border-t border-trait pt-6 max-md:pt-5">
-            <div className="pr-5 max-md:pr-0"><Sous c={signature} /></div>
-            <div className="pl-5 border-l border-trait max-md:pl-0 max-md:border-l-0 max-md:border-t max-md:mt-5 max-md:pt-5"><Sous c={depot} complement={nbMois || depotMoisForce ? <ValeurForcee cle="depot_mois" type="text">{depotMoisForce || `${nbMois} mois`}</ValeurForcee> : null} /></div>
+            <div className="pr-5 max-md:pr-0"><ChiffreSous c={signature} /></div>
+            <div className="pl-5 border-l border-trait max-md:pl-0 max-md:border-l-0 max-md:border-t max-md:mt-5 max-md:pt-5"><ChiffreSous c={depot} complement={nbMois || depotMoisForce ? <ValeurForcee cle="depot_mois" type="text">{depotMoisForce || `${nbMois} mois`}</ValeurForcee> : null} /></div>
           </div>
         )}
       </div>
@@ -493,7 +538,7 @@ export function ResumeBail({ cases, project, onSource }) {
       {fiscalite.length > 0 && (
         <Bloc id="bail-fiscalite" titre="Charges et fiscalité">
         <div className="k-carte p-7 max-md:p-5">
-          <Titre>Charges &amp; fiscalité</Titre>
+          <TitreCarte>Charges &amp; fiscalité</TitreCarte>
           <div className="mt-2">
             {fiscalite.map((c) => <LigneFiscalite key={c.id} c={c} onSource={onSource} />)}
           </div>

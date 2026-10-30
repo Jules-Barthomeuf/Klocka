@@ -315,12 +315,17 @@ test("la LOI : les nombres en lettres, les champs manquants, le texte de la mais
   assert.equal(enLettres(1000), 'mille');
   assert.equal(enLettres(300), 'trois cents');
   assert.equal(enLettres(305), 'trois cent cinq');
-  assert.deepEqual(manquants({ acquereur_nom: 'X', prix: 1 }).map((m) => m.cle), ['vendeur_societe', 'adresse_bien', 'apport']);
+  assert.deepEqual(manquants({ acquereur_nom: 'X', prix: 1 }).map((m) => m.cle), ['adresse_bien']);
   const c = champsDepuisDeal({ lots: [{ lot: { adresse: { valeur: { rue: '1 avenue Mirabeau', code_postal: '06000', ville: 'Nice' } }, surface_m2: { valeur: 40 }, locataire_nom: { valeur: 'Cookietelier' }, bail_echeance: { valeur: '30/04/2032' }, prix_fai: { valeur: 200000 } } }] });
   assert.equal(c.adresse_bien, '1 avenue Mirabeau, 06000 Nice');
   const h = lettre({ ...c, acquereur_nom: 'Olivier LUCCIONI', acquereur_societe: 'FONCIERE ANGULARIS', acquereur_adresse: 'LOT 12, STILETTO, 20090 AJACCIO', vendeur_societe: 'PAX AVENUE', vendeur_representant: 'Monsieur Jérôme ABECASSIS', vendeur_adresse: '85 rue de France, 06000 Nice', apport: 40000, date: '2026-09-16', validite: '2026-09-23', fin_exclusivite: '2026-10-09', limite_documents: '2026-09-25' });
   assert.match(h, /Lettre d'intention d'achat d'un local commercial situé au 1 avenue Mirabeau, 06000 Nice/);
-  assert.match(h, /Le prix de vente FAI TTC proposé est de <b>200[\s\u202f]000 € \(deux cent mille euros\)<\/b>\./);
+  assert.match(h, /<li>Le prix de vente FAI TTC proposé est de <b>200[\s\u202f]000 € \(deux cent mille euros\)<\/b>\.<\/li>/);
+  // Le texte de la LOI de référence : le conseil, le bien et les pièces en tirets (30 oct. 2026).
+  assert.match(h, /assisté dans cette opération par le cabinet :<\/p>\s*<ul class="tirets"><li>La société <b>KLOCKA<\/b>\.<\/li>/);
+  assert.match(h, /<li>Siège social : 229 rue Saint-Honoré, 75001 Paris\.<\/li>/);
+  assert.match(h, /<li>Désignation du bien : il s'agit d'un local commercial d'une surface totale d'environ 40 m²\.<\/li>/);
+  assert.match(h, /s'engage à mettre à disposition :<\/p>\s*<ul class="tirets"><li>Les quittances de loyers/);
   assert.match(h, /apport personnel de 40[\s\u202f]000 € \(quarante mille euros\)/);
   assert.match(h, /durée maximale de 20 ans avec un taux cible de 4%/);
   assert.match(h, /s'achèvera le <b>09\/10\/2026<\/b>, sous réserve[\s\S]*d'ici le <b>25\/09\/2026<\/b>/);
@@ -331,8 +336,34 @@ test("la LOI : les nombres en lettres, les champs manquants, le texte de la mais
   assert.equal(r.find((b) => b.cle === 'substitution').texte, 'Pas de substitution.');
   assert.equal(r.find((b) => b.cle === 'substitution').retouche, true);
   assert.match(r.find((b) => b.cle === 'validite').texte, /valable/);
-  assert.match(h, /le Kbis de la société Cookietelier/);
-  assert.match(h, /situé au <b>1 avenue Mirabeau, 06000 Nice<\/b>/);
+  assert.match(h, /<li>Le Kbis de la société Cookietelier\.<\/li>/);
+  assert.match(h, /situé à l'adresse suivante : <b>1 avenue Mirabeau, 06000 Nice<\/b>/);
+  // Sans locataire, ni Kbis ni enseigne ; sans vendeur, « Le vendeur » sous la signature.
+  const nu = blocs({ acquereur_nom: 'X', adresse_bien: 'Z', prix: 1, apport: 1 });
+  assert.doesNotMatch(nu.find((b) => b.cle === 'pieces-liste').texte, /Kbis/);
+  assert.match(nu.find((b) => b.cle === 'offre-liste').texte, /^Désignation du bien : il s'agit d'un local commercial\.\nLocal actuellement loué via un bail commercial\./);
+  assert.deepEqual(nu.find((b) => b.type === 'signatures').droite, ['Le vendeur', 'Bon pour accord']);
+  // Les échéances tombent du lundi au jeudi ; l'apport vaut 15 % du prix, arrondi (30 oct. 2026).
+  const { echeances, jourOuvre, apportParDefaut, completer } = await import('./loi.js');
+  assert.equal(jourOuvre('2026-10-30'), '2026-11-02', 'un vendredi passe au lundi');
+  assert.equal(jourOuvre('2026-10-31'), '2026-11-02');
+  assert.equal(jourOuvre('2026-11-01'), '2026-11-02');
+  assert.equal(jourOuvre('2026-10-29'), '2026-10-29');
+  assert.deepEqual(echeances('2026-10-30'), { validite: '2026-11-09', limite_documents: '2026-11-09', fin_exclusivite: '2026-11-23' });
+  for (let i = 0; i < 14; i += 1) {
+    const d = new Date(Date.UTC(2026, 9, 26 + i)).toISOString().slice(0, 10);
+    const e = echeances(d);
+    for (const v of Object.values(e)) assert.ok([1, 2, 3, 4].includes(new Date(`${v}T00:00:00Z`).getUTCDay()), `${d} → ${v}`);
+    assert.ok(e.validite <= e.limite_documents && e.limite_documents < e.fin_exclusivite, d);
+  }
+  assert.equal(apportParDefaut(453333), 70000, '68 000 → 70 000');
+  assert.equal(apportParDefaut(200000), 30000);
+  assert.equal(apportParDefaut(80000), 12000, 'au millier sous 50 000 €');
+  assert.equal(apportParDefaut(null), null);
+  assert.equal(completer({ prix: 453333 }).apport, 70000);
+  assert.equal(completer({ prix: 453333, apport: 90000 }).apport, 90000, "l'apport dit l'emporte");
+  const { tirets } = await import('./loi.js');
+  assert.deepEqual(tirets('- un\n\n– deux\ntrois '), ['un', 'deux', 'trois']);
   assert.match(h, /FONCIERE ANGULARIS/);
   assert.match(h, /PAX AVENUE/);
   assert.match(h, /échéance le 30\/04\/2032/);

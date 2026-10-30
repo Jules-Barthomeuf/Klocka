@@ -180,7 +180,8 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
         <FField label="Indexation annuelle des loyers (%)">
           <FInput type="number" step="0.1" value={formData.sim_indexation_loyers || ''} onChange={(e) => setFormData({...formData, sim_indexation_loyers: parseFloat(e.target.value) || 0})} />
         </FField>
-        <ToggleRow checked={formData.sim_loyer_soumis_tva} onCheckedChange={(checked) => setFormData({...formData, sim_loyer_soumis_tva: checked})} title="Loyer initial assujetti à TVA" />
+        {/* Chaque montant à gauche, son interrupteur « refacturable » à droite, sur la même ligne (30 oct. 2026, Jules :
+            « refacturable locataire » n'était pas en face des charges ou de la taxe). */}
         <FField label="Charges de copropriété (€)">
           <FInput type="number" value={formData.sim_charges_copropriete || ''} onChange={(e) => setFormData({...formData, sim_charges_copropriete: parseFloat(e.target.value) || 0})} />
         </FField>
@@ -189,6 +190,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
           <FInput type="number" value={formData.sim_taxe_fonciere || ''} onChange={(e) => setFormData({...formData, sim_taxe_fonciere: parseFloat(e.target.value) || 0})} />
         </FField>
         <ToggleRow checked={formData.sim_taxe_refacturable} onCheckedChange={(checked) => setFormData({...formData, sim_taxe_refacturable: checked})} title="Refacturable locataire" />
+        <ToggleRow checked={formData.sim_loyer_soumis_tva} onCheckedChange={(checked) => setFormData({...formData, sim_loyer_soumis_tva: checked})} title="Loyer initial assujetti à TVA" />
       </div>
 
       <SectionTitle>3. Revalorisation du loyer</SectionTitle>

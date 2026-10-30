@@ -81,6 +81,7 @@ const MandataireOffMarket = lazy(() => import('./pages/MandataireOffMarket'));
 const MandataireProjets = lazy(() => import('./pages/MandataireProjets'));
 const ConversationsMandataires = lazy(() => import('./pages/ConversationsMandataires'));
 const MandatsMandataires = lazy(() => import('./pages/MandatsMandataires'));
+const MemoireKlocka = lazy(() => import('./pages/MemoireKlocka'));
 const BaseDonneesMarche = lazy(() => import('./pages/BaseDonneesMarche'));
 const Comparateur = lazy(() => import('./pages/Comparateur'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -145,6 +146,7 @@ export const PAGES = {
     "MandataireProjets": MandataireProjets,
     "ConversationsMandataires": ConversationsMandataires,
     "MandatsMandataires": MandatsMandataires,
+    "MemoireKlocka": MemoireKlocka,
     "BaseDonneesMarche": BaseDonneesMarche,
     "Comparateur": Comparateur,
     "Dashboard": Dashboard,

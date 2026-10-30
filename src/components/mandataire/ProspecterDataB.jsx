@@ -15,7 +15,7 @@ import { JL } from "@/design/jetons";
 // listes d'appels.
 
 const API = "/api/mandataire";
-const TEINTES_RUE = { 5: JL["menthe"], 4: JL["menthe-clair"], 3: JL["ambre"], 2: JL["craie"], 1: JL["brume"] };
+const TEINTES_RUE = { 5: JL["menthe"], 4: JL["menthe-clair"], 3: JL["lu-ia"], 2: JL["craie"], 1: JL["brume"] };
 
 const Chip = ({ actif = false, onClick, children }) => (
   <button type="button" onClick={onClick}

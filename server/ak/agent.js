@@ -167,13 +167,13 @@ const OUTILS_AK = [
         projet_id: { type: 'string', description: 'le projet de la plateforme (de chercher_projet) : on y prend le bien' },
         deal_id: { type: 'string' },
         loi_id: { type: 'string', description: 'la LOI ouverte à corriger ; absent pour une nouvelle lettre' },
-        textes: { type: 'object', description: 'paragraphes réécrits, par clé (ex. { "substitution": "…" }) ; une chaîne vide rend le texte du modèle. **…** met en gras.', additionalProperties: { type: 'string' } },
+        textes: { type: 'object', description: 'paragraphes réécrits, par clé (ex. { "substitution": "…" }) ; une chaîne vide rend le texte du modèle. **…** met en gras. Une liste à tirets (conseil, offre-liste, pieces-liste) se réécrit en entier, un tiret par ligne (« \\n » entre deux tirets, sans le tiret lui-même).', additionalProperties: { type: 'string' } },
         acquereur_nom: { type: 'string', description: 'la personne qui signe, ex. Olivier LUCCIONI' }, acquereur_societe: { type: 'string' }, acquereur_adresse: { type: 'string' },
-        vendeur_societe: { type: 'string', description: 'le vendeur, nommé au-dessus de sa signature en bas de la lettre (jamais en haut)' },
-        attention_nom: { type: 'string', description: "« À l'attention de », en haut de la lettre : à ne remplir que si on le demande, sinon vide" }, attention_representant: { type: 'string', description: 'ex. Monsieur Jérôme ABECASSIS' }, attention_adresse: { type: 'string' },
+        vendeur_societe: { type: 'string', description: "le vendeur, nommé au-dessus de sa signature en bas de la lettre (jamais en haut) ; facultatif : sans nom, la lettre écrit « Le vendeur »" },
+        attention_nom: { type: 'string', description: "« À l'attention de », en haut de la lettre : l'agence de l'agent lié au bien, reprise d'elle-même de Twenty CRM ; à ne donner que si on te le dit" }, attention_representant: { type: 'string', description: 'ex. Représentée par Monsieur Jérôme ABECASSIS' }, attention_adresse: { type: 'string' },
         adresse_bien: { type: 'string' }, surface_m2: { type: 'number' }, locataire: { type: 'string', description: "l'enseigne ou la société locataire" }, fin_bail: { type: 'string', description: 'AAAA-MM-JJ' },
-        prix: { type: 'number', description: 'prix FAI TTC proposé, en euros' }, apport: { type: 'number' }, duree_ans: { type: 'number' }, taux: { type: 'number', description: 'en %, 4 par défaut' },
-        fin_exclusivite: { type: 'string', description: 'AAAA-MM-JJ, 23 jours par défaut' }, limite_documents: { type: 'string', description: 'AAAA-MM-JJ, 9 jours par défaut' }, validite: { type: 'string', description: 'AAAA-MM-JJ, 7 jours par défaut' },
+        prix: { type: 'number', description: 'prix FAI TTC proposé, en euros' }, apport: { type: 'number', description: "en euros ; sans lui, 15 % du prix arrondi à la dizaine de milliers" }, duree_ans: { type: 'number' }, taux: { type: 'number', description: 'en %, 4 par défaut' },
+        fin_exclusivite: { type: 'string', description: 'AAAA-MM-JJ, 23 jours par défaut (jamais un vendredi ni un week-end)' }, limite_documents: { type: 'string', description: 'AAAA-MM-JJ, 9 jours par défaut' }, validite: { type: 'string', description: 'AAAA-MM-JJ, 7 jours par défaut' },
         lieu: { type: 'string', description: 'la ville de signature, Nice par défaut' },
         format: { type: 'string', enum: ['docx', 'pdf'], description: 'docx par défaut' },
       },
@@ -972,8 +972,13 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const duProjet = projet ? sansVide(champsDepuisProjet(projet)) : {};
     const origines = existante ? { ...(existante.origines || {}) } : Object.fromEntries(Object.keys(duBien).map((k) => [k, k in duProjet ? 'projet' : 'dossier']));
     for (const k of Object.keys(donnes)) origines[k] = 'chat';
+    // « À l'attention de » (30 oct. 2026, Jules) : l'agent lié au bien dans Twenty CRM et son agence, tant que la lettre n'en dit rien.
+    const { attentionDuBien, attentionAPoser } = await import('../offres-agent.js');
+    const agentDuBien = projet || deal ? await attentionDuBien({ projet, deal }) : null;
+    for (const [k, v] of Object.entries(attentionAPoser(champs, agentDuBien))) { champs[k] = v; origines[k] = agentDuBien.origine; }
+    const attention = [champs.attention_nom, champs.attention_representant].filter(Boolean).join(', ') || null;
     const m = manquants(champs);
-    if (m.length) return { ok: false, manque: m.map((x) => x.question), champs_connus: champs };
+    if (m.length) return { ok: false, manque: m.map((x) => x.question), champs_connus: champs, ...(attention ? { a_l_attention_de: `${attention}${agentDuBien?.origine === 'crm' ? ' (Twenty CRM)' : ''}` } : {}) };
     const lien = (id) => `/Offres?loi=${id}`;
     // Une correction de la lettre ouverte : elle se met à jour à droite.
     if (existante) {
@@ -986,12 +991,12 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     // notification « Relire » mène à la page Offres.
     if (String(message?.espace || '').startsWith('app:')) {
       // Depuis la page Offres, la lettre s'ouvre déjà à droite : pas de notification.
-      if (message?.page === 'offres') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), note: "La LOI est ouverte à droite, éditable." };
+      if (message?.page === 'offres') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), ...(attention ? { a_l_attention_de: attention } : {}), note: "La LOI est ouverte à droite, éditable." };
       // Depuis l'étape Offre d'un dossier, de même : elle s'affiche à droite (28 oct. 2026).
-      if (message?.page === 'dossiers') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), note: "La LOI est ouverte à droite, dans l'étape Offre du dossier, éditable." };
+      if (message?.page === 'dossiers') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), ...(attention ? { a_l_attention_de: attention } : {}), note: "La LOI est ouverte à droite, dans l'étape Offre du dossier, éditable." };
       const { notifier } = await import('../notifications.js');
       notifier({ pour: user?.email, titre: 'Votre LOI est prête', texte: [champs.adresse_bien, champs.acquereur_nom].filter(Boolean).join(' · '), lien: lien(l.id), action: 'Relire', genre: 'tache', cle: `loi:${l.id}` });
-      return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), note: "La LOI est prête dans la page Offres, éditable, avec Word et PDF ; une notification « Relire » y mène. Dis-le en une ligne, sans recopier la lettre." };
+      return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), ...(attention ? { a_l_attention_de: attention } : {}), note: "La LOI est prête dans la page Offres, éditable, avec Word et PDF ; une notification « Relire » y mène. Dis-le en une ligne, sans recopier la lettre." };
     }
     fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, format: input.format === 'pdf' ? 'pdf' : 'docx', deal_id: dealId });
     return { ok: true, loi_id: l.id, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
@@ -1586,7 +1591,7 @@ DOSSIERS ET PROJETS
 - Remplir une présentation ou une fiche : va chercher toi-même avant de demander. Le porteur, un client, son téléphone ou ses revenus : lire_fiche_monday. Les chiffres d'une ville (population, revenu médian, chômage, prix du logement) : donnees_commune. Tu ne demandes à la personne que ce qu'aucun outil n'a rendu, en disant où tu as cherché.
 - « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends une conclusion nette en une phrase, sur le rendement GLOBAL (net moyen sur la durée du projet, celui de la fiche) contre le seuil de la grille : « Le projet tient : 6,9 % de rendement global pour 6,5 % visés. » ou « Le projet ne tient pas : 4,8 % de rendement global, et le bail se termine dans 14 mois. » L'AEM de la première année se cite entre parenthèses, il ne tranche pas. Les seuils sont ceux de l'équipe, tu ne les discutes pas.
 - Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
-- « Crée une LOI », « fais la lettre d'intention pour X » : trouver_bien si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.
+- « Crée une LOI », « fais la lettre d'intention pour X » : trouver_bien si un bien de la plateforme est nommé, puis rediger_loi. « À l'attention de » se remplit seul (l'agent lié au bien dans Twenty CRM et son agence) ; le vendeur est facultatif (« Le vendeur » sans nom). L'apport se met seul à 15 % du prix, arrondi, et les échéances tombent du lundi au jeudi. Il te manque l'acquéreur (nom, société, adresse) et le prix si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne (« C'est qui l'acheteur ? »), puis rédige. Ne devine jamais un nom ou un prix.
 
 LES MAILS
 - Un mail à l'agent d'un dossier (« fais un mail de feedback à l'agent, l'emplacement est nul », « refuse-le », « demande les docs », « prépare la relance pour l'agent de Dieppe ») : trouver_bien si le dossier n'est pas celui dont on parle, puis mail_agent avec les raisons dans les mots de la personne.

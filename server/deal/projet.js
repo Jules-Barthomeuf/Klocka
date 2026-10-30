@@ -11,6 +11,7 @@ import { changerStatut } from './lifecycle.js';
 import { lotOuVide } from './index.js';
 import { patchDepuisExtractions } from './donnees-projet.js';
 import { trouverVille, trouverSecteur } from '../../src/data/villes.js';
+import { TRAVAUX_PAR_DEFAUT } from '../../src/components/simulator/CalculFinancier.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 
@@ -48,6 +49,29 @@ function mapperSimulateur(sim) {
     sim_frais_divers_acquisition: 2000,
   };
 }
+
+// Les chiffres que le simulateur du dossier et les onglets de l'Analyse ont déjà (30 oct. 2026, Jules : « la taxe foncière
+// doit être resaisie alors qu'on l'a déjà saisie avant ») : taxe foncière, charges, ce qui est refacturé, TVA. Les pièces
+// (avis de taxe foncière, bail) passent devant le simulateur du dossier. Seules les valeurs connues sont rendues.
+const CHARGES_DU_SIMULATEUR = [
+  ['taxeFonciere', 'sim_taxe_fonciere'],
+  ['chargesCopropriete', 'sim_charges_copropriete'],
+  ['taxeFonciereRefacturable', 'sim_taxe_refacturable'],
+  ['chargesCoproRefacturables', 'sim_charges_refacturable'],
+  ['loyerSoumisTVA', 'sim_loyer_soumis_tva'],
+];
+function chargesConnues(simDuLot = {}, desPieces = {}) {
+  const sortie = {};
+  for (const [cle, champ] of CHARGES_DU_SIMULATEUR) {
+    const v = desPieces?.[cle] ?? simDuLot?.[cle];
+    if (v == null || v === '' || (typeof v === 'number' && !(v > 0))) continue;
+    sortie[champ] = v;
+  }
+  return sortie;
+}
+
+// Les travaux bailleur par défaut (10 000 € en années 10 et 20) : ceux du simulateur, posés à la naissance du projet.
+const travauxParDefautDuProjet = () => Object.fromEntries(TRAVAUX_PAR_DEFAUT.flatMap(([annee, montant]) => [[`sim_travaux_annee${annee}`, annee], [`sim_travaux_montant${annee}`, montant]]));
 
 // Données de marché : reprise de la base DonneeMarche si une entrée existe
 // pour la ville (alimentée par les refus précédents ou saisie à la main).
@@ -128,15 +152,10 @@ export function nomDuLocal(locataire, activite) {
   return nom || courte || '';
 }
 
-// Le titre d'un projet : « Nom du local - Adresse ». Sans nom, le bien se
-// nomme par ce qu'il est ; sans adresse, le nom suffit à le reconnaître.
+// Le titre d'un projet : le nom du local seul (30 oct. 2026, Jules : l'adresse est écrite juste en dessous, la répéter
+// dans le titre ne sert à rien). Sans nom, le bien se nomme par ce qu'il est. `adresse` n'est plus lue, gardée pour les appels.
 export function titreProjet(locataire, adresse, activite = null) {
-  const l = nomDuLocal(locataire, activite);
-  const a = String(adresse || '').trim();
-  if (l && a) return `${l} - ${a}`;
-  if (a) return `Murs commerciaux - ${a}`;
-  if (l) return `${l} - Murs commerciaux`;
-  return 'Murs commerciaux';
+  return nomDuLocal(locataire, activite) || 'Murs commerciaux';
 }
 
 // Equimmox : bas, moyenne et haut des loyers observés, en € par m² et par an,
@@ -338,15 +357,39 @@ export function loyerAnnuel(texte) {
   return Math.round(/mois|mensuel/.test(t) ? n * 12 : /trimestr/.test(t) ? n * 4 : n);
 }
 
+// Les dates d'une case (« du 01/01/2020 au 31/12/2028 ») en ISO, dans l'ordre où elles sont écrites.
+const datesIso = (t) => [...String(t || '').matchAll(/(\d{1,2})\/(\d{1,2})\/(\d{4})/g)].map(([, j, m, a]) => `${a}-${m.padStart(2, '0')}-${j.padStart(2, '0')}`);
+
 // Ce que l'Analyse sait pour le projet : les cases du Bail et du Kbis. `tranchees` : seulement les cases vérifiées (la
-// mise à jour) ; sinon tout ce qui a été lu (la création, qui remplit au maximum).
+// mise à jour) ; sinon tout ce qui a été lu (la création, qui remplit au maximum). L'échéance donne le début et la fin du
+// bail en dates (30 oct. 2026, Jules : « des éléments déjà saisis en analyse ne se remettent pas » dans le projet), le
+// locataire du bail nomme le local quand il n'y a pas de Kbis.
 function champsDeLAnalyse(analyse, { tranchees = false } = {}) {
   const patch = {};
-  for (const [grille, critere, champ] of CASES_DU_PROJET) {
+  const ligne = (grille, critere) => {
     const l = analyse?.grilles?.find((g) => g.id === grille)?.lignes.find((x) => x.id === critere);
-    if (!l?.valeur || (tranchees && !['verifie', 'corrige'].includes(l.statut))) continue;
-    const v = champ === 'loyer_annuel_ht' ? loyerAnnuel(l.valeur) : String(l.valeur).split('\n')[0].trim();
+    if (!l?.valeur || (tranchees && !['verifie', 'corrige'].includes(l.statut))) return null;
+    const donnees = l.statut === 'corrige' ? {} : (l.sources || []).find((x) => x.document_id === l.retenue)?.donnees || {};
+    return { texte: String(l.valeur), donnees };
+  };
+  for (const [grille, critere, champ] of CASES_DU_PROJET) {
+    const l = ligne(grille, critere);
+    if (!l) continue;
+    if (champ === 'echeance_bail') {
+      const ds = datesIso(l.texte);
+      const debut = datesIso(l.donnees.debut)[0] || (ds.length > 1 ? ds[0] : null);
+      const fin = datesIso(l.donnees.fin)[0] || ds.at(-1) || null;
+      if (fin) patch.echeance_bail = fin;
+      if (debut) patch.bail_date_debut = debut;
+      continue;
+    }
+    const v = champ === 'loyer_annuel_ht' ? loyerAnnuel(l.texte) : l.texte.split('\n')[0].trim();
     if (v) patch[champ] = v;
+  }
+  if (!patch.nom_locataire) {
+    const parties = ligne('bail', 'parties');
+    const nom = parties && (parties.donnees.locataire || null);
+    if (nom) patch.nom_locataire = nom;
   }
   return patch;
 }
@@ -374,20 +417,48 @@ export function questionsDuProjet(projet) {
  * gardait ses chiffres de départ). Les chiffres du lot et les cases tranchées de l'Analyse remplacent ceux du projet ;
  * une valeur vide du dossier n'efface jamais celle du projet. Les photos, textes et réglages du projet ne bougent pas.
  */
-export async function mettreAJourProjetDepuisDeal(dealId, user) {
+export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides = true } = {}) {
   const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return { ok: false, error: 'Dossier introuvable' };
   const projet = deal.projet_id ? Records.get('Project', deal.projet_id) : null;
   if (!projet) return { ok: false, error: "Ce dossier n'a pas de projet." };
-  const { champs } = donneesDuLot(lotOuVide(deal, 0));
+  const lot = lotOuVide(deal, 0);
+  const { champs } = donneesDuLot(lot);
   const plein = (v) => v != null && v !== '' && v !== 0 && !(typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
-  const patch = Object.fromEntries(Object.entries(champs).filter(([, v]) => plein(v)));
+  // Les hypothèses du simulateur (durée, taux, frais…) se règlent dans le projet : le dossier ne les pose que si le
+  // projet n'en a pas, sans quoi chaque pièce importée remettait les valeurs par défaut.
+  const hypotheses = new Set(Object.keys(mapperSimulateur({})).filter((k) => !['sim_prix_bien_fai', 'sim_prix_bien_negocie', 'sim_loyer_initial_ht', 'sim_surface'].includes(k)));
+  const patch = Object.fromEntries(Object.entries(champs).filter(([k, v]) => plein(v) && !(hypotheses.has(k) && plein(projet[k]))));
   const { lireAnalyse } = await import('./analyse-pieces.js');
-  Object.assign(patch, champsDeLAnalyse(lireAnalyse(dealId), { tranchees: true }));
+  const analyse = lireAnalyse(dealId);
+  // Taxe foncière, charges, TVA déjà connues : elles remplissent ce que le projet n'a pas encore.
+  for (const [k, v] of Object.entries(chargesConnues(lot.simulateur, analyse?.simulateur?.valeurs))) {
+    if (projet[k] == null || projet[k] === '' || projet[k] === 0) patch[k] = v;
+  }
+  Object.assign(patch, champsDeLAnalyse(analyse, { tranchees: true }));
+  // À l'arrivée d'une pièce, ce que l'IA vient d'y lire remplit aussi les cases encore vides du projet ; une case déjà
+  // remplie ne change que par une valeur vérifiée.
+  if (completerVides) {
+    for (const [champ, v] of Object.entries(champsDeLAnalyse(analyse))) {
+      if (!(champ in patch) && !plein(projet[champ])) patch[champ] = v;
+    }
+  }
   const { patch: pieces } = patchDepuisExtractions(deal, { ...projet, ...patch });
   Object.assign(patch, pieces);
   Records.update('Project', projet.id, { ...patch, maj_depuis_dossier_le: new Date().toISOString(), maj_depuis_dossier_par: user?.email || null });
   return { ok: true, project_id: projet.id, champs: Object.keys(patch).length };
+}
+
+/**
+ * Le projet suit le dossier tout seul (30 oct. 2026, Jules : « lorsqu'on importe un nouveau document dans le dossier, je
+ * veux que ça mette à jour le projet aussi ») : à chaque pièce importée ou lue, et à chaque information du bien posée.
+ * Sans projet, rien ; une erreur ne bloque jamais le geste qui l'a lancé.
+ */
+export function projetSuitLeDossier(dealId, user = null) {
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  if (!deal?.projet_id) return Promise.resolve(null);
+  return mettreAJourProjetDepuisDeal(dealId, user, { completerVides: true })
+    .catch((e) => { console.warn(`[projet] mise à jour depuis le dossier ${dealId} : ${e?.message || e}`); return null; });
 }
 
 /**
@@ -411,6 +482,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null }
   const { adresseComplete, champs } = donneesDuLot(lot);
   // Remplir au maximum (30 oct. 2026, Jules) : ce que les pièces ont lu (Kbis, bail) complète le lot, sans l'écraser.
   for (const [k, v] of Object.entries(champsDeLAnalyse(analyse))) if (!champs[k]) champs[k] = v;
+  Object.assign(champs, chargesConnues(lot.simulateur, analyse?.simulateur?.valeurs), travauxParDefautDuProjet());
 
   // Tous les admins voient le projet, comme dans l'éditeur AdminProjets.
   const adminEmails = Records.filter('User', { role: 'admin' })
@@ -420,7 +492,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null }
   const projet = {
     // Un projet issu d'un deal de test est marqué pour être repérable (et
     // supprimé avec le deal).
-    // « Nom du local - adresse » : le nom vient du lot, sinon du Kbis lu dans l'Analyse.
+    // Le nom du local, sans l'adresse (30 oct. 2026) : il vient du lot, sinon du Kbis lu dans l'Analyse.
     titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom) || champs.nom_locataire, adresseComplete, val(lot.lot.locataire_activite) || champs.activite_locataire)}`,
     statut: 'analyse',
     archived: false,

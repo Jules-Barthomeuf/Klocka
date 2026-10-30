@@ -427,6 +427,7 @@ export async function lirePiece(dealId, docId, { uploadDir, user, seulement = nu
         }
       }
     });
+    import('./projet.js').then((m) => m.projetSuitLeDossier(dealId, user)).catch(() => {});
     return { ok: true, valeurs };
   } catch (e) {
     marquer(dealId, docId, type, { statut: 'erreur', le: new Date().toISOString(), erreur: e?.message || 'Lecture impossible' });
@@ -631,6 +632,57 @@ export function croiser(grilles, lot = {}, decisions = {}) {
   return sortie;
 }
 
+/**
+ * Les chiffres du simulateur que les autres onglets de l'analyse donnent (30 oct. 2026, Jules : « que les chiffres du
+ * simulateur se remplissent automatiquement avec les données des autres pages ») : loyer, TVA, charges et taxe foncière
+ * refacturées, montant de la taxe foncière, surface. Chaque chiffre dit d'où il vient. Le loyer retenu dans l'écart
+ * gagne, sinon les quittances (le loyer d'aujourd'hui), sinon le bail.
+ */
+export function simulateurDesGrilles(grilles, brut = {}, ecarts = []) {
+  const valeurs = {};
+  const sources = {};
+  const poser = (cle, v, source) => { if (v == null || v === '' || Number.isNaN(v)) return; valeurs[cle] = v; sources[cle] = source; };
+
+  const loyer = ecarts.find((e) => e.cle === 'loyer');
+  const retenu = loyer?.retenu && loyer.valeurs.find((v) => v.id === loyer.retenu);
+  const bail = donneesDe(grilles, 'bail', 'loyer_signature');
+  const bailAn = Number(bail.annuel_ht) || nombreDe(bail.texte);
+  const q = donneesDe(grilles, 'quittances', 'loyer_hc_ht');
+  const qMontant = Number(q.montant) || nombreDe(q.texte);
+  const qPer = periodiciteDe(q) || 'mensuel';
+  const qAn = qMontant ? qMontant * (qPer === 'trimestriel' ? 4 : qPer === 'annuel' ? 1 : 12) : null;
+  if (retenu) poser('loyerInitialHTHC', nombreDe(retenu.valeur), `${retenu.source} (retenu)`);
+  else if (qAn) poser('loyerInitialHTHC', Math.round(qAn), 'Quittances');
+  else if (bailAn) poser('loyerInitialHTHC', Math.round(bailAn), 'Bail');
+
+  const tvaB = ouiNonDe(donneesDe(grilles, 'bail', 'tva'));
+  const tvaQ = ouiNonDe(donneesDe(grilles, 'quittances', 'tva'));
+  if (tvaB != null) poser('loyerSoumisTVA', tvaB, 'Bail');
+  else if (tvaQ != null) poser('loyerSoumisTVA', tvaQ, 'Quittances');
+
+  const charges = donneesDe(grilles, 'bail', 'charges');
+  poser('chargesCoproRefacturables', typeof charges.copro_refacturee === 'boolean' ? charges.copro_refacturee : ouiNonDe(charges), 'Bail');
+  const taxes = donneesDe(grilles, 'bail', 'taxes');
+  poser('taxeFonciereRefacturable', typeof taxes.taxe_fonciere_refacturee === 'boolean' ? taxes.taxe_fonciere_refacturee : ouiNonDe(taxes), 'Bail');
+  const tf = donneesDe(grilles, 'taxe_fonciere', 'montant');
+  const tfMontant = Number(tf.montant) || nombreDe(tf.texte);
+  if (tfMontant) poser('taxeFonciere', Math.round(tfMontant), 'Avis de taxe foncière');
+
+  // La surface : celle de l'onglet Bien si quelqu'un l'a posée, sinon la première pièce qui la dit (bail, puis diagnostics).
+  const main = brut.analyse_pieces?.cases?.['bien.surface'];
+  const surfaceMain = main?.valeur ? nombreDe(main.valeur) : null;
+  if (surfaceMain) poser('surface', surfaceMain, 'Onglet Bien');
+  else {
+    const docs = brut.analyse_pieces?.docs || {};
+    for (const type of ['bail', 'diagnostics']) {
+      const lue = Object.values(docs).find((x) => x?.type === type && x.valeurs?.bien_surface?.valeur);
+      const m2 = lue && (Number(lue.valeurs.bien_surface.donnees?.m2) || nombreDe(lue.valeurs.bien_surface.valeur));
+      if (m2) { poser('surface', m2, type === 'bail' ? 'Bail' : 'Diagnostics'); break; }
+    }
+  }
+  return { valeurs, sources };
+}
+
 /** Tout ce que l'écran montre : emplacements, pièces à ranger, grilles case par case, écarts. */
 export function lireAnalyse(dealId) {
   const brut = dealDe(dealId);
@@ -655,6 +707,7 @@ export function lireAnalyse(dealId) {
     a_ranger: docs.filter((d) => !d.type),
     grilles: GRILLES_LUES.map(({ id, onglet }) => ({ ...grilles[id], onglet })),
     ecarts,
+    simulateur: simulateurDesGrilles(grilles, brut, ecarts),
     a_voir: Object.fromEntries(['bail', 'quittances', 'copropriete', 'diagnostics'].map((o) => [o, aVoir(o)])),
     en_lecture: docs.filter((d) => ['en_attente', 'en_cours'].includes(d.extraction?.statut)).length,
     // Les cases tranchées de la grille Marché, calculée par l'écran à partir de la lecture du marché.
@@ -703,6 +756,15 @@ export function deciderCase(dealId, grilleId, critereId, { action, valeur, sourc
       case 'noter': {
         const t = String(note ?? '').trim().slice(0, 2000);
         etat.cases[cle] = { ...avant, note: t || null, ...(Object.keys(avant).length ? {} : signe) };
+        break;
+      }
+      case 'exclure': {
+        // Une source décochée sur une ligne de Marché (30 oct. 2026, Jules) : elle reste affichée, grisée, et ne compte plus.
+        const src = String(source || '').slice(0, 60);
+        if (!src) { erreur = 'Source inconnue'; return false; }
+        const liste = new Set(avant.exclues || []);
+        if (liste.has(src)) liste.delete(src); else liste.add(src);
+        etat.cases[cle] = { ...avant, exclues: [...liste] };
         break;
       }
       case 'reinitialiser': {

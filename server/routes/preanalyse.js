@@ -204,6 +204,8 @@ export function monterPreanalyse(app) {
     const { lireAdresse } = await import('../deal/index.js');
     const r = req.body?.champs ? poserInfos(req.params.dealId, req.body.champs, lireAdresse) : await chercherInfos(req.params.dealId, { uploadDir: UPLOAD_DIR, lireAdresse });
     if (r.error) return res.status(r.error === 'Dossier introuvable' ? 404 : 400).json(r);
+    // L'adresse ou la surface posée passe aussi dans le projet (30 oct. 2026, Jules).
+    import('../deal/projet.js').then((m) => m.projetSuitLeDossier(req.params.dealId, currentUser(req))).catch(() => {});
     ok(res, r);
   }));
 
@@ -474,15 +476,32 @@ export function monterPreanalyse(app) {
   }));
 
   app.get('/api/preanalyse/pipeline', wrap(async (req, res) => {
-    let dossiers = listerDossiers(200);
+    const tousLesDossiers = listerDossiers(200);
+    let dossiers = tousLesDossiers;
+    // Par pages (30 oct. 2026, Jules : « que 20, ensuite c'est sur une autre page ») : avec `page`, la liste de la page
+    // Dossiers (sans les archivés, filtrée par `q`, la plus récemment modifiée d'abord) n'envoie que ses 20 cartes ;
+    // sans `page`, tout, comme avant (le choix d'un dossier dans Haka).
+    const page = Math.max(0, Number.parseInt(req.query?.page, 10) || 0);
+    const PAR_PAGE = 20;
+    let total = null;
+    if (page) {
+      const t = String(req.query?.q || '').trim().toLowerCase();
+      const gardes = dossiers
+        .filter((d) => !d.archived && (!t || `${d.titre || ''} ${d.nom_fichier || ''} ${d.ville || ''} ${(d.lots || []).map((l) => l.ville || '').join(' ')} ${d.responsable || ''}`.toLowerCase().includes(t)))
+        .sort((a, b) => String(b.maj_le || '').localeCompare(String(a.maj_le || '')));
+      total = gardes.length;
+      dossiers = gardes.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
+    }
     // Un dossier partagé par un mandataire : son nom, et ses messages non lus.
     if (dossiers.some((d) => d.dossier_mandataire_id)) {
       const { nonLus, nomAnalyste } = await import('../fil-dossier.js');
       const { Records } = await import('../db.js');
       const moi = currentUser(req)?.email || '';
+      // Les comptes lus une fois, pas une fois par dossier.
+      const comptes = Records.list('User');
       dossiers = dossiers.map((d) => {
         if (!d.dossier_mandataire_id) return d;
-        const u = Records.list('User').find((x) => String(x.email).toLowerCase() === String(d.mandataire_email || '').toLowerCase());
+        const u = comptes.find((x) => String(x.email).toLowerCase() === String(d.mandataire_email || '').toLowerCase());
         const dm = Records.get('DossierMandataire', d.dossier_mandataire_id);
         return { ...d, mandataire_nom: (u?.full_name || d.mandataire_email || '').split(/[ @]/)[0], fil_non_lus: nonLus(d.dossier_mandataire_id, moi, true), analyste_nom: dm?.analyste_email ? nomAnalyste(dm.analyste_email) : null };
       });
@@ -490,11 +509,12 @@ export function monterPreanalyse(app) {
     const compteurs = {};
     for (const s of STATUTS) compteurs[s] = 0;
     let aRelancerTotal = 0;
-    for (const d of dossiers) {
+    // Les compteurs portent sur tous les dossiers, pas sur la page.
+    for (const d of tousLesDossiers) {
       compteurs[d.statut] = (compteurs[d.statut] || 0) + 1;
       if (d.a_relancer) aRelancerTotal++;
     }
-    ok(res, { dossiers, compteurs, a_relancer: aRelancerTotal, libelles: LIBELLES_STATUTS });
+    ok(res, { dossiers, compteurs, a_relancer: aRelancerTotal, libelles: LIBELLES_STATUTS, ...(page ? { page, par_page: PAR_PAGE, total, nb_dossiers: tousLesDossiers.filter((d) => !d.archived).length } : {}) });
   }));
 
   // Brouillon de mail d'intention (refus, demande de documents, relance,

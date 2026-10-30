@@ -46,7 +46,7 @@ test("depuis l'application : la LOI est gardée, et « Votre LOI est prête » m
   assert.equal(n.action, 'Relire');
   assert.equal(O.listerLettres()[0].acquereur, 'Olivier LUCCIONI · FONCIERE ANGULARIS');
   const d = await O.lireLettre(id);
-  assert.match(d.blocs.find((b) => b.cle === 'offre-3').texte, /\*\*200[\s\u202f]000 € \(deux cent mille euros\)\*\*/);
+  assert.match(d.blocs.find((b) => b.cle === 'offre-liste').texte, /\*\*200[\s\u202f]000 € \(deux cent mille euros\)\*\*/);
   assert.equal(d.parties.attention[1][1], 'Monsieur Jérôme ABECASSIS');
   // Le vendeur n'est que dans la signature : « À l'attention de » ne le reprend pas.
   assert.equal(d.parties.attention[0][1], '');
@@ -65,7 +65,7 @@ test('le chat corrige la lettre ouverte : un champ, puis un paragraphe', async (
   assert.equal(r.loi_id, id);
   assert.equal(Records.list(O.ENTITE).length, 1, 'pas de seconde lettre');
   let d = await O.lireLettre(id);
-  assert.match(d.blocs.find((b) => b.cle === 'offre-3').texte, /cent quatre-vingt-dix mille euros/);
+  assert.match(d.blocs.find((b) => b.cle === 'offre-liste').texte, /cent quatre-vingt-dix mille euros/);
   assert.equal(d.lettre.champs.acquereur_nom, 'Olivier LUCCIONI', 'le reste ne bouge pas');
   await executerOutil({ name: 'rediger_loi', input: { loi_id: id, textes: { substitution: 'Aucune substitution ne sera possible.' } } }, JULES, APP);
   d = await O.lireLettre(id);
@@ -97,7 +97,7 @@ test("le bien vient d'un projet : adresse, surface, locataire, bail, prix", asyn
   assert.equal(d.lettre.champs.locataire, 'Au Bon Pain');
   assert.equal(d.lettre.champs.prix, 310000);
   assert.equal(d.lettre.projet_id, projet.id);
-  assert.match(d.blocs.find((b) => b.cle === 'offre-2').texte, /environ 85 m², actuellement loué à l'enseigne Au Bon Pain/);
+  assert.match(d.blocs.find((b) => b.cle === 'offre-liste').texte, /environ 85 m²\.\nLocal actuellement loué à l'enseigne Au Bon Pain/);
   const faux = await executerOutil({ name: 'rediger_loi', input: { projet_id: 'nimporte', acquereur_nom: 'X', vendeur_societe: 'Y', apport: 1, prix: 1 } }, JULES, APP);
   assert.equal(faux.ok, false);
 });
@@ -116,7 +116,7 @@ test("le modèle : rien de choisi, deux versions ; choisi, Word et PDF le suiven
   assert.deepEqual(Object.keys(d.versions), ['classique', 'menthe']);
   assert.equal(d.versions.menthe.blocs.find((b) => b.cle === 'h-offre').num, '01');
   assert.equal(d.versions.classique.blocs.find((b) => b.cle === 'h-offre').num, 'I.');
-  assert.match(d.versions.menthe.blocs.find((b) => b.cle === 'offre-2').texte, /\*\*85 m²\*\*|\*\*40 m²\*\*/);
+  assert.match(d.versions.menthe.blocs.find((b) => b.cle === 'offre-liste').texte, /\*\*85 m²\*\*|\*\*40 m²\*\*/);
   assert.equal(d.versions.menthe.cadre.adresse_courte, '1 avenue Mirabeau, Nice');
   assert.equal(O.modifierLettre(id, { modele: 'bleu' }).ok, false, 'un modèle inconnu est refusé');
   O.modifierLettre(id, { modele: 'menthe' });
@@ -177,7 +177,7 @@ test('la lettre vierge : le modèle à trous, rien de gardé ; le premier geste 
   assert.equal(Records.list(O.ENTITE).length, avant, 'rien de gardé');
   const texte = v.blocs.map((b) => b.texte || '').join(' ');
   assert.doesNotMatch(texte, /undefined/);
-  assert.match(v.blocs.find((b) => b.cle === 'offre-3').texte, /\[prix FAI TTC\]/);
+  assert.match(v.blocs.find((b) => b.cle === 'offre-liste').texte, /\[prix FAI TTC\]/);
   // Les lignes des parties restent, vides, pour se remplir sur place.
   assert.deepEqual(v.parties.acquereur.map(([k]) => k), ['acquereur_nom', 'acquereur_societe', 'acquereur_adresse']);
   const r = await O.creerLettreVierge({ champs: { acquereur_nom: 'Jeanne Martin' }, user: JULES });

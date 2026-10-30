@@ -33,6 +33,20 @@ function depuis(iso) {
 const prenom = (email, equipe) => equipe.find((m) => m.email === email)?.nom || (email ? email.split("@")[0].split(".")[0].replace(/^./, (c) => c.toUpperCase()) : "");
 const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 
+/** Pure : « 14 fiches · Nice, Antibes · loyers 18 à 42 k€ · dernier envoi le 3 oct. 2026 · 2 retenues » (server/memoire/agents.js). */
+function ligneMemoire(c) {
+  const k = (n) => `${Math.round(n / 1000)} k€`;
+  const d = c.dernier_envoi ? new Date(c.dernier_envoi).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : null;
+  return [
+    `${c.nb_fiches} fiche${c.nb_fiches > 1 ? "s" : ""}`,
+    c.villes?.length ? c.villes.slice(0, 4).join(", ") : null,
+    c.loyers ? `loyers ${k(c.loyers.min)} à ${k(c.loyers.max)}` : null,
+    c.prix ? `prix ${k(c.prix.min)} à ${k(c.prix.max)}` : null,
+    d ? `dernier envoi le ${d}` : null,
+    `${c.retenus} retenue${c.retenus > 1 ? "s" : ""}`,
+  ].filter(Boolean).join(" · ");
+}
+
 function Chiffre({ valeur, libelle, note }) {
   return (
     <div className="rounded-md border border-trait bg-surface px-3.5 py-3">
@@ -201,6 +215,10 @@ export default function FicheContact({ depart, onFermer }) {
         <Chiffre libelle="Fiches reçues" valeur={c.fiches} note={`${c.oui} Oui · ${c.non} Non`} />
         <Chiffre libelle="Dernier échange" valeur={<span className="text-[16px]">{depuis(c.dernier)}</span>} note={c.dernier ? dateCourte(c.dernier) : null} />
       </div>
+      {/* La Mémoire Klocka (30 oct. 2026) : ce que ses fiches disent de lui, en une ligne. */}
+      {f.memoire?.nb_fiches > 0 && (
+        <p className="m-0 mt-2 text-[13.5px] leading-[1.5] text-craie"><span className="text-ardoise">Mémoire · </span>{ligneMemoire(f.memoire)}</p>
+      )}
 
       <Lecture key={`${f.type}:${f.id}`} type={f.type} id={f.id} fiche={f} />
 

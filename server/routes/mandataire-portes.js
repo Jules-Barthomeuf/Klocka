@@ -40,6 +40,28 @@ export function monterMandatairePortes(app) {
   // aussi les siens seulement (`?tous=1` réservé à la file de validation).
   const vue = (req, user) => (user.role === 'admin' && req.query.tous !== '1' ? { ...user, role: 'mandataire' } : user);
 
+  // --- Le fichier acquéreurs du mandataire (30 oct. 2026) -------------------
+  app.get('/api/mandataire/acquereurs', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    ok(res, { acquereurs: (await import('../acquereurs-mandataire.js')).mesAcquereurs(vue(req, user)) });
+  }));
+  // Un fichier (Excel, CSV) ou une liste collée : lus, puis enregistrés sans doublon.
+  app.post('/api/mandataire/acquereurs/import', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const A = await import('../acquereurs-mandataire.js');
+    const f = await fichierDe(req);
+    const texte = String(req.body?.texte || '');
+    if (!f && !texte.trim()) return res.status(400).json({ error: 'Joignez un fichier ou collez votre liste.' });
+    const { mesurer } = await import('../llm-couts.js');
+    const { resultat: lu } = await mesurer({ operation: 'mandataire', par: user.email }, () => A.lireAcquereurs({ buffer: f?.buffer || null, nom: f?.filename || '', texte }));
+    if (!lu.acquereurs.length) return res.status(400).json({ error: 'Aucun acquéreur reconnu : il faut au moins un nom, un téléphone ou un e-mail par ligne.' });
+    ok(res, { ok: true, lus: lu.acquereurs.length, par: lu.par, ...A.enregistrerAcquereurs(lu.acquereurs, vue(req, user)) });
+  }));
+  app.delete('/api/mandataire/acquereurs/:id', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await import('../acquereurs-mandataire.js')).supprimerAcquereur(req.params.id, vue(req, user)));
+  }));
+
   // --- 1. Estimation --------------------------------------------------------
   app.get('/api/mandataire/estimations', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;

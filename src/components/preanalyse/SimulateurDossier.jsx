@@ -75,6 +75,19 @@ const etatInitial = (parametres = {}) => {
   return etat;
 };
 
+// Les chiffres que les autres onglets de l'analyse donnent (bail, quittances, taxe foncière, surface) passent devant ceux
+// du lot, sauf ceux qu'on a tapés ici à la main (`saisis`, 30 oct. 2026, Jules).
+const avecAnalyse = (parametres = {}, depuisAnalyse = null) => {
+  const saisis = new Set(parametres.saisis || []);
+  const venus = Object.entries(depuisAnalyse?.valeurs || {}).filter(([cle]) => CHAMPS.includes(cle) && !saisis.has(cle));
+  return venus.length ? { ...parametres, ...Object.fromEntries(venus) } : parametres;
+};
+
+const LIBELLES_ANALYSE = {
+  loyerInitialHTHC: "loyer", loyerSoumisTVA: "TVA", chargesCoproRefacturables: "charges refacturées",
+  taxeFonciereRefacturable: "taxe foncière refacturée", taxeFonciere: "taxe foncière", surface: "surface",
+};
+
 const ONGLETS = [
   { id: "graphiques", label: "Graphiques" },
   { id: "revente", label: "Revente" },
@@ -91,8 +104,11 @@ const formatCurrency = (value) =>
 // panneau dépliable au lieu d'occuper une colonne de gauche.
 // dealId + lotIndex : les chiffres s'enregistrent sur le lot, on y revient
 // plus tard et le projet créé depuis le deal en hérite.
-export default function SimulateurDossier({ parametres, compact = false, dealId = null, lotIndex = 0, onEnregistre = undefined }) {
+export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = null, compact = false, dealId = null, lotIndex = 0, onEnregistre = undefined }) {
+  const parametres = useMemo(() => avecAnalyse(duLot, depuisAnalyse), [duLot, depuisAnalyse]);
   const [etat, setEtat] = useState(() => etatInitial(parametres));
+  // Les champs tapés à la main : l'analyse ne les remplace plus.
+  const saisis = useRef(new Set(duLot?.saisis || []));
   // Tableaux annuels : hors CHAMPS car ils ne viennent jamais du dossier.
   const [vacancesLocatives, setVacancesLocatives] = useState(() => Array(25).fill(0));
   const [travauxBailleur, setTravauxBailleur] = useState(travauxParDefaut);
@@ -116,6 +132,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
     setNegoPct(0);
     apportTouche.current = parametres?.apport != null;
     if (parametres?.apport != null) setApport(parametres.apport);
+    saisis.current = new Set(duLot?.saisis || []);
   }, [signature]);
 
   // Enregistrer tout seul (29 oct. 2026, Jules) : le dernier chiffre tapé reste sur le lot, une seconde après
@@ -130,12 +147,13 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
   const aEnvoyer = JSON.stringify({ ...etat, apport });
   useEffect(() => {
     if (!dealId || !retouche.current) return undefined;
-    const t = setTimeout(() => { retouche.current = false; enregistrer.mutate(JSON.parse(aEnvoyer)); }, 1000);
+    const t = setTimeout(() => { retouche.current = false; enregistrer.mutate({ ...JSON.parse(aEnvoyer), saisis: [...saisis.current] }); }, 1000);
     return () => clearTimeout(t);
   }, [aEnvoyer, dealId]);
 
   const maj = (cle, valeur) => {
     retouche.current = true;
+    saisis.current.add(cle);
     if (cle === "apport") {
       apportTouche.current = true;
       setApport(valeur);
@@ -200,6 +218,9 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
     !etat.surface && "surface",
   ].filter(Boolean);
 
+  // Ce que l'analyse a posé et qui n'a pas été retouché depuis.
+  const venusDeLAnalyse = Object.entries(depuisAnalyse?.sources || {}).filter(([cle]) => CHAMPS.includes(cle) && !saisis.current.has(cle));
+
   const rail = (
     <SimControlRail
       values={values}
@@ -219,6 +240,11 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
   // Un seul fond (17 oct. 2026, Jules) : les cartes du simulateur laissent voir celui du panneau, sans à-plats plus clairs.
   return (
     <div data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail">
+      {venusDeLAnalyse.length > 0 && (
+        <div className="px-4 py-2 border-b border-trait text-[11px] text-ardoise">
+          Rempli depuis l'analyse : {venusDeLAnalyse.map(([cle, source]) => `${LIBELLES_ANALYSE[cle] || cle} (${source.toLowerCase()})`).join(", ")}.
+        </div>
+      )}
       {manquants.length > 0 && (
         <div className="px-4 py-2 border-b border-trait flex items-start gap-2 text-[11px] text-menthe/80">
           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />

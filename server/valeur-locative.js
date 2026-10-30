@@ -26,6 +26,7 @@ import { resoudreAdresse } from './adresse-ban.js';
 import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
 import { valeurLocative as valeurLocativeDataB, dataBConfigure } from './data-b.js';
 import { referencesKlocka } from './loyers-klocka.js';
+import { referencesMemoire } from './memoire/comparables.js';
 import { actualiserReferences, indicesIlc } from './ilc.js';
 import { sourceActive, poidsSource } from './socle/registre-sources.js';
 import { valeurParComparables, ecartDataB } from './valeur-locative-comparables.js';
@@ -50,7 +51,8 @@ async function pointDe(ligne) {
 
 export async function referencesAutour(adresse) {
   const dep = String(adresse.code_postal || '').slice(0, 2);
-  const refs = referencesKlocka(Records.list('Deal')).filter((r) => !dep || r.departement === dep || (!r.departement && r.adresse.ville && r.adresse.ville.toLowerCase() === String(adresse.ville || '').toLowerCase()));
+  // La Mémoire Klocka (30 oct. 2026) : chaque fiche vue compte comme une fiche (klocka_fiche), vieillie par sa date.
+  const refs = [...referencesKlocka(Records.list('Deal')), ...referencesMemoire(Records.list('BienMemoire'))].filter((r) => !dep || r.departement === dep || (!r.departement && r.adresse.ville && r.adresse.ville.toLowerCase() === String(adresse.ville || '').toLowerCase()));
   for (const r of refs) {
     if (!r.adresse.ligne) continue;
     r.point = await pointDe(r.adresse.ligne);

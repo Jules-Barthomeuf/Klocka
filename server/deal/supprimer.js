@@ -76,6 +76,14 @@ export async function supprimerDossier(dealId, { user = null } = {}) {
   const chemins = fichiersDuDossier(deal, docs);
   const mails = detacherMails(dealId);
 
+  // La Mémoire Klocka (30 oct. 2026, Jules) : la fiche et ses faits restent, avant que les fichiers ne partent.
+  // Un échec ne retient pas la suppression : elle prime.
+  let memoire = null;
+  try {
+    const M = await import('../memoire/drapeaux.js');
+    if (M.MEMOIRE) memoire = (await import('../memoire/memoire.js')).memoriser(deal, { origine: 'suppression', par: user });
+  } catch (e) { console.warn(`[suppression] Mémoire non écrite pour ${dealId} :`, e?.message || e); }
+
   for (const [entite, champ] of LIEES) {
     for (const r of Records.filter(entite, { [champ]: dealId })) Records.delete(entite, r.id);
   }
@@ -107,6 +115,6 @@ export async function supprimerDossier(dealId, { user = null } = {}) {
 
   const titre = deal.nom || deal.lots?.[0]?.synthese?.titre || dealId;
   Records.delete('Deal', deal.id);
-  console.log(`[suppression] dossier « ${titre} » (${dealId}) supprimé${user?.email ? ` par ${user.email}` : ''} : ${mails} mail(s) détaché(s), ${fichiers} fichier(s) effacé(s)`);
-  return { ok: true, titre, mails, fichiers };
+  console.log(`[suppression] dossier « ${titre} » (${dealId}) supprimé${user?.email ? ` par ${user.email}` : ''} : ${mails} mail(s) détaché(s), ${fichiers} fichier(s) effacé(s)${memoire?.ok ? ', fiche gardée en Mémoire' : ''}`);
+  return { ok: true, titre, mails, fichiers, memoire: memoire?.ok ? memoire.bien.id : null };
 }

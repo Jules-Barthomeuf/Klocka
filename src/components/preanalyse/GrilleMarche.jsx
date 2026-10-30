@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { createPageUrl } from "@/utils";
-import { CaseNom, CELLULES, ValeurModifiable, corpsDeLaSaisie, corpsDuChoix, useAnalysePieces, useGeste } from "@/components/preanalyse/AnalysePieces";
+import { CaseNom, CELLULES, corpsDeLaSaisie, corpsDuChoix, useAnalysePieces, useGeste } from "@/components/preanalyse/AnalysePieces";
+import TexteEnPlace from "@/components/ui/texte-en-place";
 import JournalDetail from "@/components/preanalyse/JournalDetail";
 import { OngletEquimmox, OngletFigaro, OngletSecteur } from "@/components/preanalyse/JournalSources";
 import { OngletBodacc, OngletDvf } from "@/components/preanalyse/JournalPubliques";
@@ -19,52 +19,113 @@ import { OngletBodacc, OngletDvf } from "@/components/preanalyse/JournalPublique
 
 // Pas de colonne Notes dans Marché (30 oct. 2026, Jules) : on corrige le chiffre dans la case, la source dit d'où il vient.
 const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.2fr)]";
-// Les outils que « Chercher » propose pour une ligne (30 oct. 2026, Jules) : un clic en lance un seul.
-const A_RELIRE = {
-  loyer_marche: ["equimmox", "data-b-valeur-locative", "valeur-locative"], loyer_moyen: ["equimmox"], reversion: ["equimmox", "data-b-valeur-locative"],
-  prix_fai: ["equimmox", "data-b-valeur-locative"], ventes_reelles: ["dvf"], residentiel: ["figaro"],
-  flux: ["data-b-implantation", "implantation"], vitalite: ["bodacc"], cessions: ["data-b-transactions", "bodacc-cessions"],
-};
-
 const fmt = (n, d = 0) => (n == null || !Number.isFinite(Number(n)) ? null : Number(n).toLocaleString("fr-FR", { maximumFractionDigits: d }));
 const carte = (analyse, cle) => analyse?.cartes?.find((c) => c.cle === cle && c.valeur && c.valeur !== "—") || null;
+const niveau = (x) => (x ? [["rue", x.rue], ["quartier", x.quartier], ["ville", x.ville]].find(([, v]) => v && (v.basse != null || v.haute != null)) || null : null);
+const milieu = (v) => (v.basse != null && v.haute != null ? (v.basse + v.haute) / 2 : v.basse ?? v.haute ?? null);
+// Un chiffre tapé (« 180 €/m²/an », « 150 à 210 ») : le premier nombre, ou le milieu d'une fourchette.
+const nombreTape = (t) => {
+  const ns = String(t || "").replace(/[\u00a0\u202f]/g, " ").replace(/(\d) (?=\d{3}\b)/g, "$1").match(/\d+(?:[.,]\d+)?/g);
+  if (!ns?.length) return null;
+  const v = ns.slice(0, 2).map((x) => Number(x.replace(",", ".")));
+  return /\sà\s|\d\s*[-–]\s*\d/.test(String(t)) && v.length === 2 ? (v[0] + v[1]) / 2 : v[0];
+};
+const champ = (c) => (c && typeof c === "object" && "valeur" in c ? (c.absent === false || c.absent == null ? c.valeur : null) : c ?? null);
+const fourchette = (v, unite) => (v.basse != null && v.haute != null ? `${fmt(v.basse)} à ${fmt(v.haute)} ${unite}` : `${fmt(v.basse ?? v.haute)} ${unite}`);
 
+/**
+ * Chaque question du Marché, avec ses sources (30 oct. 2026, Jules : « loyer de marché, une ligne Equimmox, une ligne
+ * Data-B… juste la valeur, le détail dans un panneau ») : une source = { cle (pour la demander), nom, valeur, detail,
+ * vue (son panneau) }. Une source nouvelle (un outil Klocka) s'ajoute ici, à la question qu'elle sait renseigner.
+ */
 function lignesDu(lot, analyse) {
   const l = lot || {};
-  const equimmox = l.analyse_loyer || null;
+  const eq = l.analyse_loyer || null;
+  const secteur = niveau(l.valeur_locative);
+  const datab = niveau(l.valeur_locative_data_b);
   const implantation = l.implantation || null;
   const vitalite = l.vitalite_rue || null;
   const cessions = l.transactions_fonds || null;
   const figaro = l.prix_residentiel ? l.prix_residentiel.quartier || l.prix_residentiel.commune : null;
   const dvf = analyse?.parComparaison || null;
   const v = l.vacance || null;
-  const deCarte = (cle) => { const c = carte(analyse, cle); return c ? { lu: c.valeur, detail: c.detail } : { lu: null, detail: null }; };
-  const vac = (z) => (z && z.taux != null
-    ? { lu: `${fmt(z.taux, 1)} %`, detail: `${z.vacants} vide${z.vacants > 1 ? "s" : ""} sur ${z.vacants + z.occupes} locaux tranchés${z.incertains ? `, ${z.incertains} incertain${z.incertains > 1 ? "s" : ""}` : ""}${z.fiable ? "" : " · trop peu de locaux pour un taux sûr"}` }
-    : { lu: null, detail: null });
+  const deCarte = (cle) => { const c = carte(analyse, cle); return { valeur: c?.valeur || null, detail: c?.detail || null }; };
+  const vac = (z, ou) => (z && z.taux != null
+    ? { valeur: `${fmt(z.taux, 1)} %`, detail: `${z.vacants} vide${z.vacants > 1 ? "s" : ""} sur ${z.vacants + z.occupes} locaux tranchés${z.incertains ? `, ${z.incertains} incertain${z.incertains > 1 ? "s" : ""}` : ""}${ou ? ` · ${ou}` : ""}${z.fiable ? "" : " · trop peu de locaux pour un taux sûr"}` }
+    : { valeur: null, detail: null });
   const flux = implantation ? [implantation.flux_pieton?.note && `piéton ${implantation.flux_pieton.note.note}/${implantation.flux_pieton.note.sur}`, implantation.flux_voiture?.note && `voiture ${implantation.flux_voiture.note.note}/${implantation.flux_voiture.note.sur}`].filter(Boolean).join(" · ") : "";
   return [
     { titre: "Loyer", lignes: [
-      { id: "loyer_place", libelle: "Loyer en place", ...deCarte("loyer-place"), source: { nom: "Bail et fiche", vue: "carte:loyer-place" } },
-      { id: "loyer_marche", libelle: "Loyer de marché", ...deCarte("loyer-marche"), source: { nom: equimmox ? "Equimmox" : "Data-B", vue: equimmox ? "equimmox" : "secteur" } },
-      { id: "loyer_moyen", libelle: "Baux comparables", ...deCarte("loyer-moyen"), source: { nom: "Equimmox", vue: "equimmox" } },
-      { id: "reversion", libelle: "Écart au marché", ...deCarte("reversion"), source: { nom: "Calcul", vue: "carte:reversion" } },
+      { id: "loyer_place", libelle: "Loyer en place", sources: [{ nom: "Bail et fiche", vue: "carte:loyer-place", ...deCarte("loyer-place") }] },
+      { id: "loyer_marche", libelle: "Loyer de marché", sources: [
+        { cle: "equimmox", nom: "Equimmox · baux", vue: "equimmox", n: eq?.moyenne ?? null, valeur: eq?.moyenne != null ? `${fmt(eq.moyenne)} €/m²/an` : null,
+          detail: eq ? `Moyenne des baux${eq.rayon ? ` · rayon ${eq.rayon}` : ""}${eq.surface_min ? ` · ${eq.surface_min} à ${eq.surface_max} m²` : ""}${eq.bas != null ? ` · de ${fmt(eq.bas)} à ${fmt(eq.haut)} €/m²/an` : ""}` : null },
+        { cle: "valeur-locative", nom: "Equimmox · secteur", vue: "secteur", n: secteur ? milieu(secteur[1]) : null, valeur: secteur ? fourchette(secteur[1], "€/m²/an") : null, detail: secteur ? `Valeur locative à l'échelle ${secteur[0] === "ville" ? "de la ville" : `${secteur[0] === "rue" ? "de la" : "du"} ${secteur[0]}`}` : null },
+        { cle: "data-b-valeur-locative", nom: "Data-B", vue: "secteur", n: datab ? milieu(datab[1]) : null, valeur: datab ? fourchette(datab[1], "€/m²/an") : null, detail: datab ? `Estimation Data-B à l'échelle ${datab[0] === "ville" ? "de la ville" : `${datab[0] === "rue" ? "de la" : "du"} ${datab[0]}`}${datab[1].nom ? ` (${datab[1].nom})` : ""}` : null },
+      ] },
+      { id: "reversion", libelle: "Écart au marché", sources: [{ nom: "Calcul", vue: "carte:reversion", ...deCarte("reversion") }] },
     ] },
     { titre: "Prix", lignes: [
-      { id: "prix_fai", libelle: "Prix demandé", ...deCarte("prix-fai"), source: { nom: "Calcul", vue: "carte:prix-fai" } },
-      { id: "ventes_reelles", libelle: "Ventes réelles autour", lu: dvf ? `${fmt(dvf.prix_m2)} €/m² médian` : null, detail: dvf ? `${fmt(dvf.n)} vente${dvf.n > 1 ? "s" : ""} à ${fmt(dvf.rayon)} m${dvf.periode ? `, ${dvf.periode}` : ""}${dvf.demande_m2 ? ` · demandé ${fmt(dvf.demande_m2)} €/m²` : ""}` : null, source: { nom: "DVF", vue: "dvf" } },
-      { id: "residentiel", libelle: "Résidentiel du quartier", lu: figaro?.prix?.median != null ? `${fmt(figaro.prix.median)} €/m² médian` : null, detail: figaro?.prix?.sur_1_an != null ? `${figaro.prix.sur_1_an > 0 ? "+" : ""}${fmt(figaro.prix.sur_1_an, 1)} % sur un an` : null, source: { nom: "Le Figaro", vue: "figaro" } },
+      { id: "prix_fai", libelle: "Prix demandé", sources: [{ nom: "Calcul", vue: "carte:prix-fai", ...deCarte("prix-fai") }] },
+      { id: "ventes_reelles", libelle: "Ventes réelles autour", sources: [{ cle: "dvf", nom: "DVF", vue: "dvf", valeur: dvf ? `${fmt(dvf.prix_m2)} €/m²` : null, detail: dvf ? `Médiane de ${fmt(dvf.n)} vente${dvf.n > 1 ? "s" : ""} à ${fmt(dvf.rayon)} m${dvf.periode ? `, ${dvf.periode}` : ""}${dvf.demande_m2 ? ` · demandé ${fmt(dvf.demande_m2)} €/m²` : ""}` : null }] },
+      { id: "residentiel", libelle: "Résidentiel du quartier", sources: [{ cle: "figaro", nom: "Le Figaro", vue: "figaro", valeur: figaro?.prix?.median != null ? `${fmt(figaro.prix.median)} €/m²` : null, detail: figaro?.prix?.sur_1_an != null ? `Prix médian des appartements · ${figaro.prix.sur_1_an > 0 ? "+" : ""}${fmt(figaro.prix.sur_1_an, 1)} % sur un an` : null }] },
     ] },
     { titre: "Emplacement", lignes: [
-      { id: "flux", libelle: "Flux de passage", lu: flux || null, detail: implantation?.estime ? "estimé par Klocka" : null, source: { nom: implantation?.estime ? "Klocka" : "Data-B", vue: "secteur" } },
-      { id: "vitalite", libelle: "Ouvertures et fermetures", lu: vitalite?.sur_la_rue ? `${fmt(vitalite.sur_la_rue.creations)} ouverture${vitalite.sur_la_rue.creations > 1 ? "s" : ""}, ${fmt(vitalite.sur_la_rue.fermetures)} fermeture${vitalite.sur_la_rue.fermetures > 1 ? "s" : ""}` : null, detail: vitalite?.mois ? `sur la rue, ${vitalite.mois} derniers mois` : null, source: { nom: "BODACC", vue: "bodacc" } },
-      { id: "cessions", libelle: "Cessions de fonds", lu: cessions ? `${fmt(cessions.total ?? cessions.transactions?.length)} cession${(cessions.total ?? cessions.transactions?.length) > 1 ? "s" : ""}${cessions.marche?.prix_median ? `, médiane ${fmt(cessions.marche.prix_median)} €` : ""}` : null, detail: cessions?.rayon ? `dans un rayon de ${cessions.rayon}` : null, source: { nom: "BODACC", vue: "bodacc" } },
+      { id: "flux", libelle: "Flux de passage", sources: [
+        { cle: "data-b-implantation", nom: "Data-B", vue: "secteur", valeur: implantation && !implantation.estime ? flux || null : null, detail: "Étude d'implantation Data-B" },
+        { cle: "implantation", nom: "Klocka", vue: "secteur", valeur: implantation?.estime ? flux || null : null, detail: "Étude d'implantation estimée par Klocka" },
+      ] },
+      { id: "vitalite", libelle: "Ouvertures et fermetures", sources: [{ cle: "bodacc", nom: "BODACC", vue: "bodacc", valeur: vitalite?.sur_la_rue ? `${fmt(vitalite.sur_la_rue.creations)} / ${fmt(vitalite.sur_la_rue.fermetures)}` : null, detail: vitalite?.mois ? `Ouvertures / fermetures sur la rue, ${vitalite.mois} derniers mois` : null }] },
+      { id: "cessions", libelle: "Cessions de fonds", sources: [{ cle: "bodacc-cessions", nom: "BODACC", vue: "bodacc", valeur: cessions ? `${fmt(cessions.total ?? cessions.transactions?.length)}${cessions.marche?.prix_median ? ` · ${fmt(cessions.marche.prix_median)} €` : ""}` : null, detail: cessions ? `Cessions${cessions.rayon ? ` dans un rayon de ${cessions.rayon}` : ""}${cessions.marche?.prix_median ? ", prix médian" : ""}` : null }] },
     ] },
     { titre: "Vacance", vacance: true, lignes: [
-      { id: "vacance_autour", libelle: "Vacance autour", ...vac(v?.zone), detail: v?.zone ? `${vac(v.zone).detail}${v.zone.rayon_m ? ` · ${v.zone.rayon_m} m autour` : ""}` : v?.erreur_zone || null, source: { nom: "Outil Vacance", vue: "vacance" } },
-      { id: "vacance_rue", libelle: "Vacance sur la rue", ...vac(v?.sur_la_rue), detail: v?.sur_la_rue ? `${vac(v.sur_la_rue).detail}${v.rue ? ` · ${v.rue}` : ""}` : v?.erreur_rue || null, source: { nom: "Outil Vacance", vue: "vacance" } },
+      { id: "vacance_autour", libelle: "Vacance autour", sources: [{ nom: "Outil Vacance", vue: "vacance", ...vac(v?.zone, v?.zone?.rayon_m ? `${v.zone.rayon_m} m autour` : null) }] },
+      { id: "vacance_rue", libelle: "Vacance sur la rue", sources: [{ nom: "Outil Vacance", vue: "vacance", ...vac(v?.sur_la_rue, v?.rue) }] },
     ] },
   ];
+}
+
+/**
+ * L'écart entre le loyer en place et le loyer de marché, en %. Le loyer de marché au m² : la valeur de l'analyste s'il
+ * en a écrit une, sinon la première source cochée qui en donne un (Equimmox baux, Equimmox secteur, Data-B), fois la
+ * surface. Le loyer en place : la valeur de l'analyste, sinon le dossier, sinon les pièces (quittances, bail). Sans
+ * l'un des trois, la case dit ce qui manque.
+ */
+export function ecartAuMarche(tableaux, cases = {}, lot = null, pieces = null) {
+  const lignes = tableaux.flatMap((t) => t.lignes);
+  const marche = lignes.find((x) => x.id === "loyer_marche");
+  const hM = cases.loyer_marche || null;
+  const exclues = new Set(hM?.exclues || []);
+  const tapeM = nombreTape(hM?.valeur_main || (hM?.statut === "corrige" ? hM.valeur : null));
+  const source = marche?.sources.find((x) => x.n != null && !exclues.has(x.nom));
+  const parM2 = tapeM || source?.n || null;
+  const hP = cases.loyer_place || null;
+  const enPlace = nombreTape(hP?.valeur_main || (hP?.statut === "corrige" ? hP.valeur : null))
+    || Number(champ(lot?.lot?.loyer_annuel_ht_hc)) || Number(pieces?.loyerInitialHTHC) || null;
+  const surface = Number(champ(lot?.lot?.surface_m2)) || Number(pieces?.surface) || null;
+  const manque = [!enPlace && "le loyer en place", !parM2 && "le loyer de marché", !surface && "la surface"].filter(Boolean);
+  if (manque.length) return { valeur: null, detail: null, vide: `Il manque ${manque.join(", ")}` };
+  const auMarche = Math.round(parM2 * surface);
+  const r = (enPlace - auMarche) / auMarche;
+  const pct = `${r > 0 ? "+" : ""}${fmt(r * 100, 0)} %`;
+  return {
+    valeur: `${Math.abs(r) <= 0.1 ? "Au marché" : r > 0 ? "Au-dessus du marché" : "Sous le marché"} · ${pct}`,
+    detail: `${fmt(enPlace)} €/an en place contre ${fmt(auMarche)} €/an au marché (${fmt(parM2)} €/m²/an × ${fmt(surface)} m², ${tapeM ? "votre valeur" : source.nom})`,
+  };
+}
+
+/** Le prix FAI du lot (honoraires en sus ajoutés) et son prix au m², sur la surface du lot ou celle lue dans les pièces. */
+export function prixDemande(lot, pieces = null) {
+  const l = lot?.lot || {};
+  const affiche = Number(champ(l.prix_fai)) || null;
+  if (!affiche) return null;
+  const enSus = champ(l.honoraires_inclus) === false ? Number(champ(l.montant_honoraires)) || 0 : 0;
+  const prix = affiche + enSus;
+  const surface = Number(champ(l.surface_m2)) || Number(pieces?.surface) || null;
+  return {
+    valeur: surface ? `${fmt(prix)} € · ${fmt(prix / surface)} €/m²` : `${fmt(prix)} €`,
+    detail: surface ? `${fmt(prix)} € FAI${enSus ? " (honoraires en sus ajoutés)" : ""} sur ${fmt(surface)} m²` : "Surface inconnue : pas de prix au m²",
+  };
 }
 
 export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu = false, onChercher = null, enCours = false }) {
@@ -74,6 +135,22 @@ export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu 
   const [panneau, setPanneau] = useState(null);
   const cases = data?.cases_marche || {};
   const tableaux = lignesDu(lot, analyse);
+  // L'écart au marché, calculé sur ce que le tableau montre (30 oct. 2026, Jules : « il faut que ça fonctionne ») : il
+  // ne dépend plus de l'ancienne lecture du marché, souvent absente.
+  const ecart = ecartAuMarche(tableaux, cases, lot, data?.simulateur?.valeurs);
+  if (ecart) {
+    const ligne = tableaux[0].lignes.find((x) => x.id === "reversion");
+    ligne.sources = [{ ...ligne.sources[0], valeur: ecart.valeur, detail: ecart.detail, vide: ecart.vide }];
+    // Le détail du calcul ouvre l'ancienne carte seulement si la lecture du marché l'a posée.
+    if (!ecart.valeur || !carte(analyse, "reversion")) ligne.sources[0].vue = null;
+  }
+  // Le prix demandé, avec son prix au m² (30 oct. 2026, Jules) ; le jugement de l'ancienne lecture passe en détail.
+  const prix = prixDemande(lot, data?.simulateur?.valeurs);
+  if (prix) {
+    const ligne = tableaux[1].lignes.find((x) => x.id === "prix_fai");
+    const c = carte(analyse, "prix-fai");
+    ligne.sources = [{ ...ligne.sources[0], valeur: prix.valeur, detail: [prix.detail, c && c.valeur !== prix.valeur ? `${c.valeur} · ${c.detail}` : null].filter(Boolean).join(" · "), vue: c ? "carte:prix-fai" : null }];
+  }
 
   return (
     <div className="space-y-8">
@@ -90,28 +167,61 @@ export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu 
             </div>
             {t.lignes.map((l) => {
               const humain = cases[l.id] || null;
+              const exclues = new Set(humain?.exclues || []);
+              const actives = l.sources.filter((x) => x.valeur && !exclues.has(x.nom));
+              const maValeur = humain?.valeur_main || (humain?.statut === "corrige" ? humain.valeur : null);
               const tranchee = humain?.statut === "verifie" || humain?.statut === "corrige";
-              const valeur = tranchee ? humain.valeur : l.lu;
+              const valeur = maValeur || actives[0]?.valeur || null;
               const statut = tranchee ? "verifie" : valeur ? "ia" : "introuvable";
               const chemin = `cases/marche/${l.id}`;
               return (
                 <div key={l.id} className={`group/ligne grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3.5 transition-colors lg:[&>*]:py-3.5 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
                   <CaseNom libelle={l.libelle} etat={statut} par={humain?.par} valeur={valeur} occupe={geste.isPending}
                     onChoix={(id) => geste.mutate({ chemin, corps: corpsDuChoix(id, valeur, humain?.valeur_main || null) })} />
-                  <ValeurModifiable valeur={valeur} vide={l.id.startsWith("vacance") ? "Pas encore mesurée" : analyse ? "Non trouvé" : "Marché pas encore lu"}
-                    onEnregistrer={(v) => geste.mutate({ chemin, corps: corpsDeLaSaisie(v) })}
-                    apres={<>
-                      {/* Le détail reste quel que soit l'état : vérifier ne change que la couleur, pas la hauteur (30 oct. 2026, Jules). */}
-                      {l.detail && <p className="m-0 mt-0.5 text-[12.5px] leading-[1.45] text-craie">{l.detail}</p>}
-                      {/* « Chercher » : relit les seules sources de la ligne ; toujours là sur une case vide, au survol sinon. */}
-                      {onChercher && !apercu && A_RELIRE[l.id] && (
-                        <MenuChercher outils={A_RELIRE[l.id]} enCours={enCours} visible={!valeur}
-                          onChoisir={(cle) => { if (tranchee) geste.mutate({ chemin, corps: { action: "reinitialiser" } }); onChercher([cle]); }} />
-                      )}
-                    </>} />
-                  <div className="min-w-0">
-                    <button type="button" onClick={() => setPanneau(l.source.vue)} className="text-left text-[13px] text-encre underline decoration-bord-vif underline-offset-[3px] hover:decoration-encre" style={{ background: "transparent" }}>{l.source.nom}</button>
+                  {/* Une ligne par source, la valeur seule à gauche, la source à droite (30 oct. 2026, Jules) ; décochée,
+                      elle reste là, grisée, et ne compte plus. Le détail s'ouvre en cliquant sur son nom. */}
+                  <div className="min-w-0 space-y-1.5 lg:col-span-2 lg:col-start-2 lg:row-start-1 lg:!px-0">
+                    {l.sources.map((src) => {
+                      const off = exclues.has(src.nom);
+                      return (
+                        <div key={src.nom} className={`grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-baseline ${off ? "opacity-40" : ""}`}>
+                          <div className="min-w-0 lg:px-3.5">
+                            {src.valeur ? <span className={`text-[14.5px] text-encre ${off ? "line-through" : ""}`}>{src.valeur}</span>
+                              : src.cle && onChercher && !apercu ? (
+                                <button type="button" disabled={enCours} onClick={() => onChercher([src.cle])} className="text-[13px] text-menthe hover:underline disabled:opacity-50" style={{ background: "transparent" }}>{enCours ? "Recherche en cours…" : "Demander"}</button>
+                              ) : <span className="text-[14.5px] text-brume">{src.vide || (l.id.startsWith("vacance") ? "Pas encore mesurée" : "—")}</span>}
+                          </div>
+                          <div className="flex min-w-0 items-center gap-2 lg:px-3.5">
+                            {l.sources.length > 1 && !apercu && (
+                              <button type="button" role="checkbox" aria-checked={!off} aria-label={`${off ? "Recocher" : "Décocher"} ${src.nom}`}
+                                onClick={() => geste.mutate({ chemin, corps: { action: "exclure", source: src.nom } })}
+                                className={`grid h-3.5 w-3.5 flex-none place-items-center rounded-[4px] border ${off ? "border-bord-vif" : "border-menthe bg-menthe text-sur-menthe"}`}>
+                                {!off && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                              </button>
+                            )}
+                            <button type="button" onClick={() => setPanneau(src.vue)} title={src.detail || undefined}
+                              className="min-w-0 truncate text-left text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>{src.nom}</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Ma valeur : la source de l'analyste, toujours la dernière ; l'écrire la retient (la ligne passe en vert). */}
+                    {!apercu && (
+                      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-baseline">
+                        <div className="min-w-0 lg:px-3.5">
+                          <TexteEnPlace valeur={maValeur || ""} placeholder="Écrire une valeur"
+                            onEnregistrer={(t2) => { if (t2) geste.mutate({ chemin, corps: corpsDeLaSaisie(t2) }); }}
+                            className="text-[14.5px] text-encre placeholder:text-transparent focus:placeholder:text-brume group-hover/ligne:placeholder:text-brume max-md:text-[16px] max-md:placeholder:text-brume" />
+                        </div>
+                        <div className="min-w-0 lg:px-3.5">
+                          <span className={`text-[13px] ${maValeur ? "text-craie" : "text-brume opacity-0 group-hover/ligne:opacity-100 max-md:opacity-100"}`}>Ma valeur</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  {/* Le trait avant la colonne Source, d'un seul tenant sur toute la hauteur de la ligne (30 oct. 2026, Jules :
+                      « une ligne continue par tableau ») : posé dans la colonne de la grille, il tombe sous celui de l'en-tête. */}
+                  <span aria-hidden className="pointer-events-none hidden lg:col-start-3 lg:row-start-1 lg:block" />
                 </div>
               );
             })}
@@ -212,44 +322,3 @@ function PanneauSource({ vue, lot, analyse, onChoisir, onFermer }) {
 
 const Vide = ({ texte = "Cette source n'a rien donné pour ce lot : relisez le marché." }) => <p className="m-0 py-10 text-center text-[13.5px] text-craie">{texte}</p>;
 
-// Les outils qu'on peut interroger pour une ligne, avec ce qu'ils lisent et ce qu'ils coûtent en temps.
-const OUTILS = {
-  equimmox: ["Equimmox · baux signés autour", "environ 1 min"],
-  "data-b-valeur-locative": ["Data-B · valeur locative de la rue", "quelques secondes"],
-  "valeur-locative": ["Equimmox · valeur du secteur", "environ 4 min"],
-  dvf: ["DVF · ventes enregistrées", "gratuit"],
-  figaro: ["Le Figaro · prix du résidentiel", "quelques secondes"],
-  "data-b-implantation": ["Data-B · étude d'implantation", "un crédit"],
-  implantation: ["Klocka · étude d'implantation", "gratuit"],
-  bodacc: ["BODACC · ouvertures et fermetures", "gratuit"],
-  "data-b-transactions": ["Data-B · cessions de fonds", "quelques secondes"],
-  "bodacc-cessions": ["BODACC · cessions de fonds", "gratuit"],
-};
-
-/**
- * « Chercher » ouvre la liste des outils qui savent répondre à la ligne (30 oct. 2026, Jules : « aller chercher une
- * valeur dans un outil ») : un clic lance cet outil seul, sa lecture arrive dans la case avec lui comme source.
- */
-function MenuChercher({ outils, enCours, visible, onChoisir }) {
-  const [ouvert, setOuvert] = useState(false);
-  const zone = useFermerAuClicAilleurs(ouvert, () => setOuvert(false));
-  return (
-    <div ref={zone} className="relative mt-1">
-      <button type="button" disabled={enCours} onClick={(e) => { e.stopPropagation(); setOuvert((o) => !o); }} aria-expanded={ouvert}
-        className={`inline-flex items-center gap-1 text-[12.5px] text-menthe transition-opacity hover:underline disabled:opacity-40 ${visible || ouvert ? "" : "opacity-0 focus-visible:opacity-100 group-hover/ligne:opacity-100 max-md:opacity-100"}`} style={{ background: "transparent" }}>
-        <Search className="h-3 w-3" /> {enCours ? "Recherche en cours" : "Chercher"}
-      </button>
-      {ouvert && !enCours && (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-[300px] overflow-hidden rounded-[14px] border border-bord-doux bg-rail p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.3)]">
-          {outils.map((cle) => (
-            <button key={cle} type="button" onClick={(e) => { e.stopPropagation(); setOuvert(false); onChoisir(cle); }}
-              className="flex w-full items-baseline justify-between gap-3 rounded-[10px] px-3 py-2 text-left text-[13px] text-encre transition-colors hover:bg-rail-actif" style={{ background: "transparent" }}>
-              <span className="min-w-0">{OUTILS[cle]?.[0] || cle}</span>
-              <span className="flex-none text-[11.5px] text-brume">{OUTILS[cle]?.[1] || ""}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}

@@ -293,6 +293,11 @@ export const OUTILS_MANDATAIRE = [
     input_schema: { type: 'object', properties: { genre: { type: 'string', enum: ['relance', 'rdv', 'tout'], description: 'relance, rdv, ou le dernier des deux' } } },
   },
   {
+    name: 'mes_acquereurs',
+    description: "Le fichier acquéreurs du mandataire (importé depuis Clients › Mes acquéreurs), avec ceux qui collent à un bien : la ville, le prix et le type de bien filtrent (un critère que l'acquéreur n'a pas dit ne l'écarte pas). « Qui je peux appeler pour la pharmacie de Cannes à 450 k€ ? ». Rend nom, téléphone, e-mail, ce qu'il cherche, budget et pourquoi il colle. Ne contacte personne.",
+    input_schema: { type: 'object', properties: { ville: { type: 'string' }, prix: { type: 'number', description: 'Prix du bien en euros' }, type: { type: 'string', description: 'Type de bien ou activité' } } },
+  },
+  {
     name: 'mes_dossiers',
     description: "L'état des biens du mandataire : estimation (brouillon, prête, envoyée — elle est au mandataire, pas de validation Klocka), mandat (demandé, prêt, signé, enregistré), dossier (pièces reçues et manquantes, en étude, go, compléments, no-go), mise en marché (préparation, présenté, offre, compromis, acte). Avec la date du dernier changement et le mot de Klocka. Filtre facultatif par bien ou par propriétaire (« M. Durand » retrouve sa pharmacie).",
     input_schema: { type: 'object', properties: { bien: { type: 'string', description: 'Le bien (« la pharmacie ») ou le propriétaire (« M. Durand »), facultatif' } } },
@@ -992,6 +997,15 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     return { ok: true, faits, fiche_id: fiche.id };
   }
 
+  if (name === 'mes_acquereurs') {
+    const A = await import('./acquereurs-mandataire.js');
+    const tous = A.mesAcquereurs(user);
+    if (!tous.length) return { ok: true, acquereurs: [], conseil: "Aucun fichier acquéreurs : il s'importe dans Clients › Mes acquéreurs (Excel, CSV ou liste collée)." };
+    const bien = { ville: input.ville || fiche?.ville || null, prix: input.prix || null, type: input.type || null, activite: fiche?.activite || null };
+    const filtre = bien.ville || bien.prix || bien.type || bien.activite;
+    const liste = filtre ? A.acquereursPour(bien, tous) : tous;
+    return { ok: true, total: tous.length, acquereurs: liste.slice(0, 25).map((a) => ({ nom: a.nom, telephone: a.telephone, email: a.email, recherche: a.recherche, villes: a.villes, budget_min: a.budget_min, budget_max: a.budget_max, rendement_min: a.rendement_min, pourquoi: a.pourquoi })) };
+  }
   if (name === 'mes_rappels') return tableauDuJour(user);
 
   if (name === 'nouveau_contact') {

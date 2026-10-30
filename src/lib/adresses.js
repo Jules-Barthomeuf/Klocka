@@ -75,6 +75,7 @@ export const ADRESSES = {
   ConversationsMandataires: "Conversations",
   // Les mandats reçus des mandataires, côté Klocka (27 oct. 2026).
   MandatsMandataires: "Mandats",
+  MemoireKlocka: "Memoire",
   Portail: "Portail",
   Portail2Fois: "PortailDeuxFois",
   AdminBrouillons: "Verification",

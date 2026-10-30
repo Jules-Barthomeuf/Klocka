@@ -130,6 +130,21 @@ test('les écarts : loyer fiche / bail / quittances, TVA, locataire du Kbis ; re
   assert.equal(A.lireAnalyse('AP4').ecarts.find((e) => e.cle === 'loyer').retenu, 'quittances');
 });
 
+test("le simulateur prend les chiffres des onglets : les quittances d'abord, le loyer retenu s'il y en a un", () => {
+  // AP4, lu au test d'avant : bail à 24 000 € / an, quittances à 2 200 € par mois, TVA au bail.
+  A.deciderEcart('AP4', 'loyer', null, null);
+  let s = A.lireAnalyse('AP4').simulateur;
+  assert.equal(s.valeurs.loyerInitialHTHC, 26400);
+  assert.equal(s.sources.loyerInitialHTHC, 'Quittances');
+  assert.equal(s.valeurs.loyerSoumisTVA, true);
+  assert.equal(s.sources.loyerSoumisTVA, 'Bail');
+  assert.equal(s.valeurs.taxeFonciere, undefined, "pas d'avis de taxe foncière : rien de posé");
+  A.deciderEcart('AP4', 'loyer', 'bail', null);
+  s = A.lireAnalyse('AP4').simulateur;
+  assert.equal(s.valeurs.loyerInitialHTHC, 24000);
+  assert.equal(s.sources.loyerInitialHTHC, 'Bail (retenu)');
+});
+
 test('ranger ailleurs pendant la lecture : la lecture tardive est jetée', async () => {
   dossier('AP5', [{ id: 'x', nom: 'Scan.pdf' }]);
   A.rangerPiece('AP5', 'x', 'bail', null);

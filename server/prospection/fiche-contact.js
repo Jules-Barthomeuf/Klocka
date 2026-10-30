@@ -11,6 +11,7 @@
 // FicheContactLecture, et ne se refait que si un échange nouveau est arrivé.
 
 import { Records } from '../db.js';
+import { biensDe, chiffresAgent } from '../memoire/agents.js';
 
 const LECTURE = 'FicheContactLecture';
 const MODELE_RAPIDE = 'claude-haiku-4-5';
@@ -198,6 +199,8 @@ export async function ficheAgent(id) {
     agence: agence ? { id: agence.id, nom: agence.nom, ville: agence.ville || null } : (a.agence ? { id: null, nom: a.agence, ville: null } : null),
     annonces: a.annonces || 0, referent: a.referent || null,
     chiffres: chiffresDe(echanges), parcours: parcoursDe([a], echanges), echanges: echanges.slice(0, 200),
+    // La Mémoire Klocka (30 oct. 2026) : ce que ses fiches disent de lui (nombre, villes, loyers, prix, dernier envoi, retenues).
+    memoire: chiffresAgent(biensDe(Records.list('BienMemoire'), a.emails || [])),
     equipe: equipeDe(echanges, { referent: a.referent, equipe: await equipeConnue() }),
     collegues: collegues.slice(0, 30).map((c) => ({ id: c.id, nom: nomAgent(c), poste: c.poste || null, statut: c.statut || null, fiches: c.fiches || 0, oui: c.oui || 0, dernier_contact_le: c.dernier_contact_le || null })),
     lecture: lecture ? { themes: lecture.themes || [], actions: lecture.actions || [], genere_le: lecture.genere_le, a_jour: lecture.signature === signatureDe(echanges) } : null,

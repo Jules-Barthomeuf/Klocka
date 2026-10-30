@@ -342,6 +342,12 @@ export function lienElement(boardId, itemId) {
   return o && estIdTwenty(itemId) ? T.lienFiche(o.nameSingular, itemId) : null;
 }
 
+/** Le lien Twenty d'une fiche connue par son ancien id Monday (30 oct. 2026), ou null si Twenty ne l'a pas. */
+export async function lienDepuisMonday(boardId, mondayId) {
+  const x = await retrouver(mondayId, tableauMigre(boardId) ? boardId : null).catch(() => null);
+  return x ? T.lienFiche(x.o.nameSingular, x.id) : null;
+}
+
 // --- La copie dans Twenty d'une écriture faite dans Monday (CRM=double, 28 oct. 2026, Jules) ---
 // Monday reste la source : ses ids circulent dans Klocka. La fiche Twenty porte l'id Monday (mondayId) et se retrouve
 // par lui ; une fiche née dans Twenty pendant la bascule (id Twenty) est reliée à sa jumelle Monday dès qu'elle y naît.

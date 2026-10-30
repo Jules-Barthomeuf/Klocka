@@ -119,6 +119,13 @@ let utilisateursCache = { le: 0, liste: [] };
 export const utilisateursMondayDirect = () => utilisateursMonday();
 export async function utilisateursMonday() {
   if (Date.now() - utilisateursCache.le < 10 * 60 * 1000 && utilisateursCache.liste.length) return utilisateursCache.liste;
+  // CRM=twenty (30 oct. 2026) : Monday n'est plus lu ; ses personnes sont figées dans crm/utilisateurs-monday.json.
+  if (crmTwenty()) {
+    const fs = await import('node:fs');
+    const fichier = new URL('../crm/utilisateurs-monday.json', import.meta.url);
+    utilisateursCache = { le: Date.now(), liste: JSON.parse(fs.readFileSync(fichier, 'utf8')).utilisateurs };
+    return utilisateursCache.liste;
+  }
   const data = await graphql(`query { users (limit: 200) { id name email enabled } }`);
   utilisateursCache = { le: Date.now(), liste: (data.users || []).filter((u) => u.enabled !== false) };
   return utilisateursCache.liste;
@@ -425,8 +432,11 @@ export function lienMonday(boardId, itemId) {
     const l = Twenty.lienElement(boardId, itemId);
     if (l) return l;
   }
-  return `https://klocka-company.monday.com/boards/${boardId}/pulses/${itemId}`;
+  // Un ancien id Monday en CRM=twenty (30 oct. 2026) : Klocka retrouve la fiche Twenty au clic (/api/crm/fiche).
+  if (crmTwenty()) return `${(process.env.URL_PUBLIQUE || 'https://app.klocka.immo').replace(/\/$/, '')}/api/crm/fiche/${boardId}/${itemId}`;
+  return lienMondayDirect(boardId, itemId);
 }
+export const lienMondayDirect = (boardId, itemId) => `https://klocka-company.monday.com/boards/${boardId}/pulses/${itemId}`;
 
 // --- Pour la synchronisation des deux CRM (CRM=double, server/crm/synchro.js) ---
 

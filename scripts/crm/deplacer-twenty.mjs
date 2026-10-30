@@ -81,7 +81,7 @@ const cible = `${KLOCKA}/api/crm/webhook`;
 const operations = [...objets.flatMap((o) => [`${o.nameSingular}.created`, `${o.nameSingular}.updated`, `${o.nameSingular}.deleted`]), 'noteTarget.created', 'workspaceMember.created',
   // Les tables de jonction des champs Personnes (scripts/crm/personnes-twenty.mjs) : un membre coché ou retiré.
   ...objets.flatMap((o) => champsPersonnes(o).flatMap((p) => [`${p.jonction.nameSingular}.created`, `${p.jonction.nameSingular}.deleted`])),
-  // Un mail écrit dans Sunday CRM (scripts/crm/mails-twenty.mjs) : Klocka l'envoie (server/crm/mails.js).
+  // Un mail écrit dans Twenty CRM (scripts/crm/mails-twenty.mjs) : Klocka l'envoie (server/crm/mails.js).
   'envoiMail.created'];
 const { webhooks } = await gql('{ webhooks { id targetUrl operations } }');
 const existant = webhooks.find((w) => w.targetUrl === cible);

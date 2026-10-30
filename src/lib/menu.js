@@ -116,6 +116,8 @@ export const MENU_MANDATAIRE = [
   { cle: "MandataireClients", label: "Clients" },
   { cle: "MandataireProjets", label: "Projets" },
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
+  // Twenty CRM aussi chez les mandataires (30 oct. 2026, Jules) : la même entrée externe que l'équipe.
+  { cle: "CRM", label: "Twenty CRM", externe: true, fixe: true },
 ];
 // Off-market n'est plus une page à part pour un mandataire (23 oct. 2026) : son adresse mène à la Prospection.
 // Les quatre pages d'étape restent ouvertes par leur adresse (notifications, liens) ; elles vivent dans Biens.

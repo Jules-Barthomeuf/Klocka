@@ -7,5 +7,6 @@ const OBJETS = { 2110621762: "proprietes", 2110621760: "clients" };
 export function lienCrm(tableau, id) {
   if (!id) return null;
   if (UUID.test(String(id)) && CRM_URL && OBJETS[tableau]) return `${CRM_URL}/object/${OBJETS[tableau]}/${id}`;
-  return `https://klocka-company.monday.com/boards/${tableau}/pulses/${id}`;
+  // Un ancien id Monday : le serveur ouvre la fiche Twenty qui le porte, ou Monday tant que Klocka y lit encore.
+  return `/api/crm/fiche/${tableau}/${id}`;
 }

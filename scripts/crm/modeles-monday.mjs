@@ -1,4 +1,4 @@
-// Les modèles de mail de Monday, pour Sunday CRM (29 oct. 2026, Jules ; scripts/crm/mails-twenty.mjs les importe).
+// Les modèles de mail de Monday, pour Twenty CRM (29 oct. 2026, Jules ; scripts/crm/mails-twenty.mjs les importe).
 // L'API de Monday ne donne pas les modèles d'Emails & Activités ; elle donne les mails partis, dans la timeline de
 // chaque fiche. Un modèle, c'est un même objet envoyé à au moins deux personnes : on garde le texte le plus envoyé,
 // le prénom de la fiche remis en {prénom}. Les réponses (Re:, TR:) et les avis de non-remise sont écartés.

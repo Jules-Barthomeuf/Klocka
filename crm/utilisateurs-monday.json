@@ -1,0 +1,55 @@
+{
+  "_": "Les personnes du compte Monday (id, nom, adresse), figées le 30 oct. 2026 : en CRM=twenty, server/monday.js les lit ici au lieu de Monday.",
+  "utilisateurs": [
+    {
+      "id": "78556331",
+      "name": "Paul De Zulueta",
+      "email": "paul.dz@klocka.immo"
+    },
+    {
+      "id": "78556521",
+      "name": "Agathe Landas",
+      "email": "agathe.l@klocka.immo"
+    },
+    {
+      "id": "82128399",
+      "name": "JulesB",
+      "email": "jules.b@klocka.immo"
+    },
+    {
+      "id": "82574016",
+      "name": "Alexis PETIT",
+      "email": "alexis.p@klocka.immo"
+    },
+    {
+      "id": "96903566",
+      "name": "Maxime Pama",
+      "email": "maxime.p@klocka.immo"
+    },
+    {
+      "id": "101330177",
+      "name": "Michenon Paul",
+      "email": "paul.michenon25@gmail.com"
+    },
+    {
+      "id": "104429634",
+      "name": "Jules Barthomeuf test",
+      "email": "jules.btmf@gmail.com"
+    },
+    {
+      "id": "108048502",
+      "name": "hugo.r@kpartners.immo",
+      "email": "hugo.r@kpartners.immo"
+    },
+    {
+      "id": "115140921",
+      "name": "Nora LORINQUER",
+      "email": "nora.l@klocka.immo"
+    },
+    {
+      "id": "115691911",
+      "name": "Coralie GUILLAUD",
+      "email": "coralie.g@klocka.immo"
+    }
+  ]
+}

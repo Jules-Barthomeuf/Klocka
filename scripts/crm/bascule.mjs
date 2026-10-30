@@ -1,7 +1,7 @@
-// La bascule vers Sunday CRM (prévue le lundi 2 novembre 2026, Jules) : Klocka n'écrit plus que dans Sunday CRM.
+// La bascule vers Twenty CRM (prévue le lundi 2 novembre 2026, Jules) : Klocka n'écrit plus que dans Twenty CRM.
 //   1. dernier export complet de Monday (scripts/crm/export-monday.mjs), gardé comme archive ;
 //   2. les webhooks Monday retirés : ceux de la synchronisation (crm/webhooks-monday.json) et ceux du Layer
-//      (statut et commentaires sur Agent immobilier et Propriétés), le Layer suivant Sunday CRM depuis le 28 oct. ;
+//      (statut et commentaires sur Agent immobilier et Propriétés), le Layer suivant Twenty CRM depuis le 28 oct. ;
 //   3. CRM=twenty sur le service Klocka de Render, déploiement, attente de « live ».
 // Monday garde tout (rien n'y est supprimé) ; Jules le passe en lecture seule à la main. Retour possible : CRM=double
 // et `node scripts/crm/synchro-monday.mjs` pour reposer les webhooks.

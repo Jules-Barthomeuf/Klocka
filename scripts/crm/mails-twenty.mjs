@@ -1,6 +1,6 @@
-// Les mails dans Sunday CRM (29 oct. 2026, Jules ; server/crm/mails.js, crm/twenty-front/klocka.js) :
+// Les mails dans Twenty CRM (29 oct. 2026, Jules ; server/crm/mails.js, crm/twenty-front/klocka.js) :
 //   1. l'objet « Modèles » (modeleMail) : nom, objet, texte ; la fenêtre d'envoi les propose ;
-//   2. l'objet « Mails envoyés » (envoiMail) : chaque mail écrit dans Sunday CRM, que Klocka envoie depuis la boîte
+//   2. l'objet « Mails envoyés » (envoiMail) : chaque mail écrit dans Twenty CRM, que Klocka envoie depuis la boîte
 //      Gmail de la personne et marque Envoyé ou Erreur ; hors de la barre de gauche (journal) ;
 //   3. « envoiMail.created » ajouté au webhook vers Klocka ;
 //   4. les modèles d'un fichier (exports-prives/modeles-monday.json par défaut, tiré des mails envoyés depuis Monday
@@ -38,7 +38,7 @@ const OBJETS = [
     barre: true,
   },
   {
-    objet: { nameSingular: 'envoiMail', namePlural: 'envoisMail', labelSingular: 'Mail envoyé', labelPlural: 'Mails envoyés', icon: 'IconSend', description: 'Les mails écrits dans Sunday CRM, envoyés par Klocka depuis la boîte de la personne (server/crm/mails.js)' },
+    objet: { nameSingular: 'envoiMail', namePlural: 'envoisMail', labelSingular: 'Mail envoyé', labelPlural: 'Mails envoyés', icon: 'IconSend', description: 'Les mails écrits dans Twenty CRM, envoyés par Klocka depuis la boîte de la personne (server/crm/mails.js)' },
     nom: 'Objet du mail',
     champs: [
       { name: 'a', label: 'À', type: 'TEXT', icon: 'IconAt' },

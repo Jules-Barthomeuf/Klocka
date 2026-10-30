@@ -1,10 +1,10 @@
-// Les champs Personnes de Sunday CRM en membres, avec leur photo (28 oct. 2026, Jules ; server/crm/membres.js).
+// Les champs Personnes de Twenty CRM en membres, avec leur photo (28 oct. 2026, Jules ; server/crm/membres.js).
 // Pour chaque champ Personnes d'un tableau migré (SPOC, Personnes, Personne, Collaborateurs) :
 //   1. une table de jonction « <objet><Champ>Membre » (relations « fiche » et « membre ») ;
 //   2. sur la fiche, le champ « <Champ> » qui la lit comme des membres (junctionTargetFieldId), l'ancien texte devient
 //      « <Champ> (texte) » ;
 //   3. dans chaque vue, le nouveau champ prend la place du texte, qui est caché ;
-//   4. les noms déjà là deviennent des membres, pour ceux qui ont un compte Sunday CRM.
+//   4. les noms déjà là deviennent des membres, pour ceux qui ont un compte Twenty CRM.
 // Rejouable : relancer après l'arrivée de nouveaux membres relie leurs fiches.
 //   node scripts/crm/personnes-twenty.mjs [nomDObjet]
 import 'dotenv/config';

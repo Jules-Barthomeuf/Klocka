@@ -149,9 +149,10 @@ const nz = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLow
  * seulement elles. `fiches` : les fiches Ville qui existent, avec leur centre ; `toutes` : chacune avec son état.
  */
 async function villesDuMandataire(secteur) {
-  const { villesChoisies, etatVille, preparation } = await import('./villes-secteur.js');
+  const { villesDuSecteurMandataire, etatVille, preparation } = await import('./villes-secteur.js');
   const villes = Records.list('Ville');
-  const toutes = villesChoisies(secteur).map((v) => {
+  // Les villes cochées pour le secteur, et les Villes Klocka de son contour (30 oct. 2026).
+  const toutes = (await villesDuSecteurMandataire(secteur)).map((v) => {
     const f = villes.find((x) => (v.code && x.code_insee === v.code) || nz(x.nom) === nz(v.nom)) || null;
     return { choisie: v, fiche: f?.centre?.lat != null ? f : null };
   });
@@ -280,7 +281,8 @@ const caches = new Map(); // `${vue}:${email}` → { le, fiches, donnees, valeur
 const enCalcul = new Map();
 
 const signatures = () => ({
-  fiches: `${Records.signature('ProprietaireMandataire')}|${Records.signature('SecteurMandataire')}|${Records.signature('DemandeClient')}`,
+  // La liste des Villes Klocka compte aussi : une ville ajoutée entre dans « Mon secteur » tout de suite.
+  fiches: `${Records.signature('ProprietaireMandataire')}|${Records.signature('SecteurMandataire')}|${Records.signature('DemandeClient')}|${Meta.get('villes-klocka') || ''}`,
   donnees: `${Records.signature('CommerceSimple')}|${Records.signature('Ville')}`,
 });
 

@@ -73,11 +73,29 @@ export async function choisirVilles(secteurId, codes = [], user = null) {
  * contour et les communes cochées par le mandataire (le réglage de l'agent, 5 oct. 2026).
  */
 export async function communesALire(secteur) {
-  if (villesChoisies(secteur).length) return villesChoisies(secteur).map((v) => ({ nom: v.nom, code: v.code || null }));
   const { communesDuSecteur } = await import('./mandataire-agent.js');
   const { villesKlocka, rangerCommunes } = await import('./villes-klocka.js');
   const r = rangerCommunes(await communesDuSecteur(secteur), villesKlocka(), secteur.communes_activite || []);
-  return [...r.klocka, ...r.autres.filter((c) => c.choisie)].map((c) => ({ nom: c.nom, code: c.code || null }));
+  const klocka = r.klocka.map((c) => ({ nom: c.nom, code: c.code || null }));
+  if (villesChoisies(secteur).length) return unir(villesChoisies(secteur).map((v) => ({ nom: v.nom, code: v.code || null })), klocka);
+  return [...klocka, ...r.autres.filter((c) => c.choisie).map((c) => ({ nom: c.nom, code: c.code || null }))];
+}
+
+/** Pure : deux listes de communes réunies, sans doublon (par code, sinon par nom). */
+export function unir(a = [], b = []) {
+  const vues = new Set();
+  return [...a, ...b].filter((c) => { const k = c.code || norm(c.nom); if (vues.has(k)) return false; vues.add(k); return true; });
+}
+
+/**
+ * Les villes où le mandataire prospecte « Mon secteur » (30 oct. 2026, Jules : « j'ai bien mis Antibes dans les villes
+ * Klocka ») : celles que Klocka a cochées pour le secteur, plus les Villes Klocka de son contour, toujours.
+ */
+export async function villesDuSecteurMandataire(secteur) {
+  const { communesDuSecteur } = await import('./mandataire-agent.js');
+  const { villesKlocka, rangerCommunes } = await import('./villes-klocka.js');
+  const klocka = rangerCommunes(await communesDuSecteur(secteur), villesKlocka(), []).klocka.map((c) => ({ nom: c.nom, code: c.code || null }));
+  return unir(villesChoisies(secteur).map((v) => ({ nom: v.nom, code: v.code || null })), klocka);
 }
 
 /** La fiche Ville d'une commune : retrouvée par son code ou son nom, sinon créée ; son centre posé s'il manque. */

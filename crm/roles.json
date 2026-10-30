@@ -1,0 +1,11 @@
+{
+  "_": "Les rôles de Twenty CRM (30 oct. 2026, Jules) ; posés par node scripts/crm/roles-twenty.mjs. Admins : tout, y compris les rôles et les membres. Équipe Klocka : les tableaux de KLOCKA PRINCIPAL, rien de KPARTNERS. Mandataire K Partners : les tableaux de KPARTNERS, Propriétés Klocka en lecture, rien de Klocka. Un nouvel invité arrive en « Accès à attribuer » (rien) jusqu'à ce qu'un admin lui donne un rôle. Une exception pour une personne : un rôle à son nom, fait dans Twenty (Réglages, Rôles) ; le script ne touche qu'aux trois rôles ci-dessous et aux membres listés.",
+  "admins": ["jules.b@klocka.immo", "paul.dz@klocka.immo"],
+  "membres": {
+    "nora.l@klocka.immo": "klocka",
+    "agathe.l@klocka.immo": "klocka",
+    "alexis.p@klocka.immo": "klocka",
+    "maxime.p@klocka.immo": "klocka",
+    "coralie.g@klocka.immo": "klocka"
+  }
+}

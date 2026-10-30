@@ -36,7 +36,8 @@ export function valeursLocataire(project, friseLue = null) {
   return {
     "loc.loyer": loyer > 0 ? `${nf.format(loyer)} €` : null,
     "loc.depuis": dureeDepuis(arriveeDuLocataire(project, friseLue)),
-    "loc.restant": dureeJusque(echeanceDe(project), { court: true }),
+    // Une échéance passée : le bail court en tacite reconduction (30 oct. 2026, Jules).
+    "loc.restant": dureeJusque(echeanceDe(project), { court: true }) || (moisEntre(new Date(), echeanceDe(project)) < 0 ? "Tacite reconduction" : null),
     "loc.echeance": dateLongue(echeanceDe(project)),
     "loc.nom": project.nom_locataire || null,
     "loc.profil": project.profil_locataire || null,

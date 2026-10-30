@@ -136,3 +136,23 @@ test("le loyer de signature vient du bail, jamais de la fiche de l'agent (19 oct
   assert.equal(sig([agent]), null, 'la fiche seule ne fait pas un loyer de signature');
   assert.match(String(sig([agent, bail])).replace(/\s/g, ' '), /16 464/);
 });
+
+test("l'Analyse remplit l'analyse du bail et la copropriété du projet, devant la vieille fiche (30 oct. 2026)", async () => {
+  const { ficheAvecAnalyse, casesDuProjet } = await import('./projet-cases.js');
+  const analyse = { grilles: [
+    { id: 'bail', titre: 'Bail', lignes: [
+      { id: 'indexation', valeur: 'ILC 1T 2024', statut: 'ia', retenue: 'b', sources: [{ document_id: 'b', document_nom: 'bail.pdf', document_url: '/u/b.pdf', page: 4 }] },
+      { id: 'cession', valeur: null, statut: 'ia', sources: [] },
+      { id: 'destination', valeur: 'Restauration', statut: 'introuvable', sources: [] },
+    ] },
+    { id: 'rcp', titre: 'Règlement de copropriété', lignes: [{ id: 'quote_part', valeur: '8,97 % (910/10 150)', statut: 'verifie', sources: [] }] },
+  ] };
+  const fiche = ficheAvecAnalyse({ blocs: [{ nom: 'Bail', champs: [{ id: 'indexation', valeur: 'ICC' }, { id: 'depot', valeur: '3 000 €' }] }] }, analyse);
+  const c = casesDuProjet({}, { fiche, sansSources: false });
+  const index = c.analyse.find((x) => x.id === 'indexation');
+  assert.equal(index.texte, 'ILC 1T 2024', "l'Analyse passe devant la fiche");
+  assert.equal(index.source.page, 4);
+  assert.ok(c.analyse.find((x) => x.id === 'depot'), 'ce que seule la fiche sait reste');
+  assert.ok(!c.analyse.find((x) => x.id === 'destination'), 'une ligne introuvable ne passe pas');
+  assert.match(c.copropriete.find((x) => x.id === 'quote_part').valeur, /8,97 %/, 'le règlement de copropriété a ses cases');
+});

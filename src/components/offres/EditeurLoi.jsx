@@ -423,7 +423,7 @@ const VIDES = {
   vendeur_societe: "Le vendeur", attention_nom: "À l'attention de (nom)", attention_representant: "Représentant (texte libre)", attention_adresse: "Son adresse",
 };
 
-// Les noms au-dessus des signatures : chacun est un champ de la lettre.
+// Les noms au-dessus des signatures : chacun est un champ de la lettre ; « Bon pour accord », sous les deux, reste fixe.
 const SIGNE_GAUCHE = ["acquereur_nom", "acquereur_societe"];
 const SIGNE_DROITE = ["vendeur_societe"];
 /** Une ligne de signature : modifiable quand elle porte un champ (« Bon pour accord » reste fixe). */
@@ -511,7 +511,7 @@ function LettreMenthe({ d, onChamp, onTexte, apercu = false }) {
           <div key={b.cle} className="loi-signatures">
             {[[b.gauche, SIGNE_GAUCHE], [b.droite, SIGNE_DROITE]].map(([lignes, champs], n) => (
               <div key={n}>
-                {lignes.map((l, i) => <LigneSignature key={l} texte={l} champ={champs[i]} i={i} onChamp={onChamp} lecture={apercu} />)}
+                {lignes.map((l, i) => <LigneSignature key={l} texte={l} champ={l === "Bon pour accord" ? null : champs[i]} i={i} onChamp={onChamp} lecture={apercu} />)}
                 <div className="loi-m-ligne" />
                 <Zone cle={n === 0 ? "signature-gauche" : "signature-droite"} as="p" className="loi-m-sous">Signature</Zone>
               </div>
@@ -620,7 +620,7 @@ function LettreClassique({ d, onChamp, onTexte, apercu = false }) {
               <div key={b.cle} className="loi-signatures">
                 {[[b.gauche, "Signature", SIGNE_GAUCHE, "signature-gauche"], [b.droite, "Date et signature", SIGNE_DROITE, "signature-droite"]].map(([lignes, sous, champs, zone]) => (
                   <div key={sous}>
-                    {lignes.map((l, i) => <LigneSignature key={l} texte={l} champ={champs[i]} i={i} onChamp={onChamp} lecture={apercu} />)}
+                    {lignes.map((l, i) => <LigneSignature key={l} texte={l} champ={l === "Bon pour accord" ? null : champs[i]} i={i} onChamp={onChamp} lecture={apercu} />)}
                     <Zone cle={zone} as="div" className="loi-cadre"><span>{sous.toUpperCase()}</span></Zone>
                   </div>
                 ))}

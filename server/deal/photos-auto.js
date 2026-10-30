@@ -93,3 +93,34 @@ export async function photosDuBien({ adresse, lat, lon, ville }, uploadDir) {
 
   return { photos, raisons };
 }
+
+/**
+ * L'image de la ville, la première du projet (30 oct. 2026, Jules : « l'IA va chercher une image de la ville et la met en
+ * première image »). L'image de la page Wikipédia de la commune, rapatriée dans /uploads. Une page d'homonymie, une
+ * page sans image ou une panne : rien, le projet se crée sans.
+ */
+export async function imageDeLaVille(ville, uploadDir, { departement = null } = {}) {
+  if (!ville || !uploadDir) return null;
+  const entetes = { 'user-agent': 'Klocka/1.0 (sourcing@klocka.immo)', accept: 'application/json' };
+  const page = async (titre) => {
+    const r = await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titre.replace(/ /g, '_'))}`, { headers: entetes, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j?.type === 'standard' ? j : null;
+  };
+  try {
+    const p = (departement && await page(`${ville} (${departement})`)) || await page(ville);
+    const vignette = p?.thumbnail?.source || null;
+    // La vignette, agrandie à 1280 px (une largeur que Wikimedia sert ; 1600 répond 400) : l'original pèse parfois des dizaines de mégaoctets.
+    const source = vignette && /\/\d+px-/.test(vignette) && (p.originalimage?.width || 0) > 1280 ? vignette.replace(/\/\d+px-/, '/1280px-') : p?.originalimage?.source || vignette;
+    if (!source || /\.svg/i.test(source)) return null;
+    const r = await fetch(source, { headers: { 'user-agent': entetes['user-agent'] }, signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return null;
+    const buffer = Buffer.from(await r.arrayBuffer());
+    if (buffer.length < 3000) return null;
+    const ext = /\.png/i.test(source) ? 'png' : 'jpg';
+    const nom = `${randomUUID()}.${ext}`;
+    fs.writeFileSync(path.join(uploadDir, nom), buffer);
+    return `/uploads/${nom}`;
+  } catch { return null; }
+}

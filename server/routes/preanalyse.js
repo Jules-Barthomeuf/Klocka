@@ -731,7 +731,17 @@ export function monterPreanalyse(app) {
 
     // Ce que les pièces ont lu dans l'Analyse remplit aussi le projet (30 oct. 2026, Jules).
     const { lireAnalyse } = await import('../deal/analyse-pieces.js');
-    const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user, { analyse: lireAnalyse(req.params.dealId) });
+    // Les chiffres de la ville et la dernière vente des murs (DVF), cherchés avant : le message d'ouverture les dit.
+    const { lotOuVide } = await import('../deal/index.js');
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    const lot = deal ? lotOuVide(deal, Number(req.params.index) || 0) : null;
+    const { villeDuLot, derniereVenteDesMurs, adresseDuLot } = await import('../deal/projet.js');
+    const { imageDeLaVille } = await import('../deal/photos-auto.js');
+    const commune = lot?.enrichissement?.commune || {};
+    const [ville, vente, imageVille] = lot
+      ? await Promise.all([villeDuLot(lot), derniereVenteDesMurs(adresseDuLot(lot)), imageDeLaVille(commune.nom || (lot.lot?.adresse?.valeur?.ville) || '', UPLOAD_DIR, { departement: commune.departement || null })])
+      : [null, null, null];
+    const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user, { analyse: lireAnalyse(req.params.dealId), ville, vente, imageVille });
     if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });
 
     // Plus d'images automatiques à la création (19 oct. 2026, Jules) : ni Street View, ni vue du ciel, ni plan

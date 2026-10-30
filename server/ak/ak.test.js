@@ -343,6 +343,7 @@ test("la LOI : les nombres en lettres, les champs manquants, le texte de la mais
   assert.doesNotMatch(nu.find((b) => b.cle === 'pieces-liste').texte, /Kbis/);
   assert.match(nu.find((b) => b.cle === 'offre-liste').texte, /^Désignation du bien : il s'agit d'un local commercial\.\nLocal actuellement loué via un bail commercial\./);
   assert.deepEqual(nu.find((b) => b.type === 'signatures').droite, ['Le vendeur', 'Bon pour accord']);
+  assert.deepEqual(nu.find((b) => b.type === 'signatures').gauche, ['X', 'Bon pour accord'], "sous l'acquéreur aussi");
   // Les échéances tombent du lundi au jeudi ; l'apport vaut 15 % du prix, arrondi (30 oct. 2026).
   const { echeances, jourOuvre, apportParDefaut, completer } = await import('./loi.js');
   assert.equal(jourOuvre('2026-10-30'), '2026-11-02', 'un vendredi passe au lundi');

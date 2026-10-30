@@ -8,6 +8,7 @@
 
 import { Records } from './db.js';
 import { lireFiche } from './deal/matrice.js';
+import { lireAnalyse as lireAnalyseDuDeal } from './deal/analyse-pieces.js';
 import { dates, loyerAnnuel } from './deal/dossier-lecture.js';
 import { categoriserActivite } from './deal/enrich.js';
 
@@ -313,6 +314,8 @@ const PV_AG = [
   ['travaux_votes', 'Travaux votés'], ['travaux_discussion', 'Travaux en discussion'],
   ['resolutions_non_votees', 'Résolutions non votées'], ['impayes_copro', 'Impayés au sein de la copropriété'],
 ];
+// Le règlement de copropriété, lu dans l'Analyse : la quote-part et les activités interdites.
+const RCP = [['quote_part', 'Quote-part et tantièmes'], ['activites_interdites', 'Activités interdites']];
 
 const court = (s, n = 420) => { const t = texte(s); return t ? (t.length > n ? `${t.slice(0, n - 1)}…` : t) : null; };
 
@@ -368,7 +371,10 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
   const analyse = ANALYSE_BAIL.filter(([id]) => v(id)).map(([id, titre]) => ({ id, titre, texte: phraseSimple(v(id)), source: source(id) }));
 
   // --- Copropriété : les PV d'AG ----------------------------------------------
-  const copropriete = PV_AG.map(([id, titre]) => cas(id, titre, pvCourt(id, v(id)), v(id), [id]));
+  const copropriete = [
+    ...PV_AG.map(([id, titre]) => cas(id, titre, pvCourt(id, v(id)), v(id), [id])),
+    ...RCP.map(([id, titre]) => cas(id, titre, v(id) ? { valeur: phraseSimple(v(id), 80) } : null, v(id), [id])),
+  ];
 
   // --- Locataire --------------------------------------------------------------
   const creation = dates(v('creation')).map((d) => d.iso).sort()[0] || null;
@@ -389,10 +395,42 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
   };
 }
 
+// Les lignes de l'Analyse (grilles du bail, des quittances et de la copropriété) sous le nom des champs de la fiche
+// (30 oct. 2026, Jules : « toute l'analyse du bail, chaque point, la copropriété » dans le projet).
+const DE_L_ANALYSE = {
+  'bail.type_bail': 'type_bail', 'bail.echeance': 'dates_bail', 'bail.parties': 'parties', 'bail.loyer_signature': 'loyer',
+  'bail.conditions_exceptionnelles': 'conditions_exceptionnelles', 'bail.mode_reglement': 'mode_reglement', 'bail.tva': 'tva_loyer',
+  'bail.destination': 'destination', 'bail.cession': 'cession', 'bail.indexation': 'indexation', 'bail.depot': 'depot',
+  'bail.pas_de_porte': 'pas_de_porte', 'bail.charges': 'charges', 'bail.charges_bailleur': 'charges_non_recup', 'bail.taxes': 'taxe_fonciere',
+  'quittances.provision': 'provision_charges', 'quittances.loyer_hc_ht': 'paiements',
+  'pv_ag.travaux_votes': 'travaux_votes', 'pv_ag.travaux_discussion': 'travaux_discussion', 'pv_ag.resolutions_non_votees': 'resolutions_non_votees', 'pv_ag.impayes': 'impayes_copro',
+  'rcp.quote_part': 'quote_part', 'rcp.activites_interdites': 'activites_interdites',
+};
+
+/** Pure : la fiche complétée par l'Analyse. Une ligne lue dans l'Analyse passe devant la fiche, qui est plus ancienne. */
+export function ficheAvecAnalyse(fiche, analyse) {
+  if (!analyse?.grilles) return fiche;
+  const champs = [];
+  for (const g of analyse.grilles) {
+    for (const l of g.lignes || []) {
+      const id = DE_L_ANALYSE[`${g.id}.${l.id}`];
+      if (!id || !l.valeur || l.statut === 'introuvable') continue;
+      const s = (l.sources || []).find((x) => x.document_id === l.retenue);
+      champs.push({ id, valeur: String(l.valeur), preuves: s ? [{ document_id: s.document_id, document_nom: s.document_titre || s.document_nom, categorie: g.titre, document_url: s.document_url, page: s.page || null, citation: s.citation || null, reponse: String(l.valeur) }] : [] });
+    }
+  }
+  if (!champs.length) return fiche;
+  const lus = new Set(champs.map((c) => c.id));
+  const blocs = (fiche?.blocs || []).map((b) => ({ ...b, champs: (b.champs || []).filter((c) => !lus.has(c.id)) }));
+  return { ...(fiche || {}), blocs: [{ nom: 'Analyse', champs }, ...blocs] };
+}
+
 /** Les cases d'un projet, lues dans le dossier dont il vient. */
-export function lireCases(projet, { sansSources = false } = {}) {
+export function lireCases(projet, { sansSources = false, analyse = undefined } = {}) {
   const deal = projet.deal_id ? Records.findBy('Deal', 'deal_id', projet.deal_id) : null;
   let fiche = null;
   try { fiche = deal ? lireFiche(deal.deal_id) : null; } catch { fiche = null; }
-  return casesDuProjet(projet, { fiche, lot: deal?.lots?.[0]?.lot || null, sansSources });
+  let lue = analyse;
+  if (lue === undefined) { try { lue = deal ? lireAnalyseDuDeal(deal.deal_id) : null; } catch { lue = null; } }
+  return casesDuProjet(projet, { fiche: ficheAvecAnalyse(fiche, lue), lot: deal?.lots?.[0]?.lot || null, sansSources });
 }

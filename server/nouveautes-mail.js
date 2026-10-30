@@ -142,8 +142,10 @@ export async function envoyerSiNouveau({ maintenant = new Date(), envoyer = null
   return { envoye, journees: journees.map((j) => j.jour) };
 }
 
+// Coupé le 30 oct. 2026 (Jules : « Turn off » sur le mail « Klocka, vendredi 30 octobre : 4 relances, 18 dossiers ») :
+// plus rien ne part, ni sur Render ni ici. NOUVEAUTES_MAIL=true le remet.
 export function planifier() {
-  const auto = !!process.env.RENDER || process.env.NOUVEAUTES_MAIL === 'true';
+  const auto = process.env.NOUVEAUTES_MAIL === 'true';
   if (!auto) return null;
   const tour = async () => {
     if (heureParis() < 8) return;

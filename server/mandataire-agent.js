@@ -251,7 +251,9 @@ const VAGUES = new Set(['sud', 'nord', 'est', 'ouest', 'france', 'toute', 'tout'
 
 /** Le département et la région d'une commune (API Géo), gardés sur la ville. */
 export async function geoDe(ville) {
-  const v = Records.list('Ville').find((x) => nz(x.nom) === nz(ville));
+  // Le nom et la géographie seulement : une Ville porte ses rues et ses commerces, la décoder entière coûtait 40 ms
+  // par appel, une fois par commerce d'une liste (30 oct. 2026).
+  const v = Records.champs('Ville', ['nom', 'geo']).find((x) => nz(x.nom) === nz(ville));
   if (v?.geo) return v.geo;
   try {
     const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(ville)}&fields=nom,departement,region&boost=population&limit=1`, { signal: AbortSignal.timeout(8000) });
@@ -300,9 +302,12 @@ export async function matcheurInvestisseurs() {
   const { demandesVisibles } = await import('./mandataire-espace.js');
   const demandes = demandesVisibles();
   const k = montantCourt;
+  // Une ville se situe une fois par liste, pas une fois par commerce.
+  const geos = new Map();
+  const geoMemo = (ville) => { const cle = nz(ville); if (!geos.has(cle)) geos.set(cle, geoDe(ville)); return geos.get(cle); };
   return async (c) => {
     if (!c?.ville) return [];
-    const geo = await geoDe(c.ville);
+    const geo = await geoMemo(c.ville);
     const lieu = { ville: c.ville, ...geo };
     const activite = nz(`${c.activite || ''} ${c.categorie_activite || ''} ${c.enseigne || ''} ${c.commerce || ''}`);
     const res = [];

@@ -129,6 +129,7 @@ async function pointsDans(d, villes, cache = null, moi = null, compte = null) {
   const tenus = teneurs(Records.list('ProprietaireMandataire'), moi);
   const tous = [];
   for (const v of villes) {
+    await new Promise((r) => setImmediate(r));
     const { liste, zone, centreDe } = await commercesDeLaVille(v, cache);
     const libres = liste.filter((c) => { const t = tenus.get(c.id); return !t || t.a_moi; });
     const compacter = (c) => compact(c, { ...(zone || {}), moi });
@@ -249,6 +250,9 @@ export async function pointsDuSecteur(user, { max = Infinity } = {}) {
   const points = [];
   let lus = 0;
   for (const v of fiches) {
+    // Une ville à la fois, et la main rendue entre deux (30 oct. 2026) : décoder des milliers de commerces d'un bloc
+    // figeait le serveur pour tout le monde pendant une dizaine de secondes.
+    await new Promise((r) => setImmediate(r));
     const { liste, zone } = await lireCommerces(v);
     for (const c of liste) {
       lus += 1;
@@ -263,6 +267,63 @@ export async function pointsDuSecteur(user, { max = Infinity } = {}) {
     compte: { commerces: lus }, pourquoi_vide: points.length ? null : (toutes.length ? 'Les commerces de votre secteur ne sont pas encore lus : ils arrivent en fond, revenez dans un moment.' : "Klocka n'a pas encore choisi les villes de votre secteur."),
   };
 }
+
+// --- Le cache des vues du secteur (30 oct. 2026, Jules : « côté mandataire c'est super long ») ----------------------
+// `pointsDuSecteur` décode les dizaines de milliers de commerces des villes du secteur (11 à 13 s) et rend 26 Mo de
+// JSON ; `prospecter` refait le même travail client par client. Le résultat est gardé par mandataire, la carte
+// compressée (5 Mo au lieu de 26). Une fiche de mandataire qui bouge (un commerce mis dans une liste, un bien) le
+// recalcule aussitôt ; des commerces qui changent pendant une lecture en fond, au plus toutes les cinq minutes.
+
+const CINQ_MINUTES = 5 * 60_000;
+const UNE_HEURE = 60 * 60_000;
+const caches = new Map(); // `${vue}:${email}` → { le, fiches, donnees, valeur }
+const enCalcul = new Map();
+
+const signatures = () => ({
+  fiches: `${Records.signature('ProprietaireMandataire')}|${Records.signature('SecteurMandataire')}|${Records.signature('DemandeClient')}`,
+  donnees: `${Records.signature('CommerceSimple')}|${Records.signature('Ville')}`,
+});
+
+/** Pure : un résultat gardé est-il encore bon ? */
+export function encoreBon(garde, sig, maintenant = Date.now()) {
+  if (!garde) return false;
+  if (garde.fiches !== sig.fiches) return false;
+  if (maintenant - garde.le > UNE_HEURE) return false;
+  return garde.donnees === sig.donnees || maintenant - garde.le < CINQ_MINUTES;
+}
+
+async function enCache(vue, user, calculer) {
+  const cle = `${vue}:${emailDe(user)}`;
+  const sig = signatures();
+  const garde = caches.get(cle);
+  if (encoreBon(garde, sig)) return garde.valeur;
+  if (enCalcul.has(cle)) return enCalcul.get(cle);
+  const p = (async () => {
+    const valeur = await calculer();
+    caches.set(cle, { le: Date.now(), ...sig, valeur });
+    // Borné : un mandataire de plus chasse le plus ancien, la mémoire du serveur ne grossit pas avec eux.
+    while (caches.size > 12) caches.delete(caches.keys().next().value);
+    return valeur;
+  })().finally(() => enCalcul.delete(cle));
+  enCalcul.set(cle, p);
+  return p;
+}
+
+/** La carte du secteur, compressée une fois : `{ ok, gzip }` ou `{ ok: false, error }`. */
+export async function pointsDuSecteurCompresses(user) {
+  return enCache('tous', user, async () => {
+    const r = await pointsDuSecteur(user);
+    if (!r.ok) return r;
+    const { gzipSync } = await import('zlib');
+    return { ok: true, gzip: gzipSync(Buffer.from(JSON.stringify(r))) };
+  });
+}
+
+/** `prospecter`, gardé de même (le résultat est petit, le calcul est long). */
+export const prospecterEnCache = (user) => enCache('clients', user, () => prospecter(user));
+
+/** Pour les tests et après un changement de secteur : tout se recalcule. */
+export const oublierCaches = () => { caches.clear(); };
 
 /** Les points d'un client, pour la carte. Un client qui ne cherche pas dans le secteur n'en a pas. */
 export async function pointsDuClient(user, demandeId, { noter = false } = {}) {

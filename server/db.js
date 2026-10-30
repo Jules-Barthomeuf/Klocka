@@ -95,6 +95,14 @@ db.exec(`
   -- lourdes, qu'on ne désérialise plus toutes pour en garder une ville.
   CREATE INDEX IF NOT EXISTS idx_records_ville_id
     ON records(entity, json_extract(data, '$.ville_id'));
+  -- Les comptes d'ALX (30 oct. 2026) : cibles par ville et par pile, à appeler, à écrire. L'index porte les quatre
+  -- valeurs : SQLite compte depuis l'index sans relire le JSON des onze mille fiches (2 s, à chaque passage de la
+  -- veille de toutes les pages, devenues 10 ms).
+  -- La signature d'une entité (combien, dernière modification) lue dans l'index seul (30 oct. 2026) : les caches des
+  -- vues lourdes s'en servent à chaque appel pour savoir s'ils sont encore justes.
+  CREATE INDEX IF NOT EXISTS idx_records_entity_maj ON records(entity, updated_date);
+  CREATE INDEX IF NOT EXISTS idx_records_cibles_comptes
+    ON records(entity, json_extract(data, '$.ville_id'), json_extract(data, '$.pile'), json_extract(data, '$.deal_id'), json_extract(data, '$.derniere_approche_le'));
 
   CREATE TABLE IF NOT EXISTS conversations (
     id            TEXT PRIMARY KEY,
@@ -213,6 +221,45 @@ export const Records = {
     const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}`).join(', ');
     return db.prepare(`SELECT id${cols ? `, ${cols}` : ''} FROM records WHERE entity = ?`).all(entity)
       .map((r) => ({ id: r.id, ...Object.fromEntries(valides.map((c, i) => [c, r[`c${i}`]])) }));
+  },
+
+  /**
+   * Existe-t-il un enregistrement dont `champ` vaut `valeur` ? (30 oct. 2026) Rien n'est désérialisé, et le chemin
+   * écrit en clair laisse SQLite prendre l'index de l'expression (ville_id) : savoir si une ville a des commerces
+   * chargeait et décodait ses milliers de fiches.
+   */
+  existe(entity, champ, valeur) {
+    if (valeur == null) return false;
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(champ)) return !!this.findBy(entity, champ, valeur);
+    return !!db.prepare(`SELECT 1 FROM records WHERE entity = ? AND json_extract(data, '$.${champ}') = ? LIMIT 1`).get(entity, valeur);
+  },
+
+  /**
+   * Des comptes groupés par la base, sans rien désérialiser (30 oct. 2026) : `grouper('Cible', ['ville_id', 'pile'])`
+   * rend une ligne par couple avec `n`. La veille d'ALX comptait les cibles de chaque ville en décodant les onze
+   * mille fiches, toutes les trente secondes, depuis toutes les pages.
+   */
+  grouper(entity, chemins) {
+    const valides = chemins.filter((c) => /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(c));
+    const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}`).join(', ');
+    const groupe = valides.map((_, i) => `c${i}`).join(', ');
+    return db.prepare(`SELECT ${cols}, COUNT(*) AS n FROM records WHERE entity = ? GROUP BY ${groupe}`).all(entity)
+      .map((r) => ({ ...Object.fromEntries(valides.map((c, i) => [c, r[`c${i}`]])), n: r.n }));
+  },
+
+  /**
+   * La signature d'une entité : combien d'enregistrements, et la dernière modification (30 oct. 2026). Sans lire le
+   * JSON : de quoi savoir si un résultat gardé en cache est encore juste.
+   */
+  signature(entity) {
+    const r = db.prepare('SELECT COUNT(*) AS n, MAX(updated_date) AS m FROM records WHERE entity = ?').get(entity);
+    return `${r.n}|${r.m || ''}`;
+  },
+
+  /** Le nombre d'éléments d'un tableau de chaque enregistrement (`rues` d'une ville), sans le décoder. */
+  longueurs(entity, chemin) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(chemin)) return new Map();
+    return new Map(db.prepare(`SELECT id, json_array_length(data, '$.${chemin}') AS n FROM records WHERE entity = ?`).all(entity).map((r) => [r.id, r.n || 0]));
   },
 
   get(entity, id) {

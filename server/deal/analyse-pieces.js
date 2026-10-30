@@ -96,6 +96,8 @@ export const TYPES = [
   { id: 'kbis', titre: 'Kbis du locataire', grille: 'kbis', attendus: 0, categorie: CATEGORIE_PAR_TYPE.kbis },
   // Rangées pour qu'on ne les confonde plus avec une pièce lue ; elles ne sont pas lues.
   { id: 'fiche', titre: 'Fiche du bien', grille: null, attendus: 0, categorie: 'Fiche commerciale' },
+  // Les images du projet (30 oct. 2026, Jules) : déposées ici, elles passent dans les photos du projet. Pas lues.
+  { id: 'photos', titre: 'Images du projet', grille: null, attendus: 0, categorie: 'Photos' },
   { id: 'autre', titre: 'Autre pièce', grille: null, attendus: 0, categorie: CATEGORIE_PAR_TYPE.autre },
 ];
 const TYPE = Object.fromEntries(TYPES.map((t) => [t.id, t]));
@@ -595,7 +597,9 @@ export function croiser(grilles, lot = {}, decisions = {}) {
   // Le loyer : fiche commerciale, bail (signature), quittances ramenées à l'année.
   const fiche = Number(val(lot.loyer_annuel_ht_hc)) || null;
   const bail = donneesDe(grilles, 'bail', 'loyer_signature');
-  const bailAn = Number(bail.annuel_ht) || nombreDe(bail.texte);
+  // Un loyer écrit « par mois » ou « par trimestre » se ramène à l'année.
+  const parAn = (t) => (/mois|mensuel/i.test(String(t || '')) ? 12 : /trimestr/i.test(String(t || '')) ? 4 : 1);
+  const bailAn = Number(bail.annuel_ht) || (nombreDe(bail.texte) ? nombreDe(bail.texte) * parAn(bail.texte) : null);
   const q = donneesDe(grilles, 'quittances', 'loyer_hc_ht');
   const qMontant = Number(q.montant) || nombreDe(q.texte);
   const qPer = periodiciteDe(q) || 'mensuel';
@@ -646,7 +650,9 @@ export function simulateurDesGrilles(grilles, brut = {}, ecarts = []) {
   const loyer = ecarts.find((e) => e.cle === 'loyer');
   const retenu = loyer?.retenu && loyer.valeurs.find((v) => v.id === loyer.retenu);
   const bail = donneesDe(grilles, 'bail', 'loyer_signature');
-  const bailAn = Number(bail.annuel_ht) || nombreDe(bail.texte);
+  // Un loyer écrit « par mois » ou « par trimestre » se ramène à l'année.
+  const parAn = (t) => (/mois|mensuel/i.test(String(t || '')) ? 12 : /trimestr/i.test(String(t || '')) ? 4 : 1);
+  const bailAn = Number(bail.annuel_ht) || (nombreDe(bail.texte) ? nombreDe(bail.texte) * parAn(bail.texte) : null);
   const q = donneesDe(grilles, 'quittances', 'loyer_hc_ht');
   const qMontant = Number(q.montant) || nombreDe(q.texte);
   const qPer = periodiciteDe(q) || 'mensuel';

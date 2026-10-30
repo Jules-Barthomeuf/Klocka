@@ -45,7 +45,8 @@ export default function BienProjet({ project, friseLue = null }) {
     // L'année en grand, le prix dessous : deux chiffres sur une ligne se
     // lisaient comme un seul.
     { id: "bien-vente", champ: "derniere_vente_annee", champSous: enEdition ? "derniere_vente_prix" : null, valeur: project.derniere_vente_annee ? String(project.derniere_vente_annee) : null, sous: prixVente, label: "Dernière vente", info: "L'année et le prix de la dernière mutation des murs, d'après les ventes publiées (DVF) ou l'acte." },
-  ].filter((l) => enEdition || l.valeur);
+    // La dernière vente ne se montre que si on l'a trouvée, même dans l'éditeur (30 oct. 2026, Jules).
+  ].filter((l) => l.valeur || (enEdition && l.id !== "bien-vente"));
 
   return (
     <div className="flex flex-col gap-5">

@@ -331,8 +331,15 @@ test("rentrer le projet après l'Analyse : le Kbis nomme le local dans le titre,
   assert.equal(projet.titre, 'Restaurant Le Perroquet Bleu', "le nom seul, l'adresse est écrite en dessous (30 oct. 2026)");
   assert.equal(projet.echeance_bail, '2034-12-31', 'en date, pour la frise et la durée restante');
   assert.equal(projet.loyer_annuel_ht, 24000);
-  assert.match(projet.questions_ouverture, /la surface du local/);
-  assert.doesNotMatch(projet.questions_ouverture, /l'échéance du bail/);
+  assert.match(projet.questions_ouverture, /surface du local, en m² : manquant/);
+  assert.doesNotMatch(projet.questions_ouverture, /l'échéance du bail : manquant/i);
+  // Le nom et le profil sans majuscules partout, le message dit ce qui a été mis, une ligne par valeur (30 oct. 2026).
+  assert.equal(projet.nom_locataire, 'Sarl le perroquet bleu');
+  assert.equal(projet.profil_locataire, 'Sarl');
+  assert.match(projet.questions_ouverture, /^Voici ce que j'ai mis dans le projet :/);
+  assert.match(projet.questions_ouverture, /- Loyer annuel HT HC : 24 000 €/);
+  assert.match(projet.questions_ouverture, /À vérifier :/);
+  assert.equal(projet.sim_loyer_initial_ht, 24000, 'le simulateur prend le loyer lu');
 });
 
 test("décocher une source sur une ligne de Marché, puis la recocher", () => {
@@ -356,4 +363,23 @@ test("le projet rentré reprend la taxe foncière de l'avis lu et pose les trava
   assert.equal(projet.sim_charges_copropriete, 900);
   assert.equal(projet.sim_travaux_montant10, 10000);
   assert.equal(projet.sim_travaux_annee20, 20);
+});
+
+test("les images du projet : déposées dans la Data Room, l'image de la ville d'abord, puis une fois chacune (30 oct. 2026)", async () => {
+  const P = await import('./projet.js');
+  dossier('DR50', [{ id: 'img1', nom: 'facade.jpg' }]);
+  const deal = Records.findBy('Deal', 'deal_id', 'DR50');
+  Records.update('Deal', deal.id, { documents_espace: [{ id: 'img1', nom: 'facade.jpg', url: '/uploads/facade.jpg', mime: 'image/jpeg' }] });
+  A.rangerPiece('DR50', 'img1', 'photos', null, { lire: false });
+  assert.ok(A.lireDepots('DR50').emplacements.find((e) => e.id === 'photos').documents.length, 'un emplacement « Images du projet »');
+  P.creerProjetDepuisDeal('DR50', 0, null, { imageVille: '/uploads/ville.jpg' });
+  const id = Records.findBy('Deal', 'deal_id', 'DR50').projet_id;
+  assert.deepEqual(Records.get('Project', id).photos, ['/uploads/ville.jpg', '/uploads/facade.jpg']);
+  // Une image ajoutée ensuite rejoint le projet ; une image retirée du projet n'y revient pas.
+  const d2 = Records.findBy('Deal', 'deal_id', 'DR50');
+  Records.update('Deal', d2.id, { documents_espace: [...d2.documents_espace, { id: 'img2', nom: 'vitrine.png', url: '/uploads/vitrine.png', mime: 'image/png' }] });
+  A.rangerPiece('DR50', 'img2', 'photos', null, { lire: false });
+  Records.update('Project', id, { photos: ['/uploads/ville.jpg'] });
+  await P.mettreAJourProjetDepuisDeal('DR50', null);
+  assert.deepEqual(Records.get('Project', id).photos, ['/uploads/ville.jpg', '/uploads/vitrine.png']);
 });

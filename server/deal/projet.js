@@ -394,6 +394,72 @@ function champsDeLAnalyse(analyse, { tranchees = false } = {}) {
   return patch;
 }
 
+// « SARL TARTANPION » s'écrit « Sarl tartanpion » (30 oct. 2026, Jules : une majuscule pour commencer, le reste en
+// minuscules), pour le nom, l'activité et chaque pastille du profil.
+export const casse = (t) => { const x = String(t || '').trim().toLowerCase(); return x ? x[0].toUpperCase() + x.slice(1) : ''; };
+const casseProfil = (t) => String(t || '').split(/\s*,\s*/).map(casse).filter(Boolean).join(', ');
+
+// Le profil de l'exploitant, en pastilles, d'après le Kbis lu dans l'Analyse : sa forme, l'année d'immatriculation,
+// le capital. Rien sans Kbis.
+const FORMES = /\b(SASU|SAS|SARL|EURL|SNC|SCI|SELARL|SA|EI|EIRL)\b/i;
+export function profilDuKbis(analyse) {
+  const lignes = analyse?.grilles?.find((g) => g.id === 'kbis')?.lignes || [];
+  const v = (id) => { const l = lignes.find((x) => x.id === id); return l?.valeur && l.statut !== 'introuvable' ? String(l.valeur) : ''; };
+  const forme = (v('denomination').match(FORMES) || [])[1];
+  const annee = (v('immatriculation').match(/\b(19|20)\d{2}\b/) || [])[0];
+  const capital = v('capital').match(/\d[\d\s\u00a0\u202f.]*\s*€/);
+  return [forme && forme.toUpperCase(), annee && `Immatriculée en ${annee}`, capital && `Capital ${capital[0].replace(/[\s\u00a0\u202f.]+(?=\d)/g, ' ').trim()}`].filter(Boolean).join(', ');
+}
+
+// Les chiffres de la ville pour l'onglet Marché du projet : les habitants de l'agglomération (Insee), sinon de la commune,
+// et le revenu médian de la commune, lus à l'enrichissement du dossier.
+export async function villeDuLot(lot) {
+  const commune = lot.enrichissement?.commune || {};
+  const sortie = {};
+  let habitants = null;
+  if (commune.code_insee) {
+    try { const { agglomerationDe } = await import('../projet-secteur.js'); habitants = agglomerationDe(commune.code_insee)?.population || null; } catch { habitants = null; }
+  }
+  habitants = habitants || commune.population || null;
+  if (habitants) sortie.ville_habitants_agglo = habitants;
+  if (lot.enrichissement?.revenu_median) sortie.ville_revenu_median = lot.enrichissement.revenu_median;
+  return sortie;
+}
+
+// Les images déposées dans la Data Room, rangées « Images du projet » (30 oct. 2026, Jules).
+const estImage = (d) => /^image\//.test(d.mime || '') || /\.(jpe?g|png|webp|gif|heic)$/i.test(d.nom || d.url || '');
+export function photosDeLaDataRoom(deal) {
+  const types = deal?.analyse_pieces?.docs || {};
+  return (deal?.documents_espace || []).filter((d) => types[d.id]?.type === 'photos' && d.url && estImage(d)).map((d) => ({ id: d.id, url: d.url }));
+}
+
+/** L'adresse du lot, en une ligne, pour la Base Adresse Nationale. */
+export function adresseDuLot(lot) {
+  const a = val(lot?.lot?.adresse) || {};
+  return [a.rue, [a.code_postal, lot?.enrichissement?.commune?.nom || a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+}
+
+/**
+ * La dernière vente des murs, d'après DVF sur la parcelle de l'adresse (30 oct. 2026, Jules : « si on trouve, sinon
+ * cache-la »). Seule une vente de locaux commerciaux seuls compte : la vente d'un appartement de l'immeuble n'est pas
+ * celle des murs. Jamais bloquant : au-delà de quinze secondes, ou sans parcelle, rien.
+ */
+export async function derniereVenteDesMurs(adresse, { delai = 15000 } = {}) {
+  if (!adresse) return null;
+  const lire = async () => {
+    const { resoudreLocal } = await import('../socle/local.js');
+    const l = await resoudreLocal(adresse);
+    const idu = l?.ok ? l.local?.parcelle?.idu : null;
+    if (!idu) return null;
+    const { mutationsDeLaParcelle } = await import('../dvf.js');
+    const m = (await mutationsDeLaParcelle(l.local.adresse?.code_insee || idu.slice(0, 5), idu)).find((x) => x.commercial_pur && x.date);
+    return m ? { annee: Number(String(m.date).slice(0, 4)) || null, prix: m.prix || null } : null;
+  };
+  try {
+    return await Promise.race([lire(), new Promise((r) => { setTimeout(() => r(null), delai).unref?.(); })]);
+  } catch { return null; }
+}
+
 // Ce qu'un projet doit avoir pour être présenté, et la question qui le demande (30 oct. 2026, Jules : « une fois
 // rempli au maximum, le chat pose des questions »).
 const ESSENTIELS = [
@@ -406,10 +472,85 @@ const ESSENTIELS = [
   ['echeance_bail', "l'échéance du bail"],
   ['rendement_locatif', 'le rendement annoncé'],
 ];
-export function questionsDuProjet(projet) {
-  const manque = ESSENTIELS.filter(([champ]) => { const v = projet?.[champ]; return v == null || v === '' || v === 0; });
-  if (!manque.length) return null;
-  return `J'ai rempli le projet avec tout ce que le dossier sait. Il me manque ${manque.length > 1 ? 'quelques informations' : 'une information'} pour le présenter :\n\n${manque.map(([, q]) => `- ${q}`).join('\n')}\n\nDonnez-les-moi ici, même en vrac : je les range dans le projet.`;
+// Le simulateur du projet suit ce que l'Analyse a lu (30 oct. 2026, Jules : « et le simulateur correctement ») : le loyer
+// retenu (quittances, bail), la surface, et le prix FAI repris s'il manque ; l'apport suit le prix.
+function simulateurDeLAnalyse(champs, analyse) {
+  const v = analyse?.simulateur?.valeurs || {};
+  const sortie = {};
+  if (Number(v.loyerInitialHTHC) > 0) { sortie.sim_loyer_initial_ht = Number(v.loyerInitialHTHC); sortie.loyer_annuel_ht = Number(v.loyerInitialHTHC); }
+  else if (!(Number(champs.sim_loyer_initial_ht) > 0) && Number(champs.loyer_annuel_ht) > 0) sortie.sim_loyer_initial_ht = Number(champs.loyer_annuel_ht);
+  if (Number(v.surface) > 0) { sortie.sim_surface = Number(v.surface); sortie.surface_m2 = Number(v.surface); }
+  else if (!(Number(champs.sim_surface) > 0) && Number(champs.surface_m2) > 0) sortie.sim_surface = Number(champs.surface_m2);
+  if (!(Number(champs.sim_prix_bien_fai) > 0) && Number(champs.prix_acquisition) > 0) {
+    sortie.sim_prix_bien_fai = Number(champs.prix_acquisition);
+    sortie.sim_prix_bien_negocie = Number(champs.prix_acquisition);
+    sortie.sim_apport = Math.round(Number(champs.prix_acquisition) * 0.15);
+  }
+  if (typeof v.loyerSoumisTVA === 'boolean') sortie.sim_loyer_soumis_tva = v.loyerSoumisTVA;
+  if (typeof v.taxeFonciereRefacturable === 'boolean') sortie.sim_taxe_refacturable = v.taxeFonciereRefacturable;
+  if (typeof v.chargesCoproRefacturables === 'boolean') sortie.sim_charges_refacturable = v.chargesCoproRefacturables;
+  if (Number(v.taxeFonciere) > 0) sortie.sim_taxe_fonciere = Number(v.taxeFonciere);
+  return sortie;
+}
+
+// Combien de points du bail et de la copropriété l'Analyse a lus : ils passent dans le projet par ses cases.
+const lignesLues = (analyse, ids) => (analyse?.grilles || []).filter((g) => ids.includes(g.id)).flatMap((g) => g.lignes).filter((l) => l.valeur && l.statut !== 'introuvable');
+const pointsDeLAnalyse = (analyse) => ({ analyse_bail_points: lignesLues(analyse, ['bail']).length, copropriete_points: lignesLues(analyse, ['pv_ag', 'rcp']).length });
+// Ce que l'IA a lu sans que personne l'ait vérifié, et les alertes : à relire avant de présenter le projet.
+function aVerifierDansLAnalyse(analyse) {
+  const sortie = [];
+  for (const g of analyse?.grilles || []) {
+    for (const l of g.lignes || []) {
+      if (!l.valeur || l.statut === 'introuvable') continue;
+      // Une ligne passée au vert a été vue : son alerte ne se redemande pas.
+      if (l.alerte?.motif && !['verifie', 'corrige'].includes(l.statut)) sortie.push(`${l.libelle} : ${l.alerte.motif}`);
+    }
+  }
+  const nonVerifiees = (analyse?.grilles || []).flatMap((g) => g.lignes || []).filter((l) => l.valeur && l.statut === 'ia').length;
+  if (nonVerifiees) sortie.push(`${nonVerifiees} valeur${nonVerifiees > 1 ? 's' : ''} lue${nonVerifiees > 1 ? 's' : ''} par l'IA et pas encore vérifiée${nonVerifiees > 1 ? 's' : ''} dans l'Analyse`);
+  return sortie.slice(0, 12);
+}
+
+const eurosTexte = (n) => `${Math.round(Number(n)).toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} €`;
+const dateTexte = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
+// Ce que le message d'ouverture montre, dans l'ordre de la page projet. Une ligne par champ rempli.
+const RESUME = [
+  ['nom_locataire', 'Locataire'],
+  ['activite_locataire', 'Activité'],
+  ['profil_locataire', 'Profil'],
+  ['adresse_complete', 'Adresse'],
+  ['ville_habitants_agglo', 'Habitants', (n) => Number(n).toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')],
+  ['ville_revenu_median', 'Revenu médian de la ville', eurosTexte],
+  ['sim_surface', 'Surface', (n) => `${String(n).replace('.', ',')} m²`],
+  ['sim_prix_bien_fai', 'Prix FAI', eurosTexte],
+  ['sim_loyer_initial_ht', 'Loyer annuel HT HC', eurosTexte],
+  ['loyer_m2', 'Loyer au m² par an', eurosTexte],
+  ['bail_date_debut', 'Début du bail', dateTexte],
+  ['echeance_bail', 'Échéance du bail', dateTexte],
+  ['sim_taxe_fonciere', 'Taxe foncière', eurosTexte],
+  ['derniere_vente_annee', 'Dernière vente', null],
+];
+/**
+ * Le premier message du chat du projet (30 oct. 2026, Jules) : ce qui a été mis dans le projet, une ligne par valeur,
+ * puis ce qu'il reste à vérifier : ce qui manque pour le présenter, et ce que l'IA a lu sans qu'on l'ait vérifié.
+ */
+export function questionsDuProjet(projet, { aVerifier = [] } = {}) {
+  const vide = (v) => v == null || v === '' || v === 0;
+  const loyerM2 = Number(projet?.sim_loyer_initial_ht) > 0 && Number(projet?.sim_surface) > 0 ? Math.round(projet.sim_loyer_initial_ht / projet.sim_surface) : 0;
+  const p = { ...projet, loyer_m2: loyerM2 };
+  const mis = RESUME.filter(([champ, libelle]) => libelle && !vide(p[champ])).map(([champ, libelle, f]) => {
+    if (champ === 'derniere_vente_annee') return `- ${libelle} : ${p.derniere_vente_annee}${Number(p.derniere_vente_prix) > 0 ? `, ${eurosTexte(p.derniere_vente_prix)}` : ''}`;
+    return `- ${libelle} : ${f ? f(p[champ]) : String(p[champ]).split('\n')[0]}`;
+  });
+  const bail = (projet?.analyse_bail_points || 0);
+  if (bail) mis.push(`- Analyse du bail : ${bail} point${bail > 1 ? 's' : ''} repris de l'Analyse`);
+  if (projet?.copropriete_points) mis.push(`- Copropriété : ${projet.copropriete_points} point${projet.copropriete_points > 1 ? 's' : ''} repris de l'Analyse`);
+  const manque = ESSENTIELS.filter(([champ]) => vide(projet?.[champ])).map(([, q]) => `- ${q[0].toUpperCase()}${q.slice(1)} : manquant`);
+  const verifier = [...manque, ...aVerifier.map((t) => `- ${t}`)];
+  const parties = [];
+  if (mis.length) parties.push(`Voici ce que j'ai mis dans le projet :\n\n${mis.join('\n')}`);
+  if (verifier.length) parties.push(`À vérifier :\n\n${verifier.join('\n')}\n\nDonnez-moi ce qui manque ici, même en vrac : je le range dans le projet.`);
+  return parties.length ? parties.join('\n\n') : null;
 }
 
 /**
@@ -445,6 +586,13 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
   }
   const { patch: pieces } = patchDepuisExtractions(deal, { ...projet, ...patch });
   Object.assign(patch, pieces);
+  // Une image déposée dans la Data Room s'ajoute aux photos du projet, une fois : retirée du projet, elle n'y revient pas.
+  const vues = new Set(projet.photos_data_room || []);
+  const nouvelles = photosDeLaDataRoom(deal).filter((p) => !vues.has(p.id));
+  if (nouvelles.length) {
+    patch.photos = [...(projet.photos || []), ...nouvelles.map((p) => p.url)];
+    patch.photos_data_room = [...vues, ...nouvelles.map((p) => p.id)];
+  }
   Records.update('Project', projet.id, { ...patch, maj_depuis_dossier_le: new Date().toISOString(), maj_depuis_dossier_par: user?.email || null });
   return { ok: true, project_id: projet.id, champs: Object.keys(patch).length };
 }
@@ -465,7 +613,7 @@ export function projetSuitLeDossier(dealId, user = null) {
  * Crée le Project pré-rempli et passe le deal en `projet_cree`.
  * @returns {{ ok: true, project } | { ok: false, error }}
  */
-export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null } = {}) {
+export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null, ville = null, vente = null, imageVille = null } = {}) {
   const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return { ok: false, error: 'Dossier introuvable' };
   // Un projet supprimé laissait son identifiant sur le dossier : la plateforme
@@ -483,6 +631,14 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null }
   // Remplir au maximum (30 oct. 2026, Jules) : ce que les pièces ont lu (Kbis, bail) complète le lot, sans l'écraser.
   for (const [k, v] of Object.entries(champsDeLAnalyse(analyse))) if (!champs[k]) champs[k] = v;
   Object.assign(champs, chargesConnues(lot.simulateur, analyse?.simulateur?.valeurs), travauxParDefautDuProjet());
+  Object.assign(champs, simulateurDeLAnalyse(champs, analyse), ville || {});
+  if (vente?.annee) Object.assign(champs, { derniere_vente_annee: vente.annee, detenu_depuis: String(vente.annee), ...(vente.prix ? { derniere_vente_prix: vente.prix } : {}) });
+  const profil = profilDuKbis(analyse);
+  if (profil && !champs.profil_locataire) champs.profil_locataire = profil;
+  // Le titre garde l'écriture de l'enseigne ; seules les cases de la page passent en minuscules.
+  const brut = { nom: champs.nom_locataire, activite: champs.activite_locataire };
+  for (const k of ['nom_locataire', 'activite_locataire']) if (champs[k]) champs[k] = casse(champs[k]);
+  if (champs.profil_locataire) champs.profil_locataire = casseProfil(champs.profil_locataire);
 
   // Tous les admins voient le projet, comme dans l'éditeur AdminProjets.
   const adminEmails = Records.filter('User', { role: 'admin' })
@@ -493,7 +649,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null }
     // Un projet issu d'un deal de test est marqué pour être repérable (et
     // supprimé avec le deal).
     // Le nom du local, sans l'adresse (30 oct. 2026) : il vient du lot, sinon du Kbis lu dans l'Analyse.
-    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom) || champs.nom_locataire, adresseComplete, val(lot.lot.locataire_activite) || champs.activite_locataire)}`,
+    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom) || brut.nom, adresseComplete, val(lot.lot.locataire_activite) || brut.activite)}`,
     statut: 'analyse',
     archived: false,
     admin_principal: user?.email || adminEmails[0] || null,
@@ -507,7 +663,9 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null }
     suivi_message_envoye: false,
     suivi_retour_client: null,
 
-    photos: [],
+    // L'image de la ville en premier, puis les images de la Data Room.
+    photos: [imageVille, ...photosDeLaDataRoom(deal).map((p) => p.url)].filter(Boolean),
+    photos_data_room: photosDeLaDataRoom(deal).map((p) => p.id),
     documents: [],
     fichiers_projet: [],
     docs_checklist: {},
@@ -517,8 +675,8 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null }
   // diagnostics, TVA. Il ne réécrit jamais ce que la préanalyse a déjà posé.
   const { patch, remplis } = patchDepuisExtractions(deal, projet);
   Object.assign(projet, patch);
-  // Ce qui reste vide : la première chose que le chat du projet demande en s'ouvrant.
-  projet.questions_ouverture = questionsDuProjet(projet);
+  // Le premier message du chat : ce qui a été mis, puis ce qu'il reste à vérifier.
+  projet.questions_ouverture = questionsDuProjet({ ...projet, ...pointsDeLAnalyse(analyse) }, { aVerifier: aVerifierDansLAnalyse(analyse) });
 
   const cree = Records.create('Project', projet, user?.email);
   Records.update('Deal', deal.id, { projet_id: cree.id });

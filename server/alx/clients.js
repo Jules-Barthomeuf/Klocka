@@ -58,10 +58,21 @@ export function clientsDe(lignes) {
  * Les clients dont le statut n'est ni Stand-by, ni Abandonné, ni conclu.
  * @returns {Promise<{id, nom, statut, budget, fonds_propres, revenu, lieu_recherche, objectif}[]>}
  */
+// Gardés dix minutes (30 oct. 2026) : chaque appel relisait tout le tableau des clients dans le CRM, par le réseau
+// (près de 4 s), et la barre de menu de chaque admin le demandait toutes les cinq minutes. Deux appels en même temps
+// partagent la même lecture ; un échec n'est pas gardé.
+const DIX_MINUTES = 10 * 60_000;
+let enCache = null;
 export async function clientsActifs() {
   if (!clientsConfigure()) return [];
-  return clientsDe(await lireTableau(TABLEAUX.investisseurs));
+  if (enCache && Date.now() - enCache.le < DIX_MINUTES) return enCache.promesse;
+  const promesse = lireTableau(TABLEAUX.investisseurs).then(clientsDe);
+  enCache = { le: Date.now(), promesse };
+  promesse.catch(() => { if (enCache?.promesse === promesse) enCache = null; });
+  return promesse;
 }
+/** Pour les tests et après une écriture dans le tableau des clients : la prochaine lecture repart du CRM. */
+export const oublierClientsActifs = () => { enCache = null; };
 
 /**
  * La fourchette de budget des clients actifs, pour recaler le périmètre par

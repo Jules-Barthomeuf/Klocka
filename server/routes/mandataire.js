@@ -147,15 +147,23 @@ export function monterMandataire(app) {
   app.get('/api/mandataire/prospecter', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
-    ok(res, await (await import('../mandataire-prospecter.js')).prospecter(user));
+    // Gardé en cache tant que les fiches du secteur ne bougent pas (30 oct. 2026 : 9 à 13 s à chaque ouverture).
+    ok(res, await (await import('../mandataire-prospecter.js')).prospecterEnCache(user));
   }));
   // Tous les commerces du secteur, sans client (25 oct. 2026) : le client est un filtre de la même vue.
   app.get('/api/mandataire/prospecter/tous', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
-    const r = await (await import('../mandataire-prospecter.js')).pointsDuSecteur(user);
+    // La carte entière est lourde (26 Mo de JSON pour 74 000 commerces) : gardée compressée, servie telle quelle à un
+    // navigateur qui accepte gzip (tous), décompressée sinon (30 oct. 2026).
+    const r = await (await import('../mandataire-prospecter.js')).pointsDuSecteurCompresses(user);
     if (!r.ok) return res.status(404).json({ error: r.error });
-    ok(res, r);
+    if (/\bgzip\b/.test(String(req.headers['accept-encoding'] || ''))) {
+      res.set({ 'Content-Type': 'application/json; charset=utf-8', 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
+      return res.end(r.gzip);
+    }
+    const { gunzipSync } = await import('zlib');
+    res.type('json').send(gunzipSync(r.gzip));
   }));
   app.get('/api/mandataire/prospecter/clients/:id', wrap(async (req, res) => {
     const user = mandataire(req, res);

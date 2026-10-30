@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-9 personnes, 2 907 pages ouvertes, 0 demandes à l'assistant, 98 actions exécutées.
+9 personnes, 2 889 pages ouvertes, 0 demandes à l'assistant, 98 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 572 | 0 | 53 | 30/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 554 | 0 | 53 | 30/10/2026 |
 | admin.stress@test.local (équipe) | 159 | 0 | 0 | 27/10/2026 |
 | test.mandataire@kpartners.fr | 150 | 0 | 0 | 27/10/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
@@ -24,23 +24,23 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
+- **Analyse** — 379 (13 %)
 - **MandataireBiens** — 377 (13 %)
-- **Analyse** — 373 (13 %)
-- **Dashboard** — 352 (12 %)
-- **MandataireProspection** — 240 (8 %)
-- **Personnalisation** — 201 (7 %)
+- **Dashboard** — 342 (12 %)
+- **MandataireProspection** — 234 (8 %)
+- **Personnalisation** — 199 (7 %)
 - **Prospection** — 180 (6 %)
 - **Emailing** — 140 (5 %)
-- **AdminProjets** — 108 (4 %)
+- **AdminProjets** — 112 (4 %)
 - **MandataireEstimation** — 79 (3 %)
 - **MandataireDossier** — 76 (3 %)
 - **Outils** — 71 (2 %)
 - **AdminPresentations** — 60 (2 %)
-- Le reste, sous 2 % : Cerveau, Offres, MandataireMandat, Home, Monitoring, AdminMandataires, OffMarket, ConversationsMandataires, Relances, MandataireOffMarket, MandataireClients, AdminClients, MesPresentations, MandatsMandataires, SuiviAppels, SimulateurRentabilite, AdminUtilisateurs, ProjetDetail, Semaine, ALXAtelier, MandataireProjets, Agents, AdminSuggestions, KData, Validations, MandataireMarche, AdminModeles, SuiviMandataires, SuiviAudience, KZoning, SimulateurPublic, DepotVendeur, Automatismes, MesProjets, CoutsIA, AdminEquipe, ALX, Feedback, AdminBanque, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, NotreOffre, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, FichesCommerciales, AdminModeleZone, VisionRetraite, QuizInvestisseur
+- Le reste, sous 2 % : Cerveau, Offres, MandataireMandat, Home, Monitoring, OffMarket, ConversationsMandataires, Relances, AdminMandataires, MandataireOffMarket, MandataireClients, AdminClients, MesPresentations, MandatsMandataires, SuiviAppels, SimulateurRentabilite, AdminUtilisateurs, ProjetDetail, Semaine, ALXAtelier, MandataireProjets, Agents, AdminSuggestions, KData, Validations, MandataireMarche, AdminModeles, SuiviMandataires, SuiviAudience, KZoning, SimulateurPublic, DepotVendeur, Automatismes, MesProjets, CoutsIA, AdminEquipe, ALX, Feedback, AdminBanque, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, MemoireKlocka, NotreOffre, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, FichesCommerciales, AdminModeleZone, VisionRetraite, QuizInvestisseur
 
 ## Ce que l'IA coûte
 
-33,63 € sur la période, 1 400 appels, 7 975 k jetons. 35 % part en tâche de fond, sans que personne clique. 57 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+33,66 € sur la période, 1 402 appels, 7 984 k jetons. 35 % part en tâche de fond, sans que personne clique. 57 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -83,7 +83,7 @@ Pour qui : Jules 89 · Admin 4 · Coralie 4 · Sourcing 1.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **MandataireBiens** : 13 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **Analyse** : 13 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « trier ce qu’on colle dans la boîte » à 0,07 € par dépôt : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
 - 35 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

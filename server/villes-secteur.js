@@ -18,7 +18,8 @@ const maintenant = () => new Date().toISOString();
 
 // Une ville lue a ses commerces, lus il y a moins de trente jours (au-delà, lireVilleSimple les relit).
 const TRENTE_JOURS = 30 * 86400000;
-export const estLue = (v) => !!v?.simple?.lu_le && Date.now() - Date.parse(v.simple.lu_le) < TRENTE_JOURS && Records.filter('CommerceSimple', { ville_id: v.id }).length > 0;
+// Une ville lue a au moins un commerce : on le demande à la base sans charger ses fiches (30 oct. 2026 : 4 s pour 11 villes).
+export const estLue = (v) => !!v?.simple?.lu_le && Date.now() - Date.parse(v.simple.lu_le) < TRENTE_JOURS && Records.existe('CommerceSimple', 'ville_id', v.id);
 
 const file = [];
 const enFile = new Set();

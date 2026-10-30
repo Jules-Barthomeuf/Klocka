@@ -67,9 +67,10 @@ export async function etatDesOutils() {
 
 export function listerVilles() {
   // Une ville « cachée » sert aux études (les projets Klocka relus par ALX) : elle ne s'affiche pas.
+  const piles = comptesDesPiles();
   return Records.list('Ville', { sort: '-created_date' }).filter((v) => !v.cachee).map((v) => ({
     ...v,
-    cibles: compterParPile(v.id),
+    cibles: piles.get(v.id) || pilesVides(),
     // Combien de cibles par rue, pour l'afficher sans un aller-retour de plus.
     cibles_par_rue: comptesParRue(v.id),
   }));
@@ -85,15 +86,31 @@ export function listerVilles() {
  * de l'avancement et des trois comptes.
  */
 export function listerVillesLeger() {
-  return Records.list('Ville', { sort: '-created_date' })
+  // Rien n'est décodé (30 oct. 2026) : quelques champs des villes, la longueur de leurs rues et le compte des cibles
+  // par pile viennent de la base. Décoder toutes les villes et toutes leurs cibles prenait 3 à 13 s et jusqu'à
+  // 175 Mo, à chaque passage de la veille.
+  const piles = comptesDesPiles();
+  const rues = Records.longueurs('Ville', 'rues');
+  const lire = (x) => { if (x == null || typeof x !== 'string') return x ?? null; try { return JSON.parse(x); } catch { return x; } };
+  return Records.champs('Ville', ['nom', 'cachee', 'created_date', 'parcours'])
     .filter((v) => !v.cachee)
-    .map((v) => ({
-      id: v.id,
-      nom: v.nom,
-      parcours: v.parcours || null,
-      cibles: compterParPile(v.id),
-      rues_nb: (v.rues || []).length,
-    }));
+    .sort((a, b) => String(b.created_date || '').localeCompare(String(a.created_date || '')))
+    .map((v) => ({ id: v.id, nom: v.nom, parcours: lire(v.parcours), cibles: piles.get(v.id) || pilesVides(), rues_nb: rues.get(v.id) || 0 }));
+}
+
+const pilesVides = () => ({ ...Object.fromEntries(PILES.map((p) => [p, 0])), total: 0 });
+
+/** Les cibles de chaque ville comptées par pile, en une requête groupée. */
+function comptesDesPiles() {
+  const out = new Map();
+  for (const r of Records.grouper('Cible', ['ville_id', 'pile'])) {
+    const c = out.get(r.ville_id) || pilesVides();
+    const pile = r.pile || 'surveiller';
+    c[pile] = (c[pile] || 0) + r.n;
+    c.total += r.n;
+    out.set(r.ville_id, c);
+  }
+  return out;
 }
 
 function comptesParRue(villeId) {
@@ -507,15 +524,19 @@ export async function creerDossierDepuisCible(id, user = null) {
 
 /** Pour la tuile du tableau de bord : ce qu'il y a à faire cette semaine. */
 export function aFaire() {
-  const cibles = Records.list('Cible');
+  // Des comptes groupés par la base, depuis l'index des cibles (db.js), pas les onze mille fiches entières (30 oct.
+  // 2026 : la barre de menu de chaque admin le demandait toutes les cinq minutes, 4 à 40 s et jusqu'à 1,3 Go).
+  // Dans l'ordre de l'index (ville d'abord) : SQLite le prend et compte sans ouvrir une fiche.
+  const cibles = Records.grouper('Cible', ['ville_id', 'pile', 'deal_id', 'derniere_approche_le']);
   const dans7 = dansJours(7);
-  const approches = Records.list('Approche');
+  const approches = Records.champs('Approche', ['issue', 'relance_le', 'reponse_le']);
+  const somme = (garde) => cibles.filter(garde).reduce((n, c) => n + c.n, 0);
   return {
-    a_appeler: cibles.filter((c) => c.pile === 'appeler' && !c.deal_id).length,
-    a_ecrire: cibles.filter((c) => c.pile === 'ecrire' && !c.derniere_approche_le && !c.deal_id).length,
+    a_appeler: somme((c) => c.pile === 'appeler' && !c.deal_id),
+    a_ecrire: somme((c) => c.pile === 'ecrire' && !c.derniere_approche_le && !c.deal_id),
     relances_dues: approches.filter((a) => a.issue !== 'oui' && a.relance_le && a.relance_le <= dans7).length,
     reponses: approches.filter((a) => a.reponse_le && a.reponse_le >= dansJours(-7)).length,
-    villes: Records.list('Ville').filter((v) => v.etat === 'active').length,
+    villes: Records.champs('Ville', ['etat']).filter((v) => v.etat === 'active').length,
   };
 }
 

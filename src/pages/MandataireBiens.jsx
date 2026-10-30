@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useRef, useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, ChevronRight, Loader2, Plus, Search, Send } from "lucide-react";
@@ -296,17 +296,19 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
   const recit = espace === "estimation" && !!bien?.proprietaire && !objet;
   // L'avis envoyé, on reste ici : le chat suit la relation avec le propriétaire (27 oct. 2026, Jules).
   const relation = espace === "estimation" && objet?.statut === "envoye";
-  // Venu de la visite (29 oct. 2026, Jules) : l'estimation naît avec ce que la visite dit ; Haka le fait confirmer à gauche,
-  // l'avis à droite ne se remplit qu'au oui.
-  const deLaVisite = recit && !!bien?.proprietaire?.biens?.compte_rendu;
+  // Venu d'un bien (29 oct. 2026, Jules) : l'estimation naît avec l'adresse de la fiche du bien et ce que la visite dit ;
+  // Haka le fait confirmer à gauche (ou demande l'adresse si la fiche n'en a pas), l'avis à droite ne se remplit qu'au oui.
+  const depuisLeBien = espace === "estimation" && !objet && !!bien && !bien.exemple;
+  const avisLance = useRef(null);
   useEffect(() => {
-    if (!deLaVisite) return undefined;
+    if (!depuisLeBien || avisLance.current === bien?.cle) return undefined;
+    avisLance.current = bien?.cle;
     let fini = false;
-    base44.request("POST", `/api/mandataire/proprietaires/${bien.proprietaire.id}/avis-visite`)
-      .then((r) => { if (!fini && r?.estimation_id) onCree(r.estimation_id); })
-      .catch((e) => { if (!fini) toast.error(e?.message || "L'avis n'a pas pu commencer"); });
+    base44.request("POST", "/api/mandataire/avis-bien", { body: { proprietaire_id: bien.proprietaire?.id || null, adresse: bien.adresse || null, titre: bien.titre || null } })
+      .then((r) => { if (r?.estimation_id) nouvelObjet(r.estimation_id); })
+      .catch((e) => { avisLance.current = null; toast.error(e?.message || "L'avis n'a pas pu commencer"); });
     return () => { fini = true; };
-  }, [deLaVisite, bien?.proprietaire?.id]);
+  }, [depuisLeBien, bien?.cle]);
   const qs = `?espace=${espace}`;
   const queryClient = useQueryClient();
   const [courant, setCourant] = useState(objet?.id || null);

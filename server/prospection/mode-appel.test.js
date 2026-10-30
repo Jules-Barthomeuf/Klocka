@@ -82,7 +82,7 @@ test('les recherches clients de la zone, en une ligne chacune', () => {
   assert.deepEqual(lignes, ['murs de commerce, 300 k€ à 800 k€, Nice centre']);
 });
 
-test("« pas de réponse » × 3 : J+2 à l'autre moment, puis J+30 ; aucune ligne Sunday CRM ; la session le compte", async () => {
+test("« pas de réponse » × 3 : J+2 à l'autre moment, puis J+30 ; aucune ligne Twenty CRM ; la session le compte", async () => {
   const L = Records.create('ListeAgences', { ville: 'Nice', etat: 'fini', journal: [] });
   const ag = Records.create('AgenceProspect', { liste_id: L.id, nom: 'Agence Test Commerces', telephone: '04 93 11 22 33', agents: [], gerants: [], sources: ['Google Maps'] });
   const user = { email: 'nora.l@klocka.immo', role: 'admin' };
@@ -112,7 +112,7 @@ test("« pas de réponse » × 3 : J+2 à l'autre moment, puis J+30 ; aucune lig
   assert.ok(!MA.fileDAppel(L.id, user).file.some((x) => x.id === ag2.id));
 });
 
-test("Sunday CRM « Agents immobiliers » : la bonne ligne, Remarques allongées sans écraser, relu, annulable", async () => {
+test("Twenty CRM « Agents immobiliers » : la bonne ligne, Remarques allongées sans écraser, relu, annulable", async () => {
   const M = await import('./monday-agents.js');
   const cols = M.colonnesParTitre([
     { id: 'name', title: 'Nom', type: 'name' }, { id: 'text_p', title: 'Prénom', type: 'text' }, { id: 'spoc', title: 'SPOC', type: 'people' },
@@ -166,7 +166,7 @@ test("Sunday CRM « Agents immobiliers » : la bonne ligne, Remarques allongées
   // Monday garde une autre valeur : le reçu reste orange.
   const faux = await M.ecrire({ cible: {}, donnees: d, ligne_id: '2' }, { fonctions: { ...fonctions, majElement: async () => {} } });
   assert.equal(faux.etat, 'attente');
-  assert.match(faux.erreur, /Remarques : Sunday CRM affiche/);
+  assert.match(faux.erreur, /Remarques : Twenty CRM affiche/);
 });
 
 test('les zones écrites à la main se rapprochent de la ville par son département', () => {
@@ -186,7 +186,7 @@ test('les zones écrites à la main se rapprochent de la ville par son départem
   assert.deepEqual(l, ['murs de commerce, 300 k€ à 800 k€, Côte d\'Azur', '2 clients partout en France, de 200 k€ à 1,2 M€']);
 });
 
-test("un ancien rapprochement Sunday CRM sans confiance : le nom ne donne qu'une correspondance probable", () => {
+test("un ancien rapprochement Twenty CRM sans confiance : le nom ne donne qu'une correspondance probable", () => {
   assert.equal(MA.statutDeLAgence({ monday_connu: { par: 'nom', statut: 'Mort' } }).probable, true);
   assert.notEqual(MA.statutDeLAgence({ monday_connu: { par: 'nom', statut: 'Mort' } }).etat, 'morte');
   assert.equal(MA.statutDeLAgence({ monday_connu: { par: 'téléphone', statut: 'Mort' } }).etat, 'morte');
@@ -244,7 +244,7 @@ test("Apollo : seules les agences immobilières passent, par leurs codes d'activ
   assert.equal(MA.pertinence({ nom: 'Agence du Port', apollo_mots: ['immobilier de luxe', 'investissements immobiliers'] }).specialite, 'residentiel');
 });
 
-test("le mode essai : tout le parcours, et rien n'en sort (ni Sunday CRM, ni mail, ni carnet, ni stats)", async () => {
+test("le mode essai : tout le parcours, et rien n'en sort (ni Twenty CRM, ni mail, ni carnet, ni stats)", async () => {
   const user = { email: 'jules.b@klocka.immo', role: 'admin' };
   const { session } = MA.ouvrirEssai(user);
   assert.equal(session.essai, true);
@@ -273,7 +273,7 @@ test("le mode essai : tout le parcours, et rien n'en sort (ni Sunday CRM, ni mai
   assert.ok(!appels().some((x) => x.essai), 'les stats ne voient pas les appels d\'essai');
   const recap = MA.recapSession(session.id);
   assert.equal(recap.appels, 2);
-  assert.equal(recap.monday_a_jour, true, "aucune ligne Sunday CRM en attente en essai");
+  assert.equal(recap.monday_a_jour, true, "aucune ligne Twenty CRM en attente en essai");
   // Un nouvel essai repart de zéro.
   const { session: s2 } = MA.ouvrirEssai(user);
   assert.equal(MA.fileDAppel(s2.liste_id, user).file.length, 4);
@@ -298,7 +298,7 @@ test("la fiche de la file porte ses interlocuteurs (avec leur source), son secte
   const ag = Records.create('AgenceProspect', { liste_id: L.id, nom: 'Riviera Commerce', telephone: '04 93 87 12 41', code_postal: '06600', monday_connu: { nom: 'Sophie Martin', confiance: 'probable' }, gerants: [{ nom: 'Jean-Luc Ferrand', qualite: 'Gérant' }], agents: [{ nom: 'Sophie Martin', telephone: '06 12 48 90 33' }], sources: ['Google Maps'] });
   // Connue de Monday, elle n'est plus dans la file du mode appel (elle irait aux relances) : on lit son élément de file directement.
   const x = MA.elementDeFile({ ...ag, statut: { etat: 'contact' } }, { place: 1, ville: L.ville });
-  assert.deepEqual(x.contacts.map((c) => [c.nom, c.source, c.telephone]), [['Sophie Martin', 'Contact Sunday CRM', '06 12 48 90 33'], ['Jean-Luc Ferrand', 'Registre du commerce', null], ['Standard', 'Standard', '04 93 87 12 41']]);
+  assert.deepEqual(x.contacts.map((c) => [c.nom, c.source, c.telephone]), [['Sophie Martin', 'Contact Twenty CRM', '06 12 48 90 33'], ['Jean-Luc Ferrand', 'Registre du commerce', null], ['Standard', 'Standard', '04 93 87 12 41']]);
   assert.equal(x.secteur, 'Antibes · 06600');
   assert.ok(Array.isArray(x.historique_detail));
 });

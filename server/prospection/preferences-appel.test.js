@@ -7,7 +7,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-pref-appel-'));
 const P = await import('./preferences-appel.js');
 
-test("une étape retirée ne revient plus pour cette personne, rétablie elle revient ; Sunday CRM ne se retire pas (19 oct. 2026)", () => {
+test("une étape retirée ne revient plus pour cette personne, rétablie elle revient ; Twenty CRM ne se retire pas (19 oct. 2026)", () => {
   const actions = [{ type: 'monday' }, { type: 'mail' }, { type: 'diffusion' }, { type: 'relance' }];
   assert.equal(P.retirer('Maxime.P@klocka.immo', 'diffusion').ok, true);
   assert.equal(P.retirer('maxime.p@klocka.immo', 'monday').ok, false);

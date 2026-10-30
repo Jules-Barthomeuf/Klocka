@@ -23,11 +23,11 @@ const SKILLS_MANDATAIRE = [
 ];
 
 const SKILLS_ADMIN = [
-  { mode: "note", icone: Phone, titre: "Note d'appel", description: "Racontez l'appel en raccrochant : la fiche Sunday CRM de l'agent se met à jour, le dossier naît si un bien est décrit, la relance se pose.", exemple: "« J'ai eu Marc de l'agence X, il me rappelle jeudi »" },
+  { mode: "note", icone: Phone, titre: "Note d'appel", description: "Racontez l'appel en raccrochant : la fiche Twenty CRM de l'agent se met à jour, le dossier naît si un bien est décrit, la relance se pose.", exemple: "« J'ai eu Marc de l'agence X, il me rappelle jeudi »" },
   { mode: "fiche", icone: FileText, titre: "Fiche d'agent", description: "Collez le mail ou l'annonce, ou joignez le PDF : le dossier naît, nommé et analysé, avec les clients qui correspondent.", exemple: "Collez la fiche, ou déposez-la avec le +" },
-  { mode: "client", icone: User, titre: "Compte rendu client", description: "Collez le compte rendu de découverte : la fiche client est prête à valider — Sunday CRM, compte Klocka, lien d'invitation.", exemple: "Collez les notes de l'appel de découverte" },
+  { mode: "client", icone: User, titre: "Compte rendu client", description: "Collez le compte rendu de découverte : la fiche client est prête à valider — Twenty CRM, compte Klocka, lien d'invitation.", exemple: "Collez les notes de l'appel de découverte" },
   { mode: "mail", icone: Mail, titre: "Mail", description: "Décrivez le mail ou partez d'un mail type : le brouillon se relit, puis part de la boîte connectée.", exemple: "« Relance l'agent du dossier de Dieppe »" },
-  { mode: "question", icone: MessageCircle, titre: "Question & dossiers", description: "AK répond : l'état des dossiers, ce qui attend une réponse, le marché, Sunday CRM, une simulation.", exemple: "« Qu'est-ce qui attend aujourd'hui ? »" },
+  { mode: "question", icone: MessageCircle, titre: "Question & dossiers", description: "AK répond : l'état des dossiers, ce qui attend une réponse, le marché, Twenty CRM, une simulation.", exemple: "« Qu'est-ce qui attend aujourd'hui ? »" },
   { mode: "rappel", icone: Bell, titre: "Rappel", description: "Dites quoi et quand : il s'affiche sur le tableau de bord le jour venu.", exemple: "« Dans 3 jours, relancer M. Lardeux au 06… »" },
 ];
 const LISTES = { mandataire: SKILLS_MANDATAIRE, admin: SKILLS_ADMIN };

@@ -73,7 +73,7 @@ export default function CarteKlocka({ focus = null, hauteur = 600, className = "
       )}
       {q.isError && <p className="absolute bottom-3 left-3 z-[600] m-0 rounded-full bg-surface-pleine px-3 py-1.5 text-[12.5px] text-alerte">La carte n'a pas pu se charger : {q.error?.message || "réessayez"}</p>}
       {q.data?.erreurs?.length > 0 && <p className="absolute bottom-3 left-3 z-[600] m-0 max-w-[60%] rounded-[10px] bg-surface-pleine px-3 py-1.5 text-[12px] text-ambre">Incomplète : {q.data.erreurs.join(" · ")}</p>}
-      <span className="absolute bottom-1.5 right-2 z-[500] text-[10.5px] text-brume">{fond.attribution} · Sunday CRM · Klocka</span>
+      <span className="absolute bottom-1.5 right-2 z-[500] text-[10.5px] text-brume">{fond.attribution} · Twenty CRM · Klocka</span>
     </div>
   );
 }

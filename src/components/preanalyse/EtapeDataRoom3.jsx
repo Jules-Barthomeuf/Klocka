@@ -120,8 +120,8 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
       </Section>
 
       {/* 3 · Match investisseur */}
-      <Section id="match" titre="3 · Match investisseur" droite={e.match.configure ? `au prix courant ${prix.courant ? fourchette(prix.courant.fourchette) : ""}` : "Sunday CRM non connecté"}>
-        {!e.match.configure ? <p className="m-0 text-[12.5px] text-ardoise">Le rapprochement avec les investisseurs se fait depuis Sunday CRM.</p> : (
+      <Section id="match" titre="3 · Match investisseur" droite={e.match.configure ? `au prix courant ${prix.courant ? fourchette(prix.courant.fourchette) : ""}` : "Twenty CRM non connecté"}>
+        {!e.match.configure ? <p className="m-0 text-[12.5px] text-ardoise">Le rapprochement avec les investisseurs se fait depuis Twenty CRM.</p> : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[["Prêts au prix courant", e.match.prets, "text-vert"], ["Possibles au prix du seuil", e.match.possibles, "text-ambre"], ["Hors budget", e.match.hors, "text-brume"]].map(([l, liste, c]) => (
               <div key={l}>

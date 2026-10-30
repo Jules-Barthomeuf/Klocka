@@ -134,7 +134,7 @@ export function phraseRetenter(appels = [], { moment = null, monday = null } = {
     // Rien depuis la plateforme : ce que dit Monday, pour savoir d'où l'on part.
     if (monday?.statut) {
       const quand = monday.date && /^\d{4}-\d{2}-\d{2}/.test(String(monday.date)) ? ` le ${jourCourtFr(`${String(monday.date).slice(0, 10)}T12:00:00Z`)}` : '';
-      return `Dans Sunday CRM, sa ligne dit « ${monday.statut} »${quand}${monday.qui ? ` (${(() => { const x = String(prenomDe(monday.qui) || monday.qui); return x.charAt(0).toUpperCase() + x.slice(1); })()})` : ''}. Personne ne l'a encore eu au téléphone depuis : il faut le rappeler${moment ? `, plutôt ${moment}` : ''}.`;
+      return `Dans Twenty CRM, sa ligne dit « ${monday.statut} »${quand}${monday.qui ? ` (${(() => { const x = String(prenomDe(monday.qui) || monday.qui); return x.charAt(0).toUpperCase() + x.slice(1); })()})` : ''}. Personne ne l'a encore eu au téléphone depuis : il faut le rappeler${moment ? `, plutôt ${moment}` : ''}.`;
     }
     return `Il n'a pas décroché la dernière fois : rappelez-le${moment ? `, plutôt ${moment}` : ''}.`;
   }

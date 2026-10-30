@@ -151,7 +151,7 @@ test('phase 2 : un rejet garde son motif et sa trace ; un engagement naît « ou
   assert.equal(S.auditDe(info.id)[0].apres.motif_rejet, 'hors_sujet');
 });
 
-test('phase 2 : une source mail ou Sunday CRM se déduplique par son identifiant externe ; un appel part en file, pas en direct', async () => {
+test('phase 2 : une source mail ou Twenty CRM se déduplique par son identifiant externe ; un appel part en file, pas en direct', async () => {
   const a = C.ajouterSource({ type: 'mail', contenu: 'Bonjour, voici le dossier.', id_externe: '<abc@mail>' });
   const b = C.ajouterSource({ type: 'mail', contenu: 'Bonjour, voici le dossier.', id_externe: '<abc@mail>' });
   assert.equal(b.deja, true);

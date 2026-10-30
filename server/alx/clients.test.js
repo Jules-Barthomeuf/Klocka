@@ -44,7 +44,7 @@ test('les statuts en cours passent, les Stand-by et signés sont exclus', () => 
   assert.ok(!noms.includes('Mandat conclu'));
 });
 
-test('le budget se lit malgré le formatage Sunday CRM', () => {
+test('le budget se lit malgré le formatage Twenty CRM', () => {
   const lignes = [
     ligne('A', 'Recherche', { numeric_mkv6khwn: '350 000' }),
     ligne('B', 'Recherche', { numeric_mkv6khwn: '350000' }),

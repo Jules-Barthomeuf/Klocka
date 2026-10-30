@@ -48,7 +48,7 @@ export default function AValider() {
             </button>
           ))}
         </nav>
-        <p className="-mt-2 m-0 max-w-[56ch] text-[14px] text-ardoise">Ce que Haka a préparé. Rien ne part sans votre clic : un mail, une ligne Sunday CRM, un dossier rattaché.</p>
+        <p className="-mt-2 m-0 max-w-[56ch] text-[14px] text-ardoise">Ce que Haka a préparé. Rien ne part sans votre clic : un mail, une ligne Twenty CRM, un dossier rattaché.</p>
       </header>
 
       {q.isLoading ? <Chargement taille="grand" /> : liste.length ? (

@@ -60,7 +60,7 @@ export default function DepotsDossier({ dossier, apercu = false, onRefresh = nul
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {data.emplacements.map((e) => (
-        <Depot key={e.id} e={e} occupe={enCours === e.id}
+        <Depot key={e.id} e={e} occupe={enCours === e.id} infos={e.id === "fiche" ? <InfosDuBien dealId={dealId} onFait={rafraichir} /> : null}
           onDeposer={(fichiers) => fichiers.length && deposer.mutate({ type: e.id, fichiers })}
           onRetirer={setARetirer}
           onRetirerType={() => geste.mutate({ chemin: url(`types/${e.id}/retirer`), corps: {}, message: "Type retiré" })}
@@ -133,7 +133,8 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
       // Seules les pièces jamais lues partent à la lecture (29 oct. 2026, Jules) : les autres gardent leur analyse.
       toast.success(r.lancees ? `Lecture lancée : ${r.lancees} nouvelle${r.lancees > 1 ? "s" : ""} pièce${r.lancees > 1 ? "s" : ""}${r.deja ? `, les ${r.deja} autres gardent leur analyse` : ""}` : r.completees ? "Les informations du Bien se complètent" : "Tout est déjà lu");
       onFait();
-      onAnalyse?.();
+      // On arrive sur l'onglet de la pièce lue (30 oct. 2026, Jules) : un PV mène à Copropriété.
+      onAnalyse?.(r.onglet || null);
     },
     onError: (e) => toast.error(e?.message || "Lecture impossible"),
   });
@@ -141,8 +142,9 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
   const pieces = data.emplacements.flatMap((e) => e.documents);
   if (!pieces.length) return null;
   const aRanger = pieces.filter((d) => !d.drive_range_le).length;
-  const rangee = !!data.drive_folder_url && aRanger === 0;
-  const bordee = "border border-trait text-craie hover:border-menthe hover:text-encre";
+  // « Ranger le document », « Ranger les 3 nouveaux documents »… : le verbe, le nombre, et « nouveaux » quand d'autres
+  // ont déjà été rangés ou lus.
+  const libelle = (verbe, n, nouveaux) => (n > 1 ? `${verbe} les ${n} ${nouveaux ? "nouveaux " : ""}documents` : `${verbe} le ${nouveaux ? "nouveau " : ""}document`);
 
   return (
     <>
@@ -151,25 +153,29 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
           <ExternalLink className="h-4 w-4" />
         </a>
       )}
-      <button type="button" onClick={() => {
-          const nouvelles = data.drive_folder_url && aRanger ? pieces.filter((d) => !d.drive_range_le).map((d) => d.id) : null;
-          setAjout(nouvelles); setExclues(new Set()); setOuvert(true);
-          proposer.mutate({ seulement: nouvelles });
-        }} disabled={proposer.isPending || ranger.isPending}
-        title={aRanger ? `${aRanger} pièce${aRanger > 1 ? "s" : ""} pas encore dans le Drive` : "Toutes les pièces sont dans le Drive"}
-        className={`inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-[13px] disabled:opacity-60 ${rangee ? bordee : "border border-menthe text-encre hover:bg-menthe/[0.08]"}`} style={{ background: "transparent" }}>
-        <span className="tabular-nums text-ardoise">1</span> {data.drive_folder_url && aRanger ? "Ajouter au Drive" : "Ranger dans le Drive"}
-        {aRanger > 0 && data.drive_folder_url && <span className="rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{aRanger}</span>}
-      </button>
-      <button type="button" onClick={() => analyser.mutate()} disabled={analyser.isPending}
-        className={`inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-[13px] disabled:opacity-60 ${rangee ? "bg-menthe text-sur-menthe hover:bg-menthe-survol" : bordee}`} style={rangee ? undefined : { background: "transparent" }}>
-        {analyser.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span className={`tabular-nums ${rangee ? "" : "text-ardoise"}`}>2</span>}
-        {!data.nouvelles ? "Voir l'analyse" : data.deja_lues ? `Analyser ${data.nouvelles > 1 ? `les ${data.nouvelles} nouvelles pièces` : "la nouvelle pièce"}` : "Lancer l'analyse"}
-      </button>
+      {/* Deux gestes qui disent ce qu'ils font et sur combien de documents (30 oct. 2026, Jules : « je ne sais pas quoi
+          ranger, je ne sais pas ce que c'est »). Chacun n'apparaît que s'il a quelque chose à faire. */}
+      {aRanger > 0 && (
+        <button type="button" onClick={() => {
+            const nouvelles = data.drive_folder_url ? pieces.filter((d) => !d.drive_range_le).map((d) => d.id) : null;
+            setAjout(nouvelles); setExclues(new Set()); setOuvert(true);
+            proposer.mutate({ seulement: nouvelles });
+          }} disabled={proposer.isPending || ranger.isPending}
+          className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full border border-menthe px-4 text-[13px] text-encre hover:bg-menthe/[0.08] disabled:opacity-60" style={{ background: "transparent" }}>
+          {libelle("Ranger", aRanger, !!data.drive_folder_url)} dans le Drive
+        </button>
+      )}
+      {data.nouvelles > 0 && (
+        <button type="button" onClick={() => analyser.mutate()} disabled={analyser.isPending}
+          className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
+          {analyser.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {libelle("Analyser", data.nouvelles, !!data.deja_lues)}
+        </button>
+      )}
 
       <Dialog open={ouvert} onOpenChange={(o) => { if (!o && !ranger.isPending) setOuvert(false); }}>
         <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto border-trait bg-fond text-encre">
-          <DialogTitle className="text-[18px] font-normal text-encre">{ajout ? "Les nouvelles pièces pour le Drive" : "Les noms pour le Drive"}</DialogTitle>
+          <DialogTitle className="text-[18px] font-normal text-encre">{ajout ? "Ranger les nouveaux documents dans le Drive" : "Ranger les documents dans le Drive"}</DialogTitle>
           <DialogDescription className="text-[13px] text-ardoise">{ajout ? "Les pièces importées depuis le dernier rangement, avec un nom proposé. Décochez celles à laisser hors du Drive ; ces noms deviennent aussi ceux de Klocka." : "Proposés en lisant le début de chaque pièce. Corrigez ce qui ne va pas : ces noms deviennent aussi ceux de Klocka."}</DialogDescription>
           {proposer.isPending ? (
             <div className="py-6"><Chargement titre="Les noms se préparent" etats={["Le début de chaque pièce", "Les dates et les parties", "Les noms proposés"]} /></div>
@@ -216,7 +222,7 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
 
 const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[14px] border border-dashed p-4 text-left transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : plein ? "border-bord-doux hover:border-bord-vif" : "border-bord hover:border-bord-vif"}`;
 
-function Depot({ e, occupe, onDeposer, onRetirer, onRetirerType, onContexte }) {
+function Depot({ e, occupe, infos = null, onDeposer, onRetirer, onRetirerType, onContexte }) {
   const ref = useRef(null);
   const [survol, setSurvol] = useState(false);
   const n = e.documents.length;
@@ -260,6 +266,7 @@ function Depot({ e, occupe, onDeposer, onRetirer, onRetirerType, onContexte }) {
         </ul>
       )}
       <input ref={ref} type="file" multiple className="hidden" onClick={arreter} onChange={(ev) => { onDeposer([...ev.target.files]); ev.target.value = ""; }} />
+      {infos}
       <p className="m-0 mt-auto flex items-center justify-center gap-1.5 pt-4 text-[12.5px] text-brume">
         {occupe && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
         {occupe ? "Import…" : n ? "Cliquez ou glissez pour en ajouter" : "Cliquez ou glissez un fichier"}
@@ -305,5 +312,50 @@ function NouveauType({ occupe, onImporter }) {
         <button type="button" onClick={fermer} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
       </div>
     </section>
+  );
+}
+
+/**
+ * Les informations du bien, dans la boîte « Fiche du bien » (30 oct. 2026, Jules) : obligatoires pour passer aux étapes
+ * suivantes. Une fiche déposée ? Seuls les champs qu'elle ne donne pas se remplissent ; sans fiche, tous.
+ */
+function InfosDuBien({ dealId, onFait }) {
+  const { data } = useQuery({
+    queryKey: ["infos-du-bien", dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/infos-du-bien`),
+    enabled: !!dealId,
+  });
+  const [saisie, setSaisie] = useState({});
+  const enregistrer = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/infos-du-bien`, { body: { champs: saisie } }),
+    onSuccess: () => { setSaisie({}); toast.success("Informations enregistrées"); onFait?.(); },
+    onError: (e) => toast.error(e?.message || "Impossible d'enregistrer"),
+  });
+  if (!data) return null;
+  const aMontrer = data.fiche ? data.champs.filter((c) => c.manque) : data.champs;
+  const rempli = Object.values(saisie).some((v) => String(v || "").trim());
+  if (!aMontrer.length) {
+    return <p className="m-0 mt-3 flex items-center gap-1.5 text-[12.5px] text-menthe" onClick={arreter}><Check className="h-3.5 w-3.5" /> Toutes les informations du bien sont là</p>;
+  }
+  return (
+    <div className="mt-3 border-t border-trait pt-3" onClick={arreter} onKeyDown={arreter}>
+      <p className="m-0 text-[12.5px] text-ardoise">
+        {data.fiche ? "La fiche ne donne pas tout. À compléter pour passer aux étapes suivantes :" : "Sans fiche, remplissez les informations du bien (obligatoires pour passer aux étapes suivantes) :"}
+      </p>
+      <form className="mt-2 grid gap-2" onSubmit={(ev) => { ev.preventDefault(); if (rempli) enregistrer.mutate(); }}>
+        {aMontrer.map((c) => (
+          <label key={c.id} className="grid gap-0.5 text-[12px] text-brume">
+            {c.libelle} <span className="text-ambre">*</span>
+            <input value={saisie[c.id] ?? (c.valeur != null ? String(c.valeur) : "")} onChange={(ev) => setSaisie((s) => ({ ...s, [c.id]: ev.target.value }))} placeholder={c.exemple}
+              inputMode={c.type === "nombre" ? "decimal" : "text"}
+              className="h-9 w-full rounded-[10px] border border-trait bg-surface px-3 text-[14px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
+          </label>
+        ))}
+        <button type="submit" disabled={!rempli || enregistrer.isPending}
+          className="mt-1 inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+          {enregistrer.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Enregistrer
+        </button>
+      </form>
+    </div>
   );
 }

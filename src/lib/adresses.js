@@ -90,6 +90,8 @@ export const ADRESSES = {
   Vision: "Vision",
   FeuilleDeRoute: "FeuilleDeRoute",
   QuizInvestisseur: "QuizInvestisseur",
+  // La page publique de l'offre (30 oct. 2026, Jules).
+  NotreOffre: "NotreOffre",
   VisionRetraite: "VisionRetraite",
   OutilInvestisseur: "OutilInvestisseur",
   Alexis: "Alexis",

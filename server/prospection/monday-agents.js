@@ -274,7 +274,7 @@ export function ecartsDe(lu, attendus) {
       : x.mode === 'telephone' ? R.normTel(v) === R.normTel(x.attendu)
         : x.mode === 'non_vide' ? (!x.attendu ? !v.trim() : !!v.trim())
           : R.norm(v) === R.norm(x.attendu);
-    if (!ok) ecarts.push(`${x.titre} : Sunday CRM affiche « ${v.slice(0, 60) || 'rien'} »`);
+    if (!ok) ecarts.push(`${x.titre} : Twenty CRM affiche « ${v.slice(0, 60) || 'rien'} »`);
   }
   return ecarts;
 }
@@ -371,7 +371,7 @@ export const mondayAgentsBranche = async () => (fauxMonday ? true : !process.env
 /** La ligne d'un contact et l'aperçu de ce qui va changer, pour l'écran d'actions. Ne lève jamais : Monday absent rend « indisponible ». */
 export async function preparer(cible, donnees) {
   try {
-    if (!(await mondayAgentsBranche())) return { etat: 'indisponible', texte: "Sunday CRM n'est pas branché ici : voici ce qui serait écrit sur une nouvelle ligne", apercu: apercuSansMonday(donnees) };
+    if (!(await mondayAgentsBranche())) return { etat: 'indisponible', texte: "Twenty CRM n'est pas branché ici : voici ce qui serait écrit sur une nouvelle ligne", apercu: apercuSansMonday(donnees) };
     // L'aperçu se contente de lignes lues dans le quart d'heure (relues en fond au début de l'appel) ;
     // l'écriture relit toujours le tableau frais avant de choisir la ligne.
     const M = await api();
@@ -388,7 +388,7 @@ export async function preparer(cible, donnees) {
     const v = valeursPour(ligne, cols, donnees);
     return { ...m, apercu: v.apercu, contact_modifie: v.contact_modifie };
   } catch (e) {
-    return { etat: 'indisponible', texte: 'Sunday CRM ne répond pas : la ligne sera retrouvée à la validation. Voici ce qui serait écrit sur une nouvelle ligne', erreur: String(e?.message || e).slice(0, 200), apercu: apercuSansMonday(donnees) };
+    return { etat: 'indisponible', texte: 'Twenty CRM ne répond pas : la ligne sera retrouvée à la validation. Voici ce qui serait écrit sur une nouvelle ligne', erreur: String(e?.message || e).slice(0, 200), apercu: apercuSansMonday(donnees) };
   }
 }
 
@@ -417,23 +417,23 @@ export async function ecrire({ cible, donnees: donnees0, ligne_id = null, item_c
   if (donnees.analyste_email && !donnees.analyste_monday_id && M.personneMonday) {
     try { const p = await M.personneMonday({ email: donnees.analyste_email }); if (p?.id) donnees = { ...donnees, analyste_monday_id: p.id, analyste_nom: donnees.analyste_nom || p.name }; } catch { /* le SPOC attendra */ }
   }
-  if (id && !avantLu) return { etat: 'attente', texte: 'La ligne Sunday CRM choisie ne se relit plus', erreur: 'ligne introuvable' };
+  if (id && !avantLu) return { etat: 'attente', texte: 'La ligne Twenty CRM choisie ne se relit plus', erreur: 'ligne introuvable' };
   const { valeurs, attendus } = valeursPour(ligne, cols, donnees);
   const cree = !id;
   if (cree) {
     const { name, ...reste } = valeurs;
     const it = await M.creerElement(tableau, String(name || CONTACT_VIDE).slice(0, 250), reste, { labels: true });
     id = it?.id ? String(it.id) : null;
-    if (!id) throw new Error("Sunday CRM n'a pas rendu d'identifiant");
+    if (!id) throw new Error("Twenty CRM n'a pas rendu d'identifiant");
   } else if (Object.keys(valeurs).length) {
     await M.majElement(tableau, id, valeurs, { labels: true });
   }
   lignesCache = null;
   const lu = await M.lireElement(id);
-  if (!lu) return { etat: 'attente', item_id: id, cree, avant: avantLu, attendus, texte: 'Sunday CRM en attente, nouvel essai en cours', erreur: 'la ligne écrite ne se relit pas' };
+  if (!lu) return { etat: 'attente', item_id: id, cree, avant: avantLu, attendus, texte: 'Twenty CRM en attente, nouvel essai en cours', erreur: 'la ligne écrite ne se relit pas' };
   const ecarts = ecartsDe(lu, attendus);
   const base = { item_id: id, cree, avant: avantLu, attendus, lien: lienLigne(id, tableau) };
-  if (ecarts.length) return { ...base, etat: 'attente', texte: 'Sunday CRM en attente, nouvel essai en cours', erreur: ecarts.join(' ; '), ecarts };
+  if (ecarts.length) return { ...base, etat: 'attente', texte: 'Twenty CRM en attente, nouvel essai en cours', erreur: ecarts.join(' ; '), ecarts };
   const entreprise = cols.entreprise ? lu.colonnes?.[cols.entreprise.id] : null;
   return { ...base, etat: 'ok', texte: [entreprise || donnees.agence, lu.nom, donnees.issue].filter((x) => String(x || '').replace(/\u200b/g, '').trim()).join(' · '), relu_le: new Date().toISOString() };
 }

@@ -20,13 +20,13 @@ const ETAPES = [
   { ecran: "appel", zone: [0, 0, 47, 100], titre: "L'enregistrement est en cours", texte: "Le micro pulse : votre assistant écoute. « Rappeler » si l'appel coupe, « Raccrocher » à la fin, la croix pour annuler sans rien noter." },
   { ecran: "appel", zone: [49, 0, 51, 58], titre: "La transcription en direct", texte: "Ce qui se dit s'écrit ici, quelques secondes après chaque phrase." },
   { ecran: "appel", zone: [49, 60, 51, 40], titre: "Les notes", texte: "Un email exact, un numéro, l'orthographe d'un nom ? Écrivez-le dans les notes : c'est rapide, et l'assistant s'en sert en priorité." },
-  { ecran: "actions", zone: [44, 0, 56, 100], titre: "Les actions proposées par votre assistant", texte: "Il a lu l'appel et prépare tout : la fiche Sunday CRM, l'email, la liste de diffusion, la relance. Tout est déjà coché." },
-  { ecran: "actions", zone: [86, 10, 14, 52], titre: "Vérifiez sans quitter la page", texte: "Cliquez sur l'œil d'une action pour voir son détail (ce qui sera écrit dans Sunday CRM, l'email complet, la date) et le corriger en quelques secondes." },
-  { ecran: "detail", zone: [11.5, 36.5, 38, 10], titre: "Un champ faux ? Corrigez-le", texte: "Voici ce qui s'ouvre : exactement ce qui sera écrit dans Sunday CRM. Une adresse mal entendue, un nom mal écrit : cliquez sur la case et corrigez-la, en deux secondes." },
+  { ecran: "actions", zone: [44, 0, 56, 100], titre: "Les actions proposées par votre assistant", texte: "Il a lu l'appel et prépare tout : la fiche Twenty CRM, l'email, la liste de diffusion, la relance. Tout est déjà coché." },
+  { ecran: "actions", zone: [86, 10, 14, 52], titre: "Vérifiez sans quitter la page", texte: "Cliquez sur l'œil d'une action pour voir son détail (ce qui sera écrit dans Twenty CRM, l'email complet, la date) et le corriger en quelques secondes." },
+  { ecran: "detail", zone: [11.5, 36.5, 38, 10], titre: "Un champ faux ? Corrigez-le", texte: "Voici ce qui s'ouvre : exactement ce qui sera écrit dans Twenty CRM. Une adresse mal entendue, un nom mal écrit : cliquez sur la case et corrigez-la, en deux secondes." },
   { ecran: "actions", zone: [44, 82, 56, 18], titre: "Valider", texte: "Un seul clic : tout part en même temps." },
   { ecran: "prepare", zone: null, titre: "Tout est envoyé", texte: "La confirmation : chaque action a bien été faite. Vous passez à l'appel suivant." },
   { ecran: "rappel", zone: [80, 0, 20, 16], titre: "Un agent vous rappelle ?", texte: "Pas besoin de savoir qui c'est : touchez « Rappel » en haut de l'écran, l'enregistrement démarre tout de suite." },
-  { ecran: "rappel", zone: [8, 22, 84, 78], titre: "À la fin, Stop", texte: "L'assistant propose qui a appelé. Choisissez la bonne personne et pourquoi elle appelait : tout se met à jour, Sunday CRM, l'email et la relance." },
+  { ecran: "rappel", zone: [8, 22, 84, 78], titre: "À la fin, Stop", texte: "L'assistant propose qui a appelé. Choisissez la bonne personne et pourquoi elle appelait : tout se met à jour, Twenty CRM, l'email et la relance." },
 ];
 
 // --- Les maquettes des écrans, au dessin de 1100 × 620 ----------------------------
@@ -44,7 +44,7 @@ function Fiche() {
       <div className="flex flex-col gap-5 border-r border-bord-doux p-5">
         <div className="flex flex-col gap-1.5">
           <span className={etq}>INTERLOCUTEURS</span>
-          <span className="flex flex-col rounded-champ bg-menthe/10 px-3 py-2.5"><span className="text-[15px] text-encre">Sophie Martin</span><span className="text-[12.5px] text-menthe">Contact Sunday CRM</span></span>
+          <span className="flex flex-col rounded-champ bg-menthe/10 px-3 py-2.5"><span className="text-[15px] text-encre">Sophie Martin</span><span className="text-[12.5px] text-menthe">Contact Twenty CRM</span></span>
           <span className="flex flex-col px-3 py-2"><span className="text-[15px] text-encre">Jean-Luc Ferrand</span><span className="text-[12.5px] text-ardoise">Registre du commerce</span></span>
         </div>
         <div className="flex flex-col gap-1">
@@ -132,7 +132,7 @@ function Actions() {
         <span className="mb-3 flex items-center justify-between px-1"><span className={etq}>ACTIONS PROPOSÉES</span><span className="text-[13px] text-menthe">Pas de bien pour l'instant</span></span>
         <div className="rounded-[18px] border border-trait px-[18px] pb-1.5 pt-3.5">
           <span className="text-[12px] tracking-[.14em] text-menthe">MAINTENANT</span>
-          {ligne("Contact Sunday CRM", "Sophie Martin, retrouvée par téléphone")}
+          {ligne("Contact Twenty CRM", "Sophie Martin, retrouvée par téléphone")}
           {ligne("Email", "Suite à notre échange · murs commerciaux occupés · à s.martin@riviera-commerce.fr")}
           {ligne("Ajouter à la liste de diffusion agents", "s.martin@riviera-commerce.fr")}
         </div>
@@ -161,13 +161,13 @@ function Detail() {
     <div className="flex h-full items-center justify-center">
       <div className="flex h-full w-[880px] flex-col overflow-hidden rounded-[28px] border border-bord-vif bg-surface-pleine">
         <div className="flex-none bg-black/55 px-8 pt-5">
-          <span className="relative flex items-center justify-center"><span className="text-[26px] text-encre">Contact Sunday CRM</span><span className="absolute right-0 flex items-center gap-3"><span className="text-[13px] text-ardoise">1 / 4</span><span className="grid h-9 w-9 place-items-center rounded-full border border-bord-doux text-craie"><X className="h-4 w-4" /></span></span></span>
+          <span className="relative flex items-center justify-center"><span className="text-[26px] text-encre">Contact Twenty CRM</span><span className="absolute right-0 flex items-center gap-3"><span className="text-[13px] text-ardoise">1 / 4</span><span className="grid h-9 w-9 place-items-center rounded-full border border-bord-doux text-craie"><X className="h-4 w-4" /></span></span></span>
           <span className="mt-3 grid grid-cols-4 gap-3 pb-4">
-            {["Contact Sunday CRM", "Email", "Liste de diffusion", "Relance"].map((x, k) => <span key={x} className="flex flex-col gap-2"><span className={`h-[3px] rounded-full ${k === 0 ? "bg-encre" : "bg-bord-vif"}`} /><span className={`text-[13px] ${k === 0 ? "text-encre" : "text-craie"}`}>{x}</span></span>)}
+            {["Contact Twenty CRM", "Email", "Liste de diffusion", "Relance"].map((x, k) => <span key={x} className="flex flex-col gap-2"><span className={`h-[3px] rounded-full ${k === 0 ? "bg-encre" : "bg-bord-vif"}`} /><span className={`text-[13px] ${k === 0 ? "text-encre" : "text-craie"}`}>{x}</span></span>)}
           </span>
         </div>
         <div className="flex-1 px-8 pt-4">
-          <span className="text-[14.5px] text-ardoise">Déjà dans Sunday CRM, retrouvé par téléphone.</span>
+          <span className="text-[14.5px] text-ardoise">Déjà dans Twenty CRM, retrouvé par téléphone.</span>
           <div className="mt-3 grid grid-cols-2 gap-x-12 border-t border-trait">
             {ligne("Contact", "Sophie Martin", { bleu: false })}
             {ligne("Téléphone", "04 93 87 12 40", { bleu: false })}
@@ -190,7 +190,7 @@ function Prepare() {
         <span className="text-[40px] leading-[1.1] tracking-[-0.02em] text-encre">Tout préparé</span>
         <span className="mt-3 text-[16px] text-ardoise">Prochain appel : Cabinet Démo Transactions</span>
         <div className="mt-8 w-full border-t border-trait">
-          {[["Contact Sunday CRM", "Sophie Martin · relue"], ["Email", "envoyé, retrouvé dans les envoyés"], ["Liste de diffusion", "ajoutée"], ["Relance", "jeudi 15 octobre"]].map(([n, r]) => (
+          {[["Contact Twenty CRM", "Sophie Martin · relue"], ["Email", "envoyé, retrouvé dans les envoyés"], ["Liste de diffusion", "ajoutée"], ["Relance", "jeudi 15 octobre"]].map(([n, r]) => (
             <span key={n} className="grid grid-cols-[28px_170px_1fr] items-center gap-3 border-b border-trait py-3.5">
               <span className="grid h-6 w-6 place-items-center rounded-full bg-encre text-fond"><Check className="h-3.5 w-3.5" strokeWidth={2.6} /></span>
               <span className="text-[16px] text-encre">{n}</span><span className="truncate text-[15px] text-ardoise">{r}</span>

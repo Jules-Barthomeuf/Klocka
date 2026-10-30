@@ -71,7 +71,7 @@ export async function classerParModele(texte) {
 - "fiche" : le mail ou l'annonce d'un agent décrivant un bien à vendre (prix, surface, loyer, bail…)
 - "client" : le compte rendu d'un appel de découverte avec un futur client investisseur (budget, apport, objectifs…)
 - "echeances" : il demande ce qui attend, les relances, ce qui n'a pas eu de réponse
-- "assistant" : une question ou un ordre pour l'assistant (dossiers, mails, Sunday CRM, simulation…), y compris une consigne suivie d'un texte collé (« réponds-lui que ça ne nous intéresse pas : [mail de l'agent] ») : c'est la consigne qui compte, pas le texte collé
+- "assistant" : une question ou un ordre pour l'assistant (dossiers, mails, Twenty CRM, simulation…), y compris une consigne suivie d'un texte collé (« réponds-lui que ça ne nous intéresse pas : [mail de l'agent] ») : c'est la consigne qui compte, pas le texte collé
 
 --- TEXTE ---
 ${String(texte || '').slice(0, 6000)}

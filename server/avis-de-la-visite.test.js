@@ -30,3 +30,9 @@ test('messageDeLaVisite : « De ce que je sais », puis la question', () => {
   assert.match(m, /Loyer annuel HT HC : 24[\s\u202f\u00a0]000 €/);
   assert.match(m, /Vous me le confirmez \?/);
 });
+
+test('messageDeLaVisite : sans adresse dans la fiche, la première question est l\'adresse', () => {
+  const m = messageDeLaVisite({ bien: 'Bien', de_la_visite: { reponses: { type_bien: 'murs_commerce' } } });
+  assert.match(m, /quelle est l'adresse du bien \?/);
+  assert.doesNotMatch(m, /Vous me le confirmez/);
+});

@@ -190,10 +190,10 @@ export async function creerClientDepuisDecouverte(champs, { admin, base }) {
   let monday = null;
   try {
     monday = await poserClientMonday(champs, { par: admin });
-    if (monday?.id) fait.push(monday.cree ? 'fiche Sunday CRM créée' : 'fiche Sunday CRM mise à jour');
-    else if (monday?.ignore) rates.push(`Sunday CRM : ${monday.raison}`);
+    if (monday?.id) fait.push(monday.cree ? 'fiche Twenty CRM créée' : 'fiche Twenty CRM mise à jour');
+    else if (monday?.ignore) rates.push(`Twenty CRM : ${monday.raison}`);
   } catch (e) {
-    rates.push(`Sunday CRM : ${e?.message || e}`);
+    rates.push(`Twenty CRM : ${e?.message || e}`);
   }
 
   let invitation = null;

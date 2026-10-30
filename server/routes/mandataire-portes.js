@@ -55,11 +55,11 @@ export function monterMandatairePortes(app) {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await P()).creerEstimation(req.body || {}, user));
   }));
-  // L'Avis de valeur ouvert depuis la visite (29 oct. 2026) : l'estimation du bien, avec ce que la visite dit, à confirmer.
-  app.post('/api/mandataire/proprietaires/:id/avis-visite', wrap(async (req, res) => {
+  // L'Avis de valeur ouvert depuis un bien (29 oct. 2026) : l'estimation naît avec l'adresse et ce que la fiche et la visite disent.
+  app.post('/api/mandataire/avis-bien', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
-    const { avisDepuisLaVisite } = await import('../mandataire-avis.js');
-    rendre(res, await avisDepuisLaVisite(req.params.id, vue(req, user)));
+    const { avisDepuisLeBien } = await import('../mandataire-avis.js');
+    rendre(res, await avisDepuisLeBien(req.body || {}, vue(req, user)));
   }));
   app.patch('/api/mandataire/estimations/:id', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;

@@ -67,7 +67,7 @@ export default function TableauBienAnalyse({ dealId }) {
     // Tout le tableau a ses lignes, comme les grilles (29 oct. 2026, Jules) ; posé sur la carte du dossier, sans fond à lui.
     <section className="border-trait lg:border">
       <div className="grid grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_96px_minmax(0,1.3fr)] px-5 py-3 text-[13px] text-encre max-lg:hidden lg:divide-x lg:divide-trait lg:px-0 lg:py-0 lg:[&>*]:px-4 lg:[&>*]:py-3">
-        <span /><span>Ce qu'on y lit</span><span>Sources</span><span>Statut</span><span>Notes</span>
+        <span /><span>Valeur</span><span>Sources</span><span>Statut</span><span>Notes</span>
       </div>
       <div className="k-cascade">{lignes.map((l) => <Ligne key={l.id} l={l} dealId={dealId} note={notes[`bien-analyse.${l.id}`]} />)}</div>
     </section>

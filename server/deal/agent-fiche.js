@@ -38,9 +38,9 @@ export function phraseAgent(agent, monday) {
   if (!agent) return "Aucun agent trouvé dans la fiche : ajoutez son adresse sur le dossier avant de lui écrire.";
   const qui = [agent.nom, agent.email, agent.telephone, agent.agence].filter(Boolean).join(' · ');
   if (!agent.email) return `Agent ${qui} relevé, mais sans adresse mail : ajoutez-la sur le dossier avant de lui écrire.`;
-  if (monday?.etat === 'cree') return `Agent ${qui} : ajouté dans Sunday CRM (Agent immobilier).`;
-  if (monday?.etat === 'existant') return `Agent ${qui} : déjà dans Sunday CRM.`;
-  if (monday?.etat === 'erreur') return `Agent ${qui} : Sunday CRM n'a pas répondu (${monday.raison}), à ajouter depuis le dossier.`;
+  if (monday?.etat === 'cree') return `Agent ${qui} : ajouté dans Twenty CRM (Agent immobilier).`;
+  if (monday?.etat === 'existant') return `Agent ${qui} : déjà dans Twenty CRM.`;
+  if (monday?.etat === 'erreur') return `Agent ${qui} : Twenty CRM n'a pas répondu (${monday.raison}), à ajouter depuis le dossier.`;
   return `Agent ${qui} rattaché au dossier.`;
 }
 
@@ -97,7 +97,7 @@ async function inscrireDansMonday(agent, deal) {
     if (r?.erreur) return { etat: 'erreur', raison: r.erreur };
     return { etat: r?.cree === false ? 'existant' : 'cree' };
   } catch (e) {
-    console.warn(`[agent] ${agent.email} : Sunday CRM injoignable (${e?.message || e})`);
+    console.warn(`[agent] ${agent.email} : Twenty CRM injoignable (${e?.message || e})`);
     return { etat: 'erreur', raison: String(e?.message || e).slice(0, 120) };
   }
 }

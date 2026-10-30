@@ -174,7 +174,7 @@ test("une offre ne se pose ni ne se transmet avant que le bien soit présenté",
   assert.equal(poserOffre(m.id, { montant: 100000, valider: true, argumentaire: 'x' }, admin).ok, true, 'une fois présenté, oui');
 });
 
-test('un compte d’essai n’écrit pas dans le Sunday CRM de l’équipe', () => {
+test('un compte d’essai n’écrit pas dans le Twenty CRM de l’équipe', () => {
   assert.equal(P.compteEssai('test.mandataire@kpartners.fr'), true);
   assert.equal(P.compteEssai('Test-2@kpartners.fr'), true);
   assert.equal(P.compteEssai('marc@kpartners.fr'), false);

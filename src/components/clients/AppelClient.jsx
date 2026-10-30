@@ -146,7 +146,7 @@ export default function AppelClient({ client = null, mode: mode0 = "enregistrer"
 
           {etat === "pret" && (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <p className="m-0 max-w-[440px] text-[14px] leading-[1.55] text-craie">Mettez le téléphone sur haut-parleur, près de l'ordinateur, puis lancez l'écoute. La transcription s'écrit pendant l'appel ; à la fin, AK remplit la fiche, Sunday CRM et ce que voient les mandataires.</p>
+              <p className="m-0 max-w-[440px] text-[14px] leading-[1.55] text-craie">Mettez le téléphone sur haut-parleur, près de l'ordinateur, puis lancez l'écoute. La transcription s'écrit pendant l'appel ; à la fin, AK remplit la fiche, Twenty CRM et ce que voient les mandataires.</p>
               <button type="button" onClick={ecouter} className="h-12 rounded-full bg-menthe px-7 text-[15px] text-sur-menthe hover:bg-menthe-survol">Démarrer l'écoute</button>
             </div>
           )}
@@ -177,7 +177,7 @@ export default function AppelClient({ client = null, mode: mode0 = "enregistrer"
 
           {etat === "relire" && <button type="button" onClick={() => lire(colle, "enregistre")} className="h-11 self-start rounded-full bg-menthe px-6 text-[14px] text-sur-menthe hover:bg-menthe-survol">Relancer la lecture</button>}
 
-          {etat === "lecture" && <p className="m-0 flex items-center gap-2.5 text-[14px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Haka lit l'appel et remplit la fiche, Sunday CRM et le réseau…</p>}
+          {etat === "lecture" && <p className="m-0 flex items-center gap-2.5 text-[14px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Haka lit l'appel et remplit la fiche, Twenty CRM et le réseau…</p>}
 
           {erreur && <p className="m-0 text-[13.5px] text-alerte">{erreur}</p>}
 
@@ -195,7 +195,7 @@ export default function AppelClient({ client = null, mode: mode0 = "enregistrer"
                 ))}
               </div>
               <div className="flex flex-col gap-1 text-[13px] text-ardoise">
-                <span>Sunday CRM : {resultat.appel?.monday?.texte}</span>
+                <span>Twenty CRM : {resultat.appel?.monday?.texte}</span>
                 <span>Réseau des mandataires : {resultat.client?.visible === false ? "caché (la fiche ne sort pas)" : "la recherche est visible, sans le nom du client"}</span>
               </div>
               {annule ? (

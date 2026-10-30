@@ -94,7 +94,7 @@ export const MENU_ADMIN = [
   // première page, et des onglets en tête de page passent de l'une à l'autre.
   { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
   // Le CRM (27 oct. 2026, Jules) : Twenty, hébergé à part, s'ouvre dans un nouvel onglet ; il remplace Monday.
-  { cle: "CRM", label: "Sunday CRM", externe: true, fixe: true },
+  { cle: "CRM", label: "Twenty CRM", externe: true, fixe: true },
   { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" },
     // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
     { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
@@ -153,7 +153,13 @@ const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions", "AdminPresentations", "Offres",
  * Pure : le menu de l'équipe, ses groupes, et « Autre » (Feedback seulement).
  * Les pages masquées dans Paramètres disparaissent, un groupe vide aussi.
  */
-export function menuAdmin(masques = []) {
+// Des raccourcis propres à une personne, ajoutés en bas du menu principal (30 oct. 2026, Jules : Utilisateurs pour Paul).
+// La page reste aussi dans son groupe ; le raccourci n'ouvre aucun accès de plus.
+const RACCOURCIS_PAR_PERSONNE = {
+  "paul.dz@klocka.immo": ["AdminUtilisateurs"],
+};
+
+export function menuAdmin(masques = [], { email = null } = {}) {
   const garde = (e) => e.fixe || !masques.includes(e.cle);
   const places = new Set(HORS_MENU_ADMIN);
   const principal = MENU_ADMIN.map((x) => {
@@ -164,7 +170,10 @@ export function menuAdmin(masques = []) {
   // Les entrées d'Autre ne se masquent plus (26 oct. 2026, Jules) : d'anciens masques de Paramètres les cachaient.
   const autre = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => AUTRE_VISIBLE_ADMIN.includes(e.cle) && !places.has(e.cle))
     .sort((x, y) => AUTRE_VISIBLE_ADMIN.indexOf(x.cle) - AUTRE_VISIBLE_ADMIN.indexOf(y.cle));
-  return { principal, autre };
+  const raccourcis = (RACCOURCIS_PAR_PERSONNE[String(email || "").toLowerCase()] || [])
+    .map((cle) => [...ENTREES_ADMIN, ...ENTREES_AUTRE].find((e) => e.cle === cle))
+    .filter((e) => e && !principal.some((x) => x.cle === e.cle));
+  return { principal: [...principal, ...raccourcis], autre };
 }
 
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */

@@ -44,7 +44,7 @@ export default function ToutPrepare({ phrase, lignes = [], onSuivant, libelle = 
 export function lignesDuRecu(r, { issue = null, dateRelance = null, jourLong = (x) => x } = {}) {
   if (!r) return [];
   return [
-    r.monday?.etat === "ok" && { nom: "Contact Sunday CRM", resultat: /cré/i.test(r.monday.texte || "") ? "Ligne créée" : "Ligne mise à jour" },
+    r.monday?.etat === "ok" && { nom: "Contact Twenty CRM", resultat: /cré/i.test(r.monday.texte || "") ? "Ligne créée" : "Ligne mise à jour" },
     r.mail?.etat === "ok" && { nom: "Email", resultat: `Envoyé à ${r.mail.detail?.a || "l'agent"}` },
     r.mail && r.mail.etat !== "ok" && { nom: "Email", resultat: r.mail.etat === "info" ? "Brouillon ouvert" : r.mail.etat === "attente" && /part dans/.test(r.mail.texte || "") ? "En cours d'envoi" : "À vérifier" },
     r.diffusion?.etat === "ok" && { nom: "Liste de diffusion", resultat: "Ajouté" },

@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
-import { adresseDe, analyseDe, avancementDe, criteresDe, filDe, reperesDe } from "@/components/preanalyse/marche-reel";
+import { adresseDe, analyseDe, avancementDe, filDe, reperesDe } from "@/components/preanalyse/marche-reel";
 import JournalArrivee from "@/components/preanalyse/JournalArrivee";
 import JournalControles from "@/components/preanalyse/JournalControles";
 import JournalResultat from "@/components/preanalyse/JournalResultat";
@@ -26,18 +26,6 @@ import { PanneauJournalDetaille, PanneauTracabilite } from "@/components/preanal
 // base), c'est elle qu'on voit : les verdicts calculés sur le lot, les
 // sources avec leur heure, l'emplacement, la trace des tentatives.
 
-const INTENTION =
-  "Je consulte Equimmox deux fois pour la valeur locative — le bien à surface comparable, puis la rue, le quartier et la ville — et Data-B pour son estimation des mêmes échelles, avec le loyer déduit des ventes DVF pour les recouper ; puis les cessions de fonds et l’étude d’implantation chez Data-B (flux, tronçon, démographie, revenus), le BODACC et l’étude interne prenant le relais si Data-B ne répond pas, et le résidentiel du Figaro. Chaque chiffre garde sa source et son heure, et un écart entre deux sources est signalé plutôt qu’absorbé. Je termine par les deux sources publiques — DVF pour ce qui s’est vendu pour de vrai, le BODACC pour ce qui ouvre et ce qui ferme dans la rue.";
-
-const SOURCES = [
-  { cle: "equimmox", nom: "Equimmox", ton: "menthe", acces: "compte de service · baux comparables à 500 m" },
-  { cle: "data-b", nom: "Data-B", ton: "menthe", acces: "compte de service · valeurs locatives, cessions de fonds, étude d’implantation" },
-  { cle: "implantation", nom: "Klocka", ton: "menthe", acces: "sources ouvertes · étude d’implantation en secours de Data-B" },
-  { cle: "figaro", nom: "Le Figaro Immobilier", ton: "menthe", acces: "accès public · prix, loyers et évolution du résidentiel" },
-  { cle: "dvf", nom: "DVF", ton: "menthe", acces: "donnée publique · ventes de locaux commerciaux réellement conclues, 5 ans" },
-  { cle: "bodacc", nom: "BODACC", ton: "menthe", acces: "donnée publique · créations, liquidations et radiations de la rue, cessions de fonds à 250 m avec leur prix" },
-];
-
 const PROMPT = "Lance l’analyse de marché";
 const INTERVALLE_MS = 2500;
 // Huit sondages ratés d'affilée, soit vingt secondes : au-delà, ce n'est plus
@@ -55,6 +43,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
   const [tracabilite, setTracabilite] = useState(null);
   const [journalOuvert, setJournalOuvert] = useState(false);
   const [detailCle, setDetailCle] = useState(null);
+  const [voirFil, setVoirFil] = useState(false);
 
   const fil = useRef(null);
   const colleEnBas = useRef(true);
@@ -67,7 +56,6 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
     enabled: !!dealId,
   });
   const analyse = useMemo(() => analyseDe(lot, journal?.dernier), [lot, journal]);
-  const criteres = useMemo(() => criteresDe(lot), [lot]);
 
   // ── Le fil, tiré de l'état du serveur ─────────────────────────────────────
   const entrees = useMemo(() => filDe(etat, adresseDe(lot)), [etat, lot]);
@@ -190,6 +178,9 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
 
   /** La croix, en haut : on quitte l'écran ; la recherche continue côté serveur. */
   const fermer = useCallback(() => {
+    // Pendant la lecture, fermer le fil le cache seulement : le suivi continue, la grille se remplit à la fin.
+    setVoirFil(false);
+    if (phase === "joue") return;
     arreterSuivi();
     setPhase("repos");
     setTracabilite(null);
@@ -197,7 +188,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
     setJournalOuvert(false);
     queryClient.invalidateQueries({ queryKey: ["marche-journal", dealId, lotIndex] });
     onRefresh?.();
-  }, [arreterSuivi, queryClient, dealId, onRefresh]);
+  }, [arreterSuivi, queryClient, dealId, onRefresh, phase]);
 
   // Le plein écran prend la main : ni défilement derrière, ni Échap perdu.
   useEffect(() => {
@@ -244,23 +235,19 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
       {/* Dans le dossier : l'écran d'arrivée. Le fil ne s'y déroule jamais. */}
       <section className="overflow-hidden">
         <JournalArrivee
-          intention={INTENTION}
-          criteres={criteres}
-          sources={SOURCES}
           analyse={analyse}
-          dureeEstimee="3 à 4 min"
           onLancer={lancer}
-          onCarte={ouvrirCarte}
           dossier={dossier}
           lot={lot}
           onRefresh={onRefresh}
-          detailCle={detailCle}
-          onRetourDetail={() => setDetailCle(null)}
           apercu={apercu}
+          enCours={phase === "joue"}
+          onSuivre={() => setVoirFil(true)}
         />
       </section>
 
-      {phase !== "repos" &&
+      {/* Le fil en plein écran ne s'ouvre plus de lui-même (29 oct. 2026) : « Suivre » l'ouvre. */}
+      {voirFil && phase !== "repos" &&
         createPortal(
           <div className="animate-in fade-in duration-200 ja-plein fixed inset-0 z-[60] bg-fond flex flex-col">
             <header className="flex-shrink-0 border-b border-trait max-md:pt-[env(safe-area-inset-top)]">

@@ -135,7 +135,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
       {/* Le style du tableau de l'onglet Bien (18 oct. 2026, Jules : « partout ailleurs dans l'analyse ») :
           Ligne / Ce qu'on y lit / Sources / Statut, les sources en pastilles, le statut en mot. */}
       <div className={`grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3 text-[13px] text-ardoise max-lg:hidden`}>
-        <span>Ligne</span><span>Ce qu'on y lit</span><span>{sansSources ? "" : "Sources"}</span><span>Statut</span><span>Notes</span>
+        <span>Ligne</span><span>Valeur</span><span>{sansSources ? "" : "Sources"}</span><span>Statut</span><span>Notes</span>
       </div>
       <div className="k-cascade">
       {g.lignes.map((l, iLigne) => {

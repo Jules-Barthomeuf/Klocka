@@ -118,7 +118,7 @@ function LigneRecu({ l }) {
     <li className="flex items-start gap-3 text-[15px] leading-[1.45]">
       <span className={`flex-none ${ton}`}>{l.etat === "ok" ? "✓" : l.etat === "attente" ? <Loader2 className="mt-1 h-4 w-4 animate-spin" /> : l.etat === "echec" ? <X className="mt-1 h-4 w-4" /> : orange ? "!" : "·"}</span>
       <span className={`min-w-0 break-words ${orange ? "text-ambre" : "text-encre"}`}>{l.texte}</span>
-      {l.lien && <a href={l.lien} target="_blank" rel="noreferrer" className="ml-auto flex-none text-brume hover:text-encre" aria-label="Ouvrir dans Sunday CRM"><ExternalLink className="h-3.5 w-3.5" /></a>}
+      {l.lien && <a href={l.lien} target="_blank" rel="noreferrer" className="ml-auto flex-none text-brume hover:text-encre" aria-label="Ouvrir dans Twenty CRM"><ExternalLink className="h-3.5 w-3.5" /></a>}
     </li>
   );
 }
@@ -614,7 +614,7 @@ export default function RappelEntrant() {
                 ))}
               </div>
             ))}
-            <p className="m-0 text-[13px] text-brume md:col-span-2">L'appel se joue phrase par phrase, Haka le lit pour de vrai. Tout reste dans la liste fictive : ni Sunday CRM, ni mail, ni carnet réel.</p>
+            <p className="m-0 text-[13px] text-brume md:col-span-2">L'appel se joue phrase par phrase, Haka le lit pour de vrai. Tout reste dans la liste fictive : ni Twenty CRM, ni mail, ni carnet réel.</p>
           </div>
         )}
 
@@ -870,13 +870,13 @@ export default function RappelEntrant() {
         {ecran === "recu" && r && (
           <div className="flex w-full max-w-[620px] flex-col gap-3.5 self-center rounded-[20px] border border-trait p-7 max-md:p-5">
             <ul className="m-0 flex list-none flex-col gap-3 p-0">
-              <LigneRecu l={r.monday ? { ...r.monday, texte: r.monday.etat === "ok" ? `Sunday CRM : ${r.monday.texte}` : r.monday.texte } : null} />
+              <LigneRecu l={r.monday ? { ...r.monday, texte: r.monday.etat === "ok" ? `Twenty CRM : ${r.monday.texte}` : r.monday.texte } : null} />
               <LigneRecu l={r.mail} />
               <LigneRecu l={r.diffusion} />
               <LigneRecu l={r.relance} />
               {(r.extras || []).map((x, i) => <LigneRecu key={i} l={x} />)}
             </ul>
-            {r.monday?.etat === "doute" && <p className="m-0 text-[13px] text-ambre">Sunday CRM hésite entre plusieurs lignes : choisissez-la depuis la Prospection (Mode appel, récapitulatif).</p>}
+            {r.monday?.etat === "doute" && <p className="m-0 text-[13px] text-ambre">Twenty CRM hésite entre plusieurs lignes : choisissez-la depuis la Prospection (Mode appel, récapitulatif).</p>}
             <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-trait pt-4">
               {annulerDans > 0 ? <button type="button" onClick={() => annuler.mutate()} disabled={annuler.isPending} className={secondaire} style={{ background: "transparent" }}>{annuler.isPending ? "Annulation" : `Annuler · ${annulerDans} s`}</button> : <span />}
               <button type="button" onClick={fermer} className={principal}>Fermer</button>

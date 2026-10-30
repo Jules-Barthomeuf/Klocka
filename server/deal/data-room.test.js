@@ -203,3 +203,99 @@ test("un nom corrigé avant le Drive devient le nom de la Data Room, de la colon
   assert.equal(doc.nom, 'Bail commercial MACSF corrigé.pdf');
   assert.equal(doc.nom_propose, 'Bail commercial MACSF corrigé.pdf');
 });
+
+test("la vacance du lot : l'outil Vacance autour et sur la rue, gardée sur le lot ; la commune qui se recense se redemande", async () => {
+  const { mesurerVacance } = await import('./marche-vacance.js');
+  Records.create('Deal', { deal_id: 'DR12', lots: [{ lot: { adresse: { valeur: { rue: '12 rue Foch', code_postal: '56100', ville: 'Lorient' } } } }] });
+  const adresse = { resoudreAdresse: async () => ({ label: '12 Rue Foch 56100 Lorient', lat: 47.7, lon: -3.36, code_insee: '56121', rue: 'Rue Foch', ville: 'Lorient' }) };
+  const charge = { tauxDeVacance: async () => ({ ok: true, statut: 202, etat: 'chargement' }), tauxDeLaRue: async () => ({ ok: true, statut: 202 }) };
+  assert.equal((await mesurerVacance('DR12', { adresse, outil: charge })).etat, 'chargement');
+  const pret = {
+    tauxDeVacance: async (q) => { assert.equal(q.commune, '56121'); return { ok: true, statut: 200, taux: { taux: 12.5, vacants: 3, occupes: 21, incertains: 2, locaux: 26, fiable: true }, zone: { rayon_m: 300 } }; },
+    tauxDeLaRue: async (q) => { assert.equal(q.voie, 'Rue Foch'); return { ok: true, statut: 200, taux: { taux: 8, vacants: 1, occupes: 12, incertains: 0, locaux: 13, fiable: true }, zone: {} }; },
+  };
+  const r = await mesurerVacance('DR12', { adresse, outil: pret });
+  assert.equal(r.etat, 'pret');
+  const v = Records.findBy('Deal', 'deal_id', 'DR12').lots[0].vacance;
+  assert.equal(v.zone.taux, 12.5);
+  assert.equal(v.sur_la_rue.taux, 8);
+  assert.equal(v.zone.rayon_m, 300);
+});
+
+test("rentrer le projet puis le mettre à jour depuis le dossier : chiffres du lot et cases tranchées, rien d'effacé", async () => {
+  const P = await import('./projet.js');
+  Records.create('Deal', { deal_id: 'DR13', nom: 'Lorient', documents_espace: [{ id: 'b', nom: 'bail.pdf', url: '/uploads/b13.pdf', mime: 'application/pdf' }],
+    lots: [{ lot: { adresse: { absent: false, valeur: { rue: '12 rue Foch', code_postal: '56100', ville: 'Lorient' } }, surface_m2: { absent: false, valeur: 80 }, loyer_annuel_ht_hc: { absent: false, valeur: 12000 } } }] });
+  fs.writeFileSync(path.join(uploadDir, 'b13.pdf'), 'bail');
+  const cree = P.creerProjetDepuisDeal('DR13', 0, { email: 'nora@klocka.immo' });
+  assert.equal(cree.ok !== false, true);
+  const id = Records.findBy('Deal', 'deal_id', 'DR13').projet_id;
+  assert.equal(Records.get('Project', id).loyer_annuel_ht, 12000);
+  Records.update('Project', id, { photos: ['p.jpg'], nom_locataire: 'Gardé' });
+  // L'analyse, plus tard : le bail lu, l'échéance et le loyer tranchés.
+  A.rangerPiece('DR13', 'b', 'bail', null, { lire: false });
+  await A.lirePiece('DR13', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { echeance: { valeur: '31/12/2034' }, loyer_signature: { valeur: '1 500 € HT par mois' } } }) });
+  A.deciderCase('DR13', 'bail', 'echeance', { action: 'verifier', valeur: '31/12/2034' }, null);
+  A.deciderCase('DR13', 'bail', 'loyer_signature', { action: 'verifier', valeur: '1 500 € HT par mois' }, null);
+  const r = await P.mettreAJourProjetDepuisDeal('DR13', null);
+  assert.equal(r.ok, true);
+  const projet = Records.get('Project', id);
+  assert.equal(projet.echeance_bail, '31/12/2034');
+  assert.equal(projet.loyer_annuel_ht, 18000);
+  assert.deepEqual(projet.photos, ['p.jpg']);
+  assert.equal(projet.nom_locataire, 'Gardé', 'une case vide du dossier n\'efface rien');
+});
+
+test("la vacance lit l'adresse donnée sans virgule ni code postal, rangée tout entière dans la ville", async () => {
+  const { mesurerVacance } = await import('./marche-vacance.js');
+  Records.create('Deal', { deal_id: 'DR14', lots: [{ lot: { adresse: { absent: false, valeur: { rue: null, code_postal: null, ville: '12 rue Foch Lorient' } } } }] });
+  let demandee = null;
+  const adresse = { resoudreAdresse: async (t) => { demandee = t; return { label: '12 Rue Foch 56100 Lorient', lat: 47.7, lon: -3.36, code_insee: '56121', rue: 'Rue Foch', ville: 'Lorient' }; } };
+  const outil = { tauxDeVacance: async () => ({ ok: true, statut: 200, taux: { taux: 10, vacants: 2, occupes: 18, locaux: 20, fiable: true }, zone: { rayon_m: 300 } }), tauxDeLaRue: async () => ({ ok: true, statut: 200, taux: { taux: 5, vacants: 1, occupes: 19, locaux: 20, fiable: true }, zone: {} }) };
+  const r = await mesurerVacance('DR14', { adresse, outil });
+  assert.equal(r.etat, 'pret');
+  assert.equal(demandee, '12 rue Foch Lorient');
+});
+
+test("la note de l'IA effacée à la main reste effacée ; une note écrite la remplace", async () => {
+  const { noterCritere, notesDuDossier } = await import('./grilles.js');
+  Records.create('Deal', { deal_id: 'DR15' });
+  noterCritere('DR15', 'pieces-bail', 'depot', '', null, { iaRetiree: true });
+  assert.equal(notesDuDossier('DR15').notes['pieces-bail.depot'].ia_retiree, true);
+  noterCritere('DR15', 'pieces-bail', 'depot', 'Vu avec l\'agent', { email: 'nora@klocka.immo' });
+  assert.equal(notesDuDossier('DR15').notes['pieces-bail.depot'].texte, 'Vu avec l\'agent');
+  noterCritere('DR15', 'pieces-bail', 'depot', '', null);
+  assert.equal(notesDuDossier('DR15').notes['pieces-bail.depot'], undefined);
+});
+
+test("passer une ligne en vert ou modifier sa valeur ne retire pas l'alerte de la règle (la note de l'IA)", async () => {
+  dossier('DR16', [{ id: 'b', nom: 'bail.pdf' }]);
+  A.rangerPiece('DR16', 'b', 'bail', null, { lire: false });
+  await A.lirePiece('DR16', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { depot: { valeur: '3 000 €' } } }) });
+  const ligne = () => A.lireAnalyse('DR16').grilles[0].lignes.find((x) => x.id === 'depot');
+  const avant = ligne().alerte;
+  A.deciderCase('DR16', 'bail', 'depot', { action: 'verifier', valeur: ligne().valeur }, null);
+  assert.equal(ligne().statut, 'verifie');
+  assert.deepEqual(ligne().alerte, avant);
+  A.deciderCase('DR16', 'bail', 'depot', { action: 'verifier', valeur: '6 000 €', main: true }, null);
+  assert.equal(ligne().valeur_main, '6 000 €');
+  assert.deepEqual(ligne().alerte, avant);
+  A.deciderCase('DR16', 'bail', 'depot', { action: 'corriger', valeur: '7 000 €' }, null);
+  assert.deepEqual(ligne().alerte, avant);
+});
+
+test("une pièce reçue après coup : l'onglet de la pièce, la plus récente retenue, une ligne verte contredite à revérifier", async () => {
+  dossier('DR17', [{ id: 'b', nom: 'bail.pdf' }, { id: 'av', nom: 'avenant.pdf' }]);
+  A.rangerPiece('DR17', 'b', 'bail', null, { lire: false });
+  await A.lirePiece('DR17', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { depot: { valeur: '3 000 €' } } }) });
+  const ligne = () => A.lireAnalyse('DR17').grilles[0].lignes.find((x) => x.id === 'depot');
+  A.deciderCase('DR17', 'bail', 'depot', { action: 'verifier', valeur: '3 000 €' }, null);
+  assert.equal(ligne().statut, 'verifie');
+  A.rangerPiece('DR17', 'av', 'avenants', null, { lire: false });
+  const r = D.lancerAnalyse('DR17', { uploadDir });
+  assert.equal(r.onglet, 'bail');
+  await A.lirePiece('DR17', 'av', { uploadDir, lire: async () => JSON.stringify({ criteres: { depot: { valeur: '4 500 €' } } }) });
+  assert.equal(ligne().statut, 'ia', 'la ligne verte contredite revient à vérifier');
+  assert.equal(ligne().valeur, '4 500 €', "l'avenant, plus récent, est retenu");
+  assert.equal(A.ongletDuType('pv_ag'), 'copropriete');
+});

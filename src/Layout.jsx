@@ -589,7 +589,7 @@ function LayoutContent({ children, currentPageName }) {
     // Les mandataires (18 oct. 2026, Jules) : la même structure, leur menu à eux.
     const menuEquipe = (vue === "admin" && !showClientView) || vue === "mandataire";
     const { principal: entrees, autre: autres } = vue === "mandataire" ? menuMandataire(prefs.menu_masques || [])
-      : menuEquipe ? menuAdmin(prefs.menu_masques || []) : repartir(
+      : menuEquipe ? menuAdmin(prefs.menu_masques || [], { email: user?.email }) : repartir(
       vue === "mandataire" ? ENTREES_MANDATAIRE : showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
       showClientView ? [] : ENTREES_AUTRE,
       { ordre: prefs.menu_ordre, masques: prefs.menu_masques, menuAutre: prefs.menu_autre },

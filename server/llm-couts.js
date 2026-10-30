@@ -401,7 +401,7 @@ export const LEVIERS = [
     effet: '{{mediane:veille}} par mail douteux',
     effet_defaut: 'quelques centimes par passage',
     ou: `Posé le 18 octobre · MAIL_VEILLE_MINUTES ${process.env.MAIL_VEILLE_MINUTES || 15}`,
-    texte: "Le 18 octobre, Jules demande de limiter ce qu'on ne déclenche pas : la veille passe de cinq à quinze minutes par défaut (un mail reçu à 9 h 02 entre à 9 h 15). Le même jour, une fiche analysée sans clic (veille, Haka) ne lance plus le point de marché par recherche web, et l'annonce en ligne ne se cherche plus que quand quelqu'un pousse le bien dans Sunday CRM.",
+    texte: "Le 18 octobre, Jules demande de limiter ce qu'on ne déclenche pas : la veille passe de cinq à quinze minutes par défaut (un mail reçu à 9 h 02 entre à 9 h 15). Le même jour, une fiche analysée sans clic (veille, Haka) ne lance plus le point de marché par recherche web, et l'annonce en ligne ne se cherche plus que quand quelqu'un pousse le bien dans Twenty CRM.",
   },
   {
     cle: 'differe',

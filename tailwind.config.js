@@ -76,6 +76,7 @@ export default {
 			ambre: 'rgb(var(--k-ambre-rgb) / <alpha-value>)',
 			vert: 'rgb(var(--k-vert-rgb) / <alpha-value>)',
 			jaune: 'rgb(var(--k-jaune-rgb) / <alpha-value>)',
+			'lu-ia': 'rgb(var(--k-lu-ia-rgb) / <alpha-value>)',
 			bleu: 'rgb(var(--k-bleu-rgb) / <alpha-value>)',
 			pervenche: 'rgb(var(--k-pervenche-rgb) / <alpha-value>)',
 			appel: 'rgb(var(--k-appel-rgb) / <alpha-value>)',

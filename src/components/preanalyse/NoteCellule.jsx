@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -14,10 +14,10 @@ export function useNotesTableaux(dealId) {
   return q.data?.notes || {};
 }
 
-export default function NoteCellule({ dealId, tableau, ligne, note = null, lectureSeule = false }) {
+export default function NoteCellule({ dealId, tableau, ligne, note = null, lectureSeule = false, noteIA = null }) {
   const queryClient = useQueryClient();
   const noter = useMutation({
-    mutationFn: (t) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${encodeURIComponent(tableau)}/note/${encodeURIComponent(ligne)}`, { body: { texte: t } }),
+    mutationFn: (corps) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${encodeURIComponent(tableau)}/note/${encodeURIComponent(ligne)}`, { body: corps }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes-tableaux", dealId] });
       queryClient.invalidateQueries({ queryKey: ["grille"] });
@@ -25,14 +25,27 @@ export default function NoteCellule({ dealId, tableau, ligne, note = null, lectu
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const modifiable = !lectureSeule && !!dealId;
-  if (!modifiable && !note?.texte) return <span className="text-[13px] text-encre">·</span>;
-  // On écrit directement dans la case (29 oct. 2026, Jules) : « Ajouter une note » n'apparaît qu'au survol de la ligne.
+  // La note de l'IA est une note comme une autre (30 oct. 2026, Jules) : elle s'écrit dans la case, se modifie ou
+  // s'efface ; effacée, elle ne revient pas. Rien de tout cela ne touche à l'état de la ligne.
+  // Sa forme (fiche de Jules, 30 oct. 2026) : le texte en sable (`lu-ia`), 13,5 px, interligne 1,55 ; une note de l'IA
+  // porte « IA » en exposant après son dernier caractère (9 px, `encre`) ; une case sans note reste vide, sans rien.
+  const [edition, setEdition] = useState(false);
+  const ia = !note?.texte && !note?.ia_retiree && noteIA ? noteIA : null;
+  const texte = note?.texte || ia || "";
+  const enregistrer = (t) => noter.mutate(t ? { texte: t } : ia ? { texte: "", ia_retiree: true } : { texte: "" });
+  const style = "text-[13.5px] font-normal leading-[1.55] text-lu-ia";
+  if (edition && modifiable) {
+    return <TexteEnPlace valeur={texte} autoFocus onQuitter={() => setEdition(false)} onEnregistrer={enregistrer} className={`${style} max-md:text-[16px]`} />;
+  }
   return (
-    <div className="min-w-0">
-      <TexteEnPlace valeur={note?.texte || ""} disabled={!modifiable} onEnregistrer={(t) => noter.mutate(t)}
-        placeholder="Ajouter une note"
-        className="text-[13px] leading-[1.45] text-encre placeholder:text-transparent focus:placeholder:text-brume group-hover/ligne:placeholder:text-brume max-md:text-[16px] max-md:placeholder:text-brume" />
-      {note?.par && <span className="mt-0.5 block text-[11.5px] text-craie">{note.par.split("@")[0]}</span>}
+    <div className={`h-full min-w-0 ${modifiable ? "cursor-text" : ""}`} onClick={(e) => { e.stopPropagation(); if (modifiable) setEdition(true); }}
+      title={note?.texte && note?.par ? `Note de ${note.par.split("@")[0]}` : undefined}>
+      {texte && (
+        <p className={`m-0 whitespace-pre-line ${style}`}>
+          {texte}
+          {ia && <sup className="ml-[3px] text-[9px] tracking-[.04em] text-encre">IA</sup>}
+        </p>
+      )}
     </div>
   );
 }

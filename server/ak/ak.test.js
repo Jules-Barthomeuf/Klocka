@@ -70,7 +70,7 @@ test("les outils d'AK : ceux de l'assistant sans l'envoi de mail, plus les siens
   for (const n of ['chercher_dossier', 'chercher_projet', 'analyser_fiche', 'ajouter_document', 'renommer_dossier', 'supprimer_dossier', 'creer_client_monday', 'creer_projet_depuis_dossier', 'outils_kdata', 'lancer_kdata', 'generer_prez_bancaire', 'taches_en_cours', 'pousser_projet_monday']) assert.ok(noms.includes(n), n);
   assert.ok(!noms.includes('envoyer_mail'), 'décidé : AK n\'envoie pas de mail');
   const creer = OUTILS.find((o) => o.name === 'creer_dossier');
-  assert.match(creer.description, /rien d'autre : pas de Sunday CRM/, 'le creer_dossier d\'AK, pas celui de l\'assistant');
+  assert.match(creer.description, /rien d'autre : pas de Twenty CRM/, 'le creer_dossier d\'AK, pas celui de l\'assistant');
   assert.equal(new Set(noms).size, noms.length, 'aucun doublon');
   const kd = decrireOutilsKdata();
   assert.ok(kd.length >= 8);

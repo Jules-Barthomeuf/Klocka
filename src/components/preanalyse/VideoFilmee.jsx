@@ -1,6 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Film, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { Film, Loader2, Mail, MessageCircle, RefreshCw, Send, Trash2 } from "lucide-react";
+import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { prenom } from "@/components/preanalyse/AnalysePieces";
@@ -35,6 +36,15 @@ export default function VideoFilmee({ dealId, apercu = false }) {
   };
   const ouvrir = () => { if (!envoyer.isPending && !apercu) entree.current?.click(); };
   const video = data?.video || null;
+  // Le lien public de la vidéo, demandé dès qu'elle est là : au clic, WhatsApp ou le mail s'ouvrent sans attendre.
+  const [lien, setLien] = useState(null);
+  useEffect(() => {
+    setLien(null);
+    if (!video?.url || apercu) return;
+    base44.request("POST", `/api/preanalyse/dossiers/${dealId}/video-filmee/lien`)
+      .then((r) => setLien(`${window.location.origin}${r.chemin}`))
+      .catch(() => setLien(null));
+  }, [video?.url, dealId, apercu]);
   const champ = <input ref={entree} type="file" accept="video/*,.mov,.mp4,.m4v,.webm" className="hidden" onChange={(e) => { choisir(e.target.files); e.target.value = ""; }} />;
 
   if (isLoading) return <div className="grid place-items-center py-16"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>;
@@ -65,6 +75,7 @@ export default function VideoFilmee({ dealId, apercu = false }) {
           <span className="text-encre">{video.nom}</span> · {mo(video.taille)} · importée le {new Date(video.le).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}{video.par ? ` par ${prenom(video.par)}` : ""}
         </p>
         <div className="flex items-center gap-2">
+          <Envoyer lien={lien} />
           <button type="button" onClick={ouvrir} className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
             <RefreshCw className="h-3.5 w-3.5" /> Remplacer
           </button>
@@ -75,5 +86,41 @@ export default function VideoFilmee({ dealId, apercu = false }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Envoyer la vidéo au client (29 oct. 2026, Jules) : WhatsApp ou mail, avec le lien public de la vidéo. Le message
+ * part de l'application de la personne (WhatsApp, sa messagerie) : elle choisit le destinataire et relit avant d'envoyer.
+ */
+function Envoyer({ lien }) {
+  const [ouvert, setOuvert] = useState(false);
+  const zone = useFermerAuClicAilleurs(ouvert, () => setOuvert(false));
+  const texte = lien ? `Bonjour, voici la vidéo du bien : ${lien}` : "";
+  const choix = [
+    { cle: "whatsapp", mot: "WhatsApp", Icone: MessageCircle, url: `https://wa.me/?text=${encodeURIComponent(texte)}` },
+    { cle: "mail", mot: "Mail", Icone: Mail, url: `mailto:?subject=${encodeURIComponent("La vidéo du bien")}&body=${encodeURIComponent(texte)}` },
+  ];
+  return (
+    <div ref={zone} className="relative">
+      <button type="button" onClick={() => setOuvert((o) => !o)} disabled={!lien} aria-expanded={ouvert}
+        className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-50">
+        {lien ? <Send className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />} Envoyer
+      </button>
+      {ouvert && lien && (
+        <div className="absolute bottom-[calc(100%+8px)] right-0 z-20 w-[200px] overflow-hidden rounded-[14px] border border-bord-doux bg-rail p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.3)]">
+          {choix.map(({ cle, mot, Icone, url }) => (
+            <a key={cle} href={url} target={cle === "whatsapp" ? "_blank" : undefined} rel="noopener noreferrer" onClick={() => setOuvert(false)}
+              className="flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-[13.5px] text-encre transition-colors hover:bg-rail-actif">
+              <Icone className="h-4 w-4 text-craie" /> {mot}
+            </a>
+          ))}
+          <button type="button" onClick={() => { navigator.clipboard?.writeText(lien).then(() => toast.success("Lien copié")); setOuvert(false); }}
+            className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[13.5px] text-craie transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}>
+            Copier le lien
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

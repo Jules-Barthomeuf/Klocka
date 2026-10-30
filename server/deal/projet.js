@@ -261,46 +261,17 @@ export async function completerAvantProjet(dealId, lotIndex = 0) {
 }
 
 /**
- * Crée le Project pré-rempli et passe le deal en `projet_cree`.
- * @returns {{ ok: true, project } | { ok: false, error }}
+ * Ce que le projet prend du lot : l'adresse, la commune, le bien, le bail, le simulateur, le marché. Commun à la
+ * création du projet et à sa mise à jour depuis le dossier (30 oct. 2026, Jules).
  */
-export function creerProjetDepuisDeal(dealId, lotIndex, user) {
-  const deal = Records.findBy('Deal', 'deal_id', dealId);
-  if (!deal) return { ok: false, error: 'Dossier introuvable' };
-  // Un projet supprimé laissait son identifiant sur le dossier : la plateforme
-  // refusait alors d'en créer un autre, en désignant un projet qui n'existe
-  // plus. On ne refuse que si le projet est encore là.
-  if (deal.projet_id) {
-    if (Records.get('Project', deal.projet_id)) {
-      return { ok: false, error: 'Un projet existe déjà pour ce deal.', project_id: deal.projet_id };
-    }
-    delierProjet(deal.projet_id, user);
-  }
-  // Sans pré-analyse, le projet naît d'une fiche vide au nom du dossier.
-  const lot = lotOuVide(deal, lotIndex);
-
+function donneesDuLot(lot) {
   const adresse = val(lot.lot.adresse) || {};
   const commune = lot.enrichissement?.commune;
   const ville = commune?.nom || adresse.ville || '';
   const adresseComplete = [adresse.rue, [adresse.code_postal, ville].filter(Boolean).join(' ')]
     .filter(Boolean)
     .join(', ');
-
-  // Tous les admins voient le projet, comme dans l'éditeur AdminProjets.
-  const adminEmails = Records.filter('User', { role: 'admin' })
-    .map((u) => u.email)
-    .filter(Boolean);
-
-  const projet = {
-    // Un projet issu d'un deal de test est marqué pour être repérable (et
-    // supprimé avec le deal).
-    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom), adresseComplete, val(lot.lot.locataire_activite))}`,
-    statut: 'analyse',
-    archived: false,
-    admin_principal: user?.email || adminEmails[0] || null,
-    client_email: '',
-    client_emails: [...new Set([...(adminEmails || []), user?.email].filter(Boolean))],
-
+  const champs = {
     adresse_complete: adresseComplete,
     // Les chiffres de la commune et les points à en dire, quand elle figure
     // dans le jeu de données des villes de plus de cent mille habitants. En
@@ -345,6 +316,91 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     // Les cessions de fonds relevées sur le dossier suivent le projet : c'est
     // sur sa carte qu'elles se lisent, à côté du bien.
     transactions_fonds: lot.transactions_fonds || null,
+
+  };
+  return { adresseComplete, champs };
+}
+
+// Les cases de l'Analyse tranchées (OK) qui ont leur place dans le projet. Le texte de la case passe tel quel, sauf
+// le loyer, ramené à l'année (« 1 500 € par mois » → 18 000).
+const CASES_DU_PROJET = [
+  ['bail', 'echeance', 'echeance_bail'],
+  ['bail', 'loyer_signature', 'loyer_annuel_ht'],
+  ['kbis', 'denomination', 'nom_locataire'],
+  ['kbis', 'activite', 'activite_locataire'],
+];
+export function loyerAnnuel(texte) {
+  const t = String(texte || '').toLowerCase();
+  const m = t.replace(/(\d)[\s\u00a0\u202f.](?=\d{3}\b)/g, '$1').match(/\d+(?:,\d+)?/);
+  if (!m) return null;
+  const n = Number(m[0].replace(',', '.'));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(/mois|mensuel/.test(t) ? n * 12 : /trimestr/.test(t) ? n * 4 : n);
+}
+
+/**
+ * Remet le projet à jour depuis le dossier (30 oct. 2026, Jules : un projet rentré dès la Pré-analyse, puis analysé,
+ * gardait ses chiffres de départ). Les chiffres du lot et les cases tranchées de l'Analyse remplacent ceux du projet ;
+ * une valeur vide du dossier n'efface jamais celle du projet. Les photos, textes et réglages du projet ne bougent pas.
+ */
+export async function mettreAJourProjetDepuisDeal(dealId, user) {
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  if (!deal) return { ok: false, error: 'Dossier introuvable' };
+  const projet = deal.projet_id ? Records.get('Project', deal.projet_id) : null;
+  if (!projet) return { ok: false, error: "Ce dossier n'a pas de projet." };
+  const { champs } = donneesDuLot(lotOuVide(deal, 0));
+  const plein = (v) => v != null && v !== '' && v !== 0 && !(typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
+  const patch = Object.fromEntries(Object.entries(champs).filter(([, v]) => plein(v)));
+  const { lireAnalyse } = await import('./analyse-pieces.js');
+  const analyse = lireAnalyse(dealId);
+  for (const [grille, critere, champ] of CASES_DU_PROJET) {
+    const l = analyse?.grilles?.find((g) => g.id === grille)?.lignes.find((x) => x.id === critere);
+    if (!l || !['verifie', 'corrige'].includes(l.statut) || !l.valeur) continue;
+    const v = champ === 'loyer_annuel_ht' ? loyerAnnuel(l.valeur) : String(l.valeur).trim();
+    if (plein(v)) patch[champ] = v;
+  }
+  const { patch: pieces } = patchDepuisExtractions(deal, { ...projet, ...patch });
+  Object.assign(patch, pieces);
+  Records.update('Project', projet.id, { ...patch, maj_depuis_dossier_le: new Date().toISOString(), maj_depuis_dossier_par: user?.email || null });
+  return { ok: true, project_id: projet.id, champs: Object.keys(patch).length };
+}
+
+/**
+ * Crée le Project pré-rempli et passe le deal en `projet_cree`.
+ * @returns {{ ok: true, project } | { ok: false, error }}
+ */
+export function creerProjetDepuisDeal(dealId, lotIndex, user) {
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  if (!deal) return { ok: false, error: 'Dossier introuvable' };
+  // Un projet supprimé laissait son identifiant sur le dossier : la plateforme
+  // refusait alors d'en créer un autre, en désignant un projet qui n'existe
+  // plus. On ne refuse que si le projet est encore là.
+  if (deal.projet_id) {
+    if (Records.get('Project', deal.projet_id)) {
+      return { ok: false, error: 'Un projet existe déjà pour ce deal.', project_id: deal.projet_id };
+    }
+    delierProjet(deal.projet_id, user);
+  }
+  // Sans pré-analyse, le projet naît d'une fiche vide au nom du dossier.
+  const lot = lotOuVide(deal, lotIndex);
+  const { adresseComplete, champs } = donneesDuLot(lot);
+
+  // Tous les admins voient le projet, comme dans l'éditeur AdminProjets.
+  const adminEmails = Records.filter('User', { role: 'admin' })
+    .map((u) => u.email)
+    .filter(Boolean);
+
+  const projet = {
+    // Un projet issu d'un deal de test est marqué pour être repérable (et
+    // supprimé avec le deal).
+    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom), adresseComplete, val(lot.lot.locataire_activite))}`,
+    statut: 'analyse',
+    archived: false,
+    admin_principal: user?.email || adminEmails[0] || null,
+    client_email: '',
+    client_emails: [...new Set([...(adminEmails || []), user?.email].filter(Boolean))],
+
+    ...champs,
 
     // Traçabilité et suivi client (toggles à plat).
     deal_id: deal.deal_id,

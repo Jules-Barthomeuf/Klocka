@@ -102,10 +102,10 @@ export default function LigneProjet({ project, clients = null, chargement = fals
         <div className="overflow-hidden">
           <div className={`border-t border-trait px-6 pb-5 pt-4 transition-transform duration-300 ease-out max-md:px-4 ${ouvert ? "translate-y-0" : "-translate-y-2"}`}>
             <p className="m-0 mb-3 text-[13px] text-ardoise">Clients possibles</p>
-            {erreur ? <p className="m-0 text-[13px] text-brume">Rapprochement indisponible : Sunday CRM n'a pas répondu.</p>
-              : chargement ? <p className="m-0 flex items-center gap-2 text-[13px] text-brume"><Loader2 className="h-3.5 w-3.5 animate-spin" />Rapprochement des clients Sunday CRM…</p>
-              : configure === false ? <p className="m-0 text-[13px] text-brume">Sunday CRM n'est pas relié : aucun rapprochement possible.</p>
-              : !n ? <p className="m-0 text-[13px] text-brume">Aucun client Sunday CRM ne correspond au prix et à la zone de ce projet.</p>
+            {erreur ? <p className="m-0 text-[13px] text-brume">Rapprochement indisponible : Twenty CRM n'a pas répondu.</p>
+              : chargement ? <p className="m-0 flex items-center gap-2 text-[13px] text-brume"><Loader2 className="h-3.5 w-3.5 animate-spin" />Rapprochement des clients Twenty CRM…</p>
+              : configure === false ? <p className="m-0 text-[13px] text-brume">Twenty CRM n'est pas relié : aucun rapprochement possible.</p>
+              : !n ? <p className="m-0 text-[13px] text-brume">Aucun client Twenty CRM ne correspond au prix et à la zone de ce projet.</p>
               : (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {clients.map((c, i) => (

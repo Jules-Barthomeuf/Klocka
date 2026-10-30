@@ -40,7 +40,7 @@ test("à la première visite, un exemple par page ; une seule fois, et chacun ne
   assert.equal(P.fileDeValidation().filter((l) => /exemple/i.test(l.titre)).length, 0);
 });
 
-test("un exemple ne sort pas : ni transfert à Klocka, ni MyNotary, ni Sunday CRM", async () => {
+test("un exemple ne sort pas : ni transfert à Klocka, ni MyNotary, ni Twenty CRM", async () => {
   // Le dossier complet d'origine est devenu le bien en mise en marché (Carpentras, au go) le 25 oct. 2026.
   const d = P.listerDossiers(MOI).find((x) => /Carpentras/.test(x.bien));
   assert.ok(P.checklist(d).complet, 'le dossier complet a ses pièces');

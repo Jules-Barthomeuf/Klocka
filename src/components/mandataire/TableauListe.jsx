@@ -410,7 +410,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
           Seul le débord horizontal (colonnes sur un écran étroit) défile dans le cadre. */}
       {/* Au téléphone, plus de tableau (25 oct. 2026) : une ligne par commerce, le nom, la pastille du statut, la prochaine
           action ; un toucher ouvre la fiche au milieu de l'écran. */}
-      <ul className="m-0 mt-4 list-none overflow-hidden rounded-[16px] border border-bord-doux bg-rail p-0 md:hidden">
+      <ul className="m-0 mt-4 list-none overflow-hidden rounded-[14px] border border-bord-doux bg-rail p-0 md:hidden">
         {lignes.map((p) => (
           <li key={p.id} className="border-b border-trait last:border-b-0">
             <button type="button" onClick={() => setOuvert(p.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left" style={{ background: "transparent" }}>
@@ -426,7 +426,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
         ))}
         {!lignes.length && <li className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : filtre === "a_appeler" ? "Plus personne à contacter dans cette liste." : "Rien ici."}</li>}
       </ul>
-      <div className="mt-4 overflow-x-auto rounded-[16px] border border-[color-mix(in_srgb,var(--k-bord-doux)_60%,transparent)] bg-rail max-md:hidden">
+      <div className="mt-4 overflow-x-auto rounded-[14px] border border-bord-doux bg-rail max-md:hidden">
         {/* Bordures séparées, pas fusionnées (25 oct. 2026, Jules : « on voit du texte passer derrière ») : fusionnées, les traits
             appartiennent au tableau et ne suivent pas les colonnes figées, le texte qui défile se voyait au travers ; séparées,
             chaque cellule porte les siens, peints sur son fond opaque. */}

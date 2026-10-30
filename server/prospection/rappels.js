@@ -364,8 +364,8 @@ async function ficheDeMonday(l) {
     return existante.id;
   }
   const C = await import('./carnet.js');
-  const f = Records.create('AgentImmo', { ...C.ficheDuCandidat({ nom: nomMonday(l), agence: l.entreprise || null, ville: l.ville || null, telephone: tels[0] || null, email: (l.emails || [])[0] || null, source: 'Sunday CRM' }), monday_ligne_id: l.id });
-  C.journal(f.id, { type: 'note', texte: 'Repris de Sunday CRM (Agent immobilier), depuis un rappel', par: null });
+  const f = Records.create('AgentImmo', { ...C.ficheDuCandidat({ nom: nomMonday(l), agence: l.entreprise || null, ville: l.ville || null, telephone: tels[0] || null, email: (l.emails || [])[0] || null, source: 'Twenty CRM' }), monday_ligne_id: l.id });
+  C.journal(f.id, { type: 'note', texte: 'Repris de Twenty CRM (Agent immobilier), depuis un rappel', par: null });
   return f.id;
 }
 
@@ -641,10 +641,10 @@ export async function finir(id, { morceaux = [], audios = [], notes = null, dure
       const m = trouverDansMonday(qui, await lignesMonday());
       if (m.ligne) {
         t = r.essai
-          ? await copieEssai({ nom: nomMonday(m.ligne), agence: m.ligne.entreprise, ville: m.ligne.ville, telephone: String(m.ligne.telephone || '').split(/[,;/]/)[0], email: (m.ligne.emails || [])[0] }, 'Sunday CRM (copie d\'essai)')
-          : { agent_id: await ficheDeMonday(m.ligne), raison: 'fiche Sunday CRM' };
+          ? await copieEssai({ nom: nomMonday(m.ligne), agence: m.ligne.entreprise, ville: m.ligne.ville, telephone: String(m.ligne.telephone || '').split(/[,;/]/)[0], email: (m.ligne.emails || [])[0] }, 'Twenty CRM (copie d\'essai)')
+          : { agent_id: await ficheDeMonday(m.ligne), raison: 'fiche Twenty CRM' };
       } else if (m.lignes?.length) {
-        const deMonday = m.lignes.map((l) => ({ cle: `monday:${l.id}`, agent_id: null, agence_id: null, monday_ligne_id: l.id, nom: nomMonday(l), agence: l.entreprise || null, ville: l.ville || null, telephone: l.telephone || null, raison: 'Sunday CRM', probable: false }));
+        const deMonday = m.lignes.map((l) => ({ cle: `monday:${l.id}`, agent_id: null, agence_id: null, monday_ligne_id: l.id, nom: nomMonday(l), agence: l.entreprise || null, ville: l.ville || null, telephone: l.telephone || null, raison: 'Twenty CRM', probable: false }));
         t = { ...t, candidats: [...(t.candidats || []), ...deMonday.filter((x) => !(t.candidats || []).some((c) => c.nom === x.nom && c.agence === x.agence))].slice(0, 5) };
       }
     }
@@ -684,7 +684,7 @@ export async function identifier(id, { agent_id = null, agence_id = null, nouvea
   // Une ligne Monday choisie parmi celles de la note : sa fiche locale, reprise ou créée depuis Monday.
   if (!agentId && monday_ligne_id) {
     const l = (await lignesMonday()).find((x) => String(x.id) === String(monday_ligne_id));
-    if (!l) return { ok: false, error: 'Cette ligne Sunday CRM est introuvable.' };
+    if (!l) return { ok: false, error: 'Cette ligne Twenty CRM est introuvable.' };
     // En essai, la ligne Monday choisie devient une copie d'essai : rien de réel n'est touché.
     if (r.essai) return identifier(id, { nouveau: { nom: nomMonday(l), agence: l.entreprise || '', ville: l.ville || '', telephone: String(l.telephone || '').split(/[,;/]/)[0] || '', email: (l.emails || [])[0] || '' } }, user);
     agentId = await ficheDeMonday(l);

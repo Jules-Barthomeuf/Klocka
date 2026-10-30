@@ -258,7 +258,7 @@ export function scoreFit(local, { demande = null, vacanceRue = null } = {}) {
   c.push({ cle: 'lot', libelle: 'Un local, un locataire, monopropriété', sur: 10, points: copro ? 4 : local.proprietaire?.lots?.length ? 10 : 7, valeur: copro ? 'copropriété ou plusieurs lots' : local.proprietaire?.lots?.length ? 'monopropriété' : 'non mesuré', source: 'Cadastre des personnes morales' });
   c.push({ cle: 'commune', libelle: 'Commune', sur: 10, points: 7, valeur: local.ville || 'non mesuré', source: 'INSEE (à affiner)' });
   c.push({ cle: 'vacance_rue', libelle: 'Vacance commerciale de la rue', sur: 10, points: vacanceRue == null ? 8 : vacanceRue > 15 ? 3 : 10, valeur: vacanceRue == null ? 'non mesuré' : `${vacanceRue} % de locaux vides`, source: 'Fermetures SIRENE' });
-  c.push({ cle: 'demande', libelle: 'Demande des investisseurs Klocka', sur: 20, points: demande == null ? 0 : demande >= 2 ? 20 : demande >= 1 ? 10 : 0, valeur: demande == null ? 'non mesuré' : demande ? `${demande} mandat${demande > 1 ? 's' : ''} correspond${demande > 1 ? 'ent' : ''}` : 'aucun mandat ne correspond', source: 'Clients investisseurs (Sunday CRM)' });
+  c.push({ cle: 'demande', libelle: 'Demande des investisseurs Klocka', sur: 20, points: demande == null ? 0 : demande >= 2 ? 20 : demande >= 1 ? 10 : 0, valeur: demande == null ? 'non mesuré' : demande ? `${demande} mandat${demande > 1 ? 's' : ''} correspond${demande > 1 ? 'ent' : ''}` : 'aucun mandat ne correspond', source: 'Clients investisseurs (Twenty CRM)' });
   const total = Math.max(0, Math.min(100, c.reduce((t, x) => t + x.points, 0)));
   return { total, criteres: c };
 }

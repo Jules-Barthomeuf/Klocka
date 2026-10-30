@@ -249,7 +249,7 @@ const CHAMPS_SAISISSABLES = {
 };
 
 // « 45 rue Victor Hugo, 69002 Lyon » → { rue, code_postal, ville }.
-function lireAdresse(v) {
+export function lireAdresse(v) {
   if (v && typeof v === 'object') return { rue: v.rue || null, code_postal: v.code_postal || null, ville: v.ville || null };
   const t = String(v || '').trim();
   const m = t.match(/^(.*?)[,\s]*\b(\d{5})\s+(.+)$/);

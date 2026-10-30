@@ -36,13 +36,13 @@ test('les règles : ni relance ni mail', () => {
   assert.equal(issueDuModeAppel('rappelle_bientot'), 'rappelle_bientot');
 });
 
-test('Que du résidentiel : validé d’office, rien dans Sunday CRM, aucune relance, l’agence sort de la file', async () => {
+test('Que du résidentiel : validé d’office, rien dans Twenty CRM, aucune relance, l’agence sort de la file', async () => {
   const ag = agence();
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'residentiel', user: nora });
   assert.equal(r.ok, true);
   assert.equal(r.simple, true);
   assert.equal(r.issue, 'residentiel');
-  assert.ok(!r.recu?.monday || r.recu.monday.etat !== 'ok', 'pas de ligne Sunday CRM');
+  assert.ok(!r.recu?.monday || r.recu.monday.etat !== 'ok', 'pas de ligne Twenty CRM');
   assert.ok(!r.recu?.mail, 'pas de mail');
   assert.ok(!r.recu?.relance, 'pas de relance');
   const a = Records.get('AgenceProspect', ag.id);

@@ -11,7 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Records } from '../db.js';
-import { lireDepots, rangerPiece, enfiler, grilleDe, TYPES, pagesDuTexte, CRITERES_BIEN } from './analyse-pieces.js';
+import { lireDepots, rangerPiece, enfiler, grilleDe, TYPES, pagesDuTexte, CRITERES_BIEN, ongletDuType } from './analyse-pieces.js';
 import { nomDossierDrive } from './nom-drive.js';
 
 const dealDe = (dealId) => Records.findBy('Deal', 'deal_id', dealId) || null;
@@ -234,5 +234,7 @@ export function lancerAnalyse(dealId, { uploadDir, user } = {}) {
   const a = aLire(dealId);
   for (const p of a.nouvelles) enfiler(dealId, p.id, { uploadDir, user });
   for (const p of a.completer) enfiler(dealId, p.id, { uploadDir, user, seulement: p.manque });
-  return { ok: true, lancees: a.nouvelles.length, completees: a.completer.length, deja: a.lues };
+  // L'onglet où regarder ensuite : celui de la première pièce nouvelle (un PV mène à Copropriété).
+  const onglet = a.nouvelles.map((p) => ongletDuType(p.zone)).find(Boolean) || null;
+  return { ok: true, lancees: a.nouvelles.length, completees: a.completer.length, deja: a.lues, onglet };
 }

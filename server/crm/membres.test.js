@@ -1,4 +1,4 @@
-// Les champs Personnes en membres de Sunday CRM (28 oct. 2026). Twenty simulé.
+// Les champs Personnes en membres de Twenty CRM (28 oct. 2026). Twenty simulé.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as Mb from './membres.js';
@@ -42,7 +42,7 @@ test('accorder : les membres suivent le texte, sans doublon', async () => {
   assert.deepEqual(t.journal, [['creer', 'm2'], ['supprimer', 'l9']]);
 });
 
-test('un membre retiré dans Sunday CRM : le texte suit et garde les noms sans compte', async () => {
+test('un membre retiré dans Twenty CRM : le texte suit et garde les noms sans compte', async () => {
   const t = twenty([{ id: 'l2', membreId: 'm2' }]);
   Mb.brancherPourTests({ twenty: t, objets: [OBJET], equipe: EQUIPE });
   const [p] = Mb.champsPersonnes(OBJET);

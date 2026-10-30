@@ -191,7 +191,7 @@ test("un admin cumule le rôle mandataire sans rien perdre", async () => {
   assert.equal(listerMandataires().some((m) => m.email === 'jules.b@klocka.immo'), false);
 });
 
-test("une ligne Sunday CRM devient une demande un peu anonymisée", async () => {
+test("une ligne Twenty CRM devient une demande un peu anonymisée", async () => {
   const { demandeDepuisMonday } = await import('./mandataire-espace.js');
   const d = demandeDepuisMonday({ id: '42', nom: 'Yann Jaffré', statut: 'Recherche', budget: 412000, fonds_propres: 120000, revenu: 95000, lieu_recherche: 'PACA / Rhone-Alpes', objectif: 'Equilibre' });
   assert.deepEqual(d.zones, ['PACA', 'Rhone-Alpes']);

@@ -112,6 +112,8 @@ button:focus-visible {
     --k-ambre-rgb: 224 164 94;
     --k-vert-rgb: 127 209 168;
     --k-jaune-rgb: 227 207 92;
+    /* Une ligne lue par l'IA, pas encore vérifiée (30 oct. 2026, Jules) : le sable #E0CEA9. */
+    --k-lu-ia-rgb: 224 206 169;
     --k-bleu-rgb: 143 182 232;
     /* La pervenche (accent « Pervenche » des jetons) : le contour du chat dans une fiche (24 oct. 2026). */
     --k-pervenche-rgb: 166 171 242;
@@ -161,6 +163,7 @@ button:focus-visible {
     --k-ambre-rgb: 169 100 28;
     --k-vert-rgb: 47 122 85;
     --k-jaune-rgb: 150 120 10;
+    --k-lu-ia-rgb: 224 206 169;
     --k-bleu-rgb: 91 111 168;
     --k-pervenche-rgb: 75 82 196;
     --k-appel-rgb: 168 121 74;
@@ -767,6 +770,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
     --k-ambre-rgb: 169 100 28;
     --k-vert-rgb: 47 122 85;
     --k-jaune-rgb: 150 120 10;
+    --k-lu-ia-rgb: 224 206 169;
     --k-bleu-rgb: 91 111 168;
     --k-pervenche-rgb: 75 82 196;
     --k-appel-rgb: 168 121 74;

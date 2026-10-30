@@ -379,13 +379,15 @@ export function corrigerValeur(dealId, grilleId, critereId, valeur, user) {
 }
 
 /** La note libre d'un critère : un commentaire d'analyste, vide pour l'effacer. */
-export function noterCritere(dealId, grilleId, critereId, texte, user) {
+export function noterCritere(dealId, grilleId, critereId, texte, user, { iaRetiree = false } = {}) {
   const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const cle = `${grilleId}.${critereId}`;
   const notes = { ...(brut.grilles_notes || {}) };
   const v = String(texte || '').trim().slice(0, 2000);
   if (v) notes[cle] = { texte: v, par: user?.email || null, le: new Date().toISOString() };
+  // La note de l'IA effacée à la main reste effacée (30 oct. 2026, Jules : « j'en fais ce que je veux ») : on le retient.
+  else if (iaRetiree) notes[cle] = { texte: '', ia_retiree: true, par: user?.email || null, le: new Date().toISOString() };
   else delete notes[cle];
   Records.update('Deal', brut.id, { grilles_notes: notes });
   return { ok: true };

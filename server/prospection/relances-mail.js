@@ -191,7 +191,7 @@ export async function validerRelanceMail(id, { objet = null, corps = null, a = n
     const ag = agence || { id: null, nom: m.agence || fiche?.agence || null, liste_id: null, telephone: (fiche?.telephones || [])[0] || null };
     const d = MA.donneesMonday({ appel: { ...appel, compris: {} }, agence: ag, fiche, issue: 'relance_mail', user, relance: prochaine, email: m.a, diffusion: null });
     monday = (await MA.ecrireMonday({ appel_id: appel.id, cible: MA.cibleMonday(d, ag, fiche), donnees: d })).monday;
-  } catch (e) { monday = { etat: 'attente', texte: 'Sunday CRM en attente', erreur: String(e?.message || e).slice(0, 200) }; }
+  } catch (e) { monday = { etat: 'attente', texte: 'Twenty CRM en attente', erreur: String(e?.message || e).slice(0, 200) }; }
   const recu = { mail: { etat: 'ok', texte: `Mail envoyé à ${m.a}${x.simule ? ' (simulé)' : ''}` }, monday, relance: { etat: 'ok', texte: `Prochaine relance le ${R.dateCourte(prochaine)}` }, le: maintenantD.toISOString() };
   Records.update(APPEL, appel.id, { recu });
   await apresAppel({ agent_id: m.agent_id, agence_id: m.agence_id || null, issue: 'relance_mail', user, maintenantD });

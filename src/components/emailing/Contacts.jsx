@@ -255,15 +255,15 @@ function BandeauMonday({ onFait }) {
   const { data, refetch } = useQuery({ queryKey: ["emailing-listes-monday"], queryFn: () => req("GET", "/listes/monday") });
   const relire = useMutation({
     mutationFn: () => req("POST", "/listes/monday"),
-    onSuccess: (r) => { toast.success("Listes relues dans Sunday CRM", { description: `${pluriel(r.nouveaux, "nouveau contact", "nouveaux contacts")}, ${pluriel(r.mis_a_jour, "mis à jour", "mis à jour")}.` }); refetch(); onFait(); },
-    onError: (e) => toast.error(e?.message || "Lecture de Sunday CRM impossible"),
+    onSuccess: (r) => { toast.success("Listes relues dans Twenty CRM", { description: `${pluriel(r.nouveaux, "nouveau contact", "nouveaux contacts")}, ${pluriel(r.mis_a_jour, "mis à jour", "mis à jour")}.` }); refetch(); onFait(); },
+    onError: (e) => toast.error(e?.message || "Lecture de Twenty CRM impossible"),
   });
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3">
-      <span className="text-[13.5px] text-craie">Listes tirées de Sunday CRM</span>
+      <span className="text-[13.5px] text-craie">Listes tirées de Twenty CRM</span>
       <span className="text-[12.5px] text-ardoise">{data?.le ? `lues le ${dateHeure(data.le)}, relues chaque jour` : "jamais lues"}</span>
       <button type="button" onClick={() => relire.mutate()} disabled={relire.isPending} className={`${bouton} ml-auto`}>
-        {relire.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}{data?.le ? "Relire Sunday CRM" : "Créer les listes depuis Sunday CRM"}
+        {relire.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}{data?.le ? "Relire Twenty CRM" : "Créer les listes depuis Twenty CRM"}
       </button>
     </div>
   );
@@ -409,7 +409,7 @@ export default function Contacts({ demande = null }) {
               </button>
               <div className="mt-1.5 flex items-center gap-3 text-[12.5px] text-ardoise">
                 <span>{pluriel(l.abonnes ?? l.total, "abonné")}</span>
-                {l.monday && <span className="rounded-full border border-trait px-2 text-[11px] text-ardoise">Sunday CRM</span>}
+                {l.monday && <span className="rounded-full border border-trait px-2 text-[11px] text-ardoise">Twenty CRM</span>}
                 <span className="ml-auto flex gap-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100">
                   <button type="button" onClick={() => { const n = window.prompt("Nouveau nom :", l.nom); if (n) appel.mutate(["PATCH", `/listes/${l.id}`, { nom: n }]); }} className="hover:text-encre" style={{ background: "transparent" }}>Renommer</button>
                   <button type="button" onClick={() => { if (window.confirm(`Supprimer la liste « ${l.nom} » ? Ses contacts restent.`)) appel.mutate(["DELETE", `/listes/${l.id}`]); }} className="hover:text-alerte" style={{ background: "transparent" }}>Supprimer</button>

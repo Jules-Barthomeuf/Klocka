@@ -14,16 +14,16 @@ function Mention({ children }) {
 export default function ClientsCorrespondants({ clients, chargement, configure, erreur }) {
   const [ouvert, setOuvert] = useState(false);
 
-  if (erreur) return <Mention>Rapprochement indisponible : Sunday CRM n'a pas répondu.</Mention>;
+  if (erreur) return <Mention>Rapprochement indisponible : Twenty CRM n'a pas répondu.</Mention>;
   if (chargement)
     return (
       <Mention>
         <Loader2 className="mr-1.5 inline-block h-3 w-3 animate-spin align-[-2px]" />
-        Rapprochement des clients Sunday CRM…
+        Rapprochement des clients Twenty CRM…
       </Mention>
     );
-  if (configure === false) return <Mention>Sunday CRM n'est pas relié : aucun rapprochement possible.</Mention>;
-  if (!clients?.length) return <Mention>Aucun client Sunday CRM ne correspond au prix et à la zone de ce projet.</Mention>;
+  if (configure === false) return <Mention>Twenty CRM n'est pas relié : aucun rapprochement possible.</Mention>;
+  if (!clients?.length) return <Mention>Aucun client Twenty CRM ne correspond au prix et à la zone de ce projet.</Mention>;
 
   const visibles = ouvert ? clients : clients.slice(0, 2);
   const initiales = (nom) => String(nom || "").trim().split(/\s+/).slice(0, 2).map((m) => m[0]).join("").toUpperCase();

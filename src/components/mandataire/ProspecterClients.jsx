@@ -94,7 +94,7 @@ export default function ProspecterClients({ bascule = null }) {
   useEffect(() => { setFiltres(FILTRES_DEPART); }, [prospecte]);
 
   // Chargement, erreur, pas de secteur : la bascule reste, pour passer à « Tous les commerces ».
-  const seul = (contenu) => <div className="flex flex-col gap-4"><div className="flex flex-wrap items-center gap-2">{bascule}</div>{contenu}</div>;
+  const seul = (contenu) => <div className="flex flex-col gap-4">{bascule && <div className="flex flex-wrap items-center gap-2">{bascule}</div>}{contenu}</div>;
   if (isLoading) return seul(<Loader titre="Votre secteur et vos clients…" />);
   if (isError) return seul(<p className="m-0 mt-6 text-[13.5px] text-alerte">La prospection ne se charge pas. Rechargez la page.</p>);
   if (!data?.secteur) return seul(<p className="m-0 mt-12 text-center text-[14px] text-brume">Aucun secteur pour vous encore : K Partners vous en attribue un, puis vos clients s'affichent ici.</p>);

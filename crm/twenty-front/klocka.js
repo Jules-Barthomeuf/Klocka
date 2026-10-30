@@ -1,7 +1,7 @@
 // Klocka dans Twenty (28 oct. 2026, Jules) : trois ajouts à l'écran, sans toucher au code de Twenty.
 //   1. Les vues en onglets à droite du choix de vue (« All Clients | Clients signés | Clients en cours… »).
 //   2. Un bandeau juste au-dessus des lignes cochées : nombre de fiches, Déplacer, Dupliquer, Supprimer, croix.
-//   3. Un clic sur une adresse mail ouvre la fenêtre d’envoi, avec les modèles de Sunday CRM (29 oct.).
+//   3. Un clic sur une adresse mail ouvre la fenêtre d’envoi, avec les modèles de Twenty CRM (29 oct.).
 // Chargé par la page d'accueil de Twenty (index.html de ce dossier, servi par le site statique et désigné par
 // FRONTEND_INDEX_URL). Les appels passent par l'API de Twenty avec le cookie de la personne connectée : mêmes droits
 // qu'elle. Déplacer remplit « Déplacer vers » (Klocka déplace par webhook, server/crm/deplacer.js).

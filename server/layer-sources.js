@@ -177,7 +177,7 @@ export function depuisMonday(corps, { extraire = true } = {}) {
   return { ok: true, source: s.source, deja: !!s.deja };
 }
 
-// --- La même chose depuis Sunday CRM (Twenty), le CRM qui remplace Monday (28 oct. 2026) ---
+// --- La même chose depuis Twenty CRM (Twenty), le CRM qui remplace Monday (28 oct. 2026) ---
 // Le webhook Twenty (POST /api/crm/webhook) apporte un statut changé par une personne et une note ajoutée sur une
 // fiche d'Agent immobilier ou de Propriétés. La fiche locale se retrouve par l'id Monday que garde la fiche Twenty.
 const OBJETS_TWENTY = { agentImmobilier: 'agents', proprietes: 'proprietes' };
@@ -188,7 +188,7 @@ const champsCrm = (objet) => {
 };
 const lienTwenty = (objet, id) => (process.env.TWENTY_URL && id ? `${String(process.env.TWENTY_URL).replace(/\/+$/, '')}/object/${objet}/${id}` : null);
 
-/** Un statut changé dans Sunday CRM (événement « <objet>.updated » d'une personne). Rend { ok, source?, ignore? }. */
+/** Un statut changé dans Twenty CRM (événement « <objet>.updated » d'une personne). Rend { ok, source?, ignore? }. */
 export function depuisTwenty(ev, { extraire = true } = {}) {
   const [objet, geste] = String(ev?.eventName || '').split('.');
   const tableau = OBJETS_TWENTY[objet];
@@ -202,8 +202,8 @@ export function depuisTwenty(ev, { extraire = true } = {}) {
   const nom = r.name ? `« ${r.name} »` : 'une fiche';
   const s = ajouterSource({
     type: 'evenement', date: ev.eventDate || null,
-    titre: `Sunday CRM : ${r.name || r.id}, ${c.label} « ${apres} »`,
-    contenu: `Sur Sunday CRM, tableau ${NOMS[tableau]}, ${nom} : la colonne « ${c.label} » passe à « ${apres} ».`,
+    titre: `Twenty CRM : ${r.name || r.id}, ${c.label} « ${apres} »`,
+    contenu: `Sur Twenty CRM, tableau ${NOMS[tableau]}, ${nom} : la colonne « ${c.label} » passe à « ${apres} ».`,
     lien_original: lienTwenty(objet, r.id), liens: liensMonday(tableau, r.mondayId || r.id),
     id_externe: `twenty:statut:${r.id}:${c.name}:${ev.eventDate || r.updatedAt || ''}`,
   });
@@ -212,15 +212,15 @@ export function depuisTwenty(ev, { extraire = true } = {}) {
   return { ok: true, source: s.source, deja: !!s.deja };
 }
 
-/** Une note ajoutée dans Sunday CRM sur une fiche suivie (lue par server/crm/synchro.js). */
+/** Une note ajoutée dans Twenty CRM sur une fiche suivie (lue par server/crm/synchro.js). */
 export function noteDepuisTwenty({ objet, fiche, noteId, texte, date = null }, { extraire = true } = {}) {
   const tableau = OBJETS_TWENTY[objet];
   const t = String(texte || '').trim();
   if (!tableau || !t) return { ok: true, ignore: tableau ? 'note vide' : 'tableau non suivi' };
   const nom = fiche?.name ? `« ${fiche.name} »` : 'une fiche';
   const s = ajouterSource({
-    type: 'evenement', date, titre: `Note Sunday CRM sur ${nom}`,
-    contenu: `Note laissée sur Sunday CRM, tableau ${NOMS[tableau]}, sur ${nom} :\n\n${t}`,
+    type: 'evenement', date, titre: `Note Twenty CRM sur ${nom}`,
+    contenu: `Note laissée sur Twenty CRM, tableau ${NOMS[tableau]}, sur ${nom} :\n\n${t}`,
     lien_original: lienTwenty(objet, fiche?.id), liens: liensMonday(tableau, fiche?.mondayId || fiche?.id), id_externe: `twenty:note:${noteId}`,
   });
   if (!s.ok) return s;

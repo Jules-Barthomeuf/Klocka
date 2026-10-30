@@ -99,6 +99,8 @@ export const TYPES = [
   { id: 'autre', titre: 'Autre pièce', grille: null, attendus: 0, categorie: CATEGORIE_PAR_TYPE.autre },
 ];
 const TYPE = Object.fromEntries(TYPES.map((t) => [t.id, t]));
+/** L'onglet de l'Analyse où se lit une pièce de ce type (« pv_ag » → « copropriete »), ou null. */
+export const ongletDuType = (type) => GRILLES_LUES.find((g) => g.id === TYPE[type]?.grille)?.onglet || null;
 
 // Les grilles lues, et l'onglet de l'analyse où chacune s'affiche.
 export const GRILLES_LUES = [
@@ -377,6 +379,8 @@ export async function lirePiece(dealId, docId, { uploadDir, user, seulement = nu
   const brut = dealDe(dealId);
   const etatDoc = brut?.analyse_pieces?.docs?.[docId];
   if (!etatDoc) return { ok: false, error: 'Pièce non rangée' };
+  // Une pièce jamais lue : c'est elle qui peut contredire une ligne vérifiée (pas la relecture d'une pièce connue).
+  const premiere = !seulement && !Object.keys(etatDoc.valeurs || {}).length;
   const type = etatDoc.type;
   const grille = grilleDe(TYPE[type]?.grille);
   if (!grille) return { ok: false, error: "Cet emplacement ne se lit pas" };
@@ -409,6 +413,19 @@ export async function lirePiece(dealId, docId, { uploadDir, user, seulement = nu
       if (!d || d.type !== type) return false;
       d.valeurs = seulement ? { ...(d.valeurs || {}), ...valeurs } : valeurs;
       d.extraction = { statut: 'fait', le: new Date().toISOString(), par: user?.email || null };
+      // Une pièce nouvelle qui contredit une ligne vérifiée la repasse à vérifier (30 oct. 2026, Jules) : la valeur saisie
+      // et la note restent de côté. Sur une grille empilée (quittances, PV), toute pièce nouvelle ajoute à la ligne.
+      if (premiere) {
+        const gid = TYPE[type]?.grille;
+        for (const [crit, v] of Object.entries(valeurs)) {
+          if (!v?.valeur) continue;
+          const cle = `${gid}.${crit}`;
+          const h = etat.cases[cle];
+          if (!h || !['verifie', 'corrige'].includes(h.statut)) continue;
+          if (!EMPILEES.has(gid) && norm(h.valeur) === norm(v.valeur)) continue;
+          etat.cases[cle] = { note: h.note || null, source: h.source || null, valeur_main: h.statut === 'corrige' ? h.valeur : h.valeur_main || null, par: h.par, le: h.le, contredite_par: docId };
+        }
+      }
     });
     return { ok: true, valeurs };
   } catch (e) {
@@ -521,7 +538,8 @@ function lireGrille(gid, brut, docs, ctx) {
         return v?.valeur ? { document_id: d.id, document_nom: d.nom, document_titre: d.titre, document_url: d.url, mime: d.mime, type: d.type, valeur: v.valeur, page: v.page, citation: v.citation, verifiee: v.verifiee ?? null, donnees: v.donnees || {} } : null;
       })
       .filter(Boolean);
-    const retenue = (humain?.source && sources.find((s) => s.document_id === humain.source)) || sources[0] || null;
+    // Par défaut, la pièce la plus récente (30 oct. 2026, Jules) : un avenant reçu après le bail donne le chiffre affiché.
+    const retenue = (humain?.source && sources.find((s) => s.document_id === humain.source)) || sources.at(-1) || null;
     const differentes = new Set(sources.map((s) => norm(s.valeur))).size > 1;
     let statut;
     let valeur = null;
@@ -535,9 +553,10 @@ function lireGrille(gid, brut, docs, ctx) {
     else statut = 'introuvable';
     // Une valeur vérifiée que la relecture contredit : on le dit, on ne la remplace pas.
     const relue = humain?.statut === 'verifie' && retenue && humain.valeur && norm(retenue.valeur) !== norm(humain.valeur) ? retenue.valeur : null;
-    // La règle juge la valeur lue ; une valeur corrigée à la main n'a plus de données à juger.
+    // La règle juge la valeur lue par l'IA. C'est la note de l'IA : ni le vert ni une valeur modifiée ne l'effacent,
+    // seule la personne la retire dans la case Notes (30 oct. 2026, Jules).
     let alerte = null;
-    if (retenue && (statut === 'ia' || (statut === 'verifie' && !relue))) {
+    if (retenue && statut !== 'introuvable') {
       const x = { texte: retenue.valeur, ...retenue.donnees };
       alerte = (GRILLES[gid] ? warnings(gid, c.id, x, ctx) : null) || alertesEnPlus(gid, c.id, x);
     }
@@ -638,6 +657,8 @@ export function lireAnalyse(dealId) {
     ecarts,
     a_voir: Object.fromEntries(['bail', 'quittances', 'copropriete', 'diagnostics'].map((o) => [o, aVoir(o)])),
     en_lecture: docs.filter((d) => ['en_attente', 'en_cours'].includes(d.extraction?.statut)).length,
+    // Les cases tranchées de la grille Marché, calculée par l'écran à partir de la lecture du marché.
+    cases_marche: Object.fromEntries(Object.entries(brut.analyse_pieces?.cases || {}).filter(([k]) => k.startsWith('marche.')).map(([k, v]) => [k.slice(7), v])),
   };
 }
 
@@ -648,7 +669,8 @@ export function lireAnalyse(dealId) {
 export function deciderCase(dealId, grilleId, critereId, { action, valeur, source, note, main = false } = {}, user) {
   // L'onglet Bien a ses propres lignes (« bien.surface », « bien.vendeur »…) : modifiables comme les grilles.
   const grille = grilleDe(grilleId);
-  const connue = grilleId === 'bien' ? /^[a-z_]{2,40}$/.test(String(critereId)) : !!grille?.criteres.some((c) => c.id === critereId);
+  // Bien et Marché (29 oct. 2026) ont leurs propres lignes, calculées ailleurs : toute ligne au bon format.
+  const connue = grilleId === 'bien' || grilleId === 'marche' ? /^[a-z_]{2,40}$/.test(String(critereId)) : !!grille?.criteres.some((c) => c.id === critereId);
   if (!connue) return { ok: false, error: 'Case inconnue' };
   const cle = `${grilleId}.${critereId}`;
   const signe = { par: user?.email || null, le: new Date().toISOString() };

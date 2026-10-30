@@ -988,7 +988,7 @@ export function monterMandataire(app) {
     try {
       ok(res, await synchroniserDemandesMonday({ user }));
     } catch (e) {
-      res.status(502).json({ error: `Sunday CRM n'a pas répondu : ${e?.message || e}` });
+      res.status(502).json({ error: `Twenty CRM n'a pas répondu : ${e?.message || e}` });
     }
   }));
 

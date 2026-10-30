@@ -66,7 +66,7 @@ export function monterMonday(app) {
     if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
     const { pousserProjet } = await import('../deal/monday-sync.js');
     const r = await pousserProjet(projet, { motif: req.body?.motif, par: currentUser(req) });
-    if (r?.ignore) return res.status(400).json({ error: 'Sunday CRM non configuré' });
+    if (r?.ignore) return res.status(400).json({ error: 'Twenty CRM non configuré' });
     ok(res, r);
   }));
 
@@ -79,7 +79,7 @@ export function monterMonday(app) {
       motif: req.body?.motif,
       par: currentUser(req),
     });
-    if (r?.ignore) return res.status(400).json({ error: 'Sunday CRM non configuré' });
+    if (r?.ignore) return res.status(400).json({ error: 'Twenty CRM non configuré' });
     ok(res, r);
   }));
 

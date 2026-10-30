@@ -105,7 +105,7 @@ export function chronologie(appel, { agence = null } = {}) {
   if (ui) l.push({ quoi: appel.etat === 'valide' ? 'Validation' : 'Écran de validation', detail: [ui.depuis_fenetre ? 'depuis la fenêtre' : 'depuis la page', ui.etapes != null ? `${ui.vues ?? '?'} étapes vues sur ${ui.etapes}` : null, (ui.retirees || []).length ? `retiré : ${ui.retirees.join(', ')}` : null, (ui.ajoutees || []).length ? `ajouté : ${ui.ajoutees.join(', ')}` : null].filter(Boolean).join(' · ') });
   if (Number.isFinite(t.valide_ms)) l.push({ quoi: 'Validé', detail: `${duree(t.valide_ms)} après le raccrochage${t.valide_ms >= SEUIL_VALIDATION_MS ? ' (au-delà de 2 minutes)' : ''}` });
   else if (appel.etat === 'a_valider') l.push({ quoi: 'Pas encore validé', detail: `en attente depuis ${duree(Date.now() - new Date(appel.le))}` });
-  if (appel.recu?.monday) l.push({ quoi: 'Sunday CRM', detail: court(appel.recu.monday.texte, 140) });
+  if (appel.recu?.monday) l.push({ quoi: 'Twenty CRM', detail: court(appel.recu.monday.texte, 140) });
   if (appel.recu?.mail) l.push({ quoi: 'Mail', detail: court(appel.recu.mail.texte, 140) });
   if (Number.isFinite(t.prepare_ms)) l.push({ quoi: 'Tout préparé', detail: `${duree(t.prepare_ms)} après le raccrochage` });
   return l;

@@ -724,8 +724,8 @@ function Demandes() {
   const synchro = data?.synchro || null;
   const synchroniser = useMutation({
     mutationFn: () => base44.request("POST", `${API}/demandes/synchroniser`),
-    onSuccess: (r) => { rafraichir(); toast.success(`Sunday CRM : ${r.crees} nouvelle${r.crees > 1 ? "s" : ""}, ${r.mises_a_jour} mise${r.mises_a_jour > 1 ? "s" : ""} à jour, ${r.fermees} fermée${r.fermees > 1 ? "s" : ""}`); },
-    onError: (e) => toast.error(e?.message || "Sunday CRM n'a pas répondu"),
+    onSuccess: (r) => { rafraichir(); toast.success(`Twenty CRM : ${r.crees} nouvelle${r.crees > 1 ? "s" : ""}, ${r.mises_a_jour} mise${r.mises_a_jour > 1 ? "s" : ""} à jour, ${r.fermees} fermée${r.fermees > 1 ? "s" : ""}`); },
+    onError: (e) => toast.error(e?.message || "Twenty CRM n'a pas répondu"),
   });
   const champ = (cle, placeholder, type = "text", largeur = "") => (
     <input type={type} value={forme[cle]} placeholder={placeholder}
@@ -736,14 +736,14 @@ function Demandes() {
     <div className="mt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="m-0 max-w-[70ch] text-[13px] text-ardoise">
-          Les clients Sunday CRM en « Recherche » ou « Def Strategie » arrivent seuls, anonymisés : sans nom (ses initiales), sans revenus, le budget en fourchette ; l'apport et les remarques suivent, le nom masqué.
+          Les clients Twenty CRM en « Recherche » ou « Def Strategie » arrivent seuls, anonymisés : sans nom (ses initiales), sans revenus, le budget en fourchette ; l'apport et les remarques suivent, le nom masqué.
           Le mandataire les lit sous « Client A », « Client B »… Une demande retouchée ici n'est plus réécrite par l'import.
         </p>
         <div className="flex items-center gap-3">
           {synchro?.le && <span className="text-[12px] text-brume">Import du {new Date(synchro.le).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>}
           <button type="button" onClick={() => synchroniser.mutate()} disabled={synchroniser.isPending}
             className="inline-flex items-center gap-1.5 rounded-full border border-bord px-3.5 py-1.5 text-[12.5px] text-craie hover:border-menthe/40 hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
-            <RefreshCw className={`h-3.5 w-3.5 ${synchroniser.isPending ? "animate-spin" : ""}`} /> Synchroniser Sunday CRM
+            <RefreshCw className={`h-3.5 w-3.5 ${synchroniser.isPending ? "animate-spin" : ""}`} /> Synchroniser Twenty CRM
           </button>
         </div>
       </div>
@@ -752,7 +752,7 @@ function Demandes() {
           <div key={d.id} className="flex items-center gap-3 border-t border-trait py-3 first:border-t-0">
             <div className="min-w-0 flex-1">
               <p className="m-0 text-[14px] text-encre">
-                {d.source === "monday" && <span className="mr-2 rounded border border-bord px-1.5 py-0.5 text-[10.5px] uppercase tracking-[.1em] text-ardoise">Sunday CRM</span>}
+                {d.source === "monday" && <span className="mr-2 rounded border border-bord px-1.5 py-0.5 text-[10.5px] uppercase tracking-[.1em] text-ardoise">Twenty CRM</span>}
                 {[d.profil, d.type_commerce, d.zones?.length ? d.zones.join(", ") : d.zone_libre].filter(Boolean).join(" · ")}
                 {(d.client_nom || d.client_email) && <span className="text-brume"> · {d.client_nom || d.client_email}</span>}
                 {d.active === false && <span className="ml-2 text-[12px] text-brume">(fermée : le client ne cherche plus)</span>}

@@ -77,7 +77,7 @@ export function verifierDossier(deal) {
 
   if (!deal.monday_item_id) {
     constats.push({
-      manque: "le bien ne figure pas dans le tableau Sunday CRM « Propriétés »",
+      manque: "le bien ne figure pas dans le tableau Twenty CRM « Propriétés »",
       action: "l'y poser avec son prix, son loyer et son statut",
       outil: 'pousser_dossier_monday',
       arguments: { deal_id: deal.deal_id },
@@ -87,12 +87,12 @@ export function verifierDossier(deal) {
   if (!deal.contact_agent_email) {
     constats.push({
       manque: "l'adresse de l'agent immobilier est inconnue",
-      action: 'à renseigner à la main : sans elle, aucun mail ni aucune liaison Sunday CRM',
+      action: 'à renseigner à la main : sans elle, aucun mail ni aucune liaison Twenty CRM',
       outil: null,
     });
   } else if (!agentDansMonday(deal.contact_agent_email)) {
     constats.push({
-      manque: `l'agent ${deal.contact_agent_email} n'a pas de fiche dans Sunday CRM`,
+      manque: `l'agent ${deal.contact_agent_email} n'a pas de fiche dans Twenty CRM`,
       action: 'créer sa fiche et la relier au bien',
       outil: 'creer_agent_monday',
       arguments: { deal_id: deal.deal_id },
@@ -162,7 +162,7 @@ export function verifierProjet(projet) {
 
   if (!projet.monday_item_id) {
     constats.push({
-      manque: "le projet ne figure pas dans le tableau Sunday CRM « Propriétés »",
+      manque: "le projet ne figure pas dans le tableau Twenty CRM « Propriétés »",
       action: "l'y poser",
       outil: 'pousser_projet_monday',
       arguments: { projet_id: projet.id },

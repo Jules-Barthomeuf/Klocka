@@ -1,4 +1,4 @@
-// Envoyer un mail depuis Sunday CRM (29 oct. 2026). Twenty, l'envoi et le fil simulés.
+// Envoyer un mail depuis Twenty CRM (29 oct. 2026). Twenty, l'envoi et le fil simulés.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as Mails from './mails.js';
@@ -41,7 +41,7 @@ test('un refus de Gmail reste visible sur l’envoi', async () => {
 test('rien ne part pour un inconnu, un envoi déjà traité, ou une écriture de Klocka', async () => {
   let j = banc({ id: 'e3', statut: 'A_ENVOYER', a: 'x@y.fr', objet: 'O' });
   await Mails.envoyerDepuisTwenty('e3', 'inconnu');
-  assert.deepEqual(j, [['modifier', { statut: 'ERREUR', erreur: 'Expéditeur inconnu dans Sunday CRM' }]]);
+  assert.deepEqual(j, [['modifier', { statut: 'ERREUR', erreur: 'Expéditeur inconnu dans Twenty CRM' }]]);
   j = banc({ id: 'e4', statut: 'ENVOYE', a: 'x@y.fr', objet: 'O' });
   await Mails.envoyerDepuisTwenty('e4', 'm1');
   assert.deepEqual(j, []);

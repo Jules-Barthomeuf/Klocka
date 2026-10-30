@@ -82,7 +82,7 @@ export function connu(index, { telephone = null, email = null, site = null, nom 
  */
 export async function marquerListe(listeId, { index = null } = {}) {
   const ix = index || await contactsMonday();
-  if (!ix) return { ok: false, error: 'Sunday CRM n\'est pas branché.' };
+  if (!ix) return { ok: false, error: 'Twenty CRM n\'est pas branché.' };
   const agences = Records.list(AGENCE).filter((a) => a.liste_id === listeId);
   let connues = 0;
   for (const a of agences) {

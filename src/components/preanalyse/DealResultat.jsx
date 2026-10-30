@@ -510,7 +510,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
       </header>
       {/* Le dessin de l'onglet Bien de l'Analyse (18 oct. 2026, Jules) : des lignes sans cadre, le statut en mot ou en pastille. */}
       <div className={`grid ${COLONNES_FICHE} gap-x-6 border-t border-trait px-5 py-3 text-[13px] text-ardoise max-lg:hidden`}>
-        <span>Critère</span><span>Ce qu'on y lit</span><span>Statut</span><span>Notes</span>
+        <span>Critère</span><span>Valeur</span><span>Statut</span><span>Notes</span>
       </div>
       <div className="k-cascade">
         {lignes.map(({ id, element, c, st, decision, marche: cleMarche }, iLigne) => {
@@ -926,7 +926,7 @@ const LIBELLES_SUIVI = {
   documents_recus: "Documents",
   abandon: "Abandon",
   projet_cree: "Projet",
-  monday_echec: "Sunday CRM",
+  monday_echec: "Twenty CRM",
   agent: "Agent",
 };
 

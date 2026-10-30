@@ -14,6 +14,7 @@ import { analyserFiche, reevaluerLot, listerDossiers, obtenirDossier } from '../
 import { classerDansDrive } from '../google-drive.js';
 import { nomDossierDrive } from '../deal/nom-drive.js';
 import { creerProjetDepuisDeal, completerAvantProjet } from '../deal/projet.js';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { UPLOAD_DIR, compteAutorise, currentUser, ok, upload, uploadVideo, wrap } from '../contexte.js';
@@ -187,6 +188,22 @@ export function monterPreanalyse(app) {
     const { poserMarcheManuel } = await import('../deal/comparaison-marche.js');
     const r = poserMarcheManuel(deal, Number(req.params.index) || 0, req.body || {}, currentUser(req)?.email || null);
     if (!r.ok) return res.status(404).json(r);
+    ok(res, r);
+  }));
+
+  // Les informations du bien (30 oct. 2026, Jules) : adresse, surface, loyer, prix. GET : l'état ; POST sans corps : on
+  // cherche (fiche du Data Room, dossier) ; POST avec `champs` : ce qui est écrit à la main.
+  app.get('/api/preanalyse/dossiers/:dealId/infos-du-bien', wrap(async (req, res) => {
+    const { infosDuBien } = await import('../deal/infos-du-bien.js');
+    const r = infosDuBien(req.params.dealId);
+    if (!r) return res.status(404).json({ error: 'Dossier introuvable' });
+    ok(res, r);
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/infos-du-bien', wrap(async (req, res) => {
+    const { poserInfos, chercherInfos } = await import('../deal/infos-du-bien.js');
+    const { lireAdresse } = await import('../deal/index.js');
+    const r = req.body?.champs ? poserInfos(req.params.dealId, req.body.champs, lireAdresse) : await chercherInfos(req.params.dealId, { uploadDir: UPLOAD_DIR, lireAdresse });
+    if (r.error) return res.status(r.error === 'Dossier introuvable' ? 404 : 400).json(r);
     ok(res, r);
   }));
 
@@ -424,6 +441,12 @@ export function monterPreanalyse(app) {
     const cible = Number(req.body?.etape);
     const suivante = Math.min(ETAPES.length, Math.max(courante, isFinite(cible) && cible > 0 ? cible : courante + 1));
     if (suivante <= courante) return ok(res, { etape_max: courante });
+    // Les informations du bien sont obligatoires pour quitter l'Analyse (30 oct. 2026, Jules). Un dossier de test passe.
+    if (suivante >= 4 && !brut.test) {
+      const { infosDuBien } = await import('../deal/infos-du-bien.js');
+      const infos = infosDuBien(req.params.dealId);
+      if (infos && !infos.complet) return res.status(409).json({ error: `Complétez d'abord la fiche du bien dans la Data Room : ${infos.manquants.join(', ')}.`, manquants: infos.manquants });
+    }
     Records.update('Deal', brut.id, { etape_max: suivante });
     const user = currentUser(req);
     ajouterSuiviDeal(Records.get('Deal', brut.id), {
@@ -871,7 +894,7 @@ export function monterPreanalyse(app) {
 
   app.post('/api/preanalyse/dossiers/:dealId/grille/:id/note/:critere', wrap(async (req, res) => {
     const { noterCritere } = await import('../deal/grilles.js');
-    const r = noterCritere(req.params.dealId, req.params.id, req.params.critere, req.body?.texte ?? '', currentUser(req));
+    const r = noterCritere(req.params.dealId, req.params.id, req.params.critere, req.body?.texte ?? '', currentUser(req), { iaRetiree: !!req.body?.ia_retiree });
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
@@ -916,6 +939,8 @@ export function monterPreanalyse(app) {
     // `sources` restreint la lecture aux connecteurs cochés ; absent, tout est lu.
     const sources = Array.isArray(req.body?.sources) ? req.body.sources.map(String).filter(Boolean) : null;
     const t = lancerRechercheMarche(req.params.dealId, index, { user: currentUser(req), forcer: !!req.body?.forcer, sources });
+    // La lecture complète mesure aussi la vacance, en même temps (30 oct. 2026, Jules) ; « Chercher » sur une ligne, non.
+    if (!sources && index === 0) (await import('../deal/marche-vacance.js')).mesurerVacanceEnFond(req.params.dealId);
     // Les étapes viennent du serveur : la chaîne des sources est configurable,
     // l'écran ne peut plus les tenir en dur.
     ok(res, t);
@@ -1147,8 +1172,42 @@ export function monterPreanalyse(app) {
     ok(res, statutVideo(req.params.dealId, Number(req.params.index)));
   }));
 
+  // Remettre le projet à jour depuis le dossier (30 oct. 2026, Jules) : chiffres du lot et cases tranchées de l'Analyse.
+  app.post('/api/preanalyse/dossiers/:dealId/projet/maj', wrap(async (req, res) => {
+    const r = await (await import('../deal/projet.js')).mettreAJourProjetDepuisDeal(req.params.dealId, currentUser(req));
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
+  // La vacance locative du lot, par l'outil Vacance, à la demande (29 oct. 2026, Jules).
+  app.post('/api/preanalyse/dossiers/:dealId/vacance', wrap(async (req, res) => {
+    const r = await (await import('../deal/marche-vacance.js')).mesurerVacance(req.params.dealId);
+    if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // La vidéo filmée du dossier (29 oct. 2026, Jules : « on peut importer la vidéo filmée directe pour l'envoyer aux
   // clients ») : une par dossier, la nouvelle remplace l'ancienne, son fichier compris.
+  // Le lien à envoyer au client (WhatsApp, mail) : un jeton imprévisible propre à la vidéo, qui change avec elle.
+  const jetonVideo = () => crypto.randomBytes(18).toString('base64url');
+  app.post('/api/preanalyse/dossiers/:dealId/video-filmee/lien', wrap((req, res) => {
+    const d = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!d?.video_filmee?.url) return res.status(404).json({ error: 'Aucune vidéo sur ce dossier.' });
+    let video = d.video_filmee;
+    if (!video.jeton) { video = { ...video, jeton: jetonVideo() }; Records.update('Deal', d.id, { video_filmee: video }); }
+    ok(res, { jeton: video.jeton, chemin: `/api/video-partagee/${video.jeton}` });
+  }));
+  // Ouvert sans connexion : seul le jeton y donne accès, et seulement à cette vidéo. Le navigateur la lit par morceaux.
+  app.get('/api/video-partagee/:jeton', wrap((req, res) => {
+    const jeton = String(req.params.jeton || '');
+    if (!/^[A-Za-z0-9_-]{20,40}$/.test(jeton)) return res.status(404).end();
+    const d = Records.findBy('Deal', 'video_filmee.jeton', jeton);
+    const fichier = fichierDe(d?.video_filmee?.url);
+    if (!fichier || !fs.existsSync(fichier)) return res.status(404).send('Cette vidéo n\'est plus disponible.');
+    res.set('Cache-Control', 'private, max-age=3600');
+    res.set('X-Robots-Tag', 'noindex');
+    res.sendFile(fichier, { headers: { 'Content-Type': d.video_filmee.mime || 'video/mp4' } });
+  }));
   const fichierDe = (url) => (url && url.startsWith('/uploads/') ? path.join(UPLOAD_DIR, path.basename(url)) : null);
   const retirerFichier = (url) => { const f = fichierDe(url); if (f) fs.promises.unlink(f).catch(() => {}); };
   app.get('/api/preanalyse/dossiers/:dealId/video-filmee', wrap((req, res) => {
@@ -1163,7 +1222,7 @@ export function monterPreanalyse(app) {
     const d = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!req.file) return res.status(400).json({ error: 'Choisissez une vidéo (MP4, MOV).' });
     if (!d) { fs.promises.unlink(req.file.path).catch(() => {}); return res.status(404).json({ error: 'Dossier introuvable' }); }
-    const video = { url: `/uploads/${req.file.filename}`, nom: req.file.originalname, mime: req.file.mimetype, taille: req.file.size, par: currentUser(req)?.email || null, le: new Date().toISOString() };
+    const video = { url: `/uploads/${req.file.filename}`, nom: req.file.originalname, mime: req.file.mimetype, taille: req.file.size, par: currentUser(req)?.email || null, le: new Date().toISOString(), jeton: jetonVideo() };
     retirerFichier(d.video_filmee?.url);
     Records.update('Deal', d.id, { video_filmee: video });
     ok(res, { video });

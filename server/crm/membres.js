@@ -1,12 +1,12 @@
-// Les personnes des fiches (SPOC, Personnes, Personne, Collaborateurs) en membres de Sunday CRM, avec leur photo
+// Les personnes des fiches (SPOC, Personnes, Personne, Collaborateurs) en membres de Twenty CRM, avec leur photo
 // (28 oct. 2026, Jules).
 //
 // Monday disait « qui » par des noms ; Twenty les a importés en texte. Pour voir des têtes, chaque champ texte a un
 // jumeau « membres » : une liste de membres de l'espace (relation vers une petite table de jonction, que Twenty affiche
 // comme les avatars des membres). Posé par scripts/crm/personnes-twenty.mjs.
 //   - Klocka et la synchronisation écrivent le texte (comme dans Monday) : accorder() en tire les membres.
-//   - Une personne coche ou retire un membre dans Sunday CRM : texteDesMembres() refait le texte, qui repart vers Monday.
-// Un nom sans compte Sunday CRM reste dans le texte et attend : il devient un membre quand la personne rejoint.
+//   - Une personne coche ou retire un membre dans Twenty CRM : texteDesMembres() refait le texte, qui repart vers Monday.
+// Un nom sans compte Twenty CRM reste dans le texte et attend : il devient un membre quand la personne rejoint.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -106,7 +106,7 @@ export async function apresEcriture(nameSingular, ficheId, valeurs = {}) {
   }
 }
 
-/** Une personne a changé les membres d'une fiche dans Sunday CRM : le texte suit, en gardant les noms sans compte. */
+/** Une personne a changé les membres d'une fiche dans Twenty CRM : le texte suit, en gardant les noms sans compte. */
 export async function texteDesMembres(o, p, ficheId) {
   const liste = await membres();
   const ids = (await liens(o, p, ficheId)).map((l) => l.membreId);

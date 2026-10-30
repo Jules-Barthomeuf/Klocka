@@ -79,7 +79,7 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
       {vue === "preanalyse" && dossier?.deal_id && !apercu && (
         <section className={bloc}>
           <p className={titreBloc}>Clients intéressés</p>
-          <p className="m-0 text-[12.5px] text-brume">Budget, apport et zone de recherche, d'après Sunday CRM</p>
+          <p className="m-0 text-[12.5px] text-brume">Budget, apport et zone de recherche, d'après Twenty CRM</p>
           <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
         </section>
       )}

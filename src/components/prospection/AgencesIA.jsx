@@ -318,7 +318,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
 const CHOIX_LISTE = [
   ["toutes", "Tout", "La liste dans son ordre fixe"],
   ["inconnues", "À appeler", "Jamais appelées, et qu'aucun collègue ne tient"],
-  ["connues", "Agences connues", "Déjà en contact (Sunday CRM, carnet, appel)"],
+  ["connues", "Agences connues", "Déjà en contact (Twenty CRM, carnet, appel)"],
   ["appelees", "Appelées", "La plus récemment appelée en tête"],
   ["relance", "Relance due", null],
   ["telephone", "Avec un numéro", null],
@@ -392,8 +392,8 @@ function TableauAgences({ id, onAppeler }) {
   const [ouverte, setOuverte] = useState(null);
   const verifier = useMutation({
     mutationFn: () => base44.request("POST", `${API}/listes/${id}/monday`),
-    onSuccess: (r) => { toast.success(`Sunday CRM : ${r.connues} agence${r.connues > 1 ? "s" : ""} déjà en contact sur ${r.total}`); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
-    onError: (e) => toast.error(e?.message || "Sunday CRM n'a pas répondu"),
+    onSuccess: (r) => { toast.success(`Twenty CRM : ${r.connues} agence${r.connues > 1 ? "s" : ""} déjà en contact sur ${r.total}`); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
+    onError: (e) => toast.error(e?.message || "Twenty CRM n'a pas répondu"),
   });
   // Compléter les cases vides du tableau : Maps, l'annuaire, puis Equimmox, en fond.
   const completer = useMutation({
@@ -423,11 +423,11 @@ function TableauAgences({ id, onAppeler }) {
   const versMonday = useMutation({
     mutationFn: (ids) => base44.request("POST", `${API}/monday`, { body: { ids } }),
     onSuccess: (r) => {
-      toast.success(`${r.crees} contact${r.crees > 1 ? "s" : ""} dans Sunday CRM`, { description: r.doublons ? `${r.doublons} déjà au tableau, ou sans numéro ni mail.` : "Tableau « Prospection Agent Immo »." });
+      toast.success(`${r.crees} contact${r.crees > 1 ? "s" : ""} dans Twenty CRM`, { description: r.doublons ? `${r.doublons} déjà au tableau, ou sans numéro ni mail.` : "Tableau « Prospection Agent Immo »." });
       setCoches(new Set());
       queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] });
     },
-    onError: (e) => toast.error(e?.message || "Sunday CRM n'a pas répondu"),
+    onError: (e) => toast.error(e?.message || "Twenty CRM n'a pas répondu"),
   });
   // Envoyer dans Relances : chaque ligne y entre due aujourd'hui, dans la liste de sa ville.
   const versRelances = useMutation({
@@ -489,7 +489,7 @@ function TableauAgences({ id, onAppeler }) {
 
   return (
     <div>
-      {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Sunday CRM » les montre  ; l'interrupteur du mode appel est sur la ligne des villes. */}
+      {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Twenty CRM » les montre  ; l'interrupteur du mode appel est sur la ligne des villes. */}
       {chiffresOuverts && <div className="duration-300 ease-out animate-in fade-in-0 slide-in-from-top-2"><BarreVille ville={data.ville} chiffres={data.chiffres} /></div>}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
@@ -514,9 +514,9 @@ function TableauAgences({ id, onAppeler }) {
           className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
           {completer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}Compléter les colonnes vides
         </button>
-        <button type="button" onClick={() => verifier.mutate()} disabled={verifier.isPending || data.etat === "en_cours"} title="Revérifier dans Sunday CRM qui est déjà en contact"
+        <button type="button" onClick={() => verifier.mutate()} disabled={verifier.isPending || data.etat === "en_cours"} title="Revérifier dans Twenty CRM qui est déjà en contact"
           className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
-          {verifier.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}Vérifier dans Sunday CRM
+          {verifier.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}Vérifier dans Twenty CRM
         </button>
         <button type="button" onClick={() => setChiffresOuverts((v) => !v)} aria-expanded={chiffresOuverts} aria-label="Les chiffres de la ville" title="Les chiffres de la ville"
           className={`grid h-8 w-8 place-items-center rounded-full border border-trait hover:text-encre ${chiffresOuverts ? "bg-rail-actif text-encre" : "text-craie"}`} style={chiffresOuverts ? undefined : { background: "transparent" }}>
@@ -537,7 +537,7 @@ function TableauAgences({ id, onAppeler }) {
           </button>
           <button type="button" onClick={() => versMonday.mutate([...coches])} disabled={versMonday.isPending}
             className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-            {versMonday.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Envoyer dans Sunday CRM
+            {versMonday.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Envoyer dans Twenty CRM
           </button>
           <button type="button" onClick={() => setPourquoi(true)} disabled={retirer.isPending}
             className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-alerte hover:border-alerte disabled:opacity-50" style={{ background: "transparent" }}>
@@ -643,7 +643,7 @@ function TableauAgences({ id, onAppeler }) {
                                     <span className="text-encre">{x.nom || x.email || "Agent"}</span>
                                     {x.telephone && <span className="tabular-nums text-craie">{x.telephone}</span>}
                                     {x.email && x.nom && <span className="text-ardoise">{x.email}</span>}
-                                    {x.monday && <span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11px] text-ambre">Sunday CRM{x.monday.statut ? ` · ${x.monday.statut}` : ""}</span>}
+                                    {x.monday && <span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11px] text-ambre">Twenty CRM{x.monday.statut ? ` · ${x.monday.statut}` : ""}</span>}
                                     {x.telephone && <button type="button" onClick={() => appeler.mutate({ agence: a.id, agent: x.email || x.telephone })} className="inline-flex items-center gap-1 text-[12.5px] text-menthe hover:underline" style={{ background: "transparent" }}><Phone className="h-3 w-3" />Appeler</button>}
                                     {x.email && <button type="button" onClick={() => setMail({ agence: a.id, agent: x.email })} className="inline-flex items-center gap-1 text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}><Mail className="h-3 w-3" />Écrire</button>}
                                   </li>
@@ -692,7 +692,7 @@ function TableauAgences({ id, onAppeler }) {
                             )}
                           </div>
                         </div>
-                        {a.statut?.probable && <p className="m-0 mt-3 text-[12.5px] text-ambre">Correspondance probable dans Sunday CRM ({a.monday_connu?.tableau}, reconnue par {a.monday_connu?.par}) : vérifiez que c'est bien la même agence.</p>}
+                        {a.statut?.probable && <p className="m-0 mt-3 text-[12.5px] text-ambre">Correspondance probable dans Twenty CRM ({a.monday_connu?.tableau}, reconnue par {a.monday_connu?.par}) : vérifiez que c'est bien la même agence.</p>}
                       </td>
                     </tr>
                   )}
@@ -706,7 +706,7 @@ function TableauAgences({ id, onAppeler }) {
         </table>
       </div>
       <p className="m-0 mt-3 flex items-center gap-1.5 text-[12.5px] text-brume">
-        <ArrowRight className="h-3 w-3" />Une ligne s'ouvre au clic : ses agents, « Appeler », « Email », « Au carnet ». Les cases cochées vont au carnet ou dans Sunday CRM.
+        <ArrowRight className="h-3 w-3" />Une ligne s'ouvre au clic : ses agents, « Appeler », « Email », « Au carnet ». Les cases cochées vont au carnet ou dans Twenty CRM.
       </p>
       </>)}
       {pourquoi && <FenetrePourquoi n={coches.size} enCours={retirer.isPending} onFermer={() => setPourquoi(false)} onValider={(motif) => retirer.mutate({ ids: [...coches], motif })} />}

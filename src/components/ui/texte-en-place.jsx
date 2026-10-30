@@ -4,7 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 // champ, je veux qu'on écrive direct dans la case ») : un texte qui se modifie sur place, sans cadre ni bouton.
 // Il grandit avec ce qu'on écrit ; Entrée enregistre (Maj+Entrée va à la ligne), Échap rend le texte d'avant,
 // quitter la case enregistre. Un clic n'importe où dans la case y place le curseur.
-export default function TexteEnPlace({ valeur = "", placeholder = "", onEnregistrer, disabled = false, className = "", classeCase = "" }) {
+export default function TexteEnPlace({ valeur = "", placeholder = "", onEnregistrer, disabled = false, className = "", classeCase = "", autoFocus = false, onQuitter = null }) {
   const zone = useRef(null);
   const [texte, setTexte] = useState(valeur || "");
   const [actif, setActif] = useState(false);
@@ -16,8 +16,10 @@ export default function TexteEnPlace({ valeur = "", placeholder = "", onEnregist
     el.style.height = "0px";
     el.style.height = `${el.scrollHeight}px`;
   }, [texte]);
+  useEffect(() => { if (autoFocus) zone.current?.focus(); }, [autoFocus]);
   const quitter = () => {
     setActif(false);
+    onQuitter?.();
     if (annule.current) { annule.current = false; setTexte(valeur || ""); return; }
     const t = texte.trim();
     if (t !== String(valeur || "").trim()) onEnregistrer?.(t);

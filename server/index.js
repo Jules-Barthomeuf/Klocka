@@ -59,6 +59,7 @@ import { monterOffres } from './routes/offres.js';
 import { monterModeles } from './routes/modeles.js';
 import { monterPresentations } from './routes/presentations.js';
 import { monterEmailing } from './routes/emailing.js';
+import { monterWhatsApp } from './routes/whatsapp.js';
 import { apiFermee, pagesFermees, estSuperAdmin, admins as adminsAcces, poserAcces, TOUJOURS_OUVERTES } from './acces-pages.js';
 import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
@@ -210,7 +211,7 @@ app.use((req, res, next) => {
   next();
 });
 // Le webhook de Resend se vérifie sur le corps brut : on le garde, pour lui seul.
-app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook') || req.url.startsWith('/api/emailing/calendly')) req.corpsBrut = buf.toString('utf8'); } }));
+app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook') || req.url.startsWith('/api/emailing/calendly') || req.url.startsWith('/api/whatsapp/webhook')) req.corpsBrut = buf.toString('utf8'); } }));
 
 // Les pages fermées par Jules à un admin ferment aussi leur API (acces-pages.js).
 app.use('/api', (req, res, next) => {
@@ -1273,6 +1274,7 @@ monterOffres(app);
 monterModeles(app);
 monterPresentations(app);
 monterEmailing(app);
+monterWhatsApp(app);
 monterProspection(app);
 monterMandataire(app);
 monterVisites(app);
@@ -1496,7 +1498,7 @@ if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
       const s = await M.tourEmailing();
       // Les newsletters d'abord : un mail prêt dont l'heure est venue devient une campagne, envoyée dans la foulée.
       // Les listes tirées de Monday se relisent une fois par jour, avant que les newsletters partent.
-      await (await import('./emailing/listes-monday.js')).tourMonday().catch((e) => console.warn('[emailing] listes Sunday CRM :', e?.message || e));
+      await (await import('./emailing/listes-monday.js')).tourMonday().catch((e) => console.warn('[emailing] listes Twenty CRM :', e?.message || e));
       const nl = await N.tourNewsletters();
       const c = await C.tourCampagnes();
       if (sorties || s?.envoyes || c?.envoyes || nl?.lances || nl?.alertes) console.log(`[emailing] ${nl?.lances || 0} mail(s) de newsletter lancé(s), ${nl?.alertes || 0} alerte(s), ${s?.envoyes || 0} email(s) de séquence, ${c?.envoyes || 0} de campagne, ${sorties} sortie(s) sur réponse`);
@@ -1570,7 +1572,7 @@ import('./prospection/agent-ia.js').then(({ reprendre }) => reprendre()).catch((
 // Le mode appel : une écriture Monday ratée reste orange sur le reçu et se
 // réessaie toute seule, chaque minute, jusqu'à ce que la ligne relue soit juste.
 setInterval(() => {
-  import('./prospection/mode-appel.js').then(({ reessayerAttentes }) => reessayerAttentes()).catch((e) => console.warn(`[mode appel] relance Sunday CRM : ${e?.message || e}`));
+  import('./prospection/mode-appel.js').then(({ reessayerAttentes }) => reessayerAttentes()).catch((e) => console.warn(`[mode appel] relance Twenty CRM : ${e?.message || e}`));
 }, 60_000).unref?.();
 
 // Lectures de marché restées incomplètes : on avait promis d'y revenir, un

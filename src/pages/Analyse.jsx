@@ -290,9 +290,9 @@ export default function Analyse() {
     );
   };
 
-  // Mode IA ou mode normal (17 oct. 2026, Jules) : IA, la barre latérale s'efface et AK est à gauche ;
-  // normal, la barre latérale reste et le dossier prend la page. Gardé dans ce navigateur.
-  const [modeIA, setModeIABrut] = useState(() => { try { return localStorage.getItem("klocka.dossier.mode") !== "normal"; } catch { return true; } });
+  // Plus de Mode IA / Normal (29 oct. 2026, Jules : « juste enlève les modes ») : le dossier est toujours en vue
+  // normale. Seule l'Offre, éditeur de la lettre, garde son chat à gauche (28 oct. 2026).
+  const modeIA = vueDossier === "offre";
   // Les réglages du chat du dossier, comme sur la page Haka (18 oct. 2026, Jules) : sources « Auto » ou choisies.
   // Ni Répondre ni Produire dans ce petit chat : l'assistant choisit selon la demande (Jules, le même jour).
   const [sourcesChat, setSourcesChat] = useState([]);
@@ -303,28 +303,7 @@ export default function Analyse() {
     // Pendant une conversation, le chat pose ce panneau juste au-dessus de la saisie (18 oct. 2026, Jules) : le fil remonte, la barre du haut ne bouge pas.
     panneau: <PanneauSources sources={sourcesChat} onChange={setSourcesChat} />,
   }), [sourcesChat, sourcesOuvert]);
-  // Passer du mode normal au mode IA fait glisser le dossier vers la droite et apparaître le chat (18 oct. 2026, Jules).
   const glisse = useRef(false);
-  const setModeIA = (v) => { glisse.current = v && !modeIA; setModeIABrut(v); try { localStorage.setItem("klocka.dossier.mode", v ? "ia" : "normal"); } catch { /* navigation privée */ } };
-  // L'étape décide du mode à l'arrivée (21 oct. 2026, Jules : « sur la pré-analyse, on doit arriver en mode IA directement,
-  // pareil pour l'analyse, pas la data room ») : Pré-analyse et Analyse en mode IA, Data Room en normal ; les autres
-  // étapes gardent le dernier choix. Un clic sur le sélecteur vaut jusqu'au prochain changement d'étape.
-  useEffect(() => {
-    if (!dealId || !vueDossier) return;
-    // L'Offre est un Éditeur (28 oct. 2026, Jules) : toujours le chat à gauche.
-    // L'Analyse s'ouvre en mode normal (29 oct. 2026, Jules) : les grilles et la pièce à droite prennent la page.
-    if (vueDossier === "preanalyse" || vueDossier === "offre") setModeIABrut(true);
-    else if (vueDossier === "documents" || vueDossier === "analyse") setModeIABrut(false);
-  }, [dealId, vueDossier]);
-  // La Data Room n'a ni chat ni bascule (29 oct. 2026, Jules) : toujours en mode normal.
-  const choixMode = ecranLarge && vueDossier !== "documents" ? (
-    <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1" role="group" aria-label="Mode d'affichage du dossier">
-      {[[true, "Mode IA"], [false, "Normal"]].map(([v, mot]) => (
-        <button key={mot} type="button" onClick={() => setModeIA(v)} aria-pressed={modeIA === v}
-          className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${modeIA === v ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={modeIA === v ? undefined : { background: "transparent" }}>{mot}</button>
-      ))}
-    </div>
-  ) : null;
   const scinde = ecranLarge && !!dealId && !vueConversation && modeIA && vueDossier !== "documents";
   // La largeur du chat, celle de l'Éditeur (components/editeur) : la ligne se tire, un double-clic la remet.
   const poignee = useLargeurChat("klocka.dossiers.largeur-chat");
@@ -395,7 +374,6 @@ export default function Analyse() {
           onRefresh={recharger}
           onLargeur={setLarge}
           onVue={setVueDossier}
-          actionsBarre={choixMode}
           onRetour={() => montrerDeal(null)}
         />
         </div>

@@ -342,7 +342,7 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
                 <button key={x.k} type="button" onClick={() => ouvrir(x.k)} aria-current={actif ? "step" : undefined}
                   className="flex min-w-[100px] flex-1 flex-col items-stretch gap-2 p-0 text-left" style={{ background: "transparent" }}>
                   <span className="h-4 truncate text-[11px] uppercase tracking-[.16em] text-ardoise">{debut ? x.groupe : ""}</span>
-                  {/* La barre blanche est portée par l'onglet ouvert lui-même (16 oct. 2026, Jules : elle restait sur « Contact Sunday CRM ») : plus de mesure, elle suit toujours. */}
+                  {/* La barre blanche est portée par l'onglet ouvert lui-même (16 oct. 2026, Jules : elle restait sur « Contact Twenty CRM ») : plus de mesure, elle suit toujours. */}
                   <span ref={(el) => { barres.current[x.k] = el; }} className={`w-full rounded-full transition-all duration-300 ${actif ? "h-[5px] -translate-y-px bg-encre" : `h-[3px] ${(fini || enEnvoi) && x.on ? "bg-menthe" : "bg-relief"}`}`} />
                   <span className={`truncate pt-1 text-[13px] transition-colors ${actif ? "text-encre" : x.on ? "text-craie hover:text-encre" : "text-brume"}`}>{x.court}</span>
                 </button>
@@ -358,7 +358,7 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
               {!re && <div className="flex items-center gap-3 py-3 text-[13.5px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Validation en cours</div>}
               {re && (
                 <>
-                  <LigneEnvoi l={re.monday} nom="Contact Sunday CRM">
+                  <LigneEnvoi l={re.monday} nom="Contact Twenty CRM">
                     {re.monday?.etat === "doute" && (
                       <div className="ml-9 flex flex-col gap-1.5">
                         {(re.monday.candidates || []).map((c) => <button key={c.id} type="button" onClick={() => envoiFenetre.onChoisirLigne(c.id)} className="rounded-champ border border-trait px-3 py-2 text-left text-[14px] text-encre hover:border-bord-doux" style={{ background: "transparent" }}>{c.nom} <span className="text-ardoise">· {[c.entreprise, c.ville, c.telephone].filter(Boolean).join(" · ")}</span></button>)}
@@ -544,7 +544,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const PLACEHOLDERS_MONDAY = { interlocuteur: "Nom de la personne au bout du fil (vide si vous ne l'avez pas)", telephone: "Son numéro direct, sinon celui appelé", email: "Son adresse mail" };
   const casesMonday = () => {
     if (!ligne) return [];
-    if (["indisponible", "info"].includes(ligne.etat) && !ligne.apercu?.length) return [{ label: "Sunday CRM", valeur: ligne.texte, warn: ligne.etat === "indisponible", large: true }];
+    if (["indisponible", "info"].includes(ligne.etat) && !ligne.apercu?.length) return [{ label: "Twenty CRM", valeur: ligne.texte, warn: ligne.etat === "indisponible", large: true }];
     // L'ordre de la maquette de Jules (8 oct. 2026), deux par ligne, les Remarques en dernier sur toute la largeur.
     const ORDRE = ["Contact", "Téléphone", "E-mail", "Ville", "Entreprise", "Prochaine relance", "Dernier contact", "Statut", "SPOC", "Liste de diffusion", "Date", "Prénom", "Remarques"];
     const rang = (t) => { const k = ORDRE.indexOf(t); return k < 0 ? ORDRE.length - 1.5 : k; };
@@ -576,7 +576,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       const apres = String(x.apres ?? "").replace(/\u200b/g, "").trim();
       const cle = CLE_MONDAY[x.titre];
       if (x.titre === "Prochaine relance") {
-        if (!relanceCochee) return { titre, desactivee: "Relance décochée : rien dans Sunday CRM" };
+        if (!relanceCochee) return { titre, desactivee: "Relance décochée : rien dans Twenty CRM" };
         if (pr) return { titre, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
         return setEdits ? { titre, edit: { type: "date", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre) } } : { titre, valeur: apres };
       }
@@ -624,7 +624,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
           </>
         ),
         // La ligne au dessin de Monday ; sans aperçu (Monday muet), les cases d'avant.
-        ...(ligne?.apercu?.length ? { tableau: <TableauMonday colonnes={colonnesMonday()} />, cases: [], aide: "Ce qu'AK écrit sur la ligne Sunday CRM. Chaque case se corrige : ce que vous tapez part tel quel." } : { cases, aide: null }),
+        ...(ligne?.apercu?.length ? { tableau: <TableauMonday colonnes={colonnesMonday()} />, cases: [], aide: "Ce qu'AK écrit sur la ligne Twenty CRM. Chaque case se corrige : ce que vous tapez part tel quel." } : { cases, aide: null }),
         retablir: mondayRetouche ? () => { setRelanceLe(null); setEdits?.((e) => { const n0 = { ...e }; delete n0.interlocuteur; delete n0.telephone; delete n0.email; delete n0.monday; return n0; }); } : null,
       };
     }
@@ -721,7 +721,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
     if (q.type === "ne_plus_appeler") return {
       kicker: "MONDAY", titre: "Ne plus appeler",
       cases: [
-        { label: "Sunday CRM", statut: "modifié", valeur: "« Ne plus appeler », relance vidée" },
+        { label: "Twenty CRM", statut: "modifié", valeur: "« Ne plus appeler », relance vidée" },
         { label: "File", valeur: "Ne revient plus" },
       ],
     };
@@ -755,7 +755,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   if (pmo) {
     const detail = ligne?.etat === "trouvee" ? `${ligne.ligne.nom?.replace(/\u200b/g, "").trim() || "Contact sans nom"}, retrouvé par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `Contact choisi : ${choisie.nom}` : "C'est bien ce contact ? Choisissez") : ligne?.texte || "";
     // Un rappel d'un autre interlocuteur (13 oct. 2026) : « Contact modifié », ses cases remplacent celles de la ligne.
-    maintenant.push(etape(pmo, { label: ligne?.contact_modifie ? "Contact modifié" : "Contact Sunday CRM", detail, warn: doute || ligne?.etat === "indisponible" }));
+    maintenant.push(etape(pmo, { label: ligne?.contact_modifie ? "Contact modifié" : "Contact Twenty CRM", detail, warn: doute || ligne?.etat === "indisponible" }));
   }
   if (par("ne_plus_appeler")) maintenant.push(etape(par("ne_plus_appeler"), { label: "Ne plus appeler", detail: "Ni relance ni mail" }));
   if (pm) maintenant.push(etape(pm, { label: "Email", detail: `${MAILS[mail?.modele || pm.modele] || pm.titre} · ${mail?.a ? `à ${mail.a}` : "adresse manquante : il ne part pas"}${pm.a_incertain && mail?.a === pm.a ? " · adresse à vérifier" : ""}${modifie ? " · modifié" : ""}`, warn: !mail?.a || (pm.a_incertain && mail?.a === pm.a) }));
@@ -772,7 +772,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   if (pv) ensuite.push(etape(pv, { label: "Prévenir un collègue", detail: pv.pour.map((e) => e.split("@")[0].split(".")[0]).map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(", ") }));
   const n = [...maintenant, ...ensuite].filter((e) => e.on).length;
   // Les étapes de la fenêtre, rangées par moment : maintenant, puis chaque date de relance dans l'ordre.
-  const COURT = { monday: ligne?.contact_modifie ? "Contact modifié" : "Contact Sunday CRM", ne_plus_appeler: "Ne plus appeler", mail: "Email", sms: "SMS", diffusion: "Liste de diffusion", fiche: "Compléter sa fiche", signaler_bien: "Bien évoqué", nouveau_contact: "Contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
+  const COURT = { monday: ligne?.contact_modifie ? "Contact modifié" : "Contact Twenty CRM", ne_plus_appeler: "Ne plus appeler", mail: "Email", sms: "SMS", diffusion: "Liste de diffusion", fiche: "Compléter sa fiche", signaler_bien: "Bien évoqué", nouveau_contact: "Contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
   const dateDe = (e) => (e.q.type === "relance" ? dateRelance : e.q.type === "relance_suivante" ? relance2Le || pr2?.prochaine?.le : null);
   const datees = ensuite.filter((e) => dateDe(e)).sort((x, y) => String(dateDe(x)).localeCompare(String(dateDe(y))));
   const pas = [
@@ -795,7 +795,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         <div className="mb-3 flex flex-col gap-2 px-1">
           {setEdits && (
             <label className="flex flex-col gap-1">
-              <span className="text-[12px] text-ardoise">Ce qui s'est passé (part dans Sunday CRM)</span>
+              <span className="text-[12px] text-ardoise">Ce qui s'est passé (part dans Twenty CRM)</span>
               <textarea rows={2} value={passe} onChange={(e) => setEdits((x) => ({ ...x, passe: e.target.value }))} placeholder="Le secrétariat transmet à la direction, rappeler jeudi"
                 className="w-full resize-none rounded-xl border border-trait bg-transparent px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe" />
             </label>
@@ -834,7 +834,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
           ))}
         </p>
       )}
-      {doute && <p className="m-0 mt-4 px-1 text-[14px] text-ambre">Sunday CRM a plusieurs contacts possibles : ouvrez « Contact Sunday CRM » et choisissez le bon.</p>}
+      {doute && <p className="m-0 mt-4 px-1 text-[14px] text-ambre">Twenty CRM a plusieurs contacts possibles : ouvrez « Contact Twenty CRM » et choisissez le bon.</p>}
       <Trait p={p("v2")} />
       <button type="button" onClick={() => onLancer({ vues: [...vues.current] })} disabled={envoi || !n || doute}
         className="w-full rounded-full bg-encre py-[18px] text-[17px] text-fond hover:opacity-90 disabled:opacity-50">

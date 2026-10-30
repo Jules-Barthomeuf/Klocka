@@ -17,6 +17,7 @@ import ModeTerrain from "@/components/mandataire/ModeTerrain";
 import { AnimatePresence } from "framer-motion";
 import KProspectiveDataB from "@/components/mandataire/KProspectiveDataB";
 import { J, JL, alpha } from "@/design/jetons";
+import { Onglets } from "@/components/ui/kit";
 
 // La Prospection du mandataire, en deux moitiés.
 //  - Prospecter : l'Off-market du mandataire (23 oct. 2026, Jules : « supprime Commerces et Rues, juste un bouton
@@ -104,15 +105,14 @@ export default function MandataireProspection() {
     setOnglet(k === "secteur" ? "prospecter" : "listes");
     setTerrain(k === "terrain");
   };
+  // Les onglets de l'Analyse des dossiers (30 oct. 2026, Jules : « prends exemple sur la page Analyse ») : soulignés,
+  // en tête de la carte de la page.
   const bascule = (
-    <div className="flex flex-none gap-0.5 rounded-full border border-bord-doux bg-rail p-1 max-md:self-start" role="tablist" aria-label="Prospection">
-      {[["secteur", "Mon secteur"], ["listes", "Listes"], ["terrain", "Terrain"]].map(([k, mot]) => (
-        <button key={k} type="button" role="tab" aria-selected={vue === k} onClick={() => choisirVue(k)}
-          className={`h-8 flex-none whitespace-nowrap rounded-full px-4 text-[14px] max-md:px-3 ${vue === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
-          style={vue === k ? undefined : { background: "transparent" }}>{mot}</button>
-      ))}
-    </div>
+    <Onglets items={[{ cle: "secteur", titre: "Mon secteur" }, { cle: "listes", titre: "Listes" }, { cle: "terrain", titre: "Terrain" }]}
+      valeur={vue} onChange={choisirVue} taille="page" />
   );
+  // La page sur une carte de la couleur de la barre de navigation, comme un dossier ouvert dans l'Analyse.
+  const carte = "mt-9 rounded-[18px] border border-trait bg-rail p-6 max-md:mt-4 max-md:p-4";
 
   return (
     // Les listes sont des tableaux : elles prennent toute la largeur de la page.
@@ -123,16 +123,16 @@ export default function MandataireProspection() {
           de la ligne de « Filtrer » ; plus de pilule centrée Prospecter / Listes (toute la page sert à prospecter). Pas de titre au-dessus : le choix
           sélectionné dit déjà où l'on est (25 oct. 2026, Jules : « est-ce que Votre secteur est nécessaire ? »). */}
       {commerces && (
-        <div className="mt-4">
-          <ProspecterClients bascule={bascule} />
+        <div className={carte}>
+          {bascule}
+          <div className="animate-in fade-in slide-in-from-bottom-2 pt-6 duration-500"><ProspecterClients /></div>
         </div>
       )}
       {!vueId && !conversation && onglet === "listes" && (
-        <>
-          {/* La même rangée, et à droite l'outil de cette vue : la carte de la liste ouverte. */}
-          <div className="mt-4 flex flex-wrap items-center gap-2">{bascule}</div>
+        <div className={carte}>
+          {bascule}
           <Listes demandee={listeDemandee} onDemandeVue={() => setListeDemandee(null)} carteDemandee={carteListe} onCarteVue={() => setCarteListe(false)} terrain={terrain} onFermerTerrain={() => setTerrain(false)} />
-        </>
+        </div>
       )}
       {!vueId && !conversation && onglet === "agent" && AGENT_IA_VISIBLE && <AgentIA />}
       {/* K Prospective : le formulaire de Data Prospective. On remplit les
@@ -272,7 +272,7 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
   useEffect(() => { if (l?.id) noterDerniere(l.id); }, [l?.id]);
   // L'onglet ouvert reste visible quand le classeur défile.
   const ongletsRef = useRef(null);
-  useEffect(() => { ongletsRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" }); }, [l?.id]);
+  useEffect(() => { ongletsRef.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" }); }, [l?.id]);
   const rafraichir = () => queryClient.invalidateQueries({ queryKey: ["m-listes"] });
   const renommer = (x) => {
     const nom = window.prompt("Nom de la liste", x.nom);
@@ -296,37 +296,20 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
     return <><p className="m-0 mt-10 text-center text-[14px] text-brume">Aucune liste encore. Lancez une prospection, cochez les commerces à garder, puis « Exporter vers une nouvelle liste ».</p></>;
   }
   return (
-    <div className="mt-6 w-full pb-16">
-      {/* Le classeur de la Prospection de l'admin (9 oct. 2026) : intercalaires
-          sur le voile de surface, l'ouvert raccordé à la page à points (rail),
-          le compte de chaque liste, la croix de suppression sur l'ouvert. */}
-      <div ref={ongletsRef} role="tablist" aria-label="Vos listes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <span aria-hidden className="w-3 flex-none" />
-        {listes.map((x, i) => {
-          const actif = x.id === l.id;
-          return (
-            <React.Fragment key={x.id}>
-              {i > 0 && <span aria-hidden className="w-1 flex-none" />}
-              <button type="button" role="tab" aria-selected={actif} onClick={() => setChoisie(x.id)} title={x.nom}
-                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
-                {(x.suggeree || x.agent) && <Sparkles className={`h-3 w-3 flex-none ${actif ? "text-menthe" : "text-brume"}`} aria-label="Liste de votre agent IA" />}
-                <span className="truncate">{x.nom}</span>
-                <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{x.total}</span>
-                {actif && (
-                  <span role="button" tabIndex={0} aria-label={`Supprimer la liste ${x.nom}`} title={`Supprimer la liste ${x.nom}`}
-                    onClick={(e) => { e.stopPropagation(); setASupprimer(x); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setASupprimer(x); } }}
-                    className="-mr-1.5 grid h-5 w-5 flex-none place-items-center rounded-full text-brume transition-colors hover:bg-relief hover:text-alerte max-md:-my-1.5 max-md:h-8 max-md:w-8">
-                    <X className="h-3.5 w-3.5" />
-                  </span>
-                )}
-              </button>
-            </React.Fragment>
-          );
-        })}
-        <span aria-hidden className="min-w-3 flex-1" />
+    <div className="mt-5 w-full">
+      {/* Les listes en onglets soulignés, le compte en pastille, comme les onglets de l'Analyse (30 oct. 2026, Jules) ;
+          la liste s'ouvre dessous, sans fond à elle (la carte de la page en est un). « Supprimer » est dans sa barre. */}
+      <div ref={ongletsRef}>
+        <Onglets taille="page" valeur={l.id} onChange={setChoisie}
+          items={listes.map((x) => ({ cle: x.id, titre: (
+            <span className="inline-flex max-w-[240px] items-center gap-1.5" title={x.nom}>
+              {(x.suggeree || x.agent) && <Sparkles className="h-3 w-3 flex-none text-menthe" aria-label="Liste de votre agent IA" />}
+              <span className="truncate">{x.nom}</span>
+              <span className="flex-none rounded-full bg-menthe/15 px-1.5 text-[11px] tabular-nums text-menthe">{x.total}</span>
+            </span>
+          ) }))} />
       </div>
-      <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+      <div key={l.id} data-zone="listes" className="animate-in fade-in slide-in-from-bottom-2 pt-5 duration-500">
         <TableauListe key={l.id} chiffres={{ total: l.total || 0, faits: (l.total || 0) - (l.a_appeler || 0), rdv: l.rdv || 0 }} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} reste={l.reste} carteDemandee={carteDemandee} onCarteVue={onCarteVue} onRenommer={() => renommer(l)} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
       </div>
       <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>

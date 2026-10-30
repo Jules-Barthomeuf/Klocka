@@ -192,13 +192,13 @@ export async function importerDepuisMonday() {
   const { lireProspects, lireAgentsImmo } = await import('./monday.js');
   const [prospects, agentsImmo] = await Promise.all([lireProspects(), lireAgentsImmo()]);
   const candidats = [
-    ...agentsImmo.map((a) => ({ nom: a.nom, agence: a.agence, email: a.email, telephone: a.telephone, ville: a.ville, source: 'Sunday CRM · Agent immobilier', statut: /mort/i.test(a.priorite || '') ? 'pause' : 'envoie_des_fiches', referent: a.referent || null, remarque: a.remarques ? `Sunday CRM : ${a.remarques}` : null, dernier_contact_le: a.date || null, prochaine: a.relance ? { quoi: 'relance prévue dans Sunday CRM', le: a.relance } : null })),
+    ...agentsImmo.map((a) => ({ nom: a.nom, agence: a.agence, email: a.email, telephone: a.telephone, ville: a.ville, source: 'Twenty CRM · Agent immobilier', statut: /mort/i.test(a.priorite || '') ? 'pause' : 'envoie_des_fiches', referent: a.referent || null, remarque: a.remarques ? `Twenty CRM : ${a.remarques}` : null, dernier_contact_le: a.date || null, prochaine: a.relance ? { quoi: 'relance prévue dans Twenty CRM', le: a.relance } : null })),
     // Un « Nouveau contact » n'a jamais été appelé : sa date de relance (souvent
     // posée d'office à l'import d'un fichier) n'est pas une relance promise.
     ...prospects.map((p) => {
       const statut = STATUT_DE_MONDAY(p.statut);
       const appele = statut !== 'nouveau';
-      return { nom: p.nom, agence: p.agence, email: p.email, telephone: p.telephone, ville: p.ville, source: /^apollo/i.test(p.remarques || '') ? 'Apollo' : 'Sunday CRM · Prospection', statut, referent: appele ? p.collaborateurs?.[0] || null : null, remarque: p.remarques ? `Sunday CRM : ${p.remarques}` : null, dernier_contact_le: appele ? p.date || null : null, prochaine: appele && p.prochaine_relance ? { quoi: `relance prévue dans Sunday CRM (${p.statut || 'sans statut'})`, le: p.prochaine_relance } : null };
+      return { nom: p.nom, agence: p.agence, email: p.email, telephone: p.telephone, ville: p.ville, source: /^apollo/i.test(p.remarques || '') ? 'Apollo' : 'Twenty CRM · Prospection', statut, referent: appele ? p.collaborateurs?.[0] || null : null, remarque: p.remarques ? `Twenty CRM : ${p.remarques}` : null, dernier_contact_le: appele ? p.date || null : null, prochaine: appele && p.prochaine_relance ? { quoi: `relance prévue dans Twenty CRM (${p.statut || 'sans statut'})`, le: p.prochaine_relance } : null };
     }),
   ];
   return { ...integrer(candidats), lus: candidats.length };

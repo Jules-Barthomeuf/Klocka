@@ -1,0 +1,77 @@
+{
+  "_": "Les modèles de mail de Twenty CRM écrits par l'équipe (30 oct. 2026, Jules) ; importés par node scripts/crm/mails-twenty.mjs crm/modeles-mails.json (sans doublon de nom : renommer ou supprimer dans Twenty pour réimporter un texte modifié).",
+  "modeles": [
+    {
+      "nom": "Closing RDV - Tu",
+      "objet": "Klocka - Plus qu'une étape pour lancer ton investissement 🚀",
+      "corps": "Salut {prénom},\n\nMerci encore pour notre échange de ce jour, c'était vraiment intéressant d'en savoir plus sur ta situation et ton projet d'investissement.\n\nCe projet d'investissement te permettra d'atteindre tes objectifs de diversification de revenus, comme évoqué ensemble.\n\nCet investissement constitue une belle opportunité pour construire un patrimoine solide sur le long terme, comme évoqué ensemble.\n\nCet investissement te permettra d'atteindre tes objectifs de revenus pour la retraite, comme évoqué ensemble.\n\nCet investissement représente une étape clé pour sécuriser ton avenir financier et celui de ta famille, comme évoqué ensemble.\n\nJe suis heureux de te confirmer l'éligibilité de ton profil à notre accompagnement. Voici le lien qui te permettra de finaliser ton inscription : [LIEN À GÉNÉRER DANS LA PAGE UTILISATEURS]\n\nRavi de t'accompagner dans cette nouvelle étape de l'investissement pour ton projet personnel.\n\nÀ très vite,\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "Closing RDV - Vous",
+      "objet": "Klocka - Plus qu'une étape pour lancer votre investissement 🚀",
+      "corps": "Bonjour {prénom},\n\nMerci encore pour notre échange de ce jour, c'était vraiment intéressant d'en savoir plus sur votre situation et votre projet d'investissement.\n\nCe projet d'investissement vous permettra d'atteindre vos objectifs de diversification de revenus, comme évoqué ensemble.\n\nCet investissement constitue une belle opportunité pour construire un patrimoine solide sur le long terme, comme évoqué ensemble.\n\nCet investissement vous permettra d'atteindre vos objectifs de revenus pour la retraite, comme évoqué ensemble.\n\nCet investissement représente une étape clé pour sécuriser votre avenir financier et celui de votre famille, comme évoqué ensemble.\n\nJe suis heureux de vous confirmer l'éligibilité de votre profil à notre accompagnement. Voici le lien qui vous permettra de finaliser votre inscription : [LIEN À GÉNÉRER DANS LA PAGE UTILISATEURS]\n\nRavi de vous accompagner dans cette nouvelle étape de l'investissement pour votre projet personnel.\n\nÀ très vite,\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "Second RDV - Tu",
+      "objet": "Klocka - Nouveau rendez-vous à planifier",
+      "corps": "Salut {prénom},\n\nMerci pour notre échange d'aujourd'hui, j'ai été ravi de mieux te connaître et de comprendre tes objectifs d'investissement.\n\nComme convenu, tu trouveras un accès direct à mon agenda pour que l'on puisse échanger de nouveau ensemble à ta convenance :\nhttps://calendly.com/paul-dezulueta-klocka/rdv-strategique\n\nN'hésite pas à venir avec toutes tes questions, on prendra le temps nécessaire pour y répondre.\n\nÀ très vite,\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "Second RDV - Vous",
+      "objet": "Klocka - Nouveau rendez-vous à planifier",
+      "corps": "Bonjour {prénom},\n\nMerci pour notre échange d'aujourd'hui, j'ai été ravi de mieux vous connaître et de comprendre vos objectifs d'investissement.\n\nComme convenu, vous trouverez un accès direct à mon agenda pour que l'on puisse échanger de nouveau ensemble à votre convenance :\nhttps://calendly.com/paul-dezulueta-klocka/rdv-strategique\n\nN'hésitez pas à venir avec toutes vos questions, on prendra le temps nécessaire pour y répondre.\n\nÀ très vite,\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "Closing 7K - Tu",
+      "objet": "Klocka - Plus qu'une étape pour lancer ton investissement 🚀",
+      "corps": "Re-bonjour {prénom},\n\nMerci encore pour notre échange de ce jour, c'était vraiment intéressant d'en savoir plus sur ta situation et ton projet d'investissement.\n\nJe suis heureux de te confirmer l'éligibilité de ton profil à notre accompagnement. Voici le lien qui te permettra de finaliser ton inscription : [LIEN À GÉNÉRER DANS LA PAGE UTILISATEURS]\n\nRavi de t'accompagner dans cette nouvelle étape de l'investissement pour ton projet personnel.\n\nSi tu souhaites cependant replanifier un échange pour approfondir certains sujets, voici de nouveau un accès à mon agenda : https://calendly.com/paul-dezulueta-klocka/echangez-en-visio-avec-klocka-clone\n\nÀ très vite,\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "Closing 7K - Vous",
+      "objet": "Klocka - Plus qu'une étape pour lancer votre investissement 🚀",
+      "corps": "Re-bonjour {prénom},\n\nMerci encore pour notre échange de ce jour, c'était vraiment intéressant d'en savoir plus sur votre situation et votre projet d'investissement.\n\nJe suis heureux de vous confirmer l'éligibilité de votre profil à notre accompagnement. Voici le lien qui vous permettra de finaliser votre inscription : [LIEN À GÉNÉRER DANS LA PAGE UTILISATEURS]\n\nRavi de vous accompagner dans cette nouvelle étape de l'investissement pour votre projet personnel.\n\nSi vous souhaitez cependant replanifier un échange pour approfondir certains sujets, voici de nouveau un accès à mon agenda : https://calendly.com/paul-dezulueta-klocka/echangez-en-visio-avec-klocka-clone\n\nÀ très vite,\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "No Show - Tu",
+      "objet": "Klocka - Un empêchement ? Replanifie un rendez-vous dès maintenant !",
+      "corps": "Bonjour {prénom},\n\nTu as peut-être eu un empêchement ou un imprévu qui ne t'a pas permis d'assurer notre rendez-vous de ce jour. Pas de souci, ça arrive !\n\nC'est dommage, j'avais hâte d'échanger ensemble et d'en savoir un peu plus sur ton projet.\n\nJe te laisse replanifier un échange à un moment qui te convient mieux via ce lien :\n\nhttps://calendly.com/paul-dezulueta-klocka/rdv-strategique\n\nÀ très vite,\n\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "No Show - Vous",
+      "objet": "Klocka - Un empêchement ? Replanifiez un rendez-vous dès maintenant !",
+      "corps": "Bonjour {prénom},\n\nVous avez peut-être eu un empêchement ou un imprévu qui ne vous a pas permis d'assurer notre rendez-vous de ce jour. Pas de souci, ça arrive !\n\nC'est dommage, j'avais hâte d'échanger ensemble et d'en savoir un peu plus sur votre projet.\n\nJe vous laisse replanifier un échange à un moment qui vous convient mieux via ce lien :\n\nhttps://calendly.com/paul-dezulueta-klocka/rdv-strategique\n\nÀ très vite,\n\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "Relance prospect nouvel échange",
+      "objet": "Klocka - Reprise de contact",
+      "corps": "Bonjour {prénom},\n\nJ'espère que tu vas bien. Je me permets de revenir vers toi suite à nos derniers échanges fin 2025. Nous avions évoqué notre accompagnement clé en main pour investir dans l'immobilier commercial.\n\nSi ce sujet peut désormais faire sens pour toi d'ici la fin de l'année, au plaisir de rééchanger ensemble via le lien ci-dessous :\n\nhttps://calendly.com/paul-dezulueta-klocka/catchup\n\nTrès bonne fin de journée à toi,\n\nÀ bientôt,\n\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "Relance - On reprend le fil",
+      "objet": "Klocka - Reprise de contact",
+      "corps": "Bonjour {prénom},\n\nJ'espère que tu vas bien depuis notre dernier échange d'il y a quelque temps.\n\nJe ne sais pas si tu as avancé dans tes réflexions concernant l'investissement en immobilier commercial.\n\nPour t'aider, tu trouveras ci-dessous un lien vers la présentation détaillée de notre offre :\n\nNotre offre en détail : https://app.klocka.immo/NotreOffre\n\nSi tu as des questions ou que tu préfères qu'on en rediscute de vive voix avant d'aller plus loin, tu peux aussi reprendre un créneau directement dans mon agenda :\n\nJ'ai besoin d'un nouvel échange : https://calendly.com/paul-dezulueta-klocka/rdv-strategique\n\nJe reste à ta disposition si besoin.\n\nÀ très vite,\n\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "1,5K closing Infos mandat - Tu",
+      "objet": "Klocka - Plus qu'une étape pour lancer ton investissement 🚀",
+      "corps": "Re-bonjour {prénom},\n\nMerci encore pour notre échange de ce jour, c'était vraiment intéressant d'en savoir plus sur ta situation et ton projet d'investissement.\n\nComme convenu, voici le lien qui te permettra de consulter notre offre en détail et de finaliser ton inscription pour la rédaction du mandat :\n\nhttps://app.klocka.immo/NotreOffre\n\nRavi de t'accompagner dans cette nouvelle étape de l'investissement pour ton projet personnel.\n\nÀ très vite,\n\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    },
+    {
+      "nom": "1,5K closing Infos mandat - Vous",
+      "objet": "Klocka - Plus qu'une étape pour lancer votre investissement 🚀",
+      "corps": "Re-bonjour {prénom},\n\nMerci encore pour notre échange de ce jour, c'était vraiment intéressant d'en savoir plus sur votre situation et votre projet d'investissement.\n\nComme convenu, voici le lien qui vous permettra de consulter notre offre en détail et de finaliser votre inscription pour la rédaction du mandat :\n\nhttps://app.klocka.immo/NotreOffre\n\nRavi de vous accompagner dans cette nouvelle étape de l'investissement pour votre projet personnel.\n\nÀ très vite,\n\nPaul",
+      "source": "Modèles de Paul, donnés par Jules le 30 oct. 2026 (crm/modeles-mails.json)"
+    }
+  ]
+}

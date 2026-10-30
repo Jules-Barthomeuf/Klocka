@@ -1,9 +1,9 @@
-// Envoyer un mail depuis Sunday CRM (29 oct. 2026, Jules) : un clic sur une adresse ouvre la fenêtre d'envoi de
-// crm/twenty-front/klocka.js (modèles de Sunday CRM, objet, texte). Elle ne part pas du navigateur : la page crée un
+// Envoyer un mail depuis Twenty CRM (29 oct. 2026, Jules) : un clic sur une adresse ouvre la fenêtre d'envoi de
+// crm/twenty-front/klocka.js (modèles de Twenty CRM, objet, texte). Elle ne part pas du navigateur : la page crée un
 // « Mail envoyé » (objet envoiMail, posé par scripts/crm/mails-twenty.mjs) au nom de la personne connectée, Twenty
 // prévient Klocka par son webhook, et Klocka l'envoie depuis la boîte Gmail de cette personne (sendEmail, comme le
 // mode appel). Twenty dit qui écrit (workspaceMemberId), ce que la page seule ne peut pas prouver.
-// Le mail parti s'inscrit dans le fil de la fiche (commenter : Sunday CRM, et Monday en double).
+// Le mail parti s'inscrit dans le fil de la fiche (commenter : Twenty CRM, et Monday en double).
 
 import * as T0 from '../twenty.js';
 import * as Mb from './membres.js';
@@ -42,7 +42,7 @@ export async function envoyerDepuisTwenty(id, membreId) {
   const membre = (await Mb.membres()).find((m) => m.id === membreId);
   const owner = String(membre?.userEmail || '').toLowerCase();
   const fin = (valeurs) => T.modifier(OBJET.namePlural, id, valeurs);
-  if (!owner) return fin({ statut: 'ERREUR', erreur: 'Expéditeur inconnu dans Sunday CRM' });
+  if (!owner) return fin({ statut: 'ERREUR', erreur: 'Expéditeur inconnu dans Twenty CRM' });
   const r = await envoi({ owner, to: e.a, subject: e.objet || '', body: e.corps || '', template_titre: e.modele || null, intention: 'sunday-crm' });
   if (!r?.success) return fin({ statut: 'ERREUR', erreur: String(r?.error || 'Envoi refusé').slice(0, 500), expediteur: owner });
   await fin({ statut: 'ENVOYE', expediteur: r.expediteur || owner });

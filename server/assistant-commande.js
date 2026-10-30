@@ -150,7 +150,7 @@ export const OUTILS = [
   {
     name: 'pousser_dossier_monday',
     description:
-      "Pose ou met à jour un dossier dans le tableau Sunday CRM « Propriétés ». Nécessite l'identifiant obtenu par chercher_dossier.",
+      "Pose ou met à jour un dossier dans le tableau Twenty CRM « Propriétés ». Nécessite l'identifiant obtenu par chercher_dossier.",
     input_schema: {
       type: 'object',
       properties: {
@@ -262,7 +262,7 @@ export const OUTILS = [
   {
     name: 'etat_projet',
     description:
-      "Les données d'un projet de la plateforme : adresse, prix, loyer, surface, rendement, locataire, clients rattachés, présence dans Sunday CRM. Nécessite l'identifiant obtenu par chercher_projet.",
+      "Les données d'un projet de la plateforme : adresse, prix, loyer, surface, rendement, locataire, clients rattachés, présence dans Twenty CRM. Nécessite l'identifiant obtenu par chercher_projet.",
     input_schema: {
       type: 'object',
       properties: { projet_id: { type: 'string' } },
@@ -283,7 +283,7 @@ export const OUTILS = [
   {
     name: 'verifier',
     description:
-      "Passe en revue un dossier ou un projet et rend ce qui manque, avec l'action qui le lève : dossier Drive absent, bien pas dans Sunday CRM, agent sans fiche, documents non extraits, chiffres introuvables… À utiliser dès qu'on demande « vérifie », « qu'est-ce qui manque », « où ça en est vraiment », et avant de proposer quoi que ce soit sur un dossier ou un projet.",
+      "Passe en revue un dossier ou un projet et rend ce qui manque, avec l'action qui le lève : dossier Drive absent, bien pas dans Twenty CRM, agent sans fiche, documents non extraits, chiffres introuvables… À utiliser dès qu'on demande « vérifie », « qu'est-ce qui manque », « où ça en est vraiment », et avant de proposer quoi que ce soit sur un dossier ou un projet.",
     input_schema: {
       type: 'object',
       properties: {
@@ -295,7 +295,7 @@ export const OUTILS = [
   {
     name: 'creer_agent_monday',
     description:
-      "Crée la fiche d'un agent immobilier dans le tableau Sunday CRM « Agent immobilier ». Deux usages : depuis un dossier (deal_id, le contact du dossier est repris), ou de but en blanc à partir des coordonnées données — un agent rencontré n'a pas besoin d'un dossier pour exister. L'adresse mail est le minimum requis.",
+      "Crée la fiche d'un agent immobilier dans le tableau Twenty CRM « Agent immobilier ». Deux usages : depuis un dossier (deal_id, le contact du dossier est repris), ou de but en blanc à partir des coordonnées données — un agent rencontré n'a pas besoin d'un dossier pour exister. L'adresse mail est le minimum requis.",
     input_schema: {
       type: 'object',
       properties: {
@@ -341,7 +341,7 @@ export const OUTILS = [
   {
     name: 'annuler_derniere_action',
     description:
-      "Défait la dernière action réversible : élément Sunday CRM créé, fiche agent créée, dossier Drive créé. Une mise à jour ou un envoi ne se défont pas — l'outil le dit alors franchement.",
+      "Défait la dernière action réversible : élément Twenty CRM créé, fiche agent créée, dossier Drive créé. Une mise à jour ou un envoi ne se défont pas — l'outil le dit alors franchement.",
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -364,7 +364,7 @@ export const OUTILS = [
   {
     name: 'creer_dossier',
     description:
-      "Ouvre un dossier après un appel, avant toute fiche : « j'ai eu Marc de l'agence X, un local à Lyon à 400 k€, il m'envoie les documents ». Le titre se calcule tout seul (« Restaurant - Angers », « Murs commerciaux - Angers ») : donne l'activité, l'enseigne et la ville entendues, n'invente pas de nom. Crée la coquille, rattache l'agent (et l'inscrit au CRM si on a son mail), pose le bien dans Sunday CRM, note la promesse de documents avec son échéance. Ne l'utilise pas si un dossier du même bien existe déjà : cherche d'abord.",
+      "Ouvre un dossier après un appel, avant toute fiche : « j'ai eu Marc de l'agence X, un local à Lyon à 400 k€, il m'envoie les documents ». Le titre se calcule tout seul (« Restaurant - Angers », « Murs commerciaux - Angers ») : donne l'activité, l'enseigne et la ville entendues, n'invente pas de nom. Crée la coquille, rattache l'agent (et l'inscrit au CRM si on a son mail), pose le bien dans Twenty CRM, note la promesse de documents avec son échéance. Ne l'utilise pas si un dossier du même bien existe déjà : cherche d'abord.",
     input_schema: {
       type: 'object',
       properties: {
@@ -418,7 +418,7 @@ export const OUTILS = [
   {
     name: 'pousser_projet_monday',
     description:
-      "Pose ou met à jour un projet dans le tableau Sunday CRM « Propriétés ». Nécessite l'identifiant obtenu par chercher_projet.",
+      "Pose ou met à jour un projet dans le tableau Twenty CRM « Propriétés ». Nécessite l'identifiant obtenu par chercher_projet.",
     input_schema: {
       type: 'object',
       properties: { projet_id: { type: 'string' }, motif: { type: 'string' } },
@@ -625,7 +625,7 @@ export async function executerOutil({ name, input }, user) {
 
     const { creerAgentMonday } = await import('./deal/monday-sync.js');
     const r = await creerAgentMonday(agent);
-    if (r?.ignore) return { erreur: `Rien n'a été posé dans Sunday CRM : ${r.raison || 'raison inconnue'}` };
+    if (r?.ignore) return { erreur: `Rien n'a été posé dans Twenty CRM : ${r.raison || 'raison inconnue'}` };
     if (r?.erreur) return r;
 
     // La fiche entre aussi au CRM local : c'est elle qui fait qu'un mail de cet
@@ -655,7 +655,7 @@ export async function executerOutil({ name, input }, user) {
       // figure pas, il n'est pas écrit — et il faut le dire.
       ...(r.entreprise_ignoree
         ? {
-            avertissement: `L'entreprise « ${r.entreprise_ignoree} » ne fait pas partie de la liste du tableau Sunday CRM : elle n'a pas été enregistrée là-bas (elle l'est au CRM local). À ajouter à la main dans la colonne si besoin.`,
+            avertissement: `L'entreprise « ${r.entreprise_ignoree} » ne fait pas partie de la liste du tableau Twenty CRM : elle n'a pas été enregistrée là-bas (elle l'est au CRM local). À ajouter à la main dans la colonne si besoin.`,
           }
         : {}),
     };
@@ -874,7 +874,7 @@ export async function executerOutil({ name, input }, user) {
     if (!deal) return { erreur: 'Dossier introuvable' };
     const { pousserBien } = await import('./deal/monday-sync.js');
     const r = await pousserBien(deal, { motif: input.motif, par: user });
-    if (r?.ignore) return { erreur: `Rien n'a été posé dans Sunday CRM : ${r.raison || 'raison inconnue'}` };
+    if (r?.ignore) return { erreur: `Rien n'a été posé dans Twenty CRM : ${r.raison || 'raison inconnue'}` };
     return {
       ok: true,
       titre: titreDeal(deal),
@@ -946,10 +946,10 @@ export async function executerOutil({ name, input }, user) {
         motif: `Entendu au téléphone par ${user?.full_name || user?.email || 'un admin'}`,
         par: user,
       });
-      if (monday?.id) fait.push('bien posé dans Sunday CRM');
-      else if (monday?.ignore) rates.push(`Sunday CRM : ${monday.raison}`);
+      if (monday?.id) fait.push('bien posé dans Twenty CRM');
+      else if (monday?.ignore) rates.push(`Twenty CRM : ${monday.raison}`);
     } catch (e) {
-      rates.push(`Sunday CRM : ${e?.message || e}`);
+      rates.push(`Twenty CRM : ${e?.message || e}`);
     }
 
     // La promesse, datée : c'est elle que la veille surveille et que le
@@ -1025,7 +1025,7 @@ export async function executerOutil({ name, input }, user) {
     if (!projet) return { erreur: 'Projet introuvable' };
     const { pousserProjet } = await import('./deal/monday-sync.js');
     const r = await pousserProjet(projet, { motif: input.motif, par: user });
-    if (r?.ignore) return { erreur: `Rien n'a été posé dans Sunday CRM : ${r.raison || 'raison inconnue'}` };
+    if (r?.ignore) return { erreur: `Rien n'a été posé dans Twenty CRM : ${r.raison || 'raison inconnue'}` };
     return {
       ok: true,
       titre: projet.titre,
@@ -1051,11 +1051,11 @@ const consigne = () => `Tu es l'assistant de Klocka, conseil en investissement d
 
 Tu exécutes des demandes courtes portant sur les dossiers de préanalyse et les projets de la plateforme. Tu réponds en français, en une ou deux phrases, sans formule d'attente ni superlatif.
 
-Tu sais : renseigner sur un dossier ou un projet, rejouer leur simulation financière avec d'autres hypothèses, rédiger un brouillon de mail à l'agent, lancer l'extraction des documents, dire ce que Klocka sait d'une ville, donner le plan du jour, envoyer un dossier ou un projet dans Sunday CRM, créer leur dossier Google Drive.
+Tu sais : renseigner sur un dossier ou un projet, rejouer leur simulation financière avec d'autres hypothèses, rédiger un brouillon de mail à l'agent, lancer l'extraction des documents, dire ce que Klocka sait d'une ville, donner le plan du jour, envoyer un dossier ou un projet dans Twenty CRM, créer leur dossier Google Drive.
 
 Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque, lire ses documents pour répondre à une question précise, envoyer un mail une fois qu'on te l'a demandé, inscrire un agent immobilier au CRM — avec ou sans dossier rattaché — et annuler ta dernière action.
 
-Tu ouvres un dossier en sortant d'un appel : « j'ai eu Marc de l'agence Untel, il a un local à Lyon à 400 k€, il m'envoie les documents » → creer_dossier fait tout — la coquille, l'agent au CRM, le bien dans Sunday CRM, la promesse de documents au registre — et tu rends compte de ce qui a été fait et de ce qui a manqué. Demande l'adresse mail de l'agent si elle n'est pas donnée : sans elle, la veille ne reconnaîtra pas son mail. Des documents promis n'attendent rien : la coquille se crée pendant l'appel (jamais « je créerai le dossier quand les documents arriveront »), ils viendront s'y poser. Une phrase dictée est souvent imparfaite (« quatre cents k », « Marc de chez Orpi ») : interprète avec bon sens, et récapitule ce que tu as compris.
+Tu ouvres un dossier en sortant d'un appel : « j'ai eu Marc de l'agence Untel, il a un local à Lyon à 400 k€, il m'envoie les documents » → creer_dossier fait tout — la coquille, l'agent au CRM, le bien dans Twenty CRM, la promesse de documents au registre — et tu rends compte de ce qui a été fait et de ce qui a manqué. Demande l'adresse mail de l'agent si elle n'est pas donnée : sans elle, la veille ne reconnaîtra pas son mail. Des documents promis n'attendent rien : la coquille se crée pendant l'appel (jamais « je créerai le dossier quand les documents arriveront »), ils viendront s'y poser. Une phrase dictée est souvent imparfaite (« quatre cents k », « Marc de chez Orpi ») : interprète avec bon sens, et récapitule ce que tu as compris.
 
 Tu tiens le registre des engagements : qui doit quoi, pour quand. « Marc envoie le PV jeudi », « rappeler le notaire lundi », « le syndic nous doit le RCP avant fin de mois » s'inscrivent au registre avec noter_engagement ; « c'est reçu », « il l'a fait » les marquent tenus avec tenir_engagement ; registre_engagements dit ce qui est dû. La date du jour est le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} : résous « jeudi », « la semaine prochaine » en date réelle — « jeudi » est le prochain jeudi à venir, demain s'il tombe demain, jamais celui d'après.
 
@@ -1084,7 +1084,7 @@ function consigneContexte(contexte) {
   const quoi = contexte.deal_id
     ? `le dossier ${contexte.deal_id}`
     : `le projet ${contexte.projet_id}`;
-  return `\n\nL'utilisateur regarde en ce moment ${quoi}${contexte.titre ? ` (« ${contexte.titre} »)` : ''}. Quand il dit « ce dossier », « ce projet », « le mettre dans Sunday CRM » sans autre précision, c'est de celui-là qu'il parle : utilise directement cet identifiant, sans chercher.`;
+  return `\n\nL'utilisateur regarde en ce moment ${quoi}${contexte.titre ? ` (« ${contexte.titre} »)` : ''}. Quand il dit « ce dossier », « ce projet », « le mettre dans Twenty CRM » sans autre précision, c'est de celui-là qu'il parle : utilise directement cet identifiant, sans chercher.`;
 }
 
 /**

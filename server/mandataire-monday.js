@@ -60,19 +60,19 @@ export const lienProspect = (id) => lienMonday(TABLEAU(), id);
 export async function pousserProspect(p) {
   try {
     const { mondayConfigure, poserElement, personneMonday } = await import('./monday.js');
-    if (!mondayConfigure()) return { ok: false, error: 'Sunday CRM non configuré' };
+    if (!mondayConfigure()) return { ok: false, error: 'Twenty CRM non configuré' };
     let personneId = null;
     try { personneId = (await personneMonday({ email: p.mandataire_email }))?.id || null; } catch { /* sans personne, la fiche part quand même */ }
     const nom = p.nom || p.commerce || 'Propriétaire';
     const cle = p.email ? { colonne: COL.email, valeur: p.email } : p.telephone ? { colonne: COL.numero, valeur: p.telephone } : { colonne: 'name', valeur: nom };
     const miseAJour = !!p.monday_id;
     const r = await poserElement(TABLEAU(), { nom, colonnes: colonnesProspect(p, { personneId, miseAJour }), itemId: p.monday_id || null, cle: miseAJour ? null : cle });
-    if (!r?.id) return { ok: false, error: 'Sunday CRM n’a pas rendu d’identifiant' };
+    if (!r?.id) return { ok: false, error: 'Twenty CRM n’a pas rendu d’identifiant' };
     const { Records } = await import('./db.js');
     if (p.id && Records.get('ProprietaireMandataire', p.id)) Records.update('ProprietaireMandataire', p.id, { monday_id: String(r.id) });
     return { ok: true, id: String(r.id), cree: r.cree, lien: lienProspect(r.id) };
   } catch (e) {
-    console.warn(`[mandataire] prospect Sunday CRM non posé : ${e?.message || e}`);
+    console.warn(`[mandataire] prospect Twenty CRM non posé : ${e?.message || e}`);
     return { ok: false, error: String(e?.message || e).slice(0, 160) };
   }
 }
@@ -99,5 +99,5 @@ export async function synchroniserFicheMonday(ficheId) {
 
 /** Sans attendre : la page n'attend jamais Monday. */
 export function synchroniserEnFond(ficheId) {
-  synchroniserFicheMonday(ficheId).catch((e) => console.warn(`[mandataire] Sunday CRM : ${e?.message || e}`));
+  synchroniserFicheMonday(ficheId).catch((e) => console.warn(`[mandataire] Twenty CRM : ${e?.message || e}`));
 }

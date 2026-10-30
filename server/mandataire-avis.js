@@ -1203,7 +1203,8 @@ export function messageDeLaVisite(e) {
     return `- ${mot} : ${v}`;
   });
   const recit = e.de_la_visite?.recit ? `\nDu récit de la visite : ${String(e.de_la_visite.recit).slice(0, 400)}` : '';
-  if (!lignes.length && !recit) return `Commençons l'avis de valeur de ${e.bien}. Que savez-vous du bien : la surface, le loyer, le bail, l'état ?`;
+  // Sans adresse dans la fiche, c'est la première chose demandée : tout le marché en dépend.
+  if (!r.adresse) return `Commençons l'avis de valeur de ${e.bien}.${lignes.length ? ` De ce que je sais :\n${lignes.join('\n')}${recit}\n` : '\n'}La fiche n'a pas d'adresse : quelle est l'adresse du bien ?`;
   return `Commençons l'avis de valeur de ${e.bien}. De ce que je sais :\n${lignes.join('\n')}${recit}\nVous me le confirmez ? Corrigez ce qui est faux, ou dites oui : l'avis commence.`;
 }
 
@@ -1211,24 +1212,27 @@ export function messageDeLaVisite(e) {
  * L'Avis de valeur ouvert depuis la visite : l'estimation du bien (créée au besoin, rattachée à la fiche), avec ce que
  * la visite dit, gardé à part jusqu'au oui. Rien ne s'écrit dans l'avis avant.
  */
-export async function avisDepuisLaVisite(ficheId, user) {
-  const p = Records.get('ProprietaireMandataire', ficheId);
-  if (!p || String(p.mandataire_email || '').toLowerCase() !== moi(user) && user?.role !== 'admin') return { ok: false, error: 'Bien introuvable.' };
+export async function avisDepuisLeBien({ proprietaire_id = null, adresse = null, titre = null } = {}, user) {
+  const p = proprietaire_id ? Records.get('ProprietaireMandataire', proprietaire_id) : null;
+  if (proprietaire_id && (!p || String(p.mandataire_email || '').toLowerCase() !== moi(user) && user?.role !== 'admin')) return { ok: false, error: 'Bien introuvable.' };
   const { objetsDuBien } = await import('./bien-etapes.js');
-  let e = objetsDuBien(p).estimation;
+  let e = p ? objetsDuBien(p).estimation : null;
   if (e?.avis || e?.de_la_visite) return { ok: true, estimation_id: e.id };
-  const reponses = reponsesDeLaVisite(p);
-  const recit = !p.biens?.compte_rendu?.bien && p.biens?.compte_rendu?.texte ? p.biens.compte_rendu.texte : null;
+  // L'adresse vient de la fiche du bien (le propriétaire, ou le dossier d'où l'on vient) ; sinon Haka la demande.
+  const reponses = reponsesDeLaVisite({ ...(p || {}), adresse: p?.adresse || adresse || null, ville: p?.adresse ? p.ville : p ? p.ville : null });
+  if (!reponses.adresse && adresse) reponses.adresse = String(adresse).trim();
+  const recit = p && !p.biens?.compte_rendu?.bien && p.biens?.compte_rendu?.texte ? p.biens.compte_rendu.texte : null;
   const de_la_visite = { reponses, ...(recit ? { recit } : {}), le: new Date().toISOString() };
-  const bien = [p.commerce || p.nom, p.ville].filter(Boolean).join(' · ') || reponses.adresse || 'Bien';
+  const bien = [p?.commerce || p?.nom, p?.ville].filter(Boolean).join(' · ') || titre || reponses.adresse || 'Bien';
+  const q = { type_bien: 'murs_commerce', adresse: reponses.adresse || null };
   if (!e) {
     e = Records.create(ENTITE, {
-      mandataire_email: String(p.mandataire_email || user?.email || '').toLowerCase(), proprietaire_id: p.id, bien, adresse: reponses.adresse || null,
-      statut: 'brouillon', questionnaire: { type_bien: 'murs_commerce', adresse: reponses.adresse || null }, de_la_visite,
-      cree_le: new Date().toISOString(), historique: [{ le: new Date().toISOString(), par: user?.email || null, action: 'avis commencé depuis la visite' }],
+      mandataire_email: moi(user), proprietaire_id: p?.id || null, bien, adresse: reponses.adresse || null,
+      statut: 'brouillon', questionnaire: q, de_la_visite,
+      cree_le: new Date().toISOString(), historique: [{ le: new Date().toISOString(), par: user?.email || null, action: 'avis commencé depuis la fiche du bien' }],
     });
   } else {
-    e = Records.update(ENTITE, e.id, { de_la_visite, ...(e.questionnaire ? {} : { questionnaire: { type_bien: 'murs_commerce', adresse: reponses.adresse || e.adresse || null } }) });
+    e = Records.update(ENTITE, e.id, { de_la_visite, ...(e.questionnaire ? {} : { questionnaire: q }) });
   }
   return { ok: true, estimation_id: e.id, cree: true };
 }
@@ -1259,7 +1263,7 @@ export async function conversationDeLEstimation(id, user) {
     { role: 'user', contenu: `Estimation · ${e.bien}` },
     {
       role: 'assistant', contenu: messageDeReprise(e),
-      ...(!e.avis && e.de_la_visite && !e.de_la_visite.confirme_le ? { boutons: [{ libelle: "Oui, c'est juste", texte: OUI_VISITE, principal: true }] } : {}),
+      ...(!e.avis && e.de_la_visite && !e.de_la_visite.confirme_le && e.de_la_visite.reponses?.adresse ? { boutons: [{ libelle: "Oui, c'est juste", texte: OUI_VISITE, principal: true }] } : {}),
       ...(e.avis ? { cartes: [{ titre: 'Avis de valeur', detail: e.avis.chiffres?.valeur ? `${e.avis.chiffres.valeur.toLocaleString('fr-FR')} € · fourchette ${e.avis.chiffres.bas?.toLocaleString('fr-FR')} – ${e.avis.chiffres.haut?.toLocaleString('fr-FR')} €` : 'À compléter dans l’éditeur', etat: 'fait', lien: `avis:${e.id}`, action: 'Ouvrir l’avis' }] } : {}),
     },
   ];

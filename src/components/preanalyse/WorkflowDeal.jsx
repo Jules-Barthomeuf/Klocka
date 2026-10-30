@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { X as IconeFermer, ArrowLeft } from "lucide-react";
+import { X as IconeFermer, Home } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,6 @@ import { GABARITS } from "./gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
 import GrilleCriteres, { prechargerGrilles } from "@/components/preanalyse/GrilleCriteres";
-import { useSyntheseAnalyse } from "@/components/preanalyse/SyntheseAnalyse";
 import { FlechesVersions, GrillesPieces, useAnalysePieces } from "@/components/preanalyse/AnalysePieces";
 import VideoFilmee from "@/components/preanalyse/VideoFilmee";
 import DepotsDossier, { ActionsDataRoom } from "@/components/preanalyse/DepotsDossier";
@@ -32,6 +31,7 @@ import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFonds from "@/components/preanalyse/TransactionsFonds";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
 import JournalAnalyste from "@/components/preanalyse/JournalAnalyste";
+import AdresseDuBien from "@/components/preanalyse/AdresseDuBien";
 import JournalQuestion from "@/components/preanalyse/JournalQuestion";
 import { adresseDe } from "@/components/preanalyse/marche-reel";
 import TracabiliteMarche from "@/components/preanalyse/TracabiliteMarche";
@@ -48,7 +48,8 @@ import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 // Vidéo, après Analyse (29 oct. 2026, Jules) : la vidéo du bien filmée, importée pour les clients. Elle n'est pas une étape de la frise ; elle se
 // valide avec l'Analyse.
 const ETAPES_MENU = (() => {
-  const l = FRISE.filter((e) => !["reception", "documents", "plateforme"].includes(e.id)).map((e) => ({ ...e, vrai: e.n }));
+  // Clients retiré aussi (29 oct. 2026, Jules).
+  const l = FRISE.filter((e) => !["reception", "documents", "plateforme", "clients"].includes(e.id)).map((e) => ({ ...e, vrai: e.n }));
   l.splice(l.findIndex((e) => e.id === "analyse") + 1, 0, { id: "video", label: "Vidéo", sous: "Vidéo filmée", vrai: FRISE.find((e) => e.id === "analyse").n });
   return l.map((e, i) => ({ ...e, n: i + 1 }));
 })();
@@ -377,11 +378,13 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
     if (vue === "documents") { setVue("analyse"); setGrilleAnalyse("data_room"); }
     else if (vue === "reception") setVue("preanalyse");
     else if (vue === "plateforme") setVue("analyse");
+    else if (vue === "clients") setVue("analyse");
   }, [vue, dossier?.deal_id]);
   // Chaque onglet dit dans son titre combien de signalements y restent à traiter.
-  const synthese = useSyntheseAnalyse(dossier?.deal_id, { enabled: !apercu });
   const analysePieces = useAnalysePieces(dossier?.deal_id, { enabled: !apercu });
-  const reste = (id) => (GRILLES_ANALYSE.find((g) => g.id === id)?.parPiece ? analysePieces.data?.a_voir?.[id] || 0 : synthese.data?.par_onglet?.[id] || 0);
+  // Seuls les onglets des pièces comptent leurs cases à voir (29 oct. 2026) : Marché et Simulateur ne lisent plus
+  // le compte de l'ancienne Synthèse, que plus rien n'affiche.
+  const reste = (id) => (GRILLES_ANALYSE.find((g) => g.id === id)?.parPiece ? analysePieces.data?.a_voir?.[id] || 0 : 0);
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   // Rien dans la colonne de droite (l'Analyse sans fil de mandataire) : ce qui est à gauche prend toute la largeur (17 oct. 2026, Jules).
   // Depuis le 18 oct. 2026, la colonne ne porte que l'emplacement (Pré-analyse) et la Data Room (son étape).
@@ -491,6 +494,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       return true;
     } catch (e) {
       toast.error(e?.message || "Passage à l'étape impossible");
+      // Les informations du bien manquent (30 oct. 2026, Jules) : on ouvre la Data Room, où se remplit la fiche du bien.
+      if (e?.status === 409 || e?.data?.manquants) { setVue("analyse"); setGrilleAnalyse("data_room"); }
       return false;
     } finally {
       setDeblocageEnCours(false);
@@ -556,8 +561,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               {aValider.length} à valider
             </button>
           )}
-          {["preanalyse", "analyse"].includes(vue) && !apercu && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
-            {(vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room")) && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={() => { allerA("analyse"); if (grilleAnalyse === "data_room") setGrilleAnalyse("bail"); }} />}
+          {(vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room")) && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={(onglet) => { allerA("analyse"); if (onglet || grilleAnalyse === "data_room") setGrilleAnalyse(onglet || "bail"); }} />}
           {actionsBarre}
           {!apercu && <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
             onAbandonner={() => {
@@ -583,13 +587,18 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           {!enCarte && vue !== "offre" && <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 max-md:grid-cols-[1fr_auto] max-md:gap-3">
             <div className="min-w-0">
               {onRetour && (
-                <button type="button" onClick={onRetour} className="flex items-center gap-1.5 text-xs text-ardoise transition-colors hover:text-encre max-md:min-h-[36px]" style={{ background: "transparent" }}>
-                  <ArrowLeft className="h-3.5 w-3.5" /> Tous les dossiers
+                // Une petite maison à la place de « ← Tous les dossiers » (30 oct. 2026, Jules).
+                <button type="button" onClick={onRetour} aria-label="Tous les dossiers" title="Tous les dossiers"
+                  className="grid h-9 w-9 place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}>
+                  <Home className="h-4 w-4" />
                 </button>
               )}
             </div>
             <div className="flex min-w-0 flex-wrap items-center justify-center gap-2.5 text-center max-md:col-span-2 max-md:row-start-2 max-md:justify-start max-md:text-left">
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
+              {/* Le projet à droite du titre, à toutes les étapes (30 oct. 2026, Jules) : « Rentrer le projet » tant qu'il
+                  n'existe pas, puis « Projet ↗ » et sa mise à jour depuis le dossier. */}
+              {!apercu && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
               {aRelancer && (
                 <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
                   <Clock className="w-3 h-3" /> À relancer
@@ -599,22 +608,12 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {/* k-actions-dossier : en mode IA, le « … » se range sous la cloche (index.css), même taille, même colonne. */}
             <div className="k-actions-dossier flex flex-none flex-wrap items-center justify-end gap-2">
             {/* La Data Room : ses deux gestes à gauche du « ⋯ » (29 oct. 2026, Jules). */}
-            {["preanalyse", "analyse"].includes(vue) && !apercu && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
-            {(vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room")) && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={() => { allerA("analyse"); if (grilleAnalyse === "data_room") setGrilleAnalyse("bail"); }} />}
+            {(vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room")) && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={(onglet) => { allerA("analyse"); if (onglet || grilleAnalyse === "data_room") setGrilleAnalyse(onglet || "bail"); }} />}
             {/* Retour et Avant des versions, à gauche de Mode IA (29 oct. 2026, Jules). */}
             {!apercu && <FlechesVersions dealId={dossier.deal_id} />}
             {/* Sur l'onglet Data Room, ni Mode IA / Normal ni « ⋯ » (29 oct. 2026, Jules), comme à l'étape Data Room. */}
             {!dataRoomOuverte && actionsBarre}
-            {!apercu && !dataRoomOuverte && (
-              <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
-                onAbandonner={() => {
-                  if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
-                  base44
-                    .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/abandonner`)
-                    .then(() => { toast.success("Dossier abandonné"); onRefresh?.(); })
-                    .catch((e) => toast.error(e?.message || "Abandon impossible"));
-                }} />
-            )}
+            {/* Plus de « ⋯ » à droite (30 oct. 2026, Jules) : abandonner et supprimer restent dans le « ⋯ » de la liste. */}
             </div>
           </div>}
           {/* Les étapes passent dans le menu de droite (18 oct. 2026, Jules) ; au téléphone, la frise reste en haut. */}
@@ -660,7 +659,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           <div id="tables-analyse" className="space-y-5 pt-6">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
             <Onglets
-              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData]}
+              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-menthe/15 px-1.5 text-[11px] tabular-nums text-menthe">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData]}
               valeur={grilleAnalyse}
               onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))}
               taille="page"
@@ -669,12 +668,14 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {/* Changer d'onglet : le contenu entre en fondu en montant un peu (18 oct. 2026). */}
             <motion.div key={grilleAnalyse} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="space-y-5">
             {GRILLES_ANALYSE.find((g) => g.id === grilleAnalyse)?.parPiece && <GrillesPieces dossier={dossier} onglet={grilleAnalyse} apercu={apercu} />}
+            {/* La section Vendeur est retirée de l'Analyse (30 oct. 2026, Jules). */}
             {grilleAnalyse === "data_room" && <DepotsDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />}
             {grilleAnalyse === "marche" && (
               <div className="flex flex-col gap-4">
                 {/* Les quatre lectures de marché vivent maintenant dans les
                     onglets de leur source, à l'intérieur du journal — elles
                     s'empilaient ici sur toute la hauteur de la page. */}
+                <AdresseDuBien dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} onDataRoom={() => setGrilleAnalyse("data_room")} />
                 <JournalAnalyste dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
               </div>
             )}
@@ -694,7 +695,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             )}
           </div>
         )}
-        {montre("analyse") && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
+        {/* La décision une seule fois, sous le dernier onglet, Simulateur (29 oct. 2026, Jules) : elle s'affichait sous tous. */}
+        {montre("analyse") && grilleAnalyse === "simulateur" && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
         {dossier && vue === "video" && (
           <div className="mx-auto max-w-[900px] space-y-4 pt-6">
             <p className="m-0 text-center text-[20px] leading-[1.2] tracking-[-0.01em] text-encre">Vidéo</p>
@@ -1461,8 +1463,8 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
 // ---------------------------------------------------------------------------
 
 /**
- * Rentrer le projet (29 oct. 2026, Jules) : plus une étape, un geste en haut à droite de la Pré-analyse et de
- * l'Analyse. Le projet existe : « Voir le projet ». Même création que l'ancienne étape Plateforme.
+ * Rentrer le projet (29-30 oct. 2026, Jules) : plus une étape ; à droite du titre du dossier, à toutes les étapes.
+ * Créé, il devient la pilule « Projet ↗ » et sa mise à jour depuis le dossier (chiffres du lot, cases OK).
  */
 function BoutonProjet({ dossier, onRefresh }) {
   const navigate = useNavigate();
@@ -1475,16 +1477,27 @@ function BoutonProjet({ dossier, onRefresh }) {
     },
     onError: (e) => toast.error(e?.message || "Création du projet impossible"),
   });
-  const pilule = "inline-flex h-9 items-center gap-2 rounded-full border px-4 text-[13.5px] transition-colors disabled:opacity-60";
+  const maj = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/projet/maj`),
+    onSuccess: () => toast.success("Projet mis à jour depuis le dossier"),
+    onError: (e) => toast.error(e?.message || "Mise à jour impossible"),
+  });
   if (dossier.projet_id) {
     return (
-      <button type="button" onClick={() => navigate(`/Projets?id=${dossier.projet_id}`)} className={`${pilule} border-trait text-craie hover:border-bord-vif hover:text-encre`} style={{ background: "transparent" }}>
-        <Briefcase className="h-3.5 w-3.5" /> Voir le projet
-      </button>
+      <span className="inline-flex flex-none items-center gap-1">
+        <Link to={`/Projets?id=${dossier.projet_id}`} className="inline-flex h-7 items-center gap-1 rounded-full bg-menthe/15 px-3 text-[12.5px] text-menthe transition-colors hover:bg-menthe/25">
+          Projet <ExternalLink className="h-3 w-3" />
+        </Link>
+        <button type="button" disabled={maj.isPending} title="Mettre à jour le projet depuis le dossier" aria-label="Mettre à jour le projet depuis le dossier"
+          onClick={() => { if (window.confirm("Mettre à jour le projet depuis le dossier ? Les chiffres du dossier et les cases OK de l'Analyse remplacent ceux du projet ; les photos et les textes restent.")) maj.mutate(); }}
+          className="grid h-7 w-7 place-items-center rounded-full text-menthe transition-colors hover:bg-menthe/15 disabled:opacity-50" style={{ background: "transparent" }}>
+          {maj.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+        </button>
+      </span>
     );
   }
   return (
-    <button type="button" onClick={() => creer.mutate()} disabled={creer.isPending} className={`${pilule} border-menthe text-encre hover:bg-menthe/10`} style={{ background: "transparent" }}>
+    <button type="button" onClick={() => creer.mutate()} disabled={creer.isPending} className="inline-flex h-7 flex-none items-center gap-1.5 rounded-full border border-menthe px-3 text-[12.5px] text-encre transition-colors hover:bg-menthe/10 disabled:opacity-60" style={{ background: "transparent" }}>
       {creer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Briefcase className="h-3.5 w-3.5" />} Rentrer le projet
     </button>
   );

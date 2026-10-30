@@ -271,7 +271,7 @@ function PanneauAppel({ agent, onFermer, onCarte = null }) {
                 {/* Le geste principal, après avoir raccroché : trente secondes de récit. */}
                 <div className="mb-4 border-b border-trait pb-4">
                   <p className="m-0 text-[13.5px] text-encre">Vous avez raccroché ?</p>
-                  <p className="m-0 mt-0.5 text-[12.5px] text-craie">Racontez l'appel en 30 secondes : la fiche et Sunday CRM se remplissent seuls. Un mail proposé attend dans « À envoyer ».</p>
+                  <p className="m-0 mt-0.5 text-[12.5px] text-craie">Racontez l'appel en 30 secondes : la fiche et Twenty CRM se remplissent seuls. Un mail proposé attend dans « À envoyer ».</p>
                   <button type="button" onClick={raconter30} className="mt-3 inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[13.5px] font-semibold text-sur-menthe hover:bg-menthe-survol"><Mic className="h-4 w-4" />Raconter l'appel · 30 s</button>
                 </div>
                 <p className="m-0 text-[12.5px] text-craie">Ou enregistre tout l'appel : mets ton téléphone sur haut-parleur et dis à l'agent que l'appel est enregistré.</p>
@@ -305,7 +305,7 @@ function PanneauAppel({ agent, onFermer, onCarte = null }) {
                 <p className="m-0 text-[12px] text-brume">Qui vous avez eu, ce qu'il a, ce qu'il veut, quand le rappeler.</p>
               </div>
             )}
-            {etat === "note" && <p className="m-0 flex items-center gap-2 text-[13.5px] text-craie"><Loader2 className="h-4 w-4 animate-spin" />Je note l'appel sur la fiche et dans Sunday CRM…</p>}
+            {etat === "note" && <p className="m-0 flex items-center gap-2 text-[13.5px] text-craie"><Loader2 className="h-4 w-4 animate-spin" />Je note l'appel sur la fiche et dans Twenty CRM…</p>}
             {etat === "analyse" && <p className="m-0 flex items-center gap-2 text-[13.5px] text-craie"><Loader2 className="h-4 w-4 animate-spin" />AK écoute l'appel et prépare la suite…</p>}
           </div>
         </>
@@ -803,7 +803,7 @@ function OngletReglages() {
     onSuccess: (x) => { toast.success(`${x.lus} agents lus (${Object.entries(x.onglets).map(([o, n]) => `${o} ${n}`).join(", ")}) : ${x.crees} ajoutés, ${x.completes} déjà connus complétés`); maj(); },
     onError: (e) => toast.error(e?.message || "Import raté"),
   });
-  const monday = useMutation({ mutationFn: () => base44.request("POST", "/api/prospection/import-monday"), onSuccess: (x) => { toast.success(`Sunday CRM : ${x.lus} lus, ${x.crees} ajoutés, ${x.completes} complétés`); maj(); }, onError: (e) => toast.error(e?.message || "Sunday CRM injoignable") });
+  const monday = useMutation({ mutationFn: () => base44.request("POST", "/api/prospection/import-monday"), onSuccess: (x) => { toast.success(`Twenty CRM : ${x.lus} lus, ${x.crees} ajoutés, ${x.completes} complétés`); maj(); }, onError: (e) => toast.error(e?.message || "Twenty CRM injoignable") });
   if (!r) return <Chargement taille="grand" />;
   const ajouterVille = (v) => { const t = String(v || "").trim(); if (t && !r.villes.includes(t)) setR((x) => ({ ...x, villes: [...x.villes, t] })); };
   const suggestions = (data?.villes_des_dossiers || []).filter((v) => !r.villes.includes(v));
@@ -829,7 +829,7 @@ function OngletReglages() {
         <input ref={fichier} id="fichier-agents" type="file" accept=".csv,.xlsx,.txt" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importer.mutate(f); e.target.value = ""; }} />
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={() => fichier.current?.click()} disabled={importer.isPending} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre">{importer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}Importer un fichier (CSV, Excel)</button>
-          <button type="button" onClick={() => monday.mutate()} disabled={monday.isPending} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre">{monday.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}Reprendre les agents de Sunday CRM</button>
+          <button type="button" onClick={() => monday.mutate()} disabled={monday.isPending} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre">{monday.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}Reprendre les agents de Twenty CRM</button>
         </div>
         <div className="mt-4 border-t border-trait pt-4">
           <label htmlFor="lien-sheet" className="text-[12.5px] text-craie">Ta Google Sheet d'agents (un onglet par ville) :</label>
@@ -906,7 +906,7 @@ function CarteAppel({ carte: initiale, onFermer }) {
       className="animate-in fade-in slide-in-from-bottom-3 duration-300 fixed bottom-6 left-1/2 z-50 w-[440px] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-bord-doux bg-surface-pleine shadow-[0_24px_60px_rgb(0_0_0/0.35)] max-md:bottom-[calc(16px+env(safe-area-inset-bottom))] max-md:max-h-[calc(100dvh-32px)] max-md:overflow-y-auto">
       <div className="flex items-start justify-between gap-3 px-5 pt-4">
         <div className="min-w-0">
-          <p className="m-0 flex items-center gap-2 text-[12px] text-menthe"><Check className="h-3.5 w-3.5" />Appel noté{carte.monday?.ok ? " · Sunday CRM à jour" : ""}</p>
+          <p className="m-0 flex items-center gap-2 text-[12px] text-menthe"><Check className="h-3.5 w-3.5" />Appel noté{carte.monday?.ok ? " · Twenty CRM à jour" : ""}</p>
           <p className="m-0 mt-1 truncate text-[17px] font-medium text-encre">{carte.nom}</p>
           {(carte.agence || carte.ville) && <p className="m-0 truncate text-[13px] text-ardoise">{[carte.agence, carte.ville].filter(Boolean).join(" · ")}</p>}
         </div>
@@ -946,7 +946,7 @@ function CarteAppel({ carte: initiale, onFermer }) {
         {ligne("Résumé", carte.resume)}
         {ligne("Secteurs", carte.secteurs?.length ? carte.secteurs.join(", ") : null)}
         {ligne("À envoyer", carte.a_envoyer?.length ? carte.a_envoyer.join(" · ") : null)}
-        {carte.monday && ligne("Sunday CRM", carte.monday?.ok ? <a href={carte.monday.lien} target="_blank" rel="noreferrer" className="text-menthe hover:underline">Ouvrir la ligne</a> : <span className="text-alerte">pas mis à jour : {carte.monday?.erreur}</span>)}
+        {carte.monday && ligne("Twenty CRM", carte.monday?.ok ? <a href={carte.monday.lien} target="_blank" rel="noreferrer" className="text-menthe hover:underline">Ouvrir la ligne</a> : <span className="text-alerte">pas mis à jour : {carte.monday?.erreur}</span>)}
       </div>
       <span className="block h-1 bg-encre/[0.08]"><span className="block h-full bg-menthe transition-[width] duration-100 ease-linear" style={{ width: `${(reste / CARTE_DUREE_MS) * 100}%` }} /></span>
     </div>

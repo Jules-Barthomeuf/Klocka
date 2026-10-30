@@ -206,7 +206,7 @@ export function depuisTwenty(ev) {
   return { prevu: nom };
 }
 
-/** Les membres d'une fiche ont changé dans Sunday CRM : le texte suit, puis la colonne Personnes de Monday (double). */
+/** Les membres d'une fiche ont changé dans Twenty CRM : le texte suit, puis la colonne Personnes de Monday (double). */
 export async function membresVersTexte(o, p, ficheId) {
   if (!ficheId) return null;
   const { texte, emails, fiche } = await Mb.texteDesMembres(o, p, ficheId);
@@ -221,7 +221,7 @@ export async function membresVersTexte(o, p, ficheId) {
   return { texte };
 }
 
-/** Quelqu'un vient de rejoindre Sunday CRM : chaque fiche qui porte déjà son nom lui est reliée. */
+/** Quelqu'un vient de rejoindre Twenty CRM : chaque fiche qui porte déjà son nom lui est reliée. */
 export async function relierNouveauMembre() {
   Mb.oublierMembres();
   let n = 0;
@@ -235,7 +235,7 @@ export async function relierNouveauMembre() {
   return { fiches: n };
 }
 
-/** Une note de Sunday CRM sur une fiche migrée : commentaire Monday (sans recopie) et source du Layer. */
+/** Une note de Twenty CRM sur une fiche migrée : commentaire Monday (sans recopie) et source du Layer. */
 export async function noteVersMonday(cible) {
   const champ = Object.keys(cible).find((k) => /^target[A-Z].*Id$/.test(k) && cible[k] && objetDuNom(k.slice(6, -2).replace(/^./, (c) => c.toLowerCase())));
   if (!champ || !cible.noteId) return null;

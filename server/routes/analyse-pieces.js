@@ -111,6 +111,13 @@ export function monterAnalysePieces(app) {
     ok(res, { ok: true, pieces: ids.length });
   }));
 
+  // Le statut d'une résolution de PV d'AG (Important, Pas important, À vérifier, Vérifié).
+  app.post(`${base}/resolutions/:cle`, wrap((req, res) => {
+    const r = A.statuerResolution(req.params.dealId, req.params.cle, req.body?.statut, currentUser(req));
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
   app.post(`${base}/cases/:grille/:critere`, wrap((req, res) => {
     const r = A.deciderCase(req.params.dealId, req.params.grille, req.params.critere, req.body || {}, currentUser(req));
     if (!r.ok) return res.status(400).json({ error: r.error });

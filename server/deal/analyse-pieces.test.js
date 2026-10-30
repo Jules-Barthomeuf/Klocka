@@ -210,3 +210,41 @@ test("le contexte d'une pièce : gardé quand on la range ailleurs, et dit à l'
   await A.lirePiece('AP10', 'b', { uploadDir, lire: async ({ prompt }) => { vue = prompt; return '{"criteres":{}}'; } });
   assert.match(vue, /Ce que l'analyste sait de cette pièce.*tacite reconduction depuis le 31\/12\/2014/);
 });
+
+test("les PV d'AG : un onglet par assemblée, une ligne par résolution, « À vérifier » de base puis le statut posé", async () => {
+  dossier('AP30', [{ id: 'pv23', nom: 'PV AG 2023.pdf' }, { id: 'pv24', nom: 'PV AG 2024.pdf' }]);
+  A.rangerPiece('AP30', 'pv24', 'pv_ag', null, { lire: false });
+  A.rangerPiece('AP30', 'pv23', 'pv_ag', null, { lire: false });
+  let vue = '';
+  const lire = async (x) => { vue = x.prompt; return lecteur({
+    'PV AG 2024.pdf': {
+      date_ag: { valeur: '12/06/2024', donnees: { date: '12/06/2024' } },
+      resolutions: { valeur: '2 résolutions', donnees: { resolutions: [
+        { numero: '1', nom: 'Approbation des comptes', issue: 'adoptee', tantiemes: 'Pour 6 120 / Contre 0', page: 2 },
+        { numero: '7', nom: 'Ravalement de la façade', issue: 'rejetee', tantiemes: 'Pour 2 100 / Contre 5 000', montant: '84000', majorite: 'article 25' },
+        { issue: 'adoptee' },
+      ] } },
+    },
+    'PV AG 2023.pdf': { date_ag: { valeur: '20/05/2023', donnees: { date: '20/05/2023' } } },
+  })(x); };
+  await A.lirePiece('AP30', 'pv24', { uploadDir, lire });
+  assert.match(vue, /resolutions \(liste d'objets \{ numero/, 'la consigne décrit les résolutions');
+  await A.lirePiece('AP30', 'pv23', { uploadDir, lire });
+  const [ag23, ag24] = A.lireAnalyse('AP30').assemblees;
+  assert.deepEqual([ag23.annee, ag24.annee], [2023, 2024], 'de la plus ancienne à la plus récente');
+  assert.equal(ag23.resolutions.length, 0);
+  assert.equal(ag24.resolutions.length, 2, 'une entrée sans nom ni numéro est écartée');
+  const [r1, r7] = ag24.resolutions;
+  assert.equal(r1.statut, 'a_verifier');
+  assert.equal(r7.montant, 84000);
+  assert.equal(r7.issue, 'rejetee');
+  assert.ok(!A.lireAnalyse('AP30').grilles.find((g) => g.id === 'pv_ag').lignes.some((l) => l.id === 'resolutions'), 'la grille du PV ne change pas');
+  assert.equal(A.statuerResolution('AP30', r7.cle, 'important', { email: 'nora@klocka.immo' }).ok, true);
+  assert.equal(A.statuerResolution('AP30', r7.cle, 'urgent').ok, false);
+  assert.equal(A.statuerResolution('AP30', 'inconnu:1', 'verifie').ok, false);
+  const apres = A.lireAnalyse('AP30').assemblees[1].resolutions;
+  assert.equal(apres[1].statut, 'important');
+  assert.equal(apres[1].par, 'nora@klocka.immo');
+  A.statuerResolution('AP30', r7.cle, 'a_verifier');
+  assert.equal(A.lireAnalyse('AP30').assemblees[1].resolutions[1].statut, 'a_verifier');
+});

@@ -81,8 +81,42 @@ export const CRITERES_BIEN = {
   diagnostics: [BIEN_ADRESSE, BIEN_SURFACE],
   rcp: [{ id: 'bien_lots', libelle: 'Lots du local', format: 'Les numéros de lots du local et leurs tantièmes, s\'ils sont dits.' }],
 };
-/** Tout ce qu'une pièce lit : les critères de sa grille, puis ce que l'onglet Bien attend d'elle. */
-export const criteresLus = (type) => [...(grilleDe(TYPES.find((t) => t.id === type)?.grille)?.criteres || []), ...(CRITERES_BIEN[type] || [])];
+
+// Les résolutions d'un PV d'AG (30 oct. 2026, Jules : « une ligne par résolution ») : lues avec le PV, montrées dans un
+// onglet par assemblée (« PV d'AG 2024 ») sous la grille de la copropriété, pas dans la grille elle-même.
+export const ISSUES_RESOLUTION = ['adoptee', 'rejetee', 'ajournee', 'sans_vote'];
+export const CRITERES_PV = [
+  { id: 'date_ag', libelle: "Date de l'assemblée", format: 'JJ/MM/AAAA', schema: { type: 'object', properties: { texte: { type: 'string' }, date: { type: 'string', description: 'JJ/MM/AAAA' } } } },
+  {
+    id: 'resolutions', libelle: 'Résolutions', format: "Le nombre de résolutions, ex. « 14 résolutions ». Le détail va dans donnees.resolutions : une entrée par résolution, dans l'ordre du PV, sans en sauter aucune.",
+    schema: {
+      type: 'object',
+      properties: {
+        texte: { type: 'string' },
+        resolutions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              numero: { type: 'string', description: 'le numéro de la résolution, tel que le PV l\'écrit' },
+              nom: { type: 'string', description: "l'intitulé court de la résolution, ex. « Ravalement de la façade sur rue »" },
+              issue: { type: 'string', enum: ISSUES_RESOLUTION },
+              majorite: { type: 'string', description: 'la majorité requise, ex. « article 25 », si le PV la dit' },
+              tantiemes: { type: 'string', description: 'les voix en tantièmes, ex. « Pour 6 120 / Contre 980 / Abstention 0 », telles que le PV les écrit' },
+              montant: { type: 'number', description: 'le montant voté ou proposé en euros, sinon null' },
+              page: { type: 'number' },
+              citation: { type: 'string', description: 'la phrase qui donne le résultat du vote, mot pour mot, 200 caractères au plus' },
+            },
+          },
+        },
+      },
+    },
+  },
+];
+const CRITERES_EN_PLUS = { pv_ag: CRITERES_PV };
+
+/** Tout ce qu'une pièce lit : les critères de sa grille, ce que l'onglet Bien attend d'elle, puis ce qu'elle lit en plus. */
+export const criteresLus = (type) => [...(grilleDe(TYPES.find((t) => t.id === type)?.grille)?.criteres || []), ...(CRITERES_BIEN[type] || []), ...(CRITERES_EN_PLUS[type] || [])];
 
 // --- Les emplacements : un par type de pièce, dans l'ordre où l'équipe les reçoit --------------
 export const TYPES = [
@@ -137,7 +171,10 @@ export function suggestion(doc = {}) {
 const decrireDonnees = (schema) =>
   Object.entries(schema?.properties || {})
     .filter(([k]) => k !== 'texte')
-    .map(([k, p]) => `${k} (${p.type === 'boolean' ? 'vrai / faux' : p.type === 'number' ? 'nombre' : p.type === 'array' ? 'liste de textes' : 'texte'}${p.enum ? ` : ${p.enum.join(' | ')}` : ''}${p.description ? ` ; ${p.description}` : ''})`)
+    .map(([k, p]) => {
+      const sorte = p.type === 'boolean' ? 'vrai / faux' : p.type === 'number' ? 'nombre' : p.type === 'array' ? (p.items?.type === 'object' ? `liste d'objets { ${decrireDonnees(p.items)} }` : 'liste de textes') : 'texte';
+      return `${k} (${sorte}${p.enum ? ` : ${p.enum.join(' | ')}` : ''}${p.description ? ` ; ${p.description}` : ''})`;
+    })
     .join(', ');
 
 /** La consigne de lecture d'une pièce : les critères de la grille de son emplacement, rien d'autre. */
@@ -409,6 +446,9 @@ export async function lirePiece(dealId, docId, { uploadDir, user, seulement = nu
       if (!v.valeur) continue;
       Object.assign(v, pages ? trouverPage(pages, v.citation, v.page) : { verifiee: null });
     }
+    if (valeurs.resolutions?.valeur) {
+      valeurs.resolutions.donnees = { ...valeurs.resolutions.donnees, resolutions: resolutionsLues(valeurs.resolutions.donnees).map((r) => ({ ...r, ...(pages ? trouverPage(pages, r.citation, r.page) : { verifiee: null }) })) };
+    }
     majEtat(dealId, (etat) => {
       const d = etat.docs[docId];
       // Rangée ailleurs pendant la lecture : cette lecture ne vaut plus rien.
@@ -574,6 +614,82 @@ function lireGrille(gid, brut, docs, ctx) {
   return { id: gid, titre: grille.titre, pieces: pieces.map((d) => ({ id: d.id, nom: d.nom, type: d.type, extraction: d.extraction })), lignes };
 }
 
+// --- Les résolutions des PV d'AG : un onglet par assemblée, une ligne par résolution ---------------------------
+const texteCourt = (v, n) => (v == null ? null : nettoyer(v, n) || null);
+
+/** Les résolutions lues d'un PV, nettoyées : le modèle peut rendre n'importe quoi dans `donnees`. */
+export function resolutionsLues(donnees) {
+  const liste = Array.isArray(donnees?.resolutions) ? donnees.resolutions : [];
+  return liste.filter((r) => r && typeof r === 'object' && (r.nom || r.numero)).slice(0, 80).map((r) => ({
+    numero: texteCourt(r.numero, 20),
+    nom: texteCourt(r.nom, 300) || `Résolution ${texteCourt(r.numero, 20)}`,
+    issue: ISSUES_RESOLUTION.includes(r.issue) ? r.issue : null,
+    majorite: texteCourt(r.majorite, 60),
+    tantiemes: texteCourt(r.tantiemes, 200),
+    montant: Number.isFinite(Number(r.montant)) && r.montant !== null && r.montant !== '' ? Number(r.montant) : null,
+    page: Number.isFinite(Number(r.page)) && Number(r.page) > 0 ? Math.round(Number(r.page)) : null,
+    citation: texteCourt(r.citation, 400),
+    ...(r.verifiee !== undefined ? { verifiee: r.verifiee } : {}),
+  }));
+}
+
+// Le statut d'une résolution (30 oct. 2026, Jules) : « À vérifier » de base, puis Important, Pas important, Vérifié.
+export const STATUTS_RESOLUTION = ['a_verifier', 'important', 'pas_important', 'verifie'];
+
+const anneeDe = (...textes) => {
+  for (const t of textes) {
+    const m = String(t || '').match(/\b(19|20)\d{2}\b/);
+    if (m) return Number(m[0]);
+  }
+  return null;
+};
+const dateIsoDe = (t) => {
+  const m = String(t || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+};
+
+/** Les assemblées lues, de la plus ancienne à la plus récente, chacune avec ses résolutions et leur statut. */
+export function assembleesAG(brut, docs) {
+  const etat = brut.analyse_pieces || {};
+  const statuts = etat.resolutions || {};
+  const ags = docs.filter((d) => d.type === 'pv_ag').map((d) => {
+    const v = etat.docs?.[d.id]?.valeurs || {};
+    const date = v.date_ag?.donnees?.date || v.date_ag?.valeur || null;
+    const vus = new Set();
+    const resolutions = resolutionsLues(v.resolutions?.donnees).map((r, i) => {
+      let cle = `${d.id}:${r.numero ? norm(r.numero).replace(/ /g, '') || i + 1 : i + 1}`;
+      if (vus.has(cle)) cle = `${cle}.${i + 1}`;
+      vus.add(cle);
+      const s = statuts[cle] || null;
+      return { cle, ...r, statut: s?.statut || 'a_verifier', par: s?.par || null, le: s?.le || null };
+    });
+    return {
+      document_id: d.id, document_nom: d.nom, document_titre: d.titre, document_url: d.url, mime: d.mime, extraction: d.extraction,
+      date: dateIsoDe(date), annee: anneeDe(date, d.titre, d.nom),
+      // Lu avant le 30 oct. : le PV n'a pas encore ses résolutions, une relecture les donne.
+      lu_sans_resolutions: !!d.extraction && d.extraction.statut === 'fait' && !v.resolutions,
+      resolutions,
+    };
+  });
+  return ags.sort((a, b) => (a.date || `${a.annee || 9999}`).localeCompare(b.date || `${b.annee || 9999}`));
+}
+
+/** Poser le statut d'une résolution. */
+export function statuerResolution(dealId, cle, statut, user) {
+  if (!STATUTS_RESOLUTION.includes(statut)) return { ok: false, error: 'Statut inconnu' };
+  const docId = String(cle || '').split(':')[0];
+  let erreur = null;
+  const fait = majEtat(dealId, (etat) => {
+    if (etat.docs[docId]?.type !== 'pv_ag') { erreur = 'Résolution inconnue'; return false; }
+    etat.resolutions = etat.resolutions || {};
+    if (statut === 'a_verifier') delete etat.resolutions[cle];
+    else etat.resolutions[cle] = { statut, par: user?.email || null, le: new Date().toISOString() };
+  });
+  if (erreur) return { ok: false, error: erreur };
+  if (!fait) return { ok: false, error: 'Dossier introuvable' };
+  return { ok: true };
+}
+
 // La donnée lue retenue d'une case, quand elle vient d'une pièce (pas d'une correction).
 function donneesDe(grilles, gid, cid) {
   const l = grilles[gid]?.lignes.find((x) => x.id === cid);
@@ -714,6 +830,7 @@ export function lireAnalyse(dealId) {
     grilles: GRILLES_LUES.map(({ id, onglet }) => ({ ...grilles[id], onglet })),
     ecarts,
     simulateur: simulateurDesGrilles(grilles, brut, ecarts),
+    assemblees: assembleesAG(brut, docs),
     a_voir: Object.fromEntries(['bail', 'quittances', 'copropriete', 'diagnostics'].map((o) => [o, aVoir(o)])),
     en_lecture: docs.filter((d) => ['en_attente', 'en_cours'].includes(d.extraction?.statut)).length,
     // Les cases tranchées de la grille Marché, calculée par l'écran à partir de la lecture du marché.

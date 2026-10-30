@@ -9,6 +9,7 @@ import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
 import { SourceSeule, Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
+import ResolutionsAG from "@/components/preanalyse/ResolutionsAG";
 
 // L'analyse pièce par pièce (29 oct. 2026, Jules) : les pièces se déposent dans la Data Room, une zone par
 // type (DepotsDossier.jsx) ; les onglets Bail, Quittances, Copropriété et
@@ -261,7 +262,8 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
   return (
     <div className="space-y-8">
       {grilles.map((g) => (
-        <section key={g.id}>
+        <React.Fragment key={g.id}>
+        <section>
           {/* Le nom de la grille dans la case vide en haut à gauche du tableau (29 oct. 2026, Jules) ; au téléphone, où
               la ligne d'en-tête n'existe pas, il reste au-dessus. */}
           <div className="flex flex-col items-center gap-1 px-2 pb-4 text-center lg:hidden">
@@ -299,6 +301,10 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
           </div>
           </div>
         </section>
+        {/* Sous la grille des PV, un onglet par assemblée et ses résolutions (30 oct. 2026, Jules). */}
+        {g.id === "pv_ag" && <ResolutionsAG dealId={dealId} assemblees={data.assemblees || []}
+          onOuvrir={(s) => setOuverte({ seul: true, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation })} />}
+        </React.Fragment>
       ))}
       {ouverte && <PanneauPiece dealId={dealId} ouverte={ouverte} caseOuverte={caseOuverte} onChange={setOuverte} onFermer={() => setOuverte(null)} />}
     </div>

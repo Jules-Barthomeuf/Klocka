@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-9 personnes, 2 889 pages ouvertes, 0 demandes à l'assistant, 98 actions exécutées.
+9 personnes, 2 887 pages ouvertes, 0 demandes à l'assistant, 98 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 554 | 0 | 53 | 30/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 552 | 0 | 53 | 30/10/2026 |
 | admin.stress@test.local (équipe) | 159 | 0 | 0 | 27/10/2026 |
 | test.mandataire@kpartners.fr | 150 | 0 | 0 | 27/10/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
@@ -27,7 +27,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **Analyse** — 379 (13 %)
 - **MandataireBiens** — 377 (13 %)
 - **Dashboard** — 342 (12 %)
-- **MandataireProspection** — 234 (8 %)
+- **MandataireProspection** — 232 (8 %)
 - **Personnalisation** — 199 (7 %)
 - **Prospection** — 180 (6 %)
 - **Emailing** — 140 (5 %)

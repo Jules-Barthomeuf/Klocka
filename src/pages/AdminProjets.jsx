@@ -1800,6 +1800,9 @@ export default function AdminProjets() {
               <ChatDashboard key={editingProject.id} espace="projet" onReponse={surReponseAK} onTravail={setTravailAK}
                 onConversation={setChatOuvert} barreApercu={chatOuvert} reglages={reglagesChat}
                 contexte={{ projet_id: editingProject.id }} lireEcran={lireEcran}
+                // Un projet rentré depuis un dossier : le chat s'ouvre sur ce qui lui manque (30 oct. 2026, Jules).
+                ouverture={editingProject.questions_ouverture || null}
+                onOuverture={() => base44.entities.Project.update(editingProject.id, { questions_ouverture: null }).catch(() => {})}
                 retour={{ libelle: "Tous les projets", onClick: () => { envoyerRef.current?.(); setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); } }} />
             </div>
           </div>

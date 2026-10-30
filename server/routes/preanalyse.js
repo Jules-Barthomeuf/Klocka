@@ -709,7 +709,9 @@ export function monterPreanalyse(app) {
     // région, chiffres du marché — se complète ici, avant la création.
     await completerAvantProjet(req.params.dealId, Number(req.params.index) || 0);
 
-    const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user);
+    // Ce que les pièces ont lu dans l'Analyse remplit aussi le projet (30 oct. 2026, Jules).
+    const { lireAnalyse } = await import('../deal/analyse-pieces.js');
+    const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user, { analyse: lireAnalyse(req.params.dealId) });
     if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });
 
     // Plus d'images automatiques à la création (19 oct. 2026, Jules) : ni Street View, ni vue du ciel, ni plan

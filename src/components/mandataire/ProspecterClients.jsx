@@ -198,6 +198,10 @@ function Preparation({ villes }) {
   );
 }
 
+const TRAIT = "border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)]";
+const GESTE = "inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[13.5px] text-craie hover:text-encre disabled:opacity-50";
+const GESTE_PLEIN = "inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3 text-[13.5px] text-sur-menthe hover:bg-menthe-survol";
+
 /** Le tableau des murs : la recherche, « Tout afficher », l'envoi vers une liste, le tri par colonne, les pages. */
 function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charge }) {
   const qc = useQueryClient();
@@ -218,49 +222,70 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
   const tousCoches = libres.length > 0 && libres.every((c) => coches.has(c.id));
   const colonnes = [["commerce", "Commerce"], ["adresse", "Adresse"], ["nom", "Exploitant"], ["proprietaire", "Propriétaire des murs"], ["lien", "Lien"], ["signaux", "Raison de vendre"], ["prix", "Prix pour lui"], ["appel", "Appel"]];
   return (
-    <section className="overflow-hidden rounded-[18px] border border-bord-doux bg-rail">
-      <div className="flex flex-wrap items-center gap-2 border-b border-trait px-4 py-3">
-        <h3 className="m-0 mr-2 text-[16px] font-normal text-encre">{pl(tries.length, "mur")}{tries.length !== total ? <span className="text-ardoise"> sur {total}</span> : null}</h3>
-        <div className="relative w-[280px] max-w-full">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brume" />
-          <input value={filtres.texte} onChange={(e) => setFiltres((f) => ({ ...f, texte: e.target.value }))} placeholder="Enseigne, activité, rue, propriétaire" className={`${champ} w-full pl-8`} />
+    // Au dessin du tableau d'une liste (30 oct. 2026, Jules) : la zone à points, la barre (recherche en pilule, chiffres,
+    // gestes), puis le tableau à traits continus, les deux premières colonnes fixes, tout en 13,5 px. La raison de vendre
+    // prend la couleur des notes de l'IA de l'Analyse (`lu-ia`).
+    <section data-zone="murs" className="k-points relative rounded-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
+          <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
+          <input value={filtres.texte} onChange={(e) => setFiltres((f) => ({ ...f, texte: e.target.value }))} placeholder="Enseigne, activité, rue, propriétaire"
+            className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
-        {nbFiltres({ ...filtres, emplacement: "centre" }) > 0 && <button type="button" onClick={() => setFiltres(FILTRES_DEPART)} className={bouton}><X className="h-3.5 w-3.5" />Tout afficher</button>}
-        <button type="button" onClick={() => setVersListe(true)} disabled={!coches.size} className={coches.size ? boutonPlein : bouton}><ListPlus className="h-3.5 w-3.5" />Envoyer vers une liste{coches.size ? ` (${coches.size})` : ""}</button>
-        {coches.size > 0 && <button type="button" onClick={() => setCoches(new Set())} className={bouton}>Décocher</button>}
-        <span className="flex-1" />
-        <span className="text-[12.5px] text-ardoise">{tries.length ? `${page * PAR_PAGE + 1} à ${Math.min(tries.length, (page + 1) * PAR_PAGE)}` : "0"}</span>
-        <button type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} aria-label="Page précédente" title="Page précédente" className={`${bouton} px-2.5`}><ChevronDown className="h-4 w-4 rotate-90" /></button>
-        <button type="button" onClick={() => setPage((p) => Math.min(pages - 1, p + 1))} disabled={page >= pages - 1} aria-label="Page suivante" title="Page suivante" className={`${bouton} px-2.5`}><ChevronDown className="h-4 w-4 -rotate-90" /></button>
+        {nbFiltres({ ...filtres, emplacement: "centre" }) > 0 && <button type="button" onClick={() => setFiltres(FILTRES_DEPART)} className={GESTE} style={{ background: "transparent" }}><X className="h-3.5 w-3.5" />Tout afficher</button>}
+        <button type="button" onClick={() => setVersListe(true)} disabled={!coches.size} className={coches.size ? GESTE_PLEIN : GESTE} style={coches.size ? undefined : { background: "transparent" }}><ListPlus className="h-3.5 w-3.5" />Envoyer vers une liste{coches.size ? ` (${coches.size})` : ""}</button>
+        {coches.size > 0 && <button type="button" onClick={() => setCoches(new Set())} className="text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>}
+        <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0">
+          <span className="tabular-nums text-menthe">{tries.length}</span> mur{tries.length > 1 ? "s" : ""}{tries.length !== total ? <> sur <span className="tabular-nums text-encre">{total}</span></> : null}
+          {pages > 1 && <> · {page * PAR_PAGE + 1} à {Math.min(tries.length, (page + 1) * PAR_PAGE)}</>}
+        </span>
+        {pages > 1 && (
+          <span className="flex gap-1">
+            <button type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} aria-label="Page précédente" title="Page précédente" className={`${GESTE} w-8 justify-center px-0`} style={{ background: "transparent" }}><ChevronDown className="h-4 w-4 rotate-90" /></button>
+            <button type="button" onClick={() => setPage((p) => Math.min(pages - 1, p + 1))} disabled={page >= pages - 1} aria-label="Page suivante" title="Page suivante" className={`${GESTE} w-8 justify-center px-0`} style={{ background: "transparent" }}><ChevronDown className="h-4 w-4 -rotate-90" /></button>
+          </span>
+        )}
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] border-collapse text-left">
+      <div className="mt-4 overflow-x-auto rounded-[14px] border border-bord-doux bg-rail">
+        <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px]">
           <thead>
             <tr>
-              <th className="w-10 border-b border-trait py-2.5 pl-4 pr-0"><Case oui={tousCoches} disabled={!libres.length} label="Cocher toute la page" onBasculer={() => setCoches((s) => { const n = new Set(s); for (const c of libres) { if (tousCoches) n.delete(c.id); else n.add(c.id); } return n; })} /></th>
-              {colonnes.map(([cle, mot]) => (
-                <th key={cle} className="border-b border-trait px-4 py-2.5 text-[12px] font-normal text-ardoise">
-                  <button type="button" onClick={() => setTri((t) => (t.cle === cle ? { cle, sens: -t.sens } : { cle, sens: 1 }))} className="inline-flex items-center gap-1 p-0 text-ardoise hover:text-encre" style={{ background: "transparent" }}>{mot}{tri.cle === cle && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}</button>
+              <th className={`sticky left-0 z-30 border-b border-r ${TRAIT} bg-rail px-0 py-3.5`} style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
+                <span className="grid place-items-center"><Case oui={tousCoches} disabled={!libres.length} label="Cocher toute la page" onBasculer={() => setCoches((s) => { const n = new Set(s); for (const c of libres) { if (tousCoches) n.delete(c.id); else n.add(c.id); } return n; })} /></span>
+              </th>
+              {colonnes.map(([cle, mot], i) => (
+                <th key={cle} className={`border-b ${i < colonnes.length - 1 ? "border-r" : ""} ${TRAIT} bg-rail py-3.5 text-[13.5px] font-normal text-encre ${i === 0 ? "sticky left-[44px] z-30 min-w-[220px] pl-2 pr-4 max-md:min-w-[140px]" : "px-4"}`}>
+                  <button type="button" onClick={() => setTri((t) => (t.cle === cle ? { cle, sens: -t.sens } : { cle, sens: 1 }))} className="inline-flex items-center gap-1 whitespace-nowrap p-0 text-encre hover:text-menthe" style={{ background: "transparent" }}>{mot}{tri.cle === cle && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}</button>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {vue.map((c) => (
-              <tr key={c.id} onClick={() => onOuvrir(c.id)} className={`cursor-pointer border-b border-trait last:border-b-0 ${ouvert === c.id ? "bg-menthe/10" : "hover:bg-relief/40"}`}>
-                <td className="w-10 py-2.5 pl-4 pr-0" onClick={(e) => e.stopPropagation()}><Case oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></td>
-                <td className="px-4 py-2.5"><span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: LIENS[c.lien]?.couleur || JL.brume }} /><span className="min-w-0"><span className="block max-w-[240px] truncate text-[14px] text-encre">{c.titre}</span><span className="block max-w-[240px] truncate text-[12px] text-ardoise">{c.activite}</span></span></span></td>
-                <td className="max-w-[220px] px-4 py-2.5 text-[13px] text-craie"><span className="block truncate">{c.adresse}</span><span className="block truncate text-[12px] text-ardoise">{c.ville}</span></td>
-                <td className="max-w-[200px] truncate px-4 py-2.5 text-[13px] text-craie">{c.exploitant || c.nom || c.titre}</td>
-                <td className="max-w-[220px] truncate px-4 py-2.5 text-[13px] text-encre">{c.proprietaire}</td>
-                <td className="whitespace-nowrap px-4 py-2.5 text-[13px] text-craie">{(LIENS[c.lien]?.mot || "").replace(" (probable)", "") || "…"}</td>
-                <td className="px-4 py-2.5"><span className="flex flex-wrap gap-1">{c.drapeaux.slice(0, 2).map((d) => <span key={d} className="whitespace-nowrap rounded-full bg-relief px-2 py-0.5 text-[11.5px] text-craie">{DRAPEAUX_COURTS[d] || d}</span>)}{c.drapeaux.length > 2 && <span className="text-[11.5px] text-brume">+{c.drapeaux.length - 2}</span>}</span></td>
-                <td className="whitespace-nowrap px-4 py-2.5 text-[12.5px] tabular-nums">{c.prix?.moyenne
-                  ? <span className={c.dans_budget === false ? "text-brume" : "text-encre"} title={c.prix.au_rendement ? `Le prix qui lui donne ${String(c.prix.au_rendement).replace(".", ",")} % (prix estimé : ${euros(c.prix_estime?.moyenne)})` : `Prix indicatif, entre ${euros(c.prix.basse)} et ${euros(c.prix.haute)}`}>{euros(c.prix.moyenne)}{c.dans_budget === false ? " · hors budget" : ""}</span>
-                  : <span className="text-ambre" title="Aucune estimation pour ce local encore : à vérifier avec le propriétaire">Prix à vérifier</span>}</td>
-                <td className="whitespace-nowrap px-4 py-2.5 text-[12.5px]">{c.reponse ? <span className="text-menthe">{REPONSES[c.reponse]?.split(",")[0] || "Appelé"}</span> : c.liste ? <span className="text-ardoise">Liste « {c.liste.nom} »</span> : <span className="text-brume">—</span>}</td>
-              </tr>
-            ))}
+            {vue.map((c) => {
+              const cellule = `border-b border-r ${TRAIT} px-4 py-4 align-middle`;
+              return (
+                <tr key={c.id} onClick={() => onOuvrir(c.id)} className={`group cursor-pointer transition-colors ${ouvert === c.id ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
+                  <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail px-0 py-4 align-middle`} style={{ width: 44, minWidth: 44, maxWidth: 44 }} onClick={(e) => e.stopPropagation()}>
+                    <span className="grid place-items-center"><Case oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></span>
+                  </td>
+                  <td className={`sticky left-[44px] z-10 border-b border-r ${TRAIT} bg-rail py-4 pl-2 pr-4 align-middle`}>
+                    <span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: LIENS[c.lien]?.couleur || JL.brume }} />
+                      <span className="min-w-0"><span className="block max-w-[240px] truncate text-encre group-hover:text-menthe">{c.titre}</span><span className="block max-w-[240px] truncate text-ardoise">{c.activite}</span></span></span>
+                  </td>
+                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate text-encre">{c.adresse}</span><span className="block truncate text-ardoise">{c.ville}</span></td>
+                  <td className={`${cellule} max-w-[220px]`}><span className="block truncate text-encre">{c.exploitant || c.nom || c.titre}</span></td>
+                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate text-encre">{c.proprietaire || <span className="text-brume">À trouver</span>}</span></td>
+                  <td className={`${cellule} whitespace-nowrap text-encre`}>{(LIENS[c.lien]?.mot || "").replace(" (probable)", "") || <span className="text-brume">—</span>}</td>
+                  <td className={`${cellule} min-w-[200px]`}>{c.drapeaux.length
+                    ? <span className="line-clamp-2 leading-[1.5] text-lu-ia">{c.drapeaux.slice(0, 2).map((d) => DRAPEAUX_COURTS[d] || d).join(" · ")}{c.drapeaux.length > 2 ? ` · +${c.drapeaux.length - 2}` : ""}</span>
+                    : <span className="text-brume">—</span>}</td>
+                  <td className={`${cellule} whitespace-nowrap tabular-nums`}>{c.prix?.moyenne
+                    ? <span className={c.dans_budget === false ? "text-brume" : "text-encre"} title={c.prix.au_rendement ? `Le prix qui lui donne ${String(c.prix.au_rendement).replace(".", ",")} % (prix estimé : ${euros(c.prix_estime?.moyenne)})` : `Prix indicatif, entre ${euros(c.prix.basse)} et ${euros(c.prix.haute)}`}>{euros(c.prix.moyenne)}{c.dans_budget === false ? " · hors budget" : ""}</span>
+                    : <span className="text-ambre" title="Aucune estimation pour ce local encore : à vérifier avec le propriétaire">Prix à vérifier</span>}</td>
+                  <td className={`border-b ${TRAIT} whitespace-nowrap px-4 py-4 align-middle`}>{c.reponse ? <span className="text-menthe">{REPONSES[c.reponse]?.split(",")[0] || "Appelé"}</span> : c.liste ? <span className="text-ardoise">Liste « {c.liste.nom} »</span> : <span className="text-brume">—</span>}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {!tries.length && !charge && <Vide>Aucun mur avec ces filtres.</Vide>}

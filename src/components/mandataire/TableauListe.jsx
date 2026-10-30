@@ -360,27 +360,26 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
         <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Commerce, propriétaire, numéro"
-            className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+            className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
         {/* Au téléphone, la pilule défile sur une ligne. */}
         <div className="flex gap-1 rounded-full bg-rail-actif p-1 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
           {FILTRES.map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setFiltre(k)}
-              className={`rounded-full px-3 py-1 text-[13px] max-md:flex-none max-md:whitespace-nowrap max-md:py-1.5 ${filtre === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
+              className={`rounded-full px-3 py-1 text-[13.5px] max-md:flex-none max-md:whitespace-nowrap max-md:py-1.5 ${filtre === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
               style={filtre === k ? undefined : { background: "transparent" }}>{mot} <span className="tabular-nums text-brume">{compte(k)}</span></button>
           ))}
         </div>
-        <span className="ml-auto text-[13px] text-ardoise max-md:ml-0">
-          {recherche && (sansProprio > 0 || sansNumero > 0) ? (
-            <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{sansProprio > 0 ? `Propriétaires au cadastre : ${sansProprio} restant${sansProprio > 1 ? "s" : ""}` : `Numéros des propriétaires : ${sansNumero} restant${sansNumero > 1 ? "s" : ""}`}</span>
-          ) : chiffres ? (
+        <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0">
+          {/* La recherche des propriétaires et des numéros tourne en fond, sans compteur (30 oct. 2026, Jules). */}
+          {chiffres ? (
             // Les chiffres de la liste en une ligne (25 oct. 2026), à la place des quatre tuiles.
             <span><span className="tabular-nums text-menthe">{chiffres.faits}</span> fait{chiffres.faits > 1 ? "s" : ""} sur <span className="tabular-nums text-encre">{chiffres.total}</span>{chiffres.rdv ? <> · <span className="tabular-nums text-encre">{chiffres.rdv}</span> RDV</> : null}</span>
           ) : `${lignes.length} commerce${lignes.length > 1 ? "s" : ""}${agent ? " · remplie par votre agent IA" : ""}`}
         </span>
         {onRenommer && (
           <button type="button" onClick={onRenommer}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
             <Pencil className="h-3.5 w-3.5" />Renommer
           </button>
         )}
@@ -397,10 +396,10 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] border border-trait bg-surface-pleine px-4 py-2.5">
           <span className="text-[13.5px] text-encre">{coches.size} commerce{coches.size > 1 ? "s" : ""} coché{coches.size > 1 ? "s" : ""}</span>
           <button type="button" onClick={() => setRetirer(true)} disabled={supprimer.isPending}
-            className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-alerte hover:border-alerte disabled:opacity-50" style={{ background: "transparent" }}>
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-alerte hover:border-alerte disabled:opacity-50" style={{ background: "transparent" }}>
             {supprimer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Retirer de la liste
           </button>
-          <button type="button" onClick={() => setCoches(new Set())} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>
+          <button type="button" onClick={() => setCoches(new Set())} className="text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>
         </div>
       )}
 
@@ -440,9 +439,9 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                   <Case oui={tout} />
                 </button>
               </th>
-              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-3.5 pl-2 pr-4 text-left text-[12.5px] font-normal text-encre">Commerce</th>
+              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-3.5 pl-2 pr-4 text-left text-[13.5px] font-normal text-encre">Commerce</th>
               {COLONNES_FILE.map((c) => (
-                <th key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
+                <th key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-4 py-3.5 text-left text-[13.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
               ))}
             </tr>
           </thead>
@@ -466,8 +465,8 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                   <td className="sticky left-[44px] z-10 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-4 pl-2 pr-4 align-middle">
                     <button type="button" onClick={() => setOuvert(p.id)} title="Ouvrir la fiche"
                       className="block max-w-[260px] border-0 p-0 text-left" style={{ background: "transparent" }}>
-                      <span className="block truncate text-[14px] text-encre hover:text-menthe">{p.commerce || p.cible?.enseigne || "Commerce"}</span>
-                      <span className="block truncate text-[12.5px] text-ardoise">{p.ville || p.cible?.ville || ""}</span>
+                      <span className="block truncate text-[13.5px] text-encre hover:text-menthe">{p.commerce || p.cible?.enseigne || "Commerce"}</span>
+                      <span className="block truncate text-[13.5px] text-ardoise">{p.ville || p.cible?.ville || ""}</span>
                     </button>
                   </td>
                   {COLONNES_FILE.map((c) => (
@@ -476,7 +475,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                         // Le numéro se touche pour appeler (25 oct. 2026) ; à défaut, celui du commerce, dit comme tel.
                         tel ? <a href={`tel:${String(tel).replace(/[^\d+]/g, "")}`} className="whitespace-nowrap text-[13.5px] text-encre hover:text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{tel}</a>
                           : (p.telephone_commerce || p.cible?.telephone) ? <a href={`tel:${String(p.telephone_commerce || p.cible.telephone).replace(/[^\d+]/g, "")}`} className="whitespace-nowrap text-[13.5px] text-craie hover:text-encre" title="Le commerce, pas le propriétaire" style={{ fontVariantNumeric: "tabular-nums" }}>{p.telephone_commerce || p.cible.telephone} <span className="text-ardoise">(commerce)</span></a>
-                          : <span className="text-[12.5px] text-brume">À trouver</span>
+                          : <span className="text-[13.5px] text-brume">À trouver</span>
                       ) : c.cle === "statut" ? (
                         <span className={`relative inline-flex h-8 items-center gap-2 rounded-full pl-3 pr-2 text-[13.5px] ${TEINTES_STATUT[TON_STATUT[p.statut] || "neutre"]}`}>
                           <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: "var(--point)" }} />

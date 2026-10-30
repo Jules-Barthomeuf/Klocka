@@ -338,6 +338,37 @@ export function loyerAnnuel(texte) {
   return Math.round(/mois|mensuel/.test(t) ? n * 12 : /trimestr/.test(t) ? n * 4 : n);
 }
 
+// Ce que l'Analyse sait pour le projet : les cases du Bail et du Kbis. `tranchees` : seulement les cases vérifiées (la
+// mise à jour) ; sinon tout ce qui a été lu (la création, qui remplit au maximum).
+function champsDeLAnalyse(analyse, { tranchees = false } = {}) {
+  const patch = {};
+  for (const [grille, critere, champ] of CASES_DU_PROJET) {
+    const l = analyse?.grilles?.find((g) => g.id === grille)?.lignes.find((x) => x.id === critere);
+    if (!l?.valeur || (tranchees && !['verifie', 'corrige'].includes(l.statut))) continue;
+    const v = champ === 'loyer_annuel_ht' ? loyerAnnuel(l.valeur) : String(l.valeur).split('\n')[0].trim();
+    if (v) patch[champ] = v;
+  }
+  return patch;
+}
+
+// Ce qu'un projet doit avoir pour être présenté, et la question qui le demande (30 oct. 2026, Jules : « une fois
+// rempli au maximum, le chat pose des questions »).
+const ESSENTIELS = [
+  ['adresse_complete', "l'adresse exacte du local"],
+  ['nom_locataire', "le nom du locataire (l'enseigne ou la société)"],
+  ['activite_locataire', "l'activité du locataire"],
+  ['surface_m2', 'la surface du local, en m²'],
+  ['prix_acquisition', 'le prix de vente FAI'],
+  ['loyer_annuel_ht', 'le loyer annuel HT HC'],
+  ['echeance_bail', "l'échéance du bail"],
+  ['rendement_locatif', 'le rendement annoncé'],
+];
+export function questionsDuProjet(projet) {
+  const manque = ESSENTIELS.filter(([champ]) => { const v = projet?.[champ]; return v == null || v === '' || v === 0; });
+  if (!manque.length) return null;
+  return `J'ai rempli le projet avec tout ce que le dossier sait. Il me manque ${manque.length > 1 ? 'quelques informations' : 'une information'} pour le présenter :\n\n${manque.map(([, q]) => `- ${q}`).join('\n')}\n\nDonnez-les-moi ici, même en vrac : je les range dans le projet.`;
+}
+
 /**
  * Remet le projet à jour depuis le dossier (30 oct. 2026, Jules : un projet rentré dès la Pré-analyse, puis analysé,
  * gardait ses chiffres de départ). Les chiffres du lot et les cases tranchées de l'Analyse remplacent ceux du projet ;
@@ -352,13 +383,7 @@ export async function mettreAJourProjetDepuisDeal(dealId, user) {
   const plein = (v) => v != null && v !== '' && v !== 0 && !(typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
   const patch = Object.fromEntries(Object.entries(champs).filter(([, v]) => plein(v)));
   const { lireAnalyse } = await import('./analyse-pieces.js');
-  const analyse = lireAnalyse(dealId);
-  for (const [grille, critere, champ] of CASES_DU_PROJET) {
-    const l = analyse?.grilles?.find((g) => g.id === grille)?.lignes.find((x) => x.id === critere);
-    if (!l || !['verifie', 'corrige'].includes(l.statut) || !l.valeur) continue;
-    const v = champ === 'loyer_annuel_ht' ? loyerAnnuel(l.valeur) : String(l.valeur).trim();
-    if (plein(v)) patch[champ] = v;
-  }
+  Object.assign(patch, champsDeLAnalyse(lireAnalyse(dealId), { tranchees: true }));
   const { patch: pieces } = patchDepuisExtractions(deal, { ...projet, ...patch });
   Object.assign(patch, pieces);
   Records.update('Project', projet.id, { ...patch, maj_depuis_dossier_le: new Date().toISOString(), maj_depuis_dossier_par: user?.email || null });
@@ -369,7 +394,7 @@ export async function mettreAJourProjetDepuisDeal(dealId, user) {
  * Crée le Project pré-rempli et passe le deal en `projet_cree`.
  * @returns {{ ok: true, project } | { ok: false, error }}
  */
-export function creerProjetDepuisDeal(dealId, lotIndex, user) {
+export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null } = {}) {
   const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return { ok: false, error: 'Dossier introuvable' };
   // Un projet supprimé laissait son identifiant sur le dossier : la plateforme
@@ -384,6 +409,8 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
   // Sans pré-analyse, le projet naît d'une fiche vide au nom du dossier.
   const lot = lotOuVide(deal, lotIndex);
   const { adresseComplete, champs } = donneesDuLot(lot);
+  // Remplir au maximum (30 oct. 2026, Jules) : ce que les pièces ont lu (Kbis, bail) complète le lot, sans l'écraser.
+  for (const [k, v] of Object.entries(champsDeLAnalyse(analyse))) if (!champs[k]) champs[k] = v;
 
   // Tous les admins voient le projet, comme dans l'éditeur AdminProjets.
   const adminEmails = Records.filter('User', { role: 'admin' })
@@ -393,7 +420,8 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
   const projet = {
     // Un projet issu d'un deal de test est marqué pour être repérable (et
     // supprimé avec le deal).
-    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom), adresseComplete, val(lot.lot.locataire_activite))}`,
+    // « Nom du local - adresse » : le nom vient du lot, sinon du Kbis lu dans l'Analyse.
+    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom) || champs.nom_locataire, adresseComplete, val(lot.lot.locataire_activite) || champs.activite_locataire)}`,
     statut: 'analyse',
     archived: false,
     admin_principal: user?.email || adminEmails[0] || null,
@@ -417,6 +445,8 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
   // diagnostics, TVA. Il ne réécrit jamais ce que la préanalyse a déjà posé.
   const { patch, remplis } = patchDepuisExtractions(deal, projet);
   Object.assign(projet, patch);
+  // Ce qui reste vide : la première chose que le chat du projet demande en s'ouvrant.
+  projet.questions_ouverture = questionsDuProjet(projet);
 
   const cree = Records.create('Project', projet, user?.email);
   Records.update('Deal', deal.id, { projet_id: cree.id });

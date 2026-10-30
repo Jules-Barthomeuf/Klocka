@@ -1022,7 +1022,7 @@ function MessageAvecPiece({ m }) {
 // `lueur` : une lumière fait lentement le tour du cadre de la saisie, pour qu'on la voie (la fiche d'un commerce, 25 oct. 2026, Jules).
 // Dans tous les chats depuis le 26 oct. 2026 (Jules : « dans le dashboard, dans admin, dans tous les chats ») : `lueur={false}` l'éteint.
 // `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
-export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null }) {
+export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1051,6 +1051,15 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
   const [suggestionsOuvertes, setSuggestionsOuvertes] = useState(false);
   const [skillsOuvert, setSkillsOuvert] = useState(false);
   const [fil, setFil] = useState([]); // { role, contenu } et blocs { role: "bloc", type, donnees }
+  // `ouverture` (30 oct. 2026, Jules) : un premier message de l'assistant, posé en arrivant (un projet qui vient d'être
+  // rentré demande ce qui lui manque). Une seule fois ; `onOuverture` dit qu'il a été montré.
+  const ouvertureMontree = useRef(false);
+  useEffect(() => {
+    if (!ouverture || ouvertureMontree.current) return;
+    ouvertureMontree.current = true;
+    setFil((f) => (f.length ? f : [{ role: "assistant", contenu: ouverture, reprise: true }]));
+    onOuverture?.();
+  }, [ouverture]);
   const [brouillon, setBrouillon] = useState(null);
   const [suites, setSuites] = useState([]);
   const [fiche, setFiche] = useState(null); // compte rendu client extrait, à valider

@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-9 personnes, 2 886 pages ouvertes, 0 demandes à l'assistant, 98 actions exécutées.
+9 personnes, 2 903 pages ouvertes, 0 demandes à l'assistant, 98 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 551 | 0 | 53 | 30/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 568 | 0 | 53 | 30/10/2026 |
 | admin.stress@test.local (équipe) | 159 | 0 | 0 | 27/10/2026 |
 | test.mandataire@kpartners.fr | 150 | 0 | 0 | 27/10/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
@@ -24,10 +24,10 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 362 (13 %)
+- **Dashboard** — 364 (13 %)
+- **Analyse** — 364 (13 %)
 - **MandataireBiens** — 357 (12 %)
-- **Dashboard** — 353 (12 %)
-- **MandataireProspection** — 239 (8 %)
+- **MandataireProspection** — 242 (8 %)
 - **Personnalisation** — 207 (7 %)
 - **Prospection** — 180 (6 %)
 - **Emailing** — 140 (5 %)
@@ -36,7 +36,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **MandataireDossier** — 76 (3 %)
 - **Outils** — 71 (2 %)
 - **AdminPresentations** — 60 (2 %)
-- Le reste, sous 2 % : Cerveau, Offres, MandataireMandat, AdminMandataires, Monitoring, Home, OffMarket, ConversationsMandataires, Relances, MandataireClients, MandataireOffMarket, AdminClients, MesPresentations, MandatsMandataires, SuiviAppels, SimulateurRentabilite, AdminUtilisateurs, ProjetDetail, Semaine, ALXAtelier, MandataireProjets, Agents, KData, Validations, MandataireMarche, Vision, AdminModeles, SuiviMandataires, SuiviAudience, KZoning, MesProjets, SimulateurPublic, DepotVendeur, Automatismes, CoutsIA, AdminEquipe, ALX, AdminBanque, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, FichesCommerciales, AdminModeleZone, VisionRetraite, QuizInvestisseur, AdminSuggestions, Feedback
+- Le reste, sous 2 % : Cerveau, Offres, MandataireMandat, AdminMandataires, Monitoring, Home, OffMarket, ConversationsMandataires, Relances, MandataireClients, MandataireOffMarket, AdminClients, MesPresentations, MandatsMandataires, SuiviAppels, SimulateurRentabilite, AdminUtilisateurs, ProjetDetail, Semaine, ALXAtelier, MandataireProjets, Agents, KData, Validations, MandataireMarche, Vision, AdminModeles, SuiviMandataires, SuiviAudience, KZoning, MesProjets, SimulateurPublic, DepotVendeur, Automatismes, CoutsIA, AdminEquipe, ALX, AdminBanque, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, NotreOffre, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, FichesCommerciales, AdminModeleZone, VisionRetraite, QuizInvestisseur, AdminSuggestions, Feedback
 
 ## Ce que l'IA coûte
 
@@ -83,7 +83,7 @@ Pour qui : Jules 89 · Admin 4 · Coralie 4 · Sourcing 1.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **Analyse** : 13 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **Dashboard** : 13 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « trier ce qu’on colle dans la boîte » à 0,07 € par dépôt : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
 - 35 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

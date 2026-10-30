@@ -299,3 +299,20 @@ test("une pièce reçue après coup : l'onglet de la pièce, la plus récente re
   assert.equal(ligne().valeur, '4 500 €', "l'avenant, plus récent, est retenu");
   assert.equal(A.ongletDuType('pv_ag'), 'copropriete');
 });
+
+test("rentrer le projet après l'Analyse : le Kbis nomme le local dans le titre, les pièces remplissent, le reste devient des questions", async () => {
+  const P = await import('./projet.js');
+  dossier('DR18', [{ id: 'k', nom: 'kbis.pdf' }, { id: 'b', nom: 'bail.pdf' }]);
+  A.rangerPiece('DR18', 'k', 'kbis', null, { lire: false });
+  A.rangerPiece('DR18', 'b', 'bail', null, { lire: false });
+  await A.lirePiece('DR18', 'k', { uploadDir, lire: async () => JSON.stringify({ criteres: { denomination: { valeur: 'SARL Le Perroquet Bleu' }, activite: { valeur: 'Restaurant' } } }) });
+  await A.lirePiece('DR18', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { echeance: { valeur: '31/12/2034' }, loyer_signature: { valeur: '2 000 € HT par mois' } } }) });
+  const r = P.creerProjetDepuisDeal('DR18', 0, null, { analyse: A.lireAnalyse('DR18') });
+  assert.notEqual(r.ok, false);
+  const projet = Records.get('Project', Records.findBy('Deal', 'deal_id', 'DR18').projet_id);
+  assert.match(projet.titre, /^Restaurant Le Perroquet Bleu - /);
+  assert.equal(projet.echeance_bail, '31/12/2034');
+  assert.equal(projet.loyer_annuel_ht, 24000);
+  assert.match(projet.questions_ouverture, /la surface du local/);
+  assert.doesNotMatch(projet.questions_ouverture, /l'échéance du bail/);
+});

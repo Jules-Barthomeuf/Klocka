@@ -1253,6 +1253,11 @@ const LIBELLES_QUESTIONNAIRE = {
 };
 
 // Les questions de la reprise, dans l'ordre du questionnaire (les critères Data-B ont leurs choix).
+// Deux questions qui disent la même chose (31 oct. 2026 : « les charges » posées deux fois, la taxe foncière
+// redemandée) : la seconde ne se pose pas quand la première l'est déjà.
+const DOUBLONS = { charges_refacturees: 'charges', taxe_fonciere_refacturee: 'taxe_fonciere', rang_rue: 'emplacement' };
+const sansDoublon = (k, _, tout) => !(DOUBLONS[k] && tout.includes(DOUBLONS[k]));
+
 const QUESTIONS_REPRISE = {
   type_bien: 'Le type de bien : murs de commerce, immeuble de rapport ?',
   occupe: 'Le local est-il loué ?',
@@ -1306,7 +1311,7 @@ export function messageDeReprise(e) {
   const ordre = Object.keys(QUESTIONS_REPRISE);
   // La question des charges (ou de la taxe foncière) demande déjà qui paie : le critère du taux ne se redemande pas.
   const reste = manquants({ type_bien: 'murs_commerce', ...q }).filter((k) => QUESTIONS_REPRISE[k])
-    .filter((k, _, tout) => !(k === 'charges_refacturees' && tout.includes('charges')) && !(k === 'taxe_fonciere_refacturee' && tout.includes('taxe_fonciere')))
+    .filter(sansDoublon)
     .sort((x, y) => ordre.indexOf(x) - ordre.indexOf(y));
   const visite = e.infos_rdv ? '\nJ\'ai repris le compte rendu de la visite.' : '';
   const questions = reste.slice(0, 12).map((k, i) => `${i + 1}. ${QUESTIONS_REPRISE[k]}`);
@@ -1332,6 +1337,8 @@ const LIBELLES_VISITE = {
 const CLES_DU_FIL = Object.fromEntries(Object.entries({ ...QUESTIONS_REPRISE, ...LIBELLES_VISITE }).filter(([k]) => !['type_bien', 'taux_base'].includes(k)));
 export const OUI_VISITE = "Oui, c'est juste.";
 
+const ouiNon = (coche, texte) => (coche === true || /refactur|locataire/i.test(texte || '') ? 'oui' : coche === false || /propri[ée]taire|non refactur/i.test(texte || '') ? 'non' : null);
+
 /** Pure : ce que la fiche et le compte rendu de visite disent déjà, en réponses du questionnaire de l'avis. */
 export function reponsesDeLaVisite(p = {}) {
   const cr = p.biens?.compte_rendu || {};
@@ -1351,7 +1358,10 @@ export function reponsesDeLaVisite(p = {}) {
     echeance: b.fin_bail || null,
     taxe_fonciere: b.taxe_fonciere || null,
     charges: charges || null,
-    charges_refacturees: b.refacturees === true ? 'oui' : b.refacturees === false ? 'non' : null,
+    // « refacturées » vaut pour les charges ET la taxe foncière (compte rendu de visite) ; dit en toutes lettres dans l'une
+    // ou l'autre (« taxe foncière refacturée »), il compte aussi : rien ne se redemande (31 oct. 2026).
+    charges_refacturees: ouiNon(b.refacturees, b.charges),
+    taxe_fonciere_refacturee: ouiNon(b.refacturees, b.taxe_fonciere),
     etat: [e.local, b.travaux ? `travaux : ${b.travaux}` : null].filter(Boolean).join(' ; ') || null,
     flux: e.passage || null,
     environnement: e.voisinage || null,
@@ -1420,7 +1430,7 @@ export function confirmerLaVisite(e, user, conversationId = null) {
   const n = noter(r, user, conversationId);
   if (!n.ok) return { texte: n.error };
   // L'essentiel seulement (1er nov. 2026, Jules : « l'estimation en cinq minutes ») : le reste reste « à compléter ».
-  const reste = (n.essentiels_manquants || []).filter((k) => QUESTIONS_REPRISE[k]);
+  const reste = (n.essentiels_manquants || []).filter((k) => QUESTIONS_REPRISE[k]).filter(sansDoublon);
   if (!reste.length) return { texte: "C'est noté dans l'avis. J'ai l'essentiel : dites « rédige » et je vous propose le taux de base en rédigeant." };
   return { texte: `C'est noté dans l'avis. Pour le rédiger, il me manque seulement :\n${reste.map((k, i) => `${i + 1}. ${QUESTIONS_REPRISE[k]}`).join('\n')}\nRépondez en un vocal : je rédige aussitôt, avec un taux de base que je vous propose. Le reste se complète après, « je ne sais pas » ne bloque rien.` };
 }

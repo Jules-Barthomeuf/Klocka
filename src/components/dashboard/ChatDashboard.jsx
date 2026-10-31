@@ -767,7 +767,7 @@ export function cartesDe(r) {
   const ko = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} Mo` : `${Math.max(1, Math.round(n / 1024))} Ko`);
   const fichiers = (r?.fichiers || []).filter((f) => f?.url && f?.nom).map((f) => ({ titre: f.nom, detail: `Fichier préparé par AK${f.taille ? ` · ${ko(f.taille)}` : ""}`, etat: "fait", lien: `fichier:${f.url}`, action: "Télécharger" }));
   // Parlé d'un bien depuis le dashboard : l'échange est rangé dans le fil de ce bien (25 oct. 2026), une carte y mène.
-  const fil = r?.fil_bien ? [{ titre: `Échange gardé dans le fil de ${r.fil_bien.titre}`, detail: "Tout ce qui s'est dit sur ce bien", etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
+  const fil = r?.fil_bien ? [{ titre: "Rangé dans le fil du bien", detail: null, etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
   return [...fil, ...fichiers, ...taches, ...(r?.actions || [])
     // Une étape à confirmer n'est pas faite : elle n'a pas de carte, seulement son bouton « Confirmer » (25 oct. 2026).
     .filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_vente" && !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
@@ -856,39 +856,31 @@ function Etapes({ etapes, courante = null }) {
 
 
 /**
- * Une action faite : ce qui s'est passé, son titre, son détail, de quoi l'ouvrir. Depuis le 31 oct. 2026 (Jules : le
- * « ✓ Fait » en pilule ressemblait à un bouton) : l'état est dit en tête avec son icône (« Rappel posé »), sans
- * pastille à droite ; seul « Ouvrir » reste un bouton. `kp` : côté K Partners, la teinte est la pervenche, le violet de
- * la marque (31 oct. 2026, Jules : « adapte-le à KP ») ; l'équipe garde la menthe.
+ * Une action faite, en une ligne (31 oct. 2026, Jules, sur une capture « ✓ Rangé dans le fil du bien · Voir ») : une
+ * petite icône teintée, ce qui s'est passé, et « Voir » en lien à droite ; ni cadre, ni rond, ni pastille. Le même
+ * dessin pour l'assistant K Partners (`kp` : la pervenche, le violet de la marque) et pour Haka (la menthe).
  */
 function CarteAction({ c, onOuvrir, kp = false }) {
   const rate = c.etat === "rate";
   const annule = c.etat === "annule";
   const rdv = c.genre === "rappel" && /^RDV\b/i.test(c.titre || "");
   const Icone = rate ? X : rdv ? CalendarCheck : c.genre === "rappel" ? Bell : Check;
-  const etat = rate ? "Pas fait" : annule ? "Annulé" : rdv ? "Rendez-vous posé" : c.genre === "rappel" ? "Rappel posé" : "C'est fait";
-  const titre = rdv ? String(c.titre).replace(/^RDV\s+/i, "").replace(/^avec\s+/i, "Avec ") : c.titre;
+  const titre = rdv ? String(c.titre).replace(/^RDV\s+/i, "").replace(/^avec\s+/i, "avec ") : c.titre;
+  const texte = rate ? `Pas fait : ${titre}` : rdv ? `Rendez-vous posé ${titre}` : c.genre === "rappel" ? `Rappel posé : ${titre}` : titre;
   // Les classes de la teinte : écrites en entier pour que Tailwind les garde.
-  const t = rate
-    ? { rond: "bg-alerte/15 text-alerte", mot: "text-alerte", bord: "border-alerte/45", action: "bg-alerte/15 text-alerte" }
-    : annule ? { rond: "bg-relief text-brume", mot: "text-brume", bord: "border-trait", action: "" }
-    : kp ? { rond: "bg-pervenche/15 text-pervenche", mot: "text-pervenche", bord: "border-pervenche/25", action: "bg-pervenche/15 text-pervenche hover:bg-pervenche/25" }
-    : { rond: "bg-menthe/15 text-menthe", mot: "text-menthe", bord: "border-trait", action: "bg-menthe-pale text-sur-menthe-pale" };
+  const teinte = rate ? "text-alerte" : annule ? "text-brume" : kp ? "text-pervenche" : "text-menthe";
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      className={`flex items-center gap-4 rounded-[18px] border bg-surface-pleine px-5 py-4 max-md:px-4 ${t.bord} ${annule ? "opacity-50" : ""}`}>
-      <span className={`grid h-10 w-10 flex-none place-items-center rounded-full ${t.rond}`}>
-        <Icone className="h-[18px] w-[18px]" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className={`m-0 text-[13px] font-medium ${t.mot}`}>{etat}</p>
-        <p className={`m-0 mt-0.5 text-[16px] ${annule ? "text-brume line-through" : "text-encre"}`}>{titre}</p>
-        {c.detail && <p className="m-0 mt-0.5 text-[14.5px] leading-[1.5] text-ardoise">{c.detail}</p>}
-      </div>
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
+      className={`flex items-start gap-3 py-1 ${annule ? "opacity-50" : ""}`}>
+      <Icone className={`mt-[3px] h-4 w-4 flex-none ${teinte}`} />
+      <p className={`m-0 min-w-0 flex-1 text-[15px] leading-[1.45] ${annule ? "text-brume line-through" : "text-craie"}`}>
+        {texte}{c.detail && <span className="text-brume"> · {c.detail}</span>}
+      </p>
       {c.lien && !annule && (
-        <button type="button" onClick={() => onOuvrir(c.lien)} className={`inline-flex h-11 flex-none items-center rounded-full px-5 text-[15px] transition-colors ${c.action ? `font-medium ${t.action}` : "border border-trait text-craie hover:text-encre"}`}
-          style={{ background: c.action ? undefined : "transparent" }}>
-          {c.action || "Ouvrir"}
+        <button type="button" onClick={() => onOuvrir(c.lien)}
+          className={`flex-none text-[15px] font-medium hover:underline ${rate ? "text-alerte" : kp ? "text-pervenche" : "text-menthe"}`}
+          style={{ background: "transparent" }}>
+          {!c.action || c.action === "Ouvrir" ? "Voir" : c.action}
         </button>
       )}
     </motion.div>
@@ -2170,7 +2162,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
                   <SourcesLoi sources={m.sources} />
                   {/* L'avis affiché à côté du chat : sa carte « Ouvrir l'avis » ne servirait à rien. */}
                   {m.cartes?.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).length > 0 && (
-                    <div className="mt-5 space-y-3">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} kp={mandataire} />)}</div>
+                    <div className="mt-4 space-y-1">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} kp={mandataire} />)}</div>
                   )}
                 </div>
               </motion.div>

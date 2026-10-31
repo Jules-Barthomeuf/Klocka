@@ -857,33 +857,37 @@ function Etapes({ etapes, courante = null }) {
 
 /**
  * Une action faite : ce qui s'est passé, son titre, son détail, de quoi l'ouvrir. Depuis le 31 oct. 2026 (Jules : le
- * « ✓ Fait » en pilule ressemblait à un bouton) : l'état est dit en tête, en menthe, avec son icône (« Rappel posé »),
- * et la carte n'a plus de pastille à droite ; seul « Ouvrir » reste un bouton.
+ * « ✓ Fait » en pilule ressemblait à un bouton) : l'état est dit en tête avec son icône (« Rappel posé »), sans
+ * pastille à droite ; seul « Ouvrir » reste un bouton. `kp` : côté K Partners, la teinte est la pervenche, le violet de
+ * la marque (31 oct. 2026, Jules : « adapte-le à KP ») ; l'équipe garde la menthe.
  */
-function CarteAction({ c, onOuvrir }) {
+function CarteAction({ c, onOuvrir, kp = false }) {
   const rate = c.etat === "rate";
   const annule = c.etat === "annule";
   const rdv = c.genre === "rappel" && /^RDV\b/i.test(c.titre || "");
   const Icone = rate ? X : rdv ? CalendarCheck : c.genre === "rappel" ? Bell : Check;
   const etat = rate ? "Pas fait" : annule ? "Annulé" : rdv ? "Rendez-vous posé" : c.genre === "rappel" ? "Rappel posé" : "C'est fait";
   const titre = rdv ? String(c.titre).replace(/^RDV\s+/i, "").replace(/^avec\s+/i, "Avec ") : c.titre;
-  const teinte = rate ? "alerte" : annule ? null : "menthe";
+  // Les classes de la teinte : écrites en entier pour que Tailwind les garde.
+  const t = rate
+    ? { rond: "bg-alerte/15 text-alerte", mot: "text-alerte", bord: "border-alerte/45", action: "bg-alerte/15 text-alerte" }
+    : annule ? { rond: "bg-relief text-brume", mot: "text-brume", bord: "border-trait", action: "" }
+    : kp ? { rond: "bg-pervenche/15 text-pervenche", mot: "text-pervenche", bord: "border-pervenche/25", action: "bg-pervenche/15 text-pervenche hover:bg-pervenche/25" }
+    : { rond: "bg-menthe/15 text-menthe", mot: "text-menthe", bord: "border-trait", action: "bg-menthe-pale text-sur-menthe-pale" };
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      className={`flex items-center gap-4 rounded-[18px] border px-5 py-4 max-md:px-4 ${annule ? "opacity-50" : ""}`}
-      style={{ borderColor: rate ? alpha("alerte", 0.45) : J["trait"], background: J["surface-pleine"] }}>
-      <span className="grid h-10 w-10 flex-none place-items-center rounded-full"
-        style={teinte ? { background: alpha(teinte, 0.14), color: J[teinte] } : { background: J["relief"], color: J["brume"] }}>
+      className={`flex items-center gap-4 rounded-[18px] border bg-surface-pleine px-5 py-4 max-md:px-4 ${t.bord} ${annule ? "opacity-50" : ""}`}>
+      <span className={`grid h-10 w-10 flex-none place-items-center rounded-full ${t.rond}`}>
         <Icone className="h-[18px] w-[18px]" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="m-0 text-[13px] font-medium" style={{ color: teinte ? J[teinte] : J["brume"] }}>{etat}</p>
+        <p className={`m-0 text-[13px] font-medium ${t.mot}`}>{etat}</p>
         <p className={`m-0 mt-0.5 text-[16px] ${annule ? "text-brume line-through" : "text-encre"}`}>{titre}</p>
         {c.detail && <p className="m-0 mt-0.5 text-[14.5px] leading-[1.5] text-ardoise">{c.detail}</p>}
       </div>
       {c.lien && !annule && (
-        <button type="button" onClick={() => onOuvrir(c.lien)} className={`inline-flex h-11 flex-none items-center rounded-full px-5 text-[15px] ${c.action ? "font-medium" : "border border-trait text-craie hover:text-encre"} transition-colors`}
-          style={c.action ? { background: J["menthe-pale"], color: J["sur-menthe-pale"] } : { background: "transparent" }}>
+        <button type="button" onClick={() => onOuvrir(c.lien)} className={`inline-flex h-11 flex-none items-center rounded-full px-5 text-[15px] transition-colors ${c.action ? `font-medium ${t.action}` : "border border-trait text-craie hover:text-encre"}`}
+          style={{ background: c.action ? undefined : "transparent" }}>
           {c.action || "Ouvrir"}
         </button>
       )}
@@ -2165,7 +2169,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
                   <SourcesLoi sources={m.sources} />
                   {/* L'avis affiché à côté du chat : sa carte « Ouvrir l'avis » ne servirait à rien. */}
                   {m.cartes?.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).length > 0 && (
-                    <div className="mt-5 space-y-3">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} />)}</div>
+                    <div className="mt-5 space-y-3">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} kp={mandataire} />)}</div>
                   )}
                 </div>
               </motion.div>

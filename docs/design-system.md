@@ -605,6 +605,8 @@ le recopie pas.
   une icône dans un rond `menthe` à 14 % (cloche pour un rappel, calendrier pour un rendez-vous, coche sinon) ; en
   tête, ce qui s'est passé en 13 px `menthe` (« Rappel posé », « Rendez-vous posé », « C'est fait ») ; puis le titre
   et la date. Pas de pastille d'état à droite : seul « Ouvrir » (ou l'action) y reste, parce que c'est un bouton.
+  Côté K Partners (31 oct. 2026, Jules : « adapte-le à KP »), la teinte est la `pervenche`, le violet de la marque
+  (rond `pervenche/15`, mot `pervenche`, bord `pervenche/25`) ; l'équipe garde la menthe.
 - **Panneaux d'outils** (plan, versions, menu de mise en forme) : `bg-rail`,
   `rounded-[14px]`, `border-trait`, comme la barre de navigation.
 

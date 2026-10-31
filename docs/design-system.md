@@ -1155,6 +1155,8 @@ Le chat d'une fiche est épuré (prop `epure` de ChatDashboard, Jules, 25 oct. 2
 - 25 oct. 2026 (Jules) : une seule fiche mandataire, celle de la carte, partout (listes, carte, Prospecter, Biens) : statut en pastille pervenche, commerce et adresse, « Pourquoi il vendrait », tableau à lignes, chat de Haka, historique. Pas d'accroche. Les rangées Exploitant, Murs, Gérant, Téléphone, Mail se modifient d'un clic (Entrée enregistre, Échap annule) ; la correction passe devant les registres, vide elle les rend. Tout panneau qui s'ouvre en glissant se referme de même, croix comprise.
 
 - 25 oct. 2026 (Jules) : un bien ouvert n'a qu'un titre, en fil d'Ariane « Tous les biens › nom du bien › étape ». Au téléphone, plus de frise : le menu des étapes de droite, le même qu'à l'ordinateur, collé au bord et qu'on fait glisser de haut en bas (`MenuEtapesDroite telephone`).
+- 31 oct. 2026 (vérification du parcours) : au téléphone, fermé, ce menu n'est plus une pastille à mi-hauteur (elle
+  masquait le loyer de l'avis) mais une étiquette « ‹ 2/6 » dans la ligne du titre, à droite ; un tap l'ouvre vers le bas.
 
 - 25 oct. 2026 (Jules) : dans la fiche, chaque rangée qui en sait plus (Exploitant, Murs, Gérant quand il y en a plusieurs, Téléphone, Client compatible) et l'encadré « Pourquoi il vendrait » portent à droite une petite flèche (chevron vers le bas, qui se retourne) : elle déplie le détail en lignes courtes (société, SIREN, création, siège, comptes, parcelle, gérants avec qualité et âge, sources), en 0,28 s. Une rangée sans détail n'a pas de flèche.
 

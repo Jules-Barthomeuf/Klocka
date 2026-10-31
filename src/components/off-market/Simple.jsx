@@ -86,8 +86,9 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
         <div role="dialog" aria-label="Filtres" className="pointer-events-auto max-h-[85vh] w-[760px] max-w-full overflow-y-auto rounded-bloc border border-bord-doux bg-surface-pleine p-4 shadow-xl">
           <div className="grid gap-5 md:grid-cols-3">
             <div className="flex flex-col gap-5">
-              {/* La classe d'actif en tête (26 oct. 2026, Jules) : commerce, bureaux, entrepôt ; rien de coché = tout. */}
-              <SectionFiltre titre="Classe d'actif" choisis={filtres.classes || []} onChange={maj("classes")} options={OPTIONS_CLASSE.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => (c.classe || "commerce") === v) }))} />
+              {/* La classe d'actif en tête (26 oct. 2026, Jules) : commerce, bureaux, entrepôt ; rien de coché = tout. Seulement
+                  s'il y a plus d'une classe à l'écran : un mandataire n'a que des commerces (31 oct. 2026, PLAN.md 0.4). */}
+              {new Set(commerces.map((c) => c.classe || "commerce")).size > 1 && <SectionFiltre titre="Classe d'actif" choisis={filtres.classes || []} onChange={maj("classes")} options={OPTIONS_CLASSE.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => (c.classe || "commerce") === v) }))} />}
               <SectionFiltre titre="Emplacement" multiple={false} choisis={[filtres.emplacement || "centre"]} onChange={(v) => setFiltres((f) => ({ ...f, emplacement: v[0] || "centre" }))} options={OPTIONS_EMPLACEMENT.map(([v, mot]) => ({ v, mot, n: v === "centre" ? compteDe(tous, (c) => c.centre !== false) : tous.length }))} />
               {zones.length > 0 && <SectionFiltre titre="Zone" choisis={filtres.zones} onChange={(v) => setFiltres((f) => ({ ...f, zones: v, emplacement: v.length ? "centre" : f.emplacement }))} options={zones.map((z) => ({ v: z.nom, mot: z.nom, n: compteDe(tous, (c) => c.zone === z.nom) }))} />}
               <SectionFiltre titre="Lien" choisis={filtres.liens} onChange={maj("liens")} options={OPTIONS_LIEN.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => cleLien(c) === v) }))} />

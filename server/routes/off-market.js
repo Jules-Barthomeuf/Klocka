@@ -68,10 +68,10 @@ export function monterOffMarket(app) {
     if (!visibles.has(req.params.id)) return res.status(404).json({ error: 'Ville introuvable.' });
     const { Records } = await import('../db.js');
     const v = Records.get('Ville', req.params.id);
-    const { demandesVisibles } = await import('../mandataire-espace.js');
+    const { demandesVisibles, voitTest } = await import('../mandataire-espace.js');
     const { geoDe, zoneCouvre } = await import('../mandataire-agent.js');
     const lieu = { ville: v?.nom || '', ...(v?.nom ? await geoDe(v.nom) : {}) };
-    const clients = demandesVisibles().map((d) => {
+    const clients = demandesVisibles({ avecTest: voitTest(user) }).map((d) => {
       const zones = (d.zones || []).filter((z) => !/toute la france|^france$/i.test(z));
       const zone = zones.find((z) => zoneCouvre(z, lieu)) || null;
       return { ...d, couvre: !zones.length || !!zone, zone_couverte: zone };

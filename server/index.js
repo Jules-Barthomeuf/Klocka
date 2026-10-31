@@ -1302,7 +1302,7 @@ monterQuestionsAppels(app);
 import('./prospection/questions-appels.js').then((m) => m.planifier()).catch((e) => console.error('[questions-appels] :', e.message));
 import('./equipe-semaine.js').then((m) => m.planifier()).catch((e) => console.error('[semaine] :', e.message));
 // Les clients d'essai de la Prospection (24 oct. 2026) : posés une fois, jamais effacés.
-import('./mandataire-demandes-essai.js').then((m) => { const n = m.semerClientsEssai(); if (n) console.log(`[essai] ${n} client(s) d'essai posé(s)`); }).catch((e) => console.error('[essai] :', e.message));
+import('./mandataire-demandes-essai.js').then((m) => { const n = m.semerClientsTest(); if (n) console.log(`[test] ${n} client(s) de test posé(s)`); }).catch((e) => console.error('[test] :', e.message));
 // Les villes des secteurs attribués se lisent si elles ne le sont pas (24 oct. 2026), une à la fois, une minute après le démarrage.
 import('./villes-secteur.js').then((m) => m.planifier()).catch((e) => console.error('[villes du secteur] :', e.message));
 // Le matin des mandataires (24 oct. 2026) : une notification par jour ouvré, à 8 h, sur Render.

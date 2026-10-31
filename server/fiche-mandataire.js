@@ -371,6 +371,6 @@ export async function ficheDuCommerce(commerceId, user, { statut = 'a_appeler' }
 /** Pure : qui tient chaque commerce de la carte (commerce_simple_id → { a_moi, dans_biens }). */
 export function teneurs(fiches, moi) {
   const m = new Map();
-  for (const p of fiches) if (p.commerce_simple_id) m.set(p.commerce_simple_id, { id: p.id, a_moi: p.mandataire_email === moi, dans_biens: dansBiens(p), statut: p.statut });
+  for (const p of fiches) if (p.commerce_simple_id && !(p.test || p.essai_bien)) m.set(p.commerce_simple_id, { id: p.id, a_moi: p.mandataire_email === moi, dans_biens: dansBiens(p), statut: p.statut });
   return m;
 }

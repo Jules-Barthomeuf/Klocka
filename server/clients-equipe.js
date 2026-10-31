@@ -291,6 +291,8 @@ export function ligneClient(d, appels = []) {
     visible: d.visible !== false, active: d.active !== false, source: d.source || null, monday_id: d.monday_id || null,
     appels: siens.length, dernier_appel: siens.map((a) => a.le).sort().at(-1) || null,
     prochaine_etape: d.prochaine_etape || null,
+    // Un client de test (31 oct. 2026) : l'équipe seule le voit, avec la pastille « Test ».
+    test: !!(d.test || d.essai),
   };
 }
 
@@ -322,14 +324,16 @@ export function retoucherClient(id, champs, user) {
   if ('visible' in champs) { permis.visible = !!champs.visible; permis.visible_choisi = true; }
   if ('active' in champs) permis.active = !!champs.active;
   if (typeof champs.client_nom === 'string' && champs.client_nom.trim()) permis.client_nom = champs.client_nom.trim();
+  if ('test' in champs) permis.test = !!champs.test;
   return { ok: true, client: Records.update('DemandeClient', id, { ...permis, maj_par: user?.email || null }) };
 }
 
 /** Un client créé à la main, avant son premier appel. */
-export function creerClient({ nom, email = null, telephone = null }, user) {
+export function creerClient({ nom, email = null, telephone = null, test = false }, user) {
   const n = texte(nom);
   if (!n) return { ok: false, error: 'Le nom du client manque.' };
   const deja = retrouverClient(Records.list('DemandeClient'), { email, nom: n });
   if (deja) return { ok: true, client: deja, deja: true };
-  return { ok: true, client: Records.create('DemandeClient', { client_nom: n, client_email: texte(email)?.toLowerCase() || null, telephone: texte(telephone), profil: 'Investisseur privé', source: 'equipe', active: true, visible: false, edit_manuel: true, ouverte_le: new Date().toISOString(), cree_par: user?.email || null }) };
+  // Un client de test se montre tout de suite dans les vues mandataire de l'équipe ; un mandataire ne le voit jamais.
+  return { ok: true, client: Records.create('DemandeClient', { client_nom: n, client_email: texte(email)?.toLowerCase() || null, telephone: texte(telephone), profil: 'Investisseur privé', source: 'equipe', active: true, visible: !!test, edit_manuel: true, ...(test ? { test: true } : {}), ouverte_le: new Date().toISOString(), cree_par: user?.email || null }) };
 }

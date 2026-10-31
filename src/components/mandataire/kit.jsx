@@ -129,6 +129,11 @@ export function PastilleExemple({ x }) {
   return x?.exemple ? <span className="ml-2 inline-flex flex-none rounded-full bg-ambre/15 px-2 py-0.5 align-middle text-[11.5px] font-normal text-ambre">Exemple</span> : null;
 }
 
+/** La pastille d'un client ou d'un bien de test (31 oct. 2026, PLAN.md 0.1) : l'équipe seule la voit, un mandataire jamais. */
+export function PastilleTest({ x }) {
+  return x?.test ? <span className="ml-2 inline-flex flex-none rounded-full bg-ambre/15 px-2 py-0.5 align-middle text-[11.5px] font-normal text-ambre">Test</span> : null;
+}
+
 /**
  * Le bandeau des exemples (10 oct. 2026) : tant qu'il en reste dans la liste,
  * il dit à quoi ils servent, et un clic les retire tous, de toutes les pages.

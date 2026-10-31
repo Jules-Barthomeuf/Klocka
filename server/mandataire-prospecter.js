@@ -33,6 +33,9 @@ export function prixPourClient(estimation, d) {
   return estimation?.prix?.moyenne ? estimation.prix : null;
 }
 
+/** Pure : un point est-il un commerce ? Les bureaux et les entrepôts de l'Off-market restent à l'équipe (PLAN.md 0.4). */
+export const estCommerce = (c) => (c?.classe || 'commerce') === 'commerce';
+
 /**
  * Pure : les points d'un client parmi des commerces (les fiches complètes de l'Off-market). Gardés : un signal de
  * vente au moins, un propriétaire et un exploitant nommés, l'activité et les exclusions du client, et un prix connu
@@ -45,6 +48,8 @@ export function pointsPourClient(commerces, d, { max = POINTS_MAX, centreDe = ()
   for (const k of ['commerces', 'signal', 'connus', 'prix', 'criteres']) n[k] = n[k] || 0;
   const gardes = [];
   for (const c of commerces) {
+    // Commerces seulement côté mandataire (31 oct. 2026, PLAN.md 0.4) : ni bureaux, ni entrepôts.
+    if (!estCommerce(c)) continue;
     n.commerces += 1;
     const drapeaux = c.drapeaux || [];
     if (!drapeaux.length) continue;
@@ -184,7 +189,7 @@ export async function prospecter(user) {
   const deja = prospectes(user);
   const cache = new Map();
   const geos = new Map();
-  for (const d of E.demandesVisibles()) {
+  for (const d of E.demandesVisibles({ avecTest: E.voitTest(user) })) {
     const siennes = await villesDuClient(d, villes, geos);
     if (!siennes.length) continue;
     const points = await pointsDans(d, siennes, cache, emailDe(user));
@@ -258,7 +263,7 @@ export async function pointsDuSecteur(user, { max = Infinity } = {}) {
     for (const c of liste) {
       lus += 1;
       const t = tenus.get(c.id);
-      if ((t && !t.a_moi) || c.lat == null || c.lon == null) continue;
+      if ((t && !t.a_moi) || c.lat == null || c.lon == null || !estCommerce(c)) continue;
       points.push(leger({ ...pointDuSecteur(c, compact(c, { ...(zone || {}), moi }), v.nom), fiche: t ? { id: t.id, dans_biens: t.dans_biens, statut: t.statut } : null }));
     }
   }
@@ -332,7 +337,7 @@ export async function pointsDuClient(user, demandeId, { noter = false } = {}) {
   const E = await import('./mandataire-espace.js');
   const secteur = E.secteurDe(user);
   if (!secteur) return { ok: false, error: 'Aucun secteur pour vous : Klocka vous en attribue un.' };
-  const d = E.demandesVisibles().find((x) => x.id === demandeId);
+  const d = E.demandesVisibles({ avecTest: E.voitTest(user) }).find((x) => x.id === demandeId);
   if (!d) return { ok: false, error: 'Client introuvable.' };
   const villes = await villesDuClient(d, (await villesDuMandataire(secteur)).fiches);
   const compte = {};

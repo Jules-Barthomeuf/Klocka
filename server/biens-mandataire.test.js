@@ -122,18 +122,53 @@ test('prospecter pour un client : signaux, propriétaire et exploitant connus, b
   assert.equal(pointsPourClient(Array.from({ length: 80 }, (_, i) => c(`x${i}`)), client).length, 50, 'une cinquantaine par ville, pas des milliers');
 });
 
-test('les clients d’essai se posent une fois, et un client supprimé ne revient pas', async () => {
+test('les clients de test se posent une fois, un client supprimé ne revient pas, un mandataire ne les voit jamais', async () => {
   const { Records } = await import('./db.js');
-  const { semerClientsEssai, CLIENTS_ESSAI } = await import('./mandataire-demandes-essai.js');
-  assert.equal(semerClientsEssai(), CLIENTS_ESSAI.length);
-  assert.equal(semerClientsEssai(), 0);
+  const { semerClientsTest, CLIENTS_TEST } = await import('./mandataire-demandes-essai.js');
+  assert.equal(semerClientsTest(), CLIENTS_TEST.length);
+  assert.equal(semerClientsTest(), 0);
   const un = Records.list('DemandeClient').find((d) => d.cle_essai === 'paris-bordeaux');
   Records.delete('DemandeClient', un.id);
-  assert.equal(semerClientsEssai(), 0);
+  assert.equal(semerClientsTest(), 0);
   const lyon = Records.list('DemandeClient').find((d) => d.cle_essai === 'lyon-macon-500');
   assert.deepEqual(lyon.zones, ['Lyon', 'Mâcon']);
+  assert.equal(lyon.test, true);
   const { exclusionsDe } = await import('../src/lib/clients-commerces.js');
   assert.deepEqual(exclusionsDe(lyon).map((f) => f.cle), ['nuit'], 'pas de boîte de nuit n’écarte pas les bars');
+
+  // Le cloisonnement (PLAN.md 0.1) : l'équipe voit les clients de test, avec leur marque ; un mandataire jamais.
+  const { demandesVisibles, demandesOuvertes, voitTest } = await import('./mandataire-espace.js');
+  const ancien = Records.create('DemandeClient', { client_nom: 'Ancien Essai', zones: ['Lyon'], essai: true, visible: true, active: true });
+  const vrai = Records.create('DemandeClient', { client_nom: 'Bernard Vrai', zones: ['Lyon'], visible: true, active: true });
+  const ids = (l) => l.map((d) => d.id);
+  const mandataire = demandesVisibles({ avecTest: voitTest({ role: 'mandataire' }) });
+  assert.ok(ids(mandataire).includes(vrai.id));
+  assert.ok(!mandataire.some((d) => d.test), 'aucun client de test chez un mandataire');
+  assert.ok(!ids(mandataire).includes(lyon.id) && !ids(mandataire).includes(ancien.id));
+  assert.ok(!ids(demandesOuvertes()).includes(lyon.id), 'ni dans les correspondances');
+  const equipe = demandesVisibles({ avecTest: voitTest({ role: 'admin' }) });
+  assert.ok(ids(equipe).includes(lyon.id) && equipe.find((d) => d.id === lyon.id).test);
+  assert.equal(equipe.find((d) => d.id === vrai.id).reference, 'BV', 'les initiales, jamais le nom');
+  Records.delete('DemandeClient', ancien.id);
+  Records.delete('DemandeClient', vrai.id);
+});
+
+test('un bien test : posé par l’équipe seule, il ne prend aucun commerce à un mandataire', async () => {
+  const { Records } = await import('./db.js');
+  const { creerProprietaire } = await import('./mandataire-espace.js');
+  const admin = { email: 'equipe.test@klocka.immo', role: 'admin' };
+  const marc = { email: 'marc.test@kpartners.fr', role: 'mandataire' };
+  const essai = creerProprietaire({ commerce: 'Bien test', test: true }, marc);
+  assert.equal(essai.proprietaire.test, undefined, 'un mandataire ne pose pas de test');
+  const cible = Records.create('Cible', { enseigne: 'Tabac test', ville: 'Antibes' });
+  const t = creerProprietaire({ commerce: 'Tabac test', cible_id: cible.id, test: true }, admin);
+  assert.equal(t.proprietaire.test, true);
+  const r = creerProprietaire({ commerce: 'Tabac test', cible_id: cible.id }, marc);
+  assert.equal(r.ok, true, 'la fiche de test ne bloque pas un vrai mandataire');
+  const { teneurs } = await import('./fiche-mandataire.js');
+  assert.equal(teneurs([{ id: 'x', commerce_simple_id: 'cs1', mandataire_email: admin.email, test: true }], marc.email).size, 0);
+  for (const p of [essai, t, r]) Records.delete('ProprietaireMandataire', p.proprietaire.id);
+  Records.delete('Cible', cible.id);
 });
 
 test('les villes d’un secteur : les Villes Klocka du contour et les communes cochées, créées avec leur centre', async () => {

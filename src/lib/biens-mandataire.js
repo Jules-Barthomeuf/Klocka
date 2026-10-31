@@ -171,6 +171,8 @@ export function regrouperBiens({ estimations = [], mandats = [], dossiers = [], 
       titre: b.dossier?.bien || b.mandat?.bien || b.estimation?.bien || b.marche?.bien || [p?.commerce || p?.nom, p?.ville].filter(Boolean).join(" · ") || "Bien sans nom",
       adresse: b.dossier?.adresse || b.estimation?.adresse || b.mandat?.questionnaire?.bien_adresse || p?.adresse || null,
       exemple: !!source?.exemple,
+      // Un bien de test (31 oct. 2026) : une de ses pièces marquée `test`, ou le Bien d'essai ; l'équipe seule en a.
+      test: [p, b.estimation, b.mandat, b.dossier, b.marche].some((x) => x?.test || x?.essai_bien),
       etape: etapeDuBien(lui),
       statut: statutDuBien(lui),
       faites: etapesFaites(lui),
@@ -191,7 +193,7 @@ export function bienDuProprietaire(proprietaires, cle) {
   const p = id ? proprietaires.find((x) => x.id === id) : null;
   if (!p) return null;
   const b = { proprietaire: p, estimation: null, mandat: null, dossier: null, marche: null };
-  return { ...b, cle, ids: [cle], titre: [p.commerce || p.nom, p.ville].filter(Boolean).join(" · ") || "Propriétaire", adresse: p.adresse || null, exemple: false, etape: etapeDuBien(b), statut: statutDuBien(b), faites: etapesFaites(b), modifie: p.cree_le || null };
+  return { ...b, cle, ids: [cle], titre: [p.commerce || p.nom, p.ville].filter(Boolean).join(" · ") || "Propriétaire", adresse: p.adresse || null, exemple: false, test: !!(p.test || p.essai_bien), etape: etapeDuBien(b), statut: statutDuBien(b), faites: etapesFaites(b), modifie: p.cree_le || null };
 }
 
 /** Pure : l'avis est parti et le propriétaire n'a pas encore répondu (le filtre « Estimation envoyée »). */

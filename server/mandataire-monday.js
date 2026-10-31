@@ -87,6 +87,8 @@ export async function synchroniserFicheMonday(ficheId) {
   const { Records } = await import('./db.js');
   const p = Records.get('ProprietaireMandataire', ficheId);
   if (!p) return { ok: false, error: 'Fiche introuvable' };
+  // Une fiche de test (31 oct. 2026) ne part jamais dans le CRM.
+  if (p.test || p.essai_bien) return { ok: false, error: 'fiche de test : rien vers le CRM' };
   const c = p.cible_id ? Records.get('Cible', p.cible_id) : null;
   const proprio = (p.nom || c?.proprietaire?.nom || '').trim();
   if (!proprio) return { ok: false, error: 'propriétaire des murs inconnu : pas encore de prospect' };

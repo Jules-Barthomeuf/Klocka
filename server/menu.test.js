@@ -60,7 +60,9 @@ test('un groupe est une entrée ; une page sait son groupe', async () => {
 test('le menu des mandataires : la structure de l’équipe, Biens en une entrée, Feedback dans Autre', async () => {
   const { menuMandataire, groupeDe } = await import('../src/lib/menu.js');
   const { principal, autre } = menuMandataire();
-  assert.deepEqual(principal.map((x) => x.label), ['Haka', 'Prospection', 'Biens', 'Clients', 'Projets', 'Simulateur', 'Twenty CRM']);
+  assert.deepEqual(principal.map((x) => x.label), ['Haka', 'Prospection', 'Biens', 'Clients', 'Simulateur', 'Twenty CRM']);
+  // Projets retiré (31 oct. 2026, PLAN.md 0.3) : ni au menu, ni dans « Autre ».
+  assert.ok(!principal.some((x) => x.cle === 'MandataireProjets') && !autre.some((e) => e.cle === 'MandataireProjets'));
   // Biens, une seule entrée (24 oct. 2026) : les étapes sont dans la page, plus d'onglets en tête.
   assert.equal(principal.find((x) => x.label === 'Biens').cle, 'MandataireBiens');
   assert.deepEqual(autre.map((e) => e.cle), ['Feedback']);

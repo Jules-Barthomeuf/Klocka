@@ -452,7 +452,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
       <div className={`flex justify-between gap-3 px-5 ${enConv ? "items-center pb-2 pt-4" : "items-start pt-5"}`}>
         <div className="min-w-0">
           <h2 className={`m-0 truncate font-normal leading-[1.2] text-encre ${enConv ? "text-[17px]" : "text-[20px]"}`}>{f?.commerce || repli?.commerce || "Commerce"}</h2>
-          {!enConv && <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">{[f?.classe === "bureau" ? "Bureaux" : f?.classe === "entrepot" ? "Entrepôt" : null, f?.activite, f?.adresse || repli?.adresse].filter(Boolean).join(" · ")}</p>}
+          {!enConv && <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">{[f?.activite, f?.adresse || repli?.adresse].filter(Boolean).join(" · ")}</p>}
           {/* « Dans la liste … · changer » retiré de l'en-tête (27 oct. 2026, Jules). */}
         </div>
         <span className="flex flex-none items-center gap-1">

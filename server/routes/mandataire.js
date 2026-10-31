@@ -226,9 +226,9 @@ export function monterMandataire(app) {
     let demandeId = req.body?.demande_id || null;
     const ref = !criteres && !demandeId ? String(req.body?.phrase || '').match(/\bclient\s+([a-z])(\d*)\b/i) : null;
     if (ref) {
-      const { demandesVisibles } = await E();
+      const { demandesVisibles, voitTest } = await E();
       const cherchee = `Client ${ref[1].toUpperCase()}${ref[2] || ''}`;
-      demandeId = demandesVisibles().find((d) => d.reference === cherchee)?.id || null;
+      demandeId = demandesVisibles({ avecTest: voitTest(user) }).find((d) => d.reference === cherchee)?.id || null;
       if (!demandeId) return { status: 404, error: `Je ne connais pas de « ${cherchee} » : ouvrez la page Clients pour voir les références.` };
     }
     if (!criteres && demandeId) {
@@ -524,7 +524,7 @@ export function monterMandataire(app) {
   app.get('/api/mandataire/demandes', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
-    const { demandesVisibles, secteurDe, villesDuSecteur, correspond, mesProprietaires, synchroniserSiVieux } = await E();
+    const { demandesVisibles, secteurDe, villesDuSecteur, correspond, mesProprietaires, synchroniserSiVieux, voitTest } = await E();
     await synchroniserSiVieux();
     const { Records } = await import('../db.js');
     const secteur = secteurDe(user);
@@ -533,7 +533,7 @@ export function monterMandataire(app) {
     const miens = mesProprietaires(user);
     const mesCibles = new Set(miens.map((p) => p.cible_id).filter(Boolean));
     ok(res, {
-      demandes: demandesVisibles().map((d) => ({
+      demandes: demandesVisibles({ avecTest: voitTest(user) }).map((d) => ({
         ...d,
         ...(() => {
           const ok = cibles.filter((c) => !c.activite_exclue && c.pile !== 'ecartee' && correspond(c, d));
@@ -585,7 +585,8 @@ export function monterMandataire(app) {
         activite: c.activite || null, ville: c.ville || null, adresse: c.adresse || null,
       };
     }
-    const r = creerProprietaire(champs, user);
+    // Un bien « test » (31 oct. 2026) : l'équipe seule le pose, creerProprietaire le vérifie.
+    const r = creerProprietaire({ ...champs, test: req.body?.test === true }, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
     const { synchroniserFicheMonday } = await import('../mandataire-monday.js');
     ok(res, { ...r, monday: await synchroniserFicheMonday(r.proprietaire.id) });
@@ -916,9 +917,9 @@ export function monterMandataire(app) {
     ok(res, { mandataires: listerMandataires(), analystes: ANALYSTES });
   }));
 
-  // Les projets de la plateforme, tels que les clients les voient : les siens
-  // (nés de ses dossiers), et les autres projets disponibles, ANONYMES — rien
-  // ne dit qui les a apportés, qui a le mandat, ni pour quel client.
+  // Les projets nés de ses dossiers, et eux seuls (31 oct. 2026, PLAN.md 0.2 : un mandataire voit ses fiches, ses
+  // biens, les propriétés et les transactions ; plus le catalogue des projets de Klocka). La page Projets est retirée
+  // du menu (0.3) ; l'adresse reste pour les liens déjà envoyés.
   app.get('/api/mandataire/projets', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     const { Records } = await import('../db.js');
@@ -936,9 +937,7 @@ export function monterMandataire(app) {
     const tous = Records.list('Project').filter((p) => !p.archived);
     const mes = tous.filter((p) => (p.deal_id && mesDeals.has(p.deal_id)) || String(p.origine_mandataire?.mandataire_email || '').toLowerCase() === moi)
       .map((p) => ({ ...propre(p, true), origine: p.origine_mandataire ? { bien: p.origine_mandataire.bien, mandat_numero: p.origine_mandataire.mandat_numero || null } : null }));
-    const idsMes = new Set(mes.map((p) => p.id));
-    const autres = tous.filter((p) => p.statut === 'disponible' && !idsMes.has(p.id)).map((p) => propre(p, false));
-    ok(res, { mes, autres });
+    ok(res, { mes, autres: [] });
   }));
 
   // Le compte du mandataire : ce qu'il tient lui-même (comment il se présente

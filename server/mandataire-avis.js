@@ -28,6 +28,9 @@ export const TYPES_BIEN = {
   immeuble: 'Immeuble de rapport',
   autre: 'Autre bien professionnel',
 };
+// Ce qu'un mandataire peut ouvrir (31 oct. 2026, PLAN.md 0.4 : commerces seulement). Les bureaux et les locaux
+// d'activité restent lisibles dans les avis déjà faits, ils ne se proposent plus.
+export const TYPES_PROPOSES = ['murs_commerce', 'immeuble', 'autre'];
 
 // Ce qu'il faut savoir, par type et par situation (occupé ou libre). Les clés
 // optionnelles se demandent, mais « je ne sais pas » laisse « [à compléter] ».
@@ -108,7 +111,7 @@ export function commencer({ type_bien, adresse = null, demandeur = null }, user,
   for (const e of Records.list(ENTITE).filter((x) => x.mandataire_email === moi(user) && x.questionnaire_en_cours && (!conversationId || !x.conversation_id || x.conversation_id === conversationId))) {
     Records.update(ENTITE, e.id, { questionnaire_en_cours: false });
   }
-  const q = { type_bien: TYPES_BIEN[type_bien] ? type_bien : 'autre', adresse, demandeur };
+  const q = { type_bien: TYPES_PROPOSES.includes(type_bien) ? type_bien : 'autre', adresse, demandeur };
   const e = Records.create(ENTITE, {
     mandataire_email: moi(user), conversation_id: conversationId, bien: titreDe(q), adresse, statut: 'brouillon', questionnaire_en_cours: true, questionnaire: q,
     cree_le: new Date().toISOString(), historique: [{ le: new Date().toISOString(), par: user?.email || null, action: 'avis commencé par le chat' }],
@@ -504,8 +507,8 @@ export function surfacesDe(q) {
 const OUTILS = [
   {
     name: 'commencer_avis',
-    description: "Ouvre un nouvel avis de valeur dès que le type de bien est connu. type_bien : murs_commerce, bureaux, local_activite, immeuble, autre. Rend ce qui manque.",
-    input_schema: { type: 'object', properties: { type_bien: { type: 'string', enum: Object.keys(TYPES_BIEN) }, adresse: { type: 'string' }, demandeur: { type: 'string' } }, required: ['type_bien'] },
+    description: "Ouvre un nouvel avis de valeur dès que le type de bien est connu. type_bien : murs_commerce, immeuble, autre. Rend ce qui manque.",
+    input_schema: { type: 'object', properties: { type_bien: { type: 'string', enum: TYPES_PROPOSES }, adresse: { type: 'string' }, demandeur: { type: 'string' } }, required: ['type_bien'] },
   },
   {
     name: 'noter_reponses',
@@ -1103,7 +1106,7 @@ const LIBELLES_QUESTIONNAIRE = {
 
 // Les questions de la reprise, dans l'ordre du questionnaire (les critères Data-B ont leurs choix).
 const QUESTIONS_REPRISE = {
-  type_bien: 'Le type de bien : murs de commerce, bureaux, local d\'activité ?',
+  type_bien: 'Le type de bien : murs de commerce, immeuble de rapport ?',
   occupe: 'Le local est-il loué ?',
   adresse: 'L\'adresse exacte',
   demandeur: 'Le propriétaire des murs (le demandeur de l\'avis)',

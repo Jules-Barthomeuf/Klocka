@@ -1061,9 +1061,9 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
   }
 
   if (name === 'demandes_clients') {
-    const { demandesVisibles } = await import('./mandataire-espace.js');
+    const { demandesVisibles, voitTest } = await import('./mandataire-espace.js');
     const cherche = norme(input.ville || '');
-    const demandes = demandesVisibles().filter((d) => !cherche || (d.zones || []).some((z) => norme(z).includes(cherche) || cherche.includes(norme(z))));
+    const demandes = demandesVisibles({ avecTest: voitTest(user) }).filter((d) => !cherche || (d.zones || []).some((z) => norme(z).includes(cherche) || cherche.includes(norme(z))));
     return { demandes, nombre: demandes.length };
   }
 

@@ -343,6 +343,21 @@ export function initialesDe(nom) {
   return mots.slice(0, 2).map((m) => m[0].toUpperCase()).join('');
 }
 
+// --- Le mode test (31 oct. 2026, Jules : « un admin crée un client ou un bien test ; un compte mandataire ne le voit
+// jamais »). Un client (DemandeClient) ou une fiche (ProprietaireMandataire) marqué `test` ne sort que pour l'équipe ;
+// les anciens clients d'essai (`essai`) et le Bien d'essai (`essai_bien`) en sont aussi.
+
+/** Pure : un client ou une fiche de test ? */
+export const estTest = (x) => !!(x && (x.test || x.essai || x.essai_bien));
+
+/** Pure : ce compte voit-il les données de test ? L'équipe seule. */
+export const voitTest = (user) => user?.role === 'admin';
+
+/** Les clients ouverts aux mandataires (actifs, montrés), bruts ; ceux de test pour l'équipe seulement. */
+export function demandesOuvertes({ avecTest = false } = {}) {
+  return Records.list('DemandeClient').filter((d) => d.active !== false && d.visible !== false && (avecTest || !estTest(d)));
+}
+
 export function demandeAnonyme(d, i = 0) {
   return {
     id: d.id,
@@ -356,20 +371,20 @@ export function demandeAnonyme(d, i = 0) {
     rendement_min: d.rendement_min ?? null,
     bail: d.bail || null,
     apport: d.apport ?? null,
-    remarque: d.remarque || null,
-    information: d.information || null,
+    // Le nom du client masqué jusque dans les textes libres (« M. Roux veut… » → « M. R. veut… »).
+    remarque: d.remarque ? masquerNom(d.remarque, d.client_nom) : null,
+    information: d.information ? masquerNom(d.information, d.client_nom) : null,
     entre_le: d.entre_le || d.ouverte_le || null,
-    // Un client d'essai (server/mandataire-demandes-essai.js) porte la pastille « Exemple ».
-    exemple: !!d.essai,
+    // Un client de test ne sort que pour l'équipe, avec la pastille « Test ».
+    test: estTest(d),
     depuis_jours: d.ouverte_le ? Math.max(0, -dansJours(d.ouverte_le)) : null,
   };
 }
 
-/** Les demandes servies aux mandataires : actives, et que l'admin a choisi de montrer. */
-export function demandesVisibles() {
+/** Les demandes servies aux mandataires : actives, et que l'admin a choisi de montrer ; jamais de test hors équipe. */
+export function demandesVisibles({ avecTest = false } = {}) {
   const vues = new Map();
-  return Records.list('DemandeClient')
-    .filter((d) => d.active !== false && d.visible !== false)
+  return demandesOuvertes({ avecTest })
     .sort((a, b) => String(a.ouverte_le || '').localeCompare(String(b.ouverte_le || '')))
     .map((d, i) => {
       const a = demandeAnonyme(d, i);
@@ -583,11 +598,11 @@ export function proprietaireSien(id, user) {
   return p && p.mandataire_email === String(user?.email || '').toLowerCase() ? p : null;
 }
 
-export function creerProprietaire({ nom = null, telephone = null, email = null, commerce = null, activite = null, ville = null, adresse = null, cible_id = null, prospection_id = null, statut = 'a_appeler' }, user) {
+export function creerProprietaire({ nom = null, telephone = null, email = null, commerce = null, activite = null, ville = null, adresse = null, cible_id = null, prospection_id = null, statut = 'a_appeler', test = false }, user) {
   if (!nom && !commerce) return { ok: false, error: 'Il faut au moins un nom ou un commerce.' };
-  // Un commerce déjà suivi ne se démarche pas deux fois — par personne.
+  // Un commerce déjà suivi ne se démarche pas deux fois — par personne. Une fiche de test ne prend rien à personne.
   if (cible_id) {
-    const deja = Records.list('ProprietaireMandataire').find((p) => p.cible_id === cible_id && !['pas_vendeur'].includes(p.statut));
+    const deja = Records.list('ProprietaireMandataire').find((p) => p.cible_id === cible_id && !['pas_vendeur'].includes(p.statut) && !estTest(p));
     if (deja) {
       const parMoi = deja.mandataire_email === String(user?.email || '').toLowerCase();
       return { ok: false, error: parMoi ? 'Ce commerce est déjà dans votre liste.' : 'Ce commerce est déjà suivi par un autre mandataire.' };
@@ -604,6 +619,8 @@ export function creerProprietaire({ nom = null, telephone = null, email = null, 
     prochaine_action: statut === 'a_appeler' ? 'Premier appel' : null,
     prochaine_action_le: statut === 'a_appeler' ? new Date().toISOString() : null,
     historique: [{ le: new Date().toISOString(), type: 'creation', texte: 'Fiche créée' }],
+    // Le marqueur de test, posé par l'équipe seulement.
+    ...(test && voitTest(user) ? { test: true } : {}),
   });
   return { ok: true, proprietaire: p };
 }

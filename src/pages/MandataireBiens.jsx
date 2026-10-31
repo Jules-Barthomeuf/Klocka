@@ -5,7 +5,8 @@ import { ArrowLeft, Check, ChevronRight, Loader2, Plus, Search, Send } from "luc
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
-import { BandeauExemples, Carte, Frise, PastilleExemple, euros } from "@/components/mandataire/kit";
+import { BandeauExemples, Carte, Frise, PastilleExemple, PastilleTest, euros } from "@/components/mandataire/kit";
+import { useAuthPeutEtre } from "@/lib/AuthContext";
 import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
@@ -89,11 +90,31 @@ export default function MandataireBiens() {
   const essai = <ScenariosEssai onAller={(c, e) => aller(c, e)} />;
   if (cle && !nouveau && !bien && chargement) return <><Chargement taille="grand" />{essai}</>;
   if (cle && (bien || nouveau)) return <><BienOuvert bien={bien} etape={etape} onAller={(id) => aller(bien ? bien.cle : "nouveau", id)} onFermer={fermer} onCree={surCree} types={marches.data?.types_activite || {}} estimations={dossiers.data?.estimations || []} />{essai}</>;
-  return <><TousLesBiens biens={biens} chargement={chargement} erreur={erreur} onOuvrir={(b) => aller(b.cle, ETAPES_BIEN[b.etape - 1].id)} onNouveau={() => aller("nouveau", "estimation")} />{essai}</>;
+  return <><TousLesBiens biens={biens} chargement={chargement} erreur={erreur} onOuvrir={(b) => aller(b.cle, ETAPES_BIEN[b.etape - 1].id)} onNouveau={() => aller("nouveau", "estimation")} onTest={(id) => aller(`proprietaire:${id}`, "previsite")} />{essai}</>;
 }
 
 /** L'arrivée : tous les biens, en cartes, chacun à son statut. « Aujourd'hui » retiré le 24 oct. 2026 (Jules). */
-function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau }) {
+/**
+ * « Bien test » (31 oct. 2026, PLAN.md 0.1) : l'équipe seule pose un bien marqué test, à l'étape Pré-visite, sans
+ * commerce rattaché (il ne prend rien à un mandataire) et sans rien vers le CRM. Un compte mandataire ne le voit jamais.
+ */
+function BoutonBienTest({ onCree }) {
+  const auth = useAuthPeutEtre();
+  const queryClient = useQueryClient();
+  const poser = useMutation({
+    mutationFn: () => base44.request("POST", "/api/mandataire/proprietaires", { body: { commerce: "Bien test", statut: "rdv_pris", test: true } }),
+    onSuccess: async (r) => { await queryClient.refetchQueries({ queryKey: ["m-proprietaires"] }); onCree(r.proprietaire.id); toast.success("Bien test posé"); },
+    onError: (e) => toast.error(e?.message || "Bien test impossible"),
+  });
+  if (auth?.user?.role !== "admin") return null;
+  return (
+    <button type="button" onClick={() => poser.mutate()} disabled={poser.isPending} className="inline-flex h-11 items-center gap-2 rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+      <Plus className="h-3.5 w-3.5" /> Bien test
+    </button>
+  );
+}
+
+function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }) {
   const [recherche, setRecherche] = useState("");
   // « Estimation envoyée » (26 oct. 2026, Jules ; renommé le 27 avec la restitution) : les avis envoyés sans réponse
   // du propriétaire, ce que l'étape Prix d'accord montrait.
@@ -112,7 +133,8 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau }) {
             className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </label>
         <h1 className="m-0 text-center text-[30px] font-medium tracking-[-0.01em] text-encre max-md:order-1 max-md:text-left max-md:text-[26px]">Vos biens</h1>
-        <div className="flex max-md:order-3 md:justify-end">
+        <div className="flex gap-2.5 max-md:order-3 md:justify-end">
+          <BoutonBienTest onCree={onTest} />
           <button type="button" onClick={onNouveau} className="inline-flex h-11 items-center gap-2 rounded-full bg-encre px-5 text-[14px] font-medium text-fond hover:opacity-90">
             <Plus className="h-3.5 w-3.5" /> Nouveau bien
           </button>
@@ -165,7 +187,7 @@ function CarteBien({ b, onOuvrir }) {
       </div>
       <div className="flex flex-1 flex-col gap-3.5 px-5 pb-5 pt-[18px]">
         <div className="flex min-w-0 flex-col gap-2">
-          <p className="m-0 flex min-w-0 items-center text-[17px] font-medium text-encre" title={b.titre}><span className="truncate">{b.titre}</span><PastilleExemple x={b} /></p>
+          <p className="m-0 flex min-w-0 items-center text-[17px] font-medium text-encre" title={b.titre}><span className="truncate">{b.titre}</span><PastilleExemple x={b} /><PastilleTest x={b} /></p>
           <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
             {b.dossier?.transfere && <span className="flex-none rounded-full border border-menthe/40 px-2.5 py-[3px] text-[12px] text-menthe">Chez {b.dossier.analyste_nom || "Klocka"}</span>}
             <span className="truncate text-[13px] text-ardoise">{lieu}</span>

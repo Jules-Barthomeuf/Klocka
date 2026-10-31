@@ -10,6 +10,7 @@ import MesAcquereurs from "@/components/mandataire/MesAcquereurs";
 import { Onglets } from "@/components/ui/kit";
 import { J } from "@/design/jetons";
 import Chargement from "@/components/ui/Chargement";
+import { PastilleTest } from "@/components/mandataire/kit";
 
 // Les clients Klocka vus du mandataire (maquette « Clients Admin », 4 oct.
 // 2026, reprise pour le côté mandataire) : des cartes ou un tableau, une
@@ -154,7 +155,7 @@ function CarteClient({ d, onOuvrir }) {
         <div className="flex items-center gap-3">
           <Avatar d={d} />
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-[17px] font-medium text-encre">{nomDe(d)}</span>
+            <span className="flex min-w-0 items-center text-[17px] font-medium text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
             <span className="truncate text-[13px] text-ardoise">{d.profil}</span>
           </div>
         </div>
@@ -197,7 +198,7 @@ function TableauClients({ lignes, onOuvrir }) {
             <div className="flex min-w-0 items-center gap-3">
               <Avatar d={d} taille="h-[34px] w-[34px]" />
               <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="truncate text-[15px] font-medium text-encre">{nomDe(d)}</span>
+                <span className="flex min-w-0 items-center text-[15px] font-medium text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
                 <span className="truncate text-[13px] text-ardoise">{d.profil}</span>
               </div>
             </div>

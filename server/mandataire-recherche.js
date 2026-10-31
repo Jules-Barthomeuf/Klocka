@@ -11,7 +11,7 @@
 // secteur absente d'ALX ne rend rien — on le dit, on n'invente pas.
 
 import { Records } from './db.js';
-import { villesDuSecteur, correspond, demandeAnonyme } from './mandataire-espace.js';
+import { villesDuSecteur, correspond, demandeAnonyme, demandesOuvertes, estTest } from './mandataire-espace.js';
 
 const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
@@ -140,8 +140,8 @@ export function chercherCommerces({ secteur, criteres = {}, user }) {
     if (!dedans.length) return { ok: false, error: `« ${criteres.ville} » n'est pas dans votre secteur. Villes couvertes : ${villes.map((v) => v.nom).join(', ')}.` };
   }
 
-  const demandes = Records.list('DemandeClient').filter((d) => d.active !== false && d.visible !== false);
-  const suivis = new Map(Records.list('ProprietaireMandataire').filter((p) => p.cible_id).map((p) => [p.cible_id, p]));
+  const demandes = demandesOuvertes();
+  const suivis = new Map(Records.list('ProprietaireMandataire').filter((p) => p.cible_id && !estTest(p)).map((p) => [p.cible_id, p]));
   const moi = String(user?.email || '').toLowerCase();
 
   const resultats = [];
@@ -178,7 +178,7 @@ export function chercherCommerces({ secteur, criteres = {}, user }) {
 /** Le mode « Pour un client » : les critères sortent de la demande, anonymisée. */
 export function criteresDeDemande(demandeId) {
   const d = Records.get('DemandeClient', demandeId);
-  if (!d || d.active === false || d.visible === false) return null;
+  if (!d || d.active === false || d.visible === false || estTest(d)) return null;
   return {
     criteres: { activite: d.type_commerce || null, ville: null, emplacement: null },
     demande: demandeAnonyme(d),
@@ -248,8 +248,8 @@ export async function chercherCommercesOsm({ secteur, criteres = {}, user, surEt
   if (!r.ok) return r;
 
   const nomDe = nomMetierDe();
-  const demandes = Records.list('DemandeClient').filter((d) => d.active !== false && d.visible !== false);
-  const suivis = new Map(Records.list('ProprietaireMandataire').filter((p) => p.cible_id).map((p) => [p.cible_id, p]));
+  const demandes = demandesOuvertes();
+  const suivis = new Map(Records.list('ProprietaireMandataire').filter((p) => p.cible_id && !estTest(p)).map((p) => [p.cible_id, p]));
   const moi = String(user?.email || '').toLowerCase();
   // Une activité sans métier connu (« assurances ») : on garde les devantures dont le nom la contient.
   const motsLibres = !metiers.length && criteres.activite ? norm(criteres.activite).split(/\s+/).filter((m) => m.length > 3).map((m) => m.replace(/s$/, '')) : [];

@@ -9,7 +9,7 @@ import { JL } from "@/design/jetons";
 import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
 import { toast } from "@/components/ui/avis";
-import { PastilleExemple } from "@/components/mandataire/kit";
+import { PastilleTest } from "@/components/mandataire/kit";
 import { DRAPEAUX_COURTS, FenetreListe, LIENS, MenuFiltres, REPONSES } from "@/components/off-market/Simple";
 import { Case, Vide, bouton, boutonPlein, champ, euros, pl } from "@/components/off-market/commun";
 import { FILTRES_SIMPLE, nbFiltres, passeSimple } from "@/lib/off-market-simple";
@@ -316,7 +316,7 @@ function SelecteurClient({ selecteur, vue, seule = false }) {
     <>
       {client ? <Avatar d={client} taille="h-10 w-10" /> : <span className="grid h-10 w-10 flex-none place-items-center rounded-full border-2 border-encre text-encre"><MapPin className="h-5 w-5" strokeWidth={2} /></span>}
       <span className="min-w-0 flex-1 text-left">
-        <span className="m-0 flex items-center text-[15px] text-encre"><span className="truncate">{client ? client.reference : "Tous les commerces"}</span>{client && <PastilleExemple x={client} />}</span>
+        <span className="m-0 flex items-center text-[15px] text-encre"><span className="truncate">{client ? client.reference : "Tous les commerces"}</span>{client && <PastilleTest x={client} />}</span>
         {/* Sous le nom, ses critères seuls : ce qu'il cherche et son budget (25 oct. 2026, Jules). */}
         <span className="m-0 block truncate text-[12.5px] text-ardoise">{client ? `${client.type_commerce || "Tout commerce"} · ${budgetDe(client)}` : "De votre secteur · tous les clients"}</span>
       </span>
@@ -347,7 +347,7 @@ function SelecteurClient({ selecteur, vue, seule = false }) {
                 <li key={c.id} role="option" aria-selected={actif}>
                   <button type="button" onClick={() => { setOuvert(false); onChoisir(k); }} className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left ${actif ? "bg-rail-actif" : "hover:bg-rail-actif"}`} style={actif ? undefined : { background: "transparent" }}>
                     <Avatar d={c} taille="h-8 w-8" />
-                    <span className="min-w-0 flex-1"><span className="block truncate text-[14px] text-encre">{c.reference}</span><span className="block truncate text-[12.5px] text-ardoise">{c.type_commerce || "Tout commerce"} · {budgetDe(c)}</span></span>
+                    <span className="min-w-0 flex-1"><span className="flex min-w-0 items-center text-[14px] text-encre"><span className="truncate">{c.reference}</span><PastilleTest x={c} /></span><span className="block truncate text-[12.5px] text-ardoise">{c.type_commerce || "Tout commerce"} · {budgetDe(c)}</span></span>
                     {vus.includes(c.id) && <span className="h-2 w-2 flex-none rounded-full bg-menthe" title="Déjà prospecté" />}
                     {actif && <Check className="h-4 w-4 flex-none text-pervenche" />}
                   </button>

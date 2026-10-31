@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
 import AppelClient from "@/components/clients/AppelClient";
 import Chargement from "@/components/ui/Chargement";
+import { PastilleTest } from "@/components/mandataire/kit";
 
 // Les clients, côté équipe (16 oct. 2026, Jules) : la page Clients des
 // mandataires, mais avec les vrais noms, et une fiche très personnelle nourrie
@@ -59,7 +60,7 @@ function CarteClient({ d, onOuvrir }) {
         <div className="flex items-center gap-3">
           <Avatar d={d} />
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-[17px] font-medium text-encre">{d.nom}</span>
+            <span className="flex min-w-0 items-center text-[17px] font-medium text-encre"><span className="truncate">{d.nom}</span><PastilleTest x={d} /></span>
             <span className="truncate text-[13px] text-ardoise">{[d.profil, d.objectif].filter(Boolean).join(" · ")}</span>
           </div>
         </div>
@@ -91,7 +92,7 @@ function TableauClients({ lignes, onOuvrir }) {
             <div className="flex min-w-0 items-center gap-3">
               <Avatar d={d} taille="h-[34px] w-[34px]" />
               <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="truncate text-[15px] font-medium text-encre">{d.nom}</span>
+                <span className="flex min-w-0 items-center text-[15px] font-medium text-encre"><span className="truncate">{d.nom}</span><PastilleTest x={d} /></span>
                 <span className="truncate text-[13px] text-ardoise">{d.email || d.telephone || d.profil}</span>
               </div>
             </div>
@@ -207,7 +208,7 @@ function FicheClient({ id, onFermer, onAppel }) {
               <div className="flex min-w-0 items-center gap-3.5">
                 <Avatar d={d} taille="h-12 w-12" />
                 <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-[22px] font-medium text-encre max-md:text-[20px]">{d.nom}</span>
+                  <span className="flex items-center text-[22px] font-medium text-encre max-md:text-[20px]">{d.nom}<PastilleTest x={d} /></span>
                   <span className="text-[13px] text-ardoise">{[d.email, d.telephone, quand(d.entre_le, "long") ? `client depuis le ${quand(d.entre_le, "long")}` : null].filter(Boolean).join(" · ")}</span>
                 </div>
               </div>
@@ -261,6 +262,10 @@ function FicheClient({ id, onFermer, onAppel }) {
               <input type="checkbox" checked={d.visible} onChange={(e) => retoucher.mutate({ visible: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--k-menthe-rgb))]" />
               Montrer sa recherche au réseau, sans son nom
             </label>
+            <label className="flex cursor-pointer items-center gap-3 text-[14px] text-encre">
+              <input type="checkbox" checked={!!d.test} onChange={(e) => retoucher.mutate({ test: e.target.checked })} className="h-4 w-4 accent-[rgb(var(--k-menthe-rgb))]" />
+              Client test : visible de l'équipe seule, jamais d'un mandataire
+            </label>
             {d.visible && v && <p className="m-0 rounded-[12px] border border-trait px-4 py-3 text-[13.5px] leading-[1.55] text-craie">
               <span className="text-encre">Client {v.reference}</span> · {v.profil} · {typeDe(v)} · {zonesDe(v)} · {budgetDe({ budget_min: v.budget_min, budget_max: v.budget_max })}{v.information ? <><br />{v.information}</> : null}
             </p>}
@@ -298,8 +303,9 @@ function NouveauClient({ onFermer, onCree }) {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
+  const [test, setTest] = useState(false);
   const creer = useMutation({
-    mutationFn: () => base44.request("POST", "/api/clients-equipe", { body: { nom, email, telephone } }),
+    mutationFn: () => base44.request("POST", "/api/clients-equipe", { body: { nom, email, telephone, test } }),
     onSuccess: (r) => { if (r.deja) toast(`${r.client.client_nom} existe déjà : sa fiche s'ouvre`); onCree(r.client.id); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
@@ -312,6 +318,10 @@ function NouveauClient({ onFermer, onCree }) {
         <input autoFocus value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Prénom et nom" className={champ} />
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (facultatif)" className={champ} />
         <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Téléphone (facultatif)" className={champ} />
+        <label className="flex cursor-pointer items-center gap-3 text-[14px] text-craie">
+          <input type="checkbox" checked={test} onChange={(e) => setTest(e.target.checked)} className="h-4 w-4 accent-[rgb(var(--k-menthe-rgb))]" />
+          Client test (jamais montré à un mandataire)
+        </label>
         <div className="mt-1 flex gap-2.5">
           <button type="submit" disabled={!nom.trim() || creer.isPending} className="h-11 rounded-full bg-menthe px-6 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">Créer la fiche</button>
           <button type="button" onClick={onFermer} className="h-11 rounded-full border border-trait px-5 text-[14px] text-craie hover:text-encre" style={{ background: "transparent" }}>Annuler</button>

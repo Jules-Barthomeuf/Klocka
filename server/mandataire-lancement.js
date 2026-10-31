@@ -162,8 +162,8 @@ export async function lancerProspection({ phrase = '', demande_ids = [], ville =
     }
   }
   if (demande_ids?.length) {
-    const toutes = Records.list('DemandeClient');
-    const visibles = toutes.filter((d) => d.active !== false && d.visible !== false);
+    const { demandesOuvertes } = await import('./mandataire-espace.js');
+    const visibles = demandesOuvertes();
     demandes = demande_ids.map((id) => visibles.find((d) => d.id === id)).filter(Boolean);
     if (!demandes.length) return { ok: false, error: 'Ces demandes ne sont plus ouvertes.' };
     activites = activitesDe(demandes);
@@ -255,10 +255,10 @@ export async function etatProspection(id, user, { sansRues = false } = {}) {
   if (!pr || pr.mandataire_email !== moi(user)) return { ok: false, error: 'Prospection introuvable.' };
   const v = pr.ville_id ? Records.get('Ville', pr.ville_id) : null;
   if (!v) return { ok: false, error: 'La ville de cette prospection a disparu.' };
-  const { correspond, demandeAnonyme } = await import('./mandataire-espace.js');
+  const { correspond, demandeAnonyme, demandesOuvertes, estTest } = await import('./mandataire-espace.js');
   const classes = classesDesRues(v);
-  const visibles = Records.list('DemandeClient').filter((d) => d.active !== false && d.visible !== false);
-  const suivis = new Map(Records.list('ProprietaireMandataire').filter((p) => p.cible_id).map((p) => [p.cible_id, p]));
+  const visibles = demandesOuvertes();
+  const suivis = new Map(Records.list('ProprietaireMandataire').filter((p) => p.cible_id && !estTest(p)).map((p) => [p.cible_id, p]));
   const toutes = Records.filter('Cible', { ville_id: v.id })
     .map((c) => ({ ...c, emplacement: classes.get(cleRue(c.rue || '')) ?? c.emplacement ?? null }));
   // Ce que les règles ALX écartent (restauration rapide, cédés…) : compté, pour

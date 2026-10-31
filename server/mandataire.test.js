@@ -32,8 +32,8 @@ test("l'heure dite est celle de Paris, été comme hiver", () => {
 test("aucun outil du mandataire n'envoie, ne lit les dossiers ni ne touche Twenty CRM", () => {
   const noms = OUTILS_MANDATAIRE.map((o) => o.name);
   assert.deepEqual(noms.sort(), [
-    'annuler_derniere', 'appel_sans_reponse', 'avancer_bien', 'avis_de_marche', 'bail_estimation', 'compte_rendu_visite', 'corriger_mandat', 'corriger_preparation', 'demander_mandat', 'demandes_clients', 'lancer_estimation', 'mes_acquereurs', 'mes_dossiers', 'mes_proprietaires',
-    'mes_rappels', 'modifier_fiche', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'preparer_mail', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'visite_du_moment',
+    'annuler_derniere', 'appel_sans_reponse', 'avancer_bien', 'avis_de_marche', 'bail_estimation', 'compte_rendu_visite', 'corriger_mandat', 'corriger_preparation', 'demander_mandat', 'demandes_clients', 'lancer_estimation', 'ma_fiche', 'mes_acquereurs', 'mes_dossiers', 'mes_proprietaires',
+    'mes_rappels', 'mettre_en_pause', 'modifier_fiche', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'preparer_mail', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'visite_du_moment',
   ]);
 });
 
@@ -434,4 +434,36 @@ test("les outils de marché du mandataire, et les sources qu'il peut cocher (26 
   assert.ok(M.OUTILS_PAR_SOURCE.equimmox.includes('prix_murs'));
   const r = await M.executerOutilMandataire({ name: 'donnees_commune', input: { commune: '' } }, { email: 'm@kpartners.fr', role: 'mandataire' });
   assert.equal(r.ok, false, 'sans commune, un refus propre');
+});
+
+// Le manuel du mandataire (31 oct. 2026, PLAN 2.2) : ce que le test des 20 phrases a trouvé.
+test('modifier_fiche garde la prochaine action dite avec le statut, et la source de chaque champ', async () => {
+  const QUI = { email: 'manuel@kpartners.fr', role: 'mandataire' };
+  const f = Records.create('ProprietaireMandataire', { mandataire_email: QUI.email, commerce: 'Boulangerie Manuel', ville: 'Antibes', statut: 'a_appeler', historique: [] });
+  const r = await executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: f.id, nom: 'M. Bernard', telephone: '06 12 34 56 78', exploitant: 'Mme Manuel', a_confirmer: true, source: "l'exploitante", statut: 'contacte', prochaine_action: 'Appeler M. Bernard', prochaine_action_le: '2026-11-02T09:00' } }, QUI);
+  assert.equal(r.ok, true);
+  const p = Records.get('ProprietaireMandataire', f.id);
+  assert.equal(p.statut, 'contacte');
+  assert.equal(p.prochaine_action, 'Appeler M. Bernard', 'le statut ne l\'efface plus');
+  assert.ok(p.prochaine_action_le);
+  assert.equal(p.sources.telephone.source, "l'exploitante");
+  assert.equal(p.sources.telephone.a_confirmer, true);
+  assert.match(p.telephone_source, /exploitante, à confirmer/);
+  const lu = await executerOutilMandataire({ name: 'ma_fiche', input: { qui: 'boulangerie manuel' } }, QUI);
+  assert.equal(lu.fiche_id, f.id);
+  assert.equal(lu.exploitant, 'Mme Manuel');
+  assert.equal((await executerOutilMandataire({ name: 'ma_fiche', input: { qui: 'boulangerie manuel' } }, AUTRE)).ok, false, 'la fiche d\'un autre reste invisible');
+});
+
+test('une relance notée depuis une fiche ouverte se rattache à elle ; mettre_en_pause retire le rendez-vous annulé', async () => {
+  const QUI = { email: 'pause@kpartners.fr', role: 'mandataire' };
+  const f = Records.create('ProprietaireMandataire', { mandataire_email: QUI.email, commerce: 'Cave Pause', ville: 'Antibes', statut: 'rdv_pris', historique: [] });
+  const r = await executerOutilMandataire({ name: 'noter_relance', input: { texte: 'Rappeler M. Girard jeudi' } }, QUI, { fiche: f });
+  assert.equal(r.ok, true);
+  assert.equal(Records.get('Rappel', r.rappel_id).proprietaire_id, f.id);
+  const rdv = Records.create('Rappel', { espace: 'mandataire', genre: 'rdv', proprietaire_id: f.id, quoi: 'RDV', echeance: new Date(Date.now() + 2 * 86400000).toISOString(), cree_par: QUI.email, fait_le: null });
+  const p = await executerOutilMandataire({ name: 'mettre_en_pause', input: { motif: 'rendez-vous annulé', rdv_annule: true } }, QUI, { fiche: f });
+  assert.equal(p.ok, true);
+  assert.ok(Records.get('ProprietaireMandataire', f.id).biens.pause);
+  assert.ok(Records.get('Rappel', rdv.id).fait_le);
 });

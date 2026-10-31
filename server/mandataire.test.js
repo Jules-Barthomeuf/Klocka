@@ -501,3 +501,18 @@ test("nouveau contact : sans son oui rien n'est créé, au oui la fiche naît da
   assert.equal(r.liste, 'Lyon · Restaurant');
   assert.equal(Records.list('ProprietaireMandataire').length, avant + 1);
 });
+
+test("la bonne pharmacie : le commerce dit, ou la fiche ouverte, l'emporte sur un mot du propriétaire (31 oct. 2026, Jules)", async () => {
+  const moi = { email: 'pharmacies@kpartners.fr', role: 'mandataire' };
+  const { creerProprietaire, retrouverProprietaire } = await import('./mandataire-espace.js');
+  const girondins = creerProprietaire({ nom: 'Malanso Europe', commerce: 'Pharmacie des Girondins', ville: 'Lyon', telephone: '04 78 00 00 01' }, moi).proprietaire;
+  const europe = creerProprietaire({ nom: 'Compagnie Nationale Royal Air Maroc', commerce: "Pharmacie de l'Europe", activite: 'Pharmacie', ville: 'Lyon', telephone: '04 78 00 00 02' }, moi).proprietaire;
+  const r = retrouverProprietaire("Pharmacie de l'Europe Lyon", moi);
+  assert.deepEqual([r.ambigu, r.candidats.map((p) => p.id)], [false, [europe.id]]);
+  // « la pharmacie » seule reste ambiguë, sauf sur la fiche ouverte.
+  assert.equal(retrouverProprietaire('la pharmacie à Lyon', moi).ambigu, true);
+  assert.deepEqual(retrouverProprietaire('la pharmacie à Lyon', moi, { ouverte: girondins }).candidats.map((p) => p.id), [girondins.id]);
+  const m = await executerOutilMandataire({ name: 'modifier_fiche', input: { qui: "Pharmacie de l'Europe · Lyon", telephone: '06 12 34 56 78' } }, moi, { fiche: europe });
+  assert.equal(m.ok, true);
+  assert.equal(Records.get('ProprietaireMandataire', europe.id).telephone, '06 12 34 56 78');
+});

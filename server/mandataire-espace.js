@@ -621,7 +621,7 @@ function noterHistorique(p, entree) {
  * Retrouve la fiche dont parle une phrase (« le commerce à Mâcon »). Zéro ou
  * plusieurs candidats : on le dit, l'agent demande au lieu de deviner.
  */
-export function retrouverProprietaire(qui, user) {
+export function retrouverProprietaire(qui, user, { ouverte = null } = {}) {
   // Mot à mot (« bar » n'est pas « barbier »), générique mis à part : « la
   // boulangerie rue Carnot » se joue sur boulangerie et carnot, pas sur rue.
   const GENERIQUES = new Set(['rue', 'avenue', 'boulevard', 'place', 'quai', 'chemin', 'allee', 'route', 'impasse', 'cours', 'les', 'des', 'commerce', 'local', 'murs', 'monsieur', 'madame', 'mme']);
@@ -631,10 +631,21 @@ export function retrouverProprietaire(qui, user) {
   const score = (p) => { const t = motsDe(p); return mots.filter((m) => t.has(m)).length; };
   const tous = mesProprietaires(user).map((p) => [p, score(p)]);
   const exacts = tous.filter(([, n]) => n === mots.length).map(([p]) => p);
-  if (exacts.length) return { ambigu: exacts.length > 1, candidats: exacts };
+  // La fiche ouverte à l'écran l'emporte quand elle fait partie des possibles (31 oct. 2026, Jules : « je suis sur la
+  // fiche de l'Europe pourtant ») ; puis celle dont le commerce et la ville portent tous les mots : « Pharmacie de
+  // l'Europe Lyon » n'est pas la Pharmacie des Girondins parce que son propriétaire s'appelle Malanso Europe.
+  const parmi = (liste) => {
+    if (ouverte?.id) { const o = liste.find((p) => p.id === ouverte.id); if (o) return [o]; }
+    if (liste.length < 2) return liste;
+    const parCommerce = liste.filter((p) => { const t = new Set(norm([p.commerce, p.ville].filter(Boolean).join(' ')).split(/[^a-z0-9]+/)); return mots.every((m) => t.has(m)); });
+    return parCommerce.length === 1 ? parCommerce : liste;
+  };
+  if (exacts.length) { const c = parmi(exacts); return { ambigu: c.length > 1, candidats: c }; }
   // À un mot manquant près, le doute profite à la question : tout candidat
   // partiel est présenté comme ambigu, jamais choisi en silence.
   const partiels = tous.filter(([, n]) => n >= Math.max(1, mots.length - 1)).map(([p]) => p);
+  const o = ouverte?.id && partiels.find((p) => p.id === ouverte.id);
+  if (o) return { ambigu: false, candidats: [o] };
   return { ambigu: partiels.length > 0, candidats: partiels };
 }
 

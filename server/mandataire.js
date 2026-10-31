@@ -727,7 +727,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     user = user?.role === 'admin' ? { ...user, role: 'mandataire' } : user;
     // Un propriétaire suivi (« M. Durand ») se lit par son commerce : c'est le nom du bien.
     const { retrouverProprietaire } = await import('./mandataire-espace.js');
-    const { candidats } = input.bien ? retrouverProprietaire(input.bien, user) : { candidats: [] };
+    const { candidats } = input.bien ? retrouverProprietaire(input.bien, user, { ouverte: fiche }) : { candidats: [] };
     const cherche = candidats.length === 1 ? `${input.bien} ${candidats[0].commerce || ''}` : input.bien || '';
     const mots = norme(cherche).split(/[^a-z0-9]+/).filter((m) => m.length > 2 && !MOTS_VIDES.has(m));
     const garde = (x) => !x.exemple && (!mots.length || mots.some((m) => norme(`${x.bien} ${x.adresse || ''} ${x.vendeur || ''}`).includes(m)));
@@ -751,7 +751,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     let adresse = input.adresse || (fiche?.adresse ? [fiche.adresse, fiche.ville].filter(Boolean).join(', ') : null);
     if (!adresse) {
       const { retrouverProprietaire } = await import('./mandataire-espace.js');
-      const { candidats } = retrouverProprietaire(input.bien, user);
+      const { candidats } = retrouverProprietaire(input.bien, user, { ouverte: fiche });
       if (candidats.length === 1 && candidats[0].adresse) adresse = [candidats[0].adresse, candidats[0].ville].filter(Boolean).join(', ');
     }
     if (!e) e = P.creerEstimation({ bien: input.bien, adresse }, user).estimation;
@@ -859,7 +859,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     // La fiche ouverte, ou celle que « qui » désigne, passe avant la lecture de la phrase (31 oct. 2026 : « Repasser à la
     // Boulangerie Roux jeudi » ne se rattachait pas, « repasser » et « jeudi » comptant comme des mots du nom).
     const { retrouverProprietaire } = await import('./mandataire-espace.js');
-    const { ambigu, candidats } = fiche?.id && !input.qui ? { ambigu: false, candidats: [fiche] } : retrouverProprietaire(input.qui || input.texte, user);
+    const { ambigu, candidats } = fiche?.id && !input.qui ? { ambigu: false, candidats: [fiche] } : retrouverProprietaire(input.qui || input.texte, user, { ouverte: fiche });
     Records.update('Rappel', r.rappel.id, { genre: 'relance', espace: ESPACE, ...(!ambigu && candidats.length === 1 ? { proprietaire_id: candidats[0].id } : {}) });
     return { ok: true, cree: true, rappel_id: r.rappel.id, titre: r.rappel.titre, pour: jourLisible(r.rappel.echeance) };
   }
@@ -876,7 +876,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     if (!cible && fiche?.id && !input.qui) cible = Records.get('ProprietaireMandataire', fiche.id);
     if (!cible) {
       if (!input.qui) return { ok: false, error: 'De quelle fiche parle-t-il ? Demande-le en une ligne.' };
-      const { ambigu, candidats } = retrouverProprietaire(input.qui, user);
+      const { ambigu, candidats } = retrouverProprietaire(input.qui, user, { ouverte: fiche });
       if (!candidats.length) return { ok: false, error: `Aucune fiche ne correspond à « ${input.qui} ». Propose de créer le contact (nouveau_contact).` };
       if (ambigu) return { ok: false, ambigu: true, choix: candidats.map((c) => titreProprietaire(c)), error: 'Plusieurs fiches correspondent : demande laquelle en une ligne.' };
       cible = candidats[0];
@@ -948,7 +948,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     if (!cible && fiche?.id && !input.qui) cible = Records.get('ProprietaireMandataire', fiche.id);
     if (!cible) {
       if (!input.qui) return { ok: false, error: 'De quel bien parle-t-il ? Demande-le en une ligne.' };
-      const { ambigu, candidats } = retrouverProprietaire(input.qui, user);
+      const { ambigu, candidats } = retrouverProprietaire(input.qui, user, { ouverte: fiche });
       if (!candidats.length) return { ok: false, error: `Aucune fiche ne correspond à « ${input.qui} ».` };
       if (ambigu) return { ok: false, ambigu: true, choix: candidats.map((c) => titreProprietaire(c)), error: 'Plusieurs fiches correspondent : demande laquelle en une ligne.' };
       cible = candidats[0];
@@ -973,7 +973,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     if (!cible && fiche?.id && !input.qui) cible = Records.get('ProprietaireMandataire', fiche.id);
     if (!cible) {
       if (!input.qui) return { ok: false, error: 'De quel bien parle-t-il ? Demande-le en une ligne.' };
-      const { ambigu, candidats } = retrouverProprietaire(input.qui, user);
+      const { ambigu, candidats } = retrouverProprietaire(input.qui, user, { ouverte: fiche });
       if (!candidats.length) return { ok: false, error: `Aucune fiche ne correspond à « ${input.qui} ».` };
       if (ambigu) return { ok: false, ambigu: true, choix: candidats.map((c) => titreProprietaire(c)), error: 'Plusieurs fiches correspondent : demande laquelle en une ligne.' };
       cible = candidats[0];
@@ -983,38 +983,38 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
   }
   if (name === 'appel_sans_reponse' || name === 'resultat_appel' || (name === 'noter_rdv' && input.qui)) {
     const { retrouverProprietaire, noterSansReponse, noterResultat, titreProprietaire } = await import('./mandataire-espace.js');
-    const { ambigu, candidats } = retrouverProprietaire(input.qui, user);
+    const { ambigu, candidats } = retrouverProprietaire(input.qui, user, { ouverte: fiche });
     if (!candidats.length && name !== 'noter_rdv') {
       return { ok: false, error: `Aucune fiche ne correspond à « ${input.qui} ». Propose de créer le contact (nouveau_contact) ou demande de préciser.` };
     }
     if (ambigu) {
       return { ok: false, ambigu: true, choix: candidats.map((c) => titreProprietaire(c)), error: 'Plusieurs fiches correspondent : demande laquelle en une ligne.' };
     }
-    const fiche = candidats[0] || null;
+    const visee = candidats[0] || null;
     if (name === 'appel_sans_reponse') {
-      const r = noterSansReponse(fiche.id, user);
+      const r = noterSansReponse(visee.id, user);
       if (!r.ok) return r;
       return {
-        ok: true, cree: true, rappel_id: r.rappel_id, titre: r.titre, pour: r.pour, tentatives: r.tentatives, fiche_id: fiche.id,
+        ok: true, cree: true, rappel_id: r.rappel_id, titre: r.titre, pour: r.pour, tentatives: r.tentatives, fiche_id: visee.id,
         note: r.passe_a_recontacter ? 'Dernière tentative : la fiche passe « À recontacter ».' : null,
       };
     }
     if (name === 'resultat_appel') {
-      const r = noterResultat(fiche.id, { statut: input.statut, texte: input.note || null, rappel_dans_jours: input.rappel_dans_jours || null }, user);
+      const r = noterResultat(visee.id, { statut: input.statut, texte: input.note || null, rappel_dans_jours: input.rappel_dans_jours || null }, user);
       if (!r.ok) return r;
       const suite = r.rappel_id ? ` Rappel posé dans ${Math.round(input.rappel_dans_jours)} jours.` : '';
       return { ok: true, fiche_id: r.proprietaire.id, statut: r.proprietaire.statut, titre: titreProprietaire(r.proprietaire), fait: `statut ${r.proprietaire.statut}.${suite}`, ...(r.rappel_id ? { cree: true, rappel_id: r.rappel_id, pour: `dans ${Math.round(input.rappel_dans_jours)} jours` } : {}) };
     }
     // noter_rdv avec une fiche : le rendez-vous se pose plus bas, la fiche change ici.
-    if (fiche) {
+    if (visee) {
       // L'état d'avant voyage jusqu'au rappel du RDV : son Annuler le restaure.
       input = {
         ...input,
-        telephone: input.telephone || fiche.telephone || undefined,
-        avec: input.avec || fiche.nom || fiche.commerce,
-        _fiche: { id: fiche.id, retour: { tentatives: fiche.tentatives || 0, statut: fiche.statut, prochaine_action: fiche.prochaine_action || null, prochaine_action_le: fiche.prochaine_action_le || null } },
+        telephone: input.telephone || visee.telephone || undefined,
+        avec: input.avec || visee.nom || visee.commerce,
+        _fiche: { id: visee.id, retour: { tentatives: visee.tentatives || 0, statut: visee.statut, prochaine_action: visee.prochaine_action || null, prochaine_action_le: visee.prochaine_action_le || null } },
       };
-      noterResultat(fiche.id, { statut: 'rdv_pris', texte: `RDV pris${input.quand ? ` (${input.quand})` : ''}` }, user);
+      noterResultat(visee.id, { statut: 'rdv_pris', texte: `RDV pris${input.quand ? ` (${input.quand})` : ''}` }, user);
     }
   }
 
@@ -1150,7 +1150,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     let cible = !input.qui && fiche?.id ? Records.get('ProprietaireMandataire', fiche.id) : null;
     if (!cible) {
       if (!input.qui) return { ok: false, error: 'De quelle fiche parle-t-il ? Demande-le en une ligne.' };
-      const { ambigu, candidats } = retrouverProprietaire(input.qui, user);
+      const { ambigu, candidats } = retrouverProprietaire(input.qui, user, { ouverte: fiche });
       if (!candidats.length) return { ok: false, introuvable: true, error: `Aucune fiche ne correspond à « ${input.qui} ». Dis-le et propose de la créer (nouveau_contact).` };
       if (ambigu) return { ok: false, ambigu: true, choix: candidats.slice(0, 6).map((c) => `${titreProprietaire(c)}${c.adresse ? `, ${c.adresse}` : ''}`), error: 'Plusieurs fiches correspondent : nomme-les et demande laquelle.' };
       cible = candidats[0];
@@ -1212,7 +1212,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     // Une fiche suivie donne l'adresse complète : « la boulangerie rue Carnot » ne se géocode pas seule.
     let adresse = String(input.adresse || '').trim();
     const { retrouverProprietaire } = await import('./mandataire-espace.js');
-    const { candidats } = input.qui ? retrouverProprietaire(input.qui, user) : { candidats: [] };
+    const { candidats } = input.qui ? retrouverProprietaire(input.qui, user, { ouverte: fiche }) : { candidats: [] };
     if (candidats.length === 1 && candidats[0].adresse) adresse = [candidats[0].adresse, candidats[0].ville].filter(Boolean).join(', ');
     if (!adresse) return { ok: false, error: "Demande l'adresse du local, avec la ville." };
     const r = await valeurLocative(adresse, { user });

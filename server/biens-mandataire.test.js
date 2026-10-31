@@ -658,3 +658,16 @@ test('tout le secteur : un point allégé garde ce que lisent la carte, les filt
   assert.equal(b.chaine, true);
   assert.deepEqual(b.fiche, { id: 'f' });
 });
+
+test("la ligne Murs dit le propriétaire donné par le mandataire, pas celui du registre (31 oct. 2026)", async () => {
+  const F = await import('./fiche-mandataire.js');
+  const { Records } = await import('./db.js');
+  const moi = { email: 'murs@kpartners.fr', role: 'mandataire' };
+  const cs = Records.create('CommerceSimple', { nom: 'Ba & Co', enseigne: 'Ba & Co', ville: 'Antibes', exploitant: { nom: 'Ba & Co' }, proprietaire: { nom: 'TARA', forme: 'Société civile' }, lien: 'tiers' });
+  const p = Records.create('ProprietaireMandataire', { mandataire_email: moi.email, commerce: 'Ba & Co', ville: 'Antibes', nom: 'TARA', commerce_simple_id: cs.id, statut: 'a_appeler' });
+  assert.equal((await F.fiche(p.id, moi)).fiche.murs.proprietaire, 'TARA', 'sans rien dit, le registre');
+  Records.update('ProprietaireMandataire', p.id, { nom: 'M. Bernard' });
+  const f = (await F.fiche(p.id, moi)).fiche;
+  assert.equal(f.murs.proprietaire, 'M. Bernard');
+  assert.equal(f.murs.forme, null);
+});

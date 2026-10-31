@@ -173,6 +173,11 @@ async function composer(p) {
   const cible = p.cible_id ? Records.get('Cible', p.cible_id) : null;
   const courte = ficheCourte({ p, commerce: cs, cible, drapeaux: drapeauxDe });
   const cor = p.corrections || {};
+  // Le propriétaire dit par le mandataire (« les murs sont à M. Bernard », 31 oct. 2026) passe devant le registre, comme
+  // ses corrections : la ligne Murs ne dit plus « TARA » ni « L'exploitant lui-même » quand la fiche dit M. Bernard.
+  const sansAccent = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const registre = cs?.proprietaire?.nom || cible?.proprietaire?.nom || null;
+  const proprietaireDit = p.nom && sansAccent(p.nom) !== sansAccent(registre) && sansAccent(p.nom) !== sansAccent(cor.exploitant || courte.exploitant) ? p.nom : null;
   const brut = cs ? drapeauxDe(cs) : null;
   const signaux = brut ? brut.map((d) => ({ texte: d.texte, source: d.source || null, date: d.date || null })) : signauxDe(null, drapeauxDe, cible).map((s) => ({ texte: s.texte, source: 'Prospection par rue', date: cible?.classee_le || null }));
   const { matcheurInvestisseurs } = await import('./mandataire-agent.js');
@@ -194,7 +199,7 @@ async function composer(p) {
       ...ouEstLeCommerce(p, cs, cible), activite: p.activite || cs?.activite || cible?.activite || null,
       // Les corrections du mandataire passent devant les registres (25 oct. 2026). Plus d'accroche (Jules).
       exploitant: { nom: cor.exploitant || courte.exploitant, depuis: cor.exploitant ? null : courte.depuis },
-      murs: { proprietaire: cor.murs || courte.proprietaire, forme: cor.murs ? null : courte.forme, gerant: cor.gerant ? { nom: cor.gerant, age: null } : courte.gerant },
+      murs: { proprietaire: cor.murs || proprietaireDit || courte.proprietaire, forme: cor.murs || proprietaireDit ? null : courte.forme, gerant: cor.gerant ? { nom: cor.gerant, age: null } : proprietaireDit ? null : courte.gerant },
       corrections: cor,
       // La classe d'actif (26 oct. 2026) : commerce, bureaux, entrepôt.
       classe: cs?.classe || 'commerce',

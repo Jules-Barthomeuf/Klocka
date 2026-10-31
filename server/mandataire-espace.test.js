@@ -266,25 +266,28 @@ test('communeDansSecteur : les codes des unités priment sur le centre de l’AP
   assert.equal(communeDansSecteur({ lat: 45, lon: 4.5 }, dessine), false);
 });
 
-test('les initiales du client, jamais son nom', async () => {
-  const { initialesDe, demandeAnonyme } = await import('./mandataire-espace.js');
-  assert.equal(initialesDe('Alexandre Roux'), 'AR');
-  assert.equal(initialesDe('M. Jean-Pierre Dupont'), 'JP');
-  assert.equal(initialesDe(''), null);
-  const a = demandeAnonyme({ id: 'x', client_nom: 'Alexandre Roux', client_email: 'a@invest.fr', type_commerce: 'boulangerie' });
-  assert.equal(a.reference, 'AR');
-  assert.doesNotMatch(JSON.stringify(a), /Roux|invest\.fr/i, 'ni le nom ni le mail ne sortent');
+test('un numéro neutre, jamais le nom ni les initiales (31 oct. 2026)', async () => {
+  const { Records } = await import('./db.js');
+  const { demandeAnonyme } = await import('./mandataire-espace.js');
+  const d = Records.create('DemandeClient', { client_nom: 'Alexandre Roux', client_email: 'a@invest.fr', type_commerce: 'boulangerie', profil: 'Family office', apport: 150000 });
+  const a = demandeAnonyme(d);
+  assert.match(a.reference, /^Client n°\d+$/);
+  assert.equal(demandeAnonyme(Records.get('DemandeClient', d.id)).reference, a.reference, 'le numéro ne change pas');
+  assert.doesNotMatch(JSON.stringify(a), /Roux|invest\.fr|\bAR\b|Family/i, 'ni nom, ni mail, ni initiales, ni profil');
+  const e = demandeAnonyme(Records.create('DemandeClient', { client_nom: 'Bernard Vrai' }));
+  assert.notEqual(e.reference, a.reference);
 });
 
-test('la remarque sort avec le nom masqué, l\'apport et la date d\'entrée suivent', async () => {
+test('la remarque reste à l\'équipe : seuls les critères sortent, exclusions comprises', async () => {
   const { demandeDepuisMonday, demandeAnonyme, masquerNom } = await import('./mandataire-espace.js');
   assert.equal(masquerNom('M. Roux veut du Roux à Lyon', 'Alexandre Roux'), 'M. R. veut du R. à Lyon');
-  const d = demandeDepuisMonday({ nom: 'Alexandre Roux', budget: 500000, fonds_propres: 150000, lieu_recherche: 'Lyon', objectif: 'Equilibre', remarque: 'Roux préfère le neuf', entre_le: '2026-03-12 09:00:00 UTC' });
+  const d = demandeDepuisMonday({ nom: 'Alexandre Roux', budget: 500000, fonds_propres: 150000, lieu_recherche: 'Lyon', objectif: 'Equilibre', remarque: 'Roux préfère le neuf. Pas de boîte de nuit', entre_le: '2026-03-12 09:00:00 UTC' });
   assert.equal(d.apport, 150000);
-  assert.equal(d.remarque, 'R. préfère le neuf');
   assert.equal(d.entre_le, '2026-03-12 09:00:00 UTC');
-  const a = demandeAnonyme({ id: 'x', client_nom: 'Alexandre Roux', ...d });
-  assert.doesNotMatch(JSON.stringify(a), /Alexandre|Roux[^ ]/, 'le nom ne sort jamais');
-  assert.equal(a.apport, 150000);
-  assert.ok(a.remarque.includes('préfère'));
+  const a = demandeAnonyme({ client_nom: 'Alexandre Roux', ...d });
+  assert.deepEqual(Object.keys(a).sort(), ['budget_max', 'budget_min', 'emplacement_1', 'enseigne_nationale', 'exclusions', 'id', 'reference', 'rendement_min', 'test', 'type_commerce', 'zones'].sort());
+  assert.deepEqual(a.exclusions, ['nuit']);
+  assert.doesNotMatch(JSON.stringify(a), /Alexandre|Roux|R\.|préfère|150000|2026-03/, 'ni nom, ni remarque, ni apport, ni date');
+  const { exclusionsDe } = await import('../src/lib/clients-commerces.js');
+  assert.deepEqual(exclusionsDe(a).map((f) => f.cle), ['nuit'], 'l\'écran retrouve les exclusions sans la remarque');
 });

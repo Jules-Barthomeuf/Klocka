@@ -11,6 +11,7 @@ import { Onglets } from "@/components/ui/kit";
 import { J } from "@/design/jetons";
 import Chargement from "@/components/ui/Chargement";
 import { PastilleTest } from "@/components/mandataire/kit";
+import { exclusionsDe } from "@/lib/clients-commerces";
 
 // Les clients Klocka vus du mandataire (maquette « Clients Admin », 4 oct.
 // 2026, reprise pour le côté mandataire) : des cartes ou un tableau, une
@@ -25,11 +26,8 @@ const nomDe = (d) => (/^client/i.test(d.reference || "") ? d.reference : `Client
 const rendementDe = (d) => (d.rendement_min ? `${String(d.rendement_min).replace(".", ",")} %` : "—");
 const aProspecter = (d) => d.a_prospecter ?? 0;
 
-/** La date d'entrée du client (celle de Monday) : « 12 mars 2026 ». */
-const entreLe = (d, mois = "long") => {
-  const t = Date.parse(d.entre_le || "");
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: mois, year: mois === "long" ? "numeric" : undefined }) : null;
-};
+// Les exclusions du client, déjà lues par le serveur (« boîte de nuit », « santé ») : un critère, jamais sa remarque.
+const exclusionsTexte = (d) => `Sauf ${exclusionsDe(d).map((f) => f.mot).join(", ")}`;
 
 function budget(d) {
   if (d.budget_min && d.budget_max) return `${Math.round(d.budget_min / 1000).toLocaleString("fr-FR")} – ${kEuros(d.budget_max)}`;
@@ -50,7 +48,7 @@ export default function MandataireClients() {
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({ queryKey: ["mandataire-demandes"], queryFn: () => base44.request("GET", "/api/mandataire/demandes") });
   const demandes = useMemo(
-    () => [...(data?.demandes || [])].sort((a, b) => aProspecter(b) - aProspecter(a) || (b.depuis_jours ?? 0) - (a.depuis_jours ?? 0)),
+    () => [...(data?.demandes || [])].sort((a, b) => aProspecter(b) - aProspecter(a)),
     [data]
   );
   const [vue, setVue] = useState(() => { try { return localStorage.getItem("k-clients-vue") || "cartes"; } catch { return "cartes"; } });
@@ -65,7 +63,7 @@ export default function MandataireClients() {
   const re = FAMILLES.find(([f]) => f === famille)?.[1] || null;
   const lignes = demandes
     .filter((d) => dansFamille(d, re))
-    .filter((d) => !q || [nomDe(d), d.profil, d.type_commerce, zonesDe(d), d.bail].filter(Boolean).join(" ").toLowerCase().includes(q));
+    .filter((d) => !q || [nomDe(d), d.type_commerce, zonesDe(d)].filter(Boolean).join(" ").toLowerCase().includes(q));
   const aTravailler = demandes.filter((d) => aProspecter(d) > 0).length;
   const d = demandes.find((x) => x.id === ouverte) || null;
   const prospecter = (x) => navigate(`${createPageUrl("MandataireProspection")}?demande=${x.id}`);
@@ -148,7 +146,6 @@ function CarteClient({ d, onOuvrir }) {
     <article onClick={onOuvrir} className="flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux">
       <div className="k-grid k-grid-toujours relative h-24 flex-none border-b border-trait">
         <span className="absolute left-4 top-4"><PastilleEtat d={d} /></span>
-        {entreLe(d, "short") && <span className="absolute right-4 top-[18px] text-[12px] text-brume">Depuis le {entreLe(d, "short")}</span>}
         <span className="absolute bottom-3.5 left-4 rounded-full border border-trait bg-fond px-2.5 py-1 text-[12px] text-craie">{typeDe(d)}</span>
       </div>
       <div className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-[18px]">
@@ -156,14 +153,13 @@ function CarteClient({ d, onOuvrir }) {
           <Avatar d={d} />
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 items-center text-[17px] font-medium text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
-            <span className="truncate text-[13px] text-ardoise">{d.profil}</span>
+            {!!exclusionsDe(d).length && <span className="truncate text-[13px] text-ardoise">{exclusionsTexte(d)}</span>}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-x-3.5 gap-y-3">
           <Critere mot="Budget" valeur={budget(d)} />
           <Critere mot="Rendement min." valeur={rendementDe(d)} />
           <Critere mot="Zones" valeur={zonesDe(d)} large />
-          {d.bail && <Critere mot="Bail" valeur={d.bail} large doux />}
         </div>
         <div className="mt-auto flex items-center justify-between gap-2.5 border-t border-trait pt-3.5 max-md:flex-wrap">
           <span className="text-[14px]">
@@ -191,7 +187,7 @@ function TableauClients({ lignes, onOuvrir }) {
     <div className="overflow-x-auto rounded-[18px] border border-trait bg-rail">
       <div className="min-w-[980px]">
         <div className={`grid ${COLONNES} gap-[18px] border-b border-trait px-6 py-3.5 text-[12px] tracking-[0.12em] text-brume`}>
-          <span>CLIENT</span><span>TYPE DE BIEN</span><span>ZONES</span><span>BUDGET</span><span>RENDEMENT</span><span>BAIL</span><span>À PROSPECTER</span>
+          <span>CLIENT</span><span>TYPE DE BIEN</span><span>ZONES</span><span>BUDGET</span><span>RENDEMENT</span><span>EXCLUSIONS</span><span>À PROSPECTER</span>
         </div>
         {lignes.map((d) => (
           <div key={d.id} onClick={() => onOuvrir(d.id)} className={`grid ${COLONNES} cursor-pointer items-center gap-[18px] border-b border-trait px-6 py-4 last:border-b-0 hover:bg-surface`}>
@@ -199,14 +195,14 @@ function TableauClients({ lignes, onOuvrir }) {
               <Avatar d={d} taille="h-[34px] w-[34px]" />
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="flex min-w-0 items-center text-[15px] font-medium text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
-                <span className="truncate text-[13px] text-ardoise">{d.profil}</span>
+                {!!exclusionsDe(d).length && <span className="truncate text-[13px] text-ardoise">{exclusionsTexte(d)}</span>}
               </div>
             </div>
             <span className="text-[14px] text-encre">{typeDe(d)}</span>
             <span className="text-[14px] text-craie">{zonesDe(d)}</span>
             <span className="text-[14px] tabular-nums text-encre">{budget(d)}</span>
             <span className="text-[14px] tabular-nums text-encre">{rendementDe(d)}</span>
-            <span className="text-[13px] leading-[1.4] text-ardoise">{d.bail || "—"}</span>
+            <span className="text-[13px] leading-[1.4] text-ardoise">{exclusionsDe(d).map((f) => f.mot).join(", ") || "—"}</span>
             <span className="text-[14px] tabular-nums text-menthe">{aProspecter(d)}</span>
           </div>
         ))}
@@ -226,9 +222,8 @@ function FicheClient({ d, onFermer, onProspecter }) {
     ["Type de bien", typeDe(d)],
     ["Zones", zonesDe(d)],
     ["Budget", budget(d)],
-    ["Apport possible", kEuros(d.apport) || "—"],
     ["Rendement minimum", rendementDe(d)],
-    ["Bail", d.bail || "—"],
+    ["Exclusions", exclusionsDe(d).length ? exclusionsDe(d).map((f) => f.mot).join(", ") : "—"],
   ];
   return createPortal(
     <div className="fixed inset-0 z-[80]">
@@ -240,7 +235,6 @@ function FicheClient({ d, onFermer, onProspecter }) {
             <Avatar d={d} taille="h-12 w-12" />
             <div className="flex min-w-0 flex-col gap-1">
               <span className="text-[22px] font-medium text-encre max-md:text-[20px]">{nomDe(d)}</span>
-              <span className="text-[13px] text-ardoise">{[d.profil, entreLe(d) ? `client depuis le ${entreLe(d)}` : null].filter(Boolean).join(" · ")}</span>
             </div>
           </div>
           <button type="button" onClick={onFermer} aria-label="Fermer" title="Fermer"
@@ -259,13 +253,6 @@ function FicheClient({ d, onFermer, onProspecter }) {
           ))}
         </div>
 
-        {(d.remarque || d.information) && (
-          <div className="flex flex-col gap-2 px-7 pb-5 pt-1 max-md:px-5">
-            <p className="m-0 text-[12px] tracking-[0.14em] text-ardoise">MOT DE L'ÉQUIPE</p>
-            {d.remarque && <p className="m-0 whitespace-pre-line text-[14px] leading-[1.55] text-craie">{d.remarque}</p>}
-            {d.information && <p className="m-0 text-[13.5px] leading-[1.55] text-ardoise">{d.information}</p>}
-          </div>
-        )}
 
         <div className="flex flex-col gap-2.5 px-7 pb-7 pt-1 max-md:px-5">
           <p className="m-0 text-[12px] tracking-[0.14em] text-ardoise">DANS VOTRE SECTEUR</p>

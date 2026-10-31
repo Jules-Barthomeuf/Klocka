@@ -4,6 +4,7 @@
 // bon prérempli signé sur place au doigt, un rappel si l'heure approche sans bon. Après : il raconte au micro, Haka
 // propose les deux documents, il valide ; le compte rendu part de sa messagerie. Rien ne part sans validation.
 
+import { referenceNeutre } from './reference-neutre.js';
 import { Records } from './db.js';
 
 const VISITE = 'VisiteAcquereur';
@@ -29,7 +30,8 @@ export function etatDuBon(v, quand = Date.now()) {
 /** Pure : l'acquéreur tel que le mandataire le voit (un client Klocka reste une référence, jamais son nom). */
 export function nomAcquereur(v) {
   const a = v?.acquereur || {};
-  return a.nom || a.reference || 'Acquéreur';
+  // Une référence gardée avant le 31 oct. 2026 (des initiales) sort en « Client compatible ».
+  return a.nom || (a.demande_id ? referenceNeutre(a.reference) : a.reference) || 'Acquéreur';
 }
 
 /** Le texte du bon de visite, prérempli (le visiteur écrit son nom et signe sur place). */
@@ -150,7 +152,7 @@ export async function creerVisite({ bien, acquereur = {}, quand } = {}, user) {
     const { demandesVisibles } = await import('./mandataire-espace.js');
     const d = demandesVisibles().find((x) => x.id === acquereur.demande_id);
     if (!d) return { ok: false, error: 'Client introuvable.' };
-    a = { demande_id: d.id, reference: d.reference, profil: d.profil || null };
+    a = { demande_id: d.id, reference: d.reference, profil: null };
   } else if (texte(acquereur.nom)) {
     const x = Records.create(ACQUEREUR, { mandataire_email: emailDe(user), nom: texte(acquereur.nom, 120), telephone: texte(acquereur.telephone, 40), email: texte(acquereur.email, 160)?.toLowerCase() || null, historique: [], cree_le: maintenant() });
     a = { acquereur_id: x.id, nom: x.nom, telephone: x.telephone, email: x.email };
@@ -374,7 +376,7 @@ export const OUTILS_VISITE = [
       type: 'object',
       properties: {
         bien: { type: 'string', description: 'Le bien visité, comme le mandataire le dit' },
-        acquereur: { type: 'string', description: "Le nom de l'acquéreur, ou la référence d'un client Klocka (« AR »)" },
+        acquereur: { type: 'string', description: "Le nom de l'acquéreur, ou la référence d'un client Klocka (« Client n°12 »)" },
         telephone: { type: 'string' }, email: { type: 'string' },
         quand: { type: 'string', description: 'Date-heure de la visite, AAAA-MM-JJTHH:MM (heure de Paris)' },
       },

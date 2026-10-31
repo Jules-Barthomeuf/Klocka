@@ -20,6 +20,7 @@
 // Apollo ; Data-B : une prospective par mandataire et par jour.
 
 import { Records, Meta } from './db.js';
+import { referenceNeutre } from './reference-neutre.js';
 
 const ENTITE = 'TrouvailleAgent';
 const QUATORZE_JOURS = 14 * 86400000;
@@ -484,7 +485,7 @@ export async function vueAgent(user) {
       const groupe = connues.length ? groupeDe.get(norm(l.ville)) : 'activite';
       if (!groupe) return null;
       const liste = t.liste_id ? Records.get('ListeMandataire', t.liste_id) : null;
-      return { ...l, groupe, investisseurs: groupe === 'klocka' ? t.investisseurs || [] : [], liste: liste ? { id: liste.id, nom: liste.nom } : null };
+      return { ...l, groupe, investisseurs: groupe === 'klocka' ? (t.investisseurs || []).map((x) => ({ ...x, reference: referenceNeutre(x.reference) })) : [], liste: liste ? { id: liste.id, nom: liste.nom } : null };
     })
     .filter(Boolean)
     .slice(0, 60);

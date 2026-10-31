@@ -267,7 +267,7 @@ function FicheClient({ id, onFermer, onAppel }) {
               Client test : visible de l'équipe seule, jamais d'un mandataire
             </label>
             {d.visible && v && <p className="m-0 rounded-[12px] border border-trait px-4 py-3 text-[13.5px] leading-[1.55] text-craie">
-              <span className="text-encre">Client {v.reference}</span> · {v.profil} · {typeDe(v)} · {zonesDe(v)} · {budgetDe({ budget_min: v.budget_min, budget_max: v.budget_max })}{v.information ? <><br />{v.information}</> : null}
+              <span className="text-encre">{v.reference}</span> · {typeDe(v)} · {zonesDe(v)} · {budgetDe({ budget_min: v.budget_min, budget_max: v.budget_max })}{v.rendement_min ? ` · ${v.rendement_min} % min.` : ""}
             </p>}
           </div>
 

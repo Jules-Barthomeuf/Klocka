@@ -148,7 +148,7 @@ test('les clients de test se posent une fois, un client supprimé ne revient pas
   assert.ok(!ids(demandesOuvertes()).includes(lyon.id), 'ni dans les correspondances');
   const equipe = demandesVisibles({ avecTest: voitTest({ role: 'admin' }) });
   assert.ok(ids(equipe).includes(lyon.id) && equipe.find((d) => d.id === lyon.id).test);
-  assert.equal(equipe.find((d) => d.id === vrai.id).reference, 'BV', 'les initiales, jamais le nom');
+  assert.match(equipe.find((d) => d.id === vrai.id).reference, /^Client n°\d+$/, 'un numéro neutre, jamais le nom ni les initiales');
   Records.delete('DemandeClient', ancien.id);
   Records.delete('DemandeClient', vrai.id);
 });

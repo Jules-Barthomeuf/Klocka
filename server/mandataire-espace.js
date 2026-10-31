@@ -14,6 +14,7 @@
 import { Records, Meta } from './db.js';
 import { dansNJoursParis } from './rappels.js';
 import { ANALYSTES } from './fil-dossier.js';
+import { exclusionsDe, veutEmplacement1, veutEnseigneNationale } from '../src/lib/clients-commerces.js';
 
 const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const aMidi = (d) => { const x = new Date(d); x.setHours(12, 0, 0, 0); return x; };
@@ -332,17 +333,6 @@ export function poserCompteMandataire(user, patch = {}) {
 // Demandes des clients — l'admin écrit, le mandataire lit anonymisé.
 // ---------------------------------------------------------------------------
 
-/** Pure : ce que le mandataire a le droit de voir d'une demande. Rien qui identifie. */
-/** Pure : les initiales d'un client — « Alexandre Roux » → « AR ». Rien d'autre ne sort. */
-export function initialesDe(nom) {
-  const mots = String(nom || '')
-    .replace(/^(m|mme|mr|monsieur|madame)\.?\s+/i, '')
-    .split(/[\s-]+/)
-    .filter((m) => /^[a-zà-ÿ]/i.test(m));
-  if (!mots.length) return null;
-  return mots.slice(0, 2).map((m) => m[0].toUpperCase()).join('');
-}
-
 // --- Le mode test (31 oct. 2026, Jules : « un admin crée un client ou un bien test ; un compte mandataire ne le voit
 // jamais »). Un client (DemandeClient) ou une fiche (ProprietaireMandataire) marqué `test` ne sort que pour l'équipe ;
 // les anciens clients d'essai (`essai`) et le Bien d'essai (`essai_bien`) en sont aussi.
@@ -358,41 +348,48 @@ export function demandesOuvertes({ avecTest = false } = {}) {
   return Records.list('DemandeClient').filter((d) => d.active !== false && d.visible !== false && (avecTest || !estTest(d)));
 }
 
-export function demandeAnonyme(d, i = 0) {
+/**
+ * Le numéro neutre d'un client (31 oct. 2026, Jules : « des initiales suffisent souvent à reconnaître quelqu'un ») :
+ * « Client n°12 », donné une fois, gardé en base (`numero_reseau`), jamais réattribué. Il ne dit rien du client.
+ */
+export function numeroDe(d) {
+  if (d?.numero_reseau) return d.numero_reseau;
+  if (!d?.id || !Records.get('DemandeClient', d.id)) return null;
+  const n = Math.max(0, ...Records.list('DemandeClient').map((x) => Number(x.numero_reseau) || 0)) + 1;
+  Records.update('DemandeClient', d.id, { numero_reseau: n });
+  return n;
+}
+
+/**
+ * Ce que le mandataire a le droit de voir d'une demande : un numéro neutre, puis les critères seuls (31 oct. 2026,
+ * PLAN.md 0.2) : villes, activité cherchée, budget, rendement, exclusions. Ni nom, ni initiales, ni profil, ni apport,
+ * ni remarque libre, ni date d'entrée : un petit portefeuille se reconnaît vite. Les exclusions, l'emplacement n°1 et
+ * l'enseigne nationale sont lus ici dans les remarques, puis seul leur résultat sort.
+ */
+export function demandeAnonyme(d) {
+  const numero = numeroDe(d);
   return {
     id: d.id,
-    profil: d.profil || 'Investisseur',
-    // Les initiales du client (« AR »), jamais son nom ; sans nom connu, la lettre.
-    reference: initialesDe(d.client_nom) || `Client ${String.fromCharCode(65 + (i % 26))}${i >= 26 ? Math.floor(i / 26) + 1 : ''}`,
+    reference: numero ? `Client n°${numero}` : 'Client',
     type_commerce: d.type_commerce || null,
     zones: d.zones?.length ? d.zones : d.zone_libre ? [d.zone_libre] : [],
     budget_min: d.budget_min ?? null,
     budget_max: d.budget_max ?? null,
     rendement_min: d.rendement_min ?? null,
-    bail: d.bail || null,
-    apport: d.apport ?? null,
-    // Le nom du client masqué jusque dans les textes libres (« M. Roux veut… » → « M. R. veut… »).
-    remarque: d.remarque ? masquerNom(d.remarque, d.client_nom) : null,
-    information: d.information ? masquerNom(d.information, d.client_nom) : null,
-    entre_le: d.entre_le || d.ouverte_le || null,
+    exclusions: exclusionsDe(d).map((f) => f.cle),
+    emplacement_1: veutEmplacement1(d),
+    enseigne_nationale: veutEnseigneNationale(d),
     // Un client de test ne sort que pour l'équipe, avec la pastille « Test ».
     test: estTest(d),
-    depuis_jours: d.ouverte_le ? Math.max(0, -dansJours(d.ouverte_le)) : null,
   };
 }
 
 /** Les demandes servies aux mandataires : actives, et que l'admin a choisi de montrer ; jamais de test hors équipe. */
 export function demandesVisibles({ avecTest = false } = {}) {
-  const vues = new Map();
+  // Les plus anciens d'abord : à la première lecture, les numéros se donnent dans cet ordre.
   return demandesOuvertes({ avecTest })
     .sort((a, b) => String(a.ouverte_le || '').localeCompare(String(b.ouverte_le || '')))
-    .map((d, i) => {
-      const a = demandeAnonyme(d, i);
-      // Deux clients aux mêmes initiales : le second devient « AR·2 ».
-      const n = (vues.get(a.reference) || 0) + 1;
-      vues.set(a.reference, n);
-      return n > 1 ? { ...a, reference: `${a.reference}·${n}` } : a;
-    });
+    .map((d) => demandeAnonyme(d));
 }
 
 export function listerDemandesAdmin() {

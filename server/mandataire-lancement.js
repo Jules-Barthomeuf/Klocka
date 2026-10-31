@@ -150,14 +150,15 @@ export async function lancerProspection({ phrase = '', demande_ids = [], ville =
   let emplacement = null;
   let villeDemandee = ville;
   let demandes = [];
-  // « Pour AR », « pour le client B » écrit à la main : la demande anonymisée
-  // dont la référence (les initiales, ou la lettre) est dans la phrase.
+  // « Pour le client n°12 » écrit à la main : la demande anonymisée dont le
+  // numéro est dans la phrase (« client 12 », « n°12 » aussi).
   if (!demande_ids?.length && /\b(pour|clients?)\b/i.test(phrase)) {
     const { demandesVisibles } = await import('./mandataire-espace.js');
     const anonymes = demandesVisibles();
-    const trouvees = anonymes.filter((a) => new RegExp(`(^|[^a-z0-9à-ÿ])${a.reference.replace(/[.*+?^$()|[\]\\]/g, '\\$&')}([^a-z0-9à-ÿ]|$)`, 'i').test(phrase));
+    const dits = new Set([...phrase.matchAll(/\b(?:clients?\s*(?:n°|no\.?|num[ée]ro)?|n°)\s*(\d+)\b/gi)].map((m) => `Client n°${m[1]}`));
+    const trouvees = anonymes.filter((a) => dits.has(a.reference));
     if (trouvees.length) demande_ids = trouvees.map((a) => a.id);
-    else if (/\bclients?\s+[a-z]{1,3}\d*\b/i.test(phrase)) {
+    else if (dits.size) {
       return { ok: false, error: 'Je ne retrouve pas ce client : ouvrez la page Clients pour voir les références.' };
     }
   }
@@ -169,7 +170,7 @@ export async function lancerProspection({ phrase = '', demande_ids = [], ville =
     activites = activitesDe(demandes);
     const { demandesVisibles: dv } = await import('./mandataire-espace.js');
     const anonymesRefs = new Map(dv().map((a) => [a.id, a.reference]));
-    const refs = demandes.map((d) => anonymesRefs.get(d.id) || demandeAnonyme(d, visibles.indexOf(d)).reference);
+    const refs = demandes.map((d) => anonymesRefs.get(d.id) || demandeAnonyme(d).reference);
     surEtape(`Pour ${refs.join(', ')} : ${activites.length ? activites.join(', ') : 'tous les murs commerciaux'}`);
   }
   // Pour des clients, seul ce qui suit le « · » est à lire (la ville, l'emplacement).
@@ -268,7 +269,7 @@ export async function etatProspection(id, user, { sansRues = false } = {}) {
     .filter((c) => cibleCorrespond(c, pr.criteres || {}))
     .map((c) => {
       const suivi = suivis.get(c.id);
-      const pour = visibles.filter((d) => correspond({ ...c, ville: v.nom }, d)).map((d) => demandeAnonyme(d, visibles.indexOf(d)).reference);
+      const pour = visibles.filter((d) => correspond({ ...c, ville: v.nom }, d)).map((d) => demandeAnonyme(d).reference);
       return {
         cible_id: c.id, enseigne: c.enseigne || null, activite: c.activite || null, adresse: c.adresse || null, rue: c.rue || null,
         emplacement: c.emplacement ?? null, proprietaire: c.proprietaire?.nom || null, pour,

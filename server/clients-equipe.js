@@ -5,7 +5,7 @@
 //     exclut, ce qu'il faut encore lui demander, la prochaine étape ;
 //   - Monday (tableau Clients) reçoit les colonnes et le résumé en note ;
 //   - le réseau des mandataires voit la recherche, anonymisée (la demande est
-//     celle de leur page Clients : initiales, jamais le nom).
+//     celle de leur page Clients : un numéro neutre, jamais le nom ni les initiales).
 // Un client est une DemandeClient : la même fiche que les mandataires lisent,
 // avec tout ce qui ne sort jamais d'ici (nom, contact, fiche, appels).
 // « Annuler » remet la fiche comme avant l'appel, et dans Monday les colonnes

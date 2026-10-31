@@ -421,7 +421,6 @@ function CarteClient({ client, selecteur, onProspecter, actif, replie = false, o
           {(client.zones || []).length > 0 && <span className="text-[12.5px] text-ardoise">Il cherche : {client.zones.join(", ")}</span>}
         </div>
         {regles.length > 0 && <div className="col-span-2 flex flex-wrap gap-1.5">{regles.map((r) => <span key={r.mot} className={`rounded-full px-2.5 py-0.5 text-[12px] ${r.ton}`}>{r.mot}</span>)}</div>}
-        {client.remarque && <p className="col-span-2 m-0 text-[12.5px] leading-[1.45] text-ardoise">« {client.remarque} »</p>}
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-trait px-4 py-3">
         <span className="min-w-0 text-[13.5px]">

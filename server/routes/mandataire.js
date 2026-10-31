@@ -222,12 +222,12 @@ export function monterMandataire(app) {
     let criteres = req.body?.criteres && typeof req.body.criteres === 'object' ? req.body.criteres : null;
     let demande = null;
     let mode = 'libre';
-    // « Pour le client B » dit au chat : la demande anonymisée qui porte cette référence.
+    // « Pour le client n°12 » dit au chat : la demande anonymisée qui porte ce numéro.
     let demandeId = req.body?.demande_id || null;
-    const ref = !criteres && !demandeId ? String(req.body?.phrase || '').match(/\bclient\s+([a-z])(\d*)\b/i) : null;
+    const ref = !criteres && !demandeId ? String(req.body?.phrase || '').match(/\bclient\s*(?:n°|no\.?|num[ée]ro)?\s*(\d+)\b/i) : null;
     if (ref) {
       const { demandesVisibles, voitTest } = await E();
-      const cherchee = `Client ${ref[1].toUpperCase()}${ref[2] || ''}`;
+      const cherchee = `Client n°${ref[1]}`;
       demandeId = demandesVisibles({ avecTest: voitTest(user) }).find((d) => d.reference === cherchee)?.id || null;
       if (!demandeId) return { status: 404, error: `Je ne connais pas de « ${cherchee} » : ouvrez la page Clients pour voir les références.` };
     }
@@ -553,11 +553,13 @@ export function monterMandataire(app) {
     const { mesProprietaires, LIBELLES_STATUT } = await E();
     // Chaque fiche porte son signal, l'argument à dire et le moyen de la joindre (page Biens, étape Contact, 24 oct. 2026).
     const { signauxDe, argumentDe, contactDe } = await import('../mandataire-matin.js');
+    const { preparationNeutre } = await import('../reference-neutre.js');
     const { drapeauxDe } = await import('../off-market/simple.js');
     const { Records } = await import('../db.js');
     const enrichir = (p) => {
       const signaux = signauxDe(p.commerce_simple_id ? Records.get('CommerceSimple', p.commerce_simple_id) : null, drapeauxDe, p.cible_id ? Records.get('Cible', p.cible_id) : null);
-      return { ...p, signaux, argument: argumentDe(signaux), contact: contactDe(p) };
+      // La préparation gardée : ses clients compatibles sans les anciennes initiales (31 oct. 2026).
+      return { ...p, preparation: preparationNeutre(p.preparation), signaux, argument: argumentDe(signaux), contact: contactDe(p) };
     };
     ok(res, { proprietaires: mesProprietaires(user).sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || ''))).map(enrichir), libelles: LIBELLES_STATUT });
   }));

@@ -17,6 +17,7 @@
 // Dans Biens, un refus du prix met la fiche En pause, avec une relance.
 
 import { Records } from './db.js';
+import { preparationNeutre } from './reference-neutre.js';
 import { CAS_RESTITUTION, appliquerRestitution } from './restitution-avis.js';
 // Les étapes faites se comptent comme à l'écran (src/lib/biens-mandataire.js).
 import { ETAPES_BIEN, etapesFaites as faitesDuBien, marqueurDe } from '../src/lib/biens-mandataire.js';
@@ -201,7 +202,7 @@ async function composer(p) {
       // Les parties libres ajoutées à la fiche (26 oct. 2026).
       sections: Array.isArray(p.sections) ? p.sections : [],
       // La préparation du rendez-vous (26 oct. 2026) : prête en fond au rendez-vous fixé, mise à jour la veille à 18 h.
-      preparation: p.preparation || null,
+      preparation: preparationNeutre(p.preparation) || null,
       // Où est le commerce, pour sa vitrine (Street View) en tête de fiche (25 oct. 2026).
       position: cs?.lat != null && cs?.lon != null ? { lat: cs.lat, lon: cs.lon } : cible?.lat != null && cible?.lon != null ? { lat: cible.lat, lon: cible.lon } : null,
       // La liste où vit la fiche (25 oct. 2026) : « Dans la liste « Lyon » · changer ».

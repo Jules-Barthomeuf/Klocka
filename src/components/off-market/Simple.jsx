@@ -345,10 +345,10 @@ function ClientProspection({ clients, client, nPour, ville, n, charge, onChoisir
   return (
     <div className="relative overflow-hidden rounded-[14px] border border-bord-doux bg-rail">
       <div className="flex items-center gap-3 border-b border-trait px-4 py-3">
-        <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe/15 text-[13px] font-medium text-menthe">{String(client.reference || "?").slice(0, 3)}</span>
+        <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe/15 text-[13px] font-medium text-menthe">{String(client.reference || "?").replace(/^Client /, "").slice(0, 4)}</span>
         <button type="button" onClick={() => setListe((l) => !l)} aria-expanded={liste} className="min-w-0 flex-1 text-left" style={{ background: "transparent" }}>
           <span className="block truncate text-[15px] text-encre">{client.reference} <ChevronDown className="inline h-3.5 w-3.5 text-ardoise" /></span>
-          <span className="block truncate text-[12.5px] text-ardoise">{client.profil} · client {i + 1} sur {clients.length}</span>
+          <span className="block truncate text-[12.5px] text-ardoise">client {i + 1} sur {clients.length}</span>
         </button>
         <button type="button" onClick={() => aller(-1)} aria-label="Client précédent" className="grid h-8 w-8 place-items-center rounded-full border border-trait text-craie hover:text-encre" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
         <button type="button" onClick={() => aller(1)} aria-label="Client suivant" className="grid h-8 w-8 place-items-center rounded-full border border-trait text-craie hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
@@ -378,7 +378,6 @@ function ClientProspection({ clients, client, nPour, ville, n, charge, onChoisir
             {exclusionsDe(client).map((f) => <span key={f.cle} className="rounded-full bg-ambre/15 px-2.5 py-0.5 text-[12px] text-ambre">Pas de {f.mot}</span>)}
           </div>
         )}
-        {client.remarque && <p className="col-span-2 m-0 text-[12.5px] leading-[1.45] text-ardoise">« {client.remarque} »</p>}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-trait px-4 py-3">
         <span className="text-[14px]"><span className="tabular-nums text-menthe">{n}</span> <span className="text-ardoise">{n > 1 ? "commerces" : "commerce"} pour lui à {ville}</span></span>

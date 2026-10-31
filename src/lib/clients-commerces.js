@@ -24,6 +24,8 @@ const FAMILLES_EXCLUES = [
 
 /** Pure : ce que les remarques d'un client écartent (« pas de santé », « sans restauration », « hors bars »). */
 export function exclusionsDe(d) {
+  // Côté mandataire, le serveur les a déjà lues (31 oct. 2026) : seules leurs clés arrivent, jamais la remarque.
+  if (Array.isArray(d?.exclusions)) return FAMILLES_EXCLUES.filter((f) => d.exclusions.includes(f.cle));
   const texte = `${d?.remarque || ""} ${d?.information || ""} ${d?.bail || ""}`;
   const out = [];
   for (const m of texte.matchAll(/\b(?:pas de|pas d'|sans|hors|aucun(?:e)?|jamais de|exclure|[eé]viter)\s+([^.;,\n]{2,60})/gi)) {
@@ -33,10 +35,10 @@ export function exclusionsDe(d) {
 }
 
 /** Pure : le client exige-t-il un emplacement n°1 (« Emplacement N1 ou retail park ») ? */
-export const veutEmplacement1 = (d) => /emplacement\s*n?°?\s*1\b|\bn°?\s*1\b|n1\b|premier emplacement/i.test(`${(d?.zones || []).join(" ")} ${d?.remarque || ""} ${d?.bail || ""}`);
+export const veutEmplacement1 = (d) => typeof d?.emplacement_1 === "boolean" ? d.emplacement_1 : /emplacement\s*n?°?\s*1\b|\bn°?\s*1\b|n1\b|premier emplacement/i.test(`${(d?.zones || []).join(" ")} ${d?.remarque || ""} ${d?.bail || ""}`);
 
 /** Pure : le client veut-il une enseigne nationale comme locataire (« Enseigne national / entrepot ») ? */
-export const veutEnseigneNationale = (d) => /enseignes?\s+nationa|grandes?\s+enseignes?|locataire\s+national/i.test(`${(d?.zones || []).join(" ")} ${d?.remarque || ""} ${d?.bail || ""} ${d?.information || ""}`);
+export const veutEnseigneNationale = (d) => typeof d?.enseigne_nationale === "boolean" ? d.enseigne_nationale : /enseignes?\s+nationa|grandes?\s+enseignes?|locataire\s+national/i.test(`${(d?.zones || []).join(" ")} ${d?.remarque || ""} ${d?.bail || ""} ${d?.information || ""}`);
 
 /**
  * Pure : ce commerce répond-il à la demande du client ? L'activité (un mot du commerce commence comme un mot cherché :

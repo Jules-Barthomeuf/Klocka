@@ -601,6 +601,10 @@ le recopie pas.
   champs pris à gauche avec leur phrase relevée, le document à droite, phrases
   surlignées en `bg-menthe/20`, et le PDF d'origine à côté. Première page :
   la LOI rédigée sur Offres (`offres/SourcesLoi.jsx`, 5 oct. 2026).
+- **Carte d'une action faite** (31 oct. 2026, Jules : le « ✓ Fait » en pilule ressemblait à un bouton) : à gauche
+  une icône dans un rond `menthe` à 14 % (cloche pour un rappel, calendrier pour un rendez-vous, coche sinon) ; en
+  tête, ce qui s'est passé en 13 px `menthe` (« Rappel posé », « Rendez-vous posé », « C'est fait ») ; puis le titre
+  et la date. Pas de pastille d'état à droite : seul « Ouvrir » (ou l'action) y reste, parce que c'est un bouton.
 - **Panneaux d'outils** (plan, versions, menu de mise en forme) : `bg-rail`,
   `rounded-[14px]`, `border-trait`, comme la barre de navigation.
 

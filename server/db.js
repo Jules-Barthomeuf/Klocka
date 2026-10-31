@@ -218,9 +218,12 @@ export const Records = {
    */
   champs(entity, chemins) {
     const valides = chemins.filter((c) => /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(c));
-    const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}`).join(', ');
+    // json_extract rend un objet ou une liste en texte JSON : ils sont relus (31 oct. 2026 : la géographie d'une ville
+    // arrivait en texte, et aucun client cherchant par département ou par région n'avait de ville).
+    const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}, json_type(data, '$.${c}') AS t${i}`).join(', ');
+    const valeur = (r, i) => (['object', 'array'].includes(r[`t${i}`]) ? JSON.parse(r[`c${i}`]) : r[`c${i}`]);
     return db.prepare(`SELECT id${cols ? `, ${cols}` : ''} FROM records WHERE entity = ?`).all(entity)
-      .map((r) => ({ id: r.id, ...Object.fromEntries(valides.map((c, i) => [c, r[`c${i}`]])) }));
+      .map((r) => ({ id: r.id, ...Object.fromEntries(valides.map((c, i) => [c, valeur(r, i)])) }));
   },
 
   /**

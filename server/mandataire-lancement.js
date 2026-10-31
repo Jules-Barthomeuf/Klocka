@@ -153,8 +153,8 @@ export async function lancerProspection({ phrase = '', demande_ids = [], ville =
   // « Pour le client n°12 » écrit à la main : la demande anonymisée dont le
   // numéro est dans la phrase (« client 12 », « n°12 » aussi).
   if (!demande_ids?.length && /\b(pour|clients?)\b/i.test(phrase)) {
-    const { demandesVisibles } = await import('./mandataire-espace.js');
-    const anonymes = demandesVisibles();
+    const { demandesVisibles, voitTest } = await import('./mandataire-espace.js');
+    const anonymes = demandesVisibles({ avecTest: voitTest(user) });
     const dits = new Set([...phrase.matchAll(/\b(?:clients?\s*(?:n°|no\.?|num[ée]ro)?|n°)\s*(\d+)\b/gi)].map((m) => `Client n°${m[1]}`));
     const trouvees = anonymes.filter((a) => dits.has(a.reference));
     if (trouvees.length) demande_ids = trouvees.map((a) => a.id);
@@ -163,8 +163,8 @@ export async function lancerProspection({ phrase = '', demande_ids = [], ville =
     }
   }
   if (demande_ids?.length) {
-    const { demandesOuvertes } = await import('./mandataire-espace.js');
-    const visibles = demandesOuvertes();
+    const { demandesOuvertes, voitTest } = await import('./mandataire-espace.js');
+    const visibles = demandesOuvertes({ avecTest: voitTest(user) });
     demandes = demande_ids.map((id) => visibles.find((d) => d.id === id)).filter(Boolean);
     if (!demandes.length) return { ok: false, error: 'Ces demandes ne sont plus ouvertes.' };
     activites = activitesDe(demandes);
@@ -256,9 +256,9 @@ export async function etatProspection(id, user, { sansRues = false } = {}) {
   if (!pr || pr.mandataire_email !== moi(user)) return { ok: false, error: 'Prospection introuvable.' };
   const v = pr.ville_id ? Records.get('Ville', pr.ville_id) : null;
   if (!v) return { ok: false, error: 'La ville de cette prospection a disparu.' };
-  const { correspond, demandeAnonyme, demandesOuvertes, estTest } = await import('./mandataire-espace.js');
+  const { correspond, demandeAnonyme, demandesOuvertes, estTest, voitTest } = await import('./mandataire-espace.js');
   const classes = classesDesRues(v);
-  const visibles = demandesOuvertes();
+  const visibles = demandesOuvertes({ avecTest: voitTest(user) });
   const suivis = new Map(Records.list('ProprietaireMandataire').filter((p) => p.cible_id && !estTest(p)).map((p) => [p.cible_id, p]));
   const toutes = Records.filter('Cible', { ville_id: v.id })
     .map((c) => ({ ...c, emplacement: classes.get(cleRue(c.rue || '')) ?? c.emplacement ?? null }));

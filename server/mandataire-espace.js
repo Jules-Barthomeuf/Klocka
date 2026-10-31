@@ -343,8 +343,12 @@ export function poserCompteMandataire(user, patch = {}) {
 const DU_BANC = /stress test/i;
 export const estTest = (x) => !!(x && (x.test || x.essai || x.essai_bien || DU_BANC.test(String(x.note || ''))));
 
-/** Pure : ce compte voit-il les données de test ? L'équipe seule. */
-export const voitTest = (user) => user?.role === 'admin';
+/**
+ * Pure : ce compte voit-il les données de test ? L'équipe, et les comptes d'essai (test.…@, comme test.mandataire@
+ * kpartners.fr) pour faire le parcours avec le client test (31 oct. 2026, vérification du parcours) ; jamais un vrai
+ * mandataire.
+ */
+export const voitTest = (user) => user?.role === 'admin' || /^test[._-]/i.test(String(user?.email || '').trim());
 
 /** Les clients ouverts aux mandataires (actifs, montrés), bruts ; ceux de test pour l'équipe seulement. */
 export function demandesOuvertes({ avecTest = false } = {}) {

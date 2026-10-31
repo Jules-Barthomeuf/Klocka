@@ -149,6 +149,10 @@ test('les clients de test se posent une fois, un client supprimé ne revient pas
   const equipe = demandesVisibles({ avecTest: voitTest({ role: 'admin' }) });
   assert.ok(ids(equipe).includes(lyon.id) && equipe.find((d) => d.id === lyon.id).test);
   assert.match(equipe.find((d) => d.id === vrai.id).reference, /^Client n°\d+$/, 'un numéro neutre, jamais le nom ni les initiales');
+  // Le compte d'essai (test.…@) fait le parcours avec le client test ; un vrai mandataire, même nommé « contest », jamais.
+  assert.equal(voitTest({ role: 'mandataire', email: 'test.mandataire@kpartners.fr' }), true);
+  assert.equal(voitTest({ role: 'mandataire', email: 'paul@kpartners.fr' }), false);
+  assert.equal(voitTest({ role: 'mandataire', email: 'contest@kpartners.fr' }), false);
   Records.delete('DemandeClient', ancien.id);
   Records.delete('DemandeClient', vrai.id);
 });

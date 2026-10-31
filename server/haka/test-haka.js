@@ -175,6 +175,11 @@ const CAS = [
   { n: 20, phrase: "J'ai déjà un mandat sur une pharmacie à Juan-les-Pins, loyer 30 000, prix 500 k",
     verifier: (x) => verifie([...rienEcrit(x).map((e) => [false, `écrit sans son accord : ${e}`]), [/mandat/i.test(textes(x)) && /cré|ajout|enregistr/i.test(textes(x)), 'ne propose pas de créer le bien à l\'étape Mandat'],
       [/\?/.test(textes(x)) && /adresse|propriétaire|vendeur|honoraires|surface|bail|exclusi/i.test(textes(x)), 'ne demande pas ce qui manque']]) },
+  // Les phrases du terrain (hors des 20 de Jules) : un vrai échec, rejoué pour qu'il ne revienne pas.
+  { n: 21, terrain: true, fiche: 'roux', confirmer: true, phrase: "Je suis allé voir le commerce J'ai eu... directement axé à l'exploit l'attente qui n'est pas le propriétaire. Et donc, voilà, il m'a donné... nez le numéro du gérant qui est le 06 6497 1881, 76. Voilà, il m'a a dit qu'il l'avait depuis longtemps et que Voilà, c'est... très bien passé et tout. C'est un gros propriétaire sur Antibes, donc",
+    verifier: (x) => { const f = x.fiche('roux');
+      return verifie([[!f.telephone, `a écrit un numéro deviné (« ${f.telephone} »)`], [/6497|64 97/.test(f.remarque || '') && /vérifier/i.test(f.remarque || ''), `le numéro dicté n'est pas gardé « à vérifier » (« ${f.remarque || ''} »)`],
+        [/redi|par paires|redonne|répète/i.test(textes(x)), 'ne demande pas de redire le numéro']]); } },
 ];
 
 // --- Un cas, dans sa base ------------------------------------------------------
@@ -243,6 +248,7 @@ async function main() {
   const args = process.argv.slice(2);
   const i = args.indexOf('--cas');
   const choisis = i >= 0 ? args[i + 1].split(',').map(Number) : CAS.map((c) => c.n);
+  const duTerrain = (r) => CAS.find((c) => c.n === r.n)?.terrain;
   await import('dotenv/config');
   const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-test-haka-'));
   const base = { ...process.env, KLOCKA_BANC: '1', OFF_MARKET_VEILLE: 'false', CONTROLES_AUTO: 'false', RELAIS_ANALYSTES: '0' };
@@ -269,8 +275,12 @@ async function main() {
   };
   await Promise.all(Array.from({ length: Math.min(4, choisis.length) }, travailleur));
   resultats.sort((a, b) => a.n - b.n);
+  // Le score sur les 20 phrases de Jules ; les phrases du terrain à part.
+  const des20 = resultats.filter((r) => !duTerrain(r));
+  const terrain = resultats.filter(duTerrain);
   const reussis = resultats.filter((r) => r.ok).length;
-  const lignes = [`# Test de l'assistant K Partners · ${new Date().toLocaleString('fr-FR', { timeZone: PARIS })}`, '', `Score : ${reussis}/${resultats.length}`, ''];
+  const score = `Score : ${des20.filter((r) => r.ok).length}/${des20.length}${terrain.length ? ` · terrain : ${terrain.filter((r) => r.ok).length}/${terrain.length}` : ''}`;
+  const lignes = [`# Test de l'assistant K Partners · ${new Date().toLocaleString('fr-FR', { timeZone: PARIS })}`, '', score, ''];
   // Les échecs d'abord, puis les réussites : leurs réponses se relisent aussi.
   for (const r of [...resultats.filter((x) => !x.ok), ...resultats.filter((x) => x.ok)]) {
     lignes.push(`## ${r.ok ? 'ok' : 'Échec'} · ${r.n} · ${r.phrase}`, '', ...r.echecs.map((e) => `- ${e}`), '');
@@ -281,7 +291,7 @@ async function main() {
   fs.writeFileSync(rapport, lignes.join('\n'));
   for (const f of fs.readdirSync(dossier)) if (f !== 'rapport.md') fs.rmSync(path.join(dossier, f), { recursive: true, force: true });
   const cout = resultats.reduce((s, r) => s + (r.cout_usd || 0), 0);
-  console.log(`\nScore : ${reussis}/${resultats.length} · ${(cout * 0.92).toFixed(2).replace('.', ',')} € de modèle`);
+  console.log(`\n${score} · ${(cout * 0.92).toFixed(2).replace('.', ',')} € de modèle`);
   for (const r of resultats.filter((x) => !x.ok)) {
     console.log(`\n✗ ${r.n} · ${r.phrase}`);
     for (const e of r.echecs) console.log(`  - ${e}`);

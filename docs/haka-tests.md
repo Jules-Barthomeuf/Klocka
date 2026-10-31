@@ -45,3 +45,11 @@ L'assistant du mandataire s'appelle l'assistant K Partners (Haka est celui de l'
 - 11 : « lance l'avis de valeur » se vérifie par le bouton « Oui, passer à l'estimation » rendu après le compte rendu (il ouvre l'Avis de valeur du bien) ; l'assistant ne lance pas la rédaction lui-même.
 - 19 : les liens d'une réponse qui cite plusieurs fiches viendront avec le fil unique (PLAN 2.1) ; aujourd'hui seul le lien d'une fiche lue ou touchée est ajouté.
 - 20 : il n'y a pas encore d'import de bien à une étape (PLAN 3.2) ; l'assistant propose et demande ce qui manque, sans rien créer.
+
+## Phrases du terrain
+
+Des échecs vécus, rejoués pour qu'ils ne reviennent pas. Ils s'affichent à part (« terrain : 1/1 ») et ne comptent pas dans le score sur 20.
+
+| # | Contexte | Phrase dictée | Action attendue |
+|---|---|---|---|
+| 21 | Antibes, 31 oct., dictée Safari | « … il m'a donné le numéro du gérant qui est le 06 6497 1881, 76 … C'est un gros propriétaire sur Antibes » | Numéro de 12 chiffres non écrit comme téléphone ; gardé en remarque « à vérifier » ; demande de le redire par paires, sans deviner |

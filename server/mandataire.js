@@ -620,6 +620,23 @@ function trouverParBien(entite, bien, user) {
   return tri.length && (tri.length === 1 || tri[0][1] > tri[1][1]) ? tri[0][0] : tri.length ? 'ambigu' : null;
 }
 
+/**
+ * Pure : un numéro de téléphone tel que dicté (31 oct. 2026, terrain d'Antibes : « 06 6497 1881, 76 », douze chiffres,
+ * était à deviner par le modèle). Un numéro français a dix chiffres, rendu par paires ; un numéro étranger (+44…) de 8 à
+ * 15 chiffres. Sinon il n'est pas écrit comme téléphone : `chiffres` dit ce qui a été entendu.
+ * @returns {{ ok: true, numero: string } | { ok: false, chiffres: string }}
+ */
+export function telephoneDicte(texte) {
+  const brut = String(texte || '').trim();
+  if (!brut) return { ok: true, numero: '' };
+  if (/^\+(?!33)/.test(brut)) {
+    const c = brut.replace(/\D/g, '');
+    return c.length >= 8 && c.length <= 15 ? { ok: true, numero: `+${c}` } : { ok: false, chiffres: c };
+  }
+  const c = brut.replace(/^\+33\s*(\(0\))?/, '0').replace(/\D/g, '');
+  return /^0[1-9]\d{8}$/.test(c) ? { ok: true, numero: c.replace(/(\d{2})(?=\d)/g, '$1 ') } : { ok: false, chiffres: c };
+}
+
 export async function executerOutilMandataire(appel, user, contexte = {}) {
   if (auBanc() && SIMULES_MANDATAIRE.has(appel?.name)) return simule(appel.name);
   // Meme filet que cote AK : une exception d'outil devient un refus propre.
@@ -856,7 +873,16 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     const patch = {};
     const champsSimples = ['telephone', 'email', 'nom', 'murs', 'gerant', 'exploitant', 'commerce', 'adresse', 'ville', 'activite', 'prochaine_action', 'prochaine_action_le'];
     for (const k of champsSimples) if (typeof input[k] === 'string') patch[k] = input[k].trim();
-    if (input.remarque) patch.remarque = cible.remarque ? `${cible.remarque} · ${String(input.remarque).trim()}` : String(input.remarque).trim();
+    // Un numéro qui n'a pas le bon nombre de chiffres n'est pas écrit comme téléphone, mais il n'est pas perdu : il
+    // reste en remarque, « à vérifier », et l'assistant le fait redire (31 oct. 2026).
+    let illisible = null;
+    if (patch.telephone) {
+      const t = telephoneDicte(patch.telephone);
+      if (t.ok) patch.telephone = t.numero;
+      else { illisible = { dicte: patch.telephone, chiffres: t.chiffres.length }; delete patch.telephone; }
+    }
+    const remarques = [input.remarque ? String(input.remarque).trim() : null, illisible ? `Numéro dicté à vérifier : ${illisible.dicte} (${illisible.chiffres} chiffres${input.source ? `, donné par ${String(input.source).trim()}` : ''})` : null].filter(Boolean).join(' · ');
+    if (remarques) patch.remarque = cible.remarque ? `${cible.remarque} · ${remarques}` : remarques;
     // Une partie libre : ajoutée, réécrite (même titre) ou retirée.
     if (input.section?.titre) {
       const titre = String(input.section.titre).trim();
@@ -896,7 +922,10 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     if (input.section?.titre && input.section.action !== 'retirer') sources[`section:${String(input.section.titre).trim().toLowerCase()}`] = { source: source || 'le mandataire', a_confirmer: !!input.a_confirmer, le: new Date().toISOString() };
     Records.update('ProprietaireMandataire', cible.id, { a_confirmer: conf, sources, ...(patch.telephone ? { telephone_source: source ? `${source}${input.a_confirmer ? ', à confirmer' : ''}` : input.a_confirmer ? "dit à l'assistant, d'un tiers" : "dit à l'assistant" } : {}), historique: [...(r.proprietaire.historique || []), { le: new Date().toISOString(), type: 'note', texte: `Fiche complétée${source ? ` (source : ${source})` : ''} : ${Object.keys(patch).map((k) => (({ telephone: 'téléphone', email: 'mail', nom: 'propriétaire', murs: 'murs', gerant: 'gérant', exploitant: 'exploitant', remarque: 'remarque', commerce: 'commerce', adresse: 'adresse', ville: 'ville', activite: 'activité', prochaine_action: 'prochaine action', prochaine_action_le: 'date de la prochaine action', sections: 'partie libre' }[k] || k))).join(', ')}` }] });
     const dits = Object.entries(patch).map(([k, v]) => (k === 'sections' ? `partie « ${input.section.titre} » ${input.section.action === 'retirer' ? 'retirée' : 'écrite'}` : `${k} ${v || '(vidé)'}`));
-    return { ok: true, fiche_id: cible.id, titre: titreProprietaire(cible), fait: `Fiche à jour : ${[...dits, ...faits].join(' ; ')}${input.a_confirmer ? ' (à confirmer)' : ''}.` };
+    return {
+      ok: true, fiche_id: cible.id, titre: titreProprietaire(cible), fait: `Fiche à jour : ${[...dits, ...faits].join(' ; ')}${input.a_confirmer ? ' (à confirmer)' : ''}.`,
+      ...(illisible ? { telephone_illisible: illisible, note: `Le numéro dicté a ${illisible.chiffres} chiffres au lieu de 10 : il n'est PAS écrit comme téléphone, il est gardé en remarque « à vérifier ». Dis-le en une ligne et demande-lui de le redire par paires (« zéro six, soixante-quatre… ») ; ne devine aucun chiffre.` } : {}),
+    };
   }
   if (name === 'avancer_bien') {
     const { retrouverProprietaire, titreProprietaire } = await import('./mandataire-espace.js');
@@ -1076,7 +1105,9 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
       const piste = !input.ville && communes.length ? ` Pour la ville, propose celles du secteur (${communes.slice(0, 4).join(', ')}).` : '';
       return { ok: false, a_demander: manque, error: `Il manque ${manque.join(', ')} : demande-les en une ligne, ne crée rien.${piste}` };
     }
-    const r = creerProprietaire(input, user);
+    const tel = telephoneDicte(input.telephone);
+    if (!tel.ok) return { ok: false, telephone_illisible: true, error: `Le numéro dicté a ${tel.chiffres.length} chiffres au lieu de 10 : ne crée rien, demande-lui de le redire par paires, sans deviner.` };
+    const r = creerProprietaire({ ...input, ...(input.telephone ? { telephone: tel.numero } : {}) }, user);
     if (!r.ok) return r;
     const { pousserProspect } = await import('./mandataire-monday.js');
     const monday = await pousserProspect(r.proprietaire);
@@ -1197,7 +1228,7 @@ Retrouver la fiche (1). La fiche ouverte à l'écran, s'il y en a une (dite plus
 
 Préparer, puis faire (2). Une écriture se fait en deux temps. D'abord ta compréhension, 3 lignes au plus, sans rien écrire : ce que tu vas noter sur quelle fiche, le statut, la prochaine action ; finis par une question fermée (« Je note ? »). À son oui (« oui », « ok », « vas-y », « c'est ça »), appelle tous les outils d'un coup, puis dis en une ligne ce qui est fait. S'il corrige, refais les 3 lignes. Une demande dite mot pour mot, sans rien à interpréter (« ajoute la fromagerie de la rue Sade à ma liste Client 3 », « mets une relance lundi pour le tabac »), se fait tout de suite. avancer_bien et noter_restitution n'écrivent rien : elles posent à l'écran une carte qu'il confirme d'un tap ; appelle-les dès ta première réponse, la carte est la confirmation. Tu n'envoies rien à personne : un mail se prépare (preparer_mail, sans recopier le brouillon dans ta réponse) et le mandataire l'envoie ; le rapport d'estimation, il le relit et l'envoie lui-même depuis la page Estimation.
 
-La source (3). Tout ce que tu notes dit d'où ça vient : source dans modifier_fiche (« le mandataire », « l'exploitante », « le propriétaire », « le bail », « le registre »), et a_confirmer true pour ce qui vient d'un tiers ou n'est pas prouvé. Une information sans champ à elle (le loyer, la fin du bail, une intention) va dans une partie libre de la fiche (section), avec sa source et « à confirmer » s'il le faut : « Fin de bail : 2027 (dit par l'exploitante, à confirmer) ». L'exploitant n'est pas le propriétaire : un exploitant qui donne le nom et le numéro du propriétaire des murs, c'est exploitant = lui, nom = le propriétaire, telephone = son numéro, a_confirmer true, source l'exploitant.
+La source (3). Tout ce que tu notes dit d'où ça vient : source dans modifier_fiche (« le mandataire », « l'exploitante », « le propriétaire », « le bail », « le registre »), et a_confirmer true pour ce qui vient d'un tiers ou n'est pas prouvé. Une information sans champ à elle (le loyer, la fin du bail, une intention) va dans une partie libre de la fiche (section), avec sa source et « à confirmer » s'il le faut : « Fin de bail : 2027 (dit par l'exploitante, à confirmer) ». Un numéro dicté : passe-le tel quel à modifier_fiche, sans compter ni corriger ses chiffres ; si l'outil le refuse (trop ou pas assez de chiffres), il le garde en remarque « à vérifier » et tu demandes de le redire par paires. L'exploitant n'est pas le propriétaire : un exploitant qui donne le nom et le numéro du propriétaire des murs, c'est exploitant = lui, nom = le propriétaire, telephone = son numéro, a_confirmer true, source l'exploitant.
 
 Le statut (4). Contact obtenu avec le propriétaire ou quelqu'un qui le connaît (un nom, un numéro) : statut Contacté (modifier_fiche contacte, ou resultat_appel contacte ; en_discussion s'il réfléchit, qui s'affiche aussi Contacté). Rendez-vous fixé avec une date : noter_rdv avec qui, la fiche devient un bien à l'étape Visite (la Pré-visite), son historique la suit. Refus clair : resultat_appel pas_vendeur, avec rappel_dans_jours s'il dit quand revenir (« l'an prochain » : 365), sinon 180. Fermé, personne, pas de réponse, « il réfléchit » sans plus : le statut ne bouge pas ; appel_sans_reponse pour un appel sans réponse. Visite racontée : compte_rendu_visite. Après l'avis envoyé, ce qu'en dit le propriétaire : noter_restitution (un accord sur un prix : son cas d'accord avec le prix ; « il trouve ça trop bas » sans refus net : reflechit, et propose une réponse à l'objection ; trop_bas seulement s'il refuse). Un rendez-vous annulé : mettre_en_pause, puis propose une nouvelle date. Le mandat signé : avancer_bien mandat.
 

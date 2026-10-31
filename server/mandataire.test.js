@@ -7,7 +7,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-mandataire-'));
 process.env.MONDAY_TOKEN = '';
 const { Records } = await import('./db.js');
-const { anonymiser, heureDeParis, tableauDuJour, agirSurRappel, executerOutilMandataire, OUTILS_MANDATAIRE } = await import('./mandataire.js');
+const { anonymiser, heureDeParis, tableauDuJour, agirSurRappel, executerOutilMandataire, OUTILS_MANDATAIRE, telephoneDicte } = await import('./mandataire.js');
 
 const MOI = { email: 'm@kpartners.fr', role: 'mandataire' };
 const AUTRE = { email: 'autre@kpartners.fr', role: 'mandataire' };
@@ -466,4 +466,23 @@ test('une relance notée depuis une fiche ouverte se rattache à elle ; mettre_e
   assert.equal(p.ok, true);
   assert.ok(Records.get('ProprietaireMandataire', f.id).biens.pause);
   assert.ok(Records.get('Rappel', rdv.id).fait_le);
+});
+
+// Terrain d'Antibes (31 oct. 2026) : « 06 6497 1881, 76 », douze chiffres, ne s'écrit pas comme téléphone mais reste « à vérifier ».
+test('un numéro dicté se vérifie : dix chiffres par paires, sinon gardé en remarque à vérifier', async () => {
+  assert.deepEqual(telephoneDicte('06 6497 1881'), { ok: true, numero: '06 64 97 18 81' });
+  assert.deepEqual(telephoneDicte('+33 6 64 97 18 81'), { ok: true, numero: '06 64 97 18 81' });
+  assert.equal(telephoneDicte('+44 20 7946 0958').ok, true);
+  assert.deepEqual(telephoneDicte('06 6497 1881, 76'), { ok: false, chiffres: '066497188176' });
+  assert.equal(telephoneDicte('06 64 97 18').ok, false);
+  const QUI = { email: 'numero@kpartners.fr', role: 'mandataire' };
+  const f = Records.create('ProprietaireMandataire', { mandataire_email: QUI.email, commerce: 'Boulangerie Numéro', ville: 'Antibes', statut: 'a_appeler', historique: [] });
+  const r = await executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: f.id, telephone: '06 6497 1881, 76', a_confirmer: true, source: "l'exploitant" } }, QUI);
+  assert.equal(r.ok, true);
+  assert.equal(r.telephone_illisible.chiffres, 12);
+  const p = Records.get('ProprietaireMandataire', f.id);
+  assert.equal(p.telephone || null, null, 'rien de deviné');
+  assert.match(p.remarque, /Numéro dicté à vérifier : 06 6497 1881, 76 \(12 chiffres, donné par l'exploitant\)/);
+  await executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: f.id, telephone: '0664971881' } }, QUI);
+  assert.equal(Records.get('ProprietaireMandataire', f.id).telephone, '06 64 97 18 81');
 });

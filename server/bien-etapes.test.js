@@ -47,7 +47,7 @@ test('la conversation du bien se garde sur la fiche', () => {
   assert.equal(lierConversation(p.id, 'conv-2', AUTRE).ok, false);
 });
 
-test("Haka lit l'étape, l'historique et le prix d'accord du bien", () => {
+test("L'Assistant KPartners lit l'étape, l'historique et le prix d'accord du bien", () => {
   const p = fiche({ biens: { validee: 'prix_accord', prix_accord: 680000 } });
   const c = cadreDuBien(p);
   assert.match(c, /85 m², bail 3-6-9/);

@@ -97,12 +97,13 @@ export const champ = "h-9 rounded-full border border-bord-vif bg-fond px-3.5 tex
  * 18 px au trait, plein d'accent une fois cochée. Remplace la case du
  * navigateur, dont le fond détonnait.
  */
-export function Case({ oui, onBasculer, label, disabled = false, className = "" }) {
+// `bord` : le trait de la case vide ; dans un tableau à lignes, celui des lignes (31 oct. 2026, Jules : « trop blanc »).
+export function Case({ oui, onBasculer, label, disabled = false, className = "", bord = "border-bord-vif" }) {
   return (
     <button type="button" role="checkbox" aria-checked={!!oui} aria-label={label} title={label} disabled={disabled}
       onClick={(e) => { e.stopPropagation(); onBasculer?.(); }}
       className={`grid flex-none place-items-center p-0 disabled:cursor-not-allowed disabled:opacity-35 ${className}`} style={{ background: "transparent" }}>
-      <span className={`grid h-[18px] w-[18px] place-items-center rounded-[5px] border transition-colors ${oui ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif hover:border-menthe"}`}>
+      <span className={`grid h-[18px] w-[18px] place-items-center rounded-[5px] border transition-colors ${oui ? "border-menthe bg-menthe text-sur-menthe" : `${bord} hover:border-menthe`}`}>
         {oui && <Check className="h-3 w-3" strokeWidth={3} />}
       </span>
     </button>

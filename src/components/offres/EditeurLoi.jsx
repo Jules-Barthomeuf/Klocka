@@ -423,12 +423,12 @@ const VIDES = {
   vendeur_societe: "Le vendeur", attention_nom: "À l'attention de (nom)", attention_representant: "Représentant (texte libre)", attention_adresse: "Son adresse",
 };
 
-// Les noms au-dessus des signatures : chacun est un champ de la lettre ; « Bon pour accord », sous les deux, reste fixe.
+// Les noms au-dessus des signatures : chacun est un champ de la lettre ; « Bon pour accord », en bas des deux, reste fixe.
 const SIGNE_GAUCHE = ["acquereur_nom", "acquereur_societe"];
 const SIGNE_DROITE = ["vendeur_societe"];
 /** Une ligne de signature : modifiable quand elle porte un champ (« Bon pour accord » reste fixe). */
 function LigneSignature({ texte, champ, i, onChamp, lecture }) {
-  if (!champ) return <p className={i === 0 ? "loi-nom" : "loi-sous"}>{texte}</p>;
+  if (!champ) return <p className={i === 0 ? "loi-nom" : "loi-sous"}>{texte || "\u00a0"}</p>;
   return <Editable key={`${champ}:${texte}`} valeur={texte} gras={false} lecture={lecture} cible={`champ:${champ}`} className={i === 0 ? "loi-nom" : "loi-sous"} onGarde={(t) => onChamp(champ, t)} />;
 }
 
@@ -511,7 +511,7 @@ function LettreMenthe({ d, onChamp, onTexte, apercu = false }) {
           <div key={b.cle} className="loi-signatures">
             {[[b.gauche, SIGNE_GAUCHE], [b.droite, SIGNE_DROITE]].map(([lignes, champs], n) => (
               <div key={n}>
-                {lignes.map((l, i) => <LigneSignature key={l} texte={l} champ={l === "Bon pour accord" ? null : champs[i]} i={i} onChamp={onChamp} lecture={apercu} />)}
+                {lignes.map((l, i) => <LigneSignature key={`${i}:${l}`} texte={l} champ={l === "Bon pour accord" || !l ? null : champs[i]} i={i} onChamp={onChamp} lecture={apercu} />)}
                 <div className="loi-m-ligne" />
                 <Zone cle={n === 0 ? "signature-gauche" : "signature-droite"} as="p" className="loi-m-sous">Signature</Zone>
               </div>
@@ -620,7 +620,7 @@ function LettreClassique({ d, onChamp, onTexte, apercu = false }) {
               <div key={b.cle} className="loi-signatures">
                 {[[b.gauche, "Signature", SIGNE_GAUCHE, "signature-gauche"], [b.droite, "Date et signature", SIGNE_DROITE, "signature-droite"]].map(([lignes, sous, champs, zone]) => (
                   <div key={sous}>
-                    {lignes.map((l, i) => <LigneSignature key={l} texte={l} champ={l === "Bon pour accord" ? null : champs[i]} i={i} onChamp={onChamp} lecture={apercu} />)}
+                    {lignes.map((l, i) => <LigneSignature key={`${i}:${l}`} texte={l} champ={l === "Bon pour accord" || !l ? null : champs[i]} i={i} onChamp={onChamp} lecture={apercu} />)}
                     <Zone cle={zone} as="div" className="loi-cadre"><span>{sous.toUpperCase()}</span></Zone>
                   </div>
                 ))}

@@ -32,7 +32,7 @@ export default function AValider() {
     return () => clearTimeout(t);
   }, [cible, q.data]);
 
-  if (compte.data && compte.data.actif === false) return <p className="p-8 text-[14px] text-ardoise">Haka n'est pas encore allumé sur ce serveur.</p>;
+  if (compte.data && compte.data.actif === false) return <p className="p-8 text-[14px] text-ardoise">L'Assistant KPartners n'est pas encore allumé sur ce serveur.</p>;
   if (q.isError && /403|réservé/i.test(q.error?.message || "")) return <p className="p-8 text-[14px] text-ardoise">Cette page est réservée à l'équipe.</p>;
   const liste = q.data?.propositions || [];
   return (
@@ -48,7 +48,7 @@ export default function AValider() {
             </button>
           ))}
         </nav>
-        <p className="-mt-2 m-0 max-w-[56ch] text-[14px] text-ardoise">Ce que Haka a préparé. Rien ne part sans votre clic : un mail, une ligne Twenty CRM, un dossier rattaché.</p>
+        <p className="-mt-2 m-0 max-w-[56ch] text-[14px] text-ardoise">Ce que l'Assistant KPartners a préparé. Rien ne part sans votre clic : un mail, une ligne Twenty CRM, un dossier rattaché.</p>
       </header>
 
       {q.isLoading ? <Chargement taille="grand" /> : liste.length ? (
@@ -64,7 +64,7 @@ export default function AValider() {
         </div>
       ) : (
         <p className="m-0 py-16 text-center text-[14px] text-brume">
-          {vueEffective === "moi" ? "Rien à valider pour vous : Haka vous préviendra." : vueEffective === "commun" ? "Rien dans le Commun." : "Rien à valider."}
+          {vueEffective === "moi" ? "Rien à valider pour vous : Assistant KPartners vous préviendra." : vueEffective === "commun" ? "Rien dans le Commun." : "Rien à valider."}
         </p>
       )}
 

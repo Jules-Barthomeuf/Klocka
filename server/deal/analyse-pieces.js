@@ -633,8 +633,9 @@ export function resolutionsLues(donnees) {
   }));
 }
 
-// Le statut d'une résolution (30 oct. 2026, Jules) : « À vérifier » de base, puis Important, Pas important, Vérifié.
-export const STATUTS_RESOLUTION = ['a_verifier', 'important', 'pas_important', 'verifie'];
+// Le statut d'une résolution (30 oct. 2026, Jules) : « À vérifier » de base, ou « Vérifié », comme les grilles. Les
+// statuts Important et Pas important d'avant se lisent « À vérifier ».
+export const STATUTS_RESOLUTION = ['a_verifier', 'verifie'];
 
 const anneeDe = (...textes) => {
   for (const t of textes) {
@@ -661,7 +662,8 @@ export function assembleesAG(brut, docs) {
       if (vus.has(cle)) cle = `${cle}.${i + 1}`;
       vus.add(cle);
       const s = statuts[cle] || null;
-      return { cle, ...r, statut: s?.statut || 'a_verifier', par: s?.par || null, le: s?.le || null };
+      const verifiee = s?.statut === 'verifie';
+      return { cle, ...r, statut: verifiee ? 'verifie' : 'a_verifier', par: verifiee ? s.par || null : null, le: verifiee ? s.le || null : null, cachee: !!s?.cachee };
     });
     return {
       document_id: d.id, document_nom: d.nom, document_titre: d.titre, document_url: d.url, mime: d.mime, extraction: d.extraction,
@@ -674,16 +676,30 @@ export function assembleesAG(brut, docs) {
   return ags.sort((a, b) => (a.date || `${a.annee || 9999}`).localeCompare(b.date || `${b.annee || 9999}`));
 }
 
-/** Poser le statut d'une résolution. */
-export function statuerResolution(dealId, cle, statut, user) {
-  if (!STATUTS_RESOLUTION.includes(statut)) return { ok: false, error: 'Statut inconnu' };
+/**
+ * Poser le statut d'une résolution, ou la cacher (30 oct. 2026, Jules : « un petit œil » au survol de sa case). `cle`
+ * peut nommer tout un PV (son id seul) avec `{ cachee: false }` : toutes ses résolutions cachées reviennent.
+ */
+export function statuerResolution(dealId, cle, statut, user, { cachee } = {}) {
+  if (statut != null && !STATUTS_RESOLUTION.includes(statut)) return { ok: false, error: 'Statut inconnu' };
+  if (statut == null && typeof cachee !== 'boolean') return { ok: false, error: 'Rien à changer' };
   const docId = String(cle || '').split(':')[0];
+  const toutLePV = !String(cle || '').includes(':');
+  if (toutLePV && cachee !== false) return { ok: false, error: 'Résolution inconnue' };
   let erreur = null;
   const fait = majEtat(dealId, (etat) => {
     if (etat.docs[docId]?.type !== 'pv_ag') { erreur = 'Résolution inconnue'; return false; }
     etat.resolutions = etat.resolutions || {};
-    if (statut === 'a_verifier') delete etat.resolutions[cle];
-    else etat.resolutions[cle] = { statut, par: user?.email || null, le: new Date().toISOString() };
+    const cles = toutLePV ? Object.keys(etat.resolutions).filter((c) => c.startsWith(`${docId}:`)) : [cle];
+    for (const c of cles) {
+      const r = { ...(etat.resolutions[c] || {}) };
+      if (statut === 'verifie') Object.assign(r, { statut, par: user?.email || null, le: new Date().toISOString() });
+      else if (statut === 'a_verifier') { delete r.statut; delete r.par; delete r.le; }
+      if (cachee === true) r.cachee = true;
+      else if (cachee === false) delete r.cachee;
+      if (Object.keys(r).length) etat.resolutions[c] = r;
+      else delete etat.resolutions[c];
+    }
   });
   if (erreur) return { ok: false, error: erreur };
   if (!fait) return { ok: false, error: 'Dossier introuvable' };

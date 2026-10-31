@@ -49,7 +49,7 @@ test('fonds et droit au bail : pas de rendement, leur intitulé, leur confidenti
   assert.equal(T.composer({}, 'bureaux').tuiles[0].valeur, '[à compléter]');
 });
 
-test('Haka retouche le teaser : un champ, une tuile, un point fort ; une classe recompose', async () => {
+test('L\'Assistant KPartners retouche le teaser : un champ, une tuile, un point fort ; une classe recompose', async () => {
   const { Records } = await import('./db.js');
   const user = { email: 'lucie@kpartners.fr', role: 'mandataire' };
   const d = Records.create('DossierMandataire', { mandataire_email: user.email, bien: 'Boutique', statut: 'go', documents: {} });

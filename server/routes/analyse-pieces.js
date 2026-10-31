@@ -111,9 +111,9 @@ export function monterAnalysePieces(app) {
     ok(res, { ok: true, pieces: ids.length });
   }));
 
-  // Le statut d'une résolution de PV d'AG (Important, Pas important, À vérifier, Vérifié).
+  // Le statut d'une résolution de PV d'AG (À vérifier, Vérifié), ou la cacher ; sur l'id du PV, tout réafficher.
   app.post(`${base}/resolutions/:cle`, wrap((req, res) => {
-    const r = A.statuerResolution(req.params.dealId, req.params.cle, req.body?.statut, currentUser(req));
+    const r = A.statuerResolution(req.params.dealId, req.params.cle, req.body?.statut ?? null, currentUser(req), { cachee: req.body?.cachee });
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));

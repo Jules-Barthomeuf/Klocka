@@ -122,7 +122,7 @@ test('désactiver : la compétence quitte les cartes ; la réactiver la rend', (
   assert.ok(C.pourDeclencheur('chat').some((x) => x.cle === 'pre-analyse-fiche'));
 });
 
-test('une compétence neuve est un brouillon : invisible de Haka et d\'AK tant qu\'elle n\'est pas publiée', () => {
+test('une compétence neuve est un brouillon : invisible de l\'Assistant KPartners et d\'AK tant qu\'elle n\'est pas publiée', () => {
   const r = C.creer({ nom: 'Refus courtois', resume: 'Prépare le mail de refus.' }, jules);
   assert.equal(r.ok, true);
   assert.equal(C.lire('refus-courtois').version, 0);
@@ -142,7 +142,7 @@ test('diffTexte et diffVersions : ce qui change entre deux versions', () => {
   assert.equal(C.diffVersions('pre-analyse-fiche', 1, 99), null);
 });
 
-test('créer à partir d\'un exemple : Haka propose un brouillon complet, rien n\'est publié', async () => {
+test('créer à partir d\'un exemple : Assistant KPartners propose un brouillon complet, rien n\'est publié', async () => {
   const { depuisExemple } = await import('./competence-depuis-exemple.js');
   let vu = null;
   const r = await depuisExemple({ nom: 'Lire un bail commercial', texte: 'Voici une fiche bien faite : ...' }, jules, {

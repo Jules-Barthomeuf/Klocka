@@ -176,7 +176,7 @@ async function releverVraiment(uploadDir = null) {
         erreurs.push(...(ambiant.erreurs || []));
       }
     } catch (e) {
-      erreurs.push(`Haka ambiant : ${e?.message || e}`);
+      erreurs.push(`L'Assistant KPartners ambiant : ${e?.message || e}`);
     }
 
     // Les pièces jointes des réponses entrent dans leur dossier et partent au

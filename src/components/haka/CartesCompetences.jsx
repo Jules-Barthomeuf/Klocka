@@ -79,8 +79,8 @@ export default function CartesCompetences({ declencheur = "chat", contexte = nul
   // Lancer : le chat de la page reçoit le texte et prend la main ; rien ne part avant l'envoi.
   const lancer = (texte, competence, eteintes) => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte, contexte, sortie: "produire", competence, eteintes } }));
   return (
-    <section aria-label="Ce que Haka sait faire" className={className}>
-      <p className="m-0 mb-3 text-[11px] uppercase tracking-[.16em] text-brume">Ce que Haka sait faire</p>
+    <section aria-label="Ce que l'Assistant KPartners sait faire" className={className}>
+      <p className="m-0 mb-3 text-[11px] uppercase tracking-[.16em] text-brume">Ce que l'Assistant KPartners sait faire</p>
       <motion.div initial="cache" animate="vu" variants={{ vu: { transition: { staggerChildren: 0.06 } } }}
         className={`grid items-start gap-3 ${declencheur === "dossier" ? "grid-cols-1" : limite === 4 ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-4" : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"}`}>
         {liste.map((c) => <Carte key={c.cle} c={c} contexte={contexte} onLancer={lancer} />)}

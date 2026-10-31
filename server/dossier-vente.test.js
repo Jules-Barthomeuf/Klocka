@@ -90,7 +90,7 @@ test('de bout en bout : préférence notée, mise en vente par le mandataire, sa
   assert.equal(P.estTransfere({ deal_id: 'x', deal_lecture: true, statut: 'complet' }), false, 'la lecture des pièces n’est pas un transfert');
 });
 
-test('Haka propose le geste suivant, dans l’ordre du travail', () => {
+test('L\'Assistant KPartners propose le geste suivant, dans l’ordre du travail', () => {
   const base = { pieces: [{ cle: 'bail', requise: true, etat: 'manquante' }], points: [], preference: { statut: 'ne_s_applique_pas' }, pret: false };
   assert.equal(V.prochainsGestes(base)[0].cle, 'premier_mail');
   assert.equal(V.prochainsGestes(base, { depot: { propose_le: '2026-10-20T00:00:00Z' }, aujourdhui: AUJ })[0].cle, 'relance');
@@ -105,7 +105,7 @@ test('Haka propose le geste suivant, dans l’ordre du travail', () => {
   assert.match(V.mailVendeur({ genre: 'relance', bien: 'B', url: 'u' }).objet, /manquent encore/);
 });
 
-test('le vendeur dépose par son lien ; Haka écrit le mail avec ce lien', async () => {
+test('le vendeur dépose par son lien ; Assistant KPartners écrit le mail avec ce lien', async () => {
   const user = { email: 'lucie@kpartners.fr', role: 'mandataire' };
   const { dossier: d } = P.creerDossier({ bien: 'Fleuriste du Port', proprietaire: 'Mme Roy', proprietaire_email: 'roy@exemple.fr' }, user);
   assert.equal(V.dossierDuJeton('court'), null);

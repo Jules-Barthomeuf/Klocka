@@ -45,7 +45,7 @@ export default function PopupFicheRecue() {
     try {
       await base44.request("POST", `/api/haka/propositions/${p.id}/valider`, { body: { choix, ...extra } });
       setFaites((s) => new Set([...s, p.id]));
-      toast.success(choix === "preanalyser" ? "C'est parti : Haka rentre la fiche et vous prévient quand la pré-analyse est prête." : "Noté : Haka ne la rentre pas, et retient pourquoi.");
+      toast.success(choix === "preanalyser" ? "C'est parti : Assistant KPartners rentre la fiche et vous prévient quand la pré-analyse est prête." : "Noté : Assistant KPartners ne la rentre pas, et retient pourquoi.");
       qc.invalidateQueries({ queryKey: ["haka"] });
     } catch (e) {
       toast.error(e?.message || "La réponse n'est pas partie");

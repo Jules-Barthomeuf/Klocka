@@ -39,7 +39,7 @@ export default function RaccourcisMandataire({ choisie = null, onChoisir, classN
       })}
       {onSources && (
         <button type="button" onClick={onSources} aria-expanded={sourcesOuvert}
-          aria-label={sourcesOuvert ? "Fermer le choix des sources" : "Choisir les sources"} title={sourcesOuvert ? "Fermer" : "Choisir les sources que Haka lira"}
+          aria-label={sourcesOuvert ? "Fermer le choix des sources" : "Choisir les sources"} title={sourcesOuvert ? "Fermer" : "Choisir les sources que l'Assistant KPartners lira"}
           className={`relative grid h-9 w-9 place-items-center rounded-full border transition-colors duration-300 max-md:h-10 max-md:w-10 ${sourcesOuvert || nbSources ? "border-menthe/60 text-menthe" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"}`}>
           <motion.span className="grid place-items-center" animate={{ rotate: sourcesOuvert ? 45 : 0 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}><Plus className="h-4 w-4" /></motion.span>
           {!sourcesOuvert && nbSources > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-menthe px-1 text-[10px] text-sur-menthe">{nbSources}</span>}

@@ -79,7 +79,7 @@ function Synthese({ s, peut }) {
           {faire.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{s ? "Refaire la synthèse" : "Faire la synthèse"}
         </button>
       </div>
-      {!s ? <p className="m-0 text-[13px] text-brume">{peut ? "Haka lit toutes les réponses et en tire ce qui revient et ce qu'il faut changer dans le module d'appel." : "Aucune réponse à lire encore : la synthèse viendra avec les premières réponses."}</p> : (
+      {!s ? <p className="m-0 text-[13px] text-brume">{peut ? "L'Assistant KPartners lit toutes les réponses et en tire ce qui revient et ce qu'il faut changer dans le module d'appel." : "Aucune réponse à lire encore : la synthèse viendra avec les premières réponses."}</p> : (
         <>
           <p className="m-0 mb-3 text-[12px] text-brume">Faite le {quand(s.genere_le)} sur {s.n_reponses} réponse{s.n_reponses > 1 ? "s" : ""}{s.a_jour ? "" : " · de nouvelles réponses sont arrivées depuis"}.</p>
           <div className="grid grid-cols-2 gap-6 max-md:grid-cols-1">
@@ -124,7 +124,7 @@ export default function RetoursAnalystes({ jours = 30 }) {
   return (
     <div>
       <p className="m-0 mb-5 max-w-[760px] text-[13.5px] leading-[1.6] text-ardoise">
-        AK surveille le journal des appels. Un appel corrigé, pas validé au bout d'une heure, validé sans appel (moins de 15 secondes, ni enregistrement ni notes) ou validé plus de {Math.round(data.seuil_validation_s / 60)} minutes après le raccrochage donne une question, posée à l'analyste sur sa page Haka avec son écran rejoué. Ses réponses arrivent ici.
+        AK surveille le journal des appels. Un appel corrigé, pas validé au bout d'une heure, validé sans appel (moins de 15 secondes, ni enregistrement ni notes) ou validé plus de {Math.round(data.seuil_validation_s / 60)} minutes après le raccrochage donne une question, posée à l'analyste sur sa page Assistant KPartners avec son écran rejoué. Ses réponses arrivent ici.
       </p>
 
       <div className="mb-6 grid grid-cols-5 gap-3 max-md:grid-cols-2">

@@ -37,7 +37,7 @@ export function useReglagesChatMandataire(cles = []) {
           );
         })}
         <button type="button" onClick={() => setSourcesOuvert((o) => !o)} aria-expanded={sourcesOuvert}
-          aria-label={sourcesOuvert ? "Fermer le choix des sources" : "Choisir les sources"} title={sourcesOuvert ? "Fermer" : "Choisir les sources que Haka lira"}
+          aria-label={sourcesOuvert ? "Fermer le choix des sources" : "Choisir les sources"} title={sourcesOuvert ? "Fermer" : "Choisir les sources que l'Assistant KPartners lira"}
           className={`relative grid h-8 w-8 place-items-center rounded-full border transition-colors duration-300 max-md:h-9 max-md:w-9 ${sourcesOuvert || sources.length ? "border-menthe/60 text-menthe" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"}`}>
           <motion.span className="grid place-items-center" animate={{ rotate: sourcesOuvert ? 45 : 0 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}><Plus className="h-3.5 w-3.5" /></motion.span>
           {!sourcesOuvert && sources.length > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-menthe px-1 text-[10px] text-sur-menthe">{sources.length}</span>}

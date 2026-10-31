@@ -203,7 +203,8 @@ async function composer(p) {
       sections: Array.isArray(p.sections) ? p.sections : [],
       // La préparation du rendez-vous (26 oct. 2026) : prête en fond au rendez-vous fixé, mise à jour la veille à 18 h.
       preparation: preparationNeutre(p.preparation) || null,
-      // Où est le commerce, pour sa vitrine (Street View) en tête de fiche (25 oct. 2026).
+      // Où est le commerce, pour sa photo en tête de fiche (25 oct. 2026 ; photo Google au lieu de Street View le 31 oct.).
+      place_id: cs?.place_id || null,
       position: cs?.lat != null && cs?.lon != null ? { lat: cs.lat, lon: cs.lon } : cible?.lat != null && cible?.lon != null ? { lat: cible.lat, lon: cible.lon } : null,
       // La liste où vit la fiche (25 oct. 2026) : « Dans la liste « Lyon » · changer ».
       liste: p.liste_id ? (({ id, nom }) => ({ id, nom }))(Records.get('ListeMandataire', p.liste_id) || { id: p.liste_id, nom: 'Liste' }) : null,
@@ -261,7 +262,7 @@ export async function lireDictee(id, { texte = null, audio = null } = {}, user, 
       required: ['compris', 'note'],
     },
   }));
-  if (!lu || typeof lu !== 'object') return { ok: false, error: "Haka n'a pas pu le lire : réessayez, ou écrivez-le autrement." };
+  if (!lu || typeof lu !== 'object') return { ok: false, error: "L'Assistant KPartners n'a pas pu le lire : réessayez, ou écrivez-le autrement." };
   const issues = enBiens ? ['visite', 'prix_accord', 'pause'] : ['contacte', 'rdv', 'pas_interet'];
   const champs = ['telephone', 'email', 'nom', 'remarque'];
   return {

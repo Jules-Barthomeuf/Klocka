@@ -341,7 +341,7 @@ export function ResultatsProspective({ jeton, onRetour }) {
               <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); exporter.mutate({ nom: nouvelle }); }}>
                 <input autoFocus value={nouvelle} onChange={(e) => setNouvelle(e.target.value)} placeholder="Nom de la liste"
                   className="min-w-0 flex-1 rounded-champ border border-trait bg-surface px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
-                <button type="submit" disabled={!nouvelle.trim() || exporter.isPending} className="inline-flex h-9 items-center rounded-full bg-menthe-pale px-4 text-[13px] font-medium text-sur-menthe-pale disabled:opacity-40">
+                <button type="submit" disabled={!nouvelle.trim() || exporter.isPending} className="inline-flex h-9 items-center rounded-full bg-pervenche px-4 text-[13px] font-medium text-sur-menthe-pale disabled:opacity-40">
                   {exporter.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer"}
                 </button>
                 <button type="button" onClick={() => setNouvelle(null)} className="text-[12.5px] text-brume hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
@@ -349,7 +349,7 @@ export function ResultatsProspective({ jeton, onRetour }) {
             ) : (
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" disabled={!coches.size} onClick={() => setNouvelle(data.prospective?.nom || "Prospective")}
-                  className="inline-flex h-9 items-center rounded-full bg-menthe-pale px-4 text-[13px] font-medium text-sur-menthe-pale disabled:opacity-40">
+                  className="inline-flex h-9 items-center rounded-full bg-pervenche px-4 text-[13px] font-medium text-sur-menthe-pale disabled:opacity-40">
                   Exporter vers une nouvelle liste
                 </button>
                 {(listesData?.listes || []).length > 0 && (

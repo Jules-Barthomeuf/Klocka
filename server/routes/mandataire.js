@@ -19,7 +19,9 @@ export function monterMandataire(app) {
   const M = () => import('../mandataire.js');
   const C = () => import('../assistant-conversations.js');
   // Deux historiques : le chat du tableau de bord, et celui de la prospection.
-  const espaceDe = (req) => ({ espace: req.query?.espace === 'prospection' ? 'mandataire-prospection' : req.query?.espace === 'affinage' ? 'mandataire-affinage' : req.query?.espace === 'estimation' ? 'mandataire-estimation' : req.query?.espace === 'mandat' ? 'mandataire-mandat' : 'mandataire' });
+  // Le chat d'une fiche range ses conversations à part, une file par fiche (31 oct. 2026, Jules : en revenant sur la
+  // fiche, on retrouve « Fiche · Conversation »).
+  const espaceDe = (req) => ({ espace: req.query?.espace === 'fiche' && /^[\w-]{1,64}$/.test(String(req.query?.fiche || '')) ? `mandataire-fiche-${req.query.fiche}` : req.query?.espace === 'prospection' ? 'mandataire-prospection' : req.query?.espace === 'affinage' ? 'mandataire-affinage' : req.query?.espace === 'estimation' ? 'mandataire-estimation' : req.query?.espace === 'mandat' ? 'mandataire-mandat' : 'mandataire' });
 
   // Le rôle se contrôle avant multer : un compte client n'écrit pas 50 Mo sur
   // le disque pour recevoir un 403 ensuite.

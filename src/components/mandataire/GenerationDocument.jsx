@@ -108,7 +108,7 @@ function lignesPour(surtitre = "") {
  * les deux secondes. Calme : le titre dit qu'AK travaille, les diapositives
  * sur quoi, la ligne où il en est. Les animations sont en CSS (index.css).
  */
-export function MiseAJourDocument({ surtitre, titre = "Haka lit votre demande", lignes = null }) {
+export function MiseAJourDocument({ surtitre, titre = "L'Assistant KPartners lit votre demande", lignes = null }) {
   const etats = (lignes && lignes.length === 3 ? lignes : lignesPour(surtitre));
   const ligne = "h-[7px] rounded-full bg-bord-doux";
   return (

@@ -37,7 +37,7 @@ export const SCENARIOS = [
     ['mandat_signe', 'Mandat signé', 'Le dossier de vente s’ouvre.'],
   ] },
   { etape: 'marche', titre: 'Commercialisation', liste: [
-    ['dossier_vide', 'Dossier à constituer', 'Aucune pièce : Haka propose le mail au vendeur.'],
+    ['dossier_vide', 'Dossier à constituer', 'Aucune pièce : Assistant KPartners propose le mail au vendeur.'],
     ['dossier_complet', 'Pièces reçues, locataire à notifier', 'Le droit de préférence reste à régler.'],
     ['pret_vente', 'Prêt à mettre en vente', 'Tout est réglé : « Mettre en vente » est actif.'],
     ['en_vente', 'Mis en vente', 'Le teaser est composé, à relire et valider.'],

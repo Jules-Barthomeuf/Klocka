@@ -128,7 +128,7 @@ test('le même bien reçu d\'un autre agent dans la boîte commune : rattaché, 
   assert.equal(r.proposition.etat, 'validee');
 });
 
-test('même adresse, autre prix : Haka demande (rattacher ou créer) ; « créer » continue jusqu\'au mail', async () => {
+test('même adresse, autre prix : Assistant KPartners demande (rattacher ou créer) ; « créer » continue jusqu\'au mail', async () => {
   const mail = mailRecu(3, { fichier: fixtureAutrePrix });
   const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
   await accepter(mail);

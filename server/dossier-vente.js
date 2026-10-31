@@ -575,7 +575,7 @@ export async function veilleDuDossier(id) {
   Records.update('DossierMandataire', d.id, { mail_propose: mail });
   try {
     const { notifier } = await import('./notifications.js');
-    notifier({ pour: d.mandataire_email, titre: `Haka · ${d.bien}`, texte: `${a.raison} Envoyer ?`, lien: `/MandataireBiens?bien=${encodeURIComponent(`dossier:${d.id}`)}&etape=marche`, action: 'Voir le mail', cle: `mail-vendeur:${d.id}:${mail.le.slice(0, 10)}` });
+    notifier({ pour: d.mandataire_email, titre: `Assistant KPartners · ${d.bien}`, texte: `${a.raison} Envoyer ?`, lien: `/MandataireBiens?bien=${encodeURIComponent(`dossier:${d.id}`)}&etape=marche`, action: 'Voir le mail', cle: `mail-vendeur:${d.id}:${mail.le.slice(0, 10)}` });
   } catch { /* le mail attend sur le dossier */ }
   return mail;
 }

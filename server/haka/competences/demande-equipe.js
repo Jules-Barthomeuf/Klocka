@@ -80,7 +80,7 @@ export async function ecrireDepuisSourcing({ a, objet, corps, template_id }) {
   const account = Records.filter('MailAccount', { email: compte })[0] || null;
   if (SIMULER || !account) {
     const { logEmail } = await import('../../email.js');
-    logEmail({ from: compte, expediteur: compte, to: a, destinataire: a, subject: objet, sujet: objet, body: corps, contenu: corps, template_id, direction: 'sortant', statut: 'simule', error: SIMULER ? 'Simulation Haka' : 'Boîte sourcing@ non connectée', sent_at: new Date().toISOString() });
+    logEmail({ from: compte, expediteur: compte, to: a, destinataire: a, subject: objet, sujet: objet, body: corps, contenu: corps, template_id, direction: 'sortant', statut: 'simule', error: SIMULER ? 'Simulation Assistant KPartners' : 'Boîte sourcing@ non connectée', sent_at: new Date().toISOString() });
     return { simule: true, a };
   }
   const { sendEmail } = await import('../../email.js');
@@ -92,7 +92,7 @@ export async function ecrireDepuisSourcing({ a, objet, corps, template_id }) {
 export async function signalerExterieur(mail) {
   const p = await file.proposer({
     type: 'mail_exterieur', titre: `Mail reçu sur sourcing@ : ${String(mail.objet || 'sans objet').slice(0, 80)}`,
-    resume: `${String(mail.de || mail.de_email || '?').replace(/<[^>]*>/g, '').trim()} a écrit. Haka ne répond jamais seul à l'extérieur : à vous de voir.`,
+    resume: `${String(mail.de || mail.de_email || '?').replace(/<[^>]*>/g, '').trim()} a écrit. L'Assistant KPartners ne répond jamais seul à l'extérieur : à vous de voir.`,
     charge: { mail_id: mail.id, de: mail.de_email || null, objet: mail.objet || null, extrait: String(mail.texte || '').slice(0, 600) },
     sources: [sourceMail(mail), source({ outil: 'gmail', libelle: 'Ouvrir dans la boîte', lien: '/Dashboard' })],
     pour: null, dossier: mail.deal_id || null, competence: COMPETENCE, version: VERSION, tache_id: null, etape: null,

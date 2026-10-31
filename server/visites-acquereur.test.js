@@ -92,7 +92,7 @@ test('une visite, de la création au compte rendu envoyé : bon signé, récit, 
   assert.equal(V.marquerEnvoye(id, { a: m.mail.a }, moi).visite.statut, 'envoyee');
 });
 
-test('Haka retrouve le bien nommé et la visite racontée, et crée une visite depuis une phrase', async () => {
+test('L\'Assistant KPartners retrouve le bien nommé et la visite racontée, et crée une visite depuis une phrase', async () => {
   const biens = [{ titre: 'Boulangerie Masséna · Nice', ids: ['a'] }, { titre: 'Pharmacie Cimiez · Nice', ids: ['b'] }];
   assert.equal(V.trouverBien(biens, 'la boulangerie').ids[0], 'a');
   assert.equal(V.trouverBien(biens, 'Nice'), 'ambigu');

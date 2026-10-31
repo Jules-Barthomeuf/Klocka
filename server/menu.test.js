@@ -28,7 +28,7 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
 test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration ; Autre : Offres, Dossier bancaire, Feedback (26 oct.)", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
-  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'Appels', 'Simulateur', 'Twenty CRM']);
+  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Assistant', 'Projets', 'Dossiers', 'Appels', 'Simulateur', 'Twenty CRM']);
   // Le CRM (27 oct. 2026) : une entrée externe, toujours là.
   assert.equal(principal.find((x) => x.cle === 'CRM')?.externe, true);
   assert.ok(menuAdmin(['CRM']).principal.some((x) => x.cle === 'CRM'));
@@ -60,7 +60,7 @@ test('un groupe est une entrée ; une page sait son groupe', async () => {
 test('le menu des mandataires : la structure de l’équipe, Biens en une entrée, Feedback dans Autre', async () => {
   const { menuMandataire, groupeDe } = await import('../src/lib/menu.js');
   const { principal, autre } = menuMandataire();
-  assert.deepEqual(principal.map((x) => x.label), ['Haka', 'Prospection', 'Biens', 'Clients', 'Simulateur', 'Twenty CRM']);
+  assert.deepEqual(principal.map((x) => x.label), ['Assistant', 'Prospection', 'Biens', 'Clients', 'Simulateur', 'Twenty CRM']);
   // Projets retiré (31 oct. 2026, PLAN.md 0.3) : ni au menu, ni dans « Autre ».
   assert.ok(!principal.some((x) => x.cle === 'MandataireProjets') && !autre.some((e) => e.cle === 'MandataireProjets'));
   // Biens, une seule entrée (24 oct. 2026) : les étapes sont dans la page, plus d'onglets en tête.

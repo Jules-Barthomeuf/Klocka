@@ -48,7 +48,7 @@ import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
-import { CLAIR, themeEffectif } from "@/lib/personnalisation";
+import { CLAIR, definirEspace, themeEffectif } from "@/lib/personnalisation";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, menuAdmin, menuMandataire, repartir } from "@/lib/menu";
 import { apercuAdmin, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
@@ -381,6 +381,8 @@ function LayoutContent({ children, currentPageName }) {
   // Les pages que Jules n'a pas ouvertes à ce compte (acces-pages.js côté serveur).
   const pagesFermees = isAdmin ? user?.pages_fermees || [] : [];
   const vue = isAdmin ? apercu : user?.role === "mandataire" ? "mandataire" : "client";
+  // La couleur d'accent suit l'espace : K Partners (pervenche) côté mandataire.
+  useEffect(() => { definirEspace(vue); }, [vue]);
   // Ce qui relève de l'équipe (relances, dossiers, assistant, recherche) ne
   // suit que la vue admin : un admin qui regarde la vue mandataire ou client
   // voit exactement ce que voit un mandataire ou un client.

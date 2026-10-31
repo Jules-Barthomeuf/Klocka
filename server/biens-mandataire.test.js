@@ -397,7 +397,7 @@ test('ajouter à ma liste fait naître la fiche ; une fiche déjà née entre da
   assert.equal(S.changerDeListe(vue.fiche.id, { nom: 'X', user: { email: 'autre@kpartners.fr' } }).ok, false);
 });
 
-test('avancer un bien depuis Haka : rien n’est écrit, l’étape revient à confirmer d’un tap', async () => {
+test('avancer un bien depuis Assistant KPartners : rien n’est écrit, l’étape revient à confirmer d’un tap', async () => {
   const { Records } = await import('./db.js');
   const M = await import('./mandataire.js');
   const A = { email: 'avancer-a@kpartners.fr', role: 'mandataire' };
@@ -426,7 +426,7 @@ test('le terrain : la distance, et les commerces où l’on est passé aujourd�
   assert.equal(T.passeAujourdhui({ historique: [{ type: 'creation', le: '2026-10-25T09:00:00Z' }] }, '2026-10-25'), false, 'la création ne compte pas');
 });
 
-test('le fil du bien : une conversation par fiche, écrite d’où qu’on parle, relue par Haka, jamais effacée', async () => {
+test('le fil du bien : une conversation par fiche, écrite d’où qu’on parle, relue par l\'Assistant KPartners, jamais effacée', async () => {
   const { Records, Conversations } = await import('./db.js');
   const B = await import('./bien-etapes.js');
   const A = { email: 'fil-a@kpartners.fr', role: 'mandataire' };
@@ -573,12 +573,12 @@ test('le compte rendu de visite : le bon rendez-vous, rien d’écrasé sans le 
   assert.equal(R.enregistrerCompteRendu(p.id, {}, { email: 'autre@kpartners.fr' }).ok, false);
 });
 
-test('le fil relu par Haka part au format de l’API (content), sinon l’API refuse « messages.0.content: Field required »', () => {
+test('le fil relu par l\'Assistant KPartners part au format de l’API (content), sinon l’API refuse « messages.0.content: Field required »', () => {
   const src = fs.readFileSync(new URL('./mandataire.js', import.meta.url), 'utf8');
   assert.match(src, /contexteDuFil\(ficheOuverte, user\)\.map\(\(m\) => \(\{ role: m\.role, content: m\.contenu \}\)\)/);
 });
 
-test('Haka complète une fiche existante : le numéro va sur la fiche, sans doublon ni relance', async () => {
+test('L\'Assistant KPartners complète une fiche existante : le numéro va sur la fiche, sans doublon ni relance', async () => {
   const { Records } = await import('./db.js');
   const M = await import('./mandataire.js');
   const A = { email: 'modif-a@kpartners.fr', role: 'mandataire' };
@@ -588,14 +588,14 @@ test('Haka complète une fiche existante : le numéro va sur la fiche, sans doub
   assert.equal(r.ok, true);
   const q = Records.get('ProprietaireMandataire', p.id);
   assert.equal(q.telephone, '06 11 11 11 11');
-  assert.equal(q.telephone_source, 'dit à Haka');
+  assert.equal(q.telephone_source, 'dit à l\'Assistant KPartners');
   assert.equal(Records.list('ProprietaireMandataire').length, avant, 'pas de doublon');
   const tiers = await M.executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: p.id, email: 'carron@exemple.fr', a_confirmer: true } }, A);
   assert.equal(tiers.ok, true);
   assert.equal(Records.get('ProprietaireMandataire', p.id).a_confirmer.email, true);
 });
 
-test('Haka modifie toute la fiche : champs, statut, liste, et parties libres ajoutées, réécrites, retirées', async () => {
+test('L\'Assistant KPartners modifie toute la fiche : champs, statut, liste, et parties libres ajoutées, réécrites, retirées', async () => {
   const { Records } = await import('./db.js');
   const M = await import('./mandataire.js');
   const A = { email: 'toute-a@kpartners.fr', role: 'mandataire' };

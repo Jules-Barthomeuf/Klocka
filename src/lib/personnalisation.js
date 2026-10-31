@@ -49,8 +49,8 @@ export const DEFAUT = Object.freeze({
   cartes_opacite: OPACITE_DEFAUT, // l'opacité des cartes de la page Dossiers, de 10 (presque transparentes) à 100 (pleines) (18 oct. 2026)
   points_actions: "oui", // les points dans la fenêtre des actions proposées (8 oct. 2026) : oui | non
   agent_testeur: "oui", // le bouton « Tester cette page avec l'agent », pour un super admin (12 oct. 2026) : oui | non
-  personnage_haka: "haka-1", // le portrait de Haka dans les chats (18 oct. 2026) : une clé de PERSONNAGES_HAKA
-  haka_longueur: "courte", // la longueur des réponses de Haka (18 oct. 2026) : deux_lignes (19 oct.) | tres_courte | courte | detaillee
+  personnage_haka: "haka-1", // le portrait de l'Assistant KPartners dans les chats (18 oct. 2026) : une clé de PERSONNAGES_HAKA
+  haka_longueur: "courte", // la longueur des réponses de l'Assistant KPartners (18 oct. 2026) : deux_lignes (19 oct.) | tres_courte | courte | detaillee
   haka_tableaux: "utiles", // les tableaux dans ses réponses : utiles | jamais
 });
 
@@ -250,6 +250,10 @@ export function famille(cle, theme) {
     "menthe-fonce": luminosite(base, clair ? -0.14 : -0.1),
     "menthe-texte": clair ? luminosite(base, -0.08) : base,
     "sur-menthe": clair ? [255, 255, 255] : luminosite(base, -0.55),
+    // Le bouton « Fait » des cartes d'action, l'envoi du chat : ils suivaient la menthe d'origine quel que soit l'accent
+    // (31 oct. 2026, Jules : « à chaque fois la mauvaise couleur »).
+    "menthe-pale": base,
+    "sur-menthe-pale": clair ? [255, 255, 255] : luminosite(base, -0.55),
     ecrire: base,
   };
 }
@@ -290,9 +294,23 @@ export function appliquerTheme(theme) {
 const PAGES_NEUTRES = new Set(["", "Home", "Bienvenue"]);
 export const pageNeutre = () => typeof window !== "undefined" && PAGES_NEUTRES.has(pageDeChemin(window.location.pathname));
 
+// L'espace montré (client, mandataire, admin) : côté mandataire, l'accent est celui de K Partners (pervenche), quel que
+// soit le choix gardé dans le compte (31 oct. 2026, Jules : « il faut que ça soit la couleur de K Partners, pas le vert
+// de Klocka, toutes les actions »). Le Layout le dit ; les réglages en cours sont réappliqués aussitôt.
+let espaceCourant = null;
+let dernieresPrefs = null;
+export const ACCENT_MANDATAIRE = "pervenche";
+export function definirEspace(espace) {
+  if (espace === espaceCourant) return;
+  espaceCourant = espace;
+  if (dernieresPrefs) appliquerPrefs(dernieresPrefs);
+}
+
 export function appliquerPrefs(brut) {
   if (typeof document === "undefined") return;
+  dernieresPrefs = brut;
   const p = normaliser(pageNeutre() ? DEFAUT : brut);
+  if (espaceCourant === "mandataire" && !pageNeutre()) p.accent = ACCENT_MANDATAIRE;
   const theme = themeEffectif(p);
   const clair = theme === CLAIR;
   appliquerTheme(theme);
@@ -303,7 +321,7 @@ export function appliquerPrefs(brut) {
   // L'accent : la famille menthe, recalculée pour le thème en cours. La
   // menthe elle-même reste aux valeurs de la feuille de style.
   const fam = p.accent === "menthe" ? null : famille(p.accent, theme);
-  for (const nom of ["menthe", "menthe-clair", "menthe-survol", "menthe-fonce", "menthe-texte", "sur-menthe", "ecrire"]) {
+  for (const nom of ["menthe", "menthe-clair", "menthe-survol", "menthe-fonce", "menthe-texte", "sur-menthe", "menthe-pale", "sur-menthe-pale", "ecrire"]) {
     poser(`--k-${nom}-rgb`, fam ? triplet(fam[nom]) : null);
   }
 

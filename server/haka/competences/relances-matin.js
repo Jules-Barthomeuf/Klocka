@@ -51,7 +51,7 @@ taches.enregistrer('relance_mail', {
           type: 'relance_mail', titre: `Relancer ${m.nom || m.agence || m.a}${m.motif ? ` · ${m.motif}` : ''}`,
           resume: [m.agence && m.nom ? `${m.agence}${m.ville ? `, ${m.ville}` : ''}.` : null, m.ligne_le ? `Relance prévue le ${m.ligne_le}.` : null, !pour ? "Aucun analyste n'a encore appelé cet agent : à qui le veut." : null].filter(Boolean).join(' '),
           charge: { a: m.a, de: boiteQuiEnvoie(null, pour), objet: m.objet, corps: m.corps, mail_id: m.id, agent_id: m.agent_id || null },
-          sources: [source({ outil: 'prospection', service: 'ProspectionMail', libelle: `Relance due${m.motif ? ` (${m.motif})` : ''}, préparée par Haka`, lien: m.agent_id ? `/Agents?agent=${m.agent_id}` : '/Prospection?partie=listes' })],
+          sources: [source({ outil: 'prospection', service: 'ProspectionMail', libelle: `Relance due${m.motif ? ` (${m.motif})` : ''}, préparée par l'Assistant KPartners`, lien: m.agent_id ? `/Agents?agent=${m.agent_id}` : '/Prospection?partie=listes' })],
           pour, dossier: null, competence: COMPETENCE, version: VERSION, tache_id: tache.id, etape: 'envoyer', cout_usd: tache.cout_usd,
           cle: `relance_mail:${m.id}`, source_migration: { module: 'prospection', entite: 'ProspectionMail', id: m.id },
         });

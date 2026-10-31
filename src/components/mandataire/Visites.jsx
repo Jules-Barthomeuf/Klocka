@@ -46,7 +46,7 @@ export default function Visites({ bien }) {
         <button type="button" onClick={() => setNouvelle(true)} className={boutonPlein}><Plus className="h-4 w-4" /> Nouvelle visite</button>
       </div>
       {isLoading ? <Loader titre="Les visites…" />
-        : !visites.length ? <p className="m-0 mt-3 text-[13.5px] text-brume">Aucune visite encore. Créez-la ici, ou dites-la à Haka (« je fais visiter à M. Durand jeudi 15 h ») : le bon de visite se prépare, il se signe sur place.</p>
+        : !visites.length ? <p className="m-0 mt-3 text-[13.5px] text-brume">Aucune visite encore. Créez-la ici, ou dites-la à l'Assistant KPartners (« je fais visiter à M. Durand jeudi 15 h ») : le bon de visite se prépare, il se signe sur place.</p>
         : (
           <ul className="m-0 mt-3 list-none overflow-hidden rounded-bloc border border-trait p-0">
             {visites.map((v) => {
@@ -189,26 +189,26 @@ function Recit({ id, refaire, onFait }) {
       return base44.request("POST", `${API}/${id}/recit`, { body: { texte: texte.trim() } });
     },
     onSuccess: (r) => { setTexte(""); onFait(r); if (r.compris) toast.success(r.compris); },
-    onError: (e) => toast.error(e?.message || "Haka n'a pas pu le lire."),
+    onError: (e) => toast.error(e?.message || "L'Assistant KPartners n'a pas pu le lire."),
   });
   const micro = useMicro((son) => lire.mutate(son));
   return (
     <div className="mt-3">
       <div className="flex items-end gap-2 rounded-[22px] border border-bord-doux bg-fond px-3 py-2">
         <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={2} disabled={lire.isPending || micro.enCours}
-          placeholder={refaire ? "Ajoutez ou corrigez : Haka refait les documents" : "Sa réaction, ce qui lui a plu, ses objections, son intérêt, son budget et son financement, la suite"}
+          placeholder={refaire ? "Ajoutez ou corrigez : Assistant KPartners refait les documents" : "Sa réaction, ce qui lui a plu, ses objections, son intérêt, son budget et son financement, la suite"}
           className="min-h-[44px] flex-1 resize-none border-0 bg-transparent py-1.5 text-[14px] leading-[1.5] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         <button type="button" onClick={micro.enCours ? micro.arreter : micro.demarrer} disabled={lire.isPending} aria-label={micro.enCours ? "Arrêter" : "Dicter"}
           className={`grid h-9 w-9 flex-none place-items-center rounded-full ${micro.enCours ? "text-alerte" : "text-craie hover:text-encre"}`} style={{ background: "transparent" }}>
           {micro.enCours ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </button>
-        <button type="button" onClick={() => lire.mutate(null)} disabled={lire.isPending || !texte.trim()} aria-label="Envoyer à Haka"
-          className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe-pale text-sur-menthe-pale disabled:opacity-40">
+        <button type="button" onClick={() => lire.mutate(null)} disabled={lire.isPending || !texte.trim()} aria-label="Envoyer à l'Assistant KPartners"
+          className="grid h-9 w-9 flex-none place-items-center rounded-full bg-pervenche text-sur-menthe-pale disabled:opacity-40">
           {lire.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
         </button>
       </div>
       {micro.enCours && <p className="m-0 mt-1 text-[12.5px] text-alerte">Je vous écoute… appuyez sur le carré pour finir.</p>}
-      {lire.isPending && <p className="m-0 mt-1 text-[12.5px] text-ardoise">Haka prépare la note interne et le compte rendu…</p>}
+      {lire.isPending && <p className="m-0 mt-1 text-[12.5px] text-ardoise">L'Assistant KPartners prépare la note interne et le compte rendu…</p>}
     </div>
   );
 }

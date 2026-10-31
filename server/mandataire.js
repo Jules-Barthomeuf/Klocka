@@ -436,17 +436,21 @@ export const OUTILS_MANDATAIRE = [
   {
     name: 'nouveau_contact',
     description:
-      "Crée la fiche d'un propriétaire (« Nouveau contact : M. Durand, propriétaire de la pharmacie cours Vitton, 06 12 34 56 78 »). La fiche entre dans la liste d'appels du mandataire.",
+      "Crée la fiche d'un commerce ou d'un propriétaire que le mandataire vient de voir ou d'appeler (« Je suis passé à la boulangerie du 19 rue de l'Exemple à Cannes, M. Bernard, 06 12 34 56 78, il vend dans deux ans »). Le minimum : le commerce ou son adresse, et la ville ; le nom, le numéro, le mail et ce qui s'est dit sont facultatifs, ne les réclame jamais. L'outil retrouve d'abord le commerce parmi ceux que Klocka connaît (photo, propriétaire, signaux viennent avec) ; sinon la fiche naît de ce qui a été dit. La fiche naît hors liste : l'outil rend les listes du mandataire, tu lui demandes ensuite en une ligne où la ranger.",
     input_schema: {
       type: 'object',
       properties: {
-        nom: { type: 'string', description: 'Le propriétaire (M. Durand)' },
+        nom: { type: 'string', description: 'Le propriétaire ou la personne rencontrée (M. Durand)' },
         telephone: { type: 'string' },
         email: { type: 'string' },
         commerce: { type: 'string', description: 'Le commerce (la pharmacie cours Vitton)' },
         activite: { type: 'string', description: 'Le métier (pharmacie, boulangerie…)' },
         ville: { type: 'string' },
         adresse: { type: 'string' },
+        statut: { type: 'string', enum: ['a_appeler', 'contacte'], description: 'Contacté si le mandataire a parlé à quelqu\'un (en personne ou au téléphone), à contacter sinon. À contacter par défaut.' },
+        remarque: { type: 'string', description: 'Ce qui s\'est dit, en une phrase (« vend dans deux ans », « le patron est absent le lundi »)' },
+        prochaine_action: { type: 'string', description: 'Ce qu\'il y a à faire ensuite (« Rappeler jeudi »)' },
+        prochaine_action_le: { type: 'string', description: 'Sa date, AAAA-MM-JJ ou AAAA-MM-JJTHH:MM' },
       },
     },
   },
@@ -857,7 +861,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     // D'où vient l'information : dite à Haka, et « à confirmer » si elle vient d'un tiers.
     const conf = { ...(r.proprietaire.a_confirmer || {}) };
     for (const k of ['telephone', 'email']) if (patch[k]) { if (input.a_confirmer) conf[k] = true; else delete conf[k]; }
-    Records.update('ProprietaireMandataire', cible.id, { a_confirmer: conf, ...(patch.telephone ? { telephone_source: input.a_confirmer ? "dit à Haka, d'un tiers" : 'dit à Haka' } : {}), historique: [...(r.proprietaire.historique || []), { le: new Date().toISOString(), type: 'note', texte: `Fiche complétée : ${Object.keys(patch).map((k) => (({ telephone: 'téléphone', email: 'mail', nom: 'propriétaire', murs: 'murs', gerant: 'gérant', exploitant: 'exploitant', remarque: 'remarque', commerce: 'commerce', adresse: 'adresse', ville: 'ville', activite: 'activité', prochaine_action: 'prochaine action', prochaine_action_le: 'date de la prochaine action', sections: 'partie libre' }[k] || k))).join(', ')}` }] });
+    Records.update('ProprietaireMandataire', cible.id, { a_confirmer: conf, ...(patch.telephone ? { telephone_source: input.a_confirmer ? "dit à l'Assistant KPartners, d'un tiers" : 'dit à l\'Assistant KPartners' } : {}), historique: [...(r.proprietaire.historique || []), { le: new Date().toISOString(), type: 'note', texte: `Fiche complétée : ${Object.keys(patch).map((k) => (({ telephone: 'téléphone', email: 'mail', nom: 'propriétaire', murs: 'murs', gerant: 'gérant', exploitant: 'exploitant', remarque: 'remarque', commerce: 'commerce', adresse: 'adresse', ville: 'ville', activite: 'activité', prochaine_action: 'prochaine action', prochaine_action_le: 'date de la prochaine action', sections: 'partie libre' }[k] || k))).join(', ')}` }] });
     const dits = Object.entries(patch).map(([k, v]) => (k === 'sections' ? `partie « ${input.section.titre} » ${input.section.action === 'retirer' ? 'retirée' : 'écrite'}` : `${k} ${v || '(vidé)'}`));
     return { ok: true, fiche_id: cible.id, titre: titreProprietaire(cible), fait: `Fiche à jour : ${[...dits, ...faits].join(' ; ')}${input.a_confirmer ? ' (à confirmer)' : ''}.` };
   }
@@ -1009,43 +1013,72 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
   if (name === 'mes_rappels') return tableauDuJour(user);
 
   if (name === 'nouveau_contact') {
-    const { creerProprietaire, titreProprietaire, secteurDe, communeDansSecteur, retrouverProprietaire } = await import('./mandataire-espace.js');
+    const { creerProprietaire, titreProprietaire, secteurDe, communeDansSecteur, retrouverProprietaire, modifierProprietaire } = await import('./mandataire-espace.js');
     // Déjà suivi (créé à l'instant depuis un bail, par exemple) : on ne double pas la fiche.
     const { candidats } = retrouverProprietaire([input.nom, input.commerce].filter(Boolean).join(' '), user);
     const meme = candidats.find((c) => input.nom && norme(c.nom || '').includes(norme(input.nom).replace(/^(m|mme|mr|monsieur|madame)\.? /, '')));
     if (meme) {
-      return { ok: true, deja_suivi: true, titre: titreProprietaire(meme), fait: 'Cette personne a déjà sa fiche : ne crée rien, dis-le en une ligne.' };
+      return { ok: true, deja_suivi: true, proprietaire_id: meme.id, titre: titreProprietaire(meme), fait: 'Cette personne a déjà sa fiche : ne crée rien, mets-la à jour avec modifier_fiche (proprietaire_id) et dis-le en une ligne.' };
+    }
+    // Le minimum : un commerce ou une adresse, et une ville.
+    const manque = [!input.commerce && !input.adresse && 'le commerce ou l\'adresse', !input.ville && 'la ville'].filter(Boolean);
+    if (manque.length) {
+      const secteurAide = secteurDe(user);
+      const communes = (secteurAide?.unites || []).filter((u) => u.niveau === 'commune').map((u) => u.nom);
+      const piste = !input.ville && communes.length ? ` Pour la ville, propose celles du secteur (${communes.slice(0, 4).join(', ')}).` : '';
+      return { ok: false, a_demander: manque, error: `Il manque ${manque.join(' et ')} : demande-le en une ligne, ne crée rien.${piste}` };
     }
     // Hors du secteur : on ne crée rien.
     const secteur = secteurDe(user);
-    if (secteur && input.ville) {
+    if (secteur) {
       try {
-        const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(input.ville)}&fields=nom,code,codeDepartement,codeRegion,centre&boost=population&limit=1`, { signal: AbortSignal.timeout(10_000) });
+        const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(input.ville)}&fields=nom,code,codeDepartement,codeRegion,centre&boost=population&limit=1`, { signal: AbortSignal.timeout(4000) });
         const c = r.ok ? (await r.json())[0] : null;
         if (c?.centre?.coordinates && !communeDansSecteur({ ...c, lat: c.centre.coordinates[1], lon: c.centre.coordinates[0] }, secteur)) {
           return { ok: false, hors_secteur: true, error: `${c.nom} est hors du secteur « ${secteur.nom} » : ne crée rien, dis-le en une ligne. Un bien hors secteur se signale à Klocka.` };
         }
       } catch { /* sans API Géo, on ne bloque pas */ }
     }
-    // Le minimum : qui, quel commerce ou quelle adresse, un moyen de le joindre, une ville.
-    const manque = [
-      !input.nom && 'le nom du propriétaire',
-      !input.commerce && !input.adresse && 'le commerce ou l\'adresse',
-      !input.telephone && !input.email && 'un téléphone ou un mail',
-      !input.ville && 'la ville',
-    ].filter(Boolean);
-    if (manque.length) {
-      const communes = (secteur?.unites || []).filter((u) => u.niveau === 'commune').map((u) => u.nom);
-      const piste = !input.ville && communes.length ? ` Pour la ville, propose celles du secteur (${communes.slice(0, 4).join(', ')}).` : '';
-      return { ok: false, a_demander: manque, error: `Il manque ${manque.join(', ')} : demande-les en une ligne, ne crée rien.${piste}` };
+    const statut = input.statut === 'contacte' ? 'contacte' : 'a_appeler';
+    // Le commerce que Klocka connaît déjà, à cette adresse ou sous ce nom : la fiche naît de lui (photo, propriétaire, signaux).
+    const { retrouverCommerce } = await import('./off-market/simple.js');
+    const connu = retrouverCommerce({ commerce: input.commerce, adresse: input.adresse, ville: input.ville });
+    if (!connu.commerce && connu.candidats?.length > 1) {
+      return { ok: false, ambigu: true, choix: connu.candidats.map((c) => [c.enseigne || c.nom, c.adresse].filter(Boolean).join(', ')), error: 'Plusieurs commerces correspondent : demande lequel en une ligne, avec son adresse. Ne crée rien avant.' };
     }
-    const r = creerProprietaire(input, user);
-    if (!r.ok) return r;
+    let proprietaire = null;
+    let lie = false;
+    if (connu.commerce) {
+      const { ficheDuCommerce } = await import('./fiche-mandataire.js');
+      const f = await ficheDuCommerce(connu.commerce.id, user, { statut });
+      if (!f.ok) return { ok: false, error: `${f.error} Dis-le en une ligne.` };
+      proprietaire = f.proprietaire;
+      lie = true;
+      if (f.deja) return { ok: true, deja_suivi: true, proprietaire_id: proprietaire.id, titre: titreProprietaire(proprietaire), fait: 'Ce commerce a déjà sa fiche chez ce mandataire : ne crée rien, mets-la à jour avec modifier_fiche (proprietaire_id) et dis-le en une ligne.' };
+    } else {
+      const r = creerProprietaire({ ...input, commerce: input.commerce || input.adresse, statut }, user);
+      if (!r.ok) return r;
+      proprietaire = Records.update('ProprietaireMandataire', r.proprietaire.id, { source: 'Terrain' });
+    }
+    // Ce qui s'est dit : le nom, le numéro, le mail, la remarque, la suite à donner.
+    const patch = {};
+    for (const k of ['nom', 'telephone', 'email', 'prochaine_action', 'prochaine_action_le']) if (typeof input[k] === 'string' && input[k].trim()) patch[k] = input[k].trim();
+    if (input.remarque) patch.remarque = String(input.remarque).trim();
+    if (Object.keys(patch).length) {
+      const m = modifierProprietaire(proprietaire.id, patch, user);
+      if (m.ok && m.proprietaire) proprietaire = m.proprietaire;
+    }
     const { pousserProspect } = await import('./mandataire-monday.js');
-    const monday = await pousserProspect(r.proprietaire);
+    const monday = await pousserProspect(proprietaire);
+    const { mesListes } = await import('./mandataire-lancement.js');
+    const listes = mesListes(user).sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')));
     return {
-      ok: true, cree: true, proprietaire_id: r.proprietaire.id, titre: titreProprietaire(r.proprietaire), pour: 'dans votre liste d\'appels',
+      ok: true, cree: true, proprietaire_id: proprietaire.id, titre: titreProprietaire(proprietaire), liste: null,
+      commerce_klocka_retrouve: lie,
+      listes: listes.slice(0, 6).map((l) => l.nom),
+      derniere_liste: listes[0]?.nom || null,
       monday: monday.ok ? { lien: monday.lien, cree: monday.cree } : { erreur: monday.error },
+      fait: `Fiche créée${lie ? ' à partir du commerce que Klocka connaît (photo, propriétaire et signaux inclus)' : ' à partir de ce qui a été dit'}, pas encore dans une liste. Confirme-le en une ligne, puis demande où la ranger : ${listes[0] ? `« Je la mets dans ta liste « ${listes[0].nom} », ou une autre ? »` : '« Je crée une liste pour elle ? »'}. Le oui range avec modifier_fiche (proprietaire_id, liste) ; « aucune » laisse la fiche hors liste ; une liste qui n'existe pas se crée par son nom.`,
     };
   }
 
@@ -1096,7 +1129,7 @@ Règles :
 2. Au moindre doute sur qui ou quoi, demande en une ligne (« Deux commerces à Mâcon : la boulangerie ou le tabac ? ») au lieu de deviner.
 3. Tu n'envoies rien, à personne. Un mail se prépare avec preparer_mail ; le mandataire l'envoie lui-même. Ne recopie pas le brouillon dans ta réponse.
 4. Le mandataire garde la relation vendeur, Klocka la relation investisseur : les clients Klocka restent anonymes, tu ne donnes jamais de moyen de les joindre.
-5. Sur un propriétaire suivi : « pas de réponse » : appel_sans_reponse (la séquence pose la relance : J+2, J+5, J+10, puis « À recontacter »). « Il est intéressé » : resultat_appel en_discussion. « Pas vendeur, rappelle-le dans 6 mois » : resultat_appel pas_vendeur avec rappel_dans_jours 180. « RDV jeudi 14h » : noter_rdv avec qui. Un nouveau propriétaire (« nouveau contact : M. Durand… ») : nouveau_contact. Si l'outil répond « plusieurs fiches », demande laquelle en une ligne (« Deux commerces à Mâcon : la boulangerie ou le tabac ? »). Sans fiche, noter_relance suffit pour ne rien perdre.
+5. Sur un propriétaire suivi : « pas de réponse » : appel_sans_reponse (la séquence pose la relance : J+2, J+5, J+10, puis « À recontacter »). « Il est intéressé » : resultat_appel en_discussion. « Pas vendeur, rappelle-le dans 6 mois » : resultat_appel pas_vendeur avec rappel_dans_jours 180. « RDV jeudi 14h » : noter_rdv avec qui. Un nouveau propriétaire (« nouveau contact : M. Durand… ») ou un commerce que le mandataire vient de voir ou d'appeler (« je suis passé à la boulangerie du 19 rue de l'Exemple à Cannes… ») : nouveau_contact. Si l'outil répond « plusieurs fiches », demande laquelle en une ligne (« Deux commerces à Mâcon : la boulangerie ou le tabac ? »). Sans fiche, noter_relance suffit pour ne rien perdre.
 6. Un avis de marché (avis_de_marche) est une fourchette rapide de loyer. Le rapport d'estimation complet, c'est lancer_estimation : le mandataire le fait lui-même, avec les outils de la maison, sans validation Klocka. Avec un bail déposé ou des infos dictées, lance-le ; sinon demande l'un des deux.
 7. Un nouveau contact part aussi dans Twenty CRM (K Partners, tableau Prospects) : dis-le en une ligne si l'outil le confirme ; s'il répond une erreur Twenty CRM, dis que la fiche est créée mais pas encore dans Twenty CRM. Les pièces d'un dossier : bail, quittances de loyer, diagnostics et taxe foncière (obligatoires), Kbis du locataire et règlement de copropriété (facultatifs). L'estimation se lance d'ici (lancer_estimation) ou depuis la page Estimation, au choix du mandataire. Le mandat, le dossier et la mise en marché se font sur leurs pages (menu Mandat, Dossier, Mise en marché) : quand il en parle, dis-lui d'y aller, tu ne les pilotes pas d'ici.
 8. Les questions de métier, tu y réponds toi-même, directement et concrètement : types de baux (3-6-9, dérogatoire, professionnel, précaire), renouvellement, déplafonnement, indexation (ILC, ILAT), droit au bail et pas-de-porte, destination et déspécialisation, charges et article 606, taxe foncière, rendement brut et net, frais d'acquisition, mandat simple ou exclusif, comment présenter une estimation à un propriétaire, comment répondre à une objection. Tu ne renvoies pas vers un juriste pour une question générale ; tu le fais seulement pour un cas précis à risque (un litige, une clause à interpréter). Si tu n'es pas sûr d'un chiffre ou d'un seuil légal, dis-le plutôt que de l'inventer.
@@ -1110,6 +1143,7 @@ Règles :
 17. La visite racontée (27 oct. 2026) : sans bien désigné, visite_du_moment puis fais confirmer le bien. Puis compte_rendu_visite, rempli depuis le récit (rien d'inventé). Montre le compte rendu en quelques lignes courtes (le bien, l'état, le propriétaire, le locataire, les documents), les écarts avec ce qu'on savait (les deux valeurs), et les questions de la préparation restées sans réponse. Une correction dite ensuite (« non, le loyer c'est 1 900 par mois ») : compte_rendu_visite à nouveau, complet. Finis TOUJOURS par la question rendue par l'outil (« Passer à l'estimation ? ») et attends. Jamais lancer_estimation après un compte rendu. Oui : le bouton « Oui, passer à l'estimation » ouvre l'Avis de valeur du bien, où l'avis commence par ce qu'on sait déjà, à confirmer (29 oct. 2026) ; un oui écrit plutôt que touché : ne lance rien, dis en une ligne de toucher ce bouton. Non : rien, dis que le compte rendu est gardé. Plus vendeur : En pause (mettre en pause, relance) ou Perdu (resultat_appel pas_vendeur, avec le motif). Le compte rendu est interne : il ne part jamais vers le propriétaire. Les étapes d'un bien : Visite, Avis de valeur, Mandat, Commercialisation, Offres, Vente (plus d'étape Analyse) ; il n'y a plus d'étapes « Visité » ni « Prix d'accord ». L'avis envoyé, le mandataire raconte la restitution (ce que le propriétaire en dit) : noter_restitution avec le cas (accord, réflexion, pas de réponse, famille ou comptable, événement attendu, prix trop bas, autre agent, plus vendeur, bail qui change la valeur) ; un accord sur un prix passe aussi par noter_restitution, avec le prix. Un bien qui avance (« il est d'accord à 460 k€ », « le mandat est signé ») : avancer_bien, jamais resultat_appel. Rien n'est fait tant qu'il n'a pas confirmé d'un tap : dis « Je note l'accord à 460 000 € ? », puis la suite (« Je prépare le mandat ? Exclusif ou simple, et quels honoraires ? »).
 18. Tout changement sur une fiche qui existe (un numéro, un mail, le nom du propriétaire, le gérant, l'adresse, une remarque, la prochaine action, le statut, la liste, une partie à ajouter, réécrire ou retirer) : modifier_fiche, tout de suite ; jamais une relance pour la garder, jamais un nouveau contact en doublon. Confirme en une ligne (« Numéro ajouté à la fiche de la boulangerie. ») puis propose la suite (l'appeler).
 19. Les visites d'acquéreurs (27 oct. 2026), pendant la Commercialisation, ne sont pas la visite du propriétaire (règle 17) : un acquéreur qui visite un bien à vendre. Une visite à venir (« je fais visiter … à M. Durand jeudi 15 h », un mail qui la confirme) : noter_visite_acquereur. Une visite d'acquéreur racontée : raconter_visite_acquereur avec tout le récit ; dis en une ligne ce que tu retiens et que les deux documents attendent sa validation à l'écran. Si l'outil signale un bon non signé, dis-le franchement : sans bon signé, la commission n'est pas protégée.
+20. Le terrain (31 oct. 2026) : le mandataire te parle (souvent en vocal) d'un commerce qu'il vient de voir, d'une personne rencontrée, d'un numéro obtenu, même sans l'avoir mis dans une liste. Tu es son assistante : tu ranges pour lui, tu ne lui demandes pas de formulaire. Un commerce pas encore suivi : nouveau_contact avec tout ce qu'il dit (nom, numéro, mail, remarque, statut contacté s'il a parlé à quelqu'un, suite à donner), sans réclamer ce qui manque, sauf le commerce ou l'adresse, et la ville. Puis UNE seule question : où ranger la fiche (propose sa dernière liste). Sur une fiche qui existe : modifier_fiche, noter_rdv, resultat_appel, appel_sans_reponse comme d'habitude. Plusieurs choses dans le même message (« passé chez le fleuriste, personne ; et chez le tabac j'ai eu M. Roux, rappeler lundi ») : traite-les toutes, chacune son appel d'outil, et résume en une ligne par commerce. Un commerce vu seulement « à l'air bien », sans personne : nouveau_contact avec une remarque et le statut à contacter.
 9. Réponses courtes, en français, sans markdown ni listes à puces, sans formule de politesse. Une question de métier mérite quelques phrases claires, une par idée, avec un exemple chiffré si ça aide.`;
 
 /**

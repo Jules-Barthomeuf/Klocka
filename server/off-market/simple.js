@@ -634,7 +634,7 @@ export function fiche(c, { moi = null } = {}) {
   const age = (g) => (g?.tranche_age === '70+' ? '70 ans et plus' : g?.tranche_age === '50-70' ? '50 à 70 ans' : g?.tranche_age === '-50' ? 'moins de 50 ans' : null);
   return {
     ...compact(c, { moi }),
-    code_postal: c.code_postal, ville: c.ville, depuis: c.depuis, chaine: c.chaine, etat_recherche: c.etat_recherche || 'a_faire', erreur: c.erreur || null, complet: !!c.complet, lu_le: c.lu_le || null, adresse_exacte: !!c.adresse_exacte,
+    code_postal: c.code_postal, ville: c.ville, place_id: c.place_id || null, depuis: c.depuis, chaine: c.chaine, etat_recherche: c.etat_recherche || 'a_faire', erreur: c.erreur || null, complet: !!c.complet, lu_le: c.lu_le || null, adresse_exacte: !!c.adresse_exacte,
     exploitant: ex ? { nom: nomLisible(ex.nom, { forme: ex.forme }), forme: ex.forme, siren: ex.siren, creation: ex.creation, active: ex.active, gerants: gerants.map((g) => ({ nom: personneLisible(g.nom, { nom_famille: g.nom_famille }), qualite: g.qualite, age: age(g) })), source: 'Registre des entreprises', date: ex.lu_le || null } : { nom: nomLisible(c.nom), siren: c.siren, gerants: [], source: 'SIRENE', date: c.lu_le || null, non_lu: true },
     proprietaire: pr ? { nom: nomLisible(pr.nom, { forme: pr.forme }), forme: pr.forme, siren: pr.siren, siege: pr.siege ? adresseSiege(pr.siege) : null, gerants: (pr.gerants || []).filter((g) => !g.personne_morale).map((g) => ({ nom: personneLisible(g.nom, { nom_famille: g.nom_famille }), age: age(g) })), creation: pr.creation || null, parcelle: pr.parcelle || null, surface_batiment: pr.surface_batiment || c.foncier?.surface_batiment || null, source: pr.source, date: pr.lu_le || null } : null,
     lien: c.lien || (c.etat_recherche === 'fait' ? 'inconnu' : null), lien_motif: c.lien_motif || null,
@@ -696,6 +696,40 @@ export const listerAppels = (espace) => Records.filter(APPEL, { espace }).sort((
 // rien n'est relancé à sa recherche, et rien ne part vers Monday d'ici.
 const LISTE_MANDATAIRE = 'ListeMandataire';
 const moiDe = (user) => String(user?.email || '').trim().toLowerCase();
+
+/**
+ * Retrouve un commerce que Klocka connaît déjà, d'après ce que le mandataire en dit (31 oct. 2026, Jules : « je suis allé
+ * dans un nouveau commerce, c'est la boulangerie au 19 rue de l'Exemple à Cannes ») : l'adresse d'abord (numéro et rue),
+ * puis le nom dans la ville. Rend `{ commerce }` quand un seul convient, `{ candidats }` (quatre au plus) quand plusieurs
+ * conviennent, `{}` quand rien ne correspond.
+ */
+export function retrouverCommerce({ commerce = null, adresse = null, ville = null } = {}) {
+  const v = norm(ville);
+  if (!v) return {};
+  const villes = Records.list(VILLE).filter((x) => norm(x.nom) === v);
+  const pool = villes.flatMap((x) => Records.filter(COMMERCE, { ville_id: x.id }));
+  if (!pool.length) return {};
+  const mots = norm(commerce).split(' ').filter((m) => m.length >= 3 && !MOTS_VIDES.has(m));
+  const nomOk = (c) => !mots.length || mots.every((m) => norm(`${c.enseigne || ''} ${c.nom || ''} ${c.nom_google || ''} ${c.activite || ''}`).includes(m));
+  const nomFort = (c) => mots.length > 0 && mots.every((m) => norm(`${c.enseigne || ''} ${c.nom || ''} ${c.nom_google || ''}`).includes(m));
+  const voulu = numeroRue(adresse);
+  let trouves = [];
+  if (voulu.rue) {
+    const rueVoulue = norm(voulu.rue).replace(/^(RUE|AVENUE|AV|BOULEVARD|BD|PLACE|PL|COURS|QUAI|ALLEE|IMPASSE|CHEMIN)\s+/, '');
+    trouves = pool.filter((c) => {
+      const u = numeroRue(c.adresse);
+      if (!u.rue || (voulu.numero && u.numero && norm(voulu.numero) !== norm(u.numero))) return false;
+      const rue = norm(u.rue).replace(/^(RUE|AVENUE|AV|BOULEVARD|BD|PLACE|PL|COURS|QUAI|ALLEE|IMPASSE|CHEMIN)\s+/, '');
+      return rue === rueVoulue || rue.includes(rueVoulue) || rueVoulue.includes(rue);
+    });
+    // Plusieurs au même numéro : le nom, l'activité ou l'enseigne départagent.
+    if (trouves.length > 1 && mots.length) trouves = trouves.filter(nomOk);
+  }
+  // Rien à cette adresse : le nom, dans la ville, quand il est franc.
+  if (!trouves.length && mots.length) trouves = pool.filter(nomFort);
+  if (trouves.length === 1) return { commerce: trouves[0] };
+  return trouves.length ? { candidats: trouves.slice(0, 4) } : {};
+}
 
 /** Les listes de la personne, dans son espace mandataire, avec leur effectif. */
 export async function listesDeCommerces(user) {

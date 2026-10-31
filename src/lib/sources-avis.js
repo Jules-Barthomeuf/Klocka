@@ -20,8 +20,8 @@ export function sourceDuChemin(chemin, { avis = {}, estimation = {} } = {}, text
   // Un champ vide (« [à compléter] » dans l'avis, « à renseigner » dans le deck) : à demander.
   const valeurBrute = lire(avis, chemin);
   if (/à (compléter|renseigner)/i.test(String(texte || "")) || /\[à compléter\]/.test(String(valeurBrute ?? ""))) {
-    if (/^ville\./.test(chemin)) return { nature: "a_remplir", origine: "INSEE, Le Figaro", detail: "Pas encore lu pour cette commune : demandez à Haka les chiffres de la ville, ou rédigez l'avis de nouveau." };
-    return { nature: "a_remplir", detail: "Rien n'est encore connu : à demander au propriétaire ou à lire dans le bail, puis à dire à Haka." };
+    if (/^ville\./.test(chemin)) return { nature: "a_remplir", origine: "INSEE, Le Figaro", detail: "Pas encore lu pour cette commune : demandez à l'Assistant KPartners les chiffres de la ville, ou rédigez l'avis de nouveau." };
+    return { nature: "a_remplir", detail: "Rien n'est encore connu : à demander au propriétaire ou à lire dans le bail, puis à dire à l'Assistant KPartners." };
   }
   const ponderation = eq?.methodes?.length
     ? `(${eq.methodes.map((x) => `${eur(x.valeur)} × ${x.coefficient}`).join(" + ")}) ÷ ${eq.methodes.reduce((t, x) => t + (x.coefficient || 0), 0)} = ${eur(eq.valeur_brute)}`
@@ -55,7 +55,7 @@ export function sourceDuChemin(chemin, { avis = {}, estimation = {} } = {}, text
   }
   if (/^marche\.loyers/.test(chemin)) return { nature: "donnee", origine: avis.marche?.loyers?.source || "Loyers de marché", detail: "La fourchette des loyers constatés autour (Equimmox, Data-B en repli)." };
   if (/^marche\./.test(chemin)) return { nature: eq ? "equimmox" : "donnee", origine: eq ? "Equimmox" : "DVF", detail: avis.marche?.source || "Les références de marché." };
-  if (/^(locatif\.lignes|methodes\.loyer|demandeur|cadre\.visite|description\.surfaces)/.test(chemin)) return { nature: "saisie", origine: "Le bail et les réponses du mandataire", detail: "Ce que le mandataire a dit à Haka ou ce qu'on a lu dans le bail joint." };
+  if (/^(locatif\.lignes|methodes\.loyer|demandeur|cadre\.visite|description\.surfaces)/.test(chemin)) return { nature: "saisie", origine: "Le bail et les réponses du mandataire", detail: "Ce que le mandataire a dit à l'Assistant KPartners ou ce qu'on a lu dans le bail joint." };
   const ville = chemin.match(/^ville\.(population|revenu|chomage|logement)$/);
   if (ville) {
     const x = (avis.ville || estimation?.ville_chiffres || {})[ville[1]];
@@ -64,7 +64,7 @@ export function sourceDuChemin(chemin, { avis = {}, estimation = {} } = {}, text
   if (/^deck\./.test(chemin)) return { nature: "ia", origine: "Texte du deck", detail: "Composé depuis l'avis ; retouché à la main en mode Édition s'il a changé." };
   if (/^signataire\./.test(chemin)) return { nature: "saisie", origine: "Votre fiche mandataire", detail: "Tenue par l'équipe Klocka et sur votre page Compte." };
   if (/^(emplacement|description|locatif|juridique|conclusion|libre|methodes\.(synthese|justification))/.test(chemin)) {
-    return { nature: "ia", origine: "Rédigé par Haka", detail: `À partir des réponses du mandataire${eq?.methodes ? ", de l'environnement relevé par Equimmox" : ""} et des données de marché ; il n'invente rien de ce qui n'y est pas.` };
+    return { nature: "ia", origine: "Rédigé par l'Assistant KPartners", detail: `À partir des réponses du mandataire${eq?.methodes ? ", de l'environnement relevé par Equimmox" : ""} et des données de marché ; il n'invente rien de ce qui n'y est pas.` };
   }
   return { nature: "modele", detail: "Le texte du modèle d'avis K Partners." };
 }

@@ -489,7 +489,7 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
       {!conversation && (
         <div className={large ? "flex min-h-0 flex-1 flex-col justify-center gap-2 overflow-y-auto py-6 text-center" : "pb-6 pt-4 text-center"}>
           <h1 className="k-balayage m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>{objet ? bien?.titre : recit ? "Racontez la visite" : t.titre}</h1>
-          <p className="m-0 text-[14px] text-ardoise">{relation ? "Racontez la suite avec le propriétaire : Haka note, pose les relances et passe au mandat quand le prix est d'accord." : objet ? "" : prepare ? "Haka prépare le mandat avec l'avis de valeur et la fiche…" : recit ? "La surface, le loyer, le bail, l'état, ce que veut le propriétaire : Haka rédige l'avis de valeur. Le bail se joint avec « + »." : t.sous}</p>
+          <p className="m-0 text-[14px] text-ardoise">{relation ? "Racontez la suite avec le propriétaire : Assistant KPartners note, pose les relances et passe au mandat quand le prix est d'accord." : objet ? "" : prepare ? "L'Assistant KPartners prépare le mandat avec l'avis de valeur et la fiche…" : recit ? "La surface, le loyer, le bail, l'état, ce que veut le propriétaire : Assistant KPartners rédige l'avis de valeur. Le bail se joint avec « + »." : t.sous}</p>
         </div>
       )}
       {large ? null : (
@@ -560,12 +560,12 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
   // Le mail que la veille a préparé passe avant tout le reste : c'est la question du jour.
   const proposition = v?.mail_propose ? (
     <div className="text-left">
-      <p className="m-0 mb-1 text-[12.5px] text-ardoise">Haka</p>
+      <p className="m-0 mb-1 text-[12.5px] text-ardoise">L'Assistant KPartners</p>
       <MailPropose key={v.mail_propose.le} dossierId={dossierId} mail={v.mail_propose} boite={v.boite} />
     </div>
   ) : v ? (
     <div className="text-left">
-      <p className="m-0 text-[12.5px] text-ardoise">Haka</p>
+      <p className="m-0 text-[12.5px] text-ardoise">L'Assistant KPartners</p>
       <p className="m-0 mt-1 text-[15px] leading-[1.55] text-encre">
         {v.preference?.statut === "a_notifier" ? "D'abord le locataire : il est prioritaire pour acheter, et son mois pour répondre ne court qu'à la réception de la notification. Je la prépare\u00a0?" : ""}
         {(() => {
@@ -590,7 +590,7 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
   ) : null;
   return (
     <EcranHaka bien={bien} large={large} entete={entete} onFermer={onFermer} dossierVenteId={dossierId} cles={["m-dossier-vente", "m-dossiers", "m-marches"]}
-      placeholder="Demandez à Haka : écris au vendeur, relance-le, explique ce point…" proposition={proposition} barre="Le dossier de vente" libelleTel="Voir le dossier"
+      placeholder="Demandez à l'Assistant KPartners : écris au vendeur, relance-le, explique ce point…" proposition={proposition} barre="Le dossier de vente" libelleTel="Voir le dossier"
       droite={<DossierVente dossierId={dossierId} />} />
   );
 }
@@ -605,7 +605,7 @@ function EtapeVente({ bien, large, entete, onFermer, onSuivante }) {
   const [mode, setMode] = useState("edition");
   const proposition = (
     <div className="text-left">
-      <p className="m-0 text-[12.5px] text-ardoise">Haka</p>
+      <p className="m-0 text-[12.5px] text-ardoise">L'Assistant KPartners</p>
       <p className="m-0 mt-1 text-[15px] leading-[1.55] text-encre">Le bien est en vente. J'ai composé le teaser depuis le mandat et l'avis : relisez-le à droite, corrigez d'un clic ou dites-moi ce qu'il faut changer. Validé, on passe aux offres.</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {[["Relis le teaser", "Relis le teaser et dis-moi ce qui manque ou ce qui affaiblit l'argument."], ["Complète les champs", "Complète les champs du teaser encore à compléter avec ce que tu sais du bien."]].map(([l, t], i) => (
@@ -619,7 +619,7 @@ function EtapeVente({ bien, large, entete, onFermer, onSuivante }) {
   // Le teaser seul (28 oct. 2026, Jules) : la frise, les visites, le dossier investisseur et les offres vont aux Offres.
   return (
     <EcranHaka bien={bien} large={large} entete={entete} onFermer={onFermer} marcheId={m.id} cles={["m-teaser", "m-marches"]}
-      placeholder="Demandez à Haka : raccourcis le titre, mets le rendement en avant…" proposition={proposition} libelleTel="Voir le teaser" droite={<TeaserBien marcheId={m.id} mode={mode} />}
+      placeholder="Demandez à l'Assistant KPartners : raccourcis le titre, mets le rendement en avant…" proposition={proposition} libelleTel="Voir le teaser" droite={<TeaserBien marcheId={m.id} mode={mode} />}
       barre={<div className="flex w-full items-center justify-between gap-3 md:pr-14"><span>Le teaser</span><ActionsTeaser marcheId={m.id} mode={mode} onMode={setMode} onValide={onSuivante} /></div>} />
   );
 }
@@ -658,7 +658,7 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
 
   const chat = (
     <ChatDashboard lueur dansLeFil={!!p} espace="mandataire" proprietaireId={p?.id || null} dossierVenteId={dossierVenteId} marcheId={marcheId} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
-      onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Haka" menusVersLeHaut placeholderAccueil={placeholder}
+      onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil={placeholder}
       barreApercu={large} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
   );
 
@@ -918,7 +918,7 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
   // (27 oct. 2026 : plus de menu « ... »).
   const chat = (
     <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
-      onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Haka" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
+      onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
       barreApercu={scinde} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
   );
   // Le contenu de la préparation (26 oct. 2026, refait) au-dessus de la fiche, qui ne la répète pas.

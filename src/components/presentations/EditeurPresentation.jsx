@@ -279,8 +279,8 @@ export default function EditeurPresentation({ id, onFermer, travail = null, clie
 /** Pure : le titre de l'écran d'attente, d'après les étapes d'AK. */
 function titreTravail(etapes = []) {
   if (etapes.some((e) => /^(Retouche|Construction) de la présentation/i.test(e))) return "La présentation s'adapte";
-  if (etapes.some((e) => /Equimmox|Data-B|chiffres de la commune|INSEE|Figaro|DVF|loyer|prix/i.test(e))) return "Haka rassemble les chiffres";
-  return "Haka lit votre demande";
+  if (etapes.some((e) => /Equimmox|Data-B|chiffres de la commune|INSEE|Figaro|DVF|loyer|prix/i.test(e))) return "L'Assistant KPartners rassemble les chiffres";
+  return "L'Assistant KPartners lit votre demande";
 }
 
 /** Changer une photo : celles du projet, une à importer, ou aucune. */

@@ -870,12 +870,12 @@ function CarteAction({ c, onOuvrir }) {
       <div className="flex flex-none items-center gap-2.5">
         {c.lien && !annule && (
           <button type="button" onClick={() => onOuvrir(c.lien)} className={`${pilule} ${c.action ? "font-medium" : "border border-trait text-craie hover:text-encre"} transition-colors`}
-            style={c.action ? { background: J["menthe-pale"], color: J["sur-menthe-pale"] } : { background: "transparent" }}>
+            style={c.action ? { background: J["pervenche"], color: J["sur-menthe-pale"] } : { background: "transparent" }}>
             {c.action || "Ouvrir"}
           </button>
         )}
         {!c.action && (
-          <span className={pilule} style={rate ? { border: `1px solid ${alpha("alerte", 0.45)}`, color: J["alerte"] } : annule ? { border: `1px solid ${J["trait"]}`, color: J["brume"] } : { background: J["menthe-pale"], color: J["sur-menthe-pale"] }}>
+          <span className={pilule} style={rate ? { border: `1px solid ${alpha("alerte", 0.45)}`, color: J["alerte"] } : annule ? { border: `1px solid ${J["trait"]}`, color: J["brume"] } : { background: J["pervenche"], color: J["sur-menthe-pale"] }}>
             {rate ? "Pas fait" : annule ? "Annulé" : "✓ Fait"}
           </span>
         )}
@@ -942,7 +942,7 @@ function ChoixClient({ onLancer, disabled }) {
         <span className="text-[12.5px] text-ardoise">{coches.size ? `${coches.size} client${coches.size > 1 ? "s" : ""} choisi${coches.size > 1 ? "s" : ""}` : "Cochez un ou plusieurs clients"}</span>
         <button type="button" disabled={!coches.size || disabled}
           onClick={() => { onLancer(choisies.map((d) => d.id), choisies.map((d) => d.reference)); setCoches(new Set()); }}
-          className="inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium disabled:opacity-40" style={{ background: J["menthe-pale"], color: J["sur-menthe-pale"] }}>
+          className="inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium disabled:opacity-40" style={{ background: J["pervenche"], color: J["sur-menthe-pale"] }}>
           Prospecter pour {coches.size > 1 ? `ces ${coches.size} clients` : "ce client"}
         </button>
       </div>
@@ -1022,9 +1022,10 @@ function MessageAvecPiece({ m }) {
 // `lueur` : une lumière fait lentement le tour du cadre de la saisie, pour qu'on la voie (la fiche d'un commerce, 25 oct. 2026, Jules).
 // Dans tous les chats depuis le 26 oct. 2026 (Jules : « dans le dashboard, dans admin, dans tous les chats ») : `lueur={false}` l'éteint.
 // `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
-export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null }) {
+export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
-  const qs = E.qs || "";
+  // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026).
+  const qs = espace === "mandataire" && proprietaireId ? `?espace=fiche&fiche=${encodeURIComponent(proprietaireId)}` : (E.qs || "");
   const prospection = espace === "prospection";
   const estimation = espace === "estimation";
   const mandatEspace = espace === "mandat";
@@ -1142,6 +1143,16 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     setHistoriqueOuvert(false);
     onHistorique?.(false);
   };
+  // `reprendre` : la fiche rouverte retrouve sa dernière conversation, une fois (31 oct. 2026, Jules).
+  const repris = useRef(null);
+  useEffect(() => {
+    if (!reprendre || !proprietaireId || repris.current === proprietaireId) return;
+    repris.current = proprietaireId;
+    base44.request("GET", `${E.api}/conversations${qs}`)
+      .then((r) => { const derniere = r?.conversations?.[0]; return derniere ? base44.request("GET", `${E.api}/conversations/${derniere.id}${qs}`) : null; })
+      .then((c) => { if (c?.messages?.length && repris.current === proprietaireId) { onReprise?.(); ouvrirConversation(c); } })
+      .catch(() => { /* sans elle, le chat repart à vide */ });
+  }, [reprendre, proprietaireId, qs]);
   const nouvelleConversation = () => {
     controleur.current?.abort();
     setFil([]); setConversationId(null);
@@ -2104,7 +2115,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
           {avantRetour}
           {/* `retour` (14 oct. 2026, éditeur de projet) : « Retour » ramène à la page d'où l'on vient, au lieu de vider le chat. */}
           <button type="button" onClick={retour ? retour.onClick : nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
-            <ChevronLeft className="h-4 w-4" /> {retour ? retour.libelle || "Retour" : libelleAccueil || "Haka"}
+            <ChevronLeft className="h-4 w-4" /> {retour ? retour.libelle || "Retour" : libelleAccueil || "Assistant KPartners"}
           </button>
           {/* À côté d'un aperçu, pas de titre : il collait à « Dashboard » (3 oct. 2026). */}
           {barreApercu ? <span className="flex-1" /> : titreEdite != null ? (

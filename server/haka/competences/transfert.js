@@ -168,7 +168,7 @@ async function preanalyser(mail, { membre, lu, uploadDir }) {
       apports: [...(deal.apports || []), { de: lu.origine?.email || null, transfere_par: norm(membre.email), mail_recu_id: mail.id, le: new Date().toISOString() }],
     });
     const { ajouterSuivi } = await import('../../deal/lifecycle.js');
-    ajouterSuivi(Records.get('Deal', deal.id), { type: 'preanalyse_auto', detail: `Transféré à Haka par ${membre.full_name || membre.email}${lu.origine?.email ? ` (fiche de ${lu.origine.email})` : ''} : dossier créé et pré-analysé` }, membre);
+    ajouterSuivi(Records.get('Deal', deal.id), { type: 'preanalyse_auto', detail: `Transféré à l'Assistant KPartners par ${membre.full_name || membre.email}${lu.origine?.email ? ` (fiche de ${lu.origine.email})` : ''} : dossier créé et pré-analysé` }, membre);
   }
   const d = Records.findBy('Deal', 'deal_id', dossier.deal_id);
   return { fait: rejoint ? 'rejoint' : 'fiche', deal_id: dossier.deal_id, nom: d?.nom || null, verdict: d?.lots?.[0]?.evaluation?.verdict || null };

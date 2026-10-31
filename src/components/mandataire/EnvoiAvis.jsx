@@ -81,7 +81,7 @@ export default function EnvoiAvis({ estimationId, onFermer }) {
           <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         </div>
         {erreur && <p className="m-0 text-[13.5px] text-alerte">{erreur}</p>}
-        {!mail && !erreur && <Loader titre="Haka prépare le mail…" />}
+        {!mail && !erreur && <Loader titre="L'Assistant KPartners prépare le mail…" />}
         {mail && !parti && (
           <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto">
             <label className="flex flex-col gap-1 text-[12.5px] text-ardoise">À

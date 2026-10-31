@@ -247,7 +247,7 @@ function Preference({ v }) {
     <div className="mt-6">
       <h3 className="m-0 text-[14px] font-normal text-encre">Droit de préférence du locataire</h3>
       <p className={`m-0 mt-0.5 text-[13.5px] leading-[1.5] ${regle ? "text-craie" : "text-ambre"}`}>{p.phrase}</p>
-      {p.statut === "a_notifier" && <p className="m-0 mt-1 text-[12.5px] text-brume">Haka prépare la notification ; dites-lui la date où le locataire l'a reçue, puis sa réponse.</p>}
+      {p.statut === "a_notifier" && <p className="m-0 mt-1 text-[12.5px] text-brume">L'Assistant KPartners prépare la notification ; dites-lui la date où le locataire l'a reçue, puis sa réponse.</p>}
     </div>
   );
 }

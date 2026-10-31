@@ -53,7 +53,7 @@ export function Dictee({ id, dansBiens, onFait }) {
       return base44.request("POST", `${API}/${id}/dictee`, { body: { texte: texte.trim() } });
     },
     onSuccess: (r) => { setProp(r.proposition); if (r.dit && !texte.trim()) setTexte(r.dit); },
-    onError: (e) => toast.error(e?.message || "Haka n'a pas pu le lire"),
+    onError: (e) => toast.error(e?.message || "L'Assistant KPartners n'a pas pu le lire"),
   });
   const appliquer = useMutation({
     mutationFn: () => base44.request("POST", `${API}/${id}/dictee/appliquer`, { body: { proposition: prop } }),
@@ -135,10 +135,11 @@ export function Dictee({ id, dansBiens, onFait }) {
  * pervenche depuis le 25 oct., le même dessin que le dashboard partout) : le chat de
  * Haka du mandataire, qui sait quelle fiche est ouverte ; chaque réponse relit la fiche (statut, historique, tâches).
  */
-export function ChatFiche({ id, onReponse = null, onConversation = null, plein = false }) {
+export function ChatFiche({ id, onReponse = null, onConversation = null, onReprise = null, plein = false }) {
   return (
-    <ChatDashboard espace="mandataire" proprietaireId={id} compact sansSkills epure lueur libelleAccueil="Haka" menusVersLeHaut
-      placeholderAccueil="Parler à l'assistant…" onReponse={onReponse} onConversation={onConversation} sansBarreHaut={plein} />
+    <ChatDashboard espace="mandataire" proprietaireId={id} compact sansSkills epure lueur libelleAccueil="Assistant KPartners" menusVersLeHaut
+      placeholderAccueil="Parler à l'assistant…" onReponse={onReponse} onConversation={onConversation} sansBarreHaut={plein}
+      reprendre={!!id} onReprise={onReprise} />
   );
 }
 
@@ -343,7 +344,7 @@ function Preparation({ prep }) {
  * La fiche, la même partout (25 oct. 2026, Jules : la fiche des listes prend le style de celle de la carte) : le statut,
  * le commerce et son adresse ; « Remarque de votre assistant » (le signal, titré ainsi le 25 oct. 2026) ; un tableau à lignes (Exploitant, Murs, Gérant, Téléphone,
  * Mail, Client compatible) qui se modifie d'un clic ; le chat de Haka ; l'historique. Pas d'accroche.
- * `onFermer` : une croix en haut à droite. `media` : ce qui se pose sous l'adresse (la vitrine dans Street View).
+ * `onFermer` : une croix en haut à droite. `media` : ce qui se pose sous la photo du commerce.
  */
 // `sansChat` : la fiche sans son chat, quand il est posé ailleurs (Biens, le chat à gauche, 25 oct. 2026).
 // `sansPreparation` : la Pré-visite montre déjà la préparation au centre (26 oct. 2026), la fiche ne la répète pas.
@@ -403,9 +404,14 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
   const [discussion, setDiscussion] = useState(false);
   const [vue, setVue] = useState("fiche");
   // Stable : le chat la rappelle à chaque rendu ; la vue ne change qu'à l'ouverture ou à la fermeture de la conversation.
+  // Une conversation reprise en rouvrant la fiche (31 oct. 2026, Jules) : la bascule revient, mais sur la fiche.
+  const reprise = useRef(false);
+  const surReprise = useCallback(() => { reprise.current = true; }, []);
   const surConversation = useCallback((ouverte) => {
+    const repriseVue = reprise.current;
+    if (ouverte) reprise.current = false;
     setDiscussion((avant) => {
-      if (avant !== ouverte) setVue(ouverte ? "conversation" : "fiche");
+      if (avant !== ouverte) setVue(ouverte && !repriseVue ? "conversation" : "fiche");
       return ouverte;
     });
   }, []);
@@ -462,9 +468,9 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
         </span>
       </div>
       {discussion && !enConv && <div className="px-5 pt-3"><BasculeFiche vue={vue} onVue={setVue} /></div>}
-      {/* La vitrine du commerce (Street View), en tête de toute fiche, même un commerce pas encore dans une liste (25 oct. 2026, Jules). */}
+      {/* La photo du commerce (sa fiche Google, plus Street View depuis le 31 oct. 2026), en tête de toute fiche, même un commerce pas encore dans une liste (25 oct. 2026, Jules). */}
       {!enConv && f && (f.adresse || f.position) && (
-        <div className="px-5 pt-3"><FacadeLocal adresse={f.adresse} lat={f.position?.lat ?? null} lon={f.position?.lon ?? null} nom={f.commerce} /></div>
+        <div className="px-5 pt-3"><FacadeLocal adresse={f.adresse} lat={f.position?.lat ?? null} lon={f.position?.lon ?? null} nom={f.commerce} placeId={f.place_id} /></div>
       )}
       {!enConv && media}
       <div className={enConv ? "hidden" : "px-5 pb-5 pt-3"}>
@@ -480,9 +486,10 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
                 {!!det.signaux?.length && <span className="-my-1 -mr-2"><Fleche ouvert={signauxOuverts} onClick={() => setSignauxOuverts((o) => !o)} quoi="les signaux" /></span>}
               </div>
               <p className="m-0 mt-1.5 text-[14px] leading-[1.5] text-encre">{signal ? `${signal}${quand && !/il y a/.test(signal) ? `, ${quand}` : ""}` : "Aucun signal connu"}</p>
+              {/* La prochaine action dans la remarque de l'assistant, plus en ligne à part (31 oct. 2026, Jules). */}
+              {f.prochaine_action && <p className="m-0 mt-1.5 text-[13.5px] text-encre">Prochaine action : {f.prochaine_action}{f.prochaine_action_le ? ` · ${dateFr(f.prochaine_action_le)}` : ""}</p>}
               <Detail ouvert={signauxOuverts} lignes={det.signaux || []} className="[&>div]:px-0 [&>div]:pb-0 [&>div]:pt-2" />
             </div>
-            {f.prochaine_action && <p className="m-0 mt-3 text-[13.5px] text-pervenche">Prochaine action : {f.prochaine_action}{f.prochaine_action_le ? ` · ${dateFr(f.prochaine_action_le)}` : ""}</p>}
             {/* Le tableau de « Tous les commerces » (25 oct. 2026, Jules) : deux colonnes égales et centrées, un trait entre les rangées. */}
             <dl className="m-0 mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
               <Rangee mot="Exploitant" champ={ch("exploitant")} valeur={f.exploitant.nom} onEnregistrer={enregistrer} detail={det.exploitant || []}
@@ -534,7 +541,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
           (25 oct. 2026) ; un message envoyé ouvre la vue Conversation, où il prend toute la place. */}
       {f && !apercu && !sansChat && (
         <div className={enConv ? "flex min-h-0 flex-1 flex-col px-5 pt-1" : discussion ? "hidden" : `sticky bottom-0 z-10 mt-auto border-t border-trait bg-rail px-5 pb-4 pt-4 ${dansLaPage ? "max-md:bottom-[var(--k-bas-mobile,0px)]" : ""}`}>
-          <ChatFiche id={fid} onReponse={rafraichir} onConversation={surConversation} plein={enConv} />
+          <ChatFiche id={fid} onReponse={rafraichir} onConversation={surConversation} onReprise={surReprise} plein={enConv} />
         </div>
       )}
       {/* Pas encore de fiche : un seul geste, ajouter le commerce à sa liste (25 oct. 2026, Jules). Collé en bas du panneau,

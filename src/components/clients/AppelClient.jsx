@@ -177,7 +177,7 @@ export default function AppelClient({ client = null, mode: mode0 = "enregistrer"
 
           {etat === "relire" && <button type="button" onClick={() => lire(colle, "enregistre")} className="h-11 self-start rounded-full bg-menthe px-6 text-[14px] text-sur-menthe hover:bg-menthe-survol">Relancer la lecture</button>}
 
-          {etat === "lecture" && <p className="m-0 flex items-center gap-2.5 text-[14px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Haka lit l'appel et remplit la fiche, Twenty CRM et le réseau…</p>}
+          {etat === "lecture" && <p className="m-0 flex items-center gap-2.5 text-[14px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />L'Assistant KPartners lit l'appel et remplit la fiche, Twenty CRM et le réseau…</p>}
 
           {erreur && <p className="m-0 text-[13.5px] text-alerte">{erreur}</p>}
 

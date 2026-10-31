@@ -11,7 +11,7 @@ export function monterHaka(app) {
     if (user?.role !== 'admin') { res.status(403).json({ error: 'Réservé à l\'équipe.' }); return null; }
     return user;
   };
-  const actif = (res) => { if (!FILE) { res.status(404).json({ error: 'Haka inactif (HAKA_FILE).', actif: false }); return false; } return true; };
+  const actif = (res) => { if (!FILE) { res.status(404).json({ error: 'L\'Assistant KPartners inactif (HAKA_FILE).', actif: false }); return false; } return true; };
   const F = () => import('../haka/file.js');
   const T = () => import('../haka/taches.js');
   const repondre = (res, r) => (r.ok ? ok(res, r) : res.status(r.statut || 400).json({ error: r.error, proposition: r.proposition || null, obstacles: r.obstacles || null }));
@@ -283,7 +283,7 @@ export function monterHaka(app) {
       compte, gmail_message_id: `simule-${Date.now()}`, thread_id: null,
       de: req.body?.de || 'Agent Test <agent@exemple.fr>', de_email: req.body?.de_email || 'agent@exemple.fr',
       objet: req.body?.objet || `Fiche ${req.file.originalname}`, texte: req.body?.texte || 'Veuillez trouver ci-joint la fiche du bien.',
-      date: new Date().toISOString(), retenu_parce_que: 'simulation Haka', simule: true,
+      date: new Date().toISOString(), retenu_parce_que: 'simulation Assistant KPartners', simule: true,
       pieces_jointes: [{ nom: req.file.originalname, mime: req.file.mimetype, taille: req.file.size, piece_id: `local:${req.file.path}` }],
     });
     const { surFicheRecue } = await import('../haka/declencheurs.js');
@@ -301,7 +301,7 @@ export function monterHaka(app) {
     const mail = Records.create('MailRecu', {
       compte: 'sourcing@klocka.immo', gmail_message_id: `simule-${Date.now()}`, thread_id: null,
       de: user.full_name ? `${user.full_name} <${user.email}>` : user.email, de_email: String(user.email).toLowerCase(),
-      objet: b.objet || 'TR: transfert simulé', texte: b.texte || '', date: new Date().toISOString(), retenu_parce_que: 'simulation Haka', simule: true, interne: true, commande: true,
+      objet: b.objet || 'TR: transfert simulé', texte: b.texte || '', date: new Date().toISOString(), retenu_parce_que: 'simulation Assistant KPartners', simule: true, interne: true, commande: true,
       pieces_jointes: (req.files || []).map((f) => ({ nom: f.originalname, mime: f.mimetype, taille: f.size, piece_id: `local:${f.path}` })),
     });
     const { surTransfert } = await import('../haka/competences/transfert.js');
@@ -319,7 +319,7 @@ export function monterHaka(app) {
     const mail = Records.create('MailRecu', {
       compte: String(b.compte || user.email).toLowerCase(), gmail_message_id: `simule-${Date.now()}`, thread_id: null,
       de: b.de || 'Agent Test <agent@exemple.fr>', de_email: String(b.de_email || 'agent@exemple.fr').toLowerCase(),
-      objet: b.objet || 'Mail simulé', texte: b.texte || '', date: new Date().toISOString(), retenu_parce_que: 'simulation Haka', simule: true,
+      objet: b.objet || 'Mail simulé', texte: b.texte || '', date: new Date().toISOString(), retenu_parce_que: 'simulation Assistant KPartners', simule: true,
       deal_id: b.deal_id || null, pieces_jointes: (b.pieces || []).map((nom) => ({ nom, mime: 'application/pdf', taille: 1000 })),
     });
     const { surMail } = await import('../haka/ambiant.js');

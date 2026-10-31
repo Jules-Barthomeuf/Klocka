@@ -52,10 +52,10 @@ test('pure : la lecture rendue propre, et le geste que le oui fera', () => {
   assert.equal(A.heureDeParis('2026-11-05', 9).toISOString(), '2026-11-05T08:00:00.000Z', 'heure d’hiver');
 });
 
-test('pure : ce qui est pour Haka ambiant', () => {
+test('pure : ce qui est pour l\'Assistant KPartners ambiant', () => {
   const fiche = () => true;
   assert.equal(A.estPourAmbiant({ id: 1, date: '2026-10-22' }, { porteUneFiche: () => false }), true);
-  assert.equal(A.estPourAmbiant({ id: 1, commande: true }), false, 'une demande à Haka a sa compétence');
+  assert.equal(A.estPourAmbiant({ id: 1, commande: true }), false, 'une demande à l\'Assistant KPartners a sa compétence');
   assert.equal(A.estPourAmbiant({ id: 1, interne: true }), false);
   assert.equal(A.estPourAmbiant({ id: 1 }, { porteUneFiche: fiche }), false, 'une fiche sans dossier a sa compétence');
   assert.equal(A.estPourAmbiant({ id: 1, deal_id: 'd' }, { porteUneFiche: fiche }), true, 'rattachée à un dossier, ce sont des documents');
@@ -83,7 +83,7 @@ test('une réponse : une question chez la responsable seule ; oui pose le rappel
   assert.equal(Records.list('HakaApprentissage').filter((x) => x.decision === 'oui').length, 1);
 });
 
-test('non exige un motif, qui apprend à Haka et revient en exemple', async () => {
+test('non exige un motif, qui apprend à l\'Assistant KPartners et revient en exemple', async () => {
   const m = mail({ deal_id: 'deal-macon', objet: 'Newsletter de l’agence' });
   const p = await questionDe(m, lecture());
   assert.equal((await F.rejeter(p.id, nora, '')).statut, 400);

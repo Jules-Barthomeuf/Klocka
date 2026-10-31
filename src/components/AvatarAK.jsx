@@ -6,5 +6,5 @@ import { PERSONNAGES_HAKA } from "@/lib/personnalisation";
 export default function AvatarAK({ className = "h-9 w-9" }) {
   const { prefs } = usePersonnalisation();
   const src = PERSONNAGES_HAKA[prefs?.personnage_haka] || PERSONNAGES_HAKA["haka-1"];
-  return <img src={src} alt="Haka" draggable={false} className={`${className} flex-none select-none rounded-full object-cover`} />;
+  return <img src={src} alt="Assistant KPartners" draggable={false} className={`${className} flex-none select-none rounded-full object-cover`} />;
 }

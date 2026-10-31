@@ -11,7 +11,7 @@ export default function CompteurAValider({ className = "" }) {
   const moi = data.moi || 0;
   const commun = data.commun || 0;
   if (!moi && !commun) return null;
-  const texte = [moi ? `${moi} proposition${moi > 1 ? "s" : ""} de Haka vous attend${moi > 1 ? "ent" : ""}` : null, commun ? `${commun} dans le Commun` : null].filter(Boolean).join(" · ");
+  const texte = [moi ? `${moi} proposition${moi > 1 ? "s" : ""} de l'Assistant KPartners vous attend${moi > 1 ? "ent" : ""}` : null, commun ? `${commun} dans le Commun` : null].filter(Boolean).join(" · ");
   return (
     <Link to="/AValider" className={`flex items-center justify-between gap-3 rounded-[16px] border border-menthe/40 bg-rail px-5 py-3.5 text-[14.5px] text-encre transition-colors hover:border-menthe ${className}`}>
       <span><span className="mr-2 inline-block h-[7px] w-[7px] rounded-full bg-menthe align-middle" />{texte}</span>

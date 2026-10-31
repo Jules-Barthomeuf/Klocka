@@ -218,7 +218,7 @@ export async function lireRecit(id, { texte: dit0 = null, audio = null } = {}, u
       required: ['compris', 'interet', 'compte_rendu'],
     },
   }));
-  if (!lu || typeof lu !== 'object') return { ok: false, error: "Haka n'a pas pu le lire : réessayez, ou racontez-le autrement." };
+  if (!lu || typeof lu !== 'object') return { ok: false, error: "L'Assistant KPartners n'a pas pu le lire : réessayez, ou racontez-le autrement." };
   const proposition = propositionDe(lu, v);
   const r = Records.update(VISITE, id, { recit: { texte: dit.slice(0, 8000), le: maintenant() }, proposition, statut: v.valide_le ? v.statut : 'racontee' });
   return { ok: true, compris: texte(lu.compris, 400), visite: vue(r, { complete: true }) };
@@ -386,7 +386,7 @@ export const OUTILS_VISITE = [
   {
     name: 'raconter_visite_acquereur',
     description:
-      "Le mandataire raconte la visite d'un acquéreur qu'il vient de faire (réaction, points positifs, objections, intérêt, budget, financement, suite). Haka retrouve la visite et prépare la note interne et le compte rendu au propriétaire ; le mandataire les relit et les valide à l'écran, rien ne part avant. Passe tout ce qu'il a dit dans recit.",
+      "Le mandataire raconte la visite d'un acquéreur qu'il vient de faire (réaction, points positifs, objections, intérêt, budget, financement, suite). L'Assistant KPartners retrouve la visite et prépare la note interne et le compte rendu au propriétaire ; le mandataire les relit et les valide à l'écran, rien ne part avant. Passe tout ce qu'il a dit dans recit.",
     input_schema: {
       type: 'object',
       properties: {

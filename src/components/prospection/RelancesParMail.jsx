@@ -90,7 +90,7 @@ export default function RelancesParMail({ onFait }) {
           {d.a_preparer > 0 && (
             <button type="button" onClick={() => preparer.mutate()} disabled={preparer.isPending}
               className="inline-flex h-9 items-center gap-1.5 rounded-full border border-menthe/50 px-4 text-[13px] text-menthe hover:bg-menthe/10 disabled:opacity-50" style={{ background: "transparent" }}>
-              {preparer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}{preparer.isPending ? "Haka prépare les mails…" : `Préparer ${d.a_preparer} mail${d.a_preparer > 1 ? "s" : ""}`}
+              {preparer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}{preparer.isPending ? "L'Assistant KPartners prépare les mails…" : `Préparer ${d.a_preparer} mail${d.a_preparer > 1 ? "s" : ""}`}
             </button>
           )}
           {mails.length > 1 && (

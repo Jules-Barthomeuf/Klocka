@@ -83,8 +83,9 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
       {ouvert && (
         <motion.div key="fenetre" className="pointer-events-none fixed inset-0 z-[71] grid place-items-center p-4"
           initial={{ opacity: 0, y: 48, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 32, scale: 0.98 }} transition={{ type: "spring", stiffness: 380, damping: 32 }}>
-        <div role="dialog" aria-label="Filtres" className="pointer-events-auto max-h-[85vh] w-[760px] max-w-full overflow-y-auto rounded-bloc border border-bord-doux bg-surface-pleine p-4 shadow-xl">
-          <div className="grid gap-5 md:grid-cols-3">
+        <div role="dialog" aria-label="Filtres" className="pointer-events-auto flex max-h-[85vh] w-[760px] max-w-full flex-col overflow-hidden rounded-bloc border border-bord-doux bg-surface-pleine shadow-xl">
+          {/* Les filtres défilent, « Tout effacer » et « Voir n commerces » restent en bas (Jules, 31 oct. 2026). */}
+          <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-4 md:grid-cols-3">
             <div className="flex flex-col gap-5">
               {/* La classe d'actif en tête (26 oct. 2026, Jules) : commerce, bureaux, entrepôt ; rien de coché = tout. Seulement
                   s'il y a plus d'une classe à l'écran : un mandataire n'a que des commerces (31 oct. 2026, PLAN.md 0.4). */}
@@ -106,7 +107,7 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
               <SectionFiltre titre="Liste" multiple={false} choisis={filtres.liste ? [filtres.liste] : []} onChange={un("liste")} options={[{ v: "libres", mot: "Pas encore dans une liste", n: compteDe(commerces, (c) => !c.liste) }, { v: "en_liste", mot: "Déjà dans une liste", n: compteDe(commerces, (c) => c.liste) }]} />
             </div>
           </div>
-          <div className="mt-4 flex items-center justify-between gap-3 border-t border-trait pt-3">
+          <div className="flex flex-none items-center justify-between gap-3 border-t border-trait px-4 py-3">
             <button type="button" onClick={() => setFiltres((f) => ({ ...FILTRES_SIMPLE, texte: f.texte, emplacement: f.emplacement }))} disabled={!n} className={bouton}>Tout effacer</button>
             <button type="button" onClick={() => setOuvert(false)} className={boutonPlein}>Voir {pl(visibles, "commerce")}</button>
           </div>
@@ -244,7 +245,7 @@ export function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJ
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-3">
         {/* Pourquoi c'est une bonne cible, en une ligne, juste au-dessus de la façade (Prospecter pour un client, 24 oct. 2026). */}
         {pourquoi && <p className="m-0 mb-2 truncate text-[13.5px] text-menthe" title={pourquoi}>{pourquoi}</p>}
-        <FacadeLocal adresse={c.adresse} ville={c.ville} lat={c.lat} lon={c.lon} nom={c.enseigne || c.nom} />
+        <FacadeLocal adresse={c.adresse} ville={c.ville} lat={c.lat} lon={c.lon} nom={c.enseigne || c.nom} placeId={c.place_id} />
         <BlocZone id={id} zone={zone} rangAJuger={rangAJuger} onJuge={onJuge} onPasser={onPasser} />
         <div className="mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
           <Ligne titre="Propriétaire des murs" {...ligne("proprietaire")}

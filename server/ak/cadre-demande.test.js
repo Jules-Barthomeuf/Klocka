@@ -34,7 +34,7 @@ test('une compétence choisie : sa méthode fait foi, et les sources éteintes s
   assert.equal(cadreDemande({ sources_eteintes: ['DVF'] }, { competence: null }), '', 'sans compétence, rien à dire des sources éteintes');
 });
 
-test('Paramètres > Haka : la longueur et les tableaux de la personne entrent dans le cadre', () => {
+test('Paramètres > Assistant KPartners : la longueur et les tableaux de la personne entrent dans le cadre', () => {
   assert.match(cadreDemande({ haka: { longueur: 'tres_courte', tableaux: 'jamais' } }), /TRÈS COURTES[\s\S]*PAS DE TABLEAU/);
   // Les gestes fixes des raccourcis (19 oct. 2026) : chacun sa consigne ; une clé inconnue n'ajoute rien.
   assert.match(cadreDemande({ competence: 'geste:creer-projet' }), /RACCOURCI « Créer un projet »[\s\S]*creer_projet_depuis_dossier/);

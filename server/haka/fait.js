@@ -14,7 +14,7 @@ const lienDossier = (dealId) => (dealId ? `/Dossiers?deal_id=${dealId}` : null);
 export function decrireRapport(r) {
   const items = [];
   (r.lignes || []).forEach((l, i) => {
-    if (l.en_file || l.haka) return; // une tâche de Haka la raconte déjà
+    if (l.en_file || l.haka) return; // une tâche de l'Assistant KPartners la raconte déjà
     const docs = (l.documents || []).filter(Boolean);
     if (l.preanalyse) {
       items.push({ cle: `${r.id}:${i}`, le: r.le, genre: 'fiche', quoi: 'Fiche triée, dossier pré-analysé', detail: [l.dossier, l.de].filter(Boolean).join(' · '), lien: lienDossier(l.deal_id) });

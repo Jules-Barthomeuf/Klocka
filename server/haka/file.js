@@ -58,7 +58,7 @@ export async function proposer({ type, titre, resume = null, charge = {}, source
     const { notifier } = await import('../notifications.js');
     // `question_haka` : la carte se montre, mais la cloche ne la redit pas sous « Notifications » : la question y est déjà,
     // dans « Ce qui t'attend » (22 oct. 2026).
-    notifier({ pour: p.pour, titre: `Haka : ${p.titre}`, texte: p.resume, lien: `/AValider?id=${p.id}`, action: 'Décider', genre: p.pour ? 'question_haka' : 'haka', cle: `haka:${p.id}` });
+    notifier({ pour: p.pour, titre: `Assistant KPartners : ${p.titre}`, texte: p.resume, lien: `/AValider?id=${p.id}`, action: 'Décider', genre: p.pour ? 'question_haka' : 'haka', cle: `haka:${p.id}` });
   } catch (e) {
     console.warn(`[haka] notification non posée : ${e?.message || e}`);
   }
@@ -127,7 +127,7 @@ export async function rejeter(id, user, motif) {
   if (!peutDecider(user, p)) return { ok: false, statut: 403, error: "Cette proposition n'est pas à vous." };
   if (p.etat !== 'proposee') return { ok: false, statut: 409, error: `Déjà décidée (${p.etat}).` };
   const m = String(motif || '').trim();
-  if (!m) return { ok: false, statut: 400, error: 'Dites pourquoi : le motif aide Haka à faire mieux.' };
+  if (!m) return { ok: false, statut: 400, error: 'Dites pourquoi : le motif aide Assistant KPartners à faire mieux.' };
   Records.update(ENTITE, p.id, { etat: 'rejetee', motif_rejet: m.slice(0, 500), decidee_par: norm(user.email), decidee_le: maintenant() });
   if (p.tache_id) { try { await taches.surRejet(p.tache_id, p, user); } catch (e) { console.warn(`[haka] surRejet : ${e?.message || e}`); } taches.annuler(p.tache_id, m); }
   if (p.dossier) {

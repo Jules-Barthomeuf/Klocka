@@ -4,7 +4,7 @@
 // son ordre d'origine (celui de la maquette).
 
 export const ENTREES_ADMIN = [
-  { cle: "Dashboard", label: "Haka" },
+  { cle: "Dashboard", label: "Assistant" },
   // L'Agenda de l'équipe (16 oct. 2026) : qui est là, les briefings d'un jour, le résumé du retour.
   { cle: "Semaine", label: "Agenda" },
   { cle: "AdminProjets", label: "Projets" },
@@ -85,7 +85,7 @@ export const ENTREES_MANDATAIRE = [
  * ENTREES_ADMIN reste la liste des pages de l'équipe (les accès en dépendent).
  */
 export const MENU_ADMIN = [
-  { cle: "Dashboard", label: "Haka" },
+  { cle: "Dashboard", label: "Assistant" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
   // À valider quitte le menu (26 oct. 2026, Jules) : la page reste ouverte par la cloche et les dossiers.
@@ -109,7 +109,7 @@ export const MENU_ADMIN = [
  */
 export const MENU_MANDATAIRE = [
   // Haka, comme pour l'équipe (19 oct. 2026, Jules).
-  { cle: "Dashboard", label: "Haka" },
+  { cle: "Dashboard", label: "Assistant" },
   // La Prospection reprend l'Off-market (23 oct. 2026, Jules) : une seule entrée, Commerces et Rues dans la page.
   { cle: "MandataireProspection", label: "Prospection" },
   // Biens, une seule entrée (24 oct. 2026, Jules) : tous les biens en cartes, puis un bien suivi comme un dossier de
@@ -183,7 +183,7 @@ export function menuAdmin(masques = [], { email = null } = {}) {
 
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */
 export const PAGES_OUVERTURE_ADMIN = [
-  ["Dashboard", "Haka"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"],
+  ["Dashboard", "Assistant"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"],
   ["Prospection", "Prospection"], ["OffMarket", "Off-market"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["AdminUtilisateurs", "Utilisateurs"], ["SimulateurRentabilite", "Simulateur"],
 ];
 export const PAGES_OUVERTURE_CLIENT = [

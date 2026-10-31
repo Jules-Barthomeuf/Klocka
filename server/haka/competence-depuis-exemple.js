@@ -21,7 +21,7 @@ const SCHEMA = {
 };
 
 export const consigne = ({ nom, texte }) => [
-  `Tu écris une COMPÉTENCE pour Haka, l'agent de l'équipe Klocka (investissement dans les murs de commerce). Nom : « ${nom} ».`,
+  `Tu écris une COMPÉTENCE pour l'Assistant KPartners, l'agent de l'équipe Klocka (investissement dans les murs de commerce). Nom : « ${nom} ».`,
   'Une compétence est une méthode de travail en français : quand agir, quelles sources consulter, quelles règles appliquer, quel livrable rendre. Elle ne contient pas de code.',
   "Partage : l'IA lit, cherche, rédige ; le CODE calcule, applique les seuils chiffrés et écrit. N'enterre donc aucun seuil dans le texte : cite-les par leur nom.",
   'Choisis les outils et sources UNIQUEMENT dans la liste fournie ; marque obligatoires ceux sans lesquels la compétence ne peut pas se faire.',
@@ -46,7 +46,7 @@ export async function depuisExemple({ nom, texte }, user, { ecrire = null } = {}
     const ecrireModele = ecrire || (async (prompt) => (await import('../llm.js')).invokeLLM({ prompt, response_json_schema: SCHEMA }));
     proposition = await ecrireModele(consigne({ nom, texte }));
   } catch (e) {
-    return { ok: true, competence: C.lire(cle), brouillon_vide: true, avertissement: `Le brouillon est créé, mais Haka n'a pas pu l'écrire : ${String(e?.message || e).slice(0, 200)}` };
+    return { ok: true, competence: C.lire(cle), brouillon_vide: true, avertissement: `Le brouillon est créé, mais l'Assistant KPartners n'a pas pu l'écrire : ${String(e?.message || e).slice(0, 200)}` };
   }
   const r = C.enregistrerBrouillon(cle, {
     resume: proposition.resume, declencheurs: proposition.declencheurs, entrees: proposition.entrees, outils: proposition.outils,

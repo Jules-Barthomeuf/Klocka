@@ -238,7 +238,7 @@ export async function reprendre() {
     try {
       const { notifier } = await import('../notifications.js');
       const { SUPER_ADMINS } = await import('../acces-pages.js');
-      notifier({ pour: SUPER_ADMINS[0], titre: 'Haka : une action est incertaine', texte: `Le serveur a redémarré pendant « ${e.nom} » (${e.type}). Vérifiez si elle est partie avant de la relancer.`, lien: `/AValider?tache=${e.tache_id}`, genre: 'haka', cle: `haka:incertaine:${e.id}` });
+      notifier({ pour: SUPER_ADMINS[0], titre: 'Assistant KPartners : une action est incertaine', texte: `Le serveur a redémarré pendant « ${e.nom} » (${e.type}). Vérifiez si elle est partie avant de la relancer.`, lien: `/AValider?tache=${e.tache_id}`, genre: 'haka', cle: `haka:incertaine:${e.id}` });
     } catch { /* la notification n'est pas vitale */ }
   }
   db.prepare("UPDATE haka_etapes SET etat = 'a_faire' WHERE etat = 'en_cours' AND externe = 0").run();

@@ -68,8 +68,8 @@ export default function LivrableAccueil({ livrables = [], dossier = null, depuis
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="k-barre-apercu flex h-14 flex-none items-center gap-3 border-b border-trait pl-5 pr-16">
-        <p className="m-0 min-w-0 flex-1 truncate text-[14px] text-encre">{dossier ? dossier.titre : "Ce que Haka prépare"}</p>
-        {travail && <span className="inline-flex flex-none items-center gap-1.5 text-[12.5px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin" />Haka travaille</span>}
+        <p className="m-0 min-w-0 flex-1 truncate text-[14px] text-encre">{dossier ? dossier.titre : "Ce que l'Assistant KPartners prépare"}</p>
+        {travail && <span className="inline-flex flex-none items-center gap-1.5 text-[12.5px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin" />L'Assistant KPartners travaille</span>}
         {dossier && (
           <Link to={`/Dossiers?deal_id=${dossier.deal_id}`} className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full border border-trait px-3 text-[13px] text-craie hover:border-bord-vif hover:text-encre">
             <FolderOpen className="h-3.5 w-3.5" />Ouvrir le dossier
@@ -79,7 +79,7 @@ export default function LivrableAccueil({ livrables = [], dossier = null, depuis
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
         {vide ? (
           <div className="grid h-full place-items-center text-center">
-            <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">{travail ? "Haka travaille sur votre demande. Ce qu'il prépare s'affiche ici." : "Ce que Haka prépare s'affiche ici : le document, ses sources, puis ce qui attend votre clic dans À valider."}</p>
+            <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">{travail ? "L'Assistant KPartners travaille sur votre demande. Ce qu'il prépare s'affiche ici." : "Ce que l'Assistant KPartners prépare s'affiche ici : le document, ses sources, puis ce qui attend votre clic dans À valider."}</p>
           </div>
         ) : (
           <div className="mx-auto flex max-w-[760px] flex-col gap-8">
@@ -101,7 +101,7 @@ export default function LivrableAccueil({ livrables = [], dossier = null, depuis
               </section>
             )}
             {dossier && !livrables.length && !nees.length && (
-              <p className="m-0 text-[14px] leading-[1.6] text-ardoise">Haka a ce dossier en contexte. Ce qu'il en tire s'affiche ici, puis rejoint À valider.</p>
+              <p className="m-0 text-[14px] leading-[1.6] text-ardoise">L'Assistant KPartners a ce dossier en contexte. Ce qu'il en tire s'affiche ici, puis rejoint À valider.</p>
             )}
           </div>
         )}

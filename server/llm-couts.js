@@ -298,8 +298,8 @@ const ACTIONS = [
   { cle: 'questions_appels', libelle: 'AK pose ses questions sur un appel', unite: 'par appel', parAppel: true, operations: ['questions appels'], ou: 'Le Dashboard de l\'analyste : un appel corrigé, non validé, validé sans appel ou validé trop lentement (une fois par appel)' },
   { cle: 'synthese_questions_appels', libelle: 'Synthèse des retours des analystes', unite: 'par synthèse', parAppel: false, operations: ['synthese questions appels'], ou: 'Suivi > Appels > Retours : « Faire la synthèse » (Jules)' },
   { cle: 'fiche_contact', libelle: 'Lire la relation avec un agent ou une agence', unite: 'par lecture', parAppel: true, operations: ['fiche contact'], ou: 'Prospection : la fiche d\'un agent ou d\'une agence, à l\'ouverture quand un échange nouveau est arrivé (au plus une fois par heure)' },
-  { cle: 'haka_ambiant', libelle: 'Haka : lire un mail reçu', unite: 'par mail', parAppel: true, operations: ['haka lit un mail'], ou: 'La veille des boîtes, Haka ambiant (HAKA_AMBIANT) : chaque mail retenu hors fiche, une lecture courte, puis une question oui / non', fond: true },
-  { cle: 'haka_fiche', libelle: 'Haka : traiter une fiche reçue', unite: 'par fiche', parAppel: false, operations: ['haka'], ou: 'La veille des boîtes, compétence « fiche reçue » : dossier, pré-analyse, doublons, mail prêt dans À valider', fond: true },
+  { cle: 'haka_ambiant', libelle: 'Assistant KPartners : lire un mail reçu', unite: 'par mail', parAppel: true, operations: ['haka lit un mail'], ou: 'La veille des boîtes, l\'Assistant KPartners ambiant (HAKA_AMBIANT) : chaque mail retenu hors fiche, une lecture courte, puis une question oui / non', fond: true },
+  { cle: 'haka_fiche', libelle: 'Assistant KPartners : traiter une fiche reçue', unite: 'par fiche', parAppel: false, operations: ['haka'], ou: 'La veille des boîtes, compétence « fiche reçue » : dossier, pré-analyse, doublons, mail prêt dans À valider', fond: true },
   { cle: 'preanalyse', libelle: 'Analyser une fiche commerciale', unite: 'par fiche', parAppel: false, operations: ['pré-analyse'], ou: 'Étape Pré-analyse, ou fiche collée dans un chat' },
   // La Mémoire Klocka (30 oct. 2026) : le lecteur des boîtes lit chaque fiche une fois, les faits seulement.
   { cle: 'memoire_fiche', libelle: 'Lire une fiche pour la Mémoire', unite: 'par fiche', parAppel: true, operations: ['mémoire : fiche'], ou: 'Page Mémoire : une boîte autorisée se lit en entier, et la veille pour une fiche restée sans dossier', fond: true },
@@ -348,10 +348,10 @@ export const LEVIERS = [
   {
     cle: 'postgres_worker',
     etat: 'decider',
-    titre: 'Postgres et un worker séparé pour Haka',
-    effet: 'la veille et les tâches de Haka hors du processus web',
+    titre: 'Postgres et un worker séparé pour l\'Assistant KPartners',
+    effet: 'la veille et les tâches de l\'Assistant KPartners hors du processus web',
     ou: 'Quand haka_taches dépasse ~200 tâches par jour, ou qu\'un redémarrage interrompt des pas externes chaque semaine',
-    texte: 'Un seul processus Render porte le web, la veille et les tâches de Haka ; chaque push le redémarre une minute (le disque /var/data est attaché à ce seul service). Le jour où le volume l\'exige : Postgres et un worker à part, la file « À valider » reste la même.',
+    texte: 'Un seul processus Render porte le web, la veille et les tâches de l\'Assistant KPartners ; chaque push le redémarre une minute (le disque /var/data est attaché à ce seul service). Le jour où le volume l\'exige : Postgres et un worker à part, la file « À valider » reste la même.',
   },
   {
     cle: 'cache',
@@ -403,7 +403,7 @@ export const LEVIERS = [
     effet: '{{mediane:veille}} par mail douteux',
     effet_defaut: 'quelques centimes par passage',
     ou: `Posé le 18 octobre · MAIL_VEILLE_MINUTES ${process.env.MAIL_VEILLE_MINUTES || 15}`,
-    texte: "Le 18 octobre, Jules demande de limiter ce qu'on ne déclenche pas : la veille passe de cinq à quinze minutes par défaut (un mail reçu à 9 h 02 entre à 9 h 15). Le même jour, une fiche analysée sans clic (veille, Haka) ne lance plus le point de marché par recherche web, et l'annonce en ligne ne se cherche plus que quand quelqu'un pousse le bien dans Twenty CRM.",
+    texte: "Le 18 octobre, Jules demande de limiter ce qu'on ne déclenche pas : la veille passe de cinq à quinze minutes par défaut (un mail reçu à 9 h 02 entre à 9 h 15). Le même jour, une fiche analysée sans clic (veille, l'Assistant KPartners) ne lance plus le point de marché par recherche web, et l'annonce en ligne ne se cherche plus que quand quelqu'un pousse le bien dans Twenty CRM.",
   },
   {
     cle: 'differe',

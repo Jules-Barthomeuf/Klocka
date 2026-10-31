@@ -19,12 +19,12 @@ export default function BoiteMandataire({ className = "" }) {
       <Mail className="h-4 w-4 flex-none" />
       {boite ? (
         <>
-          <span>Boîte connectée : <span className="text-encre">{boite.email}</span>. Haka envoie d'ici ce que vous validez.</span>
+          <span>Boîte connectée : <span className="text-encre">{boite.email}</span>. L'Assistant KPartners envoie d'ici ce que vous validez.</span>
           <button type="button" onClick={connecter} disabled={enCours} className="text-menthe hover:underline" style={{ background: "transparent" }}>Changer</button>
         </>
       ) : (
         <>
-          <span>Aucune boîte connectée : les mails de Haka s'ouvrent dans votre messagerie.</span>
+          <span>Aucune boîte connectée : les mails de l'Assistant KPartners s'ouvrent dans votre messagerie.</span>
           <button type="button" onClick={connecter} disabled={enCours} className="inline-flex items-center gap-1.5 text-menthe hover:underline" style={{ background: "transparent" }}>
             {enCours && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Connecter ma boîte Gmail
           </button>

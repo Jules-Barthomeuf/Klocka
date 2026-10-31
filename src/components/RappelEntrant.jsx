@@ -614,7 +614,7 @@ export default function RappelEntrant() {
                 ))}
               </div>
             ))}
-            <p className="m-0 text-[13px] text-brume md:col-span-2">L'appel se joue phrase par phrase, Haka le lit pour de vrai. Tout reste dans la liste fictive : ni Twenty CRM, ni mail, ni carnet réel.</p>
+            <p className="m-0 text-[13px] text-brume md:col-span-2">L'appel se joue phrase par phrase, l'Assistant KPartners le lit pour de vrai. Tout reste dans la liste fictive : ni Twenty CRM, ni mail, ni carnet réel.</p>
           </div>
         )}
 
@@ -658,7 +658,7 @@ export default function RappelEntrant() {
               {apres ? (
                 <NoteApresAppel key={ecran} onFin={(note) => stop.mutate(note || null)}
                   titre={ecran === "note" ? "Qui c'était, et que faut-il faire ?" : "Une précision ?"}
-                  aide={ecran === "note" ? "Le nom, l'agence, et la suite (un mail, une relance). Rien à dire ? Haka cherche qui c'était dans l'appel." : undefined} />
+                  aide={ecran === "note" ? "Le nom, l'agence, et la suite (un mail, une relance). Rien à dire ? L'Assistant KPartners cherche qui c'était dans l'appel." : undefined} />
               ) : <EnteteEnLigne etat={SENS[sens].titre} secondes={secondes} essai={essai} nom={nom} sousTitre={sous}
                 ecoute={!microKo} onRaccrocher={arreter} occupe={stop.isPending || abandonner.isPending}
                 onAbandonner={() => { couper(); abandonner.mutate(); }} raccrocher={microKo ? "Analyser" : "Raccrocher"}
@@ -716,7 +716,7 @@ export default function RappelEntrant() {
                         <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Dès qu'il dit son nom ou son agence" aria-label="Qui appelle" className="w-full border-0 bg-transparent text-[15px] text-encre outline-none" />
                       </span>
                       {(trouves.data?.resultats || []).slice(0, 4).map((c) => <Candidat key={c.cle} c={c} onConfirmer={confirmer} occupe={identifier.isPending} libelle="C'est lui" />)}
-                      <span className="text-[12.5px] text-brume">Sinon, Haka propose qui c'est au Stop.</span>
+                      <span className="text-[12.5px] text-brume">Sinon, l'Assistant KPartners propose qui c'est au Stop.</span>
                     </>
                   )}
                 </div>
@@ -727,7 +727,7 @@ export default function RappelEntrant() {
           </div>
         )}
 
-        {ecran === "transcription" && <ChaineEtapes etapes={[noteVocale.trim() ? "Je lis votre note et je retrouve la fiche" : "Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" centre />}
+        {ecran === "transcription" && <ChaineEtapes etapes={[noteVocale.trim() ? "Je lis votre note et je retrouve la fiche" : "Je termine la transcription et je cherche qui a appelé"]} titre="L'Assistant KPartners lit l'appel" centre />}
 
         {/* Qui a appelé : trois candidats au plus, chercher, ou un nouveau contact. */}
         {/* Une note dite, mais personne d'unique dans le carnet : les fiches qui correspondent à la note, ou un seul bouton

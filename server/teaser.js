@@ -222,7 +222,7 @@ export async function modifierTeaser(marcheId, user, patch = {}, { par = 'mandat
   }
   // Ce qui a changé prend sa nouvelle source : le mandataire, ou Haka à sa demande.
   const avant = m.teaser;
-  const qui = par === 'haka' ? { nature: 'ia', origine: 'Retouché par Haka', detail: 'À la demande du mandataire.' } : { nature: 'saisie', origine: 'Corrigé par le mandataire', detail: `Le ${new Date().toLocaleDateString('fr-FR')}.` };
+  const qui = par === 'haka' ? { nature: 'ia', origine: 'Retouché par l\'Assistant KPartners', detail: 'À la demande du mandataire.' } : { nature: 'saisie', origine: 'Corrigé par le mandataire', detail: `Le ${new Date().toLocaleDateString('fr-FR')}.` };
   const sources = { ...(avant.sources || {}) };
   for (const k of [...CHAMPS_LIBRES]) if (k in patch && patch[k] !== avant[k]) sources[k] = qui;
   (t.tuiles || []).forEach((x, i) => { if (x.valeur !== avant.tuiles?.[i]?.valeur) sources[`tuiles.${i}`] = qui; });

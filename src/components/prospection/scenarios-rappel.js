@@ -7,7 +7,7 @@
 export const SCENARIOS_RAPPEL = [
   {
     cle: "sophie_bien", sens: "entrant", titre: "Sophie Essai rappelle : elle a un bien",
-    aide: "Elle se présente : Haka doit la proposer d'emblée, puis demander la fiche.",
+    aide: "Elle se présente : Assistant KPartners doit la proposer d'emblée, puis demander la fiche.",
     phrases: [
       "Allô, bonjour, Sophie Essai de l'Agence Essai Commerces, vous m'avez appelée hier ?",
       "Oui, bonjour Madame, merci de me rappeler. Nous achetons des murs commerciaux loués, je voulais savoir si vous aviez des choses en ce moment.",

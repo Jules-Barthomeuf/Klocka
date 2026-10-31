@@ -75,7 +75,7 @@ export function Trace({ id }) {
     <div className="grid gap-5 py-4 md:grid-cols-2">
       <div>
         <Etiquette>Sources</Etiquette>
-        <p className="m-0 text-[13px] text-craie">{e.sources_actives.length ? `Actives : ${e.sources_actives.map((k) => sourceDe(k).nom).join(", ")}` : "Auto : Haka a choisi parmi les sources autorisées."}</p>
+        <p className="m-0 text-[13px] text-craie">{e.sources_actives.length ? `Actives : ${e.sources_actives.map((k) => sourceDe(k).nom).join(", ")}` : "Auto : Assistant KPartners a choisi parmi les sources autorisées."}</p>
         {e.sources_eteintes.length > 0 && <p className="m-0 mt-1 text-[13px] text-ambre">Éteintes : {e.sources_eteintes.map((k) => sourceDe(k).nom).join(", ")}</p>}
         <div className="mt-4"><Etiquette>Étapes</Etiquette>
           <ul className="m-0 list-none p-0 text-[13px]">{e.etapes.map((p) => <li key={p.nom} className="flex items-baseline justify-between gap-3 py-1"><span className="text-craie">{p.nom}{p.externe ? <span className="text-brume"> · vers l'extérieur</span> : null}</span><span className="text-ardoise">{p.etat}{p.erreur ? ` · ${p.erreur}` : ""}</span></li>)}</ul>
@@ -175,10 +175,10 @@ export function OngletHistorique({ c, onRaf }) {
           {s.rejets_recents.length ? <ul className="m-0 list-none p-0">{s.rejets_recents.map((r) => <li key={r.id} className="border-t border-trait py-2.5 first:border-t-0"><p className="m-0 text-[13.5px] text-encre">{r.titre}</p><p className="m-0 mt-0.5 text-[12.5px] text-ardoise">{r.motif || "Sans motif"}{r.par ? ` · ${r.par.split("@")[0]}` : ""}{r.le ? ` · ${jour(r.le)}` : ""}</p></li>)}</ul> : <p className="m-0 text-[13px] text-brume">Aucun rejet sur 90 jours.</p>}
         </div>
         <div>
-          <Etiquette>Corrections humaines · ce qu'on a retouché après Haka</Etiquette>
+          <Etiquette>Corrections humaines · ce qu'on a retouché après l'Assistant KPartners</Etiquette>
           {s.corrections.length ? <ul className="m-0 list-none p-0">{s.corrections.map((r) => <li key={r.id} className="border-t border-trait py-2.5 first:border-t-0"><p className="m-0 text-[13.5px] text-encre">{r.titre}</p><p className="m-0 mt-0.5 text-[12.5px] text-ardoise">{r.par ? `Corrigé par ${r.par.split("@")[0]}` : "Corrigé"}{r.le ? ` · ${jour(r.le)}` : ""}</p></li>)}</ul> : <p className="m-0 text-[13px] text-brume">Aucune correction sur 90 jours.</p>}
         </div>
-        <p className="m-0 text-[12.5px] leading-[1.55] text-ardoise">Haka n'apprend pas seul : ces rejets et ces corrections sont la matière de la version suivante, que vous écrivez.</p>
+        <p className="m-0 text-[12.5px] leading-[1.55] text-ardoise">L'Assistant KPartners n'apprend pas seul : ces rejets et ces corrections sont la matière de la version suivante, que vous écrivez.</p>
       </div>
     </div>
   );

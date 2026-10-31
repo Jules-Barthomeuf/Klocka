@@ -181,8 +181,18 @@ export function couleursLoi(marque) {
       hex: { accent: '7FA898', bande: '8FB2A8', encart: 'EFF3F1', noir: '161616', gris: '6E6E6E', trait: 'E6E6E6' }, police: 'Arial', createur: 'Klocka' };
 }
 
-/** Sous les deux noms des signatures, l'acquéreur comme le vendeur (30 oct. 2026, Jules). */
+/**
+ * Sous les deux noms des signatures, l'acquéreur comme le vendeur (30 oct. 2026, Jules) : en bas de chaque colonne,
+ * juste au-dessus de la signature, à la même hauteur des deux côtés (« pareil que le vendeur, mais à gauche »).
+ */
 export const BON_POUR_ACCORD = 'Bon pour accord';
+
+/** Le bloc des signatures : la colonne la plus courte reçoit une ligne vide, « Bon pour accord » s'aligne en bas. Pure. */
+function signatures(gauche, droite) {
+  const n = Math.max(gauche.length, droite.length);
+  const col = (l) => [...l, ...Array(n - l.length).fill(''), BON_POUR_ACCORD];
+  return { cle: 'signatures', type: 'signatures', gauche: col(gauche), droite: col(droite) };
+}
 
 /**
  * La lettre, bloc par bloc, sur le modèle « Lettre d'intention - 1 avenue
@@ -267,7 +277,7 @@ export function blocs(brut) {
     bloc('substitution', 'p', '**Clause de substitution :** je me réserve la faculté de me substituer toute structure (personne morale) dans laquelle je suis partie prenante.'),
     bloc('validite', 'p', `**Validité de l'offre :** la présente offre est valable jusqu'au **${jour(c.validite)}**.`),
     bloc('salutations', 'p', "Nous vous prions d'agréer, Monsieur, l'expression de nos salutations distinguées."),
-    { cle: 'signatures', type: 'signatures', gauche: [acquereur, c.acquereur_societe, BON_POUR_ACCORD].filter(Boolean), droite: [c.vendeur_societe || 'Le vendeur', BON_POUR_ACCORD] },
+    signatures([acquereur, c.acquereur_societe].filter(Boolean), [c.vendeur_societe || 'Le vendeur']),
   ];
 }
 
@@ -295,7 +305,7 @@ export function lettre(brut) {
     else if (b.type === 'objet') corps.push(`<p class="objet">${html(b.texte)}</p>`);
     else if (b.type === 'h2') corps.push(`<h2${b.num ? '' : ' class="conseil"'}>${b.num ? `<span>${html(b.num)}</span>` : ''}${html(b.texte)}</h2>`);
     else if (b.type === 'h3') corps.push(`<h3>${html(b.texte)}</h3>`);
-    else if (b.type === 'signatures') corps.push(`<div class="signatures"><div>${b.gauche.map((l, i) => `<p>${i === 0 ? `<b>${html(l)}</b>` : html(l)}</p>`).join('')}<p class="label">SIGNATURE</p></div><div>${b.droite.map((l, i) => `<p>${i === 0 ? `<b>${html(l)}</b>` : html(l)}</p>`).join('')}<p class="label">DATE ET SIGNATURE</p></div></div>`);
+    else if (b.type === 'signatures') corps.push(`<div class="signatures"><div>${b.gauche.map((l, i) => `<p>${i === 0 ? `<b>${html(l)}</b>` : html(l) || '&nbsp;'}</p>`).join('')}<p class="label">SIGNATURE</p></div><div>${b.droite.map((l, i) => `<p>${i === 0 ? `<b>${html(l)}</b>` : html(l) || '&nbsp;'}</p>`).join('')}<p class="label">DATE ET SIGNATURE</p></div></div>`);
     else if (b.type === 'liste') corps.push(`<ul class="tirets">${tirets(b.texte).map((l) => `<li>${htmlGras(l)}</li>`).join('')}</ul>`);
     else corps.push(`<p>${htmlGras(b.texte)}</p>`);
   }

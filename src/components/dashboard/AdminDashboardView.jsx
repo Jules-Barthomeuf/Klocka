@@ -157,8 +157,8 @@ export default function AdminDashboardView() {
             conversation={conversation}
             historique={historique ? <HistoriqueColonne /> : null}
             chat={<ChatDashboard onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse} onTravail={surTravail}
-              barreApercu={enConversation} sansSkills choixDossier onDossier={setDossier} libelleAccueil="Haka" reglages={reglages}
-              placeholderAccueil={hakaActif ? "Collez une note, déposez une fiche, ou demandez à Haka…" : null} />}
+              barreApercu={enConversation} sansSkills choixDossier onDossier={setDossier} libelleAccueil="Assistant KPartners" reglages={reglages}
+              placeholderAccueil={hakaActif ? "Collez une note, déposez une fiche, ou demandez à l'Assistant KPartners…" : null} />}
             apresChat={(
               <>
                 {/* Les raccourcis remplacent « Connecter un skill » ; les cartes « Ce que Haka sait faire » sont retirées de la page (17 oct. 2026, Jules). */}

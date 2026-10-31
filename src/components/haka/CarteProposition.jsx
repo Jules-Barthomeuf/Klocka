@@ -78,7 +78,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
         {p.type === "reponse_equipe" && (
           <div className="flex flex-col gap-2">
             <div className="rounded-[12px] border border-trait px-4 py-3"><p className="m-0 text-[11px] uppercase tracking-[.14em] text-brume">La demande</p><p className="m-0 mt-1 whitespace-pre-wrap text-[13.5px] leading-[1.5] text-craie">{p.charge?.demande}</p></div>
-            <div className="rounded-[12px] border border-menthe/40 px-4 py-3"><p className="m-0 text-[11px] uppercase tracking-[.14em] text-menthe">La réponse de Haka</p><p className="m-0 mt-1 whitespace-pre-wrap text-[14px] leading-[1.55] text-encre">{p.charge?.reponse}</p></div>
+            <div className="rounded-[12px] border border-menthe/40 px-4 py-3"><p className="m-0 text-[11px] uppercase tracking-[.14em] text-menthe">La réponse de l'Assistant KPartners</p><p className="m-0 mt-1 whitespace-pre-wrap text-[14px] leading-[1.55] text-encre">{p.charge?.reponse}</p></div>
           </div>
         )}
         {/* Une fiche reçue (20 oct. 2026, Jules) : on la regarde, fiche ou mail, avant de la rentrer. */}
@@ -154,7 +154,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-encre">Rejeter cette proposition ?</AlertDialogTitle>
-            <AlertDialogDescription className="text-ardoise">Dites pourquoi : le motif reste sur le dossier et aide Haka à faire mieux.</AlertDialogDescription>
+            <AlertDialogDescription className="text-ardoise">Dites pourquoi : le motif reste sur le dossier et aide Assistant KPartners à faire mieux.</AlertDialogDescription>
           </AlertDialogHeader>
           <textarea autoFocus value={motif} onChange={(e) => setMotif(e.target.value)} rows={3} placeholder="Le motif, en quelques mots" className={`${champ} resize-y py-2.5`} />
           <AlertDialogFooter>

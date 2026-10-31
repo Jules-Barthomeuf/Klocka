@@ -274,9 +274,14 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
   const ongletsRef = useRef(null);
   useEffect(() => { ongletsRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" }); }, [l?.id]);
   const rafraichir = () => queryClient.invalidateQueries({ queryKey: ["m-listes"] });
-  const renommer = (x) => {
-    const nom = window.prompt("Nom de la liste", x.nom);
-    if (nom?.trim()) base44.request("PATCH", `${API}/listes/${x.id}`, { body: { nom } }).then(rafraichir).catch((e) => toast.error(e?.message || "Impossible"));
+  // Renommer : un clic sur le nom de la liste ouverte l'écrit sur place (31 oct. 2026, Jules : « cliquer sur Lyon et le
+  // renommer », à la place du bouton Renommer). Entrée ou un clic ailleurs enregistre, Échap annule.
+  const [enEdition, setEnEdition] = useState(null);
+  const renommer = (x, nom) => {
+    setEnEdition(null);
+    const n = String(nom || "").trim();
+    if (!n || n === x.nom) return;
+    base44.request("PATCH", `${API}/listes/${x.id}`, { body: { nom: n } }).then(rafraichir).catch((e) => toast.error(e?.message || "Impossible"));
   };
   const [aSupprimer, setASupprimer] = useState(null);
   const supprimer = useMutation({
@@ -307,10 +312,21 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
           return (
             <React.Fragment key={x.id}>
               {i > 0 && <span aria-hidden className="w-1 flex-none" />}
-              <button type="button" role="tab" aria-selected={actif} onClick={() => setChoisie(x.id)} title={x.nom}
+              {(() => {
+                const edite = actif && enEdition === x.id;
+                // Pendant le renommage, l'intercalaire n'est plus un bouton : un champ ne se pose pas dans un bouton.
+                const Tag = edite ? "div" : "button";
+                return (
+              <Tag {...(edite ? {} : { type: "button", onClick: () => (actif ? setEnEdition(x.id) : setChoisie(x.id)) })} role="tab" aria-selected={actif} title={actif ? "Cliquer pour renommer" : x.nom}
                 className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
                 {(x.suggeree || x.agent) && <Sparkles className={`h-3 w-3 flex-none ${actif ? "text-menthe" : "text-brume"}`} aria-label="Liste de votre agent IA" />}
-                <span className="truncate">{x.nom}</span>
+                {edite ? (
+                  <input autoFocus defaultValue={x.nom} aria-label="Nom de la liste" onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = x.nom; setEnEdition(null); } }}
+                    onBlur={(e) => renommer(x, e.currentTarget.value)}
+                    size={Math.max(4, x.nom.length)}
+                    className="min-w-0 rounded-[4px] border-0 bg-transparent px-1 -mx-1 text-[13px] text-encre outline outline-1 outline-menthe/60 max-md:text-[16px]" />
+                ) : <span className="truncate">{x.nom}</span>}
                 <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{x.total}</span>
                 {actif && (
                   <span role="button" tabIndex={0} aria-label={`Supprimer la liste ${x.nom}`} title={`Supprimer la liste ${x.nom}`}
@@ -320,14 +336,16 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
                     <X className="h-3.5 w-3.5" />
                   </span>
                 )}
-              </button>
+              </Tag>
+                );
+              })()}
             </React.Fragment>
           );
         })}
         <span aria-hidden className="min-w-3 flex-1" />
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
-        <TableauListe key={l.id} chiffres={{ total: l.total || 0, faits: (l.total || 0) - (l.a_appeler || 0), rdv: l.rdv || 0 }} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} reste={l.reste} carteDemandee={carteDemandee} onCarteVue={onCarteVue} onRenommer={() => renommer(l)} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
+        <TableauListe key={l.id} chiffres={{ total: l.total || 0, faits: (l.total || 0) - (l.a_appeler || 0), rdv: l.rdv || 0 }} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} reste={l.reste} carteDemandee={carteDemandee} onCarteVue={onCarteVue} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
       </div>
       <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">

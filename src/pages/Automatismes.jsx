@@ -88,7 +88,7 @@ function FichesRecues() {
   return (
     <section className="mt-10">
       <p className="m-0 text-[17px] text-encre">Mails reçus avec une pièce, ces trois derniers jours</p>
-      <p className="m-0 mt-1 text-[13px] text-ardoise">Ce que Haka en a fait : une fiche proposée vous a envoyé une notification ; sinon, la raison.</p>
+      <p className="m-0 mt-1 text-[13px] text-ardoise">Ce que l'Assistant KPartners en a fait : une fiche proposée vous a envoyé une notification ; sinon, la raison.</p>
       {q.isLoading ? <p className="m-0 py-6 text-[13.5px] text-brume">Lecture…</p> : !mails.length ? <p className="m-0 py-6 text-[13.5px] text-brume">Aucun mail avec une pièce ces trois derniers jours.</p> : (
         <div className="mt-3 flex flex-col">
           {mails.map((m) => {
@@ -134,7 +134,7 @@ export default function Automatismes() {
   return (
     <div className="mx-auto max-w-[1200px] px-5 pb-16 pt-8 md:px-8">
       <h1 className="m-0 text-[26px] font-normal tracking-[-0.02em] text-encre">Automatismes</h1>
-      <p className="m-0 mt-1 text-[14px] text-ardoise">Ce que Haka fait seul : quoi, quand, avec quel résultat aujourd'hui.</p>
+      <p className="m-0 mt-1 text-[14px] text-ardoise">Ce que l'Assistant KPartners fait seul : quoi, quand, avec quel résultat aujourd'hui.</p>
       {!automatismes.length ? (
         <div className="mt-16 text-center">
           <p className="m-0 text-[14.5px] text-craie">Aucun automatisme pour l'instant. Les compétences qui tournent seules apparaîtront ici.</p>

@@ -25,13 +25,13 @@ export default function SuiviHaka() {
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>
             <OngletsSuivi className="mb-3.5" />
-            <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Haka</h1>
+            <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">L'Assistant KPartners</h1>
           </div>
           <div className="flex flex-wrap gap-1.5 md:pr-14">{PERIODES.map(([j, mot]) => <button key={j} type="button" onClick={() => setJours(j)} className={filtre(jours === j)}>{mot}</button>)}</div>
         </div>
         {q.isLoading || !d ? <Chargement taille="grand" /> : (
           <>
-            {!d.file && <p className="m-0 mb-6 rounded-[14px] border border-trait px-4 py-3 text-[13.5px] text-ardoise">Haka n'est pas allumé ici (HAKA_FILE). {d.fiches ? "" : "La compétence « fiche reçue » non plus (HAKA_FICHES)."}</p>}
+            {!d.file && <p className="m-0 mb-6 rounded-[14px] border border-trait px-4 py-3 text-[13.5px] text-ardoise">L'Assistant KPartners n'est pas allumé ici (HAKA_FILE). {d.fiches ? "" : "La compétence « fiche reçue » non plus (HAKA_FICHES)."}</p>}
             <div className="mb-6 grid grid-cols-2 gap-2.5 md:grid-cols-4">
               {[
                 [b.taches, "tâches lancées"], [euros(b.cout_median_usd), "coût médian par tâche"], [euros(b.cout_total_usd), "coût total"],

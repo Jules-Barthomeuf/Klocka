@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import Pages from "@/components/ui/Pages";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, Loader2, LocateFixed, Pencil, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, LocateFixed, Search, Trash2, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -148,9 +148,10 @@ function PanneauCommerce({ p, onFermer }) {
   );
 }
 
+// La case vide a le trait des lignes du tableau (31 oct. 2026, Jules : « trop blanc »).
 const Case = ({ oui }) => (
   <span className="grid h-[18px] w-[18px] flex-none place-items-center rounded-[5px] border"
-    style={{ borderColor: oui ? "rgb(var(--k-menthe-rgb))" : "rgb(var(--k-bord-vif-rgb))", background: oui ? "rgb(var(--k-menthe-rgb))" : "transparent" }}>
+    style={{ borderColor: oui ? "rgb(var(--k-menthe-rgb))" : "color-mix(in srgb, var(--k-bord-doux) 45%, transparent)", background: oui ? "rgb(var(--k-menthe-rgb))" : "transparent" }}>
     {oui && <Check className="h-3 w-3" style={{ color: "rgb(var(--k-sur-menthe-rgb))" }} />}
   </span>
 );
@@ -198,7 +199,10 @@ function Cellule({ p, col, onEnregistrer }) {
 // « Sorties » les retrouve.
 const SORTIES = ["rdv_pris", "mandat_signe", "pas_vendeur"];
 // Trois filtres, comptés (25 oct. 2026, Jules) : la file à contacter, ceux déjà contactés, et ceux qui sont sortis.
+// « Tous » en premier et par défaut (31 oct. 2026, Jules : une seule liste, avec le statut, qu'on trie et qu'on filtre) :
+// les commerces à contacter et ceux déjà contactés, ensemble ; les sorties restent à part.
 const FILTRES = [
+  ["tous", "Tous", (p) => !SORTIES.includes(p.statut)],
   ["a_appeler", "À contacter", (p) => ["a_appeler", "a_recontacter"].includes(p.statut)],
   ["en_cours", "Contacté", (p) => ["contacte", "en_discussion"].includes(p.statut)],
   ["rdv", "Sorties", (p) => SORTIES.includes(p.statut)],
@@ -208,6 +212,26 @@ const VISIBLES = ["statut", "telephone", "prochaine", "dernier"];
 const COLONNES_FILE = VISIBLES.map((k) => COLONNES.find((c) => c.cle === k)).filter(Boolean).map((c) => (c.cle === "telephone" ? { ...c, titre: "Numéro", largeur: 170 } : c));
 // L'ordre de la file : les relances dues d'abord, puis les « à contacter », puis le reste ; à rang égal, la plus ancienne échéance.
 const echeance = (p) => Date.parse(p.prochaine_action_le || "") || Infinity;
+// Le titre d'une colonne, cliquable : un clic trie, le deuxième inverse, le troisième rend l'ordre de la file.
+function TitreTri({ cle, mot, tri, setTri }) {
+  const actif = tri?.cle === cle;
+  return (
+    <button type="button" onClick={() => setTri(!actif ? { cle, sens: 1 } : tri.sens === 1 ? { cle, sens: -1 } : null)}
+      title={actif ? (tri.sens === 1 ? "Trié : cliquer pour inverser" : "Trié à l'envers : cliquer pour revenir à l'ordre de la file") : "Cliquer pour trier"}
+      className="inline-flex items-center gap-1 whitespace-nowrap p-0 text-encre hover:text-menthe" style={{ background: "transparent" }}>
+      {mot}{actif && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}
+    </button>
+  );
+}
+
+// La valeur d'une colonne pour le tri : le texte affiché, ou la date pour la prochaine action.
+const valeurTri = (p, cle, libelles) => {
+  if (cle === "commerce") return p.commerce || p.nom || "";
+  if (cle === "statut") return libelles?.[p.statut] || p.statut || "";
+  if (cle === "prochaine") return echeance(p);
+  const col = COLONNES.find((c) => c.cle === cle);
+  return String(col?.lire?.(p) ?? "");
+};
 const rangFile = (p, maintenant) => (echeance(p) <= maintenant ? 0 : ["a_appeler", "a_recontacter"].includes(p.statut) ? 1 : 2);
 
 /**
@@ -299,10 +323,12 @@ function CarteListeGrandEcran({ fiches, onFermer }) {
   );
 }
 
-export default function TableauListe({ fiches, libelles, listeId = null, carteDemandee = false, onCarteVue = null, reste = null, onRenommer = null, onSupprimer = null, agent = false, chiffres = null }) {
+export default function TableauListe({ fiches, libelles, listeId = null, carteDemandee = false, onCarteVue = null, reste = null, onSupprimer = null, agent = false, chiffres = null }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
-  const [filtre, setFiltre] = useState("a_appeler");
+  const [filtre, setFiltre] = useState("tous");
+  // Le tri d'une colonne, d'un clic sur son titre ; sans tri, l'ordre de la file (relances dues, puis à contacter).
+  const [tri, setTri] = useState(null);
   const [retirer, setRetirer] = useState(false);
   // Les lignes cochées, pour agir en lot.
   const [coches, setCoches] = useState(() => new Set());
@@ -348,14 +374,24 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
     const garde = (FILTRES.find(([k]) => k === filtre) || FILTRES[0])[2];
     const maintenant = Date.now();
     return (fiches || []).filter(garde).filter((p) => !t || `${p.commerce || ""} ${p.nom || ""} ${p.cible?.proprietaire || ""} ${p.cible?.societe?.nom || ""} ${p.adresse || p.cible?.adresse || ""} ${p.telephone || ""}`.toLowerCase().includes(t))
-      .sort((a, b) => rangFile(a, maintenant) - rangFile(b, maintenant) || echeance(a) - echeance(b));
-  }, [fiches, q, filtre]);
+      .sort((a, b) => {
+        if (!tri) return rangFile(a, maintenant) - rangFile(b, maintenant) || echeance(a) - echeance(b);
+        const va = valeurTri(a, tri.cle, libelles);
+        const vb = valeurTri(b, tri.cle, libelles);
+        // Les cases vides toujours en bas, quel que soit le sens.
+        const videA = va === "" || va === Infinity;
+        const videB = vb === "" || vb === Infinity;
+        if (videA !== videB) return videA ? 1 : -1;
+        const c = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb), "fr", { numeric: true });
+        return c * tri.sens || rangFile(a, maintenant) - rangFile(b, maintenant);
+      });
+  }, [fiches, q, filtre, tri, libelles]);
   const compte = (k) => (fiches || []).filter((FILTRES.find(([x]) => x === k) || FILTRES[0])[2]).length;
   // 50 commerces par page (30 oct. 2026, Jules : « pas toute la liste des milliers de commerces ») : la recherche, les
   // filtres, « tout cocher » et la carte portent sur toute la liste ; seul le tableau n'en dessine que 50.
   const PAR_PAGE = 50;
   const [page, setPage] = useState(1);
-  useEffect(() => { setPage(1); }, [q, filtre, listeId]);
+  useEffect(() => { setPage(1); }, [q, filtre, listeId, tri]);
   const pageCourante = Math.min(page, Math.max(1, Math.ceil(lignes.length / PAR_PAGE)));
   const affichees = lignes.slice((pageCourante - 1) * PAR_PAGE, pageCourante * PAR_PAGE);
   // Les cases suivent la liste : une fiche partie n'est plus cochée.
@@ -385,12 +421,6 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
             <span><span className="tabular-nums text-menthe">{chiffres.faits}</span> fait{chiffres.faits > 1 ? "s" : ""} sur <span className="tabular-nums text-encre">{chiffres.total}</span>{chiffres.rdv ? <> · <span className="tabular-nums text-encre">{chiffres.rdv}</span> RDV</> : null}</span>
           ) : `${lignes.length} commerce${lignes.length > 1 ? "s" : ""}${agent ? " · remplie par votre agent IA" : ""}`}
         </span>
-        {onRenommer && (
-          <button type="button" onClick={onRenommer}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
-            <Pencil className="h-3.5 w-3.5" />Renommer
-          </button>
-        )}
         {onSupprimer && (
           // L'icône seule (25 oct. 2026, Jules), le mot au survol et pour les lecteurs d'écran.
           <button type="button" onClick={onSupprimer} aria-label="Supprimer la liste" title="Supprimer la liste"
@@ -417,7 +447,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
           Seul le débord horizontal (colonnes sur un écran étroit) défile dans le cadre. */}
       {/* Au téléphone, plus de tableau (25 oct. 2026) : une ligne par commerce, le nom, la pastille du statut, la prochaine
           action ; un toucher ouvre la fiche au milieu de l'écran. */}
-      <ul className="m-0 mt-4 list-none overflow-hidden rounded-[14px] border border-bord-doux bg-rail p-0 md:hidden">
+      <ul className="m-0 mt-4 list-none overflow-hidden rounded-[14px] border border-trait bg-rail p-0 md:hidden">
         {affichees.map((p) => (
           <li key={p.id} className="border-b border-trait last:border-b-0">
             <button type="button" onClick={() => setOuvert(p.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left" style={{ background: "transparent" }}>
@@ -433,11 +463,12 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
         ))}
         {!lignes.length && <li className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : filtre === "a_appeler" ? "Plus personne à contacter dans cette liste." : "Rien ici."}</li>}
       </ul>
-      <div className="mt-4 overflow-x-auto rounded-[14px] border border-bord-doux bg-rail max-md:hidden">
+      {/* Le cadre a le trait des lignes, sans trait doublé à droite ni en bas (Jules, 31 oct. 2026). */}
+      <div className="mt-4 overflow-x-auto rounded-[14px] border border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail max-md:hidden">
         {/* Bordures séparées, pas fusionnées (25 oct. 2026, Jules : « on voit du texte passer derrière ») : fusionnées, les traits
             appartiennent au tableau et ne suivent pas les colonnes figées, le texte qui défile se voyait au travers ; séparées,
             chaque cellule porte les siens, peints sur son fond opaque. */}
-        <table className="min-w-full border-separate border-spacing-0 text-[13.5px]">
+        <table className="min-w-full border-separate border-spacing-0 text-[13.5px] [&_tr>*:last-child]:border-r-0 [&_tbody>tr:last-child>td]:border-b-0">
           <thead>
             <tr>
               <th className="sticky left-0 z-30 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-0 py-3.5" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
@@ -447,9 +478,9 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                   <Case oui={tout} />
                 </button>
               </th>
-              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-3.5 pl-2 pr-4 text-left text-[13.5px] font-normal text-encre">Commerce</th>
+              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-3.5 pl-2 pr-4 text-left text-[13.5px] font-normal text-encre"><TitreTri cle="commerce" mot="Commerce" tri={tri} setTri={setTri} /></th>
               {COLONNES_FILE.map((c) => (
-                <th key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-4 py-3.5 text-left text-[13.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
+                <th key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-4 py-3.5 text-left text-[13.5px] font-normal text-encre" style={{ minWidth: c.largeur }}><TitreTri cle={c.cle} mot={c.titre} tri={tri} setTri={setTri} /></th>
               ))}
             </tr>
           </thead>

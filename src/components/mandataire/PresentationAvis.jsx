@@ -91,7 +91,7 @@ export default function PresentationAvis({ id, onPleinEcran, mode = "lecture", o
     try { await base44.request("PUT", `/api/mandataire/estimations/${id}/avis`, { body: { avis } }); }
     catch (e) { toast.error(e?.message || "Retouche non enregistrée"); queryClient.invalidateQueries({ queryKey: ["m-apercu", id] }); }
   };
-  if (!id) return <p className="m-0 grid h-full place-items-center px-8 text-center text-[14px] text-ardoise">La présentation se construit sur l'avis de valeur : racontez la visite, Haka rédige l'avis.</p>;
+  if (!id) return <p className="m-0 grid h-full place-items-center px-8 text-center text-[14px] text-ardoise">La présentation se construit sur l'avis de valeur : racontez la visite, l'Assistant KPartners rédige l'avis.</p>;
   if (isLoading) return <div className="grid h-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-menthe" /></div>;
   return (
     <div className="relative h-full min-h-0">

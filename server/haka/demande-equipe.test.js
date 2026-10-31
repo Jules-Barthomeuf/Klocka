@@ -25,7 +25,7 @@ Records.create('User', { email: 'jules@test.local', role: 'admin', full_name: 'J
 const nora = Records.create('User', { email: 'nora@klocka.immo', role: 'admin', full_name: 'Nora' });
 Meta.set('mail.preanalyse_auto.depuis', '2026-01-01T00:00:00.000Z');
 
-test('le tri : sur sourcing@, un mail de l\'équipe sans pièce est une demande à Haka ; ailleurs il reste dehors', () => {
+test('le tri : sur sourcing@, un mail de l\'équipe sans pièce est une demande à l\'Assistant KPartners ; ailleurs il reste dehors', () => {
   const ref = referentielTri();
   assert.ok(ref.commandes?.has('sourcing@klocka.immo'));
   const demande = trierMail({ compte: 'sourcing@klocka.immo', de_email: 'nora@klocka.immo', objet: 'Prépare la LOI pour Carnot', pieces_jointes: [] }, ref);
@@ -34,7 +34,7 @@ test('le tri : sur sourcing@, un mail de l\'équipe sans pièce est une demande 
   assert.equal(ailleurs.garder, false);
 });
 
-test('une demande de Nora : Haka répond, dépose dans la file pour elle, et lui répond par mail depuis sourcing@', async () => {
+test('une demande de Nora : Assistant KPartners répond, dépose dans la file pour elle, et lui répond par mail depuis sourcing@', async () => {
   const recu = [];
   D._brancherRepondeur(async ({ texte, user }) => { recu.push({ texte, user: user.email }); return { texte: 'Voici la LOI pour Carnot, à 215 000 €.', actions: [{ libelle: 'LOI rédigée' }], sources: [] }; });
   const mail = Records.create('MailRecu', { compte: 'sourcing@klocka.immo', de: 'Nora <nora@klocka.immo>', de_email: 'nora@klocka.immo', objet: 'Prépare la LOI pour Carnot à 215 000 €', texte: 'Merci !', date: new Date().toISOString(), interne: true, commande: true, pieces_jointes: [] });

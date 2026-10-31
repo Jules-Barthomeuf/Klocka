@@ -46,7 +46,7 @@ export default function NoteApresAppel({ onFin, duree = 5, titre = "Une précisi
         : (
           <div className="flex w-full max-w-[240px] flex-col items-center gap-1.5">
             <div className="h-1 w-full overflow-hidden rounded-full bg-relief"><div className="h-1 rounded-full bg-menthe transition-[width] duration-1000 ease-linear" style={{ width: `${(Math.max(0, restant) / duree) * 100}%` }} /></div>
-            <span className="text-[12.5px] tabular-nums text-brume">Haka continue dans {Math.max(0, restant)} s</span>
+            <span className="text-[12.5px] tabular-nums text-brume">L'Assistant KPartners continue dans {Math.max(0, restant)} s</span>
           </div>
         )}
     </div>

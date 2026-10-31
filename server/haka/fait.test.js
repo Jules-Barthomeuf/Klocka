@@ -9,7 +9,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-haka-fait-'));
 const { decrireRapport, decrireTache } = await import('./fait.js');
 
-test('un passage de la veille : la fiche pré-analysée et les documents classés, pas ce que Haka a mis en file', () => {
+test('un passage de la veille : la fiche pré-analysée et les documents classés, pas ce que l\'Assistant KPartners a mis en file', () => {
   const items = decrireRapport({ id: 'r1', le: '2026-10-17T08:00:00Z', lignes: [
     { dossier: 'Carnot', deal_id: 'd1', de: 'agent@x.fr', preanalyse: true },
     { dossier: 'Vitton', deal_id: 'd2', documents: ['bail.pdf', 'kbis.pdf'], drive: 'Klocka/Vitton', monday: 'fiche mise à jour' },

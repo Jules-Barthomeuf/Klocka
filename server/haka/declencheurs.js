@@ -115,18 +115,18 @@ export function verdictDuMail(m, { depuis = null, contexte = {}, decisions = [],
   if (m.haka_tache_id) {
     if (tache?.etat === 'en_attente_validation' && tache?.etape === 'accepter_preanalyse') return v('proposee', 'Proposée : elle attend « Je la rentre ? » dans la cloche et À valider.');
     if (m.fiche_refusee) return v('ecartee', `Vous avez répondu Non${m.fiche_refusee.motif ? ` : « ${m.fiche_refusee.motif} »` : ''}.`);
-    return v('proposee', `Prise par Haka${tache?.etat ? ` (${tache.etat.replace(/_/g, ' ')})` : ''}.`);
+    return v('proposee', `Prise par l'Assistant KPartners${tache?.etat ? ` (${tache.etat.replace(/_/g, ' ')})` : ''}.`);
   }
   if (m.haka_ignore) return v('ecartee', "L'automatisme « pré-analyse des fiches » était en pause à son arrivée (Administration › Automatismes).");
   if (m.deal_id) return v('ecartee', 'Rattachée à un dossier existant (même conversation ou même fiche) : pas de nouvelle proposition.');
-  if (m.fiche_ecartee) return v('ecartee', `Haka a appris que ce n'est pas une fiche : ${m.fiche_ecartee.raison || 'refus précédents'}.`);
-  if (depuis && Date.parse(m.date || 0) < Date.parse(depuis)) return v('ecartee', 'Arrivée avant la mise en route de Haka sur les fiches.');
+  if (m.fiche_ecartee) return v('ecartee', `L'Assistant KPartners a appris que ce n'est pas une fiche : ${m.fiche_ecartee.raison || 'refus précédents'}.`);
+  if (depuis && Date.parse(m.date || 0) < Date.parse(depuis)) return v('ecartee', 'Arrivée avant la mise en route de l\'Assistant KPartners sur les fiches.');
   if (dossierDeLaConversation(m, contexte)) return v('ecartee', "Elle répond à la conversation d'un dossier : elle y entre comme une pièce.");
-  if (!pieces.length) return v('ecartee', 'Aucune pièce jointe : la fiche est peut-être dans le texte ou derrière un lien. Collez-la dans le chat de Haka.');
+  if (!pieces.length) return v('ecartee', 'Aucune pièce jointe : la fiche est peut-être dans le texte ou derrière un lien. Collez-la dans le chat de l\'Assistant KPartners.');
   if (!piecesFiche(m).length) return v('ecartee', `Aucune pièce ne ressemble à une fiche (${pieces.slice(0, 3).join(', ')}) : un PDF ou un Word, pas un document de dossier.`);
   if (!estUneNouvelleFiche(m, contexte)) return v('ecartee', "Le mail l'annonce comme un complément, ou la pièce porte un nom muet et le mail ne parle pas d'un bien à vendre.");
   const appris = verdictAppris(m, decisions);
-  if (appris.proposer === false) return v('ecartee', `Haka a appris que ce n'est pas une fiche : ${appris.raison}.`);
+  if (appris.proposer === false) return v('ecartee', `L'Assistant KPartners a appris que ce n'est pas une fiche : ${appris.raison}.`);
   return v('en_attente', 'Elle sera proposée au prochain relevé des boîtes (toutes les quelques minutes).');
 }
 

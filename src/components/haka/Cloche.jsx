@@ -198,7 +198,7 @@ export default function Cloche({ className = "", mandataire = false }) {
                       </span>
                       {motifDe === l.cle && (
                         <form onSubmit={(e) => { e.preventDefault(); if (motif.trim().length >= 3) repondre(l, false); }} className="absolute inset-x-3 top-[calc(100%-4px)] z-10 flex items-center gap-2 rounded-[14px] border border-bord-doux bg-surface-pleine p-2 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
-                          <input autoFocus value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Pourquoi non ? (Haka en apprend)" className="h-9 min-w-0 flex-1 rounded-full border border-trait bg-surface px-3.5 text-[13.5px] text-encre outline-none focus:border-bord-vif max-md:text-[16px]" />
+                          <input autoFocus value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Pourquoi non ? (Assistant KPartners en apprend)" className="h-9 min-w-0 flex-1 rounded-full border border-trait bg-surface px-3.5 text-[13.5px] text-encre outline-none focus:border-bord-vif max-md:text-[16px]" />
                           <button type="submit" disabled={motif.trim().length < 3} className="inline-flex h-9 flex-none items-center rounded-full bg-encre px-3.5 text-[13px] text-fond disabled:opacity-40">Confirmer</button>
                         </form>
                       )}

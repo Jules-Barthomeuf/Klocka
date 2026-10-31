@@ -99,7 +99,7 @@ export default function ApercuFicheRecue({ proposition: p, onFermer, onTrancher,
 
         {non ? (
           <div className="flex flex-none flex-col gap-3 border-t border-trait px-5 py-4">
-            <p className="m-0 text-[14px] text-encre">Pourquoi ne pas la rentrer ? <span className="text-ardoise">Votre réponse apprend à Haka ce qu'est une fiche.</span></p>
+            <p className="m-0 text-[14px] text-encre">Pourquoi ne pas la rentrer ? <span className="text-ardoise">Votre réponse apprend à l'Assistant KPartners ce qu'est une fiche.</span></p>
             <div className="flex flex-wrap gap-1.5">
               {RAISONS.map(([cle, mot]) => (
                 <button key={cle} type="button" aria-pressed={categorie === cle} onClick={() => { setCategorie(cle); if (!motif.trim() || RAISONS.some(([, m]) => m === motif)) setMotif(cle === "autre" ? "" : mot); }}

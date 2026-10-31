@@ -385,7 +385,7 @@ export default function Personnalisation() {
     ["couleurs", "Couleurs", true],
     ["affichage", "Affichage", true],
     // Haka à sa façon (18 oct. 2026, Jules) : son portrait, la longueur de ses réponses, les tableaux.
-    ["haka", "Haka", !vueClient],
+    ["haka", "Assistant KPartners", !vueClient],
     ["navigation", "Navigation", !vueClient],
     ["signature", "Signature", admin && !vueClient],
     // Ses mails après un appel (13 oct. 2026) : à partir de ceux de l'équipe.
@@ -449,9 +449,12 @@ export default function Personnalisation() {
         <Reglage titre="Mode" note="Sombre, clair, ou celui de l'appareil, qui change avec lui.">
           <Pilules valeur={prefs.mode} options={OPTIONS.mode} onChoisir={(v) => changer({ mode: v })} />
         </Reglage>
-        <Reglage titre="Couleur d'accent" note="Boutons, liens, états actifs et pastilles. En clair, la teinte descend d'un cran pour rester lisible.">
-          <ChoixAccent prefs={prefs} changer={changer} theme={theme} />
-        </Reglage>
+        {/* Côté mandataire, l'accent est celui de K Partners : rien à choisir (31 oct. 2026, Jules). */}
+        {!vueMandataire && (
+          <Reglage titre="Couleur d'accent" note="Boutons, liens, états actifs et pastilles. En clair, la teinte descend d'un cran pour rester lisible.">
+            <ChoixAccent prefs={prefs} changer={changer} theme={theme} />
+          </Reglage>
+        )}
         <Reglage titre="Fond" note="Le fond de l'application, pour chacun des deux modes.">
           <span className="w-full text-[12px] text-brume">En sombre</span>
           <Pilules valeur={prefs.fond_sombre} options={OPTIONS.fond_sombre} onChoisir={(v) => changer({ fond_sombre: v })} />
@@ -553,7 +556,7 @@ export default function Personnalisation() {
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
       {section === "haka" && (
       <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-        <Reglage titre="Personnage de Haka" note="Son portrait dans les chats.">
+        <Reglage titre="Personnage de l'Assistant KPartners" note="Son portrait dans les chats.">
           <div className="flex flex-wrap items-center gap-3">
             {OPTIONS.personnage_haka.map(([v, mot]) => {
               const actif = prefs.personnage_haka === v;
@@ -574,7 +577,7 @@ export default function Personnalisation() {
         {/* Les portraits en grand (18 oct. 2026, Jules) : un clic en choisit un. */}
         <Dialog open={portraitsGrands} onOpenChange={setPortraitsGrands}>
           <DialogContent className="max-w-[880px]">
-            <DialogHeader><DialogTitle>Personnage de Haka</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Personnage de l'Assistant KPartners</DialogTitle></DialogHeader>
             <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
               {OPTIONS.personnage_haka.map(([v, mot]) => {
                 const actif = prefs.personnage_haka === v;
@@ -590,7 +593,7 @@ export default function Personnalisation() {
             </div>
           </DialogContent>
         </Dialog>
-        <Reglage titre="Longueur des réponses" note="Pour vous seul. Plus c'est court, moins Haka coûte.">
+        <Reglage titre="Longueur des réponses" note="Pour vous seul. Plus c'est court, moins Assistant KPartners coûte.">
           <Pilules valeur={prefs.haka_longueur} options={OPTIONS.haka_longueur} onChoisir={(v) => changer({ haka_longueur: v })} />
         </Reglage>
         <Reglage titre="Tableaux" note="Un petit tableau quand il dit les chiffres plus vite qu'une phrase, ou jamais.">

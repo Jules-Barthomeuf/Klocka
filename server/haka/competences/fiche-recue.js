@@ -86,7 +86,7 @@ taches.enregistrer(COMPETENCE, {
         const mail = Records.get('MailRecu', tache.charge.mail_id);
         if (charge.choix === 'ignorer') {
           const motif = String(charge.motif || '').trim();
-          if (motif.length < 3) throw new Error("Dites pourquoi vous ne la rentrez pas : c'est ce qui apprend à Haka ce qu'est une fiche.");
+          if (motif.length < 3) throw new Error("Dites pourquoi vous ne la rentrez pas : c'est ce qui apprend à l'Assistant KPartners ce qu'est une fiche.");
           Records.update('MailRecu', tache.charge.mail_id, { fiche_refusee: { par: user?.email || null, le: new Date().toISOString(), categorie: charge.categorie || null, motif } });
           enregistrer(mail, { choix: 'ignorer', categorie: charge.categorie, motif, par: user?.email || null });
           return { choix: 'ignorer', categorie: charge.categorie || null, motif, fin: true };
@@ -109,7 +109,7 @@ taches.enregistrer(COMPETENCE, {
         if (taches.tachesDuJour(COMPETENCE, jour) > PLAFOND_JOUR) {
           const { notifier } = await import('../../notifications.js');
           const { SUPER_ADMINS } = await import('../../acces-pages.js');
-          notifier({ pour: SUPER_ADMINS[0], titre: `Plafond Haka atteint : ${PLAFOND_JOUR} dossiers aujourd'hui`, texte: 'Les fiches suivantes attendent demain 7 h. HAKA_PLAFOND_JOUR le relève.', lien: '/AValider', genre: 'haka', cle: `haka:plafond:${jour}` });
+          notifier({ pour: SUPER_ADMINS[0], titre: `Plafond Assistant KPartners atteint : ${PLAFOND_JOUR} dossiers aujourd'hui`, texte: 'Les fiches suivantes attendent demain 7 h. HAKA_PLAFOND_JOUR le relève.', lien: '/AValider', genre: 'haka', cle: `haka:plafond:${jour}` });
           return { differer: demainSeptHeures() };
         }
         const { referentielTri } = await import('../../deal/tri-mails.js');
@@ -132,7 +132,7 @@ taches.enregistrer(COMPETENCE, {
             apports: [...(deal.apports || []), apport],
           });
           const { ajouterSuivi } = await import('../../deal/lifecycle.js');
-          ajouterSuivi(Records.get('Deal', deal.id), { type: 'preanalyse_auto', detail: `Préanalysé par Haka à l'arrivée du mail de ${mail.de_email || '?'} dans ${mail.compte}${proprietaire ? `, dossier attribué à ${proprietaire.nom}` : ''}` }, null);
+          ajouterSuivi(Records.get('Deal', deal.id), { type: 'preanalyse_auto', detail: `Préanalysé par l'Assistant KPartners à l'arrivée du mail de ${mail.de_email || '?'} dans ${mail.compte}${proprietaire ? `, dossier attribué à ${proprietaire.nom}` : ''}` }, null);
         }
         return { deal_id: dossier.deal_id, rejoint, interne, dossier: dossier.deal_id, pour };
       },
@@ -253,7 +253,7 @@ taches.enregistrer(COMPETENCE, {
         else if (SIMULER || deal.test) {
           const { logEmail } = await import('../../email.js').catch(() => ({}));
           envoi = { success: true, simulated: true };
-          if (typeof logEmail === 'function') logEmail({ from: charge.de, expediteur: charge.de, to: a, destinataire: a, subject: charge.objet, sujet: charge.objet, body: charge.corps, contenu: charge.corps, template_id, deal_id, intention: 'demande_documents', direction: 'sortant', statut: 'simule', error: 'Simulation Haka', sent_at: new Date().toISOString() });
+          if (typeof logEmail === 'function') logEmail({ from: charge.de, expediteur: charge.de, to: a, destinataire: a, subject: charge.objet, sujet: charge.objet, body: charge.corps, contenu: charge.corps, template_id, deal_id, intention: 'demande_documents', direction: 'sortant', statut: 'simule', error: 'Simulation Assistant KPartners', sent_at: new Date().toISOString() });
         } else {
           const { sendEmail } = await import('../../email.js');
           // `owner` : la boîte est celle de l'analyste, même quand c'est Jules qui valide.
@@ -279,7 +279,7 @@ async function rattacher({ nouveau, existantId, mail, pour, tache, prevenir = tr
   if (mail) Records.update('MailRecu', mail.id, { deal_id: existantId });
   Records.update('Deal', nouveau.id, { archived: true, doublon_de: existantId });
   const { ajouterSuivi } = await import('../../deal/lifecycle.js');
-  ajouterSuivi(Records.get('Deal', existant.id), { type: 'mail_recu', detail: `Le même bien est arrivé de ${mail?.de_email || '?'} dans ${mail?.compte || '?'} : fiche ajoutée aux documents (Haka)` }, null);
+  ajouterSuivi(Records.get('Deal', existant.id), { type: 'mail_recu', detail: `Le même bien est arrivé de ${mail?.de_email || '?'} dans ${mail?.compte || '?'} : fiche ajoutée aux documents (Assistant KPartners)` }, null);
   if (prevenir) {
     await file.proposer({
       type: 'meme_bien_recu', titre: `Même bien reçu d'un autre agent : ${existant.nom || existantId}`,

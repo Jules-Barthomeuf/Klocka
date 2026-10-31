@@ -239,12 +239,24 @@ test("les PV d'AG : un onglet par assemblée, une ligne par résolution, « À v
   assert.equal(r7.montant, 84000);
   assert.equal(r7.issue, 'rejetee');
   assert.ok(!A.lireAnalyse('AP30').grilles.find((g) => g.id === 'pv_ag').lignes.some((l) => l.id === 'resolutions'), 'la grille du PV ne change pas');
-  assert.equal(A.statuerResolution('AP30', r7.cle, 'important', { email: 'nora@klocka.immo' }).ok, true);
-  assert.equal(A.statuerResolution('AP30', r7.cle, 'urgent').ok, false);
+  assert.equal(A.statuerResolution('AP30', r7.cle, 'verifie', { email: 'nora@klocka.immo' }).ok, true);
+  assert.equal(A.statuerResolution('AP30', r7.cle, 'important').ok, false, 'deux statuts seulement');
   assert.equal(A.statuerResolution('AP30', 'inconnu:1', 'verifie').ok, false);
   const apres = A.lireAnalyse('AP30').assemblees[1].resolutions;
-  assert.equal(apres[1].statut, 'important');
+  assert.equal(apres[1].statut, 'verifie');
   assert.equal(apres[1].par, 'nora@klocka.immo');
   A.statuerResolution('AP30', r7.cle, 'a_verifier');
   assert.equal(A.lireAnalyse('AP30').assemblees[1].resolutions[1].statut, 'a_verifier');
+  // Cacher une résolution, puis tout réafficher depuis l'id du PV (30 oct. 2026, Jules).
+  A.statuerResolution('AP30', r1.cle, 'verifie');
+  assert.equal(A.statuerResolution('AP30', r1.cle, null, null, { cachee: true }).ok, true);
+  A.statuerResolution('AP30', r7.cle, null, null, { cachee: true });
+  let lues = A.lireAnalyse('AP30').assemblees[1].resolutions;
+  assert.deepEqual(lues.map((r) => r.cachee), [true, true]);
+  assert.equal(lues[0].statut, 'verifie', 'cacher garde le statut');
+  assert.equal(A.statuerResolution('AP30', 'pv24', null, null, { cachee: true }).ok, false, 'un PV entier ne se cache pas');
+  assert.equal(A.statuerResolution('AP30', 'pv24', null, null, { cachee: false }).ok, true);
+  lues = A.lireAnalyse('AP30').assemblees[1].resolutions;
+  assert.deepEqual(lues.map((r) => r.cachee), [false, false]);
+  assert.equal(lues[0].statut, 'verifie');
 });

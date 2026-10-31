@@ -216,7 +216,7 @@ export function Preparation({ prep, p = null, onDecaler = null }) {
           )}
           {mail && (
             <div className="mt-3 rounded-[14px] border border-trait p-4">
-              <p className="m-0 text-[12.5px] text-ardoise">Préparé par Haka, à envoyer après le rendez-vous</p>
+              <p className="m-0 text-[12.5px] text-ardoise">Préparé par l'Assistant KPartners, à envoyer après le rendez-vous</p>
               <p className="m-0 mt-1 text-encre">{mail.objet}</p>
               <p className="m-0 mt-2 whitespace-pre-line text-[13.5px] text-craie">{mail.texte}</p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -468,7 +468,7 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
             {/* Le chat au milieu du panneau à l'ouverture, puis en bas dès le premier message (27 oct. 2026, Jules). */}
             <div className={`flex min-h-0 flex-1 flex-col px-4 pb-4 ${convHaka ? "" : "justify-center"}`}>
               <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConvHaka}
-                onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Haka" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
+                onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
                 barreApercu sansBarreHaut retour={{ libelle: "Tous les biens", onClick: onFermer }} />
             </div>
           </motion.aside>
@@ -483,7 +483,7 @@ function Attente() {
   return (
     <div className="flex flex-col items-center gap-2 py-16 text-center" role="status">
       <Loader2 className="h-5 w-5 animate-spin text-ardoise" />
-      <p className="m-0 text-[14px] text-ardoise">Haka prépare le rendez-vous…</p>
+      <p className="m-0 text-[14px] text-ardoise">L'Assistant KPartners prépare le rendez-vous…</p>
     </div>
   );
 }

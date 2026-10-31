@@ -65,7 +65,7 @@ export function essayer({ slug, brouillon, publiee, ref }) {
   const base = { dossier: deal.deal_id, titre, cout_eur: 0 };
   if (slug !== 'pre-analyse-fiche') {
     const ecarts = [];
-    if (publiee && brouillon.corps !== publiee.corps) ecarts.push('Le corps de la méthode a changé : il se juge à l\'exécution, par Haka.');
+    if (publiee && brouillon.corps !== publiee.corps) ecarts.push('Le corps de la méthode a changé : il se juge à l\'exécution, par l\'Assistant KPartners.');
     return { ...base, brouillon: { verdict: null }, publiee: { verdict: null }, note: "Pas de règles chiffrées à rejouer : l'en-tête et le dossier sont valides.", ecarts, duree_ms: Date.now() - debut };
   }
   const valeurs = valeursDuDossier(deal);

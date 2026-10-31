@@ -209,7 +209,7 @@ export default function TeaserBien({ marcheId, mode = "edition" }) {
       <div className="min-w-0 flex-1">
       <div className="mx-auto max-w-[640px]">
         {/* Sources : le survol d'un champ montre d'où il vient (le mandat, l'avis, un calcul, l'API Géo, vous ou Haka). */}
-        <SurvolSources actif={mode === "sources"} lire={(chemin, texte) => (texte.includes(AFAIRE) ? { nature: "a_remplir", detail: "Rien dans le mandat ni l'avis : corrigez-le d'un clic ou dites-le à Haka." } : t.sources?.[chemin] || null)}>
+        <SurvolSources actif={mode === "sources"} lire={(chemin, texte) => (texte.includes(AFAIRE) ? { nature: "a_remplir", detail: "Rien dans le mandat ni l'avis : corrigez-le d'un clic ou dites-le à l'Assistant KPartners." } : t.sources?.[chemin] || null)}>
           <EditionTeaser.Provider value={{ choisi: selection?.chemin || null, choisir: edition ? setSelection : null }}>
             <Apercu><PageTeaser t={t} signataire={data.signataire} classe={classe}
               onPatch={edition ? (patch) => modifier.mutate(patch) : null} onPhoto={edition ? (f) => photo.mutate(f) : null} /></Apercu>

@@ -47,7 +47,7 @@ export function PastilleSource({ cle, choisie = false, eteinte = false, onClick,
 // `choix` : les sources proposées (celles du mandataire, 26 oct. 2026) ; par défaut, celles de l'équipe.
 export function PanneauSources({ sources, onChange, className = "", choix = SOURCES_CHOISISSABLES }) {
   const basculer = (cle) => onChange(sources.includes(cle) ? sources.filter((x) => x !== cle) : [...sources, cle]);
-  const phrase = sources.length ? `Haka ne lira que ${sources.length > 1 ? `ces ${sources.length} sources` : "cette source"}.` : "Auto : Haka choisit lui-même où chercher. Cochez des sources pour l'en tenir là.";
+  const phrase = sources.length ? `L'Assistant KPartners ne lira que ${sources.length > 1 ? `ces ${sources.length} sources` : "cette source"}.` : "Auto : Assistant KPartners choisit lui-même où chercher. Cochez des sources pour l'en tenir là.";
   return (
     <div className={`flex flex-col items-center gap-3 ${className}`}>
       <AnimatePresence mode="wait" initial={false}>
@@ -86,7 +86,7 @@ export function BoutonSources({ sources, onOuvrir, ouvert }) {
   const libelle = !sources.length ? "Auto" : sources.length === 1 ? sourceDe(sources[0]).nom : String(sources.length);
   return (
     <button type="button" onClick={onOuvrir} aria-expanded={ouvert}
-      title={sources.length ? `Haka ne lira que : ${sources.map((c) => sourceDe(c).nom).join(", ")}` : "Haka choisit lui-même ses sources ; un clic pour les choisir"}
+      title={sources.length ? `L'Assistant KPartners ne lira que : ${sources.map((c) => sourceDe(c).nom).join(", ")}` : "L'Assistant KPartners choisit lui-même ses sources ; un clic pour les choisir"}
       className={`inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] transition-colors hover:bg-barre-relief ${sources.length ? "text-menthe" : "text-craie"}`}
       style={{ background: "transparent" }}>
       <Sparkles className="h-3.5 w-3.5" />

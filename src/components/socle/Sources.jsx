@@ -32,7 +32,7 @@ export default function Sources({ peutRegler = false }) {
     <div className="flex flex-col gap-6">
       <section className="flex items-center justify-between gap-4 rounded-[16px] border border-trait bg-rail px-5 py-4">
         <div>
-          <p className="m-0 text-[15px] text-encre">Boîte à outils de Haka</p>
+          <p className="m-0 text-[15px] text-encre">Boîte à outils de l'Assistant KPartners</p>
           <p className="m-0 mt-1 text-[13px] text-ardoise">Allumée, le socle tourne : identifiant de local, imports de la nuit sur les Alpes-Maritimes. Éteinte, les outils restent tels qu'avant.</p>
         </div>
         <Switch checked={!!active} disabled={!peutRegler || interrupteur.isPending} onCheckedChange={(v) => interrupteur.mutate(v)} aria-label="Allumer la boîte à outils" />

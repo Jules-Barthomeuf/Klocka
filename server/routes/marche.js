@@ -27,6 +27,16 @@ export function monterMarche(app) {
     ok(res, { panorama: await panoramaDeLaRue({ lat, lon, rue: req.query.rue ? String(req.query.rue).slice(0, 120) : null }) });
   }));
 
+  // La photo d'un commerce, celle de sa fiche Google, en tête des fiches (31 oct. 2026, à la place de Street View).
+  app.get('/api/commerce/photo', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
+    const { photoDuCommerce, lienMaps } = await import('../photo-commerce.js');
+    const pres = Number.isFinite(Number(req.query.lat)) && Number.isFinite(Number(req.query.lon)) && req.query.lat !== '' ? { lat: Number(req.query.lat), lon: Number(req.query.lon) } : null;
+    const demande = { placeId: req.query.place_id ? String(req.query.place_id).slice(0, 200) : null, nom: String(req.query.nom || '').slice(0, 200), adresse: String(req.query.adresse || '').slice(0, 300), pres };
+    const r = await photoDuCommerce(demande).catch((e) => { console.warn(`[photo-commerce] ${e?.message || e}`); return { url: null, auteur: null, auteur_lien: null, maps: lienMaps(demande) }; });
+    ok(res, r);
+  }));
+
   // Ce que le client voit du bail sur sa page projet : quelques lignes, et
   // l'analyse complète derrière — sans les pièces.
   // « projets » (français) ne figure pas dans le préfixe de la garde globale, qui

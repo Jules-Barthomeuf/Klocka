@@ -246,12 +246,13 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
           </span>
         )}
       </div>
-      <div className="mt-4 overflow-x-auto rounded-[14px] border border-bord-doux bg-rail">
-        <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px]">
+      {/* Le cadre a le trait des lignes, sans trait doublé en bas (Jules, 31 oct. 2026, comme le tableau d'une liste). */}
+      <div className={`mt-4 overflow-x-auto rounded-[14px] border ${TRAIT} bg-rail`}>
+        <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px] [&_tr>*:last-child]:border-r-0 [&_tbody>tr:last-child>td]:border-b-0">
           <thead>
             <tr>
               <th className={`sticky left-0 z-30 border-b border-r ${TRAIT} bg-rail px-0 py-3.5`} style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
-                <span className="grid place-items-center"><Case oui={tousCoches} disabled={!libres.length} label="Cocher toute la page" onBasculer={() => setCoches((s) => { const n = new Set(s); for (const c of libres) { if (tousCoches) n.delete(c.id); else n.add(c.id); } return n; })} /></span>
+                <span className="grid place-items-center"><Case bord={TRAIT} oui={tousCoches} disabled={!libres.length} label="Cocher toute la page" onBasculer={() => setCoches((s) => { const n = new Set(s); for (const c of libres) { if (tousCoches) n.delete(c.id); else n.add(c.id); } return n; })} /></span>
               </th>
               {colonnes.map(([cle, mot], i) => (
                 <th key={cle} className={`border-b ${i < colonnes.length - 1 ? "border-r" : ""} ${TRAIT} bg-rail py-3.5 text-[13.5px] font-normal text-encre ${i === 0 ? "sticky left-[44px] z-30 min-w-[220px] pl-2 pr-4 max-md:min-w-[140px]" : "px-4"}`}>
@@ -266,7 +267,7 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
               return (
                 <tr key={c.id} onClick={() => onOuvrir(c.id)} className={`group cursor-pointer transition-colors ${ouvert === c.id ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
                   <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail px-0 py-4 align-middle`} style={{ width: 44, minWidth: 44, maxWidth: 44 }} onClick={(e) => e.stopPropagation()}>
-                    <span className="grid place-items-center"><Case oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></span>
+                    <span className="grid place-items-center"><Case bord={TRAIT} oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></span>
                   </td>
                   <td className={`sticky left-[44px] z-10 border-b border-r ${TRAIT} bg-rail py-4 pl-2 pr-4 align-middle`}>
                     <span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: LIENS[c.lien]?.couleur || JL.brume }} />

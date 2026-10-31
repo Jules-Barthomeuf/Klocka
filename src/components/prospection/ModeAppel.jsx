@@ -441,7 +441,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
     <div className="overflow-hidden rounded-[24px] border border-bord-doux bg-transparent">
       {enLigne?.apres ? (
         <div className="px-7 py-6 max-md:px-5 max-md:py-5">
-          <NoteApresAppel key="note" onFin={enLigne.onNote} titre="Une précision avant que Haka lise l'appel ?" />
+          <NoteApresAppel key="note" onFin={enLigne.onNote} titre="Une précision avant que l'Assistant KPartners lise l'appel ?" />
         </div>
       ) : (
       <div className="flex flex-wrap items-end justify-between gap-6 px-7 py-6 max-md:px-5 max-md:py-5">
@@ -989,7 +989,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       const f = new FormData();
       f.append("audio", clip, "objection.wav");
       return base44.request("POST", `${API}/appels/${ap.id}/objection`, { body: f, isForm: true });
-    }).then((r) => { if (r?.objection && !r.deja) toast("Objection envoyée à l'équipe", { description: `« ${phrase.slice(0, 90)} » : quinze secondes à écouter sur la page Haka.` }); }).catch(() => {});
+    }).then((r) => { if (r?.objection && !r.deja) toast("Objection envoyée à l'équipe", { description: `« ${phrase.slice(0, 90)} » : quinze secondes à écouter sur la page Assistant KPartners.` }); }).catch(() => {});
   };
   // La part de parole : l'audio entier part après coup, sans rien attendre ; jamais sur un appel simulé ni sans transcription gardée.
   const envoyerParole = (id) => {
@@ -1331,7 +1331,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {/* AK lit l'appel : sa chaîne de raisonnement, étape par étape, au moment où il la fait. */}
             {/* L'écran de raisonnement (9 oct. 2026) : le raisonnement seul, au milieu, sur le fond des listes ; pas de transcription. */}
             {ecran === "analyse" && a && (
-              <ChaineEtapes etapes={chaine.etapes} titre={`Haka lit l'appel · ${a.nom}`} centre />
+              <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant KPartners lit l'appel · ${a.nom}`} centre />
             )}
 
             {/* Ce qui a été compris, et les actions proposées. */}

@@ -64,7 +64,7 @@ export default function SourcesAvis({ id }) {
   if (!avis && !dits.length) {
     return (
       <p className="m-0 grid h-full place-items-center px-10 text-center text-[14px] leading-[1.6] text-ardoise">
-        Pas encore de sources. Elles se remplissent quand Haka rédige l'avis : ce que vous avez dit de la visite et du bail, l'estimation d'Equimmox et ses comparables, les ventes DVF, les loyers de marché et la commune.
+        Pas encore de sources. Elles se remplissent quand l'Assistant KPartners rédige l'avis : ce que vous avez dit de la visite et du bail, l'estimation d'Equimmox et ses comparables, les ventes DVF, les loyers de marché et la commune.
       </p>
     );
   }
@@ -89,7 +89,7 @@ export default function SourcesAvis({ id }) {
           </div>
         )}
 
-        {dits.length > 0 && <Bloc titre="Ce que vous avez dit" source="la visite, le bail et vos réponses à Haka"><Lignes lignes={dits} /></Bloc>}
+        {dits.length > 0 && <Bloc titre="Ce que vous avez dit" source="la visite, le bail et vos réponses à l'Assistant KPartners"><Lignes lignes={dits} /></Bloc>}
 
         {r && (
           <Bloc titre="Méthodes et pondération" source={`${eq.source || "Equimmox"}, estimation multicritères`}>

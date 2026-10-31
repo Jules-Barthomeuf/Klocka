@@ -38,7 +38,7 @@ export function useEtapesVives() {
  * Haka fait et son texte balayé d'un reflet (`.k-raisonne`) ; un trait relie les étapes. `centre` : la carte seule au
  * milieu de l'écran.
  */
-export function ChaineEtapes({ etapes, titre = "Haka lit l'appel", attente = "Je lis l'appel", centre = false }) {
+export function ChaineEtapes({ etapes, titre = "L'Assistant KPartners lit l'appel", attente = "Je lis l'appel", centre = false }) {
   const liste = etapes.length ? etapes : [attente];
   const carte = (
     <div className={`flex flex-col gap-6 rounded-[24px] border border-bord-doux bg-transparent px-8 py-8 max-md:px-5 ${centre ? "w-full max-w-[560px]" : ""}`}>

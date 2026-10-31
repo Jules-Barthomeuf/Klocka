@@ -39,7 +39,7 @@ export default function ChoixDossier({ valeur, onChoisir, versLeHaut = false, ma
   return (
     <div className="relative min-w-0">
       <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-haspopup="listbox"
-        title={valeur ? `La demande part avec le dossier « ${valeur.titre} »` : "Choisir un dossier : Haka l'aura en contexte"}
+        title={valeur ? `La demande part avec le dossier « ${valeur.titre} »` : "Choisir un dossier : Assistant KPartners l'aura en contexte"}
         className="inline-flex h-8 min-w-0 max-w-[240px] items-center gap-1.5 rounded-full px-2.5 text-[13px] transition-colors hover:bg-barre-relief"
         style={{ background: valeur ? J["barre-relief"] : "transparent", color: valeur ? J["encre"] : J["craie"] }}>
         <FolderOpen className="h-3.5 w-3.5 flex-none" style={{ color: valeur ? J["menthe"] : undefined }} />

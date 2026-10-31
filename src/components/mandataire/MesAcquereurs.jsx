@@ -112,13 +112,13 @@ function Import({ vide, onFermer, onFait }) {
         <p className="m-0 text-[15px] text-encre">{vide ? "Importez votre fichier acquéreurs" : "Importer d'autres acquéreurs"}</p>
         {onFermer && <button type="button" onClick={onFermer} className="text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>}
       </div>
-      <p className="m-0 mt-1 text-[13.5px] leading-[1.55] text-ardoise">Excel ou CSV, avec une ligne de titres : nom, téléphone, e-mail, ce qu'il cherche, villes, budget… Haka reconnaît les colonnes. Vos acquéreurs ne sont visibles que de vous ; Haka s'en sert pour vous dire qui appeler pour un bien.</p>
+      <p className="m-0 mt-1 text-[13.5px] leading-[1.55] text-ardoise">Excel ou CSV, avec une ligne de titres : nom, téléphone, e-mail, ce qu'il cherche, villes, budget… Assistant KPartners reconnaît les colonnes. Vos acquéreurs ne sont visibles que de vous ; Assistant KPartners s'en sert pour vous dire qui appeler pour un bien.</p>
       <button type="button" onClick={() => ref.current?.click()} disabled={envoyer.isPending}
         onDragOver={(e) => { e.preventDefault(); setSurvol(true); }} onDragLeave={() => setSurvol(false)}
         onDrop={(e) => { e.preventDefault(); setSurvol(false); fichier(e.dataTransfer.files?.[0]); }}
         className={`mt-4 flex min-h-[150px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed p-6 text-center transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : "border-bord hover:border-bord-vif"}`} style={survol ? undefined : { background: "transparent" }}>
         {envoyer.isPending ? <Loader2 className="h-5 w-5 animate-spin text-menthe" /> : <FileUp className="h-5 w-5 text-ardoise" />}
-        <span className="text-[13.5px] text-encre">{envoyer.isPending ? "Haka lit votre fichier…" : "Cliquez ou glissez votre fichier"}</span>
+        <span className="text-[13.5px] text-encre">{envoyer.isPending ? "L'Assistant KPartners lit votre fichier…" : "Cliquez ou glissez votre fichier"}</span>
         <span className="text-[12.5px] text-brume">.xlsx ou .csv</span>
       </button>
       <input ref={ref} type="file" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; fichier(f); }} />

@@ -96,7 +96,7 @@ export function indicesDuMail(mail, { clients = null } = {}) {
 export async function classerMail(mail, { indices = indicesDuMail(mail), signature = null, invoke = null } = {}) {
   const { invokeLLM } = await import('../llm.js');
   const exemples = exemplesAppris();
-  const prompt = `Tu es Haka, l'assistant de Klocka (investissement en murs commerciaux). Un mail vient d'arriver dans une boîte de l'équipe. Dis ce que c'est, sans rien inventer.
+  const prompt = `Tu es l'Assistant KPartners, l'assistant de Klocka (investissement en murs commerciaux). Un mail vient d'arriver dans une boîte de l'équipe. Dis ce que c'est, sans rien inventer.
 
 Natures possibles :
 - reponse_agent : un agent immobilier répond sur un dossier en cours (sans document à ranger, ou avec un texte qui compte plus que les pièces).
@@ -228,7 +228,7 @@ async function envoyerReponse(charge, { pour, user, proposition_id, deal_id }) {
   if (deja) return { deja: true, a };
   if (SIMULER) {
     const { logEmail } = await import('../email.js').catch(() => ({}));
-    if (typeof logEmail === 'function') logEmail({ from: charge.de, expediteur: charge.de, to: a, destinataire: a, subject: charge.objet, sujet: charge.objet, body: charge.corps, contenu: charge.corps, template_id, deal_id, intention: 'reponse_haka', direction: 'sortant', statut: 'simule', error: 'Simulation Haka', sent_at: new Date().toISOString() });
+    if (typeof logEmail === 'function') logEmail({ from: charge.de, expediteur: charge.de, to: a, destinataire: a, subject: charge.objet, sujet: charge.objet, body: charge.corps, contenu: charge.corps, template_id, deal_id, intention: 'reponse_haka', direction: 'sortant', statut: 'simule', error: 'Simulation Assistant KPartners', sent_at: new Date().toISOString() });
     return { simule: true, a };
   }
   const { sendEmail } = await import('../email.js');
@@ -329,7 +329,7 @@ taches.enregistrer(COMPETENCE, {
         apprendre(mail, { nature: charge.nature, decision: 'oui', par: user?.email });
         if (dossier) {
           const deal = Records.findBy('Deal', 'deal_id', dossier);
-          if (deal) { const { ajouterSuivi } = await import('../deal/lifecycle.js'); ajouterSuivi(deal, { type: 'haka', detail: `Haka, sur oui de ${user?.email || '?'} : ${charge.geste === 'ranger' ? `${(r.deposes || []).length} pièce(s) rangée(s)` : charge.geste === 'rappel' ? `rappel posé (${charge.quoi})` : `réponse envoyée à ${charge.a}`}` }, user); }
+          if (deal) { const { ajouterSuivi } = await import('../deal/lifecycle.js'); ajouterSuivi(deal, { type: 'haka', detail: `L'Assistant KPartners, sur oui de ${user?.email || '?'} : ${charge.geste === 'ranger' ? `${(r.deposes || []).length} pièce(s) rangée(s)` : charge.geste === 'rappel' ? `rappel posé (${charge.quoi})` : `réponse envoyée à ${charge.a}`}` }, user); }
         }
         return { geste: charge.geste, ...r, le: new Date().toISOString() };
       },
@@ -418,5 +418,5 @@ export function verdictAmbiant(m) {
   if (a.regroupe) return { verdict: 'proposee', raison: 'Regroupé avec la question ouverte du même dossier.' };
   if (a.proposition_id) return { verdict: 'proposee', raison: `${NATURES[a.nature]?.libelle || 'Mail'} : une question oui / non attend dans la cloche.` };
   if (a.raison) return { verdict: 'ecartee', raison: `${a.raison}${a.resume ? ` (« ${court(a.resume, 120)} »)` : ''}.` };
-  return { verdict: 'en_attente', raison: 'Haka le lit.' };
+  return { verdict: 'en_attente', raison: 'L\'Assistant KPartners le lit.' };
 }

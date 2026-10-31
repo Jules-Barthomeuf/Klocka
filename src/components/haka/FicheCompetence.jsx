@@ -70,7 +70,7 @@ function Definition({ c, v, setV, donnees }) {
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="flex min-w-0 flex-col gap-5">
         <label><span className={etiquette}>Nom</span><input value={v.nom} onChange={(e) => set("nom", e.target.value)} className={`${champ} h-10`} /></label>
-        <label><span className={etiquette}>Description · quand l'utiliser (Haka la lit pour choisir)</span><textarea value={v.resume} onChange={(e) => set("resume", e.target.value)} rows={3} className={`${champ} resize-y py-2.5`} /></label>
+        <label><span className={etiquette}>Description · quand l'utiliser (Assistant KPartners la lit pour choisir)</span><textarea value={v.resume} onChange={(e) => set("resume", e.target.value)} rows={3} className={`${champ} resize-y py-2.5`} /></label>
         <div>
           <span className={etiquette}>Déclencheurs</span>
           <div className="flex flex-wrap gap-1.5">{declencheurs.map((k) => { const on = v.declencheurs.includes(k); return <button key={k} type="button" aria-pressed={on} onClick={() => set("declencheurs", on ? v.declencheurs.filter((x) => x !== k) : [...v.declencheurs, k])} className={PILULE_CHOIX(on)} style={on ? undefined : { background: "transparent" }}>{NOMS_DECLENCHEURS[k] || k}{["chat", "dossier", "mail", "automatique"].includes(k) ? "" : ` (${k})`}</button>; })}</div>
@@ -133,7 +133,7 @@ function Definition({ c, v, setV, donnees }) {
           <p className="m-0 mt-1 text-[12px] text-brume">{v.corps.length > 4500 ? "Plus d'une page : pensez à scinder en deux compétences." : `${v.corps.length} signes · une page au plus.`}</p>
         </div>
         <div onDragOver={(e) => e.preventDefault()} onDrop={deposer}>
-          <span className={etiquette}>Annexes · lues par Haka seulement si une étape les demande</span>
+          <span className={etiquette}>Annexes · lues par l'Assistant KPartners seulement si une étape les demande</span>
           <div className="flex flex-col gap-2">
             {v.annexes.map((a, i) => (
               <details key={i} className="rounded-[10px] border border-trait px-3 py-2">
@@ -148,7 +148,7 @@ function Definition({ c, v, setV, donnees }) {
           </div>
         </div>
         <div>
-          <span className={etiquette}>La carte sur la page Haka</span>
+          <span className={etiquette}>La carte sur la page Assistant KPartners</span>
           <ApercuCarte v={v} />
         </div>
       </div>

@@ -166,7 +166,7 @@ test('Jules voit les questions posées aux autres, en lecture seule, sans en êt
   const q = Records.list('QuestionAppel').find((x) => x.appel_id === b.id);
   assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel-jules:${q.id}`)).length, 0);
   assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel:${q.id}`) && n.pour === 'jules.b@klocka.immo').length, 0);
-  assert.match(Records.list('Notification').find((n) => String(n.cle).startsWith(`question-appel:${q.id}`)).titre, /^Haka a une question/);
+  assert.match(Records.list('Notification').find((n) => String(n.cle).startsWith(`question-appel:${q.id}`)).titre, /^L'Assistant KPartners a une question/);
   // Les siennes ne lui sont pas annoncées deux fois.
   const c = appel({ par: 'jules.b@klocka.immo', modifie: true, corrections: [{ champ: 'Mail', avant: 'proposé', apres: 'réécrit' }], le: il_y_a(130) });
   await Q.tour({ invoke: async () => ({ resume: 'r', questions: [] }), maintenant: T0 });

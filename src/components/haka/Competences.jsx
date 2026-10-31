@@ -27,12 +27,12 @@ function NouvelleCompetence({ onCree, onFermer }) {
   return (
     <div className="rounded-[16px] border border-trait bg-rail p-5">
       <p className="m-0 text-[15px] text-encre">Nouvelle compétence</p>
-      <p className="m-0 mt-1 text-[13px] text-ardoise">Donnez-lui un nom. Puis décrivez votre méthode, ou collez un livrable de référence (une ancienne fiche deal bien faite) : Haka propose un brouillon complet, en-tête et recette. Rien n'est publié.</p>
+      <p className="m-0 mt-1 text-[13px] text-ardoise">Donnez-lui un nom. Puis décrivez votre méthode, ou collez un livrable de référence (une ancienne fiche deal bien faite) : Assistant KPartners propose un brouillon complet, en-tête et recette. Rien n'est publié.</p>
       <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom, par exemple « Refus courtois »" className="mt-4 h-10 w-full rounded-[10px] border border-trait bg-surface px-3 text-[14px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
       <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={7} placeholder="Votre méthode en quelques phrases, ou un exemple collé ici" className="mt-3 w-full resize-y rounded-[10px] border border-trait bg-surface px-3 py-2.5 text-[14px] leading-[1.55] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button type="button" disabled={!nom.trim() || !texte.trim() || occupe} onClick={() => avecHaka.mutate()} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
-          {avecHaka.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}Écrire avec Haka
+          {avecHaka.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}Écrire avec l'Assistant KPartners
         </button>
         <button type="button" disabled={!nom.trim() || occupe} onClick={() => vide.mutate()} className="h-9 rounded-full border border-trait px-4 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Brouillon vide</button>
         <button type="button" onClick={onFermer} className="h-9 rounded-full px-3 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>

@@ -14,7 +14,7 @@ const AUJ = new Date('2026-10-27T10:00:00Z');
 const chiffres = { valeur: 680000, bas: 620000, haut: 740000 };
 const jours = (iso) => Math.round((new Date(iso) - AUJ) / JOUR);
 
-test("plus de séquence fixe après l'envoi : la relance dite par Haka passe avant celle du cas", () => {
+test("plus de séquence fixe après l'envoi : la relance dite par l'Assistant KPartners passe avant celle du cas", () => {
   assert.equal(R.relanceApresEnvoi, undefined);
   const r = R.planDeRestitution('reflechit', { aujourdhui: AUJ, relance_le: '2026-11-02T10:30', relance_quoi: 'Rendez-vous de présentation', canal: 'rdv' });
   assert.equal(r.statut, 'envoyee');

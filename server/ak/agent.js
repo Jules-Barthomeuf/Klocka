@@ -666,7 +666,7 @@ const OUTILS_AK = [
   },
   {
     name: 'noter_appel',
-    description: "Ce qu'un agent a dit, raconté à Haka : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et l'écran de l'appel s'ouvre sur les actions à cocher (fiche agent, Twenty CRM, relance, Intelligence) ; rien ne part sans validation. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; aucun : l'écran s'ouvre sur l'identification.",
+    description: "Ce qu'un agent a dit, raconté à l'Assistant KPartners : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et l'écran de l'appel s'ouvre sur les actions à cocher (fiche agent, Twenty CRM, relance, Intelligence) ; rien ne part sans validation. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; aucun : l'écran s'ouvre sur l'identification.",
     input_schema: {
       type: 'object',
       properties: {
@@ -925,7 +925,7 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const r = await RP.raconter(input.recit, user);
     if (!r.ok) return r;
     if (id) { const i = await RP.identifier(r.rappel.id, { agent_id: id }, user); if (!i.ok) return i; }
-    return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que Haka a compris et les actions à cocher (fiche agent, Twenty CRM, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
+    return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que l'Assistant KPartners a compris et les actions à cocher (fiche agent, Twenty CRM, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
   }
   if (name === 'ajouter_prospect') {
     const P = await import('../prospection/index.js');

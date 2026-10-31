@@ -185,7 +185,7 @@ export function referentielTri() {
   }
   // Les boîtes où l'équipe écrit à Haka, quand la file est allumée.
   let commandes = new Set();
-  try { const D = requireDrapeaux(); if (D.FILE) commandes = D.BOITES_COMMUNES; } catch { /* pas de Haka */ }
+  try { const D = requireDrapeaux(); if (D.FILE) commandes = D.BOITES_COMMUNES; } catch { /* pas de l'Assistant KPartners */ }
   // Haka ambiant (22 oct. 2026) : les agents des dossiers ouverts et les clients connus entrent, signal ou pas.
   let ambiant = { agents: new Set(), clients: new Set() };
   try {
@@ -196,7 +196,7 @@ export function referentielTri() {
       }
       if (D.ambiantPour('client')) ambiant.clients = new Set(Records.list('DemandeClient').map((c) => String(c.client_email || '').toLowerCase()).filter(Boolean));
     }
-  } catch { /* pas de Haka */ }
+  } catch { /* pas de l'Assistant KPartners */ }
   return {
     internes,
     domaines,
@@ -236,7 +236,7 @@ export function trierMail(mail, ref) {
   // pour l'agent ; sans pièce, c'est une conversation, elle reste dehors.
   const interne = ref.internes.has(email) || (!!domaine && ref.domaines.has(domaine));
   // Haka (17 oct. 2026) : sur une boîte commune (sourcing@), un mail de l'équipe est une demande à Haka, pièce ou pas.
-  if (interne && ref.commandes?.has(String(mail.compte || '').toLowerCase())) return { garder: true, interne: true, commande: true, raison: 'demande à Haka' };
+  if (interne && ref.commandes?.has(String(mail.compte || '').toLowerCase())) return { garder: true, interne: true, commande: true, raison: 'demande à l\'Assistant KPartners' };
   if (interne) {
     const utiles = (mail.pieces_jointes || []).filter((p) => PIECES_UTILES.test(p.nom || '') && !PIECES_INUTILES.test(p.nom || ''));
     if (!utiles.length) return { garder: false, raison: 'échange interne, sans pièce' };
@@ -246,8 +246,8 @@ export function trierMail(mail, ref) {
   // dossier, lui, est examiné comme les autres : il envoie de bons biens ET des
   // mails sans intérêt, et les deux ne se valent pas.
   if (ref.attendus?.has(email)) return { garder: true, raison: 'réponse attendue' };
-  if (ref.ambiant?.clients?.has(email)) return { garder: true, raison: 'client connu (Haka)' };
-  if (ref.ambiant?.agents?.has(email)) return { garder: true, raison: "agent d'un dossier ouvert (Haka)" };
+  if (ref.ambiant?.clients?.has(email)) return { garder: true, raison: 'client connu (Assistant KPartners)' };
+  if (ref.ambiant?.agents?.has(email)) return { garder: true, raison: "agent d'un dossier ouvert (Assistant KPartners)" };
 
   const pieces = (mail.pieces_jointes || []).filter(
     (p) => PIECES_UTILES.test(p.nom || '') && !PIECES_INUTILES.test(p.nom || '')

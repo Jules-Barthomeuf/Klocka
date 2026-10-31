@@ -1,18 +1,18 @@
 # État de la plateforme
 
-Écrit le 30/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 31/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-9 personnes, 2 887 pages ouvertes, 0 demandes à l'assistant, 98 actions exécutées.
+9 personnes, 2 821 pages ouvertes, 0 demandes à l'assistant, 98 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 552 | 0 | 53 | 30/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 521 | 0 | 53 | 31/10/2026 |
 | admin.stress@test.local (équipe) | 159 | 0 | 0 | 27/10/2026 |
-| test.mandataire@kpartners.fr | 150 | 0 | 0 | 27/10/2026 |
+| test.mandataire@kpartners.fr | 115 | 0 | 0 | 27/10/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
 | admin@klocka.local (équipe) | 10 | 0 | 0 | 26/10/2026 |
 | sourcing@klocka.immo | 0 | 0 | 1 | — |
@@ -24,31 +24,31 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
+- **MandataireBiens** — 384 (14 %)
 - **Analyse** — 379 (13 %)
-- **MandataireBiens** — 377 (13 %)
-- **Dashboard** — 342 (12 %)
-- **MandataireProspection** — 232 (8 %)
+- **Dashboard** — 313 (11 %)
+- **MandataireProspection** — 213 (8 %)
 - **Personnalisation** — 199 (7 %)
 - **Prospection** — 180 (6 %)
 - **Emailing** — 140 (5 %)
-- **AdminProjets** — 112 (4 %)
-- **MandataireEstimation** — 79 (3 %)
-- **MandataireDossier** — 76 (3 %)
-- **Outils** — 71 (2 %)
+- **AdminProjets** — 111 (4 %)
+- **MandataireDossier** — 74 (3 %)
+- **Outils** — 71 (3 %)
+- **MandataireEstimation** — 66 (2 %)
 - **AdminPresentations** — 60 (2 %)
-- Le reste, sous 2 % : Cerveau, Offres, MandataireMandat, Home, Monitoring, OffMarket, ConversationsMandataires, Relances, AdminMandataires, MandataireOffMarket, MandataireClients, AdminClients, MesPresentations, MandatsMandataires, SuiviAppels, SimulateurRentabilite, AdminUtilisateurs, ProjetDetail, Semaine, ALXAtelier, MandataireProjets, Agents, AdminSuggestions, KData, Validations, MandataireMarche, AdminModeles, SuiviMandataires, SuiviAudience, KZoning, SimulateurPublic, DepotVendeur, Automatismes, MesProjets, CoutsIA, AdminEquipe, ALX, Feedback, AdminBanque, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, MemoireKlocka, NotreOffre, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, FichesCommerciales, AdminModeleZone, VisionRetraite, QuizInvestisseur
+- Le reste, sous 2 % : Cerveau, Offres, MandataireMandat, Monitoring, Home, OffMarket, ConversationsMandataires, Relances, AdminMandataires, MandataireOffMarket, AdminClients, MesPresentations, MandatsMandataires, MandataireClients, SuiviAppels, SimulateurRentabilite, AdminUtilisateurs, ProjetDetail, Semaine, ALXAtelier, MandataireProjets, Agents, AdminSuggestions, KData, Validations, AdminModeles, SuiviMandataires, SuiviAudience, KZoning, SimulateurPublic, DepotVendeur, Automatismes, MesProjets, CoutsIA, AdminEquipe, ALX, MandataireMarche, AdminBanque, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, MemoireKlocka, Feedback, NotreOffre, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, FichesCommerciales, AdminModeleZone, VisionRetraite, QuizInvestisseur
 
 ## Ce que l'IA coûte
 
-33,66 € sur la période, 1 402 appels, 7 984 k jetons. 35 % part en tâche de fond, sans que personne clique. 57 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+31,05 € sur la période, 1 111 appels, 6 434 k jetons. 29 % part en tâche de fond, sans que personne clique. 65 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Trier ce qu’on colle dans la boîte | 0,07 € par dépôt | 88 | 10,69 € | 25 s |
-| Non attribué (fond) | 0,01 € par appel | 587 | 9,97 € | — |
-| Demander quelque chose à l'assistant (mandataire) | 0,02 € par demande | 149 | 3,67 € | 23 s |
+| Trier ce qu’on colle dans la boîte | 0,08 € par dépôt | 83 | 10,55 € | 26 s |
+| Non attribué (fond) | 0,0083 € par appel | 319 | 7,21 € | — |
+| Demander quelque chose à l'assistant (mandataire) | 0,02 € par demande | 140 | 3,71 € | 24 s |
 | Faire le récap du matin | 0,17 € par récap | 14 | 2,38 € | 5 min |
-| Lire une pièce du dossier | 0,06 € par document | 27 | 1,71 € | 37 s |
+| Lire une pièce rangée | 0,06 € par pièce | 28 | 1,96 € | 39 s |
 | Auditer une page avec l'agent testeur | 0,69 € par audit | 2 | 1,38 € | 8 min |
 | Retrouver l’annonce en ligne (fond) | 0,17 € par bien | 4 | 1,20 € | 1 min |
 | Extraire un document déposé | 0,02 € par document | 7 | 0,28 € | 20 s |
@@ -65,25 +65,25 @@ Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /a
 
 Ce qui attend une décision de Jules. Ne les reproposez pas comme des idées neuves : ils sont mesurés, ils attendent un arbitrage.
 
-- **Postgres et un worker séparé pour Haka** (une décision) — la veille et les tâches de Haka hors du processus web. Un seul processus Render porte le web, la veille et les tâches de Haka ; chaque push le redémarre une minute (le disque /var/data est attaché à ce seul service). Le jour où le volume l'exige : Postgres et un worker à part, la file « À valider » reste la même. `Quand haka_taches dépasse ~200 tâches par jour, ou qu'un redémarrage interrompt des pas externes chaque semaine`
+- **Postgres et un worker séparé pour l'Assistant KPartners** (une décision) — la veille et les tâches de l'Assistant KPartners hors du processus web. Un seul processus Render porte le web, la veille et les tâches de l'Assistant KPartners ; chaque push le redémarre une minute (le disque /var/data est attaché à ce seul service). Le jour où le volume l'exige : Postgres et un worker à part, la file « À valider » reste la même. `Quand haka_taches dépasse ~200 tâches par jour, ou qu'un redémarrage interrompt des pas externes chaque semaine`
 - **Le traitement différé** (une décision) — moitié prix sur tout. L'API propose un mode différé à moitié prix, cache compris. La contrepartie est un délai qui peut aller jusqu'à vingt-quatre heures au lieu d'une minute. La lecture des pièces tourne déjà en tâche de fond et vous prévient quand elle est finie : c'est le profil qui s'y prête. Le choix vous revient, il change un délai. `Concerne la lecture des pièces et la veille, jamais le chat`
 
 Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf plutôt que ses images · ne pas relire une pièce inchangée · le prix annoncé avant de relire · un mail écarté n'est plus rejugé · la veille toutes les quinze minutes · des réponses courtes, une réflexion moyenne · sonnet partout, le chat compris.
 
 ## AK, l'assistant dans le chat
 
-79 demandes, 11.61 € en tout soit 0.147 € la demande.
+74 demandes, 11.46 € en tout soit 0.155 € la demande.
 
 98 actions : 85 réussies, 3 questions posées (il manquait une information), 0 doublons évités, 10 vraiment ratées.
 Les ratées, à corriger : data_b ×2 · loyers_equimmox ×2 · prix_murs_equimmox ×1 · analyser_fiche ×1 · lire_presentation ×1 · lancer_design ×1 · bloquer_rdv ×1 · modifier_dossier ×1.
-Repris par l'équipe : 1 correction (« non, pas ça »), 1 compliment, soit 1.3 % des demandes corrigées. C'est le chiffre à faire baisser.
+Repris par l'équipe : 1 correction (« non, pas ça »), 1 compliment, soit 1.4 % des demandes corrigées. C'est le chiffre à faire baisser.
 
 Ce qu'il a fait : modifier_presentation ×18 · data_b ×12 · donnees_commune ×11 · loyers_equimmox ×7 · modifier_dossier ×6 · rediger_loi ×5 · modifier_projet ×4 · prix_murs_equimmox ×3.
 Pour qui : Jules 89 · Admin 4 · Coralie 4 · Sourcing 1.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **Analyse** : 13 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
-- Le geste le plus cher est « trier ce qu’on colle dans la boîte » à 0,07 € par dépôt : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
-- 35 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
+- L'écran de travail, c'est **MandataireBiens** : 14 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- Le geste le plus cher est « trier ce qu’on colle dans la boîte » à 0,08 € par dépôt : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
+- 29 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

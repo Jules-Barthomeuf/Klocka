@@ -43,8 +43,8 @@ export default function MandataireDashboardView() {
           <PlanDeTravail
             conversation={conversation}
             historique={historique ? <HistoriqueColonne espace="mandataire" /> : null}
-            chat={<ChatDashboard espace="mandataire" onConversation={surConversation} onHistorique={setHistorique} libelleAccueil="Haka" sansSkills choixDossier reglages={reglages}
-              placeholderAccueil="Notez un appel, une relance, un rendez-vous, ou demandez à Haka…" />}
+            chat={<ChatDashboard espace="mandataire" onConversation={surConversation} onHistorique={setHistorique} libelleAccueil="Assistant KPartners" sansSkills choixDossier reglages={reglages}
+              placeholderAccueil="Notez un appel, une relance, un rendez-vous, ou demandez à l'Assistant KPartners…" />}
             apresChat={(
               <>
                 <RaccourcisMandataire choisie={competence?.cle || null} className="mx-auto mt-5 max-w-[820px]"

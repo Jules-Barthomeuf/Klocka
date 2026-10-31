@@ -4,6 +4,7 @@ import { FileUp, Loader2, Search, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Loader from "@/components/ui/Loader";
+import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 
 // Le fichier acquéreurs du mandataire (30 oct. 2026, Jules) : il l'importe s'il en a un (Excel, CSV, ou une liste
 // collée), Haka reconnaît les colonnes, et chaque acquéreur reste à lui seul. Ils servent au rapprochement avec ses
@@ -11,8 +12,7 @@ import Loader from "@/components/ui/Loader";
 
 const API = "/api/mandataire/acquereurs";
 const TRAIT = "border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)]";
-const kEuros = (n) => (n ? `${Math.round(n / 1000).toLocaleString("fr-FR")} k€` : null);
-const budgetDe = (a) => (a.budget_min && a.budget_max ? `${kEuros(a.budget_min)} – ${kEuros(a.budget_max)}` : kEuros(a.budget_max) || (a.budget_min ? `dès ${kEuros(a.budget_min)}` : null));
+const budgetDe = (a) => (a.budget_min && a.budget_max ? fourchetteEuros(a.budget_min, a.budget_max) : kEuros(a.budget_max) || (a.budget_min ? `dès ${kEuros(a.budget_min)}` : null));
 
 export default function MesAcquereurs() {
   const qc = useQueryClient();

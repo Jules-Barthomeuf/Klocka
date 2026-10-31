@@ -5,6 +5,7 @@ import { toast } from "@/components/ui/avis";
 import { Check, Copy } from "lucide-react";
 import { DialogMailIntention } from "./DealResultat";
 import { Mono, Section, eur, fourchette } from "./CadreEtapes";
+import { kEuros } from "@/lib/clients-commerces";
 
 // Étape 3 — Risques, prix et décision. Aucune lecture : assemblage,
 // chiffrage, décision. Les risques en lignes dépliables, le prix en deux
@@ -13,7 +14,7 @@ import { Mono, Section, eur, fourchette } from "./CadreEtapes";
 
 const NIVEAU = { fort: "text-alerte", moyen: "text-ambre", faible: "text-brume" };
 const neg = (f) => (!f || (f[0] === 0 && f[1] === 0) ? null : f[0] === f[1] ? `−${Math.round(f[0]).toLocaleString("fr-FR")} €` : `−${Math.round(f[0]).toLocaleString("fr-FR")} à −${Math.round(f[1]).toLocaleString("fr-FR")} €`);
-const plus = (f) => (!f || (f[0] === 0 && f[1] === 0) ? "—" : `+${Math.round(f[0] / 1000)} à +${Math.round(f[1] / 1000)} k€`);
+const plus = (f) => (!f || (f[0] === 0 && f[1] === 0) ? "—" : `+${kEuros(f[0]) || "0 k€"} à +${kEuros(f[1]) || "0 k€"}`);
 
 function Sources({ liste, onPreuve }) {
   if (!liste?.length) return <Mono className="normal-case tracking-[.06em] text-brume">calcul</Mono>;

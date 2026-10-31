@@ -278,16 +278,52 @@ test('un numéro neutre, jamais le nom ni les initiales (31 oct. 2026)', async (
   assert.notEqual(e.reference, a.reference);
 });
 
-test('la remarque reste à l\'équipe : seuls les critères sortent, exclusions comprises', async () => {
+test("le mandataire voit où vit le client, sa fonction et les remarques, nom masqué ; jamais son nom, son apport ni sa date (31 oct. 2026)", async () => {
   const { demandeDepuisMonday, demandeAnonyme, masquerNom } = await import('./mandataire-espace.js');
   assert.equal(masquerNom('M. Roux veut du Roux à Lyon', 'Alexandre Roux'), 'M. R. veut du R. à Lyon');
-  const d = demandeDepuisMonday({ nom: 'Alexandre Roux', budget: 500000, fonds_propres: 150000, lieu_recherche: 'Lyon', objectif: 'Equilibre', remarque: 'Roux préfère le neuf. Pas de boîte de nuit', entre_le: '2026-03-12 09:00:00 UTC' });
+  const d = demandeDepuisMonday({ nom: 'Alexandre Roux', budget: 500000, fonds_propres: 150000, lieu_recherche: 'Lyon', objectif: 'Equilibre', remarque: 'Roux préfère le neuf. Pas de boîte de nuit', localisation: 'Lorient, France, Lorient', fonction: 'Chef d\'entreprise (Roux SAS)', entre_le: '2026-03-12 09:00:00 UTC' });
   assert.equal(d.apport, 150000);
   assert.equal(d.entre_le, '2026-03-12 09:00:00 UTC');
+  assert.equal(d.lieu_vie, 'Lorient');
   const a = demandeAnonyme({ client_nom: 'Alexandre Roux', ...d });
-  assert.deepEqual(Object.keys(a).sort(), ['budget_max', 'budget_min', 'emplacement_1', 'enseigne_nationale', 'exclusions', 'id', 'reference', 'rendement_min', 'test', 'type_commerce', 'zones'].sort());
+  assert.deepEqual(Object.keys(a).sort(), ['budget_max', 'budget_min', 'emplacement_1', 'enseigne_nationale', 'exclusions', 'fonction', 'id', 'information', 'lieu_vie', 'reference', 'remarque', 'rendement_min', 'test', 'type_commerce', 'zones'].sort());
+  assert.equal(a.lieu_vie, 'Lorient');
+  assert.equal(a.fonction, "Chef d'entreprise (R. SAS)");
+  assert.equal(a.remarque, 'R. préfère le neuf. Pas de boîte de nuit');
   assert.deepEqual(a.exclusions, ['nuit']);
-  assert.doesNotMatch(JSON.stringify(a), /Alexandre|Roux|R\.|préfère|150000|2026-03/, 'ni nom, ni remarque, ni apport, ni date');
-  const { exclusionsDe } = await import('../src/lib/clients-commerces.js');
-  assert.deepEqual(exclusionsDe(a).map((f) => f.cle), ['nuit'], 'l\'écran retrouve les exclusions sans la remarque');
+  assert.doesNotMatch(JSON.stringify(a), /Alexandre|Roux|150000|2026-03/, 'ni nom, ni apport, ni date');
+});
+
+test("l'import des clients garde les numéros : la fiche Twenty retrouve sa demande par l'ancien id Monday, et un client sorti de la recherche se ferme", async () => {
+  const { synchroniserDemandesMonday } = await import('./mandataire-espace.js');
+  const jordan = { id: '3184815455', twenty_id: '14b24a0e-05af-43fe-b36b-5a44e0b79653', nom: 'Jordan Test', statut: 'Recherche', budget: 300000, lieu_recherche: 'Lyon', objectif: 'Equilibre' };
+  const r1 = await synchroniserDemandesMonday({ clients: [jordan] });
+  assert.equal(r1.crees, 1);
+  const d = Records.list('DemandeClient').find((x) => x.monday_id === '3184815455');
+  assert.equal(d.twenty_id, jordan.twenty_id);
+  assert.equal(d.active, true);
+  const r2 = await synchroniserDemandesMonday({ clients: [{ ...jordan, budget: 320000 }] });
+  assert.equal(r2.crees, 0);
+  assert.equal(r2.mises_a_jour, 1);
+  assert.equal(Records.list('DemandeClient').filter((x) => x.monday_id === '3184815455').length, 1, 'pas de doublon');
+  const r3 = await synchroniserDemandesMonday({ clients: [{ ...jordan, statut: 'Négociation' }] });
+  assert.equal(r3.fermees, 1);
+  assert.equal(Records.get('DemandeClient', d.id).active, false);
+});
+
+test("seuls les clients au statut « Recherche » du groupe « Clients en cours » passent (31 oct. 2026, Jules)", async () => {
+  const { synchroniserDemandesMonday } = await import('./mandataire-espace.js');
+  const c = (id, statut, groupe) => ({ id, twenty_id: `t-${id}`, nom: `Client ${id}`, statut, groupe, budget: 300000, lieu_recherche: 'Nice' });
+  const r = await synchroniserDemandesMonday({ clients: [c('g1', 'Recherche', 'CLIENTS_EN_COURS'), c('g2', 'Négociation', 'CLIENTS_EN_COURS'), c('g3', 'Stand-by', 'CLIENTS_EN_COURS'), c('g4', 'Def Strategie', 'CLIENTS_EN_COURS'), c('g5', 'Recherche', 'CLIENTS_SIGNES')] });
+  assert.equal(r.en_recherche, 1);
+  const ids = Records.list('DemandeClient').filter((x) => x.active !== false && /^g\d$/.test(x.monday_id)).map((x) => x.monday_id).sort();
+  assert.deepEqual(ids, ['g1']);
+});
+
+test("les demandes du banc de stress comptent comme test : un mandataire ne les voit pas, l'équipe si", async () => {
+  const { demandesVisibles, estTest } = await import('./mandataire-espace.js');
+  const d = Records.create('DemandeClient', { client_nom: 'Client Confidentiel 1', ville: 'Mâcon', note: 'Demande posée par le stress test (à garder)', active: true, visible: true, ouverte_le: '2026-10-01T16:00:00.000Z' });
+  assert.equal(estTest(d), true);
+  assert.ok(!demandesVisibles().some((x) => x.id === d.id));
+  assert.ok(demandesVisibles({ avecTest: true }).some((x) => x.id === d.id && x.test));
 });

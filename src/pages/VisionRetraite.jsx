@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import FondHalo from "@/components/projet/FondHalo";
 import RendezVousFondateur, { useVisiteSimulateur } from "@/components/simulator/RendezVousFondateur";
 import { COMMERCES, HYPOTHESES, planRetraite } from "@/lib/outils-investisseur";
+import { kEuros } from "@/lib/clients-commerces";
 
 // « Vision : bâtissez votre retraite » (9 oct. 2026) : la page publique d'un
 // asset des newsletters. Combien voulez-vous toucher par mois ? Quel commerce ?
@@ -74,7 +75,7 @@ export default function VisionRetraite() {
                   style={f.commerce === x.cle ? undefined : { background: "transparent" }}>
                   <span className="block text-[15px] text-encre">{x.nom}</span>
                   <span className="block text-[12.5px] text-ardoise">{x.exemple}</span>
-                  <span className="mt-1 block text-[12.5px] tabular-nums text-craie">{Math.round(x.prix / 1000)} k€ · {String(x.rendement).replace(".", ",")} % brut</span>
+                  <span className="mt-1 block text-[12.5px] tabular-nums text-craie">{kEuros(x.prix)} · {String(x.rendement).replace(".", ",")} % brut</span>
                 </button>
               ))}
             </div>

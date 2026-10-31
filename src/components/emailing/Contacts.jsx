@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { API, Avatar, Etat, Fenetre, req, useReferentiel, bouton, boutonContour, boutonLigne, boutonPlein, champ, etiquette, date, dateHeure, pluriel } from "./commun";
 import Chargement from "@/components/ui/Chargement";
+import { kEuros } from "@/lib/clients-commerces";
 
 // Les contacts : le tableau (recherche, filtres, sélection multiple, actions
 // en masse), l'import en trois temps (le texte ou le fichier, la
@@ -153,7 +154,7 @@ function EditeurSegment({ segment, onFermer }) {
 
 // L'historique d'un contact, en mots (9 oct. 2026) : les mails, puis le simulateur et le call.
 const MOT_HISTO = { envoye: "Mail reçu", delivre: "Délivré", ouvert: "Ouvert", clique: "Cliqué", bounce: "Bounce", plainte: "Plainte", echec: "Échec d'envoi", retarde: "Retardé", supprime: "Adresse supprimée", simulateur: "Simulateur utilisé", clic_call: "Bouton « Parler au fondateur »", call_pris: "Call pris", reponse: "A répondu", lead_magnet: "Lead magnet ouvert", quiz: "Quiz investisseur", vision: "Vision retraite" };
-const euros = (v) => `${Math.round(Number(v) / 1000).toLocaleString("fr-FR")} k€`;
+const euros = (v) => kEuros(v) || "0 k€";
 const valeursLisibles = (v) => [v.profil && `profil ${v.profil}`, v.revenu_mensuel != null && `objectif ${Math.round(v.revenu_mensuel).toLocaleString("fr-FR")} €/mois`, v.horizon != null && `dans ${v.horizon} ans`, v.murs != null && pluriel(v.murs, "mur", "murs"), v.prixBienFAI != null && `prix ${euros(v.prixBienFAI)}`, v.loyerInitialHTHC != null && `loyer ${euros(v.loyerInitialHTHC)}/an`, v.apport != null && `apport ${euros(v.apport)}`, v.sansCredit ? "sans crédit" : v.dureeCredit != null && `crédit ${v.dureeCredit} ans`].filter(Boolean).join(", ");
 
 function Fiche({ id, onFermer }) {

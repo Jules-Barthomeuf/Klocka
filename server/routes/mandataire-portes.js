@@ -57,6 +57,23 @@ export function monterMandatairePortes(app) {
     if (!lu.acquereurs.length) return res.status(400).json({ error: 'Aucun acquéreur reconnu : il faut au moins un nom, un téléphone ou un e-mail par ligne.' });
     ok(res, { ok: true, lus: lu.acquereurs.length, par: lu.par, ...A.enregistrerAcquereurs(lu.acquereurs, vue(req, user)) });
   }));
+  // --- Les biens déjà en mandat (31 oct. 2026, PLAN.md 3.2) : lire, relire, puis importer ---
+  app.post('/api/mandataire/biens/import/lire', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const f = await fichierDe(req);
+    const texte = String(req.body?.texte || '');
+    if (!f && !texte.trim()) return res.status(400).json({ error: 'Joignez un fichier ou collez vos mandats.' });
+    const { mesurer } = await import('../llm-couts.js');
+    const { lireBiens } = await import('../biens-import.js');
+    const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () => lireBiens({ buffer: f?.buffer || null, nom: f?.filename || '', texte }, vue(req, user)));
+    rendre(res, resultat);
+  }));
+  app.post('/api/mandataire/biens/import', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const biens = Array.isArray(req.body?.biens) ? req.body.biens.slice(0, 200) : [];
+    if (!biens.length) return res.status(400).json({ error: 'Aucun bien à importer.' });
+    rendre(res, (await import('../biens-import.js')).importerBiens(biens, vue(req, user)));
+  }));
   app.delete('/api/mandataire/acquereurs/:id', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await import('../acquereurs-mandataire.js')).supprimerAcquereur(req.params.id, vue(req, user)));

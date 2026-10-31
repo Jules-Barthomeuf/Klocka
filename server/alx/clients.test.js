@@ -70,3 +70,15 @@ test('aucune ligne ne fait une liste vide, pas une erreur', () => {
   assert.deepEqual(clientsDe(null), []);
   assert.deepEqual(clientsDe(undefined), []);
 });
+
+test("une ligne lue dans Twenty CRM garde son ancien id Monday comme id, et son id Twenty à part (31 oct. 2026)", () => {
+  const [ancienne, nee] = clientsDe([
+    { ...ligne('Venue de Monday', 'Recherche'), id: '14b24a0e-05af-43fe-b36b-5a44e0b79653', monday_id: '3184815455' },
+    { ...ligne('Née dans Twenty', 'Recherche'), id: 'aaaaaaaa-0000-0000-0000-000000000001', monday_id: null },
+  ]);
+  assert.equal(ancienne.id, '3184815455');
+  assert.equal(ancienne.twenty_id, '14b24a0e-05af-43fe-b36b-5a44e0b79653');
+  assert.equal(nee.id, 'aaaaaaaa-0000-0000-0000-000000000001');
+  assert.equal(nee.twenty_id, 'aaaaaaaa-0000-0000-0000-000000000001');
+  assert.equal(clientsDe([ligne('Monday pur', 'Recherche')])[0].twenty_id, null);
+});

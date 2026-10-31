@@ -135,8 +135,8 @@ export function PastilleTest({ x }) {
 }
 
 /**
- * Le bandeau des exemples (10 oct. 2026) : tant qu'il en reste dans la liste,
- * il dit à quoi ils servent, et un clic les retire tous, de toutes les pages.
+ * Le bouton des exemples (10 oct. 2026 ; sa phrase retirée le 31 oct.) : tant qu’il en reste dans la liste,
+ * un clic les retire tous, de toutes les pages.
  */
 export function BandeauExemples({ liste = [] }) {
   const queryClient = useQueryClient();
@@ -153,8 +153,8 @@ export function BandeauExemples({ liste = [] }) {
     setEnCours(false);
   };
   return (
-    <div className="my-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-ambre/30 bg-ambre/[0.06] px-4 py-3">
-      <p className="m-0 max-w-[70ch] text-[13.5px] leading-[1.5] text-craie">Les fiches marquées <span className="text-ambre">Exemple</span> montrent comment ça marche : ouvrez-les, essayez. Elles ne partent jamais chez Klocka ni chez le notaire.</p>
+    // Plus de phrase ni d'encadré (31 oct. 2026, Jules) : le bouton seul, tant qu'il reste des exemples.
+    <div className="my-4 flex justify-end">
       <button type="button" onClick={retirer} disabled={enCours} className="h-8 flex-none rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>{enCours ? "Retrait…" : "Retirer les exemples"}</button>
     </div>
   );

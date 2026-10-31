@@ -18,12 +18,42 @@ const C = ({ i = 0, className = "", style, children, as: Tag = "div", chemin }) 
 /** Un chiffre qui a une source (mode Sources) : son chemin dans l'avis. */
 const S = ({ chemin, children }) => <span data-chemin={chemin}>{children}</span>;
 
-const Lignes = ({ lignes, depart = 0, base = null }) => (
+// Tout texte d'une carte se retouche en mode Édition (31 oct. 2026, Jules : « pouvoir modifier toutes les informations »).
+// La retouche se garde dans l'avis, comme le titre et la phrase (`avis.deck`, clé « <page>.c.<texte> ») : le deck
+// l'affiche à la place de la valeur calculée ; l'avis lui-même et ses chiffres ne changent pas. Vider le champ rend la
+// valeur de l'avis. Entrée enregistre, Échap annule.
+const Retouches = React.createContext({ edition: false, textes: {}, onRetouche: null, page: "" });
+function T({ k, children, as: Tag = "span", className, style }) {
+  const { edition, textes, onRetouche, page } = React.useContext(Retouches);
+  const avant = useRef("");
+  const cle = `${page}.c.${k}`;
+  const propre = typeof textes?.[cle] === "string" ? textes[cle] : null;
+  if (!edition) {
+    if (propre != null) return <Tag className={className} style={style}>{propre}</Tag>;
+    return Tag === "span" && !className && !style ? <>{children}</> : <Tag className={className} style={style}>{children}</Tag>;
+  }
+  return (
+    // La clé remonte l'élément après chaque retouche : React ne se bat pas avec ce que contentEditable a changé.
+    <Tag key={propre ?? "avis"} className={className} contentEditable suppressContentEditableWarning spellCheck={false}
+      style={{ ...style, outline: "1px dashed rgba(167,171,237,.6)", outlineOffset: 4, borderRadius: 4, cursor: "text" }}
+      onFocus={(e) => { avant.current = e.currentTarget.textContent; }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+        if (e.key === "Escape") { e.currentTarget.textContent = avant.current; e.currentTarget.blur(); }
+        e.stopPropagation();
+      }}
+      onBlur={(e) => { const t = e.currentTarget.textContent.trim(); if (t !== avant.current.trim()) onRetouche?.(cle, t || null); }}>
+      {propre ?? children}
+    </Tag>
+  );
+}
+
+const Lignes = ({ lignes, depart = 0, base = null, k = "l" }) => (
   <dl className="dk-lignes">
     {lignes.map((l, i) => (
       <C key={`${l.mot}-${i}`} i={depart + i} className="dk-ligne" chemin={l.chemin || (base ? `${base}.${i}` : undefined)}>
-        <dt>{l.mot}</dt>
-        <dd className={l.vide || l.texte === A_RENSEIGNER ? "dk-vide" : l.alerte ? "dk-alerte" : ""}>{l.texte}</dd>
+        <dt><T k={`${k}.${i}.mot`}>{l.mot}</T></dt>
+        <dd className={l.vide || l.texte === A_RENSEIGNER ? "dk-vide" : l.alerte ? "dk-alerte" : ""}><T k={`${k}.${i}.texte`}>{l.texte}</T></dd>
       </C>
     ))}
   </dl>
@@ -49,11 +79,11 @@ function Gauche({ page, edition = false, onRetouche = null }) {
   if (page.cle === "couverture") {
     return (
       <>
-        <h1 className="dk-titre">{page.titre}</h1>
-        <p className="dk-gauche-infos">{page.adresse === A_RENSEIGNER ? <span className="dk-vide">Adresse {A_RENSEIGNER}</span> : page.adresse}</p>
+        <T as="h1" k="titre" className="dk-titre">{page.titre}</T>
+        <p className="dk-gauche-infos"><T k="adresse">{page.adresse === A_RENSEIGNER ? <span className="dk-vide">Adresse {A_RENSEIGNER}</span> : page.adresse}</T></p>
         <div className="dk-gauche-duo">
-          <div><span>Mandataire</span><b><Val v={page.mandataire} /></b></div>
-          <div><span>À l'attention de</span><b><Val v={page.proprietaire} /></b></div>
+          <div><span>Mandataire</span><b><T k="mandataire"><Val v={page.mandataire} /></T></b></div>
+          <div><span>À l'attention de</span><b><T k="proprietaire"><Val v={page.proprietaire} /></T></b></div>
         </div>
       </>
     );
@@ -82,20 +112,21 @@ function Carte({ page }) {
       return (
         <>
           <LogoKP fond="nuit" className="dk-carte-logo" />
+          {/* La couverture (31 oct. 2026, maquette de Jules) : le bien, pas encore son prix. */}
           <C i={0} style={{ marginTop: 60, borderRadius: 30, border: "1px solid rgba(255,255,255,.08)", padding: "70px 40px", textAlign: "center", background: "var(--dk-panneau-valeur)" }}>
-            <p className="dk-sur" style={{ color: "var(--dk-pervenche-pale)" }}>Valeur estimée · net vendeur</p>
-            <p style={{ margin: 0, fontSize: 150, fontWeight: 300, letterSpacing: "-.03em", lineHeight: 1 }}><S chemin="chiffres.valeur"><Val v={page.valeur}>{euros(page.valeur)}</Val></S></p>
-            {page.bas && page.haut && <p style={{ margin: "26px 0 0", fontSize: 30 }}>Fourchette : <S chemin="chiffres.bas">{euros(page.bas)}</S> – <S chemin="chiffres.haut">{euros(page.haut)}</S></p>}
+            <p className="dk-sur" style={{ color: "var(--dk-pervenche-pale)" }}><T k="etat">{page.etat}</T></p>
+            <p style={{ margin: 0, fontSize: 150, fontWeight: 300, letterSpacing: "-.03em", lineHeight: 1, whiteSpace: "nowrap" }}><T k="lieu"><Val v={page.lieu} /></T></p>
+            {page.accroche && <p style={{ margin: "26px 0 0", fontSize: 30 }}><T k="accroche">{page.accroche}</T></p>}
           </C>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 36, marginTop: 34 }}>
             {[
               [euros(page.loyer), "Loyer annuel HT HC", false, "methodes.loyer"],
-              [pourcent(page.taux), "Taux de capitalisation", true, "methodes.taux"],
-              [page.restant != null ? `${page.restant.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} ans` : null, "Bail restant à courir", false, "locatif.lignes.echeance"],
+              [page.surface ? `${Math.round(page.surface).toLocaleString("fr-FR")} m²` : null, page.surface_ponderee ? "Surface pondérée" : "Surface utile", true, "description.surfaces"],
+              [page.echeance ? String(page.echeance) : null, "Échéance du bail", false, "locatif.lignes.echeance"],
             ].map(([v, mot, accent, chemin], i) => (
               <C key={mot} i={1 + i} chemin={chemin} style={{ borderTop: "1px solid rgba(255,255,255,.12)", paddingTop: 24 }}>
-                <b className={accent ? "dk-pervenche" : ""} style={{ display: "block", fontSize: 54, fontWeight: 300 }}><Val v={v} /></b>
-                <span style={{ fontSize: 24, color: "var(--dk-gris)" }}>{mot}</span>
+                <b className={accent ? "dk-pervenche" : ""} style={{ display: "block", fontSize: 54, fontWeight: 300 }}><T k={`chiffre.${i}`}><Val v={v} /></T></b>
+                <span style={{ fontSize: 24, color: "var(--dk-gris)" }}><T k={`legende.${i}`}>{mot}</T></span>
               </C>
             ))}
           </div>
@@ -107,7 +138,7 @@ function Carte({ page }) {
           {page.chapitres.map((ch, i) => (
             <C key={ch.n} i={i} className="dk-ligne" style={{ padding: "20px 0" }}>
               <span className="dk-pervenche" style={{ width: 70, flex: "none" }}>{n2(ch.n)}</span>
-              <span style={{ flex: 1 }}>{ch.mot}</span>
+              <span style={{ flex: 1 }}><T k={`chapitre.${i}`}>{ch.mot}</T></span>
               <span style={{ color: "var(--dk-gris)" }}>p. {n2(ch.page)}</span>
             </C>
           ))}
@@ -120,11 +151,11 @@ function Carte({ page }) {
             <C i={0} style={{ position: "relative", margin: "4px 0 46px" }}>
               <div style={{ position: "absolute", left: 10, right: 10, top: 9, height: 2, background: "rgba(255,255,255,.2)" }} />
               <div style={{ display: "grid", gridTemplateColumns: `repeat(${page.frise.length}, 1fr)` }}>
-                {page.frise.map((f) => (
+                {page.frise.map((f, i) => (
                   <div key={`${f.annee}-${f.mot}`}>
                     <span style={{ display: "block", width: f.present ? 26 : 20, height: f.present ? 26 : 20, marginTop: f.present ? -3 : 0, borderRadius: 99, background: f.present ? "var(--dk-pervenche)" : "var(--dk-carte)", border: `2px solid ${f.present ? "var(--dk-pervenche)" : "var(--dk-blanc)"}`, position: "relative", boxShadow: f.present ? "0 0 0 8px rgba(167,171,237,.25)" : "none" }} />
-                    <b className={f.present ? "dk-pervenche" : ""} style={{ display: "block", marginTop: 36, fontSize: 44, fontWeight: 400 }}>{f.annee}</b>
-                    <span style={{ fontSize: 24, color: "var(--dk-gris)" }}>{f.mot}</span>
+                    <b className={f.present ? "dk-pervenche" : ""} style={{ display: "block", marginTop: 36, fontSize: 44, fontWeight: 400 }}><T k={`frise.${i}.annee`}>{f.annee}</T></b>
+                    <span style={{ fontSize: 24, color: "var(--dk-gris)" }}><T k={`frise.${i}.mot`}>{f.mot}</T></span>
                   </div>
                 ))}
               </div>
@@ -138,18 +169,27 @@ function Carte({ page }) {
         <>
           <div className="dk-tuiles" style={{ gridTemplateColumns: "1fr 1fr" }}>
             {page.tuiles.map((t, i) => (
-              <C key={t.mot} i={i} className="dk-tuile" chemin={`ville.${t.cle}`}><b className={t.vide ? "dk-vide" : ""} style={t.vide ? { fontSize: 40 } : undefined}>{t.valeur}</b><span>{t.mot}</span></C>
+              <C key={t.mot} i={i} className="dk-tuile" chemin={`ville.${t.cle}`}><b className={t.vide ? "dk-vide" : ""} style={t.vide ? { fontSize: 40 } : undefined}><T k={`tuile.${i}.valeur`}>{t.valeur}</T></b><span><T k={`tuile.${i}.mot`}>{t.mot}</T></span></C>
             ))}
           </div>
-          {page.texte && <C i={4} as="p" style={{ fontSize: 28, lineHeight: 1.45, margin: "36px 0 0", color: "var(--dk-texte-doux)" }}>{page.texte}</C>}
-          <C i={5} as="p" className="dk-note" style={{ position: "absolute", bottom: 50 }}>Sources : {page.sources}</C>
+          {page.texte && <C i={4} as="p" style={{ fontSize: 28, lineHeight: 1.45, margin: "36px 0 0", color: "var(--dk-texte-doux)" }}><T k="texte">{page.texte}</T></C>}
+          <C i={5} as="p" className="dk-note" style={{ position: "absolute", bottom: 50 }}><T k="sources">{`Sources : ${page.sources}`}</T></C>
         </>
       );
     case "quartier":
       return (
         <>
-          <C i={0} as="p" style={{ margin: "0 0 30px", fontSize: 42 }}>Ce qui fait la valeur de l'adresse</C>
-          <Lignes lignes={page.lignes} depart={1} base="emplacement.lignes" />
+          <C i={0} as="p" style={{ margin: "0 0 30px", fontSize: 42 }}><T k="titre-carte">Ce qui fait la valeur de l&apos;adresse</T></C>
+          {/* En tableau (31 oct. 2026, Jules). */}
+          <C i={1}>
+            <table className="dk-table dk-table-lignes">
+              <tbody>
+                {page.lignes.map((l, i) => (
+                  <tr key={`${l.mot}-${i}`} data-chemin="emplacement.lignes"><td><T k={`l.${i}.mot`}>{l.mot}</T></td><td className={l.vide ? "dk-vide" : ""}><T k={`l.${i}.texte`}>{l.texte}</T></td></tr>
+                ))}
+              </tbody>
+            </table>
+          </C>
         </>
       );
     case "local":
@@ -157,92 +197,74 @@ function Carte({ page }) {
         <>
           {!!page.tuiles.length && (
             <div className="dk-tuiles" style={{ gridTemplateColumns: `repeat(${page.tuiles.length}, 1fr)`, marginBottom: 34 }}>
-              {page.tuiles.map((t, i) => <C key={t.mot} i={i} className="dk-tuile" chemin={`description.surfaces.${i}`}><b className={i === 2 ? "dk-pervenche" : ""}>{t.valeur}</b><span>{t.mot}</span></C>)}
+              {page.tuiles.map((t, i) => <C key={t.mot} i={i} className="dk-tuile" chemin={`description.surfaces.${i}`}><b className={i === 2 ? "dk-pervenche" : ""}><T k={`tuile.${i}.valeur`}>{t.valeur}</T></b><span><T k={`tuile.${i}.mot`}>{t.mot}</T></span></C>)}
             </div>
           )}
-          {page.lignes.length ? <Lignes lignes={page.lignes} depart={3} base="description.lignes" /> : <C i={3} as="p" className="dk-vide" style={{ fontSize: 28 }}>Description du local {A_RENSEIGNER}</C>}
+          {page.lignes.length ? <Lignes lignes={page.lignes} depart={3} base="description.lignes" /> : <C i={3} as="p" className="dk-vide" style={{ fontSize: 28 }}><T k="description">{`Description du local ${A_RENSEIGNER}`}</T></C>}
         </>
       );
     case "usages":
       return (
         <>
-          <C i={0} as="p" className="dk-sur">Activités autorisées</C>
+          <C i={0} as="p" className="dk-sur"><T k="sur">Activités autorisées</T></C>
           <Lignes lignes={page.autorisees} depart={1} base="juridique.lignes" />
           <C i={4} className="dk-bandeau" style={{ marginTop: 40, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
             <div data-chemin="marche.loyers">
-              <span style={{ fontSize: 26 }}>Valeur locative de marché</span>
-              <b style={{ display: "block", fontSize: 56, fontWeight: 300 }}>{page.marche ? `${page.marche.bas} – ${page.marche.haut} €/m²` : <span className="dk-vide" style={{ color: "var(--dk-pervenche-pale)" }}>{A_RENSEIGNER}</span>}</b>
-              {page.marche?.annuel_bas && <span style={{ fontSize: 24 }}>Soit {euros(page.marche.annuel_bas)} à {euros(page.marche.annuel_haut)} par an</span>}
+              <span style={{ fontSize: 26 }}><T k="marche.mot">Valeur locative de marché</T></span>
+              <b style={{ display: "block", fontSize: 56, fontWeight: 300 }}><T k="marche.valeur">{page.marche ? `${page.marche.bas} – ${page.marche.haut} €/m²` : <span className="dk-vide" style={{ color: "var(--dk-pervenche-pale)" }}>{A_RENSEIGNER}</span>}</T></b>
+              {page.marche?.annuel_bas && <span style={{ fontSize: 24 }}><T k="marche.annuel">{`Soit ${euros(page.marche.annuel_bas)} à ${euros(page.marche.annuel_haut)} par an`}</T></span>}
             </div>
             <div data-chemin="methodes.loyer">
-              <span style={{ fontSize: 26 }}>Loyer actuel</span>
-              <b style={{ display: "block", fontSize: 56, fontWeight: 300 }}>{page.loyer_m2 ? `${page.loyer_m2} €/m²` : <span className="dk-vide" style={{ color: "var(--dk-pervenche-pale)" }}>{A_RENSEIGNER}</span>}</b>
-              {page.au_marche && <span style={{ fontSize: 24 }}>{page.au_marche}</span>}
+              <span style={{ fontSize: 26 }}><T k="loyer.mot">Loyer actuel</T></span>
+              <b style={{ display: "block", fontSize: 56, fontWeight: 300 }}><T k="loyer.valeur">{page.loyer_m2 ? `${page.loyer_m2} €/m²` : <span className="dk-vide" style={{ color: "var(--dk-pervenche-pale)" }}>{A_RENSEIGNER}</span>}</T></b>
+              {page.au_marche && <span style={{ fontSize: 24 }}><T k="loyer.marche">{page.au_marche}</T></span>}
             </div>
           </C>
-          {page.source && <C i={5} as="p" className="dk-note" style={{ marginTop: 18 }}>Source : {page.source}</C>}
+          {page.source && <C i={5} as="p" className="dk-note" style={{ marginTop: 18 }}><T k="source">{`Source : ${page.source}`}</T></C>}
         </>
       );
     case "taux":
       return (
         <>
-          <C i={0} as="p" className="dk-sur">Pourquoi ce taux</C>
-          <C i={1} as="p" chemin="methodes.justification_taux" style={{ fontSize: 32, lineHeight: 1.5, margin: 0, color: page.justification ? "var(--dk-blanc)" : undefined }} className={page.justification ? "" : "dk-vide"}>{page.justification || `Justification ${A_RENSEIGNER}`}</C>
-          {page.source && <C i={2} as="p" className="dk-note" style={{ marginTop: 22 }}>Référence : {page.source}</C>}
+          {page.etapes?.length > 0 ? (
+            <C i={0} style={{ marginBottom: 30 }}>
+              {page.etapes.map((x, i) => (
+                <div key={x.mot} className="dk-ligne" style={{ padding: "18px 0", alignItems: "center" }}>
+                  <div style={{ flex: 1 }}><span style={{ display: "block", fontSize: 30 }}><T k={`etape.${i}.mot`}>{x.mot}</T></span>{x.sous && <span style={{ fontSize: 24, color: "var(--dk-gris)" }}><T k={`etape.${i}.sous`}>{x.sous}</T></span>}</div>
+                  <b style={{ fontSize: 36, fontWeight: 400, whiteSpace: "nowrap" }}><T k={`etape.${i}.valeur`}>{x.valeur}</T></b>
+                </div>
+              ))}
+            </C>
+          ) : <C i={0} as="p" className="dk-sur"><T k="sur">Pourquoi ce taux</T></C>}
+          <C i={1} as="p" chemin="methodes.justification_taux" style={{ fontSize: page.etapes?.length ? 28 : 32, lineHeight: 1.45, margin: 0, color: page.justification ? "var(--dk-blanc)" : undefined }} className={page.justification ? "" : "dk-vide"}><T k="justification">{page.justification || `Justification ${A_RENSEIGNER}`}</T></C>
+          {page.source && <C i={2} as="p" className="dk-note" style={{ marginTop: 22 }}><T k="source">{`Référence : ${page.source}`}</T></C>}
           <C i={3} className="dk-bandeau" style={{ position: "absolute", left: 58, right: 58, bottom: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 32 }}>Taux de capitalisation retenu</span>
-            <b style={{ fontSize: 96, fontWeight: 300 }} data-chemin="methodes.taux"><Val v={page.taux}>{pourcent(page.taux)}</Val></b>
+            <span style={{ fontSize: 32 }}><T k="retenu.mot">Taux de capitalisation retenu</T></span>
+            <b style={{ fontSize: 96, fontWeight: 300 }} data-chemin="methodes.taux"><T k="retenu.valeur"><Val v={page.taux}>{pourcent(page.taux)}</Val></T></b>
           </C>
         </>
       );
     case "calcul":
-      if (page.ponderation?.length) {
-        const poids = page.ponderation.reduce((t, x) => t + (x.coefficient || 0), 0);
-        return (
-          <>
-            <C i={0} as="p" className="dk-sur">Méthodes et coefficients</C>
-            <C i={1}>
-              <table className="dk-table">
-                <thead><tr><th>Méthode</th><th>Valeur</th><th>Coef.</th></tr></thead>
-                <tbody>
-                  {page.ponderation.map((x, i) => (
-                    <tr key={x.nom} data-chemin={`methodes.equimmox.methodes.${i}`}>
-                      <td>{x.nom}<span className="dk-note"> · {x.taux ? `taux ${pourcent(x.taux, 1)}` : x.fourchette_m2 ? `${x.fourchette_m2[0].toLocaleString("fr-FR")} à ${x.fourchette_m2[1].toLocaleString("fr-FR")} €/m²` : ""}</span></td>
-                      <td className="dk-nowrap">{euros(x.valeur)}</td>
-                      <td>× {x.coefficient}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </C>
-            <C i={2} className="dk-tuile" style={{ marginTop: 26, padding: "24px 32px" }}>
-              <p style={{ margin: 0, fontSize: 28, color: "var(--dk-gris)" }}>Moyenne pondérée (somme des valeurs × coefficient ÷ {poids})</p>
-              <p style={{ margin: "10px 0 0", fontSize: 44 }} data-chemin="chiffres.valeur">{euros(page.valeur_brute)}{page.valeur && page.valeur !== page.valeur_brute ? <span className="dk-pervenche">{"  "}→ {euros(page.valeur)} retenus</span> : null}</p>
-            </C>
-          </>
-        );
-      }
       return (
         <>
-          <C i={0} className="dk-tuile" style={{ marginBottom: 18, padding: "24px 32px" }}>
-            <p className="dk-sur dk-pervenche" style={{ marginBottom: 8 }}>01 · Valeur par capitalisation</p>
-            <p style={{ margin: 0, fontSize: 28, color: "var(--dk-gris)" }}>Loyer ÷ taux de capitalisation</p>
-            <p style={{ margin: "10px 0 0", fontSize: 44 }}>{page.loyer && page.taux ? <>{euros(page.loyer)} ÷ {pourcent(page.taux)} = {euros(page.capitalisation)}</> : <span className="dk-vide">{A_RENSEIGNER}</span>}</p>
-          </C>
-          <C i={1} className="dk-tuile" style={{ padding: "24px 32px" }}>
-            <p className="dk-sur dk-pervenche" style={{ marginBottom: 8 }}>02 · Valeur retenue, net vendeur</p>
-            <p style={{ margin: 0, fontSize: 28, color: "var(--dk-gris)" }}>{page.capitalisation && page.valeur && page.capitalisation !== page.valeur ? "Arrondie, après les ajustements de l'avis" : "La valeur de l'avis"}</p>
-            <p style={{ margin: "10px 0 0", fontSize: 44 }} className="dk-pervenche"><Val v={page.valeur}>{euros(page.valeur)}</Val></p>
+          <div className="dk-tuiles" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 22 }}>
+            <C i={0} className="dk-tuile" chemin="methodes.loyer"><span style={{ margin: "0 0 8px", fontSize: 24 }}><T k="loyer.mot">Loyer annuel HT HC</T></span><b><T k="loyer.valeur"><Val v={euros(page.loyer)} /></T></b></C>
+            <C i={1} className="dk-tuile" chemin="methodes.taux"><span style={{ margin: "0 0 8px", fontSize: 24 }}><T k="taux.mot">Taux retenu</T></span><b className="dk-pervenche"><T k="taux.valeur"><Val v={pourcent(page.taux)} /></T></b></C>
+          </div>
+          <C i={2} className="dk-tuile" style={{ padding: "26px 32px" }} chemin="chiffres.capitalisation">
+            <p className="dk-sur" style={{ marginBottom: 10, color: "var(--dk-pervenche)" }}><T k="formule.sur">Valeur nette vendeur, hors droits</T></p>
+            <p style={{ margin: 0, fontSize: 26, color: "var(--dk-gris)" }}><T k="formule.mot">Loyer ÷ taux de capitalisation</T></p>
+            <p style={{ margin: "10px 0 0", fontSize: 40 }}>{page.loyer && page.taux ? <><T k="formule.calcul">{`${euros(page.loyer)} ÷ ${pourcent(page.taux)} =`}</T> <span className="dk-pervenche"><T k="formule.resultat">{euros(page.capitalisation || page.valeur)}</T></span></> : <span className="dk-vide">{A_RENSEIGNER}</span>}</p>
           </C>
           {!!page.sensibilite.length && (
             <>
-              <C i={2} as="p" className="dk-sur" style={{ marginTop: 26, marginBottom: 6 }}>Sensibilité au taux</C>
-              <C i={3}>
+              <C i={3} as="p" className="dk-sur" style={{ marginTop: 26, marginBottom: 6 }}><T k="sensibilite.sur">Sensibilité au taux</T></C>
+              <C i={4}>
                 <table className="dk-table">
-                  <thead><tr><th>Taux</th><th>Valeur</th></tr></thead>
+                  <thead><tr><th><T k="sensibilite.col.0">Taux</T></th><th><T k="sensibilite.col.1">Valeur nette vendeur</T></th></tr></thead>
                   <tbody>
-                    {page.sensibilite.map((s) => (
-                      <tr key={s.taux} className={s.retenu ? "dk-votre" : ""}><td>{pourcent(s.taux)}{s.retenu ? " · retenu" : ""}</td><td>{euros(s.valeur)}</td></tr>
+                    {page.sensibilite.map((x, i) => (
+                      <tr key={x.taux} className={x.retenu ? "dk-votre" : ""}><td><T k={`sensibilite.${i}.taux`}>{`${pourcent(x.taux)}${x.retenu ? " · retenu" : ""}`}</T></td><td><T k={`sensibilite.${i}.valeur`}>{euros(x.valeur)}</T></td></tr>
                     ))}
                   </tbody>
                 </table>
@@ -251,58 +273,29 @@ function Carte({ page }) {
           )}
         </>
       );
-    case "comparables":
-      return (
-        <>
-          <C i={0} as="p" style={{ margin: "0 0 14px", fontSize: 40 }}>Ventes comparables</C>
-          <C i={1}>
-            <table className="dk-table">
-              <thead><tr><th>Vente</th><th>Surface</th><th>Prix</th><th>€/m²</th></tr></thead>
-              <tbody>
-                {page.references.map((r, i) => (
-                  <tr key={i} data-chemin={`marche.references.${i}`}><td>{r.bien}{r.annee ? <span className="dk-note"> · {r.annee}</span> : null}</td><td className="dk-nowrap">{r.surface} m²</td><td className="dk-nowrap">{euros(r.prix)}</td><td className="dk-nowrap">{euros(r.prix_m2)}</td></tr>
-                ))}
-                <tr className="dk-votre" data-chemin="chiffres.valeur"><td>Votre bien</td><td className="dk-nowrap">{page.votre.surface ? `${page.votre.surface.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} m²` : "–"}</td><td className="dk-nowrap">{euros(page.votre.prix) || "–"}</td><td className="dk-nowrap">{euros(page.votre.prix_m2) || "–"}</td></tr>
-              </tbody>
-            </table>
-            {!page.references.length && <p className="dk-vide" style={{ fontSize: 26 }}>Ventes comparables {A_RENSEIGNER}</p>}
-          </C>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22, marginTop: 22 }}>
-            <C i={2} className="dk-tuile" chemin="chiffres.m2">
-              <span style={{ fontSize: 26, color: "var(--dk-gris)", marginTop: 0 }}>Au m²</span>
-              <p style={{ margin: "8px 0 0", fontSize: 34, lineHeight: 1.3 }}>{page.ecart_m2 ? `${euros(page.votre.prix_m2)}, ${page.ecart_m2.dedans ? "dans" : "hors de"} l'écart de ${euros(page.ecart_m2.bas)} à ${euros(page.ecart_m2.haut)}` : <span className="dk-vide">{A_RENSEIGNER}</span>}</p>
-            </C>
-            <C i={3} className="dk-tuile" chemin="chiffres.rendement">
-              <span style={{ fontSize: 26, color: "var(--dk-gris)" }}>En rendement</span>
-              <p style={{ margin: "8px 0 0", fontSize: 34, lineHeight: 1.3 }}><Val v={page.votre.rendement}>{pourcent(page.votre.rendement)} brut sur la valeur retenue</Val></p>
-            </C>
-          </div>
-          {page.source && <C i={4} as="p" className="dk-note" style={{ marginTop: 20 }}>{page.source}</C>}
-        </>
-      );
     case "valeur": {
       const pos = page.valeur && page.bas && page.haut && page.haut > page.bas ? (page.valeur - page.bas) / (page.haut - page.bas) : 0.5;
       return (
         <>
-          <C i={0} as="p" className="dk-sur" style={{ color: "var(--dk-brume)" }}>Valeur retenue · net vendeur</C>
-          <C i={1} as="p" chemin="chiffres.valeur" style={{ margin: 0, fontSize: 170, fontWeight: 300, letterSpacing: "-.03em", lineHeight: 1 }}><Val v={page.valeur}>{euros(page.valeur)}</Val></C>
+          <C i={0} as="p" className="dk-sur" style={{ color: "var(--dk-brume)" }}><T k="sur">Valeur retenue · net vendeur</T></C>
+          <C i={1} as="p" chemin="chiffres.valeur" style={{ margin: 0, fontSize: 170, fontWeight: 300, letterSpacing: "-.03em", lineHeight: 1 }}><T k="valeur"><Val v={page.valeur}>{euros(page.valeur)}</Val></T></C>
           {page.bas && page.haut && (
             <C i={2} style={{ position: "relative", margin: "90px 40px 0" }}>
               <div style={{ height: 4, background: "rgba(255,255,255,.25)", borderRadius: 4 }} />
               <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 4, background: "var(--dk-blanc)", borderRadius: 4 }} />
               <span style={{ position: "absolute", top: -18, left: `calc(20% + ${pos * 60}%)`, width: 40, height: 40, marginLeft: -20, borderRadius: 99, background: "var(--dk-blanc)", boxShadow: "0 0 0 10px rgba(255,255,255,.2)" }} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center", marginTop: 46, fontSize: 26 }}>
-                <span data-chemin="chiffres.bas"><b style={{ display: "block", fontWeight: 600 }}>{euros(page.bas)}</b>{page.taux_bas ? `Taux à ${pourcent(page.taux_bas)}` : "Bas"}</span>
-                <span><b style={{ display: "block", fontWeight: 600 }}>{euros(page.valeur)}</b>Retenue</span>
-                <span data-chemin="chiffres.haut"><b style={{ display: "block", fontWeight: 600 }}>{euros(page.haut)}</b>{page.taux_haut ? `Taux à ${pourcent(page.taux_haut)}` : "Haut"}</span>
+                <span data-chemin="chiffres.bas"><b style={{ display: "block", fontWeight: 600 }}><T k="bas.valeur">{euros(page.bas)}</T></b><T k="bas.mot">{page.taux_bas ? `Taux à ${pourcent(page.taux_bas)}` : "Bas"}</T></span>
+                <span><b style={{ display: "block", fontWeight: 600 }}><T k="milieu.valeur">{euros(page.valeur)}</T></b><T k="milieu.mot">Retenue</T></span>
+                <span data-chemin="chiffres.haut"><b style={{ display: "block", fontWeight: 600 }}><T k="haut.valeur">{euros(page.haut)}</T></b><T k="haut.mot">{page.taux_haut ? `Taux à ${pourcent(page.taux_haut)}` : "Haut"}</T></span>
               </div>
             </C>
           )}
           <div style={{ position: "absolute", left: 58, right: 58, bottom: 60, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 30 }}>
-            {[[euros(page.prix_acquereur), "Prix acquéreur, droits inclus", "chiffres.cout_total"], [pourcent(page.rendement_acquereur), "Rendement acquéreur", "chiffres.rendement_total"], [page.m2 ? `${page.m2.toLocaleString("fr-FR")} €/m²` : null, "Net vendeur, au m²", "chiffres.m2"]].map(([v, mot, chemin], i) => (
+            {[[euros(page.prix_acquereur), `Coût acquéreur, honoraires ${String(page.honoraires_pct).replace(".", ",")} % et frais ~${String(page.frais_pct).replace(".", ",")} % inclus`, "chiffres.cout_total"], [pourcent(page.rendement_acquereur), "Rendement acquéreur", "chiffres.rendement_total"], [page.m2 ? `${page.m2.toLocaleString("fr-FR")} €/m²` : null, page.m2_pondere ? "Valeur nette vendeur, surface pondérée" : "Valeur nette vendeur, au m²", "chiffres.m2"]].map(([v, mot, chemin], i) => (
               <C key={mot} i={3 + i} chemin={chemin} style={{ borderTop: "1px solid rgba(255,255,255,.3)", paddingTop: 24 }}>
-                <b style={{ display: "block", fontSize: 56, fontWeight: 300 }}>{v || <span style={{ fontSize: 30, fontStyle: "italic", opacity: .7 }}>{A_RENSEIGNER}</span>}</b>
-                <span style={{ fontSize: 24, color: "var(--dk-brume)" }}>{mot}</span>
+                <b style={{ display: "block", fontSize: 56, fontWeight: 300 }}><T k={`chiffre.${i}`}>{v || <span style={{ fontSize: 30, fontStyle: "italic", opacity: .7 }}>{A_RENSEIGNER}</span>}</T></b>
+                <span style={{ fontSize: 24, color: "var(--dk-brume)" }}><T k={`legende.${i}`}>{mot}</T></span>
               </C>
             ))}
           </div>
@@ -313,11 +306,16 @@ function Carte({ page }) {
       return (
         <>
           <LogoKP fond="nuit" className="dk-carte-logo" />
-          <C i={0} as="p" chemin="signataire.nom" style={{ margin: "170px 0 0", fontSize: 96, fontWeight: 300, letterSpacing: "-.02em", lineHeight: 1 }}><Val v={page.nom} /></C>
-          <C i={1} as="p" className="dk-pervenche" style={{ margin: "18px 0 70px", fontSize: 32 }}>Mandataire K Partners · immobilier commercial</C>
+          <C i={0} style={{ display: "flex", alignItems: "center", gap: 40, margin: "150px 0 70px" }}>
+            <div data-chemin="signataire.photo" style={{ flex: "none", width: 180, height: 180, borderRadius: 999, background: page.photo ? `center / cover no-repeat url(${JSON.stringify(page.photo)})` : "var(--dk-tuile)", border: "1px solid rgba(255,255,255,.08)" }} />
+            <div>
+              <p data-chemin="signataire.nom" style={{ margin: 0, fontSize: 96, fontWeight: 300, letterSpacing: "-.02em", lineHeight: 1.05 }}><T k="nom"><Val v={page.nom} /></T></p>
+              <p className="dk-pervenche" style={{ margin: "14px 0 0", fontSize: 30 }}><T k="fonction">Mandataire K Partners · immobilier commercial</T></p>
+            </div>
+          </C>
           <Lignes depart={2} lignes={[
             { mot: "Téléphone", texte: page.telephone, chemin: "signataire.telephone" }, { mot: "E-mail", texte: page.email, chemin: "signataire.email" },
-            { mot: "Secteur", texte: page.secteur, chemin: "signataire.ville_signature" }, { mot: "Expérience", texte: A_RENSEIGNER, chemin: "signataire.experience" },
+            { mot: "Secteur", texte: page.secteur, chemin: "signataire.ville_signature" },
           ]} />
         </>
       );
@@ -429,7 +427,9 @@ export default function DeckAvis({ deck, depart = 0, clavier = true, adresse = f
           </div>
           {pages.map((p, i) => (
             <div key={p.cle} className="dk-gauche" style={{ transform: `translateX(${(i - courant) * 1920}px)` }} aria-hidden={i !== courant}>
-              <Gauche page={p} edition={edition && i === courant} onRetouche={onRetouche} />
+              <Retouches.Provider value={{ edition: edition && i === courant, textes: deck.retouches || {}, onRetouche, page: p.cle }}>
+                <Gauche page={p} edition={edition && i === courant} onRetouche={onRetouche} />
+              </Retouches.Provider>
             </div>
           ))}
           <div className="dk-piste">
@@ -439,7 +439,9 @@ export default function DeckAvis({ deck, depart = 0, clavier = true, adresse = f
               return (
                 <div key={p.cle} className={`dk-carte ${p.cle === "valeur" ? "dk-carte-indigo" : ""} ${d === 0 ? "dk-actif" : ""}`}
                   style={{ transform: transformCarte(d), zIndex: 10 - Math.abs(d) }} aria-hidden={d !== 0} onClick={d !== 0 ? () => aller(i) : undefined}>
-                  <Carte page={p} />
+                  <Retouches.Provider value={{ edition: edition && d === 0, textes: deck.retouches || {}, onRetouche, page: p.cle }}>
+                    <Carte page={p} />
+                  </Retouches.Provider>
                 </div>
               );
             })}

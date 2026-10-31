@@ -1,3 +1,4 @@
+import { montant, fourchette } from "../../server/montants.js";
 // Prospecter pour un client (24 oct. 2026, Jules : « je ne veux plus qu'on cherche un type de commerce, je veux qu'on
 // cherche en fonction des clients qu'on a ; le mandataire ne dit plus "faites-moi confiance pour le vendre", il dit
 // "j'ai déjà un acheteur qui cherche exactement ça" »). Pur : partagé par l'écran et les tests.
@@ -79,18 +80,16 @@ export function pourClient(c, d) {
   return true;
 }
 
-/** Pure : « 450 k€ », « 1,7 M€ ». */
-export function kEuros(v) {
-  const n = Number(v);
-  if (!n) return null;
-  return n >= 1e6 ? `${(Math.round(n / 1e5) / 10).toLocaleString("fr-FR")} M€` : `${Math.round(n / 1000)} k€`;
-}
+/** Pure : « 450 k€ », « 1,7 M€ » (la règle de server/montants.js : M€ à partir de 1 000 k€). */
+export const kEuros = montant;
+/** Pure : « 450 – 600 k€ », « 850 k€ – 1,2 M€ », « 1,1 – 1,7 M€ ». */
+export const fourchetteEuros = fourchette;
 
 /** Pure : le budget d'un client en clair. */
 export function budgetDe(d) {
   const a = kEuros(d?.budget_min);
   const b = kEuros(d?.budget_max);
-  return a && b ? `${a} – ${b}` : b ? `jusqu'à ${b}` : a ? `à partir de ${a}` : "Budget non précisé";
+  return a && b ? fourchette(d.budget_min, d.budget_max) : b ? `jusqu'à ${b}` : a ? `à partir de ${a}` : "Budget non précisé";
 }
 
 /** Pure : ce que le mandataire dit au propriétaire, pour ce commerce et ce client. */

@@ -2,6 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Copy, Minus, Plus, Trash2 } from "lucide-react";
 import { J, alpha } from "@/design/jetons";
+import { kEuros } from "@/lib/clients-commerces";
 
 // L'accueil de Vision : quatre questions avant la projection sur trente ans.
 //
@@ -229,7 +230,7 @@ export default function AccueilVision({
                         <Plus className="h-4 w-4" />
                       </button>
                       <span className="ml-auto text-right text-[13px] text-ardoise">
-                        {Math.round(budget / 1000).toLocaleString("fr-FR")} k€ de murs
+                        {kEuros(budget)} de murs
                         <br />sur {Math.max(1, (projets.length - 1) * frequence + 1)} an{(projets.length - 1) * frequence + 1 > 1 ? "s" : ""}
                       </span>
                     </div>

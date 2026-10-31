@@ -26,7 +26,7 @@ const pc = (n) => (n == null || !isFinite(n) ? "—" : `${nb(n, n % 1 ? (String(
 const nombreDe = (t) => Number(String(t).replace(/[^\d,.-]/g, "").replace(/\s/g, "").replace(",", ".")) || null;
 
 export const SECTIONS = ["cadre", "description", "emplacement", "locatif", "juridique", "marche", "methodes", "conclusion"];
-const LABELS = { cadre: "Cadre de la mission", description: "Description du bien", emplacement: "Emplacement", locatif: "Situation locative", juridique: "Juridique et technique", marche: "Analyse de marché", methodes: "Méthodes", conclusion: "Conclusion" };
+const LABELS = { cadre: "Cadre de la mission", description: "Description du bien", emplacement: "Emplacement", locatif: "Situation locative", juridique: "Juridique et technique", marche: "Analyse de marché", methodes: "Méthode", conclusion: "Conclusion" };
 const NOMS = { ...LABELS, libre: "Texte", chiffres: "Chiffres", bien: "Bien", demandeur: "Demandeur", date: "Date", type_libelle: "Type de bien", mise_en_page: "Mise en page" };
 
 /** Pose une valeur à un chemin (« conclusion.points.1 »), sans muter. */
@@ -274,11 +274,15 @@ function Photo({ avis, cle, className, style, estimationId, onAvis, cap = 0 }) {
   );
 }
 
+// L'avis n'a plus d'analyse de marché ni de méthode par comparaison (31 oct. 2026, Jules) : la capitalisation seule,
+// pour tous les avis, anciens compris. La section « marche » reste dans les données, elle ne se dessine plus.
+const avecSection = (avis, cle) => (cle !== "locatif" || !!avis.locatif) && cle !== "marche";
+
 /** Les sections visibles, dans l'ordre voulu. */
 export function sectionsDe(avis) {
   const masquees = new Set(avis.masquees || []);
   const ordre = [...new Set([...(avis.ordre || []), ...SECTIONS])].filter((x) => SECTIONS.includes(x));
-  return ordre.filter((cle) => (cle !== "locatif" || avis.locatif) && !masquees.has(cle));
+  return ordre.filter((cle) => avecSection(avis, cle) && !masquees.has(cle));
 }
 
 export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" }) {
@@ -360,7 +364,7 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
           <Photo avis={avis} cle="emplacement" cap={180} estimationId={estimationId} onAvis={onAvis}
             className="" style={{ position: "relative", height: `${mep.photo_emplacement_mm || 62}mm`, borderRadius: "3mm", backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "var(--ligne)", marginBottom: "4mm" }} />
         )}
-        <Lignes lignes={avis.emplacement?.lignes} base="emplacement.lignes" onPose={onPose} />
+        <Lignes lignes={(avis.emplacement?.lignes || []).filter((l) => !/vigilance/i.test(l?.mot || ""))} base="emplacement.lignes" onPose={onPose} />
       </>
     ),
     locatif: avis.locatif ? (
@@ -420,12 +424,26 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
     ),
     methodes: (
       <>
-        <L avis={avis} k="titre_methodes" as="h2" className="avis-titre" defaut="Méthodes de valorisation" onPose={onPose} />
+        <L avis={avis} k="titre_methodes" as="h2" className="avis-titre" defaut="Méthode de valorisation" onPose={onPose} />
         <T as="p" className="avis-chapeau" v={avis.methodes?.synthese} chemin="methodes.synthese" onPose={onPose} />
         {c.capitalisation != null && (
           <>
-            <p style={{ fontSize: "11pt", margin: "0 0 2mm" }}><L avis={avis} k="titre_methode_1" defaut="Méthode 1 : capitalisation du revenu" onPose={onPose} /> <span className="avis-pastille">PRINCIPALE</span></p>
-            {m.source_taux && <L avis={avis} k="source_taux" as="p" className="avis-texte avis-note" onPose={onPose} defaut={`Taux de rendement : ${m.source_taux}.`} />}
+            <p style={{ fontSize: "11pt", margin: "0 0 2mm" }}><L avis={avis} k="titre_methode_1" defaut="Capitalisation du revenu" onPose={onPose} /></p>
+            {m.rendement && (
+              <Bloc cle="ponderation_taux" nom="Le taux, pas à pas">
+                <table className="avis-grille" style={{ margin: "2mm 0 4mm" }}>
+                  <thead><tr><th style={{ textAlign: "left" }}>Le taux de rendement</th><th>Effet</th></tr></thead>
+                  <tbody>
+                    <tr><td style={{ textAlign: "left" }}>Taux de base de la ville</td><td>{pc(m.rendement.taux_base)}</td></tr>
+                    {(m.rendement.ajustements || []).map((a, i) => (
+                      <tr key={i}><td style={{ textAlign: "left" }}>{a.motif.replace(/^./, (x) => x.toUpperCase())}</td><td>{a.delta > 0 ? "+" : "−"}{String(Math.abs(a.delta)).replace(".", ",")} pt</td></tr>
+                    ))}
+                  </tbody>
+                  <tfoot><tr><td style={{ textAlign: "left" }}>Taux retenu</td><td className="fort">{pc(m.taux)}</td></tr></tfoot>
+                </table>
+              </Bloc>
+            )}
+            {m.source_taux && !m.rendement && <L avis={avis} k="source_taux" as="p" className="avis-texte avis-note" onPose={onPose} defaut={`Taux de rendement : ${m.source_taux}.`} />}
             <T as="p" className="avis-texte" v={m.justification_taux} chemin="methodes.justification_taux" onPose={onPose} />
             <Bloc cle="formule_1" nom="Formule de capitalisation" className="avis-formule">
               <i>V</i> = <span style={{ textAlign: "center", fontSize: "8.5pt" }}><span style={{ display: "block", borderBottom: "1px solid var(--encre)" }}>Loyer annuel HT HC</span>Taux de rendement brut</span>
@@ -434,13 +452,6 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
             </Bloc>
             {c.sensibilite && <L avis={avis} k="c_sensibilite" as="p" className="avis-texte avis-gris" onPose={onPose}
               defaut={`Sensibilité : à ${pc(c.sensibilite.taux_bas)}, la valeur est de ${eur(c.sensibilite.valeur_basse_taux)}. À ${pc(c.sensibilite.taux_haut)}, elle est de ${eur(c.sensibilite.valeur_haute_taux)}.`} />}
-          </>
-        )}
-        {c.comparaison != null && (
-          <>
-            <p style={{ fontSize: "11pt", margin: "6mm 0 2mm" }}><L avis={avis} k="titre_methode_2" defaut={`Méthode ${c.capitalisation != null ? "2" : "1"} : comparaison`} onPose={onPose} />{c.capitalisation == null && <span className="avis-pastille">PRINCIPALE</span>}</p>
-            <T as="p" className="avis-texte" v={m.justification_prix} chemin="methodes.justification_prix" onPose={onPose} />
-            <Bloc cle="formule_2" nom="Formule de comparaison" className="avis-formule"><i>V</i> = <T v={m.surface} chemin="methodes.surface" onPose={onPose} nombre format={(v) => nb(v)} /> m² × <T v={m.prix_m2} chemin="methodes.prix_m2" onPose={onPose} nombre format={(v) => nb(v)} /> €/m² = <span className="resultat"><T v={c.comparaison} chemin="chiffres.comparaison" onPose={onPose} nombre format={(v) => eur(v)} /></span></Bloc>
           </>
         )}
         {c.valeur_libre != null && (
@@ -478,18 +489,6 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
           </tbody>
         </table>
         </Bloc>
-        {(avis.conclusion?.points || []).length > 0 && (
-          <Bloc cle="points" nom="Points à traiter" className="avis-encadre" style={{ display: "flex", gap: "4mm" }}>
-            <span className="avis-alerte-rond">!</span>
-            <div style={{ flex: 1 }}>
-              <b style={{ color: "var(--sauge-fonce)", fontSize: "9.5pt" }}><L avis={avis} k="titre_points" defaut="Points à traiter avant la mise en vente :" onPose={onPose} /></b>
-              <ul className="avis-cases" style={{ margin: "2mm 0 0", padding: 0, fontSize: "9.5pt" }}>
-                {avis.conclusion.points.map((x, i) => <li key={i}><T v={x} chemin={`conclusion.points.${i}`} onPose={onPose} /></li>)}
-              </ul>
-            </div>
-          </Bloc>
-        )}
-        <p className="avis-etiquette" style={{ margin: "7mm 0 2mm" }}>Réserves</p>
         <T as="p" className="avis-texte" v={avis.conclusion?.reserves} chemin="conclusion.reserves" onPose={onPose} />
         <Bloc cle="mentions" nom="Mentions légales">
           <L avis={avis} k="mentions_legales" as="p" className="avis-texte avis-mentions" onPose={onPose}
@@ -858,7 +857,7 @@ function Retouches({ estimation, avis, selection, onSelection, onAvis }) {
 function Plan({ avis, onPose, onSelection, onStyle }) {
   const masques = Object.entries(avis.styles || {}).filter(([, st]) => st?.masque).map(([chemin]) => chemin);
   const masquees = new Set(avis.masquees || []);
-  const ordre = [...new Set([...(avis.ordre || []), ...SECTIONS])].filter((x) => SECTIONS.includes(x) && (x !== "locatif" || avis.locatif));
+  const ordre = [...new Set([...(avis.ordre || []), ...SECTIONS])].filter((x) => SECTIONS.includes(x) && avecSection(avis, x));
   const [glisse, setGlisse] = useState(null);
   const deposer = (vers) => {
     if (glisse == null || glisse === vers) return setGlisse(null);

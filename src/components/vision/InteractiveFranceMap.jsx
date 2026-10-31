@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import "leaflet/dist/leaflet.css";
 import { useFondDeCarte } from "@/lib/tuiles";
 import { J, JL } from "@/design/jetons";
+import { kEuros } from "@/lib/clients-commerces";
 
 // La carte de la page Vision : où les acquisitions de la stratégie simulée
 // pourraient se situer. Les projets sont fictifs (c'est une projection) mais
@@ -44,7 +45,7 @@ const villesDisponibles = [
 const formatValue = (value) => {
   if (!value) return "N/A";
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)} M€`;
-  return `${Math.round(value / 1000)} k€`;
+  return kEuros(value) || "0 k€";
 };
 
 export default function InteractiveFranceMap({ projets }) {

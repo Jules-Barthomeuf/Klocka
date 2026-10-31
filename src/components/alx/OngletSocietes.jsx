@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { Bouton, Etiquette, Nombre, TEINTES, joliNom } from "@/components/alx/alx-commun";
 import { useFondDeCarte } from "@/lib/tuiles";
 import { J, JL } from "@/design/jetons";
+import { kEuros } from "@/lib/clients-commerces";
 
 // L'onglet Sociétés : partir du bailleur plutôt que de la vitrine. La liste
 // des sociétés qui possèdent des murs commerciaux dans la ville, classées par
@@ -282,7 +283,7 @@ function DetailMur({ m, ville, villeId, onOuvrirCible, ouvert, onToggleOuvert })
       <div className="mt-1.5 text-[12.5px] text-ardoise">
         {[m.enseignes.length ? m.enseignes.join(", ") : null, m.vitrines ? `${m.vitrines} vitrine${m.vitrines > 1 ? "s" : ""}` : null, `${m.locaux} local${m.locaux > 1 ? "aux" : ""} à la société${m.rez_de_chaussee ? ", dont le rez-de-chaussée" : ""}`,
           m.detention ? `${m.detention.censuree ? "détenu depuis au moins" : "détenu depuis"} ${m.detention.depuis}` : null,
-          m.derniere_vente ? `dernière vente ${m.derniere_vente.date.slice(0, 4)}${m.derniere_vente.prix ? ` à ${Math.round(m.derniere_vente.prix / 1000)} k€` : ""}` : null].filter(Boolean).join(" · ")}
+          m.derniere_vente ? `dernière vente ${m.derniere_vente.date.slice(0, 4)}${m.derniere_vente.prix ? ` à ${kEuros(m.derniere_vente.prix)}€` : ""}` : null].filter(Boolean).join(" · ")}
       </div>
       {m.raisons.length > 0 && (
         <div className="mt-2.5 flex flex-col gap-1 text-[13.5px] text-craie">

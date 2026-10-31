@@ -29,6 +29,7 @@ import { J, alpha } from "@/design/jetons";
 import { CarteCriteres, FenetreMulticriteres } from "@/components/mandataire/ProspecterDataB";
 import Chargement from "@/components/ui/Chargement";
 import { lienCrm } from "@/lib/crm";
+import { kEuros } from "@/lib/clients-commerces";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -854,6 +855,10 @@ function Etapes({ etapes, courante = null }) {
 }
 
 
+// La pervenche de K Partners pour les boutons d'action (31 oct. 2026) : c'est un accent, pas un jeton de la palette `J`
+// (J.pervenche n'existe pas : le fond restait vide). Le texte posé dessus est celui du fond de la page.
+const PERVENCHE = "rgb(var(--k-pervenche-rgb))";
+
 /** Une action faite : son titre, son détail, de quoi l'ouvrir. */
 function CarteAction({ c, onOuvrir }) {
   const rate = c.etat === "rate";
@@ -870,12 +875,12 @@ function CarteAction({ c, onOuvrir }) {
       <div className="flex flex-none items-center gap-2.5">
         {c.lien && !annule && (
           <button type="button" onClick={() => onOuvrir(c.lien)} className={`${pilule} ${c.action ? "font-medium" : "border border-trait text-craie hover:text-encre"} transition-colors`}
-            style={c.action ? { background: J["pervenche"], color: J["sur-menthe-pale"] } : { background: "transparent" }}>
+            style={c.action ? { background: PERVENCHE, color: J["fond"] } : { background: "transparent" }}>
             {c.action || "Ouvrir"}
           </button>
         )}
         {!c.action && (
-          <span className={pilule} style={rate ? { border: `1px solid ${alpha("alerte", 0.45)}`, color: J["alerte"] } : annule ? { border: `1px solid ${J["trait"]}`, color: J["brume"] } : { background: J["pervenche"], color: J["sur-menthe-pale"] }}>
+          <span className={pilule} style={rate ? { border: `1px solid ${alpha("alerte", 0.45)}`, color: J["alerte"] } : annule ? { border: `1px solid ${J["trait"]}`, color: J["brume"] } : { background: PERVENCHE, color: J["fond"] }}>
             {rate ? "Pas fait" : annule ? "Annulé" : "✓ Fait"}
           </span>
         )}
@@ -894,7 +899,7 @@ function ChoixClient({ onLancer, disabled }) {
   const [coches, setCoches] = useState(() => new Set());
   if (isLoading) return <span className="text-[12.5px] text-brume">Lecture des demandes…</span>;
   if (!demandes.length) return <span className="text-[12.5px] text-brume">Aucune demande client ouverte pour l'instant.</span>;
-  const k = (n) => (n == null ? null : `${Math.round(n / 1000).toLocaleString("fr-FR")} k€`);
+  const k = kEuros;
   const basculer = (id) => setCoches((c) => { const n = new Set(c); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const tous = coches.size === demandes.length;
   const choisies = demandes.filter((d) => coches.has(d.id));
@@ -942,7 +947,7 @@ function ChoixClient({ onLancer, disabled }) {
         <span className="text-[12.5px] text-ardoise">{coches.size ? `${coches.size} client${coches.size > 1 ? "s" : ""} choisi${coches.size > 1 ? "s" : ""}` : "Cochez un ou plusieurs clients"}</span>
         <button type="button" disabled={!coches.size || disabled}
           onClick={() => { onLancer(choisies.map((d) => d.id), choisies.map((d) => d.reference)); setCoches(new Set()); }}
-          className="inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium disabled:opacity-40" style={{ background: J["pervenche"], color: J["sur-menthe-pale"] }}>
+          className="inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium disabled:opacity-40" style={{ background: PERVENCHE, color: J["fond"] }}>
           Prospecter pour {coches.size > 1 ? `ces ${coches.size} clients` : "ce client"}
         </button>
       </div>

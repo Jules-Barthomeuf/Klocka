@@ -9,6 +9,7 @@ import { J } from "@/design/jetons";
 import AppelClient from "@/components/clients/AppelClient";
 import Chargement from "@/components/ui/Chargement";
 import { PastilleTest } from "@/components/mandataire/kit";
+import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 
 // Les clients, côté équipe (16 oct. 2026, Jules) : la page Clients des
 // mandataires, mais avec les vrais noms, et une fiche très personnelle nourrie
@@ -16,10 +17,9 @@ import { PastilleTest } from "@/components/mandataire/kit";
 // colle le résumé) : la fiche, Monday et le réseau des mandataires se
 // remplissent. Les comptes de la plateforme sont dans Utilisateurs.
 
-const kEuros = (n) => (n == null ? null : `${Math.round(n / 1000).toLocaleString("fr-FR")} k€`);
 const zonesDe = (d) => (d.zones?.length ? d.zones.join(", ") : "Toute la France");
 const typeDe = (d) => (d.type_commerce ? d.type_commerce.charAt(0).toUpperCase() + d.type_commerce.slice(1) : "Tout commerce");
-const budgetDe = (d) => kEuros(d.budget) || (d.budget_min && d.budget_max ? `${Math.round(d.budget_min / 1000)} – ${kEuros(d.budget_max)}` : kEuros(d.budget_max || d.budget_min)) || "—";
+const budgetDe = (d) => kEuros(d.budget) || (d.budget_min && d.budget_max ? fourchetteEuros(d.budget_min, d.budget_max) : kEuros(d.budget_max || d.budget_min)) || "—";
 const rendementDe = (d) => (d.rendement_min ? `${String(d.rendement_min).replace(".", ",")} %` : "—");
 const quand = (iso, mois = "short") => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: mois, year: mois === "long" ? "numeric" : undefined }) : null);
 const sansAccents = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");

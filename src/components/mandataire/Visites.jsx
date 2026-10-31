@@ -74,7 +74,7 @@ export default function Visites({ bien }) {
 }
 
 /** Un panneau au centre de l'écran (plein écran au téléphone), la croix en haut à droite. */
-function Panneau({ titre, sous = null, onFermer, children, large = false }) {
+export function Panneau({ titre, sous = null, onFermer, children, large = false }) {
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape") onFermer(); };
     window.addEventListener("keydown", k);

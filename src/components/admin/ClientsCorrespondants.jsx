@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { kEuros } from "@/lib/clients-commerces";
 
 // Les clients Monday qui correspondent à un projet, sous ses chiffres : le
 // nombre en vert, puis chaque nom avec son budget et son statut, et pourquoi
 // il correspond. Deux se voient, les autres s'ouvrent d'un clic.
 
-const somme = (n) => (typeof n === "number" ? `${Math.round(n / 1000)} k€` : null);
+const somme = (n) => (typeof n === "number" ? kEuros(n) : null);
 
 function Mention({ children }) {
   return <p className="m-0 mt-3.5 text-[12.5px] leading-[1.5] text-brume">{children}</p>;

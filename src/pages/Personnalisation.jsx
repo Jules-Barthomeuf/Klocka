@@ -525,11 +525,6 @@ export default function Personnalisation() {
             </Reglage>
           </div>
         )}
-        {vueClient && (
-          <Reglage titre="Barre latérale" note="Au démarrage. Le chevron la replie ou la déplie ensuite, comme avant.">
-            <Pilules valeur={prefs.barre} options={OPTIONS.barre} onChoisir={(v) => changer({ barre: v })} />
-          </Reglage>
-        )}
       </section>
       )}
 
@@ -537,9 +532,6 @@ export default function Personnalisation() {
       <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
         <Reglage titre="Page d'ouverture" note="La page qui s'ouvre quand vous arrivez sur Klocka.">
           <Pilules valeur={prefs.accueil} options={admin ? PAGES_OUVERTURE_ADMIN : PAGES_OUVERTURE_CLIENT} onChoisir={(v) => changer({ accueil: v })} />
-        </Reglage>
-        <Reglage titre="Barre latérale" note="Au démarrage. Le chevron la replie ou la déplie ensuite, comme avant.">
-          <Pilules valeur={prefs.barre} options={OPTIONS.barre} onChoisir={(v) => changer({ barre: v })} />
         </Reglage>
         <Reglage titre="Entrées du menu" note="Glissez une entrée pour la déplacer, dans sa liste ou dans l'autre : tout peut aller dans le menu principal ou dans « Autre ». L'œil masque une entrée.">
           <EditeurMenu principales={admin ? ENTREES_ADMIN : ENTREES_CLIENT} autres={admin ? ENTREES_AUTRE : []} prefs={prefs} changer={changer} />

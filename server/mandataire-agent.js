@@ -21,6 +21,7 @@
 
 import { Records, Meta } from './db.js';
 import { referenceNeutre } from './reference-neutre.js';
+import { montant } from './montants.js';
 
 const ENTITE = 'TrouvailleAgent';
 const QUATORZE_JOURS = 14 * 86400000;
@@ -334,12 +335,7 @@ export async function matcheurInvestisseurs() {
 }
 
 /** Pure : 450 000 → « 450 k€ », 1 700 000 → « 1,7 M€ ». */
-export function montantCourt(v) {
-  const n = Number(v);
-  if (!n) return null;
-  if (n >= 1e6) return `${(Math.round(n / 1e5) / 10).toLocaleString('fr-FR')} M€`;
-  return `${Math.round(n / 1000)} k€`;
-}
+export const montantCourt = montant;
 
 // --- 4. Proposer : les trouvailles ------------------------------------------
 

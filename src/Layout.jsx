@@ -3,8 +3,6 @@ import PopupFicheRecue from "@/components/haka/PopupFicheRecue";
 import { precharger } from "@/lib/precharger";
 import MarqueKlocka from "@/components/MarqueKlocka";
 import LogoKP from "@/components/mandataire/LogoKP";
-import DossiersRecents from "@/components/DossiersRecents";
-import BiensRecents from "@/components/mandataire/BiensRecents";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -321,9 +319,6 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
 // Pages that are "child" pages (show back button on mobile)
 const CHILD_PAGES = ['ProjetDetail', 'MonCompte', 'Questionnaire', 'Vision', 'SimulateurRentabilite', 'Comparateur', 'Ressources'];
 
-// La Prospection du mandataire aussi (24 oct. 2026, Jules) : la carte du secteur prend la place, la barre arrive repliée.
-const PAGES_PLEINE_LARGEUR = ["OffMarket", "MandataireOffMarket", "MandataireProspection", "Outils", "KVacance", "SimulateurRentabilite"];
-
 function LayoutContent({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -332,26 +327,9 @@ function LayoutContent({ children, currentPageName }) {
   // latérale, entrées du menu.
   const { prefs, changer } = usePersonnalisation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // La barre latérale s'ouvre comme Personnalisation le dit ; le bouton du
-  // haut la replie en rail d'icônes, le temps de la session.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => prefs.barre === "repliee");
-  // Off-market (10 oct. 2026) : la carte et la liste veulent toute la largeur,
-  // la barre se replie en arrivant et reprend le réglage en partant.
-  // Un dossier ouvert (18 oct. 2026, Jules) : la barre se ferme d'elle-même en y entrant, et reprend le réglage en en sortant.
-  const dansDossier = currentPageName === "Analyse" && !!new URLSearchParams(location.search).get("deal_id");
-  // Un projet ouvert en modification garde aussi la barre, repliée en rail, comme un dossier (18 oct. 2026, Jules).
-  // La page le dit par un événement : un projet s'ouvre d'un clic dans la liste, sans changer l'adresse.
-  const [replieParPage, setReplieParPage] = useState(false);
-  useEffect(() => {
-    const ecouter = (e) => setReplieParPage(!!e.detail?.replier);
-    window.addEventListener("klocka:replier-barre", ecouter);
-    return () => window.removeEventListener("klocka:replier-barre", ecouter);
-  }, []);
-  useEffect(() => { setReplieParPage(false); }, [currentPageName]);
-  const dansProjet = currentPageName === "AdminProjets" && (replieParPage || !!new URLSearchParams(location.search).get("id"));
-  // Offres scindée (26 oct. 2026, Jules) le demande par le même événement, comme un dossier.
-  const replieOffre = currentPageName === "Offres" && replieParPage;
-  useEffect(() => { setSidebarCollapsed(PAGES_PLEINE_LARGEUR.includes(currentPageName) || dansDossier || dansProjet || replieOffre || prefs.barre === "repliee"); }, [prefs.barre, currentPageName, dansDossier, dansProjet, replieOffre]);
+  // La barre latérale est toujours repliée en rail d'icônes, sur toutes les pages (31 oct. 2026, Jules : « toujours
+  // fermée, dès qu'on passe la souris dessus ça s'ouvre »). Plus de réglage ni de bouton pour la déplier.
+  const sidebarCollapsed = true;
   // La recherche (⌘K) : projets et dossiers, de n'importe quelle page.
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
   useEffect(() => {
@@ -359,6 +337,16 @@ function LayoutContent({ children, currentPageName }) {
     window.addEventListener("keydown", clavier);
     return () => window.removeEventListener("keydown", clavier);
   }, []);
+  // Repliée, la barre s'ouvre au survol (31 oct. 2026, Jules : « pas besoin de cliquer ») : par-dessus la page, sans la
+  // décaler, et se replie quand la souris sort. Un court délai évite qu'elle s'ouvre en passant le long du bord.
+  const [survolBarre, setSurvolBarre] = useState(false);
+  const minuterieBarre = useRef(null);
+  const survolerBarre = (oui) => {
+    clearTimeout(minuterieBarre.current);
+    minuterieBarre.current = setTimeout(() => setSurvolBarre(oui), oui ? 120 : 200);
+  };
+  useEffect(() => () => clearTimeout(minuterieBarre.current), []);
+  const barreOuverteAuSurvol = sidebarCollapsed && survolBarre;
   // La largeur de la barre, dite à la page : la bulle de l'assistant posée à
   // gauche (Personnalisation) se place à côté de la barre, pas dessus.
   const largeurBarre = sidebarCollapsed ? "64px" : "228px";
@@ -590,7 +578,7 @@ function LayoutContent({ children, currentPageName }) {
   // en bas le compte, l'autre compte, le thème, la déconnexion. Repliée,
   // elle devient un rail d'icônes. Sur mobile, la même chose dans un tiroir.
   const sidebarContent = (isMobile = false) => {
-    const replie = sidebarCollapsed && !isMobile;
+    const replie = sidebarCollapsed && !isMobile && !barreOuverteAuSurvol;
     // Le menu principal et « Autre », tels que la personne les a rangés dans
     // Personnalisation (glisser-déposer d'un groupe à l'autre).
     // L'équipe (17 oct. 2026, Jules) : un menu fixe, avec ses groupes Relations et Administration, et Paramètres en bas.
@@ -632,22 +620,12 @@ function LayoutContent({ children, currentPageName }) {
             )}
           </Link>
           )}
-          {!isMobile && !replie && (
-            <button type="button" onClick={() => setSidebarCollapsed(true)} aria-label="Replier le menu" title="Replier le menu" className={`ml-auto ${bouton}`} style={{ background: "transparent" }}>
-              <PanelLeft className="h-4 w-4" strokeWidth={1.7} />
-            </button>
-          )}
           {isMobile && (
             <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-ardoise hover:text-encre">
               <X className="w-5 h-5" />
             </Button>
           )}
         </div>
-        {replie && (
-          <button type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Déplier le menu" title="Déplier le menu" className={`mx-auto ${bouton}`} style={{ background: "transparent" }}>
-            <PanelLeft className="h-4 w-4" strokeWidth={1.7} />
-          </button>
-        )}
 
         {/* Klocka | K-Data : deux espaces, un compte. Choisir K-Data quitte
             cette barre pour la barre du haut de K-Data. Un client n'a pas
@@ -697,18 +675,12 @@ function LayoutContent({ children, currentPageName }) {
               // Un groupe (Relations, Administration) : une seule entrée, vers sa première page ; actif sur toutes ses pages.
               if (e.groupe) {
                 const premiere = e.entrees[0];
-                // Sous « Administration » : les projets récents (17 oct. 2026, Jules : d'abord sous Projets, déplacés ici).
-                const recents = e.groupe === "Administration" && !replie ? <DossiersRecents key={`${e.cle}-recents`} onNaviguer={isMobile ? closeMobile : undefined} /> : null;
-                if (recents) return [<LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e}
-                  to={DETAILS[premiere.cle]?.to} icon={ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
-                  badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />, recents];
+                // Plus de projets récents sous « Administration » ni de biens récents sous « Biens » (31 oct. 2026, Jules).
                 return <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e}
                   to={DETAILS[premiere.cle]?.to} icon={{ Relations: Handshake, Prospection: MapPin, Biens: Folder }[e.groupe] || ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
                   badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />;
               }
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
-              // Sous « Biens » : les trois derniers biens ouverts (25 oct. 2026, Jules).
-              if (e.cle === "MandataireBiens" && !replie) return [lien, <BiensRecents key={`${e.cle}-recents`} onNaviguer={isMobile ? closeMobile : undefined} />];
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}
@@ -730,8 +702,6 @@ function LayoutContent({ children, currentPageName }) {
                 <div className="animate-in fade-in slide-in-from-top-1 duration-150 mt-0.5 flex flex-col gap-0.5">
                   {autres.map((e) => {
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
-              // Sous « Biens » : les trois derniers biens ouverts (25 oct. 2026, Jules).
-              if (e.cle === "MandataireBiens" && !replie) return [lien, <BiensRecents key={`${e.cle}-recents`} onNaviguer={isMobile ? closeMobile : undefined} />];
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}
@@ -815,8 +785,10 @@ function LayoutContent({ children, currentPageName }) {
           {!hideNavbar && (
             <aside
               data-zone="barre"
-              className={`k-points k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col rounded-r-[24px] border-y border-r border-trait bg-rail transition-[width] duration-200 before:rounded-r-[24px] ${sidebarCollapsed ? "w-[64px]" : "w-[228px]"}`}
+              className={`k-points k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col rounded-r-[24px] border-y border-r border-trait bg-rail transition-[width] duration-200 before:rounded-r-[24px] ${sidebarCollapsed && !barreOuverteAuSurvol ? "w-[64px]" : "w-[228px]"} ${barreOuverteAuSurvol ? "shadow-[0_20px_50px_rgb(0_0_0/0.28)]" : ""}`}
               style={{ paddingTop: "env(safe-area-inset-top)" }}
+              onMouseEnter={sidebarCollapsed ? () => survolerBarre(true) : undefined}
+              onMouseLeave={sidebarCollapsed ? () => survolerBarre(false) : undefined}
             >
               {sidebarContent(false)}
             </aside>

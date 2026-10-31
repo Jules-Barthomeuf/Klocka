@@ -5,6 +5,7 @@
 // Après la visite, Haka lance l'avis de valeur avec ce qu'elle contient et ce que la visite a appris.
 
 import { Records } from './db.js';
+import { montant, fourchette } from './montants.js';
 
 const PARIS = 'Europe/Paris';
 const maintenant = () => new Date().toISOString();
@@ -71,18 +72,39 @@ export function finDeBailEstimee(depuis, annee = new Date().getFullYear()) {
   return { annee: fin, depuis: d, a_confirmer: true };
 }
 
-/** Les questions, selon le profil : les trois indispensables d'abord, puis les autres, puis celles nées du « à confirmer ». */
-export function questionsDe({ profil, a_confirmer = [], forme = null }) {
-  const indispensables = profil === 'exploitant'
-    ? ['Ses projets : continuer, céder le fonds, partir à la retraite ?', 'Vendre les murs en restant dans les lieux (vente occupée, avec un bail à signer) : est-ce envisageable ?', 'Les charges et la taxe foncière : leur montant, et la copropriété']
-    : ['Le bail et le loyer : date de signature, durée (3-6-9 ?), loyer actuel, indexation', 'Les charges et la taxe foncière : refacturées au locataire ?', 'La fin du bail, et ce que le locataire compte faire'];
-  const autres = ['Les travaux faits ou à prévoir', 'Le prix qu’il a en tête, et son délai'];
-  if (/sci|sarl|sas/i.test(String(forme || ''))) autres.push('Qui décide de la vente : le gérant seul, ou les associés ?');
-  const nees = [];
-  if (a_confirmer.includes('surface')) nees.push('La surface exacte (plan, bail ou titre)');
-  if (a_confirmer.includes('fin_bail') && profil !== 'exploitant') nees.push('La date exacte de fin du bail (nous l’avons déduite)');
-  if (a_confirmer.includes('gerant')) nees.push('Le gérant du registre est-il toujours le bon interlocuteur ?');
-  return { indispensables, autres, a_confirmer: nees };
+// Les questions et les documents de la visite, par classe d'actif (31 oct. 2026, Jules : « une liste simple, les
+// questions à poser et les documents, sans titre ; ça c'est pour les murs commerciaux, d'autres classes d'actifs auront
+// leurs questions »). Une classe sans liste prend celle des murs commerciaux.
+export const QUESTIONS_PAR_CLASSE = {
+  commerce: [
+    'Le loyer : combien, hors taxes et hors charges, par an ? Quand a-t-il été révisé pour la dernière fois ?',
+    'Les charges et la taxe foncière : sont-elles refacturées au locataire ou payées par le propriétaire ?',
+    'Le bail : quand a-t-il été signé ou renouvelé, et quand se termine-t-il ? S’agit-il d’un bail commercial 3-6-9 classique ?',
+    'Depuis quand est-il dans le local ? Paie-t-il à l’heure ?',
+    'A-t-il parlé de partir, de céder son fonds ou de prendre sa retraite ?',
+    'Y a-t-il un dépôt de garantie ou une caution ?',
+    'Quelle est la surface (boutique, réserve, étage) ? Y a-t-il une cave ou une extension ?',
+    'Des travaux ont-ils été faits ou sont-ils à prévoir (toiture, façade, mise aux normes) ? Qui les paie selon le bail ?',
+    'Le local est-il en copropriété ? Y a-t-il des travaux votés ?',
+    'Pourquoi envisagez-vous de vendre maintenant ?',
+    'Avez-vous un prix en tête ? Dans quel délai voulez-vous vendre ?',
+    'Qui décide avec vous : des associés, la famille, un notaire, un comptable ?',
+    'Le bien est-il déjà proposé à une autre agence ?',
+  ],
+};
+export const DOCUMENTS_PAR_CLASSE = {
+  commerce: [
+    'Le bail et ses avenants',
+    'La dernière taxe foncière',
+    'Le décompte des charges',
+    'Si c’est possible pendant la visite : une photo de l’avis d’échéance ou de la page du bail où figure le loyer',
+  ],
+};
+const deLaClasse = (table, classe) => table[classe] || table.commerce;
+
+/** Les questions de la visite, celles de la classe d'actif. La forme d'avant reste (le compte rendu les reprend). */
+export function questionsDe({ classe = 'commerce' } = {}) {
+  return { indispensables: [...deLaClasse(QUESTIONS_PAR_CLASSE, classe)], autres: [], a_confirmer: [] };
 }
 
 /** Les objections probables, deux ou trois, choisies selon le profil, avec la réponse. */
@@ -102,11 +124,19 @@ export function objectionsDe({ profil, forme = null, plafond = null, clients = 0
   return liste.slice(0, 3);
 }
 
-/** Les documents à demander, en liste à cocher. */
-export function documentsDe(profil) {
-  return profil === 'exploitant'
-    ? ['Titre de propriété', 'Dernier avis de taxe foncière', 'Diagnostics (DPE, amiante)', 'Règlement de copropriété et 3 derniers PV d’AG', 'Kbis de la société']
-    : ['Bail commercial et avenants', 'Dernier avis de taxe foncière', 'Dernier appel de charges', 'Diagnostics (DPE, amiante)', 'Règlement de copropriété et 3 derniers PV d’AG', 'Quittances ou état locatif'];
+/** Les documents à demander, en liste à cocher : ceux de la classe d'actif. */
+export function documentsDe(classe = 'commerce') {
+  return [...deLaClasse(DOCUMENTS_PAR_CLASSE, classe)];
+}
+
+/** Pure : le résumé des échanges avec le propriétaire (appels, notes, dictées, visites), dans l'ordre, les huit derniers. */
+export function echangesDe(historique = []) {
+  const SOURCES = { ...SOURCE_HISTORIQUE, visite: 'visite' };
+  return (historique || [])
+    .filter((h) => SOURCES[h.type] && String(h.texte || '').trim().length > 3 && !AUTOMATIQUE.test(String(h.texte).trim()))
+    .sort((a, b) => String(a.le || '').localeCompare(String(b.le || '')))
+    .slice(-8)
+    .map((h) => ({ le: h.le || null, source: SOURCES[h.type], texte: String(h.texte).replace(/\s+/g, ' ').trim().slice(0, 240) }));
 }
 
 /** Pure : le mail qui envoie la liste des documents au propriétaire, préparé pour après le rendez-vous. */
@@ -131,7 +161,6 @@ export function composerPreparation({ p = {}, commerce: cs = null, courte = {}, 
   const ville = cs?.ville || p.ville || null;
   const fin = profil === 'bailleur' ? finDeBailEstimee(courte.depuis, annee) : null;
   const surfaceEstimee = Array.isArray(e.surface) && !e.surface_saisie;
-  const a_confirmer = [surfaceEstimee ? 'surface' : null, fin ? 'fin_bail' : null, courte.gerant ? 'gerant' : null].filter(Boolean);
   const budgets = (investisseurs || []).map((x) => Number(x.budget_max) || 0).filter((n) => n > 0);
   const plafond = budgets.length ? Math.max(...budgets) : null;
   const taux = Number(e.taux) || null;
@@ -141,8 +170,9 @@ export function composerPreparation({ p = {}, commerce: cs = null, courte = {}, 
   if (taux && loyer?.basse && prix?.basse) sensibilite.push(`S’il est sous ${k(loyer.basse)}, elle descend sous ${k(prix.basse)}.`);
   if (taux) sensibilite.push(`Chaque 1 000 € de loyer en plus ajoute environ ${k((1000 / taux) * 100)}.`);
   return {
-    v: 2,
+    v: 3,
     profil,
+    classe: cs?.classe || p.classe || 'commerce',
     // Les champs d'avant.
     pre_estimation: prix ? { basse: prix.basse ?? null, haute: prix.haute ?? null, moyenne: prix.moyenne ?? null, source: e.loyer_m2 ? 'loyer de marché ÷ taux de la ville' : null } : null,
     murs: { proprietaire: courte.proprietaire || p.nom || null, forme: courte.forme || null, gerant: courte.gerant ? [courte.gerant.nom, courte.gerant.age].filter(Boolean).join(', ') : null },
@@ -180,12 +210,14 @@ export function composerPreparation({ p = {}, commerce: cs = null, courte = {}, 
     } : null,
     // 6. Les clients compatibles.
     clients_compatibles: { liste: (investisseurs || []).slice(0, 5).map((x) => ({ reference: x.reference, budget: x.budget || null, pourquoi: x.pourquoi || null })), plafond, source: 'recherches clients' },
+    // Le résumé des échanges (31 oct. 2026).
+    echanges: echangesDe(p.historique),
     // 7. Les questions à poser.
-    questions: questionsDe({ profil, a_confirmer, forme: courte.forme }),
+    questions: questionsDe({ classe: cs?.classe || p.classe || 'commerce' }),
     // 8. Les objections probables.
     objections: objectionsDe({ profil, forme: courte.forme, plafond, clients: (investisseurs || []).length }),
     // 9. Les documents à demander.
-    documents: documentsDe(profil),
+    documents: documentsDe(cs?.classe || p.classe || 'commerce'),
   };
 }
 
@@ -256,7 +288,7 @@ export async function tourDeLaVeille(quand = new Date()) {
     const fait = await preparer(p.id, { user: { email: p.mandataire_email } }).catch(() => null);
     const prep = fait?.proprietaire?.preparation || p.preparation || {};
     const heure = new Date(r.echeance).toLocaleTimeString('fr-FR', { timeZone: PARIS, hour: '2-digit', minute: '2-digit' }).replace(':', ' h ');
-    const prix = prep.pre_estimation?.basse ? `Pré-estimation ${Math.round(prep.pre_estimation.basse / 1000)} à ${Math.round(prep.pre_estimation.haute / 1000)} k€. ` : '';
+    const prix = prep.pre_estimation?.basse ? `Pré-estimation ${fourchette(prep.pre_estimation.basse, prep.pre_estimation.haute, { sep: ' à ' })}. ` : '';
     notifier({
       pour: p.mandataire_email,
       titre: `Demain ${heure}, ${p.commerce || p.nom || 'votre rendez-vous'} : votre préparation est prête`,
@@ -342,7 +374,7 @@ export function mailDesDocuments(id, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
   const prep = p.preparation || {};
-  return { ok: true, email: p.email || null, ...mailDocuments({ nom: prep.rdv?.avec || p.nom || null, commerce: p.commerce || null, documents: prep.documents || documentsDe(prep.profil), recus: prep.documents_recus || [] }) };
+  return { ok: true, email: p.email || null, ...mailDocuments({ nom: prep.rdv?.avec || p.nom || null, commerce: p.commerce || null, documents: prep.documents || documentsDe(prep.classe), recus: prep.documents_recus || [] }) };
 }
 
 /**
@@ -472,7 +504,7 @@ export function questionsReprises(prep = {}, cr = {}) {
 /** Pure : ce que le récit dit autrement que la fiche, la préparation ou un compte rendu d'avant (les deux sont montrés). */
 export function ecartsCompteRendu({ cr = {}, prep = {}, avant = null }) {
   const ecarts = [];
-  const k = (n) => `${Math.round(n / 1000).toLocaleString('fr-FR')} k€`;
+  const k = (n) => montant(n) || '0 k€';
   const loyer = cr.bien?.loyer_annuel;
   const probable = prep?.bien?.loyer;
   if (loyer && probable?.basse && probable?.haute && (loyer < probable.basse * 0.85 || loyer > probable.haute * 1.15)) ecarts.push({ champ: 'loyer', dit: `${k(loyer)} par an`, connu: `${k(probable.basse)} à ${k(probable.haute)} (loyer probable, ${probable.source || 'estimation'})` });
@@ -492,7 +524,7 @@ export function ecartsCompteRendu({ cr = {}, prep = {}, avant = null }) {
 
 /** Pure : le compte rendu en une ligne, pour l'historique de l'affaire. */
 export function resumeCompteRendu(cr) {
-  const k = (n) => `${Math.round(n / 1000).toLocaleString('fr-FR')} k€`;
+  const k = (n) => montant(n) || '0 k€';
   return [
     'Compte rendu de visite',
     cr.bien.loyer_annuel ? `loyer ${k(cr.bien.loyer_annuel)}/an` : null,

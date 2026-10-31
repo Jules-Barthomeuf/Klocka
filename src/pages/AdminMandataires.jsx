@@ -12,6 +12,7 @@ import { useUser } from "@/components/providers/UserProvider";
 // Les couleurs des secteurs passent en JL (littérales) : Google dessine en SVG.
 import { J, JL, alpha } from "@/design/jetons";
 import Chargement from "@/components/ui/Chargement";
+import { fourchetteEuros } from "@/lib/clients-commerces";
 
 // L'administration de l'espace mandataire (spécification V1, section 13) :
 // les secteurs tracés sur la carte de France (admin seulement, sans
@@ -736,7 +737,7 @@ function Demandes() {
     <div className="mt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="m-0 max-w-[70ch] text-[13px] text-ardoise">
-          Les clients Twenty CRM en « Recherche » ou « Def Strategie » arrivent seuls, anonymisés : sans nom (ses initiales), sans revenus, le budget en fourchette ; l'apport et les remarques suivent, le nom masqué.
+          Les clients de Twenty CRM au statut « Recherche » arrivent seuls, anonymisés : sans nom (ses initiales), sans revenus, le budget en fourchette ; l'apport et les remarques suivent, le nom masqué.
           Le mandataire les lit sous « Client A », « Client B »… Une demande retouchée ici n'est plus réécrite par l'import.
         </p>
         <div className="flex items-center gap-3">
@@ -758,7 +759,7 @@ function Demandes() {
                 {d.active === false && <span className="ml-2 text-[12px] text-brume">(fermée : le client ne cherche plus)</span>}
               </p>
               <p className="m-0 mt-0.5 text-[12.5px] text-ardoise">
-                {[d.budget_min || d.budget_max ? `${d.budget_min ? Math.round(d.budget_min / 1000) : "?"} à ${d.budget_max ? Math.round(d.budget_max / 1000) : "?"} k€` : null,
+                {[d.budget_min || d.budget_max ? fourchetteEuros(d.budget_min, d.budget_max, { sep: " à " }) : null,
                   d.rendement_min ? `≥ ${d.rendement_min} %` : null, d.bail].filter(Boolean).join(" · ") || "Sans critère chiffré"}
               </p>
               {/* L'Intelligence (phase 6) : ce qu'on sait de cet investisseur, à côté de ses critères ; page de l'équipe seulement. */}

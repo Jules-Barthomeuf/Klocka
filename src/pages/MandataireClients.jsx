@@ -11,7 +11,7 @@ import { Onglets } from "@/components/ui/kit";
 import { J } from "@/design/jetons";
 import Chargement from "@/components/ui/Chargement";
 import { PastilleTest } from "@/components/mandataire/kit";
-import { exclusionsDe } from "@/lib/clients-commerces";
+import { exclusionsDe, kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 
 // Les clients Klocka vus du mandataire (maquette « Clients Admin », 4 oct.
 // 2026, reprise pour le côté mandataire) : des cartes ou un tableau, une
@@ -19,7 +19,6 @@ import { exclusionsDe } from "@/lib/clients-commerces";
 // Les clients restent anonymes : des initiales, jamais un nom, un mail ou
 // une société, ni le conseiller qui les suit.
 
-const kEuros = (n) => (n == null ? null : `${Math.round(n / 1000).toLocaleString("fr-FR")} k€`);
 const zonesDe = (d) => (d.zones?.length ? d.zones.join(", ") : "Toute la France");
 const typeDe = (d) => (d.type_commerce ? d.type_commerce.charAt(0).toUpperCase() + d.type_commerce.slice(1) : "Tout commerce");
 const nomDe = (d) => (/^client/i.test(d.reference || "") ? d.reference : `Client ${d.reference}`);
@@ -28,9 +27,11 @@ const aProspecter = (d) => d.a_prospecter ?? 0;
 
 // Les exclusions du client, déjà lues par le serveur (« boîte de nuit », « santé ») : un critère, jamais sa remarque.
 const exclusionsTexte = (d) => `Sauf ${exclusionsDe(d).map((f) => f.mot).join(", ")}`;
+// Qui est le client, en une ligne (31 oct. 2026, Jules) : où il vit, ce qu'il fait.
+const quiEst = (d) => [d.lieu_vie ? `Vit à ${d.lieu_vie}` : null, d.fonction].filter(Boolean).join(" · ");
 
 function budget(d) {
-  if (d.budget_min && d.budget_max) return `${Math.round(d.budget_min / 1000).toLocaleString("fr-FR")} – ${kEuros(d.budget_max)}`;
+  if (d.budget_min && d.budget_max) return fourchetteEuros(d.budget_min, d.budget_max);
   return kEuros(d.budget_max || d.budget_min) || "—";
 }
 
@@ -64,7 +65,9 @@ export default function MandataireClients() {
   const lignes = demandes
     .filter((d) => dansFamille(d, re))
     .filter((d) => !q || [nomDe(d), d.type_commerce, zonesDe(d)].filter(Boolean).join(" ").toLowerCase().includes(q));
-  const aTravailler = demandes.filter((d) => aProspecter(d) > 0).length;
+  // Le compte ne dit que les clients réels (31 oct. 2026, Jules) : les clients test, visibles par l'équipe seule, n'y entrent pas.
+  const reels = demandes.filter((d) => !d.test);
+  const aTravailler = reels.filter((d) => aProspecter(d) > 0).length;
   const d = demandes.find((x) => x.id === ouverte) || null;
   const prospecter = (x) => navigate(`${createPageUrl("MandataireProspection")}?demande=${x.id}`);
 
@@ -74,7 +77,7 @@ export default function MandataireClients() {
         <div className="flex flex-wrap items-baseline gap-3.5">
           <h1 className="m-0 text-[34px] font-medium leading-[1.05] tracking-[-0.01em] text-encre max-md:text-[26px]">Clients</h1>
           {demandes.length > 0 && (
-            <span className="text-[15px] text-ardoise">{demandes.length} client{demandes.length > 1 ? "s" : ""} · {aTravailler} à prospecter</span>
+            <span className="text-[15px] text-ardoise">{reels.length} client{reels.length > 1 ? "s" : ""} · {aTravailler} à prospecter</span>
           )}
         </div>
         {onglet === "klocka" && (
@@ -153,6 +156,7 @@ function CarteClient({ d, onOuvrir }) {
           <Avatar d={d} />
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="flex min-w-0 items-center text-[17px] font-medium text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
+            {!!quiEst(d) && <span className="truncate text-[13px] text-craie">{quiEst(d)}</span>}
             {!!exclusionsDe(d).length && <span className="truncate text-[13px] text-ardoise">{exclusionsTexte(d)}</span>}
           </div>
         </div>
@@ -195,6 +199,7 @@ function TableauClients({ lignes, onOuvrir }) {
               <Avatar d={d} taille="h-[34px] w-[34px]" />
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="flex min-w-0 items-center text-[15px] font-medium text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
+                {!!quiEst(d) && <span className="truncate text-[13px] text-craie">{quiEst(d)}</span>}
                 {!!exclusionsDe(d).length && <span className="truncate text-[13px] text-ardoise">{exclusionsTexte(d)}</span>}
               </div>
             </div>
@@ -244,6 +249,18 @@ function FicheClient({ d, onFermer, onProspecter }) {
         </div>
 
         <div className="flex flex-col px-7 py-5 max-md:px-5">
+          {!!(d.lieu_vie || d.fonction) && (
+            <>
+              <p className="m-0 pb-1.5 text-[12px] tracking-[0.14em] text-ardoise">LE CLIENT</p>
+              {[["Vit à", d.lieu_vie], ["Fonction", d.fonction]].filter(([, v]) => v).map(([mot, valeur]) => (
+                <div key={mot} className="grid grid-cols-[150px_1fr] gap-4 border-b border-trait py-3 max-md:grid-cols-[112px_1fr] max-md:gap-3">
+                  <span className="text-[13px] text-ardoise">{mot}</span>
+                  <span className="text-[14px] leading-[1.5] text-encre">{valeur}</span>
+                </div>
+              ))}
+              <div className="h-5" />
+            </>
+          )}
           <p className="m-0 pb-1.5 text-[12px] tracking-[0.14em] text-ardoise">CRITÈRES</p>
           {criteres.map(([mot, valeur]) => (
             <div key={mot} className="grid grid-cols-[150px_1fr] gap-4 border-b border-trait py-3 max-md:grid-cols-[112px_1fr] max-md:gap-3">
@@ -252,6 +269,15 @@ function FicheClient({ d, onFermer, onProspecter }) {
             </div>
           ))}
         </div>
+
+        {!!(d.remarque || d.information) && (
+          <div className="flex flex-col gap-2 px-7 pb-5 max-md:px-5">
+            <p className="m-0 text-[12px] tracking-[0.14em] text-ardoise">LE MOT DE L&apos;ÉQUIPE</p>
+            {[d.information, d.remarque].filter(Boolean).map((t, i) => (
+              <p key={i} className="m-0 whitespace-pre-line text-[14px] leading-[1.55] text-encre">{t}</p>
+            ))}
+          </div>
+        )}
 
 
         <div className="flex flex-col gap-2.5 px-7 pb-7 pt-1 max-md:px-5">

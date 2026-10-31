@@ -15,7 +15,6 @@ export const CHAPITRES = [
   ["usages", "Activités et valeur locative", "Activités et loyer"],
   ["taux", "Le taux de capitalisation", "Le taux"],
   ["calcul", "Le calcul du prix", "Le calcul du prix"],
-  ["comparables", "Les comparables", "Les comparables"],
   ["valeur", "La valeur retenue", "La valeur retenue"],
   ["mandataire", "Votre mandataire", "Votre mandataire"],
 ];
@@ -58,6 +57,13 @@ const premiereLigne = (t, max = 110) => {
 };
 // Un texte entre crochets (« [à compléter] », retouché ou non) est un trou de l'avis, pas une valeur.
 const trou = (v) => !v || /^\s*\[.*\]\s*$/.test(String(v));
+// L'arrondissement de Paris, Lyon ou Marseille, depuis le code postal (31 oct. 2026, maquette de Jules : « Lyon 3e »).
+export const arrondissement = (cp, ville) => {
+  const m = String(cp || "").match(/^(75|69|13)0(\d{2})$/);
+  if (!m || !/^(paris|lyon|marseille)/i.test(String(ville || ""))) return "";
+  const n = Number(m[2]);
+  return n ? ` ${n}${n === 1 ? "er" : "e"}` : "";
+};
 const villeSeule = (v) => (trou(v) ? "" : String(v || "").replace(/^\d{5}\s*/, "").trim());
 /** La ville d'une adresse complète (« 1 avenue Mirabeau, 06000 Nice »). */
 const villeDeLAdresse = (a) => { const m = String(a || "").match(/\d{5}\s+([^,]+)$/); return m ? m[1].trim() : ""; };
@@ -104,7 +110,9 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
   ].map(([mot, texte]) => ({ mot, texte: court(texte) || A_RENSEIGNER, vide: !court(texte) }));
 
   const empl = avis.emplacement || {};
-  const lignesQuartier = (empl.lignes || []).map((l) => ({ mot: l.mot, texte: court(l.texte), alerte: !!l.alerte })).filter((l) => l.texte).slice(0, 6);
+  // Le quartier en tableau, sans l'accès ni les mouvements BODACC (31 oct. 2026, Jules), ni les points de vigilance.
+  const HORS_QUARTIER = /acc[eè]s|bodacc|vigilance/i;
+  const lignesQuartier = (empl.lignes || []).filter((l) => !HORS_QUARTIER.test(l.mot || "")).map((l) => ({ mot: l.mot, texte: court(l.texte), alerte: !!l.alerte })).filter((l) => l.texte).slice(0, 6);
 
   const jur = avis.juridique || {};
   const desc = avis.description || {};
@@ -130,30 +138,27 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
     { taux: s.taux_haut, valeur: s.valeur_haute_taux },
   ] : [];
 
-  const casse = (t) => String(t || "").toLowerCase().replace(/(^|[\s'-])\p{L}/gu, (x) => x.toUpperCase());
-  const refs = (avis.marche?.references || []).slice(0, 3).map((r) => ({
-    bien: r.adresse ? casse(String(r.adresse).split(",")[0]) : r.bien || "Local commercial",
-    surface: nombre(r.surface), prix: nombre(r.prix), prix_m2: nombre(r.prix_m2), annee: r.date || null,
-  }));
   const valeur = nombre(c.valeur);
-  const valeurM2 = valeur && surfaceUtile ? Math.round(valeur / surfaceUtile) : null;
-  const m2Refs = refs.map((r) => r.prix_m2).filter(Boolean);
-  const dansLEcart = valeurM2 && m2Refs.length ? { bas: Math.min(...m2Refs), haut: Math.max(...m2Refs), dedans: valeurM2 >= Math.min(...m2Refs) && valeurM2 <= Math.max(...m2Refs) } : null;
 
   const sig = avis.signataire || {};
-  const titreBien = `${type} à ${ville || "[ville]"}`;
+  const cp = String(avis.bien?.ville || avis.bien?.adresse || q.adresse || "").match(/\b\d{5}\b/)?.[0] || "";
+  const lieu = ville ? `${ville}${arrondissement(cp, ville)}` : "";
+  const titreBien = `${type} à ${lieu || "[ville]"}`;
+  // La couverture (maquette du 31 oct. 2026) : le bien, pas encore son prix.
+  const accroche = court(ligne(desc.lignes, "Désignation"), 50) || court(premiereLigne(desc.resume), 50) || null;
 
   const pages = [
       { cle: "couverture", section: "Avis de valeur", titre: titreBien, phrase: null,
         adresse: [trou(avis.bien?.rue) ? null : avis.bien?.rue, trou(avis.bien?.ville) ? (avis.bien?.adresse || "").match(/\d{5}\s+[^,]+$/)?.[0] : avis.bien?.ville].filter(Boolean).join(", ") || A_RENSEIGNER,
         mandataire: trou(sig.nom) ? A_RENSEIGNER : sig.nom, proprietaire: trou(avis.demandeur) ? A_RENSEIGNER : avis.demandeur,
-        valeur, bas: nombre(c.bas), haut: nombre(c.haut), loyer, taux, restant },
-      { cle: "sommaire", section: "Sommaire", titre: "Sommaire", phrase: ["Le bail, puis la ville, le quartier et le local.", "Enfin, le prix et sa preuve."],
+        etat: `${type}${avis.occupe === false ? " libres" : " loués"}`, lieu: lieu || A_RENSEIGNER, accroche,
+        loyer, surface: surfacePonderee || surfaceUtile, surface_ponderee: !!surfacePonderee, echeance: fin ? fin.getUTCFullYear() : null, restant },
+      { cle: "sommaire", section: "Sommaire", titre: "Sommaire", phrase: ["Le bail, puis la ville, le quartier et le local.", "Enfin, le prix et son calcul."],
         chapitres: CHAPITRES.map(([, mot], i) => ({ n: i + 1, mot, page: i + 3 })) },
       { cle: "locatif", section: "Situation locative", titre: "Le bilan locatif",
         phrase: avis.occupe === false ? ["Le local est libre.", "Sa valeur se lit au loyer qu'il peut porter."] : [premiereLigne(loc.synthese) || "Un locataire en place, un loyer à lire.", fin ? `Un revenu jusqu'en ${fin.getUTCFullYear()}.` : ""],
         frise, lignes: lignesBail },
-      { cle: "ville", section: "La ville", titre: `La ville${ville ? ` de ${ville}` : ""}`, phrase: [premiereLigne(avis.marche?.lecture) || "Le marché de la commune.", ""],
+      { cle: "ville", section: "La ville", titre: `La ville${ville ? ` de ${ville}` : ""}`, phrase: ["Ce que dit la commune.", ""],
         // Les chiffres de la commune (26 oct. 2026) : posés dans l'avis par donnees_commune (INSEE, Le Figaro), chacun sourcé.
         tuiles: [
           ["population", "Habitants", (v) => Math.round(v).toLocaleString("fr-FR")],
@@ -161,7 +166,8 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
           ["chomage", "Chômage de la zone d'emploi", (v) => pourcent(v, 1)],
           ["logement", "Prix du logement, médian", (v) => `${Math.round(v).toLocaleString("fr-FR")} €/m²`],
         ].map(([cle, mot, f]) => { const x = villeChiffres?.[cle]; return { cle, mot, valeur: x?.valeur != null ? f(x.valeur) : A_RENSEIGNER, vide: x?.valeur == null }; }),
-        texte: avis.marche?.synthese || "", sources: [...new Set(["population", "revenu", "chomage", "logement"].map((k) => villeChiffres?.[k]?.source).filter(Boolean))].join(" · ") || "INSEE, Le Figaro" },
+        // Plus de texte de marché sous les chiffres (31 oct. 2026, Jules : « pas les ventes autour »).
+        texte: "", sources: [...new Set(["population", "revenu", "chomage", "logement"].map((k) => villeChiffres?.[k]?.source).filter(Boolean))].join(" · ") || "INSEE, Le Figaro" },
       { cle: "quartier", section: "Le quartier", titre: "Le quartier", phrase: [premiereLigne(empl.synthese) || "Ce qui fait la valeur de l'adresse.", ""],
         lignes: lignesQuartier.length ? lignesQuartier : [{ mot: "Emplacement", texte: A_RENSEIGNER, vide: true }] },
       { cle: "local", section: "Le local", titre: "Le local", phrase: [premiereLigne(desc.resume) || "Le local.", ""],
@@ -175,18 +181,20 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
         ],
         marche: marcheBas && marcheHaut ? { bas: marcheBas, haut: marcheHaut, annuel_bas: boutique ? Math.round(marcheBas * boutique / 100) * 100 : null, annuel_haut: boutique ? Math.round(marcheHaut * boutique / 100) * 100 : null } : null,
         loyer_m2: loyerM2, au_marche: auMarche, source: loyersMarche?.source || null },
-      { cle: "taux", section: "Le taux", titre: "Le taux", phrase: ["On part du taux du secteur, puis on l'ajuste au bien.", "C'est lui qui fait le prix."],
-        taux, justification: m.justification_taux || "", source: m.source_taux || null },
-      { cle: "calcul", section: "Le calcul du prix", titre: "Le calcul", phrase: m.equimmox?.methodes?.length ? ["Quatre méthodes, pondérées.", "Un calcul que vous pouvez refaire."] : ["Le loyer divisé par le taux.", "Un calcul que vous pouvez refaire."],
-        loyer, taux, capitalisation: nombre(c.capitalisation), valeur, sensibilite,
-        // Depuis le 26 oct. 2026 : les quatre méthodes d'Equimmox et leur poids, quand l'avis en vient.
-        ponderation: (m.equimmox?.methodes || []).map((x) => ({ nom: x.nom, valeur: nombre(x.valeur), coefficient: nombre(x.coefficient), fourchette_m2: x.bas_m2 && x.haut_m2 ? [x.bas_m2, x.haut_m2] : null, taux: x.taux ?? null })),
-        valeur_brute: nombre(m.equimmox?.valeur_brute) },
-      { cle: "comparables", section: "Les comparables", titre: "Les comparables", phrase: null,
-        references: refs, votre: { surface: surfaceUtile, prix: valeur, prix_m2: valeurM2, rendement: nombre(c.rendement) },
-        ecart_m2: dansLEcart, source: avis.marche?.source || "" },
+      { cle: "taux", section: "Le taux", titre: "Le taux", phrase: [m.rendement ? "On part du taux de la ville, puis on l'ajuste au bien." : "On part du taux du secteur, puis on l'ajuste au bien.", "C'est lui qui fait le prix."],
+        taux, justification: m.justification_taux || "", source: m.rendement ? null : m.source_taux || null,
+        // Le taux pas à pas (31 oct. 2026) : la base de la ville, puis chaque ajustement du bien.
+        etapes: m.rendement ? [
+          { mot: "Taux de base de la ville", sous: lieu ? `${lieu}, validé par les mandataires K Partners` : "Validé par les mandataires K Partners", valeur: pourcent(m.rendement.taux_base) },
+          ...(m.rendement.ajustements || []).map((a) => ({ mot: String(a.motif || "").replace(/^./, (x) => x.toUpperCase()), sous: null, valeur: `${a.delta > 0 ? "+" : "−"} ${Math.abs(a.delta).toLocaleString("fr-FR", { minimumFractionDigits: 2 })}` })),
+        ] : [] },
+      { cle: "calcul", section: "Le calcul du prix", titre: "Le calcul", phrase: ["Le loyer divisé par le taux.", "Un calcul que vous pouvez refaire."],
+        // La capitalisation seule depuis le 31 oct. 2026 (Jules) : plus de méthodes pondérées ni de comparables.
+        loyer, taux, capitalisation: nombre(c.capitalisation), valeur, sensibilite },
       { cle: "valeur", section: "La valeur retenue", titre: "La valeur", phrase: valeur && c.bas && c.haut ? [`Vos murs valent entre ${euros(c.bas)} et ${euros(c.haut)}.`, `Nous retenons ${euros(valeur)}.`] : ["La valeur de vos murs.", ""],
-        valeur, bas: nombre(c.bas), haut: nombre(c.haut), prix_acquereur: nombre(c.cout_total), rendement_acquereur: nombre(c.rendement_total), m2: valeurM2,
+        valeur, bas: nombre(c.bas), haut: nombre(c.haut), prix_acquereur: nombre(c.cout_total), rendement_acquereur: nombre(c.rendement_total), honoraires_pct: nombre(c.honoraires_pct) ?? 5, frais_pct: nombre(c.frais_pct) ?? 7.5,
+        // Au m² de la surface pondérée quand l'avis l'a (maquette du 31 oct. 2026), sinon de la surface utile.
+        m2: valeur && (surfacePonderee || surfaceUtile) ? Math.round(valeur / (surfacePonderee || surfaceUtile)) : null, m2_pondere: !!surfacePonderee,
         // Le taux sous une borne seulement quand la borne vient de la sensibilité (pas de la fourchette Data-B).
         taux_bas: s && proche(c.bas, s.valeur_haute_taux) ? s.taux_haut : null, taux_haut: s && proche(c.haut, s.valeur_basse_taux) ? s.taux_bas : null },
       { cle: "mandataire", section: "Votre mandataire", titre: "Votre mandataire", phrase: ["Un interlocuteur, du mandat à la vente.", ""],
@@ -211,5 +219,7 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
       .filter(({ x }) => x.cle !== "couverture" && x.cle !== "sommaire")
       .map(({ x, page }, i) => ({ n: i + 1, mot: (CHAPITRES.find(([k]) => k === x.cle) || [])[1] || x.titre, page }));
   }
-  return { titre: titreBien, pages: restantes, masquees: [...masquees] };
+  // Les textes des cartes retouchés en mode Édition (« <page>.c.<texte> ») : le deck les affiche à la place du calcul.
+  const textes = Object.fromEntries(Object.entries(retouches).filter(([k, v]) => /^[a-z]+\.c\./.test(k) && typeof v === "string"));
+  return { titre: titreBien, pages: restantes, masquees: [...masquees], retouches: textes };
 }

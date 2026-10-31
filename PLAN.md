@@ -20,7 +20,7 @@
 | # | Lot | Tâche | Terminé quand… | Session | Statut |
 |---|---|---|---|---|---|
 | 0.1 | L0 | Mode test (clients et biens test) | Un admin crée un client/bien « test » ; un compte mandataire ne le voit jamais | L0-fondations | À tester (Jules) · 31 oct. · 303619d |
-| 0.2 | L0 | Droits mandataire | En mandataire : aucun client Klocka ni nom d'investisseur visible ; seulement ses fiches, ses biens, propriétés et transactions | L0-fondations | À tester (Jules) · 31 oct. · 303619d, 54ed110 (« Client n°12 » + critères) |
+| 0.2 | L0 | Droits mandataire | En mandataire : aucun client Klocka ni nom d'investisseur visible ; seulement ses fiches, ses biens, propriétés et transactions | L0-fondations | À tester (Jules) · 31 oct. · 303619d, 54ed110 (« Client n°12 » + critères) · 31 oct. soir : Jules ajoute ville de résidence, fonction et remarques (nom masqué), jamais nom, revenus ni apport |
 | 0.3 | L0 | Menu de gauche | Onglet Projet retiré ; restent Prospection, Biens, Haka | L0-fondations | À tester (Jules) · 31 oct. · 303619d |
 | 0.4 | L0 | Commerces uniquement | Aucune mention bureaux/entrepôts côté mandataire | L0-fondations | À tester (Jules) · 31 oct. · 303619d |
 | T.1 | Test | Test Playwright du parcours complet | `npm run test:parcours` va de la carte au mandat signé avec des données test et passe | Test-parcours | À faire |
@@ -34,7 +34,7 @@
 | 2.3 | L2 | 20 phrases de test | ≥ 18/20 donnent la bonne action (docs/haka-tests.md) | L2-haka | À faire |
 | 2.4 | L2 | Test terrain Antibes | Une vraie liste parcourue sans ouvrir une fiche à la main | Jules | À faire |
 | 3.1 | L3 | Arbre de décision | Statuts et passages conformes à l'arbre ci-dessous | L3-bien | À faire |
-| 3.2 | L3 | Import de biens existants | Dictée, photo ou PDF → bien créé à la bonne étape | L3-bien | À faire |
+| 3.2 | L3 | Import de biens existants | Dictée, photo ou PDF → bien créé à la bonne étape | L3-bien | À tester (Jules) · 31 oct. · non committé (PDF, Excel/CSV ou liste collée ; photo et dictée pas faites) |
 | 3.3 | L3 | Pré-visite → Avis de valeur → Mandat | Un bien test va de « À contacter » à « Mandat signé » sans bug, ordi et téléphone | L3-bien | À faire |
 | 4.1 | L4 | Transfert de mails sourcing | Mail transféré → fiche du bien créée en base (loyer, adresse, activité) | L4-donnees | À faire |
 

@@ -338,7 +338,10 @@ export function poserCompteMandataire(user, patch = {}) {
 // les anciens clients d'essai (`essai`) et le Bien d'essai (`essai_bien`) en sont aussi.
 
 /** Pure : un client ou une fiche de test ? */
-export const estTest = (x) => !!(x && (x.test || x.essai || x.essai_bien));
+// Les demandes du banc de stress du 1er oct. 2026 (« Demande posée par le stress test (à garder) ») n'avaient pas de
+// marque : gardées, elles comptent comme test (31 oct. 2026, Jules : les mandataires ne voient que les clients réels).
+const DU_BANC = /stress test/i;
+export const estTest = (x) => !!(x && (x.test || x.essai || x.essai_bien || DU_BANC.test(String(x.note || ''))));
 
 /** Pure : ce compte voit-il les données de test ? L'équipe seule. */
 export const voitTest = (user) => user?.role === 'admin';
@@ -379,6 +382,12 @@ export function demandeAnonyme(d) {
     exclusions: exclusionsDe(d).map((f) => f.cle),
     emplacement_1: veutEmplacement1(d),
     enseigne_nationale: veutEnseigneNationale(d),
+    // Plus d'informations sur le client (31 oct. 2026 au soir, Jules, revient sur PLAN.md 0.2) : où il vit, sa
+    // fonction, les remarques et l'information de l'équipe, son nom masqué. Jamais son nom, ses revenus ni son apport.
+    lieu_vie: d.lieu_vie || null,
+    fonction: d.fonction || null,
+    remarque: d.remarque || null,
+    information: d.information || null,
     // Un client de test ne sort que pour l'équipe, avec la pastille « Test ».
     test: estTest(d),
   };
@@ -430,7 +439,9 @@ export function poserDemande({ id = null, ...champs }, user) {
 // chiffre exact. Le lien au client (son id Monday) reste côté admin. Une
 // demande retouchée à la main n'est plus réécrite par l'import.
 
-export const STATUTS_EN_RECHERCHE = ['Recherche', 'Def Strategie'];
+// Les mandataires ne voient que les clients au statut « Recherche » (31 oct. 2026, Jules) : ni Def Strategie, ni
+// négociation, compromis, financement ou stand-by, même dans le groupe « Clients en cours ».
+export const STATUTS_EN_RECHERCHE = ['Recherche'];
 const CLE_SYNC = 'mandataire:demandes-monday';
 const SIX_HEURES = 6 * 3600 * 1000;
 
@@ -467,13 +478,22 @@ export function demandeDepuisMonday(c) {
     apport: Number(c.fonds_propres) || null,
     remarque: c.remarque ? masquerNom(c.remarque, c.nom).slice(0, 1200) : null,
     information: c.information ? masquerNom(c.information, c.nom).slice(0, 400) : null,
+    // Où il vit (la ville seule : « Lorient, France, Lorient » → « Lorient ») et sa fonction, nom masqué.
+    lieu_vie: String(c.localisation || '').split(',')[0].trim() || null,
+    fonction: c.fonction ? masquerNom(c.fonction, c.nom).slice(0, 160) : null,
     entre_le: c.entre_le || null,
   };
 }
 
-export async function synchroniserDemandesMonday({ user = null } = {}) {
-  const { clientsActifs } = await import('./alx/clients.js');
-  const clients = (await clientsActifs()).filter((c) => STATUTS_EN_RECHERCHE.includes(c.statut));
+export async function synchroniserDemandesMonday({ user = null, clients: fournis = null } = {}) {
+  const C = await import('./alx/clients.js');
+  // Twenty CRM fait foi dès qu'il est branché (31 oct. 2026, Jules : « notre vrai fichier de clients »), même en
+  // CRM=double où le reste de la plateforme lit encore Monday. Les fiches gardent leur ancien id Monday : les numéros
+  // des clients ne bougent pas.
+  // Avec Twenty, le groupe « Clients en cours » ET le statut « Recherche » ; sans Twenty, le statut seul.
+  const twenty = !fournis && C.clientsTwentyConfigure();
+  const tous = fournis || (twenty ? await C.clientsActifsTwenty() : await C.clientsActifs());
+  const clients = tous.filter((c) => STATUTS_EN_RECHERCHE.includes(c.statut) && (c.groupe == null || C.enCoursTwenty(c)));
   const existantes = new Map(Records.list('DemandeClient').filter((d) => d.monday_id).map((d) => [String(d.monday_id), d]));
   let crees = 0;
   let mises_a_jour = 0;
@@ -486,10 +506,10 @@ export async function synchroniserDemandesMonday({ user = null } = {}) {
         if (deja.active === false) Records.update('DemandeClient', deja.id, { active: true });
         continue;
       }
-      Records.update('DemandeClient', deja.id, { ...champs, client_nom: c.nom || null, active: true });
+      Records.update('DemandeClient', deja.id, { ...champs, client_nom: c.nom || null, active: true, ...(c.twenty_id ? { twenty_id: c.twenty_id } : {}) });
       mises_a_jour += 1;
     } else {
-      Records.create('DemandeClient', { ...champs, client_nom: c.nom || null, source: 'monday', monday_id: String(c.id), visible: true, active: true, ouverte_le: new Date().toISOString(), cree_par: user?.email || 'import Twenty CRM' });
+      Records.create('DemandeClient', { ...champs, client_nom: c.nom || null, source: 'monday', monday_id: String(c.id), twenty_id: c.twenty_id || null, visible: true, active: true, ouverte_le: new Date().toISOString(), cree_par: user?.email || 'import Twenty CRM' });
       crees += 1;
     }
   }
@@ -500,7 +520,7 @@ export async function synchroniserDemandesMonday({ user = null } = {}) {
   for (const d of [...existantes.values()].filter((x) => x.source === 'monday')) {
     if (d.active !== false) { Records.update('DemandeClient', d.id, { active: false }); fermees += 1; }
   }
-  const bilan = { le: new Date().toISOString(), crees, mises_a_jour, fermees, en_recherche: clients.length };
+  const bilan = { le: new Date().toISOString(), crees, mises_a_jour, fermees, en_recherche: clients.length, source: fournis ? 'fourni' : twenty ? 'Twenty CRM' : 'Monday' };
   Meta.set(CLE_SYNC, JSON.stringify(bilan));
   return { ok: true, ...bilan };
 }
@@ -514,8 +534,8 @@ export async function synchroniserSiVieux() {
   const d = derniereSynchro();
   if (d?.le && Date.now() - Date.parse(d.le) < SIX_HEURES) return d;
   try {
-    const { mondayConfigure, TABLEAUX } = await import('./monday.js');
-    if (!mondayConfigure() || !TABLEAUX.investisseurs) return d;
+    const { clientsConfigure, clientsTwentyConfigure } = await import('./alx/clients.js');
+    if (!clientsConfigure() && !clientsTwentyConfigure()) return d;
     return await synchroniserDemandesMonday();
   } catch (e) {
     console.warn(`[mandataire] import des demandes Twenty CRM impossible : ${e?.message || e}`);

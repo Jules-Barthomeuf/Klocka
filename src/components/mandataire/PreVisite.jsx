@@ -75,7 +75,13 @@ const Ligne = ({ mot, children }) => (
   </div>
 );
 
-/** La préparation, dans l'ordre de la spécification. `p` : la fiche (absente pour la préparation allégée). */
+const jourCourt = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : null);
+
+/**
+ * La préparation de la visite (31 oct. 2026, Jules) : trois parties, rien d'autre. Le rendez-vous (la date, l'heure et
+ * l'adresse) ; le résumé des échanges ; puis, sans titre, les questions à poser et les documents à demander, ceux de la
+ * classe d'actif (server/preparation-rdv.js). `p` : la fiche (absente pour la préparation allégée).
+ */
 export function Preparation({ prep, p = null, onDecaler = null }) {
   const queryClient = useQueryClient();
   const [recus, setRecus] = useState(prep.documents_recus || []);
@@ -86,146 +92,61 @@ export function Preparation({ prep, p = null, onDecaler = null }) {
     onError: (e) => toast.error(e?.message || "Pas enregistré"),
   });
   const basculer = (d) => { const l = recus.includes(d) ? recus.filter((x) => x !== d) : [...recus, d]; setRecus(l); if (p) cocher.mutate(l); };
-  const [mail, setMail] = useState(null);
-  const preparerMail = useMutation({
-    mutationFn: () => base44.request("GET", `${API}/${p.id}/preparation/mail`),
-    onSuccess: (r) => setMail(r),
-    onError: (e) => toast.error(e?.message || "Mail impossible"),
-  });
   const r = prep.rdv;
-  const pers = prep.personne;
-  const b = prep.bien || {};
-  const e = prep.estimation;
-  const cc = prep.clients_compatibles || {};
-  const q = prep.questions || {};
-  let n = 0;
-  const suivant = () => { n += 1; return n; };
+  const echanges = prep.echanges || [];
+  const questions = prep.questions?.indispensables || [];
   const itineraire = r?.adresse ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(r.adresse)}` : null;
-  const bouton = "inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre max-md:h-10";
+  const section = "border-t border-trait py-5 first:border-t-0";
 
   return (
     <div>
       {r && (
-        <Bloc n={suivant()} titre="Le rendez-vous">
-          <p className="m-0 text-[18px] text-encre first-letter:uppercase">{quandLong(r.le)}</p>
-          {r.adresse && <p className="m-0 mt-1 flex items-start gap-1.5"><MapPin className="mt-[5px] h-3.5 w-3.5 flex-none text-ardoise" />{r.adresse}</p>}
-          {r.avec && <p className="m-0 mt-0.5 text-ardoise">Avec {r.avec}</p>}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {itineraire && <a href={itineraire} target="_blank" rel="noreferrer" className={bouton}><Navigation className="h-4 w-4" />Itinéraire</a>}
-            {r.telephone && <a href={`tel:${String(r.telephone).replace(/\s+/g, "")}`} className={bouton}><Phone className="h-4 w-4" />Appeler</a>}
-            {onDecaler && <button type="button" onClick={onDecaler} className={bouton} style={{ background: "transparent" }}>Décaler</button>}
-          </div>
-        </Bloc>
-      )}
-      {/* !! : sans propriétaire ni phrase, `0` s'affichait seul sous le titre (27 oct. 2026, Jules). */}
-      {pers && !!(pers.proprietaire || pers.deja_dit?.length) && (
-        <Bloc n={suivant()} titre="La personne">
-          {pers.proprietaire && <p className="m-0 text-encre">{[pers.proprietaire, pers.forme, pers.gerant ? `gérant ${pers.gerant}${pers.age ? `, ${pers.age}` : ""}` : null].filter(Boolean).join(" · ")}<Source source={pers.source} aConfirmer={!!pers.gerant} /></p>}
-          {pers.deja_dit?.length > 0 && (
-            <div className="mt-3">
-              <p className="m-0 text-[12.5px] text-ardoise">Ce qu'il a déjà dit</p>
-              <ul className="m-0 mt-1 list-none p-0">{pers.deja_dit.map((d) => <li key={d.texte} className="py-0.5">« {d.texte} »<Source source={d.source} /></li>)}</ul>
-            </div>
+        <section className={section}>
+          {/* La date seule ; un tap la décale (le bouton « Décaler » est retiré, 31 oct. 2026). */}
+          {onDecaler
+            ? <button type="button" onClick={onDecaler} title="Décaler le rendez-vous" className="m-0 p-0 text-left text-[18px] text-encre first-letter:uppercase hover:text-pervenche" style={{ background: "transparent" }}>{quandLong(r.le)}</button>
+            : <p className="m-0 text-[18px] text-encre first-letter:uppercase">{quandLong(r.le)}</p>}
+          {r.adresse && (
+            <a href={itineraire} target="_blank" rel="noreferrer" className="mt-1 flex items-start gap-1.5 text-[14.5px] text-craie hover:text-encre">
+              <MapPin className="mt-[5px] h-3.5 w-3.5 flex-none text-ardoise" />{r.adresse}
+            </a>
           )}
-          {pers.approche && <p className="m-0 mt-3 text-encre"><span className="text-ardoise">Comment l'aborder : </span>{pers.approche}</p>}
-        </Bloc>
+        </section>
       )}
-      {prep.vendre && (prep.vendre.signal || prep.vendre.terrain?.length > 0) && (
-        <Bloc n={suivant()} titre="Pourquoi il pourrait vendre">
-          {prep.vendre.signal && <p className="m-0">{prep.vendre.signal}<Source source={prep.vendre.source} /></p>}
-          {(prep.vendre.terrain || []).map((t) => <p key={t.texte} className="m-0 mt-1">« {t.texte} »<Source source={t.source} /></p>)}
-        </Bloc>
-      )}
-      {(b.exploitant || b.rue || b.loyer || b.surface) && (
-        <Bloc n={suivant()} titre="Le bien et le locataire">
-          {b.exploitant && <Ligne mot={prep.profil === "exploitant" ? "Exploitant" : "Locataire"}>{[b.exploitant, b.depuis ? `depuis ${b.depuis}` : null, b.activite].filter(Boolean).join(" · ")}<Source source={b.source} /></Ligne>}
-          {b.rue && <Ligne mot="Adresse">{b.rue}</Ligne>}
-          {b.surface && <Ligne mot="Surface">{b.surface.basse === b.surface.haute ? `${b.surface.basse} m²` : `${b.surface.basse} à ${b.surface.haute} m²`}<Source source={b.surface.source} aConfirmer={b.surface.a_confirmer} /></Ligne>}
-          {b.loyer && prep.profil !== "exploitant" && <Ligne mot="Loyer probable">{k(b.loyer.basse)} à {k(b.loyer.haute)} par an<Source source={b.loyer.source} aConfirmer /></Ligne>}
-          {b.fin_bail && <Ligne mot="Fin de bail">{b.fin_bail.annee}<Source source={`bail 3-6-9 supposé depuis ${b.fin_bail.depuis}`} aConfirmer /></Ligne>}
-        </Bloc>
-      )}
-      {e && (
-        <Bloc n={suivant()} titre="La pré-estimation, interne" repliable resume={`${k(e.basse)} à ${k(e.haute)} · à ne pas annoncer`}>
-          <p className="m-0 text-[18px] tabular-nums text-encre">{k(e.basse)} à {k(e.haute)}</p>
-          <p className="m-0 text-[12.5px] text-ambre">Interne : à ne pas annoncer au propriétaire.</p>
-          {e.calcul && <p className="m-0 mt-3">{e.calcul}<Source source={(e.sources || []).join(" · ")} /></p>}
-          {e.sensibilite?.length > 0 && (
-            <div className="mt-3">
-              <p className="m-0 text-[12.5px] text-ardoise">Ce qui la ferait bouger</p>
-              <ul className="m-0 mt-1 list-none p-0">{e.sensibilite.map((x) => <li key={x} className="py-0.5">{x}</li>)}</ul>
-            </div>
-          )}
-          {e.comparables?.length > 0 && (
-            <div className="mt-3">
-              <p className="m-0 text-[12.5px] text-ardoise">Ventes comparables autour</p>
-              <ul className="m-0 mt-1 list-none p-0">{e.comparables.map((c) => <li key={c.texte} className="py-0.5 tabular-nums">{c.texte}<Source source={c.source} /></li>)}</ul>
-            </div>
-          )}
-        </Bloc>
-      )}
-      {cc.liste?.length > 0 && (
-        <Bloc n={suivant()} titre="Les clients compatibles" repliable resume={`${cc.liste.length} recherche${cc.liste.length > 1 ? "s" : ""}${cc.plafond ? ` · plus aucun au-delà de ${k(cc.plafond)}` : ""}`}>
-          <ul className="m-0 list-none p-0">{cc.liste.map((c) => <li key={c.reference} className="py-0.5">{[c.reference, c.budget, c.pourquoi].filter(Boolean).join(" · ")}</li>)}</ul>
-          {cc.plafond && <p className="m-0 mt-2 text-encre">Au-delà de {k(cc.plafond)}, plus aucun client ne suit : c'est l'argument du rendez-vous.<Source source={cc.source} /></p>}
-        </Bloc>
-      )}
-      {(q.indispensables?.length > 0) && (
-        <Bloc n={suivant()} titre="Les questions à poser">
-          <ol className="m-0 list-none p-0">
-            {q.indispensables.map((x, i) => <li key={x} className="flex gap-3 py-1 text-encre"><span className="w-4 flex-none text-[13.5px] tabular-nums text-pervenche">{i + 1}</span>{x}</li>)}
-          </ol>
-          {(q.autres || []).length > 0 && <ul className="m-0 mt-2 list-none p-0">{q.autres.map((x) => <li key={x} className="flex gap-3 py-0.5"><span className="mt-[9px] h-1 w-1 flex-none rounded-full bg-brume" />{x}</li>)}</ul>}
-          {(q.a_confirmer || []).length > 0 && (
-            <div className="mt-3">
-              <p className="m-0 text-[12.5px] text-ambre">Nées de ce qui est à confirmer</p>
-              <ul className="m-0 mt-1 list-none p-0">{q.a_confirmer.map((x) => <li key={x} className="flex gap-3 py-0.5"><span className="mt-[9px] h-1 w-1 flex-none rounded-full bg-ambre" />{x}</li>)}</ul>
-            </div>
-          )}
-        </Bloc>
-      )}
-      {prep.objections?.length > 0 && (
-        <Bloc n={suivant()} titre="Les objections probables" repliable resume={`${prep.objections.length} objection${prep.objections.length > 1 ? "s" : ""}, avec la réponse`}>
-          {prep.objections.map((o) => (
-            <div key={o.objection} className="py-1.5">
-              <p className="m-0 text-encre">« {o.objection} »</p>
-              <p className="m-0 text-ardoise">{o.reponse}</p>
-            </div>
-          ))}
-        </Bloc>
-      )}
-      {prep.documents?.length > 0 && (
-        <Bloc n={suivant()} titre="Les documents à demander">
-          <ul className="m-0 list-none p-0">
-            {prep.documents.map((d) => {
-              const fait = recus.includes(d);
-              return (
-                <li key={d}>
-                  <button type="button" onClick={() => basculer(d)} disabled={!p} aria-pressed={fait} className="flex w-full items-center gap-3 py-1.5 text-left disabled:cursor-default" style={{ background: "transparent" }}>
-                    <span className={`grid h-5 w-5 flex-none place-items-center rounded-[6px] border ${fait ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-doux"}`}>{fait && <Check className="h-3.5 w-3.5" />}</span>
-                    <span className={fait ? "text-ardoise line-through" : "text-encre"}>{d}</span>
-                  </button>
-                </li>
-              );
-            })}
+      <section className={section}>
+        <p className="m-0 text-[13px] text-ardoise">Résumé des échanges</p>
+        {echanges.length ? (
+          <ul className="m-0 mt-2 list-none p-0">
+            {echanges.map((x, i) => (
+              <li key={`${x.le}-${i}`} className="flex gap-3 py-1 text-[14.5px] leading-[1.55]">
+                <span className="w-[52px] flex-none text-[12.5px] tabular-nums text-brume">{jourCourt(x.le)}</span>
+                <span className="min-w-0 text-encre">{x.texte}<span className="ml-1.5 text-[12.5px] text-brume">{x.source}</span></span>
+              </li>
+            ))}
           </ul>
-          {p && (
-            <button type="button" onClick={() => preparerMail.mutate()} disabled={preparerMail.isPending} className={`${bouton} mt-3`} style={{ background: "transparent" }}>
-              {preparerMail.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}Envoyer la liste au propriétaire
-            </button>
+        ) : <p className="m-0 mt-2 text-[14.5px] text-brume">Aucun échange noté pour l'instant.</p>}
+      </section>
+      {(questions.length > 0 || prep.documents?.length > 0) && (
+        <section className={section}>
+          <ul className="m-0 list-none p-0">
+            {questions.map((x) => <li key={x} className="flex gap-3 py-1.5 text-[14.5px] leading-[1.55] text-encre"><span className="mt-[10px] h-1 w-1 flex-none rounded-full bg-ardoise" />{x}</li>)}
+          </ul>
+          {prep.documents?.length > 0 && (
+            <ul className="m-0 mt-4 list-none p-0">
+              {prep.documents.map((d) => {
+                const fait = recus.includes(d);
+                return (
+                  <li key={d}>
+                    <button type="button" onClick={() => basculer(d)} disabled={!p} aria-pressed={fait} className="flex w-full items-start gap-3 py-1.5 text-left text-[14.5px] leading-[1.55] disabled:cursor-default" style={{ background: "transparent" }}>
+                      <span className={`mt-[2px] grid h-5 w-5 flex-none place-items-center rounded-[6px] border ${fait ? "border-pervenche bg-pervenche text-fond" : "border-bord-doux"}`}>{fait && <Check className="h-3.5 w-3.5" />}</span>
+                      <span className={fait ? "text-ardoise line-through" : "text-encre"}>{d}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-          {mail && (
-            <div className="mt-3 rounded-[14px] border border-trait p-4">
-              <p className="m-0 text-[12.5px] text-ardoise">Préparé par l'Assistant KPartners, à envoyer après le rendez-vous</p>
-              <p className="m-0 mt-1 text-encre">{mail.objet}</p>
-              <p className="m-0 mt-2 whitespace-pre-line text-[13.5px] text-craie">{mail.texte}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <a href={`mailto:${mail.email || ""}?subject=${encodeURIComponent(mail.objet)}&body=${encodeURIComponent(mail.texte)}`} className={bouton}><Send className="h-4 w-4" />Ouvrir dans ma messagerie</a>
-                <button type="button" onClick={() => { navigator.clipboard?.writeText(mail.texte).then(() => toast.success("Copié")).catch(() => {}); }} className={bouton} style={{ background: "transparent" }}>Copier</button>
-              </div>
-            </div>
-          )}
-        </Bloc>
+        </section>
       )}
     </div>
   );
@@ -340,11 +261,11 @@ function usePreparation(p) {
   const tente = useRef(false);
   const relancer = refaire.mutate;
   useEffect(() => {
-    if (!f || tente.current || prep?.v === 2) return;
+    if (!f || tente.current || prep?.v >= 3) return;
     tente.current = true;
     relancer();
   }, [f, prep, relancer]);
-  return { prep, chargement: (isLoading && prep?.v !== 2) || (refaire.isPending && prep?.v !== 2), refaire };
+  return { prep, chargement: (isLoading && !(prep?.v >= 3)) || (refaire.isPending && !(prep?.v >= 3)), refaire };
 }
 
 /** Le bien passe à l'Avis de valeur quand un avis naît pendant que la Pré-visite est ouverte (le vocal de fin de visite). */
@@ -371,7 +292,7 @@ export function PreparationDuBien({ bien, onDecaler = null }) {
     return <><p className="m-0 mb-2 text-[13.5px] text-ardoise">Préparation allégée : ce bien n'est pas né d'une fiche de la Prospection, elle part de son adresse.</p><Preparation prep={legere.data.preparation} /></>;
   }
   if (chargement) return <Attente />;
-  if (prep?.v === 2) return <Preparation prep={prep} p={p} onDecaler={onDecaler} />;
+  if (prep?.v >= 3) return <Preparation prep={prep} p={p} onDecaler={onDecaler} />;
   return (
     <div className="py-16 text-center">
       <p className="m-0 text-[14px] text-brume">La préparation n'est pas encore prête.</p>
@@ -431,7 +352,8 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
       </div>
       <div className={`grid gap-8 px-10 pb-16 pr-20 pt-4 ${ficheOuverte && p ? "grid-cols-[minmax(0,1fr)_minmax(320px,400px)]" : "grid-cols-1"}`}>
         {/* Dans un cadre, comme la fiche à côté (27 oct. 2026, Jules) ; plus de phrase sous le titre. */}
-        <main className="mx-auto w-full max-w-[720px] rounded-[18px] border border-trait bg-rail px-7 pb-3 pt-6">
+        {/* Plus large sur l'ordinateur (31 oct. 2026, Jules : « trop étroite ») : 1080 px au lieu de 720. */}
+        <main className="mx-auto w-full max-w-[1080px] rounded-[18px] border border-trait bg-rail px-7 pb-3 pt-6">
           <div className="flex items-end justify-between gap-3 pb-2">
             <div className="min-w-0">
               <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }} title={maj ? `Préparée par votre assistant · mise à jour ${maj}` : undefined}>Préparer la visite</h1>

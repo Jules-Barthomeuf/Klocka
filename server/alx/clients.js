@@ -10,6 +10,8 @@
 // exacte : chercher pour ceux qui cherchent encore, pas pour ceux qui ont fini.
 
 import { mondayConfigure, TABLEAUX, lireTableau } from '../monday.js';
+import { twentyConfigure } from '../twenty.js';
+import * as Twenty from '../crm/monday-sur-twenty.js';
 
 const HORS_JEU = ['Stand-by', 'Abandonné', 'Projet Signé', 'Mandat signé'];
 
@@ -22,6 +24,9 @@ const COL = {
   objectif: 'color_mkzm7em7',
   remarque: 'long_text_mkv2twrk',
   information: 'text_mkvngea0',
+  // Où vit le client et ce qu'il fait (31 oct. 2026, Jules : montrés aux mandataires).
+  localisation: 'location_mkv2tpc2',
+  fonction: 'text_mkvnmx09',
 };
 
 const nombre = (t) => {
@@ -36,11 +41,14 @@ export const clientsConfigure = () => mondayConfigure() && !!TABLEAUX.investisse
  * teste sans jeton Monday, sur une page telle que lireTableau() la rend.
  * @param {{id, nom, colonnes: Record<string,string>}[]} lignes
  */
-export function clientsDe(lignes) {
+export function clientsDe(lignes, { tous = false } = {}) {
   return (lignes || [])
-    .filter((l) => !HORS_JEU.includes(l.colonnes[COL.statut]))
+    .filter((l) => tous || !HORS_JEU.includes(l.colonnes[COL.statut]))
     .map((l) => ({
-      id: l.id,
+      // Une ligne lue dans Twenty garde son ancien id Monday comme id (c'est lui que les fiches locales connaissent),
+      // et son id Twenty à part ; une fiche née dans Twenty n'a que celui-là.
+      id: l.monday_id || l.id,
+      twenty_id: 'monday_id' in l ? l.id : null,
       nom: l.nom,
       statut: l.colonnes[COL.statut] || null,
       budget: nombre(l.colonnes[COL.budget]),
@@ -50,7 +58,10 @@ export function clientsDe(lignes) {
       objectif: l.colonnes[COL.objectif] || null,
       remarque: l.colonnes[COL.remarque] || null,
       information: l.colonnes[COL.information] || null,
+      localisation: l.colonnes[COL.localisation] || null,
+      fonction: l.colonnes[COL.fonction] || null,
       entre_le: l.cree_le || null,
+      groupe: l.groupe || null,
     }));
 }
 
@@ -72,7 +83,24 @@ export async function clientsActifs() {
   return promesse;
 }
 /** Pour les tests et après une écriture dans le tableau des clients : la prochaine lecture repart du CRM. */
-export const oublierClientsActifs = () => { enCache = null; };
+export const oublierClientsActifs = () => { enCache = null; enCacheTwenty = null; };
+
+// Les clients lus dans Twenty CRM, quel que soit le CRM du reste de la plateforme (31 oct. 2026, Jules : le vrai
+// fichier des clients est dans Twenty ; en CRM=double, le reste lit encore Monday). Même filtre, même forme.
+export const clientsTwentyConfigure = () => twentyConfigure() && !!TABLEAUX.investisseurs;
+let enCacheTwenty = null;
+/** Le groupe « Clients en cours » de Twenty CRM : ce sont eux que les mandataires voient (31 oct. 2026, Jules). */
+export const GROUPE_EN_COURS = 'CLIENTS_EN_COURS';
+export const enCoursTwenty = (c) => c.groupe === GROUPE_EN_COURS;
+/** Toutes les fiches clients de Twenty CRM, quel que soit leur statut (le tri se fait sur le groupe). */
+export async function clientsActifsTwenty() {
+  if (!clientsTwentyConfigure()) return [];
+  if (enCacheTwenty && Date.now() - enCacheTwenty.le < DIX_MINUTES) return enCacheTwenty.promesse;
+  const promesse = Twenty.lireTableau(TABLEAUX.investisseurs).then((l) => clientsDe(l, { tous: true }));
+  enCacheTwenty = { le: Date.now(), promesse };
+  promesse.catch(() => { if (enCacheTwenty?.promesse === promesse) enCacheTwenty = null; });
+  return promesse;
+}
 
 /**
  * La fourchette de budget des clients actifs, pour recaler le périmètre par

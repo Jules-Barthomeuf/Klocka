@@ -91,6 +91,11 @@ export default function ProspecterClients({ bascule = null }) {
   const selecteur = { clients, tous, courant: Math.min(i, Math.max(0, clients.length - 1)), onChoisir: choisir, vus: clients.filter((c) => dejaLe(c)).map((c) => c.id) };
   // Une fiche ouverte replie la carte du client ; la fermer la rouvre.
   const ouvrir = (id) => { setOuvert(id); setReplie(!!id); };
+  const boiteFiche = useRef(null);
+  useEffect(() => {
+    if (!ouvert || !window.matchMedia("(max-width: 767px)").matches) return;
+    requestAnimationFrame(() => boiteFiche.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [ouvert]);
   useEffect(() => { setFiltres(FILTRES_DEPART); }, [prospecte]);
 
   // Chargement, erreur, pas de secteur : la bascule reste, pour passer à « Tous les commerces ».
@@ -141,7 +146,8 @@ export default function ProspecterClients({ bascule = null }) {
               prospecteLe={dejaLe(client)} charge={points.isFetching}
               onProspecter={() => { geste.current = client.id; if (prospecte === client.id) points.refetch(); else qc.invalidateQueries({ queryKey: ["m-prospecter", "points", client.id] }); setProspecte(client.id); setVusIci((v) => ({ ...v, [client.id]: new Date().toISOString() })); ouvrir(null); }} />
           )}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-rail max-lg:min-h-[320px]">
+          {/* Au téléphone, une fiche ouverte prend presque tout l'écran, et la page descend jusqu'à elle (31 oct. 2026, Jules). */}
+          <div ref={boiteFiche} className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-rail max-lg:min-h-[320px] ${ouvert ? "max-md:h-[86dvh] max-md:flex-none" : ""}`}>
             {/* Fermer la fiche, ou changer de point, se fait en fondu (24 oct. 2026). */}
             <AnimatePresence mode="wait" initial={false}>
             {ouvert ? (

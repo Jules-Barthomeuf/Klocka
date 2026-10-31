@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { chiffresDuProjet, ETAPES_PROJET, formatPrix, statutLabels, TramePhoto } from "@/components/projet/CarteProjet";
 import ShadowReportDialog from "./ShadowReport";
+import { kEuros } from "@/lib/clients-commerces";
 
 // Un projet en ligne, sur la page de gestion (maquette du 28 septembre 2026) :
 // la vignette, le titre et l'adresse avec le nombre de clients possibles,
@@ -14,7 +15,7 @@ import ShadowReportDialog from "./ShadowReport";
 // se referme quand la souris quitte la ligne. Au toucher, un clic ouvre et
 // referme. Un clic sur la ligne ouvre le projet.
 
-const somme = (n) => (typeof n === "number" ? `${Math.round(n / 1000)} k€` : null);
+const somme = (n) => (typeof n === "number" ? kEuros(n) : null);
 const initiales = (nom) => String(nom || "").trim().split(/\s+/).slice(0, 2).map((m) => m[0]).join("").toUpperCase();
 
 /** La teinte d'une étape : la menthe, de plus en plus pleine vers la signature. */

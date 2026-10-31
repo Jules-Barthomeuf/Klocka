@@ -75,7 +75,10 @@ export default function PresentationAvis({ id, onPleinEcran, mode = "lecture", o
   // Une retouche du deck s'enregistre dans l'avis (`avis.deck`), comme une retouche de l'avis lui-même.
   const retoucher = async (cle, texte) => {
     if (!data?.avis || provisoire) { toast.error("L'avis n'est pas encore rédigé : le deck se retouche ensuite."); return; }
-    const avis = { ...data.avis, deck: { ...(data.avis.deck || {}), [cle]: texte } };
+    // Un texte vidé rend la valeur de l'avis : sa retouche s'efface.
+    const retouches = { ...(data.avis.deck || {}), [cle]: texte };
+    if (texte == null) delete retouches[cle];
+    const avis = { ...data.avis, deck: retouches };
     await enregistrer(avis);
   };
   // Retirer une page, ou les remettre toutes (26 oct. 2026) : les pages suivantes prennent sa place et son numéro.

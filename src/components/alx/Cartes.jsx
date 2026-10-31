@@ -7,6 +7,7 @@ import { Bouton, Champ, Etiquette, Nombre, TEINTES, joliNom, pileDe } from "@/co
 import { J } from "@/design/jetons";
 import PenseeIA from "@/components/PenseeIA";
 import CoordonneesProprietaire from "@/components/alx/CoordonneesProprietaire";
+import { kEuros as montant } from "@/lib/clients-commerces";
 
 // Les cartes de prospection. On ne cherche pas « dans une ville », on cherche
 // pour quelqu'un : la carte porte le nom qu'on veut, les critères du client,
@@ -20,7 +21,7 @@ import CoordonneesProprietaire from "@/components/alx/CoordonneesProprietaire";
 
 const fmt = (n) => (n || 0).toLocaleString("fr-FR");
 const virgule = (n) => String(n).replace(".", ",");
-const kEuros = (n) => (n == null ? "—" : n >= 10000 ? `${fmt(Math.round(n / 1000))} k€` : `${fmt(Math.round(n))} €`);
+const kEuros = (n) => (n == null ? "—" : n >= 10000 ? montant(n) : `${fmt(Math.round(n))} €`);
 const taux = ([a, b]) => (a === b ? `${virgule(a)} %` : `${virgule(a)} à ${virgule(b)} %`);
 const plage = (f, unite) => (!f ? "—" : f[0] === f[1] ? `${fmt(f[0])} ${unite}` : `${fmt(f[0])} à ${fmt(f[1])} ${unite}`);
 

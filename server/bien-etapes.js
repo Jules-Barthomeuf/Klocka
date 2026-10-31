@@ -4,6 +4,7 @@
 
 import { Records, Conversations } from './db.js';
 import { ETAPES_BIEN, marqueurDe, rangValide } from '../src/lib/biens-mandataire.js';
+import { montant, fourchette } from './montants.js';
 
 const emailDe = (u) => String(u?.email || '').toLowerCase();
 const maintenant = () => new Date().toISOString();
@@ -82,13 +83,13 @@ export function cadreDuBien(p) {
   // La Pré-visite (26 oct. 2026) : Haka lit la préparation (signal, fiche, recherches clients, pré-estimation) et la
   // visite en cours ; une correction dite à la voix passe par corriger_preparation.
   const prep = p.preparation;
-  if (prep?.v === 2) {
+  if (prep?.v >= 2) {
     const e = prep.estimation;
     lignes.push(`Préparation du rendez-vous : ${[
       prep.rdv?.le ? `rendez-vous le ${new Date(prep.rdv.le).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'full', timeStyle: 'short' })}${prep.rdv.adresse ? `, ${prep.rdv.adresse}` : ''}${prep.rdv.avec ? `, avec ${prep.rdv.avec}` : ''}` : null,
       prep.signal ? `signal : ${prep.signal}` : null,
-      e?.basse ? `pré-estimation interne ${Math.round(e.basse / 1000)} à ${Math.round(e.haute / 1000)} k€ (jamais annoncée)` : null,
-      prep.clients_compatibles?.liste?.length ? `${prep.clients_compatibles.liste.length} client(s) compatible(s)${prep.clients_compatibles.plafond ? `, plafond ${Math.round(prep.clients_compatibles.plafond / 1000)} k€` : ''}` : null,
+      e?.basse ? `pré-estimation interne ${fourchette(e.basse, e.haute, { sep: ' à ' })} (jamais annoncée)` : null,
+      prep.clients_compatibles?.liste?.length ? `${prep.clients_compatibles.liste.length} client(s) compatible(s)${prep.clients_compatibles.plafond ? `, plafond ${montant(prep.clients_compatibles.plafond)}` : ''}` : null,
     ].filter(Boolean).join(' ; ')}.`);
   }
   // Les questions de la préparation, mot pour mot : le compte rendu de visite les reprend une à une (27 oct. 2026).

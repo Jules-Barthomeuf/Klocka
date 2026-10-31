@@ -7,6 +7,7 @@ import { base44 } from "@/api/base44Client";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import FacadeLocal from "@/components/off-market/FacadeLocal";
 import { toast } from "@/components/ui/avis";
+import { kEuros } from "@/lib/clients-commerces";
 
 // La fiche du mandataire sur une page (24 oct. 2026, Jules) : le commerce et
 // l'exploitant ; le propriétaire des murs (SCI, gérant, âge) ; les signaux,
@@ -297,7 +298,7 @@ function ChoixListe({ listes = [], actuelle = null, onChoisir, occupe = false, d
  */
 function Preparation({ prep }) {
   const [ouverte, setOuverte] = useState(true);
-  const k = (n) => (n ? `${Math.round(n / 1000).toLocaleString("fr-FR")} k€` : null);
+  const k = kEuros;
   const pe = prep.pre_estimation;
   const lignes = [
     ["Pré-estimation", pe?.basse ? `${k(pe.basse)} à ${k(pe.haute)}` : "À faire après la visite", "interne, à ne pas annoncer"],

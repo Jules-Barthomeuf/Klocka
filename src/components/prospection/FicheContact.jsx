@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { HistoriqueLayer } from "@/components/layer/FriseFaits";
 import Chargement from "@/components/ui/Chargement";
+import { kEuros } from "@/lib/clients-commerces";
 
 // La fiche d'un agent ou d'une agence, en un coup d'œil (16 oct. 2026, Jules) :
 // combien de fois on s'est parlé, ses mails, ses fiches commerciales, ce qu'il
@@ -35,7 +36,7 @@ const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 
 /** Pure : « 14 fiches · Nice, Antibes · loyers 18 à 42 k€ · dernier envoi le 3 oct. 2026 · 2 retenues » (server/memoire/agents.js). */
 function ligneMemoire(c) {
-  const k = (n) => `${Math.round(n / 1000)} k€`;
+  const k = kEuros;
   const d = c.dernier_envoi ? new Date(c.dernier_envoi).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : null;
   return [
     `${c.nb_fiches} fiche${c.nb_fiches > 1 ? "s" : ""}`,

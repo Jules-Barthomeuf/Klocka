@@ -435,3 +435,12 @@ test("les outils de marché du mandataire, et les sources qu'il peut cocher (26 
   const r = await M.executerOutilMandataire({ name: 'donnees_commune', input: { commune: '' } }, { email: 'm@kpartners.fr', role: 'mandataire' });
   assert.equal(r.ok, false, 'sans commune, un refus propre');
 });
+
+test('resumeComplement : un paragraphe qui dit ce qu’on a appris, pas la liste des champs', async () => {
+  const { resumeComplement } = await import('./mandataire.js');
+  const t = resumeComplement({ telephone: '06 12 34 56 78', remarque: 'cumul · veut vendre', nom: 'SCI Dupont' }, { remarque: 'veut vendre avant l’été', a_confirmer: true });
+  assert.equal(t, 'Téléphone : 06 12 34 56 78, à confirmer (dit par un tiers). Propriétaire : SCI Dupont. Veut vendre avant l’été.');
+  assert.doesNotMatch(t, /Fiche complétée|cumul/);
+  assert.match(resumeComplement({ prochaine_action: 'Rappeler', prochaine_action_le: '2026-11-05T09:00:00.000Z' }), /^Prochaine action : Rappeler, le jeudi 5 novembre\.$/);
+  assert.equal(resumeComplement({ sections: [] }, { section: { titre: 'Bail', texte: 'fin en 2029' } }), 'Bail : fin en 2029.');
+});

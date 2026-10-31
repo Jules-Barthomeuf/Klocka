@@ -11,6 +11,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { Records, CHEMIN_UPLOADS } from '../db.js';
 import { comparerBiens, normaliserAdresse } from '../haka/doublons.js';
+import { montant } from '../montants.js';
 
 export const ENTITE = 'BienMemoire';
 export const DOSSIER_FICHES = path.join(CHEMIN_UPLOADS, 'memoire');
@@ -143,7 +144,7 @@ export function chercherDansMemoire(bien, biens = []) {
 }
 
 const moisFr = (iso) => (iso ? new Date(iso).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'une date inconnue');
-const kEuros = (n) => (n ? `${Math.round(n / 1000).toLocaleString('fr-FR')} k€` : 'prix inconnu');
+const kEuros = (n) => montant(n) || 'prix inconnu';
 const qui = (b) => b?.agent?.agence || b?.agent?.nom || b?.agent_email || 'un agent';
 
 /**

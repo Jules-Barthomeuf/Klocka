@@ -1,3 +1,4 @@
+import { montant } from '../montants.js';
 // La fiche agent chiffrée (30 oct. 2026, Jules) : ce que la Mémoire sait d'un agent ou d'une agence. Pur.
 
 const nombres = (xs) => xs.map(Number).filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
@@ -38,7 +39,7 @@ export const biensDe = (biens, emails = []) => {
 /** Pure : une ligne pour l'écran : « 14 fiches · Nice, Antibes · loyers 18 à 42 k€ · dernier envoi le 3 oct. · 2 retenues ». */
 export function ligneAgent(c) {
   if (!c?.nb_fiches) return null;
-  const k = (n) => `${Math.round(n / 1000)} k€`;
+  const k = (n) => montant(n) || '0 k€';
   const d = c.dernier_envoi ? new Date(c.dernier_envoi).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
   return [
     `${c.nb_fiches} fiche${c.nb_fiches > 1 ? 's' : ''}`,

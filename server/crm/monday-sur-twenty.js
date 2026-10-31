@@ -211,7 +211,8 @@ export function ligneDe(o, meta, r) {
     const a = r[c.name];
     if (f?.type === 'ADDRESS' && a?.addressLat != null && a?.addressLng != null) valeurs[c.mondayColonne] = { lat: a.addressLat, lng: a.addressLng, address: a.addressStreet1 || '' };
   }
-  return { id: String(r.id), nom: r.name || '', cree_le: r.mondayCreeLe || r.createdAt || null, colonnes, valeurs, monday_id: r.mondayId || null };
+  // Le groupe Twenty (« Clients en cours », « Clients signés »…), la valeur brute du champ SELECT.
+  return { id: String(r.id), nom: r.name || '', cree_le: r.mondayCreeLe || r.createdAt || null, colonnes, valeurs, monday_id: r.mondayId || null, groupe: r.groupe || null };
 }
 
 // --- Les verbes de server/monday.js ---

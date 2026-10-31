@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, Loader2, Check, MapPin, Store, Phone, Maximize2,
 import FondHalo from "@/components/projet/FondHalo";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
+import { kEuros } from "@/lib/clients-commerces";
 
 // « Ma feuille de route » : la page ouverte à tous, sans compte.
 //
@@ -28,7 +29,7 @@ const SLUG = "feuille-de-route";
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const parMois = (n) => `${euros(n)} / mois`;
 const signe = (n) => `${n >= 0 ? "+" : ""}${euros(n)}`;
-const k = (n) => `${Math.round(n / 1000)} k€`;
+const k = (n) => kEuros(n) || "0 k€";
 // « un local de opticien » et « le crédit du coiffure » se lisent mal. Un local
 // « de » son métier, avec l'élision, tient dans les deux genres : un local
 // d'opticien, un local de coiffure.

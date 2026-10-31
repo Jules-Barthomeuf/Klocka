@@ -490,7 +490,8 @@ test('la Pré-visite refaite : sources, « à confirmer », questions et objecti
     rdv: { id: 'r1', echeance: '2026-10-27T08:00:00Z', avec: 'M. Paul' },
     ventes: [{ date: '2024-03-01', adresse: '12 rue X', surface: 50, prix: 300000, prix_m2: 6000 }],
   });
-  assert.equal(bailleur.v, 2);
+  assert.equal(bailleur.v, 3);
+  assert.equal(bailleur.classe, 'commerce');
   assert.equal(bailleur.profil, 'bailleur');
   assert.deepEqual(bailleur.personne.deja_dit.map((d) => d.texte), ['Il pense à la retraite dans deux ans, ses enfants ne reprendront pas.'], 'ni les notes automatiques ni « sans réponse »');
   assert.equal(bailleur.personne.deja_dit[0].source, 'appel');
@@ -500,19 +501,22 @@ test('la Pré-visite refaite : sources, « à confirmer », questions et objecti
   assert.match(bailleur.estimation.calcul, /÷ taux de 6,5 %/);
   assert.match(bailleur.estimation.sensibilite[0], /^Si le loyer dépasse 25 k€ par an, la valeur passe au-dessus de 385 k€/);
   assert.equal(bailleur.estimation.comparables[0].source, 'DVF');
-  assert.equal(bailleur.questions.indispensables.length, 3);
-  assert.match(bailleur.questions.indispensables[0], /^Le bail et le loyer/);
-  assert.ok(bailleur.questions.a_confirmer.some((x) => /surface exacte/.test(x)), 'une question née de la surface estimée');
+  // Les questions et les documents des murs commerciaux (31 oct. 2026, Jules) : une liste fixe, sans titres.
+  assert.equal(bailleur.questions.indispensables.length, 13);
+  assert.match(bailleur.questions.indispensables[0], /^Le loyer : combien, hors taxes et hors charges, par an/);
+  assert.match(bailleur.questions.indispensables.at(-1), /autre agence/);
+  assert.deepEqual(bailleur.documents, ['Le bail et ses avenants', 'La dernière taxe foncière', 'Le décompte des charges', 'Si c’est possible pendant la visite : une photo de l’avis d’échéance ou de la page du bail où figure le loyer']);
+  assert.deepEqual(bailleur.echanges.map((x) => x.source), ['appel'], 'le résumé des échanges : ni les notes automatiques ni « sans réponse »');
   assert.ok(bailleur.objections.length >= 2 && bailleur.objections.length <= 3);
   assert.ok(bailleur.objections.some((o) => /associés/.test(o.objection)), 'une SCI : les associés');
   assert.equal(bailleur.rdv.adresse, '18 Rue Mercière, Lyon');
-  // Le propriétaire exploitant : pas de questions sur le bail, mais ses projets et la vente occupée.
+  // Le propriétaire exploitant : les mêmes questions des murs commerciaux, pas de fin de bail déduite.
   const exploitant = R.composerPreparation({ p: { commerce: 'Boulangerie', historique: [] }, commerce, courte: { proprietaire: "L'exploitant lui-même", exploitant: 'BOULANGERIE', depuis: 2012 } });
   assert.equal(exploitant.profil, 'exploitant');
-  assert.ok(!exploitant.questions.indispensables.some((x) => /bail et le loyer/i.test(x)));
-  assert.ok(exploitant.questions.indispensables.some((x) => /vente occupée/i.test(x)));
+  assert.deepEqual(exploitant.questions.indispensables, bailleur.questions.indispensables);
   assert.equal(exploitant.bien.fin_bail, null);
-  assert.ok(exploitant.documents.includes('Titre de propriété'));
+  // Une classe d'actif sans liste à elle prend celle des murs commerciaux, en attendant la sienne.
+  assert.deepEqual(R.questionsDe({ classe: 'bureaux' }).indispensables, bailleur.questions.indispensables);
   // Les gestes : décaler (la notification repart), annuler (en pause), la visite notée, le rappel une heure avant.
   const A = { email: 'previsite-a@kpartners.fr' };
   const p = Records.create('ProprietaireMandataire', { mandataire_email: A.email, commerce: 'Cave Exemple', adresse: '3 rue Exemple, Lyon', statut: 'rdv_pris', historique: [] });
@@ -525,7 +529,7 @@ test('la Pré-visite refaite : sources, « à confirmer », questions et objecti
   assert.equal(Records.get('Rappel', rdv.id).preparation_notifiee, null, 'la notification de la veille repart');
   assert.equal(R.noterVisite(p.id, { reponses: { loyer: '1 800 € par mois', pirate: 'x' } }, A).proprietaire.biens.visite.reponses.loyer, '1 800 € par mois');
   assert.equal(Records.get('ProprietaireMandataire', p.id).biens.visite.reponses.pirate, undefined);
-  assert.equal(R.cocherDocuments(p.id, ['Dernier avis de taxe foncière'], A).proprietaire.preparation.documents_recus[0], 'Dernier avis de taxe foncière');
+  assert.equal(R.cocherDocuments(p.id, ['La dernière taxe foncière'], A).proprietaire.preparation.documents_recus[0], 'La dernière taxe foncière');
   const mail = R.mailDesDocuments(p.id, A);
   assert.ok(!/Dernier avis de taxe foncière/.test(mail.texte), 'le mail ne redemande pas ce qui est reçu');
   assert.equal(await R.tourDeLHeure(new Date(Date.parse('2026-12-03T14:00:00Z') - 3 * 3600000)), 0, 'pas trois heures avant');
@@ -565,7 +569,7 @@ test('le compte rendu de visite : le bon rendez-vous, rien d’écrasé sans le 
   assert.deepEqual(r.boutons.map((b) => b.libelle), ["Oui, passer à l'estimation", 'Non, pas maintenant']);
   const f = Records.get('ProprietaireMandataire', p.id);
   assert.equal(f.biens.compte_rendu.source, 'visite');
-  assert.ok(f.preparation.documents_recus.includes('Bail commercial et avenants'), 'le bail remis coche le document de la liste');
+  assert.ok(f.preparation.documents_recus.includes('Le bail et ses avenants'), 'le bail remis coche le document de la liste');
   assert.match(f.historique.at(-1).texte, /^Compte rendu de visite · loyer 24 k€\/an/);
   assert.equal(Records.list('EstimationMandataire').filter((e) => e.proprietaire_id === p.id).length, 0, 'aucune estimation lancée sans son oui');
   const fini = R.enregistrerCompteRendu(p.id, { proprietaire: { vendeur: false } }, A);

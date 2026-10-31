@@ -568,6 +568,28 @@ export const OUTILS_MANDATAIRE = [
 
 const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+/**
+ * Pure : la ligne d'historique d'une fiche complétée, en phrases qui disent ce qu'on a appris (31 oct. 2026, Jules :
+ * « Fiche complétée : téléphone, remarque, ça nous aide pas du tout »). La remarque est celle dite cette fois, pas
+ * tout le cumul de la fiche.
+ */
+export function resumeComplement(patch = {}, { remarque = null, section = null, a_confirmer = false } = {}) {
+  const tiers = a_confirmer ? ', à confirmer (dit par un tiers)' : '';
+  const MOTS = { nom: 'Propriétaire', murs: 'Murs', gerant: 'Gérant', exploitant: 'Exploitant', commerce: 'Commerce', adresse: 'Adresse', ville: 'Ville', activite: 'Activité' };
+  const phrases = [];
+  if (patch.telephone !== undefined) phrases.push(patch.telephone ? `Téléphone : ${patch.telephone}${tiers}.` : 'Téléphone retiré.');
+  if (patch.email !== undefined) phrases.push(patch.email ? `Mail : ${patch.email}${tiers}.` : 'Mail retiré.');
+  for (const [k, mot] of Object.entries(MOTS)) if (patch[k] !== undefined) phrases.push(patch[k] ? `${mot} : ${patch[k]}.` : `${mot} retiré.`);
+  if (remarque) phrases.push(`${String(remarque).trim().replace(/[.\s]+$/, '')}.`.replace(/^./, (c) => c.toUpperCase()));
+  if (patch.prochaine_action || patch.prochaine_action_le) {
+    const quand = patch.prochaine_action_le ? new Date(patch.prochaine_action_le) : null;
+    const date = quand && !Number.isNaN(quand.getTime()) ? `, le ${quand.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: PARIS })}` : '';
+    phrases.push(`Prochaine action : ${patch.prochaine_action || 'à faire'}${date}.`);
+  }
+  if (section?.titre) phrases.push(section.action === 'retirer' ? `Partie « ${section.titre} » retirée.` : `${section.titre} : ${String(section.texte || '').trim().replace(/[.\s]+$/, '')}.`);
+  return phrases.join(' ') || 'Fiche mise à jour.';
+}
+
 /** Pure : les demandes des clients, sans rien qui permette de les joindre. */
 export function anonymiser(clients, ville = null) {
   const cherche = ville ? norm(ville) : null;
@@ -861,7 +883,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     // D'où vient l'information : dite à Haka, et « à confirmer » si elle vient d'un tiers.
     const conf = { ...(r.proprietaire.a_confirmer || {}) };
     for (const k of ['telephone', 'email']) if (patch[k]) { if (input.a_confirmer) conf[k] = true; else delete conf[k]; }
-    Records.update('ProprietaireMandataire', cible.id, { a_confirmer: conf, ...(patch.telephone ? { telephone_source: input.a_confirmer ? "dit à l'Assistant KPartners, d'un tiers" : 'dit à l\'Assistant KPartners' } : {}), historique: [...(r.proprietaire.historique || []), { le: new Date().toISOString(), type: 'note', texte: `Fiche complétée : ${Object.keys(patch).map((k) => (({ telephone: 'téléphone', email: 'mail', nom: 'propriétaire', murs: 'murs', gerant: 'gérant', exploitant: 'exploitant', remarque: 'remarque', commerce: 'commerce', adresse: 'adresse', ville: 'ville', activite: 'activité', prochaine_action: 'prochaine action', prochaine_action_le: 'date de la prochaine action', sections: 'partie libre' }[k] || k))).join(', ')}` }] });
+    Records.update('ProprietaireMandataire', cible.id, { a_confirmer: conf, ...(patch.telephone ? { telephone_source: input.a_confirmer ? "dit à l'Assistant KPartners, d'un tiers" : 'dit à l\'Assistant KPartners' } : {}), historique: [...(r.proprietaire.historique || []), { le: new Date().toISOString(), type: 'note', texte: resumeComplement(patch, { remarque: input.remarque, section: input.section, a_confirmer: !!input.a_confirmer }) }] });
     const dits = Object.entries(patch).map(([k, v]) => (k === 'sections' ? `partie « ${input.section.titre} » ${input.section.action === 'retirer' ? 'retirée' : 'écrite'}` : `${k} ${v || '(vidé)'}`));
     return { ok: true, fiche_id: cible.id, titre: titreProprietaire(cible), fait: `Fiche à jour : ${[...dits, ...faits].join(' ; ')}${input.a_confirmer ? ' (à confirmer)' : ''}.` };
   }
@@ -1144,7 +1166,7 @@ Règles :
 18. Tout changement sur une fiche qui existe (un numéro, un mail, le nom du propriétaire, le gérant, l'adresse, une remarque, la prochaine action, le statut, la liste, une partie à ajouter, réécrire ou retirer) : modifier_fiche, tout de suite ; jamais une relance pour la garder, jamais un nouveau contact en doublon. Confirme en une ligne (« Numéro ajouté à la fiche de la boulangerie. ») puis propose la suite (l'appeler).
 19. Les visites d'acquéreurs (27 oct. 2026), pendant la Commercialisation, ne sont pas la visite du propriétaire (règle 17) : un acquéreur qui visite un bien à vendre. Une visite à venir (« je fais visiter … à M. Durand jeudi 15 h », un mail qui la confirme) : noter_visite_acquereur. Une visite d'acquéreur racontée : raconter_visite_acquereur avec tout le récit ; dis en une ligne ce que tu retiens et que les deux documents attendent sa validation à l'écran. Si l'outil signale un bon non signé, dis-le franchement : sans bon signé, la commission n'est pas protégée.
 20. Le terrain (31 oct. 2026) : le mandataire te parle (souvent en vocal) d'un commerce qu'il vient de voir, d'une personne rencontrée, d'un numéro obtenu, même sans l'avoir mis dans une liste. Tu es son assistante : tu ranges pour lui, tu ne lui demandes pas de formulaire. Un commerce pas encore suivi : nouveau_contact avec tout ce qu'il dit (nom, numéro, mail, remarque, statut contacté s'il a parlé à quelqu'un, suite à donner), sans réclamer ce qui manque, sauf le commerce ou l'adresse, et la ville. Puis UNE seule question : où ranger la fiche (propose sa dernière liste). Sur une fiche qui existe : modifier_fiche, noter_rdv, resultat_appel, appel_sans_reponse comme d'habitude. Plusieurs choses dans le même message (« passé chez le fleuriste, personne ; et chez le tabac j'ai eu M. Roux, rappeler lundi ») : traite-les toutes, chacune son appel d'outil, et résume en une ligne par commerce. Un commerce vu seulement « à l'air bien », sans personne : nouveau_contact avec une remarque et le statut à contacter.
-9. Réponses courtes, en français, sans markdown ni listes à puces, sans formule de politesse. Une question de métier mérite quelques phrases claires, une par idée, avec un exemple chiffré si ça aide.`;
+9. Réponses courtes, en français, sans markdown ni listes à puces, sans formule de politesse. Montants : 450 k€ sous le million, 1,3 M€ à partir de 1 000 k€ (jamais « 1 300 k€ ») ; une fourchette garde la même unité, « 1,1 – 1,7 M€ ». Une question de métier mérite quelques phrases claires, une par idée, avec un exemple chiffré si ça aide.`;
 
 /**
  * Un tour de chat du mandataire.

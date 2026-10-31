@@ -1,7 +1,8 @@
 import React, { useRef, useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, ChevronRight, Loader2, Plus, Search, Send } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, FileUp, Loader2, Plus, Search, Send } from "lucide-react";
+import ImportBiens from "@/components/mandataire/ImportBiens";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
@@ -30,7 +31,6 @@ import { ApercuAvis } from "@/pages/MandataireEstimation";
 import { Detail as DetailMarche, ETAPES_MARCHE } from "@/pages/MandataireMarche";
 import Visites from "@/components/mandataire/Visites";
 import DossierVente, { MailPropose } from "@/components/mandataire/DossierVente";
-import ScenariosEssai from "@/components/mandataire/ScenariosEssai";
 import TeaserBien, { ActionsTeaser } from "@/components/mandataire/Teaser";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { Conversation, Resume, depuisMandataire } from "@/components/conversations/EspaceConversations";
@@ -86,11 +86,10 @@ export default function MandataireBiens() {
     if (nouveau) aller(`${type}:${id}`, etape);
   };
 
-  // Le bien d'essai et ses scénarios (29 oct. 2026, Jules) : l'équipe seule, en vue mandataire.
-  const essai = <ScenariosEssai onAller={(c, e) => aller(c, e)} />;
-  if (cle && !nouveau && !bien && chargement) return <><Chargement taille="grand" />{essai}</>;
-  if (cle && (bien || nouveau)) return <><BienOuvert bien={bien} etape={etape} onAller={(id) => aller(bien ? bien.cle : "nouveau", id)} onFermer={fermer} onCree={surCree} types={marches.data?.types_activite || {}} estimations={dossiers.data?.estimations || []} />{essai}</>;
-  return <><TousLesBiens biens={biens} chargement={chargement} erreur={erreur} onOuvrir={(b) => aller(b.cle, ETAPES_BIEN[b.etape - 1].id)} onNouveau={() => aller("nouveau", "estimation")} onTest={(id) => aller(`proprietaire:${id}`, "previsite")} />{essai}</>;
+  // Le bouton « Scénarios » du bien d'essai est retiré de l'écran (31 oct. 2026, Jules) ; ScenariosEssai.jsx reste.
+  if (cle && !nouveau && !bien && chargement) return <Chargement taille="grand" />;
+  if (cle && (bien || nouveau)) return <BienOuvert bien={bien} etape={etape} onAller={(id) => aller(bien ? bien.cle : "nouveau", id)} onFermer={fermer} onCree={surCree} types={marches.data?.types_activite || {}} estimations={dossiers.data?.estimations || []} />;
+  return <TousLesBiens biens={biens} chargement={chargement} erreur={erreur} onOuvrir={(b) => aller(b.cle, ETAPES_BIEN[b.etape - 1].id)} onNouveau={() => aller("nouveau", "estimation")} onTest={(id) => aller(`proprietaire:${id}`, "previsite")} />;
 }
 
 /** L'arrivée : tous les biens, en cartes, chacun à son statut. « Aujourd'hui » retiré le 24 oct. 2026 (Jules). */
@@ -106,9 +105,10 @@ function BoutonBienTest({ onCree }) {
     onSuccess: async (r) => { await queryClient.refetchQueries({ queryKey: ["m-proprietaires"] }); onCree(r.proprietaire.id); toast.success("Bien test posé"); },
     onError: (e) => toast.error(e?.message || "Bien test impossible"),
   });
-  if (auth?.user?.role !== "admin") return null;
+  // Jules seul (31 oct. 2026, Jules).
+  if (auth?.user?.role !== "admin" || String(auth?.user?.email || "").toLowerCase() !== "jules.b@klocka.immo") return null;
   return (
-    <button type="button" onClick={() => poser.mutate()} disabled={poser.isPending} className="inline-flex h-11 items-center gap-2 rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+    <button type="button" onClick={() => poser.mutate()} disabled={poser.isPending} className="inline-flex h-11 flex-none items-center gap-2 whitespace-nowrap rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
       <Plus className="h-3.5 w-3.5" /> Bien test
     </button>
   );
@@ -116,6 +116,7 @@ function BoutonBienTest({ onCree }) {
 
 function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }) {
   const [recherche, setRecherche] = useState("");
+  const [importOuvert, setImport] = useState(false);
   // « Estimation envoyée » (26 oct. 2026, Jules ; renommé le 27 avec la restitution) : les avis envoyés sans réponse
   // du propriétaire, ce que l'étape Prix d'accord montrait.
   const [enAttente, setEnAttente] = useState(false);
@@ -133,11 +134,17 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }
             className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </label>
         <h1 className="m-0 text-center text-[30px] font-medium tracking-[-0.01em] text-encre max-md:order-1 max-md:text-left max-md:text-[26px]">Vos biens</h1>
-        <div className="flex gap-2.5 max-md:order-3 md:justify-end">
-          <BoutonBienTest onCree={onTest} />
-          <button type="button" onClick={onNouveau} className="inline-flex h-11 items-center gap-2 rounded-full bg-encre px-5 text-[14px] font-medium text-fond hover:opacity-90">
-            <Plus className="h-3.5 w-3.5" /> Nouveau bien
+        {/* Sur une ligne (31 oct. 2026, Jules) : « + » (Nouveau bien), Importer, Bien test. */}
+        <div className="flex flex-nowrap items-center gap-2.5 max-md:order-3 md:justify-end">
+          <button type="button" onClick={onNouveau} aria-label="Nouveau bien" title="Nouveau bien" className="grid h-11 w-11 flex-none place-items-center rounded-full bg-encre text-fond hover:opacity-90">
+            <Plus className="h-4 w-4" />
           </button>
+          {/* Les biens déjà en mandat (31 oct. 2026, PLAN.md 3.2) : PDF, registre ou liste collée, relus avant d'entrer. */}
+          <button type="button" onClick={() => setImport(true)} className="inline-flex h-11 flex-none items-center gap-2 whitespace-nowrap rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+            <FileUp className="h-3.5 w-3.5" /> Importer
+          </button>
+          {importOuvert && <ImportBiens onFermer={() => setImport(false)} />}
+          <BoutonBienTest onCree={onTest} />
         </div>
       </header>
 
@@ -921,12 +928,15 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
       onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
       barreApercu={scinde} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
   );
-  // Le contenu de la préparation (26 oct. 2026, refait) au-dessus de la fiche, qui ne la répète pas.
+  // Le contenu de la préparation (26 oct. 2026, refait) au-dessus de la fiche, qui ne la répète pas. Au téléphone, la fiche
+  // du bien d'abord, la préparation ensuite (31 oct. 2026, Jules).
+  const ficheDuBien = <div className="k-grid rounded-[18px] border border-trait"><FicheMandataire id={p.id} sansChat sansPreparation /></div>;
   const fiche = (
     <div className="flex flex-col gap-4">
+      {!large && ficheDuBien}
       {p.biens?.compte_rendu && <CompteRendu cr={p.biens.compte_rendu} onEstimation={bien?.estimation?.avis ? null : onAvis} />}
       <PreparationDuBien bien={bien} />
-      <div className="k-grid rounded-[18px] border border-trait"><FicheMandataire id={p.id} sansChat sansPreparation /></div>
+      {large && ficheDuBien}
     </div>
   );
 

@@ -12,6 +12,7 @@
 
 import { Records } from '../db.js';
 import { chercherCibles, chercherVilles, familles, reference } from './marche-villes.js';
+import { montant } from '../montants.js';
 
 const maintenant = () => new Date().toISOString();
 
@@ -41,7 +42,7 @@ export function criteresPropres(brut = {}) {
 
 /** Les critères en une phrase, celle qu'on lit sur la carte. */
 export function phraseCriteres(c = {}) {
-  const euros = (n) => `${Math.round(n / 1000)} k€`;
+  const euros = (n) => montant(n) || '0 k€';
   const taux = (n) => String(n).replace('.', ',');
   const bouts = [];
   if (c.prix_min && c.prix_max) bouts.push(`${euros(c.prix_min)} à ${euros(c.prix_max)}`);

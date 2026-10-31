@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
 import Pages from "@/components/ui/Pages";
+import { kEuros as montant } from "@/lib/clients-commerces";
 
 // La Mémoire Klocka (30 oct. 2026, Jules : « les fiches des biens qu'on supprime normalement ; tous ces biens vont
 // nous servir à avoir de la data »). Une ligne par bien : la date, l'adresse, le loyer, le prix, la surface, l'agent et
@@ -16,7 +17,7 @@ import Pages from "@/components/ui/Pages";
 const API = "/api/memoire";
 const PAR_PAGE = 50;
 const euros = (n) => (n == null ? "" : `${Math.round(n).toLocaleString("fr-FR")} €`);
-const kEuros = (n) => (n == null ? "" : `${Math.round(n / 1000).toLocaleString("fr-FR")} k€`);
+const kEuros = (n) => montant(n) || "";
 const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "");
 const ORIGINES = { suppression: "dossier supprimé", abandon: "dossier abandonné", dossier: "dossier en cours", veille: "veille des boîtes", scraper: "lecture des boîtes" };
 

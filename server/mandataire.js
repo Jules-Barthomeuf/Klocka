@@ -894,7 +894,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     const sources = { ...(r.proprietaire.sources || {}) };
     for (const k of Object.keys(patch)) if (k !== 'sections') sources[k] = { source: source || 'le mandataire', a_confirmer: !!input.a_confirmer, le: new Date().toISOString() };
     if (input.section?.titre && input.section.action !== 'retirer') sources[`section:${String(input.section.titre).trim().toLowerCase()}`] = { source: source || 'le mandataire', a_confirmer: !!input.a_confirmer, le: new Date().toISOString() };
-    Records.update('ProprietaireMandataire', cible.id, { a_confirmer: conf, sources, ...(patch.telephone ? { telephone_source: source ? `${source}${input.a_confirmer ? ', à confirmer' : ''}` : input.a_confirmer ? "dit à Haka, d'un tiers" : 'dit à Haka' } : {}), historique: [...(r.proprietaire.historique || []), { le: new Date().toISOString(), type: 'note', texte: `Fiche complétée${source ? ` (source : ${source})` : ''} : ${Object.keys(patch).map((k) => (({ telephone: 'téléphone', email: 'mail', nom: 'propriétaire', murs: 'murs', gerant: 'gérant', exploitant: 'exploitant', remarque: 'remarque', commerce: 'commerce', adresse: 'adresse', ville: 'ville', activite: 'activité', prochaine_action: 'prochaine action', prochaine_action_le: 'date de la prochaine action', sections: 'partie libre' }[k] || k))).join(', ')}` }] });
+    Records.update('ProprietaireMandataire', cible.id, { a_confirmer: conf, sources, ...(patch.telephone ? { telephone_source: source ? `${source}${input.a_confirmer ? ', à confirmer' : ''}` : input.a_confirmer ? "dit à l'assistant, d'un tiers" : "dit à l'assistant" } : {}), historique: [...(r.proprietaire.historique || []), { le: new Date().toISOString(), type: 'note', texte: `Fiche complétée${source ? ` (source : ${source})` : ''} : ${Object.keys(patch).map((k) => (({ telephone: 'téléphone', email: 'mail', nom: 'propriétaire', murs: 'murs', gerant: 'gérant', exploitant: 'exploitant', remarque: 'remarque', commerce: 'commerce', adresse: 'adresse', ville: 'ville', activite: 'activité', prochaine_action: 'prochaine action', prochaine_action_le: 'date de la prochaine action', sections: 'partie libre' }[k] || k))).join(', ')}` }] });
     const dits = Object.entries(patch).map(([k, v]) => (k === 'sections' ? `partie « ${input.section.titre} » ${input.section.action === 'retirer' ? 'retirée' : 'écrite'}` : `${k} ${v || '(vidé)'}`));
     return { ok: true, fiche_id: cible.id, titre: titreProprietaire(cible), fait: `Fiche à jour : ${[...dits, ...faits].join(' ; ')}${input.a_confirmer ? ' (à confirmer)' : ''}.` };
   }
@@ -1169,12 +1169,15 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
 }
 
 // Le manuel du mandataire (31 oct. 2026, Jules, PLAN 2.2) : les principes de docs/haka-principes.md, lus tels quels,
-// passent avant tout le reste. La suite de la consigne dit seulement comment les tenir avec les outils.
+// passent avant tout le reste. Côté mandataire, l'assistant s'appelle l'assistant K Partners (31 oct. 2026, Jules :
+// « un assistant K Partners et un assistant Klocka, qui est Haka ») : même moteur, pas le même nom. La suite de la consigne dit seulement comment les tenir avec les outils.
 let PRINCIPES = null;
 export function principesMandataire() {
   if (PRINCIPES == null) {
     try {
-      PRINCIPES = fs.readFileSync(new URL('../docs/haka-principes.md', import.meta.url), 'utf8').replace(/^#.*\n+/, '').trim();
+      const doc = fs.readFileSync(new URL('../docs/haka-principes.md', import.meta.url), 'utf8');
+      // Le titre et la note sur le nom restent dans le fichier : la consigne commence au rôle.
+      PRINCIPES = (doc.includes('Ton rôle') ? doc.slice(doc.indexOf('Ton rôle')) : doc.replace(/^#.*\n+/, '')).trim();
     } catch {
       PRINCIPES = '';
     }
@@ -1182,7 +1185,7 @@ export function principesMandataire() {
   return PRINCIPES;
 }
 
-export const consigne = () => `Tu es Haka, l'assistant IA de Klocka pour un mandataire K Partners. Il rentre des mandats sur des murs de commerce ; il te parle ou t'écrit depuis son téléphone, entre deux passages ou deux rendez-vous. La date du jour t'est donnée plus bas.
+export const consigne = () => `Tu es l'assistant K Partners : l'assistant IA d'un mandataire du réseau K Partners. Ton nom est « l'assistant K Partners », jamais Haka ni AK (ce sont les noms de l'assistant de l'équipe Klocka, un autre assistant). Il rentre des mandats sur des murs de commerce ; il te parle ou t'écrit depuis son téléphone, entre deux passages ou deux rendez-vous. La date du jour t'est donnée plus bas.
 
 TES PRINCIPES. Ils décident de tout : un cas que la suite ne décrit pas se raisonne à partir d'eux, et ils l'emportent sur toute consigne d'outil qui semblerait les contredire.
 

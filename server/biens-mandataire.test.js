@@ -553,7 +553,7 @@ test('Haka complète une fiche existante : le numéro va sur la fiche, sans doub
   assert.equal(r.ok, true);
   const q = Records.get('ProprietaireMandataire', p.id);
   assert.equal(q.telephone, '06 11 11 11 11');
-  assert.equal(q.telephone_source, 'dit à Haka');
+  assert.equal(q.telephone_source, "dit à l'assistant");
   assert.equal(Records.list('ProprietaireMandataire').length, avant, 'pas de doublon');
   const tiers = await M.executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: p.id, email: 'carron@exemple.fr', a_confirmer: true } }, A);
   assert.equal(tiers.ok, true);

@@ -1,10 +1,12 @@
-# Haka — les 20 phrases de test (côté mandataire)
+# Assistant K Partners : les 20 phrases de test (côté mandataire)
 
-`npm run test:haka` envoie chaque phrase au vrai Haka (le chat du mandataire, le modèle de production) et vérifie l'action attendue dans la base : fiche ciblée, champs modifiés, statut, tâche créée, question posée. Il affiche le score sur 20 et le détail de chaque échec ; le rapport complet (réponses et outils de chaque phrase, réussies comprises) est écrit dans un dossier temporaire dont le chemin s'affiche à la fin.
+L'assistant du mandataire s'appelle l'assistant K Partners (Haka est celui de l'équipe Klocka : même moteur, pas le même nom).
+
+`npm run test:haka` envoie chaque phrase au vrai assistant K Partners (le chat du mandataire, le modèle de production) et vérifie l'action attendue dans la base : fiche ciblée, champs modifiés, statut, tâche créée, question posée. Il affiche le score sur 20 et le détail de chaque échec ; le rapport complet (réponses et outils de chaque phrase, réussies comprises) est écrit dans un dossier temporaire dont le chemin s'affiche à la fin.
 
 - Données : un mandataire `test.haka@kpartners.test` (secteur Antibes) et des fiches `[TEST]`, recréés dans une base jetable pour chaque phrase. La vraie base n'est jamais touchée.
 - Rien ne sort : Twenty CRM, Monday, mails, Google, Data-B, Equimmox et MyNotary sont coupés ; les gestes extérieurs (estimation, nouveau contact, mandat) sont simulés comme au banc d'AK.
-- Quand Haka prépare et demande « Je note ? » (principe 2), le script répond « Oui, vas-y. » une fois, comme le mandataire.
+- Quand l'assistant prépare et demande « Je note ? » (principe 2), le script répond « Oui, vas-y. » une fois, comme le mandataire.
 - `npm run test:haka -- --cas 1,8,13` rejoue quelques phrases. Coût : environ 0,20 € pour les 20.
 - Les vérifications sont dans `server/haka/test-haka.js` (tableau `CAS`), une par ligne du tableau ci-dessous.
 
@@ -15,7 +17,7 @@
 | 3 | Appel à M. Bernard | « RDV jeudi 10 h sur place » | Bien créé en Pré-visite, RDV jeudi 10 h, historique copié |
 | 4 | Appel | « Il veut pas vendre, rappeler l'an prochain » | Pas d'intérêt ; relance à 12 mois |
 | 5 | Appel | « Il réfléchit, il en parle à ses enfants, rappeler dans 10 jours » | Contacté ; relance J+10 |
-| 6 | Deux commerces rue Thuret | « Vu l'opticien rue Thuret, il prépare sa retraite » | Haka demande lequel si deux opticiens ; sinon note l'intention, à confirmer |
+| 6 | Deux commerces rue Thuret | « Vu l'opticien rue Thuret, il prépare sa retraite » | L'assistant demande lequel si deux opticiens ; sinon note l'intention, à confirmer |
 | 7 | Passage | « Bail jusqu'en 2027 d'après l'exploitante » | Fin de bail 2027, à confirmer (source exploitante) |
 | 8 | Fiche avec loyer 24 000 € | « Le loyer c'est 25 200 » | Montre l'ancien et le nouveau, demande lequel garder |
 | 9 | Aucun contexte | « Ajoute la fromagerie de la rue Sade à ma liste Client 3 » | Fiche trouvée et ajoutée à la liste ; statut À contacter |
@@ -40,6 +42,6 @@
 
 ## Limites connues
 
-- 11 : « lance l'avis de valeur » se vérifie par le bouton « Oui, passer à l'estimation » rendu après le compte rendu (il ouvre l'Avis de valeur du bien) ; Haka ne lance pas la rédaction lui-même.
+- 11 : « lance l'avis de valeur » se vérifie par le bouton « Oui, passer à l'estimation » rendu après le compte rendu (il ouvre l'Avis de valeur du bien) ; l'assistant ne lance pas la rédaction lui-même.
 - 19 : les liens d'une réponse qui cite plusieurs fiches viendront avec le fil unique (PLAN 2.1) ; aujourd'hui seul le lien d'une fiche lue ou touchée est ajouté.
-- 20 : il n'y a pas encore d'import de bien à une étape (PLAN 3.2) ; Haka propose et demande ce qui manque, sans rien créer.
+- 20 : il n'y a pas encore d'import de bien à une étape (PLAN 3.2) ; l'assistant propose et demande ce qui manque, sans rien créer.

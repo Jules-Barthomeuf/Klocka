@@ -17,7 +17,10 @@ test('les neuf principes du manuel sont dans la consigne du mandataire, avant le
   const c = consigne();
   for (const p of principes) assert.ok(c.includes(p), `absent de la consigne : ${p}`);
   assert.ok(c.indexOf(principes[0]) < c.indexOf('COMMENT LES TENIR'));
-  assert.ok(!principesMandataire().startsWith('#'));
+  assert.ok(principesMandataire().startsWith('Ton rôle'));
+  // Côté mandataire, l'assistant s'appelle l'assistant K Partners ; Haka est celui de l'équipe (31 oct. 2026, Jules).
+  assert.match(c, /^Tu es l'assistant K Partners/);
+  assert.doesNotMatch(c, /Tu es Haka/);
 });
 
 test("la fiche ouverte dit ce qu'elle sait déjà, avec la source", () => {

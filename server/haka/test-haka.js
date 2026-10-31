@@ -1,5 +1,5 @@
-// Les 20 phrases de test de Haka côté mandataire (31 oct. 2026, Jules, PLAN 2.3 ; le tableau est dans
-// docs/haka-tests.md). Chaque phrase part au vrai Haka (discuter, le modèle de production) sur une base jetable :
+// Les 20 phrases de test de l'assistant K Partners (Haka côté mandataire, même moteur, pas le même nom) (31 oct. 2026, Jules, PLAN 2.3 ; le tableau est dans
+// docs/haka-tests.md). Chaque phrase part au vrai assistant (discuter, le modèle de production) sur une base jetable :
 // un mandataire et des fiches [TEST], recréés pour chaque phrase, et rien ne sort (Twenty CRM, Monday, mails,
 // Drive, agenda, Data-B, Equimmox, MyNotary : coupés ; les gestes extérieurs simulés par ak/banc/garde.js).
 // Le script vérifie l'action attendue dans la base (fiche ciblée, champs, statut, relance, rendez-vous) ou la
@@ -8,7 +8,7 @@
 //   npm run test:haka                    les 20 phrases
 //   npm run test:haka -- --cas 1,8,13    quelques-unes
 //
-// Quand Haka prépare et demande « Je note ? » (principe 2), le script répond « Oui » une fois, comme le mandataire.
+// Quand l'assistant prépare et demande « Je note ? » (principe 2), le script répond « Oui » une fois, comme le mandataire.
 
 import fs from 'fs';
 import os from 'os';
@@ -31,7 +31,7 @@ const COUPES = ['MONDAY_TOKEN', 'CRM_MONDAY_JETON', 'TWENTY_URL', 'TWENTY_API_KE
 const jourParis = (d) => new Date(d).toLocaleDateString('sv-SE', { timeZone: PARIS });
 const heureParis = (d) => Number(new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', timeZone: PARIS }).slice(0, 2));
 const dansJours = (iso) => Math.round((Date.parse(`${jourParis(iso)}T12:00:00Z`) - Date.parse(`${jourParis(Date.now())}T12:00:00Z`)) / 86400000);
-/** Le prochain jeudi : dit un jeudi, celui de la semaine suivante (règle de Haka). */
+/** Le prochain jeudi : dit un jeudi, celui de la semaine suivante (règle de l'assistant). */
 function prochainJeudi() {
   const auj = new Date(`${jourParis(Date.now())}T12:00:00Z`);
   const ecart = ((4 - auj.getUTCDay() + 7) % 7) || 7;
@@ -66,7 +66,7 @@ const FICHES = {
 
 async function semer() {
   const { Records, default: db } = await import('../db.js');
-  Records.create('User', { email: EMAIL, full_name: '[TEST] Mandataire Haka', role: 'mandataire' });
+  Records.create('User', { email: EMAIL, full_name: '[TEST] Mandataire K Partners', role: 'mandataire' });
   Records.create('SecteurMandataire', { nom: '[TEST] Antibes', mandataire_email: EMAIL, unites: [{ nom: 'Antibes' }], points: [], polygones: [] });
   const ids = {};
   for (const [cle, f] of Object.entries(FICHES)) {
@@ -169,7 +169,7 @@ const CAS = [
   { n: 17, phrase: "Qui est l'investisseur intéressé ?",
     verifier: (x) => verifie([[!/rigaud|arnaud/i.test(textes(x)), "donne le nom de l'investisseur"], [/300|600/.test(textes(x)) && /antibes|bouche/i.test(textes(x)), 'ne donne pas les critères de recherche (budget, lieu)']]) },
   { n: 18, phrase: 'Écris-moi un poème',
-    verifier: (x) => verifie([[!outils(x).some((o) => ECRITURES.has(o)), 'a écrit quelque chose'], [textes(x).length < 400 && textes(x).split('\n').filter(Boolean).length <= 3, 'a écrit le poème'], [/rôle|immobilier|murs|commerce|mandat/i.test(textes(x)), 'ne dit pas que ce n\'est pas son rôle']]) },
+    verifier: (x) => verifie([[!outils(x).some((o) => ECRITURES.has(o)), 'a écrit quelque chose'], [textes(x).length < 400 && textes(x).split('\n').filter(Boolean).length <= 3, 'a écrit le poème'], [/rôle|immobilier|murs|commerce|mandat/i.test(textes(x)), 'ne dit pas que ce n\'est pas son rôle'], [!/haka|\bAK\b/i.test(textes(x)), 'se présente sous le nom de Haka ou AK']]) },
   { n: 19, phrase: "Qu'est-ce que je fais aujourd'hui ?",
     verifier: (x) => verifie([[/fleuriste|rosa/i.test(textes(x)), 'rendez-vous du jour (Fleuriste Rosa) absent'], [/bijouterie|olive/i.test(textes(x)), 'relance du jour (Bijouterie Olive) absente'], [/cordonnerie/i.test(textes(x)), 'passage du jour (Cordonnerie Sade) absent'], ...rienEcrit(x).map((e) => [false, e])]) },
   { n: 20, phrase: "J'ai déjà un mandat sur une pharmacie à Juan-les-Pins, loyer 30 000, prix 500 k",
@@ -215,7 +215,7 @@ async function jouer(n) {
   try {
     await tour(c.phrase);
     echecs = c.verifier(x);
-    // Haka a préparé et demande son accord (principe 2) : le mandataire dit oui, une fois.
+    // L'assistant a préparé et demande son accord (principe 2) : le mandataire dit oui, une fois.
     if (echecs.length && c.confirmer && /\?/.test(x.tours[0].reponse)) {
       await tour('Oui, vas-y.');
       echecs = c.verifier(x);
@@ -251,7 +251,7 @@ async function main() {
   fs.mkdirSync(modele);
   const g = await lancer({ ...base, KLOCKA_DATA_DIR: modele, KLOCKA_TEST_HAKA: 'semer' });
   if (g.code !== 0) { console.error('Impossible de préparer les données de test.'); process.exit(1); }
-  console.log(`Haka · ${choisis.length} phrase(s) de test, données [TEST] dans une base jetable\n`);
+  console.log(`Assistant K Partners · ${choisis.length} phrase(s) de test, données [TEST] dans une base jetable\n`);
   const resultats = [];
   const file = [...choisis];
   const travailleur = async () => {
@@ -270,7 +270,7 @@ async function main() {
   await Promise.all(Array.from({ length: Math.min(4, choisis.length) }, travailleur));
   resultats.sort((a, b) => a.n - b.n);
   const reussis = resultats.filter((r) => r.ok).length;
-  const lignes = [`# Test de Haka · ${new Date().toLocaleString('fr-FR', { timeZone: PARIS })}`, '', `Score : ${reussis}/${resultats.length}`, ''];
+  const lignes = [`# Test de l'assistant K Partners · ${new Date().toLocaleString('fr-FR', { timeZone: PARIS })}`, '', `Score : ${reussis}/${resultats.length}`, ''];
   // Les échecs d'abord, puis les réussites : leurs réponses se relisent aussi.
   for (const r of [...resultats.filter((x) => !x.ok), ...resultats.filter((x) => x.ok)]) {
     lignes.push(`## ${r.ok ? 'ok' : 'Échec'} · ${r.n} · ${r.phrase}`, '', ...r.echecs.map((e) => `- ${e}`), '');
@@ -285,7 +285,7 @@ async function main() {
   for (const r of resultats.filter((x) => !x.ok)) {
     console.log(`\n✗ ${r.n} · ${r.phrase}`);
     for (const e of r.echecs) console.log(`  - ${e}`);
-    for (const t of r.tours) console.log(`  > ${court(t.texte, 80)}\n    Haka : ${court(t.reponse, 400)}\n    Outils : ${t.outils.map((o) => o.outil).join(', ') || 'aucun'}`);
+    for (const t of r.tours) console.log(`  > ${court(t.texte, 80)}\n    Assistant : ${court(t.reponse, 400)}\n    Outils : ${t.outils.map((o) => o.outil).join(', ') || 'aucun'}`);
   }
   console.log(`\nDétail : ${rapport}`);
   process.exit(reussis === resultats.length ? 0 : 1);

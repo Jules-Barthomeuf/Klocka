@@ -141,3 +141,12 @@ test("les textes des cartes retouchés en mode Édition se gardent et reviennent
   assert.deepEqual(d.retouches, { 'couverture.c.lieu': 'Lyon Part-Dieu', 'calcul.c.formule.resultat': '700 000 €' });
   assert.equal(d.pages.find((p) => p.cle === 'locatif').titre, 'Le bail');
 });
+
+test("deck : « d'Antibes », la taxe et les charges sans redite (31 oct. 2026)", async () => {
+  const { deVille, chargesDe } = await import('../src/lib/deck-avis.js');
+  assert.equal(deVille('Antibes'), "d'Antibes");
+  assert.equal(deVille('Le Havre'), 'du Havre');
+  assert.equal(deVille('Mâcon'), 'de Mâcon');
+  assert.equal(chargesDe('Refacturée au locataire', 'refacturées au locataire'), 'Taxe foncière et charges refacturées au locataire');
+  assert.equal(chargesDe('1 200 € payée par le propriétaire', 'refacturées'), 'Taxe foncière : 1 200 € payée par le propriétaire · Charges : refacturées');
+});

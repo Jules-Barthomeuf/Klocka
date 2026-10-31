@@ -19,6 +19,24 @@ import { GroupePanneau, PALETTE_DOC, PanneauEditeur, ReglagesDesign, couleurDoc 
 // recalculent quand la valeur ou les honoraires changent. Tout s'enregistre
 // seul ; « Télécharger le PDF » imprime les pages, rien d'autre.
 
+// L'impression de l'avis (31 oct. 2026 : imprimé depuis Biens, il sortait en page blanche) : les pages sont recopiées
+// à la racine du document le temps d'imprimer, hors des cadres à hauteur fixe de l'écran, et seule la copie s'imprime
+// (avis-valeur.css, #avis-impression). Le bouton comme Cmd+P passent par là.
+function copierPourImpression() {
+  document.getElementById("avis-impression")?.remove();
+  const avis = document.querySelector(".avis-zoom > .avis, .avis-toile .avis");
+  if (!avis) return;
+  const copie = document.createElement("div");
+  copie.id = "avis-impression";
+  copie.appendChild(avis.cloneNode(true));
+  document.body.appendChild(copie);
+}
+const retirerImpression = () => document.getElementById("avis-impression")?.remove();
+function imprimerAvis() {
+  copierPourImpression();
+  window.print();
+}
+
 const MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const eur = (n) => (n == null || !isFinite(n) ? "[à compléter]" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const nb = (n, d = 0) => (n == null || !isFinite(n) ? "—" : Number(n).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d }));
@@ -1062,6 +1080,16 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
     }, 700);
   };
   useEffect(() => () => clearTimeout(minuterie.current), []);
+  useEffect(() => {
+    // Pas de retrait à « afterprint » : Chrome peut l'envoyer avant d'avoir rendu les pages. La copie reste, cachée à
+    // l'écran, et se refait à chaque impression. À l'impression, la largeur A4 remonte l'éditeur (mise en page du
+    // téléphone) : la copie ne part que si aucun éditeur d'avis n'est revenu, sinon une autre page imprimerait l'avis.
+    window.addEventListener("beforeprint", copierPourImpression);
+    return () => {
+      window.removeEventListener("beforeprint", copierPourImpression);
+      setTimeout(() => { if (!document.querySelector(".avis-toile .avis")) retirerImpression(); }, 1500);
+    };
+  }, []);
 
   // Chaque changement garde l'état d'avant, pour annuler ; la première
   // retouche à la main de la séance pose une version côté serveur.
@@ -1219,7 +1247,7 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
           {etat === "envoi" ? "Enregistrement…" : etat === "enregistre" ? "Enregistré" : "Modifications…"}
         </span>
         {/* Télécharger aux couleurs de la barre de gauche, Envoyer à sa droite quand l'avis est prêt (27 oct. 2026, Jules). */}
-        <button type="button" onClick={() => window.print()}
+        <button type="button" onClick={imprimerAvis}
           className="inline-flex h-9 items-center gap-2 rounded-full border border-trait bg-rail px-4 text-[13px] font-medium text-encre hover:bg-rail-actif">
           <Download className="h-4 w-4" /> <span className="max-md:hidden">Télécharger le</span> PDF
         </button>

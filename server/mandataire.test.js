@@ -486,3 +486,18 @@ test('un numéro dicté se vérifie : dix chiffres par paires, sinon gardé en r
   await executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: f.id, telephone: '0664971881' } }, QUI);
   assert.equal(Records.get('ProprietaireMandataire', f.id).telephone, '06 64 97 18 81');
 });
+
+test("nouveau contact : sans son oui rien n'est créé, au oui la fiche naît dans la liste choisie (31 oct. 2026, Jules)", async () => {
+  const moi = { email: 'terrain@kpartners.fr', role: 'mandataire' };
+  const dit = { commerce: 'Boulangerie rue de la Ferrandière', ville: 'Lyon', nom: 'M. Garnier', telephone: '06 12 34 56 77' };
+  const avant = Records.list('ProprietaireMandataire').length;
+  const p = await executerOutilMandataire({ name: 'nouveau_contact', input: dit }, moi);
+  assert.equal(p.a_proposer, true);
+  assert.equal(p.cree, undefined);
+  assert.equal(p.proprietaire_id, undefined);
+  assert.equal(Records.list('ProprietaireMandataire').length, avant);
+  const r = await executerOutilMandataire({ name: 'nouveau_contact', input: { ...dit, confirme: true, liste: 'Lyon · Restaurant' } }, moi);
+  assert.equal(r.cree, true);
+  assert.equal(r.liste, 'Lyon · Restaurant');
+  assert.equal(Records.list('ProprietaireMandataire').length, avant + 1);
+});

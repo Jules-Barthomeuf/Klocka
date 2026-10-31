@@ -133,8 +133,8 @@ export function objetDuRappel(texte) {
     .trim();
   // Le point d'une civilité (« M. Dupont », « Mme. ») n'arrête pas la phrase (31 oct. 2026 : « vérifier si le contact
   // est M. Dupont » s'affichait « … est M ») : il est protégé le temps de couper, puis rendu.
-  const proteger = (x) => x.replace(/\b(M|MM|Mme|Mlle|Me|Dr|St|Ste)\./g, '$1\u0001');
-  const rendre = (x) => x.replace(/\u0001/g, '.');
+  const proteger = (x) => x.replace(/\b(M|MM|Mme|Mlle|Me|Dr|St|Ste)\./g, '$1\u00b7\u00b7');
+  const rendre = (x) => x.replace(/\u00b7\u00b7/g, '.');
   let m;
   if ((m = proteger(t).match(/\bde\s+([^\n.;]{3,120})/i))) return rendre(m[1].trim().replace(/\s+$/, ''));
   // Sans « de », on ampute la phrase de sa formule d'ouverture ET du moment,

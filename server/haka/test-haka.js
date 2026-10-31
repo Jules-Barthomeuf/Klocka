@@ -67,7 +67,7 @@ const FICHES = {
 async function semer() {
   const { Records, default: db } = await import('../db.js');
   Records.create('User', { email: EMAIL, full_name: '[TEST] Mandataire K Partners', role: 'mandataire' });
-  Records.create('SecteurMandataire', { nom: '[TEST] Antibes', mandataire_email: EMAIL, unites: [{ nom: 'Antibes' }], points: [], polygones: [] });
+  Records.create('SecteurMandataire', { nom: '[TEST] Antibes', mandataire_email: EMAIL, unites: [{ nom: 'Antibes', niveau: 'commune', code: '06004' }], points: [], polygones: [] });
   const ids = {};
   for (const [cle, f] of Object.entries(FICHES)) {
     ids[cle] = Records.create('ProprietaireMandataire', { ville: 'Antibes', tentatives: 0, ...f, mandataire_email: EMAIL, cree_le: ilYa(6),
@@ -143,7 +143,7 @@ const CAS = [
     verifier: (x) => { const f = x.fiche('fromagerie');
       return verifie([[f.liste_id === x.ids.liste, `pas dans la liste Client 3 (liste ${f.liste_id || 'aucune'})`], [f.statut === 'a_appeler', `statut ${f.statut} au lieu de À contacter`], [x.listes().length === 1, 'une deuxième liste « Client 3 » a été créée']]); } },
   { n: 10, phrase: 'Vu la pizzeria Da Mario rue Fersen',
-    verifier: (x) => verifie([[x.nombreFiches() === x.nombreFichesAvant && !outils(x).includes('nouveau_contact'), 'a créé une fiche sans son accord'], [/trouve|aucune fiche|pas de fiche/i.test(textes(x)), 'ne dit pas qu\'il ne la trouve pas'], [/cré/i.test(textes(x)), 'ne propose pas de créer la fiche']]) },
+    verifier: (x) => verifie([[x.nombreFiches() === x.nombreFichesAvant && !x.tours.some((t) => t.outils.some((o) => o.outil === 'nouveau_contact' && o.arguments?.confirme === true)), 'a créé une fiche sans son accord'], [/trouve|aucune fiche|pas de fiche/i.test(textes(x)), 'ne dit pas qu\'il ne la trouve pas'], [/cré/i.test(textes(x)), 'ne propose pas de créer la fiche']]) },
   { n: 11, fiche: 'tabac', confirmer: true, phrase: 'Loyer 25 200 HT, taxe foncière refacturée, bail renouvelé en 2021, bon état',
     verifier: (x) => { const cr = x.fiche('tabac').biens?.compte_rendu; const b = JSON.stringify(cr?.bien || {});
       const questions = textes(x).split(/(?<=[?.!])\s+/).filter((p) => p.includes('?'));
@@ -180,6 +180,12 @@ const CAS = [
     verifier: (x) => { const f = x.fiche('roux');
       return verifie([[!f.telephone, `a écrit un numéro deviné (« ${f.telephone} »)`], [/6497|64 97/.test(f.remarque || '') && /vérifier/i.test(f.remarque || ''), `le numéro dicté n'est pas gardé « à vérifier » (« ${f.remarque || ''} »)`],
         [/redi|par paires|redonne|répète/i.test(textes(x)), 'ne demande pas de redire le numéro']]); } },
+  // Lyon, 31 oct. : la fiche créée puis « je la mets dans ta liste ? », avec des cartes « fait » à côté de la question.
+  { n: 22, terrain: true, oui: true, phrase: "Je suis passé rue Sade à Antibes, il y a une bonne boulangerie, la Boulangerie du Marché. J'ai eu le numéro du propriétaire des murs, M. Garnier, c'est le 06 12 34 56 77.",
+    // Au banc, la création confirmée est simulée (rien ne part vers Twenty CRM) : on vérifie l'appel du oui.
+    verifier: (x) => { const oui = x.tours[1]?.outils.find((o) => o.outil === 'nouveau_contact' && o.arguments?.confirme === true);
+      return verifie([[x.fichesApresPremier === x.nombreFichesAvant, 'a créé la fiche avant son oui'], [/client 3/i.test(x.tours[0].reponse) && /\?/.test(x.tours[0].reponse), 'ne propose pas la liste « Client 3 » dans sa question'],
+        [!x.tours[0].actions.length && !x.tours[0].fil_bien, 'des cartes « fait » à côté de la question'], [!!oui, "pas de création confirmée après le oui"], [/client 3/i.test(oui?.arguments?.liste || ''), `après le oui, liste « ${oui?.arguments?.liste || 'aucune'} » au lieu de Client 3`]]); } },
 ];
 
 // --- Un cas, dans sa base ------------------------------------------------------
@@ -199,6 +205,7 @@ async function jouer(n) {
     rappelsDe: (k, genre = null) => Records.list('Rappel').filter((r) => r.proprietaire_id === ids[k] && !r.fait_le && (!genre || (r.genre || 'relance') === genre)),
     listes: () => Records.list('ListeMandataire').filter((l) => l.mandataire_email === EMAIL && /client 3/i.test(l.nom)),
     nombreFiches: () => fichesDuTest().length,
+    fiches: () => fichesDuTest(),
   };
   c.avant?.(x);
   const photo = new Map(fichesDuTest().map((p) => [p.id, JSON.stringify(p)]));
@@ -219,6 +226,9 @@ async function jouer(n) {
   let echecs = [];
   try {
     await tour(c.phrase);
+    x.fichesApresPremier = fichesDuTest().length;
+    // Un cas qui suit la question jusqu'au bout : le mandataire dit oui quoi qu'il arrive.
+    if (c.oui) await tour('Oui.');
     echecs = c.verifier(x);
     // L'assistant a préparé et demande son accord (principe 2) : le mandataire dit oui, une fois.
     if (echecs.length && c.confirmer && /\?/.test(x.tours[0].reponse)) {

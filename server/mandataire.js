@@ -446,10 +446,12 @@ export const OUTILS_MANDATAIRE = [
   {
     name: 'nouveau_contact',
     description:
-      "Crée la fiche d'un propriétaire (« Nouveau contact : M. Durand, propriétaire de la pharmacie cours Vitton, 06 12 34 56 78 »). La fiche entre dans la liste d'appels du mandataire.",
+      "Crée la fiche d'un propriétaire (« Nouveau contact : M. Durand, propriétaire de la pharmacie cours Vitton, 06 12 34 56 78 »). En deux temps (31 oct. 2026, Jules) : sans confirme, rien n'est créé, l'outil rend ses listes et tu proposes en une ligne la fiche et la liste ; à son oui, rappelle-le avec confirme true et la liste choisie.",
     input_schema: {
       type: 'object',
       properties: {
+        confirme: { type: 'boolean', description: 'Vrai seulement après son oui à ta proposition' },
+        liste: { type: 'string', description: 'La liste où ranger la fiche, celle qu\'il a acceptée (créée si elle n\'existe pas) ; vide s\'il n\'en veut aucune' },
         nom: { type: 'string', description: 'Le propriétaire (M. Durand)' },
         telephone: { type: 'string' },
         email: { type: 'string' },
@@ -620,6 +622,14 @@ function trouverParBien(entite, bien, user) {
   return tri.length && (tri.length === 1 || tri[0][1] > tri[1][1]) ? tri[0][0] : tri.length ? 'ambigu' : null;
 }
 
+/** Le lien d'un prospect et le CRM qu'il ouvre : la fiche Twenty (par l'id Monday) en Twenty ou en double, Monday sinon. */
+async function lienDuProspect(m) {
+  const M = await import('./monday.js');
+  if (!M.crmTwenty() && !M.crmDouble()) return { lien: m.lien, crm: 'Monday' };
+  const { lienProspect, TABLEAU_PROSPECTS } = await import('./mandataire-monday.js');
+  return { lien: M.crmDouble() ? `/api/crm/fiche/${TABLEAU_PROSPECTS()}/${m.id}` : lienProspect(m.id), crm: 'Twenty CRM' };
+}
+
 /**
  * Pure : un numéro de téléphone tel que dicté (31 oct. 2026, terrain d'Antibes : « 06 6497 1881, 76 », douze chiffres,
  * était à deviner par le modèle). Un numéro français a dix chiffres, rendu par paires ; un numéro étranger (+44…) de 8 à
@@ -638,7 +648,8 @@ export function telephoneDicte(texte) {
 }
 
 export async function executerOutilMandataire(appel, user, contexte = {}) {
-  if (auBanc() && SIMULES_MANDATAIRE.has(appel?.name)) return simule(appel.name);
+  // Un nouveau contact pas encore confirmé ne crée rien : il passe, même au banc, pour rendre sa question.
+  if (auBanc() && SIMULES_MANDATAIRE.has(appel?.name) && !(appel.name === 'nouveau_contact' && appel.input?.confirme !== true)) return simule(appel.name);
   // Meme filet que cote AK : une exception d'outil devient un refus propre.
   try {
     return await executerOutilMandataireBrut(appel, user, contexte);
@@ -1107,13 +1118,30 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     }
     const tel = telephoneDicte(input.telephone);
     if (!tel.ok) return { ok: false, telephone_illisible: true, error: `Le numéro dicté a ${tel.chiffres.length} chiffres au lieu de 10 : ne crée rien, demande-lui de le redire par paires, sans deviner.` };
+    // Demander, puis faire (31 oct. 2026, Jules : « il demande le truc et ensuite il dit qu'il l'a fait ») : sans son
+    // oui, rien n'est créé ni envoyé, et la question porte aussi la liste.
+    if (input.confirme !== true) {
+      const { mesListes } = await import('./mandataire-lancement.js');
+      const listes = mesListes(user).sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || ''))).map((l) => l.nom).slice(0, 6);
+      const quoi = [input.commerce || input.adresse, input.ville].filter(Boolean).join(', ');
+      return {
+        ok: true, a_proposer: true, listes,
+        fait: `Rien n'est créé. Propose en une ligne : ${listes[0] ? `« Je crée la fiche ${quoi} et je la mets dans ta liste « ${listes[0]} » ? »` : `« Je crée la fiche ${quoi} ? »`}, puis attends. À son oui, rappelle nouveau_contact avec les mêmes informations, confirme true et la liste (une autre s'il en nomme une, aucune s'il n'en veut pas).`,
+      };
+    }
     const r = creerProprietaire({ ...input, ...(input.telephone ? { telephone: tel.numero } : {}) }, user);
     if (!r.ok) return r;
+    let liste = null;
+    if (input.liste?.trim()) {
+      const { changerDeListe } = await import('./off-market/simple.js');
+      const l = changerDeListe(r.proprietaire.id, { nom: input.liste.trim(), user });
+      if (l.ok) liste = l.liste.nom;
+    }
     const { pousserProspect } = await import('./mandataire-monday.js');
     const monday = await pousserProspect(r.proprietaire);
     return {
-      ok: true, cree: true, proprietaire_id: r.proprietaire.id, titre: titreProprietaire(r.proprietaire), pour: 'dans votre liste d\'appels',
-      monday: monday.ok ? { lien: monday.lien, cree: monday.cree } : { erreur: monday.error },
+      ok: true, cree: true, proprietaire_id: r.proprietaire.id, titre: titreProprietaire(r.proprietaire), pour: liste ? `dans ta liste « ${liste} »` : 'dans votre liste d\'appels', liste,
+      monday: monday.ok ? { ...(await lienDuProspect(monday)), cree: monday.cree } : { erreur: monday.error },
     };
   }
 
@@ -1224,7 +1252,7 @@ ${principesMandataire()}
 
 COMMENT LES TENIR AVEC TES OUTILS
 
-Retrouver la fiche (1). La fiche ouverte à l'écran, s'il y en a une (dite plus bas), est celle dont il parle quand il ne nomme personne ; « il », « elle », « lui » renvoient à la dernière personne dont on a parlé. Sinon : ma_fiche (le commerce, la rue, le propriétaire), mes_rappels (le rendez-vous de l'heure, du jour), visite_du_moment (la visite qui vient d'avoir lieu). Plusieurs fiches possibles : nomme-les et demande laquelle. Aucune : dis-le et propose de la créer (nouveau_contact), sans la créer avant son oui. Ne suppose jamais qu'une fiche existe parce qu'il en parle.
+Retrouver la fiche (1). La fiche ouverte à l'écran, s'il y en a une (dite plus bas), est celle dont il parle quand il ne nomme personne ; « il », « elle », « lui » renvoient à la dernière personne dont on a parlé. Sinon : ma_fiche (le commerce, la rue, le propriétaire), mes_rappels (le rendez-vous de l'heure, du jour), visite_du_moment (la visite qui vient d'avoir lieu). Plusieurs fiches possibles : nomme-les et demande laquelle. Aucune : dis-le et propose de la créer, sans la créer avant son oui : nouveau_contact sans confirme rend ses listes et la question à poser (la fiche et la liste, en une ligne) ; à son oui, nouveau_contact avec confirme true et la liste. Ne dis jamais qu'une fiche est créée ou rangée avant ce second appel. Ne suppose jamais qu'une fiche existe parce qu'il en parle.
 
 Préparer, puis faire (2). Une écriture se fait en deux temps. D'abord ta compréhension, 3 lignes au plus, sans rien écrire : ce que tu vas noter sur quelle fiche, le statut, la prochaine action ; finis par une question fermée (« Je note ? »). À son oui (« oui », « ok », « vas-y », « c'est ça »), appelle tous les outils d'un coup, puis dis en une ligne ce qui est fait. S'il corrige, refais les 3 lignes. Une demande dite mot pour mot, sans rien à interpréter (« ajoute la fromagerie de la rue Sade à ma liste Client 3 », « mets une relance lundi pour le tabac »), se fait tout de suite. avancer_bien et noter_restitution n'écrivent rien : elles posent à l'écran une carte qu'il confirme d'un tap ; appelle-les dès ta première réponse, la carte est la confirmation. Tu n'envoies rien à personne : un mail se prépare (preparer_mail, sans recopier le brouillon dans ta réponse) et le mandataire l'envoie ; le rapport d'estimation, il le relit et l'envoie lui-même depuis la page Estimation.
 
@@ -1401,7 +1429,9 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
       for (const k of [r?.fiche_id, r?.proprietaire_id]) if (k) fichesTouchees.add(k);
       if (r?.cree && r.rappel_id) actions.push({ type: 'rappel', id: r.rappel_id, titre: r.titre, pour: r.pour });
       if (r?.cree && r.proprietaire_id) actions.push({ type: 'proprietaire', id: r.proprietaire_id, titre: r.titre, pour: r.pour });
-      if (r?.monday?.lien) actions.push({ type: 'monday', id: `monday-${r.proprietaire_id}`, titre: r.monday.cree ? 'Prospect créé dans Twenty CRM' : 'Prospect mis à jour dans Twenty CRM', pour: 'K Partners · Prospects', lien: r.monday.lien });
+      // Le lien suit le CRM qu'il nomme (31 oct. 2026, Jules : « prospect créé dans Twenty CRM » ouvrait Monday) : en
+      // Twenty ou en double, Klocka ouvre la fiche Twenty par l'id Monday ; en Monday seul, la carte dit Monday.
+      if (r?.monday?.lien) actions.push({ type: 'monday', id: `monday-${r.proprietaire_id}`, titre: `${r.monday.cree ? 'Prospect créé' : 'Prospect mis à jour'} dans ${r.monday.crm}`, pour: 'K Partners · Prospects', lien: r.monday.lien });
       if (r?.monday?.erreur) actions.push({ type: 'monday', id: `monday-${r.proprietaire_id}`, titre: 'Pas envoyé dans Twenty CRM', pour: r.monday.erreur, etat: 'rate' });
       if (r?.piece_rangee) actions.push({ type: 'piece', id: `piece-${Date.now()}-${actions.length}`, titre: r.titre, pour: r.pour, lien: r.lien });
       if (r?.cree && r.estimation_id) actions.push({ type: 'estimation', id: r.estimation_id, titre: r.titre, pour: r.pour, lien: r.lien });
@@ -1426,7 +1456,8 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     const le = new Date().toISOString();
     const canal = ficheOuverte ? 'fiche' : 'dashboard';
     B.versLeFil(cibleFil, user, [{ role: 'user', contenu: String(texte || ''), le, canal }, { role: 'assistant', contenu: reponse, le, canal }]);
-    if (!ficheOuverte) filBien = B.lienDuFil(Records.get('ProprietaireMandataire', cibleFil.id));
+    // Une question en attente de son oui : pas de carte « fait » à côté, l'échange est gardé quand même.
+    if (!ficheOuverte && !/\?\s*$/.test(reponse)) filBien = B.lienDuFil(Records.get('ProprietaireMandataire', cibleFil.id));
   }
   return { texte: reponse, actions, brouillon, ...(boutons.length ? { boutons } : {}), trace, tours, ...(filBien ? { fil_bien: filBien } : {}), ...(limite ? { limite } : {}), ...(prospectionModifiee ? { prospection_modifiee: true } : {}) };
 }

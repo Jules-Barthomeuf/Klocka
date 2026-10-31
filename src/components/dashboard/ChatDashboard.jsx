@@ -767,7 +767,7 @@ export function cartesDe(r) {
   const ko = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} Mo` : `${Math.max(1, Math.round(n / 1024))} Ko`);
   const fichiers = (r?.fichiers || []).filter((f) => f?.url && f?.nom).map((f) => ({ titre: f.nom, detail: `Fichier préparé par AK${f.taille ? ` · ${ko(f.taille)}` : ""}`, etat: "fait", lien: `fichier:${f.url}`, action: "Télécharger" }));
   // Parlé d'un bien depuis le dashboard : l'échange est rangé dans le fil de ce bien (25 oct. 2026), une carte y mène.
-  const fil = r?.fil_bien ? [{ titre: `Rangé dans le fil de ${r.fil_bien.titre}`, detail: "Tout ce qui s'est dit sur ce bien", etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
+  const fil = r?.fil_bien ? [{ titre: `Échange gardé dans le fil de ${r.fil_bien.titre}`, detail: "Tout ce qui s'est dit sur ce bien", etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
   return [...fil, ...fichiers, ...taches, ...(r?.actions || [])
     // Une étape à confirmer n'est pas faite : elle n'a pas de carte, seulement son bouton « Confirmer » (25 oct. 2026).
     .filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_vente" && !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
@@ -1704,7 +1704,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     a.click();
     a.remove();
   };
-  const ouvrirLienExterne = (lien) => (/^https?:/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
+  // Une fiche du CRM passe par le serveur (/api/crm/fiche) : nouvel onglet, comme un lien externe.
+  const ouvrirLienExterne = (lien) => (/^(https?:|\/api\/)/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
 
   const envoiEnVol = useRef(false);
   useEffect(() => { if (!boite.isPending && !analyser.isPending && !rappeler.isPending) envoiEnVol.current = false; }, [boite.isPending, analyser.isPending, rappeler.isPending]);

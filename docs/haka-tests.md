@@ -53,3 +53,4 @@ Des échecs vécus, rejoués pour qu'ils ne reviennent pas. Ils s'affichent à p
 | # | Contexte | Phrase dictée | Action attendue |
 |---|---|---|---|
 | 21 | Antibes, 31 oct., dictée Safari | « … il m'a donné le numéro du gérant qui est le 06 6497 1881, 76 … C'est un gros propriétaire sur Antibes » | Numéro de 12 chiffres non écrit comme téléphone ; gardé en remarque « à vérifier » ; demande de le redire par paires, sans deviner |
+| 22 | Lyon, 31 oct., aucune fiche ouverte | « Je suis passé rue Sade à Antibes, il y a une bonne boulangerie … M. Garnier, c'est le 06 12 34 56 77 » | Rien de créé avant son oui ; une seule question qui propose sa liste (« Client 3 ») ; pas de carte « fait » à côté ; au oui, la fiche est créée dans cette liste |

@@ -108,8 +108,8 @@ export const MENU_ADMIN = [
  * rejoignent.
  */
 export const MENU_MANDATAIRE = [
-  // Haka, comme pour l'équipe (19 oct. 2026, Jules).
-  { cle: "Dashboard", label: "Haka" },
+  // L'assistant, comme Haka pour l'équipe (19 oct. 2026) ; côté K Partners il ne s'appelle pas Haka (31 oct. 2026, Jules).
+  { cle: "Dashboard", label: "Assistant" },
   // La Prospection reprend l'Off-market (23 oct. 2026, Jules) : une seule entrée, Commerces et Rues dans la page.
   { cle: "MandataireProspection", label: "Prospection" },
   // Biens, une seule entrée (24 oct. 2026, Jules) : tous les biens en cartes, puis un bien suivi comme un dossier de

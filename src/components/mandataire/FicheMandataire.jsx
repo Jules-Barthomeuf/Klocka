@@ -53,7 +53,7 @@ export function Dictee({ id, dansBiens, onFait }) {
       return base44.request("POST", `${API}/${id}/dictee`, { body: { texte: texte.trim() } });
     },
     onSuccess: (r) => { setProp(r.proposition); if (r.dit && !texte.trim()) setTexte(r.dit); },
-    onError: (e) => toast.error(e?.message || "Haka n'a pas pu le lire"),
+    onError: (e) => toast.error(e?.message || "L'assistant n'a pas pu le lire"),
   });
   const appliquer = useMutation({
     mutationFn: () => base44.request("POST", `${API}/${id}/dictee/appliquer`, { body: { proposition: prop } }),
@@ -137,7 +137,7 @@ export function Dictee({ id, dansBiens, onFait }) {
  */
 export function ChatFiche({ id, onReponse = null, onConversation = null, plein = false }) {
   return (
-    <ChatDashboard espace="mandataire" proprietaireId={id} compact sansSkills epure lueur libelleAccueil="Haka" menusVersLeHaut
+    <ChatDashboard espace="mandataire" proprietaireId={id} compact sansSkills epure lueur libelleAccueil="Assistant K Partners" menusVersLeHaut
       placeholderAccueil="Parler à l'assistant…" onReponse={onReponse} onConversation={onConversation} sansBarreHaut={plein} />
   );
 }

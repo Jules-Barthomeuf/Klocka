@@ -1148,7 +1148,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
       ok: true, fiche_id: p.id, titre: titreProprietaire(p),
       commerce: p.commerce || null, activite: p.activite || null, adresse: [p.adresse, p.ville].filter(Boolean).join(', ') || null,
       proprietaire_des_murs: p.nom || null, societe_des_murs: p.corrections?.murs || p.murs || null, exploitant: p.corrections?.exploitant || p.exploitant || null, gerant: p.corrections?.gerant || p.gerant || null,
-      telephone: p.telephone || null, telephone_source: p.telephone_source || null, email: p.email || null, a_confirmer: p.a_confirmer || {},
+      telephone: p.telephone || null, telephone_source: (await import('../src/lib/biens-mandataire.js')).sourceLisible(p.telephone_source) || null, email: p.email || null, a_confirmer: p.a_confirmer || {},
       statut: LIBELLES_STATUT[p.statut] || p.statut, liste: liste?.nom || null,
       prochaine_action: p.prochaine_action || null, prochaine_action_le: p.prochaine_action_le || null,
       remarque: p.remarque || null, parties: (p.sections || []).map((x) => ({ titre: x.titre, texte: x.texte })), sources: p.sources || {},

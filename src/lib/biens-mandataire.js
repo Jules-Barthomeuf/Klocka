@@ -13,6 +13,12 @@
  * d'accord est le résultat de l'avis, plus une étape) ; puis Mandat, Commercialisation, Offres, Vente. Plus d'étape
  * Analyse (27 oct. 2026, Jules) : le dossier et le go de l'analyste ne sont plus une étape du mandataire.
  */
+/**
+ * Pure : la source d'un numéro telle qu'on la montre au mandataire. Côté K Partners l'assistant ne s'appelle pas Haka
+ * (31 oct. 2026, Jules) : les fiches d'avant gardent « dit à Haka » en base, l'écran dit « dit à l'assistant ».
+ */
+export const sourceLisible = (s) => (s ? String(s).replace(/\bdit à Haka\b/g, "dit à l'assistant") : s);
+
 export const ETAPES_BIEN = [
   { n: 1, id: "previsite", label: "Visite" },
   { n: 2, id: "estimation", label: "Avis de valeur" },

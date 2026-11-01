@@ -12,7 +12,9 @@ import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
-import PreVisite, { CompteRendu, PreparationDuBien, useVersAvis } from "@/components/mandataire/PreVisite";
+import { CompteRendu, PreparationDuBien, useVersAvis } from "@/components/mandataire/PreVisite";
+import { FichePoint } from "@/components/mandataire/TableauListe";
+import { AnimatePresence } from "framer-motion";
 import { retenirBien } from "@/components/mandataire/BiensRecents";
 import { DocumentTelephone } from "@/components/mandataire/GenerationDocument";
 import ApercuMandat, { FenetreMandatPret } from "@/components/mandataire/ApercuMandat";
@@ -276,7 +278,8 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
   const dossierVente = etape === "marche" && !bien?.marche && !!bien?.dossier?.id;
   // En vente, la Commercialisation garde Haka à gauche, le teaser à droite (28 oct. 2026, Jules).
   const enVente = etape === "marche" && !!bien?.marche;
-  const chat = ["estimation", "mandat"].includes(etape) || (etape === "previsite" && !large) || dossierVente || enVente;
+  // Un fil par bien (1er nov. 2026, Jules) : la Pré-visite aussi, sur ordinateur, a le chat à gauche et la préparation à droite.
+  const chat = ["previsite", "estimation", "mandat"].includes(etape) || dossierVente || enVente;
   const plein = chat && large;
   useEffect(() => {
     if (!plein) return undefined;
@@ -290,9 +293,7 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
       {/* Un seul titre et plus de frise (25 oct. 2026, Jules) : l'Estimation et le Mandat portent le titre dans leur colonne de chat. */}
       {!chat && etape !== "previsite" && <EnTeteBien bien={bien} etape={etape} onFermer={onFermer} className="px-5 pt-3 md:px-10 md:pr-20" />}
       <div key={etape} className="animate-in fade-in duration-500 ease-out">
-        {etape === "previsite" && (large
-          ? <PreVisite bien={bien} onFermer={onFermer} onAvis={() => onAller("estimation")} entete={<EnTeteBien bien={bien} etape={etape} onFermer={onFermer} className="pt-3" />} />
-          : <EtapeRaconte bien={bien} etape={etape} large={large} onFermer={onFermer} entete={entete} onAvis={() => onAller("estimation")} />)}
+        {etape === "previsite" && <EtapeRaconte bien={bien} etape={etape} large={large} onFermer={onFermer} entete={entete} onAvis={() => onAller("estimation")} />}
         {etape === "estimation" && <EtapeChat espace="estimation" bien={bien} objet={bien?.estimation} large={large} entete={entete} onFermer={onFermer} onCree={(id) => onCree("estimation", id)} />}
         {etape === "mandat" && <EtapeChat espace="mandat" bien={bien} objet={bien?.mandat} large={large} entete={entete} onFermer={onFermer} onCree={(id) => onCree("mandat", id)} onSuivante={() => onAller("marche")} />}
         {dossierVente && <EtapeDossierVente bien={bien} large={large} entete={entete} onFermer={onFermer} />}
@@ -351,7 +352,8 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
     setCourant(objet.id);
     let fini = false;
     base44.request("POST", `${t.api}/${objet.id}/conversation`)
-      .then((r) => { if (!fini) window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: r.conversation_id, api: CHAT, qs } })); })
+      // Un objet né d'un bien s'écrit dans le fil du bien (`fil` : l'id de sa fiche) : on l'ouvre là.
+      .then((r) => { if (!fini) window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: r.conversation_id, api: CHAT, qs: r.fil ? `?espace=fiche&fiche=${encodeURIComponent(r.fil)}` : qs } })); })
       .catch((e) => toast.error(e?.message || "Impossible d'ouvrir la conversation"));
     return () => { fini = true; };
   }, [objet?.id, t.api, qs]);
@@ -525,6 +527,7 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
       <div className={conversation ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>
         {/* Dans un bien, l'estimation n'a plus le choix « Avec le bail / Sans document » (25 oct. 2026, Jules) : `epure`. */}
         <ChatDashboard lueur epure={espace === "estimation"} espace={espace} reglages={reglagesChat} onConversation={setConversation}
+          proprietaireId={bien?.proprietaire?.id || null} reprendre={!!bien?.proprietaire?.id}
           placeholderFil={relation ? "Racontez la suite : l'appel, le rendez-vous, sa réponse…" : null} onHistorique={sansHistorique} onReponse={surReponse} onRecherche={surRecherche}
           menusVersLeHaut avisACote={espace === "estimation" && large} barreApercu={large && conversation} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
       </div>
@@ -643,11 +646,8 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
   const [conversation, setConversation] = useState(false);
   const cible = p ? `bien:${p.id}` : `dossier:${dossierVenteId || marcheId}`;
   const sansHistorique = useCallback(() => {}, []);
+  // Le fil du bien se rouvre (1er nov. 2026, Jules : « un fil par bien »).
   const lie = p?.biens?.conversation_id || null;
-  useEffect(() => {
-    if (!lie) return;
-    window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: lie, api: CHAT, qs: "", cible } }));
-  }, [lie, cible]);
   const lier = useCallback((cid) => {
     if (!cid || cid === lie || !p) return;
     base44.request("POST", `/api/mandataire/proprietaires/${p.id}/conversation`, { body: { conversation_id: cid } })
@@ -666,7 +666,7 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
   const chat = (
     <ChatDashboard lueur dansLeFil={!!p} espace="mandataire" proprietaireId={p?.id || null} dossierVenteId={dossierVenteId} marcheId={marcheId} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
       onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil={placeholder}
-      barreApercu={large} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
+      barreApercu={large} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} reprendre={!!p} />
   );
 
   if (large) {
@@ -891,12 +891,9 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
   const [conversation, setConversation] = useState(false);
   const cible = p ? `bien:${p.id}` : null;
   const sansHistorique = useCallback(() => {}, []);
-  // La conversation du bien se rouvre ; la première enregistrée devient la sienne.
+  // Le fil du bien se rouvre (1er nov. 2026, Jules : « un fil par bien ») : ce qui s'est dit en prospectant, puis ici.
   const lie = p?.biens?.conversation_id || null;
-  useEffect(() => {
-    if (!lie) return;
-    window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: lie, api: CHAT, qs: "", cible } }));
-  }, [lie, cible]);
+  const [ficheOuverte, setFicheOuverte] = useState(false);
   const lier = useCallback((cid) => {
     if (!cid || cid === lie || !p) return;
     base44.request("POST", `/api/mandataire/proprietaires/${p.id}/conversation`, { body: { conversation_id: cid } })
@@ -926,7 +923,7 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
   const chat = (
     <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
       onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
-      barreApercu={scinde} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
+      barreApercu={scinde} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} reprendre />
   );
   // Le contenu de la préparation (26 oct. 2026, refait) au-dessus de la fiche, qui ne la répète pas. Au téléphone, la fiche
   // du bien d'abord, la préparation ensuite (31 oct. 2026, Jules).
@@ -936,7 +933,6 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
       {!large && ficheDuBien}
       {p.biens?.compte_rendu && <CompteRendu cr={p.biens.compte_rendu} onEstimation={bien?.estimation?.avis ? null : onAvis} />}
       <PreparationDuBien bien={bien} />
-      {large && ficheDuBien}
     </div>
   );
 
@@ -973,11 +969,17 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
       </div>
       {/* Comme le Mandat (26 oct. 2026, Jules) : une ligne verticale entre le chat et la fiche, et la barre du haut à droite,
           soulignée d'une ligne horizontale. */}
-      <div className="k-apercu-bien min-h-0 min-w-0">
+      {/* La préparation à droite, seule (1er nov. 2026, Jules) : la fiche du bien n'est plus une colonne ouverte en
+          permanence, « La fiche » l'ouvre en panneau, comme un point de la carte du terrain. */}
+      <div className="k-apercu-bien relative min-h-0 min-w-0">
         <div className="flex h-full min-h-0 flex-col border-l border-trait">
-          <div className="k-barre-apercu flex h-14 flex-none items-center border-b border-trait px-5 text-[12.5px] text-ardoise">La fiche du bien</div>
+          <div className="k-barre-apercu flex h-14 flex-none items-center justify-between gap-3 border-b border-trait pl-5 pr-20 text-[12.5px] text-ardoise">
+            <span>Préparer la visite</span>
+            <button type="button" onClick={() => setFicheOuverte(true)} className="inline-flex h-8 items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>La fiche</button>
+          </div>
           <div className="min-h-0 flex-1 overflow-y-auto pb-6 pl-6 pr-20 pt-6"><div className="mx-auto max-w-[760px]">{fiche}</div></div>
         </div>
+        <AnimatePresence>{ficheOuverte && <FichePoint key={p.id} fiche={{ id: p.id, commerce: p.commerce, nom: p.nom, adresse: p.adresse }} onFermer={() => setFicheOuverte(false)} />}</AnimatePresence>
       </div>
     </div>
   ) : (

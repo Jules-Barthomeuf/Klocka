@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { apercuDuFichier, genreDeFichier, pieceDuTexte } from "@/lib/apercu-fichier";
 import { PointsEnCours, PointFait } from "@/components/ui/PointsEtape";
 import { iconeEtape } from "@/lib/icone-etape";
@@ -1029,8 +1029,9 @@ function MessageAvecPiece({ m }) {
 // `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
 export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
-  // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026).
-  const qs = espace === "mandataire" && proprietaireId ? `?espace=fiche&fiche=${encodeURIComponent(proprietaireId)}` : (E.qs || "");
+  // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026) ; depuis le 1er nov. 2026 (Jules : « un
+  // fil par bien »), l'Avis de valeur et le Mandat d'un bien aussi : un seul fil, seul le moteur qui répond change.
+  const qs = ["mandataire", "estimation", "mandat"].includes(espace) && proprietaireId ? `?espace=fiche&fiche=${encodeURIComponent(proprietaireId)}` : (E.qs || "");
   const prospection = espace === "prospection";
   const estimation = espace === "estimation";
   const mandatEspace = espace === "mandat";
@@ -1085,6 +1086,16 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
   const finRef = useRef(null);
   const fichierRef = useRef(null);
   const champRef = useRef(null);
+  // La saisie grandit avec le texte (1er nov. 2026, Jules : « dès qu'on dicte beaucoup, on ne voit pas la fin ») : une
+  // dictée arrive d'un bloc, sans retour à la ligne ; la hauteur suit donc le texte lui-même, jusqu'à 45 % de l'écran
+  // (au-delà, le champ défile et reste au bas de ce qui s'écrit).
+  useLayoutEffect(() => {
+    const champ = champRef.current;
+    if (!champ) return;
+    champ.style.height = "auto";
+    champ.style.height = `${champ.scrollHeight}px`;
+    if (document.activeElement !== champ) champ.scrollTop = champ.scrollHeight;
+  }, [texte]);
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
   // Les étapes annoncées pendant que le serveur travaille, et celle en cours.
   const [etapesPrevues, setEtapesPrevues] = useState([]);
@@ -1876,13 +1887,13 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
         >
           <textarea
             ref={champRef}
-            rows={Math.min(10, Math.max(choixDossier && !conversation ? 3 : 2, texte.split("\n").length))}
+            rows={choixDossier && !conversation ? 3 : 2}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || jointes.length || reglages?.competence) && !enCours) { e.preventDefault(); lancer(); } }}
             placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? placeholderFil || "Répondre ou ajouter une précision…" : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
-            className="block w-full resize-none border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
+            className="block max-h-[45dvh] w-full resize-none overflow-y-auto border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
           />
           <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" multiple className="hidden" onChange={(e) => { joindre(e.target.files); e.target.value = ""; }} />
 

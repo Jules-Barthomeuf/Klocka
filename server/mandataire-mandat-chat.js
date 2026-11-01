@@ -415,7 +415,11 @@ export async function conversationDuMandat(id, user) {
   const m = lire(id, user);
   if (!m) return { ok: false, error: 'Mandat introuvable.' };
   const C = await import('./assistant-conversations.js');
-  if (m.conversation_id && C.lireConversation(user, m.conversation_id, { espace: ESPACE_CHAT })) return { ok: true, conversation_id: m.conversation_id };
+  // Un mandat né d'un bien s'écrit dans le fil du bien (1er nov. 2026, Jules : « toujours un fil par bien »).
+  const F = await import('./fil-du-bien.js');
+  const pid = m.proprietaire_id || (m.estimation_id ? Records.get('EstimationMandataire', m.estimation_id)?.proprietaire_id : null) || null;
+  if (pid && F.dansLeFil(user, pid, m.conversation_id)) return { ok: true, conversation_id: m.conversation_id, fil: pid };
+  if (!pid && m.conversation_id && C.lireConversation(user, m.conversation_id, { espace: ESPACE_CHAT })) return { ok: true, conversation_id: m.conversation_id };
   const q = m.questionnaire || {};
   const reste = manquantsMandat(q);
   const messages = [
@@ -431,10 +435,10 @@ export async function conversationDuMandat(id, user) {
       ...(m.document || m.mynotary_url ? { cartes: [{ titre: 'Mandat MyNotary', detail: 'Le PDF et le lien pour le compléter', etat: 'fait', lien: `mandat:${m.id}`, action: 'Ouvrir' }] } : {}),
     },
   ];
-  const r = C.enregistrerConversation(user, { messages, espace: ESPACE_CHAT });
+  const r = pid ? F.rejoindreLeFil(user, pid, messages) : C.enregistrerConversation(user, { messages, espace: ESPACE_CHAT });
   if (!r.ok) return r;
   Records.update(ENTITE, m.id, { conversation_id: r.id });
-  return { ok: true, conversation_id: r.id, cree: true };
+  return { ok: true, conversation_id: r.id, cree: true, ...(pid ? { fil: pid } : {}) };
 }
 
 /**

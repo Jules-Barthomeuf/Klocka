@@ -193,7 +193,7 @@ export async function prospecter(user) {
     const siennes = await villesDuClient(d, villes, geos);
     if (!siennes.length) continue;
     const points = await pointsDans(d, siennes, cache, emailDe(user));
-    clients.push({ ...d, villes: siennes.map((v) => ({ id: v.id, nom: v.nom })), n: points.length, prospecte_le: deja[d.id]?.le || null });
+    clients.push({ ...d, villes: siennes.map((v) => ({ id: v.id, nom: v.nom })), n: points.length, dans_ma_liste: points.filter((p) => p.fiche).length, prospecte_le: deja[d.id]?.le || null });
   }
   clients.sort((a, b) => b.n - a.n);
   return {
@@ -328,6 +328,16 @@ export async function pointsDuSecteurCompresses(user) {
 
 /** `prospecter`, gardé de même (le résultat est petit, le calcul est long). */
 export const prospecterEnCache = (user) => enCache('clients', user, () => prospecter(user));
+
+/**
+ * Sans attendre (1er nov. 2026, page Clients) : le dernier résultat gardé, même un peu vieux, et le calcul relancé en
+ * fond s'il ne l'est plus ; null la toute première fois (l'écran dit « calcul » et redemande).
+ */
+export function prospecterSansAttendre(user) {
+  const garde = caches.get(`clients:${emailDe(user)}`);
+  if (!encoreBon(garde, signatures())) prospecterEnCache(user).catch(() => {});
+  return garde?.valeur || null;
+}
 
 /** Pour les tests et après un changement de secteur : tout se recalcule. */
 export const oublierCaches = () => { caches.clear(); };

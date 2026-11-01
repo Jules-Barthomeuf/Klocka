@@ -1,11 +1,12 @@
 import React, { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
-import { FileUp, Loader2 } from "lucide-react";
+import { FileUp, Loader2, Mic, Square } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Panneau } from "@/components/mandataire/Visites";
 import { euros } from "@/components/mandataire/kit";
+import { useDictee } from "@/lib/dictee";
 
 // Les biens déjà en mandat (31 oct. 2026, Jules, PLAN.md 3.2) : le PDF d'un mandat, le registre en Excel ou CSV, ou une
 // liste collée. L'Assistant KPartners lit, le mandataire relit (une case par bien, et « Signé chez K Partners »), puis
@@ -20,6 +21,9 @@ export default function ImportBiens({ onFermer }) {
   const [texte, setTexte] = useState("");
   const [survol, setSurvol] = useState(false);
   const [lus, setLus] = useState(null);
+  // Dicter ses mandats (1er nov. 2026, PLAN.md 3.2) : chaque mot s'écrit à la suite de ce qui est déjà là.
+  const avantDictee = useRef("");
+  const dictee = useDictee({ onTexte: (t) => setTexte([avantDictee.current, t].filter(Boolean).join(avantDictee.current ? "\n" : "")) });
 
   const lire = useMutation({
     mutationFn: ({ fichier = null, colle = "" }) => {
@@ -54,16 +58,25 @@ export default function ImportBiens({ onFermer }) {
               className={`flex min-h-[150px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed p-6 text-center transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : "border-bord hover:border-bord-vif"}`} style={survol ? undefined : { background: "transparent" }}>
               {lire.isPending ? <Loader2 className="h-5 w-5 animate-spin text-menthe" /> : <FileUp className="h-5 w-5 text-ardoise" />}
               <span className="text-[13.5px] text-encre">{lire.isPending ? "L'Assistant KPartners lit vos mandats…" : "Cliquez ou glissez votre fichier"}</span>
-              <span className="text-[12.5px] text-brume">.pdf, .xlsx ou .csv</span>
+              <span className="text-[12.5px] text-brume">.pdf, .xlsx, .csv, ou une photo du mandat</span>
             </button>
-            <input ref={ref} type="file" accept=".pdf,.xlsx,.csv,.txt,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) lire.mutate({ fichier: f }); }} />
-            <p className="m-0 mt-5 text-[13.5px] text-ardoise">Ou collez vos mandats, tels quels :</p>
+            <input ref={ref} type="file" accept=".pdf,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.webp,image/*,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) lire.mutate({ fichier: f }); }} />
+            <p className="m-0 mt-5 text-[13.5px] text-ardoise">Ou collez vos mandats tels quels, ou dictez-les :</p>
             <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={4} placeholder={"Boulangerie, 12 rue Masséna à Nice, SCI Dupont 06 12 34 56 78, 450 k€, mandat 2026-0007 signé le 3/09\nPharmacie, 3 rue Neuve à Nice, mandat Century 21 jusqu'au 15/03/2027, 800 k€"}
               className="mt-2 w-full resize-y rounded-[14px] border border-trait bg-surface px-4 py-3 text-[13.5px] leading-[1.55] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]" />
-            <button type="button" onClick={() => lire.mutate({ colle: texte.trim() })} disabled={!texte.trim() || lire.isPending}
-              className="mt-3 inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-              {lire.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Lire la liste
-            </button>
+            <div className="mt-3 flex flex-wrap items-center gap-2.5">
+              <button type="button" onClick={() => { if (dictee.ecoute) dictee.arreter(); lire.mutate({ colle: texte.trim() }); }} disabled={!texte.trim() || lire.isPending}
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+                {lire.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Lire la liste
+              </button>
+              {dictee.supporte && (
+                <button type="button" onClick={() => { if (dictee.ecoute) dictee.arreter(); else { avantDictee.current = texte.trim(); dictee.demarrer(); } }} aria-pressed={dictee.ecoute}
+                  className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[13.5px] ${dictee.ecoute ? "border-menthe text-encre" : "border-trait text-craie hover:border-bord-vif hover:text-encre"}`} style={{ background: "transparent" }}>
+                  {dictee.ecoute ? <><Square className="h-3.5 w-3.5 fill-current" /> Arrêter</> : <><Mic className="h-4 w-4" /> Dicter</>}
+                </button>
+              )}
+              {dictee.erreur && <span className="text-[12.5px] text-ambre">{dictee.erreur}</span>}
+            </div>
           </>
         ) : (
           <>

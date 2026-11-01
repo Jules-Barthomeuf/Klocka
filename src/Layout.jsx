@@ -1,4 +1,4 @@
-import Cloche from "@/components/haka/Cloche";
+import Cloche, { ouvrirCloche, useNonLuesMandataire } from "@/components/haka/Cloche";
 import PopupFicheRecue from "@/components/haka/PopupFicheRecue";
 import { precharger } from "@/lib/precharger";
 import MarqueKlocka from "@/components/MarqueKlocka";
@@ -41,7 +41,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Globe,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, Bell } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -369,6 +369,8 @@ function LayoutContent({ children, currentPageName }) {
   // Les pages que Jules n'a pas ouvertes à ce compte (acces-pages.js côté serveur).
   const pagesFermees = isAdmin ? user?.pages_fermees || [] : [];
   const vue = isAdmin ? apercu : user?.role === "mandataire" ? "mandataire" : "client";
+  // Les notifications non lues du mandataire : sur le hamburger au téléphone (1er nov. 2026, Jules).
+  const nonLues = useNonLuesMandataire(vue === "mandataire");
   // La couleur d'accent suit l'espace : K Partners (pervenche) côté mandataire.
   useEffect(() => { definirEspace(vue); }, [vue]);
   // Ce qui relève de l'équipe (relances, dossiers, assistant, recherche) ne
@@ -544,6 +546,7 @@ function LayoutContent({ children, currentPageName }) {
     Automatismes: { to: createPageUrl("Automatismes"), icon: Workflow, actif: isActivePage("Automatismes") },
     // Modèles (26 oct. 2026) : les documents de Klocka et de K Partners, remplis avec un exemple.
     AdminModeles: { to: createPageUrl("AdminModeles"), icon: LayoutTemplate, actif: isActivePage("AdminModeles") },
+    AdminAccesCrm: { to: createPageUrl("AdminAccesCrm"), icon: Lock, actif: isActivePage("AdminAccesCrm") },
     Agents: { to: createPageUrl("Agents"), icon: Contact, actif: isActivePage("Agents") },
     // Offres : les lettres d'intention d'achat, rédigées au chat.
     Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },
@@ -671,6 +674,15 @@ function LayoutContent({ children, currentPageName }) {
         {/* Les pages. */}
         <div className="mt-7 flex-1 overflow-y-auto px-3 pb-4">
           <div className="flex flex-col gap-0.5">
+            {/* Au téléphone, les notifications en tête du menu (1er nov. 2026, Jules) : la cloche n'a plus de bouton. */}
+            {isMobile && vue === "mandataire" && (
+              <button type="button" onClick={() => { closeMobile(); ouvrirCloche(); }}
+                className="mb-2 flex items-center gap-3 rounded-[10px] px-3 py-[7px] text-left text-[15px] text-encre hover:bg-encre/[0.05]" style={{ background: "transparent" }}>
+                <Bell className="h-[18px] w-[18px] flex-none text-ardoise" strokeWidth={1.7} />
+                <span className="flex-1">Notifications</span>
+                {nonLues > 0 && <span className="grid h-[22px] min-w-[22px] place-items-center rounded-full bg-ambre px-1.5 text-[13px] font-medium tabular-nums text-fond">{nonLues}</span>}
+              </button>
+            )}
             {entrees.map((e) => {
               // Un groupe (Relations, Administration) : une seule entrée, vers sa première page ; actif sur toutes ses pages.
               if (e.groupe) {
@@ -871,7 +883,10 @@ function LayoutContent({ children, currentPageName }) {
               </div>
             </nav>
           )}
-          {pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}
+          {/* L'espace K Partners : chaque écran entre d'un fondu et d'une légère montée (1er nov. 2026, Jules). */}
+          {vue === "mandataire"
+            ? <div key={location.pathname} className="k-entree-page">{pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}</div>
+            : pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}
         </div>
       </main>
 
@@ -907,12 +922,17 @@ function LayoutContent({ children, currentPageName }) {
         </>
       )}
       {/* La cloche du mandataire, en haut à droite comme chez l'équipe, au téléphone aussi (25 oct. 2026, Jules). */}
-      {vue === "mandataire" && !hideNavbar && <Cloche mandataire className="fixed right-4 top-4 max-md:right-[60px] max-md:top-[calc(env(safe-area-inset-top)+0.3rem)]" />}
+      {/* Au téléphone, plus de bouton cloche (1er nov. 2026, Jules) : le nombre en gros sur le hamburger, « Notifications » en
+          tête du menu. */}
+      {vue === "mandataire" && !hideNavbar && <Cloche mandataire sansBoutonTelephone className="fixed right-4 top-4" />}
       {/* Au téléphone, le hamburger à droite de la cloche ouvre le menu (27 oct. 2026, Jules : plus d'onglets en bas). */}
       {vue === "mandataire" && !hideNavbar && (
-        <button type="button" onClick={() => setIsMobileMenuOpen((o) => !o)} aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={isMobileMenuOpen}
+        <button type="button" onClick={() => setIsMobileMenuOpen((o) => !o)} aria-label={isMobileMenuOpen ? "Fermer le menu" : nonLues ? `Ouvrir le menu, ${nonLues} notification${nonLues > 1 ? "s" : ""}` : "Ouvrir le menu"} aria-expanded={isMobileMenuOpen}
           className="fixed right-3 top-[calc(env(safe-area-inset-top)+0.3rem)] z-40 grid h-[38px] w-[38px] place-items-center rounded-full text-encre md:hidden" style={{ background: "transparent" }}>
           {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {!isMobileMenuOpen && nonLues > 0 && (
+            <span aria-hidden className="absolute -right-1.5 -top-1 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-ambre px-1.5 text-[13px] font-medium tabular-nums text-fond">{nonLues > 99 ? "99+" : nonLues}</span>
+          )}
         </button>
       )}
       {/* Au téléphone, le logo K Partners en haut à gauche, en face de la cloche (25 oct. 2026, Jules), sur une barre

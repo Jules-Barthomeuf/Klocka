@@ -94,3 +94,16 @@ test("la fiche sans liste se range ensuite par modifier_fiche, la liste se crée
   assert.ok(p.liste_id);
   assert.equal(Records.get('ListeMandataire', p.liste_id).nom, 'Crêperies Cannes');
 });
+
+test("un mot dit à l'assistant depuis la fiche marque le commerce prospecté ; la fiche d'un autre mandataire, non", async () => {
+  const { noterParole } = await import('./mandataire-espace.js');
+  const p = Records.create('ProprietaireMandataire', { mandataire_email: MOI.email, commerce: 'Fleurs Riviera', statut: 'a_appeler' });
+  noterParole(p.id, MOI, new Date('2026-10-31T10:00:00Z'));
+  noterParole(p.id, MOI, new Date('2026-10-31T11:00:00Z'));
+  const apres = Records.get('ProprietaireMandataire', p.id);
+  assert.equal(apres.prospecte_le, '2026-10-31T10:00:00.000Z', 'la première fois se garde');
+  assert.equal(apres.parle_le, '2026-10-31T11:00:00.000Z');
+  const autre = Records.create('ProprietaireMandataire', { mandataire_email: 'autre@kpartners.fr', commerce: 'Tabac du Port' });
+  assert.equal(noterParole(autre.id, MOI), null);
+  assert.equal(Records.get('ProprietaireMandataire', autre.id).prospecte_le, undefined);
+});

@@ -59,6 +59,7 @@ const SuiviHaka = lazy(() => import('@/pages/SuiviHaka'));
 const Automatismes = lazy(() => import('@/pages/Automatismes'));
 // Modèles (26 oct. 2026) : les documents de Klocka et de K Partners, dans Administration.
 const AdminModeles = lazy(() => import('@/pages/AdminModeles'));
+const AdminAccesCrm = lazy(() => import('@/pages/AdminAccesCrm'));
 const SuiviReunion = lazy(() => import('@/pages/SuiviReunion'));
 const Semaine = lazy(() => import('@/pages/Semaine'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
@@ -162,7 +163,7 @@ const PAGES_PUBLIQUES = {
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviAudience, SuiviMandataires, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
+const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviAudience, SuiviMandataires, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

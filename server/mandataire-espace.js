@@ -571,6 +571,17 @@ export const LIBELLES_STATUT = {
   mandat_signe: 'Mandat (dans Biens)', pas_vendeur: "Pas d'intérêt", a_recontacter: 'À contacter',
 };
 
+/**
+ * Un message dit à l'assistant depuis la fiche d'un commerce (31 oct. 2026, Jules) : le commerce est prospecté, son
+ * point passe au rouge sur la carte du terrain. La première fois se garde (`prospecte_le`), la dernière aussi.
+ */
+export function noterParole(proprietaireId, user, maintenant = new Date()) {
+  const p = proprietaireId ? Records.get('ProprietaireMandataire', proprietaireId) : null;
+  if (!p || p.mandataire_email !== String(user?.email || '').toLowerCase()) return null;
+  const le = maintenant.toISOString();
+  return Records.update('ProprietaireMandataire', p.id, { prospecte_le: p.prospecte_le || le, parle_le: le });
+}
+
 export const mesProprietaires = (user) =>
   Records.list('ProprietaireMandataire').filter((p) => p.mandataire_email === String(user?.email || '').toLowerCase());
 

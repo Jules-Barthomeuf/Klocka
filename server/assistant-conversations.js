@@ -13,6 +13,7 @@ import { Conversations } from './db.js';
 const AGENT = 'dashboard';
 const agentDe = (espace) => (espace && espace !== 'dashboard' ? `dashboard-${espace}` : AGENT);
 const MAX_MESSAGES = 80;
+const MAX_MESSAGES_FIL = 600;
 const MAX_CONVERSATIONS = 30;
 const ROLES = new Set(['user', 'assistant', 'bloc']);
 
@@ -86,7 +87,9 @@ export function lireConversation(user, id, { espace = null } = {}) {
  * conversation naît — et les plus vieilles au-delà du plafond s'effacent.
  */
 export function enregistrerConversation(user, { id = null, messages = [], espace = null } = {}) {
-  const propres = serialisables(messages).slice(-MAX_MESSAGES);
+  // Le fil d'un bien court de la prospection à la vente (1er nov. 2026, Jules) : il garde bien plus que 80 messages.
+  const max = String(espace || '').startsWith('mandataire-fiche-') ? MAX_MESSAGES_FIL : MAX_MESSAGES;
+  const propres = serialisables(messages).slice(-max);
   if (!propres.some((m) => m.role === 'user')) return { ok: false, error: 'Rien à garder.' };
   let c = id ? Conversations.get(id) : null;
   if (c && (c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user))) c = null;

@@ -1358,7 +1358,11 @@ export async function conversationDeLEstimation(id, user) {
   const e = Records.get(ENTITE, id);
   if (!e || e.mandataire_email !== moi(user) && user?.role !== 'admin') return { ok: false, error: 'Estimation introuvable.' };
   const C = await import('./assistant-conversations.js');
-  if (e.conversation_id && C.lireConversation(user, e.conversation_id, { espace: ESPACE_CHAT })) return { ok: true, conversation_id: e.conversation_id };
+  // Un avis né d'un bien s'écrit dans le fil du bien (1er nov. 2026, Jules : « toujours un fil par bien »).
+  const F = await import('./fil-du-bien.js');
+  const pid = e.proprietaire_id || null;
+  if (pid && F.dansLeFil(user, pid, e.conversation_id)) return { ok: true, conversation_id: e.conversation_id, fil: pid };
+  if (!pid && e.conversation_id && C.lireConversation(user, e.conversation_id, { espace: ESPACE_CHAT })) return { ok: true, conversation_id: e.conversation_id };
   const messages = [
     { role: 'user', contenu: `Estimation · ${e.bien}` },
     {
@@ -1367,7 +1371,7 @@ export async function conversationDeLEstimation(id, user) {
       ...(e.avis ? { cartes: [{ titre: 'Avis de valeur', detail: e.avis.chiffres?.valeur ? `${e.avis.chiffres.valeur.toLocaleString('fr-FR')} € · fourchette ${e.avis.chiffres.bas?.toLocaleString('fr-FR')} – ${e.avis.chiffres.haut?.toLocaleString('fr-FR')} €` : 'À compléter dans l’éditeur', etat: 'fait', lien: `avis:${e.id}`, action: 'Ouvrir l’avis' }] } : {}),
     },
   ];
-  const r = C.enregistrerConversation(user, { messages, espace: ESPACE_CHAT });
+  const r = pid ? F.rejoindreLeFil(user, pid, messages) : C.enregistrerConversation(user, { messages, espace: ESPACE_CHAT });
   if (!r.ok) return r;
   // Sans avis rédigé, le questionnaire reprend : c'est l'avis en cours de cette conversation.
   const maj = { conversation_id: r.id };
@@ -1379,7 +1383,7 @@ export async function conversationDeLEstimation(id, user) {
     if (!e.questionnaire) maj.questionnaire = { adresse: e.adresse || null, ...(e.infos_rdv ? { etat: String(e.infos_rdv).slice(0, 2000) } : {}) };
   }
   Records.update(ENTITE, e.id, maj);
-  return { ok: true, conversation_id: r.id, cree: true };
+  return { ok: true, conversation_id: r.id, cree: true, ...(pid ? { fil: pid } : {}) };
 }
 
 // --- L'aperçu : l'avis qui se construit pendant les questions -----------------

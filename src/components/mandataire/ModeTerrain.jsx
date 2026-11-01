@@ -6,13 +6,17 @@ import { toast } from "@/components/ui/avis";
 import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
 import { FichePoint } from "@/components/mandataire/TableauListe";
 import { JL } from "@/design/jetons";
-import { passeAujourdhui } from "@/lib/terrain";
+import jetons from "@/design/jetons.json";
+import { prospecte } from "@/lib/terrain";
 
 // Le mode terrain (25 oct. 2026, Jules) : la carte en plein écran, les commerces de toutes ses listes (ou d'une seule),
 // la position du mandataire qui le suit ; un point touché ouvre la fiche du commerce au centre de l'écran. Une croix
-// en haut à gauche referme. Les commerces où il est déjà passé aujourd'hui sont grisés.
+// en haut à gauche referme. Un commerce dont on a parlé à l'assistant passe au rouge : il est prospecté (31 oct. 2026,
+// Jules ; avant, ceux vus le jour même se grisaient). Les autres sont en pervenche, la couleur K Partners.
 
 const SORTIES = ["rdv_pris", "mandat_signe", "pas_vendeur"];
+// La pervenche K Partners en valeur littérale (la carte Google ne lit pas les variables CSS), thème sombre.
+const PERVENCHE = jetons.accents.pervenche.sombre;
 const aVoir = (l) => (l.fiches || []).filter((p) => p.position && !SORTIES.includes(p.statut)).length;
 
 /**
@@ -88,12 +92,11 @@ export default function ModeTerrain({ listes = [], libelles = {}, onFermer }) {
     .filter((l) => laquelle === "toutes" || l.id === laquelle)
     .flatMap((l) => (l.fiches || []).map((p) => ({ ...p, liste_nom: l.nom })))
     .filter((p) => p.position && !SORTIES.includes(p.statut)), [listes, laquelle]);
-  const jour = new Date().toISOString().slice(0, 10);
   const marqueurs = useMemo(() => fiches.map((p) => ({
     id: p.id, lat: p.position.lat, lon: p.position.lon,
     titre: [p.commerce || p.nom, libelles[p.statut] || null].filter(Boolean).join(" · "),
-    couleur: passeAujourdhui(p, jour) ? JL.brume : JL.menthe,
-  })), [fiches, libelles, jour]);
+    couleur: prospecte(p) ? JL.alerte : PERVENCHE,
+  })), [fiches, libelles]);
   const fiche = fiches.find((p) => p.id === choisi) || null;
 
   return createPortal(

@@ -76,11 +76,23 @@ async function texteDuPdf(buffer) {
 }
 
 /** Lit un PDF de mandat, un registre (.xlsx, .csv) ou une liste collée ; rend les biens, sans rien enregistrer. */
-export async function lireBiens({ buffer = null, nom = '', texte = '' } = {}, user, { llm = null } = {}) {
+export async function lireBiens({ buffer = null, nom = '', texte = '', mimetype = null } = {}, user, { llm = null, lireDocument = null } = {}) {
   let brut = '';
-  if (buffer && /\.pdf$/i.test(nom)) {
+  // Une photo de mandat, ou un PDF scanné (1er nov. 2026, PLAN.md 3.2) : le modèle le lit comme une image, puis on
+  // repart du texte recopié, comme pour une liste collée.
+  const recopier = async (type) => {
+    const lire = lireDocument || (await import('./llm.js')).generateFromDocument;
+    return String(await lire({ buffer, mimetype: type, nom, prompt: 'Recopie tout le texte de ce mandat, de ce registre ou de cette liste de biens, tel quel, sans rien résumer ni ajouter.' }) || '').trim();
+  };
+  const image = /^image\//i.test(String(mimetype || '')) || /\.(jpe?g|png|webp|heic)$/i.test(nom);
+  if (buffer && image) {
+    if (/\.heic$/i.test(nom) || /heic/i.test(String(mimetype || ''))) return { ok: false, error: 'Photo au format HEIC : dans Réglages › Appareil photo › Formats, choisissez « Le plus compatible », ou envoyez une capture.' };
+    brut = await recopier(mimetype || (/\.png$/i.test(nom) ? 'image/png' : 'image/jpeg'));
+    if (brut.length < 20) return { ok: false, error: 'Je ne lis rien sur cette photo : reprenez-la plus nette, à plat, ou collez ses informations.' };
+  } else if (buffer && /\.pdf$/i.test(nom)) {
     brut = await texteDuPdf(buffer);
-    if (brut.length < 40) return { ok: false, error: 'Ce PDF est une image scannée : je ne peux pas le lire. Envoyez le PDF d’origine, ou collez ses informations.' };
+    if (brut.length < 40) brut = await recopier('application/pdf');
+    if (brut.length < 40) return { ok: false, error: 'Je ne lis rien dans ce PDF : envoyez le PDF d’origine, ou collez ses informations.' };
   } else if (buffer && /\.xls$/i.test(nom)) {
     return { ok: false, error: 'Ancien format Excel (.xls) : enregistrez le fichier en .xlsx ou en CSV.' };
   } else {

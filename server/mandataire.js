@@ -1193,6 +1193,8 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   const { lotDePieces, texteAvecPieces } = await import('./pieces-jointes.js');
   const lot = lotDePieces({ piece, pieces });
   for (const p of lot) surEtape?.(`Lecture de ${p.nom}`);
+  // Parler de ce commerce à l'assistant, c'est l'avoir prospecté (31 oct. 2026, Jules : le point rouge du terrain).
+  if (proprietaire_id && (String(texte || '').trim() || lot.length)) (await import('./mandataire-espace.js')).noterParole(proprietaire_id, user);
   texte = texteAvecPieces(texte, lot, 5000);
   const { libelleOutil } = await import('./etapes-libelles.js');
   const { runAgent } = await import('./llm.js');

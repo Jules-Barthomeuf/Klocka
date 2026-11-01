@@ -65,7 +65,7 @@ export function monterMandatairePortes(app) {
     if (!f && !texte.trim()) return res.status(400).json({ error: 'Joignez un fichier ou collez vos mandats.' });
     const { mesurer } = await import('../llm-couts.js');
     const { lireBiens } = await import('../biens-import.js');
-    const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () => lireBiens({ buffer: f?.buffer || null, nom: f?.filename || '', texte }, vue(req, user)));
+    const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () => lireBiens({ buffer: f?.buffer || null, nom: f?.filename || '', mimetype: f?.mimetype || null, texte }, vue(req, user)));
     rendre(res, resultat);
   }));
   app.post('/api/mandataire/biens/import', wrap(async (req, res) => {

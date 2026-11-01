@@ -60,8 +60,24 @@ export function lignesDeLaCloche({ propositions = [], dues = [], alertes = [] } 
 export const compteurDeLaCloche = (lignes) => lignes.filter((l) => l.action).reduce((n, l) => n + (l.n || 1), 0);
 
 /** `mandataire` (25 oct. 2026, Jules : « le truc de notifications comme dans l'admin ») : la même cloche, ses seules notifications ; la file de Haka et « Ce qui vous attend » restent à l'équipe. */
-export default function Cloche({ className = "", mandataire = false }) {
+/** Le nombre de notifications non lues d'un mandataire (la même lecture que la cloche, partagée). */
+export function useNonLuesMandataire(enabled = true) {
+  const q = useQuery({ queryKey: ["notifications"], queryFn: () => base44.request("GET", "/api/notifications"), enabled, refetchInterval: 30_000, staleTime: 15_000 });
+  return (q.data?.notifications || []).filter((x) => !x.lue && x.genre !== "question_haka").length;
+}
+
+/** Ouvre les notifications depuis ailleurs (le menu du téléphone, 1er nov. 2026). */
+export const ouvrirCloche = () => window.dispatchEvent(new CustomEvent("klocka:ouvrir-cloche"));
+
+// `sansBoutonTelephone` : au téléphone, la cloche n'a plus de bouton (1er nov. 2026, Jules) ; le nombre va sur le
+// hamburger et la ligne « Notifications » du menu l'ouvre.
+export default function Cloche({ className = "", mandataire = false, sansBoutonTelephone = false }) {
   const [ouvert, setOuvert] = useState(false);
+  useEffect(() => {
+    const ouvrir = () => setOuvert(true);
+    window.addEventListener("klocka:ouvrir-cloche", ouvrir);
+    return () => window.removeEventListener("klocka:ouvrir-cloche", ouvrir);
+  }, []);
   const navigate = useNavigate();
   const user = useUser();
   const equipe = !mandataire;
@@ -143,7 +159,7 @@ export default function Cloche({ className = "", mandataire = false }) {
     <div className={`${ouvert ? "z-[56]" : "z-40"} ${className}`}>
       <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-haspopup="dialog"
         aria-label={n ? `Ce qui t'attend : ${n}` : "Ce qui t'attend"} title="Ce qui t'attend"
-        className="relative grid h-[38px] w-[38px] place-items-center rounded-full border border-trait bg-surface-pleine text-ardoise transition-colors duration-300 hover:border-bord-doux hover:text-encre">
+        className={`relative grid h-[38px] w-[38px] place-items-center rounded-full border border-trait bg-surface-pleine text-ardoise transition-colors duration-300 hover:border-bord-doux hover:text-encre ${sansBoutonTelephone ? "max-md:hidden" : ""}`}>
         <motion.span className="grid place-items-center" animate={{ rotate: ouvert ? [0, -14, 10, -6, 0] : 0 }} transition={{ duration: 0.5 }}><Bell className="h-4 w-4" strokeWidth={1.7} /></motion.span>
         <AnimatePresence initial={false}>
           {n > 0 && (

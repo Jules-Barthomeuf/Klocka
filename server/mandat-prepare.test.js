@@ -48,7 +48,8 @@ test('à l’étape Mandat : un seul mandat par avis, et le chat s’ouvre sur c
   const c = await C.conversationDuMandat(m.id, moi);
   assert.equal(c.ok, true);
   const { lireConversation } = await import('./assistant-conversations.js');
-  const premier = lireConversation(moi, c.conversation_id, { espace: 'mandataire-mandat' }).messages.at(-1).contenu;
+  // Le mandat d'un bien s'écrit dans le fil du bien (1er nov. 2026) ; sans bien, dans le chat du Mandat.
+  const premier = lireConversation(moi, c.conversation_id, { espace: c.fil ? `mandataire-fiche-${c.fil}` : 'mandataire-mandat' }).messages.at(-1).contenu;
   assert.match(premier, /J'ai préparé le mandat avec ce qu'on sait déjà : le vendeur \(Jean Paul\).*le prix \(385\s000 €\)/);
   assert.match(premier, /il me manque : le type de mandat/);
 });

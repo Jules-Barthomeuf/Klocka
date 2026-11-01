@@ -5,6 +5,7 @@
 import { Records, Conversations } from './db.js';
 import { ETAPES_BIEN, marqueurDe, rangValide } from '../src/lib/biens-mandataire.js';
 import { montant, fourchette } from './montants.js';
+import * as F from './fil-du-bien.js';
 
 const emailDe = (u) => String(u?.email || '').toLowerCase();
 const maintenant = () => new Date().toISOString();
@@ -109,28 +110,24 @@ export function cadreDuBien(p) {
 // relit avant de répondre. C'est une conversation du chat du mandataire, marquée `bien`, jamais effacée avec les vieilles.
 // ---------------------------------------------------------------------------
 
-const AGENT_FIL = 'dashboard-mandataire';
 
 /** La conversation du bien, si elle existe (ou créée avec `creer`). */
-export function filDuBien(p, user, { creer = false } = {}) {
+// Un seul fil par bien (1er nov. 2026, Jules) : celui de la fiche (server/fil-du-bien.js), où écrivent aussi la
+// prospection, la Pré-visite, l'Avis de valeur et le Mandat. L'ancien fil à part (`biens.conversation_id`, agent
+// dashboard-mandataire) n'est plus écrit ; il garde l'identifiant du fil de la fiche pour les écrans qui le lisent.
+export function filDuBien(p, user) {
   if (!p) return null;
-  const qui = user?.email || 'anonyme';
-  let c = p.biens?.conversation_id ? Conversations.get(p.biens.conversation_id) : null;
-  if (c && (c.agent_name !== AGENT_FIL || c.metadata?.utilisateur !== qui)) c = null;
-  if (!c && creer) {
-    c = Conversations.create({ agent_name: AGENT_FIL, metadata: { utilisateur: qui, titre: p.commerce || p.nom || 'Bien', bien: p.id } });
-    const frais = Records.get('ProprietaireMandataire', p.id) || p;
-    Records.update('ProprietaireMandataire', p.id, { biens: { ...(frais.biens || {}), conversation_id: c.id } });
-  }
-  return c;
+  return F.filDuBien(user, p.id);
 }
 
-/** Ajoute des messages au fil du bien (le crée au besoin) ; garde les 80 derniers. */
+/** Ajoute des messages au fil du bien (le crée au besoin). */
 export function versLeFil(p, user, messages = []) {
-  const c = filDuBien(p, user, { creer: true });
-  if (!c) return null;
-  Conversations.setMessages(c.id, [...(c.messages || []), ...messages].slice(-80));
-  return c.id;
+  if (!p) return null;
+  const r = F.rejoindreLeFil(user, p.id, messages);
+  if (!r?.ok) return null;
+  const frais = Records.get('ProprietaireMandataire', p.id) || p;
+  if (frais.biens?.conversation_id !== r.id) Records.update('ProprietaireMandataire', p.id, { biens: { ...(frais.biens || {}), conversation_id: r.id } });
+  return r.id;
 }
 
 /** Ce que Haka relit du fil avant de répondre : les derniers échanges, en commençant par un message du mandataire. */

@@ -424,6 +424,10 @@ test('le terrain : la distance, et les commerces où l’on est passé aujourd�
   assert.equal(T.distanceLisible(2450), '2,5 km');
   assert.equal(T.passeAujourdhui({ historique: [{ type: 'note', le: '2026-10-25T09:00:00Z' }] }, '2026-10-25'), true);
   assert.equal(T.passeAujourdhui({ historique: [{ type: 'creation', le: '2026-10-25T09:00:00Z' }] }, '2026-10-25'), false, 'la création ne compte pas');
+  // Prospecté (31 oct. 2026) : un mot dit à l'assistant depuis la fiche, ou un échange noté ; la seule création, non.
+  assert.equal(T.prospecte({ prospecte_le: '2026-10-31T10:00:00Z' }), true);
+  assert.equal(T.prospecte({ historique: [{ type: 'note', le: '2026-10-20T09:00:00Z' }] }), true);
+  assert.equal(T.prospecte({ historique: [{ type: 'creation', le: '2026-10-20T09:00:00Z' }] }), false);
 });
 
 test('le fil du bien : une conversation par fiche, écrite d’où qu’on parle, relue par l\'Assistant KPartners, jamais effacée', async () => {

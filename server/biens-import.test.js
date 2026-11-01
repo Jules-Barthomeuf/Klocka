@@ -75,3 +75,16 @@ test('lireBiens : rien de reconnu, une erreur lisible', async () => {
   assert.equal(r.ok, false);
   assert.match(r.error, /Aucun mandat/);
 });
+
+test("une photo de mandat, ou un PDF scanné, se lit par le modèle puis comme une liste collée (1er nov. 2026)", async () => {
+  const vus = [];
+  const lireDocument = async ({ mimetype }) => { vus.push(mimetype); return 'Boulangerie, 12 rue Masséna à Nice, mandat K Partners 450 000 €'; };
+  const llm = async ({ prompt }) => ({ biens: [{ commerce: 'Boulangerie', adresse: '12 rue Masséna', ville: 'Nice', prix: /Masséna/.test(prompt) ? 450000 : null }] });
+  const photo = await lireBiens({ buffer: Buffer.from('jpeg'), nom: 'mandat.jpg', mimetype: 'image/jpeg' }, { email: 'photo@kpartners.fr' }, { llm, lireDocument });
+  assert.equal(photo.ok, true);
+  assert.equal(photo.biens[0].prix, 450000, 'le texte recopié de la photo arrive au modèle');
+  assert.deepEqual(vus, ['image/jpeg']);
+  const heic = await lireBiens({ buffer: Buffer.from('x'), nom: 'IMG_1.HEIC', mimetype: 'image/heic' }, { email: 'photo@kpartners.fr' }, { llm, lireDocument });
+  assert.equal(heic.ok, false);
+  assert.match(heic.error, /HEIC/);
+});

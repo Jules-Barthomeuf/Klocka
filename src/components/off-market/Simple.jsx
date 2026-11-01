@@ -81,9 +81,12 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
       <AnimatePresence>
       {ouvert && <motion.div key="voile" className="fixed inset-0 z-[70] bg-black/40" onClick={() => setOuvert(false)} aria-hidden initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} />}
       {ouvert && (
-        <motion.div key="fenetre" className="pointer-events-none fixed inset-0 z-[71] grid place-items-center p-4"
+        // Au téléphone (1er nov. 2026, Jules : « coupé à droite, on ne peut pas valider ») : un panneau qui monte du bas, sur
+        // toute la largeur. La colonne de la grille est bornée à l'écran (minmax(0,1fr)) : sans elle, elle prenait les
+        // 760 px de la fenêtre et la poussait hors de l'écran.
+        <motion.div key="fenetre" className="pointer-events-none fixed inset-0 z-[71] grid grid-cols-[minmax(0,1fr)] place-items-center p-4 max-md:items-end max-md:p-0"
           initial={{ opacity: 0, y: 48, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 32, scale: 0.98 }} transition={{ type: "spring", stiffness: 380, damping: 32 }}>
-        <div role="dialog" aria-label="Filtres" className="pointer-events-auto flex max-h-[85vh] w-[760px] max-w-full flex-col overflow-hidden rounded-bloc border border-bord-doux bg-surface-pleine shadow-xl">
+        <div role="dialog" aria-label="Filtres" className="pointer-events-auto flex max-h-[85dvh] w-[760px] max-w-full flex-col overflow-hidden rounded-bloc border border-bord-doux bg-surface-pleine shadow-xl max-md:max-h-[88dvh] max-md:w-full max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0">
           {/* Les filtres défilent, « Tout effacer » et « Voir n commerces » restent en bas (Jules, 31 oct. 2026). */}
           <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-4 md:grid-cols-3">
             <div className="flex flex-col gap-5">
@@ -107,7 +110,7 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
               <SectionFiltre titre="Liste" multiple={false} choisis={filtres.liste ? [filtres.liste] : []} onChange={un("liste")} options={[{ v: "libres", mot: "Pas encore dans une liste", n: compteDe(commerces, (c) => !c.liste) }, { v: "en_liste", mot: "Déjà dans une liste", n: compteDe(commerces, (c) => c.liste) }]} />
             </div>
           </div>
-          <div className="flex flex-none items-center justify-between gap-3 border-t border-trait px-4 py-3">
+          <div className="flex flex-none items-center justify-between gap-3 border-t border-trait px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
             <button type="button" onClick={() => setFiltres((f) => ({ ...FILTRES_SIMPLE, texte: f.texte, emplacement: f.emplacement }))} disabled={!n} className={bouton}>Tout effacer</button>
             <button type="button" onClick={() => setOuvert(false)} className={boutonPlein}>Voir {pl(visibles, "commerce")}</button>
           </div>
@@ -167,7 +170,7 @@ export function FenetreListe({ ids, onFermer, onFait }) {
   useEffect(() => { const k = (e) => { if (e.key === "Escape") onFermer(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onFermer]);
   const listes = q.data?.listes || [];
   return (
-    <div role="dialog" aria-modal="true" aria-label="Envoyer vers une liste" className="fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onFermer(); }}>
+    <div role="dialog" aria-modal="true" aria-label="Envoyer vers une liste" className="fixed inset-0 z-[90] grid grid-cols-[minmax(0,1fr)] place-items-center bg-black/50 p-4" onClick={(e) => { if (e.target === e.currentTarget) onFermer(); }}>
       <div className="w-[440px] max-w-full rounded-bloc border border-bord-doux bg-surface-pleine p-5 shadow-xl">
         <div className="flex items-start justify-between gap-3">
           <div>

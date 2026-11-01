@@ -97,7 +97,7 @@ export const MENU_ADMIN = [
   { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
   // Le CRM (27 oct. 2026, Jules) : Twenty, hébergé à part, s'ouvre dans un nouvel onglet ; il remplace Monday.
   { cle: "CRM", label: "Twenty CRM", externe: true, fixe: true },
-  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" },
+  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" }, { cle: "AdminAccesCrm", label: "Accès CRM" },
     // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
     { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
 ];

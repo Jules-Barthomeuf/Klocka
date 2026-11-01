@@ -23,6 +23,29 @@ export function monterMonday(app) {
   // Monday : découverte des tableaux et de leurs colonnes. Sans les identifiants
   // de colonnes, impossible d'écrire quoi que ce soit — chacune est adressée par
   // son id, pas par son titre.
+  // Qui voit quoi dans Twenty CRM (1er nov. 2026, Jules) : l'administration seule lit et règle les accès.
+  const adminCrm = (req, res) => {
+    const u = currentUser(req);
+    if (u?.role !== 'admin') { res.status(403).json({ error: 'Réservé aux administrateurs.' }); return null; }
+    return u;
+  };
+  app.get('/api/admin/crm/acces', wrap(async (req, res) => {
+    if (!adminCrm(req, res)) return;
+    const r = await (await import('../crm/acces.js')).lireAcces();
+    if (!r.ok) return res.status(503).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/admin/crm/acces/niveau', wrap(async (req, res) => {
+    if (!adminCrm(req, res)) return;
+    const { role_id, objet_id, niveau } = req.body || {};
+    try { ok(res, await (await import('../crm/acces.js')).poserNiveau(role_id, objet_id, niveau)); } catch (e) { res.status(400).json({ error: e.message }); }
+  }));
+  app.post('/api/admin/crm/acces/champ', wrap(async (req, res) => {
+    if (!adminCrm(req, res)) return;
+    const { role_id, objet_id, champ_id, cache } = req.body || {};
+    try { ok(res, await (await import('../crm/acces.js')).cacherChamp(role_id, objet_id, champ_id, !!cache)); } catch (e) { res.status(400).json({ error: e.message }); }
+  }));
+
   app.get('/api/monday/tableaux', wrap(async (req, res) => {
     const { mondayConfigure, listerTableaux, TABLEAUX } = await import('../monday.js');
     if (!mondayConfigure()) {

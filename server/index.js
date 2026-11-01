@@ -157,6 +157,14 @@ try {
 } catch (e) {
   console.warn('[acces] migration v3 :', e?.message || e);
 }
+// Les avis de valeur repartent du modèle actuel (1er nov. 2026, Jules) : effacés une fois, après une sauvegarde.
+try {
+  const { reinitialiserAvis } = await import('./reinit-avis.js');
+  const r = reinitialiserAvis();
+  if (r.effaces) console.log(`[avis] ${r.effaces} avis de valeur effacés, sauvegarde ${r.sauvegarde}`);
+} catch (e) {
+  console.warn('[avis] remise à zéro :', e?.message || e);
+}
 // Les ressources voyagent avec le code : sur une base neuve (déploiement sans
 // disque persistant), elles se réimportent depuis server/ressources-seed.json.
 try {

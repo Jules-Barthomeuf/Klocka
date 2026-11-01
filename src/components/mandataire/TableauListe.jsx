@@ -240,6 +240,8 @@ const rangFile = (p, maintenant) => (echeance(p) <= maintenant ? 0 : ["a_appeler
  */
 // `centre` : la fiche au centre de l'écran, sur ordinateur comme au téléphone (le mode terrain, 25 oct. 2026, Jules).
 export function FichePoint({ fiche: p, onFermer, centre = false }) {
+  // Plus haute (1er nov. 2026, Jules : « elle ne prend pas assez de hauteur ») : 90 % de l'écran au centre et au téléphone,
+  // quel que soit son contenu, au lieu de sa hauteur naturelle bornée à 82 %.
   const large = !centre && typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
   return (
     <>
@@ -251,7 +253,7 @@ export function FichePoint({ fiche: p, onFermer, centre = false }) {
       <div className={`pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-3 ${centre ? "" : "md:inset-y-0 md:left-auto md:right-0 md:block md:p-0"}`}>
       <motion.aside initial={{ opacity: 0, x: large ? 28 : 0, scale: large ? 1 : 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: large ? 28 : 0, scale: large ? 1 : 0.96 }}
         transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-        className={`pointer-events-auto flex flex-col overflow-hidden bg-surface-pleine shadow-[0_12px_40px_rgb(0_0_0/0.3)] ${centre ? "max-h-[82dvh] w-full max-w-[460px] rounded-[18px]" : "md:h-full md:w-[420px] md:border-l md:border-trait max-md:max-h-[82dvh] max-md:w-full max-md:max-w-[440px] max-md:rounded-[18px]"}`}>
+        className={`pointer-events-auto flex flex-col overflow-hidden bg-surface-pleine shadow-[0_12px_40px_rgb(0_0_0/0.3)] ${centre ? "h-[90dvh] w-full max-w-[460px] rounded-[18px]" : "md:h-full md:w-[420px] md:border-l md:border-trait max-md:h-[90dvh] max-md:w-full max-md:max-w-[440px] max-md:rounded-[18px]"}`}>
         {/* Le défilement dans un bloc intérieur (25 oct. 2026, Jules : « à droite la card a les coins carrés ») : la barre de
             défilement d'un bloc arrondi n'est pas coupée par ses coins ; ici le cadre arrondi la coupe. */}
         <div className="min-h-0 flex-1 overflow-y-auto">

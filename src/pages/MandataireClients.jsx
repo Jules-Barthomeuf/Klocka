@@ -23,7 +23,9 @@ const zonesDe = (d) => (d.zones?.length ? d.zones.join(", ") : "Toute la France"
 const typeDe = (d) => (d.type_commerce ? d.type_commerce.charAt(0).toUpperCase() + d.type_commerce.slice(1) : "Tout commerce");
 const nomDe = (d) => (/^client/i.test(d.reference || "") ? d.reference : `Client ${d.reference}`);
 const rendementDe = (d) => (d.rendement_min ? `${String(d.rendement_min).replace(".", ",")} %` : "—");
-const aProspecter = (d) => d.a_prospecter ?? 0;
+// null le temps du premier calcul du secteur (1er nov. 2026) : l'écran dit « … » et redemande.
+const aProspecter = (d) => d.a_prospecter ?? null;
+const chiffre = (n) => (n == null ? "…" : n);
 
 // Les exclusions du client, déjà lues par le serveur (« boîte de nuit », « santé ») : un critère, jamais sa remarque.
 const exclusionsTexte = (d) => `Sauf ${exclusionsDe(d).map((f) => f.mot).join(", ")}`;
@@ -47,7 +49,8 @@ const dansFamille = (d, re) => !re || re.test(d.type_commerce || "tout commerce"
 
 export default function MandataireClients() {
   const navigate = useNavigate();
-  const { data, isLoading } = useQuery({ queryKey: ["mandataire-demandes"], queryFn: () => base44.request("GET", "/api/mandataire/demandes") });
+  const { data, isLoading } = useQuery({ queryKey: ["mandataire-demandes"], queryFn: () => base44.request("GET", "/api/mandataire/demandes"),
+    refetchInterval: (q) => ((q.state.data?.demandes || []).some((d) => d.a_prospecter == null) ? 4000 : false) });
   const demandes = useMemo(
     () => [...(data?.demandes || [])].sort((a, b) => aProspecter(b) - aProspecter(a)),
     [data]
@@ -167,8 +170,8 @@ function CarteClient({ d, onOuvrir }) {
         </div>
         <div className="mt-auto flex items-center justify-between gap-2.5 border-t border-trait pt-3.5 max-md:flex-wrap">
           <span className="text-[14px]">
-            <span className="text-menthe tabular-nums">{n}</span>{" "}
-            <span className="text-ardoise">{n > 1 ? "commerces à prospecter" : n === 1 ? "commerce à prospecter" : "rien à prospecter pour l'instant"}</span>
+            <span className="text-menthe tabular-nums">{chiffre(n)}</span>{" "}
+            <span className="text-ardoise">{n == null ? "commerces : calcul en cours" : n > 1 ? "commerces à prospecter" : n === 1 ? "commerce à prospecter" : "rien à prospecter pour l'instant"}</span>
           </span>
           <span className="flex-none text-[13px] text-ardoise">Voir les critères →</span>
         </div>
@@ -208,7 +211,7 @@ function TableauClients({ lignes, onOuvrir }) {
             <span className="text-[14px] tabular-nums text-encre">{budget(d)}</span>
             <span className="text-[14px] tabular-nums text-encre">{rendementDe(d)}</span>
             <span className="text-[13px] leading-[1.4] text-ardoise">{exclusionsDe(d).map((f) => f.mot).join(", ") || "—"}</span>
-            <span className="text-[14px] tabular-nums text-menthe">{aProspecter(d)}</span>
+            <span className="text-[14px] tabular-nums text-menthe">{chiffre(aProspecter(d))}</span>
           </div>
         ))}
       </div>
@@ -285,7 +288,7 @@ function FicheClient({ d, onFermer, onProspecter }) {
           <div className="grid grid-cols-3 overflow-hidden rounded-[12px] border border-trait bg-surface">
             <Compte n={d.commerces_du_secteur ?? 0} mot="correspondent" />
             <Compte n={d.dans_ma_liste ?? 0} mot="dans votre liste" />
-            <Compte n={aProspecter(d)} mot="à prospecter" accent />
+            <Compte n={chiffre(aProspecter(d))} mot="à prospecter" accent />
           </div>
           <p className="m-0 mt-1 text-[13.5px] leading-[1.55] text-ardoise">Vous ne contactez pas ce client. Quand vous trouvez un bien, Klocka fait le lien.</p>
           <button type="button" onClick={onProspecter}

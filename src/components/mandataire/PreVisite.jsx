@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, Loader2, MapPin, Mic, Navigation, PanelRightClose, PanelRightOpen, Phone, RefreshCw, Send, Sparkles, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, MapPin, Navigation, PanelRightClose, PanelRightOpen, Phone, RefreshCw, Send, Sparkles, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
@@ -309,7 +309,6 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
   const p = bien?.proprietaire || null;
   const queryClient = useQueryClient();
   const { prep, refaire } = usePreparation(p);
-  const [haka, setHaka] = useState(false);
   const [convHaka, setConvHaka] = useState(false);
   const [ficheOuverte, setFicheOuverte] = useState(true);
   const [sortie, setSortie] = useState(null);
@@ -321,9 +320,9 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
   const lie = p?.biens?.conversation_id || null;
   const sansHistorique = useCallback(() => {}, []);
   useEffect(() => {
-    if (!lie || !haka) return;
+    if (!lie) return;
     window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: lie, api: CHAT, qs: "", cible } }));
-  }, [lie, cible, haka]);
+  }, [lie, cible]);
   const lier = useCallback((cid) => {
     if (!cid || cid === lie || !p) return;
     base44.request("POST", `${API}/${p.id}/conversation`, { body: { conversation_id: cid } })
@@ -332,8 +331,7 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
   const surReponse = () => ["m-proprietaires", "m-fiche", "m-estimations"].forEach((x) => queryClient.invalidateQueries({ queryKey: [x] }));
   // « Passer à l'estimation » depuis le compte rendu : l'assistant s'ouvre avec la réponse prête, le mandataire l'envoie.
   const versEstimation = () => {
-    setHaka(true);
-    setTimeout(() => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte: "Oui, passe à l'estimation avec le compte rendu." } })), 500);
+    window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte: "Oui, passe à l'estimation avec le compte rendu." } }));
   };
 
   const maj = prep?.maj_le ? new Date(prep.maj_le).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
@@ -341,18 +339,13 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
     <div className="relative">
       <div className="flex flex-wrap items-center justify-between gap-3 px-10 pr-20">
         <div className="min-w-0 flex-1">{entete}</div>
-        {p && (
-          <div className="flex flex-none items-center gap-2">
-            {/* Un seul bouton (27 oct. 2026, Jules) : parler à son assistant, avant la visite comme après. */}
-            <button type="button" onClick={() => setHaka((o) => !o)} aria-pressed={haka} title="Une question avant la visite, ou le récit après : il fait le compte rendu" className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
-              <Mic className="h-4 w-4" />Parler à mon assistant
-            </button>
-          </div>
-        )}
       </div>
       <div className={`grid gap-8 px-10 pb-16 pr-20 pt-4 ${ficheOuverte && p ? "grid-cols-[minmax(0,1fr)_minmax(320px,400px)]" : "grid-cols-1"}`}>
         {/* Dans un cadre, comme la fiche à côté (27 oct. 2026, Jules) ; plus de phrase sous le titre. */}
         {/* Plus large sur l'ordinateur (31 oct. 2026, Jules : « trop étroite ») : 1080 px au lieu de 720. */}
+        {/* Le chat sous la préparation, à sa largeur, collé en bas de l'écran quand on défile (1er nov. 2026, Jules) :
+            plus de bouton ni de panneau à droite, l'assistant est toujours là, avant la visite comme après. */}
+        <div className="flex min-w-0 flex-col gap-4">
         <main className="mx-auto w-full max-w-[1080px] rounded-[18px] border border-trait bg-rail px-7 pb-3 pt-6">
           <div className="flex items-end justify-between gap-3 pb-2">
             <div className="min-w-0">
@@ -363,6 +356,17 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
           {p?.biens?.compte_rendu && <CompteRendu cr={p.biens.compte_rendu} onEstimation={bien?.estimation?.avis ? null : onAvis || versEstimation} />}
           <PreparationDuBien bien={bien} onDecaler={() => setSortie("decaler")} />
         </main>
+        {p && (
+          <section aria-label="Votre assistant" className="sticky bottom-4 z-30 mx-auto flex w-full max-w-[1080px] flex-col rounded-[18px] border border-bord-doux bg-rail px-4 pb-3 pt-3 shadow-[0_18px_44px_rgb(0_0_0/0.22)]"
+            style={convHaka ? { height: "min(55vh, 560px)" } : undefined}>
+            <div className={convHaka ? "min-h-0 w-full flex-1" : "w-full"}>
+              <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConvHaka}
+                onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
+                barreApercu sansBarreHaut retour={{ libelle: "Tous les biens", onClick: onFermer }} />
+            </div>
+          </section>
+        )}
+        </div>
         {p && ficheOuverte && (
           <aside className="min-w-0">
             <div className="mb-2 flex items-center justify-between">
@@ -378,24 +382,6 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
           <PanelRightOpen className="h-4 w-4" />La fiche
         </button>
       )}
-      {/* Haka, un panneau latéral qui s'ouvre sur la droite. */}
-      <AnimatePresence>
-        {haka && p && (
-          <motion.aside key="haka" role="complementary" aria-label="Votre assistant" className="fixed bottom-2 right-2 top-16 z-[60] flex w-[440px] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-rail shadow-[0_24px_60px_rgb(0_0_0/0.28)]"
-            initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}>
-            <div className="flex h-12 flex-none items-center justify-between border-b border-trait px-4">
-              <span className="flex items-center gap-2 text-[14px] text-encre"><Sparkles className="h-4 w-4 text-pervenche" />Votre assistant</span>
-              <button type="button" onClick={() => setHaka(false)} aria-label="Fermer l'assistant" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
-            </div>
-            {/* Le chat au milieu du panneau à l'ouverture, puis en bas dès le premier message (27 oct. 2026, Jules). */}
-            <div className={`flex min-h-0 flex-1 flex-col px-4 pb-4 ${convHaka ? "" : "justify-center"}`}>
-              <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConvHaka}
-                onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
-                barreApercu sansBarreHaut retour={{ libelle: "Tous les biens", onClick: onFermer }} />
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
       {sortie && p && <Sortie quoi={sortie} p={p} prep={prep} onFermer={() => setSortie(null)} onPerdu={onFermer} />}
     </div>
   );

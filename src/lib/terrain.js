@@ -11,6 +11,12 @@ export function distance(a, b) {
 }
 export const distanceLisible = (m) => (m == null ? null : m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1).replace(".", ",")} km`);
 
+/**
+ * Pure : prospecté (31 oct. 2026, Jules : « une fois qu'on a dit quelque chose à l'IA, le point en rouge ») : un
+ * message dit à l'assistant depuis la fiche, ou un échange noté sur elle (une note, un statut, une dictée, un appel).
+ */
+export const prospecte = (p) => !!p.prospecte_le || (p.historique || []).some((h) => h.type !== "creation");
+
 /** Pure : passé aujourd'hui, si la fiche a bougé aujourd'hui (une note, un statut, une dictée). */
 export const passeAujourdhui = (p, jour = new Date().toISOString().slice(0, 10)) => (p.historique || []).some((h) => h.type !== "creation" && String(h.le || "").slice(0, 10) === jour);
 

@@ -34,12 +34,12 @@ test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administratio
   assert.ok(menuAdmin(['CRM']).principal.some((x) => x.cle === 'CRM'));
   // À valider quitte le menu (26 oct. 2026, Jules) ; la cloche et les dossiers y mènent encore.
   assert.ok(![...principal, ...autre].some((x) => x.cle === 'AValider'));
-  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs', 'Automatismes', 'Modèles', 'Suivi']]]);
+  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs', 'Automatismes', 'Modèles', 'Accès CRM', 'Suivi']]]);
   const cles = autre.map((e) => e.cle);
   for (const hors of ['Semaine', 'Monitoring', 'Personnalisation', 'Dashboard', 'Agents']) assert.ok(!cles.includes(hors), hors);
   assert.deepEqual(cles, ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque'], 'Feedback en tête ; Offres, les Présentations bancaires et le Dossier bancaire reviennent (26 oct.) ; Emailing, Lead magnets… restent hors du menu');
   // Une page masquée disparaît ; un groupe vidé aussi.
-  const m = menuAdmin(['Cerveau', 'AdminUtilisateurs', 'Automatismes', 'AdminModeles', 'Monitoring', 'Offres']);
+  const m = menuAdmin(['Cerveau', 'AdminUtilisateurs', 'Automatismes', 'AdminModeles', 'AdminAccesCrm', 'Monitoring', 'Offres']);
   assert.ok(!m.principal.some((x) => x.groupe === 'Administration'));
   // Autre ignore les masques (26 oct.) : d'anciens réglages de Paramètres cachaient Feedback, Offres et Présentations.
   assert.deepEqual(menuAdmin(['AdminSuggestions', 'Offres', 'AdminPresentations', 'AdminBanque']).autre.map((e) => e.cle), ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque']);

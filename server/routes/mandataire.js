@@ -526,21 +526,23 @@ export function monterMandataire(app) {
   app.get('/api/mandataire/demandes', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
-    const { demandesVisibles, secteurDe, villesDuSecteur, correspond, mesProprietaires, synchroniserSiVieux, voitTest } = await E();
+    const { demandesVisibles, correspond, mesProprietaires, synchroniserSiVieux, voitTest } = await E();
     await synchroniserSiVieux();
-    const { Records } = await import('../db.js');
-    const secteur = secteurDe(user);
-    const villes = secteur ? villesDuSecteur(secteur) : [];
-    const cibles = villes.flatMap((v) => Records.filter('Cible', { ville_id: v.id }).map((c) => ({ ...c, ville: v.nom })));
+    // Les commerces de chaque client : le même calcul que la carte « Prospecter » (1er nov. 2026 : la page Clients
+    // comptait à part, sur l'ancienne base de cibles et sans « Toute la France » ni les régions, et disait 0 à tort).
+    // Sans attendre les 15 à 20 s du premier calcul : null le temps qu'il tourne en fond, l'écran redemande.
+    const calcul = (await import('../mandataire-prospecter.js')).prospecterSansAttendre(user);
+    const parClient = new Map((calcul?.clients || []).map((c) => [c.id, c]));
     const miens = mesProprietaires(user);
-    const mesCibles = new Set(miens.map((p) => p.cible_id).filter(Boolean));
     ok(res, {
       demandes: demandesVisibles({ avecTest: voitTest(user) }).map((d) => ({
         ...d,
         ...(() => {
-          const ok = cibles.filter((c) => !c.activite_exclue && c.pile !== 'ecartee' && correspond(c, d));
-          const dansMaListe = ok.filter((c) => mesCibles.has(c.id)).length;
-          return { commerces_du_secteur: ok.length, dans_ma_liste: dansMaListe, a_prospecter: ok.length - dansMaListe };
+          if (!calcul) return { commerces_du_secteur: null, dans_ma_liste: null, a_prospecter: null };
+          const c = parClient.get(d.id);
+          const n = c?.n || 0;
+          const dansMaListe = c?.dans_ma_liste || 0;
+          return { commerces_du_secteur: n, dans_ma_liste: dansMaListe, a_prospecter: Math.max(0, n - dansMaListe) };
         })(),
         mes_fiches: miens.filter((p) => correspond({ activite: p.activite, enseigne: p.commerce, ville: p.ville }, d)).length,
       })),

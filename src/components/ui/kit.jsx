@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useId } from "react";
+import { motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { Etiquette, Etoiles } from "@/components/alx/alx-commun";
 import { J } from "@/design/jetons";
@@ -32,6 +33,8 @@ export const TEINTE = { clair: J.encre, texte: J.encre, doux: J.craie, muet: J.a
  */
 export function Onglets({ items, valeur, onChange, taille = "section", className = "" }) {
   const page = taille === "page";
+  // Le trait glisse vers l'onglet choisi (1er nov. 2026, Jules : « des petits effets rapides mais premium »).
+  const trait = `onglet-${useId()}`;
   return (
     // En « page », la barre ne défile jamais (17 oct. 2026, Jules) : les onglets passent à la ligne s'ils manquent de place.
     <div className={`flex border-b border-trait gap-7 ${page ? "flex-wrap overflow-visible" : "overflow-x-auto"} ${className}`}>
@@ -43,16 +46,16 @@ export function Onglets({ items, valeur, onChange, taille = "section", className
             type="button"
             onClick={() => onChange(o.cle)}
             aria-pressed={actif}
-            className={`whitespace-nowrap transition-colors ${page ? "pb-3 text-[13.5px]" : "alx-mont pb-3 text-[11px] font-medium uppercase tracking-[.14em]"}`}
+            className={`relative whitespace-nowrap transition-colors ${page ? "pb-3 text-[13.5px]" : "alx-mont pb-3 text-[11px] font-medium uppercase tracking-[.14em]"}`}
             style={{
               background: "transparent",
               color: actif ? J["encre"] : J["ardoise"],
               fontWeight: page && actif ? 600 : undefined,
-              borderBottom: actif ? `1.5px solid ${J["menthe"]}` : "1.5px solid transparent",
               marginBottom: -1,
             }}
           >
             {o.titre}
+            {actif && <motion.span layoutId={trait} aria-hidden className="absolute inset-x-0 -bottom-px h-[1.5px]" style={{ background: J["menthe"] }} transition={{ type: "spring", stiffness: 520, damping: 40 }} />}
           </button>
         );
       })}

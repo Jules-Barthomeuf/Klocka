@@ -115,7 +115,9 @@ test("scénarios 2 et 11 : « Pas de bien pour l'instant », un double tap ne fa
   assert.match(v1.recu.mail.mailto, /^mailto:contact%40riviera-antibes\.fr\?subject=/);
   // Monday absent ici : orange, jamais vert.
   assert.equal(v1.recu.monday.etat, 'attente');
-  assert.match(v1.recu.relance.texte, /novembre/, 'J+30');
+  // Le mois de J+30 se calcule (1er nov. 2026 : « novembre » écrit en dur échouait dès le 1er novembre).
+  const moisJ30 = new Date(Date.now() + 30 * 86400000).toLocaleDateString('fr-FR', { month: 'long', timeZone: 'Europe/Paris' });
+  assert.match(v1.recu.relance.texte, new RegExp(moisJ30), 'J+30');
   const recap = MA.recapSession(s.id);
   assert.equal(recap.pas_de_bien, 1);
   assert.equal(recap.monday_a_jour, false);

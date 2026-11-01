@@ -51,8 +51,9 @@ const ROLES = {
     objet: (nom) => ({ kpartners: FERME, partage: PLEIN }[coteDe(nom)] || null),
   },
   kpartners: {
-    label: 'Mandataire K Partners', icon: 'IconUsers', description: 'Les tableaux de K Partners, Propriétés Klocka en lecture, rien de Klocka (crm/roles.json)', ...TOUT, canAccessAllTools: true,
-    objet: (nom) => ({ klocka: FERME, partage: LECTURE }[coteDe(nom)] || { modeleMail: LECTURE, envoiMail: FERME }[nom] || null),
+    label: 'Mandataire K Partners', icon: 'IconUsers', description: 'Les tableaux de K Partners, Propriétés Klocka en lecture (sans les acheteurs potentiels), rien de Klocka (crm/roles.json)', ...TOUT, canAccessAllTools: true,
+    // Les modèles de mail et le journal des déplacements, outils de Klocka : fermés aux mandataires (1er nov. 2026, Jules).
+    objet: (nom) => ({ klocka: FERME, partage: LECTURE }[coteDe(nom)] || { modeleMail: FERME, envoiMail: FERME, deplacement: FERME }[nom] || null),
   },
   attente: {
     label: 'Accès à attribuer', icon: 'IconLock', description: 'Le rôle des nouveaux invités : rien tant qu’un admin ne leur a pas donné un rôle (crm/roles.json)', ...RIEN, canAccessAllTools: false,

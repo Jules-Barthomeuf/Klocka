@@ -111,8 +111,6 @@ export default function MandataireProspection() {
     <Onglets items={[{ cle: "secteur", titre: "Mon secteur" }, { cle: "listes", titre: "Listes" }, { cle: "terrain", titre: "Terrain" }]}
       valeur={vue} onChange={choisirVue} taille="page" />
   );
-  // La page sur une carte de la couleur de la barre de navigation, comme un dossier ouvert dans l'Analyse.
-  const carte = "mt-9 rounded-[18px] border border-trait bg-rail p-6 max-md:mt-4 max-md:p-4";
 
   return (
     // Les listes sont des tableaux : elles prennent toute la largeur de la page.
@@ -122,11 +120,12 @@ export default function MandataireProspection() {
       {/* Une seule rangée de deux choix (25 oct. 2026, Jules) : « Mon secteur · Listes », à gauche
           de la ligne de « Filtrer » ; plus de pilule centrée Prospecter / Listes (toute la page sert à prospecter). Pas de titre au-dessus : le choix
           sélectionné dit déjà où l'on est (25 oct. 2026, Jules : « est-ce que Votre secteur est nécessaire ? »). */}
+      {/* Comme les Listes (1er nov. 2026, Jules) : les onglets au-dessus, hors de la carte ; Mon secteur n'est plus dans un cadre. */}
       {commerces && (
-        <div className={carte}>
-          {bascule}
+        <>
+          <div className="mt-4">{bascule}</div>
           <div className="animate-in fade-in slide-in-from-bottom-2 pt-6 duration-500"><ProspecterClients /></div>
-        </div>
+        </>
       )}
       {!vueId && !conversation && onglet === "listes" && (
         <>

@@ -53,6 +53,7 @@ export const ADRESSES = {
   AdminClients: "Clients",
   AdminUtilisateurs: "Utilisateurs",
   AdminModeles: "Modeles",
+  AdminAccesCrm: "AccesCRM",
   Agents: "Agents",
   Offres: "Offres",
   Emailing: "Emailing",

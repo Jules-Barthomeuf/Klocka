@@ -217,7 +217,7 @@ const SCHEMA_AVIS = {
     },
     emplacement: {
       type: 'object',
-      properties: { synthese: { type: 'string' }, flux: { type: 'string' }, environnement: { type: 'string' }, vacance: { type: 'string' }, acces: { type: 'string' }, vigilance: { type: 'string' } },
+      properties: { synthese: { type: 'string' }, flux: { type: 'string' }, environnement: { type: 'string' }, dynamique: { type: 'string' }, vacance: { type: 'string' }, acces: { type: 'string' }, vigilance: { type: 'string' } },
     },
     locatif: {
       type: 'object',
@@ -281,6 +281,24 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     lieu = await resoudreAdresse(q.adresse);
     if (lieu) surEtape?.(`Adresse reconnue : ${[lieu.numero, lieu.rue].filter(Boolean).join(' ')}, ${lieu.ville || ''}`.trim());
   } catch { /* le marché se lira quand même sur le texte */ }
+
+  // L'environnement du bien et la dynamique de la commune (1er nov. 2026, Jules : flux, environnement, dynamique, vacance
+  // et accès se remplissent seuls) : lus en fond pendant le marché, attendus avant la rédaction.
+  const commune = lieu?.ville || null;
+  const lectureEnvironnement = (async () => {
+    const { environnementDuBien, environnementFrais } = await import('./avis-environnement.js');
+    const garde = Records.get(ENTITE, e.id);
+    // Lu en fond à l'ouverture de l'avis (prechaufferEnvironnement) : repris tel quel s'il est complet.
+    if (environnementFrais(garde, q.adresse) && garde.environnement.vacance) return garde.environnement;
+    surEtape?.('Lecture de l\'environnement : transports, parkings, commerces voisins, vacance de la rue');
+    const p = e.proprietaire_id ? Records.get('ProprietaireMandataire', e.proprietaire_id) : null;
+    const lu = await environnementDuBien({ adresse: q.adresse, commerceId: p?.commerce_simple_id || null, user });
+    return lu || (environnementFrais(garde, q.adresse) ? garde.environnement : null);
+  })().catch((err) => { console.warn(`[avis] environnement : ${err?.message || err}`); return null; });
+  const lectureCommune = commune ? (async () => {
+    const { executerOutil } = await import('./ak/agent.js');
+    return executerOutil({ name: 'donnees_commune', input: { commune } }, user);
+  })().catch((err) => { console.warn(`[avis] commune : ${err?.message || err}`); return null; }) : Promise.resolve(null);
 
   // La valeur locative de marché vient de Data-B (1er nov. 2026, Jules : celle d'Equimmox, des baux existants toutes
   // surfaces confondues, sous-évaluait). Equimmox ne sert plus que si Data-B ne répond pas, et l'avis le dit.
@@ -386,6 +404,9 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     ? `${references.length} vente${references.length > 1 ? 's' : ''} comparable${references.length > 1 ? 's' : ''} retenue${references.length > 1 ? 's' : ''} (DVF, 800 m)`
     : parLeRendement ? 'Méthode du rendement : sans ventes comparables' : 'Aucune vente comparable exploitable autour');
 
+  const [environnement, communeBrute] = await Promise.all([lectureEnvironnement, lectureCommune]);
+  const dynamique = communeBrute && communeBrute.ok !== false ? Object.fromEntries(Object.entries(communeBrute).filter(([k]) => !['ok', 'manquants', 'etude_data_b'].includes(k))) : null;
+  if (environnement?.sources?.length) surEtape?.(`Environnement lu : ${environnement.sources.join(', ')}`);
   surEtape?.('Choix du taux de rendement et rédaction des analyses');
   const { invokeLLM } = await import('./llm.js');
   const { mesurer } = await import('./llm-couts.js');
@@ -395,6 +416,9 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
       `Nous sommes le ${jourLong()}.\n\n` +
       `QUESTIONNAIRE (réponses du mandataire) :\n${JSON.stringify(q, null, 1).slice(0, 6000)}\n\n` +
       `VALEUR LOCATIVE DE MARCHÉ (€ HT HC/m²/an, ${marche?.source || 'source indisponible'}) — la « valeur locative de marché » de l'avis cite la fourchette de la RUE telle quelle, sans la baisser ni la moyenner avec autre chose :\n${marche ? JSON.stringify({ rue: marche.rue, quartier: marche.quartier, ville: marche.ville, source: marche.source }).slice(0, 2500) : '(indisponible)'}\n\n` +
+      `ENVIRONNEMENT DU BIEN, MESURÉ (sources ouvertes, distances en mètres) :\n${environnement ? JSON.stringify({ flux: environnement.flux, acces: environnement.acces, urbanisme: environnement.urbanisme, commerces_voisins: environnement.environnement, vacance: environnement.vacance }).slice(0, 5000) : '(indisponible)'}\n` +
+      `DYNAMIQUE DE LA COMMUNE :\n${dynamique ? JSON.stringify(dynamique).slice(0, 2500) : '(indisponible)'}\n` +
+      `L'EMPLACEMENT SE REMPLIT DE CES FAITS (1er nov. 2026) : flux (l'indice sur 100, en disant que c'est une estimation relative, puis ce qui le porte en mots simples : gares, arrêts, densité commerciale ; jamais les notes ni les poids de ses composantes), environnement (combien de commerces à 150 m, les activités dominantes, les enseignes nationales voisines, la zone du PLU et un linéaire commercial protégé s'il y en a un), dynamique (population, densité, revenu, chômage de la commune, avec leur source), vacance (le taux et les locaux vides autour, les signaux du registre, en disant que ce sont des signaux), acces (la gare la plus proche et sa fréquentation, les arrêts et leurs lignes, les parkings). Une phrase ou deux chacun, chiffres et distances à l'appui, la source entre parenthèses. Ce que les faits ne disent pas reste « [à compléter] » ; ce qu'ils disent ne l'est jamais.\n\n` +
       (parLeRendement
         ? `CE QUE L'AVIS DIT ET NE DIT PAS (31 oct. 2026) : l'emplacement DÉCRIT l'environnement (zone piétonne ou non, rue commerçante, commerces et enseignes voisins, flux, transports, stationnement) et la vacance locative de la rue ; il ne cite JAMAIS de ventes, de nombre de ventes, de DVF ni de prix au m² de ventes. vigilance et points_a_traiter ne vont PAS dans l'avis : ce sont des notes pour le mandataire (un doute, une incohérence, un document à demander), que l'assistant lui dira dans le chat ; écris-les là, courtes. lecture_marche : vide. prix_m2 : 0.\n\n`
         : `VENTES DE LOCAUX AUTOUR (DVF, 800 m) :\n${references.length ? JSON.stringify(references) : '(aucune vente exploitable)'}${ventes?.prix_m2 ? `\nPrix au m² des ventes : bas ${ventes.prix_m2.bas}, médian ${ventes.prix_m2.median}, haut ${ventes.prix_m2.haut}` : ''}\n\n`) +
@@ -462,7 +486,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     },
     emplacement: {
       synthese: brut.emplacement?.synthese || '',
-      lignes: [['Flux', brut.emplacement?.flux], ['Environnement', brut.emplacement?.environnement], ['Vacance', brut.emplacement?.vacance], ['Accès', brut.emplacement?.acces]]
+      lignes: [['Flux', brut.emplacement?.flux], ['Environnement', brut.emplacement?.environnement], ['Dynamique', brut.emplacement?.dynamique], ['Vacance', brut.emplacement?.vacance], ['Accès', brut.emplacement?.acces]]
         .filter(([, v]) => v).map(([mot, texte, alerte]) => ({ mot, texte, alerte: !!alerte })),
     },
     locatif: q.occupe ? {
@@ -529,11 +553,9 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
 
   // Les chiffres de la commune pour la page « La ville » du deck (26 oct. 2026) : données publiques, gardés avec l'avis.
   try {
-    const commune = lieu?.ville || null;
+    // Déjà lus pour la dynamique de l'emplacement (1er nov. 2026) : pas de second appel.
     if (commune) {
-      surEtape?.(`Les chiffres de ${commune} (INSEE, Le Figaro)`);
-      const { executerOutil } = await import('./ak/agent.js');
-      const ville = villeDepuisCommune(await executerOutil({ name: 'donnees_commune', input: { commune } }, user));
+      const ville = villeDepuisCommune(communeBrute);
       if (ville) avis.ville = ville;
     }
   } catch (err) { console.warn(`[avis] commune : ${err?.message || err}`); }
@@ -1420,6 +1442,11 @@ export async function avisDepuisLeBien({ proprietaire_id = null, adresse = null,
   } else {
     e = Records.update(ENTITE, e.id, { de_la_visite, ...(e.questionnaire ? {} : { questionnaire: q }) });
   }
+  // L'environnement du bien se lit en fond pendant les questions (1er nov. 2026) ; jamais pendant les tests.
+  if (!process.env.NODE_TEST_CONTEXT && (q.adresse || e.adresse)) {
+    const id = e.id;
+    import('./avis-environnement.js').then((m) => m.prechaufferEnvironnement(id, user)).catch((err) => console.warn(`[avis] environnement en fond : ${err?.message || err}`));
+  }
   return { ok: true, estimation_id: e.id, cree: true };
 }
 
@@ -1508,7 +1535,7 @@ export function avisProvisoire(e, signataireAvis = {}) {
     },
     emplacement: {
       synthese: q.emplacement || '',
-      lignes: lignesDe([['Flux', q.flux], ['Environnement', q.environnement], ['Vacance', q.vacance], ['Accès', q.acces]]),
+      lignes: lignesDe([['Flux', q.flux], ['Environnement', q.environnement], ['Dynamique', q.dynamique], ['Vacance', q.vacance], ['Accès', q.acces]]),
     },
     locatif: occupe ? {
       synthese: '',

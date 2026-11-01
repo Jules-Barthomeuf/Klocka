@@ -104,3 +104,11 @@ test('« rue de France » à Nice garde son nom : la voie de la BAN passe avant 
   assert.equal(meilleur.label, paris.label);
   assert.equal(meilleur.concordance.part, 1);
 });
+
+test("la rue sans la commune, quand la commune dite est fausse (1er nov. 2026 : la rue de la Doua est à Villeurbanne)", async () => {
+  const { separerLaCommune, departementDe } = await import('./adresse.js');
+  assert.deepEqual(separerLaCommune('29 Rue de la Doua, Lyon'), { rue: '29 Rue de la Doua', commune: 'Lyon' });
+  assert.deepEqual(separerLaCommune('29 Rue de la Doua, 69002 Lyon'), { rue: '29 Rue de la Doua', commune: 'Lyon' });
+  assert.equal(separerLaCommune('29 Rue de la Doua Lyon'), null);
+  assert.equal(departementDe('69100'), '69');
+});

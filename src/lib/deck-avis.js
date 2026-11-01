@@ -159,6 +159,8 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
         phrase: avis.occupe === false ? ["Le local est libre.", "Sa valeur se lit au loyer qu'il peut porter."] : [premiereLigne(loc.synthese) || "Un locataire en place, un loyer à lire.", fin ? `Un revenu jusqu'en ${fin.getUTCFullYear()}.` : ""],
         frise, lignes: lignesBail },
       { cle: "ville", section: "La ville", titre: `La ville${ville ? ` de ${ville}` : ""}`, phrase: ["Ce que dit la commune.", ""],
+        // Sa photo, trouvée sur Google à la rédaction (1er nov. 2026, Jules), et son auteur, que Google demande de citer.
+        photo: avis.photos?.ville || null, photo_auteur: avis.photos?.ville_auteur || null,
         // Les chiffres de la commune (26 oct. 2026) : posés dans l'avis par donnees_commune (INSEE, Le Figaro), chacun sourcé.
         tuiles: [
           ["population", "Habitants", (v) => Math.round(v).toLocaleString("fr-FR")],

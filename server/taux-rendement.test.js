@@ -74,3 +74,11 @@ test("les corrections s'apprennent : la médiane validée dans la ville, l'écar
   assert.equal(reperesAppris(lignes, 'Cannes').taux_valides_ville, null);
   assert.equal(villeDuTexte('12 rue de la République, 06600 Antibes'), 'Antibes');
 });
+
+test("le loyer de marché retenu est le milieu de la fourchette, jamais une « moyenne » qui en sort (1er nov. 2026)", async () => {
+  const { loyerDeMarcheM2 } = await import('./mandataire-avis.js');
+  assert.equal(loyerDeMarcheM2({ basse: 244, haute: 365 }), 305, 'Data-B, Lorient');
+  assert.equal(loyerDeMarcheM2({ basse: 309, haute: 446, moyenne: 561 }), 378, 'la moyenne hors fourchette est ignorée');
+  assert.equal(loyerDeMarcheM2({ haute: 300 }), 300);
+  assert.equal(loyerDeMarcheM2(null), null);
+});

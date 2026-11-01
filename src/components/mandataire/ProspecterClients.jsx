@@ -34,7 +34,8 @@ export default function ProspecterClients({ bascule = null }) {
   // En direct (24 oct. 2026, Jules : « dès qu'il fait une recherche, ça s'affiche en direct ») : tant qu'une ville de son
   // secteur se prépare (lecture, propriétaires, prix), les clients et les murs se relisent toutes les trente secondes.
   const { data, isLoading, isError } = useQuery({ queryKey: ["m-prospecter"], queryFn: () => base44.request("GET", API),
-    refetchInterval: (q) => ((q.state.data?.villes || []).some((v) => v.preparation?.en_cours) ? 30_000 : false) });
+    // Le dernier résultat arrive tout de suite (1er nov. 2026) ; s'il se recalcule en fond (`a_jour` faux), relu dans 5 s.
+    refetchInterval: (q) => (q.state.data?.a_jour === false ? 5_000 : (q.state.data?.villes || []).some((v) => v.preparation?.en_cours) ? 30_000 : false) });
   const enPreparation = (data?.villes || []).some((v) => v.preparation?.en_cours);
   const clients = useMemo(() => data?.clients || [], [data]);
   const [i, setI] = useState(0);
@@ -120,7 +121,7 @@ export default function ProspecterClients({ bascule = null }) {
         {/* Plus de pastille « n murs pour … » (25 oct. 2026, Jules) : le nombre est sur la carte du client et au-dessus du
             tableau, le chargement sur « Mettre à jour », et changer de client remplace les murs. */}
         <span className="flex-1" />
-        {/* La préparation de ses villes, en fond : les murs s'ajoutent en direct à mesure. */}
+        {/* La préparation de ses villes, en fond : une ville à lire, des propriétaires à chercher. */}
         {enPreparation && <Preparation villes={data.villes} />}
       </div>
 
@@ -195,11 +196,13 @@ function Preparation({ villes }) {
   const aLire = villes.filter((v) => v.etat !== "lue").map((v) => v.nom);
   const reste = somme("proprietaires_a_faire");
   const detail = villes.map((v) => `${v.nom} : ${v.etat !== "lue" ? "lecture à venir" : `${v.preparation?.proprietaires_faits || 0} propriétaires cherchés sur ${v.preparation?.commerces || 0}, ${v.preparation?.avec_prix || 0} prix`}`).join("\n");
+  // Plus de « Prix en cours d'estimation · les murs s'ajoutent en direct » (1er nov. 2026, Jules) : reste seulement ce
+  // qui change ce que le mandataire voit (une ville pas encore lue, des propriétaires à chercher).
+  if (!aLire.length && !reste) return null;
   return (
     <span title={detail} className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre">
       <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />
-      {aLire.length ? `Lecture de ${aLire.join(", ")}` : reste ? `Propriétaires : ${reste} à chercher` : "Prix en cours d'estimation"}
-      <span className="text-ardoise">· les murs s'ajoutent en direct</span>
+      {aLire.length ? `Lecture de ${aLire.join(", ")}` : `Propriétaires : ${reste} à chercher`}
     </span>
   );
 }

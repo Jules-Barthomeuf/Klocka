@@ -149,8 +149,9 @@ export function monterMandataire(app) {
   app.get('/api/mandataire/prospecter', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
-    // Gardé en cache tant que les fiches du secteur ne bougent pas (30 oct. 2026 : 9 à 13 s à chaque ouverture).
-    ok(res, await (await import('../mandataire-prospecter.js')).prospecterEnCache(user));
+    // Gardé en cache tant que les fiches du secteur ne bougent pas (30 oct. 2026 : 9 à 13 s à chaque ouverture) ; le
+    // dernier résultat servi tout de suite pendant qu'il se recalcule (1er nov. 2026).
+    ok(res, await (await import('../mandataire-prospecter.js')).prospecterVite(user));
   }));
   // Tous les commerces du secteur, sans client (25 oct. 2026) : le client est un filtre de la même vue.
   app.get('/api/mandataire/prospecter/tous', wrap(async (req, res) => {
@@ -345,10 +346,15 @@ export function monterMandataire(app) {
     const { ficheCourte } = await import('../mandataire-matin.js');
     const { drapeauxDe } = await import('../off-market/simple.js');
     const { Records } = await import('../db.js');
-    const courte = (f) => ficheCourte({ p: f, commerce: f.commerce_simple_id ? Records.get('CommerceSimple', f.commerce_simple_id) : null, cible: f.cible_id ? Records.get('Cible', f.cible_id) : null, drapeaux: drapeauxDe });
+    const { ouEstLeCommerce } = await import('../fiche-mandataire.js');
     const listes = await Promise.all((await L()).mesListes(user).map(async (l) => ({
       ...l,
-      fiches: await Promise.all(l.fiches.map(async (f) => ({ ...f, courte: courte(f), investisseurs: await investisseurs({ ...(f.cible || {}), ...f, ville: f.ville || f.cible?.ville }) }))),
+      fiches: await Promise.all(l.fiches.map(async (f) => {
+        const commerce = f.commerce_simple_id ? Records.get('CommerceSimple', f.commerce_simple_id) : null;
+        const cible = f.cible_id ? Records.get('Cible', f.cible_id) : null;
+        // `ou` : de quoi poser l'en-tête et lancer la photo de la fiche avant qu'elle n'arrive (1er nov. 2026).
+        return { ...f, courte: ficheCourte({ p: f, commerce, cible, drapeaux: drapeauxDe }), ou: ouEstLeCommerce(f, commerce, cible), investisseurs: await investisseurs({ ...(f.cible || {}), ...f, ville: f.ville || f.cible?.ville }) };
+      })),
     })));
     ok(res, { listes, libelles: LIBELLES_STATUT });
   }));

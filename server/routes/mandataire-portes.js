@@ -98,7 +98,8 @@ export function monterMandatairePortes(app) {
   app.post('/api/mandataire/avis-bien', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     const { avisDepuisLeBien } = await import('../mandataire-avis.js');
-    rendre(res, await avisDepuisLeBien(req.body || {}, vue(req, user)));
+    const { proprietaire_id = null, adresse = null, titre = null } = req.body || {};
+    rendre(res, await avisDepuisLeBien({ proprietaire_id, adresse, titre }, vue(req, user)));
   }));
   app.patch('/api/mandataire/estimations/:id', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;

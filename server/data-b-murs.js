@@ -245,3 +245,31 @@ export async function rendementDeBase(texteAdresse, { activite = null, forcer = 
     }
   });
 }
+
+/**
+ * Une page de Data-B lue par le navigateur, connecté avec la session gardée (1er nov. 2026) : le site est désormais
+ * derrière une protection Cloudflare qui refuse les appels HTTP simples. Sert à la valeur locative quand la lecture
+ * directe (server/data-b.js) n'a plus de session. Rend le HTML de la page.
+ */
+export async function pageParNavigateur(url) {
+  if (!mursConfigure()) throw new Error('Data-B n\'est pas configuré : DATAB_EMAIL et DATAB_MOT_DE_PASSE manquent dans .env.');
+  return enExclusifDataB(async () => {
+    let ctx = null;
+    try {
+      const b = await lancerNavigateur('Data-B');
+      ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'fr-FR', ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}) });
+      const p = await ctx.newPage();
+      await aller(p, url, { service: 'Data-B', timeout: 90000 });
+      await p.waitForTimeout(1500);
+      if (/\/login/.test(p.url()) || await p.locator('#signin_email').isVisible().catch(() => false)) {
+        await seConnecter(p);
+        await aller(p, url, { service: 'Data-B', timeout: 90000 });
+      }
+      await p.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+      await ctx.storageState({ path: SESSION }).catch(() => {});
+      return await p.content();
+    } finally {
+      await ctx?.close().catch(() => {});
+    }
+  });
+}

@@ -57,8 +57,8 @@ async function premierePhoto(placeId) {
   return (await r.json())?.photos?.[0] || null;
 }
 
-async function telecharger(nomPhoto) {
-  const r = await fetch(`https://places.googleapis.com/v1/${nomPhoto}/media?maxWidthPx=900&key=${cle()}`, { signal: AbortSignal.timeout(20000) });
+async function telecharger(nomPhoto, largeur = 900) {
+  const r = await fetch(`https://places.googleapis.com/v1/${nomPhoto}/media?maxWidthPx=${largeur}&key=${cle()}`, { signal: AbortSignal.timeout(20000) });
   if (!r.ok) throw new Error(`Places Photo a répondu ${r.status}`);
   const buffer = Buffer.from(await r.arrayBuffer());
   if (buffer.length < 3000) throw new Error('image vide');
@@ -93,6 +93,57 @@ export async function photoDuCommerce({ placeId = null, nom = '', adresse = '', 
     if (garde) Records.update(ENTITE, garde.id, fiche); else Records.create(ENTITE, fiche);
     console.log(`[photo-commerce] ${JSON.stringify(`${nom}, ${adresse}`)} → ${url ? 'photo gardée' : id ? 'lieu sans photo' : 'lieu introuvable'}`);
     return { url, auteur: fiche.auteur, auteur_lien: fiche.auteur_lien, maps: lienMaps({ placeId: id, nom, adresse }) };
+  })().finally(() => enCours.delete(k));
+  enCours.set(k, travail);
+  return travail;
+}
+
+// --- La photo d'une ville (1er nov. 2026, Jules : « dès qu'on fait l'avis, ça va chercher une belle photo de la
+// ville ») : la page « La ville » du deck. La ville sur Google (type locality), sa première photo en paysage assez
+// grande pour une page, rapatriée et gardée comme celle d'un commerce.
+
+/** Pure : la photo à garder d'une liste de Places : la première en paysage d'au moins 1 200 px, sinon la première. */
+export function choisirPhotoDeVille(photos = []) {
+  return photos.find((p) => p.widthPx >= 1200 && p.widthPx > p.heightPx) || photos[0] || null;
+}
+
+async function trouverVille(commune) {
+  const r = await fetch(TEXTE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': cle(), 'X-Goog-FieldMask': 'places.id' },
+    body: JSON.stringify({ textQuery: `${commune}, France`, includedType: 'locality', languageCode: 'fr', regionCode: 'FR', pageSize: 1 }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`Places Text Search a répondu ${r.status}`);
+  return (await r.json())?.places?.[0]?.id || null;
+}
+
+async function photosDuLieu(placeId) {
+  const r = await fetch(`${LIEU}${encodeURIComponent(placeId)}?languageCode=fr`, {
+    headers: { 'X-Goog-Api-Key': cle(), 'X-Goog-FieldMask': 'photos' },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`Places Details a répondu ${r.status}`);
+  return (await r.json())?.photos || [];
+}
+
+/** La photo d'une ville : `{ url, auteur, auteur_lien }`, url null sans photo (ou sans clé serveur). */
+export async function photoDeLaVille(commune) {
+  const n = norm(commune);
+  if (!n || !cle()) return { url: null, auteur: null, auteur_lien: null };
+  const k = `ville:${n}`;
+  const garde = Records.findBy(ENTITE, 'cle', k);
+  if (garde && (garde.url || Date.now() - new Date(garde.le).getTime() < RECHERCHER_APRES_MS)) return { url: garde.url, auteur: garde.auteur || null, auteur_lien: garde.auteur_lien || null };
+  if (enCours.has(k)) return enCours.get(k);
+  const travail = (async () => {
+    const id = await trouverVille(commune);
+    const photo = id ? choisirPhotoDeVille(await photosDuLieu(id)) : null;
+    const url = photo?.name ? await telecharger(photo.name, 1600) : null;
+    const attribution = photo?.authorAttributions?.[0] || null;
+    const fiche = { cle: k, place_id: id, url, auteur: attribution?.displayName || null, auteur_lien: attribution?.uri || null, le: new Date().toISOString() };
+    if (garde) Records.update(ENTITE, garde.id, fiche); else Records.create(ENTITE, fiche);
+    console.log(`[photo-ville] ${JSON.stringify(commune)} → ${url ? 'photo gardée' : id ? 'ville sans photo' : 'ville introuvable'}`);
+    return { url, auteur: fiche.auteur, auteur_lien: fiche.auteur_lien };
   })().finally(() => enCours.delete(k));
   enCours.set(k, travail);
   return travail;

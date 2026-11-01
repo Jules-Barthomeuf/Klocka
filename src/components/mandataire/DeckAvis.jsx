@@ -167,9 +167,14 @@ function Carte({ page }) {
     case "ville":
       return (
         <>
+          {page.photo && (
+            <C i={0} chemin="photos.ville" style={{ position: "relative", height: 240, marginBottom: 22, borderRadius: 26, overflow: "hidden", background: `center / cover no-repeat url(${JSON.stringify(page.photo)})` }}>
+              {page.photo_auteur && <span style={{ position: "absolute", right: 14, bottom: 10, fontSize: 15, color: "rgba(255,255,255,.75)", textShadow: "0 1px 3px rgba(0,0,0,.6)" }}>Photo : {page.photo_auteur}</span>}
+            </C>
+          )}
           <div className="dk-tuiles" style={{ gridTemplateColumns: "1fr 1fr" }}>
             {page.tuiles.map((t, i) => (
-              <C key={t.mot} i={i} className="dk-tuile" chemin={`ville.${t.cle}`}><b className={t.vide ? "dk-vide" : ""} style={t.vide ? { fontSize: 40 } : undefined}><T k={`tuile.${i}.valeur`}>{t.valeur}</T></b><span><T k={`tuile.${i}.mot`}>{t.mot}</T></span></C>
+              <C key={t.mot} i={i + (page.photo ? 1 : 0)} className="dk-tuile" chemin={`ville.${t.cle}`}><b className={t.vide ? "dk-vide" : ""} style={t.vide ? { fontSize: 40 } : undefined}><T k={`tuile.${i}.valeur`}>{t.valeur}</T></b><span><T k={`tuile.${i}.mot`}>{t.mot}</T></span></C>
             ))}
           </div>
           {page.texte && <C i={4} as="p" style={{ fontSize: 28, lineHeight: 1.45, margin: "36px 0 0", color: "var(--dk-texte-doux)" }}><T k="texte">{page.texte}</T></C>}

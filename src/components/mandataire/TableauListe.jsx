@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Pages from "@/components/ui/Pages";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, Loader2, LocateFixed, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, LocateFixed, Search, Trash2, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -140,7 +140,7 @@ function PanneauCommerce({ p, onFermer }) {
       <motion.div className="flex w-full flex-col overflow-hidden bg-surface-pleine md:h-full md:max-w-[480px] md:border-l md:border-trait max-md:max-h-[86dvh] max-md:max-w-[440px] max-md:rounded-[18px]" onClick={(e) => e.stopPropagation()}
         initial={{ x: large ? 28 : 0, scale: large ? 1 : 0.96 }} animate={{ x: 0, scale: 1 }} exit={{ x: large ? 28 : 0, scale: large ? 1 : 0.96 }} transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || p.cible?.enseigne, adresse: [p.adresse || p.cible?.adresse, p.ville].filter(Boolean).join(", ") }} />
+          <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || p.cible?.enseigne, adresse: [p.adresse || p.cible?.adresse, p.ville].filter(Boolean).join(", "), ou: p.ou }} />
         </div>
       </motion.div>
     </motion.div>,
@@ -257,7 +257,7 @@ export function FichePoint({ fiche: p, onFermer, centre = false }) {
         {/* Le défilement dans un bloc intérieur (25 oct. 2026, Jules : « à droite la card a les coins carrés ») : la barre de
             défilement d'un bloc arrondi n'est pas coupée par ses coins ; ici le cadre arrondi la coupe. */}
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || p.nom, adresse: p.adresse }} />
+          <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || p.nom, adresse: p.adresse, ou: p.ou }} />
         </div>
       </motion.aside>
       </div>
@@ -356,10 +356,19 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
       .then((r) => setRecherche((r?.lancees || 0) > 0))
       .catch(() => {});
   }, [listeId]);
+  // Bornée (1er nov. 2026) : un propriétaire introuvable laissait la page relire toutes les listes toutes les cinq
+  // secondes, sans fin, et chargeait le serveur pour tous. Elle s'arrête après six relectures sans progrès.
+  const restant = useRef(0);
+  restant.current = sansProprio + sansNumero;
   useEffect(() => {
     if (!recherche) return undefined;
     if (!sansProprio && !sansNumero) { setRecherche(false); return undefined; }
-    const t = setInterval(() => queryClient.invalidateQueries({ queryKey: ["m-listes"] }), 5000);
+    let avant = null, immobile = 0;
+    const t = setInterval(() => {
+      if (restant.current === avant) immobile += 1; else { avant = restant.current; immobile = 0; }
+      if (immobile >= 6) { clearInterval(t); setRecherche(false); return; }
+      queryClient.invalidateQueries({ queryKey: ["m-listes"] });
+    }, 5000);
     return () => clearInterval(t);
   }, [recherche, sansProprio, sansNumero, queryClient]);
   const rafraichir = () => {
@@ -419,8 +428,18 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
         <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0">
           {/* La recherche des propriétaires et des numéros tourne en fond, sans compteur (30 oct. 2026, Jules). */}
           {chiffres ? (
-            // Les chiffres de la liste en une ligne (25 oct. 2026), à la place des quatre tuiles.
-            <span><span className="tabular-nums text-menthe">{chiffres.faits}</span> fait{chiffres.faits > 1 ? "s" : ""} sur <span className="tabular-nums text-encre">{chiffres.total}</span>{chiffres.rdv ? <> · <span className="tabular-nums text-encre">{chiffres.rdv}</span> RDV</> : null}</span>
+            // Des flèches à la place de « n faits sur m · k RDV » (1er nov. 2026, Jules) : reculer et avancer d'une page.
+            <span className="inline-flex items-center gap-1.5">
+              <button type="button" onClick={() => setPage(pageCourante - 1)} disabled={pageCourante <= 1} aria-label="Page précédente" title="Page précédente"
+                className="grid h-8 w-8 place-items-center rounded-full border border-trait text-encre hover:border-bord-vif disabled:opacity-35" style={{ background: "transparent" }}>
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="min-w-[72px] text-center tabular-nums">{lignes.length ? `${(pageCourante - 1) * PAR_PAGE + 1}–${Math.min(pageCourante * PAR_PAGE, lignes.length)} / ${lignes.length}` : "0"}</span>
+              <button type="button" onClick={() => setPage(pageCourante + 1)} disabled={pageCourante * PAR_PAGE >= lignes.length} aria-label="Page suivante" title="Page suivante"
+                className="grid h-8 w-8 place-items-center rounded-full border border-trait text-encre hover:border-bord-vif disabled:opacity-35" style={{ background: "transparent" }}>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </span>
           ) : `${lignes.length} commerce${lignes.length > 1 ? "s" : ""}${agent ? " · remplie par votre agent IA" : ""}`}
         </span>
         {onSupprimer && (

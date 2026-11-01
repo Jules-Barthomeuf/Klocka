@@ -278,11 +278,21 @@ export async function valeurLocative(texteAdresse, { forcer = false, user = null
   }
 
   const url = `https://valeurlocative.data-b.com/search?${new URLSearchParams(parametresAdresse(adresse))}`;
-  let html;
+  let html = null;
+  let erreur = null;
   try {
     html = await pageDataB(url);
   } catch (e) {
-    return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null };
+    erreur = e;
+  }
+  // Derrière Cloudflare (1er nov. 2026) : sans session par appel simple, la page se lit par le navigateur connecté.
+  if (!html || !lireEstimations(html)) {
+    try {
+      html = await (await import('./data-b-murs.js')).pageParNavigateur(url);
+    } catch (e) {
+      // Les deux voies dites : la lecture directe, puis le navigateur.
+      return { ok: false, error: `${erreur ? `${erreur.message} ; ` : ''}navigateur : ${e?.message || e}`, statut: e?.statut ?? erreur?.statut ?? null, classe: e?.classe ?? erreur?.classe ?? null };
+    }
   }
   if (!html) return { ok: false, error: 'Data-B refuse la session : vérifiez le compte dans .env.' };
 

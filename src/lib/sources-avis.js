@@ -53,7 +53,7 @@ export function sourceDuChemin(chemin, { avis = {}, estimation = {} } = {}, text
     const r = avis.marche?.references?.[Number(ref[1])];
     if (r) return { nature: eq ? "equimmox" : "donnee", origine: `${r.bien || "Vente"}${r.date ? `, ${r.date}` : ""}`, detail: [r.adresse, r.raison ? `retenu : ${r.raison}` : null].filter(Boolean).join(" · ") || "Comparable", calcul: r.prix && r.surface ? `${eur(r.prix)} ÷ ${r.surface} m² = ${eur(r.prix_m2)}/m²` : undefined };
   }
-  if (/^marche\.loyers/.test(chemin)) return { nature: "donnee", origine: avis.marche?.loyers?.source || "Loyers de marché", detail: "La fourchette des loyers constatés autour (Equimmox, Data-B en repli)." };
+  if (/^marche\.loyers/.test(chemin)) return { nature: "donnee", origine: avis.marche?.loyers?.source || "Loyers de marché", detail: "La fourchette de loyer de la rue, d'après Data-B (Valeurs locatives) ; Equimmox seulement si Data-B ne répond pas." };
   if (/^marche\./.test(chemin)) return { nature: eq ? "equimmox" : "donnee", origine: eq ? "Equimmox" : "DVF", detail: avis.marche?.source || "Les références de marché." };
   if (/^(locatif\.lignes|methodes\.loyer|demandeur|cadre\.visite|description\.surfaces)/.test(chemin)) return { nature: "saisie", origine: "Le bail et les réponses du mandataire", detail: "Ce que le mandataire a dit à l'Assistant KPartners ou ce qu'on a lu dans le bail joint." };
   const ville = chemin.match(/^ville\.(population|revenu|chomage|logement)$/);

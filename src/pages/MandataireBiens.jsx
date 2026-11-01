@@ -334,9 +334,12 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
     if (!depuisLeBien || avisLance.current === bien?.cle) return undefined;
     avisLance.current = bien?.cle;
     let fini = false;
+    // L'assistant relit tout le fil du bien avant de dire ce qu'il sait (1er nov. 2026) : quelques secondes, annoncées.
+    const attente = bien.proprietaire?.id ? toast.loading("Je relis tout le fil du bien…") : null;
     base44.request("POST", "/api/mandataire/avis-bien", { body: { proprietaire_id: bien.proprietaire?.id || null, adresse: bien.adresse || null, titre: bien.titre || null } })
       .then((r) => { if (r?.estimation_id) nouvelObjet(r.estimation_id); })
-      .catch((e) => { avisLance.current = null; toast.error(e?.message || "L'avis n'a pas pu commencer"); });
+      .catch((e) => { avisLance.current = null; toast.error(e?.message || "L'avis n'a pas pu commencer"); })
+      .finally(() => { if (attente != null) toast.dismiss(attente); });
     return () => { fini = true; };
   }, [depuisLeBien, bien?.cle]);
   const qs = `?espace=${espace}`;

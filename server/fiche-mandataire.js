@@ -191,8 +191,7 @@ async function composer(p) {
     ok: true,
     fiche: {
       id: p.id, apercu: !!p.apercu, statut: p.statut, statut_mot: p.apercu ? 'Pas encore de fiche' : MOTS_PROSPECTION[p.statut] || p.statut, dans_biens: dansBiens(p),
-      commerce: p.commerce || cs?.enseigne || cible?.enseigne || null, activite: p.activite || cs?.activite || cible?.activite || null,
-      adresse: [p.adresse || cs?.adresse || cible?.adresse, p.ville || cs?.ville || cible?.ville].filter(Boolean).join(', ') || null,
+      ...ouEstLeCommerce(p, cs, cible), activite: p.activite || cs?.activite || cible?.activite || null,
       // Les corrections du mandataire passent devant les registres (25 oct. 2026). Plus d'accroche (Jules).
       exploitant: { nom: cor.exploitant || courte.exploitant, depuis: cor.exploitant ? null : courte.depuis },
       murs: { proprietaire: cor.murs || courte.proprietaire, forme: cor.murs ? null : courte.forme, gerant: cor.gerant ? { nom: cor.gerant, age: null } : courte.gerant },
@@ -203,9 +202,6 @@ async function composer(p) {
       sections: Array.isArray(p.sections) ? p.sections : [],
       // La préparation du rendez-vous (26 oct. 2026) : prête en fond au rendez-vous fixé, mise à jour la veille à 18 h.
       preparation: preparationNeutre(p.preparation) || null,
-      // Où est le commerce, pour sa photo en tête de fiche (25 oct. 2026 ; photo Google au lieu de Street View le 31 oct.).
-      place_id: cs?.place_id || null,
-      position: cs?.lat != null && cs?.lon != null ? { lat: cs.lat, lon: cs.lon } : cible?.lat != null && cible?.lon != null ? { lat: cible.lat, lon: cible.lon } : null,
       // La liste où vit la fiche (25 oct. 2026) : « Dans la liste « Lyon » · changer ».
       liste: p.liste_id ? (({ id, nom }) => ({ id, nom }))(Records.get('ListeMandataire', p.liste_id) || { id: p.liste_id, nom: 'Liste' }) : null,
       details: detailsDe({ p, commerce: cs, cible, signaux }),
@@ -371,6 +367,19 @@ export async function ficheDuCommerce(commerceId, user, { statut = 'a_appeler' }
 }
 
 /** Pure : qui tient chaque commerce de la carte (commerce_simple_id → { a_moi, dans_biens }). */
+/**
+ * Le nom, l'adresse et l'emplacement d'un commerce, pour l'en-tête et la photo de sa fiche (25 oct. 2026 ; photo Google
+ * le 31 oct.). Les listes les portent aussi (1er nov. 2026) : la photo part dès le toucher d'un point, avec la fiche.
+ */
+export function ouEstLeCommerce(p, cs, cible) {
+  return {
+    commerce: p.commerce || cs?.enseigne || cible?.enseigne || null,
+    adresse: [p.adresse || cs?.adresse || cible?.adresse, p.ville || cs?.ville || cible?.ville].filter(Boolean).join(', ') || null,
+    place_id: cs?.place_id || null,
+    position: cs?.lat != null && cs?.lon != null ? { lat: cs.lat, lon: cs.lon } : cible?.lat != null && cible?.lon != null ? { lat: cible.lat, lon: cible.lon } : null,
+  };
+}
+
 export function teneurs(fiches, moi) {
   const m = new Map();
   for (const p of fiches) if (p.commerce_simple_id && !(p.test || p.essai_bien)) m.set(p.commerce_simple_id, { id: p.id, a_moi: p.mandataire_email === moi, dans_biens: dansBiens(p), statut: p.statut });

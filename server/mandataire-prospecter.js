@@ -285,9 +285,25 @@ const UNE_HEURE = 60 * 60_000;
 const caches = new Map(); // `${vue}:${email}` → { le, fiches, donnees, valeur }
 const enCalcul = new Map();
 
+// Des fiches, seul compte ce que lit `teneurs` (qui tient quel commerce, son statut) (1er nov. 2026, Jules : « les fiches
+// en mode terrain, c'est super long ») : une parole notée, un historique, un champ corrigé changeaient la signature de
+// toute la table et relançaient ces calculs de plusieurs secondes, qui retenaient les autres requêtes du serveur.
+let tenueGardee = { brute: null, valeur: '' };
+export function signatureDesTenues(fiches) {
+  let h = 0;
+  const lignes = fiches.filter((p) => p.commerce_simple_id).map((p) => `${p.id}:${p.commerce_simple_id}:${p.mandataire_email || ''}:${p.statut || ''}:${p.test || p.essai_bien ? 1 : 0}`).sort();
+  for (const l of lignes) for (let i = 0; i < l.length; i++) h = (h * 31 + l.charCodeAt(i)) | 0;
+  return `${lignes.length}:${h}`;
+}
+function tenues() {
+  const brute = Records.signature('ProprietaireMandataire');
+  if (tenueGardee.brute !== brute) tenueGardee = { brute, valeur: signatureDesTenues(Records.list('ProprietaireMandataire')) };
+  return tenueGardee.valeur;
+}
+
 const signatures = () => ({
   // La liste des Villes Klocka compte aussi : une ville ajoutée entre dans « Mon secteur » tout de suite.
-  fiches: `${Records.signature('ProprietaireMandataire')}|${Records.signature('SecteurMandataire')}|${Records.signature('DemandeClient')}|${Meta.get('villes-klocka') || ''}`,
+  fiches: `${tenues()}|${Records.signature('SecteurMandataire')}|${Records.signature('DemandeClient')}|${Meta.get('villes-klocka') || ''}`,
   donnees: `${Records.signature('CommerceSimple')}|${Records.signature('Ville')}`,
 });
 
@@ -326,17 +342,40 @@ export async function pointsDuSecteurCompresses(user) {
   });
 }
 
-/** `prospecter`, gardé de même (le résultat est petit, le calcul est long). */
-export const prospecterEnCache = (user) => enCache('clients', user, () => prospecter(user));
+/**
+ * `prospecter`, gardé de même (le résultat est petit, le calcul est long), et sur disque (1er nov. 2026, Jules : « ça
+ * charge trop longtemps Votre secteur et vos clients ») : un redémarrage du serveur ne fait plus attendre le calcul.
+ */
+const surDisque = (user) => `mandataire.prospecter:${emailDe(user)}`;
+export async function prospecterEnCache(user) {
+  // Les clients synchronisés avant de lire la signature : sinon la synchro, faite pendant le calcul, la change, et le
+  // résultat gardé naît déjà périmé (un second calcul de plus après chaque synchro).
+  await (await import('./mandataire-espace.js')).synchroniserSiVieux().catch(() => {});
+  return enCache('clients', user, async () => {
+    const r = await prospecter(user);
+    try { Meta.set(surDisque(user), JSON.stringify(r)); } catch { /* le cache en mémoire suffit */ }
+    return r;
+  });
+}
 
 /**
- * Sans attendre (1er nov. 2026, page Clients) : le dernier résultat gardé, même un peu vieux, et le calcul relancé en
- * fond s'il ne l'est plus ; null la toute première fois (l'écran dit « calcul » et redemande).
+ * Sans attendre (1er nov. 2026, page Clients) : le dernier résultat gardé, même un peu vieux (en mémoire, sinon sur
+ * disque), et le calcul relancé en fond s'il ne l'est plus ; null la toute première fois (l'écran dit « calcul »).
  */
 export function prospecterSansAttendre(user) {
   const garde = caches.get(`clients:${emailDe(user)}`);
   if (!encoreBon(garde, signatures())) prospecterEnCache(user).catch(() => {});
-  return garde?.valeur || null;
+  if (garde?.valeur) return garde.valeur;
+  try { return JSON.parse(Meta.get(surDisque(user)) || 'null'); } catch { return null; }
+}
+
+/** Pour l'écran de la Prospection : le dernier résultat tout de suite ; `a_jour` faux dit qu'il se recalcule en fond. */
+export async function prospecterVite(user) {
+  const garde = caches.get(`clients:${emailDe(user)}`);
+  if (encoreBon(garde, signatures())) return { ...garde.valeur, a_jour: true };
+  const vieux = prospecterSansAttendre(user);
+  if (vieux) return { ...vieux, a_jour: false };
+  return { ...(await prospecterEnCache(user)), a_jour: true };
 }
 
 /** Pour les tests et après un changement de secteur : tout se recalcule. */

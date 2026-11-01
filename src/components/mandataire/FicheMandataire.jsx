@@ -441,6 +441,15 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
     const bords = parseFloat(c.paddingTop) + parseFloat(c.paddingBottom);
     setHauteurPanneau(Math.max(320, (Number.isFinite(max) ? max : e.clientHeight) - bords));
   }, [enConv]);
+  const ou = f || repli?.ou || null;
+  // Le chat se monte un instant après la fiche (1er nov. 2026, Jules : « c'est super long ») : ses propres lectures ne
+  // passent plus devant celles de la fiche et de sa photo. Une barre de même hauteur tient sa place.
+  const [chatPret, setChatPret] = useState(false);
+  useEffect(() => {
+    if (!f || chatPret) return undefined;
+    const t = setTimeout(() => setChatPret(true), 600);
+    return () => clearTimeout(t);
+  }, [f, chatPret]);
   const det = f?.details || {};
   const s0 = f?.signaux?.[0] || null;
   // La date d'une annonce (BODACC) dit quand ; celle d'un registre dit seulement quand on l'a lu : on ne l'ajoute pas.
@@ -470,8 +479,9 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
       </div>
       {discussion && !enConv && <div className="px-5 pt-3"><BasculeFiche vue={vue} onVue={setVue} /></div>}
       {/* La photo du commerce (sa fiche Google, plus Street View depuis le 31 oct. 2026), en tête de toute fiche, même un commerce pas encore dans une liste (25 oct. 2026, Jules). */}
-      {!enConv && f && (f.adresse || f.position) && (
-        <div className="px-5 pt-3"><FacadeLocal adresse={f.adresse} lat={f.position?.lat ?? null} lon={f.position?.lon ?? null} nom={f.commerce} placeId={f.place_id} /></div>
+      {/* Avant la fiche, l'emplacement que porte la liste (`repli.ou`, 1er nov. 2026) : la photo part dès l'ouverture. */}
+      {!enConv && ou && (ou.adresse || ou.position) && (
+        <div className="px-5 pt-3"><FacadeLocal adresse={ou.adresse} lat={ou.position?.lat ?? null} lon={ou.position?.lon ?? null} nom={ou.commerce} placeId={ou.place_id} /></div>
       )}
       {!enConv && media}
       <div className={enConv ? "hidden" : "px-5 pb-5 pt-3"}>
@@ -542,7 +552,8 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
           (25 oct. 2026) ; un message envoyé ouvre la vue Conversation, où il prend toute la place. */}
       {f && !apercu && !sansChat && (
         <div className={enConv ? "flex min-h-0 flex-1 flex-col px-5 pt-1" : discussion ? "hidden" : `sticky bottom-0 z-10 mt-auto border-t border-trait bg-rail px-5 pb-4 pt-4 ${dansLaPage ? "max-md:bottom-[var(--k-bas-mobile,0px)]" : ""}`}>
-          <ChatFiche id={fid} onReponse={rafraichir} onConversation={surConversation} onReprise={surReprise} plein={enConv} />
+          {chatPret ? <ChatFiche id={fid} onReponse={rafraichir} onConversation={surConversation} onReprise={surReprise} plein={enConv} />
+            : <button type="button" onClick={() => setChatPret(true)} className="flex h-12 w-full items-center rounded-full border border-bord-doux bg-surface px-5 text-left text-[14px] text-brume">Parler à l&apos;assistant…</button>}
         </div>
       )}
       {/* Pas encore de fiche : un seul geste, ajouter le commerce à sa liste (25 oct. 2026, Jules). Collé en bas du panneau,

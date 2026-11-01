@@ -49,12 +49,15 @@ function sienne(id, user) {
 export function validerEtape(id, etape, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
-  if (!dansBiens(p)) return { ok: false, error: "Cette fiche n'est pas encore dans Biens : il faut un rendez-vous fixé." };
   const cle = ALIAS_ETAPES[etape] || etape;
   const i = IDS.indexOf(cle);
   if (i < 0) return { ok: false, error: 'Étape inconnue.' };
   const mot = ETAPES_BIENS[i][1];
-  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { biens: { ...(p.biens || {}), validee: marqueurDe(cle), pause: null }, historique: ajouter(p, { type: 'etape', texte: `Étape validée : ${mot}` }) }) };
+  // Sauter des étapes (1er nov. 2026, Jules : « si on veut passer directement en mandat ou en estimation, on doit
+  // pouvoir ») : une fiche pas encore dans Biens y entre à l'étape choisie, sans rendez-vous, et l'historique le dit.
+  const entre = !dansBiens(p);
+  const texte = entre ? `Entré dans Biens, étapes sautées jusqu'à : ${mot}` : `Étape validée : ${mot}`;
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(entre ? { statut: 'rdv_pris' } : {}), biens: { ...(p.biens || {}), validee: marqueurDe(cle), pause: null }, historique: ajouter(p, { type: 'etape', texte }) }) };
 }
 
 /** Dans Biens, le propriétaire refuse le prix : En pause, une relance programmée et un nouvel argument. */

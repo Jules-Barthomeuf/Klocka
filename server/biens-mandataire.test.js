@@ -417,7 +417,14 @@ test('avancer un bien depuis Assistant KPartners : rien n’est écrit, l’éta
   assert.equal(prix.prix, 460000);
   assert.equal(prix.etape, 'prix_accord', 'l’accord se confirme par la route du prix');
   const pasBiens = Records.create('ProprietaireMandataire', { mandataire_email: A.email, commerce: 'Tabac du Port', statut: 'a_appeler', historique: [] });
-  assert.equal((await M.executerOutilMandataire({ name: 'avancer_bien', input: { proprietaire_id: pasBiens.id, etape: 'visite' } }, A)).ok, false, 'pas encore dans Biens');
+  // Sauter des étapes (1er nov. 2026, Jules) : une fiche pas encore dans Biens se propose aussi, elle y entre au tap.
+  const saut = await M.executerOutilMandataire({ name: 'avancer_bien', input: { proprietaire_id: pasBiens.id, etape: 'visite' } }, A);
+  assert.equal(saut.ok, true);
+  assert.equal(saut.a_confirmer, true);
+  const { validerEtape } = await import('./fiche-mandataire.js');
+  const v = validerEtape(pasBiens.id, 'previsite', A);
+  assert.equal(v.proprietaire.statut, 'rdv_pris');
+  assert.match(v.proprietaire.historique.at(-1).texte, /étapes sautées jusqu'à : Visite/);
 });
 
 test('le terrain : la distance, et les commerces où l’on est passé aujourd’hui', async () => {

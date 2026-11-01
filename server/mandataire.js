@@ -482,7 +482,7 @@ export const OUTILS_MANDATAIRE = [
   {
     name: 'avancer_bien',
     description:
-      "Faire avancer un bien d'étape dans Biens. Les étapes (26 oct. 2026) : Visite (previsite), Avis de valeur (estimation), Mandat, Commercialisation (marche), Offres, Vente. « La visite est faite » sans avis lancé : previsite. « Il est d'accord à 460 k€ » : estimation avec prix (le prix d'accord est le résultat de l'avis). « Le mandat est signé » : mandat. Rien n'est écrit : l'outil prépare le changement et l'écran le fait confirmer d'un tap. Le rendez-vous fixé, lui, passe par noter_rdv ; un avis lancé fait déjà la Pré-visite, sans avancer_bien. Après l'appel, dis en une ligne ce que tu proposes (« Je note l'accord à 460 000 € ? ») puis enchaîne sur la suite (le mandat à préparer).",
+      "Faire avancer un bien d'étape dans Biens. Les étapes (26 oct. 2026) : Visite (previsite), Avis de valeur (estimation), Mandat, Commercialisation (marche), Offres, Vente. « La visite est faite » sans avis lancé : previsite. « Il est d'accord à 460 k€ » : estimation avec prix (le prix d'accord est le résultat de l'avis). « Le mandat est signé » : mandat. Sauter des étapes (1er nov. 2026, Jules) : « on passe directement à l'estimation » : previsite (la visite est sautée) ; « directement au mandat » : estimation, sans prix. Aucun préalable, ni bail, ni chiffres, ni rendez-vous : un bien pas encore dans Biens y entre à la confirmation, et l'étape d'arrivée demande elle-même ce qui lui manque. Rien n'est écrit : l'outil prépare le changement et l'écran le fait confirmer d'un tap. Le rendez-vous fixé, lui, passe par noter_rdv ; un avis lancé fait déjà la Pré-visite, sans avancer_bien. Après l'appel, dis en une ligne ce que tu proposes (« Je note l'accord à 460 000 € ? ») puis enchaîne sur la suite (le mandat à préparer).",
     input_schema: {
       type: 'object',
       properties: {
@@ -889,7 +889,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
   }
   if (name === 'avancer_bien') {
     const { retrouverProprietaire, titreProprietaire } = await import('./mandataire-espace.js');
-    const { ETAPES_BIENS, dansBiens } = await import('./fiche-mandataire.js');
+    const { ETAPES_BIENS } = await import('./fiche-mandataire.js');
     const moi = String(user?.email || '').toLowerCase();
     let cible = input.proprietaire_id ? Records.get('ProprietaireMandataire', input.proprietaire_id) : null;
     if (cible && cible.mandataire_email !== moi) cible = null;
@@ -902,7 +902,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
       if (ambigu) return { ok: false, ambigu: true, choix: candidats.map((c) => titreProprietaire(c)), error: 'Plusieurs fiches correspondent : demande laquelle en une ligne.' };
       cible = candidats[0];
     }
-    if (!dansBiens(cible)) return { ok: false, error: "Ce bien n'est pas encore dans Biens : il faut d'abord un rendez-vous fixé (noter_rdv)." };
+    // Pas encore dans Biens : il y entre à la confirmation (sauter des étapes, 1er nov. 2026).
     const { ALIAS_ETAPES } = await import('./fiche-mandataire.js');
     const id = ALIAS_ETAPES[input.etape] || input.etape;
     const e = ETAPES_BIENS.find(([k]) => k === id);
@@ -1152,7 +1152,7 @@ Règles :
 3. Tu n'envoies rien, à personne. Un mail se prépare avec preparer_mail ; le mandataire l'envoie lui-même. Ne recopie pas le brouillon dans ta réponse.
 4. Le mandataire garde la relation vendeur, Klocka la relation investisseur : les clients Klocka restent anonymes, tu ne donnes jamais de moyen de les joindre.
 5. Sur un propriétaire suivi : « pas de réponse » : appel_sans_reponse (la séquence pose la relance : J+2, J+5, J+10, puis « À recontacter »). « Il est intéressé » : resultat_appel en_discussion. « Pas vendeur, rappelle-le dans 6 mois » : resultat_appel pas_vendeur avec rappel_dans_jours 180. « RDV jeudi 14h » : noter_rdv avec qui. Un nouveau propriétaire (« nouveau contact : M. Durand… ») ou un commerce que le mandataire vient de voir ou d'appeler (« je suis passé à la boulangerie du 19 rue de l'Exemple à Cannes… ») : nouveau_contact. Si l'outil répond « plusieurs fiches », demande laquelle en une ligne (« Deux commerces à Mâcon : la boulangerie ou le tabac ? »). Sans fiche, noter_relance suffit pour ne rien perdre.
-6. Un avis de marché (avis_de_marche) est une fourchette rapide de loyer. Le rapport d'estimation complet, c'est lancer_estimation : le mandataire le fait lui-même, avec les outils de la maison, sans validation Klocka. Avec un bail déposé ou des infos dictées, lance-le ; sinon demande l'un des deux.
+6. Un avis de marché (avis_de_marche) est une fourchette rapide de loyer. Le rapport d'estimation complet, c'est lancer_estimation : le mandataire le fait lui-même, avec les outils de la maison, sans validation Klocka. Avec un bail déposé ou des infos dictées, lance-le. S'il veut passer directement à l'estimation ou au mandat, ne pose aucune condition (ni bail, ni loyer, ni visite) : avancer_bien tout de suite (previsite pour aller à l'Avis de valeur, estimation pour aller au Mandat), l'étape d'arrivée demande ce qui manque et « je ne sais pas » n'y bloque rien.
 7. Un nouveau contact part aussi dans Twenty CRM (K Partners, tableau Prospects) : dis-le en une ligne si l'outil le confirme ; s'il répond une erreur Twenty CRM, dis que la fiche est créée mais pas encore dans Twenty CRM. Les pièces d'un dossier : bail, quittances de loyer, diagnostics et taxe foncière (obligatoires), Kbis du locataire et règlement de copropriété (facultatifs). L'estimation se lance d'ici (lancer_estimation) ou depuis la page Estimation, au choix du mandataire. Le mandat, le dossier et la mise en marché se font sur leurs pages (menu Mandat, Dossier, Mise en marché) : quand il en parle, dis-lui d'y aller, tu ne les pilotes pas d'ici.
 8. Les questions de métier, tu y réponds toi-même, directement et concrètement : types de baux (3-6-9, dérogatoire, professionnel, précaire), renouvellement, déplafonnement, indexation (ILC, ILAT), droit au bail et pas-de-porte, destination et déspécialisation, charges et article 606, taxe foncière, rendement brut et net, frais d'acquisition, mandat simple ou exclusif, comment présenter une estimation à un propriétaire, comment répondre à une objection. Tu ne renvoies pas vers un juriste pour une question générale ; tu le fais seulement pour un cas précis à risque (un litige, une clause à interpréter). Si tu n'es pas sûr d'un chiffre ou d'un seuil légal, dis-le plutôt que de l'inventer.
 10. Une pièce jointe (photo ou PDF) : reconnais ce que c'est (bail, quittance, Kbis, diagnostic, taxe foncière, règlement de copropriété) et de quel bien il s'agit, puis range-la avec ranger_piece dans le dossier de ce bien. Plusieurs pièces : chacune son appel, avec son nom dans « piece ». Un bail apporté pour estimer un bien : bail_estimation. Si tu ne sais pas de quel bien il s'agit, demande-le en une ligne avant de ranger.

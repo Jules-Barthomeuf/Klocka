@@ -38,7 +38,12 @@ test("le prix d'accord fait l'avis de valeur, s'écrit dans l'historique, et res
   Records.update('ProprietaireMandataire', p.id, { biens: { ...r.proprietaire.biens, validee: 'mandat' } });
   assert.equal(noterPrixAccord(p.id, 700000, MOI).proprietaire.biens.validee, 'mandat');
   assert.equal(noterPrixAccord(p.id, 'n/a', MOI).ok, false);
-  assert.equal(noterPrixAccord(fiche({ statut: 'contacte' }).id, 1, MOI).ok, false, 'pas encore dans Biens');
+  // Sauter des étapes (1er nov. 2026, Jules) : un accord fait entrer dans Biens une fiche qui n'y était pas.
+  const saute = noterPrixAccord(fiche({ statut: 'contacte' }).id, '410 k€', MOI);
+  assert.equal(saute.ok, true);
+  assert.equal(saute.proprietaire.statut, 'rdv_pris');
+  assert.match(saute.proprietaire.historique.at(-1).texte, /étapes sautées/);
+  assert.equal(noterPrixAccord(fiche({ statut: 'contacte' }).id, null, MOI).ok, false, 'sans prix, rien ne la fait entrer');
 });
 
 test('la conversation du bien se garde sur la fiche', () => {

@@ -44,13 +44,15 @@ export function lirePrix(v) {
 export function noterPrixAccord(id, prix, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
-  if (!['rdv_pris', 'mandat_signe'].includes(p.statut)) return { ok: false, error: "Cette fiche n'est pas encore dans Biens : il faut un rendez-vous fixé." };
   const n = lirePrix(prix);
   if (prix != null && prix !== '' && !n) return { ok: false, error: 'Prix illisible.' };
+  // Un accord sur un prix fait entrer dans Biens une fiche qui n'y était pas (sauter des étapes, 1er nov. 2026).
+  const entre = !['rdv_pris', 'mandat_signe'].includes(p.statut);
+  if (entre && !n) return { ok: false, error: "Cette fiche n'est pas encore dans Biens." };
   const biens = { ...(p.biens || {}), prix_accord: n };
   if (n && rangValide(biens.validee) < 1) { biens.validee = marqueurDe('estimation'); biens.pause = null; }
   const texte = n ? `Prix d'accord : ${n.toLocaleString('fr-FR')} €` : "Prix d'accord retiré";
-  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { biens, historique: [...(p.historique || []), { le: maintenant(), type: 'etape', texte }] }) };
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(entre ? { statut: 'rdv_pris' } : {}), biens, historique: [...(p.historique || []), { le: maintenant(), type: 'etape', texte: entre ? `${texte} (entré dans Biens, étapes sautées)` : texte }] }) };
 }
 
 /** L'estimation et le mandat rattachés à la fiche (le plus récent de chacun). */

@@ -472,16 +472,7 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
               defaut={`Sensibilité : à ${pc(c.sensibilite.taux_bas)}, la valeur est de ${eur(c.sensibilite.valeur_basse_taux)}. À ${pc(c.sensibilite.taux_haut)}, elle est de ${eur(c.sensibilite.valeur_haute_taux)}.`} />}
           </>
         )}
-        {c.valeur_libre != null && (
-          <Bloc cle="valeur_libre" nom="Valeur libre" className="avis-encadre" style={{ display: "flex", gap: "4mm" }}>
-            <span className="avis-alerte-rond">!</span>
-            <div>
-              <b style={{ color: "var(--sauge-fonce)", fontSize: "9pt" }}><L avis={avis} k="titre_valeur_libre" defaut="Valeur en cas de départ du locataire, donnée à titre de mesure du risque." onPose={onPose} /></b>
-              <L avis={avis} k="c_valeur_libre" as="p" className="avis-texte avis-encre" onPose={onPose}
-                defaut={`En retenant un loyer de marché de ${eur(c.loyer_marche)}, un rendement plus élevé pour un local à relouer, 12 mois de vacance et 15 000 € de remise en état et de franchise, la valeur libre est d'environ ${eur(c.valeur_libre)}. L'écart avec la valeur occupée mesure ce que vaut le bail en place.`} />
-            </div>
-          </Bloc>
-        )}
+        {/* Plus de « valeur en cas de départ du locataire » (1er nov. 2026, Jules), même sur un avis déjà rédigé. */}
       </>
     ),
     conclusion: (

@@ -6,7 +6,7 @@
 // répond à la moitié d'un coup. Quand l'essentiel est là, l'avis se rédige :
 // le marché de la rue (Data-B, Equimmox), les ventes alentour (DVF), les deux
 // méthodes, la fourchette. Les CHIFFRES se calculent ici (loyer ÷ taux,
-// surface × prix, sensibilité, valeur libre, honoraires) ; le modèle écrit les
+// surface × prix, sensibilité, honoraires) ; le modèle écrit les
 // phrases et choisit le taux dans une fourchette qu'il doit justifier.
 //
 // L'avis s'ouvre ensuite dans un éditeur au format du modèle K Partners : le
@@ -163,7 +163,7 @@ const arrondi = (v, pas = 5000) => Math.round(v / pas) * pas;
 const pct = (n) => Math.round(n * 1000) / 10;
 
 /** Pure : les chiffres de l'avis, depuis le questionnaire et les choix de taux et de prix. */
-export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, taux_libre = null, remise_en_etat = 15000, honoraires = 0.05, frais = 0.075, dataB = null }) {
+export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, honoraires = 0.05, frais = 0.075, dataB = null }) {
   const surface = Number(q.surface_utile) || null;
   const loyer = q.occupe ? Number(q.loyer_annuel_hc) || null : null;
   const cap = loyer && taux ? loyer / (taux / 100) : null;
@@ -180,11 +180,6 @@ export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, taux_libre 
   const ecart = cap && comp ? Math.round(((comp - cap) / cap) * 100) : null;
   const rendement = loyer ? pct(loyer / valeur) : null;
   const loyerMarche = loyer_marche_m2 && surface ? loyer_marche_m2 * surface : null;
-  let valeurLibre = null;
-  if (q.occupe && loyerMarche) {
-    const t = (taux_libre || taux + 0.6) / 100;
-    valeurLibre = arrondi(loyerMarche / t - loyerMarche - remise_en_etat, 10000);
-  }
   const prixAffiche = Math.round(valeur * (1 + honoraires) / 100) * 100;
   return {
     ecart_methodes: ecart,
@@ -193,7 +188,8 @@ export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, taux_libre 
     sensibilite: loyer && taux ? { taux_bas: taux - 0.15, valeur_basse_taux: Math.round(loyer / ((taux - 0.15) / 100) / 100) * 100, taux_haut: taux + 0.2, valeur_haute_taux: Math.round(loyer / ((taux + 0.2) / 100) / 100) * 100 } : null,
     valeur, bas: Math.min(bas, valeur), haut: Math.max(haut, valeur), rendement,
     loyer_marche: loyerMarche ? Math.round(loyerMarche / 100) * 100 : null,
-    valeur_libre: valeurLibre,
+    // Plus de « valeur en cas de départ du locataire » dans l'avis (1er nov. 2026, Jules).
+    valeur_libre: null,
     honoraires_pct: honoraires * 100,
     prix_affiche: prixAffiche,
     rendement_affiche: loyer ? pct(loyer / prixAffiche) : null,

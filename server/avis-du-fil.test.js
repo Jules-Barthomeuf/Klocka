@@ -70,7 +70,7 @@ test('l’avis ouvert depuis le bien reprend ce que dit le fil ; un taux à vali
   // Le oui : seules les questions essentielles restent.
   Records.update('EstimationMandataire', e.id, { questionnaire_en_cours: true });
   const oui = A.confirmerLaVisite(e, lea);
-  assert.match(oui.texte, /rang n°1|n°1/);
+  assert.match(oui.texte, /loyer de la rue/, 'le rang de la rue se propose, il ne se demande plus');
   assert.doesNotMatch(oui.texte, /indexation|façade/i);
   // Un taux posé pour rédiger, pas encore validé : pas de TauxBaseValide ; validé ensuite : gardé.
   A.noter({ taux_base: 6.5, taux_base_a_valider: true }, lea);
@@ -78,4 +78,12 @@ test('l’avis ouvert depuis le bien reprend ce que dit le fil ; un taux à vali
   A.noter({ taux_base: 6.75 }, lea);
   assert.equal(Records.list('TauxBaseValide').length, 1);
   assert.equal(Records.get('EstimationMandataire', e.id).questionnaire.taux_base_a_valider, false);
+  // L'échéance dite reste ; une date d'effet d'un 3-6-9 ne la remplace pas (1er nov. 2026, Jules).
+  A.noter({ date_effet: '1er mars 2019', bail_type: '3-6-9' }, lea);
+  assert.equal(Records.get('EstimationMandataire', e.id).questionnaire.echeance, '2031');
+  // Sans échéance dite, elle se calcule : neuf ans après la date d'effet, et n'est plus demandée.
+  A.noter({ echeance: null }, lea);
+  const q = Records.get('EstimationMandataire', e.id).questionnaire;
+  assert.deepEqual([q.echeance, q.echeance_calculee], ['01/03/2028', true]);
+  assert.ok(!essentielsManquants(q).includes('echeance'));
 });

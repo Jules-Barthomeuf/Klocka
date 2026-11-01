@@ -16,7 +16,7 @@
 
 import { effortDuChat } from './ak/effort.js';
 import { Records } from './db.js';
-import { villeDuTexte } from './taux-rendement.js';
+import { villeDuTexte, echeanceDuBail, rangDeLaRue } from './taux-rendement.js';
 
 const ENTITE = 'EstimationMandataire';
 const moi = (user) => String(user?.email || '').toLowerCase();
@@ -145,6 +145,13 @@ export function noter(reponses, user, conversationId = null) {
     q[k] = typeof v === 'string' ? v.trim() : v;
   }
   for (const k of ['loyer_annuel_hc', 'surface_utile', 'taux_base', 'vacance_rue_pct']) if (q[k] != null && typeof q[k] !== 'number') q[k] = premierNombre(q[k]) ?? q[k];
+  // L'échéance d'un 3-6-9 se calcule depuis la date d'effet, sans la demander (1er nov. 2026, Jules) ; une échéance dite
+  // l'emporte, une calculée suit la date d'effet si elle change.
+  if (q.occupe !== false && (!q.echeance || q.echeance_calculee)) {
+    const c = echeanceDuBail(q);
+    if (c) Object.assign(q, { echeance: c.echeance, echeance_calculee: true, ...(c.suppose ? { bail_type: '3-6-9 (supposé)' } : {}) });
+  }
+  if (reponses?.echeance && q.echeance_calculee) delete q.echeance_calculee;
   // Ce que le chat vient d'apprendre l'emporte sur une retouche à la main du même champ.
   const surcouche = sansChampsRepondus(e.surcouche, Object.keys(reponses || {}));
   Records.update(ENTITE, e.id, { questionnaire: q, ...(e.nom_choisi ? {} : { bien: titreDe(q) }), adresse: q.adresse || e.adresse, ...(surcouche !== e.surcouche ? { surcouche } : {}) });
@@ -633,7 +640,7 @@ LE BUT : un avis en CINQ MINUTES, le mandataire dicte un vocal en sortant de la 
 0. AVANT TOUTE QUESTION, relis TOUT : le fil du bien plus bas (appels, pré-visite, visite, du plus ancien au plus récent), la fiche, « Déjà renseigné ». Ce qui y est dit, même il y a longtemps ou dit autrement (« 2 000 € par mois » = 24 000 € par an, « bail signé en 2019 », « c'est la rue principale » = n1), se note avec noter_reponses SANS être redemandé. Ne demande que ce que rien ne dit.
 1. Lis tout : ce que dit le mandataire et les pièces (bail surtout). Déduis le type de bien et commence l'avis (commencer_avis), puis enregistre EN UNE FOIS tout ce que tu as lu (noter_reponses). Dans un bail : le demandeur est le BAILLEUR (propriétaire des murs), sauf si le mandataire dit autre chose ; le locataire, son activité (et activite_data_b), le loyer annuel HT HC, la date d'effet, l'échéance, l'indexation, la taxe foncière et les charges (qui paie), la surface, le dépôt de garantie.
 2. Ce qu'il dit en passant s'enregistre aussi : une date de visite (« je l'ai visité hier », « visite le 28 ») devient date_visite en toutes lettres, calculée depuis la date du jour ; un état, un angle, une extraction, un parking, une enseigne, l'ancienneté du locataire, des retards de paiement…
-3. Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_reponses le rend dans essentiels_manquants : adresse, loué ou non, surface, loyer et échéance si loué, rang de la rue) avec ta proposition de taux de base : une liste numérotée courte, les choix quand il y en a, et « Répondez en un vocal ». Le reste (état, indexation, charges, façade…) ne se demande pas avant la rédaction.
+3. Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_reponses le rend dans essentiels_manquants : adresse, loué ou non, surface, loyer et date d'effet si loué, rang de la rue) avec ta proposition de taux de base et de rang de rue (proposer_taux_base rend les deux : on ne demande jamais « n°1, n°1 bis ou n°2 ? », on propose). L'échéance d'un 3-6-9 se calcule seule depuis la date d'effet : ne la demande jamais, demande la date de début du bail s'il manque : une liste numérotée courte, les choix quand il y en a, et « Répondez en un vocal ». Le reste (état, indexation, charges, façade…) ne se demande pas avant la rédaction.
 4. À chaque réponse : noter_reponses. « Je ne sais pas » vaut « nc » : ça ne bloque pas.
 5. DÈS QUE L'ESSENTIEL EST LÀ, rédige sans attendre qu'on te le demande : rediger_avis, avec a_la_main: true s'il manque des cases secondaires. Si seul le taux n'est pas validé, note ton taux proposé avec taux_base_a_valider: true et rédige quand même ; demande ensuite en une ligne s'il convient (« plus haut, plus bas ? ») : à sa réponse, noter_reponses taux_base (validé, sans taux_base_a_valider) puis rediger_avis. Après la rédaction, cite en une ligne les cases encore « à compléter » qu'il peut dicter quand il veut.
 6. MODIFIER L'AVIS (il est affiché à côté du chat) : une demande sur le document lui-même — reformuler, raccourcir, enlever une ligne, changer une taille, une couleur, mettre en gras, déplacer, masquer, poser une image jointe — c'est retoucher_avis, avec la demande telle quelle, avant comme après la rédaction ; pas noter_reponses ni rediger_avis. Une INFORMATION sur le bien (« la surface c'est 85 m² », « le loyer est de 20 000 € ») : noter_reponses, puis rediger_avis si l'avis est déjà rédigé. Après une retouche : une ligne qui dit ce qui a changé.
@@ -676,13 +683,24 @@ async function reperesDuTaux(e, user) {
       if (r.ok) secteur = { taux: r.resultat.taux_base, activite: r.resultat.activite, source: r.resultat.source };
     }
   } catch (err) { console.warn(`[avis] taux de base : ${err?.message || err}`); }
+  // Le rang de la rue proposé (1er nov. 2026, Jules) : le loyer de la rue comparé à celui de la ville, chez Data-B. La
+  // même lecture que la rédaction, gardée trente jours : pas de crédit de plus.
+  let rang = null;
+  try {
+    const D = await import('./data-b.js');
+    if (D.dataBConfigure()) {
+      const r = await D.valeurLocative(q.adresse, { user });
+      if (r.ok) rang = rangDeLaRue(r.resultat);
+    }
+  } catch (err) { console.warn(`[avis] rang de la rue : ${err?.message || err}`); }
   ville = ville || villeDuTexte(q.adresse);
   if (ville && e.ville_taux !== ville) Records.update(ENTITE, e.id, { ville_taux: ville });
   const appris = reperesAppris(Records.list('TauxBaseValide').filter((l) => l.estimation_id !== e.id), ville);
   return {
     ok: true, ville, appris, adresse: q.adresse, activite: q.activite_locataire || null, occupe: !!q.occupe,
     taux_du_secteur: secteur, taux_deja_valide: Number(q.taux_base) > 0 ? q.taux_base : null, bornes: [TAUX_MIN, TAUX_MAX],
-    a_faire: "Propose UN taux de base pour cette ville (avant l'emplacement et le bail), avec sa raison en quelques mots, et demande s'il convient ou s'il faut plus haut ou plus bas. Ce qu'ont validé les mandataires et l'équipe passe avant ton idée : des taux validés dans la ville, pars de leur médiane (dis-le : « les derniers avis à Antibes sont partis sur 6,4 % ») ; sinon, corrige ton idée de l'écart moyen de tes propositions (ecart_moyen_partout, positif : tu proposes trop bas). Ne le note qu'une fois validé, avec taux_base_propose = le taux que tu avais proposé en premier.",
+    rang_rue_propose: q.rang_rue && q.rang_rue !== 'nc' ? null : rang,
+    a_faire: "Propose UN taux de base pour cette ville (avant l'emplacement et le bail), avec sa raison en quelques mots, et demande s'il convient ou s'il faut plus haut ou plus bas. Ce qu'ont validé les mandataires et l'équipe passe avant ton idée : des taux validés dans la ville, pars de leur médiane (dis-le : « les derniers avis à Antibes sont partis sur 6,4 % ») ; sinon, corrige ton idée de l'écart moyen de tes propositions (ecart_moyen_partout, positif : tu proposes trop bas). Ne le note qu'une fois validé, avec taux_base_propose = le taux que tu avais proposé en premier. S'il y a rang_rue_propose : dans le même message, propose ce rang avec sa raison en une ligne (« Rue de la République : n°1, elle se loue 1,7 fois Lyon 2e ») et demande s'il convient, jamais « n°1, n°1 bis ou n°2 ? » ; note-le avec noter_reponses à son oui, ou celui qu'il corrige.",
   };
 }
 
@@ -1288,14 +1306,14 @@ const QUESTIONS_REPRISE = {
   activite_locataire: 'Son activité',
   bail_type: 'Le type de bail : 3-6-9, dérogatoire, professionnel ?',
   date_effet: 'La date d\'effet du bail',
-  echeance: 'L\'échéance du bail',
+  echeance: 'La date de début du bail (l\'échéance se calcule)',
   loyer_annuel_hc: 'Le loyer annuel HT HC',
   indexation: 'L\'indexation (ILC, ILAT)',
   taxe_fonciere: 'La taxe foncière : son montant, et qui la paie',
   charges: 'Les charges : refacturées au locataire ?',
   facade: 'La façade (linéaire, vitrine)',
   emplacement: 'L\'emplacement : n° 1, n° 1 bis, secondaire ?',
-  rang_rue: 'L\'emplacement : rue n°1, n°1 bis ou n°2 ?',
+  rang_rue: 'L\'emplacement : je vous le propose d\'après le loyer de la rue, à confirmer',
   profil_locataire: 'Le locataire : enseigne nationale, indépendant solide ou fragile ?',
   charges_refacturees: 'Les charges : refacturées au locataire, ou payées par le propriétaire ?',
   taxe_fonciere_refacturee: 'La taxe foncière : refacturée au locataire, ou payée par le propriétaire ?',
@@ -1455,7 +1473,7 @@ export function confirmerLaVisite(e, user, conversationId = null) {
   // L'essentiel seulement (1er nov. 2026, Jules : « l'estimation en cinq minutes ») : le reste reste « à compléter ».
   const reste = (n.essentiels_manquants || []).filter((k) => QUESTIONS_REPRISE[k]).filter(sansDoublon);
   if (!reste.length) return { texte: "C'est noté dans l'avis. J'ai l'essentiel : dites « rédige » et je vous propose le taux de base en rédigeant." };
-  return { texte: `C'est noté dans l'avis. Pour le rédiger, il me manque seulement :\n${reste.map((k, i) => `${i + 1}. ${QUESTIONS_REPRISE[k]}`).join('\n')}\nRépondez en un vocal : je rédige aussitôt, avec un taux de base que je vous propose. Le reste se complète après, « je ne sais pas » ne bloque rien.` };
+  return { texte: `C'est noté dans l'avis. Pour le rédiger, il me manque seulement :\n${reste.map((k, i) => `${i + 1}. ${QUESTIONS_REPRISE[k]}`).join('\n')}\nRépondez en un vocal : je rédige aussitôt, avec un taux de base et un rang de rue que je vous propose. Le reste se complète après, « je ne sais pas » ne bloque rien.` };
 }
 
 /**

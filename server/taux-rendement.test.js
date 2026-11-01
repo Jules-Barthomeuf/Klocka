@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ajusterTaux, valeurParRendement, estimerParRendement, lectureDuTaux } from './taux-rendement.js';
+import { ajusterTaux, valeurParRendement, estimerParRendement, lectureDuTaux, echeanceDuBail, rangDeLaRue } from './taux-rendement.js';
 import { manquants } from './mandataire-avis.js';
 
 const LE = new Date(2026, 9, 31);
@@ -81,4 +81,25 @@ test("le loyer de marché retenu est le milieu de la fourchette, jamais une « m
   assert.equal(loyerDeMarcheM2({ basse: 309, haute: 446, moyenne: 561 }), 378, 'la moyenne hors fourchette est ignorée');
   assert.equal(loyerDeMarcheM2({ haute: 300 }), 300);
   assert.equal(loyerDeMarcheM2(null), null);
+});
+
+test("l'échéance d'un 3-6-9 se calcule depuis la date d'effet (1er nov. 2026, Jules : « j'ai pas besoin de lui dire »)", () => {
+  const le = new Date(2026, 10, 1);
+  assert.deepEqual(echeanceDuBail({ date_effet: '1er mars 2019', bail_type: '3-6-9' }, le), { echeance: '01/03/2028', duree: 9, suppose: false, tacite: false });
+  assert.equal(echeanceDuBail({ date_effet: '2020-09-01', bail_type: 'bail commercial' }, le).echeance, '01/09/2029');
+  assert.equal(echeanceDuBail({ date_effet: '01/01/2021', bail_type: 'professionnel' }, le).echeance, '01/01/2027');
+  // Des murs de commerce sans type dit : un 3-6-9, dit supposé ; échu, il court en tacite prolongation.
+  assert.deepEqual(echeanceDuBail({ date_effet: '15/06/2014', type_bien: 'murs_commerce' }, le), { echeance: '15/06/2023', duree: 9, suppose: true, tacite: true });
+  assert.equal(echeanceDuBail({ date_effet: '01/01/2025', bail_type: 'dérogatoire' }, le), null);
+  assert.equal(echeanceDuBail({ bail_type: '3-6-9' }, le), null);
+});
+
+test("le rang de la rue se propose d'après le loyer de la rue comparé à la ville (1er nov. 2026, Jules)", () => {
+  const ville = { nom: 'Lyon 2e Arrondissement', basse: 323, haute: 484 };
+  const r = rangDeLaRue({ rue: { nom: 'Rue de la République', basse: 547, haute: 820 }, ville });
+  assert.equal(r.rang, 'n1');
+  assert.match(r.raison, /Rue de la République se loue 547–820 €\/m²\/an, 1,7 fois Lyon 2e/);
+  assert.equal(rangDeLaRue({ rue: { basse: 420, haute: 560 }, ville }).rang, 'n1bis');
+  assert.equal(rangDeLaRue({ rue: { basse: 300, haute: 420 }, ville }).rang, 'n2');
+  assert.equal(rangDeLaRue({ rue: { basse: 300, haute: 420 } }), null);
 });

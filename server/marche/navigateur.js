@@ -35,7 +35,10 @@ export async function lancerNavigateur(service = 'Ce service') {
         '--disable-extensions', '--disable-background-networking',
         '--disable-default-apps', '--mute-audio', '--no-first-run',
         '--js-flags=--max-old-space-size=256',
+        // Sans les marques d'automatisation (1er nov. 2026, Jules) : Data-B est passé derrière Cloudflare.
+        '--disable-blink-features=AutomationControlled',
       ],
+      ignoreDefaultArgs: ['--enable-automation'],
     });
   } catch (e) {
     if (/Executable doesn't exist|ENOENT/i.test(e?.message || '')) {
@@ -48,6 +51,21 @@ export async function lancerNavigateur(service = 'Ce service') {
     throw e;
   }
   return navigateur;
+}
+
+/**
+ * Un contexte qui ne se dit pas automatisé (1er nov. 2026, Jules) : Data-B est passé derrière Cloudflare, qui arrête un
+ * navigateur sans écran à la page « Vérifiez que vous êtes humain ». L'agent du navigateur sans « Headless » et
+ * navigator.webdriver absent, comme un Chrome ordinaire. Décision et responsabilité de Jules.
+ */
+export async function contexteDiscret(b, options = {}) {
+  const version = String(b.version?.() || '').split('.')[0] || '128';
+  const ctx = await b.newContext({
+    userAgent: `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version}.0.0.0 Safari/537.36`,
+    ...options,
+  });
+  await ctx.addInitScript(() => { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); });
+  return ctx;
 }
 
 /**

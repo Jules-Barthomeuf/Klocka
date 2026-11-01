@@ -22,7 +22,7 @@ import path from 'path';
 import { Records, DATA_DIR } from './db.js';
 import { resoudreAdresse, enExclusifDataB } from './data-b.js';
 import { ErreurSource, DEFINITIVE, SANS_DONNEE } from './marche/erreurs.js';
-import { lancerNavigateur, aller } from './marche/navigateur.js';
+import { lancerNavigateur, contexteDiscret, aller } from './marche/navigateur.js';
 
 const EMAIL = (process.env.DATAB_EMAIL || '').trim();
 const MDP = (process.env.DATAB_MOT_DE_PASSE || '').trim();
@@ -196,7 +196,7 @@ export async function rendementDeBase(texteAdresse, { activite = null, forcer = 
     let ctx = null;
     try {
       const b = await lancerNavigateur('Data-B');
-      ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'fr-FR', ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}) });
+      ctx = await contexteDiscret(b, { viewport: { width: 1440, height: 1000 }, locale: 'fr-FR', ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}) });
       const p = await ctx.newPage();
       p.on('dialog', (d) => d.accept().catch(() => {}));
       await seConnecter(p);
@@ -257,7 +257,7 @@ export async function pageParNavigateur(url) {
     let ctx = null;
     try {
       const b = await lancerNavigateur('Data-B');
-      ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'fr-FR', ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}) });
+      ctx = await contexteDiscret(b, { viewport: { width: 1440, height: 1000 }, locale: 'fr-FR', ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}) });
       const p = await ctx.newPage();
       await aller(p, url, { service: 'Data-B', timeout: 90000 });
       await p.waitForTimeout(1500);

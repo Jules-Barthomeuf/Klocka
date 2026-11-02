@@ -434,10 +434,54 @@
     }
   }
 
+  // E-mails et téléphones comme dans Monday (2 nov., Jules) : en bleu, centrés, sans soulignement ; un numéro français
+  // au format « 06 31 24 58 36 », précédé du drapeau (dessiné : les drapeaux emoji manquent sous Windows).
+  // Twenty 2.51 les écrit dans un même lien (a.rrbpu7i), href mailto: ou tel:+33….
+  const LIEN_CONTACT = 'rrbpu7i';
+  const styleContacts = document.createElement('style');
+  styleContacts.textContent = `[data-selectable-id] a.${LIEN_CONTACT} { color: var(--t-color-blue, #1f76c2) !important; text-decoration: none !important; text-align: center; }
+  [data-selectable-id] a.${LIEN_CONTACT}:hover { text-decoration: underline !important; }
+  .klocka-contact { justify-content: center !important; text-align: center; }
+  .klocka-tel { display: inline-flex !important; align-items: center; max-width: 100%; }
+  .klocka-tel > a.${LIEN_CONTACT} { width: auto !important; }
+  .klocka-drapeau { display: inline-block; flex: none; width: 18px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(127,127,127,.25); background: linear-gradient(90deg, #002395 33.3%, #fff 33.3% 66.6%, #ed2939 66.6%); }`;
+  document.head.appendChild(styleContacts);
+  /** Pure : +33631245836 → « 06 31 24 58 36 » ; autre pays ou numéro inattendu : null. */
+  function numeroFrancais(href) {
+    const n = decodeURIComponent(String(href).replace(/^tel:/, '')).replace(/[^\d+]/g, '');
+    const m = n.match(/^\+33(\d{9})$/);
+    return m ? `0${m[1]}`.replace(/(\d{2})(?=\d)/g, '$1 ') : null;
+  }
+  function contacts(lignes) {
+    for (const ligne of lignes) {
+      for (const a of ligne.querySelectorAll(`a.${LIEN_CONTACT}`)) {
+        for (let x = a.parentElement; x && x !== ligne; x = x.parentElement) {
+          x.classList.add('klocka-contact');
+          if (x.parentElement === ligne || x.parentElement?.parentElement === ligne) break;
+        }
+        const href = a.getAttribute('href') || '';
+        if (!href.startsWith('tel:')) continue;
+        const fr = numeroFrancais(href);
+        if (!fr) continue;
+        const marche = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
+        const t = marche.nextNode();
+        if (t && t.nodeValue !== fr) t.nodeValue = fr;
+        if (!a.previousElementSibling?.classList.contains('klocka-drapeau')) {
+          const d = document.createElement('span');
+          d.className = 'klocka-drapeau';
+          d.title = 'France';
+          a.before(d);
+          a.parentElement.classList.add('klocka-tel');
+        }
+      }
+    }
+  }
+
   function poserTetes() {
     const lignes = document.querySelectorAll('[data-selectable-id]');
     if (!lignes.length) return;
     nomsSimples(lignes);
+    contacts(lignes);
     const cols = colonnesTetes();
     if (!cols.length) return;
     for (const ligne of lignes) {

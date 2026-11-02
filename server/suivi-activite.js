@@ -155,10 +155,6 @@ export function suiviActivite({ jours = 30, maintenant = new Date(), tables = nu
   const noms = new Map((t.users || []).map((u) => [norm(u.email), u.full_name || null]));
   const nomDe = (e) => noms.get(e) || (e ? e.split('@')[0] : 'Sans mandataire');
 
-  const aRelancer = biens.filter((b) => vivant(b) && !vendu(b) && arrete(b))
-    .map((b) => ({ cle: b.cle, titre: b.titre, etape: ETAPES_BIEN[b.etape - 1]?.label || '—', statut: b.statut, depuis_j: b.modifie ? Math.floor((fin - Date.parse(b.modifie)) / JOUR) : null, mandataire: nomDe(proprietaireDe(b)) }))
-    .sort((a, b) => (b.depuis_j ?? 1e9) - (a.depuis_j ?? 1e9));
-
   const parMandataire = new Map();
   for (const b of biens) {
     const e = proprietaireDe(b);
@@ -186,7 +182,6 @@ export function suiviActivite({ jours = 30, maintenant = new Date(), tables = nu
     parcours, passages, delais, portefeuille,
     perdus: [...perdus.entries()].sort((a, b) => b[1] - a[1]).map(([motif, n]) => ({ motif, n })),
     en_pause: biens.filter((b) => b.proprietaire?.biens?.pause && !b.proprietaire?.biens?.perdu).length,
-    a_relancer: aRelancer.slice(0, 12), a_relancer_total: aRelancer.length,
     mandataires,
     ecartes: essais.length,
   };

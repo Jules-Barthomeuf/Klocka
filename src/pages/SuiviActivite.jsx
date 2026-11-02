@@ -10,7 +10,7 @@ import { montant } from "../../server/montants.js";
 // Suivi › Activité (2 nov. 2026, Jules : « un tableau de bord avec tous les chiffres », « des graphiques ») : est-ce
 // que ça avance vers des ventes, et où ça coince ? En tête les cinq gestes qui font une vente et leur graphique par
 // jour ; puis le parcours des biens aujourd'hui, étape par étape, avec ce qui y est arrêté et ce qui passe à la
-// suivante ; le portefeuille sous mandat, les délais, les affaires perdues ; les biens à relancer ; chaque
+// suivante ; le portefeuille sous mandat, les délais, les affaires perdues ; chaque
 // mandataire. L'usage, les appels et les coûts ont leurs onglets. Le calcul : server/suivi-activite.js.
 
 const PERIODES = [[7, "7 jours"], [30, "30 jours"], [90, "90 jours"], [365, "1 an"]];
@@ -106,25 +106,6 @@ function Chiffres({ titre, aide, lignes }) {
           </div>
         ))}
       </div>
-    </Cadre>
-  );
-}
-
-function ARelancer({ biens, total, sansMandataire = false }) {
-  return (
-    <Cadre titre={`À relancer · ${total}`} aide="Les biens arrêtés depuis plus de 14 jours, le plus ancien d'abord.">
-      {biens.length ? (
-        <div className="flex flex-col">
-          {biens.map((b) => (
-            <div key={b.cle} className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto] items-baseline gap-3 border-t border-trait py-2 text-[12.5px] first:border-t-0 max-sm:grid-cols-[minmax(0,1fr)_auto]">
-              <span className="truncate text-encre">{b.titre}</span>
-              <span className="truncate text-ardoise max-sm:order-3">{b.etape} · {b.statut}</span>
-              <span className="truncate text-ardoise max-sm:order-4 max-sm:text-right">{sansMandataire ? null : b.mandataire}</span>
-              <span className="text-right tabular-nums text-ambre max-sm:order-2">{b.depuis_j == null ? "—" : `${b.depuis_j} j`}</span>
-            </div>
-          ))}
-        </div>
-      ) : <p className="m-0 text-[12.5px] text-brume">Aucun bien arrêté.</p>}
     </Cadre>
   );
 }
@@ -233,13 +214,8 @@ export default function SuiviActivite({ pourMandataire = false }) {
             <Croissance serie={cumul} series={data.gestes.map((g) => ({ cle: g.cle, nom: g.libelle }))} c={c}
               titre="Les gestes, cumulés sur la période" aide="La pente dit le rythme : une courbe plate, c'est une étape qui ne tourne plus." />
 
-            <ARelancer biens={data.a_relancer} total={data.a_relancer_total} sansMandataire={pourMandataire} />
             {!pourMandataire && <ParMandataire mandataires={data.mandataires} etapes={data.etapes} c={c} />}
 
-            <p className="m-0 text-[12px] leading-[1.6] text-brume">
-              Un geste compte à sa date : le RDV au moment où il est pris, l'avis à son envoi, le mandat à sa signature, l'offre à sa réception, la vente à l'acte.
-              {data.ecartes ? ` ${data.ecartes} bien${data.ecartes > 1 ? "s" : ""} d'essai et les fiches d'exemple sont écartés.` : " Les fiches d'exemple sont écartées."}
-            </p>
           </div>
         )}
       </div>

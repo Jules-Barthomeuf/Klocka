@@ -52,13 +52,18 @@ export function gestesDuBien(b) {
   return { rdv: rdv.slice(0, 1), avis, mandats, offres, ventes };
 }
 
-/** Pure, sur les tables passées : l'activité de la période. `estTest(x)` dit un objet d'essai. */
-export function suiviActivite({ jours = 30, maintenant = new Date(), tables = null, estTest = (x) => !!(x?.test || x?.essai_bien) } = {}) {
-  const t = tables || {
+/**
+ * Pure, sur les tables passées : l'activité de la période. `estTest(x)` dit un objet d'essai. `email` : celle d'un seul
+ * mandataire, son tableau de bord à lui (2 nov. 2026, Jules : le tableau de bord dans l'espace mandataire).
+ */
+export function suiviActivite({ jours = 30, maintenant = new Date(), tables = null, estTest = (x) => !!(x?.test || x?.essai_bien), email = null } = {}) {
+  const tout = tables || {
     users: Records.list('User'), proprietaires: Records.list('ProprietaireMandataire'),
     estimations: Records.list('EstimationMandataire'), mandats: Records.list('MandatMandataire'),
     dossiers: Records.list('DossierMandataire'), marches: Records.list('MiseEnMarche'),
   };
+  const lui = (l) => (email ? (l || []).filter((x) => norm(x.mandataire_email) === norm(email)) : l);
+  const t = { ...tout, proprietaires: lui(tout.proprietaires), estimations: lui(tout.estimations), mandats: lui(tout.mandats), dossiers: lui(tout.dossiers), marches: lui(tout.marches) };
   const fin = maintenant.getTime();
   const depuis = new Date(fin - jours * JOUR).toISOString();
   const avant = new Date(fin - 2 * jours * JOUR).toISOString();

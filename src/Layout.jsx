@@ -536,6 +536,7 @@ function LayoutContent({ children, currentPageName }) {
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     SuiviActivite: { to: "/SuiviActivite", icon: ChartColumn, actif: isActivePage("SuiviActivite") },
+    MandataireTableauDeBord: { to: createPageUrl("MandataireTableauDeBord"), icon: ChartColumn, actif: isActivePage("MandataireTableauDeBord") },
     Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviAudience") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },

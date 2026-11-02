@@ -64,6 +64,7 @@ export const ENTREES_CLIENT = [
 // spécification.
 export const ENTREES_MANDATAIRE = [
   { cle: "Dashboard", label: "Dashboard" },
+  { cle: "MandataireTableauDeBord", label: "Tableau de bord" },
   { cle: "MandataireProspection", label: "Prospection" },
   { cle: "MandataireClients", label: "Clients" },
   { cle: "MandataireBiens", label: "Biens" },
@@ -113,6 +114,8 @@ export const MENU_ADMIN = [
 export const MENU_MANDATAIRE = [
   // Haka, comme pour l'équipe (19 oct. 2026, Jules).
   { cle: "Dashboard", label: "Assistant" },
+  // Le tableau de bord du mandataire, sur ses seuls biens (2 nov. 2026, Jules).
+  { cle: "MandataireTableauDeBord", label: "Tableau de bord" },
   // La Prospection reprend l'Off-market (23 oct. 2026, Jules) : une seule entrée, Commerces et Rues dans la page.
   { cle: "MandataireProspection", label: "Prospection" },
   // Biens, une seule entrée (24 oct. 2026, Jules) : tous les biens en cartes, puis un bien suivi comme un dossier de

@@ -110,7 +110,7 @@ function Chiffres({ titre, aide, lignes }) {
   );
 }
 
-function ARelancer({ biens, total }) {
+function ARelancer({ biens, total, sansMandataire = false }) {
   return (
     <Cadre titre={`À relancer · ${total}`} aide="Les biens arrêtés depuis plus de 14 jours, le plus ancien d'abord.">
       {biens.length ? (
@@ -119,7 +119,7 @@ function ARelancer({ biens, total }) {
             <div key={b.cle} className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto] items-baseline gap-3 border-t border-trait py-2 text-[12.5px] first:border-t-0 max-sm:grid-cols-[minmax(0,1fr)_auto]">
               <span className="truncate text-encre">{b.titre}</span>
               <span className="truncate text-ardoise max-sm:order-3">{b.etape} · {b.statut}</span>
-              <span className="truncate text-ardoise max-sm:order-4 max-sm:text-right">{b.mandataire}</span>
+              <span className="truncate text-ardoise max-sm:order-4 max-sm:text-right">{sansMandataire ? null : b.mandataire}</span>
               <span className="text-right tabular-nums text-ambre max-sm:order-2">{b.depuis_j == null ? "—" : `${b.depuis_j} j`}</span>
             </div>
           ))}
@@ -161,13 +161,14 @@ function ParMandataire({ mandataires, etapes, c }) {
   );
 }
 
-export default function SuiviActivite() {
+export default function SuiviActivite({ pourMandataire = false }) {
   const [periode, setPeriode] = useState(30);
   const [choisi, setChoisi] = useState("rdv");
   const c = useCouleurs();
   const { data, isLoading, error } = useQuery({
-    queryKey: ["monitoring-activite", periode],
-    queryFn: () => base44.request("GET", `/api/monitoring/activite?jours=${periode}`),
+    queryKey: [pourMandataire ? "mandataire-tableau-de-bord" : "monitoring-activite", periode],
+    // Le mandataire voit le même tableau, sur ses seuls biens (2 nov. 2026).
+    queryFn: () => base44.request("GET", `${pourMandataire ? "/api/mandataire/tableau-de-bord" : "/api/monitoring/activite"}?jours=${periode}`),
     placeholderData: (prev) => prev,
   });
 
@@ -190,7 +191,7 @@ export default function SuiviActivite() {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0 max-w-full">
             <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Tableau de bord</h1>
-            <p className="m-0 mt-1.5 max-w-[70ch] text-[13.5px] text-ardoise">Ce qui avance vers une vente, et où ça s'arrête. Un clic sur un chiffre le met dans le graphique.</p>
+            <p className="m-0 mt-1.5 max-w-[70ch] text-[13.5px] text-ardoise">{pourMandataire ? "Vos biens : ce qui avance vers une vente, et où ça s'arrête." : "Ce qui avance vers une vente, et où ça s'arrête."} Un clic sur un chiffre le met dans le graphique.</p>
           </div>
           <div className="flex gap-1 rounded-full bg-rail-actif p-1">
             {PERIODES.map(([j, mot]) => (
@@ -232,8 +233,8 @@ export default function SuiviActivite() {
             <Croissance serie={cumul} series={data.gestes.map((g) => ({ cle: g.cle, nom: g.libelle }))} c={c}
               titre="Les gestes, cumulés sur la période" aide="La pente dit le rythme : une courbe plate, c'est une étape qui ne tourne plus." />
 
-            <ARelancer biens={data.a_relancer} total={data.a_relancer_total} />
-            <ParMandataire mandataires={data.mandataires} etapes={data.etapes} c={c} />
+            <ARelancer biens={data.a_relancer} total={data.a_relancer_total} sansMandataire={pourMandataire} />
+            {!pourMandataire && <ParMandataire mandataires={data.mandataires} etapes={data.etapes} c={c} />}
 
             <p className="m-0 text-[12px] leading-[1.6] text-brume">
               Un geste compte à sa date : le RDV au moment où il est pris, l'avis à son envoi, le mandat à sa signature, l'offre à sa réception, la vente à l'acte.

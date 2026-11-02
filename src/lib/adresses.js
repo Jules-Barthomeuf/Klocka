@@ -45,6 +45,7 @@ export const ADRESSES = {
   SuiviAudience: "SuiviAudience",
   SuiviMandataires: "SuiviMandataires",
   SuiviActivite: "SuiviActivite",
+  MandataireTableauDeBord: "MonTableauDeBord",
   AdminSuggestions: "Feedback",
   Feedback: "MonFeedback",
   SimulateurRentabilite: "Simulateur",

@@ -9,6 +9,7 @@
 
 import { Records } from './db.js';
 import { ETAPES_BIEN, MOTS_PERDU, regrouperBiens } from '../src/lib/biens-mandataire.js';
+import { heureParis, jourSemaineParis } from './prospection/suivi-appels.js';
 
 const JOUR = 86400000;
 const norm = (e) => String(e || '').trim().toLowerCase();
@@ -104,6 +105,10 @@ export function suiviActivite({ jours = 30, maintenant = new Date(), tables = nu
     }
   }
 
+  // Quand on prospecte (2 nov. 2026, Jules : « la grille des appels, mais pour la prospection ») : jour × heure, à Paris.
+  const semaine = Array.from({ length: 7 }, (_, j) => ({ jour: j, heures: Array(24).fill(0) }));
+  for (const g of gestes.values()) for (const le of g.prospectes) if (le >= depuis) semaine[jourSemaineParis(le)].heures[heureParis(le)] += 1;
+
   // Le parcours aujourd'hui : la prospection (fiches pas encore en Biens), puis chaque étape, puis les vendus.
   const prospects = (t.proprietaires || []).filter((p) => !dansBiens.has(p.id) && !essaisP.has(p.id) && !estTest(p));
   const vivant = (b) => !b.proprietaire?.biens?.perdu && !b.proprietaire?.biens?.pause && b.dossier?.statut !== 'no_go';
@@ -182,6 +187,7 @@ export function suiviActivite({ jours = 30, maintenant = new Date(), tables = nu
     etapes: ETAPES_BIEN.map((e) => e.label),
     gestes: GESTES.map((g) => ({ ...g, n: total[g.cle], avant: precedent[g.cle] })),
     par_jour: [...parJour.entries()].map(([jour, x]) => ({ jour, ...x })),
+    semaine,
     parcours, passages, delais, portefeuille,
     perdus: [...perdus.entries()].sort((a, b) => b[1] - a[1]).map(([motif, n]) => ({ motif, n })),
     en_pause: biens.filter((b) => b.proprietaire?.biens?.pause && !b.proprietaire?.biens?.perdu).length,

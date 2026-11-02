@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { base44 } from "@/api/base44Client";
-import { BarresHorizontales, Bulle, Cadre, Croissance, axe, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import { BarresHorizontales, Bulle, Cadre, CarteSemaine, Croissance, axe, useCouleurs } from "@/components/monitoring/GraphesAppels";
 import { Tuile } from "@/components/monitoring/UsagePlateforme";
 import Chargement from "@/components/ui/Chargement";
 import { montant } from "../../server/montants.js";
@@ -193,6 +193,8 @@ export default function SuiviActivite({ pourMandataire = false }) {
               ))}
             </div>
             <GrandGraphique serie={serie} geste={geste} c={c} />
+            {data.semaine && <CarteSemaine semaine={data.semaine} c={c} titre="Quand on prospecte" unite={["bien prospecté", "biens prospectés"]}
+              aide="Jour et heure : plus la case est pleine, plus on a prospecté de biens à ce moment-là." vide="Aucun bien prospecté sur la période." />}
 
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
               <Parcours parcours={data.parcours} passages={data.passages} c={c} />

@@ -384,6 +384,84 @@
   // Ce que la dernière passe a vu de travers (lu par les messages d'erreur).
   const etat = { erreur: '', manque: '' };
 
+  // --- 4. La colonne SPOC : les têtes seules, sur toute la hauteur de la case (2 nov., Jules : « comme dans Monday ») ---
+  // Repérée par son en-tête (texte « SPOC », hors des lignes), puis par position dans chaque ligne : aucune classe de
+  // Twenty n'est stable. Le nom de chaque personne reste au survol.
+  const COLONNE_TETES = 'SPOC';
+  function colonnesTetes() {
+    const out = [];
+    const marche = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.nodeValue.trim() === COLONNE_TETES ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT) });
+    for (let n = marche.nextNode(); n; n = marche.nextNode()) {
+      let el = n.parentElement;
+      if (!el || el.closest('[data-selectable-id]')) continue;
+      while (el && el.getBoundingClientRect().width < 60) el = el.parentElement;
+      if (el) { const r = el.getBoundingClientRect(); out.push({ gauche: r.left, droite: r.right }); }
+    }
+    return out;
+  }
+  function caseDe(ligne, col) {
+    for (const el of ligne.querySelectorAll(':scope > *, :scope > * > *')) {
+      const r = el.getBoundingClientRect();
+      if (Math.abs(r.left - col.gauche) < 3 && Math.abs(r.right - col.droite) < 6) return el;
+    }
+    return null;
+  }
+  function poserTetes() {
+    const lignes = document.querySelectorAll('[data-selectable-id]');
+    if (!lignes.length) return;
+    const cols = colonnesTetes();
+    if (!cols.length) return;
+    for (const ligne of lignes) {
+      for (const col of cols) {
+        const c = caseDe(ligne, col);
+        if (c) tetesDans(c);
+      }
+    }
+  }
+  function tetesDans(c) {
+    const h = Math.max(16, c.getBoundingClientRect().height - 4);
+    // Les avatars : une photo, ou l'initiale (une seule lettre) quand la personne n'en a pas.
+    const avatars = [];
+    for (const img of c.querySelectorAll('img')) avatars.push(img.parentElement);
+    const marche = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+    const noms = [];
+    for (let n = marche.nextNode(); n; n = marche.nextNode()) {
+      const t = n.nodeValue.trim();
+      if (!t || t.startsWith('+')) continue;
+      const p = n.parentElement;
+      if (t.length === 1 && !p.querySelector('img')) avatars.push(p);
+      else noms.push(p);
+    }
+    for (const p of noms) {
+      if (p.style.display === 'none') continue;
+      const nom = p.textContent.trim();
+      p.style.setProperty('display', 'none', 'important');
+      const puce = avatars.find((a) => a.parentElement?.contains(p) || p.parentElement?.contains(a));
+      if (puce) puce.title = nom;
+    }
+    avatars.sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+    avatars.forEach((a, i) => {
+      for (const x of [a, a.querySelector('img')].filter(Boolean)) {
+        x.style.setProperty('width', `${h}px`, 'important');
+        x.style.setProperty('height', `${h}px`, 'important');
+        x.style.setProperty('min-width', `${h}px`, 'important');
+        x.style.setProperty('border-radius', '50%', 'important');
+        x.style.setProperty('object-fit', 'cover', 'important');
+      }
+      a.style.setProperty('font-size', `${Math.round(h * 0.45)}px`, 'important');
+      // Du nom à la case : plus de pastille autour de la tête, et les têtes se chevauchent un peu, comme dans Monday.
+      for (let x = a.parentElement; x && x !== c; x = x.parentElement) {
+        x.style.setProperty('padding', '0', 'important');
+        x.style.setProperty('background', 'transparent', 'important');
+        x.style.setProperty('gap', '0', 'important');
+        x.style.setProperty('height', `${h}px`, 'important');
+        x.style.setProperty('max-width', 'none', 'important');
+      }
+      const puce = a.parentElement && a.parentElement !== c ? a.parentElement : a;
+      if (i) puce.style.setProperty('margin-left', `-${Math.round(h * 0.2)}px`, 'important');
+    });
+  }
+
   // --- La boucle : à chaque changement de la page, sans plus d'une passe par image ---
   let prevu = false;
   function passe() {
@@ -396,6 +474,11 @@
         document.getElementById(BANDEAU)?.remove();
         fermerMenu();
         return;
+      }
+      try {
+        poserTetes();
+      } catch (e) {
+        etat.erreur = `têtes : ${e.message}`;
       }
       // Le menu « … » ne dépend pas de la lecture des vues : posé d'abord.
       try {

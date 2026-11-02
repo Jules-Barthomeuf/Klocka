@@ -1,14 +1,14 @@
 // Les champs Personnes de Twenty CRM en membres, avec leur photo (28 oct. 2026, Jules ; server/crm/membres.js).
 // Pour chaque champ Personnes d'un tableau migré (SPOC, Personnes, Personne, Collaborateurs) :
 //   1. une table de jonction « <objet><Champ>Membre » (relations « fiche » et « membre ») ;
-//   2. sur la fiche, le champ « <Champ> » qui la lit comme des membres (junctionTargetFieldId), l'ancien texte devient
-//      « <Champ> (texte) » ;
-//   3. dans chaque vue, le nouveau champ prend la place du texte, qui est caché ;
+//   2. sur la fiche, le champ « SPOC » qui la lit comme des membres (junctionTargetFieldId), l'ancien texte devient
+//      « <Champ> (texte) » (créé s'il manque : tableau sans colonne Personnes dans Monday) ;
+//   3. dans chaque vue, le nouveau champ est visible à la place du texte, qui est caché ;
 //   4. les noms déjà là deviennent des membres, pour ceux qui ont un compte Twenty CRM.
 // Rejouable : relancer après l'arrivée de nouveaux membres relie leurs fiches.
 //   node scripts/crm/personnes-twenty.mjs [nomDObjet]
 import 'dotenv/config';
-import { twentyConfigure, objetsTwenty, creerObjet, modifierChamp, requeteTwenty, lister } from '../../server/twenty.js';
+import { twentyConfigure, objetsTwenty, creerObjet, creerChamp, modifierChamp, requeteTwenty, lister } from '../../server/twenty.js';
 import { champsPersonnes, accorder, oublierMembres } from '../../server/crm/membres.js';
 import fs from 'node:fs';
 
@@ -17,6 +17,7 @@ if (!twentyConfigure()) {
   process.exit(1);
 }
 const seul = process.argv[2] || null;
+const LIBELLE = 'SPOC';
 const { objets } = JSON.parse(fs.readFileSync('crm/schema.json', 'utf8'));
 const U = String(process.env.TWENTY_URL).replace(/\/+$/, '');
 async function gql(query, variables) {
@@ -64,23 +65,30 @@ for (const o of objets.filter((x) => !seul || x.nameSingular === seul)) {
     const fiche = parNom(o.nameSingular);
     const inverse = fiche.fields.find((f) => f.name === p.inverse);
     const cible = j.fields.find((f) => f.name === 'membre');
-    const texte = fiche.fields.find((f) => f.name === p.champ);
+    let texte = fiche.fields.find((f) => f.name === p.champ);
     if (!inverse || !cible) throw new Error(`${o.nameSingular} : champ ${p.inverse} ou membre introuvable`);
-    if (inverse.settings?.junctionTargetFieldId !== cible.id || inverse.label !== p.label) {
-      await modifierChamp(inverse.id, { label: p.label, icon: 'IconUsers', settings: { ...(inverse.settings || {}), junctionTargetFieldId: cible.id } });
+    // Un tableau sans colonne Personnes dans Monday (2 nov.) : le texte que Klocka relit naît ici.
+    if (!texte) {
+      await creerChamp({ objectMetadataId: fiche.id, type: 'TEXT', name: p.champ, label: `${p.label} (texte)`, icon: 'IconUsers' });
+      meta = await objetsTwenty();
+      texte = parNom(o.nameSingular).fields.find((f) => f.name === p.champ);
+      console.log(`+ ${o.labelPlural} · champ ${p.champ}`);
     }
-    if (texte && texte.label === p.label) await modifierChamp(texte.id, { label: `${p.label} (texte)` });
-    // 3. Les vues : le champ membres à la place du texte.
+    if (texte.label === p.label) await modifierChamp(texte.id, { label: `${p.label} (texte)` });
+    // La colonne s'appelle SPOC dans tous les tableaux (2 nov., Jules : « une colonne SPOC avec les têtes »).
+    if (inverse.settings?.junctionTargetFieldId !== cible.id || inverse.label !== LIBELLE) {
+      await modifierChamp(inverse.id, { label: LIBELLE, icon: 'IconUsers', settings: { ...(inverse.settings || {}), junctionTargetFieldId: cible.id } });
+    }
+    // 3. Les vues : le champ membres visible partout, à la place du texte (sinon juste après le nom), le texte caché.
     const vues = (await tout('/metadata/views', 'views')).filter((v) => v.objectMetadataId === fiche.id);
     const colonnes = await tout('/metadata/viewFields', 'viewFields');
     for (const v of vues) {
       const deVue = colonnes.filter((c) => c.viewId === v.id);
       const ancien = deVue.find((c) => c.fieldMetadataId === texte?.id);
       const nouveau = deVue.find((c) => c.fieldMetadataId === inverse.id);
-      const visible = ancien ? ancien.isVisible : true;
-      const position = ancien ? ancien.position : deVue.length;
-      if (!nouveau) await requeteTwenty('POST', '/metadata/viewFields', { viewId: v.id, fieldMetadataId: inverse.id, position, isVisible: visible, size: 150 });
-      else if (nouveau.isVisible !== visible) await requeteTwenty('PATCH', `/metadata/viewFields/${nouveau.id}`, { isVisible: visible, position });
+      const position = ancien ? ancien.position : 0.5;
+      if (!nouveau) await requeteTwenty('POST', '/metadata/viewFields', { viewId: v.id, fieldMetadataId: inverse.id, position, isVisible: true, size: 150 });
+      else if (!nouveau.isVisible) await requeteTwenty('PATCH', `/metadata/viewFields/${nouveau.id}`, { isVisible: true, position });
       if (ancien?.isVisible) await requeteTwenty('PATCH', `/metadata/viewFields/${ancien.id}`, { isVisible: false });
     }
     // 4. Les noms déjà là deviennent des membres (ceux qui ont un compte).

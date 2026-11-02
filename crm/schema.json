@@ -1337,6 +1337,14 @@
       "labelPlural": "Répertoire",
       "champs": [
         {
+          "name": "spoc",
+          "label": "SPOC",
+          "type": "TEXT",
+          "mondayColonne": null,
+          "mondayType": "people",
+          "ajoute": "2026-11-02, Jules : une colonne SPOC dans tous les tableaux"
+        },
+        {
           "name": "entreprise",
           "label": "Entreprise",
           "type": "TEXT",
@@ -1455,6 +1463,14 @@
       "labelSingular": "Entreprise",
       "labelPlural": "Entreprise",
       "champs": [
+        {
+          "name": "spoc",
+          "label": "SPOC",
+          "type": "TEXT",
+          "mondayColonne": null,
+          "mondayType": "people",
+          "ajoute": "2026-11-02, Jules : une colonne SPOC dans tous les tableaux"
+        },
         {
           "name": "contacts",
           "label": "Contacts",
@@ -2624,6 +2640,14 @@
       "labelPlural": "Partenaires",
       "champs": [
         {
+          "name": "spoc",
+          "label": "SPOC",
+          "type": "TEXT",
+          "mondayColonne": null,
+          "mondayType": "people",
+          "ajoute": "2026-11-02, Jules : une colonne SPOC dans tous les tableaux"
+        },
+        {
           "name": "ville",
           "label": "Ville",
           "type": "TEXT",
@@ -2769,6 +2793,14 @@
       "labelSingular": "Compte",
       "labelPlural": "Compte",
       "champs": [
+        {
+          "name": "spoc",
+          "label": "SPOC",
+          "type": "TEXT",
+          "mondayColonne": null,
+          "mondayType": "people",
+          "ajoute": "2026-11-02, Jules : une colonne SPOC dans tous les tableaux"
+        },
         {
           "name": "repertoire",
           "label": "Répertoire",
@@ -3483,6 +3515,14 @@
       "labelPlural": "KP · Clients",
       "champs": [
         {
+          "name": "spoc",
+          "label": "SPOC",
+          "type": "TEXT",
+          "mondayColonne": null,
+          "mondayType": "people",
+          "ajoute": "2026-11-02, Jules : une colonne SPOC dans tous les tableaux"
+        },
+        {
           "name": "email",
           "label": "Email",
           "type": "TEXT",
@@ -4021,6 +4061,14 @@
       "labelSingular": "KP · Partenaires",
       "labelPlural": "KP · Partenaires",
       "champs": [
+        {
+          "name": "spoc",
+          "label": "SPOC",
+          "type": "TEXT",
+          "mondayColonne": null,
+          "mondayType": "people",
+          "ajoute": "2026-11-02, Jules : une colonne SPOC dans tous les tableaux"
+        },
         {
           "name": "ville",
           "label": "Ville",

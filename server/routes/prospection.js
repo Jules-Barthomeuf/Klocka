@@ -125,6 +125,13 @@ export function monterProspection(app) {
     const { suiviMandataires } = await import('../suivi-mandataires.js');
     ok(res, suiviMandataires({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)) }));
   }));
+  // Le Suivi de l'activité : les gestes qui font une vente, le parcours des biens, le portefeuille (2 nov. 2026).
+  app.get('/api/monitoring/activite', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { suiviActivite } = await import('../suivi-activite.js');
+    const { estTest } = await import('../mandataire-espace.js');
+    ok(res, suiviActivite({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), estTest }));
+  }));
   // Remettre le Suivi des appels à zéro, ou tout réafficher : rien ne s'efface.
   app.post('/api/monitoring/appels/remettre-a-zero', wrap(async (req, res) => {
     const user = admin(req, res);

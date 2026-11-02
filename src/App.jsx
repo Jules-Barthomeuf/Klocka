@@ -46,6 +46,7 @@ const CoutsIA = lazy(() => import('@/pages/CoutsIA'));
 const SuiviAppels = lazy(() => import('@/pages/SuiviAppels'));
 const SuiviAudience = lazy(() => import('@/pages/SuiviAudience'));
 const SuiviMandataires = lazy(() => import('@/pages/SuiviMandataires'));
+const SuiviActivite = lazy(() => import('@/pages/SuiviActivite'));
 const SuiviTesteur = lazy(() => import('@/pages/SuiviTesteur'));
 const ImpressionPresentation = lazy(() => import('@/pages/ImpressionPresentation'));
 const ImpressionAvis = lazy(() => import('@/pages/ImpressionAvis'));
@@ -163,7 +164,7 @@ const PAGES_PUBLIQUES = {
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviAudience, SuiviMandataires, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
+const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviAudience, SuiviMandataires, SuiviActivite, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

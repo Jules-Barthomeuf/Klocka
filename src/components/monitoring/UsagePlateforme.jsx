@@ -60,14 +60,14 @@ function Evolution({ v }) {
   return <span className={v >= 0 ? "text-menthe" : "text-alerte"}>{v > 0 ? "+" : ""}{v} % sur la période précédente</span>;
 }
 
-/** Un chiffre, son évolution, et sa courbe dessous ; un clic le met dans le grand graphique. */
-function Tuile({ titre, valeur, evolution, serie, cle, actif, onChoisir, c, className = "" }) {
+/** Un chiffre, son évolution (ou une note), et sa courbe dessous ; un clic le met dans le grand graphique. Reprise par Suivi › Activité. */
+export function Tuile({ titre, valeur, evolution, note = null, serie, cle, actif, onChoisir, c, className = "" }) {
   return (
     <button type="button" onClick={onChoisir} aria-pressed={actif}
       className={`${className} min-w-0 px-5 pb-3 pt-4 text-left transition-colors ${actif ? "bg-surface-pleine" : "bg-fond hover:bg-surface"}`}>
       <div className={`text-[12.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{titre}</div>
       <div className="mt-1 text-[30px] font-light tracking-[-0.02em] text-encre tabular-nums">{valeur}</div>
-      <div className="mt-0.5 truncate text-[12px] tabular-nums"><Evolution v={evolution} /></div>
+      <div className="mt-0.5 truncate text-[12px] tabular-nums">{note ?? <Evolution v={evolution} />}</div>
       <div className="mt-2 h-[38px]">
         <ResponsiveContainer>
           <AreaChart data={serie} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>

@@ -44,6 +44,7 @@ export const ADRESSES = {
   SuiviAppels: "SuiviAppels",
   SuiviAudience: "SuiviAudience",
   SuiviMandataires: "SuiviMandataires",
+  SuiviActivite: "SuiviActivite",
   AdminSuggestions: "Feedback",
   Feedback: "MonFeedback",
   SimulateurRentabilite: "Simulateur",

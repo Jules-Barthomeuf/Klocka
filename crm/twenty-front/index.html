@@ -1048,9 +1048,28 @@
     }
     return null;
   }
+  // Le nom de la fiche, première colonne : du texte simple comme dans Monday, ni pastille ni icône (2 nov., Jules).
+  // Twenty 2.51 l'écrit dans un LinkChip (span.l1ms3w10 > a) : le premier de la ligne est celui du nom.
+  const NOM_PUCE = 'l1ms3w10';
+  const styleNoms = document.createElement('style');
+  styleNoms.textContent = `.klocka-nom > a, .klocka-nom > a:hover { background: transparent !important; border-color: transparent !important; padding-left: 0 !important; }
+  .klocka-nom > a:hover { text-decoration: underline; }
+  .klocka-nom-icone { display: none !important; }`;
+  document.head.appendChild(styleNoms);
+  function nomsSimples(lignes) {
+    for (const ligne of lignes) {
+      const puce = ligne.querySelector(`.${NOM_PUCE}`);
+      if (!puce || puce.classList.contains('klocka-nom')) continue;
+      puce.classList.add('klocka-nom');
+      const a = puce.firstElementChild;
+      if (a && a.children.length > 1) a.children[0].classList.add('klocka-nom-icone');
+    }
+  }
+
   function poserTetes() {
     const lignes = document.querySelectorAll('[data-selectable-id]');
     if (!lignes.length) return;
+    nomsSimples(lignes);
     const cols = colonnesTetes();
     if (!cols.length) return;
     for (const ligne of lignes) {
@@ -1062,7 +1081,8 @@
   }
   function tetesDans(c) {
     const h = Math.max(16, c.getBoundingClientRect().height / Z() - 4);
-    // Les avatars : une photo, ou l'initiale (une seule lettre) quand la personne n'en a pas.
+    // Les avatars : une photo, ou l'initiale (une lettre) quand la personne n'en a pas. Une tête vue est marquée
+    // (data-klocka-tete) : ses deux initiales ne se prennent pas ensuite pour un nom.
     const avatars = [];
     for (const img of c.querySelectorAll('img')) avatars.push(img.parentElement);
     const marche = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
@@ -1071,15 +1091,33 @@
       const t = n.nodeValue.trim();
       if (!t || t.startsWith('+')) continue;
       const p = n.parentElement;
-      if (t.length === 1 && !p.querySelector('img')) avatars.push(p);
-      else noms.push(p);
+      const tete = p.closest('[data-klocka-tete]');
+      if (tete) {
+        if (!avatars.includes(tete)) avatars.push(tete);
+        // Twenty a redessiné l'initiale seule : on remet les deux.
+        if (tete.dataset.klockaInitiales && t !== tete.dataset.klockaInitiales) n.nodeValue = tete.dataset.klockaInitiales;
+      } else if (t.length === 1 && !p.querySelector('img')) {
+        p.dataset.klockaTete = '1';
+        avatars.push(p);
+      } else noms.push(p);
     }
     for (const p of noms) {
       if (p.style.display === 'none') continue;
       const nom = p.textContent.trim();
       p.style.setProperty('display', 'none', 'important');
       const puce = avatars.find((a) => a.parentElement?.contains(p) || p.parentElement?.contains(a));
-      if (puce) puce.title = nom;
+      if (!puce) continue;
+      puce.title = nom;
+      puce.dataset.klockaTete = '1';
+      // Sans photo : les deux initiales, comme Monday (« NL »), sur la couleur que Twenty donne à la personne.
+      if (!puce.querySelector('img')) {
+        const mots = nom.split(/\s+/).filter(Boolean);
+        const lettres = (mots.length > 1 ? [mots[0], mots[mots.length - 1]] : mots).map((m) => m[0].toUpperCase()).join('');
+        const marcheTete = document.createTreeWalker(puce, NodeFilter.SHOW_TEXT);
+        let t = marcheTete.nextNode();
+        while (t && !t.nodeValue.trim()) t = marcheTete.nextNode();
+        if (t && lettres) { t.nodeValue = lettres; puce.dataset.klockaInitiales = lettres; }
+      }
     }
     avatars.sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
     avatars.forEach((a, i) => {
@@ -1098,6 +1136,8 @@
         x.style.setProperty('gap', '0', 'important');
         x.style.setProperty('height', `${h}px`, 'important');
         x.style.setProperty('max-width', 'none', 'important');
+        x.style.setProperty('justify-content', 'center', 'important');
+        if (x.parentElement === c) x.style.setProperty('width', '100%', 'important');
       }
       const puce = a.parentElement && a.parentElement !== c ? a.parentElement : a;
       if (i) puce.style.setProperty('margin-left', `-${Math.round(h * 0.2)}px`, 'important');

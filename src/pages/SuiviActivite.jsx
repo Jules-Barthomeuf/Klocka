@@ -191,7 +191,7 @@ export default function SuiviActivite() {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0 max-w-full">
             <OngletsSuivi className="mb-3.5 overflow-x-auto" />
-            <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Activité</h1>
+            <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Tableau de bord</h1>
             <p className="m-0 mt-1.5 max-w-[70ch] text-[13.5px] text-ardoise">Ce qui avance vers une vente, et où ça s'arrête. Un clic sur un chiffre le met dans le graphique.</p>
           </div>
           <div className="flex gap-1 rounded-full bg-rail-actif p-1">

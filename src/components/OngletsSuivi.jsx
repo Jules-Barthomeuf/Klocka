@@ -10,8 +10,8 @@ import { J } from "@/design/jetons";
 // latérale les séparaient sans raison ; elles se lisent l'une après l'autre.
 
 const PAGES = [
-  // L'activité commerciale : les gestes qui font une vente, le parcours des biens, le portefeuille (2 nov. 2026).
-  { to: "/SuiviActivite", mot: "Activité" },
+  // Le tableau de bord, que le menu « Suivi » ouvre (2 nov. 2026) : les gestes qui font une vente, le parcours des biens, le portefeuille (2 nov. 2026).
+  { to: "/SuiviActivite", mot: "Tableau de bord" },
   { to: "/Suivi", mot: "Usage" },
   // L'audience hors équipe : clients, mandataires, pages publiques (14 oct. 2026).
   { to: "/SuiviAudience", mot: "Audience" },

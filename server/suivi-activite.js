@@ -1,6 +1,6 @@
 // Le Suivi de l'activité (2 nov. 2026, Jules : « un tableau de bord, avec tous les chiffres », « des graphiques ») :
 // est-ce que ça avance vers des ventes, et où ça coince ? Les cinq gestes qui font une vente sur la période (biens prospectés,
-// avis envoyé, mandat signé, offre reçue, vente), le parcours des biens aujourd'hui (combien à chaque étape, combien y
+// visite réalisée, mandat signé, offre reçue, vente), le parcours des biens aujourd'hui (combien à chaque étape, combien y
 // sont arrêtés), ce qui passe d'une étape à la suivante, les délais, le portefeuille sous mandat, et chaque mandataire.
 // L'usage, les appels et les coûts ont leurs onglets : rien n'est recopié ici. Lecture seule.
 //
@@ -22,7 +22,8 @@ export const GESTES = [
   // Les biens prospectés plutôt que les RDV (2 nov. 2026, Jules) : chaque bien appelé ou dont la fiche a changé de
   // statut, une fois par jour.
   { cle: 'prospectes', libelle: 'Biens prospectés' },
-  { cle: 'avis', libelle: 'Avis envoyés' },
+  // Les visites réalisées plutôt que les avis envoyés (2 nov. 2026, Jules).
+  { cle: 'visites', libelle: 'Visites réalisées' },
   { cle: 'mandats', libelle: 'Mandats signés' },
   { cle: 'offres', libelle: 'Offres reçues' },
   { cle: 'ventes', libelle: 'Ventes' },
@@ -53,7 +54,9 @@ export function gestesDuBien(b) {
   const ventes = k && VENDU.has(k.statut) ? [k.acte_le || k.updated_date].filter(Boolean) : [];
   const jours = new Map();
   for (const h of p?.historique || []) if (['appel', 'statut'].includes(h.type) && h.le && !jours.has(jourDe(h.le))) jours.set(jourDe(h.le), h.le);
-  return { prospectes: [...jours.values()], rdv: rdv.slice(0, 1), avis, mandats, offres, ventes };
+  // La visite : notée faite sur la fiche, sinon racontée dans l'historique, sinon l'avis commencé (il la suppose).
+  const visite = p?.biens?.visite?.faite_le || (p?.historique || []).find((h) => h.type === 'visite')?.le || b.estimation?.cree_le || null;
+  return { prospectes: [...jours.values()], visites: visite ? [visite] : [], rdv: rdv.slice(0, 1), avis, mandats, offres, ventes };
 }
 
 /**

@@ -201,7 +201,7 @@ export default function SuiviActivite({ pourMandataire = false }) {
                   lignes={[
                     { nom: "Mandats en cours", valeur: nb(p.mandats) },
                     { nom: "Valeur sous mandat", valeur: montant(p.valeur) || "—" },
-                    { nom: "Honoraires attendus", valeur: montant(p.honoraires) || "—" },
+                    { nom: "Honoraires potentiels", valeur: montant(p.honoraires) || "—" },
                   ]} />
                 <Chiffres titre="Les délais" aide="La médiane, sur tous les biens qui ont fait les deux pas."
                   lignes={data.delais.map((d) => ({ nom: `${d.de} → ${d.vers.toLowerCase()}`, valeur: jours(d.jours) }))} />

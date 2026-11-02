@@ -33,7 +33,7 @@ const tables = {
 test("l'activité : les gestes de la période, le parcours, le portefeuille, sans les essais ni les exemples", () => {
   const r = suiviActivite({ jours: 30, maintenant, tables });
   const g = Object.fromEntries(r.gestes.map((x) => [x.cle, x.n]));
-  assert.deepEqual(g, { prospectes: 2, avis: 1, mandats: 1, offres: 0, ventes: 0 });
+  assert.deepEqual(g, { prospectes: 2, visites: 1, mandats: 1, offres: 0, ventes: 0 });
   assert.equal(r.gestes.find((x) => x.cle === 'mandats').avant, 1);
   const n = Object.fromEntries(r.parcours.map((x) => [x.cle, x.n]));
   assert.equal(n.a_appeler, 1);

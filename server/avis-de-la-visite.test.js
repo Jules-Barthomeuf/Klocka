@@ -36,3 +36,12 @@ test('messageDeLaVisite : sans adresse dans la fiche, la première question est 
   assert.match(m, /quelle est l'adresse du bien \?/);
   assert.doesNotMatch(m, /Vous me le confirmez/);
 });
+
+test("la taxe foncière dite « refacturée » ne se redemande pas, et une question ne se pose pas deux fois (31 oct. 2026)", async () => {
+  const { reponsesDeLaVisite } = await import('./mandataire-avis.js');
+  const r = reponsesDeLaVisite({ commerce: 'Ba & Co', biens: { compte_rendu: { bien: { loyer_annuel: 25200, taxe_fonciere: 'refacturée au locataire' } } } });
+  assert.equal(r.taxe_fonciere_refacturee, 'oui');
+  assert.equal(r.charges_refacturees, undefined, 'les charges, elles, n\'ont pas été dites');
+  const coche = reponsesDeLaVisite({ commerce: 'Ba & Co', biens: { compte_rendu: { bien: { refacturees: true } } } });
+  assert.deepEqual([coche.charges_refacturees, coche.taxe_fonciere_refacturee], ['oui', 'oui']);
+});

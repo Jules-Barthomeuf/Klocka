@@ -48,6 +48,14 @@ const court = (t, max = 70) => {
 };
 const m2 = (v) => (nombre(v) == null ? null : `${nombre(v).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} m²`);
 const proche = (a, b) => nombre(a) && nombre(b) && Math.abs(nombre(a) - nombre(b)) / nombre(a) < 0.02;
+// « de Antibes » → « d'Antibes », « de Le Havre » → « du Havre » (31 oct. 2026).
+export const deVille = (v) => (/^les\s/i.test(v) ? `des ${v.slice(4)}` : /^le\s/i.test(v) ? `du ${v.slice(3)}` : /^[aeiouyhàâäéèêëîïôöûü]/i.test(v) ? `d'${v}` : `de ${v}`);
+// La taxe foncière et les charges dites pareil (« refacturée au locataire ») tiennent en une phrase, sans redite.
+const sansAccent = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/\s+/).map((w) => w.replace(/s$/, "").replace(/e$/, "")).join(" ").trim();
+export function chargesDe(taxe, charges) {
+  if (taxe && charges && sansAccent(taxe) === sansAccent(charges)) return `Taxe foncière et charges ${String(charges).replace(/^refactur[ée]+s?/i, "refacturées").replace(/^./, (c) => c.toLowerCase())}`;
+  return [taxe ? `Taxe foncière : ${taxe}` : null, charges ? `Charges : ${charges}` : null].filter(Boolean).join(" · ") || null;
+}
 const ligne = (lignes, mot) => (lignes || []).find((l) => String(l.mot).toLowerCase().startsWith(mot.toLowerCase()))?.texte || null;
 /** La première phrase d'un texte, coupée au mot près au-delà de `max` caractères (la phrase de gauche tient en 3 lignes). */
 const premiereLigne = (t, max = 110) => {
@@ -82,6 +90,7 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
   const surfaces = avis.description?.surfaces || [];
   const surfaceUtile = nombre(m.surface) ?? (surfaces.reduce((t, s) => t + (nombre(s.utile) || 0), 0) || null);
   const surfacePonderee = surfaces.length ? surfaces.reduce((t, s) => t + (nombre(s.ponderee) || 0), 0) || null : null;
+  const ponderee = !!surfacePonderee && Math.round(surfacePonderee) !== Math.round(surfaceUtile || 0);
   const boutique = nombre(surfaces[0]?.utile) || surfaceUtile;
   const ville = villeSeule(avis.bien?.ville) || villeDeLAdresse(avis.bien?.adresse) || villeDeLAdresse(q.adresse) || villeSeule(q.ville) || "";
   const type = avis.type_libelle || "Murs de commerce";
@@ -105,7 +114,7 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
     ["Paiements", ligne(loc.lignes, "Paiements")],
     ["Bail", ligne(loc.lignes, "Bail")],
     ["Loyer", ligne(loc.lignes, "Loyer")],
-    ["Charges", [ligne(loc.lignes, "Taxe foncière"), ligne(loc.lignes, "Charges")].filter(Boolean).join(" · ") || null],
+    ["Charges", chargesDe(ligne(loc.lignes, "Taxe foncière"), ligne(loc.lignes, "Charges"))],
     ["Garantie", ligne(loc.lignes, "Dépôt")],
   ].map(([mot, texte]) => ({ mot, texte: court(texte) || A_RENSEIGNER, vide: !court(texte) }));
 
@@ -152,13 +161,14 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
         adresse: [trou(avis.bien?.rue) ? null : avis.bien?.rue, trou(avis.bien?.ville) ? (avis.bien?.adresse || "").match(/\d{5}\s+[^,]+$/)?.[0] : avis.bien?.ville].filter(Boolean).join(", ") || A_RENSEIGNER,
         mandataire: trou(sig.nom) ? A_RENSEIGNER : sig.nom, proprietaire: trou(avis.demandeur) ? A_RENSEIGNER : avis.demandeur,
         etat: `${type}${avis.occupe === false ? " libres" : " loués"}`, lieu: lieu || A_RENSEIGNER, accroche,
-        loyer, surface: surfacePonderee || surfaceUtile, surface_ponderee: !!surfacePonderee, echeance: fin ? fin.getUTCFullYear() : null, restant },
+        // Une surface pondérée égale à l'utile n'est pas pondérée (31 oct. 2026 : « 80 m² · Surface pondérée » pour 80 m² utiles).
+        loyer, surface: ponderee ? surfacePonderee : surfaceUtile || surfacePonderee, surface_ponderee: ponderee, echeance: fin ? fin.getUTCFullYear() : null, restant },
       { cle: "sommaire", section: "Sommaire", titre: "Sommaire", phrase: ["Le bail, puis la ville, le quartier et le local.", "Enfin, le prix et son calcul."],
         chapitres: CHAPITRES.map(([, mot], i) => ({ n: i + 1, mot, page: i + 3 })) },
       { cle: "locatif", section: "Situation locative", titre: "Le bilan locatif",
         phrase: avis.occupe === false ? ["Le local est libre.", "Sa valeur se lit au loyer qu'il peut porter."] : [premiereLigne(loc.synthese) || "Un locataire en place, un loyer à lire.", fin ? `Un revenu jusqu'en ${fin.getUTCFullYear()}.` : ""],
         frise, lignes: lignesBail },
-      { cle: "ville", section: "La ville", titre: `La ville${ville ? ` de ${ville}` : ""}`, phrase: ["Ce que dit la commune.", ""],
+      { cle: "ville", section: "La ville", titre: `La ville${ville ? ` ${deVille(ville)}` : ""}`, phrase: ["Ce que dit la commune.", ""],
         // Sa photo, trouvée sur Google à la rédaction (1er nov. 2026, Jules), et son auteur, que Google demande de citer.
         photo: avis.photos?.ville || null, photo_auteur: avis.photos?.ville_auteur || null,
         // Les chiffres de la commune (26 oct. 2026) : posés dans l'avis par donnees_commune (INSEE, Le Figaro), chacun sourcé.

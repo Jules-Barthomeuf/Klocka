@@ -93,8 +93,10 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
   // Au téléphone, le menu revient à droite comme sur ordinateur (27 oct. 2026, Jules : « un truc à droite qu'on ouvre ») ;
   // il remplace le menu du fil d'Ariane. Fermé, une pastille étroite au bord droit, à mi-hauteur, qui se glisse.
   return (
-    <div onMouseEnter={entrer} onMouseLeave={sortir} className={`fixed z-40 ${petitEcran ? "right-1.5 top-1/2" : telephone ? "right-4 top-1/2 max-md:right-2" : "right-4 top-1/2 max-md:hidden"}`}
-      style={{ transform: `translateY(calc(-50% + ${decalage}px))` }}>
+    // Au téléphone (31 oct. 2026, vérification du parcours : la pastille à mi-hauteur masquait le loyer de l'avis), elle
+    // se range dans la ligne du titre, à droite, où il n'y a rien : « ‹ 2/6 », un tap l'ouvre vers le bas.
+    <div onMouseEnter={entrer} onMouseLeave={sortir} className={`fixed z-40 ${petitEcran ? "right-3 top-[56px]" : telephone ? "right-4 top-1/2 max-md:right-2" : "right-4 top-1/2 max-md:hidden"}`}
+      style={petitEcran ? undefined : { transform: `translateY(calc(-50% + ${decalage}px))` }}>
       <AnimatePresence mode="wait" initial={false}>
         {ouvert ? (
           <motion.div key="ouvert" initial={{ opacity: 0, x: 16, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 16, scale: 0.98 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
@@ -127,6 +129,11 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
               })}
             </nav>
           </motion.div>
+        ) : petitEcran ? (
+          <motion.button key="ferme" type="button" onClick={basculer} aria-label={`Ouvrir le menu : ${intitule}`} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }}
+            className="inline-flex h-8 items-center gap-1 rounded-full border border-bord-doux bg-rail pl-2 pr-3 text-[12.5px] tabular-nums text-craie">
+            <ChevronLeft className="h-3.5 w-3.5 text-ardoise" />{ici + 1}/{items.length}
+          </motion.button>
         ) : (
           <motion.div key="ferme" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }}
             className={`flex flex-col items-center rounded-[16px] border border-bord-doux bg-rail shadow-[0_16px_40px_rgb(0_0_0/0.3)] ${petitEcran ? "w-[40px] gap-1 py-2" : "w-[44px] gap-3 py-3"}`}>

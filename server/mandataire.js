@@ -983,7 +983,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
   }
   if (name === 'avancer_bien') {
     const { retrouverProprietaire, titreProprietaire } = await import('./mandataire-espace.js');
-    const { ETAPES_BIENS, dansBiens } = await import('./fiche-mandataire.js');
+    const { ETAPES_BIENS } = await import('./fiche-mandataire.js');
     const moi = String(user?.email || '').toLowerCase();
     let cible = input.proprietaire_id ? Records.get('ProprietaireMandataire', input.proprietaire_id) : null;
     if (cible && cible.mandataire_email !== moi) cible = null;
@@ -996,7 +996,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
       if (ambigu) return { ok: false, ambigu: true, choix: candidats.map((c) => titreProprietaire(c)), error: 'Plusieurs fiches correspondent : demande laquelle en une ligne.' };
       cible = candidats[0];
     }
-    if (!dansBiens(cible)) return { ok: false, error: "Ce bien n'est pas encore dans Biens : il faut d'abord un rendez-vous fixé (noter_rdv)." };
+    // Pas encore dans Biens : il y entre à la confirmation (sauter des étapes, 1er nov. 2026).
     const { ALIAS_ETAPES } = await import('./fiche-mandataire.js');
     const id = ALIAS_ETAPES[input.etape] || input.etape;
     const e = ETAPES_BIENS.find(([k]) => k === id);
@@ -1355,7 +1355,7 @@ LES ÉTAPES ET LEURS OUTILS
 - La visite racontée : compte_rendu_visite, rempli seulement de ce qu'il a dit (le non prouvé dans a_confirmer, un document promis dans documents.promis). Montre-le en quelques lignes courtes, les écarts avec ce qu'on savait (les deux valeurs), les questions de la préparation restées sans réponse ; ne redemande rien, ni ce qu'il a dit ni ce qui manque (la surface, la fin du bail) : l'Avis de valeur le demandera. Finis par la question rendue par l'outil (« Passer à l'estimation ? ») : son bouton ouvre l'Avis de valeur du bien, qui reprend la visite ; ne lance pas lancer_estimation après un compte rendu, et à un oui écrit dis de toucher le bouton. Seulement s'il dit qu'un document clé est promis (« il l'envoie demain ») : propose la relance du lendemain, et dis que l'avis partira en provisoire, à reprendre au document reçu. Une correction ensuite : compte_rendu_visite à nouveau, complet. Le compte rendu est interne. Plus vendeur : mettre_en_pause, ou resultat_appel pas_vendeur.
 - Un accord sur un prix (« il est d'accord à 410 ») : noter_restitution avec le prix en euros (410 = 410 000 €) si l'avis est envoyé, sinon avancer_bien estimation avec le prix ; puis propose le mandat, pré-rempli de ce que tu sais (vendeur, bien, prix), en demandant seulement ce qui manque (exclusif ou simple, honoraires). Le mandat se prépare avec demander_mandat à son oui.
 - Un bien qu'il a déjà, venu d'ailleurs (un mandat signé, un avis fait sans Klocka) : il n'y a pas encore d'import ; résume ce que tu as compris, propose de le créer à son étape (Mandat, Avis de valeur) et demande ce qui manque (adresse, propriétaire, honoraires) ; nouveau_contact à son oui garde au moins la fiche.
-- Un avis de marché (avis_de_marche) est une fourchette rapide de loyer ; le rapport d'estimation complet, c'est lancer_estimation (bail déposé ou infos dictées), sans validation Klocka. Le mandat, le dossier et la mise en marché se font sur leurs pages (Mandat, Dossier, Mise en marché) : quand il en parle, dis-lui d'y aller.
+- Un avis de marché (avis_de_marche) est une fourchette rapide de loyer ; le rapport d'estimation complet, c'est lancer_estimation (bail déposé ou infos dictées), sans validation Klocka. S'il veut passer directement à l'estimation ou au mandat, ne pose aucune condition (ni bail, ni loyer, ni visite) : avancer_bien tout de suite (previsite pour aller à l'Avis de valeur, estimation pour aller au Mandat), l'étape d'arrivée demande ce qui manque et « je ne sais pas » n'y bloque rien. Le mandat, le dossier et la mise en marché se font sur leurs pages (Mandat, Dossier, Mise en marché) : quand il en parle, dis-lui d'y aller.
 - Un nouveau contact part aussi dans Twenty CRM : dis-le en une ligne si l'outil le confirme ; sur une erreur Twenty CRM, dis que la fiche est créée mais pas encore dans Twenty CRM.
 - Une pièce jointe (photo ou PDF) : reconnais ce que c'est (bail, quittance, Kbis, diagnostic, taxe foncière, règlement de copropriété) et de quel bien il s'agit, puis ranger_piece (un appel par pièce) ; un bail apporté pour estimer : bail_estimation. Bien pas clair : demande avant de ranger. Pièces d'un dossier : bail, quittances, diagnostics et taxe foncière obligatoires ; Kbis et règlement de copropriété facultatifs.
 - Les visites d'acquéreurs, pendant la Commercialisation, ne sont pas la visite du propriétaire : une visite à venir, noter_visite_acquereur ; une visite racontée, raconter_visite_acquereur avec tout le récit, puis dis que les deux documents attendent sa validation à l'écran. Un bon de visite non signé : dis franchement que la commission n'est pas protégée.

@@ -518,6 +518,18 @@ test("nouveau contact : sans son oui rien n'est créé, au oui la fiche naît da
   assert.equal(Records.list('ProprietaireMandataire').length, avant + 1);
 });
 
+test("plusieurs boulangeries à Lyon : depuis la fiche ouverte, l'appel se note sur elle (1er nov. 2026, Jules : « je suis sur une fiche en particulier »)", async () => {
+  const moi = { email: 'boulangeries@kpartners.fr', role: 'mandataire' };
+  const { creerProprietaire, retrouverProprietaire } = await import('./mandataire-espace.js');
+  const fiches = ['Regie Carron', 'Dupont', 'Martin'].map((nom, i) => creerProprietaire({ nom, commerce: 'Boulangerie', activite: 'Boulangerie', ville: 'Lyon', telephone: `04 78 00 00 1${i}` }, moi).proprietaire);
+  const [carron] = fiches;
+  assert.equal(retrouverProprietaire('Boulangerie Lyon', moi).ambigu, true);
+  const r = await executerOutilMandataire({ name: 'resultat_appel', input: { qui: 'Boulangerie Lyon', statut: 'contacte', note: 'Rappeler après les fêtes' } }, moi, { fiche: carron });
+  assert.equal(r.ok, true);
+  assert.equal(r.fiche_id, carron.id);
+  assert.equal(Records.get('ProprietaireMandataire', fiches[1].id).statut, fiches[1].statut);
+});
+
 test("la bonne pharmacie : le commerce dit, ou la fiche ouverte, l'emporte sur un mot du propriétaire (31 oct. 2026, Jules)", async () => {
   const moi = { email: 'pharmacies@kpartners.fr', role: 'mandataire' };
   const { creerProprietaire, retrouverProprietaire } = await import('./mandataire-espace.js');

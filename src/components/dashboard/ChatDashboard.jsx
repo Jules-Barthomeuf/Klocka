@@ -1518,8 +1518,9 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
           queryClient.invalidateQueries({ queryKey: ["m-prospection", prospectionId] });
           queryClient.invalidateQueries({ queryKey: ["mandataire-prospections"] });
         }
-        // Le client : la présentation à droite se relit si AK l'a retouchée.
-        if (E.client) onReponse?.(r);
+        // Ce qui est autour du chat se relit (la présentation du client, la fiche, sa liste, la Pré-visite) : le 31 oct. 2026,
+        // une fiche passée « Contacté » par l'assistant restait « À contacter » dans sa liste jusqu'au rechargement.
+        onReponse?.(r);
         pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra });
         if (r.brouillon) setBrouillon({ destinataire: r.brouillon.destinataire || "", objet: r.brouillon.objet || "", corps: r.brouillon.corps || "", dossier_vente: r.brouillon.dossier_vente || null });
         // Les réponses en un tap que l'assistant propose (« Passer à l'estimation ? » Oui / Non, 27 oct. 2026).

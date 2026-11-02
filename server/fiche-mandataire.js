@@ -49,12 +49,15 @@ function sienne(id, user) {
 export function validerEtape(id, etape, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
-  if (!dansBiens(p)) return { ok: false, error: "Cette fiche n'est pas encore dans Biens : il faut un rendez-vous fixé." };
   const cle = ALIAS_ETAPES[etape] || etape;
   const i = IDS.indexOf(cle);
   if (i < 0) return { ok: false, error: 'Étape inconnue.' };
   const mot = ETAPES_BIENS[i][1];
-  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { biens: { ...(p.biens || {}), validee: marqueurDe(cle), pause: null }, historique: ajouter(p, { type: 'etape', texte: `Étape validée : ${mot}` }) }) };
+  // Sauter des étapes (1er nov. 2026, Jules : « si on veut passer directement en mandat ou en estimation, on doit
+  // pouvoir ») : une fiche pas encore dans Biens y entre à l'étape choisie, sans rendez-vous, et l'historique le dit.
+  const entre = !dansBiens(p);
+  const texte = entre ? `Entré dans Biens, étapes sautées jusqu'à : ${mot}` : `Étape validée : ${mot}`;
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(entre ? { statut: 'rdv_pris' } : {}), biens: { ...(p.biens || {}), validee: marqueurDe(cle), pause: null }, historique: ajouter(p, { type: 'etape', texte }) }) };
 }
 
 /** Dans Biens, le propriétaire refuse le prix : En pause, une relance programmée et un nouvel argument. */
@@ -173,6 +176,11 @@ async function composer(p) {
   const cible = p.cible_id ? Records.get('Cible', p.cible_id) : null;
   const courte = ficheCourte({ p, commerce: cs, cible, drapeaux: drapeauxDe });
   const cor = p.corrections || {};
+  // Le propriétaire dit par le mandataire (« les murs sont à M. Bernard », 31 oct. 2026) passe devant le registre, comme
+  // ses corrections : la ligne Murs ne dit plus « TARA » ni « L'exploitant lui-même » quand la fiche dit M. Bernard.
+  const sansAccent = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const registre = cs?.proprietaire?.nom || cible?.proprietaire?.nom || null;
+  const proprietaireDit = p.nom && sansAccent(p.nom) !== sansAccent(registre) && sansAccent(p.nom) !== sansAccent(cor.exploitant || courte.exploitant) ? p.nom : null;
   const brut = cs ? drapeauxDe(cs) : null;
   const signaux = brut ? brut.map((d) => ({ texte: d.texte, source: d.source || null, date: d.date || null })) : signauxDe(null, drapeauxDe, cible).map((s) => ({ texte: s.texte, source: 'Prospection par rue', date: cible?.classee_le || null }));
   const { matcheurInvestisseurs } = await import('./mandataire-agent.js');
@@ -194,7 +202,7 @@ async function composer(p) {
       ...ouEstLeCommerce(p, cs, cible), activite: p.activite || cs?.activite || cible?.activite || null,
       // Les corrections du mandataire passent devant les registres (25 oct. 2026). Plus d'accroche (Jules).
       exploitant: { nom: cor.exploitant || courte.exploitant, depuis: cor.exploitant ? null : courte.depuis },
-      murs: { proprietaire: cor.murs || courte.proprietaire, forme: cor.murs ? null : courte.forme, gerant: cor.gerant ? { nom: cor.gerant, age: null } : courte.gerant },
+      murs: { proprietaire: cor.murs || proprietaireDit || courte.proprietaire, forme: cor.murs || proprietaireDit ? null : courte.forme, gerant: cor.gerant ? { nom: cor.gerant, age: null } : proprietaireDit ? null : courte.gerant },
       corrections: cor,
       // La classe d'actif (26 oct. 2026) : commerce, bureaux, entrepôt.
       classe: cs?.classe || 'commerce',

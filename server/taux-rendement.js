@@ -137,3 +137,42 @@ export function reperesAppris(lignes = [], ville) {
     corrections_partout: ecarts(valides).length,
   };
 }
+
+/**
+ * Pure : l'échéance d'un bail qu'on peut calculer (1er nov. 2026, Jules : « si on dit que c'est un 3-6-9, il faut que
+ * ça calcule, j'ai pas besoin de lui dire ») : neuf ans après la date d'effet pour un bail commercial 3-6-9, six pour un
+ * bail professionnel. Des murs de commerce sans type dit : un 3-6-9, le cas courant, et l'avis le dit. Un dérogatoire ne
+ * se calcule pas. Rend { echeance (jj/mm/aaaa), duree, suppose, tacite } ou null.
+ */
+export function echeanceDuBail(q = {}, aujourdhui = new Date()) {
+  const effet = dateDe(q.date_effet);
+  if (!effet) return null;
+  const type = String(q.bail_type || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  if (/derogatoire|precaire|courte duree/.test(type)) return null;
+  let duree = null;
+  if (/3\D{0,3}6\D{0,3}9|commercial|statutaire/.test(type)) duree = 9;
+  else if (/profession/.test(type)) duree = 6;
+  else if (!type && q.type_bien === 'murs_commerce') duree = 9;
+  if (!duree) return null;
+  const fin = new Date(effet.getFullYear() + duree, effet.getMonth(), effet.getDate());
+  const deux = (n) => String(n).padStart(2, '0');
+  return { echeance: `${deux(fin.getDate())}/${deux(fin.getMonth() + 1)}/${fin.getFullYear()}`, duree, suppose: !type, tacite: fin < aujourdhui };
+}
+
+/**
+ * Pure : le rang de la rue proposé d'après Data-B (1er nov. 2026, Jules : « l'emplacement de la rue, il faut que ça me
+ * fasse une proposition », par le loyer de la rue comparé à celui de la ville). marche : { rue, ville } avec leurs
+ * fourchettes basse / haute en €/m²/an. Une rue à 1,4 fois la ville ou plus : n°1 ; à 1,1 fois : n°1 bis ; en dessous :
+ * n°2. Le mandataire confirme ou corrige. Rend { rang, rapport, raison } ou null.
+ */
+export function rangDeLaRue(marche) {
+  const milieu = (n) => { const b = Number(n?.basse), h = Number(n?.haute); return b > 0 && h > 0 ? (b + h) / 2 : b > 0 ? b : h > 0 ? h : null; };
+  const rue = milieu(marche?.rue), ville = milieu(marche?.ville);
+  if (!rue || !ville) return null;
+  const rapport = Math.round((rue / ville) * 100) / 100;
+  const rang = rapport >= 1.4 ? 'n1' : rapport >= 1.1 ? 'n1bis' : 'n2';
+  const mot = { n1: 'n°1', n1bis: 'n°1 bis', n2: 'n°2' }[rang];
+  const f = (n) => `${Math.round(Number(n?.basse))}–${Math.round(Number(n?.haute))} €/m²/an`;
+  const fois = rapport.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+  return { rang, rapport, raison: `${marche.rue.nom || 'la rue'} se loue ${f(marche.rue)}, ${fois} fois ${marche.ville.nom || 'la ville'} (${f(marche.ville)}, Data-B) : emplacement ${mot}.` };
+}

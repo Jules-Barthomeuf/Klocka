@@ -227,4 +227,11 @@
   .avis [data-edit]:hover, .avis [data-edit]:focus { background: none; box-shadow: none; }
   .avis .a-completer { background: none; }
   html, body { background: #fff !important; }
+  /* La copie posée à la racine pour l'impression (EditeurAvis.jsx, copierPourImpression) : elle seule sort. */
+  body:has(> #avis-impression) > *:not(#avis-impression) { display: none !important; }
+  #avis-impression .avis { position: static; }
+  /* Les photos et les aplats sont des fonds : ils s'impriment sans cocher « Graphiques d'arrière-plan ». */
+  #avis-impression .avis, #avis-impression .avis * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+#avis-impression { display: none; }
+@media print { #avis-impression { display: block; } }

@@ -156,3 +156,26 @@ export async function arretsAutour(point, rayon = 300) {
   if (r.ok) garder('CacheArrets', cle, r.valeur);
   return r.valeur || [];
 }
+
+/**
+ * Les parkings à moins de `rayon` mètres (OpenStreetMap, Overpass), les plus proches d'abord (1er nov. 2026, pour
+ * l'accès de l'avis de valeur). Gardés quatorze jours comme les arrêts : Overpass met souvent plus de vingt secondes.
+ */
+export async function parkingsAutour(point, rayon = 300) {
+  const cle = `${point.lat.toFixed(4)},${point.lon.toFixed(4)},${rayon}`;
+  const deja = garde('CacheParkings', cle, 14);
+  if (deja !== undefined) return deja;
+  const r = await viaSource('osm', async () => {
+    const { interroger } = await import('../kzoning-commerces.js');
+    const a = `around:${rayon},${point.lat},${point.lon}`;
+    const d = await interroger(`[out:json][timeout:40];(node[amenity=parking](${a});way[amenity=parking](${a}););out center 20;`);
+    return (d.elements || []).map((e) => {
+      const t = e.tags || {};
+      const p = e.center || e;
+      return { nom: t.name || null, souterrain: t.parking === 'underground', payant: t.fee === 'yes' ? true : t.fee === 'no' ? false : null, places: Number(t.capacity) || null, distance_m: metres(point, { lat: p.lat, lon: p.lon }) };
+    }).sort((x, y) => x.distance_m - y.distance_m).slice(0, 5);
+  }, []);
+  if (r.ok) garder('CacheParkings', cle, r.valeur);
+  return r.valeur || [];
+}
+

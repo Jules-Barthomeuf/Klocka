@@ -235,7 +235,7 @@ export function monterMandataire(app) {
       if (!demandeId) return { status: 404, error: `Je ne connais pas de « ${cherchee} » : ouvrez la page Clients pour voir les références.` };
     }
     if (!criteres && demandeId) {
-      const d = criteresDeDemande(String(demandeId));
+      const d = criteresDeDemande(String(demandeId), { avecTest: (await E()).voitTest(user) });
       if (!d) return { status: 404, error: 'Demande introuvable.' };
       criteres = d.criteres;
       demande = d.demande;

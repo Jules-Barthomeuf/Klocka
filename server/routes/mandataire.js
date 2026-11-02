@@ -742,6 +742,14 @@ export function monterMandataire(app) {
     res.set('Cache-Control', 'no-store');
     res.download(r.fichier, r.nom);
   }));
+  // L'avis part de la plateforme, de la boîte Gmail du mandataire, PDF joint (1er nov. 2026).
+  app.post('/api/mandataire/estimations/:id/envoyer', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { PORT } = await import('../contexte.js');
+    const r = await (await RA()).envoyerAvis(req.params.id, { a: req.body?.a, objet: req.body?.objet, texte: req.body?.texte, de: req.body?.de || null }, user, { base: `http://127.0.0.1:${PORT}` });
+    if (!r.ok) return res.status(r.sans_boite ? 409 : 400).json({ error: r.error, sans_boite: !!r.sans_boite });
+    ok(res, r);
+  }));
   app.post('/api/mandataire/estimations/:id/envoye', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendreFiche(res, (await RA()).marquerEnvoye(req.params.id, { a: req.body?.a || null, objet: req.body?.objet || null, texte: req.body?.texte || null }, user));
@@ -790,6 +798,14 @@ export function monterMandataire(app) {
     if (!user) return;
     const r = (await E()).modifierProprietaire(req.params.id, req.body || {}, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  // Le retour en arrière des listes (1er nov. 2026) : une fiche retirée revient.
+  app.post('/api/mandataire/proprietaires/:id/restaurer', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = (await E()).restaurerProprietaire(req.params.id, user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
   }));
   app.delete('/api/mandataire/proprietaires/:id', wrap(async (req, res) => {

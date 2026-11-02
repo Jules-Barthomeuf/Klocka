@@ -36,10 +36,12 @@ export const SCENARIOS = [
     ['mandat_envoye', 'Mandat envoyé', 'En attente de la saisie sur MyNotary.'],
     ['mandat_signe', 'Mandat signé', 'Le dossier de vente s’ouvre.'],
   ] },
-  { etape: 'marche', titre: 'Commercialisation', liste: [
+  { etape: 'dataroom', titre: 'Data room', liste: [
     ['dossier_vide', 'Dossier à constituer', 'Aucune pièce : Assistant KPartners propose le mail au vendeur.'],
     ['dossier_complet', 'Pièces reçues, locataire à notifier', 'Le droit de préférence reste à régler.'],
-    ['pret_vente', 'Prêt à mettre en vente', 'Tout est réglé : « Mettre en vente » est actif.'],
+    ['pret_vente', 'Prêt à mettre en vente', 'Tout est réglé : l’assistant propose la mise en vente.'],
+  ] },
+  { etape: 'marche', titre: 'Commercialisation', liste: [
     ['en_vente', 'Mis en vente', 'Le teaser est composé, à relire et valider.'],
   ] },
   { etape: 'offre', titre: 'Offres', liste: [

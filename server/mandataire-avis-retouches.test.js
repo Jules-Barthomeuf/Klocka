@@ -27,7 +27,7 @@ test('poser remplace un texte sans toucher au reste', () => {
 test('poser un chiffre recalcule le prix affiché et efface les phrases qui le citaient', () => {
   const { avis } = appliquerOperations(AVIS(), [{ op: 'poser', chemin: 'chiffres.valeur', valeur: '260 000 €' }]);
   assert.equal(avis.chiffres.valeur, 260000);
-  assert.equal(avis.chiffres.prix_affiche, 273000);
+  assert.equal(avis.chiffres.prix_affiche, 275000, "260 000 + 5 %, rond au multiple de 5 000");
   assert.equal(avis.chiffres.rendement, 6.9);
   assert.equal(avis.libre.c_resume, undefined);
   assert.equal(avis.libre.redige, 'Jules');
@@ -204,4 +204,13 @@ test("une réponse notée s'annonce avec sa valeur lisible", () => {
   assert.equal(etapeDeReponse('surface_utile', '92'), 'Surface utile : 92 m²');
   assert.equal(etapeDeReponse('demandeur', 'SCI Mirabeau'), 'Demandeur : SCI Mirabeau');
   assert.equal(etapeDeReponse('bail_tous_commerces', true), 'Bail tous commerces : oui');
+});
+
+test('un prix se donne rond : 5 000 € sous le million, 10 000 € au-delà (2 nov. 2026, Jules)', async () => {
+  const { prixRond, recalculerChiffres } = await import('./mandataire-avis.js');
+  assert.equal(prixRond(398000), 400000);
+  assert.equal(prixRond(397000), 395000);
+  assert.equal(prixRond(1234000), 1230000);
+  const a = recalculerChiffres({ chiffres: { valeur: 412300, bas: 398000, haut: 431000, honoraires_pct: 5 } });
+  assert.deepEqual([a.chiffres.valeur, a.chiffres.bas, a.chiffres.haut], [410000, 400000, 430000]);
 });

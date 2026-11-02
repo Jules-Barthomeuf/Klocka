@@ -763,6 +763,7 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
     const mienne = Records.list('ProprietaireMandataire').find((p) => p.commerce_simple_id === id && p.mandataire_email === moi);
     if (mienne) {
       Records.update('ProprietaireMandataire', mienne.id, { liste_id: l.id });
+      versLeCrm(mienne.id);
       Records.update(COMMERCE, id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: mienne.id, le: maintenant() } } });
       ajoutes.push(id);
       continue;
@@ -778,10 +779,16 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
     }, user);
     if (!r.ok) { refuses.push(`${c.enseigne || c.nom} : ${r.error}`); continue; }
     Records.update('ProprietaireMandataire', r.proprietaire.id, { liste_id: l.id, commerce_simple_id: c.id, source: 'Off-market' });
+    versLeCrm(r.proprietaire.id);
     Records.update(COMMERCE, id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: r.proprietaire.id, le: maintenant() } } });
     ajoutes.push(id);
   }
   return { ok: true, liste: { id: l.id, nom: l.nom }, ajoutes: ajoutes.length, deja, refuses };
+}
+
+// Une fiche qui entre dans une liste devient un prospect du CRM (2 nov. 2026, Jules), en fond : la page n'attend pas.
+function versLeCrm(ficheId) {
+  import('../mandataire-monday.js').then((m) => m.synchroniserEnFond(ficheId)).catch(() => {});
 }
 
 /**
@@ -801,6 +808,7 @@ export function changerDeListe(ficheId, { liste_id = null, nom = null, user = nu
       || Records.create(LISTE_MANDATAIRE, { mandataire_email: moi, nom: propre, source: 'Off-market', cree_le: maintenant() });
   }
   Records.update('ProprietaireMandataire', p.id, { liste_id: l.id });
+  versLeCrm(p.id);
   const c = p.commerce_simple_id ? Records.get(COMMERCE, p.commerce_simple_id) : null;
   if (c) Records.update(COMMERCE, c.id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: p.id, le: maintenant() } } });
   return { ok: true, liste: { id: l.id, nom: l.nom } };

@@ -128,6 +128,8 @@ export function commencer({ type_bien, adresse = null, demandeur = null }, user,
     mandataire_email: moi(user), conversation_id: conversationId, bien: titreDe(q), adresse, statut: 'brouillon', questionnaire_en_cours: true, questionnaire: q,
     cree_le: new Date().toISOString(), historique: [{ le: new Date().toISOString(), par: user?.email || null, action: 'avis commencé par le chat' }],
   });
+  // Aucun avis sans fiche (2 nov. 2026, server/fiche-du-bien.js) : dès que l'adresse est connue.
+  if (adresse) import('./fiche-du-bien.js').then((f) => f.ficheDeLAvis(e.id, user)).catch((err) => console.warn(`[fiche] ${err?.message || err}`));
   return { ok: true, estimation_id: e.id, manquants: manquants(q) };
 }
 
@@ -148,6 +150,7 @@ export function noter(reponses, user, conversationId = null) {
   // Ce que le chat vient d'apprendre l'emporte sur une retouche à la main du même champ.
   const surcouche = sansChampsRepondus(e.surcouche, Object.keys(reponses || {}));
   Records.update(ENTITE, e.id, { questionnaire: q, ...(e.nom_choisi ? {} : { bien: titreDe(q) }), adresse: q.adresse || e.adresse, ...(surcouche !== e.surcouche ? { surcouche } : {}) });
+  if (q.adresse && !e.proprietaire_id) import('./fiche-du-bien.js').then((f) => f.ficheDeLAvis(e.id, user)).catch((err) => console.warn(`[fiche] ${err?.message || err}`));
   // Un taux posé pour rédiger tout de suite, pas encore validé (1er nov. 2026) : il n'apprend rien aux avis suivants.
   if (reponses?.taux_base != null && Number(q.taux_base) > 0) {
     const aValider = reponses.taux_base_a_valider === true;
@@ -160,6 +163,9 @@ export function noter(reponses, user, conversationId = null) {
 // --- La rédaction ------------------------------------------------------------
 
 const arrondi = (v, pas = 5000) => Math.round(v / pas) * pas;
+// Un prix se donne rond (2 nov. 2026, Jules : « jamais 398 000, on dit 400 000 ; ou des 5, 395, pas 397 ») : au
+// multiple de 5 000 €, de 10 000 € dès le million (lu en M€). Valeur, fourchette et prix affiché, d'où qu'ils viennent.
+export const prixRond = (v) => (Number(v) > 0 ? arrondi(Number(v), Number(v) >= 1e6 ? 10000 : 5000) : v);
 const pct = (n) => Math.round(n * 1000) / 10;
 
 /** Pure : les chiffres de l'avis, depuis le questionnaire et les choix de taux et de prix. */
@@ -174,9 +180,9 @@ export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, taux_libre 
   // L'estimation de Data-B, quand elle est là, fait la valeur et la fourchette.
   const brute = dataB?.moyenne || cap || comp;
   if (!brute) return null;
-  const valeur = dataB?.moyenne || arrondi(brute, brute > 1e6 ? 10000 : 5000);
-  const bas = dataB?.basse || (cap ? arrondi(loyer / ((taux + 0.2) / 100)) : arrondi(valeur * 0.96));
-  const haut = dataB?.haute || (cap ? arrondi(loyer / ((taux - 0.15) / 100)) : arrondi(valeur * 1.03));
+  const valeur = prixRond(brute);
+  const bas = prixRond(dataB?.basse || (cap ? loyer / ((taux + 0.2) / 100) : valeur * 0.96));
+  const haut = prixRond(dataB?.haute || (cap ? loyer / ((taux - 0.15) / 100) : valeur * 1.03));
   const ecart = cap && comp ? Math.round(((comp - cap) / cap) * 100) : null;
   const rendement = loyer ? pct(loyer / valeur) : null;
   const loyerMarche = loyer_marche_m2 && surface ? loyer_marche_m2 * surface : null;
@@ -185,7 +191,7 @@ export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, taux_libre 
     const t = (taux_libre || taux + 0.6) / 100;
     valeurLibre = arrondi(loyerMarche / t - loyerMarche - remise_en_etat, 10000);
   }
-  const prixAffiche = Math.round(valeur * (1 + honoraires) / 100) * 100;
+  const prixAffiche = prixRond(valeur * (1 + honoraires));
   return {
     ecart_methodes: ecart,
     capitalisation: cap ? Math.round(cap / 1000) * 1000 : dataB?.moyenne || null,
@@ -217,7 +223,7 @@ const SCHEMA_AVIS = {
     },
     emplacement: {
       type: 'object',
-      properties: { synthese: { type: 'string' }, flux: { type: 'string' }, environnement: { type: 'string' }, vacance: { type: 'string' }, acces: { type: 'string' }, vigilance: { type: 'string' } },
+      properties: { synthese: { type: 'string' }, type_emplacement: { type: 'string' }, flux: { type: 'string' }, commerces_voisins: { type: 'string' }, environnement: { type: 'string' }, vacance: { type: 'string' }, acces: { type: 'string' }, vigilance: { type: 'string' } },
     },
     locatif: {
       type: 'object',
@@ -281,31 +287,47 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     lieu = await resoudreAdresse(q.adresse);
     if (lieu) surEtape?.(`Adresse reconnue : ${[lieu.numero, lieu.rue].filter(Boolean).join(' ')}, ${lieu.ville || ''}`.trim());
   } catch { /* le marché se lira quand même sur le texte */ }
-
-  // La valeur locative de marché vient de Data-B (1er nov. 2026, Jules : celle d'Equimmox, des baux existants toutes
-  // surfaces confondues, sous-évaluait). Equimmox ne sert plus que si Data-B ne répond pas, et l'avis le dit.
-  surEtape?.('Lecture de la valeur locative de marché (Data-B)');
-  let marche = null;
-  try {
-    const D = await import('./data-b.js');
-    if (D.dataBConfigure()) {
-      const r = await D.valeurLocative(q.adresse, { user });
-      if (r.ok) marche = r.resultat;
-      else console.warn(`[avis] Data-B valeur locative : ${r.error}`);
-    }
-  } catch (err) { console.warn(`[avis] Data-B valeur locative : ${err?.message || err}`); }
-  if (!marche) {
-    surEtape?.('Data-B indisponible : la valeur locative se lit chez Equimmox (baux existants)');
-    try {
-      const { valeurLocative } = await import('./valeur-locative.js');
-      const r = await valeurLocative(q.adresse, { user });
-      if (r.ok) marche = { ...r.resultat, source: 'Equimmox · baux existants (Data-B indisponible)' };
-    } catch (err) { console.warn(`[avis] marché : ${err?.message || err}`); }
-  }
+  // L'emplacement se lit en fond dès l'adresse reconnue, pendant les autres lectures (jusqu'à 30 s : OpenStreetMap).
+  const emplacementP = lieu
+    ? import('./emplacement-auto.js').then((m) => m.lireEmplacement(q.adresse, { lieu, user })).catch((err) => { console.warn(`[avis] emplacement : ${err?.message || err}`); return {}; })
+    : Promise.resolve({});
 
   // L'avis des murs par le rendement (31 oct. 2026, Jules) ne cite plus de ventes : DVF ne se lit plus pour lui.
   // Libre, le loyer de marché peut manquer : les ventes restent alors le relais.
   const sansVentes = q.type_bien === 'murs_commerce' && Number(q.taux_base) > 0 && q.occupe && Number(q.loyer_annuel_hc) > 0;
+  // Vite (2 nov. 2026, Jules : « la lecture Data-B, Equimmox est trop longue ; juste un taux pour la ville, pondéré ») :
+  // des murs occupés se valent loyer ÷ taux ; la valeur locative de marché ne fait qu'un ajustement et une ligne de
+  // l'avis. On l'attend quelques secondes (elle est souvent en cache) ; au-delà l'avis part sans, et la lecture,
+  // continuée en fond, sert à la rédaction suivante.
+  const rapide = sansVentes;
+  const debut = Date.now();
+  const avant = (promesse, ms, defaut) => Promise.race([promesse, new Promise((ok) => { setTimeout(() => ok(defaut), Math.max(0, ms)).unref?.(); })]);
+
+  // La valeur locative de marché vient de Data-B (1er nov. 2026, Jules : celle d'Equimmox, des baux existants toutes
+  // surfaces confondues, sous-évaluait). Equimmox ne sert plus que si Data-B ne répond pas, et l'avis le dit.
+  surEtape?.('Lecture de la valeur locative de marché (Data-B)');
+  const marcheP = (async () => {
+    let lu = null;
+    try {
+      const D = await import('./data-b.js');
+      if (D.dataBConfigure()) {
+        const r = await D.valeurLocative(q.adresse, { user });
+        if (r.ok) lu = r.resultat;
+        else console.warn(`[avis] Data-B valeur locative : ${r.error}`);
+      }
+    } catch (err) { console.warn(`[avis] Data-B valeur locative : ${err?.message || err}`); }
+    if (!lu) {
+      if (!rapide) surEtape?.('Data-B indisponible : la valeur locative se lit chez Equimmox (baux existants)');
+      try {
+        const { valeurLocative } = await import('./valeur-locative.js');
+        const r = await valeurLocative(q.adresse, { user });
+        if (r.ok) lu = { ...r.resultat, source: 'Equimmox · baux existants (Data-B indisponible)' };
+      } catch (err) { console.warn(`[avis] marché : ${err?.message || err}`); }
+    }
+    return lu;
+  })();
+  const marche = rapide ? await avant(marcheP, 8000, null) : await marcheP;
+  if (rapide && !marche) surEtape?.('Valeur locative de marché pas encore lue : l\u2019avis part sans, elle comptera à la prochaine rédaction');
   let ventes = null;
   if (!sansVentes) surEtape?.('Les ventes de locaux autour (DVF)');
   if (!sansVentes) try {
@@ -386,15 +408,23 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     ? `${references.length} vente${references.length > 1 ? 's' : ''} comparable${references.length > 1 ? 's' : ''} retenue${references.length > 1 ? 's' : ''} (DVF, 800 m)`
     : parLeRendement ? 'Méthode du rendement : sans ventes comparables' : 'Aucune vente comparable exploitable autour');
 
+  // L'emplacement lu depuis la seule adresse (1er nov. 2026, Jules) : la voie, les commerces à 150 m, les transports à
+  // 300 m (OpenStreetMap), la vacance de la rue (K-Vacance). La page « Emplacement et commercialité » se remplit seule.
+  if (lieu) surEtape?.('Lecture de l\u2019emplacement : les commerces voisins, les transports, la vacance de la rue');
+  // Vite aussi : l'emplacement a eu son temps pendant la valeur locative ; au-delà de 15 s, l'avis part sans.
+  const emplacementLu = rapide ? await avant(emplacementP, 15000 - (Date.now() - debut), {}) : await emplacementP;
+
   surEtape?.('Choix du taux de rendement et rédaction des analyses');
   const { invokeLLM } = await import('./llm.js');
   const { mesurer } = await import('./llm-couts.js');
   const { resultat: brut } = await mesurer({ operation: 'mandataire', par: user?.email }, () => invokeLLM({
     prompt:
-      `Tu rédiges, pour un mandataire du réseau K Partners, un AVIS DE VALEUR de ${TYPES_BIEN[q.type_bien] || 'bien professionnel'}${q.occupe ? ' occupé' : ' libre'}. Ton ton : celui d'un professionnel de l'immobilier d'entreprise, phrases courtes, concrètes, sans emphase. N'invente AUCUN fait : ce qui n'est pas dans le questionnaire ou les données reste « [à compléter] ». Le taux et le prix au m² se justifient par les références ; les chiffres finaux sont calculés par le serveur, tu ne les écris pas.\n\n` +
+      `Tu rédiges, pour un mandataire du réseau K Partners, un AVIS DE VALEUR de ${TYPES_BIEN[q.type_bien] || 'bien professionnel'}${q.occupe ? ' occupé' : ' libre'}. Tout en français. Ton ton : celui d'un professionnel de l'immobilier d'entreprise, phrases courtes, concrètes, sans emphase. N'invente AUCUN fait : ce qui n'est pas dans le questionnaire ou les données reste « [à compléter] ». Le taux et le prix au m² se justifient par les références ; les chiffres finaux sont calculés par le serveur, tu ne les écris pas.\n\n` +
       `Nous sommes le ${jourLong()}.\n\n` +
       `QUESTIONNAIRE (réponses du mandataire) :\n${JSON.stringify(q, null, 1).slice(0, 6000)}\n\n` +
       `VALEUR LOCATIVE DE MARCHÉ (€ HT HC/m²/an, ${marche?.source || 'source indisponible'}) — la « valeur locative de marché » de l'avis cite la fourchette de la RUE telle quelle, sans la baisser ni la moyenner avec autre chose :\n${marche ? JSON.stringify({ rue: marche.rue, quartier: marche.quartier, ville: marche.ville, source: marche.source }).slice(0, 2500) : '(indisponible)'}\n\n` +
+      `EMPLACEMENT LU À L'ADRESSE (sans le mandataire) : ${Object.keys(emplacementLu).length ? JSON.stringify(emplacementLu).slice(0, 4000) : '(indisponible)'}\n` +
+      `Avec ces données, remplis TOUJOURS l'emplacement, ligne par ligne, chiffré et sourcé en fin de phrase (« (OpenStreetMap) », « (K-Vacance) ») : type_emplacement (rue piétonne, axe principal, rue de desserte, et le rang de la rue s'il est dans le questionnaire) ; flux (ce que la voie, la densité de commerces et la restauration disent du passage, sans chiffre de passants inventé) ; commerces_voisins (combien à 150 m, les métiers dominants, les enseignes nationales citées par leur nom) ; vacance : seulement « x % (taux estimé) », sans phrase ni comparaison ; acces (métro, tram, gare, bus, parkings à 300 m) ; environnement (une phrase d'ensemble). Ce que le mandataire a dit passe devant. « [à compléter] » seulement si rien ne le dit.\n\n` +
       (parLeRendement
         ? `CE QUE L'AVIS DIT ET NE DIT PAS (31 oct. 2026) : l'emplacement DÉCRIT l'environnement (zone piétonne ou non, rue commerçante, commerces et enseignes voisins, flux, transports, stationnement) et la vacance locative de la rue ; il ne cite JAMAIS de ventes, de nombre de ventes, de DVF ni de prix au m² de ventes. vigilance et points_a_traiter ne vont PAS dans l'avis : ce sont des notes pour le mandataire (un doute, une incohérence, un document à demander), que l'assistant lui dira dans le chat ; écris-les là, courtes. lecture_marche : vide. prix_m2 : 0.\n\n`
         : `VENTES DE LOCAUX AUTOUR (DVF, 800 m) :\n${references.length ? JSON.stringify(references) : '(aucune vente exploitable)'}${ventes?.prix_m2 ? `\nPrix au m² des ventes : bas ${ventes.prix_m2.bas}, médian ${ventes.prix_m2.median}, haut ${ventes.prix_m2.haut}` : ''}\n\n`) +
@@ -462,7 +492,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     },
     emplacement: {
       synthese: brut.emplacement?.synthese || '',
-      lignes: [['Flux', brut.emplacement?.flux], ['Environnement', brut.emplacement?.environnement], ['Vacance', brut.emplacement?.vacance], ['Accès', brut.emplacement?.acces]]
+      lignes: [['Type d\'emplacement', brut.emplacement?.type_emplacement], ['Flux', brut.emplacement?.flux], ['Commerces voisins', brut.emplacement?.commerces_voisins], ['Environnement', brut.emplacement?.environnement], ['Vacance', vacanceEstimee(emplacementLu) || brut.emplacement?.vacance], ['Accès', brut.emplacement?.acces]]
         .filter(([, v]) => v).map(([mot, texte, alerte]) => ({ mot, texte, alerte: !!alerte })),
     },
     locatif: q.occupe ? {
@@ -537,14 +567,16 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
       if (ville) avis.ville = ville;
     }
   } catch (err) { console.warn(`[avis] commune : ${err?.message || err}`); }
-  // Une belle photo de la ville pour la page « La ville » (1er nov. 2026, Jules : automatiquement, sans rien demander).
+  // Une belle photo de la ville pour la page « La ville » et la couverture (1er nov. 2026, Jules : automatiquement).
+  let photosVille = [];
   try {
     const commune = lieu?.ville || villeDuTexte(q.adresse);
     if (commune) {
-      surEtape?.(`Une photo de ${commune}`);
-      const { photoDeLaVille } = await import('./photo-commerce.js');
-      const ph = await photoDeLaVille(commune);
-      if (ph.url) avis.photos = { ...avis.photos, ville: ph.url, ville_auteur: ph.auteur || null };
+      surEtape?.(`Des photos de ${commune}`);
+      // Plusieurs au choix (1er nov. 2026, Jules) : la première sert d'office, le mandataire choisit dans le chat.
+      const { photosDeLaVille } = await import('./photo-commerce.js');
+      photosVille = await photosDeLaVille(commune);
+      if (photosVille[0]) avis.photos = { ...avis.photos, ville: photosVille[0].url, ville_auteur: photosVille[0].auteur || null };
     }
   } catch (err) { console.warn(`[avis] photo de la ville : ${err?.message || err}`); }
   // Les retouches faites à la main pendant les questions se reposent sur l'avis rédigé.
@@ -555,7 +587,32 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     historique: [...(e.historique || []), { le: new Date().toISOString(), par: user?.email || null, action: 'avis de valeur rédigé' }],
   });
   return { ok: true, estimation_id: e.id, valeur: chiffres.valeur, bas: chiffres.bas, haut: chiffres.haut, rendement: chiffres.rendement, a_completer: reste,
-    ...(rendement ? { taux_retenu: rendement.lecture } : {}), ...(aSignaler.length ? { a_signaler_au_mandataire: aSignaler } : {}) };
+    ...(rendement ? { taux_retenu: rendement.lecture } : {}), ...(aSignaler.length ? { a_signaler_au_mandataire: aSignaler } : {}),
+    ...(photosVille.length > 1 ? { photos_ville: photosVille } : {}) };
+}
+
+/**
+ * La photo de couverture choisie parmi celles de la ville (1er nov. 2026, Jules : « on choisit laquelle on veut »).
+ * Avant la rédaction, elle attend dans la surcouche comme une photo envoyée ; seule une photo gardée par le serveur
+ * (/uploads/) se pose.
+ */
+export function poserPhotoDeCouverture(id, url, user) {
+  const e = Records.get(ENTITE, id);
+  if (!e || e.mandataire_email !== moi(user) && user?.role !== 'admin') return { ok: false, error: 'Estimation introuvable.' };
+  if (!/^\/uploads\/[\w./-]+$/.test(String(url || '')) || String(url).includes('..')) return { ok: false, error: 'Photo inconnue.' };
+  if (!e.avis) {
+    const sc = e.surcouche || {};
+    Records.update(ENTITE, e.id, { surcouche: { ...sc, photos: { ...(sc.photos || {}), couverture: url } } });
+    return { ok: true };
+  }
+  Records.update(ENTITE, e.id, { avis: { ...e.avis, photos: { ...(e.avis.photos || {}), couverture: url } }, avis_retouche_le: new Date().toISOString() });
+  return { ok: true };
+}
+
+/** Pure : la ligne Vacance de l'avis, un chiffre seul (1er nov. 2026, Jules) : « 15,3 % (taux estimé) ». */
+export function vacanceEstimee(emplacement) {
+  const t = Number(emplacement?.vacance?.taux_estime);
+  return emplacement?.vacance?.taux_estime != null && Number.isFinite(t) ? `${t.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} % (taux estimé)` : null;
 }
 
 /** Pure : le tableau des surfaces (pondérées quand on a les zones). */
@@ -589,7 +646,7 @@ const OUTILS = [
   },
   {
     name: 'proposer_taux_base',
-    description: "Murs de commerce : les repères pour proposer le TAUX DE BASE de la ville (avant les ajustements du bien), dès que l'adresse est connue. Rend la ville, le taux du secteur chez Data-B s'il est disponible, et les bornes. Tu proposes ensuite un taux au mandataire, qui dit oui, plus haut ou plus bas.",
+    description: "Murs de commerce : les repères pour proposer le TAUX DE BASE de la ville (avant les ajustements du bien), dès que l'adresse est connue. Rend la ville, les taux déjà validés dans la ville et ailleurs, et les bornes ; instantané. Tu proposes ensuite un taux au mandataire, qui dit oui, plus haut ou plus bas.",
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -598,15 +655,41 @@ const OUTILS = [
     input_schema: { type: 'object', properties: { instruction: { type: 'string' } }, required: ['instruction'] },
   },
   {
+    name: 'proposer_photos_ville',
+    description: "Montre au mandataire, sous ton message, plusieurs photos de la ville du bien (Google) : il touche celle qu'il veut en couverture de l'avis. Quand il demande une autre photo de couverture, une photo de la ville, de changer d'image.",
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
     name: 'rediger_avis',
     description: "Rédige l'avis : pour des murs de commerce, la valeur par le taux de rendement (loyer ÷ taux) ; pour les autres biens, l'estimation Equimmox (une à deux minutes) ; le marché, la fourchette. L'éditeur s'ouvre ensuite tout seul. Normalement quand plus rien d'obligatoire ne manque ; avec a_la_main: true, il se rédige tout de suite et ce qui manque reste « [à compléter] » dans l'éditeur.",
     input_schema: { type: 'object', properties: { a_la_main: { type: 'boolean', description: 'Rédiger malgré les manques, que le mandataire complétera dans l\'éditeur' } } },
   },
 ];
 
-const CONSIGNE = `Tu mènes, pour un mandataire K Partners, un AVIS DE VALEUR dans le chat. Court, en français, sans markdown. Montants : 450 k€ sous le million, 1,3 M€ à partir de 1 000 k€ (jamais « 1 300 k€ ») ; une fourchette garde la même unité, « 1,1 – 1,7 M€ ».
+/**
+ * Pure : « Déjà renseigné », lisible et complet (2 nov. 2026) : coupé à 3 000 caractères, le questionnaire perdait ses
+ * dernières clés (le rang de la rue, le taux) et l'assistant les redemandait. Les réponses courtes d'abord, les textes
+ * longs ensuite, raccourcis.
+ */
+export function dejaRenseigne(q = {}, limite = 6000) {
+  const lignes = Object.entries(q || {})
+    .filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && !v.length))
+    .map(([k, v]) => {
+      const t = typeof v === 'object' ? JSON.stringify(v) : String(v);
+      return `${k}: ${t.length > 300 ? `${t.slice(0, 299)}…` : t}`;
+    })
+    .sort((a, b) => a.length - b.length);
+  let sortie = '';
+  for (const l of lignes) {
+    if (sortie.length + l.length + 3 > limite) break;
+    sortie += `${sortie ? ' ; ' : ''}${l}`;
+  }
+  return sortie || 'rien';
+}
+
+const CONSIGNE = `Tu mènes, pour un mandataire K Partners, un AVIS DE VALEUR dans le chat. TOUJOURS EN FRANÇAIS, jamais une autre langue, même quand une pièce, un outil ou une donnée est en anglais (2 nov. 2026, Jules). Court, sans markdown. Montants : 450 k€ sous le million, 1,3 M€ à partir de 1 000 k€ (jamais « 1 300 k€ ») ; une fourchette garde la même unité, « 1,1 – 1,7 M€ ».
 MURS DE COMMERCE (31 oct. 2026) : la valeur se fait par le TAUX DE RENDEMENT. Valeur = loyer annuel HT hors charges ÷ taux (libre : le loyer de marché du local). Le serveur calcule ; toi, tu fais choisir le taux :
-- le TAUX DE BASE de la ville : appelle proposer_taux_base dès que l'adresse est connue, puis propose UN taux (dans le MÊME message que les questions qui restent : le mandataire répond à tout d'un vocal) (par exemple « Je pars sur 6,5 % pour des murs de commerce à Antibes : ça vous va, ou plutôt plus haut, plus bas ? »), avec sa raison en quelques mots (taille et attrait de la ville, le taux du secteur de Data-B s'il est là). C'est le taux de la ville, avant l'emplacement et le bail. En murs de commerce, un rendement brut se situe entre 4 et 10 %. Le mandataire dit oui, ou « un peu plus », « plus bas », « 7 % » : tu ajustes (un quart à un demi-point pour « un peu ») et tu notes taux_base avec noter_reponses SEULEMENT quand il l'a validé, avec taux_base_propose (ton premier chiffre) : chaque correction est gardée et sert aux avis suivants de tous les mandataires. proposer_taux_base rend ce qui a déjà été validé : pars de là ;
+- le TAUX DE BASE de la ville : appelle proposer_taux_base dès que l'adresse est connue, puis propose UN taux (dans le MÊME message que les questions qui restent : le mandataire répond à tout d'un vocal) (par exemple « Je pars sur 6,5 % pour des murs de commerce à Antibes : ça vous va, ou plutôt plus haut, plus bas ? »), avec sa raison en quelques mots (taille et attrait de la ville, les taux déjà validés). C'est le taux de la ville, avant l'emplacement et le bail. En murs de commerce, un rendement brut se situe entre 4 et 10 %. Le mandataire dit oui, ou « un peu plus », « plus bas », « 7 % » : tu ajustes (un quart à un demi-point pour « un peu ») et tu notes taux_base avec noter_reponses SEULEMENT quand il l'a validé, avec taux_base_propose (ton premier chiffre) : chaque correction est gardée et sert aux avis suivants de tous les mandataires. proposer_taux_base rend ce qui a déjà été validé : pars de là ;
 - les critères qui l'ajustent, demandés avec les autres questions : le rang de la rue (n°1, n°1 bis, n°2), le locataire (enseigne nationale, indépendant solide, fragile), les charges et la taxe foncière (refacturées au locataire ou payées par le propriétaire). Le bail (date d'effet, échéance) et le loyer par rapport au marché comptent aussi : le serveur les lit.
 Après la rédaction, l'outil rend le taux retenu et ses ajustements : dis-les en une ligne. Le mandataire veut un autre taux de base : noter_reponses taux_base, puis rediger_avis.
 AUTRES BIENS : la valeur vient d'Equimmox (26 oct. 2026), son estimation multicritères (offres actuelles, offres anciennes, transactions DVF, capitalisation). Tu rassembles ce qu'il lui faut : l'adresse, la surface, l'état du local et, s'il est occupé, le loyer annuel. Sans Equimmox, Data-B prend le relais.
@@ -615,12 +698,14 @@ LE BUT : un avis en CINQ MINUTES, le mandataire dicte un vocal en sortant de la 
 0. AVANT TOUTE QUESTION, relis TOUT : le fil du bien plus bas (appels, pré-visite, visite, du plus ancien au plus récent), la fiche, « Déjà renseigné ». Ce qui y est dit, même il y a longtemps ou dit autrement (« 2 000 € par mois » = 24 000 € par an, « bail signé en 2019 », « c'est la rue principale » = n1), se note avec noter_reponses SANS être redemandé. Ne demande que ce que rien ne dit.
 1. Lis tout : ce que dit le mandataire et les pièces (bail surtout). Déduis le type de bien et commence l'avis (commencer_avis), puis enregistre EN UNE FOIS tout ce que tu as lu (noter_reponses). Dans un bail : le demandeur est le BAILLEUR (propriétaire des murs), sauf si le mandataire dit autre chose ; le locataire, son activité (et activite_data_b), le loyer annuel HT HC, la date d'effet, l'échéance, l'indexation, la taxe foncière et les charges (qui paie), la surface, le dépôt de garantie.
 2. Ce qu'il dit en passant s'enregistre aussi : une date de visite (« je l'ai visité hier », « visite le 28 ») devient date_visite en toutes lettres, calculée depuis la date du jour ; un état, un angle, une extraction, un parking, une enseigne, l'ancienneté du locataire, des retards de paiement…
-3. Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_reponses le rend dans essentiels_manquants : adresse, loué ou non, surface, loyer et échéance si loué, rang de la rue) avec ta proposition de taux de base : une liste numérotée courte, les choix quand il y en a, et « Répondez en un vocal ». Le reste (état, indexation, charges, façade…) ne se demande pas avant la rédaction.
+3. Avant d'envoyer des questions, raye chacune dont la réponse est dans « Déjà renseigné », dans le fil ou dans les messages de cette conversation, et chacune que tu as déjà posée et à laquelle il a répondu, même autrement ou à moitié (2 nov. 2026, Jules : « repose des questions déjà posées ») : sa réponse se note telle quelle, « nc » si elle est floue. Une question restée sans réponse ne revient qu'une fois, en disant « il me manque encore… ».
+Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_reponses le rend dans essentiels_manquants : adresse, loué ou non, surface, loyer et échéance si loué, rang de la rue) avec ta proposition de taux de base : une liste numérotée courte, les choix quand il y en a, et « Répondez en un vocal ». Le reste (état, indexation, charges, façade…) ne se demande pas avant la rédaction.
 4. À chaque réponse : noter_reponses. « Je ne sais pas » vaut « nc » : ça ne bloque pas.
 5. DÈS QUE L'ESSENTIEL EST LÀ, rédige sans attendre qu'on te le demande : rediger_avis, avec a_la_main: true s'il manque des cases secondaires. Si seul le taux n'est pas validé, note ton taux proposé avec taux_base_a_valider: true et rédige quand même ; demande ensuite en une ligne s'il convient (« plus haut, plus bas ? ») : à sa réponse, noter_reponses taux_base (validé, sans taux_base_a_valider) puis rediger_avis. Après la rédaction, cite en une ligne les cases encore « à compléter » qu'il peut dicter quand il veut.
 6. MODIFIER L'AVIS (il est affiché à côté du chat) : une demande sur le document lui-même — reformuler, raccourcir, enlever une ligne, changer une taille, une couleur, mettre en gras, déplacer, masquer, poser une image jointe — c'est retoucher_avis, avec la demande telle quelle, avant comme après la rédaction ; pas noter_reponses ni rediger_avis. Une INFORMATION sur le bien (« la surface c'est 85 m² », « le loyer est de 20 000 € ») : noter_reponses, puis rediger_avis si l'avis est déjà rédigé. Après une retouche : une ligne qui dit ce qui a changé.
 7. Après la rédaction : une seule ligne avec la valeur et la fourchette, et la méthode (le taux retenu et ses ajustements pour des murs de commerce ; Equimmox, ou Data-B s'il a pris le relais, pour les autres). Si l'outil rend a_signaler_au_mandataire : ce ne sont pas des lignes de l'avis, c'est à toi de les dire, à la suite, en quelques lignes courtes (« Attention : … »), un point par ligne. L'avis s'affiche déjà à côté du chat : ne dis pas de l'ouvrir, de le relire ni de télécharger le PDF. Une correction ensuite (« j'ai oublié, la surface c'est 85 m² ») : noter_reponses puis rediger_avis, et préviens que les retouches faites à la main dans l'avis seront remplacées.
 8. La présentation (le deck) se remplit depuis l'avis : ses chiffres ne viennent que de tes outils. La page « La ville » se remplit quand tu appelles donnees_commune. Ne dis JAMAIS qu'une case ou une page est remplie si l'outil ne te l'a pas confirmé (« pose ») ; sinon dis ce qui manque.
+8 bis. LA PHOTO DE COUVERTURE (1er nov. 2026) : à la rédaction, des photos de la ville s'affichent sous ton message ; dis en une ligne qu'il touche celle qu'il veut en couverture. Une autre photo, changer l'image : proposer_photos_ville. Jamais une photo de la rue en couverture.
 9. QUAND TOUT EST FINI (l'avis rédigé, plus de question ni de retouche en cours) : propose d'écrire le mail au propriétaire et de l'envoyer avec l'avis en PDF, en une question (« Je prépare le mail au propriétaire, avec l'avis en PDF ? »). À son oui : preparer_envoi_avis. Ne le propose qu'une fois ; pas si l'avis est déjà envoyé.
 10. L'AVIS ENVOYÉ, tu suis la relation avec le propriétaire (27 oct. 2026) : on reste ici, et tu reprends le fil (il est plus bas). Le mandataire raconte : « je l'ai appelé, on a fixé un rendez-vous lundi », « la présentation s'est bien passée, il réfléchit et revient vers moi ». À chaque récit : noter_echange avec un résumé court et la relance qui convient à la situation (le rendez-vous à sa date et son heure, une semaine pour reprendre des nouvelles, la date qu'il a donnée). Rien de fixe : tu adaptes. Puis une ligne : ce qui est noté et la prochaine action datée, et au besoin une question utile (l'heure du rendez-vous, ce qui le fait hésiter). Une réponse qui tranche — d'accord sur un prix, pause, refus, autre agent, plus vendeur — c'est noter_restitution (avec relance_le et relance_quoi si la situation en demande une autre que celle du cas) : le mandataire confirme d'un tap. D'accord sur un prix : le prix va sur la fiche du bien et le bien passe au Mandat au tap ; dis-le en une ligne. Le bail reçu change la valeur : noter_restitution bail_change, puis noter_reponses et rediger_avis pour l'avis corrigé. Les documents (l'avis, la présentation, les sources) restent à côté : n'en parle que si on te les demande.
 On n'invente rien.`;
@@ -644,26 +729,22 @@ function garderTauxValide(e, user) {
   else Records.create('TauxBaseValide', ligne);
 }
 
-/** Les repères du taux de base : la ville, le taux du secteur chez Data-B quand il est configuré (en cache six mois). */
-async function reperesDuTaux(e, user) {
+/**
+ * Les repères du taux de base : la ville et les taux déjà validés. Plus de lecture Data-B (2 nov. 2026, Jules : « pas
+ * besoin d'aller chercher tous les chiffres, juste un taux de rendement pour la ville pour ensuite le pondérer ; je veux
+ * que ça aille vite ») : son navigateur prenait jusqu'à une minute et demie.
+ */
+async function reperesDuTaux(e) {
   const q = e.questionnaire || {};
   const { TAUX_MIN, TAUX_MAX, reperesAppris } = await import('./taux-rendement.js');
   let ville = null;
   try { ville = (await (await import('./adresse-ban.js')).resoudreAdresse(q.adresse))?.ville || null; } catch { /* le texte suffit */ }
-  let secteur = null;
-  try {
-    const D = await import('./data-b-murs.js');
-    if (D.mursConfigure()) {
-      const r = await D.rendementDeBase(q.adresse, { activite: q.activite_data_b || q.activite_locataire || null, user });
-      if (r.ok) secteur = { taux: r.resultat.taux_base, activite: r.resultat.activite, source: r.resultat.source };
-    }
-  } catch (err) { console.warn(`[avis] taux de base : ${err?.message || err}`); }
   ville = ville || villeDuTexte(q.adresse);
   if (ville && e.ville_taux !== ville) Records.update(ENTITE, e.id, { ville_taux: ville });
   const appris = reperesAppris(Records.list('TauxBaseValide').filter((l) => l.estimation_id !== e.id), ville);
   return {
     ok: true, ville, appris, adresse: q.adresse, activite: q.activite_locataire || null, occupe: !!q.occupe,
-    taux_du_secteur: secteur, taux_deja_valide: Number(q.taux_base) > 0 ? q.taux_base : null, bornes: [TAUX_MIN, TAUX_MAX],
+    taux_deja_valide: Number(q.taux_base) > 0 ? q.taux_base : null, bornes: [TAUX_MIN, TAUX_MAX],
     a_faire: "Propose UN taux de base pour cette ville (avant l'emplacement et le bail), avec sa raison en quelques mots, et demande s'il convient ou s'il faut plus haut ou plus bas. Ce qu'ont validé les mandataires et l'équipe passe avant ton idée : des taux validés dans la ville, pars de leur médiane (dis-le : « les derniers avis à Antibes sont partis sur 6,4 % ») ; sinon, corrige ton idée de l'écart moyen de tes propositions (ecart_moyen_partout, positif : tu proposes trop bas). Ne le note qu'une fois validé, avec taux_base_propose = le taux que tu avais proposé en premier.",
   };
 }
@@ -723,7 +804,7 @@ const PAGES_DECK = [
   [2, 'Sommaire', 'rien à remplir'],
   [3, 'Le bilan locatif', "les lignes du bail (locataire, paiements, bail, loyer, charges, garantie) : noter_reponses puis rediger_avis, ou retoucher_avis sur les lignes de la situation locative"],
   [4, 'La ville', 'donnees_commune (les quatre cases se remplissent seules)'],
-  [5, 'Le quartier', "les lignes « Emplacement et commercialité » de l'avis (type d'emplacement, flux piéton, commerces voisins, transports, vacance de la rue) : cherche avec recherche_web, vacance_commerciale, annonces_bodacc, puis écris-les avec retoucher_avis (une ligne par rubrique, sourcée)"],
+  [5, 'Le quartier', "les lignes « Emplacement et commercialité » de l'avis : elles se remplissent seules à la rédaction depuis l'adresse (commerces voisins et transports par Google Maps, voie et commerces par OpenStreetMap, vacance par K-Vacance) ; pour les compléter, recherche_web, vacance_commerciale, annonces_bodacc, puis retoucher_avis (une ligne par rubrique, sourcée)"],
   [6, 'Le local', "les surfaces et la description du bien de l'avis : noter_reponses (surface, zones, état…) ou retoucher_avis"],
   [7, 'Les usages', "les activités autorisées (bail, copropriété, PLU) : lignes juridiques de l'avis par retoucher_avis ; la valeur locative : loyers_marche"],
   [8, 'Le taux', "la justification du taux de l'avis"],
@@ -771,10 +852,10 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
     return { texte: r.texte, avis: null, avis_retouche: true, estimation_id: aConfirmer.id, envoi: null, actions: [] };
   }
   const contexte = actuel
-    ? `\n\nAvis en cours : ${actuel.bien}. Déjà renseigné : ${JSON.stringify(actuel.questionnaire || {}).slice(0, 3000)}. Encore obligatoire : ${manquants(actuel.questionnaire || {}).join(', ') || 'rien'}.` +
+    ? `\n\nAvis en cours : ${actuel.bien}. Déjà renseigné : ${dejaRenseigne(actuel.questionnaire)}. Encore obligatoire : ${manquants(actuel.questionnaire || {}).join(', ') || 'rien'}.` +
       (aConfirmer ? `\nCE QUE LA VISITE DIT, montré au mandataire et PAS ENCORE dans l'avis : ${JSON.stringify(aConfirmer.de_la_visite.reponses || {}).slice(0, 2000)}${aConfirmer.de_la_visite.recit ? ` ; récit : ${String(aConfirmer.de_la_visite.recit).slice(0, 600)}` : ''}. Il corrige ou complète : noter_reponses avec TOUTES ces réponses, corrigées de ce qu'il dit, puis la liste des questions qui manquent encore.` : '')
     : redige
-      ? `\n\nL'avis de ${redige.bien} est rédigé (valeur ${redige.avis?.chiffres?.valeur?.toLocaleString('fr-FR')} €) et se trouve dans cette conversation${redige.statut === 'envoye' ? `, ENVOYÉ au propriétaire le ${new Date(redige.envoye_le || Date.now()).toLocaleDateString('fr-FR', { timeZone: PARIS })} (la suite : la relation avec le propriétaire, règle 10).\n${R.filDeLaRelation(redige.proprietaire_id ? Records.get('ProprietaireMandataire', redige.proprietaire_id) : null)}\n` : redige.envoi?.prepare_le ? ', son mail d\'envoi est déjà préparé (à l\'écran)' : ', pas encore envoyé'}. Déjà renseigné : ${JSON.stringify(redige.questionnaire || {}).slice(0, 3000)}. NE commence PAS un nouvel avis sauf si le mandataire parle d'un AUTRE bien. Une correction ou un ajout : noter_reponses puis rediger_avis, et préviens que les retouches faites à la main dans l'avis seront remplacées.`
+      ? `\n\nL'avis de ${redige.bien} est rédigé (valeur ${redige.avis?.chiffres?.valeur?.toLocaleString('fr-FR')} €) et se trouve dans cette conversation${redige.statut === 'envoye' ? `, ENVOYÉ au propriétaire le ${new Date(redige.envoye_le || Date.now()).toLocaleDateString('fr-FR', { timeZone: PARIS })} (la suite : la relation avec le propriétaire, règle 10).\n${R.filDeLaRelation(redige.proprietaire_id ? Records.get('ProprietaireMandataire', redige.proprietaire_id) : null)}\n` : redige.envoi?.prepare_le ? ', son mail d\'envoi est déjà préparé (à l\'écran)' : ', pas encore envoyé'}. Déjà renseigné : ${dejaRenseigne(redige.questionnaire)}. NE commence PAS un nouvel avis sauf si le mandataire parle d'un AUTRE bien. Une correction ou un ajout : noter_reponses puis rediger_avis, et préviens que les retouches faites à la main dans l'avis seront remplacées.`
       : '\n\nAucun avis en cours.';
   // Le fil du bien entier (1er nov. 2026, Jules : « ça doit vérifier dans le fil toutes les informations ») : le chat
   // ne voit que les 24 derniers messages ; la fiche et tout ce qui les précède lui sont redonnés ici.
@@ -793,6 +874,7 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
   let avisPret = null;
   let avisRetouche = false;
   let envoi = null;
+  let photosChoix = null;
   const actions = [];
   const messages = [...(Array.isArray(historique) ? historique : []), { role: 'user', contenu: texte }]
     .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
@@ -821,7 +903,7 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
         surEtape?.('J\u2019écris le mail au propriétaire');
         const r = await R.preparerEnvoi(cible.id, { objet: input.objet, texte: input.texte }, user);
         if (r.ok) envoi = { estimation_id: cible.id, ...r.envoi };
-        return r.ok ? { ok: true, pret: "Le mail s'ouvre à l'écran avec l'avis en PDF joint : le mandataire le relit et l'envoie de sa messagerie.", destinataire: r.envoi.a || 'à compléter' } : r;
+        return r.ok ? { ok: true, pret: "Le mail s'ouvre à l'écran avec l'avis en PDF joint : le mandataire le relit et l'envoie d'ici, de sa boîte Gmail connectée (sinon, il la connecte d'un clic ou passe par sa messagerie).", destinataire: r.envoi.a || 'à compléter' } : r;
       }
       if (name === 'noter_restitution') {
         const cible = dernierRedige(user, conv) || enCours(user, conv);
@@ -842,7 +924,7 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
         const q = cible?.questionnaire || {};
         if (!q.adresse) return { ok: false, error: "Il faut d'abord l'adresse du bien." };
         surEtape?.('Je cherche le bon taux de base pour la ville');
-        return reperesDuTaux(cible, user);
+        return reperesDuTaux(cible);
       }
       if (name === 'commencer_avis') { surEtape?.('Nouvel avis de valeur'); return commencer(input, user, conv); }
       if (name === 'noter_reponses') {
@@ -870,16 +952,29 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
         return { ok: true, retouches: faits, reponse: r.reponse };
       }
       if (name === 'rediger_avis') {
-        const r = await rediger(user, { surEtape, aLaMain: input.a_la_main === true, conversationId: conv });
+        const { photos_ville: photos, ...r } = await rediger(user, { surEtape, aLaMain: input.a_la_main === true, conversationId: conv });
         if (r.ok) avisPret = { estimation_id: r.estimation_id, valeur: r.valeur, bas: r.bas, haut: r.haut };
+        if (r.ok && photos?.length) { photosChoix = { estimation_id: r.estimation_id, photos }; r.photos = `${photos.length} photos de la ville s'affichent sous ton message : le mandataire touche celle qu'il veut en couverture.`; }
         return r;
+      }
+      if (name === 'proposer_photos_ville') {
+        const cible = enCours(user, conv) || dernierRedige(user, conv);
+        if (!cible) return { ok: false, error: 'Aucun avis dans cette conversation.' };
+        const q = cible.questionnaire || {};
+        const commune = cible.ville_taux || villeDuTexte(q.adresse || cible.adresse || '');
+        if (!commune) return { ok: false, error: "L'adresse du bien n'est pas connue : demande-la." };
+        surEtape?.(`Des photos de ${commune}`);
+        const photos = await (await import('./photo-commerce.js')).photosDeLaVille(commune);
+        if (!photos.length) return { ok: false, error: `Aucune photo de ${commune} trouvée : le mandataire peut en joindre une avec « + ».` };
+        photosChoix = { estimation_id: cible.id, photos };
+        return { ok: true, montrees: `${photos.length} photos de ${commune} s'affichent sous ton message : dis-lui de toucher celle qu'il veut.` };
       }
       return { ok: false, error: `Outil inconnu : ${name}` };
     },
   });
   // L'estimation de cette conversation, pour l'aperçu qui se construit à côté du chat.
   const courante = enCours(user, conv) || dernierRedige(user, conv);
-  return { texte: String(text || '').trim(), avis: avisPret, avis_retouche: avisRetouche, estimation_id: avisPret?.estimation_id || courante?.id || null, envoi, actions };
+  return { texte: String(text || '').trim(), avis: avisPret, avis_retouche: avisRetouche, estimation_id: avisPret?.estimation_id || courante?.id || null, envoi, actions, ...(photosChoix ? { photos_ville: photosChoix } : {}) };
 }
 
 // --- Les retouches de l'avis par le chat -------------------------------------
@@ -966,10 +1061,11 @@ const memeIntitule = (a, b) => { const x = normIntitule(a); const y = normIntitu
 export function recalculerChiffres(avis) {
   const c = { ...(avis.chiffres || {}) };
   if (!(c.valeur > 0)) return avis;
+  for (const k of ['valeur', 'bas', 'haut']) if (c[k] > 0) c[k] = prixRond(c[k]);
   const loyer = avis.methodes?.loyer || null;
   const hon = Number(c.honoraires_pct ?? 5) / 100;
   const frais = Number(c.frais_pct ?? 7.5) / 100;
-  c.prix_affiche = Math.round((c.valeur * (1 + hon)) / 100) * 100;
+  c.prix_affiche = prixRond(c.valeur * (1 + hon));
   c.cout_total = Math.round((c.prix_affiche * (1 + frais)) / 1000) * 1000;
   c.rendement = loyer ? Math.round((loyer / c.valeur) * 1000) / 10 : null;
   c.rendement_affiche = loyer ? Math.round((loyer / c.prix_affiche) * 1000) / 10 : null;
@@ -1410,6 +1506,12 @@ export async function avisDepuisLeBien({ proprietaire_id = null, adresse = null,
   } else {
     e = Records.update(ENTITE, e.id, { de_la_visite, ...(e.questionnaire ? {} : { questionnaire: q }) });
   }
+  if (!e.proprietaire_id && e.adresse) import('./fiche-du-bien.js').then((f) => f.ficheDeLAvis(e.id, user)).catch((err) => console.warn(`[fiche] ${err?.message || err}`));
+  // L'avis commencé depuis la fiche : la visite a eu lieu, la fiche entre dans Biens (2 nov. 2026).
+  if (p) (await import('./bien-etapes.js')).entrerDansBiens(p, user);
+  // La photo de la ville, en fond : la couverture de l'avis l'a dès qu'elle arrive.
+  const commune = villeDuTexte(reponses.adresse || '');
+  if (commune) import('./photo-commerce.js').then((m) => m.photosDeLaVille(commune)).then((ph) => { if (ph?.[0]?.url) Records.update(ENTITE, e.id, { photo_ville: ph[0].url }); }).catch(() => {});
   return { ok: true, estimation_id: e.id, cree: true };
 }
 
@@ -1521,7 +1623,8 @@ export function avisProvisoire(e, signataireAvis = {}) {
     methodes: { synthese: 'Le taux de rendement se fixe à la rédaction : le taux de base de la ville, ajusté par les critères du bien.', taux: null, justification_taux: '', prix_m2: null, justification_prix: '', loyer: occupe ? loyer : null, surface },
     chiffres: { valeur: null, bas: null, haut: null, rendement: null, honoraires_pct: 5, frais_pct: 7.5, prix_affiche: null, cout_total: null },
     conclusion: { points: [], reserves: RESERVES, fait_a: signataireAvis.ville_signature || '[ville]' },
-    photos: { couverture: null, emplacement: null, portrait: null },
+    // La photo de la ville, cherchée dès l'avis commencé (1er nov. 2026) : la couverture la montre avant la rédaction.
+    photos: { couverture: null, emplacement: null, portrait: null, ville: e.photo_ville || null },
   };
 }
 

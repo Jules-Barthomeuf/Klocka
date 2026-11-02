@@ -573,6 +573,11 @@ export function enregistrerCompteRendu(id, brut = {}, user, { photo = null } = {
     question: plusVendeur ? "Il n'est plus vendeur : mettre le bien en pause, ou le passer en Perdu ?" : "Passer à l'estimation ?",
     boutons: plusVendeur
       ? [{ libelle: 'Mettre en pause', texte: 'Mets le bien en pause, avec une relance.', principal: true }, { libelle: 'Perdu', texte: "Passe le bien en Perdu : il n'est plus vendeur." }]
-      : [{ libelle: "Oui, passer à l'estimation", texte: "Oui, passe à l'estimation avec le compte rendu.", href: `/MandataireBiens?bien=proprietaire:${p.id}&etape=estimation`, principal: true }, { libelle: 'Non, pas maintenant', texte: "Non, pas d'estimation pour l'instant." }],
+      : boutonsEstimation(p),
   };
+}
+
+/** Pure : « Oui, passer à l'estimation » / « Non, pas maintenant », les boutons qui suivent le compte rendu de visite. */
+export function boutonsEstimation(p) {
+  return [{ libelle: "Oui, passer à l'estimation", texte: "Oui, passe à l'estimation avec le compte rendu.", href: `/MandataireBiens?bien=proprietaire:${p.id}&etape=estimation`, principal: true }, { libelle: 'Non, pas maintenant', texte: "Non, pas d'estimation pour l'instant." }];
 }

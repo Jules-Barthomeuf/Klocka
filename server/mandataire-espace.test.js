@@ -327,3 +327,17 @@ test("les demandes du banc de stress comptent comme test : un mandataire ne les 
   assert.ok(!demandesVisibles().some((x) => x.id === d.id));
   assert.ok(demandesVisibles({ avecTest: true }).some((x) => x.id === d.id && x.test));
 });
+
+test('une fiche ne devient un prospect du CRM que dans une liste faite à la main (2 nov. 2026, Jules)', async () => {
+  const { dansUneListe, synchroniserFicheMonday } = await import('./mandataire-monday.js');
+  const liste = { id: 'l1' };
+  assert.equal(dansUneListe({ liste_id: 'l1' }, liste), true);
+  assert.equal(dansUneListe({ liste_id: null }, null), false);
+  assert.equal(dansUneListe({ liste_id: 'l1' }, { id: 'l1', agent: true }), false, "liste de l'agent IA");
+  assert.equal(dansUneListe({ liste_id: 'l1' }, { id: 'l1', suggeree: true }), false, 'liste de la veille');
+  const { Records } = await import('./db.js');
+  const p = Records.create('ProprietaireMandataire', { mandataire_email: 'hors-liste@kpartners.fr', nom: 'SCI Hors Liste', commerce: 'Boulangerie' });
+  const r = await synchroniserFicheMonday(p.id);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /pas dans une liste/);
+});

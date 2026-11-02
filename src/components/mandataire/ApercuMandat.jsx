@@ -302,7 +302,7 @@ const MODES_MANDAT = MODES_EDITEUR.filter(([k]) => k !== "sources");
  * `mode`, l'aperçu tient le sien et montre la pilule Éditeur / Lecture dans sa barre (seul un brouillon se modifie).
  * Aucune partie n'a de fond propre : le fond de la page passe dessous ; seules les pages du mandat restent claires.
  */
-export default function ApercuMandat({ id, onOuvrirPret, generation = false, onGenere = null, mode: modeImpose = null, onMode = null }) {
+export default function ApercuMandat({ id, onOuvrirPret, generation = false, onGenere = null, mode: modeImpose = null, onMode = null, gauche = null }) {
   const queryClient = useQueryClient();
   const [modeLocal, setModeLocal] = useState("edition");
   const mode = modeImpose || modeLocal;
@@ -375,12 +375,15 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
   return (
     <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux k-apercu-mandat" style={{ background: "transparent" }}>
       <div className="flex h-14 flex-none items-center justify-between gap-3 border-b border-trait k-barre-apercu px-5 text-[12.5px] text-ardoise max-md:gap-2 max-md:px-3" style={{ background: "transparent" }}>
+        {/* À côté de sa conversation, le bouton qui ferme le mandat prend la place de son état (2 nov. 2026, Jules). */}
+        {gauche ? <span className="flex min-w-0 flex-1 items-center">{gauche}</span> : (
         <span className="min-w-0 flex-1 max-md:line-clamp-2">
           {m.statut === "brouillon"
             ? reste ? `${reste} information${reste > 1 ? "s" : ""} encore attendue${reste > 1 ? "s" : ""}` : "Complet : vérifiez-le, puis envoyez-le"
-            : m.statut === "demande_envoyee" ? "Envoyé : saisi sur MyNotary et envoyé en signature"
+            : m.statut === "demande_envoyee" ? (m.valide_le ? "Validé : en signature" : m.a_relire ? "À relire : il est dans la conversation" : "Envoyé : en cours de saisie")
             : m.statut === "pret" ? "Signé : il est dans la conversation" : m.statut === "signe" ? "Signé" : m.statut === "enregistre" ? `Enregistré au registre${m.numero_registre ? ` n° ${m.numero_registre}` : ""}` : m.statut}
         </span>
+        )}
         {/* Revenir sur une réponse notée par le chat, ou la rétablir : tant que le mandat n'est pas parti. */}
         {brouillon && changerMode && <ModesEditeur mode={mode} onMode={changerMode} modes={MODES_MANDAT} />}
         {brouillon && (

@@ -480,15 +480,25 @@ export const OUTILS_MANDATAIRE = [
     },
   },
   {
+    name: 'prospecter_commerces',
+    description:
+      "Chercher des commerces dans le secteur du mandataire selon un métier ou des critères (2 nov. 2026) : « je veux que des boulangeries propriétaires exploitants », « les coiffeurs avec un gérant de 70 ans », « les indépendants pas encore dans une liste ». Ouvre la Prospection, filtrée. Passe la phrase du mandataire telle quelle, sans la reformuler. Après l'appel, dis en une ligne ce que tu ouvres ; le bouton suit ta réponse.",
+    input_schema: {
+      type: 'object',
+      properties: { phrase: { type: 'string', description: 'Ce que le mandataire cherche, avec ses mots' } },
+      required: ['phrase'],
+    },
+  },
+  {
     name: 'avancer_bien',
     description:
-      "Faire avancer un bien d'étape dans Biens. Les étapes (26 oct. 2026) : Visite (previsite), Avis de valeur (estimation), Mandat, Commercialisation (marche), Offres, Vente. « La visite est faite » sans avis lancé : previsite. « Il est d'accord à 460 k€ » : estimation avec prix (le prix d'accord est le résultat de l'avis). « Le mandat est signé » : mandat. Rien n'est écrit : l'outil prépare le changement et l'écran le fait confirmer d'un tap. Le rendez-vous fixé, lui, passe par noter_rdv ; un avis lancé fait déjà la Pré-visite, sans avancer_bien. Après l'appel, dis en une ligne ce que tu proposes (« Je note l'accord à 460 000 € ? ») puis enchaîne sur la suite (le mandat à préparer).",
+      "Faire avancer un bien d'étape dans Biens. Les étapes (26 oct. 2026 ; Data room le 2 nov.) : Visite (previsite), Avis de valeur (estimation), Mandat, Data room (dataroom), Commercialisation (marche), Offres, Vente. « La visite est faite » sans avis lancé : previsite. « Il est d'accord à 460 k€ » : estimation avec prix (le prix d'accord est le résultat de l'avis). « Le mandat est signé » : mandat. Rien n'est écrit : l'outil prépare le changement et l'écran le fait confirmer d'un tap. Le rendez-vous fixé, lui, passe par noter_rdv ; un avis lancé fait déjà la Pré-visite, sans avancer_bien. Après l'appel, dis en une ligne ce que tu proposes (« Je note l'accord à 460 000 € ? ») puis enchaîne sur la suite (le mandat à préparer).",
     input_schema: {
       type: 'object',
       properties: {
         qui: { type: 'string', description: 'Le commerce ou le propriétaire, comme le mandataire le dit' },
         proprietaire_id: { type: 'string', description: "L'id de la fiche, si la conversation est ouverte depuis elle" },
-        etape: { type: 'string', enum: ['previsite', 'estimation', 'mandat', 'marche', 'offre', 'vente'] },
+        etape: { type: 'string', enum: ['previsite', 'estimation', 'mandat', 'dataroom', 'marche', 'offre', 'vente'] },
         prix: { type: 'string', description: "Pour estimation : le prix convenu avec le propriétaire (« 460 k€ »)" },
       },
       required: ['etape'],
@@ -887,6 +897,13 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     const dits = Object.entries(patch).map(([k, v]) => (k === 'sections' ? `partie « ${input.section.titre} » ${input.section.action === 'retirer' ? 'retirée' : 'écrite'}` : `${k} ${v || '(vidé)'}`));
     return { ok: true, fiche_id: cible.id, titre: titreProprietaire(cible), fait: `Fiche à jour : ${[...dits, ...faits].join(' ; ')}${input.a_confirmer ? ' (à confirmer)' : ''}.` };
   }
+  // Prospecter depuis le chat (2 nov. 2026, Jules) : la page Prospection lit la phrase et pose les filtres
+  // (src/lib/off-market-simple.js, comprendre). Rien n'est écrit ici.
+  if (name === 'prospecter_commerces') {
+    const phrase = String(input.phrase || '').trim().slice(0, 200);
+    if (!phrase) return { ok: false, error: 'Que cherche-t-il ? Demande-le en une ligne.' };
+    return { ok: true, fait: `La Prospection s'ouvre filtrée sur « ${phrase} ».`, boutons: [{ libelle: 'Voir les commerces', href: `/MandataireProspection?recherche=${encodeURIComponent(phrase)}`, principal: true }] };
+  }
   if (name === 'avancer_bien') {
     const { retrouverProprietaire, titreProprietaire } = await import('./mandataire-espace.js');
     const { ETAPES_BIENS, dansBiens } = await import('./fiche-mandataire.js');
@@ -1090,8 +1107,9 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
       const m = modifierProprietaire(proprietaire.id, patch, user);
       if (m.ok && m.proprietaire) proprietaire = m.proprietaire;
     }
-    const { pousserProspect } = await import('./mandataire-monday.js');
-    const monday = await pousserProspect(proprietaire);
+    // Prospect dans le CRM seulement si la fiche est dans une liste (2 nov. 2026, Jules).
+    const { synchroniserFicheMonday } = await import('./mandataire-monday.js');
+    const monday = await synchroniserFicheMonday(proprietaire.id);
     const { mesListes } = await import('./mandataire-lancement.js');
     const listes = mesListes(user).sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')));
     return {
@@ -1162,7 +1180,7 @@ Règles :
 14. « Il », « elle », « lui » renvoient à la dernière personne dont on a parlé dans la conversation.
 15. Un commerce dans une ville hors du secteur (indiqué plus bas) : dis d'abord qu'il est hors secteur et qu'il se signale à Klocka, sans rien demander d'autre ni rien créer.
 16. Un jour de semaine sans autre précision (« jeudi ») désigne le prochain : dit un jeudi, c'est le jeudi de la semaine prochaine, sauf « aujourd'hui » ou « cet après-midi ».
-17. La visite racontée (27 oct. 2026) : sans bien désigné, visite_du_moment puis fais confirmer le bien. Puis compte_rendu_visite, rempli depuis le récit (rien d'inventé). Montre le compte rendu en quelques lignes courtes (le bien, l'état, le propriétaire, le locataire, les documents), les écarts avec ce qu'on savait (les deux valeurs), et les questions de la préparation restées sans réponse. Une correction dite ensuite (« non, le loyer c'est 1 900 par mois ») : compte_rendu_visite à nouveau, complet. Finis TOUJOURS par la question rendue par l'outil (« Passer à l'estimation ? ») et attends. Jamais lancer_estimation après un compte rendu. Oui : le bouton « Oui, passer à l'estimation » ouvre l'Avis de valeur du bien, où l'avis commence par ce qu'on sait déjà, à confirmer (29 oct. 2026) ; un oui écrit plutôt que touché : ne lance rien, dis en une ligne de toucher ce bouton. Non : rien, dis que le compte rendu est gardé. Plus vendeur : En pause (mettre en pause, relance) ou Perdu (resultat_appel pas_vendeur, avec le motif). Le compte rendu est interne : il ne part jamais vers le propriétaire. Les étapes d'un bien : Visite, Avis de valeur, Mandat, Commercialisation, Offres, Vente (plus d'étape Analyse) ; il n'y a plus d'étapes « Visité » ni « Prix d'accord ». L'avis envoyé, le mandataire raconte la restitution (ce que le propriétaire en dit) : noter_restitution avec le cas (accord, réflexion, pas de réponse, famille ou comptable, événement attendu, prix trop bas, autre agent, plus vendeur, bail qui change la valeur) ; un accord sur un prix passe aussi par noter_restitution, avec le prix. Un bien qui avance (« il est d'accord à 460 k€ », « le mandat est signé ») : avancer_bien, jamais resultat_appel. Rien n'est fait tant qu'il n'a pas confirmé d'un tap : dis « Je note l'accord à 460 000 € ? », puis la suite (« Je prépare le mandat ? Exclusif ou simple, et quels honoraires ? »).
+17. La visite racontée (27 oct. 2026) : sans bien désigné, visite_du_moment puis fais confirmer le bien. Puis compte_rendu_visite, rempli depuis le récit (rien d'inventé). Montre le compte rendu en quelques lignes courtes (le bien, l'état, le propriétaire, le locataire, les documents), les écarts avec ce qu'on savait (les deux valeurs), et les questions de la préparation restées sans réponse. Une correction dite ensuite (« non, le loyer c'est 1 900 par mois ») : compte_rendu_visite à nouveau, complet. Finis TOUJOURS par la question rendue par l'outil (« Passer à l'estimation ? ») et attends. Jamais lancer_estimation après un compte rendu. Oui : le bouton « Oui, passer à l'estimation » ouvre l'Avis de valeur du bien, où l'avis commence par ce qu'on sait déjà, à confirmer (29 oct. 2026) ; un oui écrit plutôt que touché : ne lance rien, dis en une ligne de toucher le bouton « Oui, passer à l'estimation » (il revient sous ta réponse). Non : rien, dis que le compte rendu est gardé. Plus vendeur : En pause (mettre en pause, relance) ou Perdu (resultat_appel pas_vendeur, avec le motif). Le compte rendu est interne : il ne part jamais vers le propriétaire. Les étapes d'un bien : Visite, Avis de valeur, Mandat, Data room, Commercialisation, Offres, Vente (plus d'étape Analyse) ; il n'y a plus d'étapes « Visité » ni « Prix d'accord ». L'avis envoyé, le mandataire raconte la restitution (ce que le propriétaire en dit) : noter_restitution avec le cas (accord, réflexion, pas de réponse, famille ou comptable, événement attendu, prix trop bas, autre agent, plus vendeur, bail qui change la valeur) ; un accord sur un prix passe aussi par noter_restitution, avec le prix. Un bien qui avance (« il est d'accord à 460 k€ », « le mandat est signé ») : avancer_bien, jamais resultat_appel. Rien n'est fait tant qu'il n'a pas confirmé d'un tap : dis « Je note l'accord à 460 000 € ? », puis la suite (« Je prépare le mandat ? Exclusif ou simple, et quels honoraires ? »).
 18. Tout changement sur une fiche qui existe (un numéro, un mail, le nom du propriétaire, le gérant, l'adresse, une remarque, la prochaine action, le statut, la liste, une partie à ajouter, réécrire ou retirer) : modifier_fiche, tout de suite ; jamais une relance pour la garder, jamais un nouveau contact en doublon. Confirme en une ligne (« Numéro ajouté à la fiche de la boulangerie. ») puis propose la suite (l'appeler).
 19. Les visites d'acquéreurs (27 oct. 2026), pendant la Commercialisation, ne sont pas la visite du propriétaire (règle 17) : un acquéreur qui visite un bien à vendre. Une visite à venir (« je fais visiter … à M. Durand jeudi 15 h », un mail qui la confirme) : noter_visite_acquereur. Une visite d'acquéreur racontée : raconter_visite_acquereur avec tout le récit ; dis en une ligne ce que tu retiens et que les deux documents attendent sa validation à l'écran. Si l'outil signale un bon non signé, dis-le franchement : sans bon signé, la commission n'est pas protégée.
 20. Le terrain (31 oct. 2026) : le mandataire te parle (souvent en vocal) d'un commerce qu'il vient de voir, d'une personne rencontrée, d'un numéro obtenu, même sans l'avoir mis dans une liste. Tu es son assistante : tu ranges pour lui, tu ne lui demandes pas de formulaire. Un commerce pas encore suivi : nouveau_contact avec tout ce qu'il dit (nom, numéro, mail, remarque, statut contacté s'il a parlé à quelqu'un, suite à donner), sans réclamer ce qui manque, sauf le commerce ou l'adresse, et la ville. Puis UNE seule question : où ranger la fiche (propose sa dernière liste). Sur une fiche qui existe : modifier_fiche, noter_rdv, resultat_appel, appel_sans_reponse comme d'habitude. Plusieurs choses dans le même message (« passé chez le fleuriste, personne ; et chez le tabac j'ai eu M. Roux, rappeler lundi ») : traite-les toutes, chacune son appel d'outil, et résume en une ligne par commerce. Un commerce vu seulement « à l'air bien », sans personne : nouveau_contact avec une remarque et le statut à contacter.
@@ -1330,6 +1348,13 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     const canal = ficheOuverte ? 'fiche' : 'dashboard';
     B.versLeFil(cibleFil, user, [{ role: 'user', contenu: String(texte || ''), le, canal }, { role: 'assistant', contenu: reponse, le, canal }]);
     if (!ficheOuverte) filBien = B.lienDuFil(Records.get('ProprietaireMandataire', cibleFil.id));
+  }
+  // Le bouton revient (2 nov. 2026, Jules : « quand j'ai mis un message, ça a enlevé le bouton, je ne peux plus cliquer
+  // dessus ») : un message envoyé efface les boutons de la réponse d'avant ; quand l'assistant renvoie à « Oui, passer à
+  // l'estimation » et que le bien a son compte rendu mais pas encore d'avis, les boutons suivent cette réponse-ci.
+  if (!boutons.length && cibleFil?.biens?.compte_rendu && /passer à l.estimation/i.test(reponse)) {
+    const { objetsDuBien } = await import('./bien-etapes.js');
+    if (!objetsDuBien(cibleFil).estimation) boutons = (await import('./preparation-rdv.js')).boutonsEstimation(cibleFil);
   }
   return { texte: reponse, actions, brouillon, ...(boutons.length ? { boutons } : {}), trace, tours, ...(filBien ? { fil_bien: filBien } : {}), ...(limite ? { limite } : {}), ...(prospectionModifiee ? { prospection_modifiee: true } : {}) };
 }

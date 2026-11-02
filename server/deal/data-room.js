@@ -238,3 +238,24 @@ export function lancerAnalyse(dealId, { uploadDir, user } = {}) {
   const onglet = a.nouvelles.map((p) => ongletDuType(p.zone)).find(Boolean) || null;
   return { ok: true, lancees: a.nouvelles.length, completees: a.completer.length, deja: a.lues, onglet };
 }
+
+/**
+ * Le transfert d'un mail (2 nov. 2026, Jules : « l'IA va chercher ses documents, les met dans la Data Room, les range
+ * dans le Drive et lance l'analyse ») : pour les pièces `ids` qui viennent d'arriver, les trois gestes de la Data Room
+ * à la suite, sans relecture des noms (le transfert est la décision). Le Drive qui échoue n'empêche pas l'analyse.
+ */
+export async function rangerEtAnalyser(dealId, ids = [], { uploadDir, user, drive = null, sansDrive = false, proposer } = {}) {
+  if (!ids.length) return { ok: true, nommees: 0, drive: null, lancees: 0 };
+  const noms = await proposerNoms(dealId, { uploadDir, user, seulement: ids, ...(proposer ? { proposer } : {}) });
+  let rangement = null;
+  if (!sansDrive) {
+    try {
+      const r = await rangerDansDrive(dealId, {}, { uploadDir, user, drive, seulement: ids });
+      rangement = r.ok ? { ok: true, folder_url: r.folder_url || null, ranges: r.ranges || 0, test: !!r.test } : { ok: false, erreur: r.error };
+    } catch (e) {
+      rangement = { ok: false, erreur: e?.message || String(e) };
+    }
+  }
+  const a = lancerAnalyse(dealId, { uploadDir, user });
+  return { ok: true, nommees: noms.ok ? noms.proposes : 0, drive: rangement, lancees: a.ok ? a.lancees : 0 };
+}

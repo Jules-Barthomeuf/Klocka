@@ -32,7 +32,7 @@ import { ETAPES_BIEN, MOTS_PERDU, bienDe, bienDuProprietaire, enAttenteDuProprie
 import { ApercuAvis } from "@/pages/MandataireEstimation";
 import { Detail as DetailMarche, ETAPES_MARCHE } from "@/pages/MandataireMarche";
 import Visites from "@/components/mandataire/Visites";
-import DossierVente, { MailPropose } from "@/components/mandataire/DossierVente";
+import DossierVente from "@/components/mandataire/DossierVente";
 import TeaserBien, { ActionsTeaser } from "@/components/mandataire/Teaser";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { Conversation, Resume, depuisMandataire } from "@/components/conversations/EspaceConversations";
@@ -51,7 +51,10 @@ export default function MandataireBiens() {
   const [params, setParams] = useSearchParams();
   const queryClient = useQueryClient();
   const estimations = useQuery({ queryKey: ["m-estimations"], queryFn: () => base44.request("GET", "/api/mandataire/estimations") });
-  const mandats = useQuery({ queryKey: ["m-mandats"], queryFn: () => base44.request("GET", "/api/mandataire/mandats") });
+  // Un mandat parti se relit toutes les 20 secondes : le PDF joint par l'équipe change le geste, et un message reçu
+  // allume le point de « Conversation » (2 nov. 2026, Jules).
+  const mandats = useQuery({ queryKey: ["m-mandats"], queryFn: () => base44.request("GET", "/api/mandataire/mandats"),
+    refetchInterval: (q) => ((q.state.data?.mandats || []).some((m) => !m.exemple && m.statut && m.statut !== "brouillon") ? 20_000 : false) });
   const dossiers = useQuery({ queryKey: ["m-dossiers"], queryFn: () => base44.request("GET", "/api/mandataire/dossiers"), refetchInterval: 20_000 });
   const marches = useQuery({ queryKey: ["m-marches"], queryFn: () => base44.request("GET", "/api/mandataire/marches") });
   const proprietaires = useQuery({ queryKey: ["m-proprietaires"], queryFn: () => base44.request("GET", "/api/mandataire/proprietaires") });
@@ -116,6 +119,8 @@ function BoutonBienTest({ onCree }) {
   );
 }
 
+const PAR_PAGE = 9;
+
 function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }) {
   const [recherche, setRecherche] = useState("");
   const [importOuvert, setImport] = useState(false);
@@ -127,6 +132,12 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }
     const t = recherche.trim().toLowerCase();
     return (enAttente ? attente : biens).filter((b) => !t || `${b.titre} ${b.adresse || ""}`.toLowerCase().includes(t));
   }, [biens, attente, enAttente, recherche]);
+  // Neuf biens à la fois (2 nov. 2026, Jules) : trois rangées de trois, puis Précédent / Suivant.
+  const [page, setPage] = useState(0);
+  useEffect(() => setPage(0), [recherche, enAttente]);
+  const pages = Math.max(1, Math.ceil(liste.length / PAR_PAGE));
+  const ici = Math.min(page, pages - 1);
+  const vus = liste.slice(ici * PAR_PAGE, (ici + 1) * PAR_PAGE);
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-6 md:px-8 md:py-7">
       <header className="grid items-center gap-4 md:grid-cols-[1fr_auto_1fr] md:gap-6">
@@ -160,7 +171,8 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }
           </button>
         </div>
       )}
-      {chargement && <Chargement taille="grand" />}
+      {/* L'attente seulement quand rien n'est encore là (2 nov. 2026, Jules : « les biens sont déjà en dessous »). */}
+      {chargement && !biens.length && <Chargement taille="grand" />}
       {erreur && !chargement && <p className="m-0 mt-8 text-[13.5px] text-alerte">Les biens ne se chargent pas. Rechargez la page.</p>}
       {!chargement && !erreur && !biens.length && <p className="m-0 mt-16 text-center text-[14px] text-brume">Aucun bien encore : un propriétaire contacté en devient un, ou commencez par une estimation avec « Nouveau bien ».</p>}
       {!!biens.length && !liste.length && <p className="m-0 mt-10 text-center text-[13.5px] text-brume">Rien ne correspond.</p>}
@@ -168,8 +180,15 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }
       <BandeauExemples liste={biens} />
       {!!liste.length && (
         <div className="mt-[26px] grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-3">
-          {liste.map((b) => <CarteBien key={b.cle} b={b} onOuvrir={() => onOuvrir(b)} />)}
+          {vus.map((b) => <CarteBien key={b.cle} b={b} onOuvrir={() => onOuvrir(b)} />)}
         </div>
+      )}
+      {pages > 1 && (
+        <nav className="mt-6 flex items-center justify-center gap-3 text-[13.5px]" aria-label="Pages des biens">
+          <button type="button" onClick={() => setPage(ici - 1)} disabled={ici === 0} className="inline-flex h-9 items-center rounded-full border border-trait px-4 text-craie hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Précédent</button>
+          <span className="tabular-nums text-ardoise">{ici * PAR_PAGE + 1}-{Math.min((ici + 1) * PAR_PAGE, liste.length)} sur {liste.length}</span>
+          <button type="button" onClick={() => setPage(ici + 1)} disabled={ici >= pages - 1} className="inline-flex h-9 items-center rounded-full border border-trait px-4 text-craie hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Suivant</button>
+        </nav>
       )}
     </div>
   );
@@ -274,10 +293,19 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
   // Les étapes à chat portent le titre du bien dans leur colonne : Pré-visite, Avis de valeur, Mandat (26 oct. 2026).
   // La Pré-visite (26 oct. 2026, refaite) : sur ordinateur, la préparation au centre, la page défile, ni écran scindé ni
   // frise en haut ; au téléphone, la mise en page d'avant (le chat), seul le contenu de la préparation change.
-  // Avant la vente, la Commercialisation est le dossier de vente, piloté par Haka (27 oct. 2026, Jules) : chat à gauche.
-  const dossierVente = etape === "marche" && !bien?.marche && !!bien?.dossier?.id;
+  // Le dossier de vente, piloté par Haka (27 oct. 2026, Jules) : chat à gauche. Il est l'étape Data room depuis le
+  // 2 nov. 2026 (Jules, après avis produit : la Commercialisation portait deux métiers).
+  const dossierVente = etape === "dataroom" && !!bien?.dossier?.id;
   // En vente, la Commercialisation garde Haka à gauche, le teaser à droite (28 oct. 2026, Jules).
   const enVente = etape === "marche" && !!bien?.marche;
+  // Mis en vente depuis la Data room (l'assistant le propose), le bien passe à la Commercialisation, comme le mandat
+  // signé passe à la Data room.
+  const marcheId = bien?.marche?.id || null;
+  const marcheAvant = useRef(marcheId);
+  useEffect(() => {
+    if (marcheId && !marcheAvant.current && etape === "dataroom") onAller("marche");
+    marcheAvant.current = marcheId;
+  }, [marcheId, etape, onAller]);
   // Un fil par bien (1er nov. 2026, Jules) : la Pré-visite aussi, sur ordinateur, a le chat à gauche et la préparation à droite.
   const chat = ["previsite", "estimation", "mandat"].includes(etape) || dossierVente || enVente;
   const plein = chat && large;
@@ -295,14 +323,71 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
       <div key={etape} className="animate-in fade-in duration-500 ease-out">
         {etape === "previsite" && <EtapeRaconte bien={bien} etape={etape} large={large} onFermer={onFermer} entete={entete} onAvis={() => onAller("estimation")} />}
         {etape === "estimation" && <EtapeChat espace="estimation" bien={bien} objet={bien?.estimation} large={large} entete={entete} onFermer={onFermer} onCree={(id) => onCree("estimation", id)} />}
-        {etape === "mandat" && <EtapeChat espace="mandat" bien={bien} objet={bien?.mandat} large={large} entete={entete} onFermer={onFermer} onCree={(id) => onCree("mandat", id)} onSuivante={() => onAller("marche")} />}
+        {etape === "mandat" && <EtapeChat espace="mandat" bien={bien} objet={bien?.mandat} large={large} entete={entete} onFermer={onFermer} onCree={(id) => onCree("mandat", id)} onSuivante={() => onAller("dataroom")} />}
         {dossierVente && <EtapeDossierVente bien={bien} large={large} entete={entete} onFermer={onFermer} />}
         {enVente && <EtapeVente bien={bien} large={large} entete={entete} onFermer={onFermer} onSuivante={() => onAller("offre")} />}
-        {["marche", "offre", "vente"].includes(etape) && !dossierVente && !enVente && <EtapeMarche bien={bien} types={types} />}
+        {["dataroom", "marche", "offre", "vente"].includes(etape) && !dossierVente && !enVente && <EtapeMarche bien={bien} types={types} etape={etape} />}
       </div>
       {/* Le check à droite d'une étape la valide, avec celles d'avant, comme dans les dossiers de l'équipe : seulement pour
           un bien né d'une fiche de la Prospection (24 oct. 2026). */}
       <MenuEtapesDroite items={items} valeur={etape} onChange={onAller} onValider={bien?.proprietaire ? (n) => valider.mutate(ETAPES_BIEN[n - 1].id) : null} occupe={valider.isPending} telephone />
+    </div>
+  );
+}
+
+// Les quatre temps d'un mandat envoyé (2 nov. 2026, Jules) : qui agit à chacun, coché au fil de l'eau.
+const tempsDuMandat = (m) => (!m?.statut || m.statut === "brouillon" ? null
+  : m.statut === "signe" || m.statut === "enregistre" ? 4 : m.statut === "pret" ? 3 : m.valide_le ? 2 : m.a_relire ? 1 : 0);
+// Depuis le 2 nov. 2026 (Jules), l'équipe coche elle-même les étapes : le mandataire relit le mandat rempli dans la
+// conversation et dit si c'est bon ; l'équipe le valide et l'envoie en signature.
+const TEMPS_MANDAT = [["Envoyé", "l'équipe le remplit au plus vite"], ["Mandat à relire", "vous, dans la conversation"], ["En signature", "le vendeur"], ["Mandat signé reçu", "vous"]];
+
+/** À gauche, une fois le mandat envoyé : ce qu'il se passe, et où (la conversation à droite). */
+function TempsMandat({ mandat, large, compact = false, geste = null }) {
+  const n = tempsDuMandat(mandat);
+  if (n == null || mandat.exemple) return null;
+  const phrase = n >= 4 ? "Mandat signé reçu : le bien passe à la Data room."
+    : n === 3 ? "Le mandat signé est arrivé dans la conversation. Vérifiez-le, puis « Mandat signé reçu »."
+    : n === 2 ? "Mandat validé : il part en signature. La version finale signée arrivera dans la conversation."
+    : n === 1 ? "Le mandat rempli est dans la conversation. Relisez-le et dites à l'équipe si c'est bon : elle l'envoie en signature."
+    : `Mandat envoyé. L'équipe le remplit au plus vite et vous l'envoie dans cette conversation${large ? ", le mandat à droite" : ""}. Relisez-le et dites-lui si c'est bon : elle l'envoie en signature, puis vous recevez la version finale signée.`;
+  // Pendant l'échange, sous la barre du chat : la phrase et les temps sur une ligne, pour laisser la place au fil.
+  return (
+    <div className={`flex-none rounded-[12px] border border-bord-doux bg-surface/40 text-left ${compact ? "mt-2 px-3.5 py-2.5" : "mt-3 px-4 py-3.5"}`}>
+      <p className={`m-0 leading-[1.5] text-encre ${compact ? "text-[13px]" : "text-[14px]"}`}>{phrase}</p>
+      <ol className={`m-0 flex list-none p-0 ${compact ? "mt-2 flex-wrap gap-x-4 gap-y-1" : "mt-3 flex-col gap-1.5"}`}>
+        {TEMPS_MANDAT.map(([mot, qui], i) => {
+          const fait = i < n || (i === 0 && n >= 0) || n >= 4;
+          const ici = i === n && n < 4;
+          return (
+            <li key={mot} className={`flex items-center ${compact ? "gap-1.5 text-[12.5px]" : "gap-2.5 text-[13.5px]"}`}>
+              <span className={`grid h-4 w-4 flex-none place-items-center rounded-full ${fait ? "bg-menthe text-sur-menthe" : ici ? "border border-pervenche" : "border border-bord-vif"}`}>
+                {fait && <Check className="h-2.5 w-2.5" />}
+              </span>
+              <span className={fait ? "text-ardoise" : ici ? "text-encre" : "text-brume"}>{mot}</span>
+              {!compact && <span className="text-[12.5px] text-brume">{qui}</span>}
+              {/* Le geste du moment, sur la ligne de son étape (2 nov. 2026, Jules) : plus de barre en haut. */}
+              {ici && geste && <span className="ml-auto pl-2">{geste}</span>}
+            </li>
+          );
+        })}
+      </ol>
+      {n >= 4 && geste && <div className="mt-3 flex justify-end">{geste}</div>}
+    </div>
+  );
+}
+
+/** La droite de l'Estimation tant que l'avis n'est pas rédigé : une phrase et une flèche vers le chat de gauche. */
+function GuideAssistant() {
+  return (
+    <div className="grid h-[100dvh] place-items-center border-l border-trait px-10">
+      <div className="flex items-center gap-5">
+        <ArrowLeft className="k-guide-fleche h-10 w-10 flex-none text-menthe" strokeWidth={1.6} aria-hidden />
+        <div className="max-w-[34ch]">
+          <p className="m-0 text-[24px] leading-[1.25] tracking-[-0.01em] text-encre">Laissez-vous guider par votre assistant</p>
+          <p className="m-0 mt-2 text-[14px] leading-[1.55] text-ardoise">Répondez-lui dans le chat : l'avis de valeur s'affichera ici, une fois rédigé.</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -396,17 +481,31 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
   const surReponse = (r) => { rafraichir(); nouvelObjet(r?.[t.cle]); };
   const surRecherche = (r) => { const id = espace === "estimation" ? r?.avis_id : r?.mandat_id; if (id) { rafraichir(); nouvelObjet(id); } };
 
-  // Le mandat signé reçu dans la conversation : le mandataire passe à l'étape suivante (27 oct. 2026, Jules).
+  // Le mandat rempli relu : le mandataire le valide, il part en signature (2 nov. 2026, Jules).
+  const valider = useMutation({
+    mutationFn: () => base44.request("POST", `${t.api}/${objet.id}/valider`),
+    onSuccess: () => { rafraichir(); toast.success("Mandat validé : il part en signature"); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  // Le mandat signé reçu dans la conversation : le mandataire le dit, et passe à la Commercialisation (27 oct. 2026 ;
+  // « Mandat signé reçu » remplace « Passer à l'étape suivante » le 2 nov.).
   const suite = useMutation({
     mutationFn: () => base44.request("POST", `${t.api}/${objet.id}/suite`),
     onSuccess: () => { rafraichir(); queryClient.invalidateQueries({ queryKey: ["m-dossiers"] }); onSuivante?.(); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const mandat = espace === "mandat" ? objet : null;
-  const boutonSuite = mandat?.statut === "pret" ? (
-    <button type="button" onClick={() => suite.mutate()} disabled={suite.isPending}
+  // Un seul geste à la fois, à la place de l'ancien « Passer à l'étape suivante ».
+  const temps = tempsDuMandat(mandat);
+  // Le mandat signé (par le mandataire ou coché par l'équipe, 2 nov. 2026) : rien à valider, on passe à la
+  // Commercialisation (Jules : « je ne peux pas passer à l'étape suivante »).
+  const allerSuite = { mutate: () => onSuivante?.(), isPending: false };
+  const geste = temps === 1 ? [valider, "Je valide le mandat"] : temps === 3 ? [suite, "Mandat signé reçu"]
+    : temps === 4 && onSuivante ? [allerSuite, "Passer à la Data room"] : null;
+  const boutonSuite = geste ? (
+    <button type="button" onClick={() => geste[0].mutate()} disabled={geste[0].isPending}
       className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] font-medium text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-      {suite.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Passer à l'étape suivante
+      {geste[0].isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} {geste[1]}
     </button>
   ) : null;
   const document = espace === "estimation"
@@ -417,25 +516,54 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
   // La conversation du mandat, une fois envoyé (27 oct. 2026, Jules : « je veux pouvoir communiquer avec le mandataire
   // et le mandataire communiquer depuis la plateforme avec l'admin »). Le mandat rédigé sur MyNotary y arrive. Le mot
   // « Klocka » ne s'affiche pas chez le mandataire : l'onglet s'appelle Conversation.
+  // L'étape Mandat, une seule disposition (2 nov. 2026, Jules : « on voit toujours le mandat à droite, et à gauche soit
+  // la conversation avec l'équipe Klocka, soit l'assistant »). L'équipe : la conversation du bien (née dès l'avis de
+  // valeur), reprise par le mandat une fois parti, les quatre temps en tête avec le geste du moment. L'assistant : le
+  // chat qui remplit le mandat. Avant l'envoi on arrive sur l'assistant, après sur l'équipe.
   const [paramsMandat] = useSearchParams();
-  const [vueMandat, setVueMandat] = useState(() => (paramsMandat.get("vue") === "conversation" ? "conversation" : "mandat"));
-  const filMandat = mandat && mandat.statut !== "brouillon" && !mandat.exemple ? (
-    <FilDossier api={`/api/mandataire/mandats/${mandat.id}`} titre="Conversation" plein={large}
-      vide="Le mandat signé arrivera ici. Une question, une correction : écrivez ici." />
+  const envoye = espace === "mandat" && !!mandat && mandat.statut !== "brouillon" && !mandat.exemple;
+  const pidMandat = espace === "mandat" && !bien?.exemple ? bien?.proprietaire?.id || mandat?.proprietaire_id || null : null;
+  const apiEquipe = envoye ? `/api/mandataire/mandats/${mandat.id}` : pidMandat ? `/api/mandataire/mandats/bien-${pidMandat}` : null;
+  const [gauche, setGauche] = useState(() => (paramsMandat.get("vue") === "conversation" || envoye ? "equipe" : "assistant"));
+  const envoyeId = envoye ? mandat.id : null;
+  useEffect(() => { if (envoyeId) setGauche("equipe"); }, [envoyeId]);
+  const surEquipe = espace === "mandat" && !!apiEquipe && gauche === "equipe";
+  const filMandat = apiEquipe ? (
+    <FilDossier api={apiEquipe} titre="Conversation" plein={large} sansCadre
+      enTete={envoye ? <TempsMandat mandat={mandat} large={large} geste={boutonSuite} /> : null}
+      vide={envoye ? "Le mandat rempli arrivera ici pour relecture, puis la version signée. Une question, une correction : écrivez ici."
+        : "Une question à l'équipe sur ce mandat : écrivez ici. Une fois le mandat envoyé, la conversation continue."} />
   ) : null;
-  const conversationPleine = large && !!filMandat && vueMandat === "conversation";
-  // La conversation se charge avec l'étape, pas au clic sur l'onglet : elle est là tout de suite.
-  const apiFil = filMandat ? `/api/mandataire/mandats/${mandat.id}` : null;
+  // La conversation se charge avec l'étape, pas au clic : elle est là tout de suite.
   useEffect(() => {
-    if (apiFil) queryClient.prefetchQuery({ queryKey: ["fil-dossier", apiFil, "mandataire"], queryFn: () => base44.request("GET", `${apiFil}/fil?lire=0`), staleTime: 10_000 });
-  }, [apiFil]);
+    if (apiEquipe) queryClient.prefetchQuery({ queryKey: ["fil-dossier", apiEquipe, "mandataire"], queryFn: () => base44.request("GET", `${apiEquipe}/fil?lire=0`), staleTime: 10_000 });
+  }, [apiEquipe]);
+  const choixGauche = espace === "mandat" && apiEquipe ? (
+    <div className="flex flex-none justify-center py-2.5">
+      <div className="flex gap-0.5 rounded-full border border-bord-doux bg-rail p-0.5" role="tablist" aria-label="L'équipe Klocka ou l'assistant">
+        {[["equipe", "Équipe Klocka"], ["assistant", "Assistant"]].map(([k, mot]) => (
+          <button key={k} type="button" role="tab" aria-selected={gauche === k} onClick={() => setGauche(k)}
+            className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3.5 text-[13px] ${gauche === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+            style={gauche === k ? undefined : { background: "transparent" }}>{mot}{k === "equipe" && envoye && <PointNouveau n={mandat.fil_non_lus || 0} />}</button>
+        ))}
+      </div>
+    </div>
+  ) : null;
   // La présentation de l'avis (26 oct. 2026, Jules) : le deck que le mandataire montre au vendeur, construit sur l'avis.
   // L'avis envoyé, le Suivi s'ouvre en premier, à gauche de l'Avis (27 oct. 2026, Jules).
-  const [vueAvis, setVueAvis] = useState(() => (relation ? "suivi" : "avis"));
+  const [paramsAvis] = useSearchParams();
+  const [vueAvis, setVueAvis] = useState(() => (paramsAvis.get("vue") === "conversation" ? "conversation" : relation ? "suivi" : "avis"));
+  // La conversation avec l'équipe, dès l'avis de valeur (2 nov. 2026, Jules) : la même que celle du mandat, qui la
+  // reprendra à la suite. Une par bien (sa fiche).
+  const pidEquipe = espace === "estimation" && bien?.proprietaire?.id && !bien?.exemple ? bien.proprietaire.id : null;
+  const filEquipe = pidEquipe ? (
+    <FilDossier api={`/api/mandataire/mandats/bien-${pidEquipe}`} titre="Conversation" plein={large}
+      vide="Une question à l'équipe sur ce bien (le taux, le prix, le propriétaire) : écrivez ici. La conversation suit le bien jusqu'au mandat." />
+  ) : null;
   const suivi = relation && !!bien?.proprietaire;
   useEffect(() => { if (!suivi && vueAvis === "suivi") setVueAvis("avis"); }, [suivi, vueAvis]);
   // L'avis vient de partir : le Suivi prend la place de l'Avis.
-  useEffect(() => { if (suivi) setVueAvis("suivi"); }, [suivi]);
+  useEffect(() => { if (suivi && paramsAvis.get("vue") !== "conversation") setVueAvis("suivi"); }, [suivi]);
   const [presenter, setPresenter] = useState(false);
   // Édition, Lecture, Sources (26 oct. 2026, Jules : « comme dans les autres pages »), pour l'avis comme pour le deck.
   const [modeDoc, setModeDoc] = useState("edition");
@@ -445,27 +573,36 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
   const [pageDeck, setPageDeck] = useState(null);
   const reglagesChat = useMemo(() => ({ ...outilsChat.reglages, vue: espace !== "estimation" ? null : vueAvis === "presentation" ? { document: "presentation", page: pageDeck } : { document: vueAvis } }),
     [outilsChat.reglages, espace, vueAvis, pageDeck]);
-  const droite = espace === "estimation" ? (
+  // À l'Estimation, l'assistant d'abord (2 nov. 2026, Jules : « il a regardé l'estimation directe, donc pas l'IA ») :
+  // tant que l'avis n'est pas rédigé, la droite ne montre pas l'avis en construction mais renvoie au chat, et la barre
+  // de navigation s'efface pour laisser toute la place au chat et à l'avis.
+  const guide = espace === "estimation" && !relation && (!courant || !!apercuAvis.data?.provisoire);
+  useEffect(() => {
+    if (espace !== "estimation" || !large) return undefined;
+    document.documentElement.classList.add("k-sans-barre");
+    return () => document.documentElement.classList.remove("k-sans-barre");
+  }, [espace, large]);
+  const droite = guide ? <GuideAssistant /> : espace === "estimation" ? (
     <div className="flex h-[100dvh] min-h-0 flex-col">
       <div className="flex h-12 flex-none items-center gap-3 border-b border-l border-trait px-4 md:pr-[72px] k-barre-apercu">
         <div className="flex gap-0.5 rounded-full border border-bord-doux bg-rail p-0.5" role="tablist" aria-label="Suivi, avis, présentation ou sources">
           {/* Sources remplace Rapport (27 oct. 2026, Jules) : le rapport Equimmox et toutes les autres données de l'avis. */}
-          {[...(suivi ? [["suivi", "Suivi"]] : []), ["avis", "Avis"], ["presentation", "Présentation"], ["sources", "Sources"]].map(([k, mot]) => (
+          {[...(suivi ? [["suivi", "Suivi"]] : []), ["avis", "Avis"], ["presentation", "Présentation"], ["sources", "Sources"], ...(filEquipe ? [["conversation", "Conversation"]] : [])].map(([k, mot]) => (
             <button key={k} type="button" role="tab" aria-selected={vueAvis === k} onClick={() => setVueAvis(k)}
               className={`h-7 rounded-full px-3.5 text-[13px] ${vueAvis === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
               style={vueAvis === k ? undefined : { background: "transparent" }}>{mot}</button>
           ))}
         </div>
         <span className="flex-1" />
-        {vueAvis !== "sources" && vueAvis !== "suivi" && courant && (
+        {vueAvis !== "sources" && vueAvis !== "suivi" && vueAvis !== "conversation" && courant && (
           <ModesEditeur mode={modeDoc} onMode={setModeDoc} />
         )}
       </div>
       {/* L'état de l'avis avec le propriétaire, au-dessus de l'avis (et plus au-dessus du chat, où il le poussait hors de l'écran). */}
-      {bien?.proprietaire && vueAvis !== "suivi" && <EtatAvis bien={bien} className="mx-4 mt-3 flex-none" />}
+      {bien?.proprietaire && vueAvis !== "suivi" && vueAvis !== "conversation" && <EtatAvis bien={bien} className="mx-4 mt-3 flex-none" />}
       {/* La ligne verticale entre le chat et le document : l'avis porte la sienne, la présentation et les sources la reçoivent ici. */}
       <div className={`min-h-0 flex-1 [&>div]:h-full ${vueAvis !== "avis" ? "border-l border-trait" : ""}`}>
-        {vueAvis === "suivi" ? <SuiviBien proprietaireId={bien.proprietaire.id} /> : vueAvis === "sources" ? <SourcesAvis id={courant} /> : (
+        {vueAvis === "conversation" && filEquipe ? filEquipe : vueAvis === "suivi" ? <SuiviBien proprietaireId={bien.proprietaire.id} /> : vueAvis === "sources" ? <SourcesAvis id={courant} /> : (
           <SurvolSources actif={modeDoc === "sources"} avis={apercuAvis.data?.avis} estimation={apercuAvis.data?.estimation} className={`h-full ${modeDoc !== "edition" ? "k-avis-lecture" : ""}`}>
             {vueAvis === "avis"
               ? <ModeAvis.Provider value={modeDoc}>{document}</ModeAvis.Provider>
@@ -474,30 +611,22 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
         )}
       </div>
     </div>
-  ) : filMandat ? (
-    <div className="flex h-[100dvh] min-h-0 flex-col">
-      <div className="flex h-12 flex-none items-center gap-3 border-b border-l border-trait px-4 md:pr-[72px] k-barre-apercu">
-        <div className="flex gap-0.5 rounded-full border border-bord-doux bg-rail p-0.5" role="tablist" aria-label="Le mandat ou sa conversation">
-          {[["mandat", "Mandat"], ["conversation", "Conversation"]].map(([k, mot]) => (
-            <button key={k} type="button" role="tab" aria-selected={vueMandat === k} onClick={() => setVueMandat(k)}
-              className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3.5 text-[13px] ${vueMandat === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
-              style={vueMandat === k ? undefined : { background: "transparent" }}>{mot}{k === "conversation" && <PointNouveau n={mandat.fil_non_lus || 0} />}</button>
-          ))}
-        </div>
-        <span className="flex-1" />
-        {boutonSuite}
-      </div>
-      <div className={`min-h-0 flex-1 [&>div]:h-full ${vueMandat === "conversation" ? "border-l border-trait p-3" : ""}`}>
-        {vueMandat === "conversation" ? filMandat : document}
-      </div>
-    </div>
   ) : document;
 
-  const colonne = (
+  const colonne = surEquipe ? (
+    <div className={large ? "k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5" : "flex flex-col px-5 pb-6"}>
+      {entete}
+      {choixGauche}
+      {/* Au téléphone, le mandat s'ouvre par-dessus. */}
+      {!large && courant && <div className="flex flex-none justify-center pb-2"><DocumentTelephone enLigne serre libelle="Voir le mandat">{document}</DocumentTelephone></div>}
+      <div className={large ? "min-h-0 flex-1 [&>div]:h-full" : ""}>{filMandat}</div>
+    </div>
+  ) : (
     // Au téléphone (26 oct. 2026, Jules : « ne va pas du tout ») : un seul en-tête, le fil d'Ariane ; dessous, une ligne avec
     // l'état de l'avis et « Voir l'avis de valeur » ; puis le chat sans sa barre du haut, sur la hauteur qui reste.
     <div className={large ? "k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5" : `flex flex-col px-5 ${conversation ? "k-chat-hauteur" : ""}`}>
-      {(!conversation || !large) && entete}
+      {(!conversation || !large || choixGauche) && entete}
+      {choixGauche}
       {!conversation && (
         <div className={large ? "flex min-h-0 flex-1 flex-col justify-center gap-2 overflow-y-auto py-6 text-center" : "pb-6 pt-4 text-center"}>
           <h1 className="k-balayage m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>{objet ? bien?.titre : recit ? "Racontez la visite" : t.titre}</h1>
@@ -519,9 +648,8 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
                 )}
                 {suivi && <DocumentTelephone enLigne serre libelle="Suivi"><SuiviBien proprietaireId={bien.proprietaire.id} /></DocumentTelephone>}
                 <DocumentTelephone enLigne serre libelle={espace === "estimation" ? "Avis de valeur" : "Voir le mandat"}>{document}</DocumentTelephone>
-                {filMandat && <DocumentTelephone enLigne serre libelle={<>Conversation<PointNouveau n={mandat.fil_non_lus || 0} className="ml-1" /></>}><div className="p-3">{filMandat}</div></DocumentTelephone>}
-                {boutonSuite}
                 {espace === "estimation" && <DocumentTelephone enLigne serre libelle="Sources"><SourcesAvis id={courant} /></DocumentTelephone>}
+                {filEquipe && <DocumentTelephone enLigne serre libelle="Conversation"><div className="p-3">{filEquipe}</div></DocumentTelephone>}
               </div>
             )}
           </div>
@@ -531,8 +659,9 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
         {/* Dans un bien, l'estimation n'a plus le choix « Avec le bail / Sans document » (25 oct. 2026, Jules) : `epure`. */}
         <ChatDashboard lueur epure={espace === "estimation"} espace={espace} reglages={reglagesChat} onConversation={setConversation}
           proprietaireId={bien?.proprietaire?.id || null} reprendre={!!bien?.proprietaire?.id}
+          enTeteFil={null}
           placeholderFil={relation ? "Racontez la suite : l'appel, le rendez-vous, sa réponse…" : null} onHistorique={sansHistorique} onReponse={surReponse} onRecherche={surRecherche}
-          menusVersLeHaut avisACote={espace === "estimation" && large} barreApercu={large && conversation} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
+          menusVersLeHaut avisACote={espace === "estimation" && large} barreApercu={large && conversation && !choixGauche} sansBarreHaut={(!large || !!choixGauche) && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
       </div>
     </div>
   );
@@ -541,13 +670,9 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
       {large ? (
         // Les classes de l'Analyse de l'équipe en mode IA : le fond choisi passe sous le chat et sous le document,
         // séparés par une fine ligne (index.css, « k-bien-ia »).
-        // L'onglet Conversation d'un mandat prend toute la page (27 oct. 2026, Jules) : le chat se masque sans se
-        // démonter (« contents » / « hidden » sur le même enveloppant), il garde son fil au retour sur Mandat.
-        <div className={`k-page-presentation k-dossier-ia k-bien-ia relative grid h-[100dvh] overflow-hidden ${largeurChat.tire ? "select-none" : ""}`} style={{ gridTemplateColumns: conversationPleine ? "minmax(0,1fr)" : `${largeurChat.largeur}px minmax(0,1fr)` }}>
-          <div className={conversationPleine ? "hidden" : "contents"}>
-            {largeurChat.poignee}
-            {colonne}
-          </div>
+        <div className={`k-page-presentation k-dossier-ia k-bien-ia relative grid h-[100dvh] overflow-hidden ${largeurChat.tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat.largeur}px minmax(0,1fr)` }}>
+          {largeurChat.poignee}
+          {colonne}
           <div className="k-apercu-bien min-h-0 min-w-0">{droite}</div>
         </div>
       ) : (
@@ -571,12 +696,8 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
   const { data: v } = useQuery({ queryKey: ["m-dossier-vente", dossierId], queryFn: () => base44.request("GET", `/api/mandataire/dossiers/${encodeURIComponent(dossierId)}/vente`) });
   // Ce que Haka propose, tant que la conversation n'a pas commencé : la phrase du dossier, puis ses gestes en un tap.
   // Le mail que la veille a préparé passe avant tout le reste : c'est la question du jour.
-  const proposition = v?.mail_propose ? (
-    <div className="text-left">
-      <p className="m-0 mb-1 text-[12.5px] text-ardoise">L'Assistant KPartners</p>
-      <MailPropose key={v.mail_propose.le} dossierId={dossierId} mail={v.mail_propose} boite={v.boite} />
-    </div>
-  ) : v ? (
+  // Le mail préparé vit en haut de la Data room, à droite (2 nov. 2026, Jules), plus sous la conversation.
+  const proposition = v ? (
     <div className="text-left">
       <p className="m-0 text-[12.5px] text-ardoise">L'Assistant KPartners</p>
       <p className="m-0 mt-1 text-[15px] leading-[1.55] text-encre">
@@ -603,8 +724,8 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
   ) : null;
   return (
     <EcranHaka bien={bien} large={large} entete={entete} onFermer={onFermer} dossierVenteId={dossierId} cles={["m-dossier-vente", "m-dossiers", "m-marches"]}
-      placeholder="Demandez à l'Assistant KPartners : écris au vendeur, relance-le, explique ce point…" proposition={proposition} barre="Le dossier de vente" libelleTel="Voir le dossier"
-      droite={<DossierVente dossierId={dossierId} />} />
+      placeholder="Demandez à l'Assistant KPartners : écris au vendeur, relance-le, explique ce point…" proposition={proposition} barre="La Data room" libelleTel="Voir la Data room"
+      droite={<DossierVente dossierId={dossierId} lecture />} />
   );
 }
 
@@ -673,6 +794,7 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
   );
 
   if (large) {
+    // Le dossier ouvert d'office, sans bouton pour le fermer (2 nov. 2026, Jules : « on arrive, il doit être ouvert »).
     return (
       <div className={`k-page-presentation k-dossier-ia k-bien-ia relative grid h-[100dvh] overflow-hidden ${largeurChat.tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat.largeur}px minmax(0,1fr)` }}>
         {largeurChat.poignee}
@@ -710,15 +832,14 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
 }
 
 /** Commercialisation, Offres et Vente d'un bien : sa commercialisation seule, ouverte (dossier investisseur, vidéo, offres, suivi jusqu'à l'acte). */
-function EtapeMarche({ bien, types }) {
+function EtapeMarche({ bien, types, etape }) {
   const queryClient = useQueryClient();
   const m = bien?.marche;
-  // Les visites d'acquéreurs (27 oct. 2026, Jules) : sous la commercialisation, et dès maintenant si elle n'est pas ouverte.
-  // Avant la vente, le dossier (27 oct. 2026, Jules : plus d'analyste) : le mandataire le complète, puis met en vente.
+  // Sans dossier, la Data room attend le mandat signé ; sans mise en vente, la Commercialisation attend la Data room.
   if (!m) {
     return (
       <div className="mx-auto max-w-[900px] px-5 pb-16 pt-3 md:px-8">
-        {bien?.dossier?.id ? <DossierVente dossierId={bien.dossier.id} /> : <PasEncore texte="Le dossier du bien s'ouvre au mandat signé : les pièces, leurs vérifications, puis la mise en vente se font ici." />}
+        <PasEncore texte={etape === "dataroom" || !bien?.dossier?.id ? "La Data room du bien s'ouvre au mandat signé : les pièces, leurs vérifications, puis la mise en vente se font ici." : "La Commercialisation commence à la mise en vente : l'assistant la propose dans la Data room quand le dossier est prêt."} />
       </div>
     );
   }

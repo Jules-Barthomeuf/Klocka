@@ -64,7 +64,7 @@ test('de bout en bout : envoyé, puis la restitution écrit le statut, la relanc
   const p = Records.create('ProprietaireMandataire', { mandataire_email: user.email, statut: 'rdv_pris', nom: 'M. Dupont', email: 'dupont@exemple.fr', commerce: 'Boulangerie', biens: { validee: 'previsite' }, historique: [] });
   const e = Records.create('EstimationMandataire', { mandataire_email: user.email, proprietaire_id: p.id, statut: 'prete', bien: 'Boulangerie', avis: { chiffres, bien: { rue: '12 rue Exemple', ville: 'Lyon' }, type_libelle: 'Murs de commerce' } });
   const defaut = R.mailParDefaut({ avis: e.avis, proprietaire: p, signataire: { nom: 'Lucie Martin' } });
-  assert.match(defaut.texte, /680.000 €/);
+  assert.doesNotMatch(defaut.texte, /€/, 'pas de montant dans le mail (1er nov. 2026, Jules)');
   assert.match(defaut.texte, /Bonjour M\. Dupont/);
   const env = R.marquerEnvoye(e.id, { a: 'dupont@exemple.fr' }, user);
   assert.equal(env.ok, true);

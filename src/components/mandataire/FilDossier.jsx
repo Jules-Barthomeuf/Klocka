@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, Check, Loader2, Paperclip, Send, Sparkles, X } from "lucide-react";
+import { ArrowRightLeft, ArrowUp, Check, Loader2, Paperclip, Sparkles, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { devinerPiece } from "@/lib/pieces-dossier";
@@ -14,9 +14,24 @@ import Chargement from "@/components/ui/Chargement";
 // Avec `api`, le même fil sert à un autre objet (le mandat, 27 oct. 2026) :
 // sans briefing, ni transfert, ni note interne.
 
+// Au dessin du chat de la plateforme (2 nov. 2026, Jules : « plus en accord avec le reste ») : une colonne de 760 px
+// centrée, les bulles arrondies à 22 px (coin d'attache à 6 px), les pièces en cartes de 120 px avec leur type, les
+// étapes en séparateurs, la saisie en pilule `barre` avec le trombone et l'envoi menthe. En pleine page, plus de cadre.
+const typeDe = (nom) => (String(nom || "").match(/\.([a-z0-9]{2,4})$/i)?.[1] || "doc").toUpperCase();
+
+function CartePiece({ p }) {
+  return (
+    <a href={p.url} target="_blank" rel="noreferrer" title={p.nom}
+      className="relative block h-[120px] w-[120px] flex-none overflow-hidden rounded-[14px] border border-bord-doux bg-barre hover:border-bord-vif">
+      <span className="grid h-full w-full place-items-center px-3 pb-6 text-center text-[12px] leading-[1.35] text-craie"><span className="line-clamp-3 break-all">{p.nom}</span></span>
+      <span className="absolute bottom-2 left-2 rounded-[6px] bg-black/60 px-1.5 py-0.5 text-[11px] font-medium tracking-[.04em] text-white">{typeDe(p.nom)}</span>
+    </a>
+  );
+}
+
 const heure = (d) => new Date(d).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-export default function FilDossier({ dossierId, api = null, titre = null, vide = null, cote = "mandataire", hauteur = "max-h-[460px]", plein = false, pieces = null, onPiece = null }) {
+export default function FilDossier({ dossierId, api = null, titre = null, vide = null, cote = "mandataire", hauteur = "max-h-[460px]", plein = false, pieces = null, onPiece = null, enTete = null, sansCadre: sansCadreDemande = null }) {
   const queryClient = useQueryClient();
   const klocka = cote === "analyste";
   const gestesDossier = klocka && !api;
@@ -93,13 +108,16 @@ export default function FilDossier({ dossierId, api = null, titre = null, vide =
   const visibles = messages.filter((m) => m.genre !== "briefing");
   const peutEnvoyer = (texte.trim() || piece) && !envoyer.isPending;
   const soumettre = () => { if (peutEnvoyer) envoyer.mutate(); };
+  // Le mandat du mandataire en pleine page : ni cadre ni titre, l'onglet de la page dit « Conversation ». L'équipe le
+  // demande aussi pour le mandat et l'estimation (2 nov. 2026, Jules : « comme du côté mandataire, le même style »).
+  const sansCadre = sansCadreDemande ?? (plein && !!api && !klocka);
 
   return (
-    <div className={`relative flex flex-col rounded-[16px] border border-trait bg-rail ${plein ? "h-full min-h-0" : ""}`}
+    <div className={`relative flex flex-col ${plein ? "h-full min-h-0" : ""} ${sansCadre ? "" : "rounded-[16px] border border-trait bg-rail"}`}
       onDragOver={(e) => { if (e.dataTransfer?.types?.includes("Files")) { e.preventDefault(); setSurvol(true); } }}
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setSurvol(false); }}
       onDrop={(e) => { e.preventDefault(); setSurvol(false); choisir(e.dataTransfer?.files?.[0]); }}>
-      <div className="flex flex-none flex-wrap items-center justify-between gap-2 border-b border-trait px-4 py-3">
+      {!sansCadre && <div className="flex flex-none flex-wrap items-center justify-between gap-2 border-b border-trait px-4 py-3">
         <p className="m-0 text-[13.5px] text-encre">
           {titre || (klocka ? "Conversation avec le mandataire" : "Votre analyste Klocka")}
           {data?.analyste && <span className="text-ardoise"> · {data.analyste.nom}{data.relais ? " (relais)" : ""}</span>}
@@ -121,7 +139,7 @@ export default function FilDossier({ dossierId, api = null, titre = null, vide =
             </label>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* L'avancement chez Klocka (28 oct. 2026, Jules) : l'analyste le coche ici, le mandataire le lit. */}
       {!api && data?.dossier?.envoye_klocka_le && (
@@ -148,31 +166,42 @@ export default function FilDossier({ dossierId, api = null, titre = null, vide =
         </div>
       )}
 
-      <div className={`${plein ? "min-h-0 flex-1" : hauteur} space-y-3 overflow-y-auto px-4 py-4`}>
+      {/* Ce que la page pose en tête du fil, centré sur sa colonne (les quatre temps du mandat, 2 nov. 2026). */}
+      {enTete && <div className="flex-none px-4 pt-4"><div className="mx-auto w-full max-w-[760px]">{enTete}</div></div>}
+      <div className={`${plein ? "min-h-0 flex-1" : hauteur} overflow-y-auto px-4 py-5`}>
+        <div className="mx-auto flex w-full max-w-[760px] flex-col gap-5">
         {isLoading && <Chargement taille="petit" />}
-        {!isLoading && !visibles.length && <p className="m-0 text-center text-[13px] text-brume">{vide || (klocka ? "Aucun message encore." : "Aucun message encore. Écrivez à votre analyste, ou glissez une pièce ici.")}</p>}
+        {!isLoading && !visibles.length && <p className="m-0 py-8 text-center text-[14px] text-brume">{vide || (klocka ? "Aucun message encore." : "Aucun message encore. Écrivez à votre analyste, ou glissez une pièce ici.")}</p>}
         {visibles.map((m) => {
-          if (m.cote === "systeme") return <p key={m.id} className="m-0 text-center text-[12.5px] leading-[1.5] text-brume">{m.texte} · {heure(m.le)}</p>;
+          // Une étape du dossier ou du mandat : un séparateur, comme les étapes du chat.
+          if (m.cote === "systeme") return (
+            <div key={m.id} className="flex items-center gap-3">
+              <span className="h-px flex-1 bg-bord-doux" />
+              <span className="max-w-[80%] text-center text-[12.5px] leading-[1.5] text-brume">{m.texte} · {heure(m.le)}</span>
+              <span className="h-px flex-1 bg-bord-doux" />
+            </div>
+          );
           const moi = (klocka && m.cote === "analyste") || (!klocka && m.cote === "mandataire");
           const note = klocka && m.interne;
           // La couleur suit l'auteur, pas celui qui lit : la même bulle a la même teinte chez Klocka et chez le
           // mandataire (27 oct. 2026, Jules). Le mandataire en `barre`, Klocka en surface bordée ; la place (droite pour
           // soi) suit, elle, celui qui lit.
+          const teinte = note ? "bg-ambre/10" : m.cote === "mandataire" ? "bg-barre" : "border border-trait bg-surface-pleine";
           return (
-            <div key={m.id} className={`flex ${moi ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] rounded-[14px] px-3.5 py-2.5 text-[14px] leading-[1.55] ${note ? "bg-ambre/10 text-encre" : m.cote === "mandataire" ? "bg-barre text-encre" : "border border-trait bg-surface-pleine text-encre"}`}>
-                {(!moi || note) && <p className="m-0 mb-0.5 text-[12px] text-ardoise">{m.cote === "analyste" ? m.auteur : "Mandataire"}{note ? " · note interne, invisible du mandataire" : ""}</p>}
-                {m.texte && <p className="m-0 whitespace-pre-line">{m.texte}</p>}
-                {(m.pieces || []).map((p) => <a key={p.url} href={p.url} target="_blank" rel="noreferrer" className="mt-1 block text-[12.5px] text-menthe hover:underline">{p.nom}</a>)}
-                <p className="m-0 mt-1 text-right text-[11px] text-brume">{heure(m.le)}</p>
-              </div>
+            <div key={m.id} className={`flex flex-col gap-1.5 ${moi ? "items-end" : "items-start"}`}>
+              {(!moi || note) && <p className="m-0 px-1 text-[12.5px] text-ardoise">{m.cote === "analyste" ? m.auteur : "Mandataire"}{note ? " · note interne, invisible du mandataire" : ""}</p>}
+              {(m.pieces || []).length > 0 && <div className={`flex max-w-[80%] flex-wrap gap-2 ${moi ? "justify-end" : ""}`}>{m.pieces.map((p) => <CartePiece key={p.url} p={p} />)}</div>}
+              {m.texte && <div className={`max-w-[80%] whitespace-pre-line rounded-[22px] px-5 py-3.5 text-[15px] leading-[1.6] text-encre ${moi ? "rounded-br-[6px]" : "rounded-bl-[6px]"} ${teinte}`}>{m.texte}</div>}
+              <p className="m-0 px-1 text-[11.5px] text-brume">{heure(m.le)}</p>
             </div>
           );
         })}
         <div ref={bas} />
+        </div>
       </div>
 
-      <form className="flex-none border-t border-trait px-3 py-3" onSubmit={(e) => { e.preventDefault(); soumettre(); }}>
+      <form className={`flex-none px-3 pb-3 ${sansCadre ? "pt-1" : "border-t border-trait pt-3"}`} onSubmit={(e) => { e.preventDefault(); soumettre(); }}>
+        <div className="mx-auto w-full max-w-[760px]">
         {gestesDossier && (
           <div className="mb-2 flex gap-1 rounded-full bg-rail-actif p-1 text-[12px]" style={{ width: "fit-content" }}>
             {[[false, "Au mandataire"], [true, "Note interne"]].map(([v, mot]) => (
@@ -203,19 +232,21 @@ export default function FilDossier({ dossierId, api = null, titre = null, vide =
             )}
           </div>
         )}
-        <div className="flex items-end gap-2">
+        {/* La saisie du chat : une pilule `barre`, le trombone, le texte, l'envoi menthe. */}
+        <div className="flex items-end gap-2 rounded-[20px] border border-trait bg-barre px-3 py-2.5 shadow-[0_12px_32px_rgb(0_0_0/0.07)] focus-within:border-bord-vif">
           <input ref={fichier} type="file" className="hidden" onChange={(e) => { choisir(e.target.files?.[0]); e.target.value = ""; }} />
-          <button type="button" onClick={() => fichier.current?.click()} aria-label="Joindre un fichier" title="Joindre un fichier" className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-            <Paperclip className="h-4 w-4" />
+          <button type="button" onClick={() => fichier.current?.click()} aria-label="Joindre un fichier" title="Joindre un fichier" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-barre-relief hover:text-encre" style={{ background: "transparent" }}>
+            <Paperclip className="h-4 w-4" strokeWidth={1.7} />
           </button>
           <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={1}
             placeholder={klocka ? (interne ? "Note pour l'équipe Klocka…" : "Écrire au mandataire…") : api ? "Votre message…" : "Écrire à votre analyste…"}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); soumettre(); } }}
-            className="max-h-32 min-w-0 flex-1 resize-none rounded-[12px] border border-trait bg-surface-pleine px-3.5 py-2 text-[14px] text-encre outline-none placeholder:text-brume focus:border-bord-vif max-md:text-[16px]" />
+            className="max-h-32 min-w-0 flex-1 resize-none border-none bg-transparent px-1 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" style={{ background: "transparent" }} />
           <button type="submit" disabled={!peutEnvoyer} aria-label="Envoyer" title="Envoyer"
-            className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe disabled:opacity-40">
-            {envoyer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-40">
+            {envoyer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
           </button>
+        </div>
         </div>
       </form>
 

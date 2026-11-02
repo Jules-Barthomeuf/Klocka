@@ -35,10 +35,12 @@ const nomSur = (nom) => String(nom || 'document').replace(/[^a-zA-Z0-9._-]/g, '_
  * @param {string} uploadDir
  * @param {object} [user]
  * @param {Function} [telecharger] - injectable, pour tester sans appeler Gmail
- * @param {{ranger?: boolean}} [options] - `ranger: false` : ni Drive ni Monday (simulation de Haka, 22 oct. 2026)
+ * @param {{ranger?: boolean, dataRoom?: boolean}} [options] - `ranger: false` : ni Drive ni Monday (simulation de Haka,
+ *   22 oct. 2026). `dataRoom: true` (le transfert, 2 nov. 2026) : ni l'ancienne lecture ni l'ancien Drive à plat ;
+ *   l'appelant passe par la Data Room (noms proposés, sous-dossiers, lecture par grille) avec les `ids` rendus.
  * @returns {Promise<{ deposes: string[], ignorees: number, erreurs: string[] }>}
  */
-export async function ingererPiecesJointes(mail, uploadDir, user = null, telecharger = telechargerPieceJointe, { ranger: doitRanger = true } = {}) {
+export async function ingererPiecesJointes(mail, uploadDir, user = null, telecharger = telechargerPieceJointe, { ranger: doitRanger = true, dataRoom = false } = {}) {
   const vide = { deposes: [], ignorees: 0, erreurs: [], echecs: [] };
   if (!mail?.deal_id || mail.pieces_ingerees) return vide;
 
@@ -55,7 +57,7 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
   }
 
   // Un même document renvoyé deux fois par l'agent ne crée pas de doublon.
-  const dejaLa = new Set((deal.documents_espace || []).map((d) => String(d.nom || '').toLowerCase()));
+  const dejaLa = new Set((deal.documents_espace || []).flatMap((d) => [d.nom, d.nom_origine]).filter(Boolean).map((n) => String(n).toLowerCase()));
 
   const deposes = [];
   const erreurs = [];
@@ -86,7 +88,7 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
   // L'extraction part immédiatement : quand l'analyste ouvre le dossier,
   // les données sont déjà là.
   if (nouveaux.length) {
-    enfiler(mail.deal_id, nouveaux, { uploadDir, user });
+    if (!dataRoom) enfiler(mail.deal_id, nouveaux, { uploadDir, user });
     ajouterSuivi(
       Records.findBy('Deal', 'deal_id', mail.deal_id),
       {
@@ -101,13 +103,14 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
   // Monday à jour dans la foulée. Ni l'un ni l'autre ne peut faire échouer la
   // récupération elle-même — un document reçu doit rester reçu.
   const rangement = nouveaux.length && doitRanger
-    ? await ranger(mail, deposes, user)
+    ? await ranger(mail, deposes, user, { drive: !dataRoom })
     : { drive: null, monday: null, erreurs: [], echecs: [] };
   erreurs.push(...rangement.erreurs);
 
   Records.update('MailRecu', mail.id, { pieces_ingerees: true, pieces_deposees: deposes });
   return {
     deposes,
+    ids: nouveaux,
     ignorees,
     erreurs,
     echecs: rangement.echecs || [],
@@ -160,7 +163,7 @@ export async function classerDeal(deal, { noms = null, comptePrefere = null } = 
  * Le compte Drive est celui qui a reçu le mail — c'est son autorisation qui est
  * engagée ; à défaut, le premier compte de l'équipe qui autorise le Drive.
  */
-async function ranger(mail, deposes, user) {
+async function ranger(mail, deposes, user, { drive: versDrive = true } = {}) {
   const erreurs = [];
   // Un échec écrit en toutes lettres ne se rattrape pas : il faut savoir quel
   // dossier et quelle opération ont manqué pour pouvoir les relancer d'un clic.
@@ -184,7 +187,7 @@ async function ranger(mail, deposes, user) {
   };
 
   // --- Drive ---------------------------------------------------------------
-  const classement = await classerDeal(deal, { noms: deposes, comptePrefere: mail.compte });
+  const classement = versDrive ? await classerDeal(deal, { noms: deposes, comptePrefere: mail.compte }) : { drive: null, erreurs: [] };
   drive = classement.drive;
   erreurs.push(...classement.erreurs.map((e) => `Drive : ${e}`));
   for (const e of classement.erreurs) {

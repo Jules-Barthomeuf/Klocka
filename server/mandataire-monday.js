@@ -5,8 +5,9 @@
 //
 // Pas de doublon : une fiche déjà posée (monday_id) se met à jour ; sinon le
 // même email, à défaut le même numéro, à défaut le même nom, est repris.
-// Seuls les propriétaires CONNUS partent : un commerce dont on ignore qui
-// possède les murs n'est pas un prospect vendeur. Chaque changement de statut
+// Seules les fiches mises dans une liste partent (2 nov. 2026, Jules : « quand on les met dans une des listes, ils
+// deviennent des prospects ») : ni un commerce gardé sans liste, ni une liste de l'agent IA ou de la veille, ni une
+// fiche de test. Le nom est celui du propriétaire des murs, à défaut celui du commerce. Chaque changement de statut
 // (contacté, RDV, pas vendeur, mandat) se reporte dans la colonne Mandat.
 
 import { lienMonday } from './monday.js';
@@ -77,11 +78,14 @@ export async function pousserProspect(p) {
   }
 }
 
+/** Pure : la fiche est-elle dans une liste du mandataire (faite à la main, pas par l'agent IA ni la veille) ? */
+export function dansUneListe(p, liste) {
+  return !!(p?.liste_id && liste && liste.id === p.liste_id && !liste.agent && !liste.suggeree);
+}
+
 /**
- * La fiche telle qu'elle est maintenant → Monday. Rien ne part tant que le
- * propriétaire des murs n'est pas connu, ni pour un bailleur public ou une
- * enseigne nationale. Appelée à la création, à chaque changement de statut,
- * et par la veille quand un propriétaire vient d'être trouvé.
+ * La fiche telle qu'elle est maintenant → Monday, si elle est dans une liste ; jamais pour un bailleur public ou une
+ * enseigne nationale. Appelée à la création, à l'entrée dans une liste et à chaque changement de statut.
  */
 export async function synchroniserFicheMonday(ficheId) {
   const { Records } = await import('./db.js');
@@ -89,12 +93,14 @@ export async function synchroniserFicheMonday(ficheId) {
   if (!p) return { ok: false, error: 'Fiche introuvable' };
   // Une fiche de test (31 oct. 2026) ne part jamais dans le CRM.
   if (p.test || p.essai_bien) return { ok: false, error: 'fiche de test : rien vers le CRM' };
+  if (!dansUneListe(p, p.liste_id ? Records.get('ListeMandataire', p.liste_id) : null)) return { ok: false, error: 'pas dans une liste : pas encore un prospect' };
   const c = p.cible_id ? Records.get('Cible', p.cible_id) : null;
   const proprio = (p.nom || c?.proprietaire?.nom || '').trim();
-  if (!proprio) return { ok: false, error: 'propriétaire des murs inconnu : pas encore de prospect' };
-  const { bailleurPublic, enseigneNationale } = await import('./mandataire-veille.js');
-  if (bailleurPublic(proprio) || enseigneNationale(proprio)) return { ok: false, error: 'bailleur public ou enseigne : pas un prospect' };
-  const r = await pousserProspect({ ...p, nom: proprio });
+  if (proprio) {
+    const { bailleurPublic, enseigneNationale } = await import('./mandataire-veille.js');
+    if (bailleurPublic(proprio) || enseigneNationale(proprio)) return { ok: false, error: 'bailleur public ou enseigne : pas un prospect' };
+  }
+  const r = await pousserProspect({ ...p, nom: proprio || p.commerce || null });
   Records.update('ProprietaireMandataire', p.id, { monday_essai_le: new Date().toISOString(), ...(r.ok ? { monday_synchro_le: new Date().toISOString() } : {}) });
   return r;
 }

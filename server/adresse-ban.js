@@ -5,7 +5,7 @@
 // gratuitement. Voir adresse.js pour le choix entre les propositions.
 
 import { ErreurSource } from './marche/erreurs.js';
-import { classer, redemanderSansCodePostal } from './adresse.js';
+import { classer, redemanderSansCodePostal, separerLaCommune, departementDe } from './adresse.js';
 
 // --- L'adresse, résolue par la Base Adresse Nationale ------------------------------------
 /**
@@ -72,6 +72,20 @@ export async function resoudreAdresse(texte) {
     if (autre && autre.note > (meilleur?.note ?? 0)) { meilleur = autre; classees = autres; }
   }
 
+  // La commune dite est fausse, la rue est juste : « 29 rue de la Doua, Lyon » est à Villeurbanne (1er nov. 2026). La BAN
+  // ne rend rien ; on repose la rue seule, et on garde la réponse si elle est dans le département de la commune dite.
+  let communeDite = null;
+  if (!meilleur) {
+    const s = separerLaCommune(q);
+    if (s) {
+      const [rues, communes] = await Promise.all([propositionsBan(s.rue), propositionsBan(s.commune, 3)]);
+      const dep = departementDe(communes.find((c) => c.type === 'municipality')?.postcode || communes[0]?.postcode);
+      const proches = dep ? rues.filter((x) => departementDe(x.postcode) === dep) : [];
+      const autre = classer(s.rue, proches).find((x) => (x.score ?? 0) >= 0.6) || null;
+      if (autre) { meilleur = autre; communeDite = s.commune; }
+    }
+  }
+
   // Là, en revanche, elle a bien répondu : elle ne connaît pas cette adresse.
   if (!meilleur) return null;
   const p = meilleur;
@@ -96,7 +110,9 @@ export async function resoudreAdresse(texte) {
     score: p.score,
     // De quoi dire à l'écran qu'on a peut-être compris autre chose que voulu :
     // un code postal qui ne colle pas, ou un mot demandé qu'on n'a pas retrouvé.
-    ambigu: !!k.code_postal_contredit || (k.part ?? 1) < 1,
+    ambigu: !!k.code_postal_contredit || (k.part ?? 1) < 1 || !!communeDite,
+    // La commune dite, quand l'adresse a été trouvée dans une autre (« Lyon » pour Villeurbanne) : à dire au mandataire.
+    ...(communeDite ? { commune_dite: communeDite } : {}),
     code_postal_demande: k.code_postal_demande || null,
     alternatives: classees.filter((x) => x !== p).slice(0, 3).map((x) => ({ label: x.label, score: x.score })),
   };

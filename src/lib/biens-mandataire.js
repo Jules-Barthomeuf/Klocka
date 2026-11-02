@@ -12,14 +12,17 @@
  * la visite racontée lance l'Avis de valeur, qui est fait quand le propriétaire est d'accord sur un prix (le prix
  * d'accord est le résultat de l'avis, plus une étape) ; puis Mandat, Commercialisation, Offres, Vente. Plus d'étape
  * Analyse (27 oct. 2026, Jules) : le dossier et le go de l'analyste ne sont plus une étape du mandataire.
+ * La Data room sort de la Commercialisation (2 nov. 2026, Jules, après avis produit) : les pièces avec le vendeur
+ * d'abord, puis, mis en vente, le teaser et les acheteurs. Sept étapes.
  */
 export const ETAPES_BIEN = [
   { n: 1, id: "previsite", label: "Visite" },
   { n: 2, id: "estimation", label: "Avis de valeur" },
   { n: 3, id: "mandat", label: "Mandat" },
-  { n: 4, id: "marche", label: "Commercialisation" },
-  { n: 5, id: "offre", label: "Offres" },
-  { n: 6, id: "vente", label: "Vente" },
+  { n: 4, id: "dataroom", label: "Data room" },
+  { n: 5, id: "marche", label: "Commercialisation" },
+  { n: 6, id: "offre", label: "Offres" },
+  { n: 7, id: "vente", label: "Vente" },
 ];
 const IDS = ETAPES_BIEN.map((e) => e.id);
 
@@ -28,7 +31,7 @@ const IDS = ETAPES_BIEN.map((e) => e.id);
  * le 26 oct. 2026 gardent leurs anciens mots : « rdv » (le rendez-vous pris, rien de franchi), « visite » et
  * « estimation » (la visite faite), « prix_accord » (l'avis accepté).
  */
-const RANGS = { rdv: -1, visite: 0, estimation: 0, previsite: 0, prix_accord: 1, avis_accepte: 1, mandat: 2, analyse: 2, marche: 3, offre: 4, vente: 5 };
+const RANGS = { rdv: -1, visite: 0, estimation: 0, previsite: 0, prix_accord: 1, avis_accepte: 1, mandat: 2, analyse: 2, dataroom: 3, marche: 4, offre: 5, vente: 6 };
 export const rangValide = (validee) => (validee == null ? -1 : RANGS[validee] ?? -1);
 /** Pure : le mot écrit dans `biens.validee` pour une étape franchie (« estimation » garde son ancien sens : « avis_accepte »). */
 export const marqueurDe = (etape) => (etape === "estimation" ? "avis_accepte" : etape);
@@ -50,7 +53,8 @@ const MARCHE_VENDU = new Set(["acte", "commission_payee"]);
  * Les étapes faites d'un bien. Une étape validée à la main sur la fiche l'est avec toutes celles d'avant
  * (`proprietaire.biens.validee`) ; les objets en font avancer d'eux-mêmes : un avis commencé fait la Pré-visite, le
  * prix d'accord (ou un mandat) fait l'Avis de valeur ; signé, le mandat fait le Mandat (un dossier ou une
- * commercialisation aussi) ; présenté, la Commercialisation ; compromis, les Offres ; acte, la Vente.
+ * commercialisation aussi) ; mis en vente, la Data room ; présenté, la Commercialisation ; compromis, les Offres ;
+ * acte, la Vente.
  */
 export function etapesFaites(b) {
   const m = b?.marche;
@@ -68,7 +72,9 @@ export function etapesFaites(b) {
   if (b?.mandat && MANDAT_FAIT.has(b.mandat.statut)) faites.add("mandat");
   // Un dossier s'ouvre au mandat signé ; une mise en marché suit le go : les étapes d'avant sont faites (25 oct. 2026).
   const avant = (k) => IDS.slice(0, IDS.indexOf(k)).forEach((x) => faites.add(x));
-  if (b?.dossier || m) avant("marche");
+  if (b?.dossier || m) avant("dataroom");
+  // Mis en vente, la Data room est faite (2 nov. 2026, Jules).
+  if (m || b?.dossier?.en_vente_le) avant("marche");
   // Le teaser validé fait la Commercialisation (28 oct. 2026, Jules : « on le valide et on passe aux prochaines étapes »).
   if (m && (MARCHE_PRESENTE.has(m.statut) || m.teaser?.valide_le)) faites.add("marche");
   if (m && MARCHE_VENTE.has(m.statut)) faites.add("offre");
@@ -76,7 +82,7 @@ export function etapesFaites(b) {
   return faites;
 }
 
-/** L'étape où en est le bien (1 à 6) : celle qui suit la dernière franchie (un ancien bien né d'un dossier n'est pas renvoyé au rendez-vous). */
+/** L'étape où en est le bien (1 à 7) : celle qui suit la dernière franchie (un ancien bien né d'un dossier n'est pas renvoyé au rendez-vous). */
 export function etapeDuBien(b) {
   const faites = etapesFaites(b);
   let derniere = -1;

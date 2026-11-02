@@ -290,7 +290,7 @@ const ETAPES_GENERATION = [
   "Mise en page de l'avis de valeur",
 ];
 
-export function ApercuAvis({ id, selection, onSelection, generation = false, onGenere = null, travail = null, sansStatut = false, onEnvoyer = null }) {
+export function ApercuAvis({ id, selection, onSelection, generation = false, onGenere = null, travail = null, sansStatut = false, onEnvoyer = null, equipe = false }) {
   // Après un message, l'avis s'efface le temps que le chat travaille : ses
   // étapes s'affichent à la place, au moins un instant, puis l'avis revient.
   const [maj, setMaj] = useState(false);
@@ -301,8 +301,9 @@ export function ApercuAvis({ id, selection, onSelection, generation = false, onG
     return () => clearTimeout(t);
   }, [enCours]);
   const { data, isLoading } = useQuery({
-    queryKey: ["m-apercu", id],
-    queryFn: () => base44.request("GET", `${API}/${id}/apercu`),
+    queryKey: equipe ? ["m-apercu", id, "equipe"] : ["m-apercu", id],
+    // L'équipe lit l'avis d'un mandataire depuis sa conversation (2 nov. 2026) : `tous` ouvre ceux des autres.
+    queryFn: () => base44.request("GET", `${API}/${id}/apercu${equipe ? "?tous=1" : ""}`),
     enabled: !!id,
   });
   const reste = data?.manquants?.length || 0;

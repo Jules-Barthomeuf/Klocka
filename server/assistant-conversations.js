@@ -52,6 +52,13 @@ export function serialisables(messages) {
       if (typeof m.ak_cle === 'string') propre.ak_cle = m.ak_cle.slice(0, 120);
       // La mémoire des outils d'une réponse d'AK : elle revient au tour suivant, même dans une conversation rouverte.
       if (m.role === 'assistant' && typeof m.memoire === 'string' && m.memoire.trim()) propre.memoire = m.memoire.slice(0, 8000);
+      // Les réponses en un tap d'un message que l'assistant écrit de lui-même (« Appeler », « Mettre en vente ») :
+      // elles reviennent avec le fil (2 nov. 2026).
+      if (m.role === 'assistant' && Array.isArray(m.boutons)) {
+        const boutons = m.boutons.filter((b) => b && typeof b.libelle === 'string').slice(0, 4)
+          .map((b) => ({ libelle: b.libelle.slice(0, 60), ...(typeof b.texte === 'string' ? { texte: b.texte.slice(0, 300) } : {}), ...(typeof b.href === 'string' ? { href: b.href.slice(0, 400) } : {}), ...(b.principal ? { principal: true } : {}) }));
+        if (boutons.length) propre.boutons = boutons;
+      }
       // Les sources d'une LOI : la lettre et les titres, la fenêtre relit le reste.
       if (m.sources && typeof m.sources.loi_id === 'string' && Array.isArray(m.sources.liens)) {
         propre.sources = {

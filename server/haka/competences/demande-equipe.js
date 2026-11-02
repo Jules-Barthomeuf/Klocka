@@ -75,6 +75,7 @@ taches.enregistrer(COMPETENCE, {
  * `template_id`. Sans boîte sourcing@ connectée, ou en simulation, le mail est noté sans partir.
  */
 export async function ecrireDepuisSourcing({ a, objet, corps, template_id }) {
+  (await import('../destinataires.js')).verifierDestinataire(a);
   if (Records.filter('EmailLog', { template_id }).some((e) => e.statut === 'envoye' || e.statut === 'simule')) return { deja: true, a };
   const compte = [...BOITES_COMMUNES][0] || 'sourcing@klocka.immo';
   const account = Records.filter('MailAccount', { email: compte })[0] || null;

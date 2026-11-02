@@ -38,13 +38,30 @@ export function lirePrix(v) {
 }
 
 /**
+ * Une fiche entre dans Biens au rendez-vous fixé, ou à son avis de valeur commencé : la visite a eu lieu, même sans
+ * RDV noté (2 nov. 2026, Jules : « Confirmer » sur l'accord de prix disait « cette fiche n'est pas encore dans Biens »
+ * pour un bien dont l'avis était déjà envoyé). Rend la fiche à jour ; ne touche pas une fiche déjà dans Biens.
+ */
+export function entrerDansBiens(p, user, raison = 'Visite faite : avis de valeur commencé') {
+  if (!p || ['rdv_pris', 'mandat_signe'].includes(p.statut)) return p;
+  const le = new Date().toISOString();
+  return Records.update('ProprietaireMandataire', p.id, {
+    statut: 'rdv_pris',
+    historique: [...(p.historique || []), { le, type: 'statut', texte: raison, par: user?.email || null }],
+  });
+}
+
+/**
  * Le prix d'accord : le chiffre retenu avec le propriétaire, noté dans l'historique ; il fait l'étape Avis de valeur
  * (et celles d'avant). Vide, il s'efface sans toucher aux étapes.
  */
 export function noterPrixAccord(id, prix, user) {
-  const p = sienne(id, user);
+  let p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
-  if (!['rdv_pris', 'mandat_signe'].includes(p.statut)) return { ok: false, error: "Cette fiche n'est pas encore dans Biens : il faut un rendez-vous fixé." };
+  if (!['rdv_pris', 'mandat_signe'].includes(p.statut)) {
+    if (!objetsDuBien(p).estimation) return { ok: false, error: "Cette fiche n'est pas encore dans Biens : il faut un rendez-vous fixé." };
+    p = entrerDansBiens(p, user);
+  }
   const n = lirePrix(prix);
   if (prix != null && prix !== '' && !n) return { ok: false, error: 'Prix illisible.' };
   const biens = { ...(p.biens || {}), prix_accord: n };

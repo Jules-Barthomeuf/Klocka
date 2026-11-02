@@ -50,7 +50,7 @@ const travaux = new Map();
 export const etatPreanalyseDocuments = (dealId) => travaux.get(dealId) || null;
 
 /** Lance la pré-analyse depuis les documents, en tâche de fond ; renvoie l'état. */
-export function lancerPreanalyseDocuments(dealId, { user, uploadDir } = {}) {
+export function lancerPreanalyseDocuments(dealId, { user, uploadDir, apres = null } = {}) {
   const enCours = travaux.get(dealId);
   if (enCours?.etat === 'en_cours') return enCours;
   const travail = { etat: 'en_cours', phase: 'lecture', erreur: null, demarre_le: new Date().toISOString() };
@@ -82,6 +82,8 @@ export function lancerPreanalyseDocuments(dealId, { user, uploadDir } = {}) {
     const r = await analyserFiche({ texte, filename: 'fiche-depuis-data-room.txt' }, { user, dealId, uploadDir });
     Records.update('Deal', brut.id, { preanalyse_depuis_documents: { le: new Date().toISOString(), par: user?.email || null, pieces: (brut.documents_espace || []).length } });
     travail.etat = 'pret'; travail.phase = 'fait'; travail.deal_id = r.deal_id;
+    // `apres` (2 nov. 2026) : le transfert pose la fiche en Mémoire et dans Twenty une fois l'adresse connue.
+    if (apres) { try { apres(r.deal_id || dealId); } catch (e) { console.warn('[pré-analyse] après :', e?.message || e); } }
   })().catch((e) => { travail.etat = 'erreur'; travail.erreur = e?.message || 'Pré-analyse impossible'; });
   return travail;
 }

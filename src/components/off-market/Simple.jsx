@@ -64,6 +64,19 @@ function SectionFiltre({ titre, options, choisis, onChange, multiple = true, rec
 export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, activites, visibles, zones = [], scoreZone = null }) {
   const [ouvert, setOuvert] = useState(false);
   const n = nbFiltres({ ...filtres, texte: "" });
+  // Les recherches enregistrées (2 nov. 2026, Jules) : à chacun les siennes, un clic les rejoue.
+  const qc = useQueryClient();
+  const recherchesQ = useQuery({ queryKey: ["prospection-recherches"], queryFn: () => req("GET", "/simple/recherches"), enabled: ouvert, staleTime: 60_000 });
+  const recherches = recherchesQ.data?.recherches || [];
+  const [nomRecherche, setNomRecherche] = useState(null); // null : pas en train d'enregistrer
+  const enregistrer = useMutation({
+    mutationFn: (nom) => req("POST", "/simple/recherches", { nom, filtres }),
+    onSuccess: (r) => { qc.invalidateQueries({ queryKey: ["prospection-recherches"] }); setNomRecherche(null); toast.success(`Recherche « ${r.recherche.nom} » enregistrée`); },
+    onError: (e) => toast.error(e?.message || "Non enregistrée"),
+  });
+  const retirer = useMutation({ mutationFn: (id) => req("DELETE", `/simple/recherches/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ["prospection-recherches"] }) });
+  const rejouer = (r) => setFiltres((f) => ({ ...FILTRES_SIMPLE, ...r.filtres, texte: f.texte }));
+  const memes = (r) => JSON.stringify({ ...FILTRES_SIMPLE, ...r.filtres, texte: "" }) === JSON.stringify({ ...FILTRES_SIMPLE, ...filtres, texte: "" });
   const maj = (cle) => (v) => setFiltres((f) => ({ ...f, [cle]: v }));
   const un = (cle) => (v) => setFiltres((f) => ({ ...f, [cle]: v[0] || null }));
   useEffect(() => {
@@ -87,6 +100,23 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
         <motion.div key="fenetre" className="pointer-events-none fixed inset-0 z-[71] grid grid-cols-[minmax(0,1fr)] place-items-center p-4 max-md:items-end max-md:p-0"
           initial={{ opacity: 0, y: 48, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 32, scale: 0.98 }} transition={{ type: "spring", stiffness: 380, damping: 32 }}>
         <div role="dialog" aria-label="Filtres" className="pointer-events-auto flex max-h-[85dvh] w-[760px] max-w-full flex-col overflow-hidden rounded-bloc border border-bord-doux bg-surface-pleine shadow-xl max-md:max-h-[88dvh] max-md:w-full max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0">
+          {/* En tête (2 nov. 2026, Jules) : le titre, la croix en haut à droite, et ses recherches enregistrées. */}
+          <div className="flex-none border-b border-trait px-4 pb-3 pt-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="m-0 text-[15px] text-encre">Filtres</p>
+              <button type="button" onClick={() => setOuvert(false)} aria-label="Fermer les filtres" className="grid h-9 w-9 place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+            </div>
+            {recherches.length > 0 && (
+              <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
+                {recherches.map((r) => (
+                  <span key={r.id} className={`group inline-flex h-8 flex-none items-center rounded-full border text-[12.5px] transition-colors ${memes(r) ? "border-pervenche bg-pervenche/10 text-encre" : "border-bord-vif text-craie hover:text-encre"}`}>
+                    <button type="button" onClick={() => rejouer(r)} className="h-full pl-3 pr-1.5" style={{ background: "transparent" }}>{r.nom}</button>
+                    <button type="button" onClick={() => retirer.mutate(r.id)} aria-label={`Retirer la recherche ${r.nom}`} className="grid h-full w-7 place-items-center rounded-r-full text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           {/* Les filtres défilent, « Tout effacer » et « Voir n commerces » restent en bas (Jules, 31 oct. 2026). */}
           <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-4 md:grid-cols-3">
             <div className="flex flex-col gap-5">
@@ -111,8 +141,21 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
             </div>
           </div>
           <div className="flex flex-none items-center justify-between gap-3 border-t border-trait px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-            <button type="button" onClick={() => setFiltres((f) => ({ ...FILTRES_SIMPLE, texte: f.texte, emplacement: f.emplacement }))} disabled={!n} className={bouton}>Tout effacer</button>
-            <button type="button" onClick={() => setOuvert(false)} className={boutonPlein}>Voir {pl(visibles, "commerce")}</button>
+            {nomRecherche !== null ? (
+              <form className="flex min-w-0 flex-1 items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (nomRecherche.trim()) enregistrer.mutate(nomRecherche.trim()); }}>
+                <input autoFocus value={nomRecherche} onChange={(e) => setNomRecherche(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setNomRecherche(null); } }} placeholder="Boulangeries exploitants…" aria-label="Nom de la recherche" className={`${champ} h-9 min-w-0 flex-1 max-md:text-[16px]`} />
+                <button type="submit" disabled={!nomRecherche.trim() || enregistrer.isPending} className={boutonPlein}>Enregistrer</button>
+                <button type="button" onClick={() => setNomRecherche(null)} aria-label="Annuler" className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+              </form>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setFiltres((f) => ({ ...FILTRES_SIMPLE, texte: f.texte, emplacement: f.emplacement }))} disabled={!n} className={bouton}>Tout effacer</button>
+                  {n > 0 && !recherches.some(memes) && <button type="button" onClick={() => setNomRecherche("")} className="text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><span className="max-md:hidden">Enregistrer cette recherche</span><span className="md:hidden">Enregistrer</span></button>}
+                </div>
+                <button type="button" onClick={() => setOuvert(false)} className={boutonPlein}>Voir {pl(visibles, "commerce")}</button>
+              </>
+            )}
           </div>
         </div>
         </motion.div>

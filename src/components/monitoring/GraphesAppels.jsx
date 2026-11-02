@@ -10,7 +10,7 @@ import jetons from "@/design/jetons.json";
 // tableau. Les couleurs sont lues sur le thème courant : recharts écrit ses
 // tracés en attributs SVG, où une variable CSS ne se résout pas.
 
-const ROLES = ["menthe", "encre", "craie", "ardoise", "brume", "surface-pleine", "fond"];
+const ROLES = ["menthe", "encre", "craie", "ardoise", "brume", "surface-pleine", "fond", "lu-ia"];
 
 function lireCouleurs() {
   const racine = typeof document !== "undefined" ? document.documentElement : null;
@@ -206,13 +206,16 @@ export function ParHeure({ heures, c, titre = "Heures d'appel" }) {
   );
 }
 
-/** La carte jour × heure : où se concentrent les appels dans la semaine. Une teinte, du pâle au plein. */
-export function CarteSemaine({ semaine, c }) {
+/**
+ * La carte jour × heure : où se concentrent les appels dans la semaine. Une teinte, du pâle au plein. Le tableau de bord
+ * la reprend pour la prospection (2 nov. 2026) : `unite` et les textes changent, pas le dessin.
+ */
+export function CarteSemaine({ semaine, c, titre = "Jour et heure", aide = "Plus la case est pleine, plus on a appelé à ce moment-là.", vide = "Aucun appel sur la période.", unite = ["appel", "appels"] }) {
   const heures = Array.from({ length: 15 }, (_, i) => i + 7);
   const max = Math.max(1, ...semaine.flatMap((j) => heures.map((h) => j.heures[h])));
   const total = semaine.reduce((t, j) => t + j.heures.reduce((u, n) => u + n, 0), 0);
   return (
-    <Cadre titre="Jour et heure" aide={total ? "Plus la case est pleine, plus on a appelé à ce moment-là." : "Aucun appel sur la période."}>
+    <Cadre titre={titre} aide={total ? aide : vide}>
       <div className="overflow-x-auto">
         <div className="grid min-w-[520px] gap-[2px]" style={{ gridTemplateColumns: `36px repeat(${heures.length}, minmax(0, 1fr))` }}>
           <span />
@@ -223,7 +226,7 @@ export function CarteSemaine({ semaine, c }) {
               {heures.map((h) => {
                 const n = j.heures[h];
                 return (
-                  <span key={h} title={`${JOURS[j.jour]} ${h} h : ${n} appel${n > 1 ? "s" : ""}`}
+                  <span key={h} title={`${JOURS[j.jour]} ${h} h : ${n} ${unite[n > 1 ? 1 : 0]}`}
                     className="h-6 rounded-[4px]"
                     style={{ background: n ? c.menthe : c.trait, opacity: n ? 0.18 + 0.82 * (n / max) : 1 }} />
                 );
@@ -236,7 +239,7 @@ export function CarteSemaine({ semaine, c }) {
         <div className="mt-2.5 flex items-center gap-2 text-[11px] text-brume">
           <span>0</span>
           <span className="h-2 w-28 rounded-full" style={{ background: `linear-gradient(90deg, ${c.trait}, ${c.menthe})` }} />
-          <span className="tabular-nums">{max} appel{max > 1 ? "s" : ""}</span>
+          <span className="tabular-nums">{max} {unite[max > 1 ? 1 : 0]}</span>
         </div>
       )}
     </Cadre>

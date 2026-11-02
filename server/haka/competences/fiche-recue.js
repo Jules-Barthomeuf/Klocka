@@ -223,6 +223,9 @@ taches.enregistrer(COMPETENCE, {
           texte = await redigerMailIntention(lotOuVide(deal, 0), 'demande_documents', { signature: proprietaire?.nom, engagements: [], sansIA: !!deal.test });
         }
         const a = deal.contact_agent_email || null;
+        // Haka n'écrit qu'à @klocka.immo (2 nov. 2026, Jules) : la demande de documents à l'agent n'est plus proposée.
+        const { adresseKlocka } = await import('../destinataires.js');
+        if (!adresseKlocka(a)) return { fin: true, sans_mail: "L'Assistant n'écrit qu'aux adresses @klocka.immo." };
         const de = boiteQuiEnvoie(mail?.compte, pour);
         const manques = (lot.evaluation?.contexte?.informations_manquantes || lot.synthese?.informations_manquantes || []).slice(0, 5);
         const p = await file.proposer({
@@ -245,6 +248,7 @@ taches.enregistrer(COMPETENCE, {
         if (!deal) throw new Error('Dossier introuvable');
         const a = String(charge.a || '').trim();
         if (!a) throw new Error("Pas de destinataire : complétez l'adresse de l'agent.");
+        (await import('../destinataires.js')).verifierDestinataire(a);
         const template_id = `haka:${charge.proposition_id || tache.id}`;
         // Déjà parti (une coupure entre l'envoi et l'écriture du pas) : on ne renvoie pas.
         const deja = Records.filter('EmailLog', { template_id }).find((e) => e.statut === 'envoye');

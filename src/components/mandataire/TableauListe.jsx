@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import Pages from "@/components/ui/Pages";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, LocateFixed, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, LocateFixed, Redo2, Search, Trash2, Undo2, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -175,7 +175,7 @@ function Cellule({ p, col, onEnregistrer }) {
     );
   }
   if (edition) {
-    const valider = () => { setEdition(false); if (texte !== valeur) onEnregistrer({ [col.cle]: texte }); };
+    const valider = () => { setEdition(false); if (texte !== valeur) onEnregistrer({ [col.cle]: texte }, { [col.cle]: p[col.cle] ?? "" }); };
     return <textarea autoFocus aria-label={col.titre} value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={valider}
       onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); } if (e.key === "Escape") { setTexte(valeur); setEdition(false); } }}
       rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[13.5px] text-encre outline-none max-md:text-[16px]" />;
@@ -380,6 +380,48 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
   const statut = useMutation({ mutationFn: ({ id, statut: s }) => base44.request("POST", `${API}/proprietaires/${id}/statut`, { body: { statut: s, ...(s === "pas_vendeur" ? { rappel_dans_jours: 180, note: "Pas d'intérêt" } : {}) } }), onSuccess: rafraichir, onError: onErr });
   const supprimer = useMutation({ mutationFn: (id) => base44.request("DELETE", `${API}/proprietaires/${id}`), onSuccess: rafraichir, onError: onErr });
 
+  // Retour en arrière et en avant sur les actions de la liste (1er nov. 2026, Jules : « on supprime un commerce, on
+  // retourne en arrière ») : un retrait, un statut, une case modifiée. ⌘Z / Ctrl+Z et ⇧⌘Z marchent aussi.
+  const [passe, setPasse] = useState([]);
+  const [futur, setFutur] = useState([]);
+  const [rejoue, setRejoue] = useState(false);
+  const noter = (a) => { setPasse((x) => [...x.slice(-49), a]); setFutur([]); };
+  const nomDe = (id) => { const p = (fiches || []).find((x) => x.id === id); return p?.commerce || p?.nom || "ce commerce"; };
+  const jouer = async (a, sens) => {
+    const avant = sens === "annuler";
+    if (a.type === "retrait") {
+      for (const id of a.ids) await (avant ? base44.request("POST", `${API}/proprietaires/${id}/restaurer`) : base44.request("DELETE", `${API}/proprietaires/${id}`));
+    } else if (a.type === "statut") {
+      const s = avant ? a.avant : a.apres;
+      await base44.request("POST", `${API}/proprietaires/${a.id}/statut`, { body: { statut: s, ...(s === "pas_vendeur" ? { rappel_dans_jours: 180, note: "Pas d'intérêt" } : {}) } });
+    } else if (a.type === "champs") {
+      await base44.request("PATCH", `${API}/proprietaires/${a.id}`, { body: avant ? a.avant : a.apres });
+    }
+  };
+  const bouger = async (sens) => {
+    const pile = sens === "annuler" ? passe : futur;
+    const a = pile[pile.length - 1];
+    if (!a || rejoue) return;
+    setRejoue(true);
+    try {
+      await jouer(a, sens);
+      if (sens === "annuler") { setPasse((x) => x.slice(0, -1)); setFutur((x) => [...x, a]); } else { setFutur((x) => x.slice(0, -1)); setPasse((x) => [...x, a]); }
+      toast.success(`${sens === "annuler" ? "Annulé" : "Rétabli"} : ${a.mot}`);
+    } catch (e) { onErr(e); } finally { setRejoue(false); rafraichir(); }
+  };
+  const bougerRef = useRef(bouger);
+  bougerRef.current = bouger;
+  useEffect(() => {
+    const k = (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || "") || e.target?.isContentEditable) return;
+      e.preventDefault();
+      bougerRef.current(e.shiftKey ? "retablir" : "annuler");
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, []);
+
   const lignes = useMemo(() => {
     const t = q.trim().toLowerCase();
     const garde = (FILTRES.find(([k]) => k === filtre) || FILTRES[0])[2];
@@ -428,17 +470,18 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
         <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0">
           {/* La recherche des propriétaires et des numéros tourne en fond, sans compteur (30 oct. 2026, Jules). */}
           {chiffres ? (
-            // Des flèches à la place de « n faits sur m · k RDV » (1er nov. 2026, Jules) : reculer et avancer d'une page.
+            // Des flèches à la place de « n faits sur m · k RDV » (1er nov. 2026, Jules) : revenir sur la dernière action
+            // (un retrait, un statut, une case), puis la refaire. Les pages se changent en bas de la liste.
             <span className="inline-flex items-center gap-1.5">
-              <button type="button" onClick={() => setPage(pageCourante - 1)} disabled={pageCourante <= 1} aria-label="Page précédente" title="Page précédente"
+              <button type="button" onClick={() => bouger("annuler")} disabled={!passe.length || rejoue} aria-label={passe.length ? `Annuler : ${passe[passe.length - 1].mot}` : "Rien à annuler"} title={passe.length ? `Annuler : ${passe[passe.length - 1].mot}` : "Rien à annuler"}
                 className="grid h-8 w-8 place-items-center rounded-full border border-trait text-encre hover:border-bord-vif disabled:opacity-35" style={{ background: "transparent" }}>
-                <ChevronLeft className="h-4 w-4" />
+                {rejoue ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
               </button>
-              <span className="min-w-[72px] text-center tabular-nums">{lignes.length ? `${(pageCourante - 1) * PAR_PAGE + 1}–${Math.min(pageCourante * PAR_PAGE, lignes.length)} / ${lignes.length}` : "0"}</span>
-              <button type="button" onClick={() => setPage(pageCourante + 1)} disabled={pageCourante * PAR_PAGE >= lignes.length} aria-label="Page suivante" title="Page suivante"
+              <button type="button" onClick={() => bouger("retablir")} disabled={!futur.length || rejoue} aria-label={futur.length ? `Rétablir : ${futur[futur.length - 1].mot}` : "Rien à rétablir"} title={futur.length ? `Rétablir : ${futur[futur.length - 1].mot}` : "Rien à rétablir"}
                 className="grid h-8 w-8 place-items-center rounded-full border border-trait text-encre hover:border-bord-vif disabled:opacity-35" style={{ background: "transparent" }}>
-                <ChevronRight className="h-4 w-4" />
+                <Redo2 className="h-4 w-4" />
               </button>
+              <span className="ml-1 tabular-nums">{lignes.length} commerce{lignes.length > 1 ? "s" : ""}</span>
             </span>
           ) : `${lignes.length} commerce${lignes.length > 1 ? "s" : ""}${agent ? " · remplie par votre agent IA" : ""}`}
         </span>
@@ -510,7 +553,10 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
               // On appelle le propriétaire des murs, pas la boulangerie. Un
               // propriétaire-occupant se joint par le commerce : même numéro.
               const tel = p.telephone || (p.cible?.proprietaire_occupant ? p.cible?.telephone : null) || null;
-              const enregistrer = (champs) => modifier.mutate({ id: p.id, champs });
+              const enregistrer = (champs, avant) => {
+                modifier.mutate({ id: p.id, champs });
+                if (avant) noter({ type: "champs", id: p.id, avant, apres: champs, mot: `${Object.keys(champs).join(", ")} de ${p.commerce || p.nom || "ce commerce"}` });
+              };
               return (
                 // Toute la ligne ouvre la fiche (26 oct. 2026, Jules) ; les cases, le statut, le numéro et les cellules à
                 // modifier gardent leur geste.
@@ -541,7 +587,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                           <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: "var(--point)" }} />
                           <span className="whitespace-nowrap">{libelles[p.statut] || p.statut}</span>
                           <ChevronDown className="h-3.5 w-3.5 flex-none opacity-70" />
-                          <select aria-label={`Statut de ${p.commerce || p.nom}`} value={p.statut} onChange={(e) => statut.mutate({ id: p.id, statut: e.target.value })}
+                          <select aria-label={`Statut de ${p.commerce || p.nom}`} value={p.statut} onChange={(e) => { noter({ type: "statut", id: p.id, avant: p.statut, apres: e.target.value, mot: `statut de ${p.commerce || p.nom || "ce commerce"}` }); statut.mutate({ id: p.id, statut: e.target.value }); }}
                             className="absolute inset-0 cursor-pointer opacity-0 max-md:text-[16px]">
                             {/* Deux statuts en Prospection, Pas d'intérêt pour sortir, et le rendez-vous qui fait passer dans Biens. */}
                             {[["a_appeler", "À contacter"], ["contacte", "Contacté"], ["rdv_pris", "Rendez-vous fixé (passe dans Biens)"], ["pas_vendeur", "Pas d'intérêt"]]
@@ -575,7 +621,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { for (const id of coches) supprimer.mutate(id); setCoches(new Set()); setRetirer(false); }} className="bg-alerte text-fond hover:bg-alerte/90">Retirer</AlertDialogAction>
+            <AlertDialogAction onClick={() => { const ids = [...coches]; for (const id of ids) supprimer.mutate(id); noter({ type: "retrait", ids, mot: ids.length > 1 ? `retrait de ${ids.length} commerces` : `retrait de ${nomDe(ids[0])}` }); setCoches(new Set()); setRetirer(false); }} className="bg-alerte text-fond hover:bg-alerte/90">Retirer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -15,7 +15,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Records, CHEMIN_UPLOADS } from './db.js';
-import { lirePrix, noterPrixAccord, objetsDuBien } from './bien-etapes.js';
+import { entrerDansBiens, lirePrix, noterPrixAccord, objetsDuBien } from './bien-etapes.js';
 
 const JOUR = 86400000;
 const PARIS = 'Europe/Paris';
@@ -176,9 +176,10 @@ export function proposerRestitution(id, { cas, prix = null, date = null, motif =
 export function appliquerRestitution(id, { cas, prix = null, date = null, motif = null, note = null, relance_le = null, relance_quoi = null, canal = null } = {}, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
-  if (!['rdv_pris', 'mandat_signe'].includes(p.statut)) return { ok: false, error: "Cette fiche n'est pas encore dans Biens." };
   const { estimation: e } = objetsDuBien(p);
   if (!e) return { ok: false, error: "Pas encore d'avis de valeur sur ce bien." };
+  // Un avis fait sans RDV noté : la fiche entre dans Biens maintenant (2 nov. 2026).
+  entrerDansBiens(p, user);
   const plan = planDeRestitution(cas, { prix, date, motif, relance_le, relance_quoi, canal, envoye_le: e.envoye_le, chiffres: e.avis?.chiffres, compatibles: p.preparation?.clients_compatibles?.liste });
   if (!plan.ok) return plan;
   if (plan.statut === 'prix_accord') {
@@ -217,15 +218,26 @@ function estimationDe(id, user) {
 const PRETE = new Set(['prete', 'en_validation', 'valide', 'envoye']);
 
 /** Pure : le mail qui part avec l'avis, quand Haka n'en a pas écrit (vouvoiement, la valeur, l'appel annoncé). */
+/**
+ * Pure : le mail sans montant (1er nov. 2026, Jules : « ne mets pas le montant de l'estimation dans le mail ») : une
+ * phrase qui cite une somme en euros est retirée ; la valeur se lit dans l'avis joint, et se dit à l'appel.
+ */
+export function sansMontant(texte) {
+  const somme = /\d[\d\s\u00a0\u202f.,]*\s*(?:€|k€|M€|euros?\b|millions?\b)/i;
+  return String(texte || '').split('\n').map((l) => {
+    if (!somme.test(l)) return l;
+    const phrases = l.split(/(?<=[.!?])\s+/).filter((ph) => !somme.test(ph));
+    return phrases.length ? phrases.join(' ') : null;
+  }).filter((l) => l !== null).join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
 export function mailParDefaut({ avis = {}, proprietaire = null, signataire = {} } = {}) {
-  const c = avis.chiffres || {};
   const qui = proprietaire?.nom || avis.demandeur || null;
   const bien = [avis.type_libelle ? avis.type_libelle.toLowerCase() : 'votre bien', avis.bien?.rue].filter(Boolean).join(', ');
   const lignes = [
     qui ? `Bonjour ${qui},` : 'Bonjour,',
     '',
     `Suite à notre visite, vous trouverez ci-joint l'avis de valeur de ${bien.startsWith('votre') ? bien : `vos ${bien}`}.`,
-    c.valeur ? `Nous l'estimons à ${eur(c.valeur)} net vendeur${c.bas && c.haut ? `, dans une fourchette de ${eur(c.bas)} à ${eur(c.haut)}` : ''}.` : null,
     '',
     "Je vous appelle très prochainement pour vous le présenter et répondre à vos questions.",
     '',
@@ -248,10 +260,39 @@ export async function preparerEnvoi(id, { objet = null, texte = null } = {}, use
     a: e.envoi?.a || p?.email || null,
     // Rouvert sans texte : le mail déjà préparé (celui de Haka) reste, sinon celui par défaut.
     objet: String(objet || '').trim().slice(0, 200) || e.envoi?.objet || defaut.objet,
-    texte: String(texte || '').trim().slice(0, 4000) || e.envoi?.texte || defaut.texte,
+    texte: sansMontant(String(texte || '').trim().slice(0, 4000) || e.envoi?.texte || defaut.texte),
     prepare_le: maintenant(), par_haka: !!texte || !!e.envoi?.par_haka,
   };
   return { ok: true, envoi, estimation: Records.update('EstimationMandataire', e.id, { envoi }) };
+}
+
+/**
+ * Le mail part de la plateforme (1er nov. 2026, Jules : « envoyer le mail directement depuis la plateforme ») : de la
+ * boîte Gmail du mandataire, connectée à Klocka, avec l'avis en PDF joint ; puis l'estimation passe en Envoyée. Sans
+ * boîte connectée, rien ne part : `sans_boite`, l'écran propose de la connecter (ou la messagerie, comme avant).
+ */
+export async function envoyerAvis(id, { a = null, objet = null, texte = null, de = null } = {}, user, { base, exporter = exporterAvisPdf, envoyer = null, boites = null } = {}) {
+  const e = estimationDe(id, user);
+  if (!e) return { ok: false, error: 'Estimation introuvable.' };
+  if (!e.avis || !PRETE.has(e.statut)) return { ok: false, error: "L'avis n'est pas encore rédigé." };
+  const dest = String(a || '').trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dest)) return { ok: false, error: "L'adresse du propriétaire manque ou n'est pas valide." };
+  if (!String(texte || '').trim() || !String(objet || '').trim()) return { ok: false, error: "Le mail n'a pas d'objet ou de texte." };
+  // La boîte choisie parmi celles de la personne (la première, sa boîte par défaut, sans choix) ; une autre est refusée.
+  const liste = boites || await (await import('./dossier-vente.js')).boitesPourEnvoyer(user);
+  if (!liste.length) return { ok: false, sans_boite: true, error: "Aucune boîte Gmail connectée : connectez la vôtre pour envoyer d'ici." };
+  const b = de ? liste.find((x) => x.id === String(de).toLowerCase()) : liste[0];
+  if (!b) return { ok: false, error: "Cette boîte n'est pas l'une des vôtres." };
+  const pdf = await exporter(id, user, { base });
+  if (!pdf.ok) return pdf;
+  const envoi = envoyer || (await import('./email.js')).sendEmail;
+  const r = await envoi({
+    from: b.id, owner: user.email, to: dest, subject: String(objet).slice(0, 200), body: String(texte).slice(0, 4000), intention: 'avis_de_valeur',
+    attachments: [{ filename: pdf.nom, content: fs.readFileSync(pdf.fichier), contentType: 'application/pdf' }],
+  });
+  if (!r?.success) return { ok: false, error: r?.error || "Le mail n'est pas parti." };
+  const m = marquerEnvoye(id, { a: dest, objet, texte }, user);
+  return { ...m, envoye: true, de: r.expediteur || b.email || null };
 }
 
 /** Le mandataire dit que le mail est parti : Estimation envoyée. Aucune relance programmée : la suite se raconte au chat. */
@@ -409,7 +450,7 @@ export const OUTIL_ECHANGE = {
 export const OUTIL_ENVOI = {
   name: 'preparer_envoi_avis',
   description:
-    "Prépare le mail au propriétaire qui accompagne l'avis de valeur en PDF : seulement quand l'avis est fini et que le mandataire a dit oui à ta proposition de l'envoyer. Écris objet et texte : vouvoiement, cinq à huit lignes, la valeur et la fourchette, une phrase sur ce qui la justifie, un appel annoncé pour la présenter, la signature du mandataire. Le mail s'ouvre à l'écran avec l'avis joint : ne le recopie pas dans ta réponse, dis en une ligne qu'il est prêt à relire et à envoyer.",
+    "Prépare le mail au propriétaire qui accompagne l'avis de valeur en PDF : seulement quand l'avis est fini et que le mandataire a dit oui à ta proposition de l'envoyer. Écris objet et texte : vouvoiement, quatre à six lignes, l'avis joint, un appel annoncé pour le présenter, la signature du mandataire. JAMAIS la valeur, la fourchette ni aucun montant (1er nov. 2026, Jules) : le chiffre se lit dans l'avis et se dit à l'appel. Le mail s'ouvre à l'écran avec l'avis joint : ne le recopie pas dans ta réponse, dis en une ligne qu'il est prêt à relire et à envoyer.",
   input_schema: { type: 'object', properties: { objet: { type: 'string' }, texte: { type: 'string' } }, required: ['objet', 'texte'] },
 };
 
@@ -444,6 +485,8 @@ export function suiviDuBien(id, user) {
       prix_pense: cr?.proprietaire?.prix || null,
       alerte: b.restitution?.alerte || null,
       mandat: mandat ? { statut: mandat.statut, signe: !!mandat.document_signe || mandat.statut === 'enregistre' } : null,
+      // De quoi joindre le propriétaire : la fiche n'est plus dans le Suivi (1er nov. 2026, Jules).
+      proprietaire: p.nom || null, telephone: p.telephone || null, email: p.email || null,
     },
     prochaine: b.prochaine || null,
     a_faire,

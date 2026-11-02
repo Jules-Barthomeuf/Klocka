@@ -133,7 +133,7 @@ test('le vendeur dépose par son lien ; Assistant KPartners écrit le mail avec 
   assert.equal(V.dossierDuJeton(jeton), null, 'un lien expiré ne sert plus');
 });
 
-test('la veille : premier mail, puis relance après deux jours sans pièce, jamais deux fois', async () => {
+test('la veille : premier mail, puis relance après trois jours sans pièce, jamais deux fois', async () => {
   const v = { pieces: [{ cle: 'pv', mot: 'PV des AG', requise: true, etat: 'manquante' }] };
   assert.equal(V.mailAPreparer(v, null).genre, 'premier');
   assert.equal(V.mailAPreparer(v, { propose_le: '2026-10-26T10:00:00Z' }, { aujourdhui: AUJ }), null, 'un jour seulement');
@@ -182,4 +182,42 @@ test('après le teaser : envoyé à Klocka, l’analyste coche l’avancement ; 
   assert.equal((await V.cocherAvancement(d.id, 'offre', true, admin)).ok, true);
   assert.ok(Records.list('Notification').some((n) => n.pour === user.email && /Offre en cours/.test(n.titre)), 'le mandataire est prévenu du passage à l’offre');
   assert.ok(Records.list('MessageDossier').some((x) => x.dossier_id === d.id && /Avancement : Analyse\./.test(x.texte)));
+});
+
+test('la priorité des pièces, et le mail qui part tel quel (2 nov. 2026, Jules)', () => {
+  const manquantes = [{ cle: 'taxe_fonciere', mot: 'Dernière taxe foncière' }, { cle: 'quittances', mot: 'Trois dernières quittances' }, { cle: 'pouvoirs', mot: 'Pouvoirs du gérant pour vendre' }];
+  const p = V.prioriteDesPieces(manquantes);
+  assert.equal(p.cle, 'quittances');
+  assert.equal(V.prioriteDesPieces([]), null);
+  const m = V.mailVendeur({ bien: 'Boulangerie', manquantes, priorite: p, url: 'https://x/DepotVendeur?jeton=abc' });
+  assert.match(m.corps, /En priorité : trois dernières quittances \(elles prouvent que le loyer est bien payé\)\.\n\nEnsuite :\n- Dernière taxe foncière\n- Pouvoirs du gérant pour vendre/);
+  assert.doesNotMatch(m.corps, /si vous l'avez/);
+});
+
+test('après trois relances sans la pièce : un appel, une seule fois', () => {
+  const v = { pieces: [{ cle: 'pouvoirs', mot: 'Pouvoirs du gérant pour vendre', requise: true, etat: 'manquante' }] };
+  const depot = { propose_le: '2026-10-01T10:00:00Z', relance_le: '2026-10-20T10:00:00Z', relances: 3 };
+  const r = V.mailAPreparer(v, depot, { aujourdhui: AUJ });
+  assert.equal(r.genre, 'appel');
+  assert.match(r.raison, /^Pouvoirs du gérant pour vendre manque toujours après 3 relances\. Un appel/);
+  assert.equal(V.mailAPreparer(v, { ...depot, appel_propose_le: '2026-10-25T10:00:00Z' }, { aujourdhui: AUJ }), null);
+  assert.match(V.quoiDireAuTelephone({ proprietaire: 'M. Bernard', manquantes: ['Pouvoirs du gérant'] }), /^« Bonjour M\. Bernard[\s\S]*pouvoirs du gérant/);
+});
+
+test('le propriétaire dépose : ce que la lecture relève, puis ce qui manque, ou la Data room complète', () => {
+  const v = {
+    pret: false,
+    pieces: [{ cle: 'bail', mot: 'Bail commercial', requise: true, etat: 'recue' }, { cle: 'taxe_fonciere', mot: 'Dernière taxe foncière', requise: true, etat: 'recue' }, { cle: 'quittances', mot: 'Trois dernières quittances', requise: true, etat: 'manquante' }],
+    points: [{ cle: 'bail.terme', onglet: 'Bail', ligne: 'Terme du bail', motif: 'Le bail se termine dans 8 mois : l’acheteur demandera si le locataire reste.', decision: null }],
+  };
+  const m = V.messagePiecesRecues(v, ['bail', 'bail', 'taxe_fonciere']);
+  assert.match(m.contenu, /^Le propriétaire a déposé 2 pièces\./);
+  assert.match(m.contenu, /- Bail commercial : reçu\. À voir : Le bail se termine dans 8 mois/);
+  assert.match(m.contenu, /- Dernière taxe foncière : reçu\.$/m);
+  assert.match(m.contenu, /Il manque encore trois dernières quittances\.$/);
+  const fin = V.messagePiecesRecues({ ...v, pret: true, points: [] }, ['quittances']);
+  assert.equal(fin, null, 'une pièce inconnue du dossier ne se dit pas');
+  const complet = V.messagePiecesRecues({ ...v, pret: true, points: [] }, ['bail']);
+  assert.match(complet.contenu, /Rien à signaler à la lecture\.[\s\S]*La Data room est complète/);
+  assert.equal(complet.boutons[0].libelle, 'Mettre en vente');
 });

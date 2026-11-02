@@ -35,7 +35,7 @@ const JOURS_SEMAINE = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }
 /** Pure : le jour de la semaine à Paris, lundi = 0. */
 export const jourSemaineParis = (iso) => JOURS_SEMAINE[new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', weekday: 'short' }).format(new Date(iso))] ?? 0;
 export const TRANCHES_DUREE = [[0, 30, '< 30 s'], [30, 60, '30 s à 1 min'], [60, 120, '1 à 2 min'], [120, 300, '2 à 5 min'], [300, 600, '5 à 10 min'], [600, Infinity, '> 10 min']];
-const heureParis = (iso) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(new Date(iso))) % 24;
+export const heureParis = (iso) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(new Date(iso))) % 24;
 
 /** Pure : les chiffres d'une liste d'appels (une personne, ou l'équipe). */
 export function chiffres(appels, { sessions = [], maintenantD = new Date() } = {}) {

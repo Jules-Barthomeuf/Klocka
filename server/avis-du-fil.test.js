@@ -79,3 +79,16 @@ test('l’avis ouvert depuis le bien reprend ce que dit le fil ; un taux à vali
   assert.equal(Records.list('TauxBaseValide').length, 1);
   assert.equal(Records.get('EstimationMandataire', e.id).questionnaire.taux_base_a_valider, false);
 });
+
+test('les photos de la ville au choix, et la couverture choisie', async () => {
+  const { choisirPhotosDeVille } = await import('./photo-commerce.js');
+  const { Records } = await import('./db.js');
+  const A = await import('./mandataire-avis.js');
+  assert.deepEqual(choisirPhotosDeVille([{ name: 'p', widthPx: 800, heightPx: 1200 }, { name: 'a', widthPx: 4000, heightPx: 3000 }, { name: 'b', widthPx: 3000, heightPx: 2000 }], 2).map((p) => p.name), ['a', 'b']);
+  const lea = { email: 'lea@kpartners.fr', role: 'mandataire' };
+  const e = Records.create('EstimationMandataire', { mandataire_email: lea.email, bien: 'Test', avis: { photos: { ville: '/uploads/commerces/a.jpg' } } });
+  assert.equal(A.poserPhotoDeCouverture(e.id, 'https://ailleurs.com/x.jpg', lea).ok, false, 'seulement une photo gardée par le serveur');
+  assert.equal(A.poserPhotoDeCouverture(e.id, '/uploads/commerces/b.jpg', { email: 'autre@kpartners.fr' }).ok, false);
+  assert.equal(A.poserPhotoDeCouverture(e.id, '/uploads/commerces/b.jpg', lea).ok, true);
+  assert.equal(Records.get('EstimationMandataire', e.id).avis.photos.couverture, '/uploads/commerces/b.jpg');
+});

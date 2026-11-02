@@ -50,7 +50,7 @@ async function accepter(mail, qui = jules) {
   await T.tourner();
 }
 
-test('une fiche dans la boîte de Nora : dossier à son nom, demande de documents à valider, mail depuis sa boîte', async () => {
+test('une fiche dans la boîte de Nora : dossier à son nom, et plus de mail proposé à l\'agent', async () => {
   const mail = mailRecu(1);
   const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
   assert.equal(t.pour, 'nora@test.local');
@@ -64,8 +64,8 @@ test('une fiche dans la boîte de Nora : dossier à son nom, demande de document
   assert.deepEqual(propositionDeFiche(mail).choix.map((c) => c.cle), ['preanalyser', 'ignorer']);
   await accepter(mail);
   const tache = T.tache(t.id);
-  assert.equal(tache.etat, 'en_attente_validation', tache.erreur || '');
-  assert.equal(tache.etape, 'envoyer_demande_documents');
+  // Haka n'écrit qu'à @klocka.immo (2 nov. 2026, Jules) : plus de demande de documents à l'agent, la tâche s'arrête.
+  assert.equal(tache.etat, 'faite', tache.erreur || '');
   const deal = Records.findBy('Deal', 'deal_id', tache.dossier);
   premierDossier = deal.deal_id;
   assert.ok(deal, 'le dossier existe');
@@ -76,28 +76,9 @@ test('une fiche dans la boîte de Nora : dossier à son nom, demande de document
   assert.equal(deal.apports[0].de, 'agent1@exemple.fr');
   assert.equal(deal.lots[0].par_haka, true);
   assert.equal(Records.get('MailRecu', mail.id).deal_id, deal.deal_id);
-  // La proposition, pour Nora, depuis sa boîte, avec ses sources.
-  const [p] = F.pourDossier(deal.deal_id);
-  assert.ok(p, 'une proposition dans la file');
-  assert.equal(p.type, 'demande_documents');
-  assert.equal(p.pour, 'nora@test.local');
-  assert.equal(p.charge.de, 'nora@test.local');
-  // La fiche dit qui est l'agent (« Contact : agent@exemple.fr ») : c'est lui, pas l'expéditeur du mail.
-  assert.equal(p.charge.a, 'agent@exemple.fr');
-  assert.ok(p.charge.objet && p.charge.corps);
-  assert.deepEqual(p.sources.map((s) => s.outil), ['gmail', 'fiche', 'preanalyse']);
-  // Prévenue une fois, de la fiche et de la proposition.
+  assert.equal(F.pourDossier(deal.deal_id).filter((x) => x.type === 'demande_documents').length, 0, "aucun mail à l'agent proposé");
   assert.ok(Records.list('Notification').some((n) => n.cle === `fiche:${deal.deal_id}` && n.pour === 'nora@test.local'));
-  assert.ok(Records.list('Notification').some((n) => n.cle === `haka:${p.id}`));
-  // Paul ne peut pas ; Jules valide : le mail est simulé, le dossier avance.
-  assert.equal((await F.valider(p.id, { email: 'paul@test.local', role: 'admin' })).statut, 403);
-  const r = await F.valider(p.id, jules);
-  assert.equal(r.ok, true, r.error);
-  assert.equal(r.resultat.simule, true);
-  assert.equal(r.resultat.de, 'nora@test.local');
-  assert.equal(Records.findBy('Deal', 'deal_id', deal.deal_id).statut, 'documents_demandes');
-  assert.ok(Records.list('EmailLog').some((e) => e.template_id === `haka:${p.id}` && e.statut === 'simule' && e.expediteur === 'nora@test.local'));
-  assert.equal(T.tache(t.id).etat, 'faite');
+  assert.equal(Records.list('EmailLog').filter((e) => String(e.template_id || '').startsWith('haka:')).length, 0);
 });
 
 test('le même bien reçu d\'un autre agent dans la boîte commune : rattaché, dit dans le Commun, rien n\'est envoyé', async () => {
@@ -128,7 +109,7 @@ test('le même bien reçu d\'un autre agent dans la boîte commune : rattaché, 
   assert.equal(r.proposition.etat, 'validee');
 });
 
-test('même adresse, autre prix : Assistant KPartners demande (rattacher ou créer) ; « créer » continue jusqu\'au mail', async () => {
+test('même adresse, autre prix : Assistant KPartners demande (rattacher ou créer) ; « créer » garde le nouveau dossier', async () => {
   const mail = mailRecu(3, { fichier: fixtureAutrePrix });
   const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
   await accepter(mail);
@@ -144,9 +125,8 @@ test('même adresse, autre prix : Assistant KPartners demande (rattacher ou cré
   assert.equal((await F.valider(p.id, nora)).statut, 400);
   const r = await F.valider(p.id, nora, { choix: 'creer' });
   assert.equal(r.ok, true, r.error);
-  assert.equal(T.tache(t.id).etat, 'en_attente_validation');
-  assert.equal(T.tache(t.id).etape, 'envoyer_demande_documents');
-  assert.ok(F.pourDossier(tache.dossier).some((x) => x.type === 'demande_documents'));
+  assert.equal(T.tache(t.id).etat, 'faite', 'plus de mail à l\'agent : la tâche finit au dossier créé');
+  assert.equal(F.pourDossier(tache.dossier).filter((x) => x.type === 'demande_documents').length, 0);
   assert.equal(Records.findBy('Deal', 'deal_id', tache.dossier).archived, false);
 });
 

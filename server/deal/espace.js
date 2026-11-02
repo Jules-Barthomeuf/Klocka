@@ -54,7 +54,8 @@ export function renommerDocument(dealId, docId, nom, categorie) {
   const propre = String(nom || '').trim();
   if (!propre) return { ok: false, error: 'Le nom ne peut pas être vide.' };
   const liste = (brut.documents_espace || []).map((d) =>
-    d.id === docId ? { ...d, nom: propre, ...(categorie !== undefined ? { categorie: String(categorie || '') } : {}) } : d
+    // Le nom d'arrivée reste (2 nov. 2026) : la même pièce renvoyée par mail se reconnaît après un renommage.
+    d.id === docId ? { ...d, nom: propre, nom_origine: d.nom_origine || d.nom, ...(categorie !== undefined ? { categorie: String(categorie || '') } : {}) } : d
   );
   Records.update('Deal', brut.id, { documents_espace: liste });
   return { ok: true };

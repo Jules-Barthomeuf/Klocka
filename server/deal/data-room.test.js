@@ -383,3 +383,23 @@ test("les images du projet : déposées dans la Data Room, l'image de la ville d
   await P.mettreAJourProjetDepuisDeal('DR50', null);
   assert.deepEqual(Records.get('Project', id).photos, ['/uploads/ville.jpg', '/uploads/vitrine.png']);
 });
+
+test("le transfert d'un mail : noms proposés, Drive, lecture, à la suite ; un Drive en panne n'arrête pas la lecture", async () => {
+  dossier('DR20', [{ id: 'z', nom: 'scan.pdf' }, { id: 'y', nom: 'autre.pdf' }]);
+  const t = A.creerType('DR20', 'Ancien bail', null);
+  A.rangerPiece('DR20', 'z', t.id, null, { lire: false });
+  A.rangerPiece('DR20', 'y', t.id, null, { lire: false });
+  let recu = null;
+  const drive = { rangerDataRoom: async (c, o) => { recu = o; return { folder_id: 'F20', folder_url: 'https://drive/F20', liens: Object.fromEntries(o.groupes.flatMap((g) => g.fichiers).map((f) => [f.id, { drive_file_id: 'x', drive_url: 'y' }])), erreurs: [] }; } };
+  const r = await D.rangerEtAnalyser('DR20', ['z'], { uploadDir, drive, proposer: async () => ({ intitule: 'Bail commercial', precision: '', date: '2005' }) });
+  assert.equal(r.nommees, 1);
+  assert.deepEqual(r.drive, { ok: true, folder_url: 'https://drive/F20', ranges: 1, test: false });
+  assert.deepEqual(recu.groupes.flatMap((g) => g.fichiers.map((f) => f.id)), ['z'], 'seules les pièces du mail partent');
+  const z = Records.findBy('Deal', 'deal_id', 'DR20').documents_espace.find((d) => d.id === 'z');
+  assert.equal(z.nom, 'Bail commercial - 2005.pdf');
+  assert.equal(z.nom_origine, 'scan.pdf', 'le nom d\'arrivée reste : la même pièce renvoyée se reconnaît');
+  const panne = await D.rangerEtAnalyser('DR20', ['y'], { uploadDir, drive: { rangerDataRoom: async () => { throw new Error('quota'); } }, proposer: async () => null });
+  assert.equal(panne.ok, true);
+  assert.deepEqual(panne.drive, { ok: false, erreur: 'quota' });
+  assert.equal((await D.rangerEtAnalyser('DR20', [])).nommees, 0);
+});

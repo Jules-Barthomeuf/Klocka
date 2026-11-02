@@ -742,9 +742,9 @@ function purgerRelances(p) {
     const t = new Set(norm(`${r.quoi || ''} ${r.nom || ''}`).split(/[^a-z0-9]+/));
     return mots.some((m) => t.has(m));
   };
-  for (const r of Records.list('Rappel').filter((r) => !r.fait_le && (r.proprietaire_id === p.id || nomme(r)))) {
-    Records.delete('Rappel', r.id);
-  }
+  const purges = Records.list('Rappel').filter((r) => !r.fait_le && (r.proprietaire_id === p.id || nomme(r)));
+  for (const r of purges) Records.delete('Rappel', r.id);
+  return purges;
 }
 
 /**
@@ -819,8 +819,28 @@ export function noterNote(id, texte, user) {
 export function supprimerProprietaire(id, user) {
   const p = proprietaireSien(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
-  purgerRelances(p);
+  const rappels = purgerRelances(p);
+  // Gardée trente jours avec ses relances (1er nov. 2026, Jules : « on supprime un commerce, on retourne en arrière ») :
+  // la flèche de retour des listes la remet telle quelle.
+  const limite = Date.now() - 30 * 86400000;
+  for (const x of Records.list(RETIREES)) if (Date.parse(x.le || 0) < limite) Records.delete(RETIREES, x.id);
+  Records.create(RETIREES, { fiche_id: p.id, mandataire_email: p.mandataire_email, fiche: p, rappels, le: new Date().toISOString() });
   Records.delete('ProprietaireMandataire', p.id);
+  return { ok: true };
+}
+
+const RETIREES = 'FicheRetiree';
+
+/** Annule un retrait : la fiche revient avec son identifiant, son historique et ses relances. */
+export function restaurerProprietaire(id, user) {
+  const moi = String(user?.email || '').toLowerCase();
+  const garde = Records.list(RETIREES).filter((x) => x.fiche_id === id && (x.mandataire_email === moi || user?.role === 'admin'))
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+  if (!garde) return { ok: false, error: 'Cette fiche ne peut plus revenir.' };
+  if (Records.get('ProprietaireMandataire', id)) { Records.delete(RETIREES, garde.id); return { ok: true }; }
+  Records.create('ProprietaireMandataire', garde.fiche);
+  for (const r of garde.rappels || []) if (!Records.get('Rappel', r.id)) Records.create('Rappel', r);
+  Records.delete(RETIREES, garde.id);
   return { ok: true };
 }
 

@@ -21,6 +21,7 @@ export const ENTREES_ADMIN = [
   { cle: "Emailing", label: "Emailing" },
   { cle: "ALX", label: "ALX" },
   { cle: "Monitoring", label: "Suivi" },
+  { cle: "SuiviActivite", label: "Tableau de bord" },
   // L'Intelligence (14 oct. 2026) : ce qui a été dit, décidé, promis ; les faits à valider.
   { cle: "Cerveau", label: "Intelligence" },
   { cle: "AdminSuggestions", label: "Feedback" },
@@ -63,8 +64,10 @@ export const ENTREES_CLIENT = [
 // spécification.
 export const ENTREES_MANDATAIRE = [
   { cle: "Dashboard", label: "Dashboard" },
+  { cle: "MandataireTableauDeBord", label: "Tableau de bord" },
   { cle: "MandataireProspection", label: "Prospection" },
   { cle: "MandataireClients", label: "Clients" },
+  { cle: "MandataireDocuments", label: "Bibliothèque" },
   { cle: "MandataireBiens", label: "Biens" },
   { cle: "MandataireEstimation", label: "Estimation" },
   { cle: "MandataireMandat", label: "Mandat" },
@@ -86,6 +89,8 @@ export const ENTREES_MANDATAIRE = [
  */
 export const MENU_ADMIN = [
   { cle: "Dashboard", label: "Assistant" },
+  // Le tableau de bord (2 nov. 2026, Jules : « rends visible le tableau de bord ») : une entrée à lui, plus caché dans le Suivi.
+  { cle: "SuiviActivite", label: "Tableau de bord" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
   // À valider quitte le menu (26 oct. 2026, Jules) : la page reste ouverte par la cloche et les dossiers.
@@ -110,12 +115,16 @@ export const MENU_ADMIN = [
 export const MENU_MANDATAIRE = [
   // Haka, comme pour l'équipe (19 oct. 2026, Jules).
   { cle: "Dashboard", label: "Assistant" },
+  // Le tableau de bord du mandataire, sur ses seuls biens (2 nov. 2026, Jules).
+  { cle: "MandataireTableauDeBord", label: "Tableau de bord" },
   // La Prospection reprend l'Off-market (23 oct. 2026, Jules) : une seule entrée, Commerces et Rues dans la page.
   { cle: "MandataireProspection", label: "Prospection" },
   // Biens, une seule entrée (24 oct. 2026, Jules) : tous les biens en cartes, puis un bien suivi comme un dossier de
   // l'équipe, ses étapes à droite (Estimation, Mandat, Analyse, Mise en marché, Offre, Vente).
   { cle: "MandataireBiens", label: "Biens" },
   { cle: "MandataireClients", label: "Clients" },
+  // Bibliothèque (2 nov. 2026, Jules) : mandats, avis de valeur, comptes rendus, teasers, offres, tous biens confondus.
+  { cle: "MandataireDocuments", label: "Bibliothèque" },
   // Projets retiré (31 oct. 2026, Jules, PLAN.md 0.3) : son adresse mène à Biens.
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
   // Twenty CRM aussi chez les mandataires (30 oct. 2026, Jules) : la même entrée externe que l'équipe.

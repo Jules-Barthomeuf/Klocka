@@ -70,3 +70,16 @@ test("depuis la fiche, l'estimation se rattache au bien et le mandat suit son es
   assert.equal(mandat.estimation_id, estimation.id);
   assert.equal(objetsDuBien(p).mandat?.id, mandat.id);
 });
+
+test("un avis fait sans RDV noté : le prix d'accord fait entrer la fiche dans Biens (2 nov. 2026, Jules)", () => {
+  const p = fiche({ statut: 'en_discussion', commerce: 'La Delicieuse' });
+  Records.create('EstimationMandataire', { mandataire_email: MOI.email, proprietaire_id: p.id, statut: 'envoye', avis: { chiffres: { valeur: 300000 } } });
+  const r = noterPrixAccord(p.id, 300000, MOI);
+  assert.equal(r.ok, true);
+  const q = Records.get('ProprietaireMandataire', p.id);
+  assert.equal(q.statut, 'rdv_pris');
+  assert.match(q.historique.at(-2)?.texte || q.historique.at(-1).texte, /avis de valeur/i);
+  // Sans avis, la règle reste : il faut un rendez-vous fixé.
+  const sans = fiche({ statut: 'en_discussion', commerce: 'Sans avis' });
+  assert.equal(noterPrixAccord(sans.id, 300000, MOI).ok, false);
+});

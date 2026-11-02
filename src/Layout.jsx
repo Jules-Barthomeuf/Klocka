@@ -28,7 +28,6 @@ import {
   Brain,
   ClipboardCheck,
   Eye,
-  FileText,
   MessageSquare,
   Lightbulb,
   UserPlus,
@@ -41,7 +40,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Globe,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, Bell } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, Bell, LibraryBig, ChartColumn } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -535,6 +534,8 @@ function LayoutContent({ children, currentPageName }) {
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
+    SuiviActivite: { to: "/SuiviActivite", icon: ChartColumn, actif: isActivePage("SuiviActivite") },
+    MandataireTableauDeBord: { to: createPageUrl("MandataireTableauDeBord"), icon: ChartColumn, actif: isActivePage("MandataireTableauDeBord") },
     Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviAudience") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
@@ -561,6 +562,7 @@ function LayoutContent({ children, currentPageName }) {
     AdminMandataires: { to: createPageUrl("AdminMandataires"), icon: MapPin, actif: isActivePage("AdminMandataires") },
     MandataireProspection: { to: createPageUrl("MandataireProspection"), icon: MapPin, actif: isActivePage("MandataireProspection") },
     MandataireClients: { to: createPageUrl("MandataireClients"), icon: Users, actif: isActivePage("MandataireClients") },
+    MandataireDocuments: { to: createPageUrl("MandataireDocuments"), icon: LibraryBig, actif: isActivePage("MandataireDocuments") },
     MandataireBiens: { to: createPageUrl("MandataireBiens"), icon: Folder, actif: ["MandataireBiens", "MandataireEstimation", "MandataireMandat", "MandataireDossier", "MandataireMarche"].some(isActivePage), badge: nonLusMandataire || null, badgeColor: "bg-menthe text-sur-menthe" },
     MandataireEstimation: { to: createPageUrl("MandataireEstimation"), icon: Calculator, actif: isActivePage("MandataireEstimation") },
     MandataireMandat: { to: createPageUrl("MandataireMandat"), icon: FileSignature, actif: isActivePage("MandataireMandat") },

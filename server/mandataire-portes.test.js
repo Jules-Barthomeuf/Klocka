@@ -180,3 +180,18 @@ test('un compte d’essai n’écrit pas dans le Twenty CRM de l’équipe', () 
   assert.equal(P.compteEssai('marc@kpartners.fr'), false);
   assert.equal(P.compteEssai('attestation@kpartners.fr'), false);
 });
+
+test('la Data room hérite : le bail de l’avis, les photos de la visite, les pièces d’une société (2 nov. 2026, Jules)', () => {
+  const h = P.heritageDuDossier({
+    estimations: [{ bail: { nom: 'bail.pdf', url: '/uploads/bail.pdf' } }, { bail: { nom: 'bail.pdf', url: '/uploads/bail.pdf' } }, { bail: null }],
+    fiche: { biens: { visite: { photos: [{ url: '/uploads/v1.jpg' }] } } },
+    societe: true,
+  });
+  assert.equal(h.documents.bail.length, 1, 'un même bail ne se reprend qu’une fois');
+  assert.equal(h.photos.length, 1);
+  assert.deepEqual(h.pieces_demandees.map((x) => x.cle), ['statuts_vendeur', 'kbis_vendeur', 'pouvoirs']);
+  const c = P.checklist({ documents: h.documents, pieces_demandees: h.pieces_demandees });
+  assert.ok(c.lignes.find((l) => l.cle === 'bail').recue);
+  assert.ok(c.manquantes.some((l) => l.cle === 'pouvoirs'), 'les pouvoirs sont requis');
+  assert.deepEqual(P.heritageDuDossier({}), { documents: {}, photos: [], pieces_demandees: [] });
+});

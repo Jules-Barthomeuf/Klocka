@@ -183,3 +183,19 @@ export function redemanderSansCodePostal(requete, meilleur) {
   const sans = motsDe(requete).filter((m) => !estCodePostal(m)).join(' ');
   return sans.length >= 4 ? sans : null;
 }
+
+/**
+ * Pure : la rue sans la commune, quand la BAN ne trouve rien (1er nov. 2026, Jules : « 29 rue de la Doua, Lyon » est à
+ * Villeurbanne, et la BAN ne rend rien si la commune est fausse). Rend { rue, commune } ou null.
+ */
+export function separerLaCommune(requete) {
+  const t = String(requete || '').trim();
+  const i = t.lastIndexOf(',');
+  if (i < 0) return null;
+  const rue = t.slice(0, i).trim();
+  const commune = t.slice(i + 1).replace(/\b\d{5}\b/g, '').trim();
+  return rue.length >= 4 && commune.length >= 2 ? { rue, commune } : null;
+}
+
+/** Pure : le département d'un code postal (« 69100 » : « 69 », « 20000 » : « 2A ou 2B », comptés « 20 »). */
+export const departementDe = (cp) => String(cp || '').slice(0, 2) || null;

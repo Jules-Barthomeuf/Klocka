@@ -255,7 +255,8 @@ const vueRue = (avis, cap = 0) =>
 
 function Photo({ avis, cle, className, style, estimationId, onAvis, cap = 0 }) {
   const fichier = useRef(null);
-  const url = avis.photos?.[cle] || (cle === "portrait" ? avis.signataire?.photo || null : vueRue(avis, cap));
+  // La couverture prend la photo de la ville, jamais la rue (1er nov. 2026, Jules) ; l'emplacement garde la vue de la rue.
+  const url = avis.photos?.[cle] || (cle === "portrait" ? avis.signataire?.photo || null : cle === "couverture" ? avis.photos?.ville || null : vueRue(avis, cap));
   const envoyer = async (f) => {
     if (!f) return;
     const form = new FormData();

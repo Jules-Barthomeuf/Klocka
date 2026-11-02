@@ -3,6 +3,7 @@
 // pipeline. Les deux passent par /api/off-market, le rôle décide de l'espace.
 
 import { ok, wrap, currentUser } from '../contexte.js';
+import { Records } from '../db.js';
 
 const L = () => import('../off-market/locaux.js');
 const S = () => import('../off-market/suivi.js');
@@ -148,6 +149,30 @@ export function monterOffMarket(app) {
     const { ouvrirFlux } = await import('../flux.js');
     const flux = ouvrirFlux(res);
     try { flux.fin(await (await Si()).estimerPrix(req.params.id, { surface: req.body?.surface ?? null, user, surEtape: flux.etape })); } catch (e) { flux.erreur(e); }
+  }));
+  // Les recherches enregistrées (2 nov. 2026, Jules : « on cherche des boulangeries propriétaires exploitants, on doit
+  // pouvoir sauvegarder cette recherche ») : à chacun les siennes, retrouvées sur tous ses appareils.
+  const RECHERCHE = 'RechercheProspection';
+  const sesRecherches = (user) => Records.list(RECHERCHE).filter((r) => r.email === String(user.email || '').toLowerCase()).sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')));
+  app.get('/api/off-market/simple/recherches', wrap(async (req, res) => {
+    const user = compte(req, res); if (!user) return;
+    ok(res, { recherches: sesRecherches(user).map((r) => ({ id: r.id, nom: r.nom, filtres: r.filtres })) });
+  }));
+  app.post('/api/off-market/simple/recherches', wrap(async (req, res) => {
+    const user = compte(req, res); if (!user) return;
+    const nom = String(req.body?.nom || '').trim().slice(0, 80);
+    const filtres = req.body?.filtres && typeof req.body.filtres === 'object' ? req.body.filtres : null;
+    if (!nom || !filtres) return res.status(400).json({ error: 'Nommez la recherche.' });
+    if (sesRecherches(user).length >= 30) return res.status(400).json({ error: 'Trente recherches au plus : retirez-en une.' });
+    const r = Records.create(RECHERCHE, { email: String(user.email).toLowerCase(), nom, filtres: { ...filtres, texte: '' }, cree_le: new Date().toISOString() }, user.email);
+    ok(res, { recherche: { id: r.id, nom: r.nom, filtres: r.filtres } });
+  }));
+  app.delete('/api/off-market/simple/recherches/:id', wrap(async (req, res) => {
+    const user = compte(req, res); if (!user) return;
+    const r = Records.get(RECHERCHE, req.params.id);
+    if (!r || r.email !== String(user.email || '').toLowerCase()) return res.status(404).json({ error: 'Recherche introuvable.' });
+    Records.delete(RECHERCHE, r.id);
+    ok(res, { ok: true });
   }));
   app.get('/api/off-market/simple/listes', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;

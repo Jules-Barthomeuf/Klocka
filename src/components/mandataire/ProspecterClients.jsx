@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/avis";
 import { PastilleTest } from "@/components/mandataire/kit";
 import { DRAPEAUX_COURTS, FenetreListe, LIENS, MenuFiltres, REPONSES } from "@/components/off-market/Simple";
 import { Case, Vide, bouton, boutonPlein, champ, euros, pl } from "@/components/off-market/commun";
-import { FILTRES_SIMPLE, nbFiltres, passeSimple } from "@/lib/off-market-simple";
+import { FILTRES_SIMPLE, comprendre, nbFiltres, passeSimple } from "@/lib/off-market-simple";
 import { budgetDe, exclusionsDe, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
 
 // Prospecter pour ses clients (24 oct. 2026, Jules) : à gauche, la carte de son
@@ -98,6 +98,18 @@ export default function ProspecterClients({ bascule = null }) {
     requestAnimationFrame(() => boiteFiche.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [ouvert]);
   useEffect(() => { setFiltres(FILTRES_DEPART); }, [prospecte]);
+  // Prospecter depuis le chat (2 nov. 2026, Jules : « je veux que des boulangeries propriétaires exploitants ») : l'assistant
+  // ouvre la page avec `?recherche=` ; la phrase devient les filtres de tous les commerces du secteur, une fois.
+  const demande = useRef((() => { try { return new URLSearchParams(window.location.search).get("recherche"); } catch { return null; } })());
+  useEffect(() => {
+    if (!demande.current || prospecte !== "tous" || !murs.length) return;
+    const phrase = demande.current;
+    demande.current = null;
+    const { filtres: f, compris } = comprendre(phrase, activites);
+    setFiltres({ ...FILTRES_DEPART, ...f });
+    try { const u = new URL(window.location.href); u.searchParams.delete("recherche"); window.history.replaceState(null, "", u); } catch { /* adresse inchangée */ }
+    toast.success(compris.length ? `Filtré : ${compris.join(", ")}` : `Je n'ai rien reconnu dans « ${phrase} »`);
+  }, [prospecte, murs, activites]);
 
   // Chargement, erreur, pas de secteur : la bascule reste, pour passer à « Tous les commerces ».
   const seul = (contenu) => <div className="flex flex-col gap-4">{bascule && <div className="flex flex-wrap items-center gap-2">{bascule}</div>}{contenu}</div>;
@@ -115,6 +127,7 @@ export default function ProspecterClients({ bascule = null }) {
       {/* La barre du haut, comme « Tous les commerces » : la bascule, les filtres, où en sont les villes. */}
       <div className="flex flex-wrap items-center gap-2">
         {bascule}
+        {clients.length > 0 && <BasculeMode clients={!tous} onChange={(oui) => choisir(oui ? i : null)} />}
         {prospecte && (
           <MenuFiltres filtres={filtres} setFiltres={setFiltres} commerces={murs} tous={murs} activites={activites} visibles={visibles.length} />
         )}
@@ -141,7 +154,7 @@ export default function ProspecterClients({ bascule = null }) {
           ) : !clients.length ? (
             <CarteTous n={points.data?.total ?? murs.length} villes={data.villes} charge={attente} seule />
           ) : (
-            tous ? <CarteTous n={points.data?.total ?? murs.length} villes={data.villes} charge={attente} selecteur={selecteur} replie={replie} onReplier={() => setReplie((r) => !r)} />
+            tous ? <CarteTous n={points.data?.total ?? murs.length} villes={data.villes} charge={attente} seule replie={replie} onReplier={() => setReplie((r) => !r)} />
             : <CarteClient client={client} selecteur={selecteur} actif={prospecte === client?.id}
               replie={replie} onReplier={() => setReplie((r) => !r)}
               prospecteLe={dejaLe(client)} charge={points.isFetching}
@@ -306,9 +319,26 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
 }
 
 /**
- * Le choix du client, dans l'en-tête de la carte (25 oct. 2026, Jules) : le nom de ce qui est affiché (« Tous les
- * commerces » ou un client) ouvre une liste, « Tous les commerces » d'abord puis les clients, et on saute directement à
- * n'importe lequel. Un point menthe marque les clients déjà prospectés. Sans client, rien à choisir : un simple titre.
+ * L'interrupteur Mode Libre / Mode Clients (2 nov. 2026, Jules : « pas intuitif pour voir les clients ») : à la place de
+ * « Tous les commerces » dans la liste des clients. Libre : tous les commerces du secteur ; Clients : les murs d'un client.
+ */
+function BasculeMode({ clients, onChange }) {
+  return (
+    <button type="button" role="switch" aria-checked={clients} onClick={() => onChange(!clients)}
+      className="inline-flex h-10 items-center gap-3 rounded-full border border-bord-doux bg-rail px-4 text-[14px] hover:border-bord-vif">
+      <span className={`transition-colors duration-300 ${clients ? "text-ardoise" : "text-encre"}`}>Mode Libre</span>
+      <span aria-hidden className={`relative h-[20px] w-[36px] flex-none rounded-full transition-colors duration-300 ${clients ? "bg-menthe" : "bg-relief"}`}>
+        <span className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-fond shadow-sm transition-all duration-300 ease-out ${clients ? "left-[18px]" : "left-[2px]"}`} />
+      </span>
+      <span className={`transition-colors duration-300 ${clients ? "text-encre" : "text-ardoise"}`}>Mode Clients</span>
+    </button>
+  );
+}
+
+/**
+ * Le choix du client, dans l'en-tête de la carte (25 oct. 2026, Jules) : le nom du client ouvre la liste de ses clients,
+ * et on saute directement à n'importe lequel. Un point menthe marque les clients déjà prospectés. « Tous les commerces »
+ * n'y est plus : c'est le Mode Libre de l'interrupteur (2 nov. 2026). Sans client, rien à choisir : un simple titre.
  */
 function SelecteurClient({ selecteur, vue, seule = false }) {
   const [ouvert, setOuvert] = useState(false);
@@ -344,13 +374,6 @@ function SelecteurClient({ selecteur, vue, seule = false }) {
         {ouvert && (
           <motion.ul role="listbox" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeInOut" }}
             className="absolute inset-x-2 top-[70px] z-30 m-0 max-h-[340px] list-none overflow-y-auto rounded-[14px] border border-bord-doux bg-surface-pleine p-1.5 shadow-[0_16px_40px_rgb(0_0_0/0.35)]">
-            <li role="option" aria-selected={tous}>
-              <button type="button" onClick={() => { setOuvert(false); onChoisir(null); }} className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left ${tous ? "bg-rail-actif" : "hover:bg-rail-actif"}`} style={tous ? undefined : { background: "transparent" }}>
-                <span className="grid h-8 w-8 flex-none place-items-center rounded-full border-2 border-encre text-encre"><MapPin className="h-4 w-4" strokeWidth={2} /></span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-[14px] text-encre">Tous les commerces</span><span className="block truncate text-[12.5px] text-ardoise">De votre secteur · tous les clients</span></span>
-                {tous && <Check className="h-4 w-4 flex-none text-pervenche" />}
-              </button>
-            </li>
             {clients.map((c, k) => {
               const actif = !tous && k === courant;
               return (
@@ -393,7 +416,7 @@ function CarteTous({ n, villes = [], charge = false, selecteur = null, replie = 
               {charge ? <span className="inline-flex items-center gap-2 text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Les commerces de votre secteur…</span>
                 : <><span className="tabular-nums text-menthe">{pl(n, "commerce")}</span> <span className="text-ardoise">dans votre secteur</span></>}
             </span>
-            {!seule && selecteur?.clients.length > 0 && <span className="text-[12.5px] leading-[1.45] text-ardoise">Choisissez l'un de vos {selecteur.clients.length} clients ci-dessus : seuls ses murs restent sur la carte.</span>}
+            <span className="text-[12.5px] leading-[1.45] text-ardoise">En Mode Clients, seuls les murs du client choisi restent sur la carte.</span>
           </div>
         </div>
       </div>

@@ -148,3 +148,36 @@ export async function photoDeLaVille(commune) {
   enCours.set(k, travail);
   return travail;
 }
+
+/** Pure : les photos à proposer d'une liste de Places : d'abord les paysages d'au moins 1 200 px, puis le reste. */
+export function choisirPhotosDeVille(photos = [], n = 4) {
+  const belles = photos.filter((p) => p.widthPx >= 1200 && p.widthPx > p.heightPx);
+  return [...belles, ...photos.filter((p) => !belles.includes(p))].slice(0, n);
+}
+
+/**
+ * Plusieurs photos d'une ville, au choix du mandataire (1er nov. 2026, Jules : « que le chat laisse le choix entre
+ * différentes images »). `[{ url, auteur }]`, gardées comme les autres : rechoisir ne coûte plus rien.
+ */
+export async function photosDeLaVille(commune, n = 4) {
+  const v = norm(commune);
+  if (!v || !cle()) return [];
+  const k = `ville-choix:${v}`;
+  const garde = Records.findBy(ENTITE, 'cle', k);
+  if (garde && ((garde.photos || []).length || Date.now() - new Date(garde.le).getTime() < RECHERCHER_APRES_MS)) return garde.photos || [];
+  if (enCours.has(k)) return enCours.get(k);
+  const travail = (async () => {
+    const id = await trouverVille(commune);
+    const choisies = id ? choisirPhotosDeVille(await photosDuLieu(id), n) : [];
+    const photos = [];
+    for (const p of choisies) {
+      try { photos.push({ url: await telecharger(p.name, 1600), auteur: p.authorAttributions?.[0]?.displayName || null }); } catch (err) { console.warn(`[photo-ville] ${err?.message || err}`); }
+    }
+    const fiche = { cle: k, place_id: id, photos, le: new Date().toISOString() };
+    if (garde) Records.update(ENTITE, garde.id, fiche); else Records.create(ENTITE, fiche);
+    console.log(`[photo-ville] ${JSON.stringify(commune)} → ${photos.length} photo(s) au choix`);
+    return photos;
+  })().finally(() => enCours.delete(k));
+  enCours.set(k, travail);
+  return travail;
+}

@@ -33,7 +33,7 @@ test("aucun outil du mandataire n'envoie, ne lit les dossiers ni ne touche Twent
   const noms = OUTILS_MANDATAIRE.map((o) => o.name);
   assert.deepEqual(noms.sort(), [
     'annuler_derniere', 'appel_sans_reponse', 'avancer_bien', 'avis_de_marche', 'bail_estimation', 'compte_rendu_visite', 'corriger_mandat', 'corriger_preparation', 'demander_mandat', 'demandes_clients', 'lancer_estimation', 'mes_acquereurs', 'mes_dossiers', 'mes_proprietaires',
-    'mes_rappels', 'modifier_fiche', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'preparer_mail', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'visite_du_moment',
+    'mes_rappels', 'modifier_fiche', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'preparer_mail', 'prospecter_commerces', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'visite_du_moment',
   ]);
 });
 
@@ -262,7 +262,7 @@ test("avis de valeur : les questions dépendent du type et de l'occupation ; les
   assert.equal(c.comparaison, 487600);
   assert.equal(c.valeur, 490000);
   assert.ok(c.bas < c.valeur && c.haut > c.valeur);
-  assert.equal(c.prix_affiche, 514500, 'honoraires 5 % inclus');
+  assert.equal(c.prix_affiche, 515000, 'honoraires 5 % inclus, rond au multiple de 5 000');
   assert.equal(surfacesDe({ ...base, reserve: '30 m²' }).at(-1).ponderee, 6, 'la réserve à 0,2');
 });
 
@@ -345,7 +345,7 @@ test('chiffrer : occupé, la capitalisation fait la valeur (modèle Annecy) ; li
   const { chiffrer } = await import('./mandataire-avis.js');
   const occ = chiffrer({ occupe: true, loyer_annuel_hc: 28800, surface_utile: 85 }, { taux: 5.9, prix_m2: 5737 });
   assert.equal(occ.valeur, 490000, 'capitalisation 28 800 / 5,9 % arrondie');
-  assert.equal(occ.prix_affiche, 514500, 'honoraires 5 % inclus');
+  assert.equal(occ.prix_affiche, 515000, 'honoraires 5 % inclus, rond au multiple de 5 000');
   assert.ok(occ.bas <= occ.valeur && occ.valeur <= occ.haut, 'la fourchette encadre la valeur');
   assert.ok(Math.abs(occ.rendement - 5.9) < 0.2);
   const libre = chiffrer({ occupe: false, surface_utile: 100 }, { taux: 6, prix_m2: 2000 });
@@ -443,4 +443,11 @@ test('resumeComplement : un paragraphe qui dit ce qu’on a appris, pas la liste
   assert.doesNotMatch(t, /Fiche complétée|cumul/);
   assert.match(resumeComplement({ prochaine_action: 'Rappeler', prochaine_action_le: '2026-11-05T09:00:00.000Z' }), /^Prochaine action : Rappeler, le jeudi 5 novembre\.$/);
   assert.equal(resumeComplement({ sections: [] }, { section: { titre: 'Bail', texte: 'fin en 2029' } }), 'Bail : fin en 2029.');
+});
+
+test('prospecter depuis le chat : la Prospection filtrée par la phrase, rien n\'est écrit', async () => {
+  const r = await executerOutilMandataire({ name: 'prospecter_commerces', input: { phrase: 'des boulangeries propriétaires exploitants' } }, { email: 'm@test.local', role: 'mandataire' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.boutons, [{ libelle: 'Voir les commerces', href: '/MandataireProspection?recherche=des%20boulangeries%20propri%C3%A9taires%20exploitants', principal: true }]);
+  assert.equal((await executerOutilMandataire({ name: 'prospecter_commerces', input: { phrase: ' ' } }, { email: 'm@test.local', role: 'mandataire' })).ok, false);
 });

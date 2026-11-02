@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { recollerTelephones } from "@/lib/telephone-dicte";
 
 // Dicter au lieu de taper : on appuie, on parle, chaque mot s'écrit.
 //
@@ -134,13 +135,20 @@ export function useDictee({ onTexte, onFin } = {}) {
   const [finalisation, setFinalisation] = useState(false);
   const garde = useRef(null);
   const rappels = useRef({ onTexte, onFin });
-  rappels.current = { onTexte, onFin };
+  // Un numéro de téléphone dicté se recolle par paires avant d'arriver dans le champ (telephone-dicte.js).
+  rappels.current = {
+    onTexte: onTexte && ((t, final) => onTexte(recollerTelephones(t), final)),
+    onFin: onFin && ((t) => onFin(recollerTelephones(t))),
+  };
 
   const voulue = useRef(false);
   const acquis = useRef("");
   const rec = useRef(null);
   const flux = useRef(null); // { ctx, source, processeur, media, freq, tampons, depuisTranche, minuterie, file, arreter }
   const fini = useRef(false);
+  // Arrêté pour envoyer (2 nov. 2026, Jules : « il faut attendre pour cliquer sur la flèche ») : pas de ponctuation ni de
+  // relecture de tout l'enregistrement, seulement les derniers mots ; le message part aussitôt.
+  const rapide = useRef(false);
   // Le niveau de la voix (0 à 1), pour l'onde du chat (25 oct. 2026) : mesuré sur le flux continu ; avec la
   // reconnaissance du navigateur, une impulsion à chaque mot reçu (aucun second accès au micro).
   const niveau = useRef(0);
@@ -213,7 +221,7 @@ export function useDictee({ onTexte, onFin } = {}) {
       return tout;
     };
     const envoyerTranche = () => {
-      if (total(f.depuisTranche) < f.freq * 0.5) return; // moins d'une demi-seconde : rien à dire
+      if (total(f.depuisTranche) < f.freq * (rapide.current ? 0.2 : 0.5)) return; // trop court : rien à dire
       const pcm = coller(f.depuisTranche);
       f.depuisTranche = [];
       f.file = f.file.then(async () => {
@@ -237,6 +245,12 @@ export function useDictee({ onTexte, onFin } = {}) {
       const entier = coller(f.tampons);
       const duree = entier.length / f.freq;
       fermerFlux();
+      if (rapide.current) {
+        envoyerTranche(); // les derniers mots, ceux d'après la dernière tranche
+        await f.file;
+        finir();
+        return;
+      }
       await f.file; // les tranches déjà parties s'affichent d'abord
       // Puis l'enregistrement entier, d'un bloc : propre, ponctué, sans
       // raccords. Il remplace l'à-peu-près des tranches.
@@ -295,7 +309,7 @@ export function useDictee({ onTexte, onFin } = {}) {
       }
       // À l'arrêt : la ponctuation du texte (pas de l'audio), s'il est long.
       const texte = acquis.current.trim();
-      if (texte.length >= PONCTUATION_DES) {
+      if (texte.length >= PONCTUATION_DES && !rapide.current) {
         ponctuer(texte)
           .then((propre) => finir(propre && propre.length >= texte.length * 0.7 ? propre : texte))
           .catch(() => finir(texte));
@@ -311,6 +325,7 @@ export function useDictee({ onTexte, onFin } = {}) {
     if (voulue.current) return;
     voulue.current = true;
     fini.current = false;
+    rapide.current = false;
     acquis.current = "";
     setErreur(null);
     setEcoute(true);
@@ -321,7 +336,9 @@ export function useDictee({ onTexte, onFin } = {}) {
     else finir();
   }, [ecouterNavigateur, demarrerFlux, finir]);
 
-  const arreter = useCallback(() => {
+  /** @param {{ rapide?: boolean }} [options] `rapide` : pour envoyer, sans ponctuation ni relecture entière. */
+  const arreter = useCallback((options) => {
+    if (options?.rapide) rapide.current = true;
     const enRoute = voulue.current;
     voulue.current = false;
     if (enRoute) {

@@ -29,7 +29,7 @@ import path from 'path';
 import { Records, DATA_DIR } from './db.js';
 import { resoudreAdresse, enExclusifDataB } from './data-b.js';
 import { ErreurSource, DEFINITIVE, SANS_DONNEE } from './marche/erreurs.js';
-import { lancerNavigateur, aller, texteDe } from './marche/navigateur.js';
+import { lancerNavigateur, contexteDiscret, aller, texteDe } from './marche/navigateur.js';
 
 const EMAIL = (process.env.DATAB_EMAIL || '').trim();
 const MDP = (process.env.DATAB_MOT_DE_PASSE || '').trim();
@@ -423,7 +423,7 @@ async function parcours(adresse, cle, { activite, user }) {
   let ctx = null;
   try {
     const b = await lancerNavigateur('Data-B');
-    ctx = await b.newContext({
+    ctx = await contexteDiscret(b, {
       viewport: { width: 1440, height: 1000 },
       locale: 'fr-FR',
       ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}),

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { apercuDuFichier, genreDeFichier, pieceDuTexte } from "@/lib/apercu-fichier";
 import { PointsEnCours, PointFait } from "@/components/ui/PointsEtape";
 import { iconeEtape } from "@/lib/icone-etape";
@@ -860,6 +860,37 @@ function Etapes({ etapes, courante = null }) {
 const PERVENCHE = "rgb(var(--k-pervenche-rgb))";
 
 /** Une action faite : son titre, son détail, de quoi l'ouvrir. */
+/**
+ * Les photos de la ville proposées pour la couverture de l'avis (1er nov. 2026, Jules : « le chat laisse le choix entre
+ * différentes images ») : une rangée de vignettes, un toucher pose la couverture.
+ */
+function PhotosAuChoix({ choix, onChoisie }) {
+  const [prise, setPrise] = useState(choix.choisie || null);
+  const [envoi, setEnvoi] = useState(null);
+  const choisir = async (url) => {
+    if (envoi) return;
+    setEnvoi(url);
+    try {
+      await base44.request("POST", `/api/mandataire/estimations/${choix.estimation_id}/couverture`, { body: { url } });
+      setPrise(url);
+      onChoisie?.(url);
+      toast.success("Photo de couverture choisie");
+    } catch (e) { toast.error(e?.message || "Impossible de poser la photo"); } finally { setEnvoi(null); }
+  };
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4">
+      {choix.photos.map((p, n) => (
+        <button key={p.url} type="button" onClick={() => choisir(p.url)} aria-pressed={prise === p.url} aria-label={`Photo ${n + 1}${p.auteur ? `, par ${p.auteur}` : ""}`}
+          className={`relative aspect-[4/3] overflow-hidden rounded-[12px] border-2 transition-transform duration-200 hover:-translate-y-0.5 ${prise === p.url ? "border-pervenche" : "border-transparent"}`}
+          style={{ background: `center / cover no-repeat url(${JSON.stringify(p.url)})` }}>
+          {prise === p.url && <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-pervenche text-fond"><Check className="h-3.5 w-3.5" /></span>}
+          {envoi === p.url && <span className="absolute inset-0 grid place-items-center bg-fond/40"><Loader2 className="h-5 w-5 animate-spin text-encre" /></span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function CarteAction({ c, onOuvrir }) {
   const rate = c.etat === "rate";
   const annule = c.etat === "annule";
@@ -1027,7 +1058,7 @@ function MessageAvecPiece({ m }) {
 // `lueur` : une lumière fait lentement le tour du cadre de la saisie, pour qu'on la voie (la fiche d'un commerce, 25 oct. 2026, Jules).
 // Dans tous les chats depuis le 26 oct. 2026 (Jules : « dans le dashboard, dans admin, dans tous les chats ») : `lueur={false}` l'éteint.
 // `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
-export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null }) {
+export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026) ; depuis le 1er nov. 2026 (Jules : « un
   // fil par bien »), l'Avis de valeur et le Mandat d'un bien aussi : un seul fil, seul le moteur qui répond change.
@@ -1089,13 +1120,25 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
   // La saisie grandit avec le texte (1er nov. 2026, Jules : « dès qu'on dicte beaucoup, on ne voit pas la fin ») : une
   // dictée arrive d'un bloc, sans retour à la ligne ; la hauteur suit donc le texte lui-même, jusqu'à 45 % de l'écran
   // (au-delà, le champ défile et reste au bas de ce qui s'écrit).
-  useLayoutEffect(() => {
+  // Remesurée aussi quand la largeur change (2 nov. 2026, Jules : « le chat n'augmente pas lorsqu'on dicte ») : la barre
+  // de dictée, l'écran scindé ou la poignée changent la largeur sans changer le texte.
+  const dicteeEnCours = useRef(false);
+  const ajusterChamp = useCallback(() => {
     const champ = champRef.current;
     if (!champ) return;
     champ.style.height = "auto";
     champ.style.height = `${champ.scrollHeight}px`;
-    if (document.activeElement !== champ) champ.scrollTop = champ.scrollHeight;
-  }, [texte]);
+    if (document.activeElement !== champ || dicteeEnCours.current) champ.scrollTop = champ.scrollHeight;
+  }, []);
+  useLayoutEffect(() => { ajusterChamp(); }, [texte, ajusterChamp]);
+  useEffect(() => {
+    const champ = champRef.current;
+    if (!champ || typeof ResizeObserver === "undefined") return undefined;
+    let largeur = champ.clientWidth;
+    const o = new ResizeObserver(() => { if (champ.clientWidth !== largeur) { largeur = champ.clientWidth; ajusterChamp(); } });
+    o.observe(champ);
+    return () => o.disconnect();
+  });
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
   // Les étapes annoncées pendant que le serveur travaille, et celle en cours.
   const [etapesPrevues, setEtapesPrevues] = useState([]);
@@ -1154,7 +1197,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     setTitreSauve(c.titre || null); setTitreEdite(null);
     // Le dernier message attend un tap (« De ce que je sais… », 29 oct. 2026) : ses boutons reviennent avec le fil.
     const dernier = (c.messages || []).at(-1);
-    setSuites(dernier?.role === "assistant" && Array.isArray(dernier.boutons) ? dernier.boutons.map((b) => ({ cle: b.libelle, libelle: b.libelle, texte: b.texte, href: b.href || null, principal: !!b.principal })) : []);
+    setSuites(dernier?.role === "assistant" && Array.isArray(dernier.boutons) ? dernier.boutons.map((b) => ({ cle: b.libelle, libelle: b.libelle, texte: b.texte, href: b.href || null, principal: !!b.principal, ...(/^tel:/.test(b.href || "") ? { faire: () => { window.location.href = b.href; } } : {}) })) : []);
     setBrouillon(null); setFiche(null);
     setHistoriqueOuvert(false);
     onHistorique?.(false);
@@ -1399,6 +1442,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
           role: "assistant",
           contenu: r.texte || "(sans réponse)",
           etapes: vivesRef.current.length ? vivesRef.current : etapesRef.current,
+          ...(r.photos_ville?.photos?.length ? { photos_ville: r.photos_ville } : {}),
           ...(r.avis || r.envoi ? { cartes: [
             ...(r.avis ? [{ titre: "Avis de valeur", detail: r.avis.valeur ? `${Number(r.avis.valeur).toLocaleString("fr-FR")} € · fourchette ${Number(r.avis.bas).toLocaleString("fr-FR")} – ${Number(r.avis.haut).toLocaleString("fr-FR")} €` : "Valeur et champs manquants à compléter dans l'éditeur", etat: "fait", lien: `avis:${r.avis.estimation_id}`, action: "Ouvrir l'avis" }] : []),
             ...(r.envoi ? [{ titre: "Mail au propriétaire", detail: `${r.envoi.objet} · l'avis en PDF joint`, etat: "fait", lien: `envoi:${r.envoi.estimation_id}`, action: "Relire et envoyer" }] : []),
@@ -1475,7 +1519,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
         pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra });
         if (r.brouillon) setBrouillon({ destinataire: r.brouillon.destinataire || "", objet: r.brouillon.objet || "", corps: r.brouillon.corps || "", dossier_vente: r.brouillon.dossier_vente || null });
         // Les réponses en un tap que l'assistant propose (« Passer à l'estimation ? » Oui / Non, 27 oct. 2026).
-        setSuites([...suitesMandataire(r), ...(Array.isArray(r.boutons) ? r.boutons.map((b) => ({ cle: b.libelle, libelle: b.libelle, texte: b.texte, href: b.href || null, principal: !!b.principal })) : [])]);
+        setSuites([...suitesMandataire(r), ...(Array.isArray(r.boutons) ? r.boutons.map((b) => ({ cle: b.libelle, libelle: b.libelle, texte: b.texte, href: b.href || null, principal: !!b.principal, ...(/^tel:/.test(b.href || "") ? { faire: () => { window.location.href = b.href; } } : {}) })) : [])]);
         return;
       }
       if (r.type === "note") {
@@ -1735,6 +1779,14 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     // dictée déclenche `onFin`, qui sans cela renverrait le même texte.
     // Aussi pendant la relecture finale (« finalisation ») : le texte propre ne
     // doit pas revenir remplir le champ après l'envoi.
+    // La flèche pendant la dictée (2 nov. 2026, Jules : « il faut patienter quelques secondes ») : le clic suffit, le
+    // message part de lui-même dès que les derniers mots sont écrits, sans ponctuation ni relecture entière.
+    if ((ecoute || finalisation) && contenu == null) {
+      envoiApresDictee.current = true;
+      setEnvoiDemande(true);
+      if (!finalisation) arreter({ rapide: true });
+      return;
+    }
     if (ecoute || finalisation) { envoiFait.current = true; if (ecoute) arreter(); }
     // « Rappelle-moi demain de… » dit dans le fil (19 oct. 2026) : un rappel, comme en mode Rappel.
     const ditUnRappel = !mode && espace === "admin" && /^\s*(rappelle[- ]moi|(mets|pose)[- ](moi )?un rappel)\b/i.test(t);
@@ -1816,11 +1868,25 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     onFin: (t) => {
       if (dicteeAnnulee.current) return;
       if (envoiFait.current) { envoiFait.current = false; return; }
+      // Le texte final (ponctué) remplace celui des mots au fil de l'eau.
+      const plein = [avantDictee.current, t].filter(Boolean).join(" ");
+      setTexte(plein);
+      if (envoiApresDictee.current) return; // la flèche a déjà été cliquée : il part ci-dessous
       // Une note d'appel dictée part seule (admin) ; le reste attend d'être relu.
       // Elle part sans étiquette (1.8) : AK reconnaît lui-même une note d'appel.
-      if (!mandataire && /^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer([avantDictee.current, t].filter(Boolean).join(" "));
+      if (!mandataire && /^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer(plein);
     },
   });
+  dicteeEnCours.current = ecoute;
+  // La dictée finie, le message demandé pendant qu'elle s'écrivait part, avec le texte final.
+  const envoiApresDictee = useRef(false);
+  const [envoiDemande, setEnvoiDemande] = useState(false);
+  useEffect(() => {
+    if (ecoute || !envoiApresDictee.current) return;
+    envoiApresDictee.current = false;
+    setEnvoiDemande(false);
+    if (!dicteeAnnulee.current) lancerRef.current();
+  }, [ecoute]);
 
   const cadreAura = useRef(null);
   // La lumière de la dictée s'éteint dès l'envoi (ou l'arrêt), sans attendre la fin de la transcription.
@@ -1848,6 +1914,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
 
   const annulerDictee = () => {
     dicteeAnnulee.current = true;
+    envoiApresDictee.current = false;
+    setEnvoiDemande(false);
     arreter();
     setTexte(avantDictee.current);
     setTimeout(() => champRef.current?.focus(), 30);
@@ -1898,7 +1966,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
           <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" multiple className="hidden" onChange={(e) => { joindre(e.target.files); e.target.value = ""; }} />
 
           {/* Pendant la dictée, la barre du mode micro : Annuler, l'onde, le minuteur, Envoyer. */}
-          {ecoute && <BarreEcoute niveau={niveau} cadre={cadreAura} onAnnuler={annulerDictee} onEnvoyer={() => lancer()} />}
+          {ecoute && <BarreEcoute niveau={niveau} cadre={cadreAura} onAnnuler={annulerDictee} onEnvoyer={() => lancer()} envoi={envoiDemande} />}
           <div className={`mt-4 flex flex-wrap items-center gap-1.5 max-md:flex-nowrap ${ecoute ? "hidden" : ""}`}>
             {E.fichier && <button
               type="button"
@@ -2153,6 +2221,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
             <History className="h-3.5 w-3.5" /> Historique
           </button>}
         </div>
+        {/* Ce que la page veut garder sous la barre pendant l'échange (les temps du mandat, 2 nov. 2026). */}
+        {enTeteFil && <div className="flex-none">{enTeteFil}</div>}
         {historiqueOuvert && <div className="mx-auto w-full max-w-[760px] flex-none"><HistoriqueConversations api={E.api} qs={qs} actuelle={conversationId} onOuvrir={ouvrirConversation} onNouvelle={nouvelleConversation} /></div>}
 
         <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${barreApercu ? "-mr-5 pr-5" : ""}`}>
@@ -2183,6 +2253,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
                   <Etapes etapes={m.etapes} />
                   <Message m={m} question={[...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null} surface={E.avis} heure={compact ? heureDe(m) : null} />
                   <SourcesLoi sources={m.sources} />
+                  {m.photos_ville?.photos?.length > 0 && <PhotosAuChoix choix={m.photos_ville} onChoisie={() => onReponse?.({ estimation_id: m.photos_ville.estimation_id, avis_retouche: true })} />}
                   {/* L'avis affiché à côté du chat : sa carte « Ouvrir l'avis » ne servirait à rien. */}
                   {m.cartes?.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).length > 0 && (
                     <div className="mt-5 space-y-3">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} />)}</div>

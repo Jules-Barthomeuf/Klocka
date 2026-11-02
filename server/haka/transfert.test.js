@@ -25,6 +25,7 @@ Records.create('Deal', { deal_id: 'deal-lyon', nom: 'Pharmacie du Centre - Lyon'
 
 const piece = (nom) => { const p = path.join(dir, nom); fs.writeFileSync(p, `%PDF ${nom}`); return { nom, mime: 'application/pdf', taille: 10, piece_id: `local:${p}` }; };
 let n = 0;
+const notif = (m) => Records.list('Notification').find((x) => x.cle === `haka-transfert:${m.id}`);
 const transfert = (champs = {}) => Records.create('MailRecu', { compte: 'sourcing@klocka.immo', gmail_message_id: `t${n += 1}`, de: 'Nora <nora@klocka.immo>', de_email: 'nora@klocka.immo', objet: 'TR: Documents', texte: '', date: new Date().toISOString(), interne: true, commande: true, pieces_jointes: [], ...champs });
 
 test('lire un transfert : Gmail, Outlook, Apple Mail, ou un simple « TR: »', () => {
@@ -60,6 +61,24 @@ test('comprendre : la consigne du collègue, puis le dossier évident, sinon on 
   const v3 = X.dossiersVises(lu('le bail de la pharmacie de Lyon', 'paul@cabinet.fr'), deals);
   assert.equal(X.comprendre(lu('le bail de la pharmacie de Lyon'), { pieces: [{}], vises: v3 }).dossier, 'deal-lyon', 'le nom dans la note départage');
   assert.equal(X.comprendre(lu(''), { pieces: [{}], fiches: [{}], vises: [] }).intention, 'fiche', 'une fiche sans dossier connu');
+  // Des pièces sans dossier reconnu ni fiche (2 nov. 2026, Jules) : un nouveau dossier, sans demander.
+  assert.deepEqual(X.comprendre(lu(''), { pieces: [{}], vises: [] }), { intention: 'nouveau' });
+  assert.deepEqual(X.comprendre(lu('pour la data room'), { pieces: [{}], vises: [] }), { intention: 'nouveau' });
+});
+
+test('des pièces sans dossier reconnu : un nouveau dossier au nom de Nora, ses pièces dans la Data Room', async () => {
+  const m = transfert({ objet: 'TR: Murs Tabac de la Gare - Vienne', texte: "---------- Forwarded message ---------\nDe : Julie <julie@notaire.fr>\nObjet : Murs Tabac de la Gare - Vienne\n\nCi-joint.", pieces_jointes: [piece('bail-vienne.pdf'), piece('quittances-vienne.pdf')] });
+  X.surTransfert(m, { lancer: false, uploadDir: dir });
+  await T.tourner();
+  const d = Records.list('Deal').find((x) => x.source_mail?.mail_recu_id === m.id);
+  assert.ok(d, 'le dossier est créé');
+  assert.equal(d.nom, 'Murs Tabac de la Gare - Vienne');
+  assert.equal(d.responsable_email, 'nora@klocka.immo');
+  assert.equal(d.contact_agent_email, 'julie@notaire.fr');
+  assert.deepEqual(d.documents_espace.map((x) => x.nom).sort(), ['bail-vienne.pdf', 'quittances-vienne.pdf']);
+  assert.equal(Records.list('HakaProposition').filter((p) => p.charge?.mail_id === m.id).length, 0, 'pas de question');
+  const log = notif(m);
+  assert.match(log.texte, /Je n'ai reconnu aucun dossier ouvert : j'ai créé « Murs Tabac de la Gare - Vienne » à votre nom, avec 2 pièces dans sa Data Room/);
 });
 
 test('des pièces pour un dossier évident : rangées sans redemander, et Nora reçoit le compte rendu', async () => {
@@ -69,10 +88,11 @@ test('des pièces pour un dossier évident : rangées sans redemander, et Nora r
   const d = Records.findBy('Deal', 'deal_id', 'deal-macon');
   assert.deepEqual(d.documents_espace.map((x) => x.nom).sort(), ['bail-macon.pdf', 'taxe-fonciere.pdf']);
   assert.equal(Records.list('HakaProposition').filter((p) => p.charge?.mail_id === m.id).length, 0, 'pas de question : le transfert est la décision');
-  const log = Records.list('EmailLog').find((e) => e.template_id === `haka-transfert:${m.id}`);
-  assert.equal(log.to, 'nora@klocka.immo');
-  assert.match(log.body, /^Bonjour Nora,\n\nC'est fait : 2 pièces dans la Data Room de « Boulangerie Aux Délices - Mâcon »/);
-  assert.match(log.body, /\/Dossiers\?deal_id=deal-macon/);
+  const log = notif(m);
+  assert.equal(log.pour, 'nora@klocka.immo');
+  assert.match(log.texte, /^C'est fait : 2 pièces dans la Data Room de « Boulangerie Aux Délices - Mâcon »/);
+  assert.equal(log.lien, '/Dossiers?deal_id=deal-macon');
+  assert.equal(Records.list('EmailLog').filter((e) => String(e.template_id || '').startsWith('haka-transfert:')).length, 0, 'aucun mail à l’analyste');
   // Le même transfert relu ne refait rien.
   X.surTransfert(m, { lancer: false, uploadDir: dir });
   await T.tourner();
@@ -92,11 +112,50 @@ test('plusieurs dossiers possibles : une question à Nora seule, puis les pièce
   assert.equal((await F.valider(p.id, nora, { choix: 'deal-nimes' })).ok, true);
   await T.tourner();
   assert.deepEqual(Records.findBy('Deal', 'deal_id', 'deal-nimes').documents_espace.map((x) => x.nom), ['plans.pdf']);
-  assert.ok(Records.list('EmailLog').some((e) => e.template_id === `haka-transfert:${m.id}`));
+  assert.ok(notif(m));
 });
 
 test('le compte rendu dit ce qui a été fait, et seulement ça', () => {
-  assert.match(X.compteRendu({ fait: 'fiche', deal_id: 'd1', nom: 'Tabac · Lille', verdict: 'GO' }, { prenom: 'Maxime', objet: 'TR: fiche' }).corps, /^Bonjour Maxime,\n\nC'est fait : le dossier « Tabac · Lille » est créé à votre nom et pré-analysé \(verdict : GO\)\./);
-  assert.match(X.compteRendu({ fait: 'documents', deal_id: 'd1', nom: 'X', deposes: [], deja: ['bail.pdf'] }).corps, /étaient déjà dans la Data Room/);
-  assert.equal(X.compteRendu({ fait: 'rejoint', deal_id: 'd1', nom: 'X' }, { objet: 'TR: fiche' }).objet, 'Re: TR: fiche');
+  assert.deepEqual(X.compteRendu({ fait: 'fiche', deal_id: 'd1', nom: 'Tabac · Lille', verdict: 'GO' }, { objet: 'TR: fiche' }), { titre: 'Votre transfert · Tabac · Lille', texte: "C'est fait : le dossier « Tabac · Lille » est créé à votre nom et pré-analysé (verdict : GO).", lien: '/Dossiers?deal_id=d1' });
+  assert.match(X.compteRendu({ fait: 'documents', deal_id: 'd1', nom: 'X', deposes: [], deja: ['bail.pdf'] }).texte, /étaient déjà dans la Data Room/);
+  assert.equal(X.compteRendu({ fait: 'rien' }, { objet: 'TR: Bail' }).titre, 'Votre transfert · Bail');
+});
+
+test("« ne rentre pas la fiche dans la plateforme » : aucun dossier, la fiche en Mémoire et dans Twenty", async () => {
+  const lu = (note) => ({ note, origine: null, objet_origine: '' });
+  for (const note of ['Ne rentre pas la fiche dans la plateforme', 'ne la rentre pas stp', 'pas de dossier, juste pour info', 'seulement en mémoire', 'ne pas créer de dossier']) {
+    assert.deepEqual(X.comprendre(lu(note), { pieces: [{}], vises: [] }), { intention: 'memoire' }, note);
+  }
+  assert.equal(X.comprendre(lu('à pré-analyser'), { pieces: [{}], vises: [] }).intention, 'fiche');
+  const avant = Records.list('Deal').length;
+  const m = transfert({ objet: 'TR: Murs Pharmacie - Arles', texte: "Ne rentre pas la fiche dans la plateforme\n\n---------- Forwarded message ---------\nDe : Léa Agent <lea@agence-arles.fr>\nObjet : Murs Pharmacie - Arles\n", pieces_jointes: [piece('fiche-arles.pdf')] });
+  const extraire = async () => ({ lots: [{ lot: { adresse: { valeur: { rue: '3 rue de la République', code_postal: '13200', ville: 'Arles' } }, prix_fai: { valeur: 640000 }, loyer_annuel_ht_hc: { valeur: 38000 } } }], agent: null });
+  const poses = [];
+  const pousser = async (b) => { poses.push(b); return { id: 'tw-1', cree: true }; };
+  const r = await X.enMemoireSeulement(m, { membre: { email: 'nora@klocka.immo' }, lu: { note: '', origine: { email: 'lea@agence-arles.fr', nom: 'Léa Agent' }, objet_origine: 'Murs Pharmacie - Arles' }, extraire, pousser });
+  assert.equal(r.fait, 'memoire');
+  assert.equal(r.twenty, true);
+  assert.equal(Records.list('Deal').length, avant, 'aucun dossier');
+  const b = Records.findBy('BienMemoire', 'mail_recu_id', m.id);
+  assert.equal(b.statut, 'memoire');
+  assert.equal(b.origine, 'transfert');
+  assert.equal(b.ville, 'Arles');
+  assert.equal(b.prix, 640000);
+  assert.equal(b.agent_email, 'lea@agence-arles.fr', "l'agent d'origine, pas le collègue");
+  assert.ok(b.fiche?.url, 'la fiche est gardée');
+  assert.equal(poses[0].id, b.id);
+  // La même pièce transférée une seconde fois n'est pas relue.
+  const r2 = await X.enMemoireSeulement(m, { membre: { email: 'nora@klocka.immo' }, lu: { note: '' }, extraire: async () => { throw new Error('ne doit pas relire'); }, pousser });
+  assert.equal(r2.deja, true);
+  assert.equal(Records.filter('BienMemoire', { mail_recu_id: m.id }).length, 1);
+  assert.match(X.compteRendu(r).texte, /^Rien dans la plateforme, comme demandé : la fiche est en Mémoire \(3 rue de la République, Arles\) et dans les Propriétés de Twenty CRM\.$/);
+});
+
+test('un dossier né du transfert : sa fiche en Mémoire et sa Propriété dans Twenty, tout de suite', async () => {
+  const d = Records.create('Deal', { deal_id: 'deal-transfert', nom: 'Tabac · Sète', lots: [{ lot: { adresse: { valeur: { rue: '1 quai Aspirant Herber', ville: 'Sète' } }, prix_fai: { valeur: 300000 } } }], contact_agent_email: 'agent@sete.fr' });
+  const r = await X.versMemoireEtTwenty(d, { email: 'nora@klocka.immo' }, { pousser: async () => ({ id: 'tw-2' }) });
+  assert.deepEqual(r, { memoire: true, twenty: true, twenty_id: 'tw-2' });
+  const b = Records.findBy('BienMemoire', 'deal_id', 'deal-transfert');
+  assert.equal(b.statut, 'dossier');
+  assert.equal(b.agent_email, 'agent@sete.fr');
 });

@@ -44,9 +44,12 @@ test('nettoyerReponses : types, unités, et ce qui ne se lit pas', () => {
 });
 
 test('manquantsMandat et nomMandant', () => {
-  assert.equal(manquantsMandat({}).length, 9);
-  const complet = { type_mandat: 'exclusif', vendeur_societe: 'SCI du Pont', vendeur_adresse: '1 rue X', bien_adresse: '12 rue Carnot, Mâcon', bien_designation: 'Local commercial', prix: 450000, honoraires: 5, honoraires_charge: 'vendeur', duree_mois: 12 };
+  assert.equal(manquantsMandat({}).length, 11);
+  const complet = { type_mandat: 'exclusif', vendeur_societe: 'SCI du Pont', vendeur_siren: '932230394', vendeur_representant: 'M. Martin', prix_tva: false, bien_occupe: false, vendeur_adresse: '1 rue X', bien_adresse: '12 rue Carnot, Mâcon', bien_designation: 'Local commercial', prix: 450000, honoraires: 5, honoraires_charge: 'vendeur', duree_mois: 12 };
   assert.deepEqual(manquantsMandat(complet), []);
+  // Ce que le document affiche selon le cas (2 nov. 2026, Jules : « il dit complet alors qu'il reste des champs »).
+  const gAssocies = { ...complet, vendeur_societe: undefined, vendeur_siren: undefined, vendeur_representant: undefined, vendeur_genre: 'physique', vendeur_nom: 'G Associes', prix_tva: undefined, bien_occupe: true };
+  assert.deepEqual(manquantsMandat(gAssocies).map((m) => m.split(' ').slice(0, 3).join(' ')), ['la forme de', 'le SIREN de', 'le représentant de', 'si le prix', 'le locataire en']);
   assert.equal(nomMandant({ vendeur_forme: 'SCI', vendeur_societe: 'du Pont' }), 'SCI du Pont');
   assert.equal(nomMandant({ vendeur_civilite: 'M.', vendeur_prenom: 'Jean', vendeur_nom: 'Martin' }), 'M. Jean Martin');
   assert.equal(nomMandant({}), null);
@@ -64,7 +67,7 @@ test('le cycle : commencer, noter, envoyer (agent éteint → file Klocka)', asy
   const avant = await envoyerMandat(A, conv);
   assert.equal(avant.ok, false, 'incomplet : on ne l’envoie pas');
   assert.ok(avant.manquants.length > 0);
-  noterMandat({ vendeur_civilite: 'M.', vendeur_prenom: 'Jean', vendeur_nom: 'Martin', vendeur_adresse: '3 rue Y, Mâcon', bien_adresse: '12 rue Carnot, Mâcon', bien_designation: 'Local commercial en rez-de-chaussée', honoraires: '5 %', honoraires_charge: 'vendeur', duree_mois: 12 }, A, conv);
+  noterMandat({ vendeur_civilite: 'M.', vendeur_prenom: 'Jean', vendeur_nom: 'Martin', vendeur_adresse: '3 rue Y, Mâcon', bien_adresse: '12 rue Carnot, Mâcon', bien_designation: 'Local commercial en rez-de-chaussée', honoraires: '5 %', honoraires_charge: 'vendeur', duree_mois: 12, prix_tva: 'non', bien_occupe: false }, A, conv);
   const r = await envoyerMandat(A, conv);
   assert.equal(r.ok, true);
   assert.equal(r.statut, 'demande_envoyee');

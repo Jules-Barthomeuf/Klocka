@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from "react";
 import Loader from "@/components/ui/Loader";
 import { createPortal } from "react-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Download, Loader2, Send, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, Download, Loader2, Mail, Send, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import { useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // L'envoi de l'avis de valeur (27 oct. 2026, Jules : « à la fin de l'estimation, l'IA propose d'écrire le message et de
 // l'envoyer avec l'estimation en PDF »). Le mail de Haka se relit ici ; il part de la messagerie du mandataire (Klocka
 // n'envoie rien pour lui) avec l'avis en PDF : au téléphone, le partage joint le fichier ; sinon le PDF se télécharge
 // et la messagerie s'ouvre. Puis « C'est envoyé » : l'affaire passe en Estimation envoyée ; on reste sur l'Estimation,
 // et le chat suit la relation avec le propriétaire (27 oct. 2026, Jules : plus de relances programmées d'office).
+// Depuis le 1er nov. 2026 (Jules : « envoyer le mail directement depuis la plateforme »), il part d'ici, de la boîte
+// Gmail du mandataire connectée à Klocka, PDF joint ; sans boîte, on la connecte d'un clic, la messagerie reste en secours.
 
 const BOUTON = "inline-flex h-10 items-center gap-2 rounded-full px-4 text-[13.5px] transition-colors disabled:opacity-40";
 const CHAMP = "w-full rounded-[10px] border border-trait bg-surface px-3 text-[14px] text-encre outline-none focus:border-bord-vif max-md:text-[16px]";
@@ -61,15 +64,28 @@ export default function EnvoiAvis({ estimationId, onFermer }) {
     onSuccess: (facon) => { if (facon !== "annule") setParti(facon); },
     onError: (e) => toast.error(e?.message || "Le PDF ne s'est pas fait"),
   });
+  const boiteQ = useQuery({ queryKey: ["m-boite"], queryFn: () => base44.request("GET", "/api/mandataire/boite"), staleTime: 60_000 });
+  // Toutes les boîtes connectées (1er nov. 2026, Jules : « depuis n'importe quelle boîte qu'on a connectée ») : la
+  // boîte par défaut d'abord, une autre se choisit dans « De ».
+  const boites = boiteQ.data?.boites || [];
+  const [de, setDe] = useState(null);
+  const boite = boites.find((b) => b.id === de) || boites[0] || null;
+  const { connecter, enCours: connexion } = useConnexionGmail(() => queryClient.invalidateQueries({ queryKey: ["m-boite"] }));
+  const fini = (de) => {
+    ["m-proprietaires", "m-fiche", "m-estimations", "m-rappels"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+    toast.success(de ? `Avis envoyé de ${de}` : "Estimation envoyée");
+    window.dispatchEvent(new CustomEvent("klocka:dire", { detail: { texte: "L'avis est parti. Racontez-moi la suite quand vous avez des nouvelles : un appel, un rendez-vous, sa réponse. Je note, je pose les relances, et on passe au mandat quand le prix est d'accord." } }));
+    onFermer();
+  };
+  const direct = useMutation({
+    mutationFn: () => base44.request("POST", `/api/mandataire/estimations/${encodeURIComponent(estimationId)}/envoyer`, { body: { ...mail, de: boite?.id || null } }),
+    onSuccess: (r) => fini(r?.de || boite?.email),
+    onError: (e) => { if (/boîte/i.test(e?.message || "")) queryClient.invalidateQueries({ queryKey: ["m-boite"] }); toast.error(e?.message || "Le mail n'est pas parti"); },
+  });
   const pdfSeul = useMutation({ mutationFn: () => pdfDe(estimationId).then(telecharger), onError: (e) => toast.error(e?.message || "Le PDF ne s'est pas fait") });
   const confirmer = useMutation({
     mutationFn: () => base44.request("POST", `/api/mandataire/estimations/${encodeURIComponent(estimationId)}/envoye`, { body: mail }),
-    onSuccess: () => {
-      ["m-proprietaires", "m-fiche", "m-estimations", "m-rappels"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
-      toast.success("Estimation envoyée");
-      window.dispatchEvent(new CustomEvent("klocka:dire", { detail: { texte: "L'avis est parti. Racontez-moi la suite quand vous avez des nouvelles : un appel, un rendez-vous, sa réponse. Je note, je pose les relances, et on passe au mandat quand le prix est d'accord." } }));
-      onFermer();
-    },
+    onSuccess: () => fini(null),
     onError: (e) => toast.error(e?.message || "Non enregistré"),
   });
   return createPortal(
@@ -84,6 +100,18 @@ export default function EnvoiAvis({ estimationId, onFermer }) {
         {!mail && !erreur && <Loader titre="L'Assistant KPartners prépare le mail…" />}
         {mail && !parti && (
           <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto">
+            {boites.length > 0 && (
+              <label className="flex flex-col gap-1 text-[12.5px] text-ardoise">De
+                <span className="flex items-center gap-2">
+                  <select value={boite?.id || ""} onChange={(e) => setDe(e.target.value)} disabled={boites.length < 2} className={`${CHAMP} h-10 min-w-0 flex-1 disabled:opacity-100`}>
+                    {boites.map((b) => <option key={b.id} value={b.id}>{b.nom ? `${b.nom} <${b.email}>` : b.email}</option>)}
+                  </select>
+                  <button type="button" onClick={connecter} disabled={connexion} className="flex-none whitespace-nowrap text-[12.5px] text-menthe hover:underline" style={{ background: "transparent" }}>
+                    {connexion ? "Connexion…" : "Ajouter une boîte"}
+                  </button>
+                </span>
+              </label>
+            )}
             <label className="flex flex-col gap-1 text-[12.5px] text-ardoise">À
               <input type="email" value={mail.a} onChange={(e) => setMail({ ...mail, a: e.target.value })} placeholder="L'adresse du propriétaire" className={`${CHAMP} h-10`} />
             </label>
@@ -92,14 +120,27 @@ export default function EnvoiAvis({ estimationId, onFermer }) {
             </label>
             <textarea value={mail.texte} onChange={(e) => setMail({ ...mail, texte: e.target.value })} aria-label="Le mail"
               rows={Math.min(14, Math.max(7, mail.texte.split("\n").length + 1))} className={`${CHAMP} resize-y py-2.5 leading-[1.6]`} />
-            <p className="m-0 text-[12.5px] text-ardoise">L'avis de valeur part en PDF, joint au mail. Il s'envoie de votre messagerie.</p>
+            <p className="m-0 text-[12.5px] text-ardoise">
+              {boite ? "L'avis de valeur part en PDF, joint au mail." : "L'avis de valeur part en PDF, joint au mail. Connectez votre boîte Gmail pour l'envoyer d'ici."}
+            </p>
             <div className="mt-1 flex flex-wrap items-center justify-end gap-2">
               <button type="button" onClick={() => pdfSeul.mutate()} disabled={pdfSeul.isPending} className={`${BOUTON} border border-trait text-craie hover:text-encre`} style={{ background: "transparent" }}>
                 {pdfSeul.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}Le PDF seul
               </button>
-              <button type="button" onClick={() => envoyer.mutate()} disabled={envoyer.isPending || !mail.texte.trim()} className={`${BOUTON} bg-menthe text-sur-menthe hover:bg-menthe-survol`}>
-                {envoyer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{envoyer.isPending ? "Le PDF se prépare…" : "Envoyer avec l'avis en PDF"}
-              </button>
+              {boite ? (
+                <button type="button" onClick={() => direct.mutate()} disabled={direct.isPending || !mail.texte.trim() || !mail.a.includes("@")} className={`${BOUTON} bg-menthe text-sur-menthe hover:bg-menthe-survol`}>
+                  {direct.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{direct.isPending ? "Envoi…" : "Envoyer"}
+                </button>
+              ) : (
+                <>
+                  <button type="button" onClick={() => envoyer.mutate()} disabled={envoyer.isPending || !mail.texte.trim()} className={`${BOUTON} border border-trait text-craie hover:text-encre`} style={{ background: "transparent" }}>
+                    {envoyer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}Ma messagerie
+                  </button>
+                  <button type="button" onClick={connecter} disabled={connexion || boiteQ.isLoading} className={`${BOUTON} bg-menthe text-sur-menthe hover:bg-menthe-survol`}>
+                    {connexion ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}Connecter ma boîte Gmail
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

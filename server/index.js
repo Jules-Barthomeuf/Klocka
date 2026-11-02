@@ -254,6 +254,21 @@ app.post('/api/dictee', wrap(async (req, res) => {
 }));
 // Chaque requête à l'API sait ce qu'elle a coûté en modèle, et à qui.
 app.use(mesurerRequetes(currentUser));
+// Les lectures lentes (2 nov. 2026, Jules : « aller plus vite au chargement dans K Partners ») : une ligne de journal par
+// GET de l'API qui passe 1,5 s, avec le rôle, pour savoir quoi accélérer avant d'y toucher. Ni nom ni adresse : le
+// chemin de la route, sans ses paramètres.
+app.use('/api', (req, res, next) => {
+  if (req.method !== 'GET') return next();
+  const debut = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - debut;
+    if (ms < 1500) return;
+    let role = null;
+    try { role = currentUser(req)?.role || null; } catch { /* sans session */ }
+    console.warn(`[lent] ${ms} ms GET ${req.baseUrl}${req.route?.path || req.path} ${res.statusCode}${role ? ` (${role})` : ''}`);
+  });
+  next();
+});
 // Qui a fait quoi. Avant le service des fichiers déposés : un bail téléchargé
 // est précisément ce qu'on veut pouvoir retracer, et les fichiers statiques ne
 // traversent pas les middlewares montés après eux.

@@ -31,7 +31,7 @@ test('les biens du mandataire : un objet rangé une fois, chaque bien relié de 
   // Sept étapes : la mise en marché présentée (offre reçue), il reste Offres puis Vente.
   assert.equal(ETAPES_BIEN[b.etape - 1].id, 'offre');
   assert.equal(b.statut, 'Offre reçue');
-  assert.deepEqual([...b.faites].sort(), ['estimation', 'mandat', 'marche', 'previsite']);
+  assert.deepEqual([...b.faites].sort(), ['dataroom', 'estimation', 'mandat', 'marche', 'previsite']);
   assert.equal(ETAPES_BIEN[bienDe(biens, 'mandat:m2').etape - 1].id, 'mandat', 'un mandat demandé suppose l’avis accepté');
   assert.equal(ETAPES_BIEN[bienDe(biens, 'estimation:e2').etape - 1].id, 'estimation');
   assert.equal(bienDe(biens, 'estimation:e2').statut, 'Avis en cours');
@@ -48,8 +48,11 @@ test('les biens du mandataire : un objet rangé une fois, chaque bien relié de 
 test('l’étape d’un bien : le dernier objet qui existe la dit, la vente dès le compromis', () => {
   assert.equal(etapeDuBien({}), 1);
   assert.equal(etapeDuBien({ estimation: { statut: 'brouillon' } }), 2);
-  assert.equal(etapeDuBien({ marche: { statut: 'preparation' } }), 4, 'un ancien bien né en mise en marché n’est pas renvoyé au rendez-vous');
-  assert.equal(etapeDuBien({ marche: { statut: 'compromis' } }), 6);
+  assert.equal(etapeDuBien({ marche: { statut: 'preparation' } }), 5, 'un ancien bien né en mise en marché n’est pas renvoyé au rendez-vous');
+  assert.equal(etapeDuBien({ marche: { statut: 'compromis' } }), 7);
+  // La Data room (2 nov. 2026) : le dossier ouvert au mandat signé y mène ; mis en vente, la Commercialisation.
+  assert.equal(etapeDuBien({ dossier: { statut: 'documents_en_cours' } }), 4);
+  assert.equal(etapeDuBien({ dossier: { statut: 'go', en_vente_le: '2026-11-02' } }), 5);
   // Les mots d'avant le 26 oct. 2026 : la visite faite mène à l'avis, le prix d'accord au mandat.
   assert.equal(etapeDuBien({ proprietaire: { statut: 'rdv_pris', biens: { validee: 'visite' } } }), 2, 'Visité (ancien) : l’avis de valeur');
   assert.equal(etapeDuBien({ proprietaire: { statut: 'rdv_pris', biens: { validee: 'rdv' } } }), 1, 'rendez-vous pris : la pré-visite');

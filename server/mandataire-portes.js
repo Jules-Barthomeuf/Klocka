@@ -74,6 +74,9 @@ export function creerEstimation({ bien, adresse = null, infos_rdv = null, propri
     cree_le: maintenant(),
     historique: [{ le: maintenant(), par: user?.email || null, action: 'créée' }],
   });
+  // Aucun avis sans fiche (2 nov. 2026, server/fiche-du-bien.js) ; une fiche qui reçoit un avis entre dans Biens.
+  if (proprietaire_id) import('./bien-etapes.js').then((b) => b.entrerDansBiens(Records.get('ProprietaireMandataire', proprietaire_id), user)).catch((err) => console.warn(`[biens] ${err?.message || err}`));
+  if (!proprietaire_id) import('./fiche-du-bien.js').then((f) => f.ficheDeLAvis(e.id, user)).catch((err) => console.warn(`[fiche] ${err?.message || err}`));
   return { ok: true, estimation: e };
 }
 
@@ -262,6 +265,8 @@ export function demanderMandat(champs, user) {
     historique: [{ le: maintenant(), par: user?.email || null, action: 'demande envoyée' }],
   });
   etapeDuMandat(m, 'demande_envoyee');
+  // Aucun mandat sans fiche (2 nov. 2026, server/fiche-du-bien.js).
+  import('./fiche-du-bien.js').then((f) => f.ficheDuMandat(m.id, user)).catch((err) => console.warn(`[fiche] ${err?.message || err}`));
   return { ok: true, mandat: m };
 }
 
@@ -276,7 +281,7 @@ export function deposerMandatPret(id, { document, reference_mynotary = null }, u
   const m = lireMandat(id, user);
   if (!m) return { ok: false, error: 'Mandat introuvable.' };
   if (!document?.url) return { ok: false, error: 'Joignez le mandat rédigé.' };
-  const r = passer('MandatMandataire', m, ['demande_envoyee', 'pret'], 'pret', user, 'mandat prêt', { document, reference_mynotary: reference_mynotary || m.reference_mynotary });
+  const r = passer('MandatMandataire', m, ['demande_envoyee', 'pret'], 'pret', user, 'mandat signé reçu de MyNotary', { document, reference_mynotary: reference_mynotary || m.reference_mynotary });
   if (r.ok) etapeDuMandat(r.mandat, 'pret');
   return r;
 }
@@ -289,13 +294,69 @@ export function deposerMandatSigne(id, document, user) {
   const r = passer('MandatMandataire', m, ['pret'], 'signe', user, 'signé', { document_signe: document });
   if (r.ok) {
     etapeDuMandat(r.mandat, 'signe');
-    ouvrirDossierDuMandat(r.mandat, user).catch((e) => console.warn('[portes] dossier du mandat :', e?.message || e));
+    // Comme au clic sur « Mandat signé reçu » : le dossier ouvert, l'assistant dit la suite (server/mandat-signe.js).
+    ouvrirDossierDuMandat(r.mandat, user)
+      .then((d) => import('./mandat-signe.js').then((M) => M.direLaSuite(r.mandat, d, user)))
+      .catch((e) => console.warn('[portes] dossier du mandat :', e?.message || e));
   }
   return r;
 }
 
 /**
- * « Passer à l'étape suivante » (27 oct. 2026, Jules) : Klocka a joint le mandat signé dans la conversation ; le
+ * « Je valide le mandat » (2 nov. 2026, Jules : « après confirmation de votre part, il l'envoie en signature ») : le
+ * mandat rempli par Klocka est relu ; il part en signature, Klocka est prévenue.
+ */
+export function validerMandat(id, user) {
+  const m = lireMandat(id, user);
+  if (!m) return { ok: false, error: 'Mandat introuvable.' };
+  if (m.valide_le) return { ok: true, mandat: m, deja: true };
+  if (m.statut !== 'demande_envoyee' || !m.a_relire) return { ok: false, error: "Le mandat rempli n'est pas encore arrivé dans la conversation." };
+  const maj = Records.update('MandatMandataire', m.id, { valide_le: maintenant(), historique: trace(m, 'validé par le mandataire', user) });
+  etapeDuMandat(maj, 'valide');
+  return { ok: true, mandat: maj };
+}
+
+/**
+ * L'équipe coche une étape du mandat (2 nov. 2026, Jules : « côté admin, cliquer sur les étapes pour les valider au
+ * lieu que ça se fasse automatiquement ») : 1 Mandat à relire (relu et validé), 2 En signature (signé par le vendeur),
+ * 3 Mandat signé reçu. Cocher une étape coche celles d'avant. Le dernier PDF joint par l'équipe dans la conversation
+ * devient le mandat rempli (1) ou signé (2) ; chaque étape s'écrit dans le fil et prévient le mandataire.
+ */
+export async function cocherEtapeMandat(id, etape, user) {
+  if (!estAdmin(user)) return { ok: false, error: 'Réservé à Klocka.' };
+  let m = lireMandat(id, user);
+  if (!m) return { ok: false, error: 'Mandat introuvable.' };
+  const n = Number(etape);
+  if (![1, 2, 3].includes(n)) return { ok: false, error: 'Étape inconnue.' };
+  if (!['demande_envoyee', 'pret', 'signe', 'enregistre'].includes(m.statut)) return { ok: false, error: "Le mandat n'est pas encore envoyé." };
+  const F = await import('./fil-mandat.js');
+  const pdfs = F.filDuMandat(m.id).filter((x) => x.cote === 'analyste').flatMap((x) => (x.pieces || []).filter(F.estPdf));
+  const dernier = pdfs.at(-1) || null;
+  if (!m.valide_le) {
+    m = Records.update('MandatMandataire', m.id, {
+      a_relire: m.a_relire || (dernier ? { nom: dernier.nom, url: dernier.url, le: maintenant() } : { le: maintenant() }),
+      valide_le: maintenant(), historique: trace(m, 'relu et validé (coché par Klocka)', user),
+    });
+    etapeDuMandat(m, 'valide');
+    await F.prevenirMandataire(m, `Votre mandat est validé · ${F.titreDe(m)}`, 'Il part en signature ; le mandat signé arrivera dans la conversation.', `mandat-valide-m:${m.id}`);
+  }
+  if (n >= 2 && m.statut === 'demande_envoyee') {
+    const document = m.document || (dernier ? { nom: dernier.nom, url: dernier.url } : null);
+    const r = passer('MandatMandataire', m, ['demande_envoyee'], 'pret', user, 'signé par le vendeur (coché par Klocka)', document ? { document } : {});
+    if (!r.ok) return r;
+    m = r.mandat;
+    etapeDuMandat(m, 'pret');
+  }
+  if (n >= 3 && m.statut === 'pret') {
+    const r = passerALaSuite(m.id, user);
+    if (!r.ok) return r;
+    m = r.mandat;
+  }
+  return { ok: true, mandat: m };
+}
+
+/**
+ * « Mandat signé reçu », ex-« Passer à l'étape suivante » (27 oct. 2026, Jules ; renommé le 2 nov.) : Klocka a joint le mandat signé dans la conversation ; le
  * mandataire passe à la Commercialisation, et son dossier s'ouvre comme au dépôt d'un mandat signé.
  */
 export function passerALaSuite(id, user) {
@@ -303,10 +364,13 @@ export function passerALaSuite(id, user) {
   if (!m) return { ok: false, error: 'Mandat introuvable.' };
   if (m.statut === 'signe' || m.statut === 'enregistre') return { ok: true, mandat: m, deja: true };
   if (m.statut !== 'pret') return { ok: false, error: "Le mandat signé n'est pas encore arrivé dans la conversation." };
-  const r = passer('MandatMandataire', m, ['pret'], 'signe', user, 'étape suivante');
+  const r = passer('MandatMandataire', m, ['pret'], 'signe', user, 'mandat signé reçu');
   if (r.ok) {
     etapeDuMandat(r.mandat, 'signe');
-    ouvrirDossierDuMandat(r.mandat, user).catch((e) => console.warn('[portes] dossier du mandat :', e?.message || e));
+    // Le dossier ouvert, l'assistant dit la suite dans le fil du bien (2 nov. 2026, server/mandat-signe.js).
+    ouvrirDossierDuMandat(r.mandat, user)
+      .then((d) => import('./mandat-signe.js').then((M) => M.direLaSuite(r.mandat, d, user)))
+      .catch((e) => console.warn('[portes] dossier du mandat :', e?.message || e));
   }
   return r;
 }
@@ -324,10 +388,36 @@ export async function ouvrirDossierDuMandat(mandat, user) {
   if (!r.ok) return null;
   // Le dossier est au mandataire : Klocka ne le voit qu'une fois transféré
   // (ou dès que le mandataire écrit à son analyste).
-  const d = Records.update('DossierMandataire', r.dossier.id, { mandat_id: mandat.id });
+  // La Data room part de ce qu'on a déjà (2 nov. 2026, Jules : « on a déjà le bail, je l'ai mis dans la data room ») :
+  // le bail déposé pour l'avis de valeur, les photos de la visite ; et, vendeur société, les pièces qui disent qui signe.
+  const pid = mandat.proprietaire_id || (mandat.estimation_id ? Records.get('EstimationMandataire', mandat.estimation_id)?.proprietaire_id : null);
+  const fiche = pid ? Records.get('ProprietaireMandataire', pid) : null;
+  const estimations = Records.list('EstimationMandataire').filter((e) => e.id === mandat.estimation_id || (fiche && e.proprietaire_id === fiche.id));
+  const h = heritageDuDossier({ estimations, fiche, societe: q.vendeur_genre === 'morale' || !!q.vendeur_societe });
+  const d = Records.update('DossierMandataire', r.dossier.id, { mandat_id: mandat.id, documents: h.documents, photos: h.photos, ...(h.pieces_demandees.length ? { pieces_demandees: h.pieces_demandees } : {}) });
+  if (Object.keys(h.documents).length) import('./dossier-vente.js').then((V) => V.lirePieces(d.id, { ...user, email: mandat.mandataire_email })).catch(() => {});
   const F = await import('./fil-dossier.js');
   F.evenement(d.id, 'Mandat signé : le dossier est ouvert. Déposez les pièces et les photos ici, puis transférez-le à Klocka quand vous le souhaitez.');
   return d;
+}
+
+/** Les pièces qui disent qui peut vendre, quand le vendeur est une société. */
+export const PIECES_SOCIETE = [
+  { cle: 'statuts_vendeur', mot: 'Statuts de la société venderesse' },
+  { cle: 'kbis_vendeur', mot: 'Kbis de la société venderesse' },
+  { cle: 'pouvoirs', mot: 'Pouvoirs du gérant pour vendre' },
+];
+
+/**
+ * Pure : ce que la Data room reprend à sa naissance. Le bail déposé sur un avis de valeur du bien, les photos de la
+ * visite, et les pièces d'une société venderesse (demandées, donc requises).
+ */
+export function heritageDuDossier({ estimations = [], fiche = null, societe = false } = {}) {
+  const le = maintenant();
+  const baux = estimations.filter((e) => e?.bail?.url).map((e) => ({ nom: e.bail.nom || 'Bail', url: e.bail.url, le: e.bail.le || le, repris: true }));
+  const uniques = baux.filter((b, i) => baux.findIndex((x) => x.url === b.url) === i);
+  const photos = (fiche?.biens?.visite?.photos || []).filter((x) => x?.url).map((x) => ({ url: x.url, nom: x.nom || 'Photo de la visite', le: x.le || le }));
+  return { documents: uniques.length ? { bail: uniques } : {}, photos, pieces_demandees: societe ? PIECES_SOCIETE.map((x) => ({ ...x })) : [] };
 }
 
 /** Pure : le prochain numéro du registre, « 2026-0007 ». */

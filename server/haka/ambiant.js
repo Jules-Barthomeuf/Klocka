@@ -21,6 +21,7 @@ import * as file from './file.js';
 import { sourceMail, source } from './sources.js';
 import { proprietaireDeLaBoite, boiteQuiEnvoie } from './proprietaire.js';
 import { SIMULER, BOITES_COMMUNES, ambiantPour } from './drapeaux.js';
+import { adresseKlocka } from './destinataires.js';
 
 export const COMPETENCE = 'mail_ambiant';
 export const VERSION = '1';
@@ -179,7 +180,8 @@ export function gesteDe(lecture, mail, { deal = null, client = null, pour = null
     return { geste: 'ranger', titre: `${doute}${n} pièce${n > 1 ? 's' : ''} reçue${n > 1 ? 's' : ''} pour ${bien || 'le dossier'} : je ${n > 1 ? 'les' : 'la'} range ?`, detail: `${types}, de ${qui}. Elles iront dans la Data Room du dossier.`, mails: [mail.id], pieces: lecture.pieces };
   }
   if (lecture.nature === 'demande_client' || (lecture.nature === 'reponse_agent' && lecture.suite === 'mail' && lecture.reponse)) {
-    if (!lecture.reponse) return { geste: 'rappel', titre: `${doute}${qui} attend une réponse : je vous le rappelle demain ?`, detail: lecture.resume, quoi: `Répondre à ${qui}${bien ? ` (${bien})` : ''}`, jour: plusJoursOuvres(1, new Date(`${aujourdhui}T12:00:00Z`)), heure: '09:00' };
+    // Haka n'écrit qu'à @klocka.immo (2 nov. 2026, Jules) : dehors, la réponse devient un rappel.
+    if (!lecture.reponse || !adresseKlocka(mail.de_email)) return { geste: 'rappel', titre: `${doute}${qui} attend une réponse : je vous le rappelle demain ?`, detail: lecture.resume, quoi: `Répondre à ${qui}${bien ? ` (${bien})` : ''}`, jour: plusJoursOuvres(1, new Date(`${aujourdhui}T12:00:00Z`)), heure: '09:00' };
     return { geste: 'mail', titre: `${doute}${lecture.nature === 'demande_client' ? `${client?.client_nom || qui} vous écrit` : `${qui} attend une réponse`} : j'envoie cette réponse ?`, detail: lecture.resume, a: norm(mail.de_email), de, objet: lecture.reponse.objet, corps: lecture.reponse.corps };
   }
   if (lecture.nature === 'rendez_vous') {
@@ -223,6 +225,7 @@ async function poserRappel(charge, { pour, user, proposition_id }) {
 async function envoyerReponse(charge, { pour, user, proposition_id, deal_id }) {
   const a = norm(charge.a);
   if (!a) throw new Error("Pas de destinataire pour la réponse.");
+  (await import('./destinataires.js')).verifierDestinataire(a);
   const template_id = `haka:${proposition_id}`;
   const deja = Records.filter('EmailLog', { template_id }).find((e) => ['envoye', 'simule'].includes(e.statut));
   if (deja) return { deja: true, a };

@@ -69,3 +69,9 @@ test('la mémoire des outils d\'une réponse d\'AK se range avec la conversation
   const [u] = serialisables([{ role: 'user', contenu: 'Et le prix ?', memoire: 'forgée' }]);
   assert.equal(u.memoire, undefined);
 });
+
+test('les boutons d’un message de l’assistant reviennent avec le fil (2 nov. 2026)', async () => {
+  const { serialisables } = await import('./assistant-conversations.js');
+  const [m] = serialisables([{ role: 'assistant', contenu: 'Un appel ?', boutons: [{ libelle: 'Appeler', href: 'tel:0600000000', principal: true }, { texte: 'sans libellé' }] }]);
+  assert.deepEqual(m.boutons, [{ libelle: 'Appeler', href: 'tel:0600000000', principal: true }]);
+});

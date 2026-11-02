@@ -19,7 +19,7 @@ const lePeu = (email) => regrouperBiens({
 });
 
 test('chaque scénario pose un seul bien d’essai, à la bonne étape, sans rien laisser d’avant', async () => {
-  const attendu = { rdv: 1, avis_redige: 2, accord: 3, mandat_signe: 4, en_vente: 4, teaser_valide: 5, klocka_offre: 5, acte: 6 };
+  const attendu = { rdv: 1, avis_redige: 2, accord: 3, mandat_signe: 4, en_vente: 5, teaser_valide: 6, klocka_offre: 6, acte: 7 };
   for (const [cle, etape] of Object.entries(attendu)) {
     const r = await E.appliquerScenario(cle, user);
     assert.equal(r.ok, true, cle);

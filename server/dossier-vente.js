@@ -262,7 +262,7 @@ export async function vueDuDossier(id, user) {
     courrier: courrierPreference({ bailleur: [vendeur, q.vendeur_adresse].filter(Boolean).join('\n') || null, locataire: q.bien_locataire || null, adresse: q.bien_adresse || d.adresse || null, designation: q.bien_designation || null, prix: d.preference?.prix || mandat?.prix || d.prix || null }),
     exceptions: EXCEPTIONS_PREFERENCE,
     decisions: DECISIONS_POINT,
-    depot: d.depot?.jeton ? { url: urlDeDepot(d.depot.jeton), propose_le: d.depot.propose_le || null, relance_le: d.depot.relance_le || null, ouvert_le: d.depot.ouvert_le || null, deposes: d.depot.deposes || 0, dernier_depot_le: d.depot.dernier_depot_le || null } : null,
+    depot: d.depot?.jeton ? { url: urlDeDepot(d.depot.jeton), propose_le: d.depot.propose_le || null, relance_le: d.depot.relance_le || null, ouvert_le: d.depot.ouvert_le || null, deposes: d.depot.deposes || 0, dernier_depot_le: d.depot.dernier_depot_le || null, relances: d.depot.relances || 0 } : null,
     gestes: prochainsGestes(etat, { depot: d.depot }),
     mail_propose: d.mail_propose || null,
     boite: (await boiteDuMandataire(d.mandataire_email))?.email || null,
@@ -390,16 +390,66 @@ export async function deposerParLeVendeur(jeton, fichiers = [], { categorie = nu
     const cle = categorie || categorieDuNom(f.nom) || 'autres';
     const r = P.ajouterPiece(d.id, cle, { filename: f.nom, mimetype: f.mimetype, url: f.url }, proprio, { uploadDir });
     if (!r.ok) return r;
-    rangees.push({ nom: f.nom, piece: P.piecesDu(d).find((p) => p.cle === cle)?.mot || cle });
+    rangees.push({ nom: f.nom, cle, piece: P.piecesDu(d).find((p) => p.cle === cle)?.mot || cle });
   }
   const frais = Records.get('DossierMandataire', d.id);
   Records.update('DossierMandataire', d.id, { depot: { ...frais.depot, dernier_depot_le: maintenant(), deposes: (frais.depot?.deposes || 0) + rangees.length } });
   try {
     const { notifier } = await import('./notifications.js');
     // Une notification par heure et par dossier : un vendeur qui dépose dix fichiers ne fait pas dix alertes.
-    notifier({ pour: d.mandataire_email, titre: `Le vendeur a déposé ${rangees.length > 1 ? `${rangees.length} pièces` : 'une pièce'} · ${d.bien}`, texte: rangees.map((r) => `${r.piece} : ${r.nom}`).join(' ; '), lien: `/MandataireBiens?bien=${encodeURIComponent(`dossier:${d.id}`)}&etape=marche`, action: 'Voir le dossier', cle: `depot-vendeur:${d.id}:${new Date().toISOString().slice(0, 13)}` });
+    notifier({ pour: d.mandataire_email, titre: `Le vendeur a déposé ${rangees.length > 1 ? `${rangees.length} pièces` : 'une pièce'} · ${d.bien}`, texte: rangees.map((r) => `${r.piece} : ${r.nom}`).join(' ; '), lien: `/MandataireBiens?bien=${encodeURIComponent(`dossier:${d.id}`)}&etape=dataroom`, action: 'Voir le dossier', cle: `depot-vendeur:${d.id}:${new Date().toISOString().slice(0, 13)}` });
   } catch { /* la pièce est rangée, l'alerte attendra */ }
+  direLesPiecesRecues(d.id, rangees.map((r) => r.cle)).catch((e) => console.warn('[dossier de vente] message des pièces :', e?.message || e));
   return { ok: true, rangees };
+}
+
+/**
+ * Pure : ce que l'assistant dit quand le propriétaire a déposé des pièces (2 nov. 2026, Jules : « un message seulement
+ * quand il se passe quelque chose : la taxe foncière est arrivée, elle est conforme au bail »). Chaque pièce, ce que sa
+ * lecture relève (ou rien à signaler), puis la suite : ce qui manque encore, ou la Data room complète.
+ */
+export function messagePiecesRecues(v, cles = []) {
+  const ONGLET = { bail: 'bail', quittances: 'quittances', copropriete: 'copropriete', diagnostics: 'diagnostics' };
+  const lignes = [];
+  for (const cle of [...new Set(cles)]) {
+    const p = v.pieces.find((x) => x.cle === cle);
+    if (!p || p.etat === 'manquante') continue;
+    const points = ONGLET[cle] ? v.points.filter((x) => !x.decision && sans(x.onglet) === ONGLET[cle]) : [];
+    const lu = ONGLET[cle] ? (points.length ? ` À voir : ${points.map((x) => (x.motif || `${x.ligne}${x.valeur ? ` (${x.valeur})` : ''}`).replace(/\.$/, '')).join(' ; ')}.` : ' Rien à signaler à la lecture.') : '';
+    lignes.push(`${p.mot} : reçu.${lu}`);
+  }
+  if (!lignes.length) return null;
+  const tete = lignes.length > 1 ? `Le propriétaire a déposé ${lignes.length} pièces.\n\n${lignes.map((l) => `- ${l}`).join('\n')}` : `Le propriétaire a déposé une pièce. ${lignes[0]}`;
+  if (v.pret) return { contenu: `${tete}\n\nLa Data room est complète : on peut mettre le bien en vente, puis préparer le teaser. J'y vais ?`, boutons: [{ libelle: 'Mettre en vente', texte: 'Mets le bien en vente.', principal: true }] };
+  const manquantes = v.pieces.filter((x) => x.requise && x.etat === 'manquante');
+  const prio = prioriteDesPieces(manquantes);
+  const reste = manquantes.length ? `\n\nIl manque encore ${manquantes.map((x) => x.mot.charAt(0).toLowerCase() + x.mot.slice(1)).join(', ')}${prio && manquantes.length > 1 ? ` ; d'abord ${prio.mot.charAt(0).toLowerCase()}${prio.mot.slice(1)}` : ''}.` : '';
+  return { contenu: `${tete}${reste}`, boutons: null };
+}
+
+const aDire = new Map();
+
+/** Les pièces lues, l'assistant le dit dans le fil du bien. Plusieurs dépôts rapprochés : un seul message. */
+export async function direLesPiecesRecues(dossierId, cles = []) {
+  if (aDire.has(dossierId)) { aDire.get(dossierId).push(...cles); return null; }
+  const toutes = [...cles];
+  aDire.set(dossierId, toutes);
+  try {
+    // La lecture d'abord : la file des dépôts, puis la mise en forme des grilles.
+    await (files.get(dossierId) || Promise.resolve()).catch(() => {});
+    const d0 = Records.get('DossierMandataire', dossierId);
+    for (let i = 0; i < 200 && d0?.deal_id && mises.get(d0.deal_id) === 'en_cours'; i++) await new Promise((r) => setTimeout(r, 3000));
+    const d = Records.get('DossierMandataire', dossierId);
+    if (!d) return null;
+    const v = await vueDuDossier(d.id, { email: d.mandataire_email, role: 'mandataire' });
+    if (!v.ok) return null;
+    const m = messagePiecesRecues(v, toutes);
+    if (!m) return null;
+    const mandat = d.mandat_id ? Records.get('MandatMandataire', d.mandat_id) : null;
+    const { direAuMandataire } = await import('./mandat-signe.js');
+    await direAuMandataire(mandat, m.contenu, { boutons: m.boutons });
+    return m;
+  } finally { aDire.delete(dossierId); }
 }
 
 // ---------------------------------------------------------------------------
@@ -413,7 +463,7 @@ export function prochainsGestes(v, { depot = null, aujourdhui = new Date() } = {
   const manquantes = v.pieces.filter((p) => p.requise && p.etat === 'manquante');
   const jours = (iso) => (iso ? (new Date(aujourdhui).getTime() - Date.parse(iso)) / JOUR : null);
   if (!depot?.propose_le && manquantes.length) g.push({ cle: 'premier_mail', libelle: 'Écrire au vendeur', texte: 'Prépare le premier mail au vendeur, avec le lien de son espace de dépôt et la liste des pièces.' });
-  else if (manquantes.length && jours(depot?.relance_le || depot?.propose_le) >= 3 && !(depot?.dernier_depot_le && jours(depot.dernier_depot_le) < 2)) g.push({ cle: 'relance', libelle: 'Relancer le vendeur', texte: 'Prépare la relance du vendeur pour les pièces qui manquent.', principal: true });
+  else if (manquantes.length && jours(depot?.relance_le || depot?.propose_le) >= DELAI_RELANCE_JOURS && !(depot?.dernier_depot_le && jours(depot.dernier_depot_le) < DELAI_RELANCE_JOURS)) g.push({ cle: 'relance', libelle: 'Relancer le vendeur', texte: 'Prépare la relance du vendeur pour les pièces qui manquent.', principal: true });
   const ouverts = v.points.filter((p) => !p.decision);
   if (ouverts.length) g.push({ cle: 'points', libelle: `Voir ${ouverts.length > 1 ? `les ${ouverts.length} points` : 'le point'} relevé${ouverts.length > 1 ? 's' : ''}`, texte: 'Explique-moi les points relevés sur les pièces et ce que tu me conseilles pour chacun.' });
   // Le droit de préférence en tête (28 oct. 2026, Jules : « Haka doit direct le proposer ») : le mois du locataire ne
@@ -423,20 +473,51 @@ export function prochainsGestes(v, { depot = null, aujourdhui = new Date() } = {
   return g.slice(0, 3);
 }
 
-/** Pure : le mail au vendeur, premier envoi ou relance, avec le lien de son espace de dépôt. */
-export function mailVendeur({ genre = 'premier', bien, proprietaire = null, manquantes = [], url, signature = null }) {
+/**
+ * La priorité parmi les pièces qui manquent (2 nov. 2026, Jules : « la priorité c'est… ») : une règle, pas l'humeur du
+ * modèle. La première qui bloque la mise en vente, et pourquoi, en une phrase que le vendeur comprend.
+ */
+export const PRIORITE_PIECES = [
+  ['bail', 'sans lui, ni loyer ni durée à présenter aux acheteurs'],
+  ['quittances', 'elles prouvent que le loyer est bien payé'],
+  ['diagnostics', "sans DPE, le bien ne peut pas être annoncé"],
+  ['taxe_fonciere', "l'acheteur veut savoir qui la paie, vous ou le locataire"],
+  ['pouvoirs', 'ils disent qui peut signer la vente pour la société'],
+  ['statuts_vendeur', 'ils disent qui peut signer la vente pour la société'],
+  ['kbis_vendeur', 'il prouve que la société existe et qui la dirige'],
+];
+
+/** Pure : { cle, mot, raison } de la pièce prioritaire parmi `manquantes` ({ cle, mot }), ou null. */
+export function prioriteDesPieces(manquantes = []) {
+  for (const [cle, raison] of PRIORITE_PIECES) {
+    const m = manquantes.find((x) => x.cle === cle);
+    if (m) return { cle, mot: m.mot, raison };
+  }
+  const m = manquantes.find((x) => x.cle !== 'autres');
+  return m ? { cle: m.cle, mot: m.mot, raison: 'elle manque pour présenter le bien' } : null;
+}
+
+/**
+ * Pure : le mail au vendeur, premier envoi ou relance, avec le lien de son espace de dépôt. Il part tel quel (2 nov.
+ * 2026, Jules : « je ne veux pas que le mandataire ait à modifier le mail ») : la priorité en tête, puis les autres
+ * pièces requises ; les facultatives ne se listent plus, « tout autre document utile » les couvre.
+ */
+export function mailVendeur({ genre = 'premier', bien, proprietaire = null, manquantes = [], priorite = null, url, signature = null }) {
   const bonjour = `Bonjour${proprietaire ? ` ${proprietaire}` : ''},`;
-  const liste = manquantes.map((m) => `- ${m}`).join('\n');
+  const mots = manquantes.map((m) => (typeof m === 'string' ? m : m.mot));
+  const autres = priorite ? mots.filter((m) => m !== priorite.mot) : mots;
+  const enTete = priorite ? `En priorité : ${priorite.mot.charAt(0).toLowerCase()}${priorite.mot.slice(1)} (${priorite.raison}).` : '';
+  const liste = autres.map((m) => `- ${m}`).join('\n');
   const fin = `\n\nBien cordialement,${signature ? `\n${signature}` : ''}`;
   if (genre === 'relance') {
     return {
       objet: `${bien} : les documents qui manquent encore`,
-      corps: `${bonjour}\n\nPour présenter votre bien aux investisseurs, il me manque encore :\n${liste || '- quelques documents'}\n\nVous pouvez les déposer directement ici, en photo ou en PDF, sans créer de compte :\n${url}\n\nMerci beaucoup.${fin}`,
+      corps: `${bonjour}\n\nPour présenter votre bien aux investisseurs, il me manque encore quelques documents.${enTete ? `\n\n${enTete}` : ''}${liste ? `\n\n${enTete ? 'Puis :' : 'Il s’agit de :'}\n${liste}` : ''}\n\nVous pouvez les déposer directement ici, en photo ou en PDF, sans créer de compte :\n${url}\n\nMerci beaucoup.${fin}`,
     };
   }
   return {
     objet: `${bien} : votre espace pour déposer les documents de la vente`,
-    corps: `${bonjour}\n\nMerci encore pour votre confiance. Pour préparer la mise en vente de votre bien, j'ai besoin de quelques documents :\n${liste || '- les documents de votre bien'}\n\nVous pouvez tout déposer ici, en photo ou en PDF, sans créer de compte : chaque document se range tout seul, et je suis prévenu à chaque envoi.\n${url}\n\nTout autre document utile (plans, travaux, correspondances avec le locataire) est le bienvenu. Je reviens vers vous dès que le dossier est complet, avec les prochaines étapes.${fin}`,
+    corps: `${bonjour}\n\nMerci encore pour votre confiance. Pour préparer la mise en vente de votre bien, j'ai besoin de quelques documents.${enTete ? `\n\n${enTete}` : ''}${liste ? `\n\n${enTete ? 'Ensuite :' : 'Il s’agit de :'}\n${liste}` : ''}\n\nVous pouvez tout déposer ici, quand vous le souhaitez, en photo ou en PDF, sans créer de compte : chaque document se range tout seul, et je suis prévenu à chaque envoi.\n${url}\n\nTout autre document utile (titre de propriété, charges, plans, travaux, échanges avec le locataire) est le bienvenu. Je reviens vers vous dès que le dossier est complet, avec les prochaines étapes.${fin}`,
   };
 }
 
@@ -457,6 +538,7 @@ export function cadreDuDossier(v, d, gestes = []) {
   const pieces = v.pieces.map((p) => `${p.mot}${p.requise ? '' : ' (facultatif)'} : ${{ recue: 'reçue', en_lecture: 'en lecture', a_verifier: 'à vérifier', manquante: 'manquante' }[p.etat]}`).join(' ; ');
   const points = v.points.map((p) => `[${p.cle}] ${p.niveau === 'bloquant' ? 'BLOQUANT' : 'à voir'} · ${p.onglet} · ${p.ligne}${p.motif ? ` : ${p.motif}` : ''}${p.decision ? ` → ${DECISIONS_POINT[p.decision]}` : ' (non tranché)'}`).join('\n');
   const depot = d?.depot;
+  const prio = prioriteDesPieces(v.pieces.filter((p) => p.requise && p.etat === 'manquante'));
   return [
     `\n\nDOSSIER DE VENTE ouvert à l'écran : « ${d.bien} » (dossier ${d.id}), statut ${d.statut}. Plus d'analyste : le mandataire complète le dossier, puis le met en vente lui-même. Tu es son assistant pour cette étape : tu proposes le geste suivant, tu rédiges, il valide.`,
     `Pièces : ${pieces}.`,
@@ -464,6 +546,11 @@ export function cadreDuDossier(v, d, gestes = []) {
     `Droit de préférence du locataire (art. L. 145-46-1) : ${v.preference.phrase}`,
     `Espace de dépôt du vendeur : ${depot?.jeton ? `lien créé${depot.propose_le ? `, mail proposé le ${depot.propose_le.slice(0, 10)}` : ''}${depot.ouvert_le ? `, ouvert par le vendeur le ${depot.ouvert_le.slice(0, 10)}` : ', pas encore ouvert'}${depot.deposes ? `, ${depot.deposes} fichier(s) déposé(s) par le vendeur` : ''}` : 'pas encore créé'}.`,
     `Mise en vente : ${v.pret ? 'possible maintenant' : `pas encore (${v.raisons.join(' ')})`}.`,
+    // C'est l'assistant qui guide, pas des boutons (2 nov. 2026, Jules : « c'est l'assistant qui demande et propose ce
+    // qu'il y a à faire, pas l'humain qui va appuyer sur des boutons ») : la colonne de droite se lit, elle n'agit pas.
+    `C'EST TOI QUI GUIDES : la colonne de droite montre le dossier en lecture seule, sans bouton ; le mandataire n'agit que par toi. Tu demandes, tu proposes le geste, il dit oui.`,
+    // L'arrivée fait le travail (2 nov. 2026 au soir, Jules) : plus de question « quels documents avez-vous ? ».
+    `LES PIÈCES D'ABORD. Au mandat signé, tu as déjà dit ce qui est dans la Data room, la pièce prioritaire, et préparé le mail au propriétaire : il est à droite, en haut de la Data room, et part d'un tap sur « Envoyer ». Ne demande JAMAIS quels documents il a : la Data room le dit. S'il glisse des pièces ici, range-les. S'il demande le mail, ou s'il a été écarté : mail_vendeur (« premier »), puis dis qu'il est à droite. Sans adresse du propriétaire, demande-la en une ligne, c'est la seule question. Les relances : à ${DELAI_RELANCE_JOURS} jours sans pièce, la relance est prête à droite ; après ${RELANCES_AVANT_APPEL} relances, propose d'appeler. La pièce prioritaire : ${prio ? `${prio.mot} (${prio.raison})` : 'aucune, les requises sont là'}. Ensuite seulement le droit de préférence du locataire, les photos, puis la mise en vente.`,
     gestes.length ? `Gestes à proposer, dans l'ordre : ${gestes.map((x) => x.libelle).join(', ')}.` : '',
     "Outils : dossier_de_vente (relire l'état), mail_vendeur (premier mail avec le lien de dépôt, ou relance : un brouillon que le mandataire envoie de sa messagerie), trancher_point (Traité, À expliquer à l'acheteur, À corriger avec le vendeur), droit_de_preference (notifiée le, réponse, exception, ou le courrier), mettre_en_vente (une carte à confirmer d'un tap). Pour un point, explique en une phrase ce qu'un acheteur en dira et conseille une décision ; ne tranche que si le mandataire le dit. N'invente jamais une date de notification ni une réponse du locataire.",
   ].filter(Boolean).join('\n');
@@ -493,7 +580,7 @@ export const NOMS_DOSSIER_VENTE = new Set(OUTILS_DOSSIER_VENTE.map((o) => o.name
 /** Les outils du dossier de vente, pour Haka. */
 export async function executerOutilDossier(appel, user, contexte = {}) {
   const d = dossierDuContexte(contexte, user);
-  if (!d) return { ok: false, error: "Aucun dossier de vente ouvert : il naît au mandat signé, dans la Commercialisation du bien." };
+  if (!d) return { ok: false, error: "Aucun dossier de vente ouvert : il naît au mandat signé, dans la Data room du bien." };
   const input = appel.input || {};
   if (appel.name === 'dossier_de_vente') {
     const v = await vueDuDossier(d.id, user);
@@ -504,16 +591,16 @@ export async function executerOutilDossier(appel, user, contexte = {}) {
     const l = await lienDeDepot(d.id, user);
     if (!l.ok) return l;
     const v = await vueDuDossier(d.id, user);
-    const manquantes = v.pieces.filter((p) => p.etat === 'manquante' && (p.requise || input.genre !== 'relance')).filter((p) => p.cle !== 'autres').map((p) => (p.requise ? p.mot : `${p.mot} (si vous l'avez)`));
+    const manquantes = v.pieces.filter((p) => p.requise && p.etat === 'manquante');
     const s = signataire(d.mandataire_email);
-    const m = mailVendeur({ genre: input.genre, bien: d.bien, proprietaire: d.proprietaire, manquantes, url: l.url, signature: [s.nom, s.telephone].filter(Boolean).join('\n') });
+    const m = mailVendeur({ genre: input.genre, bien: d.bien, proprietaire: d.proprietaire, manquantes, priorite: prioriteDesPieces(manquantes), url: l.url, signature: [s.nom, s.telephone].filter(Boolean).join('\n') });
     let corps = String(input.corps || '').trim() || m.corps;
     if (!corps.includes(l.url)) corps = `${corps}\n\nLe lien pour déposer les documents :\n${l.url}`;
     // Le mail attend sur le dossier comme celui de la veille ; il est marqué parti à l'envoi seulement.
     const genre = input.genre === 'relance' ? 'relance' : 'premier';
     Records.update('DossierMandataire', d.id, { mail_propose: { genre, raison: genre === 'relance' ? 'Relance préparée à votre demande.' : 'Mail au vendeur préparé à votre demande.', a: d.proprietaire_email || '', objet: m.objet, corps, le: maintenant() } });
     const boite = await boiteDuMandataire(user.email);
-    return { ok: true, brouillon: { destinataire: d.proprietaire_email || '', objet: m.objet, corps, dossier_vente: { id: d.id, genre } }, lien: l.url, note: boite ? `Brouillon prêt sous la conversation : « Envoyer » le fait partir de ${boite.email}.` : "Brouillon prêt sous la conversation : sans boîte connectée, il s'ouvre dans la messagerie du mandataire." };
+    return { ok: true, brouillon: { destinataire: d.proprietaire_email || '', objet: m.objet, corps, dossier_vente: { id: d.id, genre } }, lien: l.url, note: boite ? `Le mail est à droite, en haut de la Data room : « Envoyer » le fait partir de ${boite.email}. Dis-le en une ligne, sans recopier le mail.` : "Le mail est à droite, en haut de la Data room : sans boîte connectée, « Envoyer » ouvre la messagerie du mandataire. Dis-le en une ligne, sans recopier le mail." };
   }
   if (appel.name === 'trancher_point') return deciderPoint(d.id, input.cle, input.decision || null, user);
   if (appel.name === 'droit_de_preference') {
@@ -541,7 +628,10 @@ export async function executerOutilDossier(appel, user, contexte = {}) {
 // du mandataire, depuis sa propre boîte Google si elle est connectée, sinon par sa messagerie.
 // ---------------------------------------------------------------------------
 
-export const DELAI_RELANCE_JOURS = 2;
+// Trois jours (2 nov. 2026, Jules : « je compte relancer le propriétaire si je n'ai pas de documents d'ici 3 jours »).
+export const DELAI_RELANCE_JOURS = 3;
+// Après trois relances sans la pièce, un appel plutôt qu'un quatrième mail (2 nov. 2026, Jules).
+export const RELANCES_AVANT_APPEL = 3;
 
 /** Pure : le mail que Haka doit préparer maintenant (le premier, ou une relance), ou null. */
 export function mailAPreparer(v, depot = null, { aujourdhui = new Date(), deja = null } = {}) {
@@ -556,11 +646,28 @@ export function mailAPreparer(v, depot = null, { aujourdhui = new Date(), deja =
   if (dernierContact < DELAI_RELANCE_JOURS || jours(depot.dernier_depot_le) < DELAI_RELANCE_JOURS) return null;
   const n = Math.floor(dernierContact);
   const quoi = manquantes.length > 2 ? `${manquantes.slice(0, 2).join(', ')} et ${manquantes.length - 2} autre${manquantes.length > 3 ? 's' : ''}` : manquantes.join(' et ');
-  return { genre: 'relance', manquantes, raison: `Il manque encore ${quoi.charAt(0).toLowerCase()}${quoi.slice(1)} depuis ${n} jour${n > 1 ? 's' : ''} : j'ai préparé la relance.` };
+  const de = `${quoi.charAt(0).toLowerCase()}${quoi.slice(1)}`;
+  // Trois relances restées sans réponse : l'appel, une fois (le blocage ne se redit pas chaque jour).
+  if ((depot.relances || 0) >= RELANCES_AVANT_APPEL) {
+    if (depot.appel_propose_le) return null;
+    return { genre: 'appel', manquantes, raison: `${de.charAt(0).toUpperCase()}${de.slice(1)} manque${manquantes.length > 1 ? 'nt' : ''} toujours après ${depot.relances} relances. Un appel débloquera sûrement la situation.` };
+  }
+  return { genre: 'relance', manquantes, raison: `Il manque encore ${de} depuis ${n} jour${n > 1 ? 's' : ''} : j'ai préparé la relance, elle est à droite.` };
 }
 
-/** Prépare (une fois) le mail que la veille demande, et prévient le mandataire. Rien ne part. */
-export async function veilleDuDossier(id) {
+/** Pure : quoi dire au propriétaire au téléphone, quand les relances n'ont rien donné. */
+export function quoiDireAuTelephone({ proprietaire = null, manquantes = [], priorite = null } = {}) {
+  const pieces = manquantes.map((m) => m.charAt(0).toLowerCase() + m.slice(1));
+  return [
+    `« Bonjour${proprietaire ? ` ${proprietaire}` : ''}, je vous appelle pour la vente de votre bien : tout avance, il ne me manque que ${pieces.length > 1 ? `${pieces.slice(0, -1).join(', ')} et ${pieces.at(-1)}` : pieces[0]}. »`,
+    priorite ? `Dites pourquoi : ${priorite.raison}.` : null,
+    "Proposez de l'aider : une photo prise au téléphone suffit, ou l'expert-comptable, le notaire ou le syndic peut l'envoyer directement par le lien.",
+    "Fixez ensemble un jour : « Je regarde jeudi, ça vous va ? »",
+  ].filter(Boolean).join('\n');
+}
+
+/** Prépare (une fois) le mail que la veille demande, l'écrit dans le fil et prévient le mandataire. Rien ne part. */
+export async function veilleDuDossier(id, { notifier: prevenir = true } = {}) {
   const d = Records.get('DossierMandataire', id);
   if (!d || d.exemple || ['go', 'no_go'].includes(d.statut)) return null;
   const proprio = { email: d.mandataire_email, role: 'mandataire' };
@@ -568,14 +675,33 @@ export async function veilleDuDossier(id) {
   if (!v.ok) return null;
   const a = mailAPreparer(v, d.depot, { deja: d.mail_propose });
   if (!a) return null;
+  const requises = v.pieces.filter((p) => p.requise && p.etat === 'manquante');
+  const priorite = prioriteDesPieces(requises);
+  const mandat = d.mandat_id ? Records.get('MandatMandataire', d.mandat_id) : null;
+  const M = await import('./mandat-signe.js');
+  if (a.genre === 'appel') {
+    const tel = mandat?.questionnaire?.vendeur_telephone || null;
+    Records.update('DossierMandataire', d.id, { depot: { ...(d.depot || {}), appel_propose_le: maintenant() } });
+    await M.direAuMandataire(mandat, `${a.raison} Voici quoi lui dire :\n\n${quoiDireAuTelephone({ proprietaire: d.proprietaire, manquantes: a.manquantes, priorite })}`, {
+      boutons: [
+        ...(tel ? [{ libelle: 'Appeler', href: `tel:${String(tel).replace(/[^\d+]/g, '')}`, principal: true }] : []),
+        { libelle: 'Une dernière relance par mail', texte: 'Prépare une dernière relance par mail au propriétaire.' },
+      ],
+    }).catch(() => {});
+    return { genre: 'appel', raison: a.raison };
+  }
   const l = await lienDeDepot(d.id, proprio);
   const s = signataire(d.mandataire_email);
-  const m = mailVendeur({ genre: a.genre, bien: d.bien, proprietaire: d.proprietaire, manquantes: a.genre === 'premier' ? v.pieces.filter((p) => p.etat === 'manquante' && p.cle !== 'autres').map((p) => (p.requise ? p.mot : `${p.mot} (si vous l'avez)`)) : a.manquantes, url: l.url, signature: [s.nom, s.telephone].filter(Boolean).join('\n') });
+  const m = mailVendeur({ genre: a.genre, bien: d.bien, proprietaire: d.proprietaire, manquantes: requises, priorite, url: l.url, signature: [s.nom, s.telephone].filter(Boolean).join('\n') });
   const mail = { genre: a.genre, raison: a.raison, a: d.proprietaire_email || '', objet: m.objet, corps: m.corps, le: maintenant() };
   Records.update('DossierMandataire', d.id, { mail_propose: mail });
+  // La relance se dit aussi dans le fil du bien, là où le mandataire travaille ; le premier mail, lui, est annoncé par
+  // le message du mandat signé.
+  if (a.genre === 'relance') M.direAuMandataire(mandat, a.raison).catch(() => {});
+  if (!prevenir) return mail;
   try {
     const { notifier } = await import('./notifications.js');
-    notifier({ pour: d.mandataire_email, titre: `Assistant KPartners · ${d.bien}`, texte: `${a.raison} Envoyer ?`, lien: `/MandataireBiens?bien=${encodeURIComponent(`dossier:${d.id}`)}&etape=marche`, action: 'Voir le mail', cle: `mail-vendeur:${d.id}:${mail.le.slice(0, 10)}` });
+    notifier({ pour: d.mandataire_email, titre: `Assistant KPartners · ${d.bien}`, texte: `${a.raison} Envoyer ?`, lien: `/MandataireBiens?bien=${encodeURIComponent(`dossier:${d.id}`)}&etape=dataroom`, action: 'Voir le mail', cle: `mail-vendeur:${d.id}:${mail.le.slice(0, 10)}` });
   } catch { /* le mail attend sur le dossier */ }
   return mail;
 }
@@ -602,6 +728,16 @@ export function planifier() {
 }
 
 /** La boîte Google du mandataire qui sait envoyer, ou null (jamais une boîte partagée de Klocka). */
+/**
+ * Les boîtes d'où une personne peut envoyer (1er nov. 2026, Jules : « depuis n'importe quelle boîte qu'on a connectée ») :
+ * toutes celles qu'elle a rattachées, la boîte par défaut en tête ; l'équipe Klocka a aussi les boîtes du serveur. Un
+ * mandataire, seulement les siennes : jamais une boîte de Klocka.
+ */
+export async function boitesPourEnvoyer(user) {
+  const { listAccounts } = await import('./email.js');
+  return listAccounts(user?.email).filter((a) => a.peut_envoyer && !a.needs_reconnect && (user?.role === 'admin' || a.provider === 'google'));
+}
+
 export async function boiteDuMandataire(email) {
   const { listAccounts } = await import('./email.js');
   return listAccounts(email).find((a) => a.provider === 'google' && a.peut_envoyer && !a.needs_reconnect) || null;
@@ -627,7 +763,7 @@ export async function envoyerMailVendeur(id, user, { objet = null, corps = null,
     if (!r?.success) return { ok: false, error: r?.error || "Le mail n'est pas parti." };
   }
   const frais = Records.get('DossierMandataire', d.id);
-  const depot = { ...(frais.depot || {}), [genre === 'premier' ? 'propose_le' : 'relance_le']: maintenant() };
+  const depot = { ...(frais.depot || {}), [genre === 'premier' ? 'propose_le' : 'relance_le']: maintenant(), ...(genre === 'relance' ? { relances: (frais.depot?.relances || 0) + 1 } : {}) };
   Records.update('DossierMandataire', d.id, { depot, mail_propose: null, ...(mail.a && !frais.proprietaire_email ? { proprietaire_email: String(mail.a).trim().toLowerCase() } : {}) });
   return { ok: true, envoye: !marquer, genre };
 }

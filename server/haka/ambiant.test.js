@@ -115,18 +115,27 @@ test('des pièces du même dossier dans l’heure : une seule question ; elles a
   Records.update('Deal', deal.id, { documents_espace: [] });
 });
 
-test('un client connu : la réponse préparée part au oui, de la boîte de la personne, une fois', async () => {
+test("un client connu hors de Klocka : pas de mail de l'Assistant, un rappel pour lui répondre (2 nov. 2026)", async () => {
   const c = Records.create('DemandeClient', { client_nom: 'Simon Sourigon', client_email: 'simon@exemple.com' });
   const m = mail({ de: 'Simon <simon@exemple.com>', de_email: 'simon@exemple.com', objet: 'Un bien à Lyon ?' });
   const p = await questionDe(m, lecture({ nature: 'demande_client', suite: 'mail', reponse: { objet: 'Re: Un bien à Lyon ?', corps: 'Bonjour Simon, je regarde et je reviens vers vous. Nora' } }));
-  assert.equal(p.charge.geste, 'mail');
-  assert.equal(p.pour, 'nora@test.local', 'sans dossier : la personne de la boîte');
+  assert.equal(p.charge.geste, 'rappel', "Haka n'écrit qu'à @klocka.immo");
   assert.ok(p.sources.some((s) => s.lien === `/AdminClients?client=${c.id}`), 'la fiche client en source');
-  assert.match(p.titre, /^Simon Sourigon vous écrit : j'envoie cette réponse \?$/);
   assert.equal((await F.valider(p.id, nora)).ok, true);
-  const logs = Records.list('EmailLog').filter((e) => e.template_id === `haka:${p.id}`);
-  assert.equal(logs.length, 1);
-  assert.equal(logs[0].statut, 'simule');
+  assert.equal(Records.list('EmailLog').filter((e) => e.template_id === `haka:${p.id}`).length, 0, 'aucun mail');
+});
+
+test("le verrou des destinataires : seules les adresses @klocka.immo passent", async () => {
+  const D = await import('./destinataires.js');
+  assert.equal(D.adresseKlocka('nora@klocka.immo'), true);
+  assert.equal(D.adresseKlocka('Nora <nora@klocka.immo>, paul@klocka.immo'), true);
+  assert.equal(D.adresseKlocka('nora@klocka.immo; marc@agence.fr'), false);
+  assert.equal(D.adresseKlocka('pirate@klocka.immo.evil.fr'), false);
+  assert.equal(D.adresseKlocka(''), false);
+  assert.throws(() => D.verifierDestinataire('simon@exemple.com'), /n'écrit qu'aux adresses @klocka\.immo/);
+  const { ecrireDepuisSourcing } = await import('./competences/demande-equipe.js');
+  await assert.rejects(ecrireDepuisSourcing({ a: 'marc@agence.fr', objet: 'x', corps: 'y', template_id: 'verrou-test' }), /@klocka\.immo/);
+  assert.equal(Records.list('EmailLog').filter((e) => e.template_id === 'verrou-test').length, 0);
 });
 
 test('rien à faire : noté sur le mail, sans question ni notification', async () => {

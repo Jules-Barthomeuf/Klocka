@@ -27,7 +27,7 @@ test('le mandat se prépare avec l’avis et la fiche : rien d’inventé, le re
   assert.equal(q.bien_locataire, 'JB SCI');
   assert.equal(q.prix, 380000, 'le prix d’accord passe avant la valeur de l’avis');
   assert.equal(q.honoraires, 5);
-  assert.deepEqual(C.manquantsMandat(q).map((m) => m.split(' ').slice(0, 3).join(' ')), ['le type de', "l'adresse du mandant", 'la charge des', 'la durée du']);
+  assert.deepEqual(C.manquantsMandat(q).map((m) => m.split(' ').slice(0, 3).join(' ')), ['le type de', "l'adresse du mandant", 'la charge des', 'la durée du', 'si le prix']);
   // Les murs d'une SCI : la société est le mandant, la personne rencontrée la représente.
   const sci = C.questionnaireDuBien({ estimation, proprietaire: { nom: 'M. Martin', preparation: { murs: { proprietaire: 'SCI du Pont', forme: 'SCI' } } } });
   assert.equal(sci.vendeur_societe, 'SCI du Pont');

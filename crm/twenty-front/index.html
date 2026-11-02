@@ -1079,81 +1079,70 @@
       }
     }
   }
-  function tetesDans(c) {
-    const h = Math.max(16, c.getBoundingClientRect().height / Z() - 4);
-    // Les avatars : une photo, ou l'initiale (une lettre) quand la personne n'en a pas. Une tête vue est marquée
-    // (data-klocka-tete) : ses deux initiales ne se prennent pas ensuite pour un nom.
-    const avatars = [];
-    for (const img of c.querySelectorAll('img')) avatars.push(img.parentElement);
+  // Les personnes d'une case, une fois chacune : Twenty y garde aussi une copie cachée de ses puces (pour mesurer la
+  // place et écrire « +1 »), d'où les doublons. Une personne = une tête (photo, ou initiale) et le nom à côté.
+  function personnesDe(c) {
+    const vues = new Map();
     const marche = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
-    const noms = [];
     for (let n = marche.nextNode(); n; n = marche.nextNode()) {
-      const t = n.nodeValue.trim();
-      if (!t || t.startsWith('+')) continue;
-      const p = n.parentElement;
-      const tete = p.closest('[data-klocka-tete]');
-      if (tete) {
-        if (!avatars.includes(tete)) avatars.push(tete);
-        // Twenty a redessiné l'initiale seule : on remet les deux.
-        if (tete.dataset.klockaInitiales && t !== tete.dataset.klockaInitiales) n.nodeValue = tete.dataset.klockaInitiales;
-      } else if (t.length === 1 && !p.querySelector('img')) {
-        p.dataset.klockaTete = '1';
-        avatars.push(p);
-      } else noms.push(p);
-    }
-    for (const p of noms) {
-      if (p.style.display === 'none') continue;
-      const nom = p.textContent.trim();
-      p.style.setProperty('display', 'none', 'important');
-      const puce = avatars.find((a) => a.parentElement?.contains(p) || p.parentElement?.contains(a));
-      if (!puce) continue;
-      puce.title = nom;
-      puce.dataset.klockaTete = '1';
-      // Sans photo : les deux initiales, comme Monday (« NL »), sur la couleur que Twenty donne à la personne.
-      if (!puce.querySelector('img')) {
-        const mots = nom.split(/\s+/).filter(Boolean);
-        const lettres = (mots.length > 1 ? [mots[0], mots[mots.length - 1]] : mots).map((m) => m[0].toUpperCase()).join('');
-        const marcheTete = document.createTreeWalker(puce, NodeFilter.SHOW_TEXT);
-        let t = marcheTete.nextNode();
-        while (t && !t.nodeValue.trim()) t = marcheTete.nextNode();
-        if (t && lettres) { t.nodeValue = lettres; puce.dataset.klockaInitiales = lettres; }
+      const nom = n.nodeValue.trim();
+      if (nom.length < 2 || nom.startsWith('+') || n.parentElement.closest('.klocka-tetes')) continue;
+      // La puce : le plus proche parent qui porte aussi une tête.
+      let puce = n.parentElement;
+      while (puce && puce !== c && !puce.querySelector('img') && ![...puce.querySelectorAll('*')].some((x) => x !== n.parentElement && x.childElementCount === 0 && x.textContent.trim().length === 1)) puce = puce.parentElement;
+      if (!vues.has(nom)) vues.set(nom, { nom, photo: puce && puce !== c ? puce.querySelector('img')?.src || '' : '', couleur: '' });
+      const p = vues.get(nom);
+      if (!p.couleur && puce && puce !== c) {
+        const lettre = [...puce.querySelectorAll('*')].find((x) => x.childElementCount === 0 && x.textContent.trim().length === 1);
+        if (lettre) p.couleur = getComputedStyle(lettre).backgroundColor !== 'rgba(0, 0, 0, 0)' ? getComputedStyle(lettre).backgroundColor : getComputedStyle(lettre.parentElement).backgroundColor;
       }
     }
-    avatars.sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
-    avatars.forEach((a, i) => {
-      // Un rond net, cerclé de la couleur de la case comme dans Monday : une photo à fond blanc garde son contour, et
-      // deux têtes qui se chevauchent restent lisibles.
-      a.style.setProperty('width', `${h}px`, 'important');
-      a.style.setProperty('height', `${h}px`, 'important');
-      a.style.setProperty('min-width', `${h}px`, 'important');
-      a.style.setProperty('flex', 'none', 'important');
-      a.style.setProperty('border-radius', '50%', 'important');
-      a.style.setProperty('overflow', 'hidden', 'important');
-      a.style.setProperty('box-sizing', 'border-box', 'important');
-      a.style.setProperty('border', '2px solid var(--t-background-primary, #fff)', 'important');
-      a.style.setProperty('box-shadow', '0 0 0 1px rgba(127,127,127,.25)', 'important');
-      const img = a.querySelector('img');
-      if (img) {
-        for (const [k, v] of [['width', '100%'], ['height', '100%'], ['min-width', '0'], ['border-radius', '50%'], ['object-fit', 'cover'], ['display', 'block']]) img.style.setProperty(k, v, 'important');
-      }
-      a.style.setProperty('font-size', `${Math.round(h * 0.45)}px`, 'important');
-      // Du nom à la case : plus de pastille autour de la tête, et les têtes se chevauchent un peu, comme dans Monday.
-      for (let x = a.parentElement; x && x !== c; x = x.parentElement) {
-        x.style.setProperty('padding', '0', 'important');
-        x.style.setProperty('background', 'transparent', 'important');
-        x.style.setProperty('gap', '0', 'important');
-        x.style.setProperty('height', `${h}px`, 'important');
-        x.style.setProperty('max-width', 'none', 'important');
-        x.style.setProperty('min-width', '0', 'important');
-        x.style.setProperty('justify-content', 'center', 'important');
-        // Twenty donne à la liste la largeur de ses anciennes petites puces et cache ce qui dépasse : on la libère.
-        x.style.setProperty('overflow', 'visible', 'important');
-        x.style.setProperty('flex-wrap', 'nowrap', 'important');
-        x.style.setProperty('width', x.parentElement === c ? '100%' : 'auto', 'important');
-      }
-      const puce = a.parentElement && a.parentElement !== c ? a.parentElement : a;
-      if (i) puce.style.setProperty('margin-left', `-${Math.round(h * 0.2)}px`, 'important');
+    return [...vues.values()];
+  }
+  const initiales = (nom) => {
+    const mots = nom.split(/\s+/).filter(Boolean);
+    return (mots.length > 1 ? [mots[0], mots[mots.length - 1]] : mots).map((m) => m[0].toUpperCase()).join('');
+  };
+  const styleTetes = document.createElement('style');
+  styleTetes.textContent = `.klocka-spoc { position: relative !important; }
+  .klocka-spoc > :not(.klocka-tetes) { visibility: hidden !important; }
+  .klocka-tetes { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .klocka-tete { flex: none; box-sizing: border-box; border-radius: 50%; overflow: hidden; border: 2px solid var(--t-background-primary, #fff); box-shadow: 0 0 0 1px rgba(127,127,127,.25); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 500; background: #8a8f98; }
+  .klocka-tete img { width: 100%; height: 100%; object-fit: cover; display: block; }`;
+  document.head.appendChild(styleTetes);
+
+  // Nos têtes, posées par-dessus la case : rondes, cerclées de la couleur de la case, un peu chevauchées, comme dans
+  // Monday. Le contenu de Twenty reste dessous (caché) : un clic sur la case ouvre toujours son choix des personnes.
+  function tetesDans(c) {
+    const gens = personnesDe(c);
+    const cle = gens.map((p) => `${p.nom}|${p.photo}|${p.couleur}`).join(',');
+    let calque = c.querySelector(':scope > .klocka-tetes');
+    if (!gens.length) {
+      calque?.remove();
+      c.classList.remove('klocka-spoc');
+      return;
+    }
+    const h = Math.max(16, Math.round(c.getBoundingClientRect().height / Z() - 6));
+    if (calque && calque.dataset.cle === `${cle}@${h}`) return;
+    calque?.remove();
+    calque = document.createElement('div');
+    calque.className = 'klocka-tetes';
+    calque.dataset.cle = `${cle}@${h}`;
+    gens.forEach((p, i) => {
+      const t = document.createElement('span');
+      t.className = 'klocka-tete';
+      t.style.cssText = `width:${h}px;height:${h}px;font-size:${Math.round(h * 0.4)}px;${i ? `margin-left:-${Math.round(h * 0.2)}px;` : ''}${p.couleur ? `background:${p.couleur};` : ''}`;
+      if (p.photo) {
+        const img = document.createElement('img');
+        img.src = p.photo;
+        img.alt = p.nom;
+        t.appendChild(img);
+      } else t.textContent = initiales(p.nom);
+      calque.appendChild(t);
     });
+    c.title = gens.map((p) => p.nom).join(', ');
+    c.classList.add('klocka-spoc');
+    c.appendChild(calque);
   }
 
   // --- La boucle : à chaque changement de la page, sans plus d'une passe par image ---

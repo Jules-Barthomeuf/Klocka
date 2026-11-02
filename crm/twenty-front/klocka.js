@@ -438,11 +438,12 @@
   // au format « 06 31 24 58 36 », précédé du drapeau (dessiné : les drapeaux emoji manquent sous Windows).
   // Twenty 2.51 les écrit dans un lien href mailto: ou tel:+33…, parfois dessiné comme une puce.
   const styleContacts = document.createElement('style');
-  // Le lien peut être dessiné comme une puce (fond gris, bord arrondi) : on ne garde que le texte.
+  // Le lien peut être dessiné comme une puce (fond gris, bord arrondi) : on ne garde que le texte. Sans sa marge, la
+  // hauteur fixe et l'interligne serré de la puce coupaient le bas des lettres (g, p) : hauteur libre, interligne 1.4.
   const LIENS_CONTACT = '[data-selectable-id] a[href^="mailto:"], [data-selectable-id] a[href^="tel:"]';
-  styleContacts.textContent = `${LIENS_CONTACT} { color: var(--t-color-blue, #1f76c2) !important; text-decoration: none !important; text-align: center; background: transparent !important; border: none !important; box-shadow: none !important; outline: none !important; padding: 0 !important; border-radius: 0 !important; }
+  styleContacts.textContent = `${LIENS_CONTACT} { color: var(--t-color-blue, #1f76c2) !important; text-decoration: none !important; text-align: center; background: transparent !important; border: none !important; box-shadow: none !important; outline: none !important; padding: 0 !important; border-radius: 0 !important; height: auto !important; line-height: 1.4 !important; overflow: visible !important; }
   ${LIENS_CONTACT.replace(/, /g, '::before, ')}::before, ${LIENS_CONTACT.replace(/, /g, '::after, ')}::after { display: none !important; }
-  ${LIENS_CONTACT.replace(/, /g, ' *, ')} * { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+  ${LIENS_CONTACT.replace(/, /g, ' *, ')} * { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; height: auto !important; line-height: 1.4 !important; }
   ${LIENS_CONTACT.replace(/, /g, ':hover, ')}:hover { text-decoration: underline !important; }
   .klocka-contact { justify-content: center !important; text-align: center; background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
 

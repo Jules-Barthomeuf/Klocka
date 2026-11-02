@@ -643,6 +643,16 @@
   if (window.__klocka) return;
   window.__klocka = true;
 
+  // Tout Twenty CRM à 110 % (2 nov., Jules). Twenty sait zoomer : html { zoom: var(--t-zoom) }, --t-zoom vient de
+  // --t-scale-user, et ses menus flottants se compensent eux-mêmes. Nos fenêtres posées à la main divisent leurs
+  // coordonnées par Z() : getBoundingClientRect rend des pixels d'écran, le style des pixels zoomés.
+  const ZOOM = 1.1;
+  const styleZoom = document.createElement('style');
+  styleZoom.id = 'klocka-zoom';
+  styleZoom.textContent = `html { --t-scale-user: ${ZOOM} !important; }`;
+  document.head.appendChild(styleZoom);
+  const Z = () => document.documentElement.currentCSSZoom || 1;
+
   // Un clic hors du tableau y décoche tout, sauf sur un élément marqué comme les boutons d'action de Twenty.
   const HORS_TABLEAU = 'page-action-container';
   const SYSTEME = new Set(['id', 'createdAt', 'updatedAt', 'deletedAt', 'createdBy', 'updatedBy', 'position', 'searchVector', 'deplacerVers', 'mondayId', 'mondayCreeLe']);
@@ -888,7 +898,7 @@
     m.id = 'klocka-menu';
     m.dataset.clickOutsideId = HORS_TABLEAU;
     const r = bouton.getBoundingClientRect();
-    m.style.cssText = `position:fixed;top:${r.bottom + 6}px;left:${r.left}px;z-index:2147483647;max-height:60vh;overflow:auto;min-width:240px;padding:4px;border-radius:8px;background:${fond};color:${texte};box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid rgba(127,127,127,.25);font-size:13px`;
+    m.style.cssText = `position:fixed;top:${(r.bottom + 6) / Z()}px;left:${r.left / Z()}px;z-index:2147483647;max-height:60vh;overflow:auto;min-width:240px;padding:4px;border-radius:8px;background:${fond};color:${texte};box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid rgba(127,127,127,.25);font-size:13px`;
     const titre = (t) => {
       const h = document.createElement('div');
       h.textContent = t;
@@ -1007,10 +1017,10 @@
     const haut = premiere[0];
     const bas = premiere[premiere.length - 1];
     const h = bandeau.offsetHeight || 40;
-    let top = haut.top - h - 6;
-    if (top < 110) top = bas.bottom + 6;
-    bandeau.style.top = `${Math.max(8, Math.min(top, window.innerHeight - h - 8))}px`;
-    bandeau.style.left = `${Math.max(8, haut.left + 36)}px`;
+    let top = haut.top - (h + 6) * Z();
+    if (top < 110) top = bas.bottom + 6 * Z();
+    bandeau.style.top = `${Math.max(8, Math.min(top / Z(), window.innerHeight / Z() - h - 8))}px`;
+    bandeau.style.left = `${Math.max(8, (haut.left + 36) / Z())}px`;
   }
 
   // Ce que la dernière passe a vu de travers (lu par les messages d'erreur).
@@ -1051,7 +1061,7 @@
     }
   }
   function tetesDans(c) {
-    const h = Math.max(16, c.getBoundingClientRect().height - 4);
+    const h = Math.max(16, c.getBoundingClientRect().height / Z() - 4);
     // Les avatars : une photo, ou l'initiale (une seule lettre) quand la personne n'en a pas.
     const avatars = [];
     for (const img of c.querySelectorAll('img')) avatars.push(img.parentElement);
@@ -1214,7 +1224,7 @@
     l.className = 'klocka-liste';
     const r = ancre.getBoundingClientRect();
     const p = panneau.getBoundingClientRect();
-    l.style.cssText = `position:absolute;left:${Math.max(8, r.left - p.left)}px;bottom:${p.bottom - r.top + 6}px;width:300px;max-height:320px;display:flex;flex-direction:column;padding:4px;border-radius:8px;background:${fond};color:${texte};box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid rgba(127,127,127,.25);z-index:1`;
+    l.style.cssText = `position:absolute;left:${Math.max(8, (r.left - p.left) / Z())}px;bottom:${(p.bottom - r.top) / Z() + 6}px;width:300px;max-height:320px;display:flex;flex-direction:column;padding:4px;border-radius:8px;background:${fond};color:${texte};box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid rgba(127,127,127,.25);z-index:1`;
     const corps = document.createElement('div');
     corps.style.cssText = 'overflow:auto;display:flex;flex-direction:column';
     let champ = null;
@@ -1278,7 +1288,7 @@
     let grand = false;
     const placer = () => {
       p.style.cssText = `position:fixed;z-index:2147483647;display:flex;flex-direction:column;border-radius:10px;overflow:visible;background:${fond};color:${texte};box-shadow:0 12px 40px rgba(0,0,0,.25);border:1px solid rgba(127,127,127,.25);font-size:14px;`
-        + (grand ? 'top:5vh;left:50%;transform:translateX(-50%);width:min(960px,calc(100vw - 32px));height:90vh' : 'right:16px;bottom:16px;width:min(720px,calc(100vw - 32px));height:min(620px,calc(100vh - 32px))');
+        + (grand ? 'top:calc(5vh / var(--t-zoom,1));left:50%;transform:translateX(-50%);width:min(960px,calc(100vw / var(--t-zoom,1) - 32px));height:calc(90vh / var(--t-zoom,1))' : 'right:16px;bottom:16px;width:min(720px,calc(100vw / var(--t-zoom,1) - 32px));height:min(620px,calc(100vh / var(--t-zoom,1) - 32px))');
     };
     placer();
     // Les raccourcis de Twenty ne doivent pas lire ce qu'on tape ici.

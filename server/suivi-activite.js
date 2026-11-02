@@ -1,5 +1,5 @@
 // Le Suivi de l'activité (2 nov. 2026, Jules : « un tableau de bord, avec tous les chiffres », « des graphiques ») :
-// est-ce que ça avance vers des ventes, et où ça coince ? Les cinq gestes qui font une vente sur la période (RDV pris,
+// est-ce que ça avance vers des ventes, et où ça coince ? Les cinq gestes qui font une vente sur la période (biens prospectés,
 // avis envoyé, mandat signé, offre reçue, vente), le parcours des biens aujourd'hui (combien à chaque étape, combien y
 // sont arrêtés), ce qui passe d'une étape à la suivante, les délais, le portefeuille sous mandat, et chaque mandataire.
 // L'usage, les appels et les coûts ont leurs onglets : rien n'est recopié ici. Lecture seule.
@@ -19,7 +19,9 @@ const VENDU = new Set(['acte', 'commission_payee']);
 export const ARRET_JOURS = 14;
 
 export const GESTES = [
-  { cle: 'rdv', libelle: 'RDV pris' },
+  // Les biens prospectés plutôt que les RDV (2 nov. 2026, Jules) : chaque bien appelé ou dont la fiche a changé de
+  // statut, une fois par jour.
+  { cle: 'prospectes', libelle: 'Biens prospectés' },
   { cle: 'avis', libelle: 'Avis envoyés' },
   { cle: 'mandats', libelle: 'Mandats signés' },
   { cle: 'offres', libelle: 'Offres reçues' },
@@ -39,7 +41,7 @@ const mediane = (xs) => {
 };
 const ecart = (de, a) => (de && a && Date.parse(a) >= Date.parse(de) ? (Date.parse(a) - Date.parse(de)) / JOUR : null);
 
-/** Pure : les dates des cinq gestes d'un bien (chacune une liste : un bien peut recevoir plusieurs offres). */
+/** Pure : les dates des gestes d'un bien (et de son RDV, pour les délais) (chacune une liste : un bien peut recevoir plusieurs offres). */
 export function gestesDuBien(b) {
   const p = b.proprietaire;
   const rdv = (p?.historique || []).filter((h) => h.type === 'statut' && /^RDV pris/i.test(String(h.texte || ''))).map((h) => h.le);
@@ -49,7 +51,9 @@ export function gestesDuBien(b) {
   const k = b.marche;
   const offres = (k?.offres || []).map((o) => o.le).filter(Boolean);
   const ventes = k && VENDU.has(k.statut) ? [k.acte_le || k.updated_date].filter(Boolean) : [];
-  return { rdv: rdv.slice(0, 1), avis, mandats, offres, ventes };
+  const jours = new Map();
+  for (const h of p?.historique || []) if (['appel', 'statut'].includes(h.type) && h.le && !jours.has(jourDe(h.le))) jours.set(jourDe(h.le), h.le);
+  return { prospectes: [...jours.values()], rdv: rdv.slice(0, 1), avis, mandats, offres, ventes };
 }
 
 /**

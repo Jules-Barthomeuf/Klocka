@@ -163,7 +163,7 @@ function ParMandataire({ mandataires, etapes, c }) {
 
 export default function SuiviActivite({ pourMandataire = false }) {
   const [periode, setPeriode] = useState(30);
-  const [choisi, setChoisi] = useState("rdv");
+  const [choisi, setChoisi] = useState("prospectes");
   const c = useCouleurs();
   const { data, isLoading, error } = useQuery({
     queryKey: [pourMandataire ? "mandataire-tableau-de-bord" : "monitoring-activite", periode],

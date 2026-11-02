@@ -481,11 +481,45 @@
     }
   }
 
+  // Une étiquette seule dans sa case (statut, choix) : sa couleur remplit toute la case, comme dans Monday (2 nov.,
+  // Jules). Twenty 2.51 pose la couleur sur l'étiquette même, en variable --tw-tag-background. Plusieurs étiquettes
+  // différentes dans une case (choix multiple) : les pastilles restent.
+  const ETIQUETTE = '[style*="--tw-tag-background"]';
+  const styleEtiquettes = document.createElement('style');
+  styleEtiquettes.textContent = `.klocka-etiquette { background: var(--klocka-fond) !important; }
+  .klocka-etiquette * { background-color: transparent !important; justify-content: center; }
+  .klocka-etiquette ${ETIQUETTE} { margin: 0 auto !important; }`;
+  document.head.appendChild(styleEtiquettes);
+  function etiquettes(lignes) {
+    for (const ligne of lignes) {
+      // Les lignes du tableau seules (une carte du Kanban porte aussi data-selectable-id), et une case, pas toute la ligne.
+      if (!String(ligne.getAttribute('data-testid') || '').startsWith('row-id-')) continue;
+      const large = ligne.getBoundingClientRect().width;
+      const parCase = new Map();
+      for (const t of ligne.querySelectorAll(ETIQUETTE)) {
+        let c = t;
+        while (c.parentElement && c.parentElement !== ligne) c = c.parentElement;
+        if (c === t || c.classList.contains('klocka-spoc') || c.getBoundingClientRect().width > large / 2) continue;
+        if (!parCase.has(c)) parCase.set(c, new Map());
+        parCase.get(c).set(t.textContent.trim(), t.style.getPropertyValue('--tw-tag-background'));
+      }
+      for (const c of ligne.querySelectorAll(':scope > .klocka-etiquette')) if (!parCase.has(c)) c.classList.remove('klocka-etiquette');
+      for (const [c, vues] of parCase) {
+        const fond = vues.size === 1 ? [...vues.values()][0] : '';
+        if (fond && fond !== 'transparent') {
+          if (c.style.getPropertyValue('--klocka-fond') !== fond) c.style.setProperty('--klocka-fond', fond);
+          c.classList.add('klocka-etiquette');
+        } else c.classList.remove('klocka-etiquette');
+      }
+    }
+  }
+
   function poserTetes() {
     const lignes = document.querySelectorAll('[data-selectable-id]');
     if (!lignes.length) return;
     nomsSimples(lignes);
     contacts(lignes);
+    etiquettes(lignes);
     const cols = colonnesTetes();
     if (!cols.length) return;
     for (const ligne of lignes) {

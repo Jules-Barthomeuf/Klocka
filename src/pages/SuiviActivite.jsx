@@ -245,7 +245,7 @@ function exporter(data, libellePeriode) {
   for (const s of data.cette_semaine) ligne(s.libelle, s.n, s.avant);
   ligne();
   ligne("Dossier", "Mandataire", "Étape", "Honoraires (€)", "Prochaine action");
-  for (const d of data.dossiers) ligne(d.titre, d.mandataire, `${d.etape} / 6 · ${d.etape_libelle}`, d.honoraires, d.prochaine.quoi);
+  for (const d of data.dossiers) ligne(d.titre, d.mandataire, `${d.etape} / ${data.etapes.length} · ${d.etape_libelle}`, d.honoraires, d.prochaine.quoi);
   const blob = new Blob([`${String.fromCharCode(0xfeff)}${l.join("\n")}`], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);

@@ -20,7 +20,7 @@ const VENDU = new Set(['acte', 'commission_payee']);
 export const PERIODES = ['30j', 'trimestre', 'annee'];
 
 /** Ce qu'il reste à faire à chaque étape, quand Haka n'a pas posé de prochaine action. */
-const SUITE = { previsite: 'Faire la visite', estimation: "Présenter l'avis au propriétaire", mandat: 'Faire signer le mandat', marche: 'Commercialiser le bien', offre: 'Négocier les offres', vente: "Signer l'acte" };
+const SUITE = { previsite: 'Faire la visite', estimation: "Présenter l'avis au propriétaire", mandat: 'Faire signer le mandat', dataroom: 'Réunir les pièces de la Data room', marche: 'Commercialiser le bien', offre: 'Négocier les offres', vente: "Signer l'acte" };
 
 const mediane = (xs) => {
   const v = xs.filter((x) => Number.isFinite(x)).sort((a, b) => a - b);

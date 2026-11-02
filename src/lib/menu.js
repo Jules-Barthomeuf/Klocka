@@ -21,6 +21,7 @@ export const ENTREES_ADMIN = [
   { cle: "Emailing", label: "Emailing" },
   { cle: "ALX", label: "ALX" },
   { cle: "Monitoring", label: "Suivi" },
+  { cle: "SuiviActivite", label: "Tableau de bord" },
   // L'Intelligence (14 oct. 2026) : ce qui a été dit, décidé, promis ; les faits à valider.
   { cle: "Cerveau", label: "Intelligence" },
   { cle: "AdminSuggestions", label: "Feedback" },
@@ -86,6 +87,8 @@ export const ENTREES_MANDATAIRE = [
  */
 export const MENU_ADMIN = [
   { cle: "Dashboard", label: "Assistant" },
+  // Le tableau de bord (2 nov. 2026, Jules : « rends visible le tableau de bord ») : une entrée à lui, plus caché dans le Suivi.
+  { cle: "SuiviActivite", label: "Tableau de bord" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
   // À valider quitte le menu (26 oct. 2026, Jules) : la page reste ouverte par la cloche et les dossiers.
@@ -99,7 +102,7 @@ export const MENU_ADMIN = [
   { cle: "CRM", label: "Twenty CRM", externe: true, fixe: true },
   { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" }, { cle: "AdminAccesCrm", label: "Accès CRM" },
     // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
-    { cle: "Monitoring", label: "Suivi", aussi: ["SuiviActivite", "SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
+    { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
 ];
 /**
  * Le menu des mandataires, sur la structure de celui de l'équipe (18 oct. 2026, Jules) : des entrées simples et

@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { base44 } from "@/api/base44Client";
-import OngletsSuivi from "@/components/OngletsSuivi";
 import { BarresHorizontales, Bulle, Cadre, Croissance, axe, useCouleurs } from "@/components/monitoring/GraphesAppels";
 import { Tuile } from "@/components/monitoring/UsagePlateforme";
 import Chargement from "@/components/ui/Chargement";
@@ -190,7 +189,6 @@ export default function SuiviActivite() {
       <div className="mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0 max-w-full">
-            <OngletsSuivi className="mb-3.5 overflow-x-auto" />
             <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Tableau de bord</h1>
             <p className="m-0 mt-1.5 max-w-[70ch] text-[13.5px] text-ardoise">Ce qui avance vers une vente, et où ça s'arrête. Un clic sur un chiffre le met dans le graphique.</p>
           </div>

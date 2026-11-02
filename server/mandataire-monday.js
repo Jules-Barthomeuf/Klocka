@@ -53,6 +53,7 @@ export function colonnesProspect(p, { personneId = null, aujourdhui = new Date()
 }
 
 export const lienProspect = (id) => lienMonday(TABLEAU(), id);
+export const TABLEAU_PROSPECTS = TABLEAU;
 
 /**
  * Pose le propriétaire dans K Partners › Prospects.

@@ -601,6 +601,13 @@ le recopie pas.
   champs pris à gauche avec leur phrase relevée, le document à droite, phrases
   surlignées en `bg-menthe/20`, et le PDF d'origine à côté. Première page :
   la LOI rédigée sur Offres (`offres/SourcesLoi.jsx`, 5 oct. 2026).
+- **Ligne d'une action faite** (31 oct. 2026, Jules, sur une capture « ✓ Rangé dans le fil du bien · Voir » ;
+  remplace la carte du même jour) : dans le chat de l'assistant K Partners comme dans celui de Haka, une action
+  faite tient en une ligne, sans cadre ni rond ni pastille. À gauche une icône de 16 px teintée (coche, cloche pour
+  un rappel, calendrier pour un rendez-vous, croix pour un échec) ; puis ce qui s'est passé en 15 px `craie`
+  (« Rappel posé : … », « Rangé dans le fil du bien »), son détail en `brume` ; à droite « Voir » en lien 15 px
+  medium, de la même teinte. La teinte est la `pervenche` côté K Partners, la `menthe` côté Klocka, `alerte` pour
+  un échec.
 - **Panneaux d'outils** (plan, versions, menu de mise en forme) : `bg-rail`,
   `rounded-[14px]`, `border-trait`, comme la barre de navigation.
 

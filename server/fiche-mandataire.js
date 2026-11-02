@@ -20,7 +20,7 @@ import { Records } from './db.js';
 import { preparationNeutre } from './reference-neutre.js';
 import { CAS_RESTITUTION, appliquerRestitution } from './restitution-avis.js';
 // Les étapes faites se comptent comme à l'écran (src/lib/biens-mandataire.js).
-import { ETAPES_BIEN, etapesFaites as faitesDuBien, marqueurDe } from '../src/lib/biens-mandataire.js';
+import { ETAPES_BIEN, etapesFaites as faitesDuBien, marqueurDe, sourceLisible } from '../src/lib/biens-mandataire.js';
 
 const maintenant = () => new Date().toISOString();
 const emailDe = (u) => String(u?.email || '').toLowerCase();
@@ -206,7 +206,7 @@ async function composer(p) {
       liste: p.liste_id ? (({ id, nom }) => ({ id, nom }))(Records.get('ListeMandataire', p.liste_id) || { id: p.liste_id, nom: 'Liste' }) : null,
       details: detailsDe({ p, commerce: cs, cible, signaux }),
       signaux,
-      contact: { telephone: p.telephone || null, telephone_source: p.telephone_source || null, email: p.email || null, a_confirmer: p.a_confirmer || {} },
+      contact: { telephone: p.telephone || null, telephone_source: sourceLisible(p.telephone_source) || null, email: p.email || null, a_confirmer: p.a_confirmer || {} },
       investisseurs,
       prochaine_action: p.prochaine_action || null, prochaine_action_le: p.prochaine_action_le || null,
       historique: [...(p.historique || [])].reverse(),

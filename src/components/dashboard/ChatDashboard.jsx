@@ -14,7 +14,7 @@ import ChoixDossier from "@/components/haka/ChoixDossier";
 import { BasculeSortie, BoutonSources, Depliant } from "@/components/haka/ReglagesDemande";
 import { sourceDe } from "@/lib/sources";
 import { avis, poser, toast } from "@/components/ui/avis";
-import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, CalendarCheck, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BarreEcoute, { useAuraPosee } from "@/components/haka/BarreEcoute";
 import { ListeRelances } from "./RelancesEnAttente";
@@ -768,7 +768,7 @@ export function cartesDe(r) {
   const ko = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} Mo` : `${Math.max(1, Math.round(n / 1024))} Ko`);
   const fichiers = (r?.fichiers || []).filter((f) => f?.url && f?.nom).map((f) => ({ titre: f.nom, detail: `Fichier préparé par AK${f.taille ? ` · ${ko(f.taille)}` : ""}`, etat: "fait", lien: `fichier:${f.url}`, action: "Télécharger" }));
   // Parlé d'un bien depuis le dashboard : l'échange est rangé dans le fil de ce bien (25 oct. 2026), une carte y mène.
-  const fil = r?.fil_bien ? [{ titre: `Rangé dans le fil de ${r.fil_bien.titre}`, detail: "Tout ce qui s'est dit sur ce bien", etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
+  const fil = r?.fil_bien ? [{ titre: "Rangé dans le fil du bien", detail: null, etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
   return [...fil, ...fichiers, ...taches, ...(r?.actions || [])
     // Une étape à confirmer n'est pas faite : elle n'a pas de carte, seulement son bouton « Confirmer » (25 oct. 2026).
     .filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_vente" && !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
@@ -776,6 +776,7 @@ export function cartesDe(r) {
       titre: a.titre || (a.name === "creer_drive_dossier" && a.resultat?.deja_cree ? "Dossier Drive complété" : ACTIONS_FAITES[a.name]),
       detail: a.pour || a.resultat?.message || a.resultat?.titre || null,
       etat: a.etat === "rate" ? "rate" : "fait",
+      genre: a.type || null,
       lien: a.lien || a.resultat?.url || (a.resultat?.deal_id ? `/Dossiers?deal_id=${a.resultat.deal_id}` : null),
     }))];
 }
@@ -891,31 +892,34 @@ function PhotosAuChoix({ choix, onChoisie }) {
   );
 }
 
-function CarteAction({ c, onOuvrir }) {
+/**
+ * Une action faite, en une ligne (31 oct. 2026, Jules, sur une capture « ✓ Rangé dans le fil du bien · Voir ») : une
+ * petite icône teintée, ce qui s'est passé, et « Voir » en lien à droite ; ni cadre, ni rond, ni pastille. Le même
+ * dessin pour l'assistant K Partners (`kp` : la pervenche, le violet de la marque) et pour Haka (la menthe).
+ */
+function CarteAction({ c, onOuvrir, kp = false }) {
   const rate = c.etat === "rate";
   const annule = c.etat === "annule";
-  const pilule = "inline-flex h-11 items-center rounded-full px-5 text-[15px]";
+  const rdv = c.genre === "rappel" && /^RDV\b/i.test(c.titre || "");
+  const Icone = rate ? X : rdv ? CalendarCheck : c.genre === "rappel" ? Bell : Check;
+  const titre = rdv ? String(c.titre).replace(/^RDV\s+/i, "").replace(/^avec\s+/i, "avec ") : c.titre;
+  const texte = rate ? `Pas fait : ${titre}` : rdv ? `Rendez-vous posé ${titre}` : c.genre === "rappel" ? `Rappel posé : ${titre}` : titre;
+  // Les classes de la teinte : écrites en entier pour que Tailwind les garde.
+  const teinte = rate ? "text-alerte" : annule ? "text-brume" : kp ? "text-pervenche" : "text-menthe";
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      className={`flex items-center gap-4 rounded-[18px] border px-6 py-5 max-md:flex-wrap max-md:px-4 ${annule ? "opacity-50" : ""}`}
-      style={{ borderColor: rate ? alpha("alerte", 0.45) : J["trait"], background: J["surface-pleine"] }}>
-      <div className="min-w-0 flex-1">
-        <p className={`m-0 text-[16px] ${annule ? "text-brume line-through" : "text-encre"}`}>{c.titre}</p>
-        {c.detail && <p className="m-0 mt-1 text-[14.5px] leading-[1.5] text-ardoise">{c.detail}</p>}
-      </div>
-      <div className="flex flex-none items-center gap-2.5">
-        {c.lien && !annule && (
-          <button type="button" onClick={() => onOuvrir(c.lien)} className={`${pilule} ${c.action ? "font-medium" : "border border-trait text-craie hover:text-encre"} transition-colors`}
-            style={c.action ? { background: PERVENCHE, color: J["fond"] } : { background: "transparent" }}>
-            {c.action || "Ouvrir"}
-          </button>
-        )}
-        {!c.action && (
-          <span className={pilule} style={rate ? { border: `1px solid ${alpha("alerte", 0.45)}`, color: J["alerte"] } : annule ? { border: `1px solid ${J["trait"]}`, color: J["brume"] } : { background: PERVENCHE, color: J["fond"] }}>
-            {rate ? "Pas fait" : annule ? "Annulé" : "✓ Fait"}
-          </span>
-        )}
-      </div>
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
+      className={`flex items-start gap-3 py-1 ${annule ? "opacity-50" : ""}`}>
+      <Icone className={`mt-[3px] h-4 w-4 flex-none ${teinte}`} />
+      <p className={`m-0 min-w-0 flex-1 text-[15px] leading-[1.45] ${annule ? "text-brume line-through" : "text-craie"}`}>
+        {texte}{c.detail && <span className="text-brume"> · {c.detail}</span>}
+      </p>
+      {c.lien && !annule && (
+        <button type="button" onClick={() => onOuvrir(c.lien)}
+          className={`flex-none text-[15px] font-medium hover:underline ${rate ? "text-alerte" : kp ? "text-pervenche" : "text-menthe"}`}
+          style={{ background: "transparent" }}>
+          {!c.action || c.action === "Ouvrir" ? "Voir" : c.action}
+        </button>
+      )}
     </motion.div>
   );
 }
@@ -1575,7 +1579,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
             role: "assistant",
             contenu: "Arrêté. Ce qui était déjà fait reste en place :",
             etapes: vivesRef.current,
-            cartes: actionsVives.current.filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution").map((a) => ({ titre: a.titre, detail: a.pour || null, etat: a.etat === "rate" ? "rate" : "fait", lien: a.lien || null })),
+            cartes: actionsVives.current.filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution").map((a) => ({ titre: a.titre, detail: a.pour || null, etat: a.etat === "rate" ? "rate" : "fait", genre: a.type || null, lien: a.lien || null })),
           });
           setSuites(suitesMandataire({ actions: actionsVives.current }));
           actionsVives.current = [];
@@ -1659,7 +1663,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     mutationFn: (t) => { demanderNotifications(); return base44.request("POST", "/api/assistant/rappels", { body: { texte: t } }); },
     onSuccess: (r) => {
       const d = new Date(r.rappel.echeance);
-      pousser({ role: "assistant", etapes: etapesRef.current, cartes: [{ titre: `Rappel créé : ${r.rappel.titre || "rappel"}`, detail: d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }), etat: "fait" }], contenu: `Noté : ${r.rappel.titre || "rappel"}${r.rappel.telephone ? ` au ${telLisible(r.rappel.telephone)}` : ""} le ${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}. Le rappel s'affichera ici ce jour-là.` });
+      pousser({ role: "assistant", etapes: etapesRef.current, cartes: [{ titre: r.rappel.titre || "Rappel", detail: d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }), etat: "fait", genre: "rappel" }], contenu: `Noté : ${r.rappel.titre || "rappel"}${r.rappel.telephone ? ` au ${telLisible(r.rappel.telephone)}` : ""} le ${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}. Le rappel s'affichera ici ce jour-là.` });
       queryClient.invalidateQueries({ queryKey: ["ce-qui-attend"] });
     },
     onError: (e) => pousser({ role: "assistant", contenu: e?.message || "Je n'ai pas pu noter ce rappel." }),
@@ -1764,7 +1768,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     a.click();
     a.remove();
   };
-  const ouvrirLienExterne = (lien) => (/^https?:/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
+  // Une fiche du CRM passe par le serveur (/api/crm/fiche) : nouvel onglet, comme un lien externe.
+  const ouvrirLienExterne = (lien) => (/^(https?:|\/api\/)/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
 
   const envoiEnVol = useRef(false);
   useEffect(() => { if (!boite.isPending && !analyser.isPending && !rappeler.isPending) envoiEnVol.current = false; }, [boite.isPending, analyser.isPending, rappeler.isPending]);
@@ -2199,7 +2204,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
           {avantRetour}
           {/* `retour` (14 oct. 2026, éditeur de projet) : « Retour » ramène à la page d'où l'on vient, au lieu de vider le chat. */}
           <button type="button" onClick={retour ? retour.onClick : nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
-            <ChevronLeft className="h-4 w-4" /> {retour ? retour.libelle || "Retour" : libelleAccueil || "Assistant KPartners"}
+            <ChevronLeft className="h-4 w-4" /> {retour ? retour.libelle || "Retour" : libelleAccueil || (mandataire ? "Assistant KPartners" : "Haka")}
           </button>
           {/* À côté d'un aperçu, pas de titre : il collait à « Dashboard » (3 oct. 2026). */}
           {barreApercu ? <span className="flex-1" /> : titreEdite != null ? (
@@ -2256,7 +2261,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
                   {m.photos_ville?.photos?.length > 0 && <PhotosAuChoix choix={m.photos_ville} onChoisie={() => onReponse?.({ estimation_id: m.photos_ville.estimation_id, avis_retouche: true })} />}
                   {/* L'avis affiché à côté du chat : sa carte « Ouvrir l'avis » ne servirait à rien. */}
                   {m.cartes?.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).length > 0 && (
-                    <div className="mt-5 space-y-3">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} />)}</div>
+                    <div className="mt-4 space-y-1">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} kp={mandataire} />)}</div>
                   )}
                 </div>
               </motion.div>

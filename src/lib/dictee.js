@@ -26,6 +26,12 @@ const Reconnaissance =
 
 const Audio = typeof window !== "undefined" ? window.AudioContext || window.webkitAudioContext : null;
 const microDisponible = () => !!navigator?.mediaDevices?.getUserMedia;
+// Sur téléphone, la reconnaissance du navigateur abîme les numéros (31 oct. 2026, terrain d'Antibes : « 06 49 78 81 76 »
+// dicté est arrivé « 06 6497 1881, 76 ») : Safari se relance après chaque silence en répétant la fin du morceau d'avant,
+// et coupe mal « soixante-dix-huit », « quatre-vingt-un ». Le flux continu vers le serveur (Voxtral, puis tout
+// l'enregistrement d'un bloc à l'arrêt) rend le numéro juste : il passe devant sur téléphone.
+const surTelephone = () => typeof navigator !== "undefined"
+  && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
 // --- WAV --------------------------------------------------------------------
 
@@ -183,18 +189,20 @@ export function useDictee({ onTexte, onFin } = {}) {
   }, [fermerFlux]);
 
   // --- Le flux continu : Web Audio, des tranches envoyées au fil de l'eau ----
-  const demarrerFlux = useCallback(async () => {
+  const demarrerFlux = useCallback(async (ctxOuvert = null) => {
     setErreur(null);
     let media;
     try {
       media = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
       setErreur("Le micro est refusé : autorisez-le dans le navigateur.");
+      ctxOuvert?.close?.().catch(() => {});
       finir();
       return;
     }
-    if (!voulue.current || !Audio) { media.getTracks().forEach((t) => t.stop()); finir(); return; }
-    const ctx = new Audio();
+    if (!voulue.current || !Audio) { media.getTracks().forEach((t) => t.stop()); ctxOuvert?.close?.().catch(() => {}); finir(); return; }
+    // Ouvert au tap quand on le peut : iOS laisse muet un contexte audio créé après un `await`.
+    const ctx = ctxOuvert || new Audio();
     await ctx.resume?.();
     const source = ctx.createMediaStreamSource(media);
     // ScriptProcessor : déprécié mais présent partout. Le micro ne s'arrête
@@ -329,11 +337,15 @@ export function useDictee({ onTexte, onFin } = {}) {
     acquis.current = "";
     setErreur(null);
     setEcoute(true);
-    if (Reconnaissance) {
+    const fluxPossible = microDisponible() && Audio;
+    if (Reconnaissance && !(surTelephone() && fluxPossible)) {
       try { ecouterNavigateur(); return; } catch { /* repli ci-dessous */ }
     }
-    if (microDisponible() && Audio) demarrerFlux();
-    else finir();
+    if (fluxPossible) {
+      let ctx = null;
+      try { ctx = new Audio(); ctx.resume?.().catch(() => {}); } catch { ctx = null; }
+      demarrerFlux(ctx);
+    } else finir();
   }, [ecouterNavigateur, demarrerFlux, finir]);
 
   /** @param {{ rapide?: boolean }} [options] `rapide` : pour envoyer, sans ponctuation ni relecture entière. */

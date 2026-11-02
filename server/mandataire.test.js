@@ -7,7 +7,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-mandataire-'));
 process.env.MONDAY_TOKEN = '';
 const { Records } = await import('./db.js');
-const { anonymiser, heureDeParis, tableauDuJour, agirSurRappel, executerOutilMandataire, OUTILS_MANDATAIRE } = await import('./mandataire.js');
+const { anonymiser, heureDeParis, tableauDuJour, agirSurRappel, executerOutilMandataire, OUTILS_MANDATAIRE, telephoneDicte } = await import('./mandataire.js');
 
 const MOI = { email: 'm@kpartners.fr', role: 'mandataire' };
 const AUTRE = { email: 'autre@kpartners.fr', role: 'mandataire' };
@@ -32,8 +32,8 @@ test("l'heure dite est celle de Paris, été comme hiver", () => {
 test("aucun outil du mandataire n'envoie, ne lit les dossiers ni ne touche Twenty CRM", () => {
   const noms = OUTILS_MANDATAIRE.map((o) => o.name);
   assert.deepEqual(noms.sort(), [
-    'annuler_derniere', 'appel_sans_reponse', 'avancer_bien', 'avis_de_marche', 'bail_estimation', 'compte_rendu_visite', 'corriger_mandat', 'corriger_preparation', 'demander_mandat', 'demandes_clients', 'lancer_estimation', 'mes_acquereurs', 'mes_dossiers', 'mes_proprietaires',
-    'mes_rappels', 'modifier_fiche', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'preparer_mail', 'prospecter_commerces', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'visite_du_moment',
+    'annuler_derniere', 'appel_sans_reponse', 'avancer_bien', 'avis_de_marche', 'bail_estimation', 'compte_rendu_visite', 'corriger_mandat', 'corriger_preparation', 'demander_mandat', 'demandes_clients', 'lancer_estimation', 'ma_fiche', 'mes_acquereurs', 'mes_dossiers', 'mes_proprietaires',
+    'mes_rappels', 'mettre_en_pause', 'modifier_fiche', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'preparer_mail', 'prospecter_commerces', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'visite_du_moment',
   ]);
 });
 
@@ -450,4 +450,85 @@ test('prospecter depuis le chat : la Prospection filtrée par la phrase, rien n\
   assert.equal(r.ok, true);
   assert.deepEqual(r.boutons, [{ libelle: 'Voir les commerces', href: '/MandataireProspection?recherche=des%20boulangeries%20propri%C3%A9taires%20exploitants', principal: true }]);
   assert.equal((await executerOutilMandataire({ name: 'prospecter_commerces', input: { phrase: ' ' } }, { email: 'm@test.local', role: 'mandataire' })).ok, false);
+});
+
+// Le manuel du mandataire (31 oct. 2026, PLAN 2.2) : ce que le test des 20 phrases a trouvé.
+test('modifier_fiche garde la prochaine action dite avec le statut, et la source de chaque champ', async () => {
+  const QUI = { email: 'manuel@kpartners.fr', role: 'mandataire' };
+  const f = Records.create('ProprietaireMandataire', { mandataire_email: QUI.email, commerce: 'Boulangerie Manuel', ville: 'Antibes', statut: 'a_appeler', historique: [] });
+  const r = await executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: f.id, nom: 'M. Bernard', telephone: '06 12 34 56 78', exploitant: 'Mme Manuel', a_confirmer: true, source: "l'exploitante", statut: 'contacte', prochaine_action: 'Appeler M. Bernard', prochaine_action_le: '2026-11-02T09:00' } }, QUI);
+  assert.equal(r.ok, true);
+  const p = Records.get('ProprietaireMandataire', f.id);
+  assert.equal(p.statut, 'contacte');
+  assert.equal(p.prochaine_action, 'Appeler M. Bernard', 'le statut ne l\'efface plus');
+  assert.ok(p.prochaine_action_le);
+  assert.equal(p.sources.telephone.source, "l'exploitante");
+  assert.equal(p.sources.telephone.a_confirmer, true);
+  assert.match(p.telephone_source, /exploitante, à confirmer/);
+  const lu = await executerOutilMandataire({ name: 'ma_fiche', input: { qui: 'boulangerie manuel' } }, QUI);
+  assert.equal(lu.fiche_id, f.id);
+  assert.equal(lu.exploitant, 'Mme Manuel');
+  assert.equal((await executerOutilMandataire({ name: 'ma_fiche', input: { qui: 'boulangerie manuel' } }, AUTRE)).ok, false, 'la fiche d\'un autre reste invisible');
+});
+
+test('une relance notée depuis une fiche ouverte se rattache à elle ; mettre_en_pause retire le rendez-vous annulé', async () => {
+  const QUI = { email: 'pause@kpartners.fr', role: 'mandataire' };
+  const f = Records.create('ProprietaireMandataire', { mandataire_email: QUI.email, commerce: 'Cave Pause', ville: 'Antibes', statut: 'rdv_pris', historique: [] });
+  const r = await executerOutilMandataire({ name: 'noter_relance', input: { texte: 'Rappeler M. Girard jeudi' } }, QUI, { fiche: f });
+  assert.equal(r.ok, true);
+  assert.equal(Records.get('Rappel', r.rappel_id).proprietaire_id, f.id);
+  const rdv = Records.create('Rappel', { espace: 'mandataire', genre: 'rdv', proprietaire_id: f.id, quoi: 'RDV', echeance: new Date(Date.now() + 2 * 86400000).toISOString(), cree_par: QUI.email, fait_le: null });
+  const p = await executerOutilMandataire({ name: 'mettre_en_pause', input: { motif: 'rendez-vous annulé', rdv_annule: true } }, QUI, { fiche: f });
+  assert.equal(p.ok, true);
+  assert.ok(Records.get('ProprietaireMandataire', f.id).biens.pause);
+  assert.ok(Records.get('Rappel', rdv.id).fait_le);
+});
+
+// Terrain d'Antibes (31 oct. 2026) : « 06 6497 1881, 76 », douze chiffres, ne s'écrit pas comme téléphone mais reste « à vérifier ».
+test('un numéro dicté se vérifie : dix chiffres par paires, sinon gardé en remarque à vérifier', async () => {
+  assert.deepEqual(telephoneDicte('06 6497 1881'), { ok: true, numero: '06 64 97 18 81' });
+  assert.deepEqual(telephoneDicte('+33 6 64 97 18 81'), { ok: true, numero: '06 64 97 18 81' });
+  assert.equal(telephoneDicte('+44 20 7946 0958').ok, true);
+  assert.deepEqual(telephoneDicte('06 6497 1881, 76'), { ok: false, chiffres: '066497188176' });
+  assert.equal(telephoneDicte('06 64 97 18').ok, false);
+  const QUI = { email: 'numero@kpartners.fr', role: 'mandataire' };
+  const f = Records.create('ProprietaireMandataire', { mandataire_email: QUI.email, commerce: 'Boulangerie Numéro', ville: 'Antibes', statut: 'a_appeler', historique: [] });
+  const r = await executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: f.id, telephone: '06 6497 1881, 76', a_confirmer: true, source: "l'exploitant" } }, QUI);
+  assert.equal(r.ok, true);
+  assert.equal(r.telephone_illisible.chiffres, 12);
+  const p = Records.get('ProprietaireMandataire', f.id);
+  assert.equal(p.telephone || null, null, 'rien de deviné');
+  assert.match(p.remarque, /Numéro dicté à vérifier : 06 6497 1881, 76 \(12 chiffres, donné par l'exploitant\)/);
+  await executerOutilMandataire({ name: 'modifier_fiche', input: { proprietaire_id: f.id, telephone: '0664971881' } }, QUI);
+  assert.equal(Records.get('ProprietaireMandataire', f.id).telephone, '06 64 97 18 81');
+});
+
+test("nouveau contact : sans son oui rien n'est créé, au oui la fiche naît dans la liste choisie (31 oct. 2026, Jules)", async () => {
+  const moi = { email: 'terrain@kpartners.fr', role: 'mandataire' };
+  const dit = { commerce: 'Boulangerie rue de la Ferrandière', ville: 'Lyon', nom: 'M. Garnier', telephone: '06 12 34 56 77' };
+  const avant = Records.list('ProprietaireMandataire').length;
+  const p = await executerOutilMandataire({ name: 'nouveau_contact', input: dit }, moi);
+  assert.equal(p.a_proposer, true);
+  assert.equal(p.cree, undefined);
+  assert.equal(p.proprietaire_id, undefined);
+  assert.equal(Records.list('ProprietaireMandataire').length, avant);
+  const r = await executerOutilMandataire({ name: 'nouveau_contact', input: { ...dit, confirme: true, liste: 'Lyon · Restaurant' } }, moi);
+  assert.equal(r.cree, true);
+  assert.equal(r.liste, 'Lyon · Restaurant');
+  assert.equal(Records.list('ProprietaireMandataire').length, avant + 1);
+});
+
+test("la bonne pharmacie : le commerce dit, ou la fiche ouverte, l'emporte sur un mot du propriétaire (31 oct. 2026, Jules)", async () => {
+  const moi = { email: 'pharmacies@kpartners.fr', role: 'mandataire' };
+  const { creerProprietaire, retrouverProprietaire } = await import('./mandataire-espace.js');
+  const girondins = creerProprietaire({ nom: 'Malanso Europe', commerce: 'Pharmacie des Girondins', ville: 'Lyon', telephone: '04 78 00 00 01' }, moi).proprietaire;
+  const europe = creerProprietaire({ nom: 'Compagnie Nationale Royal Air Maroc', commerce: "Pharmacie de l'Europe", activite: 'Pharmacie', ville: 'Lyon', telephone: '04 78 00 00 02' }, moi).proprietaire;
+  const r = retrouverProprietaire("Pharmacie de l'Europe Lyon", moi);
+  assert.deepEqual([r.ambigu, r.candidats.map((p) => p.id)], [false, [europe.id]]);
+  // « la pharmacie » seule reste ambiguë, sauf sur la fiche ouverte.
+  assert.equal(retrouverProprietaire('la pharmacie à Lyon', moi).ambigu, true);
+  assert.deepEqual(retrouverProprietaire('la pharmacie à Lyon', moi, { ouverte: girondins }).candidats.map((p) => p.id), [girondins.id]);
+  const m = await executerOutilMandataire({ name: 'modifier_fiche', input: { qui: "Pharmacie de l'Europe · Lyon", telephone: '06 12 34 56 78' } }, moi, { fiche: europe });
+  assert.equal(m.ok, true);
+  assert.equal(Records.get('ProprietaireMandataire', europe.id).telephone, '06 12 34 56 78');
 });

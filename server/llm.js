@@ -551,7 +551,7 @@ export async function transcrireAudio({ buffer, mimetype = 'audio/wav', rapide =
  * Reponctue une dictée du navigateur : mêmes mots, majuscules et ponctuation.
  * Sans clé Gemini, le texte revient tel quel — jamais une erreur pour ça.
  */
-const CONSIGNE_PONCTUATION = "On te donne une dictée vocale en français, sans ponctuation. Rends EXACTEMENT les mêmes mots, dans le même ordre : ajoute seulement la ponctuation, les majuscules et les apostrophes, et écris les nombres en chiffres ; un numéro de téléphone s'écrit par paires (06 31 24 58 36). Ne corrige rien d'autre, ne reformule pas, ne commente pas.";
+const CONSIGNE_PONCTUATION = "On te donne une dictée vocale en français, sans ponctuation. Rends EXACTEMENT les mêmes mots, dans le même ordre : ajoute seulement la ponctuation, les majuscules et les apostrophes, et écris les nombres en chiffres. Un numéro de téléphone garde exactement les chiffres dits, ni plus ni moins, par paires (06 64 97 18 81). Ne corrige rien d'autre, ne reformule pas, ne commente pas.";
 
 export async function ponctuerDictee(texte) {
   const brut = String(texte || '').trim();

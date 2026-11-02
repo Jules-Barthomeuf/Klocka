@@ -15,6 +15,12 @@
  * La Data room sort de la Commercialisation (2 nov. 2026, Jules, après avis produit) : les pièces avec le vendeur
  * d'abord, puis, mis en vente, le teaser et les acheteurs. Sept étapes.
  */
+/**
+ * Pure : la source d'un numéro telle qu'on la montre au mandataire. Côté K Partners l'assistant ne s'appelle pas Haka
+ * (31 oct. 2026, Jules) : les fiches d'avant gardent « dit à Haka » en base, l'écran dit « dit à l'assistant ».
+ */
+export const sourceLisible = (s) => (s ? String(s).replace(/\bdit à Haka\b/g, "dit à l'assistant") : s);
+
 export const ETAPES_BIEN = [
   { n: 1, id: "previsite", label: "Visite" },
   { n: 2, id: "estimation", label: "Avis de valeur" },

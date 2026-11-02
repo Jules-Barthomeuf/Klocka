@@ -30,8 +30,8 @@
 | 1.4 | L1 | Fiche commerce minimale | Signal, exploitant, propriétaire, contact, accroche, statut, micro, lien Itinéraire ; rien d'autre | L1-prospection | À faire |
 | 1.5 | L1 | Listes | Création en 2 clics ; une fiche qui change de statut se met à jour dans toutes ses listes | L1-prospection | À faire |
 | 2.1 | L2 | Fil Haka unique | Un fil par mandataire, historique conservé, réponse avec lien vers la fiche/le bien | L2-haka | À tester (Jules) · 1er nov. · devenu « un fil par bien » (décision de Jules) : prospection, Pré-visite, Avis, Mandat et chat du tableau de bord écrivent dans le fil de la fiche ; non committé |
-| 2.2 | L2 | Manuel du mandataire | Principes écrits dans le prompt de Haka (voir docs/haka-principes.md) | L2-haka | À faire |
-| 2.3 | L2 | 20 phrases de test | ≥ 18/20 donnent la bonne action (docs/haka-tests.md) | L2-haka | À faire |
+| 2.2 | L2 | Manuel du mandataire | Principes écrits dans le prompt de Haka (voir docs/haka-principes.md) | L2-haka | À tester (Jules) · 31 oct. · branche l2-haka, commit f2011f6 |
+| 2.3 | L2 | 20 phrases de test | ≥ 18/20 donnent la bonne action (docs/haka-tests.md) | L2-haka | À tester (Jules) · 31 oct. · `npm run test:haka` : 20/20 · branche l2-haka, commit f2011f6 |
 | 2.4 | L2 | Test terrain Antibes | Une vraie liste parcourue sans ouvrir une fiche à la main | Jules | À faire |
 | 3.1 | L3 | Arbre de décision | Statuts et passages conformes à l'arbre ci-dessous | L3-bien | À faire |
 | 3.2 | L3 | Import de biens existants | Dictée, photo ou PDF → bien créé à la bonne étape | L3-bien | À tester (Jules) · 1er nov. · PDF (scanné compris), Excel/CSV, liste collée, photo du mandat, dictée ; bouton « Importer » dans Biens |

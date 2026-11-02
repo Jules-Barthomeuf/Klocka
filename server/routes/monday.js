@@ -9,14 +9,14 @@ import { currentUser, ok, wrap } from '../contexte.js';
 
 /** Monte les routes « monday » sur l'application. */
 export function monterMonday(app) {
-  // Le lien d'une fiche connue par son ancien id Monday (30 oct. 2026) : en CRM=twenty, la fiche Twenty qui porte
-  // cet id (mondayId) ; sinon, ou si Twenty ne l'a pas, la fiche Monday. Un lien ouvert dans un nouvel onglet.
+  // Le lien d'une fiche connue par son ancien id Monday (30 oct. 2026) : en CRM=twenty ou double (31 oct.), la fiche
+  // Twenty qui porte cet id (mondayId) ; sinon, ou si Twenty ne l'a pas encore, la fiche Monday. Ouvert dans un nouvel onglet.
   app.get('/api/crm/fiche/:tableau/:id', wrap(async (req, res) => {
     const { tableau, id } = req.params;
     if (!/^\d+$/.test(tableau) || !/^\d+$/.test(id)) return res.status(400).send('Lien de fiche invalide');
     const M = await import('../monday.js');
     let lien = null;
-    if (M.crmTwenty()) lien = await (await import('../crm/monday-sur-twenty.js')).lienDepuisMonday(tableau, id);
+    if (M.crmTwenty() || M.crmDouble()) lien = await (await import('../crm/monday-sur-twenty.js')).lienDepuisMonday(tableau, id);
     res.redirect(302, lien || M.lienMondayDirect(tableau, id));
   }));
 

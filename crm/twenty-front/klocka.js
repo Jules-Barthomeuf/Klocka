@@ -441,7 +441,8 @@
   const styleContacts = document.createElement('style');
   styleContacts.textContent = `[data-selectable-id] a.${LIEN_CONTACT} { color: var(--t-color-blue, #1f76c2) !important; text-decoration: none !important; text-align: center; }
   [data-selectable-id] a.${LIEN_CONTACT}:hover { text-decoration: underline !important; }
-  .klocka-contact { justify-content: center !important; text-align: center; }
+  .klocka-contact { justify-content: center !important; text-align: center; background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
+  [data-selectable-id] a.${LIEN_CONTACT}, [data-selectable-id] a.${LIEN_CONTACT} > * { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
   .klocka-tel { display: inline-flex !important; align-items: center; max-width: 100%; }
   .klocka-tel > a.${LIEN_CONTACT} { width: auto !important; }
   .klocka-drapeau { display: inline-block; flex: none; width: 18px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(127,127,127,.25); background: linear-gradient(90deg, #002395 33.3%, #fff 33.3% 66.6%, #ed2939 66.6%); }`;
@@ -517,15 +518,21 @@
   };
   const styleTetes = document.createElement('style');
   styleTetes.textContent = `.klocka-spoc { position: relative !important; }
-  .klocka-spoc > :not(.klocka-tetes) { visibility: hidden !important; }
+  .klocka-spoc > :not(.klocka-tetes) { opacity: 0 !important; }
   .klocka-tetes { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-  .klocka-tete { flex: none; box-sizing: border-box; border-radius: 50%; overflow: hidden; border: 2px solid var(--t-background-primary, #fff); box-shadow: 0 0 0 1px rgba(127,127,127,.25); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 500; background: #8a8f98; }
+  .klocka-tete { flex: none; box-sizing: border-box; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 500; background: #8a8f98; }
   .klocka-tete img { width: 100%; height: 100%; object-fit: cover; display: block; }`;
   document.head.appendChild(styleTetes);
 
-  // Nos têtes, posées par-dessus la case : rondes, cerclées de la couleur de la case, un peu chevauchées, comme dans
-  // Monday. Le contenu de Twenty reste dessous (caché) : un clic sur la case ouvre toujours son choix des personnes.
+  // Nos têtes, posées par-dessus la case : rondes, sans cercle, côte à côte. Le contenu de Twenty reste dessous,
+  // transparent mais cliquable : un clic ouvre toujours son choix des personnes. Dès que la case est en édition
+  // (un champ de saisie dedans), on s'efface pour ne pas gêner l'ajout ou le retrait.
   function tetesDans(c) {
+    if (c.querySelector('input, textarea, [contenteditable="true"]')) {
+      c.querySelector(':scope > .klocka-tetes')?.remove();
+      c.classList.remove('klocka-spoc');
+      return;
+    }
     const gens = personnesDe(c);
     const cle = gens.map((p) => `${p.nom}|${p.photo}|${p.couleur}`).join(',');
     let calque = c.querySelector(':scope > .klocka-tetes');
@@ -543,7 +550,7 @@
     gens.forEach((p, i) => {
       const t = document.createElement('span');
       t.className = 'klocka-tete';
-      t.style.cssText = `width:${h}px;height:${h}px;font-size:${Math.round(h * 0.4)}px;${i ? `margin-left:-${Math.round(h * 0.2)}px;` : ''}${p.couleur ? `background:${p.couleur};` : ''}`;
+      t.style.cssText = `width:${h}px;height:${h}px;font-size:${Math.round(h * 0.4)}px;${i ? 'margin-left:3px;' : ''}${p.couleur ? `background:${p.couleur};` : ''}`;
       if (p.photo) {
         const img = document.createElement('img');
         img.src = p.photo;

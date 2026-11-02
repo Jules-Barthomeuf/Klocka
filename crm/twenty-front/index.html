@@ -1121,12 +1121,20 @@
     }
     avatars.sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
     avatars.forEach((a, i) => {
-      for (const x of [a, a.querySelector('img')].filter(Boolean)) {
-        x.style.setProperty('width', `${h}px`, 'important');
-        x.style.setProperty('height', `${h}px`, 'important');
-        x.style.setProperty('min-width', `${h}px`, 'important');
-        x.style.setProperty('border-radius', '50%', 'important');
-        x.style.setProperty('object-fit', 'cover', 'important');
+      // Un rond net, cerclé de la couleur de la case comme dans Monday : une photo à fond blanc garde son contour, et
+      // deux têtes qui se chevauchent restent lisibles.
+      a.style.setProperty('width', `${h}px`, 'important');
+      a.style.setProperty('height', `${h}px`, 'important');
+      a.style.setProperty('min-width', `${h}px`, 'important');
+      a.style.setProperty('flex', 'none', 'important');
+      a.style.setProperty('border-radius', '50%', 'important');
+      a.style.setProperty('overflow', 'hidden', 'important');
+      a.style.setProperty('box-sizing', 'border-box', 'important');
+      a.style.setProperty('border', '2px solid var(--t-background-primary, #fff)', 'important');
+      a.style.setProperty('box-shadow', '0 0 0 1px rgba(127,127,127,.25)', 'important');
+      const img = a.querySelector('img');
+      if (img) {
+        for (const [k, v] of [['width', '100%'], ['height', '100%'], ['min-width', '0'], ['border-radius', '50%'], ['object-fit', 'cover'], ['display', 'block']]) img.style.setProperty(k, v, 'important');
       }
       a.style.setProperty('font-size', `${Math.round(h * 0.45)}px`, 'important');
       // Du nom à la case : plus de pastille autour de la tête, et les têtes se chevauchent un peu, comme dans Monday.
@@ -1136,8 +1144,12 @@
         x.style.setProperty('gap', '0', 'important');
         x.style.setProperty('height', `${h}px`, 'important');
         x.style.setProperty('max-width', 'none', 'important');
+        x.style.setProperty('min-width', '0', 'important');
         x.style.setProperty('justify-content', 'center', 'important');
-        if (x.parentElement === c) x.style.setProperty('width', '100%', 'important');
+        // Twenty donne à la liste la largeur de ses anciennes petites puces et cache ce qui dépasse : on la libère.
+        x.style.setProperty('overflow', 'visible', 'important');
+        x.style.setProperty('flex-wrap', 'nowrap', 'important');
+        x.style.setProperty('width', x.parentElement === c ? '100%' : 'auto', 'important');
       }
       const puce = a.parentElement && a.parentElement !== c ? a.parentElement : a;
       if (i) puce.style.setProperty('margin-left', `-${Math.round(h * 0.2)}px`, 'important');

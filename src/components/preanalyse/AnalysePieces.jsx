@@ -123,7 +123,8 @@ export function EtatTrois({ etat, par, valeur, defaut, onChoix, occupe = false }
 
 /**
  * La case du nom de la ligne porte l'état (30 oct. 2026, Jules : « gris si c'est lu par l'IA, vert si c'est vérifié,
- * on clique et c'est simple ») : toute la case en sable `lu-ia/25` (lu par l'IA) ou `vert/15` (vérifié), un clic fait passer
+ * on clique et c'est simple ») : toute la case en sable `lu-ia/25` (lu par l'IA) ou `menthe/15` (vérifié : l'accent choisi
+ * dans Compte, à la place du vert fixe depuis le 3 nov. 2026, Jules), un clic fait passer
  * de l'un à l'autre ; sans valeur, la case reste neutre et ne se clique pas. La source s'ouvre par sa vignette.
  */
 export function CaseNom({ libelle, etat, par, valeur, onChoix, occupe = false }) {
@@ -133,7 +134,7 @@ export function CaseNom({ libelle, etat, par, valeur, onChoix, occupe = false })
   return (
     <button type="button" disabled={!tourne || occupe} title={mot || undefined} aria-pressed={tourne ? ok : undefined}
       onClick={(e) => { e.stopPropagation(); if (tourne) onChoix(SUIVANT[etat]); }}
-      className={`m-0 select-none text-left text-[14.5px] transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${!tourne ? "text-craie" : ok ? "bg-vert/15 text-craie hover:bg-vert/25" : "bg-lu-ia/25 text-craie hover:bg-lu-ia/35"}`}
+      className={`m-0 select-none text-left text-[14.5px] transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${!tourne ? "text-craie" : ok ? "bg-menthe/15 text-craie hover:bg-menthe/25" : "bg-lu-ia/25 text-craie hover:bg-lu-ia/35"}`}
       style={tourne ? undefined : { background: "transparent" }}>
       {libelle}
     </button>

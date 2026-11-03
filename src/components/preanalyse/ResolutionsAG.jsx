@@ -101,7 +101,7 @@ export default function ResolutionsAG({ dealId, assemblees = [], onOuvrir }) {
               <div role="button" tabIndex={0} aria-pressed={ok} onClick={basculer}
                 onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); basculer(); } }}
                 title={ok ? `Vérifié${r.par ? ` par ${prenom(r.par)}` : ""} · cliquer pour revenir à « à vérifier »` : "À vérifier · cliquer quand c'est vérifié"}
-                className={`group/res flex min-w-0 cursor-pointer select-none items-start justify-between gap-2 text-[14.5px] leading-[1.5] text-craie transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 ${ok ? "bg-vert/15 hover:bg-vert/25" : "bg-lu-ia/25 hover:bg-lu-ia/35"}`}>
+                className={`group/res flex min-w-0 cursor-pointer select-none items-start justify-between gap-2 text-[14.5px] leading-[1.5] text-craie transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 ${ok ? "bg-menthe/15 hover:bg-menthe/25" : "bg-lu-ia/25 hover:bg-lu-ia/35"}`}>
                 <span className="min-w-0">{r.numero && <span>{r.numero}. </span>}{r.nom}</span>
                 <button type="button" disabled={statuer.isPending} onClick={(e) => { e.stopPropagation(); statuer.mutate({ cle: r.cle, cachee: true }); }}
                   className={`${oeil} -my-0.5 lg:opacity-0 lg:focus-visible:opacity-100 lg:group-hover/res:opacity-100`} title="Cacher cette résolution" aria-label="Cacher cette résolution" style={{ background: "transparent" }}>

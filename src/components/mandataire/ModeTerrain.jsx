@@ -97,7 +97,8 @@ export default function ModeTerrain({ listes = [], libelles = {}, onFermer }) {
   const marqueurs = useMemo(() => fiches.map((p) => ({
     id: p.id, lat: p.position.lat, lon: p.position.lon,
     titre: [p.commerce || p.nom, libelles[p.statut] || null].filter(Boolean).join(" · "),
-    couleur: prospecte(p) ? JL.alerte : PERVENCHE,
+    // Un fonds de commerce à céder en ambre, comme dans Mon secteur (3 nov. 2026, Jules) ; prospecté, le rouge passe devant.
+    couleur: prospecte(p) ? JL.alerte : p.fonds ? JL.ambre : PERVENCHE,
   })), [fiches, libelles]);
   const fiche = fiches.find((p) => p.id === choisi) || null;
   // Une fiche s'ouvre tout de suite (3 nov. 2026, Jules : « charger une fiche en mode terrain, c'est trop long, je veux

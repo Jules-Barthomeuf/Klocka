@@ -9,6 +9,7 @@
 // trente jours, ou si la ville n'a jamais été lue.
 
 import { Records } from './db.js';
+import { fondsDe } from './off-market/simple.js';
 import { cleRue } from './alx/commerces.js';
 import { activiteRepond } from './mandataire-recherche.js';
 
@@ -613,9 +614,11 @@ export function mesListes(user) {
         .map((p) => {
           const cible = colonnesDeCible(p.cible_id ? Records.get('Cible', p.cible_id) : null);
           // Où est le commerce, pour la carte en grand écran de la liste (24 oct. 2026) : sa cible, sinon son commerce de l'Off-market.
-          const cs = !cible?.lat && p.commerce_simple_id ? Records.get('CommerceSimple', p.commerce_simple_id) : null;
+          // Le commerce aussi pour dire s'il est un fonds à céder (3 nov. 2026, Jules : « les fonds en jaune en mode terrain,
+          // comme dans Mon secteur »).
+          const cs = p.commerce_simple_id ? Records.get('CommerceSimple', p.commerce_simple_id) : null;
           const position = cible?.lat != null && cible?.lon != null ? { lat: cible.lat, lon: cible.lon } : cs?.lat != null ? { lat: cs.lat, lon: cs.lon } : null;
-          return { ...p, cible, position };
+          return { ...p, cible, position, fonds: cs ? fondsDe(cs).length > 0 : false };
         });
       const par = (s) => dedans.filter((p) => s.includes(p.statut)).length;
       return { id: l.id, reste: resteACompleter(l.id), nom: l.nom, suggeree: !!l.suggeree, agent: !!l.agent, cree_le: l.cree_le, total: dedans.length, a_appeler: par(['a_appeler']), contactes: par(['contacte', 'en_discussion']), rdv: par(['rdv_pris', 'mandat_signe']), fiches: dedans };

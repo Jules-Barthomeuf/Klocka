@@ -66,27 +66,30 @@ export async function relire({ arreter = () => false, annuaire = null, filtre = 
   const A = annuaire || await import('./alx/annuaire.js');
   let relus = 0, erreurs = 0;
   try {
-    while (!arreter()) {
-      const ids = Records.champs(COMMERCE, ['exploitant.siren', 'exploitant.relu_annuaire_le', 'exploitant.gerants']).filter((l) => aRelire(l) && filtre(l)).slice(0, lot).map((l) => l.id);
-      if (!ids.length) break;
-      for (const id of ids) {
+    // Les commerces à relire, cherchés une fois par passage (3 nov. 2026) : relire les 82 000 lignes à chaque lot figeait
+    // le serveur quatre secondes toutes les deux minutes ; chacun est revérifié au moment de le relire.
+    const aFaire = Records.champs(COMMERCE, ['exploitant.siren', 'exploitant.relu_annuaire_le', 'exploitant.gerants']).filter((l) => aRelire(l) && filtre(l)).map((l) => l.id);
+    for (let debut = 0; debut < aFaire.length && !arreter(); debut += lot) {
+      for (const id of aFaire.slice(debut, debut + lot)) {
         if (arreter()) break;
         if (A.refusRecent?.(APRES_REFUS_MS)) await pause(APRES_REFUS_MS);
         const c = Records.get(COMMERCE, id);
-        if (!c?.exploitant?.siren) continue;
+        if (!c?.exploitant?.siren || c.exploitant.relu_annuaire_le) continue;
         try {
           const relu = await A.societe({ siren: c.exploitant.siren });
-          Records.update(COMMERCE, id, { exploitant: completer(c.exploitant, relu) });
+          // Sans changer la date du commerce : les caches de la Prospection ne se recalculent pas à chaque relecture ; les
+          // nouveaux « plus de 60 ans » y entrent à leur recalcul de l'heure.
+          Records.update(COMMERCE, id, { exploitant: completer(c.exploitant, relu) }, { garderDate: true });
           relus += 1;
         } catch (e) {
           // Une erreur de l'annuaire (absent, refusé) : on marque quand même, pour ne pas buter dessus chaque nuit.
           erreurs += 1;
-          Records.update(COMMERCE, id, { exploitant: { ...c.exploitant, relu_annuaire_le: new Date().toISOString(), relu_annuaire_erreur: String(e?.message || e).slice(0, 200) } });
+          Records.update(COMMERCE, id, { exploitant: { ...c.exploitant, relu_annuaire_le: new Date().toISOString(), relu_annuaire_erreur: String(e?.message || e).slice(0, 200) } }, { garderDate: true });
         }
         await pause(entreAppels);
       }
       Meta.set(ETAT, JSON.stringify({ le: new Date().toISOString(), relus, erreurs }));
-      if (!arreter()) await pause(entreLots);
+      if (!arreter() && debut + lot < aFaire.length) await pause(entreLots);
     }
   } finally {
     enCours = false;

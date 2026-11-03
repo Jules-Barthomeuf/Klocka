@@ -312,13 +312,17 @@ export const Records = {
     return this.get(entity, id);
   },
 
-  update(entity, id, patch) {
+  /**
+   * `garderDate` (3 nov. 2026) : une écriture de fond qui ne doit pas changer la signature de l'entité (la relecture de
+   * l'annuaire réécrit des milliers de commerces ; chaque date neuve relançait les calculs de la Prospection).
+   */
+  update(entity, id, patch, { garderDate = false } = {}) {
     const existing = this.get(entity, id);
     if (!existing) return null;
     const merged = { ...stripMeta(existing), ...stripMeta(patch) };
     db.prepare('UPDATE records SET data = ?, updated_date = ? WHERE entity = ? AND id = ?').run(
       JSON.stringify(merged),
-      nowIso(),
+      garderDate && existing.updated_date ? existing.updated_date : nowIso(),
       entity,
       id
     );

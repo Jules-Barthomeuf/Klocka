@@ -7,7 +7,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
 import { PoigneeEditeur, useLargeurChat } from "@/components/editeur/Editeur";
@@ -298,7 +298,23 @@ export default function Analyse() {
 
   // Plus de Mode IA / Normal (29 oct. 2026, Jules : « juste enlève les modes ») : le dossier est toujours en vue
   // normale. Seule l'Offre, éditeur de la lettre, garde son chat à gauche (28 oct. 2026).
-  const modeIA = vueDossier === "offre";
+  // Le chat à gauche, l'analyse à droite (2 nov. 2026, Jules : « on arrive, le chat est ouvert ») : à toutes les étapes.
+  // Il se réduit en une fine colonne et se rouvre, sans jamais disparaître (même jour : « pas une croix où on ne peut
+  // plus voir le chat ») ; la conversation reste. L'Offre garde toujours le sien en grand.
+  const [chatReduit, setChatReduit] = useState(false);
+  const [ongletAnalyse, setOngletAnalyse] = useState(null);
+  // Chaque dossier s'ouvre chat ouvert.
+  useEffect(() => { setChatReduit(false); }, [dealId]);
+  const modeIA = true;
+  const reduit = chatReduit && vueDossier !== "offre";
+  // Fermer et ouvrir le panneau du chat, à gauche de la maison (2 nov. 2026, Jules : « enlève l'icône IA et mets l'icône
+  // pour fermer et ouvrir le panneau à gauche de maison ») : un seul bouton, toujours au même endroit ; fermé, le chat
+  // ne laisse plus de colonne, la conversation reste montée.
+  const IconePanneau = chatReduit ? PanelLeftOpen : PanelLeftClose;
+  const basculePanneau = (
+    <button type="button" onClick={() => setChatReduit((r) => !r)} aria-label={chatReduit ? "Ouvrir l'assistant" : "Fermer l'assistant"} title={chatReduit ? "Ouvrir l'assistant" : "Fermer l'assistant"}
+      className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}><IconePanneau className="h-4 w-4" /></button>
+  );
   // Les réglages du chat du dossier, comme sur la page Haka (18 oct. 2026, Jules) : sources « Auto » ou choisies.
   // Ni Répondre ni Produire dans ce petit chat : l'assistant choisit selon la demande (Jules, le même jour).
   const [sourcesChat, setSourcesChat] = useState([]);
@@ -310,7 +326,7 @@ export default function Analyse() {
     panneau: <PanneauSources sources={sourcesChat} onChange={setSourcesChat} />,
   }), [sourcesChat, sourcesOuvert]);
   const glisse = useRef(false);
-  const scinde = ecranLarge && !!dealId && !vueConversation && modeIA && vueDossier !== "documents";
+  const scinde = ecranLarge && !!dealId && !vueConversation && modeIA;
   // La largeur du chat, celle de l'Éditeur (components/editeur) : la ligne se tire, un double-clic la remet.
   const poignee = useLargeurChat("klocka.dossiers.largeur-chat");
   const { largeur: largeurChat, tire } = poignee;
@@ -370,9 +386,9 @@ export default function Analyse() {
         />
       ) : dossier?.deal_id === dealId ? (
         <>
-        {/* Tout le dossier, titre compris, sur une carte de la couleur de la barre de navigation (29 oct. 2026, Jules) ;
-            l'Éditeur de l'Offre garde sa page entière. */}
-        <div className={enEditeur ? "" : "rounded-[18px] border border-trait bg-rail p-6 max-md:p-4"}>
+        {/* Plus de carte derrière le dossier (2 nov. 2026, Jules : « enlève la card derrière toute la partie analyse ») : il est
+            posé sur le fond de la page, comme les autres pages. Remplace la carte du 29 oct. */}
+        <div>
         <WorkflowDeal
           dossier={dossierVu}
           enCours={majLot.isPending}
@@ -380,7 +396,11 @@ export default function Analyse() {
           onRefresh={recharger}
           onLargeur={setLarge}
           onVue={setVueDossier}
+          onGrille={setOngletAnalyse}
+          assistantAGauche={scinde}
+          onOuvrirAssistant={ecranLarge ? (texte) => { setChatReduit(false); if (texte) setTimeout(() => window.dispatchEvent(new CustomEvent("klocka:lancer", { detail: { texte } })), 400); } : null}
           onRetour={() => montrerDeal(null)}
+          avantRetour={scinde && vueDossier !== "offre" ? basculePanneau : null}
         />
         </div>
         {enAttente > 0 && createPortal(
@@ -405,14 +425,21 @@ export default function Analyse() {
 
   if (scinde) {
     return (
-      <div className={`k-page-presentation k-dossier-ia relative grid h-[100dvh] overflow-hidden text-encre ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+      <div className={`k-page-presentation k-dossier-ia relative grid h-[100dvh] overflow-hidden text-encre ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${reduit ? 0 : largeurChat}px minmax(0,1fr)`, transition: tire ? undefined : "grid-template-columns 520ms cubic-bezier(0.22, 1, 0.36, 1)" }}>
         {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
-        <motion.div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5"
+        <motion.div className="k-colonne-chat relative flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden"
           initial={glisse.current ? { opacity: 0, x: -40 } : { opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: glisse.current ? 0.45 : 0, ease: [0.22, 1, 0.36, 1] }}>
+          {/* Ouvrir le chat (2 nov. 2026, Jules : « pas du haut en bas, juste que ça apparaisse de droite à gauche, plus
+              smooth ») : le contenu garde sa largeur pendant que la colonne s'ouvre (le texte ne se replie plus ligne après
+              ligne) et glisse de la droite vers sa place en fondu ; fermé, il reste monté, caché. */}
+          <motion.div className="flex min-h-0 flex-1 flex-col px-5" style={{ width: largeurChat, minWidth: largeurChat }}
+            initial={false} animate={reduit ? { opacity: 0, x: 28 } : { opacity: 1, x: 0 }}
+            transition={reduit ? { duration: 0.2, ease: "easeOut" } : { duration: 0.6, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+            aria-hidden={reduit} inert={reduit ? "" : undefined}>
           {!chatOuvert && (
             <div className="flex min-h-0 flex-1 flex-col justify-center gap-6 overflow-y-auto py-6">
-              <h1 className="k-balayage m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Une question sur ce dossier ?</h1>
+              <h1 className="m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Une question sur ce dossier ?</h1>
               {/* Plus de cartes de compétences ici : la question et la saisie suffisent (18 oct. 2026, Jules). */}
             </div>
           )}
@@ -420,9 +447,10 @@ export default function Analyse() {
             {!chatOuvert && <Depliant ouvert={sourcesOuvert}><div className="pb-4"><PanneauSources sources={sourcesChat} onChange={setSourcesChat} /></div></Depliant>}
             <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert} reglages={reglagesChat}
               retour={{ libelle: "Tous les dossiers", onClick: () => montrerDeal(null) }}
-              contexte={{ deal_id: dealId, etape: vueDossier }}
+              contexte={{ deal_id: dealId, etape: vueDossier, ...(vueDossier !== "offre" ? { onglet: vueDossier === "analyse" ? ongletAnalyse : vueDossier === "documents" ? "data_room" : null } : {}) }}
               onReponse={() => { recharger(); rafraichirListes(); if (vueDossier === "offre") { queryClient.invalidateQueries({ queryKey: ["offres"] }); queryClient.invalidateQueries({ queryKey: ["offre"] }); } }} />
           </div>
+          </motion.div>
         </motion.div>
         {/* Le dossier comme en mode normal, à droite, séparé du chat par une fine ligne : plus de carte posée sur la page (18 oct. 2026, Jules). */}
         <motion.div className={`h-[100dvh] min-h-0 min-w-0 ${enEditeur ? "overflow-hidden" : "overflow-y-auto px-8 py-8"}`}
@@ -431,7 +459,7 @@ export default function Analyse() {
           {contenuDossier}
         </motion.div>
         {/* La ligne entre le chat et le dossier, celle de l'Éditeur : on la tire pour régler la largeur. */}
-        <PoigneeEditeur {...poignee} />
+        {!reduit && <PoigneeEditeur {...poignee} />}
       </div>
     );
   }

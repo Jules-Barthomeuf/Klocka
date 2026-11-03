@@ -10,6 +10,9 @@ import FamillesClients from "@/components/admin/FamillesClients";
 // Les mandataires se gèrent ici aussi (24 oct. 2026, Jules) : la page Mandataires, chargée seulement à l'ouverture de l'onglet (cartes Google).
 const AdminMandataires = lazy(() => import("@/pages/AdminMandataires"));
 import CourbesClients from "@/components/admin/CourbesClients";
+import CaseRole, { rolesDuCompte } from "@/components/admin/CaseRole";
+import AccesAdmins from "@/components/compte/AccesAdmins";
+import { useUser } from "@/components/providers/UserProvider";
 import { DialogueAssignerProjets } from "@/components/admin/AssignationProjets";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -73,6 +76,10 @@ export default function AdminUtilisateurs() {
   const [focusMandataire, setFocusMandataire] = useState(null);
   const gererMandataire = (user) => { setFocusMandataire(String(user.email || "").toLowerCase()); setOnglet("mandataires"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const [etapeFilter, setEtapeFilter] = useState("all");
+  // Le rôle d'abord (3 nov. 2026, Jules : « plus simple avec clients, admin et mandataire ») : Tous, Clients, Admins,
+  // Mandataires ; les étapes ne se choisissent que parmi les clients.
+  const [roleFilter, setRoleFilter] = useState("tous");
+  const moi = useUser();
   const [expandedUserId, setExpandedUserId] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
@@ -122,6 +129,27 @@ export default function AdminUtilisateurs() {
     initialData: []
   });
 
+  // L'équipe : qui peut cocher (les super admins), les super admins, les secteurs des mandataires.
+  const { data: equipe } = useQuery({ queryKey: ["equipe"], queryFn: () => base44.request("GET", "/api/admin/equipe") });
+  const peutCocher = !!equipe?.peut_modifier;
+  const parEmail = new Map((equipe?.membres || []).map((m) => [m.email, m]));
+  const changerRoles = useMutation({
+    mutationFn: ({ email, admin, mandataire }) => base44.request("POST", `/api/admin/equipe/${encodeURIComponent(email)}/roles`, { body: { admin, mandataire } }),
+    onSuccess: (r) => {
+      toast.success(`${r.user.email} : ${r.user.roles.join(" et ") || "client"}`);
+      queryClient.invalidateQueries({ queryKey: ["all-users"] });
+      queryClient.invalidateQueries({ queryKey: ["equipe"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-mandataires"] });
+      queryClient.invalidateQueries({ queryKey: ["current-user"] });
+    },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  // Décocher les deux cases rend client : on le demande d'abord.
+  const poserRoles = (user, admin, mandataire) => {
+    if (!admin && !mandataire && !window.confirm(`${user.full_name || user.email} redevient client : il perd l'accès admin et mandataire. Ses fiches, biens et secteur restent enregistrés.`)) return;
+    changerRoles.mutate({ email: String(user.email || "").toLowerCase(), admin, mandataire });
+  };
+
   const updateUserMutation = useMutation({
     mutationFn: ({ userId, data }) => base44.entities.User.update(userId, data),
     onSuccess: () => {
@@ -140,7 +168,8 @@ export default function AdminUtilisateurs() {
 
   // Les comptes en attente (souvent importés) se cherchent aussi : la
   // recherche filtre les deux listes.
-  const tousEnAttente = users.filter((u) => (u.etape_actuelle ?? 0) === 0 && u.role !== 'admin');
+  const estEquipe = (u) => u.role === 'admin' || u.role === 'mandataire' || !!u.aussi_mandataire;
+  const tousEnAttente = users.filter((u) => (u.etape_actuelle ?? 0) === 0 && !estEquipe(u));
   const pendingUsers = tousEnAttente.filter((u) => correspond(u, searchTerm));
   // Les comptes qui n'ont pas encore de mot de passe (importés, ou invités
   // sans avoir cliqué) : ils entrent par leur lien.
@@ -169,16 +198,17 @@ export default function AdminUtilisateurs() {
     onError: (e) => toast.error(e?.message || "Envoi impossible"),
   });
 
-  const filteredUsers = users.filter((user) =>
-  ((user.etape_actuelle ?? 0) > 0 || user.role === 'admin') &&
-  (etapeFilter === "all"
-    || (etapeFilter === "admin" && user.role === "admin")
-    || (user.role !== "admin" && (user.etape_actuelle ?? 0) === Number(etapeFilter))) &&
-  correspond(user, searchTerm)
-  );
+  const filteredUsers = users.filter((user) => {
+    const r = rolesDuCompte(user);
+    if (!((user.etape_actuelle ?? 0) > 0 || estEquipe(user))) return false;
+    if (roleFilter === "clients" && (estEquipe(user) || (etapeFilter !== "all" && (user.etape_actuelle ?? 0) !== Number(etapeFilter)))) return false;
+    if (roleFilter === "admins" && !r.admin) return false;
+    if (roleFilter === "mandataires" && !r.mandataire) return false;
+    return correspond(user, searchTerm);
+  });
 
   // Compteurs du bandeau et des filtres (hors recherche, pour rester stables)
-  const clientsActifs = users.filter((u) => u.role !== 'admin' && (u.etape_actuelle ?? 0) > 0);
+  const clientsActifs = users.filter((u) => !estEquipe(u) && (u.etape_actuelle ?? 0) > 0);
   const nbParEtape = (e) => clientsActifs.filter((u) => (u.etape_actuelle ?? 0) === e).length;
   const nbAdmins = users.filter((u) => u.role === 'admin').length;
   const nbMandataires = users.filter((u) => u.role === 'mandataire' || u.aussi_mandataire).length;
@@ -273,31 +303,9 @@ export default function AdminUtilisateurs() {
     }
   };
 
-  const handlePromoteToAdmin = async (user) => {
-    await updateUserMutation.mutateAsync({
-      userId: user.id,
-      data: { role: "admin" }
-    });
-  };
 
-  const handleDemoteFromAdmin = async (user) => {
-    await updateUserMutation.mutateAsync({
-      userId: user.id,
-      data: { role: "user" }
-    });
-  };
 
-  const handleRetirerMandataire = async (user) => {
-    if (!window.confirm(`Retirer le rôle mandataire à ${user.full_name || user.email} ? Son compte redevient un compte client ; ses fiches, biens et secteur restent enregistrés.`)) return;
-    await updateUserMutation.mutateAsync({ userId: user.id, data: { role: "user" } });
-  };
 
-  const handlePromoteToMandataire = async (user) => {
-    await updateUserMutation.mutateAsync({
-      userId: user.id,
-      data: { role: "mandataire" }
-    });
-  };
 
   const handleChangeProfil = async (userId, newProfil) => {
     await updateUserMutation.mutateAsync({
@@ -494,7 +502,7 @@ export default function AdminUtilisateurs() {
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2.5">
           <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Partie">
-            {[["utilisateurs", "Utilisateurs"], ["familles", "Familles"], ["mandataires", "Mandataires"]].map(([k, mot]) => (
+            {[["utilisateurs", "Utilisateurs"], ["familles", "Familles"]].map(([k, mot]) => (
               <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => { setOnglet(k); if (k !== "mandataires") setFocusMandataire(null); }}
                 className={`rounded-full px-4 py-[9px] text-[14px] ${onglet === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
                 style={onglet === k ? undefined : { background: "transparent" }}>{mot}</button>
@@ -518,9 +526,13 @@ export default function AdminUtilisateurs() {
       <p className="m-0 -mt-3 text-[14px] text-ardoise">Les comptes de la plateforme : les clients et leur étape, les invitations à envoyer, les familles qui partagent un dossier, l'équipe.</p>
 
       {onglet === "mandataires" ? (
+        <>
+        {/* Le réglage d'un mandataire (secteur, fiche, analyste) s'ouvre depuis sa ligne (3 nov. 2026) : plus d'onglet à lui. */}
+        <button type="button" onClick={() => { setOnglet("utilisateurs"); setFocusMandataire(null); }} className="inline-flex items-center gap-1.5 self-start text-[14px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><ChevronDown className="h-4 w-4 rotate-90" />Tous les utilisateurs</button>
         <Suspense fallback={<div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-menthe" /></div>}>
           <AdminMandataires integre focus={focusMandataire} />
         </Suspense>
+        </>
       ) : onglet === "familles" ? <FamillesClients users={users} /> : <>
       {/* Les courbes des clients (18 oct. 2026, Jules) : le nombre de clients, et leur temps de connexion. */}
       <CourbesClients />
@@ -558,16 +570,29 @@ export default function AdminUtilisateurs() {
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {[
-                { v: "all", l: "Tous", n: clientsActifs.length + nbAdmins },
-                ...[1, 2, 3, 4, 5].map((e) => ({ v: String(e), l: etapeLabels[e], n: nbParEtape(e) })),
-                { v: "admin", l: "Admins", n: nbAdmins },
+                { v: "tous", l: "Tous", n: clientsActifs.length + users.filter(estEquipe).length },
+                { v: "clients", l: "Clients", n: clientsActifs.length },
+                { v: "admins", l: "Admins", n: nbAdmins },
+                { v: "mandataires", l: "Mandataires", n: nbMandataires },
               ].map(({ v, l, n }) => (
-                <button key={v} onClick={() => setEtapeFilter(v)}
-                  className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[14px] transition-colors ${etapeFilter === v ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux"}`}>
+                <button key={v} onClick={() => { setRoleFilter(v); setEtapeFilter("all"); }}
+                  className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[14px] transition-colors ${roleFilter === v ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux"}`}>
                   {l} <span className="text-[12.5px] tabular-nums opacity-60">{n}</span>
                 </button>
               ))}
             </div>
+            {/* Les étapes, seulement parmi les clients. */}
+            {roleFilter === "clients" && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {[{ v: "all", l: "Toutes les étapes" }, ...[1, 2, 3, 4, 5].map((e) => ({ v: String(e), l: etapeLabels[e], n: nbParEtape(e) }))].map(({ v, l, n }) => (
+                  <button key={v} onClick={() => setEtapeFilter(v)}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] transition-colors ${etapeFilter === v ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+                    style={etapeFilter === v ? undefined : { background: "transparent" }}>
+                    {l}{n != null && <span className="text-[12px] tabular-nums opacity-60">{n}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
             {selectedUsersForCompare.length > 0 &&
             <div className="mt-3 flex items-center gap-2 flex-wrap">
                 <span className="text-encre/30 text-xs">Sélectionnés :</span>
@@ -649,6 +674,9 @@ export default function AdminUtilisateurs() {
       <div className="overflow-hidden rounded-[16px] border border-trait bg-rail">
         {filteredUsers.map((user) => {
           const isAdmin = user.role === "admin";
+          const roles = rolesDuCompte(user);
+          const membre = parEmail.get(String(user.email || "").toLowerCase());
+          const intouchable = !!membre?.super_admin || String(user.email || "").toLowerCase() === String(moi?.email || "").toLowerCase();
           const isExpanded = expandedUserId === user.id;
           const isSelected = selectedUsersForCompare.includes(user.id);
           const etape = user.etape_actuelle ?? 0;
@@ -675,8 +703,7 @@ export default function AdminUtilisateurs() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-encre text-[15px] truncate">{user.full_name || "Sans nom"}</span>
-                      {isAdmin && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-menthe">Admin</span>}
-                      {(user.role === 'mandataire' || user.aussi_mandataire) && <span role="link" tabIndex={0} title="Gérer le mandataire" onClick={(e) => { e.stopPropagation(); gererMandataire(user); }} onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); gererMandataire(user); } }} className="cursor-pointer rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie hover:text-menthe">Mandataire</span>}
+                      {membre?.super_admin && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-menthe">Super admin</span>}
                       {user.est_compte_shadow && user.compte_maitre_email && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie" title={`Voit le dossier de ${user.compte_maitre_email}`}>Famille</span>}
                       {user.comptes_lies && user.comptes_lies.length > 0 && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie">Famille · {user.comptes_lies.length + 1}</span>}
                       {user.profil_investisseur && <span className="text-[12.5px] text-ardoise max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
@@ -685,8 +712,21 @@ export default function AdminUtilisateurs() {
                   </div>
                 </button>
 
-                {/* Étape + progression */}
-                {!isAdmin && (
+                {/* Les deux cases (3 nov. 2026) : sans case cochée, c'est un client. */}
+                <div className="flex flex-none items-center gap-4 max-md:order-last max-md:w-full max-md:pl-9">
+                  <CaseRole coche={roles.admin} mot="Admin" libelle={`Admin : ${user.full_name || user.email}`} desactive={!peutCocher || changerRoles.isPending || (roles.admin && intouchable)} onChange={(v) => poserRoles(user, v, roles.mandataire)} />
+                  <CaseRole coche={roles.mandataire} mot="Mandataire" libelle={`Mandataire : ${user.full_name || user.email}`} desactive={!peutCocher || changerRoles.isPending} onChange={(v) => poserRoles(user, roles.admin, v)} />
+                </div>
+
+                {/* Le secteur d'un mandataire : il ouvre son réglage (secteur, fiche, analyste). */}
+                {roles.mandataire && (
+                  <button type="button" onClick={() => gererMandataire(user)} className="w-44 flex-none truncate text-left text-[13.5px] text-craie hover:text-menthe max-md:order-last max-md:w-full max-md:pl-9" style={{ background: "transparent" }}>
+                    {membre?.secteur ? `${membre.secteur.nom} ›` : <span className="text-ardoise">Sans secteur ›</span>}
+                  </button>
+                )}
+
+                {/* Étape + progression : les clients seulement. */}
+                {!roles.admin && !roles.mandataire && (
                   <div className="flex items-center gap-4 max-md:w-full max-md:order-last max-md:pl-9">
                     <div className="w-44 max-md:flex-1">
                       <AnimatedDropdown
@@ -800,36 +840,6 @@ export default function AdminUtilisateurs() {
                           <Link className="w-3.5 h-3.5" /> Rattacher à une famille
                         </button>
                       )}
-                      {!isAdmin && user.role !== 'mandataire' && (
-                        <>
-                          <button onClick={() => handlePromoteToAdmin(user)}
-                            className="inline-flex items-center gap-2 text-[13.5px] text-ardoise hover:text-menthe transition-colors">
-                            <Crown className="w-3.5 h-3.5" /> Promouvoir admin
-                          </button>
-                          <button onClick={() => handlePromoteToMandataire(user)}
-                            className="inline-flex items-center gap-2 text-[13.5px] text-ardoise hover:text-encre transition-colors">
-                            <Users className="w-3.5 h-3.5" /> Promouvoir mandataire
-                          </button>
-                        </>
-                      )}
-                      {(user.role === 'mandataire' || user.aussi_mandataire) && (
-                        <button onClick={() => gererMandataire(user)}
-                          className="inline-flex items-center gap-2 text-[13.5px] text-menthe hover:text-encre transition-colors">
-                          <Users className="w-3.5 h-3.5" /> Gérer le mandataire
-                        </button>
-                      )}
-                      {user.role === 'mandataire' && (
-                        <button onClick={() => handleRetirerMandataire(user)}
-                          className="inline-flex items-center gap-2 text-[13.5px] text-ardoise hover:text-encre transition-colors">
-                          <Unlink className="w-3.5 h-3.5" /> Retirer le rôle mandataire
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <button onClick={() => handleDemoteFromAdmin(user)}
-                          className="inline-flex items-center gap-2 text-[13.5px] text-menthe hover:text-encre transition-colors">
-                          <Crown className="w-3.5 h-3.5 fill-current" /> Rétrograder en utilisateur
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -849,6 +859,13 @@ export default function AdminUtilisateurs() {
           </div>
         )}
       </div>
+      {/* Les pages de chaque administrateur (ex-page Équipe), sous le filtre Admins. */}
+      {roleFilter === "admins" && moi?.gere_les_acces && (
+        <section>
+          <h2 className="m-0 mb-3 text-[11px] font-normal uppercase tracking-[.16em] text-menthe">Les pages de chaque administrateur</h2>
+          <AccesAdmins />
+        </section>
+      )}
       </>}
       </div>
 

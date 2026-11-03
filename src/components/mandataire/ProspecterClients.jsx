@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Loader from "@/components/ui/Loader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ListPlus, Loader2, MapPin, Menu, Radar, RefreshCw, Search, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ListPlus, Loader2, Menu, Radar, RefreshCw, Search, X } from "lucide-react";
 import { Avatar } from "@/components/mandataire/AvatarClient";
 import { base44 } from "@/api/base44Client";
 import { JL } from "@/design/jetons";
@@ -37,6 +37,14 @@ export default function ProspecterClients({ bascule = null }) {
     // Le dernier résultat arrive tout de suite (1er nov. 2026) ; s'il se recalcule en fond (`a_jour` faux), relu dans 5 s.
     refetchInterval: (q) => (q.state.data?.a_jour === false ? 5_000 : (q.state.data?.villes || []).some((v) => v.preparation?.en_cours) ? 30_000 : false) });
   const enPreparation = (data?.villes || []).some((v) => v.preparation?.en_cours);
+  // La carte aussi arrive gardée (3 nov. 2026) : quand le calcul en fond s'achève (`a_jour` repasse vrai), on la relit.
+  const qc = useQueryClient();
+  const aJour = data?.a_jour;
+  const etaitVieux = useRef(false);
+  useEffect(() => {
+    if (aJour === false) etaitVieux.current = true;
+    else if (aJour && etaitVieux.current) { etaitVieux.current = false; qc.invalidateQueries({ queryKey: ["m-prospecter", "points", "tous"] }); }
+  }, [aJour, qc]);
   const clients = useMemo(() => data?.clients || [], [data]);
   const [i, setI] = useState(0);
   // Le client est un filtre de la même vue (25 oct. 2026, Jules) : on arrive sur tous les commerces du secteur, et les flèches
@@ -58,7 +66,6 @@ export default function ProspecterClients({ bascule = null }) {
   }, [tous, client?.id]);
   // Passer d'un client à l'autre ne prospecte jamais (25 oct. 2026, Jules) : seul le bouton envoie `?prospecter=1` ; un
   // client déjà prospecté se réaffiche depuis le cache, sans attente ni rechargement visible.
-  const qc = useQueryClient();
   const geste = useRef(null);
   const points = useQuery({
     queryKey: ["m-prospecter", "points", prospecte],
@@ -354,7 +361,7 @@ function SelecteurClient({ selecteur, vue, seule = false }) {
   const client = vue === "client" ? clients[courant] : null;
   const entete = (
     <>
-      {client ? <Avatar d={client} taille="h-10 w-10" /> : <span className="grid h-10 w-10 flex-none place-items-center rounded-full border-2 border-encre text-encre"><MapPin className="h-5 w-5" strokeWidth={2} /></span>}
+      {client ? <Avatar d={client} taille="h-10 w-10" /> : <img src="/avatars/commerces.svg" alt="" aria-hidden="true" className="block h-10 w-10 flex-none rounded-full" />}
       <span className="min-w-0 flex-1 text-left">
         <span className="m-0 flex items-center text-[15px] text-encre"><span className="truncate">{client ? client.reference : "Tous les commerces"}</span>{client && <PastilleTest x={client} />}</span>
         {/* Sous le nom, ses critères seuls : ce qu'il cherche et son budget (25 oct. 2026, Jules). */}

@@ -9,7 +9,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-equipe-'));
 process.env.SUPER_ADMIN_EMAILS = 'jules@klocka.test';
 const { Records } = await import('./db.js');
-const { listerEquipe, changerRole, inviterEquipe, rolesDe } = await import('./equipe.js');
+const { listerEquipe, changerRole, inviterEquipe, rolesDe, fixerRoles } = await import('./equipe.js');
 const { estMandataire } = await import('./mandataire-espace.js');
 
 const jules = Records.create('User', { email: 'jules@klocka.test', role: 'admin', mot_de_passe: 'x' });
@@ -58,4 +58,26 @@ test('l\'invitation : un compte neuf avec un lien, un compte actif qui change de
   assert.deepEqual(rolesDe(Records.findBy('User', 'email', 'client@test.local')), ['admin', 'mandataire']);
   assert.equal(inviterEquipe(nora, { email: 'x@y.z', role: 'admin', base: '' }).code, 403);
   assert.equal(inviterEquipe(jules, { email: 'pas une adresse', role: 'admin', base: '' }).code, 400);
+});
+
+test('le tableau : un seul tableau, deux cases ; décocher les deux rend client ; le super admin coche mandataire sans perdre l\'admin', () => {
+  const lea = Records.create('User', { email: 'lea@klocka.test', full_name: 'Léa', role: 'user', mot_de_passe: 'x' });
+  assert.equal(fixerRoles(nora, 'lea@klocka.test', { admin: true }).code, 403, 'seul un super admin');
+  let r = fixerRoles(jules, 'lea@klocka.test', { admin: true, mandataire: true });
+  assert.deepEqual(r.user.roles, ['admin', 'mandataire']);
+  assert.ok(listerEquipe().membres.some((u) => u.email === 'lea@klocka.test'), 'passée admin, elle entre dans le tableau');
+  r = fixerRoles(jules, 'lea@klocka.test', { admin: false, mandataire: true });
+  assert.deepEqual(r.user.roles, ['mandataire']);
+  r = fixerRoles(jules, 'lea@klocka.test', { admin: true, mandataire: false });
+  assert.deepEqual(r.user.roles, ['admin']);
+  r = fixerRoles(jules, 'lea@klocka.test', {});
+  assert.deepEqual(r.user.roles, []);
+  assert.ok(!listerEquipe().membres.some((u) => u.email === 'lea@klocka.test'), 'redevenue cliente, elle quitte le tableau');
+  assert.equal(Records.get('User', lea.id).role, 'user');
+  r = fixerRoles(jules, 'jules@klocka.test', { admin: true, mandataire: true });
+  assert.deepEqual(r.user.roles, ['admin', 'mandataire'], 'le super admin peut aussi être mandataire');
+  assert.equal(fixerRoles(jules, 'jules@klocka.test', { mandataire: true }).code, 400, 'il ne perd jamais l\'admin');
+  const membres = listerEquipe().membres.map((u) => u.email);
+  assert.equal(membres[0], 'jules@klocka.test');
+  assert.equal(new Set(membres).size, membres.length, 'un admin mandataire n\'apparaît qu\'une fois');
 });

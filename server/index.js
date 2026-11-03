@@ -1560,6 +1560,15 @@ if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
   setInterval(preparerCarte, 30 * 60_000).unref?.();
 }
 
+// La prospection des mandataires (3 nov. 2026) : clients et carte de chaque secteur calculés avant la première
+// ouverture, une minute après le démarrage, puis toutes les cinq minutes pour un secteur nouveau ou redessiné.
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
+  const preparerProspection = () => import('./mandataire-prospecter.js').then(({ preparerLesSecteurs }) => preparerLesSecteurs())
+    .then((n) => n && console.log(`[prospection] ${n} secteur(s) prêt(s)`)).catch((e) => console.warn('[prospection]', e?.message || e));
+  setTimeout(preparerProspection, 60_000).unref?.();
+  setInterval(preparerProspection, 5 * 60_000).unref?.();
+}
+
 // L'entretien du disque (22 oct. 2026) : copies du bac à sable oubliées, recherches DVF périmées, journaux trop
 // gros, journal d'écriture de SQLite. Rien que l'application relise. Cinq minutes après le démarrage, puis chaque jour.
 if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {

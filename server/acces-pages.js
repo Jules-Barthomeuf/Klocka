@@ -29,7 +29,8 @@ export const API_DES_PAGES = {
   ALX: ['/api/alx'],
   // Off-market (10 oct. 2026) : sa page et son API, pour l'équipe ; les mandataires passent par la même API, hors de ce cadenas.
   OffMarket: ['/api/off-market'],
-  AdminEquipe: ['/api/admin/equipe'],
+  // Les rôles de l'équipe se cochent dans Utilisateurs (3 nov. 2026) : leur API se ferme avec elle.
+  AdminUtilisateurs: ['/api/admin/equipe'],
   // Clients (16 oct. 2026) : les fiches nourries par les appels, fermées avec leur page.
   AdminClients: ['/api/clients-equipe'],
   // La Mémoire Klocka (30 oct. 2026) : les fiches gardées et le lecteur des boîtes, fermés avec leur page.

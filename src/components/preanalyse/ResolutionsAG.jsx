@@ -63,7 +63,7 @@ export default function ResolutionsAG({ dealId, assemblees = [], onOuvrir }) {
   return (
     <section>
       <Onglets taille="page" items={items} valeur={a.document_id} onChange={setChoisie} className="mb-4" />
-      <div className="relative overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux">
+      <div className="relative overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux lg:bg-rail">
         <div className={`grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3 text-[13.5px] text-craie max-lg:hidden lg:border-t-0 lg:[&>*]:py-3.5`}>
           <div className="group/tete flex min-w-0 items-center justify-between gap-2">
             <span className="text-[15px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">Résolution</span>

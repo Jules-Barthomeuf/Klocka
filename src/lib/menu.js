@@ -41,7 +41,6 @@ export const ENTREES_AUTRE = [
   { cle: "AdminLeadMagnets", label: "Lead magnets" },
   { cle: "AdminRessources", label: "Ressources" },
   { cle: "AdminPortail", label: "Portails" },
-  { cle: "AdminEquipe", label: "Équipe" },
   { cle: "AdminMandataires", label: "Mandataires" },
   // Les dossiers bancaires des clients (présentations aux banques), page d'admin (26 oct. 2026, Jules : de retour dans Autre).
   { cle: "AdminBanque", label: "Dossier bancaire" },
@@ -89,8 +88,7 @@ export const ENTREES_MANDATAIRE = [
  */
 export const MENU_ADMIN = [
   { cle: "Dashboard", label: "Assistant" },
-  // Le tableau de bord (2 nov. 2026, Jules : « rends visible le tableau de bord ») : une entrée à lui, plus caché dans le Suivi.
-  { cle: "SuiviActivite", label: "Tableau de bord" },
+  // Le tableau de bord quitte le menu de l'équipe (3 nov. 2026, Jules) ; sa page reste, et celui des mandataires aussi.
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
   // À valider quitte le menu (26 oct. 2026, Jules) : la page reste ouverte par la cloche et les dossiers.

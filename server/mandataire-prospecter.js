@@ -118,11 +118,23 @@ async function commercesDeLaVille(v, cache = null) {
   cache?.set(v.id, r);
   return r;
 }
+// Une lecture partagée une minute (3 nov. 2026, Jules : « Votre secteur et vos clients, c'est super long ») : la page
+// lance ensemble les clients et la carte, qui décodaient chacun les mêmes 25 000 commerces (2 à 6 s chacun).
+const lectures = new Map(); // ville_id → { sig, p }
 async function lireCommerces(v) {
-  const { centreVille } = await import('./off-market/simple.js');
-  const liste = Records.filter('CommerceSimple', { ville_id: v.id });
-  const zone = centreVille(liste, Records.get('Ville', v.id));
-  return { liste, zone, centreDe: (c) => (zone?.centre ? zone.centre.has(c.id) : null) };
+  const sig = Records.signature('CommerceSimple');
+  const deja = lectures.get(v.id);
+  if (deja?.sig === sig) return deja.p;
+  const p = (async () => {
+    const { centreVille } = await import('./off-market/simple.js');
+    const liste = Records.filter('CommerceSimple', { ville_id: v.id });
+    const zone = centreVille(liste, Records.get('Ville', v.id));
+    return { liste, zone, centreDe: (c) => (zone?.centre ? zone.centre.has(c.id) : null) };
+  })();
+  lectures.set(v.id, { sig, p });
+  setTimeout(() => { if (lectures.get(v.id)?.p === p) lectures.delete(v.id); }, 60_000).unref?.();
+  p.catch(() => lectures.delete(v.id));
+  return p;
 }
 
 /** Les points d'un client dans les villes données. */
@@ -338,8 +350,27 @@ export async function pointsDuSecteurCompresses(user) {
     const r = await pointsDuSecteur(user);
     if (!r.ok) return r;
     const { gzipSync } = await import('zlib');
-    return { ok: true, gzip: gzipSync(Buffer.from(JSON.stringify(r))) };
+    const gzip = gzipSync(Buffer.from(JSON.stringify(r)));
+    try { Meta.set(carteSurDisque(user), gzip.toString('base64')); } catch { /* le cache en mémoire suffit */ }
+    return { ok: true, gzip, total: r.total };
   });
+}
+
+/**
+ * La carte tout de suite (3 nov. 2026, Jules) : la dernière gardée, même un peu vieille (en mémoire, sinon sur disque,
+ * 2 Mo compressés), et le calcul relancé en fond ; on n'attend le calcul que la toute première fois.
+ */
+const carteSurDisque = (user) => `mandataire.carte:${emailDe(user)}`;
+export async function pointsDuSecteurVite(user) {
+  const garde = caches.get(`tous:${emailDe(user)}`);
+  if (encoreBon(garde, signatures())) return garde.valeur;
+  const calcul = pointsDuSecteurCompresses(user);
+  if (garde?.valeur?.ok) { calcul.catch(() => {}); return garde.valeur; }
+  try {
+    const b = Meta.get(carteSurDisque(user));
+    if (b) { calcul.catch(() => {}); return { ok: true, gzip: Buffer.from(b, 'base64') }; }
+  } catch { /* on attend le calcul */ }
+  return calcul;
 }
 
 /**
@@ -376,6 +407,37 @@ export async function prospecterVite(user) {
   const vieux = prospecterSansAttendre(user);
   if (vieux) return { ...vieux, a_jour: false };
   return { ...(await prospecterEnCache(user)), a_jour: true };
+}
+
+/**
+ * Prêt avant la première ouverture (3 nov. 2026, Jules : « super rapide même à la première ouverture ») : pour chaque
+ * secteur attribué, les clients et la carte se calculent en fond, une fois, puis de nouveau quand le secteur bouge
+ * (redessiné, réattribué, ses communes relues). Ensuite, une ouverture sert le dernier calcul et le refait en fond.
+ */
+const clePrete = (email) => `mandataire.prospection-prete:${email}`;
+let enPreparation = false;
+export async function preparerLesSecteurs() {
+  if (enPreparation) return 0;
+  enPreparation = true;
+  let n = 0;
+  try {
+    for (const s of Records.list('SecteurMandataire').filter((x) => x.mandataire_email)) {
+      const email = String(s.mandataire_email).toLowerCase();
+      // Une carte encore vide (les villes d'un secteur neuf se lisent en fond) se refait au tour suivant.
+      let prete = null;
+      try { prete = JSON.parse(Meta.get(clePrete(email)) || 'null'); } catch { /* à refaire */ }
+      if (prete?.points && prete.le >= (s.updated_date || '')) continue;
+      // Le vrai compte : l'équipe voit aussi les clients de test, et le résultat est gardé par adresse.
+      const user = Records.findBy('User', 'email', email) || { email, role: 'mandataire' };
+      try {
+        await prospecterEnCache(user);
+        const carte = await pointsDuSecteurCompresses(user);
+        Meta.set(clePrete(email), JSON.stringify({ le: new Date().toISOString(), points: carte.total || 0 }));
+        n += 1;
+      } catch (e) { console.warn(`[prospection] ${email} : ${e?.message || e}`); }
+    }
+  } finally { enPreparation = false; }
+  return n;
 }
 
 /** Pour les tests et après un changement de secteur : tout se recalcule. */

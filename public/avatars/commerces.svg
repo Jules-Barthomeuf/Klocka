@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <!-- « Tous les commerces » de la Prospection, dessiné comme les visages des clients (aplat, fond crème, 2 nov. 2026). -->
+  <circle cx="48" cy="48" r="48" fill="#ead7b7"/>
+  <!-- La façade -->
+  <rect x="24" y="40" width="48" height="34" rx="2" fill="#f7f1e6"/>
+  <!-- Le store rayé -->
+  <path d="M20 30h56l-3 12H23z" fill="#8f86d9"/>
+  <path d="M29.3 30h9.3l-1.6 12h-9.3zM48 30h9.3l1.6 12h-9.3z" fill="#f7f1e6"/>
+  <path d="M23 42h50a0 0 0 0 1 0 0 6.25 6.25 0 0 1-12.5 0 6.25 6.25 0 0 1-12.5 0 6.25 6.25 0 0 1-12.5 0 6.25 6.25 0 0 1-12.5 0z" fill="#8f86d9"/>
+  <path d="M35.5 42a6.25 6.25 0 0 1-12.5 0zM60.5 42a6.25 6.25 0 0 1-12.5 0z" fill="#7a70c4"/>
+  <!-- La vitrine et la porte -->
+  <rect x="29" y="54" width="18" height="12" rx="1.5" fill="#bcd3dc"/>
+  <path d="M31 63l5-6M36 64l7-8" stroke="#f7f1e6" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="52" y="53" width="13" height="21" rx="1.5" fill="#3c3a36"/>
+  <circle cx="62" cy="64" r="1.1" fill="#e2b04a"/>
+  <!-- Le trottoir -->
+  <rect x="18" y="73" width="60" height="4" rx="2" fill="#c9b08a"/>
+</svg>

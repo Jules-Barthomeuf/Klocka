@@ -299,53 +299,54 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
   if (!l) {
     return <><p className="m-0 mt-10 text-center text-[14px] text-brume">Aucune liste encore. Lancez une prospection, cochez les commerces à garder, puis « Exporter vers une nouvelle liste ».</p></>;
   }
+  // Les intercalaires, posés par le tableau en tête de sa partie collante (3 nov. 2026).
+  const onglets = (
+    <div ref={ongletsRef} role="tablist" aria-label="Vos listes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <span aria-hidden className="w-3 flex-none" />
+      {listes.map((x, i) => {
+        const actif = x.id === l.id;
+        return (
+          <React.Fragment key={x.id}>
+            {i > 0 && <span aria-hidden className="w-1 flex-none" />}
+            {(() => {
+              const edite = actif && enEdition === x.id;
+              // Pendant le renommage, l'intercalaire n'est plus un bouton : un champ ne se pose pas dans un bouton.
+              const Tag = edite ? "div" : "button";
+              return (
+            <Tag {...(edite ? {} : { type: "button", onClick: () => (actif ? setEnEdition(x.id) : setChoisie(x.id)) })} role="tab" aria-selected={actif} title={actif ? "Cliquer pour renommer" : x.nom}
+              className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
+              {(x.suggeree || x.agent) && <Sparkles className={`h-3 w-3 flex-none ${actif ? "text-menthe" : "text-brume"}`} aria-label="Liste de votre agent IA" />}
+              {edite ? (
+                <input autoFocus defaultValue={x.nom} aria-label="Nom de la liste" onFocus={(e) => e.target.select()}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = x.nom; setEnEdition(null); } }}
+                  onBlur={(e) => renommer(x, e.currentTarget.value)}
+                  size={Math.max(4, x.nom.length)}
+                  className="min-w-0 rounded-[4px] border-0 bg-transparent px-1 -mx-1 text-[13px] text-encre outline outline-1 outline-menthe/60 max-md:text-[16px]" />
+              ) : <span className="truncate">{x.nom}</span>}
+              <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{x.total}</span>
+              {actif && (
+                <span role="button" tabIndex={0} aria-label={`Supprimer la liste ${x.nom}`} title={`Supprimer la liste ${x.nom}`}
+                  onClick={(e) => { e.stopPropagation(); setASupprimer(x); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setASupprimer(x); } }}
+                  className="-mr-1.5 grid h-5 w-5 flex-none place-items-center rounded-full text-brume transition-colors hover:bg-relief hover:text-alerte max-md:-my-1.5 max-md:h-8 max-md:w-8">
+                  <X className="h-3.5 w-3.5" />
+                </span>
+              )}
+            </Tag>
+              );
+            })()}
+          </React.Fragment>
+        );
+      })}
+      <span aria-hidden className="min-w-3 flex-1" />
+    </div>
+  );
   return (
     <div className="mt-6 w-full pb-16">
       {/* Le classeur de la Prospection de l'admin (9 oct. 2026) : intercalaires
           sur le voile de surface, l'ouvert raccordé à la page à points (rail),
           le compte de chaque liste, la croix de suppression sur l'ouvert. Remis le 30 oct. 2026 (Jules : « comme avant »). */}
-      <div ref={ongletsRef} role="tablist" aria-label="Vos listes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <span aria-hidden className="w-3 flex-none" />
-        {listes.map((x, i) => {
-          const actif = x.id === l.id;
-          return (
-            <React.Fragment key={x.id}>
-              {i > 0 && <span aria-hidden className="w-1 flex-none" />}
-              {(() => {
-                const edite = actif && enEdition === x.id;
-                // Pendant le renommage, l'intercalaire n'est plus un bouton : un champ ne se pose pas dans un bouton.
-                const Tag = edite ? "div" : "button";
-                return (
-              <Tag {...(edite ? {} : { type: "button", onClick: () => (actif ? setEnEdition(x.id) : setChoisie(x.id)) })} role="tab" aria-selected={actif} title={actif ? "Cliquer pour renommer" : x.nom}
-                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
-                {(x.suggeree || x.agent) && <Sparkles className={`h-3 w-3 flex-none ${actif ? "text-menthe" : "text-brume"}`} aria-label="Liste de votre agent IA" />}
-                {edite ? (
-                  <input autoFocus defaultValue={x.nom} aria-label="Nom de la liste" onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = x.nom; setEnEdition(null); } }}
-                    onBlur={(e) => renommer(x, e.currentTarget.value)}
-                    size={Math.max(4, x.nom.length)}
-                    className="min-w-0 rounded-[4px] border-0 bg-transparent px-1 -mx-1 text-[13px] text-encre outline outline-1 outline-menthe/60 max-md:text-[16px]" />
-                ) : <span className="truncate">{x.nom}</span>}
-                <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{x.total}</span>
-                {actif && (
-                  <span role="button" tabIndex={0} aria-label={`Supprimer la liste ${x.nom}`} title={`Supprimer la liste ${x.nom}`}
-                    onClick={(e) => { e.stopPropagation(); setASupprimer(x); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setASupprimer(x); } }}
-                    className="-mr-1.5 grid h-5 w-5 flex-none place-items-center rounded-full text-brume transition-colors hover:bg-relief hover:text-alerte max-md:-my-1.5 max-md:h-8 max-md:w-8">
-                    <X className="h-3.5 w-3.5" />
-                  </span>
-                )}
-              </Tag>
-                );
-              })()}
-            </React.Fragment>
-          );
-        })}
-        <span aria-hidden className="min-w-3 flex-1" />
-      </div>
-      <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
-        <TableauListe key={l.id} chiffres={{ total: l.total || 0, faits: (l.total || 0) - (l.a_appeler || 0), rdv: l.rdv || 0 }} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} reste={l.reste} carteDemandee={carteDemandee} onCarteVue={onCarteVue} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
-      </div>
+      <TableauListe key={l.id} onglets={onglets} chiffres={{ total: l.total || 0, faits: (l.total || 0) - (l.a_appeler || 0), rdv: l.rdv || 0 }} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} reste={l.reste} carteDemandee={carteDemandee} onCarteVue={onCarteVue} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
       <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
           <AlertDialogHeader>

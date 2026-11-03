@@ -52,6 +52,9 @@ export const AuthProvider = ({ children }) => {
         interceptResponses: true
       });
       
+      // La session se vérifie en même temps que les réglages publics (3 nov. 2026, Jules : « Klocka s'ouvre, je vérifie
+      // votre session : c'est super long ») : les deux allers-retours se faisaient l'un après l'autre.
+      const moi = appParams.token ? avecReprises(() => base44.auth.me()).then((u) => ({ u }), (e) => ({ e })) : null;
       try {
         const publicSettings = await avecReprises(() =>
           appClient.get(`/prod/public-settings/by-id/${appParams.appId}`)
@@ -59,8 +62,8 @@ export const AuthProvider = ({ children }) => {
         setAppPublicSettings(publicSettings);
         
         // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
+        if (moi) {
+          await checkUserAuth(moi);
         } else {
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
@@ -108,11 +111,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const checkUserAuth = async () => {
+  const checkUserAuth = async (dejaLancee = null) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await avecReprises(() => base44.auth.me());
+      const r = dejaLancee ? await dejaLancee : null;
+      if (r?.e) throw r.e;
+      const currentUser = r ? r.u : await avecReprises(() => base44.auth.me());
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);

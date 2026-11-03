@@ -37,7 +37,10 @@ export function listerEquipe() {
     };
   };
   const tous = Records.list('User');
+  const ordre = (a, b) => Number(b.super_admin) - Number(a.super_admin) || String(a.nom || a.email).localeCompare(String(b.nom || b.email));
   return {
+    // Un seul tableau (3 nov. 2026, Jules : « un tableau avec les admins et mandataires, on coche juste des cases »).
+    membres: tous.filter((u) => u.role === 'admin' || estMandataire(u)).map(ligne).sort(ordre),
     admins: tous.filter((u) => u.role === 'admin').map(ligne).sort((a, b) => Number(b.super_admin) - Number(a.super_admin) || String(a.nom || a.email).localeCompare(String(b.nom || b.email))),
     mandataires: tous.filter((u) => estMandataire(u)).map(ligne).sort((a, b) => String(a.nom || a.email).localeCompare(String(b.nom || b.email))),
   };
@@ -63,23 +66,41 @@ export function changerRole(par, email, { role, aussi_mandataire = null }) {
 }
 
 /**
+ * Les deux cases du tableau de l'équipe (3 nov. 2026, Jules) : admin, mandataire, les deux, ou aucune (le compte
+ * redevient client et quitte le tableau). Un super admin reste admin, mais peut cocher ou décocher mandataire ; on ne
+ * se retire pas l'admin à soi-même.
+ */
+export function fixerRoles(par, email, { admin = false, mandataire = false } = {}) {
+  if (!estSuperAdmin(par)) return { ok: false, code: 403, error: 'Seul un super administrateur change les rôles.' };
+  const u = Records.findBy('User', 'email', norm(email));
+  if (!u) return { ok: false, code: 404, error: 'Compte introuvable.' };
+  if ((estSuperAdmin(u) || norm(u.email) === norm(par.email)) && !admin) return { ok: false, code: 400, error: 'Vous ne pouvez pas retirer l\'admin à ce compte.' };
+  if (estSuperAdmin(u)) {
+    const maj = Records.update('User', u.id, { aussi_mandataire: !!mandataire, role_modifie_le: maintenant(), role_modifie_par: par.email });
+    return { ok: true, user: { email: norm(maj.email), role: maj.role, aussi_mandataire: !!maj.aussi_mandataire, roles: rolesDe(maj) } };
+  }
+  const role = admin ? 'admin' : mandataire ? 'mandataire' : 'user';
+  return changerRole(par, email, { role, aussi_mandataire: admin ? !!mandataire : null });
+}
+
+/**
  * Invite quelqu'un dans l'équipe : un compte neuf (admin ou mandataire) avec
  * un lien pour choisir son mot de passe, ou un compte existant qui change de
  * rôle (un client qui devient mandataire garde ses projets).
  */
-export function inviterEquipe(par, { email, nom = '', role, base }) {
+export function inviterEquipe(par, { email, nom = '', role, aussi_mandataire = null, base }) {
   if (!estSuperAdmin(par)) return { ok: false, code: 403, error: 'Seul un super administrateur invite dans l\'équipe.' };
   const adresse = norm(email);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adresse)) return { ok: false, code: 400, error: 'Adresse invalide.' };
   if (!['admin', 'mandataire'].includes(role)) return { ok: false, code: 400, error: 'Rôle inconnu.' };
   let u = Records.findBy('User', 'email', adresse);
   if (u) {
-    const r = changerRole(par, adresse, { role });
+    const r = changerRole(par, adresse, { role, aussi_mandataire });
     if (!r.ok) return r;
     if (nom && !u.full_name) Records.update('User', u.id, { full_name: String(nom).trim() });
     u = Records.get('User', u.id);
   } else {
-    u = Records.create('User', { email: adresse, full_name: String(nom || '').trim() || null, role, aussi_mandataire: false, etape_actuelle: 1, cree_le: maintenant(), role_modifie_le: maintenant(), role_modifie_par: par.email }, par.email);
+    u = Records.create('User', { email: adresse, full_name: String(nom || '').trim() || null, role, aussi_mandataire: role === 'admin' && !!aussi_mandataire, etape_actuelle: 1, cree_le: maintenant(), role_modifie_le: maintenant(), role_modifie_par: par.email }, par.email);
   }
   let lien = null;
   if (!u.mot_de_passe) {

@@ -249,6 +249,10 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
       const etapes = { reception: 'Email', preanalyse: 'Pré-analyse', documents: 'Data Room', analyse: 'Analyse', plateforme: 'Plateforme', clients: 'Clients', offre: 'Offre', bancaire: 'Dossier bancaire' };
       const etape = etapes[contexte.etape] || null;
       cadrePage = `\n\nTU ES DANS UN DOSSIER OUVERT À DROITE : « ${titre} » (deal_id ${deal.deal_id}, statut ${deal.statut || 'analyse'}${etape ? `, étape ouverte : ${etape}` : ''}${lot?.evaluation?.verdict ? `, verdict ${lot.evaluation.verdict}` : ''}). Une question ou une correction sans autre précision porte sur CE dossier : etat_dossier avec ce deal_id pour lire ce qu'il contient, modifier_dossier avec ce deal_id pour corriger un fait (loyer, prix, surface, locataire, bail…), mails_du_dossier pour les échanges. L'écran se met à jour après ta réponse. Ne parle d'un autre dossier que si on te le nomme.`;
+      // L'Assistant du dossier (2 nov. 2026, Jules) : l'onglet de l'Analyse ouvert, et chaque fait avec sa source.
+      const ONGLETS = { data_room: 'Data Room', bail: 'Bail', quittances: 'Quittances', copropriete: 'Copropriété', diagnostics: 'Diagnostics', marche: 'Marché', simulateur: 'Simulateur' };
+      if (contexte.onglet && ONGLETS[contexte.onglet]) cadrePage += `\nOnglet ouvert : ${ONGLETS[contexte.onglet]}. « Ce loyer », « ces travaux », « ce PV » parlent de ce que montre cet onglet.`;
+      if (contexte.onglet !== undefined) cadrePage += `\nChaque fait que tu donnes sur ce dossier dit d'où il vient : la pièce et sa page quand tu l'as lue (lire_piece), sinon « d'après la fiche » ou « d'après l'analyse ». Ce que les pièces ne disent pas, dis-le, ne le devine pas.`;
       // L'étape Offre (28 oct. 2026, Jules) : la lettre d'intention du dossier est ouverte à droite, à remplir ou à corriger.
       if (contexte.etape === 'offre') {
         const O = await import('../offres.js');

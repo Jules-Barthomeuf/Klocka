@@ -159,7 +159,7 @@ export function monterMandataire(app) {
     if (!user) return;
     // La carte entière est lourde (26 Mo de JSON pour 74 000 commerces) : gardée compressée, servie telle quelle à un
     // navigateur qui accepte gzip (tous), décompressée sinon (30 oct. 2026).
-    const r = await (await import('../mandataire-prospecter.js')).pointsDuSecteurCompresses(user);
+    const r = await (await import('../mandataire-prospecter.js')).pointsDuSecteurVite(user);
     if (!r.ok) return res.status(404).json({ error: r.error });
     if (/\bgzip\b/.test(String(req.headers['accept-encoding'] || ''))) {
       res.set({ 'Content-Type': 'application/json; charset=utf-8', 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
@@ -335,28 +335,34 @@ export function monterMandataire(app) {
     ok(res, r);
   }));
 
+  // Les listes arrivent légères (3 nov. 2026, Jules : « les listes sont trop longues à charger, je veux voir les 15
+  // premières, après c'est sur d'autres pages ») : on calculait pour chaque commerce de chaque liste les investisseurs
+  // possibles (une colonne plus affichée), une fiche courte (plus lue) et l'emplacement. Seul l'emplacement sert encore,
+  // à l'ouverture d'une fiche : il se demande pour les lignes affichées (POST /listes/details).
   app.get('/api/mandataire/listes', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
     const { LIBELLES_STATUT } = await E();
-    // Chaque commerce porte les investisseurs Klocka (anonymisés) qu'il pourrait intéresser.
-    const { matcheurInvestisseurs } = await import('../mandataire-agent.js');
-    const investisseurs = await matcheurInvestisseurs();
-    // Et sa fiche très courte, pour la carte en grand écran (24 oct. 2026) : exploitant, propriétaire, signal, accroche.
-    const { ficheCourte } = await import('../mandataire-matin.js');
-    const { drapeauxDe } = await import('../off-market/simple.js');
+    ok(res, { listes: (await L()).mesListes(user), libelles: LIBELLES_STATUT });
+  }));
+
+  app.post('/api/mandataire/listes/details', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const voulus = new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).slice(0, 60).map(String));
+    if (!voulus.size) return ok(res, { details: {} });
     const { Records } = await import('../db.js');
     const { ouEstLeCommerce } = await import('../fiche-mandataire.js');
-    const listes = await Promise.all((await L()).mesListes(user).map(async (l) => ({
-      ...l,
-      fiches: await Promise.all(l.fiches.map(async (f) => {
-        const commerce = f.commerce_simple_id ? Records.get('CommerceSimple', f.commerce_simple_id) : null;
-        const cible = f.cible_id ? Records.get('Cible', f.cible_id) : null;
-        // `ou` : de quoi poser l'en-tête et lancer la photo de la fiche avant qu'elle n'arrive (1er nov. 2026).
-        return { ...f, courte: ficheCourte({ p: f, commerce, cible, drapeaux: drapeauxDe }), ou: ouEstLeCommerce(f, commerce, cible), investisseurs: await investisseurs({ ...(f.cible || {}), ...f, ville: f.ville || f.cible?.ville }) };
-      })),
-    })));
-    ok(res, { listes, libelles: LIBELLES_STATUT });
+    // Seulement ses fiches à lui : on les cherche dans ses listes.
+    const fiches = (await L()).mesListes(user).flatMap((l) => l.fiches).filter((f) => voulus.has(String(f.id)));
+    const details = {};
+    for (const f of fiches) {
+      const commerce = f.commerce_simple_id ? Records.get('CommerceSimple', f.commerce_simple_id) : null;
+      const cible = f.cible_id ? Records.get('Cible', f.cible_id) : null;
+      // `ou` : de quoi poser l'en-tête et lancer la photo de la fiche avant qu'elle n'arrive (1er nov. 2026).
+      details[f.id] = { ou: ouEstLeCommerce(f, commerce, cible) };
+    }
+    ok(res, { details });
   }));
   app.post('/api/mandataire/listes/exporter', wrap(async (req, res) => {
     const user = mandataire(req, res);

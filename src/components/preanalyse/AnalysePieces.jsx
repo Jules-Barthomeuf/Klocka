@@ -271,7 +271,7 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
           </div>
           {/* Tout le tableau a ses lignes (29 oct. 2026, Jules) : le cadre ferme à droite et en bas. Sans pièce, le
               tableau est flouté, seule la case de son nom reste nette, et le message est posé dessus (Jules, même jour). */}
-          <div className="relative overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux">
+          <div className="relative overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux lg:bg-rail">
           <div className={`grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3 lg:border-t-0 text-[13.5px] text-craie max-lg:hidden lg:[&>*]:py-3.5 ${g.pieces.length ? "" : "[&>*:not(:first-child)]:blur-[3px]"}`}>
             <span className="text-[15px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">{g.titre}</span><span>Valeur</span><span>Source</span><span>Notes</span>
           </div>

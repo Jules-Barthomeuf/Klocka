@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Check, Copy, Link2, Loader2, Send, UserPlus, X } from "lucide-react";
+import CaseRole from "@/components/admin/CaseRole";
 
 // Inviter un client : l'équipe crée le compte, la personne reçoit un lien et
 // n'a qu'à choisir son mot de passe. Le lien s'envoie depuis une boîte
@@ -34,12 +35,18 @@ export default function InviterClient({ onCree } = {}) {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [resultat, setResultat] = useState(null);
-
+  // Les deux cases (3 nov. 2026) : sans case, on invite un client ; cochées, le compte entre dans l'équipe.
+  const [roles, setRoles] = useState({ admin: false, mandataire: false });
   const mutation = useMutation({
-    mutationFn: (envoyer) => inviter({ full_name: nom, email, envoyer }),
+    mutationFn: async (envoyer) => {
+      const r = await inviter({ full_name: nom, email, envoyer });
+      if (roles.admin || roles.mandataire) await base44.request("POST", `/api/admin/equipe/${encodeURIComponent(r.email || email)}/roles`, { body: roles });
+      return r;
+    },
     onSuccess: (r) => {
       setResultat(r);
       queryClient.invalidateQueries({ queryKey: ["all-users"] });
+      queryClient.invalidateQueries({ queryKey: ["equipe"] });
       onCree?.(r);
       if (r.envoye) toast.success(`Invitation envoyée à ${r.email}`);
       else if (r.erreur_envoi) toast.error(r.erreur_envoi);
@@ -52,6 +59,7 @@ export default function InviterClient({ onCree } = {}) {
     setResultat(null);
     setNom("");
     setEmail("");
+    setRoles({ admin: false, mandataire: false });
   };
 
   if (!ouvert) {
@@ -60,7 +68,7 @@ export default function InviterClient({ onCree } = {}) {
         onClick={() => setOuvert(true)}
         className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol"
       >
-        <UserPlus className="h-4 w-4" /> Inviter un client
+        <UserPlus className="h-4 w-4" /> Inviter
       </button>
     );
   }
@@ -69,9 +77,9 @@ export default function InviterClient({ onCree } = {}) {
     <div className="w-full rounded-[16px] border border-trait bg-rail p-5">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <p className="m-0 text-[16px] text-encre">Inviter un client</p>
+          <p className="m-0 text-[16px] text-encre">Inviter</p>
           <p className="m-0 mt-1 text-[12.5px] text-ardoise">
-            Le compte est créé tout de suite. La personne ouvre le lien, choisit son mot de passe, entre.
+            Le compte est créé tout de suite. La personne ouvre le lien, choisit son mot de passe, entre. Sans case cochée, c'est un client.
           </p>
         </div>
         <button onClick={fermer} className="text-brume hover:text-encre">
@@ -107,6 +115,10 @@ export default function InviterClient({ onCree } = {}) {
               className="h-11 w-full rounded-full border border-trait bg-surface px-4 text-[15px] text-encre outline-none placeholder:text-brume focus:border-bord-doux max-md:text-[16px]"
             />
           </label>
+          <div className="flex h-11 items-center gap-4">
+            <CaseRole coche={roles.admin} libelle="Admin" mot="Admin" onChange={(v) => setRoles((x) => ({ ...x, admin: v }))} />
+            <CaseRole coche={roles.mandataire} libelle="Mandataire" mot="Mandataire" onChange={(v) => setRoles((x) => ({ ...x, mandataire: v }))} />
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="submit"

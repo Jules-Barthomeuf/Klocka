@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { ChevronDown, Loader2, X } from "lucide-react";
+import { ChevronDown, Loader2, Minus, Plus, X } from "lucide-react";
 import DocumentsDossier from "./DocumentsDossier";
 import SimulateurAnalyse from "./SimulateurAnalyse";
 import DonneesExtraites from "./DonneesExtraites";
@@ -129,120 +129,221 @@ async function texteDeLaPage(page) {
   return { items: contenu.items, brut, itemDe };
 }
 
+// Toutes les pages l'une sous l'autre, on fait défiler (2 nov. 2026, Jules : « au lieu de devoir cliquer sur les flèches,
+// on doit pouvoir juste scroller ») ; on arrive sur la page du passage. Le zoom, en haut à gauche : − et +, ou Ctrl +
+// molette (le pincement du pavé tactile). Chaque page ne se dessine qu'à l'approche de l'écran.
+const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
+
+/** Une page du PDF, dessinée quand elle approche de l'écran ; ses marques (en points de la page) mises à l'échelle. */
+function PageRendue({ doc, n, largeur, taille, marques, premiere, onRef }) {
+  const boite = useRef(null);
+  const toile = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = boite.current;
+    if (!el) return undefined;
+    const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { rootMargin: "800px 0px" });
+    o.observe(el);
+    return () => o.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!visible || !doc) return undefined;
+    let fini = false;
+    let tache = null;
+    (async () => {
+      const p = await doc.getPage(n);
+      const c = toile.current;
+      if (fini || !c) return;
+      const v = p.getViewport({ scale: largeur / taille.w });
+      const dpr = window.devicePixelRatio || 1;
+      // Le dessin se fait à côté, puis se pose d'un coup : pendant un zoom, l'ancienne image reste, étirée.
+      const hors = document.createElement("canvas");
+      hors.width = Math.floor(v.width * dpr);
+      hors.height = Math.floor(v.height * dpr);
+      tache = p.render({ canvasContext: hors.getContext("2d"), canvas: hors, viewport: v, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined });
+      try { await tache.promise; } catch { return; }
+      if (fini) return;
+      c.width = hors.width;
+      c.height = hors.height;
+      c.getContext("2d").drawImage(hors, 0, 0);
+    })();
+    return () => { fini = true; tache?.cancel?.(); };
+  }, [visible, doc, n, largeur, taille.w]);
+  const k = largeur / taille.w;
+  return (
+    <div ref={(el) => { boite.current = el; onRef?.(el); }} data-page={n} className="relative flex-none bg-white shadow-[0_6px_18px_rgb(0_0_0/0.12)]" style={{ width: largeur, height: taille.h * k }}>
+      <canvas ref={toile} className="block h-full w-full" />
+      {marques.map((m, i) => (
+        <span key={i} ref={i === 0 ? premiere : undefined} className="pointer-events-none absolute rounded-[2px] bg-ambre/40 mix-blend-multiply ring-1 ring-ambre/60"
+          style={{ left: m.left * k, top: m.top * k, width: m.width * k, height: m.height * k }} />
+      ))}
+    </div>
+  );
+}
+
 export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }) {
   const cadre = useRef(null);
-  const toile = useRef(null);
-  const [etat, setEtat] = useState({ charge: true, erreur: null, page: pageDite || 1, total: 0, marques: [], trouve: null, largeur: 0, hauteur: 0 });
-  const [voulue, setVoulue] = useState(null);
-  useEffect(() => { setVoulue(null); }, [url, pageDite, citation]);
+  const pages = useRef([]);
+  const premiere = useRef(null);
+  const [doc, setDoc] = useState(null);
+  const [tailles, setTailles] = useState([]);
+  const [cible, setCible] = useState({ page: pageDite || 1, marques: [], ocr: false });
+  const [erreur, setErreur] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const [largeurCadre, setLargeurCadre] = useState(0);
+  const [courante, setCourante] = useState(pageDite || 1);
+  useEffect(() => {
+    const el = cadre.current;
+    if (!el) return undefined;
+    const o = new ResizeObserver(() => setLargeurCadre(el.clientWidth));
+    o.observe(el);
+    return () => o.disconnect();
+  }, []);
   useEffect(() => {
     let fini = false;
-    let doc = null;
+    let d = null;
+    setDoc(null); setErreur(null); setTailles([]); setZoom(1); setCourante(pageDite || 1); pages.current = [];
     (async () => {
       try {
         const lib = await pdfjs();
         const donnees = new Uint8Array(await (await fetch(url)).arrayBuffer());
-        doc = await lib.getDocument({ data: donnees }).promise;
-        const total = doc.numPages;
-        // La page à montrer : celle choisie à la main, sinon celle où la citation se lit vraiment.
-        let numero = Math.min(Math.max(1, voulue || pageDite || 1), total);
+        d = await lib.getDocument({ data: donnees }).promise;
+        const total = d.numPages;
+        const t = [];
+        for (let n = 1; n <= total; n++) { const v = (await d.getPage(n)).getViewport({ scale: 1 }); t.push({ w: v.width, h: v.height }); }
+        if (fini) return;
+        // La page du passage : celle où la citation se lit vraiment, la page dite d'abord.
+        let numero = Math.min(Math.max(1, pageDite || 1), total);
         let lu = null;
         let passage = null;
-        if (citation && !voulue) {
-          const ordre = [numero, ...Array.from({ length: total }, (_, i) => i + 1).filter((n) => n !== numero)];
-          for (const n of ordre) {
-            const t = await texteDeLaPage(await doc.getPage(n));
-            const p = trouverPassage(t.brut, citation);
-            if (p) { numero = n; lu = t; passage = p; break; }
+        if (citation) {
+          for (const n of [numero, ...Array.from({ length: total }, (_, i) => i + 1).filter((x) => x !== numero)]) {
+            const tx = await texteDeLaPage(await d.getPage(n));
+            const p = trouverPassage(tx.brut, citation);
+            if (p) { numero = n; lu = tx; passage = p; break; }
             if (fini) return;
           }
+          if (!lu) lu = await texteDeLaPage(await d.getPage(numero));
         }
-        let page = await doc.getPage(numero);
-        if (!lu && citation) { lu = await texteDeLaPage(page); passage = trouverPassage(lu.brut, citation); }
-        const largeur = Math.max(280, (cadre.current?.clientWidth || 640) - 2);
-        const dpr = window.devicePixelRatio || 1;
-        const dessiner = async (p) => {
-          const v = p.getViewport({ scale: largeur / p.getViewport({ scale: 1 }).width });
-          const c = toile.current;
-          if (!c || fini) return null;
-          c.width = Math.floor(v.width * dpr);
-          c.height = Math.floor(v.height * dpr);
-          c.style.width = `${v.width}px`;
-          c.style.height = `${v.height}px`;
-          await p.render({ canvasContext: c.getContext("2d"), canvas: c, viewport: v, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise;
-          return v;
-        };
-        let vue = await dessiner(page);
-        if (!vue) return;
+        // Les marques en points de la page (échelle 1) : elles suivent le zoom sans être recalculées.
         const marques = [];
         if (passage && lu) {
-          const touches = new Set(lu.itemDe.slice(passage[0], passage[1]));
-          for (const i of touches) {
+          const v1 = (await d.getPage(numero)).getViewport({ scale: 1 });
+          for (const i of new Set(lu.itemDe.slice(passage[0], passage[1]))) {
             const it = lu.items[i];
             if (!it?.str?.trim()) continue;
-            const tx = lib.Util.transform(vue.transform, it.transform);
+            const tx = lib.Util.transform(v1.transform, it.transform);
             const h = Math.hypot(tx[2], tx[3]);
-            marques.push({ left: tx[4], top: tx[5] - h, width: it.width * vue.scale, height: h * 1.15 });
+            marques.push({ left: tx[4], top: tx[5] - h, width: it.width, height: h * 1.15 });
           }
         }
-        // Un scan n'a pas de couche texte : la page s'affiche d'abord, puis l'OCR la lit et y cherche le passage.
+        // Un scan n'a pas de couche texte : les pages s'affichent d'abord, puis l'OCR y cherche le passage.
         const scan = !!citation && !marques.length && (lu?.brut || "").replace(/\s+/g, "").length < 40;
-        if (!fini) setEtat({ charge: false, ocr: scan, erreur: null, page: numero, total, marques, trouve: citation ? (scan ? null : marques.length > 0) : null, largeur: vue.width, hauteur: vue.height });
-        if (scan && !voulue) {
-          for (const n of [numero, numero + 1, numero - 1].filter((x) => x >= 1 && x <= total)) {
-            const p = await doc.getPage(n);
-            // L'OCR lit une image large d'environ 2 000 points : assez fin pour un bail scanné.
-            const vo = p.getViewport({ scale: 2000 / p.getViewport({ scale: 1 }).width });
-            const img = document.createElement("canvas");
-            img.width = Math.floor(vo.width);
-            img.height = Math.floor(vo.height);
-            await p.render({ canvasContext: img.getContext("2d"), canvas: img, viewport: vo }).promise;
-            if (fini) return;
-            const mots = await motsDeLImage(`${url}#${n}`, img);
-            if (fini) return;
-            const f = fenetreDuPassage(mots, citation);
-            if (!f) continue;
-            if (n !== numero) { page = p; vue = await dessiner(p); if (!vue) return; }
-            const k = vue.width / vo.width;
-            const trouvees = mots.slice(f[0], f[1] + 1).map((m) => ({ left: m.bbox.x0 * k, top: m.bbox.y0 * k - 1, width: (m.bbox.x1 - m.bbox.x0) * k, height: (m.bbox.y1 - m.bbox.y0) * k + 2 }));
-            setEtat({ charge: false, ocr: false, erreur: null, page: n, total, marques: trouvees, trouve: true, largeur: vue.width, hauteur: vue.height });
-            return;
-          }
-          if (!fini) setEtat((x) => ({ ...x, ocr: false, trouve: false }));
+        setTailles(t); setDoc(d); setCible({ page: numero, marques, ocr: scan });
+        if (!scan) return;
+        for (const n of [numero, numero + 1, numero - 1].filter((x) => x >= 1 && x <= total)) {
+          const p = await d.getPage(n);
+          // L'OCR lit une image large d'environ 2 000 points : assez fin pour un bail scanné.
+          const vo = p.getViewport({ scale: 2000 / t[n - 1].w });
+          const img = document.createElement("canvas");
+          img.width = Math.floor(vo.width);
+          img.height = Math.floor(vo.height);
+          await p.render({ canvasContext: img.getContext("2d"), canvas: img, viewport: vo }).promise;
+          if (fini) return;
+          const mots = await motsDeLImage(`${url}#${n}`, img);
+          if (fini) return;
+          const f = fenetreDuPassage(mots, citation);
+          if (!f) continue;
+          const k = t[n - 1].w / vo.width;
+          setCible({ page: n, ocr: false, marques: mots.slice(f[0], f[1] + 1).map((m) => ({ left: m.bbox.x0 * k, top: m.bbox.y0 * k - 1, width: (m.bbox.x1 - m.bbox.x0) * k, height: (m.bbox.y1 - m.bbox.y0) * k + 2 })) });
+          return;
         }
+        if (!fini) setCible((x) => ({ ...x, ocr: false }));
       } catch (e) {
-        if (!fini) setEtat((x) => ({ ...x, charge: false, erreur: e?.message || "Le PDF ne s'affiche pas" }));
+        if (!fini) setErreur(e?.message || "Le PDF ne s'affiche pas");
       }
     })();
-    return () => { fini = true; doc?.destroy?.(); };
-  }, [url, pageDite, citation, voulue]);
-  const premiere = useRef(null);
-  useEffect(() => { premiere.current?.scrollIntoView({ block: "center" }); }, [etat.marques]);
+    return () => { fini = true; d?.destroy?.(); };
+  }, [url, pageDite, citation]);
 
+  const base = Math.max(280, largeurCadre - 34);
+  const largeur = Math.round(base * zoom);
+  // On arrive sur le passage (ou la page dite), une fois la page posée.
+  const amene = useRef(null);
+  useEffect(() => {
+    if (!doc || !largeurCadre) return;
+    const cle = `${cible.page}:${cible.marques.length}`;
+    if (amene.current === cle) return;
+    amene.current = cle;
+    requestAnimationFrame(() => {
+      if (premiere.current) premiere.current.scrollIntoView({ block: "center" });
+      else pages.current[cible.page - 1]?.scrollIntoView({ block: "start" });
+    });
+  }, [doc, cible, largeurCadre]);
+  useEffect(() => { amene.current = null; }, [url, pageDite, citation]);
+  // Le numéro de la page lue suit le défilement.
+  const surDefilement = () => {
+    const el = cadre.current;
+    if (!el) return;
+    const repere = el.getBoundingClientRect().top + el.clientHeight / 3;
+    let n = 1;
+    pages.current.forEach((p, i) => { if (p && p.getBoundingClientRect().top <= repere) n = i + 1; });
+    setCourante(n);
+  };
+  // Le zoom garde sous les yeux ce qu'on lisait.
+  const zoomer = (sens) => setZoom((z) => {
+    const i = ZOOMS.indexOf(z);
+    const suivant = ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, (i < 0 ? 2 : i) + sens))];
+    const el = cadre.current;
+    if (el && suivant !== z) {
+      const r = suivant / z;
+      const haut = el.scrollTop + el.clientHeight / 2;
+      const gauche = el.scrollLeft + el.clientWidth / 2;
+      requestAnimationFrame(() => { el.scrollTop = haut * r - el.clientHeight / 2; el.scrollLeft = gauche * r - el.clientWidth / 2; });
+    }
+    return suivant;
+  });
+  const zoomerRef = useRef(zoomer);
+  zoomerRef.current = zoomer;
+  useEffect(() => {
+    const el = cadre.current;
+    if (!el) return undefined;
+    let cumul = 0;
+    const molette = (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      cumul += e.deltaY;
+      if (Math.abs(cumul) < 40) return;
+      zoomerRef.current(cumul < 0 ? 1 : -1);
+      cumul = 0;
+    };
+    el.addEventListener("wheel", molette, { passive: false });
+    return () => el.removeEventListener("wheel", molette);
+  }, []);
+
+  const boutonZoom = "grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-40";
   return (
-    <div ref={cadre} className="flex-1 overflow-y-auto bg-fond">
-      {/* Le passage se voit sur la page : plus de citation ni d'état écrits au-dessus (29 oct. 2026, Jules). Les flèches
-          seulement quand la pièce a plusieurs pages. */}
-      {etat.total > 1 && (
-        <div className="sticky top-0 z-10 flex items-center justify-start gap-1 px-3 py-3 text-[12px] text-ardoise">
-          <span className="rounded-full bg-surface-pleine/90 px-1 shadow-[0_6px_18px_rgb(0_0_0/0.18)]">
-            <button type="button" disabled={etat.page <= 1} onClick={() => setVoulue(etat.page - 1)} className="rounded-full px-2 py-0.5 hover:text-encre disabled:opacity-40" style={{ background: "transparent" }} aria-label="Page précédente">‹</button>
-            <span className="tabular-nums">{etat.page} / {etat.total}</span>
-            <button type="button" disabled={etat.page >= etat.total} onClick={() => setVoulue(etat.page + 1)} className="rounded-full px-2 py-0.5 hover:text-encre disabled:opacity-40" style={{ background: "transparent" }} aria-label="Page suivante">›</button>
-          </span>
-        </div>
-      )}
-      {etat.erreur ? (
+    <div ref={cadre} onScroll={surDefilement} className="relative flex-1 overflow-auto bg-fond">
+      {/* Le zoom et la page lue, en haut à gauche ; plus de flèches pour changer de page : on fait défiler. */}
+      <div className="sticky left-0 top-0 z-10 flex h-0 items-start gap-2 px-3 pt-3">
+        <span className="flex items-center gap-0.5 rounded-full bg-surface-pleine/90 px-1 py-0.5 text-[12px] text-ardoise shadow-[0_6px_18px_rgb(0_0_0/0.18)]">
+          <button type="button" onClick={() => zoomer(-1)} disabled={zoom <= ZOOMS[0]} className={boutonZoom} style={{ background: "transparent" }} aria-label="Dézoomer" title="Dézoomer"><Minus className="h-3.5 w-3.5" /></button>
+          <button type="button" onClick={() => setZoom(1)} className="min-w-[42px] rounded-full px-1 tabular-nums hover:text-encre" style={{ background: "transparent" }} title="Largeur du panneau">{Math.round(zoom * 100)} %</button>
+          <button type="button" onClick={() => zoomer(1)} disabled={zoom >= ZOOMS[ZOOMS.length - 1]} className={boutonZoom} style={{ background: "transparent" }} aria-label="Zoomer" title="Zoomer"><Plus className="h-3.5 w-3.5" /></button>
+          {tailles.length > 1 && <span className="border-l border-trait pl-2 pr-2 tabular-nums">{courante} / {tailles.length}</span>}
+        </span>
+        {cible.ocr && <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-pleine/90 shadow-[0_6px_18px_rgb(0_0_0/0.18)]" title="Lecture du scan pour retrouver le passage"><Loader2 className="h-4 w-4 animate-spin text-ambre" /></span>}
+      </div>
+      {erreur ? (
         <PasAffichable />
+      ) : !doc || !largeurCadre ? (
+        <div className="grid h-full min-h-[200px] place-items-center"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>
       ) : (
-        <div className="relative mx-auto" style={{ width: etat.largeur || undefined, height: etat.hauteur || undefined }}>
-          <canvas ref={toile} className="block" />
-          {etat.marques.map((m, i) => (
-            <span key={i} ref={i === 0 ? premiere : undefined} className="pointer-events-none absolute rounded-[2px] bg-ambre/40 mix-blend-multiply ring-1 ring-ambre/60"
-              style={{ left: m.left, top: m.top, width: m.width, height: m.height }} />
+        <div className="flex w-max min-w-full flex-col items-center gap-3 px-4 pb-6 pt-14">
+          {tailles.map((t, i) => (
+            <PageRendue key={i} doc={doc} n={i + 1} largeur={largeur} taille={t} marques={cible.page === i + 1 ? cible.marques : []}
+              premiere={cible.page === i + 1 ? premiere : undefined} onRef={(el) => { pages.current[i] = el; }} />
           ))}
-          {etat.charge && <div className="absolute inset-0 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>}
-          {etat.ocr && <span className="absolute bottom-3 left-3 grid h-8 w-8 place-items-center rounded-full bg-surface-pleine/90 shadow-[0_6px_18px_rgb(0_0_0/0.18)]" title="Lecture du scan pour retrouver le passage"><Loader2 className="h-4 w-4 animate-spin text-ambre" /></span>}
         </div>
       )}
     </div>

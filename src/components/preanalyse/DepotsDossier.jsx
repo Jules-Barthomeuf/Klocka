@@ -220,7 +220,7 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
   );
 }
 
-const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[14px] border border-dashed p-4 text-left transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : plein ? "border-bord-doux hover:border-bord-vif" : "border-bord hover:border-bord-vif"}`;
+const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[14px] border border-dashed p-4 text-left transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : plein ? "border-bord-doux bg-rail hover:border-bord-vif" : "border-bord bg-rail hover:border-bord-vif"}`;
 
 function Depot({ e, occupe, infos = null, onDeposer, onRetirer, onRetirerType, onContexte }) {
   const ref = useRef(null);
@@ -289,7 +289,7 @@ function NouveauType({ occupe, onImporter }) {
   };
   if (!ouvert) {
     return (
-      <button type="button" onClick={() => setOuvert(true)} className={`${cadre(false, false)} items-center justify-center gap-2 text-brume hover:text-encre`} style={{ background: "transparent" }}>
+      <button type="button" onClick={() => setOuvert(true)} className={`${cadre(false, false)} items-center justify-center gap-2 text-brume hover:text-encre`} style={{ background: "rgb(var(--k-rail-rgb))" }}>
         <Plus className="h-5 w-5" />
         <span className="text-[13.5px]">Autre type de document</span>
       </button>

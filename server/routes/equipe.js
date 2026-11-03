@@ -25,9 +25,15 @@ export function monterEquipe(app) {
     const { changerRole } = await E();
     rendre(res, changerRole(user, req.params.email, { role: req.body?.role, aussi_mandataire: req.body?.aussi_mandataire ?? null }));
   }));
+  // Les deux cases du tableau : { admin, mandataire } (3 nov. 2026).
+  app.post('/api/admin/equipe/:email/roles', wrap(async (req, res) => {
+    const user = admin(req, res); if (!user) return;
+    const { fixerRoles } = await E();
+    rendre(res, fixerRoles(user, req.params.email, { admin: req.body?.admin === true, mandataire: req.body?.mandataire === true }));
+  }));
   app.post('/api/admin/equipe/inviter', wrap(async (req, res) => {
     const user = admin(req, res); if (!user) return;
     const { inviterEquipe } = await E();
-    rendre(res, inviterEquipe(user, { email: req.body?.email, nom: req.body?.nom, role: req.body?.role, base: urlPublique(req) }));
+    rendre(res, inviterEquipe(user, { email: req.body?.email, nom: req.body?.nom, role: req.body?.role, aussi_mandataire: req.body?.aussi_mandataire ?? null, base: urlPublique(req) }));
   }));
 }

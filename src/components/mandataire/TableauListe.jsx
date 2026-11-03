@@ -325,7 +325,7 @@ function CarteListeGrandEcran({ fiches, onFermer }) {
   );
 }
 
-export default function TableauListe({ fiches, libelles, listeId = null, carteDemandee = false, onCarteVue = null, reste = null, onSupprimer = null, agent = false, chiffres = null }) {
+export default function TableauListe({ onglets = null, fiches, libelles, listeId = null, carteDemandee = false, onCarteVue = null, reste = null, onSupprimer = null, agent = false, chiffres = null }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const [filtre, setFiltre] = useState("tous");
@@ -440,19 +440,35 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
       });
   }, [fiches, q, filtre, tri, libelles]);
   const compte = (k) => (fiches || []).filter((FILTRES.find(([x]) => x === k) || FILTRES[0])[2]).length;
-  // 50 commerces par page (30 oct. 2026, Jules : « pas toute la liste des milliers de commerces ») : la recherche, les
-  // filtres, « tout cocher » et la carte portent sur toute la liste ; seul le tableau n'en dessine que 50.
-  const PAR_PAGE = 50;
+  // 15 commerces par page (3 nov. 2026, Jules : « trop longues à charger, je veux voir les 15 premières, après c'est sur
+  // d'autres pages » ; 50 depuis le 30 oct.) : la recherche, les filtres, « tout cocher » et la carte portent sur toute
+  // la liste ; seul le tableau n'en dessine que 15, et seules ces 15 lignes demandent leurs détails au serveur.
+  const PAR_PAGE = 15;
   const [page, setPage] = useState(1);
   useEffect(() => { setPage(1); }, [q, filtre, listeId, tri]);
   const pageCourante = Math.min(page, Math.max(1, Math.ceil(lignes.length / PAR_PAGE)));
-  const affichees = lignes.slice((pageCourante - 1) * PAR_PAGE, pageCourante * PAR_PAGE);
+  const pageBrute = lignes.slice((pageCourante - 1) * PAR_PAGE, pageCourante * PAR_PAGE);
+  // L'emplacement de chaque commerce (il lance la photo à l'ouverture de sa fiche), pour les lignes affichées seulement.
+  const idsPage = pageBrute.map((p) => p.id);
+  const details = useQuery({
+    queryKey: ["m-listes-details", idsPage],
+    queryFn: () => base44.request("POST", `${API}/listes/details`, { body: { ids: idsPage } }),
+    enabled: idsPage.length > 0,
+    staleTime: 5 * 60_000,
+  });
+  const avecDetails = (p) => (p && details.data?.details?.[p.id] ? { ...p, ...details.data.details[p.id] } : p);
+  const affichees = pageBrute.map(avecDetails);
   // Les cases suivent la liste : une fiche partie n'est plus cochée.
   useEffect(() => { setCoches((c) => new Set([...c].filter((id) => (fiches || []).some((p) => p.id === id)))); }, [fiches]);
   const tout = lignes.length > 0 && lignes.every((p) => coches.has(p.id));
 
   return (
     <div className="flex flex-col">
+      {/* Les noms des listes et la ligne de la recherche restent en haut quand on fait défiler la liste (3 nov. 2026,
+          Jules). Au téléphone, sous la barre du haut. */}
+      <div className="sticky top-[var(--k-haut-mobile,0px)] z-30 bg-fond md:top-0">
+      {onglets}
+      <div data-zone="listes" className={onglets ? "k-points relative rounded-t-[12px] bg-rail px-5 pb-3 pt-4 max-md:px-3" : "pb-3"}>
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
@@ -493,6 +509,9 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
           </button>
         )}
       </div>
+      </div>
+      </div>
+      <div className={onglets ? "k-points relative rounded-b-md bg-rail px-5 pb-5 max-md:px-3" : ""}>
 
       {coches.size > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] border border-trait bg-surface-pleine px-4 py-2.5">
@@ -610,7 +629,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
       <Pages page={pageCourante} total={lignes.length} parPage={PAR_PAGE} onPage={setPage} />
       <AnimatePresence>
         {ouvert && (fiches || []).some((p) => p.id === ouvert) && (
-          <PanneauCommerce key={ouvert} p={(fiches || []).find((p) => p.id === ouvert)} onFermer={() => setOuvert(null)} />
+          <PanneauCommerce key={ouvert} p={avecDetails((fiches || []).find((p) => p.id === ouvert))} onFermer={() => setOuvert(null)} />
         )}
       </AnimatePresence>
       <AlertDialog open={retirer} onOpenChange={(o) => { if (!o) setRetirer(false); }}>
@@ -625,6 +644,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

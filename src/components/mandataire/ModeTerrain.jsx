@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, LocateFixed, X } from "lucide-react";
@@ -98,6 +100,27 @@ export default function ModeTerrain({ listes = [], libelles = {}, onFermer }) {
     couleur: prospecte(p) ? JL.alerte : PERVENCHE,
   })), [fiches, libelles]);
   const fiche = fiches.find((p) => p.id === choisi) || null;
+  // Une fiche s'ouvre tout de suite (3 nov. 2026, Jules : « charger une fiche en mode terrain, c'est trop long, je veux
+  // que ce soit instantané ») : les fiches des 15 commerces les plus proches se chargent d'avance, trois à la fois, et
+  // se rechargent quand on s'est déplacé d'une centaine de mètres. Un tap sur le point trouve la fiche déjà là.
+  const queryClient = useQueryClient();
+  const ici = moi ? `${moi.lat.toFixed(3)},${moi.lon.toFixed(3)}` : null;
+  useEffect(() => {
+    if (!fiches.length) return undefined;
+    let fini = false;
+    const [lat, lon] = ici ? ici.split(",").map(Number) : [null, null];
+    const proches = lat == null ? fiches.slice(0, 15)
+      : [...fiches].sort((a, b) => ((a.position.lat - lat) ** 2 + (a.position.lon - lon) ** 2) - ((b.position.lat - lat) ** 2 + (b.position.lon - lon) ** 2)).slice(0, 15);
+    const file = proches.map((p) => p.id);
+    const suivant = async () => {
+      while (!fini && file.length) {
+        const id = file.shift();
+        await queryClient.prefetchQuery({ queryKey: ["m-fiche", id], queryFn: () => base44.request("GET", `/api/mandataire/proprietaires/${id}/fiche`), staleTime: 5 * 60_000 }).catch(() => {});
+      }
+    };
+    for (let k = 0; k < 3; k++) suivant();
+    return () => { fini = true; };
+  }, [fiches, ici, queryClient]);
 
   return createPortal(
     <motion.div className="fixed inset-0 z-[90] bg-fond" role="dialog" aria-label="Mode terrain"

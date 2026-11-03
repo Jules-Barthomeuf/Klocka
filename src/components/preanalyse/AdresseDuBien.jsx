@@ -55,7 +55,7 @@ export default function AdresseDuBien({ dossier, lot, apercu = false, onRefresh,
     return <p className="m-0 flex items-center gap-2 text-[13px] text-craie"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" /> Je cherche l'adresse dans la fiche du bien…</p>;
   }
   return (
-    <div className="rounded-[14px] border border-bord-doux p-4">
+    <div className="rounded-[14px] border border-bord-doux bg-rail p-4">
       <p className="m-0 text-[14px] text-encre">Il manque l'adresse du bien : le marché se lit à partir d'elle.</p>
       <p className="m-0 mt-1 text-[13px] text-ardoise">
         Veuillez compléter l'adresse dans la Data Room, dans la boîte « Fiche du bien ».

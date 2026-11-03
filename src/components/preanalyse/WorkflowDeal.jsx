@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { X as IconeFermer, Home } from "lucide-react";
+import PanneauAssistant, { BarreAssistant } from "@/components/preanalyse/PanneauAssistant";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -326,7 +327,7 @@ function etapeDebloquee(dossier) {
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
 
-export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null, onRetour = null }) {
+export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null, onRetour = null, avantRetour = null, onGrille = null, assistantAGauche = false, onOuvrirAssistant = null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // Les onglets de l'analyse se chargent à l'ouverture du dossier, pas au clic : ni « Lecture… » ni attente (18 oct. 2026).
@@ -369,6 +370,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // Sans dossier (dépôt direct d'une fiche) l'étape se lit sur la porte ; avec un dossier, sur la frise.
   const montre = (id) => (dossier ? vue === id : PORTE[id] === etape);
   const [preuveGrille, setPreuveGrille] = useState(null);
+  const [assistant, setAssistant] = useState(false);
   const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { const g = localStorage.getItem("klocka_grille_analyse"); return g && !["synthese", "historique", "bien", "notes"].includes(g) ? g : "data_room"; } catch { return "data_room"; } });
   // La Data Room n'est plus une étape du menu (29 oct. 2026, Jules) : c'est le premier onglet de l'Analyse. Ce qui
   // ouvrait l'étape (la porte d'un dossier qui attend ses pièces, la vue gardée de la session) ouvre cet onglet.
@@ -386,6 +388,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // le compte de l'ancienne Synthèse, que plus rien n'affiche.
   const reste = (id) => (GRILLES_ANALYSE.find((g) => g.id === id)?.parPiece ? analysePieces.data?.a_voir?.[id] || 0 : 0);
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
+  // L'onglet ouvert remonte au chat de gauche : « ce loyer » parle de ce qu'on regarde (2 nov. 2026).
+  useEffect(() => { onGrille?.(grilleAnalyse); }, [grilleAnalyse, onGrille]);
   // Rien dans la colonne de droite (l'Analyse sans fil de mandataire) : ce qui est à gauche prend toute la largeur (17 oct. 2026, Jules).
   // Depuis le 18 oct. 2026, la colonne ne porte que l'emplacement (Pré-analyse) et la Data Room (son étape).
   const colonneVide = !!dossier && !["preanalyse", "documents"].includes(vue) && !(dossier.dossier_mandataire_id && !apercu);
@@ -585,7 +589,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           {/* À l'étape Offre, la lettre seule : ni le nom du dossier, ni le choix du mode (28 oct. 2026, Jules). */}
           {/* Une seule ligne (29 oct. 2026, Jules) : « Tous les dossiers » à gauche, le nom au milieu, les gestes à droite. */}
           {!enCarte && vue !== "offre" && <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 max-md:grid-cols-[1fr_auto] max-md:gap-3">
-            <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-1">
+              {/* Le bouton du panneau du chat, à gauche de la maison (2 nov. 2026, Jules). */}
+              {avantRetour}
               {onRetour && (
                 // Une petite maison à la place de « ← Tous les dossiers » (30 oct. 2026, Jules).
                 <button type="button" onClick={onRetour} aria-label="Tous les dossiers" title="Tous les dossiers"
@@ -723,6 +729,18 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         <section className="mt-8">
           <SimulateurDossier parametres={lot.simulateur} dealId={dossier.deal_id} lotIndex={lot.index ?? 0} onEnregistre={onRefresh} />
         </section>
+      )}
+      {/* Le chat à gauche sur ordinateur (Analyse.jsx) ; fermé, ou au téléphone, la barre du bas l'appelle. */}
+      {dossier && !apercu && vue !== "offre" && !assistantAGauche && <div className="h-24" aria-hidden />}
+      {dossier && !apercu && vue !== "offre" && !assistantAGauche && !assistant && <BarreAssistant onOuvrir={(texte) => {
+        if (onOuvrirAssistant) { onOuvrirAssistant(texte); return; }
+        setAssistant(true); setTimeout(() => window.dispatchEvent(texte ? new CustomEvent("klocka:lancer", { detail: { texte } }) : new CustomEvent("klocka:assistant")), 60);
+      }} />}
+      {dossier && !apercu && vue !== "offre" && !assistantAGauche && !onOuvrirAssistant && (
+        <PanneauAssistant ouvert={assistant} onFermer={() => setAssistant(false)} dealId={dossier.deal_id} etape={vue}
+          onglet={vue === "analyse" ? grilleAnalyse : vue === "documents" ? "data_room" : null}
+          sur={vue === "analyse" ? GRILLES_ANALYSE.find((g) => g.id === grilleAnalyse)?.titre || null : (FRISE.find((e) => e.id === vue) || {}).label || null}
+          onReponse={onRefresh} />
       )}
 
     </div>

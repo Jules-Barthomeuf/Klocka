@@ -252,16 +252,22 @@ const ALIAS_ZONES = { paca: 'provence alpes cote azur', idf: 'ile france', ara: 
 const VAGUES = new Set(['sud', 'nord', 'est', 'ouest', 'france', 'toute', 'tout', 'region', 'grand', 'grande', 'secteur', 'zone', 'autour']);
 
 /** Le département et la région d'une commune (API Géo), gardés sur la ville. */
+// Les communes sans fiche Ville, gardées en mémoire (3 nov. 2026, Jules : « charger une fiche en mode terrain, c'est
+// vraiment trop long ») : sans cela, chaque ouverture de fiche rappelait l'API Géo (jusqu'à 8 s).
+const GEO_HORS_VILLES = new Map();
+
 export async function geoDe(ville) {
   // Le nom et la géographie seulement : une Ville porte ses rues et ses commerces, la décoder entière coûtait 40 ms
   // par appel, une fois par commerce d'une liste (30 oct. 2026).
   const v = Records.champs('Ville', ['nom', 'geo']).find((x) => nz(x.nom) === nz(ville));
   if (v?.geo) return v.geo;
+  if (!v && GEO_HORS_VILLES.has(nz(ville))) return GEO_HORS_VILLES.get(nz(ville));
   try {
     const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(ville)}&fields=nom,departement,region&boost=population&limit=1`, { signal: AbortSignal.timeout(8000) });
     const c = r.ok ? (await r.json())[0] : null;
     const geo = c ? { departement: c.departement?.nom || null, region: c.region?.nom || null } : { departement: null, region: null };
     if (v) Records.update('Ville', v.id, { geo });
+    else if (c) { if (GEO_HORS_VILLES.size > 2000) GEO_HORS_VILLES.clear(); GEO_HORS_VILLES.set(nz(ville), geo); }
     return geo;
   } catch { return { departement: null, region: null }; }
 }

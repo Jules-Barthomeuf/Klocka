@@ -161,7 +161,7 @@ export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu 
             <p className="m-0 text-[20px] leading-[1.2] tracking-[-0.01em] text-encre lg:hidden">{t.titre}</p>
             {t.vacance && !apercu && <MesurerVacance dealId={dealId} dejaMesuree={!!lot?.vacance} le={lot?.vacance?.le} enFond={!!lot?.vacance_en_cours && Date.now() - Date.parse(lot.vacance_en_cours) < 15 * 60000} onFait={onRefresh} />}
           </div>
-          <div className="overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux">
+          <div className="overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux lg:bg-rail">
             <div className={`grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3 lg:border-t-0 text-[13.5px] text-craie max-lg:hidden lg:[&>*]:py-3.5`}>
               <span className="text-[15px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">{t.titre}</span><span>Valeur</span><span>Source</span>
             </div>
@@ -300,7 +300,7 @@ function PanneauSource({ vue, lot, analyse, onChoisir, onFermer }) {
           <p className="m-0 text-[20px] leading-[1.2]">Vacance locative</p>
           <p className="m-0 text-craie">{v.adresse}</p>
           {[["Autour", v.zone, v.zone?.rayon_m ? `${v.zone.rayon_m} m` : null], ["Sur la rue", v.sur_la_rue, v.rue]].map(([t, z, ou]) => (
-            <div key={t} className="rounded-[14px] border border-bord-doux px-4 py-3">
+            <div key={t} className="rounded-[14px] border border-bord-doux bg-rail px-4 py-3">
               <p className="m-0 text-craie">{t}{ou ? ` · ${ou}` : ""}</p>
               {z ? <p className="m-0 mt-1">{fmt(z.taux, 1) ?? "—"} % · {z.vacants} vides, {z.occupes} occupés, {z.incertains} incertains sur {z.locaux} locaux{z.fiable ? "" : " (trop peu pour un taux sûr)"}</p> : <p className="m-0 mt-1 text-craie">Pas de mesure.</p>}
             </div>

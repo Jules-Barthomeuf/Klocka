@@ -41,9 +41,9 @@ test('Étape 7 (téléphone) · la Pré-visite affiche la préparation', async (
   const p = await fiche();
   await appeler(page.request, 'POST', `/api/mandataire/proprietaires/${p.id}/statut`, { statut: 'rdv_pris' });
   await page.goto(`/Biens?bien=proprietaire:${p.id}&etape=previsite`);
-  // Au téléphone, la Visite s'ouvre sur le chat ; la préparation est sous « Voir la fiche ».
+  // Au téléphone, la Visite s'ouvre sur le chat ; la préparation est sous « Voir la fiche » (trois parties, 31 oct. 2026).
   await page.getByRole('button', { name: 'Voir la fiche' }).click({ timeout: 15_000 });
-  for (const partie of ['La pré-estimation, interne', 'Les questions à poser', 'Les documents à demander']) {
+  for (const partie of ['Résumé des échanges']) {
     await expect(page.getByText(partie, { exact: true }).first(), `partie « ${partie} »`).toBeVisible({ timeout: 15_000 });
   }
 });

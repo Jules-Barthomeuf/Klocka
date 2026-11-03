@@ -1,10 +1,8 @@
 // Les données du test du parcours mandataire, et où il tourne.
 //
 // Tout ce que le test crée porte le préfixe « [TEST] » ou l'adresse du compte
-// de test. Le champ `test` existe déjà, mais un compte mandataire ne voit
-// jamais ce qui le porte (mandataire-espace.js, estTest) : le client test
-// serait invisible du carrousel. Le préfixe tient lieu de marqueur jusqu'à la
-// fusion de L0 (voir PLAN.md, ligne T.1).
+// de test. Le compte est un compte d'essai (test.…@) : il voit le client marqué
+// `test`, qu'un vrai mandataire ne voit jamais (mandataire-espace.js, voitTest).
 
 import os from 'os';
 import path from 'path';
@@ -17,7 +15,7 @@ export const PORTS = { modele: 3996, serveur: 3997, ecran: 5197 };
 export const URL_ECRAN = `http://localhost:${PORTS.ecran}`;
 
 export const ADMIN = { email: 'admin.parcours@klocka.test', mot_de_passe: 'parcours-admin-2026' };
-export const MANDATAIRE = { email: 'mandataire.parcours@klocka.test', mot_de_passe: 'parcours-mandataire-2026', full_name: `Mandataire Antibes ${PREFIXE}` };
+export const MANDATAIRE = { email: 'test.parcours@klocka.test', mot_de_passe: 'parcours-mandataire-2026', full_name: `Mandataire Antibes ${PREFIXE}` };
 
 export const ANTIBES = { nom: 'Antibes', code: '06004', lat: 43.5808, lon: 7.1251 };
 
@@ -30,6 +28,7 @@ export const CLIENT = {
   rendement_min: 6,
   active: true,
   visible: true,
+  test: true,
 };
 
 /** Un commerce test à Antibes : un signal, un propriétaire et un exploitant connus. */

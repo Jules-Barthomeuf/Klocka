@@ -579,8 +579,9 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
   const guide = espace === "estimation" && !relation && (!courant || !!apercuAvis.data?.provisoire);
   useEffect(() => {
     if (espace !== "estimation" || !large) return undefined;
-    document.documentElement.classList.add("k-sans-barre");
-    return () => document.documentElement.classList.remove("k-sans-barre");
+    // window.document : `document` est ici le document de l'aperçu (plus haut), pas la page.
+    window.document.documentElement.classList.add("k-sans-barre");
+    return () => window.document.documentElement.classList.remove("k-sans-barre");
   }, [espace, large]);
   const droite = guide ? <GuideAssistant /> : espace === "estimation" ? (
     <div className="flex h-[100dvh] min-h-0 flex-col">

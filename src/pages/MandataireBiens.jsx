@@ -406,7 +406,7 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
   const t = TEXTES[espace];
   // Les sources, choisies par « Sources » dans la barre (26 oct. 2026, Jules ; sans la ligne de compétences sous la saisie).
   const outilsChat = useReglagesChatMandataire(espace === "estimation" ? ["estimation"] : ["mandat", "dossier"]);
-  const largeurChat = useLargeurChat();
+  const largeurChat = useLargeurChat({ moitie: espace === "estimation" });
   // Un bien né d'une fiche, sans avis encore : l'Avis de valeur commence par le récit de la visite (26 oct. 2026, Jules :
   // la Pré-visite ne parle que d'avant la visite).
   const recit = espace === "estimation" && !!bien?.proprietaire && !objet;

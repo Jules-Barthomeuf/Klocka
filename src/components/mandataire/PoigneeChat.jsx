@@ -9,11 +9,16 @@ import React, { useRef, useState } from "react";
 const CLE = "klocka.biens.largeur-chat.v2";
 const DEFAUT = 520;
 // Le document garde au moins 720 px : en deçà, sa barre d'outils passe sur deux lignes.
-const borner = (l, largeurGrille = (typeof window !== "undefined" ? window.innerWidth : 1600)) => Math.round(Math.min(Math.max(l, 320), Math.max(340, largeurGrille - 720)));
+// `jusquA` : la moitié de la grille au moins pour l'Estimation, qui s'ouvre à 50/50.
+const borner = (l, largeurGrille = (typeof window !== "undefined" ? window.innerWidth : 1600), jusquA = 0) => Math.round(Math.min(Math.max(l, 320), Math.max(340, largeurGrille - 720, jusquA)));
+
+// `moitie` (3 nov. 2026, Jules : « quand on arrive sur l'estimation, le chat et la partie de droite à 50/50 ») : à
+// l'arrivée, la moitié de l'écran, quelle que soit la largeur gardée ; la poignée la change ensuite, le double-clic y revient.
+const moitieEcran = () => Math.round((typeof window !== "undefined" ? window.innerWidth : 1600) / 2);
 
 /** @returns {{ largeur: number, poignee: React.ReactNode, tire: boolean }} la colonne du chat mesure `largeur` px depuis le bord gauche de la grille. */
-export function useLargeurChat() {
-  const [largeur, setLargeur] = useState(() => { try { const v = Number(localStorage.getItem(CLE)); return v ? borner(v) : DEFAUT; } catch { return DEFAUT; } });
+export function useLargeurChat({ moitie = false } = {}) {
+  const [largeur, setLargeur] = useState(() => { if (moitie) return moitieEcran(); try { const v = Number(localStorage.getItem(CLE)); return v ? borner(v) : DEFAUT; } catch { return DEFAUT; } });
   const [tire, setTire] = useState(false);
   const derniere = useRef(largeur);
   const grille = useRef(null);
@@ -23,7 +28,7 @@ export function useLargeurChat() {
     const r = e.currentTarget.parentElement?.getBoundingClientRect();
     grille.current = r?.left || 0;
     const largeurGrille = r?.width || window.innerWidth;
-    const bouger = (ev) => { derniere.current = borner(ev.clientX - grille.current, largeurGrille); setLargeur(derniere.current); };
+    const bouger = (ev) => { derniere.current = borner(ev.clientX - grille.current, largeurGrille, moitie ? Math.round(largeurGrille / 2) : 0); setLargeur(derniere.current); };
     const lacher = () => {
       setTire(false);
       try { localStorage.setItem(CLE, String(derniere.current)); } catch { /* navigation privée */ }
@@ -33,7 +38,7 @@ export function useLargeurChat() {
     window.addEventListener("pointermove", bouger);
     window.addEventListener("pointerup", lacher);
   };
-  const remettre = () => { setLargeur(DEFAUT); try { localStorage.removeItem(CLE); } catch { /* rien */ } };
+  const remettre = () => { setLargeur(moitie ? moitieEcran() : DEFAUT); try { localStorage.removeItem(CLE); } catch { /* rien */ } };
   const poignee = (
     <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
       onPointerDown={tirer} onDoubleClick={remettre}

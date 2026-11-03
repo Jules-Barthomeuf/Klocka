@@ -116,15 +116,6 @@ async function* morceauxReprenables(url, { surProgres = null, essais = 10, silen
   }
 }
 
-// Lancé seul (`node server/ouverture-commerces.js`) : la lecture du stock tourne dans son propre processus, jamais dans
-// celui du serveur (3 nov. 2026 : pendant la lecture, une fiche répondait en 9,6 s au lieu de 40 ms).
-const { pathToFileURL } = await import('url');
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  dater({ force: process.argv.includes('--force') })
-    .then((r) => { console.log(`[ouvertures] ${r.entrepot || 0} datés par l'entrepôt, ${r.stock?.poses || 0} par le stock national`); process.exit(0); })
-    .catch((e) => { console.warn('[ouvertures]', e?.message || e); process.exit(1); });
-}
-
 let enCours = false;
 /** Les deux, dans l'ordre ; le stock national au plus une fois par mois, et seulement s'il reste des commerces sans date. */
 export async function dater({ force = false } = {}) {
@@ -149,4 +140,13 @@ export async function dater({ force = false } = {}) {
     }
     return { ok: true, entrepot, stock };
   } finally { enCours = false; }
+}
+
+// Lancé seul (`node server/ouverture-commerces.js`) : la lecture du stock tourne dans son propre processus, jamais dans
+// celui du serveur (3 nov. 2026 : pendant la lecture, une fiche répondait en 9,6 s au lieu de 40 ms).
+const { pathToFileURL } = await import('url');
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  dater({ force: process.argv.includes('--force') })
+    .then((r) => { console.log(`[ouvertures] ${r.entrepot || 0} datés par l'entrepôt, ${r.stock?.poses || 0} par le stock national`); process.exit(0); })
+    .catch((e) => { console.warn('[ouvertures]', e?.message || e); process.exit(1); });
 }

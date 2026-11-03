@@ -32,7 +32,7 @@ import { ETAPES_BIEN, MOTS_PERDU, bienDe, bienDuProprietaire, enAttenteDuProprie
 import { ApercuAvis } from "@/pages/MandataireEstimation";
 import { Detail as DetailMarche, ETAPES_MARCHE } from "@/pages/MandataireMarche";
 import Visites from "@/components/mandataire/Visites";
-import DossierVente from "@/components/mandataire/DossierVente";
+import DossierVente, { MailDuChat } from "@/components/mandataire/DossierVente";
 import TeaserBien, { ActionsTeaser } from "@/components/mandataire/Teaser";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { Conversation, Resume, depuisMandataire } from "@/components/conversations/EspaceConversations";
@@ -350,7 +350,8 @@ function TempsMandat({ mandat, large, compact = false, geste = null }) {
     : n === 3 ? "Le mandat signé est arrivé dans la conversation. Vérifiez-le, puis « Mandat signé reçu »."
     : n === 2 ? "Mandat validé : il part en signature. La version finale signée arrivera dans la conversation."
     : n === 1 ? "Le mandat rempli est dans la conversation. Relisez-le et dites à l'équipe si c'est bon : elle l'envoie en signature."
-    : `Mandat envoyé. L'équipe le remplit au plus vite et vous l'envoie dans cette conversation${large ? ", le mandat à droite" : ""}. Relisez-le et dites-lui si c'est bon : elle l'envoie en signature, puis vous recevez la version finale signée.`;
+    // Les mots de Jules (3 nov. 2026) : plus de « le mandat à droite », ni de suite détaillée.
+    : "Le mandat est bien envoyé. L'équipe le remplit au plus vite et vous le renverra dans cette conversation. Relisez-le et dites-lui si c'est bon.";
   // Pendant l'échange, sous la barre du chat : la phrase et les temps sur une ligne, pour laisser la place au fil.
   return (
     <div className={`flex-none rounded-[12px] border border-bord-doux bg-surface/40 text-left ${compact ? "mt-2 px-3.5 py-2.5" : "mt-3 px-4 py-3.5"}`}>
@@ -697,7 +698,8 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
   const { data: v } = useQuery({ queryKey: ["m-dossier-vente", dossierId], queryFn: () => base44.request("GET", `/api/mandataire/dossiers/${encodeURIComponent(dossierId)}/vente`) });
   // Ce que Haka propose, tant que la conversation n'a pas commencé : la phrase du dossier, puis ses gestes en un tap.
   // Le mail que la veille a préparé passe avant tout le reste : c'est la question du jour.
-  // Le mail préparé vit en haut de la Data room, à droite (2 nov. 2026, Jules), plus sous la conversation.
+  // Le mail préparé revient à gauche, sous ce message (3 nov. 2026, Jules : « à droite, la Data room seule, sans le mail ;
+  // le mail s'écrit dans le chat »), sous la forme du brouillon du chat.
   const proposition = v ? (
     <div className="text-left">
       <p className="m-0 text-[12.5px] text-ardoise">L'Assistant KPartners</p>
@@ -711,7 +713,9 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
           return `${v.preference?.statut === "a_notifier" ? " Ensuite, pour la mise en vente" : "Pour mettre le bien en vente"} : ${autres.join(" ").replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())}.`;
         })()}
         {v.depot?.ouvert_le ? ` Le vendeur a ouvert son espace de dépôt le ${new Date(v.depot.ouvert_le).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}${v.depot.deposes ? ` et y a déposé ${v.depot.deposes} fichier${v.depot.deposes > 1 ? "s" : ""}` : ""}.` : v.depot?.propose_le ? " Le lien de dépôt est parti, le vendeur ne l'a pas encore ouvert." : ""}
+        {v.mail_propose ? ` ${v.mail_propose.raison} Envoyer\u00a0?` : ""}
       </p>
+      {v.mail_propose && <MailDuChat key={v.mail_propose.le} dossierId={dossierId} mail={v.mail_propose} boite={v.boite} />}
       {v.gestes?.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {v.gestes.map((g) => (
@@ -726,7 +730,7 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
   return (
     <EcranHaka bien={bien} large={large} entete={entete} onFermer={onFermer} dossierVenteId={dossierId} cles={["m-dossier-vente", "m-dossiers", "m-marches"]}
       placeholder="Demandez à l'Assistant KPartners : écris au vendeur, relance-le, explique ce point…" proposition={proposition} barre="La Data room" libelleTel="Voir la Data room"
-      droite={<DossierVente dossierId={dossierId} lecture />} />
+      droite={<DossierVente dossierId={dossierId} lecture />} classeDroite="k-dataroom-fond" />
   );
 }
 
@@ -763,7 +767,7 @@ function EtapeVente({ bien, large, entete, onFermer, onSuivante }) {
  * L'écran scindé d'une étape pilotée par Haka : son chat à gauche (la conversation du bien quand il vient de la
  * Prospection), ce qu'il propose tant qu'on n'a rien dit, et le document à droite. Au téléphone, comme la Visite.
  */
-function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, marcheId = null, cles = [], placeholder, proposition, droite, barre, libelleTel }) {
+function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, marcheId = null, cles = [], placeholder, proposition, droite, barre, libelleTel, classeDroite = "" }) {
   const outilsChat = useReglagesChatMandataire(["mail", "dossier"]);
   const largeurChat = useLargeurChat();
   const queryClient = useQueryClient();
@@ -804,7 +808,7 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
           {!conversation && <div className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto py-6">{proposition}</div>}
           <div className={conversation ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>{chat}</div>
         </div>
-        <div className="k-apercu-bien min-h-0 min-w-0">
+        <div className={`k-apercu-bien min-h-0 min-w-0 ${classeDroite}`}>
           <div className="flex h-full min-h-0 flex-col border-l border-trait">
             <div className="k-barre-apercu flex h-14 flex-none items-center border-b border-trait px-5 text-[12.5px] text-ardoise">{barre}</div>
             <div className="min-h-0 flex-1 overflow-y-auto pb-6 pl-6 pr-20 pt-4"><div className="mx-auto max-w-[820px]">{droite}</div></div>

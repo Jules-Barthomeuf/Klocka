@@ -227,6 +227,20 @@ export const Records = {
   },
 
   /**
+   * `champs`, sur les seuls enregistrements dont `champ` vaut `valeur` (3 nov. 2026) : l'état d'une ville (combien de
+   * propriétaires cherchés, combien de prix) décodait ses milliers de commerces entiers, onze secondes par ouverture
+   * de la prospection d'un mandataire. `updated_date` vient avec chaque ligne.
+   */
+  champsOu(entity, champ, valeur, chemins) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(champ)) return [];
+    const valides = chemins.filter((c) => /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(c));
+    const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}, json_type(data, '$.${c}') AS t${i}`).join(', ');
+    const lire = (r, i) => (['object', 'array'].includes(r[`t${i}`]) ? JSON.parse(r[`c${i}`]) : r[`c${i}`]);
+    return db.prepare(`SELECT id, updated_date${cols ? `, ${cols}` : ''} FROM records WHERE entity = ? AND json_extract(data, '$.${champ}') = ?`).all(entity, valeur)
+      .map((r) => ({ id: r.id, updated_date: r.updated_date, ...Object.fromEntries(valides.map((c, i) => [c, lire(r, i)])) }));
+  },
+
+  /**
    * Existe-t-il un enregistrement dont `champ` vaut `valeur` ? (30 oct. 2026) Rien n'est désérialisé, et le chemin
    * écrit en clair laisse SQLite prendre l'index de l'expression (ville_id) : savoir si une ville a des commerces
    * chargeait et décodait ses milliers de fiches.

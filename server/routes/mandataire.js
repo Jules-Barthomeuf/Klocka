@@ -774,6 +774,13 @@ export function monterMandataire(app) {
     const user = mandataire(req, res); if (!user) return;
     rendreFiche(res, (await FM()).reprendre(req.params.id, user));
   }));
+  // Le numéro de l'exploitant (3 nov. 2026, Jules) : Google Places, une fois par commerce, gardé (off-market/simple.js).
+  app.post('/api/mandataire/commerces/:id/numero', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const c = await (await import('../off-market/simple.js')).coordonnees(req.params.id);
+    if (!c) return res.status(404).json({ error: 'Commerce introuvable.' });
+    ok(res, { telephone: c.telephone || null, source: c.contact_source || null, cherche: !!c.contact_le });
+  }));
   // Le premier geste sur un point de la carte (ajouter, passer, appeler) : la fiche naît, à ce mandataire.
   app.post('/api/mandataire/commerces/:id/fiche', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;

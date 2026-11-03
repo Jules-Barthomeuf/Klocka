@@ -221,7 +221,7 @@ export async function balayerVille(villeId, { lire = fetch, cle = (process.env.G
     if (deja) {
       // Une franchise prend l'enseigne de Google ; la société du registre reste l'exploitant.
       const franchise = !memeVitrine(lieu, deja);
-      Records.update(COMMERCE, deja.id, { place_id: p.id, nom_google: lieu.nom, ...(deja.telephone ? {} : contact), ...(!deja.enseigne || franchise ? { enseigne: lieu.nom } : {}) });
+      Records.update(COMMERCE, deja.id, { place_id: p.id, nom_google: lieu.nom, ...(deja.telephone ? {} : contact), ...(!deja.enseigne || franchise ? { enseigne: lieu.nom, ...(p.activite ? { activite_google: p.activite } : {}) } : {}) });
       enrichis += 1;
       continue;
     }

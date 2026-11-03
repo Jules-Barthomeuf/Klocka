@@ -12,7 +12,8 @@ import { toast } from "@/components/ui/avis";
 import { PastilleTest } from "@/components/mandataire/kit";
 import { DRAPEAUX_COURTS, FenetreListe, LIENS, MenuFiltres, REPONSES } from "@/components/off-market/Simple";
 import { Case, Vide, bouton, boutonPlein, champ, euros, pl } from "@/components/off-market/commun";
-import { FILTRES_SIMPLE, comprendre, nbFiltres, passeSimple } from "@/lib/off-market-simple";
+import { FILTRES_SIMPLE, FONDS_COURTS, comprendre, estFonds, nbFiltres, passeSimple } from "@/lib/off-market-simple";
+import { montant } from "../../../server/montants.js";
 import { budgetDe, exclusionsDe, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
 
 // Prospecter pour ses clients (24 oct. 2026, Jules) : à gauche, la carte de son
@@ -27,7 +28,12 @@ import { budgetDe, exclusionsDe, veutEmplacement1, veutEnseigneNationale } from 
 const API = "/api/mandataire/prospecter";
 const MARGES = { top: 60, bottom: 40, left: 40, right: 40 };
 // Les murs d'un client sont déjà choisis : le filtre d'emplacement part de « toute la ville ».
-const FILTRES_DEPART = { ...FILTRES_SIMPLE, emplacement: "partout" };
+// Plus de points gris à l'arrivée (3 nov. 2026, Jules : « on arrive, on ne voit que les bleus et les verts ») : les
+// propriétaires inconnus et les recherches en cours se cochent dans Filtrer, au Lien.
+const FILTRES_DEPART = { ...FILTRES_SIMPLE, emplacement: "partout", liens: ["exploitant", "tiers"] };
+// Le mode Fonds (3 nov. 2026, Jules) : une prospection du mandataire pour sa propre activité, sans client Klocka ; les
+// commerces du secteur qui ont un signal de cession, filtrés par lui.
+const FONDS_DEPART = { ...FILTRES_SIMPLE, emplacement: "partout", types: ["fonds"] };
 
 export default function ProspecterClients({ bascule = null }) {
   // Relu à chaque ouverture : un secteur redessiné ou réattribué par Klocka se voit tout de suite.
@@ -53,7 +59,11 @@ export default function ProspecterClients({ bascule = null }) {
   const [prospecte, setProspecte] = useState("tous"); // « tous », ou l'id du client dont les murs sont sur la carte
   const [ouvert, setOuvert] = useState(null); // le commerce dont la fiche est ouverte
   const [replie, setReplie] = useState(false); // la carte du client, repliée quand une fiche s'ouvre
+  // Murs ou Fonds (3 nov. 2026, Jules) : jamais les deux ensemble ; les clients ne se rapprochent que des murs.
+  const [actif, setActif] = useState("murs");
+  const depart = actif === "fonds" ? FONDS_DEPART : FILTRES_DEPART;
   const [filtres, setFiltres] = useState(FILTRES_DEPART);
+  const filtresApres = useRef(null); // les filtres d'une phrase du chat qui change de mode, posés après le changement
   const client = clients[Math.min(i, Math.max(0, clients.length - 1))] || null;
   // Les clients déjà prospectés (25 oct. 2026, Jules) : leurs murs s'affichent d'eux-mêmes, sans recliquer « Prospecter ».
   // Le serveur garde la date ; un client prospecté pendant la visite s'ajoute ici.
@@ -84,10 +94,14 @@ export default function ProspecterClients({ bascule = null }) {
     const t = filtres.texte.trim().toLowerCase();
     return murs.filter((c) => passeSimple(c, filtres) && (!t || `${c.titre || ""} ${c.enseigne || ""} ${c.nom || ""} ${c.activite || ""} ${c.adresse || ""} ${c.proprietaire || ""} ${c.ville || ""}`.toLowerCase().includes(t)));
   }, [murs, filtres]);
-  const activites = useMemo(() => { const n = {}; for (const c of murs) if (c.activite) n[c.activite] = (n[c.activite] || 0) + 1; return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([v, k]) => ({ v, mot: v, n: k })); }, [murs]);
+  // En mode Fonds, les activités se comptent sur les fonds seuls (3 nov. 2026).
+  const activites = useMemo(() => { const n = {}; for (const c of murs) if (c.activite && (actif !== "fonds" || estFonds(c))) n[c.activite] = (n[c.activite] || 0) + 1; return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([v, k]) => ({ v, mot: v, n: k })); }, [murs, actif]);
   // Au survol d'un point : le commerce et son signal le plus fort.
   // Un point dont la fiche est dans Biens devient noir (24 oct. 2026).
-  const marqueurs = useMemo(() => visibles.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, titre: [p.titre, p.fiche?.dans_biens ? "dans Biens" : null, p.signaux?.[0]].filter(Boolean).join(" · "), couleur: p.fiche?.dans_biens ? JL.fond : LIENS[p.lien]?.couleur || JL.menthe })), [visibles]);
+  // En mode Fonds, les points en ambre, le premier signal de cession au survol (3 nov. 2026) ; les murs gardent le menthe
+  // (exploitant) et le bleu (bailleur).
+  const fonds = actif === "fonds";
+  const marqueurs = useMemo(() => visibles.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, titre: [p.titre, p.fiche?.dans_biens ? "dans Biens" : null, fonds ? FONDS_COURTS[p.fonds?.[0]] : p.signaux?.[0]].filter(Boolean).join(" · "), couleur: p.fiche?.dans_biens ? JL.fond : fonds ? JL.ambre : LIENS[p.lien]?.couleur || JL.menthe })), [visibles, fonds]);
   const secteurs = useMemo(() => (data?.secteur ? [{ ...data.secteur, teinte: data.secteur.teinte || JL.menthe }] : []), [data]);
   const clientProspecte = prospecte === "tous" ? null : clients.find((c) => c.id === prospecte) || null;
   // Le choix du client se fait dans la liste déroulante de la carte (25 oct. 2026, Jules) : « tous les commerces » en
@@ -104,7 +118,13 @@ export default function ProspecterClients({ bascule = null }) {
     if (!ouvert || !window.matchMedia("(max-width: 767px)").matches) return;
     requestAnimationFrame(() => boiteFiche.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [ouvert]);
-  useEffect(() => { setFiltres(FILTRES_DEPART); }, [prospecte]);
+  useEffect(() => { setFiltres(filtresApres.current || depart); filtresApres.current = null; }, [prospecte, actif]);
+  const choisirActif = (k) => {
+    if (k === actif) return;
+    // Le Fonds n'a pas de clients : tous les commerces du secteur, la fiche ouverte se ferme.
+    if (k === "fonds") { setTous(true); setOuvert(null); setReplie(false); }
+    setActif(k);
+  };
   // Prospecter depuis le chat (2 nov. 2026, Jules : « je veux que des boulangeries propriétaires exploitants ») : l'assistant
   // ouvre la page avec `?recherche=` ; la phrase devient les filtres de tous les commerces du secteur, une fois.
   const demande = useRef((() => { try { return new URLSearchParams(window.location.search).get("recherche"); } catch { return null; } })());
@@ -113,7 +133,8 @@ export default function ProspecterClients({ bascule = null }) {
     const phrase = demande.current;
     demande.current = null;
     const { filtres: f, compris } = comprendre(phrase, activites);
-    setFiltres({ ...FILTRES_DEPART, ...f });
+    if (f.types?.[0] === "fonds") { filtresApres.current = { ...FONDS_DEPART, ...f }; if (actif === "fonds") setFiltres(filtresApres.current); else choisirActif("fonds"); }
+    else setFiltres({ ...FILTRES_DEPART, ...f, liens: f.liens.length ? f.liens : FILTRES_DEPART.liens });
     try { const u = new URL(window.location.href); u.searchParams.delete("recherche"); window.history.replaceState(null, "", u); } catch { /* adresse inchangée */ }
     toast.success(compris.length ? `Filtré : ${compris.join(", ")}` : `Je n'ai rien reconnu dans « ${phrase} »`);
   }, [prospecte, murs, activites]);
@@ -134,9 +155,10 @@ export default function ProspecterClients({ bascule = null }) {
       {/* La barre du haut, comme « Tous les commerces » : la bascule, les filtres, où en sont les villes. */}
       <div className="flex flex-wrap items-center gap-2">
         {bascule}
-        {clients.length > 0 && <BasculeMode clients={!tous} onChange={(oui) => choisir(oui ? i : null)} />}
+        <SelecteurActif actif={actif} onChange={choisirActif} />
+        {!fonds && clients.length > 0 && <BasculeMode clients={!tous} onChange={(oui) => choisir(oui ? i : null)} />}
         {prospecte && (
-          <MenuFiltres filtres={filtres} setFiltres={setFiltres} commerces={murs} tous={murs} activites={activites} visibles={visibles.length} />
+          <MenuFiltres filtres={filtres} setFiltres={setFiltres} commerces={murs} tous={murs} activites={activites} visibles={visibles.length} depart={depart} />
         )}
         {/* Plus de pastille « n murs pour … » (25 oct. 2026, Jules) : le nombre est sur la carte du client et au-dessus du
             tableau, le chargement sur « Mettre à jour », et changer de client remplace les murs. */}
@@ -156,7 +178,7 @@ export default function ProspecterClients({ bascule = null }) {
             en absolu : il ne peut pas l'allonger. Dessous, une hauteur propre, le client puis la fiche l'un sous l'autre. */}
         <div className="relative min-w-0 max-lg:h-[62vh] max-lg:min-h-[460px] max-md:h-auto">
         <div className="flex min-w-0 flex-col gap-3 lg:absolute lg:inset-0 max-lg:h-full max-md:h-auto">
-          {!(data.villes || []).length ? (
+          {fonds ? null : !(data.villes || []).length ? (
             <p className="m-0 rounded-bloc border border-trait px-5 py-6 text-[13.5px] leading-[1.6] text-ardoise">K Partners n'a pas encore choisi les villes de votre secteur : vos clients s'afficheront ici dès qu'elles le seront.</p>
           ) : !clients.length ? (
             <CarteTous n={points.data?.total ?? murs.length} villes={data.villes} charge={attente} seule />
@@ -173,13 +195,13 @@ export default function ProspecterClients({ bascule = null }) {
             <AnimatePresence mode="wait" initial={false}>
             {ouvert ? (
               <motion.div key={ouvert} className="min-h-0 flex-1 overflow-y-auto" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.28, ease: "easeInOut" }}>
-                <PointOuFiche point={murs.find((x) => x.id === ouvert)} id={ouvert} onFermer={() => ouvrir(null)} />
+                <PointOuFiche point={murs.find((x) => x.id === ouvert)} id={ouvert} onFermer={() => ouvrir(null)} mode={actif} />
               </motion.div>
             ) : (
               <motion.div key="vide" className="grid flex-1 place-items-center px-6 py-8 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }}>
                 <p className="m-0 max-w-[36ch] text-[13.5px] leading-[1.6] text-ardoise">
                   {prospecte
-                    ? (murs.length ? "Cliquez un point de la carte ou une ligne du tableau : la fiche du commerce s'ouvre ici." : attente ? "Les murs pour ce client arrivent…" : (points.data?.pourquoi_vide || "Aucun mur pour ce client pour l'instant."))
+                    ? (fonds ? "Les commerces du secteur qui ont un signal de cession. Cliquez un point ou une ligne : la fiche du fonds s'ouvre ici." : murs.length ? "Cliquez un point de la carte ou une ligne du tableau : la fiche du commerce s'ouvre ici." : attente ? "Les murs pour ce client arrivent…" : (points.data?.pourquoi_vide || "Aucun mur pour ce client pour l'instant."))
                     : "Choisissez un client, puis « Prospecter » : ses murs se posent sur la carte et dans le tableau."}
                 </p>
               </motion.div>
@@ -192,7 +214,7 @@ export default function ProspecterClients({ bascule = null }) {
 
       {/* Le tableau des murs du client, sous la carte, comme « Tous les commerces ». */}
       {prospecte && (
-        <TableauMurs murs={visibles} total={murs.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={attente} />
+        <TableauMurs murs={visibles} total={murs.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={attente} depart={depart} fonds={fonds} />
       )}
     </div>
   );
@@ -203,10 +225,10 @@ export default function ProspecterClients({ bascule = null }) {
  * du commerce, à personne) avec deux gestes qui font naître sa fiche : « Je l'appelle », « J'y suis passé ». Une fois
  * sa fiche créée, c'est elle qui s'ouvre (la sienne : aucun autre mandataire ne peut la prendre).
  */
-function PointOuFiche({ id, onFermer, point }) {
+function PointOuFiche({ id, onFermer, point, mode = "murs" }) {
   // La fiche des listes, la même partout (25 oct. 2026, Jules) : celle de la carte d'une liste ; sans fiche encore, son
   // aperçu, avec « Ajouter à ma liste » qui la fait naître.
-  return <FicheMandataire id={point?.fiche?.id || null} commerceId={id} onFermer={onFermer} />;
+  return <FicheMandataire id={point?.fiche?.id || null} commerceId={id} onFermer={onFermer} mode={mode} />;
 }
 
 /** Où en est la préparation des villes (lecture, propriétaires, prix) : une pastille, le détail au survol. */
@@ -232,7 +254,7 @@ const GESTE = "inline-flex h-8 items-center gap-1.5 rounded-full border border-t
 const GESTE_PLEIN = "inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3 text-[13.5px] text-sur-menthe hover:bg-menthe-survol";
 
 /** Le tableau des murs : la recherche, « Tout afficher », l'envoi vers une liste, le tri par colonne, les pages. */
-function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charge }) {
+function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charge, depart = FILTRES_DEPART, fonds = false }) {
   const qc = useQueryClient();
   const [tri, setTri] = useState({ cle: "force", sens: -1 });
   const [page, setPage] = useState(0);
@@ -241,7 +263,7 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
   const PAR_PAGE = 50;
   useEffect(() => { setPage(0); }, [filtres, tri]);
   const tries = useMemo(() => {
-    const val = (c) => (tri.cle === "force" ? c.force : tri.cle === "commerce" ? (c.titre || "") : tri.cle === "prix" ? (c.prix?.moyenne || 0) : tri.cle === "signaux" ? c.drapeaux.length : tri.cle === "lien" ? (c.lien || "") : (c[tri.cle] || ""));
+    const val = (c) => (tri.cle === "force" ? c.force : tri.cle === "commerce" ? (c.titre || "") : tri.cle === "prix" ? (c.prix?.moyenne || 0) : tri.cle === "signaux" ? (fonds ? c.fonds?.length || 0 : c.drapeaux.length) : tri.cle === "ca" || tri.cle === "resultat" ? Number(c[tri.cle]) || 0 : tri.cle === "lien" ? (c.lien || "") : (c[tri.cle] || ""));
     return [...murs].sort((a, b) => { const x = val(a), y = val(b); return (typeof x === "number" ? x - y : String(x).localeCompare(String(y), "fr")) * tri.sens; });
   }, [murs, tri]);
   const pages = Math.max(1, Math.ceil(tries.length / PAR_PAGE));
@@ -249,7 +271,9 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
   const cocher = (c) => { if (c.liste) return; setCoches((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; }); };
   const libres = vue.filter((c) => !c.liste);
   const tousCoches = libres.length > 0 && libres.every((c) => coches.has(c.id));
-  const colonnes = [["commerce", "Commerce"], ["adresse", "Adresse"], ["nom", "Exploitant"], ["proprietaire", "Propriétaire des murs"], ["lien", "Lien"], ["signaux", "Raison de vendre"], ["prix", "Prix pour lui"], ["appel", "Appel"]];
+  // En mode Fonds (3 nov. 2026) : le signal de cession et les chiffres publics, à la place des murs et du prix.
+  const colonnes = fonds ? [["commerce", "Commerce"], ["adresse", "Adresse"], ["nom", "Exploitant"], ["signaux", "Signal"], ["ca", "Chiffre d'affaires"], ["resultat", "Résultat"], ["appel", "Appel"]]
+    : [["commerce", "Commerce"], ["adresse", "Adresse"], ["nom", "Exploitant"], ["proprietaire", "Propriétaire des murs"], ["lien", "Lien"], ["signaux", "Raison de vendre"], ["prix", "Prix pour lui"], ["appel", "Appel"]];
   return (
     // Au dessin du tableau d'une liste (30 oct. 2026, Jules) : la zone à points, la barre (recherche en pilule, chiffres,
     // gestes), puis le tableau à traits continus, les deux premières colonnes fixes, tout en 13,5 px. La raison de vendre
@@ -261,11 +285,11 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
           <input value={filtres.texte} onChange={(e) => setFiltres((f) => ({ ...f, texte: e.target.value }))} placeholder="Enseigne, activité, rue, propriétaire"
             className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
-        {nbFiltres({ ...filtres, emplacement: "centre" }) > 0 && <button type="button" onClick={() => setFiltres(FILTRES_DEPART)} className={GESTE} style={{ background: "transparent" }}><X className="h-3.5 w-3.5" />Tout afficher</button>}
+        {JSON.stringify({ ...filtres, emplacement: "partout" }) !== JSON.stringify(depart) && <button type="button" onClick={() => setFiltres(depart)} className={GESTE} style={{ background: "transparent" }}><X className="h-3.5 w-3.5" />Tout afficher</button>}
         <button type="button" onClick={() => setVersListe(true)} disabled={!coches.size} className={coches.size ? GESTE_PLEIN : GESTE} style={coches.size ? undefined : { background: "transparent" }}><ListPlus className="h-3.5 w-3.5" />Envoyer vers une liste{coches.size ? ` (${coches.size})` : ""}</button>
         {coches.size > 0 && <button type="button" onClick={() => setCoches(new Set())} className="text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>}
         <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0">
-          <span className="tabular-nums text-menthe">{tries.length}</span> mur{tries.length > 1 ? "s" : ""}{tries.length !== total ? <> sur <span className="tabular-nums text-encre">{total}</span></> : null}
+          <span className="tabular-nums text-menthe">{tries.length}</span> {fonds ? "fonds" : `mur${tries.length > 1 ? "s" : ""}`}{tries.length !== total ? <> sur <span className="tabular-nums text-encre">{total}</span>{fonds ? " commerces" : ""}</> : null}
           {pages > 1 && <> · {page * PAR_PAGE + 1} à {Math.min(tries.length, (page + 1) * PAR_PAGE)}</>}
         </span>
         {pages > 1 && (
@@ -299,11 +323,18 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
                     <span className="grid place-items-center"><Case bord={TRAIT} oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></span>
                   </td>
                   <td className={`sticky left-[44px] z-10 border-b border-r ${TRAIT} bg-rail py-4 pl-2 pr-4 align-middle`}>
-                    <span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: LIENS[c.lien]?.couleur || JL.brume }} />
+                    <span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: fonds ? JL.ambre : LIENS[c.lien]?.couleur || JL.brume }} />
                       <span className="min-w-0"><span className="block max-w-[240px] truncate text-encre group-hover:text-menthe">{c.titre}</span><span className="block max-w-[240px] truncate text-ardoise">{c.activite}</span></span></span>
                   </td>
                   <td className={`${cellule} max-w-[240px]`}><span className="block truncate text-encre">{c.adresse}</span><span className="block truncate text-ardoise">{c.ville}</span></td>
                   <td className={`${cellule} max-w-[220px]`}><span className="block truncate text-encre">{c.exploitant || c.nom || c.titre}</span></td>
+                  {fonds ? (<>
+                  <td className={`${cellule} min-w-[200px]`}>{c.fonds?.length
+                    ? <span className="line-clamp-2 leading-[1.5] text-lu-ia">{c.fonds.slice(0, 2).map((d) => FONDS_COURTS[d] || d).join(" · ")}{c.fonds.length > 2 ? ` · +${c.fonds.length - 2}` : ""}</span>
+                    : <span className="text-brume">—</span>}</td>
+                  <td className={`${cellule} whitespace-nowrap tabular-nums text-encre`}>{c.ca ? montant(c.ca) : <span className="text-brume">—</span>}</td>
+                  <td className={`${cellule} whitespace-nowrap tabular-nums ${Number(c.resultat) > 0 ? "text-encre" : "text-ardoise"}`}>{c.resultat ? montant(c.resultat) : <span className="text-brume">—</span>}</td>
+                  </>) : (<>
                   <td className={`${cellule} max-w-[240px]`}><span className="block truncate text-encre">{c.proprietaire || <span className="text-brume">À trouver</span>}</span></td>
                   <td className={`${cellule} whitespace-nowrap text-encre`}>{(LIENS[c.lien]?.mot || "").replace(" (probable)", "") || <span className="text-brume">—</span>}</td>
                   <td className={`${cellule} min-w-[200px]`}>{c.drapeaux.length
@@ -312,13 +343,14 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
                   <td className={`${cellule} whitespace-nowrap tabular-nums`}>{c.prix?.moyenne
                     ? <span className={c.dans_budget === false ? "text-brume" : "text-encre"} title={c.prix.au_rendement ? `Le prix qui lui donne ${String(c.prix.au_rendement).replace(".", ",")} % (prix estimé : ${euros(c.prix_estime?.moyenne)})` : `Prix indicatif, entre ${euros(c.prix.basse)} et ${euros(c.prix.haute)}`}>{euros(c.prix.moyenne)}{c.dans_budget === false ? " · hors budget" : ""}</span>
                     : <span className="text-ambre" title="Aucune estimation pour ce local encore : à vérifier avec le propriétaire">Prix à vérifier</span>}</td>
+                  </>)}
                   <td className={`border-b ${TRAIT} whitespace-nowrap px-4 py-4 align-middle`}>{c.reponse ? <span className="text-menthe">{REPONSES[c.reponse]?.split(",")[0] || "Appelé"}</span> : c.liste ? <span className="text-ardoise">Liste « {c.liste.nom} »</span> : <span className="text-brume">—</span>}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        {!tries.length && !charge && <Vide>Aucun mur avec ces filtres.</Vide>}
+        {!tries.length && !charge && <Vide>{fonds ? "Aucun fonds avec ces filtres." : "Aucun mur avec ces filtres."}</Vide>}
       </div>
       {versListe && <FenetreListe ids={[...coches]} onFermer={() => setVersListe(false)} onFait={() => { setVersListe(false); setCoches(new Set()); qc.invalidateQueries({ queryKey: ["m-prospecter", "points"] }); }} />}
     </section>
@@ -329,6 +361,19 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
  * L'interrupteur Mode Libre / Mode Clients (2 nov. 2026, Jules : « pas intuitif pour voir les clients ») : à la place de
  * « Tous les commerces » dans la liste des clients. Libre : tous les commerces du secteur ; Clients : les murs d'un client.
  */
+/** Murs · Fonds (3 nov. 2026, Jules), la pilule des choix à deux de la page. */
+function SelecteurActif({ actif, onChange }) {
+  return (
+    <div className="flex h-10 items-center gap-0.5 rounded-full border border-bord-doux bg-rail p-1" role="tablist" aria-label="Murs ou fonds de commerce">
+      {[["murs", "Murs"], ["fonds", "Fonds"]].map(([k, mot]) => (
+        <button key={k} type="button" role="tab" aria-selected={actif === k} onClick={() => onChange(k)}
+          className={`h-8 rounded-full px-4 text-[14px] transition-colors ${actif === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+          style={actif === k ? undefined : { background: "transparent" }}>{mot}</button>
+      ))}
+    </div>
+  );
+}
+
 function BasculeMode({ clients, onChange }) {
   return (
     <button type="button" role="switch" aria-checked={clients} onClick={() => onChange(!clients)}
@@ -464,7 +509,7 @@ function CarteClient({ client, selecteur, onProspecter, actif, replie = false, o
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-trait px-4 py-3">
         <span className="min-w-0 text-[13.5px]">
-          <span className="tabular-nums text-menthe">{client.n}</span> <span className="text-ardoise">mur{client.n > 1 ? "s" : ""} pour lui</span>
+          {/* Plus de « n murs pour lui » (3 nov. 2026, Jules) : la carte et le tableau les montrent. */}
           {prospecteLe && <span className="block text-[12px] text-brume">Prospecté le {new Date(prospecteLe).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span>}
         </span>
         {/* Déjà prospecté : ses murs sont déjà sur la carte ; le bouton les remet à jour. Sinon, « Prospecter ». */}

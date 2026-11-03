@@ -75,11 +75,12 @@ test('dossier : checklist, relance, envoi à Klocka, décision', async () => {
   assert.equal(relance.destinataire, 'martin@x.fr');
   assert.match(relance.corps, /Bail commercial/);
   assert.equal((await P.soumettreDossier(d.id, MOI)).ok, false, 'sans aucune pièce');
-  for (const cle of ['bail', 'quittances', 'diagnostics']) P.ajouterPiece(d.id, cle, { filename: `${cle}.pdf`, url: `/uploads/${cle}.pdf` }, MOI);
+  for (const cle of ['bail', 'quittances']) P.ajouterPiece(d.id, cle, { filename: `${cle}.pdf`, url: `/uploads/${cle}.pdf` }, MOI);
   assert.equal(P.lireDossier(d.id, MOI).statut, 'documents_en_cours');
   assert.equal(P.checklist(P.lireDossier(d.id, MOI)).envoyable, true, 'transférable sans être complet');
-  const complet = P.ajouterPiece(d.id, 'taxe_fonciere', { filename: 'tf.pdf', url: '/uploads/tf.pdf' }, MOI).dossier;
-  assert.equal(complet.statut, 'complet', 'la copropriété et le Kbis sont facultatifs');
+  // Trois pièces obligatoires (3 nov. 2026, Jules) : le bail, les quittances, les diagnostics ; la taxe foncière est facultative.
+  const complet = P.ajouterPiece(d.id, 'diagnostics', { filename: 'diagnostics.pdf', url: '/uploads/diagnostics.pdf' }, MOI).dossier;
+  assert.equal(complet.statut, 'complet', 'la copropriété, le Kbis et la taxe foncière sont facultatifs');
   assert.equal(P.relanceProprietaire(complet), null);
   const s = await P.soumettreDossier(d.id, MOI);
   assert.equal(s.dossier.statut, 'en_etude');
@@ -192,6 +193,9 @@ test('la Data room hérite : le bail de l’avis, les photos de la visite, les p
   assert.deepEqual(h.pieces_demandees.map((x) => x.cle), ['statuts_vendeur', 'kbis_vendeur', 'pouvoirs']);
   const c = P.checklist({ documents: h.documents, pieces_demandees: h.pieces_demandees });
   assert.ok(c.lignes.find((l) => l.cle === 'bail').recue);
-  assert.ok(c.manquantes.some((l) => l.cle === 'pouvoirs'), 'les pouvoirs sont requis');
+  // Facultatives depuis le 3 nov. 2026 (Jules) : elles se proposent sans bloquer.
+  assert.ok(c.lignes.some((l) => l.cle === 'pouvoirs' && !l.requise), 'les pouvoirs se demandent, facultatifs');
+  assert.ok(!c.manquantes.some((l) => l.cle === 'pouvoirs'));
+  assert.equal(P.piecesDu({ pieces_demandees: [{ cle: 'kbis_vendeur', mot: 'Kbis de la société venderesse' }] })[P.PIECES.length].mot, 'Kbis de la société vendeuse', 'un ancien dossier se lit avec les mots du jour');
   assert.deepEqual(P.heritageDuDossier({}), { documents: {}, photos: [], pieces_demandees: [] });
 });

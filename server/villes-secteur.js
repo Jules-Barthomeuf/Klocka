@@ -223,7 +223,7 @@ export async function entretenir() {
     for (const c of await communesALire(s).catch(() => [])) {
       const v = Records.list('Ville').find((x) => (c.code && x.code_insee === c.code) || norm(x.nom) === norm(c.nom));
       if (!v || !estLue(v) || enCours === v.id || enFile.has(v.id)) continue;
-      const e = S.etatDe(v.id);
+      const e = S.etatLeger(v.id);
       if (e.a_faire > 0 && !e.en_fond) S.demarrerFond(v.id);
       if (!e.prix_en_cours) S.demarrerPrix(v.id);
     }
@@ -244,6 +244,7 @@ export function planifier() {
 export async function preparation(v) {
   if (!v) return null;
   const S = await import('./off-market/simple.js');
-  const e = S.etatDe(v.id);
+  // Les comptes seuls, lus par la base (3 nov. 2026) : etatDe décodait chaque commerce de la ville.
+  const e = S.etatLeger(v.id);
   return { etat: etatVille(v), commerces: e.total, proprietaires_faits: e.faits, proprietaires_a_faire: e.a_faire + e.en_cours, avec_prix: e.avec_prix, en_cours: etatVille(v) !== 'lue' || e.en_fond || e.prix_en_cours };
 }

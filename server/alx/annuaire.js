@@ -114,11 +114,15 @@ export function normaliser(e) {
       nom_famille: d.type_dirigeant === 'personne morale' ? null : String(d.nom || '').replace(/\([^)]*\)/g, ' ').trim() || null,
       qualite: d.qualite || null,
       tranche_age: trancheAge(d.annee_de_naissance),
+      // « Plus de 60 ans », pour le fonds de commerce (3 nov. 2026) : une tranche de plus, jamais l'année elle-même.
+      plus_de_60: Number(d.annee_de_naissance) > 1900 ? new Date().getFullYear() - Number(d.annee_de_naissance) >= 60 : null,
       personne_morale: d.type_dirigeant === 'personne morale',
     })),
     // Des comptes sont publiés si l'annuaire a au moins un exercice.
     comptes_deposes: finances.length > 0,
     derniers_comptes: finances.length ? e.finances[finances.sort().pop()] : null,
+    // Tous les exercices publiés (3 nov. 2026) : un résultat stable se lit sur plusieurs années.
+    comptes: finances.length ? Object.fromEntries(finances.sort().map((k) => [k, e.finances[k]])) : null,
     source: 'Annuaire des entreprises',
     lu_le: new Date().toISOString(),
   };

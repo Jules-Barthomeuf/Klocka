@@ -7,6 +7,7 @@
 // que le bien n'est pas en vente. Rien ne part vers Drive ni Monday avant la mise en vente.
 
 import { Records } from './db.js';
+import { URL_CANONIQUE } from './contexte.js';
 
 const JOUR = 86400000;
 const maintenant = () => new Date().toISOString();
@@ -328,8 +329,9 @@ export async function mettreEnVente(id, user, { uploadDir } = {}) {
 // ---------------------------------------------------------------------------
 
 const DUREE_DEPOT = 90 * JOUR;
-const urlApp = () => (process.env.APP_URL || `http://localhost:${process.env.PORT || 3001}`).replace(/\/$/, '');
-export const urlDeDepot = (jeton) => `${urlApp()}/DepotVendeur?jeton=${encodeURIComponent(jeton)}`;
+// Le lien part chez un vrai vendeur (3 nov. 2026, Jules : « un vrai lien app.klocka.immo, pas un localhost ») : l'adresse
+// publique de l'application, jamais celle de la machine qui écrit le mail.
+export const urlDeDepot = (jeton) => `${URL_CANONIQUE}/DepotVendeur?jeton=${encodeURIComponent(jeton)}`;
 
 /** Le lien de dépôt du dossier : créé une fois, prolongé quand il sert de nouveau. */
 export async function lienDeDepot(id, user) {
@@ -550,7 +552,7 @@ export function cadreDuDossier(v, d, gestes = []) {
     // qu'il y a à faire, pas l'humain qui va appuyer sur des boutons ») : la colonne de droite se lit, elle n'agit pas.
     `C'EST TOI QUI GUIDES : la colonne de droite montre le dossier en lecture seule, sans bouton ; le mandataire n'agit que par toi. Tu demandes, tu proposes le geste, il dit oui.`,
     // L'arrivée fait le travail (2 nov. 2026 au soir, Jules) : plus de question « quels documents avez-vous ? ».
-    `LES PIÈCES D'ABORD. Au mandat signé, tu as déjà dit ce qui est dans la Data room, la pièce prioritaire, et préparé le mail au propriétaire : il est à droite, en haut de la Data room, et part d'un tap sur « Envoyer ». Ne demande JAMAIS quels documents il a : la Data room le dit. S'il glisse des pièces ici, range-les. S'il demande le mail, ou s'il a été écarté : mail_vendeur (« premier »), puis dis qu'il est à droite. Sans adresse du propriétaire, demande-la en une ligne, c'est la seule question. Les relances : à ${DELAI_RELANCE_JOURS} jours sans pièce, la relance est prête à droite ; après ${RELANCES_AVANT_APPEL} relances, propose d'appeler. La pièce prioritaire : ${prio ? `${prio.mot} (${prio.raison})` : 'aucune, les requises sont là'}. Ensuite seulement le droit de préférence du locataire, les photos, puis la mise en vente.`,
+    `LES PIÈCES D'ABORD. Au mandat signé, tu as déjà dit ce qui est dans la Data room, la pièce prioritaire, et préparé le mail au propriétaire : il est dans ce chat, sous ton premier message, et part d'un tap sur « Envoyer » (la Data room, à droite, ne montre que les pièces). Ne demande JAMAIS quels documents il a : la Data room le dit. S'il glisse des pièces ici, range-les. S'il demande le mail, ou s'il a été écarté : mail_vendeur (« premier »), puis dis qu'il est juste dessous. Sans adresse du propriétaire, demande-la en une ligne, c'est la seule question. Les relances : à ${DELAI_RELANCE_JOURS} jours sans pièce, la relance se prépare ici, dans le chat (mail_vendeur « relance ») ; après ${RELANCES_AVANT_APPEL} relances, propose d'appeler. La pièce prioritaire : ${prio ? `${prio.mot} (${prio.raison})` : 'aucune, les requises sont là'}. Ensuite seulement le droit de préférence du locataire, les photos, puis la mise en vente.`,
     gestes.length ? `Gestes à proposer, dans l'ordre : ${gestes.map((x) => x.libelle).join(', ')}.` : '',
     "Outils : dossier_de_vente (relire l'état), mail_vendeur (premier mail avec le lien de dépôt, ou relance : un brouillon que le mandataire envoie de sa messagerie), trancher_point (Traité, À expliquer à l'acheteur, À corriger avec le vendeur), droit_de_preference (notifiée le, réponse, exception, ou le courrier), mettre_en_vente (une carte à confirmer d'un tap). Pour un point, explique en une phrase ce qu'un acheteur en dira et conseille une décision ; ne tranche que si le mandataire le dit. N'invente jamais une date de notification ni une réponse du locataire.",
   ].filter(Boolean).join('\n');
@@ -600,13 +602,13 @@ export async function executerOutilDossier(appel, user, contexte = {}) {
     const genre = input.genre === 'relance' ? 'relance' : 'premier';
     Records.update('DossierMandataire', d.id, { mail_propose: { genre, raison: genre === 'relance' ? 'Relance préparée à votre demande.' : 'Mail au vendeur préparé à votre demande.', a: d.proprietaire_email || '', objet: m.objet, corps, le: maintenant() } });
     const boite = await boiteDuMandataire(user.email);
-    return { ok: true, brouillon: { destinataire: d.proprietaire_email || '', objet: m.objet, corps, dossier_vente: { id: d.id, genre } }, lien: l.url, note: boite ? `Le mail est à droite, en haut de la Data room : « Envoyer » le fait partir de ${boite.email}. Dis-le en une ligne, sans recopier le mail.` : "Le mail est à droite, en haut de la Data room : sans boîte connectée, « Envoyer » ouvre la messagerie du mandataire. Dis-le en une ligne, sans recopier le mail." };
+    return { ok: true, brouillon: { destinataire: d.proprietaire_email || '', objet: m.objet, corps, dossier_vente: { id: d.id, genre } }, lien: l.url, note: boite ? `Le brouillon s'affiche dans le chat, sous ta réponse : « Envoyer » le fait partir de ${boite.email}. Dis-le en une ligne, sans recopier le mail.` : "Le brouillon s'affiche dans le chat, sous ta réponse : sans boîte connectée, il s'ouvre dans la messagerie du mandataire. Dis-le en une ligne, sans recopier le mail." };
   }
   if (appel.name === 'trancher_point') return deciderPoint(d.id, input.cle, input.decision || null, user);
   if (appel.name === 'droit_de_preference') {
     if (input.action === 'courrier') {
       const v = await vueDuDossier(d.id, user);
-      return { ok: true, courrier: v.courrier, note: "Le courrier est aussi sous « Préparer la notification », à droite. Le propriétaire le signe et l'envoie en recommandé avec accusé de réception ; le notaire le relit (il doit reproduire l'article mot pour mot)." };
+      return { ok: true, courrier: v.courrier, note: "Donne le courrier dans ta réponse. Le propriétaire le signe et l'envoie en recommandé avec accusé de réception ; le notaire le relit (il doit reproduire l'article mot pour mot)." };
     }
     if (input.action === 'notifiee') return noterPreference(d.id, { notifie_le: input.date || null }, user);
     if (input.action === 'reponse') return noterPreference(d.id, { reponse: input.reponse || null }, user);
@@ -652,7 +654,7 @@ export function mailAPreparer(v, depot = null, { aujourdhui = new Date(), deja =
     if (depot.appel_propose_le) return null;
     return { genre: 'appel', manquantes, raison: `${de.charAt(0).toUpperCase()}${de.slice(1)} manque${manquantes.length > 1 ? 'nt' : ''} toujours après ${depot.relances} relances. Un appel débloquera sûrement la situation.` };
   }
-  return { genre: 'relance', manquantes, raison: `Il manque encore ${de} depuis ${n} jour${n > 1 ? 's' : ''} : j'ai préparé la relance, elle est à droite.` };
+  return { genre: 'relance', manquantes, raison: `Il manque encore ${de} depuis ${n} jour${n > 1 ? 's' : ''} : j'ai préparé la relance, la voici.` };
 }
 
 /** Pure : quoi dire au propriétaire au téléphone, quand les relances n'ont rien donné. */

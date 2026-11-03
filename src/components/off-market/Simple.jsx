@@ -10,7 +10,7 @@ import CarteOffMarket from "./CarteOffMarket";
 import FacadeLocal from "./FacadeLocal";
 import { BlocZone, dessinAvecZone, useFileAJuger, useZone } from "./JugementZone";
 import { Case, Vide, bouton, boutonPlein, champ, dateCourte, euros, pl, req } from "./commun";
-import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_CLASSE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_PROPRIETAIRE, basculer, cleLien, compteDe, depuisAuMoins, estExploitant, nbFiltres, passeSimple } from "@/lib/off-market-simple";
+import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_CLASSE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_CA, OPTIONS_PROPRIETAIRE, SIGNAUX_FONDS, aLeSignal, basculer, cleLien, compteDe, depuisAuMoins, estExploitant, estFonds, nbFiltres, passeSimple, typesDe } from "@/lib/off-market-simple";
 import Chargement from "@/components/ui/Chargement";
 import { accroche, budgetDe, exclusionsDe, pourClient, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
 
@@ -61,9 +61,14 @@ function SectionFiltre({ titre, options, choisis, onChange, multiple = true, rec
 }
 
 /** Le bouton « Filtrer » de la barre du haut, et son menu sous le bouton. */
-export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, activites, visibles, zones = [], scoreZone = null }) {
+export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, activites, visibles, zones = [], scoreZone = null, depart = FILTRES_SIMPLE }) {
   const [ouvert, setOuvert] = useState(false);
-  const n = nbFiltres({ ...filtres, texte: "" });
+  // Les filtres de départ ne comptent pas (les liens d'arrivée du mandataire, sans les points gris, 3 nov. 2026).
+  const memesLiens = JSON.stringify(filtres.liens) === JSON.stringify(depart.liens);
+  const n = nbFiltres({ ...filtres, texte: "", liens: memesLiens ? [] : filtres.liens });
+  // Les filtres du type d'actif choisi au sélecteur Murs · Fonds de l'onglet (3 nov. 2026, Jules).
+  const page = typesDe(filtres)[0];
+  const villes = useMemo(() => { const n = {}; for (const c of commerces) if (c.ville && estFonds(c)) n[c.ville] = (n[c.ville] || 0) + 1; return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([v, k]) => ({ v, mot: v, n: k })); }, [commerces]);
   // Les recherches enregistrées (2 nov. 2026, Jules) : à chacun les siennes, un clic les rejoue.
   const qc = useQueryClient();
   const recherchesQ = useQuery({ queryKey: ["prospection-recherches"], queryFn: () => req("GET", "/simple/recherches"), enabled: ouvert, staleTime: 60_000 });
@@ -87,7 +92,7 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
   }, [ouvert]);
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[14px] transition-colors ${n ? "border-transparent bg-pervenche/10 text-encre" : "border-bord-doux bg-rail text-craie hover:text-encre"}`}>
+      <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif">
         <SlidersHorizontal className="h-4 w-4" />Filtrer{n > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-pervenche px-1.5 text-[11.5px] text-fond">{n}</span>}
       </button>
       {/* La fenêtre des filtres monte du bas et se pose au milieu de l'écran (Jules, 11 oct. 2026). */}
@@ -118,27 +123,53 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
             )}
           </div>
           {/* Les filtres défilent, « Tout effacer » et « Voir n commerces » restent en bas (Jules, 31 oct. 2026). */}
-          <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-4 md:grid-cols-3">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+          {page === "fonds" ? (
+            // Le mode Fonds (3 nov. 2026, Jules) : le signal de cession, la zone, l'activité, les chiffres publics et la rue.
+            <div className="grid gap-5 p-4 md:grid-cols-3">
+              <div className="flex flex-col gap-5">
+                <SectionFiltre titre="Signal" choisis={filtres.fonds || []} onChange={maj("fonds")} options={SIGNAUX_FONDS.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => estFonds(c) && aLeSignal(c, v)) }))} />
+                {villes.length > 1 && <SectionFiltre titre="Zone" multiple={false} choisis={filtres.ville ? [filtres.ville] : []} onChange={un("ville")} options={villes} />}
+              </div>
+              <div className="flex flex-col gap-5">
+                <SectionFiltre titre="Activité" recherche choisis={filtres.activites} onChange={maj("activites")} options={activites} />
+              </div>
+              <div className="flex flex-col gap-5">
+                {/* Toujours là, sans « Plus de filtres » (3 nov. 2026, Jules). */}
+                <>
+                  <SectionFiltre titre="Chiffre d'affaires" multiple={false} choisis={filtres.ca ? [filtres.ca] : []} onChange={un("ca")} options={OPTIONS_CA.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => estFonds(c) && Number(c.ca) >= Number(v)) }))} />
+                  <SectionFiltre titre="Résultat" multiple={false} choisis={filtres.resultat ? [filtres.resultat] : []} onChange={un("resultat")} options={[{ v: "positif", mot: "Positif aux derniers comptes", n: compteDe(commerces, (c) => estFonds(c) && Number(c.resultat) > 0) }]} />
+                  <label className="flex flex-col">
+                    <span className="m-0 mb-1 px-1 text-[11px] uppercase tracking-[.14em] text-brume">Rue</span>
+                    <input value={filtres.rue || ""} onChange={(e) => setFiltres((f) => ({ ...f, rue: e.target.value }))} placeholder="Rue de la République" className={`${champ} h-9 w-full max-md:text-[16px]`} />
+                  </label>
+                </>
+              </div>
+            </div>
+          ) : (
+          <div className="grid gap-5 p-4 md:grid-cols-3">
             <div className="flex flex-col gap-5">
               {/* La classe d'actif en tête (26 oct. 2026, Jules) : commerce, bureaux, entrepôt ; rien de coché = tout. Seulement
                   s'il y a plus d'une classe à l'écran : un mandataire n'a que des commerces (31 oct. 2026, PLAN.md 0.4). */}
               {new Set(commerces.map((c) => c.classe || "commerce")).size > 1 && <SectionFiltre titre="Classe d'actif" choisis={filtres.classes || []} onChange={maj("classes")} options={OPTIONS_CLASSE.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => (c.classe || "commerce") === v) }))} />}
               <SectionFiltre titre="Emplacement" multiple={false} choisis={[filtres.emplacement || "centre"]} onChange={(v) => setFiltres((f) => ({ ...f, emplacement: v[0] || "centre" }))} options={OPTIONS_EMPLACEMENT.map(([v, mot]) => ({ v, mot, n: v === "centre" ? compteDe(tous, (c) => c.centre !== false) : tous.length }))} />
               {zones.length > 0 && <SectionFiltre titre="Zone" choisis={filtres.zones} onChange={(v) => setFiltres((f) => ({ ...f, zones: v, emplacement: v.length ? "centre" : f.emplacement }))} options={zones.map((z) => ({ v: z.nom, mot: z.nom, n: compteDe(tous, (c) => c.zone === z.nom) }))} />}
-              <SectionFiltre titre="Lien" choisis={filtres.liens} onChange={maj("liens")} options={OPTIONS_LIEN.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => cleLien(c) === v) }))} />
+              {<SectionFiltre titre="Lien" choisis={filtres.liens} onChange={maj("liens")} options={OPTIONS_LIEN.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => cleLien(c) === v) }))} />}
               {/* Le score Zone (équipe Klocka, 11 oct. 2026) : masquer les points sous un seuil. */}
               {scoreZone && <SectionFiltre titre="Score Zone" multiple={false} choisis={scoreZone.masquer ? [String(scoreZone.seuil)] : []} onChange={(v) => scoreZone.choisir(v[0] ? Number(v[0]) : null)} options={[30, 40, 50, 60].map((k) => ({ v: String(k), mot: `Masquer sous ${k}`, n: compteDe(commerces, (c) => scoreZone.points[c.id]?.score_zone != null && scoreZone.points[c.id].score_zone < k) }))} />}
-              <SectionFiltre titre="Propriétaire des murs" choisis={filtres.proprietaires} onChange={maj("proprietaires")} options={OPTIONS_PROPRIETAIRE.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => (c.proprietaire_type || "inconnu") === v) }))} />
+              {<SectionFiltre titre="Propriétaire des murs" choisis={filtres.proprietaires} onChange={maj("proprietaires")} options={OPTIONS_PROPRIETAIRE.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => (c.proprietaire_type || "inconnu") === v) }))} />}
             </div>
             <div className="flex flex-col gap-5">
               <SectionFiltre titre="Activité" recherche choisis={filtres.activites} onChange={maj("activites")} options={activites} />
             </div>
             <div className="flex flex-col gap-5">
-              <SectionFiltre titre="Raison de vendre" choisis={filtres.drapeaux} onChange={maj("drapeaux")} options={Object.entries(DRAPEAUX).map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => c.drapeaux.includes(v)) }))} />
+              {<SectionFiltre titre="Raison de vendre" choisis={filtres.drapeaux} onChange={maj("drapeaux")} options={Object.entries(DRAPEAUX).map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => c.drapeaux.includes(v)) }))} />}
               <SectionFiltre titre="Installé depuis" multiple={false} choisis={filtres.anciennete ? [filtres.anciennete] : []} onChange={un("anciennete")} options={OPTIONS_ANCIENNETE.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => depuisAuMoins(c, Number(v))) }))} />
               <SectionFiltre titre="Enseigne" multiple={false} choisis={filtres.chaine ? [filtres.chaine] : []} onChange={un("chaine")} options={[{ v: "independant", mot: "Indépendant", n: compteDe(commerces, (c) => !c.chaine) }, { v: "chaine", mot: "Chaîne", n: compteDe(commerces, (c) => c.chaine) }]} />
               <SectionFiltre titre="Liste" multiple={false} choisis={filtres.liste ? [filtres.liste] : []} onChange={un("liste")} options={[{ v: "libres", mot: "Pas encore dans une liste", n: compteDe(commerces, (c) => !c.liste) }, { v: "en_liste", mot: "Déjà dans une liste", n: compteDe(commerces, (c) => c.liste) }]} />
             </div>
+          </div>
+          )}
           </div>
           <div className="flex flex-none items-center justify-between gap-3 border-t border-trait px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
             {nomRecherche !== null ? (
@@ -150,7 +181,7 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => setFiltres((f) => ({ ...FILTRES_SIMPLE, texte: f.texte, emplacement: f.emplacement }))} disabled={!n} className={bouton}>Tout effacer</button>
+                  <button type="button" onClick={() => setFiltres((f) => ({ ...depart, texte: f.texte, emplacement: f.emplacement }))} disabled={!n} className={bouton}>Tout effacer</button>
                   {n > 0 && !recherches.some(memes) && <button type="button" onClick={() => setNomRecherche("")} className="text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><span className="max-md:hidden">Enregistrer cette recherche</span><span className="md:hidden">Enregistrer</span></button>}
                 </div>
                 <button type="button" onClick={() => setOuvert(false)} className={boutonPlein}>Voir {pl(visibles, "commerce")}</button>

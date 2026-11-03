@@ -951,6 +951,10 @@ html.k-sans-ascenseur::-webkit-scrollbar, html.k-sans-ascenseur body::-webkit-sc
 /* Le mandat envoyé passe sous la barre « Mandat · Conversation » : il garde le même fond (27 oct. 2026, Jules). */
 :root .k-bien-ia .k-apercu-bien .k-apercu-mandat { background: transparent !important; border-left-color: var(--k-bord-doux); }
 :root .k-bien-ia .k-apercu-bien .k-barre-apercu { border-bottom-color: var(--k-bord-doux); }
+/* La Data room du mandataire (3 nov. 2026, Jules : « le fond noir, pas de carte autour ; les cases de la couleur du fond du
+   chat et de la barre latérale ») : en sombre, le noir de la barre des aperçus ; en clair, rien ne change. */
+:root:not([data-theme="clair"]) .k-bien-ia .k-apercu-bien.k-dataroom-fond > div,
+:root:not([data-theme="clair"]) .k-bien-ia .k-apercu-bien.k-dataroom-fond .k-barre-apercu { background: #000000 !important; }
 /* Une présentation ouverte : le fond choisi, uni ; ni halo, ni grain, ni points. */
 html.k-sobre body::after,
 html.k-sobre .k-halo,

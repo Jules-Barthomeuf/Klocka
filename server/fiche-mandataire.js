@@ -17,6 +17,8 @@
 // Dans Biens, un refus du prix met la fiche En pause, avec une relance.
 
 import { Records } from './db.js';
+import { fondsDe } from './off-market/simple.js';
+import { montant } from './montants.js';
 import { preparationNeutre } from './reference-neutre.js';
 import { CAS_RESTITUTION, appliquerRestitution } from './restitution-avis.js';
 // Les étapes faites se comptent comme à l'écran (src/lib/biens-mandataire.js).
@@ -104,6 +106,43 @@ function lignesSociete(x) {
 }
 
 /**
+ * Pure : le fonds d'un commerce, pour la fiche en mode Fonds (3 nov. 2026, Jules) : pourquoi il se céderait, le dirigeant
+ * et son âge, les chiffres publics, le bail, le numéro du commerce (celui où l'on joint le dirigeant), et si l'exploitant
+ * possède aussi ses murs : la seule passerelle avec les clients Klocka.
+ */
+export function fondsDeLaFiche(cs) {
+  const ex = cs.exploitant || {};
+  const g = (ex.gerants || []).find((x) => !x.personne_morale && x.nom) || null;
+  const age = g ? (g.tranche_age === '50-70' && g.plus_de_60 ? '60 à 70 ans' : AGES_LONGS[g.tranche_age] || null) : null;
+  const c = ex.derniers_comptes || null;
+  // L'exercice : la dernière année des comptes relus (server/annuaire-relecture.js) ; inconnu avant la relecture.
+  const exercice = ex.comptes ? Object.keys(ex.comptes).sort().pop() : null;
+  const chiffres = c && (c.ca || c.resultat_net) ? [c.ca ? `CA ${montant(c.ca)}` : null, c.resultat_net ? `résultat ${montant(c.resultat_net)}` : null, exercice ? `exercice ${exercice}` : null].filter(Boolean).join(' · ') : null;
+  const mursAussi = /^exploitant/.test(String(cs.lien || ''));
+  // Ni le loyer ni la fin du bail ne sont dans les registres : « Inconnu » à l'écran, sauf des murs à lui.
+  const bail = mursAussi ? 'Pas de bail : il possède ses murs' : null;
+  return {
+    raisons: fondsDe(cs).map((x) => x.texte),
+    forme: ex.forme || null,
+    // L'année d'installation, la plus ancienne des dates de l'établissement et de la société (SIRENE ramène les
+    // établissements anciens à 2008) : la même que « installé depuis N ans » de la remarque.
+    depuis: [cs.depuis, /^1900/.test(String(ex.creation || '')) ? null : ex.creation].filter((d) => /^\d{4}/.test(String(d || ''))).map((d) => String(d).slice(0, 4)).sort()[0] || null,
+    dirigeant: g ? { nom: g.nom, qualite: g.qualite || null, age } : null,
+    // La licence (IV, restaurant) n'est lue nulle part encore.
+    licence: null,
+    chiffres,
+    bail,
+    telephone: cs.telephone || cs.contact?.telephone || null,
+    // Le numéro de l'exploitant (3 nov. 2026, Jules : « facile à trouver ») : cherché une fois sur Google Places à
+    // l'ouverture de la fiche (route …/commerces/:id/numero), gardé ensuite sur le commerce.
+    telephone_source: cs.contact_source || null,
+    telephone_cherche: !!cs.contact_le,
+    commerce_id: cs.id || null,
+    murs_aussi: mursAussi,
+  };
+}
+
+/**
  * Pure : le détail de chaque rangée de la fiche, dépliable d'une flèche (25 oct. 2026, Jules : « voir le détail de
  * chaque champ »). Des lignes de texte, sources comprises ; une rangée sans détail n'a pas de flèche.
  */
@@ -118,6 +157,10 @@ export function detailsDe({ p = {}, commerce: cs = null, cible = null, signaux =
       ...lignesSociete(ex),
       cs?.depuis && anneeDe(cs.depuis) ? `Établissement ouvert en ${anneeDe(cs.depuis)}` : null,
       cs?.activite ? `Activité : ${cs.activite}` : null,
+      // Qui dirige l'exploitation : l'interlocuteur pour le fonds (3 nov. 2026).
+      ...(ex?.gerants || []).filter((g) => !g.personne_morale && g.nom).map((g) => `Dirigeant : ${[g.nom, g.qualite, AGES_LONGS[g.tranche_age]].filter(Boolean).join(' · ')}`),
+      // Pourquoi le fonds pourrait se céder (3 nov. 2026), les mêmes raisons que le filtre « Fonds de commerce ».
+      cs ? (() => { const f = fondsDe(cs); return f.length ? `Pour le fonds : ${f.map((x) => x.texte).join(' · ')}` : null; })() : null,
       source(ex?.source),
     ].filter(Boolean),
     murs: [
@@ -157,13 +200,14 @@ export async function ficheDeCommerce(commerceId, user) {
   const deja = Records.list('ProprietaireMandataire').find((x) => x.commerce_simple_id === commerceId);
   if (deja) return deja.mandataire_email === emailDe(user) ? composer(deja) : { ok: false, error: 'Ce commerce est déjà suivi par un autre mandataire.' };
   const { nomLisible, societeLisible, rueLisible } = await import('./off-market/casse.js');
+  const { enseigneVue, activiteVue } = await import('./off-market/simple.js');
   const ex = c.exploitant || {};
   const telephone = String(c.lien || '').startsWith('exploitant') ? (c.contact?.telephone || c.telephone || null) : null;
   const virtuelle = {
     id: null, apercu: true, statut: null, commerce_simple_id: commerceId, mandataire_email: emailDe(user),
     nom: c.proprietaire?.nom ? nomLisible(c.proprietaire.nom, { forme: c.proprietaire.forme }) : null,
-    commerce: c.enseigne ? societeLisible(c.enseigne) : nomLisible(ex.nom || c.nom, { forme: ex.forme }),
-    activite: c.activite || null, ville: c.ville || null, adresse: rueLisible(c.adresse), telephone,
+    commerce: enseigneVue(c) ? societeLisible(enseigneVue(c)) : nomLisible(ex.nom || c.nom, { forme: ex.forme }),
+    activite: activiteVue(c), ville: c.ville || null, adresse: rueLisible(c.adresse), telephone,
     telephone_source: telephone ? 'commerce (exploitant propriétaire)' : null, historique: [],
   };
   return composer(virtuelle);
@@ -216,6 +260,8 @@ async function composer(p) {
       signaux,
       contact: { telephone: p.telephone || null, telephone_source: sourceLisible(p.telephone_source) || null, email: p.email || null, a_confirmer: p.a_confirmer || {} },
       investisseurs,
+      // Le fonds de commerce (3 nov. 2026) : ce que la fiche montre en mode Fonds, et la passerelle avec les murs.
+      fonds: cs ? fondsDeLaFiche(cs) : null,
       prochaine_action: p.prochaine_action || null, prochaine_action_le: p.prochaine_action_le || null,
       historique: [...(p.historique || [])].reverse(),
       biens,
@@ -362,13 +408,14 @@ export async function ficheDuCommerce(commerceId, user, { statut = 'a_appeler' }
   if (deja) return deja.mandataire_email === moi ? { ok: true, proprietaire: deja, deja: true } : { ok: false, error: 'Ce commerce est déjà suivi par un autre mandataire.' };
   const { creerProprietaire } = await import('./mandataire-espace.js');
   const { nomLisible, societeLisible, rueLisible } = await import('./off-market/casse.js');
+  const { enseigneVue, activiteVue } = await import('./off-market/simple.js');
   const pr = c.proprietaire || null;
   const ex = c.exploitant || {};
   const telephone = String(c.lien || '').startsWith('exploitant') ? (c.contact?.telephone || c.telephone || null) : null;
   const r = creerProprietaire({
     nom: pr?.nom ? nomLisible(pr.nom, { forme: pr.forme }) : null,
-    commerce: c.enseigne ? societeLisible(c.enseigne) : nomLisible(ex.nom || c.nom, { forme: ex.forme }),
-    activite: c.activite || null, ville: c.ville || null, adresse: rueLisible(c.adresse), telephone, statut,
+    commerce: enseigneVue(c) ? societeLisible(enseigneVue(c)) : nomLisible(ex.nom || c.nom, { forme: ex.forme }),
+    activite: activiteVue(c), ville: c.ville || null, adresse: rueLisible(c.adresse), telephone, statut,
   }, user);
   if (!r.ok) return r;
   return { ok: true, proprietaire: Records.update('ProprietaireMandataire', r.proprietaire.id, { commerce_simple_id: commerceId, source: 'Carte', ...(telephone ? { telephone_source: 'commerce (exploitant propriétaire)' } : {}) }) };

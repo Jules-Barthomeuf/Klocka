@@ -1,8 +1,9 @@
 import React, { useRef, useState } from "react";
 import Loader from "@/components/ui/Loader";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ImagePlus, Loader2, Mail, X } from "lucide-react";
+import { Check, Loader2, Mail, Plus, X } from "lucide-react";
 import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
+import { Brouillon } from "@/components/dashboard/ChatDashboard";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { bouton, boutonPlein, champ } from "@/components/off-market/commun";
@@ -52,19 +53,21 @@ export default function DossierVente({ dossierId, lecture = false }) {
 
   return (
     <section aria-label="La Data room" className="mt-2">
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Les pièces seules (3 nov. 2026, Jules : « trop de petits trucs parasites ») : ni la phrase de ce qui manque, ni le
+          mail (il s'écrit dans le chat, à gauche), ni le droit de préférence (l'assistant le porte), ni les notes du dépôt. */}
+      {!lecture && <div className="flex flex-wrap items-center gap-3">
         <p className={`m-0 min-w-0 flex-1 text-[13.5px] ${v.pret ? "text-menthe" : "text-ambre"}`}>{v.phrase}</p>
-        {!lecture && (
+        {(
           <button type="button" onClick={() => vente.mutate()} disabled={!v.pret || vente.isPending} title={v.pret ? undefined : v.raisons.join(" ")} className={`${boutonPlein} max-md:w-full max-md:justify-center`}>
             {vente.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}Mettre en vente
           </button>
         )}
-      </div>
+      </div>}
 
-      <MailDuDossier v={v} dossierId={dossierId} />
+      {!lecture && <MailDuDossier v={v} dossierId={dossierId} />}
       <Pieces v={v} url={url} relire={relire} />
       {v.points.length > 0 && <Points points={v.points} decisions={v.decisions} url={url} relire={relire} lecture={lecture} />}
-      <Preference v={v} />
+      {!lecture && <Preference v={v} />}
     </section>
   );
 }
@@ -134,17 +137,22 @@ function Pieces({ v, url, relire }) {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const categories = v.pieces.map((p) => [p.cle, p.mot]);
+  // « Autres documents » devient la case « + » du bas, pour tout le reste (3 nov. 2026, Jules).
+  const libre = v.pieces.find((p) => p.cle === "autres");
 
   return (
     <div className="mt-4">
-      {/* Les zones dans une carte du fond de la saisie du chat (2 nov. 2026, Jules). */}
-      <div className="grid gap-3 rounded-[20px] border border-trait bg-barre p-4 sm:grid-cols-2 xl:grid-cols-3 max-md:p-3">
-        {v.pieces.map((p) => (
+      {/* Plus de carte autour (3 nov. 2026, Jules) : les cases seules sur le fond noir, chacune de la teinte de la barre latérale. */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {v.pieces.filter((p) => p !== libre).map((p) => (
           <ZonePiece key={p.cle} p={p} occupe={enCours === p.cle}
             onDeposer={(fichiers) => fichiers.length && deposer.mutate({ fichiers, categorie: p.cle })}
             onRetirer={(f) => retirer.mutate({ cle: p.cle, u: f.url })} />
         ))}
         <ZonePhotos photos={v.dossier.photos} url={url} relire={relire} />
+        {libre && <ZonePiece p={libre} libre occupe={enCours === libre.cle}
+          onDeposer={(fichiers) => fichiers.length && deposer.mutate({ fichiers, categorie: libre.cle })}
+          onRetirer={(f) => retirer.mutate({ cle: libre.cle, u: f.url })} />}
       </div>
       {aClasser.length > 0 && (
         <ul className="m-0 mt-3 list-none p-0">
@@ -160,21 +168,21 @@ function Pieces({ v, url, relire }) {
           ))}
         </ul>
       )}
-      <p className="m-0 mt-2 text-[12.5px] text-brume">
-        {v.depot?.ouvert_le
-          ? `Le vendeur a ouvert son espace de dépôt le ${jour(v.depot.ouvert_le)}${v.depot.deposes ? ` et déposé ${v.depot.deposes} fichier${v.depot.deposes > 1 ? "s" : ""}` : ""}. `
-          : v.depot?.propose_le ? "Le lien de dépôt est proposé au vendeur ; il ne l'a pas encore ouvert. " : ""}
-        Chaque pièce se lit dès qu'elle arrive : ce qu'un acheteur relèvera apparaît dessous.
-      </p>
     </div>
   );
 }
 
-const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[14px] border border-dashed p-4 text-left transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : plein ? "border-bord-doux hover:border-bord-vif" : "border-bord hover:border-bord-vif"}`;
+const cadre = (survol) => `flex min-h-[150px] flex-col rounded-[14px] border bg-rail p-4 text-left transition-colors ${survol ? "border-menthe" : "border-transparent hover:border-bord-vif"}`;
+// Un petit « + » à la place de « Cliquez ou glissez un fichier » (3 nov. 2026, Jules : « épurer au maximum »).
+const plus = (occupe) => (
+  <span className="m-0 mt-auto flex justify-center pt-4 text-brume" aria-hidden>
+    {occupe ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+  </span>
+);
 const arreter = (ev) => ev.stopPropagation();
 
 /** Une pièce : son nom, son état en haut à droite (check quand elle est là), ses fichiers avec leur vignette. */
-function ZonePiece({ p, occupe, onDeposer, onRetirer }) {
+function ZonePiece({ p, occupe, onDeposer, onRetirer, libre = false }) {
   const ref = useRef(null);
   const [survol, setSurvol] = useState(false);
   const fichiers = p.fichiers || [];
@@ -182,18 +190,19 @@ function ZonePiece({ p, occupe, onDeposer, onRetirer }) {
   const [couleur, mot] = ETATS[p.etat] || ETATS.manquante;
   const ouvrir = () => !occupe && ref.current?.click();
   return (
-    <section role="button" tabIndex={0} aria-label={`Importer : ${p.mot}`}
+    <section role="button" tabIndex={0} aria-label={libre ? "Ajouter un autre document" : `Importer : ${p.mot}`}
       onClick={ouvrir} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); ouvrir(); } }}
       onDragOver={(ev) => { ev.preventDefault(); setSurvol(true); }}
       onDragLeave={() => setSurvol(false)}
       onDrop={(ev) => { ev.preventDefault(); setSurvol(false); onDeposer([...ev.dataTransfer.files]); }}
-      className={`cursor-pointer ${cadre(survol, n)}`}>
-      <div className="flex items-baseline justify-between gap-3">
+      className={`cursor-pointer ${cadre(survol)}`}>
+      {/* La case libre n'a qu'un « + » tant qu'elle est vide. */}
+      {(!libre || n > 0) && <div className="flex items-baseline justify-between gap-3">
         <p className="m-0 text-[15px] text-encre">{p.mot}</p>
-        {p.etat === "recue"
+        {libre ? null : p.etat === "recue"
           ? <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-menthe/15 text-menthe" aria-label="Reçue"><Check className="h-3.5 w-3.5" /></span>
           : <span className={`flex-none text-[12.5px] ${p.etat === "manquante" ? (p.requise ? "text-ambre" : "text-brume") : couleur}`}>{p.etat === "manquante" ? (p.requise ? "Obligatoire" : "Facultatif") : mot}</span>}
-      </div>
+      </div>}
       {n > 0 && (
         <ul className="m-0 mt-2 list-none space-y-1.5 p-0">
           {fichiers.map((f) => (
@@ -206,10 +215,7 @@ function ZonePiece({ p, occupe, onDeposer, onRetirer }) {
         </ul>
       )}
       <input ref={ref} type="file" multiple className="hidden" onClick={arreter} onChange={(ev) => { onDeposer([...ev.target.files]); ev.target.value = ""; }} />
-      <p className="m-0 mt-auto flex items-center justify-center gap-1.5 pt-4 text-[12.5px] text-brume">
-        {occupe && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        {occupe ? "Import…" : n ? "Cliquez ou glissez pour en ajouter" : "Cliquez ou glissez un fichier"}
-      </p>
+      {libre && !n ? <span className="m-auto grid text-brume" aria-hidden>{occupe ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}</span> : plus(occupe)}
     </section>
   );
 }
@@ -231,7 +237,7 @@ function ZonePhotos({ photos = [], url, relire }) {
       onDragOver={(ev) => { ev.preventDefault(); setSurvol(true); }}
       onDragLeave={() => setSurvol(false)}
       onDrop={(ev) => { ev.preventDefault(); setSurvol(false); ajouter.mutate([...ev.dataTransfer.files]); }}
-      className={`cursor-pointer ${cadre(survol, photos.length)}`}>
+      className={`cursor-pointer ${cadre(survol)}`}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="m-0 text-[15px] text-encre">Photos du bien</p>
         <span className="flex-none text-[12.5px] tabular-nums text-brume">{photos.length || ""}</span>
@@ -247,10 +253,7 @@ function ZonePhotos({ photos = [], url, relire }) {
         </div>
       )}
       <input ref={ref} type="file" accept="image/*" multiple className="hidden" onClick={arreter} onChange={(ev) => { const l = [...(ev.target.files || [])]; ev.target.value = ""; if (l.length) ajouter.mutate(l); }} />
-      <p className="m-0 mt-auto flex items-center justify-center gap-1.5 pt-4 text-[12.5px] text-brume">
-        {ajouter.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : !photos.length && <ImagePlus className="h-3.5 w-3.5" />}
-        {ajouter.isPending ? "Import…" : photos.length ? "Cliquez ou glissez pour en ajouter" : "Cliquez ou glissez des photos"}
-      </p>
+      {plus(ajouter.isPending)}
     </section>
   );
 }
@@ -375,6 +378,30 @@ export function MailPropose({ dossierId, mail, boite }) {
         )}
       </div>
       <p className="m-0 mt-1.5 text-[12px] text-brume">{boite ? `Il part de ${boite}.` : "Aucune boîte connectée : il s'ouvre dans votre messagerie."}</p>
+    </div>
+  );
+}
+
+/**
+ * Le mail au vendeur, à gauche, sous le message de l'assistant (3 nov. 2026, Jules : « le mail s'écrit dans le chat ; à
+ * droite, la Data room seule ») : le brouillon du chat, modifiable sur place. Il part de la boîte du mandataire ; sans
+ * elle, il s'ouvre dans sa messagerie et compte comme envoyé. Le fermer l'écarte.
+ */
+export function MailDuChat({ dossierId, mail, boite }) {
+  const queryClient = useQueryClient();
+  const url = `/api/mandataire/dossiers/${encodeURIComponent(dossierId)}`;
+  const [b, setB] = useState({ destinataire: mail.a || "", objet: mail.objet || "", corps: mail.corps || "" });
+  const relire = () => ["m-dossier-vente", "m-dossiers"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+  const envoyer = useMutation({
+    mutationFn: (marquer = false) => base44.request("POST", `${url}/mail`, { body: { a: b.destinataire, objet: b.objet, corps: b.corps, marquer } }),
+    onSuccess: (r, marquer) => { if (!marquer) toast.success(r?.envoye ? `Mail envoyé${boite ? ` de ${boite}` : ""}` : "C'est noté"); relire(); },
+    onError: (e) => toast.error(e?.message || "Le mail n'est pas parti"),
+  });
+  const ecarter = useMutation({ mutationFn: () => base44.request("POST", `${url}/mail/ecarter`), onSuccess: relire });
+  return (
+    <div className="mt-3">
+      <Brouillon b={b} onChange={setB} onEnvoyer={() => envoyer.mutate(false)} onFermer={() => ecarter.mutate()} enCours={envoyer.isPending}
+        messagerie={!boite} de={boite || null} onMessagerie={() => envoyer.mutate(true)} />
     </div>
   );
 }

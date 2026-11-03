@@ -98,6 +98,56 @@ export function drapeauxDe(c, { maintenantMs = Date.now() } = {}) {
   return out;
 }
 
+/**
+ * Pure : pourquoi l'exploitant céderait son fonds de commerce (3 nov. 2026, Jules : « soit on cherche des murs, soit on
+ * cherche des fonds » ; le mode Fonds est une prospection du mandataire pour lui-même, sans client Klocka). Les chaînes,
+ * les établissements fermés et les fonds cédés depuis moins de deux ans n'en ont aucun. Les signaux :
+ * - le dirigeant de plus de 60 ans : 70 ans et plus par la tranche du registre, 60 à 70 ans relu dans l'annuaire ;
+ * - une procédure collective ou une conciliation annoncée au BODACC depuis moins de deux ans ;
+ * et, seulement en plus de l'un des deux : le commerce installé depuis 15 ou 20 ans (la plus ancienne des dates de
+ * l'établissement et de la société), le bail à échéance dans l'année (cycle 3-6-9 depuis la dernière cession), un
+ * résultat positif aux derniers comptes (« dirigeant âgé, résultat positif »).
+ * Le fonds en vente par annonce n'est pas lu : aucune source branchée.
+ */
+export function fondsDe(c, { maintenantMs = Date.now() } = {}) {
+  const ex = c.exploitant || {};
+  if (c.chaine || c.actif === false || ex.active === false) return [];
+  const ev = c.evenements || [];
+  const cessions = ev.filter((e) => /cession|vente/i.test(String(e.type || '')) && e.date).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  if (cessions[0] && annees(cessions[0].date, maintenantMs) <= 2) return [];
+  const out = [];
+  const gerants = (ex.gerants || []).filter((g) => !g.personne_morale);
+  // La plus ancienne des deux dates : SIRENE ramène les établissements plus anciens à 2008 (le début d'une période
+  // INSEE), la création de la société exploitante remonte plus loin.
+  const depuis = Math.max(annees(c.depuis, maintenantMs) ?? -1, annees(/^1900/.test(String(ex.creation || '')) ? null : ex.creation, maintenantMs) ?? -1);
+  const v70 = gerants.some((g) => g.tranche_age === '70+');
+  const v60 = !v70 && gerants.some((g) => g.plus_de_60 === true);
+  if (v70) out.push({ cle: 'dirigeant_70', texte: 'Dirigeant de 70 ans et plus' });
+  else if (v60) out.push({ cle: 'dirigeant_60', texte: 'Dirigeant de 60 à 70 ans' });
+  const procedure = ev.find((e) => /proc[ée]dure collective|conciliation/i.test(String(e.type || '')) && annees(e.date, maintenantMs) <= 2);
+  if (procedure) out.push({ cle: 'procedure', texte: `${/conciliation/i.test(procedure.type) ? 'Conciliation' : 'Procédure collective'} annoncée en ${String(procedure.date).slice(0, 7)}`, source: 'BODACC', date: procedure.date });
+  // L'ancienneté, le bail et le résultat s'ajoutent à un dirigeant âgé ou à une procédure ; seuls, ils noieraient la carte
+  // (3 nov. 2026, Jules : « 21 879 commerces installés depuis 15 ans, trop large pour un signal à lui seul »).
+  if (!out.length) return [];
+  if (depuis >= 20) out.push({ cle: 'ancien_20', texte: `Installé depuis ${Math.floor(depuis)} ans` });
+  else if (depuis >= 15) out.push({ cle: 'ancien_15', texte: `Installé depuis ${Math.floor(depuis)} ans` });
+  const echeance = cessions[0] ? echeanceDuBail(cessions[0].date, maintenantMs) : null;
+  if (echeance) out.push({ cle: 'bail_echeance', texte: `Bail à échéance en ${echeance.slice(0, 7)} (estimée depuis la cession de ${String(cessions[0].date).slice(0, 4)})`, date: echeance });
+  if (ex.comptes_deposes && Number(ex.derniers_comptes?.resultat_net) > 0) out.push({ cle: (v70 || v60) ? 'ideal' : 'resultat', texte: (v70 || v60) ? 'Dirigeant âgé et résultat positif' : 'Résultat positif aux derniers comptes' });
+  return out;
+}
+
+/** Pure : la prochaine échéance triennale du bail depuis sa date de départ, si elle tombe dans l'année ; sinon null. */
+export function echeanceDuBail(depart, maintenantMs = Date.now()) {
+  const t = new Date(depart);
+  if (Number.isNaN(t.getTime())) return null;
+  for (let n = 3; n <= 36; n += 3) {
+    const e = Date.UTC(t.getUTCFullYear() + n, t.getUTCMonth(), t.getUTCDate());
+    if (e > maintenantMs) return e - maintenantMs <= 365 * 86400000 ? new Date(e).toISOString().slice(0, 10) : null;
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // La ville : tous les commerces, vite
 // ---------------------------------------------------------------------------
@@ -369,9 +419,12 @@ export function calculerCentre(liste, ville = null) {
 /** Pure : la forme compacte d'un commerce, pour la carte et la liste. */
 export function compact(c, { centre = null, densite = null, zoneDe = null, moi = null } = {}) {
   return {
-    id: c.id, ville_id: c.ville_id || null, siret: c.siret, classe: c.classe || classeDeCode(c.ape) || 'commerce', nom: nomLisible(c.exploitant?.nom || c.nom, { forme: c.exploitant?.forme }), enseigne: c.enseigne ? societeLisible(c.enseigne) : null, activite: c.activite, adresse: rueLisible(c.adresse), adresse_brute: c.adresse, lat: c.lat, lon: c.lon, actif: c.actif !== false,
+    id: c.id, ville_id: c.ville_id || null, siret: c.siret, classe: c.classe || classeDeCode(c.ape) || 'commerce', nom: nomLisible(c.exploitant?.nom || c.nom, { forme: c.exploitant?.forme }), enseigne: enseigneVue(c) ? societeLisible(enseigneVue(c)) : null, activite: activiteVue(c), adresse: rueLisible(c.adresse), adresse_brute: c.adresse, lat: c.lat, lon: c.lon, actif: c.actif !== false,
     lien: c.lien || (c.etat_recherche === 'fait' ? 'inconnu' : null), etat: c.etat_recherche || 'a_faire',
     proprietaire: c.proprietaire?.nom ? nomLisible(c.proprietaire.nom, { forme: c.proprietaire.forme }) : null, drapeaux: (c.drapeaux || []).map((d) => d.cle), reponse: c.reponse?.choix || null,
+    // Les raisons de céder le fonds (3 nov. 2026), à côté des raisons de vendre les murs.
+    fonds: fondsDe(c).map((d) => d.cle),
+    ca: c.exploitant?.derniers_comptes?.ca ?? null, resultat: c.exploitant?.derniers_comptes?.resultat_net ?? null,
     // La liste est celle de la personne connectée, dans son espace mandataire (12 oct. 2026).
     liste: moi && c.listes_mandataires?.[moi] ? { id: c.listes_mandataires[moi].id, nom: c.listes_mandataires[moi].nom } : null, appel_prospection: c.appel_prospection?.titre || null,
     chaine: !!c.chaine, depuis: c.depuis || null, nom_google: c.nom_google || null, prix: c.estimation?.prix || null, epingle: !!c.epingle, proprietaire_type: typeDeProprietaire(c.proprietaire), source: c.source || 'SIRENE', google: !!c.place_id, centre: c.epingle ? true : centre == null ? null : centre.has(c.id), densite: densite?.get(c.id) ?? null, zone: zoneDe?.get(c.id) || null,
@@ -400,6 +453,41 @@ export function etatDe(villeId) {
   const l = Records.filter(COMMERCE, { ville_id: villeId });
   const n = (f) => l.filter(f).length;
   return { total: l.length, faits: n((c) => c.etat_recherche === 'fait'), en_cours: n((c) => c.etat_recherche === 'en_cours' && !aChercher(c)), a_faire: n(aChercher), erreurs: n((c) => c.etat_recherche === 'erreur'), en_fond: enFond.has(villeId), google: Records.get(VILLE, villeId)?.simple?.google || null, depuis_google: n((c) => c.source === 'Google Maps'), zones: (Records.get(VILLE, villeId)?.simple?.zones || []).map((z) => ({ nom: z.nom, genre: z.genre, pourquoi: z.pourquoi, rues: z.rues })), zones_en_cours: !Records.get(VILLE, villeId)?.simple?.zones_le, prix_en_cours: prixEnFond.has(villeId), avec_prix: n((c) => !!c.estimation?.prix) };
+}
+
+/**
+ * Pure : le nom qu'on lit sur la vitrine (3 nov. 2026, Jules : « ça met Boucherie Ruiz, mais la photo et Google Maps
+ * montrent un Vival »). Quand Google a rattaché à ce commerce un autre nom que celui du registre, c'est l'enseigne
+ * réelle (une franchise, un repreneur) ; la société du registre reste l'exploitant.
+ */
+export function enseigneVue(c) {
+  if (c?.nom_google && c.source !== 'Google Maps' && norm(c.nom_google) !== norm(c.enseigne)) return c.nom_google;
+  return c?.enseigne || null;
+}
+// Les enseignes d'alimentation de proximité : leur activité au registre (la boucherie de la société qui exploite la
+// franchise) ne dit pas ce qu'on voit en vitrine.
+const SUPERETTES = /\b(vival|casino|carrefour|franprix|spar|proxi|leader price|intermarche|monoprix|monop|auchan|lidl|aldi|coccinelle|utile|g20|diagonal|netto|naturalia|biocoop|picard|8 a huit|petit casino|sherpa)\b/;
+/** Pure : l'activité vue en vitrine : celle de Google pour une franchise, sinon celle du registre. */
+export function activiteVue(c) {
+  const vue = enseigneVue(c);
+  if (vue && vue !== c?.enseigne) {
+    if (c.activite_google) return c.activite_google;
+    if (SUPERETTES.test(norm(vue).toLowerCase())) return 'Supérette, supermarché';
+  }
+  return c?.activite || null;
+}
+
+/**
+ * L'état d'une ville en quelques comptes, sans décoder ses commerces (3 nov. 2026, Jules : « Votre secteur… prend trop
+ * de chargement ») : ce que lit la préparation du secteur d'un mandataire. Mêmes comptes que `etatDe`.
+ */
+export function etatLeger(villeId) {
+  const l = Records.champsOu(COMMERCE, 'ville_id', villeId, ['etat_recherche', 'estimation.prix']);
+  const n = (f) => l.filter(f).length;
+  return {
+    total: l.length, faits: n((c) => c.etat_recherche === 'fait'), en_cours: n((c) => c.etat_recherche === 'en_cours' && !aChercher(c)), a_faire: n(aChercher),
+    avec_prix: n((c) => !!c['estimation.prix']), en_fond: enFond.has(villeId), prix_en_cours: prixEnFond.has(villeId),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -774,7 +862,7 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
     const telephone = String(c.lien || '').startsWith('exploitant') ? (c.contact?.telephone || c.telephone || null) : null;
     const r = creerProprietaire({
       nom: pr?.nom ? nomLisible(pr.nom, { forme: pr.forme }) : null,
-      commerce: c.enseigne ? societeLisible(c.enseigne) : nomLisible(ex.nom || c.nom, { forme: ex.forme }),
+      commerce: enseigneVue(c) ? societeLisible(enseigneVue(c)) : nomLisible(ex.nom || c.nom, { forme: ex.forme }),
       activite: c.activite || null, ville: c.ville || null, adresse: rueLisible(c.adresse), telephone, email: null,
     }, user);
     if (!r.ok) { refuses.push(`${c.enseigne || c.nom} : ${r.error}`); continue; }

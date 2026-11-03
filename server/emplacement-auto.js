@@ -23,8 +23,10 @@ export function lieuxGoogle(places = []) {
 }
 
 /** Pure : ce que l'avis retient des lectures, compact et sourcé. */
-export function resumeEmplacement({ voies = [], commerces = [], equipements = null, vacance = null, rue = null, voisinsGoogle = [], transportsGoogle = [] } = {}) {
+export function resumeEmplacement({ voies = [], commerces = [], equipements = null, vacance = null, rue = null, voisinsGoogle = [], transportsGoogle = [], voisinsKlocka = null } = {}) {
   const out = {};
+  // Les commerces que Klocka connaît autour (CommerceSimple, sans réseau) : un relais quand OpenStreetMap ne répond pas.
+  if (voisinsKlocka?.commerces) out.commerces_klocka = voisinsKlocka;
   if (voisinsGoogle.length) {
     out.voisins_les_plus_proches = {
       noms: voisinsGoogle.map((l) => `${l.nom}${l.type ? ` (${l.type})` : ''}`),
@@ -75,8 +77,8 @@ export function voiesDe(elements = []) {
  * L'emplacement d'une adresse, lu en parallèle. `lieu` : l'adresse déjà résolue (BAN), avec lat, lon, rue.
  * Rend {} sans position. `outils` remplace les lectures dans les tests.
  */
-export async function lireEmplacement(adresse, { lieu = null, user = null, outils = null } = {}) {
-  if (!Number.isFinite(lieu?.lat) || !Number.isFinite(lieu?.lon)) return {};
+export async function lireEmplacement(adresse, { lieu = null, user = null, outils = null, delai = 25000, surComplet = null, commerceId = null } = {}) {
+  if (!Number.isFinite(lieu?.lat) || !Number.isFinite(lieu?.lon)) { surComplet?.(null); return {}; }
   const { lat, lon } = lieu;
   const google = async (includedTypes, rayon) => {
     const k = (process.env.GOOGLE_MAPS_SERVEUR || '').trim();
@@ -114,6 +116,15 @@ export async function lireEmplacement(adresse, { lieu = null, user = null, outil
       const r = await equipementsDeLaZone({ lat, lon, rayon_m: 300 });
       return r.ok ? r.equipements : null;
     },
+    voisinsKlocka: async () => {
+      if (!lieu.code_insee) return null;
+      const { Records } = await import('./db.js');
+      const { voisinage } = await import('./avis-environnement.js');
+      const { marqueDe, indexDesMarques } = await import('./enseignes-autour.js');
+      const index = indexDesMarques();
+      const commerces = Records.filter('Ville', { code_insee: lieu.code_insee }).flatMap((v) => Records.filter('CommerceSimple', { ville_id: v.id }));
+      return voisinage({ lat, lon }, commerces, { exclure: commerceId, marque: (n) => marqueDe(n, index) });
+    },
     vacance: async () => {
       const { analyser } = await import('./kvacance.js');
       const r = await analyser(String(adresse || ''), { user });
@@ -129,9 +140,56 @@ export async function lireEmplacement(adresse, { lieu = null, user = null, outil
   // Chaque lecture a 25 secondes : passé ce délai, l'avis se rédige sans elle.
   const borne = (k) => Promise.race([o[k](), new Promise((_, non) => setTimeout(() => non(new Error("trop long")), 25000).unref?.())]);
   const LISTES = ['voies', 'commerces', 'voisinsGoogle', 'transportsGoogle'];
-  const cles = ['voies', 'commerces', 'equipements', 'vacance', 'voisinsGoogle', 'transportsGoogle'];
-  const lus = await Promise.all(cles.map((k) => (o[k] ? borne(k) : Promise.resolve(null))
+  const cles = ['voies', 'commerces', 'equipements', 'vacance', 'voisinsGoogle', 'transportsGoogle', 'voisinsKlocka'];
+  // Ce qui est lu à temps sert (3 nov. 2026, Jules : Vacance, Accès et Commerces voisins restaient vides) : on
+  // attendait la plus lente des lectures (Overpass, K-Vacance) et l'avis, pressé, partait sans aucune. Au bout de
+  // `delai`, on rend ce qui est arrivé ; `surComplet` reçoit le tout quand la dernière lecture finit.
+  const lus = Object.fromEntries(cles.map((k) => [k, LISTES.includes(k) ? [] : null]));
+  const tout = Promise.all(cles.map((k) => (o[k] ? borne(k) : Promise.resolve(null))
     .catch((err) => { console.warn(`[emplacement] ${k} : ${err?.message || err}`); return null; })
-    .then((v) => v ?? (LISTES.includes(k) ? [] : null))));
-  return resumeEmplacement({ ...Object.fromEntries(cles.map((k, i) => [k, lus[i]])), rue: lieu.rue || null });
+    .then((v) => { lus[k] = v ?? (LISTES.includes(k) ? [] : null); })));
+  const resumer = () => resumeEmplacement({ ...lus, rue: lieu.rue || null });
+  const fini = await Promise.race([tout.then(() => true), new Promise((ok) => { setTimeout(() => ok(false), Math.max(0, delai)).unref?.(); })]);
+  // surComplet(null) : tout était là à temps, rien ne suit.
+  if (surComplet) (fini ? Promise.resolve(null) : tout.then(resumer)).then(surComplet).catch((err) => console.warn(`[emplacement] suite : ${err?.message || err}`));
+  return resumer();
+}
+
+const GENRES_TRANSPORT = [['métro', 'Métro'], ['tramway', 'Tramway'], ['gare', 'Gare'], ['gare routière', 'Gare routière'], ['arrêt de bus', 'Bus'], ['parking', 'Parking']];
+const liste = (t, n) => t.filter(Boolean).slice(0, n).join(', ');
+
+/**
+ * Pure : les lignes Commerces voisins, Accès et Vacance de l'avis, écrites depuis les lectures seules, sans modèle
+ * (3 nov. 2026, Jules : elles restaient vides quand le modèle ne les écrivait pas). Pas d'étiquette de source entre
+ * parenthèses ; une rubrique dont rien n'est lu reste absente.
+ */
+export function lignesDeLEmplacement(lu = {}) {
+  const out = {};
+  const osm = lu.commerces_150m;
+  const klocka = lu.commerces_klocka;
+  const google = lu.voisins_les_plus_proches;
+  const nombre = osm?.nombre > 0 ? osm.nombre : klocka?.commerces > 0 ? klocka.commerces : null;
+  const morceaux = [];
+  if (nombre) {
+    const resto = osm?.nombre > 0 ? osm.restauration : null;
+    morceaux.push(`${nombre} commerce${nombre > 1 ? 's' : ''} à moins de 150 m${resto ? `, dont ${resto} café${resto > 1 ? 's' : ''} ou restaurant${resto > 1 ? 's' : ''}` : ''}`);
+  }
+  if (!osm?.nombre && klocka?.activites?.length) morceaux.push(`surtout ${klocka.activites.slice(0, 4).map((a) => `${String(a.activite).toLowerCase()} ${a.n}`).join(', ')}`);
+  const enseignes = [...new Set([...(osm?.enseignes || []), ...(klocka?.enseignes_nationales || []).map((x) => x.marque)])];
+  if (enseignes.length) morceaux.push(`enseignes voisines : ${liste(enseignes, 6)}`);
+  else if (google?.noms?.length) morceaux.push(`${nombre ? 'les plus proches' : 'Les commerces les plus proches'} : ${liste(google.noms.map((n) => String(n).replace(/\s*\([^()]*\)\s*$/, '')), 6)}`);
+  if (morceaux.length) out.commerces_voisins = `${morceaux.join(' ; ').replace(/^./, (c) => c.toUpperCase())}.`;
+
+  const t = lu.transports_300m;
+  const transports = t ? GENRES_TRANSPORT.filter(([k]) => t[k]?.length).map(([k, mot]) => `${mot} ${liste(t[k], 3)}`) : [];
+  if (!transports.length && lu.acces_300m) {
+    const a = lu.acces_300m;
+    transports.push(...[a.metro && 'Métro', a.tram && 'Tramway', a.gare && 'Gare'].filter(Boolean));
+    transports.push(...(a.mobilite || []).map((m) => String(m).replace(/^(.*?)\s+(\d+)$/, (_, nom, n) => `${n} ${nom.toLowerCase()}`)).slice(0, 4));
+  }
+  if (transports.length) out.acces = `${transports.join(' ; ')}, à moins de 300 m.`;
+
+  const v = Number(lu.vacance?.taux_estime);
+  if (lu.vacance?.taux_estime != null && Number.isFinite(v)) out.vacance = `${v.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} % (taux estimé)`;
+  return out;
 }

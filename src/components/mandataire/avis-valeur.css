@@ -40,8 +40,10 @@
 }
 
 /* Les pages intérieures : bandeau à gauche, contenu à droite. */
+/* 3 nov. 2026, Jules (« qu'on voie en plus grande taille », l'avis tel que le propriétaire le reçoit en PDF, souvent
+   ouvert au téléphone) : le bandeau s'affine (15 mm), le contenu gagne la largeur, et tout le texte monte d'un pas. */
 .avis-bande {
-  width: 18mm;
+  width: 15mm;
   flex: none;
   background: var(--panneau);
   display: flex;
@@ -50,7 +52,7 @@
   align-items: center;
   padding: 18mm 0 14mm;
 }
-.avis-bande-num { font-weight: 600; font-size: 13pt; color: var(--blanc); }
+.avis-bande-num { font-weight: 600; font-size: 14pt; color: var(--blanc); }
 .avis-bande-label {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
@@ -60,39 +62,39 @@
   text-transform: uppercase;
   color: var(--blanc);
 }
-.avis-corps { flex: 1; padding: 16mm 15mm 14mm 15mm; display: flex; flex-direction: column; min-width: 0; }
-.avis-entete { display: flex; justify-content: space-between; font-size: 8pt; color: var(--gris-clair); padding-bottom: 4mm; border-bottom: 1px solid var(--ligne); }
+.avis-corps { flex: 1; padding: 15mm 15mm 13mm 15mm; display: flex; flex-direction: column; min-width: 0; }
+.avis-entete { display: flex; justify-content: space-between; font-size: 8.5pt; color: var(--gris-clair); padding-bottom: 4mm; border-bottom: 1px solid var(--ligne); }
 .avis-entete b { color: var(--encre); }
-.avis-contenu { flex: 1; padding-top: 9mm; min-height: 0; }
+.avis-contenu { flex: 1; padding-top: 10mm; min-height: 0; }
 .avis-pied { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 3mm; }
 .avis-pied-trait { width: 100%; display: flex; align-items: center; gap: 4mm; font-weight: 600; font-size: 8pt; }
 .avis-pied-trait::before, .avis-pied-trait::after { content: ""; flex: 1; height: 1px; background: var(--sauge-fonce); opacity: 0.6; }
 .avis-pied-logo { font-size: 11pt; }
 .avis-pied-texte { font-size: 7.5pt; color: var(--gris-clair); }
 
-.avis-etiquette { font-size: 8.5pt; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sauge-fonce); }
-.avis-titre { font-size: 20pt; font-weight: 400; margin: 0 0 3mm; letter-spacing: -0.03em; line-height: 1.1; }
-.avis-chapeau { font-size: 10.5pt; color: var(--gris); line-height: 1.55; margin: 0 0 6mm; }
-.avis-texte { font-size: 9pt; color: var(--gris); line-height: 1.6; }
+.avis-etiquette { font-size: 9pt; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sauge-fonce); }
+.avis-titre { font-size: 27pt; font-weight: 400; margin: 0 0 4mm; letter-spacing: -0.03em; line-height: 1.08; }
+.avis-chapeau { font-size: 12pt; color: var(--gris); line-height: 1.5; margin: 0 0 6mm; }
+.avis-texte { font-size: 10.5pt; color: var(--gris); line-height: 1.55; }
 
-.avis-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
-.avis-table td { padding: 2.8mm 3.5mm; vertical-align: top; }
+.avis-table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+.avis-table td { padding: 2.5mm 3.5mm; vertical-align: top; line-height: 1.45; }
 .avis-table tr:nth-child(odd) td { background: var(--ligne); }
-.avis-table td:first-child { width: 32%; color: var(--gris); }
+.avis-table td:first-child { width: 30%; color: var(--gris-clair); }
 .avis-table td:last-child { font-weight: 500; color: var(--encre); line-height: 1.5; }
 .avis-table .alerte td:first-child { color: var(--ocre); }
 
-.avis-grille { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+.avis-grille { width: 100%; border-collapse: collapse; font-size: 10pt; }
 .avis-grille th { text-align: right; font-weight: 400; color: var(--gris-clair); padding: 2mm 2.5mm; border-bottom: 1px solid var(--trait); }
 .avis-grille th:first-child, .avis-grille td:first-child { text-align: left; }
-.avis-grille td { text-align: right; padding: 2.6mm 2.5mm; }
+.avis-grille td { text-align: right; padding: 2.4mm 2.5mm; }
 .avis-grille tbody tr:nth-child(odd) td { background: var(--ligne); }
 .avis-grille tfoot td { font-weight: 600; border-top: 1px solid var(--encre); }
 .avis-grille .fort { font-weight: 600; color: var(--sauge-fonce); }
 
-.avis-encadre { border: 1px solid var(--pervenche); background: var(--ligne); border-radius: 5.5mm; padding: 4.5mm 5.5mm; font-size: 9.5pt; line-height: 1.55; margin-top: 5mm; }
-.avis-formule { border: 1px solid var(--trait); border-radius: 5.5mm; padding: 6mm; display: flex; align-items: center; justify-content: center; gap: 4mm; font-size: 10pt; margin: 4mm 0 2mm; }
-.avis-formule .resultat { font-weight: 600; font-size: 15pt; color: var(--sauge-fonce); }
+.avis-encadre { border: 1px solid var(--pervenche); background: var(--ligne); border-radius: 5.5mm; padding: 4.5mm 5.5mm; font-size: 11pt; line-height: 1.5; margin-top: 5mm; }
+.avis-formule { border: 1px solid var(--trait); border-radius: 5.5mm; padding: 6mm; display: flex; align-items: center; justify-content: center; gap: 4mm; font-size: 11.5pt; margin: 4mm 0 2mm; }
+.avis-formule .resultat { font-weight: 600; font-size: 22pt; letter-spacing: -0.02em; color: var(--sauge-fonce); }
 .avis-alerte-rond { flex: none; width: 7mm; height: 7mm; border-radius: 50%; background: var(--sauge); color: #fff; font-weight: 600; display: grid; place-items: center; font-size: 10pt; }
 .avis-pastille { display: inline-block; background: var(--sauge); color: #fff; font-size: 7pt; font-weight: 600; letter-spacing: 0.08em; padding: 0.6mm 2.4mm; border-radius: 99px; margin-left: 2mm; vertical-align: middle; }
 
@@ -100,14 +102,14 @@
 .avis-couverture { flex-direction: column; }
 .avis-couverture-photo { height: 50%; background: var(--ligne) center / cover no-repeat; position: relative; }
 .avis-couverture-texte { flex: 1; padding: 14mm 16mm 0; position: relative; }
-.avis-couverture h1 { font-size: 34pt; font-weight: 400; line-height: 1.04; margin: 6mm 0 3mm; letter-spacing: -0.04em; max-width: 120mm; }
-.avis-couverture .ville { font-size: 13pt; color: var(--gris); font-weight: 300; }
+.avis-couverture h1 { font-size: 42pt; font-weight: 400; line-height: 1.02; margin: 6mm 0 3mm; letter-spacing: -0.04em; max-width: 125mm; }
+.avis-couverture .ville { font-size: 16pt; color: var(--gris); font-weight: 300; }
 .avis-logo { position: absolute; right: 16mm; top: 14mm; font-size: 34pt; }
 /* La bande de couverture : nuit, et la lumière pervenche qui monte du bas (le halo de la charte). */
-.avis-couverture-bande { background: radial-gradient(120% 140% at 50% 120%, rgb(167 171 237 / 0.38) 0%, rgb(14 14 16 / 0) 60%), var(--nuit); color: var(--blanc); padding: 9mm 16mm 10mm; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; font-size: 9pt; }
+.avis-couverture-bande { background: radial-gradient(120% 140% at 50% 120%, rgb(167 171 237 / 0.38) 0%, rgb(14 14 16 / 0) 60%), var(--nuit); color: var(--blanc); padding: 9mm 16mm 10mm; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; font-size: 10pt; }
 .avis-couverture-bande p { margin: 0; }
 .avis-couverture-bande .mot { color: var(--pervenche); }
-.avis-couverture-bande .val { font-weight: 500; margin-top: 1mm; color: var(--blanc); }
+.avis-couverture-bande .val { font-weight: 500; margin-top: 1mm; font-size: 12pt; color: var(--blanc); }
 .avis-portrait { width: 16mm; height: 16mm; border-radius: 50%; object-fit: cover; border: 0.6mm solid #fff; }
 /* Le portrait du mandataire en page de garde : à droite, à cheval sur le haut du bandeau. */
 .avis-portrait-couverture { position: absolute !important; right: 16mm; bottom: 17mm; width: 46mm; height: 46mm; z-index: 2; background: var(--ligne) center / cover no-repeat; border-radius: 7mm; }
@@ -129,13 +131,13 @@
 
 .avis-logo-image { height: 15mm; width: auto; letter-spacing: normal; }
 .avis-note { font-style: italic; color: var(--sauge-fonce); margin-top: 3mm; }
-.avis-sous-titre { margin: 0 0 2mm; font-size: 10pt; }
+.avis-sous-titre { margin: 0 0 2mm; font-size: 11.5pt; }
 .avis-gris { color: var(--gris-clair); }
 .avis-encre { margin: 1mm 0 0; color: var(--encre); }
 .avis-mt2 { margin-top: 2mm; }
 .avis-mt4 { margin-top: 4mm; }
 .avis-mt5 { margin-top: 5mm; }
-.avis-mentions { font-size: 6.5pt; line-height: 1.45; color: var(--gris-clair); margin: 4mm 0 0; }
+.avis-mentions { font-size: 7pt; line-height: 1.45; color: var(--gris-clair); margin: 4mm 0 0; }
 
 /* L'atelier : la sélection, les poignées, le zoom. */
 .avis [data-edit] { cursor: text; border-radius: 1mm; transition: box-shadow 0.12s, background 0.12s; }
@@ -206,6 +208,35 @@
 .avis-logo-klocka { height: 15mm; width: auto; font-size: inherit; }
 .avis-pied-logo.avis-logo-klocka { height: 4.5mm; }
 
+/* Les grands chiffres (3 nov. 2026, Jules : « qu'on voie en plus grande taille ») : la valeur du résumé et celle de la
+   conclusion grandissent et prennent l'accent de la marque, plus légères. Leur taille d'origine est écrite dans les
+   pages (36 pt, 44 pt) : on ne remplace que celle-là, une taille choisie par le mandataire
+   (mise_en_page.taille_valeur_pt, ou un style sur chiffres.valeur) reste la sienne. */
+/* Le résumé se lit de haut en bas : la valeur seule sur sa ligne, puis la fourchette et le rendement dessous. */
+.avis [data-bloc="resume"] { flex-direction: column; align-items: flex-start !important; gap: 5mm !important; }
+.avis [data-bloc="resume"] > div:last-child { margin-left: 0 !important; gap: 12mm !important; }
+.avis [data-bloc="resume"] div[style*="font-size: 36pt"] { font-size: 50pt !important; font-weight: 500 !important; letter-spacing: -0.035em !important; color: var(--sauge-fonce); white-space: nowrap; }
+.avis [data-bloc="resume"] b[style*="font-size: 11pt"] { font-size: 14pt !important; font-weight: 600; white-space: nowrap; }
+.avis [data-bloc="resume"] .avis-texte { font-size: 11pt; }
+/* La page du résumé est la plus pleine : le tableau du cadre (mentions de l'agence) reste un cran en dessous. */
+.avis [data-section="cadre"] .avis-table { font-size: 10pt; }
+.avis [data-section="cadre"] .avis-table td { padding-top: 2.1mm; padding-bottom: 2.1mm; }
+.avis [data-section="conclusion"] div[style*="font-size: 44pt"] { font-size: 64pt !important; font-weight: 500 !important; letter-spacing: -0.04em !important; color: var(--sauge-fonce); margin-top: 4mm; white-space: nowrap; }
+.avis [data-section="conclusion"] div[style*="font-size: 9pt"] { font-size: 10.5pt !important; }
+.avis [data-section="methodes"] p[style*="font-size: 11pt"] { font-size: 13pt !important; }
+.avis .avis-formule span[style*="font-size: 8.5pt"] { font-size: 10pt !important; }
+.avis [data-bloc="signature"] > div[style*="font-size: 9.5pt"] { font-size: 11pt !important; }
+
+/* La couleur choisie sur un bloc (3 nov. 2026, Jules : « j'avais choisi une couleur ») : elle se posait sur le bloc,
+   mais ses textes ont chacun leur couleur dans cette feuille (le bandeau de couverture : « mot » pervenche, « val »
+   blanc ; les tableaux, les textes gris), si bien qu'elle ne se voyait nulle part, ni à l'écran ni dans le PDF. Un bloc
+   qui porte une couleur la donne à tout son contenu ; un texte coloré à part (son propre style) garde la sienne. */
+.avis .avis-bloc[style^="color:"] *, .avis .avis-bloc[style*=" color:"] * { color: inherit; }
+.avis .avis-bloc[style^="color:"] .mot, .avis .avis-bloc[style*=" color:"] .mot { opacity: 0.75; }
+/* Sur le bandeau nuit de la couverture K Partners, « Accent » se lit en pervenche (l'indigo y tombait sous 3:1) et
+   « Texte » en blanc : la couleur garde son rôle, le fond sombre sa lisibilité. */
+.avis:not(.avis-klocka) .avis-couverture-bande { --doc-accent: var(--pervenche); --doc-encre: var(--blanc); }
+
 @media print {
   .avis-zoom { zoom: 1 !important; }
   .avis-panneau, .avis-styles, .avis-cadre, .avis-toile > p { display: none !important; }
@@ -226,6 +257,8 @@
   .avis-photo-bouton, .avis-ecran { display: none !important; }
   .avis [data-edit]:hover, .avis [data-edit]:focus { background: none; box-shadow: none; }
   .avis .a-completer { background: none; }
+  /* Les aplats (bandeaux, encarts, photos) sortent aussi quand on imprime soi-même la page d'impression. */
+  .avis, .avis * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { background: #fff !important; }
   /* La copie posée à la racine pour l'impression (EditeurAvis.jsx, copierPourImpression) : elle seule sort. */
   body:has(> #avis-impression) > *:not(#avis-impression) { display: none !important; }

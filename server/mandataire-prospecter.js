@@ -7,7 +7,7 @@
 
 import { Records, Meta } from './db.js';
 import { pourClient } from '../src/lib/clients-commerces.js';
-import { texteDrapeau } from './off-market/simple.js';
+import { texteDrapeau, enseigneVue, activiteVue } from './off-market/simple.js';
 
 // Une cinquantaine de murs par ville (24 oct. 2026, Jules : « zoomer sur une ville montre ses 50 points »).
 export const POINTS_MAX = 50;
@@ -62,7 +62,7 @@ export function pointsPourClient(commerces, d, { max = POINTS_MAX, centreDe = ()
     if (prix) n.prix += 1;
     // Le prix estimé n'est pas assez fiable pour écarter un mur (24 oct. 2026, Jules : « trop bas, surfaces douteuses ») :
     // il ne filtre plus, il range (ceux dans son budget d'abord) et il s'affiche comme indicatif.
-    const vu = { classe: c.classe || 'commerce', activite: c.activite, enseigne: c.enseigne, nom: c.exploitant?.nom || c.nom, nom_google: c.nom_google, chaine: !!c.chaine, centre: centreDe(c), prix: null };
+    const vu = { classe: c.classe || 'commerce', activite: activiteVue(c), enseigne: enseigneVue(c), nom: c.exploitant?.nom || c.nom, nom_google: c.nom_google, chaine: !!c.chaine, centre: centreDe(c), prix: null };
     if (!pourClient(vu, d)) continue;
     n.criteres += 1;
     const max = Number(d?.budget_max) || 0, min = Number(d?.budget_min) || 0;
@@ -77,7 +77,7 @@ export function pointsPourClient(commerces, d, { max = POINTS_MAX, centreDe = ()
     // celui qui compte pour ce client, le prix estimé reste à côté.
     .map(({ c, prix, force, dansBudget }) => ({
       ...(compacter ? compacter(c) : { id: c.id, lat: c.lat, lon: c.lon, ville_id: c.ville_id, classe: c.classe || 'commerce', activite: c.activite || null, adresse: c.adresse || null, proprietaire: c.proprietaire.nom, nom: c.exploitant.nom, drapeaux: c.drapeaux.map((x) => x.cle) }),
-      titre: c.enseigne || c.exploitant?.nom || c.nom,
+      titre: enseigneVue(c) || c.exploitant?.nom || c.nom,
       exploitant: c.exploitant.nom,
       signaux: c.drapeaux.map((x) => texteDrapeau(x.texte)), force, prix, prix_estime: c.estimation?.prix || null, prix_a_verifier: !prix, dans_budget: dansBudget,
     }));
@@ -120,19 +120,29 @@ async function commercesDeLaVille(v, cache = null) {
 }
 // Une lecture partagée une minute (3 nov. 2026, Jules : « Votre secteur et vos clients, c'est super long ») : la page
 // lance ensemble les clients et la carte, qui décodaient chacun les mêmes 25 000 commerces (2 à 6 s chacun).
-const lectures = new Map(); // ville_id → { sig, p }
+// Gardée cinq minutes même si un commerce change (3 nov. 2026) : la recherche des propriétaires en fond en modifie sans
+// cesse, et chaque modification relançait le décodage et le centre-ville de toute la ville (8 à 10 s).
+const CINQ_MINUTES = 5 * 60_000;
+const lectures = new Map(); // ville_id → { sig, le, p }
+// Le centre-ville d'une ville, gardé six heures (3 nov. 2026, Jules : « ça prend beaucoup trop longtemps pour charger les
+// points d'un client ») : 1 à 5 s par ville, et il ne bouge pas quand un propriétaire est trouvé. Un commerce arrivé
+// entre-temps n'y est pas : il compte hors du centre jusqu'au calcul suivant.
+const SIX_HEURES = 6 * 60 * 60_000;
+const centres = new Map(); // ville_id → { le, zone }
 async function lireCommerces(v) {
   const sig = Records.signature('CommerceSimple');
   const deja = lectures.get(v.id);
-  if (deja?.sig === sig) return deja.p;
+  if (deja && (deja.sig === sig || Date.now() - deja.le < CINQ_MINUTES)) return deja.p;
   const p = (async () => {
     const { centreVille } = await import('./off-market/simple.js');
     const liste = Records.filter('CommerceSimple', { ville_id: v.id });
-    const zone = centreVille(liste, Records.get('Ville', v.id));
+    const garde = centres.get(v.id);
+    const zone = garde && Date.now() - garde.le < SIX_HEURES ? garde.zone : centreVille(liste, Records.get('Ville', v.id));
+    if (zone !== garde?.zone) centres.set(v.id, { le: Date.now(), zone });
     return { liste, zone, centreDe: (c) => (zone?.centre ? zone.centre.has(c.id) : null) };
   })();
-  lectures.set(v.id, { sig, p });
-  setTimeout(() => { if (lectures.get(v.id)?.p === p) lectures.delete(v.id); }, 60_000).unref?.();
+  lectures.set(v.id, { sig, le: Date.now(), p });
+  setTimeout(() => { if (lectures.get(v.id)?.p === p) lectures.delete(v.id); }, CINQ_MINUTES).unref?.();
   p.catch(() => lectures.delete(v.id));
   return p;
 }
@@ -165,7 +175,7 @@ const nz = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLow
  * Les villes où il prospecte « pour mes clients » : celles que Klocka a choisies pour son secteur (24 oct. 2026), et
  * seulement elles. `fiches` : les fiches Ville qui existent, avec leur centre ; `toutes` : chacune avec son état.
  */
-async function villesDuMandataire(secteur) {
+async function villesDuMandataire(secteur, { etats = true } = {}) {
   const { villesDuSecteurMandataire, etatVille, preparation } = await import('./villes-secteur.js');
   const villes = Records.list('Ville');
   // Les villes cochées pour le secteur, et les Villes Klocka de son contour (30 oct. 2026).
@@ -175,7 +185,8 @@ async function villesDuMandataire(secteur) {
   });
   return {
     fiches: toutes.filter((x) => x.fiche).map((x) => ({ id: x.fiche.id, nom: x.fiche.nom, centre: x.fiche.centre })),
-    toutes: await Promise.all(toutes.map(async (x) => ({ id: x.fiche?.id || x.choisie.code || x.choisie.nom, nom: x.choisie.nom, centre: x.fiche?.centre || null, etat: x.fiche ? etatVille(x.fiche) : 'a_lire', preparation: x.fiche ? await preparation(x.fiche) : { en_cours: true } }))),
+    // L'état de chaque ville (lecture, propriétaires, prix) : l'écran des clients seulement, pas la carte d'un client.
+    toutes: !etats ? [] : await Promise.all(toutes.map(async (x) => ({ id: x.fiche?.id || x.choisie.code || x.choisie.nom, nom: x.choisie.nom, centre: x.fiche?.centre || null, etat: x.fiche ? etatVille(x.fiche) : 'a_lire', preparation: x.fiche ? await preparation(x.fiche) : { en_cours: true } }))),
   };
 }
 
@@ -223,7 +234,7 @@ export function pointDuSecteur(c, base, ville) {
   const drapeaux = c.drapeaux || [];
   return {
     ...base,
-    titre: c.enseigne || c.exploitant?.nom || c.nom,
+    titre: enseigneVue(c) || c.exploitant?.nom || c.nom,
     exploitant: c.exploitant?.nom || null,
     signaux: drapeaux.map((x) => texteDrapeau(x.texte)), force: forceDe(drapeaux),
     prix: c.estimation?.prix || null, prix_estime: c.estimation?.prix || null, prix_a_verifier: !c.estimation?.prix, dans_budget: null,
@@ -233,7 +244,7 @@ export function pointDuSecteur(c, base, ville) {
 
 // Ce que l'écran lit d'un point de tout le secteur : la carte, les filtres, la recherche et le tableau. Le reste (adresse
 // brute, siret, textes des signaux…) vient avec la fiche, au clic.
-const CHAMPS_LEGERS = ['id', 'force', 'classe', 'lien', 'activite', 'drapeaux', 'proprietaire', 'proprietaire_type', 'depuis', 'chaine', 'liste', 'adresse', 'centre', 'zone', 'titre', 'nom', 'ville', 'prix', 'reponse', 'fiche'];
+const CHAMPS_LEGERS = ['id', 'force', 'classe', 'lien', 'activite', 'drapeaux', 'fonds', 'ca', 'resultat', 'proprietaire', 'proprietaire_type', 'depuis', 'chaine', 'liste', 'adresse', 'centre', 'zone', 'titre', 'nom', 'ville', 'prix', 'reponse', 'fiche'];
 /**
  * Pure : un point de tout le secteur, allégé (26 oct. 2026 : 74 000 points, 62 Mo en entier). Les valeurs vides
  * disparaissent, sauf `centre` à faux (le filtre d'emplacement le lit) ; la position est arrondie au mètre.
@@ -292,7 +303,6 @@ export async function pointsDuSecteur(user, { max = Infinity } = {}) {
 // compressée (5 Mo au lieu de 26). Une fiche de mandataire qui bouge (un commerce mis dans une liste, un bien) le
 // recalcule aussitôt ; des commerces qui changent pendant une lecture en fond, au plus toutes les cinq minutes.
 
-const CINQ_MINUTES = 5 * 60_000;
 const UNE_HEURE = 60 * 60_000;
 const caches = new Map(); // `${vue}:${email}` → { le, fiches, donnees, valeur }
 const enCalcul = new Map();
@@ -360,7 +370,8 @@ export async function pointsDuSecteurCompresses(user) {
  * La carte tout de suite (3 nov. 2026, Jules) : la dernière gardée, même un peu vieille (en mémoire, sinon sur disque,
  * 2 Mo compressés), et le calcul relancé en fond ; on n'attend le calcul que la toute première fois.
  */
-const carteSurDisque = (user) => `mandataire.carte:${emailDe(user)}`;
+// v2 (3 nov. 2026) : les points portent les raisons de céder le fonds ; une carte gardée avant n'en a pas.
+const carteSurDisque = (user) => `mandataire.carte.v2:${emailDe(user)}`;
 export async function pointsDuSecteurVite(user) {
   const garde = caches.get(`tous:${emailDe(user)}`);
   if (encoreBon(garde, signatures())) return garde.valeur;
@@ -414,7 +425,7 @@ export async function prospecterVite(user) {
  * secteur attribué, les clients et la carte se calculent en fond, une fois, puis de nouveau quand le secteur bouge
  * (redessiné, réattribué, ses communes relues). Ensuite, une ouverture sert le dernier calcul et le refait en fond.
  */
-const clePrete = (email) => `mandataire.prospection-prete:${email}`;
+const clePrete = (email) => `mandataire.prospection-prete.v2:${email}`;
 let enPreparation = false;
 export async function preparerLesSecteurs() {
   if (enPreparation) return 0;
@@ -450,7 +461,7 @@ export async function pointsDuClient(user, demandeId, { noter = false } = {}) {
   if (!secteur) return { ok: false, error: 'Aucun secteur pour vous : Klocka vous en attribue un.' };
   const d = E.demandesVisibles({ avecTest: E.voitTest(user) }).find((x) => x.id === demandeId);
   if (!d) return { ok: false, error: 'Client introuvable.' };
-  const villes = await villesDuClient(d, (await villesDuMandataire(secteur)).fiches);
+  const villes = await villesDuClient(d, (await villesDuMandataire(secteur, { etats: false })).fiches);
   const compte = {};
   const points = await pointsDans(d, villes, null, String(user?.email || '').toLowerCase(), compte);
   // Des cibles sans prix : l'estimation repart dans ses villes, les cibles d'abord (le plafond du jour tient).

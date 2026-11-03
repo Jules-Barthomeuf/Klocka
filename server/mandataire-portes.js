@@ -395,22 +395,26 @@ export async function ouvrirDossierDuMandat(mandat, user) {
   const estimations = Records.list('EstimationMandataire').filter((e) => e.id === mandat.estimation_id || (fiche && e.proprietaire_id === fiche.id));
   const h = heritageDuDossier({ estimations, fiche, societe: q.vendeur_genre === 'morale' || !!q.vendeur_societe });
   const d = Records.update('DossierMandataire', r.dossier.id, { mandat_id: mandat.id, documents: h.documents, photos: h.photos, ...(h.pieces_demandees.length ? { pieces_demandees: h.pieces_demandees } : {}) });
-  if (Object.keys(h.documents).length) import('./dossier-vente.js').then((V) => V.lirePieces(d.id, { ...user, email: mandat.mandataire_email })).catch(() => {});
+  if (Object.keys(h.documents).length && lectureDesPieces()) import('./dossier-vente.js').then((V) => V.lirePieces(d.id, { ...user, email: mandat.mandataire_email })).catch(() => {});
   const F = await import('./fil-dossier.js');
   F.evenement(d.id, 'Mandat signé : le dossier est ouvert. Déposez les pièces et les photos ici, puis transférez-le à Klocka quand vous le souhaitez.');
   return d;
 }
 
 /** Les pièces qui disent qui peut vendre, quand le vendeur est une société. */
+/** La lecture des pièces déposées dans la Data room du mandataire : éteinte par défaut (3 nov. 2026, Jules). */
+export const lectureDesPieces = () => process.env.LECTURE_PIECES_DOSSIER === '1';
+
 export const PIECES_SOCIETE = [
-  { cle: 'statuts_vendeur', mot: 'Statuts de la société venderesse' },
-  { cle: 'kbis_vendeur', mot: 'Kbis de la société venderesse' },
-  { cle: 'pouvoirs', mot: 'Pouvoirs du gérant pour vendre' },
+// Facultatives (3 nov. 2026, Jules : « le Kbis, les statuts, les pouvoirs du gérant ne sont pas obligatoires ») ; « vendeuse ».
+  { cle: 'statuts_vendeur', mot: 'Statuts de la société vendeuse', requise: false },
+  { cle: 'kbis_vendeur', mot: 'Kbis de la société vendeuse', requise: false },
+  { cle: 'pouvoirs', mot: 'Pouvoirs du gérant pour vendre', requise: false },
 ];
 
 /**
  * Pure : ce que la Data room reprend à sa naissance. Le bail déposé sur un avis de valeur du bien, les photos de la
- * visite, et les pièces d'une société venderesse (demandées, donc requises).
+ * visite, et les pièces d'une société vendeuse (demandées, facultatives).
  */
 export function heritageDuDossier({ estimations = [], fiche = null, societe = false } = {}) {
   const le = maintenant();
@@ -469,7 +473,8 @@ export const PIECES = [
   { cle: 'kbis', mot: 'Kbis du locataire', requise: false },
   { cle: 'copropriete', mot: 'Règlement de copropriété, PV d’AG', requise: false },
   { cle: 'diagnostics', mot: 'Diagnostics (DPE, amiante…)', requise: true },
-  { cle: 'taxe_fonciere', mot: 'Dernière taxe foncière', requise: true },
+  // Trois pièces obligatoires seulement (3 nov. 2026, Jules) : le bail, les quittances, les diagnostics.
+  { cle: 'taxe_fonciere', mot: 'Dernière taxe foncière', requise: false },
   // Le dossier de vente (27 oct. 2026) : ce qu'un acheteur demandera aussi, sans bloquer la mise en vente.
   { cle: 'titre', mot: 'Titre de propriété', requise: false },
   { cle: 'charges', mot: 'Dernier appel de charges', requise: false },
@@ -486,9 +491,11 @@ export const lireDossier = (id, user) => lire('DossierMandataire', id, user);
  * nouvelle s'ajoute).
  */
 export function piecesDu(dossier) {
-  const demandees = dossier.pieces_demandees || [];
+  // Les pièces d'une société vendeuse se lisent dans leur définition du jour : les dossiers nés avant le 3 nov. 2026
+  // les gardaient obligatoires, et « venderesse ».
+  const demandees = (dossier.pieces_demandees || []).map((x) => ({ ...x, ...(PIECES_SOCIETE.find((s) => s.cle === x.cle) || {}) }));
   const base = PIECES.map((p) => (demandees.some((x) => x.cle === p.cle) ? { ...p, requise: true, demandee: true } : p));
-  const nouvelles = demandees.filter((x) => !PIECES.some((p) => p.cle === x.cle)).map((x) => ({ cle: x.cle, mot: x.mot, requise: true, demandee: true }));
+  const nouvelles = demandees.filter((x) => !PIECES.some((p) => p.cle === x.cle)).map((x) => ({ cle: x.cle, mot: x.mot, requise: x.requise !== false, demandee: true }));
   return [...base, ...nouvelles];
 }
 
@@ -541,8 +548,9 @@ export function ajouterPiece(id, categorie, fichier, user, { uploadDir = CHEMIN_
   const maj = Records.update('DossierMandataire', d.id, { documents, statut, historique: trace(d, `pièce reçue : ${fichier.filename}`, user) });
   const mot = piecesDu(d).find((p) => p.cle === categorie)?.mot || categorie;
   import('./fil-dossier.js').then((F) => F.evenement(d.id, `Pièce reçue : ${mot} (${fichier.filename}).`)).catch(() => {});
-  // Le dossier de vente (27 oct. 2026) : la pièce se lit tout de suite, pour les vérifications du mandataire.
-  if (!enEtude) import('./dossier-vente.js').then((V) => V.lirePieces(d.id, user, { uploadDir })).catch((e) => console.warn('[portes] lecture de la pièce :', e?.message || e));
+  // Le dossier de vente (27 oct. 2026) : la pièce se lisait tout de suite. Plus pour l'instant (3 nov. 2026, Jules : « ça
+  // ne doit pas gêner les prochaines actions ») : LECTURE_PIECES_DOSSIER=1 la rallume.
+  if (!enEtude && lectureDesPieces()) import('./dossier-vente.js').then((V) => V.lirePieces(d.id, user, { uploadDir })).catch((e) => console.warn('[portes] lecture de la pièce :', e?.message || e));
   if (enEtude) {
     deposerSurDeal(d.id, d.deal_id, user, uploadDir).catch((e) => console.warn('[portes] pièce après transfert :', e?.message || e));
     if (d.analyste_email) import('./notifications.js').then(({ notifier }) => notifier({ pour: d.analyste_email, titre: `Nouvelle pièce · ${d.bien}`, texte: `${mot} : ${fichier.filename}`, lien: `/Analyse?deal_id=${d.deal_id}`, action: 'Ouvrir', cle: `fil-piece:${d.id}` })).catch(() => {});

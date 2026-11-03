@@ -385,3 +385,15 @@ test('l\'annuaire plafonne à 10 000 : le cercle se découpe en quartiers qui le
   assert.equal(appels, 1 + 4 * 1 + 0, 'une page par quartier, pas plus');
   assert.equal(out.length, 4, 'un par quartier, ceux hors du cercle écartés');
 });
+
+test("le nom vu en vitrine : Google l'emporte sur le registre pour une franchise (3 nov. 2026, Jules : Boucherie Ruiz est un Vival)", async () => {
+  const { enseigneVue, activiteVue } = await import('./simple.js');
+  const ruiz = { enseigne: 'BOUCHERIE RUIZ', nom: 'BOUCHERIE RUIZ (BOUCHERIE RUIZ)', nom_google: 'Vival By Casino', activite: 'Boucherie, charcuterie' };
+  assert.equal(enseigneVue(ruiz), 'Vival By Casino');
+  assert.equal(activiteVue(ruiz), 'Supérette, supermarché');
+  assert.equal(activiteVue({ ...ruiz, activite_google: 'Épicerie' }), 'Épicerie', "l'activité de Google, quand on l'a");
+  assert.equal(enseigneVue({ enseigne: 'PAUL', nom_google: 'Paul', activite: 'Boulangerie' }), 'PAUL', 'le même nom ne change rien');
+  assert.equal(enseigneVue({ enseigne: 'Chez Mario', nom_google: 'Chez Mario', source: 'Google Maps' }), 'Chez Mario');
+  assert.equal(enseigneVue({ enseigne: 'LA FABRIQUE', activite: 'Bar' }), 'LA FABRIQUE', 'sans Google, le registre');
+  assert.equal(activiteVue({ enseigne: 'CHRISTELLE LAHIGUERA', nom_google: 'Axe & Cible', activite: 'Coiffure, salon de beauté' }), 'Coiffure, salon de beauté');
+});

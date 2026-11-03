@@ -151,6 +151,10 @@ const taillePt = (el) => {
  */
 function T({ v, chemin, onPose, as: Balise = "span", className = "", nombre = false, format = null, lire: lireTexte = null }) {
   const ref = useRef(null);
+  // Le curseur là où l'on clique (3 nov. 2026, Jules : il revenait au début, il fallait passer par les flèches). La
+  // sélection ouvrait le panneau de droite dès le focus, au milieu du clic : la page se réajustait (zoom, largeur)
+  // avant que le navigateur pose le curseur, qui tombait ailleurs. Au clic, la sélection attend le relâchement.
+  const parPointeur = useRef(false);
   const sel = useContext(Selection);
   const page = useContext(PageCtx);
   const clePos = `${page}:${chemin}`;
@@ -161,11 +165,25 @@ function T({ v, chemin, onPose, as: Balise = "span", className = "", nombre = fa
   const aCompleter = /\[à compléter\]/.test(affiche);
   const choisi = sel.clePos ? sel.clePos === clePos : sel.chemin === chemin;
   const edition = useContext(ModeAvis) === "edition";
+  const choisirIci = () => sel.choisir({ chemin, clePos, el: ref.current, texte: ref.current?.textContent || "", taille: ref.current ? taillePt(ref.current) : null });
   return (
     <Balise ref={ref} data-edit={edition ? "" : undefined} data-chemin={chemin} contentEditable={edition} suppressContentEditableWarning spellCheck={false}
       className={`${className} ${aCompleter ? "a-completer" : ""} ${choisi ? "avis-choisi" : ""}`}
       style={{ ...styleVisible(sel.styles?.[chemin], edition), ...placementCss(sel.positions?.[clePos], sel.styles?.[chemin]) }}
-      onFocus={() => { if (edition) sel.choisir({ chemin, clePos, el: ref.current, texte: ref.current?.textContent || "", taille: ref.current ? taillePt(ref.current) : null }); }}
+      onPointerDown={() => {
+        if (!edition || choisi) return;
+        parPointeur.current = true;
+        const relache = () => {
+          window.removeEventListener("pointerup", relache, true);
+          // Après le relâchement, le curseur est posé : la page peut se réajuster, il reste dans le texte.
+          setTimeout(() => {
+            parPointeur.current = false;
+            if (ref.current && document.activeElement === ref.current) choisirIci();
+          }, 0);
+        };
+        window.addEventListener("pointerup", relache, true);
+      }}
+      onFocus={() => { if (edition && !parPointeur.current) choisirIci(); }}
       onClick={(e) => e.stopPropagation()}
       onBlur={(e) => {
         const texte = e.currentTarget.textContent.trim();
@@ -251,12 +269,14 @@ function Lignes({ lignes = [], base, onPose }) {
     <table className="avis-table">
       <tbody>
         {lignes.map((l, i) => (
-          <tr key={i} className={`${l.alerte ? "alerte" : ""} ${glisse === i ? "avis-glisse" : ""}`} draggable
-            onDragStart={(e) => { setGlisse(i); e.dataTransfer.effectAllowed = "move"; }}
+          // Seule la poignée se glisse (3 nov. 2026) : une ligne entière « draggable » prenait le clic dans ses textes,
+          // et le curseur ne se posait pas là où l'on cliquait.
+          <tr key={i} className={`${l.alerte ? "alerte" : ""} ${glisse === i ? "avis-glisse" : ""}`}
             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-            onDrop={(e) => { e.preventDefault(); deposer(i); }}
-            onDragEnd={() => setGlisse(null)}>
-            <td><span className="avis-grip" aria-hidden><GripVertical /></span><T v={l.mot} chemin={`${base}.${i}.mot`} onPose={onPose} /></td>
+            onDrop={(e) => { e.preventDefault(); deposer(i); }}>
+            <td><span className="avis-grip" aria-hidden draggable
+              onDragStart={(e) => { setGlisse(i); e.dataTransfer.effectAllowed = "move"; const tr = e.currentTarget.closest("tr"); if (tr) e.dataTransfer.setDragImage(tr, 8, 8); }}
+              onDragEnd={() => setGlisse(null)}><GripVertical /></span><T v={l.mot} chemin={`${base}.${i}.mot`} onPose={onPose} /></td>
             <td><T v={l.texte} chemin={`${base}.${i}.texte`} onPose={onPose} /></td>
           </tr>
         ))}
@@ -295,7 +315,10 @@ function Photo({ avis, cle, className, style, estimationId, onAvis, cap = 0 }) {
 
 // L'avis n'a plus d'analyse de marché ni de méthode par comparaison (31 oct. 2026, Jules) : la capitalisation seule,
 // pour tous les avis, anciens compris. La section « marche » reste dans les données, elle ne se dessine plus.
-const avecSection = (avis, cle) => (cle !== "locatif" || !!avis.locatif) && cle !== "marche";
+// La page Juridique et technique ne paraît que si le mandataire a signalé quelque chose (3 nov. 2026, Jules : « si la
+// réponse est non, la section n'apparaît pas »).
+const juridiqueVide = (avis) => !String(avis.juridique?.synthese || "").trim() && !(avis.juridique?.lignes || []).length;
+const avecSection = (avis, cle) => (cle !== "locatif" || !!avis.locatif) && cle !== "marche" && (cle !== "juridique" || !juridiqueVide(avis));
 
 /** Les sections visibles, dans l'ordre voulu. */
 export function sectionsDe(avis) {
@@ -1072,6 +1095,19 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
     }, 700);
   };
   useEffect(() => () => clearTimeout(minuterie.current), []);
+  // Une lecture lente (la valeur locative, l'emplacement) complète l'avis après sa rédaction (3 nov. 2026) : tant que
+  // le serveur l'attend, l'avis se relit toutes les cinq secondes.
+  const queryClient = useQueryClient();
+  const attente = estimation.complement_en_fond_jusqu_a || null;
+  useEffect(() => {
+    const fin = Date.parse(attente || 0);
+    if (!(fin > Date.now())) return undefined;
+    const t = setInterval(() => {
+      if (Date.now() > fin) clearInterval(t);
+      queryClient.invalidateQueries({ queryKey: ["m-apercu", estimation.id] });
+    }, 5000);
+    return () => clearInterval(t);
+  }, [attente, estimation.id]);
   useEffect(() => {
     // Pas de retrait à « afterprint » : Chrome peut l'envoyer avant d'avoir rendu les pages. La copie reste, cachée à
     // l'écran, et se refait à chaque impression. À l'impression, la largeur A4 remonte l'éditeur (mise en page du

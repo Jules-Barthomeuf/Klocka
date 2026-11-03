@@ -303,7 +303,7 @@ async function envoyerCeMandat(m, user, { surEtape = null } = {}) {
 
   const { agentMyNotaryActif, lancerAgentMandat } = await import('./mynotary-agent.js');
   if (!agentMyNotaryActif()) {
-    return { ok: true, mandat_id: m.id, statut: 'demande_envoyee', en_file: true, note: "Mandat envoyé à l'équipe, qui le remplit au plus vite et l'envoie dans la conversation à droite pour relecture. Le mandataire le relit et dit à l'équipe si c'est bon : elle l'envoie en signature, puis la version finale signée arrive dans la conversation (« Mandat signé reçu »). Dis-le en deux phrases courtes, sans nommer Klocka." };
+    return { ok: true, mandat_id: m.id, statut: 'demande_envoyee', en_file: true, note: "Réponds exactement, sans rien ajouter : « Le mandat est bien envoyé. L'équipe le remplit au plus vite et vous le renverra dans cette conversation. Relisez-le et dites-lui si c'est bon. »" };
   }
   surEtape?.('Connexion à MyNotary');
   const r = await lancerAgentMandat(m.id, { surEtape });

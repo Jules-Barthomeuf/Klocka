@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, Loader2, X } from "lucide-react";
+import { ArrowUp, Square, X } from "lucide-react";
 
 // Le mode micro du chat de Haka (25 oct. 2026, maquette « Rubans » de Jules) : pendant la dictée, la barre du bas
 // devient Annuler, trois rubans qui ondulent avec la voix, le minuteur et Envoyer ; la lumière de l'aura ralentit et
@@ -106,8 +106,8 @@ export default function BarreEcoute({ niveau, cadre, onAnnuler, onEnvoyer, peutE
       </svg>
       <span className="flex-none text-[14px] tabular-nums text-ardoise">{Math.floor(secondes / 60)}:{String(secondes % 60).padStart(2, "0")}</span>
       <button type="button" onClick={onEnvoyer} disabled={!peutEnvoyer || envoi} aria-busy={envoi} aria-label="Terminer et envoyer" title="Terminer et envoyer"
-        className={`grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe transition-colors hover:bg-menthe-survol ${envoi ? "" : "disabled:opacity-40"}`}>
-        {envoi ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
+        className={`grid h-9 w-9 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe ${envoi ? "" : "disabled:opacity-30"}`} style={{ background: "transparent" }}>
+        {envoi ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}
       </button>
     </div>
   );

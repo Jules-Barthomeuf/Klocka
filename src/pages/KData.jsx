@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowUp, ArrowUpRight, Check, ChevronDown, Clock, Folder, Loader2, Search, Wrench, X, XCircle } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Check, ChevronDown, Clock, Folder, Loader2, Search, Square, Wrench, X, XCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { MODULES_KDATA, MODULES_LANCABLES } from "@/lib/kdata-modules";
@@ -297,9 +297,9 @@ function Composeur({ onLancer, enCours, questions, notes }) {
             formulaire, là où l'on finit de le remplir. */}
         {aQuestionner.length === 0 && (
           <button type="button" onClick={envoyer} disabled={!pret} aria-label="Lancer les analyses" title="Lancer les analyses"
-            className="grid h-11 w-11 flex-none place-items-center rounded-full transition-opacity disabled:opacity-40"
-            style={{ background: J["menthe"], color: J["sur-menthe"] }}>
-            {enCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
+            className="grid h-11 w-11 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe disabled:opacity-30"
+            style={{ background: "transparent" }}>
+            {enCours ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-5 w-5" strokeWidth={2} />}
           </button>
         )}
       </div>

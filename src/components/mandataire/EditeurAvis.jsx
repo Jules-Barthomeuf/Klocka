@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Download, Eye, EyeOff, GripVertical, History, ImagePlus, ListTree, Loader2, Maximize2, MessageSquareText, Move, Pencil, Plus, Redo2, Send, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, ArrowUp, Check, Download, Eye, EyeOff, GripVertical, History, ImagePlus, ListTree, Loader2, Maximize2, MessageSquareText, Move, Pencil, Plus, Redo2, Send, Square, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import LogoKP from "./LogoKP";
@@ -878,8 +878,8 @@ function Retouches({ estimation, avis, selection, onSelection, onAvis }) {
             placeholder={image ? (photoChoisie ? "Envoyez, ou précisez" : "En couverture, ou à l'emplacement ?") : selection?.chemin ? "Que changer sur la sélection ?" : "Modifie, déplace, reformule, enlève…"}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(texte); } }}
             className="w-full resize-none border-none bg-transparent text-[13.5px] leading-[1.5] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-          <button type="submit" disabled={(!texte.trim() && !image) || enCours} aria-label="Envoyer" className="grid h-8 w-8 flex-none place-items-center rounded-full bg-menthe text-sur-menthe disabled:opacity-40">
-            <Send className="h-3.5 w-3.5" />
+          <button type="submit" disabled={(!texte.trim() && !image) || enCours} aria-label="Envoyer" className={`grid h-8 w-8 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe ${enCours ? "" : "disabled:opacity-30"}`} style={{ background: "transparent" }}>
+            {enCours ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}
           </button>
         </div>
       </form>

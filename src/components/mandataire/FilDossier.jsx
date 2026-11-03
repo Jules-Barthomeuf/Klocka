@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, ArrowUp, Check, Loader2, Paperclip, Sparkles, X } from "lucide-react";
+import { ArrowRightLeft, ArrowUp, Check, Loader2, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { devinerPiece } from "@/lib/pieces-dossier";
@@ -243,8 +243,8 @@ export default function FilDossier({ dossierId, api = null, titre = null, vide =
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); soumettre(); } }}
             className="max-h-32 min-w-0 flex-1 resize-none border-none bg-transparent px-1 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" style={{ background: "transparent" }} />
           <button type="submit" disabled={!peutEnvoyer} aria-label="Envoyer" title="Envoyer"
-            className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-40">
-            {envoyer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
+            className="grid h-9 w-9 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe disabled:opacity-30" style={{ background: "transparent" }}>
+            {envoyer.isPending ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}
           </button>
         </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, ChevronDown, List, Loader2, Mail, Paperclip, Plus, Search, Send, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, List, Loader2, Mail, Paperclip, Plus, Search, Send, Sparkles, Square, Trash2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
@@ -403,8 +403,8 @@ export function Conversation({ c, cote, bord = true }) {
             placeholder={klocka ? (note ? "Note visible par Klocka uniquement…" : `Écrire à ${c.mandataire_nom}…`) : `Écrire à ${interlocuteur}…`}
             className={`h-[46px] min-w-0 flex-1 rounded-[14px] border px-4 text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px] ${note ? "border-ambre/40 bg-ambre/[0.06]" : "border-bord-doux bg-surface focus:border-bord-vif"}`} />
           <button type="submit" disabled={!peutEnvoyer} aria-label="Envoyer" title="Envoyer"
-            className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
-            {envoyer.isPending ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <Send className="h-[18px] w-[18px]" />}
+            className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe disabled:opacity-30" style={{ background: "transparent" }}>
+            {envoyer.isPending ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-5 w-5" strokeWidth={2} />}
           </button>
         </div>
       </form>

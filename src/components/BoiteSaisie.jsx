@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 import PenseeIA from "@/components/PenseeIA";
 
 // La boîte de saisie, la même partout : un cadre sombre arrondi, le texte,
@@ -68,13 +68,15 @@ export default function BoiteSaisie({
         {/* Le bouton d'envoi ne dit plus « Envoyer » : une flèche ronde, comme
             dans les chats qu'on connaît. Le libellé reste l'intitulé accessible. */}
         <button
-          onClick={onEnvoyer}
-          disabled={!peutEnvoyer || enCours || disabled}
+          onClick={enCours ? undefined : onEnvoyer}
+          disabled={(!peutEnvoyer && !enCours) || disabled}
+          aria-busy={enCours}
           title={libelle}
           aria-label={libelle}
-          className={`inline-flex items-center justify-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8 max-md:w-9 max-md:h-9" : "w-10 h-10"}`}
+          className={`inline-flex items-center justify-center rounded-full text-encre hover:text-menthe disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8 max-md:w-9 max-md:h-9" : "w-10 h-10"}`}
+          style={{ background: "transparent" }}
         >
-          {enCours ? <PenseeIA etat="working" taille={20} clair /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
+          {enCours ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
         </button>
       </div>
     </div>

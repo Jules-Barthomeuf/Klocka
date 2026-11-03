@@ -62,7 +62,7 @@ export function BarreAssistant({ onOuvrir }) {
         <Sparkles className="h-4 w-4 flex-none text-menthe" />
         <input value={texte} onChange={(e) => setTexte(e.target.value)} onFocus={() => { if (!texte) onOuvrir(""); }} placeholder="Une question sur ce dossier ? Demandez à l'assistant"
           aria-label="Demander à l'assistant" className="h-10 min-w-0 flex-1 bg-transparent text-[14.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-        <button type="submit" aria-label="Envoyer" className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol"><ArrowUp className="h-4 w-4" /></button>
+        <button type="submit" aria-label="Envoyer" className="grid h-9 w-9 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe" style={{ background: "transparent" }}><ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} /></button>
       </div>
     </form>
   );

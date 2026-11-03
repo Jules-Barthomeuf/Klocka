@@ -118,14 +118,14 @@ export default function BarreChat({
 
         <button
           type="button"
-          onClick={() => (enCours && onArreter ? onArreter() : onEnvoyer())}
+          onClick={() => (enCours ? onArreter?.() : onEnvoyer())}
           disabled={!enCours && !envoyable}
           aria-label={enCours && onArreter ? "Interrompre la requête en cours" : "Envoyer"}
           title={enCours && onArreter ? "Interrompre la requête en cours" : "Envoyer"}
-          className="grid h-11 w-11 flex-none place-items-center rounded-full transition-opacity disabled:opacity-45"
-          style={{ background: J["menthe"], color: J["sur-menthe"] }}
+          className="grid h-11 w-11 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe disabled:opacity-30"
+          style={{ background: "transparent" }}
         >
-          {enCours && onArreter ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
+          {enCours ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-5 w-5" strokeWidth={2} />}
         </button>
       </div>
       </div>

@@ -203,8 +203,8 @@ function Recit({ id, refaire, onFait }) {
           {micro.enCours ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </button>
         <button type="button" onClick={() => lire.mutate(null)} disabled={lire.isPending || !texte.trim()} aria-label="Envoyer à l'Assistant KPartners"
-          className="grid h-9 w-9 flex-none place-items-center rounded-full bg-pervenche text-sur-menthe-pale disabled:opacity-40">
-          {lire.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+          className="grid h-9 w-9 flex-none place-items-center rounded-full text-encre transition-colors hover:text-pervenche disabled:opacity-30" style={{ background: "transparent" }}>
+          {lire.isPending ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}
         </button>
       </div>
       {micro.enCours && <p className="m-0 mt-1 text-[12.5px] text-alerte">Je vous écoute… appuyez sur le carré pour finir.</p>}

@@ -2151,9 +2151,10 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
                 disabled={!enCours && !texte.trim() && !jointes.length && !reglages?.competence}
                 aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
                 title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
-                className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe transition-colors hover:bg-menthe-survol disabled:cursor-default"
+                className="grid h-9 w-9 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe disabled:opacity-30 disabled:cursor-default"
+                style={{ background: "transparent" }}
               >
-                {enCours ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
+                {enCours ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}
               </button>
             </div>
           </div>

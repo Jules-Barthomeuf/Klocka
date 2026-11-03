@@ -391,7 +391,8 @@ function HistoriqueConversations({ actuelle, onOuvrir, onNouvelle, api = "/api/a
 }
 
 // Un brouillon de mail à relire : rien ne part sans un clic humain.
-function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours, messagerie = false, de = null }) {
+// Exporté (3 nov. 2026) : la Data room du mandataire montre le premier mail au vendeur sous ce même brouillon.
+export function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours, messagerie = false, de = null, onMessagerie = null }) {
   return (
     <div className="border border-menthe/40 rounded-xl bg-surface px-5 py-4">
       <div className="flex items-baseline justify-between gap-4 mb-3">
@@ -420,6 +421,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours, messagerie = fal
         {messagerie ? (
           <a
             href={`mailto:${encodeURIComponent(b.destinataire || "")}?subject=${encodeURIComponent(b.objet || "")}&body=${encodeURIComponent(b.corps || "")}`}
+            onClick={onMessagerie || undefined}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol rounded-full"
           >
             <Send className="w-3.5 h-3.5" /> Ouvrir dans ma messagerie
@@ -771,7 +773,7 @@ export function cartesDe(r) {
   const fil = r?.fil_bien ? [{ titre: "Rangé dans le fil du bien", detail: null, etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
   return [...fil, ...fichiers, ...taches, ...(r?.actions || [])
     // Une étape à confirmer n'est pas faite : elle n'a pas de carte, seulement son bouton « Confirmer » (25 oct. 2026).
-    .filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_vente" && !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
+    .filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_vente" && a.type !== "confirmer_import" && !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
     .map((a) => ({
       titre: a.titre || (a.name === "creer_drive_dossier" && a.resultat?.deja_cree ? "Dossier Drive complété" : ACTIONS_FAITES[a.name]),
       detail: a.pour || a.resultat?.message || a.resultat?.titre || null,
@@ -1309,6 +1311,15 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
         ["m-dossiers", "m-marches", "m-dossier-vente"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
         return;
       }
+      // Un bien du portefeuille raconté avec ses pièces (3 nov. 2026, Jules) : il naît au tap, à l'étape lue.
+      if (a.type === "confirmer_import") {
+        const r = await base44.request("POST", "/api/mandataire/biens/import/un", { body: { bien: a.bien, etape: a.etape, pieces: a.pieces, recit: a.recit } });
+        const id = r?.proprietaire?.id;
+        pousser({ role: "assistant", contenu: `C'est fait : ${a.titre} est dans vos biens, à l'étape ${r?.mot || a.pour}.`, cartes: id ? [{ titre: "Ouvrir le bien", detail: a.titre, etat: "fait", lien: `/MandataireBiens?bien=proprietaire:${id}`, action: "Ouvrir" }] : undefined });
+        setSuites((l) => l.filter((x) => x.cle !== a.id));
+        rafraichir();
+        return;
+      }
       // La restitution de l'avis (27 oct. 2026) : le statut et la relance datée s'écrivent au tap.
       if (a.type === "confirmer_restitution") {
         const r = await base44.request("POST", `/api/mandataire/proprietaires/${encodeURIComponent(a.proprietaire_id)}/restitution`, { body: { cas: a.cas, prix: a.prix, date: a.date, motif: a.motif, relance_le: a.relance_le, relance_quoi: a.relance_quoi, canal: a.canal } });
@@ -1332,7 +1343,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
       toast.error(e?.message || "Étape non enregistrée");
     }
   };
-  const suitesMandataire = (r) => (r.actions || []).filter((a) => a.type !== "monday" && a.type !== "piece").slice(0, 3).map((a) => (a.type === "confirmer_etape" || a.type === "confirmer_restitution" || a.type === "confirmer_vente" ? {
+  const suitesMandataire = (r) => (r.actions || []).filter((a) => a.type !== "monday" && a.type !== "piece").slice(0, 3).map((a) => (a.type === "confirmer_etape" || a.type === "confirmer_restitution" || a.type === "confirmer_vente" || a.type === "confirmer_import" ? {
     cle: a.id,
     libelle: `Confirmer · ${a.mot}`,
     principal: true,
@@ -1580,7 +1591,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
             role: "assistant",
             contenu: "Arrêté. Ce qui était déjà fait reste en place :",
             etapes: vivesRef.current,
-            cartes: actionsVives.current.filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution").map((a) => ({ titre: a.titre, detail: a.pour || null, etat: a.etat === "rate" ? "rate" : "fait", genre: a.type || null, lien: a.lien || null })),
+            cartes: actionsVives.current.filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_import").map((a) => ({ titre: a.titre, detail: a.pour || null, etat: a.etat === "rate" ? "rate" : "fait", genre: a.type || null, lien: a.lien || null })),
           });
           setSuites(suitesMandataire({ actions: actionsVives.current }));
           actionsVives.current = [];

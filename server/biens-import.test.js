@@ -88,3 +88,39 @@ test("une photo de mandat, ou un PDF scanné, se lit par le modèle puis comme u
   assert.equal(heic.ok, false);
   assert.match(heic.error, /HEIC/);
 });
+
+test("un bien raconté à l'assistant avec ses pièces (3 nov. 2026) : la carte d'abord, le bien au tap, à l'étape choisie", async () => {
+  const { Records } = await import('./db.js');
+  const { importerUnBien } = await import('./biens-import.js');
+  const { executerOutilMandataire } = await import('./mandataire.js');
+  const lea = { email: 'lea.recit@kpartners.fr', role: 'mandataire' };
+  const pieces = [{ nom: 'Mandat Masséna.pdf', url: '/uploads/abc123.pdf', mimetype: 'application/pdf', texte: 'Mandat n° 7' }, { nom: 'Bail.pdf', url: '/uploads/def456.pdf', mimetype: 'application/pdf' }];
+  const carte = await executerOutilMandataire({ name: 'importer_bien', input: { etape: 'offre', commerce: 'Optique', adresse: '2 avenue Jean Médecin', ville: 'Nice', prix: 620000, proprietaire: 'SCI Lumière' } }, lea, { pieces, texte: 'Sous offre à 600, le compromis est prévu fin novembre.' });
+  assert.equal(carte.a_confirmer, true);
+  assert.equal(carte.carte.type, 'confirmer_import');
+  assert.equal(carte.carte.pieces.length, 2);
+  assert.equal(Records.list('ProprietaireMandataire').filter((p) => p.mandataire_email === lea.email).length, 0, 'la carte n’écrit rien');
+
+  const r = await importerUnBien({ bien: carte.carte.bien, etape: carte.carte.etape, pieces: [...carte.carte.pieces, { nom: 'ailleurs', url: 'https://exemple.fr/x.pdf' }], recit: carte.carte.recit }, lea);
+  assert.equal(r.ok, true);
+  assert.equal(r.mot, 'Sous offre');
+  const p = r.proprietaire;
+  assert.equal(p.statut, 'mandat_signe');
+  assert.equal(bienDuProprietaire([p], `proprietaire:${p.id}`).etape, 6, 'la suite : les Offres');
+  assert.deepEqual(p.pieces_importees.map((x) => [x.nom, x.categorie]), [['Mandat Masséna.pdf', null], ['Bail.pdf', 'bail']], 'une adresse hors dépôt est écartée');
+  const { filDuBien } = await import('./fil-du-bien.js');
+  const fil = filDuBien(lea, p.id);
+  assert.match(fil.messages[0].contenu, /^📎 Mandat Masséna\.pdf · Bail\.pdf — Sous offre à 600/);
+
+  const encore = await executerOutilMandataire({ name: 'importer_bien', input: { etape: 'offre', adresse: '2 avenue Jean Médecin', ville: 'Nice' } }, lea, {});
+  assert.equal(encore.ok, false, 'un bien déjà là n’a pas de carte');
+  assert.match(encore.error, /déjà/);
+  Records.delete('ProprietaireMandataire', p.id);
+});
+
+test("l'étape d'un bien importé : choisie, sinon celle de l'enseigne", async () => {
+  const { etapeDuBien } = await import('./biens-import.js');
+  assert.equal(etapeDuBien(bienLu({ adresse: 'x', etape: 'estimation', enseigne: '' })), 'estimation');
+  assert.equal(etapeDuBien(bienLu({ adresse: 'x', enseigne: 'Century 21' })), 'mandat_ailleurs');
+  assert.equal(etapeDuBien(bienLu({ adresse: 'x', etape: 'nimporte' })), 'mandat_kp');
+});

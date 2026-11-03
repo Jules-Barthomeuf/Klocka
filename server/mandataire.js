@@ -467,6 +467,34 @@ export const OUTILS_MANDATAIRE = [
     },
   },
   {
+    name: 'importer_bien',
+    description:
+      "Un bien qu'il a DÉJÀ en portefeuille, raconté (souvent en vocal) avec ses documents joints au même message (3 nov. 2026, Jules) : un mandat signé chez K Partners ou ailleurs, un avis de valeur fait, un bien sous offre ou vendu. Pas un commerce à démarcher (nouveau_contact), pas un bien déjà dans Biens (avancer_bien, ranger_piece). Un bien par appel ; plusieurs biens dans un message : demande de les envoyer un par un, chacun avec ses pièces. Remplis depuis le récit ET le texte des pièces ; quand les deux divergent, la pièce fait foi et tu le dis. N'invente rien, ne réclame rien : un champ absent reste vide. Rien n'est créé : l'outil prépare la carte, le mandataire confirme d'un tap. Après l'appel, résume en trois ou quatre lignes courtes (le bien, l'étape, le prix, les pièces reçues, ce qui manque) et dis de toucher « Confirmer ».",
+    input_schema: {
+      type: 'object',
+      properties: {
+        etape: { type: 'string', enum: ['estimation', 'mandat_kp', 'mandat_ailleurs', 'offre', 'vente'], description: "estimation : avis de valeur fait, pas de mandat ; mandat_kp : mandat signé chez K Partners ; mandat_ailleurs : mandat signé dans une autre agence (enseigne) ; offre : sous offre ou sous compromis ; vente : vendu. Un mandat sans agence lisible : demande avant d'appeler." },
+        proprietaire: { type: 'string', description: 'Le propriétaire des murs (nom ou société)' },
+        telephone: { type: 'string' },
+        email: { type: 'string' },
+        commerce: { type: 'string', description: 'Le commerce (enseigne ou activité du locataire)' },
+        activite: { type: 'string' },
+        adresse: { type: 'string' },
+        ville: { type: 'string' },
+        prix: { type: 'number', description: 'Le prix de vente (mandat) ou la valeur de l\'avis, en euros' },
+        loyer_annuel: { type: 'number', description: 'En euros, hors charges' },
+        honoraires: { type: 'string' },
+        numero: { type: 'string', description: 'Le numéro du mandat' },
+        signe_le: { type: 'string', description: 'AAAA-MM-JJ' },
+        echeance: { type: 'string', description: 'AAAA-MM-JJ' },
+        exclusif: { type: 'boolean' },
+        enseigne: { type: 'string', description: 'L\'agence ou le réseau du mandat' },
+        manque: { type: 'string', description: 'Ce qui manque pour la suite, en une ligne (« pas de bail ») ; vide sinon' },
+      },
+      required: ['etape'],
+    },
+  },
+  {
     name: 'appel_sans_reponse',
     description:
       "« Pas de réponse pour le commerce à Mâcon » : retrouve la fiche, enregistre la tentative et pose la relance suivante de la séquence (J+2 appel, J+5 mail, J+10 dernier appel, puis « À recontacter » à J+30). Si la réponse liste plusieurs candidats, demande lequel en une ligne.",
@@ -695,7 +723,7 @@ export async function executerOutilMandataire(appel, user, contexte = {}) {
   }
 }
 
-async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: seule = null, pieces = null, fiche = null } = {}) {
+async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: seule = null, pieces = null, fiche = null, texte: recit = '' } = {}) {
   const { lotDePieces, choisirPiece } = await import('./pieces-jointes.js');
   const lot = lotDePieces({ piece: seule, pieces });
   if (NOMS_OUTILS_VISITE.has(name)) return (await import('./visites-acquereur.js')).executerOutilVisite(name, input, user);
@@ -980,6 +1008,26 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     const phrase = String(input.phrase || '').trim().slice(0, 200);
     if (!phrase) return { ok: false, error: 'Que cherche-t-il ? Demande-le en une ligne.' };
     return { ok: true, fait: `La Prospection s'ouvre filtrée sur « ${phrase} ».`, boutons: [{ libelle: 'Voir les commerces', href: `/MandataireProspection?recherche=${encodeURIComponent(phrase)}`, principal: true }] };
+  }
+  // Un bien du portefeuille, raconté avec ses pièces (3 nov. 2026, Jules) : la carte seule, rien n'est écrit avant le tap.
+  if (name === 'importer_bien') {
+    const I = await import('./biens-import.js');
+    const { mesProprietaires } = await import('./mandataire-espace.js');
+    const lu = I.bienLu(input);
+    if (!lu) return { ok: false, error: "Il faut au moins l'adresse, le commerce ou le propriétaire : demande-le en une ligne." };
+    if (I.marquerDoublons([lu], mesProprietaires(user))[0].deja) return { ok: false, error: 'Ce bien est déjà dans ses biens (même adresse ou même numéro de mandat) : dis-le, et propose de ranger les pièces sur sa fiche.' };
+    const etape = I.etapeDuBien(lu);
+    const mot = I.ETAPES_IMPORT[etape].mot;
+    const titre = [lu.commerce || lu.activite || lu.proprietaire, lu.adresse, lu.ville].filter(Boolean).join(', ');
+    const jointes = (lot || []).filter((x) => x?.url).map((x) => ({ nom: x.nom, url: x.url, mimetype: x.mimetype || null }));
+    const prix = lu.prix ? `${lu.prix.toLocaleString('fr-FR')} €` : null;
+    const pour = [mot, prix, jointes.length ? `${jointes.length} pièce${jointes.length > 1 ? 's' : ''}` : null].filter(Boolean).join(' · ');
+    return {
+      ok: true, a_confirmer: true,
+      carte: { type: 'confirmer_import', id: `import-${Date.now()}`, mot: 'Créer le bien', titre, pour, bien: lu, etape, pieces: jointes, recit: String(recit || '').slice(0, 4000) },
+      bien: { ...lu, etape: mot }, pieces: jointes.map((x) => x.nom), manque: input.manque || null,
+      note: "Pas encore créé : le mandataire confirme d'un tap (« Confirmer · Créer le bien »).",
+    };
   }
   if (name === 'avancer_bien') {
     const { retrouverProprietaire, titreProprietaire } = await import('./mandataire-espace.js');
@@ -1354,7 +1402,7 @@ LES ÉTAPES ET LEURS OUTILS
 - Un bien a sept étapes : Visite, Avis de valeur, Mandat, Data room, Commercialisation, Offres, Vente. Une fiche entre dans Biens au rendez-vous fixé (noter_rdv avec qui).
 - La visite racontée : compte_rendu_visite, rempli seulement de ce qu'il a dit (le non prouvé dans a_confirmer, un document promis dans documents.promis). Montre-le en quelques lignes courtes, les écarts avec ce qu'on savait (les deux valeurs), les questions de la préparation restées sans réponse ; ne redemande rien, ni ce qu'il a dit ni ce qui manque (la surface, la fin du bail) : l'Avis de valeur le demandera. Finis par la question rendue par l'outil (« Passer à l'estimation ? ») : son bouton ouvre l'Avis de valeur du bien, qui reprend la visite ; ne lance pas lancer_estimation après un compte rendu, et à un oui écrit dis de toucher le bouton. Seulement s'il dit qu'un document clé est promis (« il l'envoie demain ») : propose la relance du lendemain, et dis que l'avis partira en provisoire, à reprendre au document reçu. Une correction ensuite : compte_rendu_visite à nouveau, complet. Le compte rendu est interne. Plus vendeur : mettre_en_pause, ou resultat_appel pas_vendeur.
 - Un accord sur un prix (« il est d'accord à 410 ») : noter_restitution avec le prix en euros (410 = 410 000 €) si l'avis est envoyé, sinon avancer_bien estimation avec le prix ; puis propose le mandat, pré-rempli de ce que tu sais (vendeur, bien, prix), en demandant seulement ce qui manque (exclusif ou simple, honoraires). Le mandat se prépare avec demander_mandat à son oui.
-- Un bien qu'il a déjà, venu d'ailleurs (un mandat signé, un avis fait sans Klocka) : il n'y a pas encore d'import ; résume ce que tu as compris, propose de le créer à son étape (Mandat, Avis de valeur) et demande ce qui manque (adresse, propriétaire, honoraires) ; nouveau_contact à son oui garde au moins la fiche.
+- Un bien qu'il a déjà en portefeuille (3 nov. 2026, Jules : « il fait un vocal à l'assistant puis joint tous les documents ») : un mandat signé chez K Partners ou ailleurs, un avis de valeur fait, un bien sous offre ou vendu, raconté avec ou sans pièces. importer_bien, rempli du récit et des pièces : il prépare la carte, le mandataire la confirme d'un tap. Un bien par message ; s'il en raconte plusieurs, demande-les un par un, chacun avec ses pièces. Une pièce seule sans récit (un mandat) suffit. L'agence du mandat illisible : demande « Signé chez K Partners ou dans une autre agence ? » avant d'appeler.
 - Un avis de marché (avis_de_marche) est une fourchette rapide de loyer ; le rapport d'estimation complet, c'est lancer_estimation (bail déposé ou infos dictées), sans validation Klocka. S'il veut passer directement à l'estimation ou au mandat, ne pose aucune condition (ni bail, ni loyer, ni visite) : avancer_bien tout de suite (previsite pour aller à l'Avis de valeur, estimation pour aller au Mandat), l'étape d'arrivée demande ce qui manque et « je ne sais pas » n'y bloque rien. Le mandat, le dossier et la mise en marché se font sur leurs pages (Mandat, Dossier, Mise en marché) : quand il en parle, dis-lui d'y aller.
 - Un nouveau contact part aussi dans Twenty CRM : dis-le en une ligne si l'outil le confirme ; sur une erreur Twenty CRM, dis que la fiche est créée mais pas encore dans Twenty CRM.
 - Une pièce jointe (photo ou PDF) : reconnais ce que c'est (bail, quittance, Kbis, diagnostic, taxe foncière, règlement de copropriété) et de quel bien il s'agit, puis ranger_piece (un appel par pièce) ; un bail apporté pour estimer : bail_estimation. Bien pas clair : demande avant de ranger. Pièces d'un dossier : bail, quittances, diagnostics et taxe foncière obligatoires ; Kbis et règlement de copropriété facultatifs.
@@ -1507,7 +1555,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
         ? await TZ.executerOutilTeaser(appel, user, { marche_id: marcheOuvert?.id || null })
         : V.NOMS_DOSSIER_VENTE.has(appel.name)
         ? await V.executerOutilDossier(appel, user, { dossier_vente_id: dossierVente?.id || null, fiche: ficheOuverte })
-        : await executerOutilMandataire(appel, user, { pieces: lot, fiche: ficheOuverte });
+        : await executerOutilMandataire(appel, user, { pieces: lot, fiche: ficheOuverte, texte });
       for (const k of [r?.fiche_id, r?.proprietaire_id]) if (k) fichesTouchees.add(k);
       if (r?.cree && r.rappel_id) actions.push({ type: 'rappel', id: r.rappel_id, titre: r.titre, pour: r.pour });
       if (r?.cree && r.proprietaire_id) actions.push({ type: 'proprietaire', id: r.proprietaire_id, titre: r.titre, pour: r.pour });

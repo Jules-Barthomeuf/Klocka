@@ -74,6 +74,12 @@ export function monterMandatairePortes(app) {
     if (!biens.length) return res.status(400).json({ error: 'Aucun bien à importer.' });
     rendre(res, (await import('../biens-import.js')).importerBiens(biens, vue(req, user)));
   }));
+  // Un bien raconté à l'assistant avec ses pièces (3 nov. 2026, Jules) : la carte « Créer le bien » confirmée.
+  app.post('/api/mandataire/biens/import/un', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const b = req.body || {};
+    rendre(res, await (await import('../biens-import.js')).importerUnBien({ bien: b.bien || {}, etape: b.etape || null, pieces: b.pieces || [], recit: String(b.recit || '').slice(0, 4000) }, vue(req, user)));
+  }));
   app.delete('/api/mandataire/acquereurs/:id', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await import('../acquereurs-mandataire.js')).supprimerAcquereur(req.params.id, vue(req, user)));

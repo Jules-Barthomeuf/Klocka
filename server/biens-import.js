@@ -42,6 +42,19 @@ const date = (v) => {
   return null;
 };
 
+// L'étape d'un bien importé (3 nov. 2026, Jules : « il fait un vocal à l'assistant et joint tous les documents ») :
+// choisie à la relecture, plus seulement déduite de l'enseigne du mandat. `validee` : la dernière étape franchie
+// (src/lib/biens-mandataire.js) ; un bien sous offre a fini sa commercialisation, un bien vendu a tout franchi.
+export const ETAPES_IMPORT = {
+  estimation: { mot: 'Avis de valeur fait', validee: 'avis_accepte', statut: 'rdv_pris' },
+  mandat_kp: { mot: 'Mandat K Partners', validee: 'mandat', statut: 'mandat_signe' },
+  mandat_ailleurs: { mot: 'Mandat dans une autre agence', validee: 'avis_accepte', statut: 'rdv_pris' },
+  offre: { mot: 'Sous offre', validee: 'marche', statut: 'mandat_signe' },
+  vente: { mot: 'Vendu', validee: 'vente', statut: 'mandat_signe' },
+};
+/** Pure : l'étape choisie, sinon celle que dit l'enseigne du mandat. */
+export const etapeDuBien = (b) => (ETAPES_IMPORT[b?.etape] ? b.etape : b?.k_partners ? 'mandat_kp' : 'mandat_ailleurs');
+
 /** Pure : un bien lu, nettoyé. Il faut au moins une adresse, un commerce ou un propriétaire. */
 export function bienLu(b = {}) {
   const txt = (v) => (v == null || String(v).trim() === '' ? null : String(v).trim());
@@ -52,6 +65,7 @@ export function bienLu(b = {}) {
     numero: txt(b.numero), signe_le: date(b.signe_le), echeance: date(b.echeance),
     exclusif: b.exclusif === true || /^(oui|vrai|true|exclusif)/.test(sansAccents(b.exclusif)) ? true : b.exclusif === false ? false : null,
     enseigne: txt(b.enseigne),
+    etape: ETAPES_IMPORT[b.etape] ? b.etape : null,
   };
   if (!out.adresse && !out.commerce && !out.proprietaire) return null;
   out.k_partners = typeof b.k_partners === 'boolean' ? b.k_partners : chezKPartners(out.enseigne);
@@ -121,21 +135,57 @@ export function importerBiens(liste = [], user) {
   const crees = []; let doublons = 0;
   for (const b of biens) {
     if (b.deja) { doublons += 1; continue; }
-    const r = creerProprietaire({ nom: b.proprietaire, telephone: b.telephone, email: b.email, commerce: b.commerce || b.activite || b.adresse, activite: b.activite, ville: b.ville, adresse: b.adresse, statut: b.k_partners ? 'mandat_signe' : 'rdv_pris' }, user);
+    const etape = etapeDuBien(b);
+    const E = ETAPES_IMPORT[etape];
+    const r = creerProprietaire({ nom: b.proprietaire, telephone: b.telephone, email: b.email, commerce: b.commerce || b.activite || b.adresse, activite: b.activite, ville: b.ville, adresse: b.adresse, statut: E.statut }, user);
     if (!r.ok) continue;
     const p = r.proprietaire;
-    const mandat = { numero: b.numero, signe_le: b.signe_le, echeance: b.echeance, exclusif: b.exclusif, honoraires: b.honoraires, enseigne: b.enseigne, k_partners: b.k_partners, prix: b.prix, loyer_annuel: b.loyer_annuel, importe_le: maintenant() };
-    const texte = b.k_partners
-      ? `Bien importé : mandat${b.numero ? ` n° ${b.numero}` : ''} signé${b.signe_le ? ` le ${b.signe_le.split('-').reverse().join('/')}` : ''}`
-      : `Bien importé : mandat signé chez ${b.enseigne}${b.echeance ? `, échéance le ${b.echeance.split('-').reverse().join('/')}` : ''}`;
+    const mandat = { numero: b.numero, signe_le: b.signe_le, echeance: b.echeance, exclusif: b.exclusif, honoraires: b.honoraires, enseigne: b.enseigne, k_partners: etape !== 'mandat_ailleurs' && etape !== 'estimation', prix: b.prix, loyer_annuel: b.loyer_annuel, etape, importe_le: maintenant() };
+    const le = (d) => d.split('-').reverse().join('/');
+    const texte = etape === 'mandat_ailleurs'
+      ? `Bien importé : mandat signé chez ${b.enseigne || 'une autre agence'}${b.echeance ? `, échéance le ${le(b.echeance)}` : ''}`
+      : etape === 'mandat_kp'
+      ? `Bien importé : mandat${b.numero ? ` n° ${b.numero}` : ''} signé${b.signe_le ? ` le ${le(b.signe_le)}` : ''}`
+      : `Bien importé : ${E.mot.toLowerCase()}`;
+    const resigner = etape === 'mandat_ailleurs';
     crees.push(Records.update('ProprietaireMandataire', p.id, {
       source: 'import',
       mandat_importe: mandat,
-      biens: { ...(p.biens || {}), validee: b.k_partners ? 'mandat' : 'avis_accepte', prix_accord: b.prix || null },
-      prochaine_action: b.k_partners ? null : 'Re-signer le mandat chez K Partners',
-      prochaine_action_le: b.k_partners ? null : relanceAvant(b.echeance),
+      biens: { ...(p.biens || {}), validee: E.validee, prix_accord: b.prix || null },
+      prochaine_action: resigner ? 'Re-signer le mandat chez K Partners' : null,
+      prochaine_action_le: resigner ? relanceAvant(b.echeance) : null,
       historique: [...(p.historique || []), { le: maintenant(), type: 'import', texte }],
     }));
   }
   return { ok: true, ajoutes: crees.length, doublons, biens: crees };
+}
+
+/**
+ * Un bien raconté à l'assistant, ses pièces jointes au même message (3 nov. 2026, Jules) : la carte confirmée crée le
+ * bien à l'étape choisie, garde ses pièces sur la fiche, et ouvre le fil du bien sur le récit et les pièces, que
+ * l'assistant relira à chaque étape suivante.
+ */
+export async function importerUnBien({ bien = {}, etape = null, pieces = [], recit = '' } = {}, user) {
+  const lu = bienLu({ ...bien, etape: etape || bien.etape });
+  if (!lu) return { ok: false, error: 'Il faut au moins une adresse, un commerce ou un propriétaire.' };
+  const r = importerBiens([lu], user);
+  if (!r.ajoutes) return { ok: false, error: r.doublons ? 'Ce bien est déjà dans vos biens.' : 'Bien non créé.' };
+  const p = r.biens[0];
+  // Les pièces viennent du dépôt du chat (/uploads/…) : rien d'autre n'est accepté.
+  const { categorieDuNom } = await import('./dossier-vente.js');
+  const jointes = (Array.isArray(pieces) ? pieces : [])
+    .filter((x) => x && /^\/uploads\/[\w.-]+$/.test(String(x.url || '')))
+    .slice(0, 20)
+    .map((x) => ({ nom: String(x.nom || 'pièce').slice(0, 200), url: x.url, mimetype: x.mimetype || null, categorie: categorieDuNom(x.nom), le: maintenant() }));
+  const fiche = jointes.length ? Records.update('ProprietaireMandataire', p.id, { pieces_importees: jointes }) : p;
+  const E = ETAPES_IMPORT[etapeDuBien(lu)];
+  const { versLeFil } = await import('./bien-etapes.js');
+  const le = maintenant();
+  versLeFil(fiche, user, [
+    // Les pièces s'écrivent en tête du message, comme le chat les garde (« 📎 a.pdf · b.jpg — le récit ») : l'écran les
+    // redessine en cartes (src/lib/apercu-fichier.js, pieceDuTexte).
+    { role: 'user', contenu: jointes.length ? `📎 ${jointes.map((x) => x.nom).join(' · ')}${String(recit || '').trim() ? ` — ${String(recit).trim()}` : ''}` : String(recit || '').trim() || 'Bien importé.', le, canal: 'import' },
+    { role: 'assistant', contenu: `Bien créé à l'étape ${E.mot}${jointes.length ? `, avec ${jointes.length} pièce${jointes.length > 1 ? 's' : ''} : ${jointes.map((x) => x.nom).join(', ')}` : ''}.`, le, canal: 'import' },
+  ]);
+  return { ok: true, proprietaire: Records.get('ProprietaireMandataire', p.id), etape: etapeDuBien(lu), mot: E.mot };
 }

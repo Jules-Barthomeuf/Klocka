@@ -33,3 +33,8 @@ test('la phrase rend son moment, son nom et son numéro', () => {
   assert.equal(lireTelephone('au 06 12 34 56 78'), '0612345678');
   assert.equal(lireTelephone('sans numéro'), null);
 });
+
+test("une civilité ne coupe pas le titre d'un rappel (31 oct. 2026)", () => {
+  assert.equal(objetDuRappel('Rappelle-moi vendredi de relancer la Boulangerie à Lyon (vérifier si le contact est M. Dupont)'), 'relancer la Boulangerie à Lyon (vérifier si le contact est M. Dupont)');
+  assert.equal(objetDuRappel('Rappelle-moi jeudi de vérifier le bail. Puis le reste'), 'vérifier le bail');
+});

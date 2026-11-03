@@ -20,7 +20,17 @@ Records.create('CommerceSimple', { ville_id: ville.id, ville: 'Cannes', enseigne
 Records.create('CommerceSimple', { ville_id: ville.id, ville: 'Cannes', enseigne: 'Fleurs Riviera', nom: 'RIVIERA SAS', activite: 'Fleuriste', adresse: '7 RUE MEYNADIER' });
 Records.create('CommerceSimple', { ville_id: ville.id, ville: 'Cannes', enseigne: 'Opticien Meynadier', nom: 'OPTIC SARL', activite: 'Opticien', adresse: '7 RUE MEYNADIER' });
 
-const outil = (input) => M.executerOutilMandataire({ name: 'nouveau_contact', input }, MOI);
+// Au oui du mandataire (31 oct. 2026, « demander, puis faire ») : sans confirme, rien n'est créé.
+const outil = (input) => M.executerOutilMandataire({ name: 'nouveau_contact', input: { confirme: true, ...input } }, MOI);
+
+test("sans son oui, rien n'est créé : la proposition porte la dernière liste", async () => {
+  Records.create('ListeMandataire', { mandataire_email: MOI.email, nom: 'Boulangeries Lyon', cree_le: '2026-10-20T10:00:00.000Z' });
+  const avant = Records.list('ProprietaireMandataire').length;
+  const p = await M.executerOutilMandataire({ name: 'nouveau_contact', input: { commerce: 'la boulangerie', adresse: "19 rue de l'Exemple", ville: 'Cannes' } }, MOI);
+  assert.equal(p.a_proposer, true);
+  assert.match(p.fait, /Boulangeries Lyon/);
+  assert.equal(Records.list('ProprietaireMandataire').length, avant);
+});
 
 test("l'adresse dite à voix haute retrouve le commerce que Klocka connaît", () => {
   assert.equal(retrouverCommerce({ commerce: 'la boulangerie', adresse: '19 rue de l\'Exemple', ville: 'Cannes' }).commerce?.id, boulangerie.id);
@@ -38,7 +48,6 @@ test("deux commerces au même numéro : le nom les départage, sinon l'assistant
 });
 
 test("« je suis passé à la boulangerie du 19 rue de l'Exemple » : la fiche naît du commerce connu, hors liste, avec ce qui s'est dit", async () => {
-  Records.create('ListeMandataire', { mandataire_email: MOI.email, nom: 'Boulangeries Lyon', cree_le: '2026-10-20T10:00:00.000Z' });
   const r = await outil({ commerce: 'la boulangerie', adresse: "19 rue de l'Exemple", ville: 'Cannes', nom: 'M. Bernard', telephone: '06 12 34 56 78', statut: 'contacte', remarque: 'Vend dans deux ans' });
   assert.equal(r.ok, true);
   assert.equal(r.commerce_klocka_retrouve, true);

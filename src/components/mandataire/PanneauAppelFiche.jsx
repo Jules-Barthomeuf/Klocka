@@ -4,6 +4,7 @@ import { Check, Loader2, Mic, PhoneCall, PhoneOff, Square, X } from "lucide-reac
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
+import { sourceLisible } from "@/lib/biens-mandataire";
 
 // Le panneau d'appel d'une fiche propriétaire : le même geste que la
 // Prospection côté admin. On compose, on met le haut-parleur, on enregistre
@@ -96,7 +97,7 @@ export default function PanneauAppelFiche({ p, onFermer, onFait }) {
                 </a>
                 {viaCommerce
                   ? <span className="ml-2.5 text-[12px] text-ambre max-md:mt-2 max-md:block max-md:ml-0">Numéro du commerce : demandez qui possède les murs et comment le joindre.</span>
-                  : p.telephone_source && <span className="ml-2.5 text-[12px] text-brume max-md:mt-2 max-md:block max-md:ml-0">{p.telephone_source}</span>}
+                  : p.telephone_source && <span className="ml-2.5 text-[12px] text-brume max-md:mt-2 max-md:block max-md:ml-0">{sourceLisible(p.telephone_source)}</span>}
               </div>
             )}
 

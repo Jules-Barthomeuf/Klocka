@@ -131,8 +131,12 @@ export function objetDuRappel(texte) {
   const t = String(texte || '')
     .replace(/[\s,;]*(?:voici\s+(?:son|le)\s+(?:num[ée]ro|t[ée]l[ée]phone)\s*:?\s*|num[ée]ro\s*:?\s*|t[ée]l[ée]phone\s*:?\s*|au\s+|sur\s+)?(?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}.*$/i, '')
     .trim();
+  // Le point d'une civilité (« M. Dupont », « Mme. ») n'arrête pas la phrase (31 oct. 2026 : « vérifier si le contact
+  // est M. Dupont » s'affichait « … est M ») : il est protégé le temps de couper, puis rendu.
+  const proteger = (x) => x.replace(/\b(M|MM|Mme|Mlle|Me|Dr|St|Ste)\./g, '$1\u00b7\u00b7');
+  const rendre = (x) => x.replace(/\u00b7\u00b7/g, '.');
   let m;
-  if ((m = t.match(/\bde\s+([^\n.;]{3,120})/i))) return m[1].trim().replace(/\s+$/, '');
+  if ((m = proteger(t).match(/\bde\s+([^\n.;]{3,120})/i))) return rendre(m[1].trim().replace(/\s+$/, ''));
   // Sans « de », on ampute la phrase de sa formule d'ouverture ET du moment,
   // qui est déjà lu par ailleurs : « rappelle-moi dans 3 jours le PV d'AG »
   // laisse « le PV d'AG », pas « dans 3 jours le PV d'AG ».

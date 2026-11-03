@@ -152,6 +152,10 @@ test('les clients de test se posent une fois, un client supprimé ne revient pas
   const equipe = demandesVisibles({ avecTest: voitTest({ role: 'admin' }) });
   assert.ok(ids(equipe).includes(lyon.id) && equipe.find((d) => d.id === lyon.id).test);
   assert.match(equipe.find((d) => d.id === vrai.id).reference, /^Client n°\d+$/, 'un numéro neutre, jamais le nom ni les initiales');
+  // Le compte d'essai (test.…@) fait le parcours avec le client test ; un vrai mandataire, même nommé « contest », jamais.
+  assert.equal(voitTest({ role: 'mandataire', email: 'test.mandataire@kpartners.fr' }), true);
+  assert.equal(voitTest({ role: 'mandataire', email: 'paul@kpartners.fr' }), false);
+  assert.equal(voitTest({ role: 'mandataire', email: 'contest@kpartners.fr' }), false);
   Records.delete('DemandeClient', ancien.id);
   Records.delete('DemandeClient', vrai.id);
 });
@@ -416,7 +420,14 @@ test('avancer un bien depuis Assistant KPartners : rien n’est écrit, l’éta
   assert.equal(prix.prix, 460000);
   assert.equal(prix.etape, 'prix_accord', 'l’accord se confirme par la route du prix');
   const pasBiens = Records.create('ProprietaireMandataire', { mandataire_email: A.email, commerce: 'Tabac du Port', statut: 'a_appeler', historique: [] });
-  assert.equal((await M.executerOutilMandataire({ name: 'avancer_bien', input: { proprietaire_id: pasBiens.id, etape: 'visite' } }, A)).ok, false, 'pas encore dans Biens');
+  // Sauter des étapes (1er nov. 2026, Jules) : une fiche pas encore dans Biens se propose aussi, elle y entre au tap.
+  const saut = await M.executerOutilMandataire({ name: 'avancer_bien', input: { proprietaire_id: pasBiens.id, etape: 'visite' } }, A);
+  assert.equal(saut.ok, true);
+  assert.equal(saut.a_confirmer, true);
+  const { validerEtape } = await import('./fiche-mandataire.js');
+  const v = validerEtape(pasBiens.id, 'previsite', A);
+  assert.equal(v.proprietaire.statut, 'rdv_pris');
+  assert.match(v.proprietaire.historique.at(-1).texte, /étapes sautées jusqu'à : Visite/);
 });
 
 test('le terrain : la distance, et les commerces où l’on est passé aujourd’hui', async () => {
@@ -656,4 +667,17 @@ test('tout le secteur : un point allégé garde ce que lisent la carte, les filt
   assert.equal(b.nom, 'Autre');
   assert.equal(b.chaine, true);
   assert.deepEqual(b.fiche, { id: 'f' });
+});
+
+test("la ligne Murs dit le propriétaire donné par le mandataire, pas celui du registre (31 oct. 2026)", async () => {
+  const F = await import('./fiche-mandataire.js');
+  const { Records } = await import('./db.js');
+  const moi = { email: 'murs@kpartners.fr', role: 'mandataire' };
+  const cs = Records.create('CommerceSimple', { nom: 'Ba & Co', enseigne: 'Ba & Co', ville: 'Antibes', exploitant: { nom: 'Ba & Co' }, proprietaire: { nom: 'TARA', forme: 'Société civile' }, lien: 'tiers' });
+  const p = Records.create('ProprietaireMandataire', { mandataire_email: moi.email, commerce: 'Ba & Co', ville: 'Antibes', nom: 'TARA', commerce_simple_id: cs.id, statut: 'a_appeler' });
+  assert.equal((await F.fiche(p.id, moi)).fiche.murs.proprietaire, 'TARA', 'sans rien dit, le registre');
+  Records.update('ProprietaireMandataire', p.id, { nom: 'M. Bernard' });
+  const f = (await F.fiche(p.id, moi)).fiche;
+  assert.equal(f.murs.proprietaire, 'M. Bernard');
+  assert.equal(f.murs.forme, null);
 });

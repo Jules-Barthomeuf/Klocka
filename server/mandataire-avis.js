@@ -6,7 +6,7 @@
 // répond à la moitié d'un coup. Quand l'essentiel est là, l'avis se rédige :
 // le marché de la rue (Data-B, Equimmox), les ventes alentour (DVF), les deux
 // méthodes, la fourchette. Les CHIFFRES se calculent ici (loyer ÷ taux,
-// surface × prix, sensibilité, valeur libre, honoraires) ; le modèle écrit les
+// surface × prix, sensibilité, honoraires) ; le modèle écrit les
 // phrases et choisit le taux dans une fourchette qu'il doit justifier.
 //
 // L'avis s'ouvre ensuite dans un éditeur au format du modèle K Partners : le
@@ -16,7 +16,7 @@
 
 import { effortDuChat } from './ak/effort.js';
 import { Records } from './db.js';
-import { villeDuTexte } from './taux-rendement.js';
+import { villeDuTexte, echeanceDuBail } from './taux-rendement.js';
 
 const ENTITE = 'EstimationMandataire';
 const moi = (user) => String(user?.email || '').toLowerCase();
@@ -147,6 +147,13 @@ export function noter(reponses, user, conversationId = null) {
     q[k] = typeof v === 'string' ? v.trim() : v;
   }
   for (const k of ['loyer_annuel_hc', 'surface_utile', 'taux_base', 'vacance_rue_pct']) if (q[k] != null && typeof q[k] !== 'number') q[k] = premierNombre(q[k]) ?? q[k];
+  // L'échéance d'un 3-6-9 se calcule depuis la date d'effet, sans la demander (1er nov. 2026, Jules) ; une échéance dite
+  // l'emporte, une calculée suit la date d'effet si elle change.
+  if (q.occupe !== false && (!q.echeance || q.echeance_calculee)) {
+    const c = echeanceDuBail(q);
+    if (c) Object.assign(q, { echeance: c.echeance, echeance_calculee: true, ...(c.suppose ? { bail_type: '3-6-9 (supposé)' } : {}) });
+  }
+  if (reponses?.echeance && q.echeance_calculee) delete q.echeance_calculee;
   // Ce que le chat vient d'apprendre l'emporte sur une retouche à la main du même champ.
   const surcouche = sansChampsRepondus(e.surcouche, Object.keys(reponses || {}));
   Records.update(ENTITE, e.id, { questionnaire: q, ...(e.nom_choisi ? {} : { bien: titreDe(q) }), adresse: q.adresse || e.adresse, ...(surcouche !== e.surcouche ? { surcouche } : {}) });
@@ -169,7 +176,7 @@ export const prixRond = (v) => (Number(v) > 0 ? arrondi(Number(v), Number(v) >= 
 const pct = (n) => Math.round(n * 1000) / 10;
 
 /** Pure : les chiffres de l'avis, depuis le questionnaire et les choix de taux et de prix. */
-export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, taux_libre = null, remise_en_etat = 15000, honoraires = 0.05, frais = 0.075, dataB = null }) {
+export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, honoraires = 0.05, frais = 0.075, dataB = null }) {
   const surface = Number(q.surface_utile) || null;
   const loyer = q.occupe ? Number(q.loyer_annuel_hc) || null : null;
   const cap = loyer && taux ? loyer / (taux / 100) : null;
@@ -186,11 +193,6 @@ export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, taux_libre 
   const ecart = cap && comp ? Math.round(((comp - cap) / cap) * 100) : null;
   const rendement = loyer ? pct(loyer / valeur) : null;
   const loyerMarche = loyer_marche_m2 && surface ? loyer_marche_m2 * surface : null;
-  let valeurLibre = null;
-  if (q.occupe && loyerMarche) {
-    const t = (taux_libre || taux + 0.6) / 100;
-    valeurLibre = arrondi(loyerMarche / t - loyerMarche - remise_en_etat, 10000);
-  }
   const prixAffiche = prixRond(valeur * (1 + honoraires));
   return {
     ecart_methodes: ecart,
@@ -199,7 +201,8 @@ export function chiffrer(q, { taux, prix_m2, loyer_marche_m2 = null, taux_libre 
     sensibilite: loyer && taux ? { taux_bas: taux - 0.15, valeur_basse_taux: Math.round(loyer / ((taux - 0.15) / 100) / 100) * 100, taux_haut: taux + 0.2, valeur_haute_taux: Math.round(loyer / ((taux + 0.2) / 100) / 100) * 100 } : null,
     valeur, bas: Math.min(bas, valeur), haut: Math.max(haut, valeur), rendement,
     loyer_marche: loyerMarche ? Math.round(loyerMarche / 100) * 100 : null,
-    valeur_libre: valeurLibre,
+    // Plus de « valeur en cas de départ du locataire » dans l'avis (1er nov. 2026, Jules).
+    valeur_libre: null,
     honoraires_pct: honoraires * 100,
     prix_affiche: prixAffiche,
     rendement_affiche: loyer ? pct(loyer / prixAffiche) : null,
@@ -699,7 +702,7 @@ LE BUT : un avis en CINQ MINUTES, le mandataire dicte un vocal en sortant de la 
 1. Lis tout : ce que dit le mandataire et les pièces (bail surtout). Déduis le type de bien et commence l'avis (commencer_avis), puis enregistre EN UNE FOIS tout ce que tu as lu (noter_reponses). Dans un bail : le demandeur est le BAILLEUR (propriétaire des murs), sauf si le mandataire dit autre chose ; le locataire, son activité (et activite_data_b), le loyer annuel HT HC, la date d'effet, l'échéance, l'indexation, la taxe foncière et les charges (qui paie), la surface, le dépôt de garantie.
 2. Ce qu'il dit en passant s'enregistre aussi : une date de visite (« je l'ai visité hier », « visite le 28 ») devient date_visite en toutes lettres, calculée depuis la date du jour ; un état, un angle, une extraction, un parking, une enseigne, l'ancienneté du locataire, des retards de paiement…
 3. Avant d'envoyer des questions, raye chacune dont la réponse est dans « Déjà renseigné », dans le fil ou dans les messages de cette conversation, et chacune que tu as déjà posée et à laquelle il a répondu, même autrement ou à moitié (2 nov. 2026, Jules : « repose des questions déjà posées ») : sa réponse se note telle quelle, « nc » si elle est floue. Une question restée sans réponse ne revient qu'une fois, en disant « il me manque encore… ».
-Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_reponses le rend dans essentiels_manquants : adresse, loué ou non, surface, loyer et échéance si loué, rang de la rue) avec ta proposition de taux de base : une liste numérotée courte, les choix quand il y en a, et « Répondez en un vocal ». Le reste (état, indexation, charges, façade…) ne se demande pas avant la rédaction.
+Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_reponses le rend dans essentiels_manquants : adresse, loué ou non, surface, loyer et date d'effet si loué, rang de la rue) avec ta proposition de taux de base. L'échéance d'un 3-6-9 se calcule seule depuis la date d'effet : ne la demande jamais, demande la date de début du bail s'il manque : une liste numérotée courte, les choix quand il y en a, et « Répondez en un vocal ». Le reste (état, indexation, charges, façade…) ne se demande pas avant la rédaction.
 4. À chaque réponse : noter_reponses. « Je ne sais pas » vaut « nc » : ça ne bloque pas.
 5. DÈS QUE L'ESSENTIEL EST LÀ, rédige sans attendre qu'on te le demande : rediger_avis, avec a_la_main: true s'il manque des cases secondaires. Si seul le taux n'est pas validé, note ton taux proposé avec taux_base_a_valider: true et rédige quand même ; demande ensuite en une ligne s'il convient (« plus haut, plus bas ? ») : à sa réponse, noter_reponses taux_base (validé, sans taux_base_a_valider) puis rediger_avis. Après la rédaction, cite en une ligne les cases encore « à compléter » qu'il peut dicter quand il veut.
 6. MODIFIER L'AVIS (il est affiché à côté du chat) : une demande sur le document lui-même — reformuler, raccourcir, enlever une ligne, changer une taille, une couleur, mettre en gras, déplacer, masquer, poser une image jointe — c'est retoucher_avis, avec la demande telle quelle, avant comme après la rédaction ; pas noter_reponses ni rediger_avis. Une INFORMATION sur le bien (« la surface c'est 85 m² », « le loyer est de 20 000 € ») : noter_reponses, puis rediger_avis si l'avis est déjà rédigé. Après une retouche : une ligne qui dit ce qui a changé.
@@ -1349,6 +1352,11 @@ const LIBELLES_QUESTIONNAIRE = {
 };
 
 // Les questions de la reprise, dans l'ordre du questionnaire (les critères Data-B ont leurs choix).
+// Deux questions qui disent la même chose (31 oct. 2026 : « les charges » posées deux fois, la taxe foncière
+// redemandée) : la seconde ne se pose pas quand la première l'est déjà.
+const DOUBLONS = { charges_refacturees: 'charges', taxe_fonciere_refacturee: 'taxe_fonciere', rang_rue: 'emplacement' };
+const sansDoublon = (k, _, tout) => !(DOUBLONS[k] && tout.includes(DOUBLONS[k]));
+
 const QUESTIONS_REPRISE = {
   type_bien: 'Le type de bien : murs de commerce, immeuble de rapport ?',
   occupe: 'Le local est-il loué ?',
@@ -1361,14 +1369,14 @@ const QUESTIONS_REPRISE = {
   activite_locataire: 'Son activité',
   bail_type: 'Le type de bail : 3-6-9, dérogatoire, professionnel ?',
   date_effet: 'La date d\'effet du bail',
-  echeance: 'L\'échéance du bail',
+  echeance: 'La date de début du bail (l\'échéance se calcule)',
   loyer_annuel_hc: 'Le loyer annuel HT HC',
   indexation: 'L\'indexation (ILC, ILAT)',
   taxe_fonciere: 'La taxe foncière : son montant, et qui la paie',
   charges: 'Les charges : refacturées au locataire ?',
   facade: 'La façade (linéaire, vitrine)',
   emplacement: 'L\'emplacement : n° 1, n° 1 bis, secondaire ?',
-  rang_rue: 'L\'emplacement : rue n°1, n°1 bis ou n°2 ?',
+  rang_rue: 'L\'emplacement : je vous le propose d\'après le loyer de la rue, à confirmer',
   profil_locataire: 'Le locataire : enseigne nationale, indépendant solide ou fragile ?',
   charges_refacturees: 'Les charges : refacturées au locataire, ou payées par le propriétaire ?',
   taxe_fonciere_refacturee: 'La taxe foncière : refacturée au locataire, ou payée par le propriétaire ?',
@@ -1402,7 +1410,7 @@ export function messageDeReprise(e) {
   const ordre = Object.keys(QUESTIONS_REPRISE);
   // La question des charges (ou de la taxe foncière) demande déjà qui paie : le critère du taux ne se redemande pas.
   const reste = manquants({ type_bien: 'murs_commerce', ...q }).filter((k) => QUESTIONS_REPRISE[k])
-    .filter((k, _, tout) => !(k === 'charges_refacturees' && tout.includes('charges')) && !(k === 'taxe_fonciere_refacturee' && tout.includes('taxe_fonciere')))
+    .filter(sansDoublon)
     .sort((x, y) => ordre.indexOf(x) - ordre.indexOf(y));
   const visite = e.infos_rdv ? '\nJ\'ai repris le compte rendu de la visite.' : '';
   const questions = reste.slice(0, 12).map((k, i) => `${i + 1}. ${QUESTIONS_REPRISE[k]}`);
@@ -1428,6 +1436,8 @@ const LIBELLES_VISITE = {
 const CLES_DU_FIL = Object.fromEntries(Object.entries({ ...QUESTIONS_REPRISE, ...LIBELLES_VISITE }).filter(([k]) => !['type_bien', 'taux_base'].includes(k)));
 export const OUI_VISITE = "Oui, c'est juste.";
 
+const ouiNon = (coche, texte) => (coche === true || /refactur|locataire/i.test(texte || '') ? 'oui' : coche === false || /propri[ée]taire|non refactur/i.test(texte || '') ? 'non' : null);
+
 /** Pure : ce que la fiche et le compte rendu de visite disent déjà, en réponses du questionnaire de l'avis. */
 export function reponsesDeLaVisite(p = {}) {
   const cr = p.biens?.compte_rendu || {};
@@ -1447,7 +1457,10 @@ export function reponsesDeLaVisite(p = {}) {
     echeance: b.fin_bail || null,
     taxe_fonciere: b.taxe_fonciere || null,
     charges: charges || null,
-    charges_refacturees: b.refacturees === true ? 'oui' : b.refacturees === false ? 'non' : null,
+    // « refacturées » vaut pour les charges ET la taxe foncière (compte rendu de visite) ; dit en toutes lettres dans l'une
+    // ou l'autre (« taxe foncière refacturée »), il compte aussi : rien ne se redemande (31 oct. 2026).
+    charges_refacturees: ouiNon(b.refacturees, b.charges),
+    taxe_fonciere_refacturee: ouiNon(b.refacturees, b.taxe_fonciere),
     etat: [e.local, b.travaux ? `travaux : ${b.travaux}` : null].filter(Boolean).join(' ; ') || null,
     flux: e.passage || null,
     environnement: e.voisinage || null,
@@ -1522,9 +1535,9 @@ export function confirmerLaVisite(e, user, conversationId = null) {
   const n = noter(r, user, conversationId);
   if (!n.ok) return { texte: n.error };
   // L'essentiel seulement (1er nov. 2026, Jules : « l'estimation en cinq minutes ») : le reste reste « à compléter ».
-  const reste = (n.essentiels_manquants || []).filter((k) => QUESTIONS_REPRISE[k]);
+  const reste = (n.essentiels_manquants || []).filter((k) => QUESTIONS_REPRISE[k]).filter(sansDoublon);
   if (!reste.length) return { texte: "C'est noté dans l'avis. J'ai l'essentiel : dites « rédige » et je vous propose le taux de base en rédigeant." };
-  return { texte: `C'est noté dans l'avis. Pour le rédiger, il me manque seulement :\n${reste.map((k, i) => `${i + 1}. ${QUESTIONS_REPRISE[k]}`).join('\n')}\nRépondez en un vocal : je rédige aussitôt, avec un taux de base que je vous propose. Le reste se complète après, « je ne sais pas » ne bloque rien.` };
+  return { texte: `C'est noté dans l'avis. Pour le rédiger, il me manque seulement :\n${reste.map((k, i) => `${i + 1}. ${QUESTIONS_REPRISE[k]}`).join('\n')}\nRépondez en un vocal : je rédige aussitôt, avec un taux de base et un rang de rue que je vous propose. Le reste se complète après, « je ne sais pas » ne bloque rien.` };
 }
 
 /**
@@ -1600,7 +1613,7 @@ export function avisProvisoire(e, signataireAvis = {}) {
     },
     emplacement: {
       synthese: q.emplacement || '',
-      lignes: lignesDe([['Flux', q.flux], ['Environnement', q.environnement], ['Vacance', q.vacance], ['Accès', q.acces]]),
+      lignes: lignesDe([['Flux', q.flux], ['Environnement', q.environnement], ['Dynamique', q.dynamique], ['Vacance', q.vacance], ['Accès', q.acces]]),
     },
     locatif: occupe ? {
       synthese: '',

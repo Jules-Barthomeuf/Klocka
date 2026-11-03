@@ -361,7 +361,11 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
   const f = data?.fiche;
   // La fiche réelle : celle donnée, ou celle née de l'aperçu une fois le commerce ajouté à une liste.
   const fid = id || f?.id || null;
-  const rafraichir = () => ["m-fiche", "m-listes", "m-proprietaires", "m-prospecter", "m-estimations"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+  // Les listes de la Prospection aussi (31 oct. 2026 : après « Vu l'exploitante… », la liste restait « À contacter »).
+  const rafraichir = () => {
+    ["m-fiche", "m-listes", "m-proprietaires", "mandataire-proprietaires", "mandataire-jour", "m-prospecter", "m-estimations"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+    queryClient.invalidateQueries({ queryKey: ["off-market", "simple"] });
+  };
   const modifier = useMutation({
     mutationFn: ({ champ, valeur }) => base44.request("PATCH", `${API}/${fid}`, { body: { [champ]: valeur } }),
     onSuccess: () => rafraichir(),

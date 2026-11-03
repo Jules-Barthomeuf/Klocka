@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/avis";
 import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
 import { JL } from "@/design/jetons";
+import { sourceLisible } from "@/lib/biens-mandataire";
 
 // Une liste ouverte : la grille, comme la Prospection de l'admin — une ligne
 // par commerce, les colonnes de la Sheet (propriétaire des murs, société,
@@ -91,7 +92,7 @@ const COLONNES = [
   { cle: "statut", titre: "Statut", largeur: 170 },
   // Deux numéros, jamais mélangés : celui du PROPRIÉTAIRE (Apollo, ou saisi),
   // c'est lui qu'on appelle ; celui du commerce, à part, en dernier recours.
-  { cle: "telephone", titre: "Numéro du propriétaire", largeur: 170, editable: true, lire: (p) => p.telephone || "", source: (p) => p.telephone_source || null, sources: (p) => [p.telephone_source] },
+  { cle: "telephone", titre: "Numéro du propriétaire", largeur: 170, editable: true, lire: (p) => p.telephone || "", source: (p) => sourceLisible(p.telephone_source) || null, sources: (p) => [sourceLisible(p.telephone_source)] },
   // Les autres dirigeants de la société propriétaire des murs, chacun son numéro.
   { cle: "autres_tels", titre: "Autres numéros des murs", largeur: 230, lire: (p) => {
     const tous = p.telephones_proprietaire?.length ? p.telephones_proprietaire : p.cible?.murs_telephones || [];

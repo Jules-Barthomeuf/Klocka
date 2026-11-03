@@ -84,7 +84,7 @@ export default function MesAcquereurs() {
   );
 }
 
-/** L'import : un fichier (glissé ou choisi) ou une liste collée ; Haka reconnaît les colonnes, les doublons sont écartés. */
+/** L'import : un fichier (glissé ou choisi) ou une liste collée ; l'assistant reconnaît les colonnes, les doublons sont écartés. */
 function Import({ vide, onFermer, onFait }) {
   const qc = useQueryClient();
   const ref = useRef(null);

@@ -127,7 +127,7 @@ export default function NotreOffre() {
             <span className="h-1.5 w-1.5 rounded-full bg-menthe" /> Accompagnement clé en main sur mesure
           </span>
           <h1 className="m-0 mt-8 text-[clamp(34px,4.4vw,52px)] font-black uppercase leading-[1.02] tracking-[-0.02em] text-encre">
-            Votre investissement en immobilier commercial, <span className="text-menthe">intégralement pris en charge</span>.
+            Votre investissement en immobilier commercial, <span className="text-menthe">100&nbsp;% délégué</span>.
           </h1>
           <p className="m-0 mt-6 max-w-[520px] text-[17px] leading-[1.6] text-ardoise">
             Sourcing, analyse, négociation, financement et gestion. <strong className="font-semibold text-encre">Un accompagnement complet</strong> pour vos projets d'envergure, avec une rémunération alignée sur votre réussite.

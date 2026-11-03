@@ -94,6 +94,9 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
   const boutique = nombre(surfaces[0]?.utile) || surfaceUtile;
   const ville = villeSeule(avis.bien?.ville) || villeDeLAdresse(avis.bien?.adresse) || villeDeLAdresse(q.adresse) || villeSeule(q.ville) || "";
   const type = avis.type_libelle || "Murs de commerce";
+  // Un fonds de commerce (3 nov. 2026) ne se vaut ni par un taux ni par un loyer capitalisé : ses pages Taux et Calcul
+  // ne paraissent pas, la méthode est dans l'avis.
+  const fonds = avis.type_bien === "fonds_commerce";
 
   // Le bail : de sa date d'effet à son échéance, les triennales entre les deux.
   const effet = dateDe(q.date_effet);
@@ -160,7 +163,7 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
       { cle: "couverture", section: "Avis de valeur", titre: titreBien, phrase: null,
         adresse: [trou(avis.bien?.rue) ? null : avis.bien?.rue, trou(avis.bien?.ville) ? (avis.bien?.adresse || "").match(/\d{5}\s+[^,]+$/)?.[0] : avis.bien?.ville].filter(Boolean).join(", ") || A_RENSEIGNER,
         mandataire: trou(sig.nom) ? A_RENSEIGNER : sig.nom, proprietaire: trou(avis.demandeur) ? A_RENSEIGNER : avis.demandeur,
-        etat: `${type}${avis.occupe === false ? " libres" : " loués"}`, lieu: lieu || A_RENSEIGNER, accroche,
+        etat: fonds ? type : `${type}${avis.occupe === false ? " libres" : " loués"}`, lieu: lieu || A_RENSEIGNER, accroche,
         // Une surface pondérée égale à l'utile n'est pas pondérée (31 oct. 2026 : « 80 m² · Surface pondérée » pour 80 m² utiles).
         loyer, surface: ponderee ? surfacePonderee : surfaceUtile || surfacePonderee, surface_ponderee: ponderee, echeance: fin ? fin.getUTCFullYear() : null, restant },
       { cle: "sommaire", section: "Sommaire", titre: "Sommaire", phrase: ["Le bail, puis la ville, le quartier et le local.", "Enfin, le prix et son calcul."],
@@ -203,7 +206,7 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
       { cle: "calcul", section: "Le calcul du prix", titre: "Le calcul", phrase: ["Le loyer divisé par le taux.", "Un calcul que vous pouvez refaire."],
         // La capitalisation seule depuis le 31 oct. 2026 (Jules) : plus de méthodes pondérées ni de comparables.
         loyer, taux, capitalisation: nombre(c.capitalisation), valeur, sensibilite },
-      { cle: "valeur", section: "La valeur retenue", titre: "La valeur", phrase: valeur && c.bas && c.haut ? [`Vos murs valent entre ${euros(c.bas)} et ${euros(c.haut)}.`, `Nous retenons ${euros(valeur)}.`] : ["La valeur de vos murs.", ""],
+      { cle: "valeur", section: "La valeur retenue", titre: "La valeur", phrase: valeur && c.bas && c.haut ? [`${fonds ? "Votre fonds vaut" : "Vos murs valent"} entre ${euros(c.bas)} et ${euros(c.haut)}.`, `Nous retenons ${euros(valeur)}.`] : [fonds ? "La valeur de votre fonds." : "La valeur de vos murs.", ""],
         valeur, bas: nombre(c.bas), haut: nombre(c.haut), prix_acquereur: nombre(c.cout_total), rendement_acquereur: nombre(c.rendement_total), honoraires_pct: nombre(c.honoraires_pct) ?? 5, frais_pct: nombre(c.frais_pct) ?? 7.5,
         // Au m² de la surface pondérée quand l'avis l'a (maquette du 31 oct. 2026), sinon de la surface utile.
         m2: valeur && (surfacePonderee || surfaceUtile) ? Math.round(valeur / (surfacePonderee || surfaceUtile)) : null, m2_pondere: !!surfacePonderee,
@@ -222,7 +225,7 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
   }
   // Les pages retirées du deck (26 oct. 2026, Jules : « on supprime la 6, la 7 devient la 6 ») : gardées dans l'avis
   // (`avis.deck.masquees`), jamais la couverture. Les numéros suivent l'ordre qui reste, et le sommaire aussi.
-  const masquees = new Set(Array.isArray(retouches.masquees) ? retouches.masquees.filter((c) => c !== "couverture") : []);
+  const masquees = new Set([...(Array.isArray(retouches.masquees) ? retouches.masquees.filter((c) => c !== "couverture") : []), ...(fonds ? ["taux", "calcul"] : [])]);
   const restantes = pages.filter((x) => !masquees.has(x.cle));
   const sommaire = restantes.find((x) => x.cle === "sommaire");
   if (sommaire) {

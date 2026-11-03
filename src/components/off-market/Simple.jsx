@@ -10,7 +10,8 @@ import CarteOffMarket from "./CarteOffMarket";
 import FacadeLocal from "./FacadeLocal";
 import { BlocZone, dessinAvecZone, useFileAJuger, useZone } from "./JugementZone";
 import { Case, Vide, bouton, boutonPlein, champ, dateCourte, euros, pl, req } from "./commun";
-import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_CLASSE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_CA, OPTIONS_PROPRIETAIRE, SIGNAUX_FONDS, aLeSignal, basculer, cleLien, compteDe, depuisAuMoins, estExploitant, estFonds, nbFiltres, passeSimple, typesDe } from "@/lib/off-market-simple";
+import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_CLASSE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_CA, OPTIONS_OCCUPANTS, OPTIONS_PROPRIETAIRE, OPTIONS_TYPE, SIGNAUX_BUREAUX, SIGNAUX_FONDS, aLeSignal, basculer, cleLien, compteDe, depuisAuMoins, estBureauASignal, estExploitant, estFonds, nbFiltres, passeSimple, typesDe } from "@/lib/off-market-simple";
+import { SectionsLibres } from "@/components/mandataire/MursLibres";
 import Chargement from "@/components/ui/Chargement";
 import { accroche, budgetDe, exclusionsDe, pourClient, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
 
@@ -61,14 +62,23 @@ function SectionFiltre({ titre, options, choisis, onChange, multiple = true, rec
 }
 
 /** Le bouton « Filtrer » de la barre du haut, et son menu sous le bouton. */
-export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, activites, visibles, zones = [], scoreZone = null, depart = FILTRES_SIMPLE }) {
-  const [ouvert, setOuvert] = useState(false);
+/**
+ * `avecTypes` (3 nov. 2026, Jules : « les modes Murs, Fonds, etc., ce sont des filtres ») : le type d'actif en tête,
+ * coché comme les autres ; plusieurs cochés, une pilule passe d'une page de filtres à l'autre. `libres` : les locaux
+ * vides et leurs filtres, une autre source ({ filtres, setFiltres, points }).
+ */
+export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, activites, visibles, zones = [], scoreZone = null, depart = FILTRES_SIMPLE, entete = null, ouvertAuDepart = false, avecTypes = false, libres = null }) {
+  const [ouvert, setOuvert] = useState(ouvertAuDepart);
   // Les filtres de départ ne comptent pas (les liens d'arrivée du mandataire, sans les points gris, 3 nov. 2026).
   const memesLiens = JSON.stringify(filtres.liens) === JSON.stringify(depart.liens);
   const n = nbFiltres({ ...filtres, texte: "", liens: memesLiens ? [] : filtres.liens });
-  // Les filtres du type d'actif choisi au sélecteur Murs · Fonds de l'onglet (3 nov. 2026, Jules).
-  const page = typesDe(filtres)[0];
-  const villes = useMemo(() => { const n = {}; for (const c of commerces) if (c.ville && estFonds(c)) n[c.ville] = (n[c.ville] || 0) + 1; return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([v, k]) => ({ v, mot: v, n: k })); }, [commerces]);
+  // La page des filtres : celle du type d'actif choisi dans la pilule, parmi ceux cochés.
+  const types = avecTypes ? typesDe(filtres).filter((k) => k !== "libres" || libres) : typesDe(filtres);
+  const [pageChoisie, setPage] = useState(types[0]);
+  const page = types.includes(pageChoisie) ? pageChoisie : types[0];
+  const villes = useMemo(() => { const n = {}; for (const c of commerces) if (c.ville && (page === "bureaux" ? estBureauASignal(c) : estFonds(c))) n[c.ville] = (n[c.ville] || 0) + 1; return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([v, k]) => ({ v, mot: v, n: k })); }, [commerces, page]);
+  const optionsTypes = OPTIONS_TYPE.filter(([k]) => k !== "libres" || libres).map(([v, mot]) => ({ v, mot,
+    n: v === "libres" ? libres.points.length : v === "fonds" ? compteDe(commerces, estFonds) : v === "bureaux" ? compteDe(commerces, estBureauASignal) : compteDe(commerces, (c) => (c.classe || "commerce") === "commerce") }));
   // Les recherches enregistrées (2 nov. 2026, Jules) : à chacun les siennes, un clic les rejoue.
   const qc = useQueryClient();
   const recherchesQ = useQuery({ queryKey: ["prospection-recherches"], queryFn: () => req("GET", "/simple/recherches"), enabled: ouvert, staleTime: 60_000 });
@@ -124,7 +134,42 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
           </div>
           {/* Les filtres défilent, « Tout effacer » et « Voir n commerces » restent en bas (Jules, 31 oct. 2026). */}
           <div className="min-h-0 flex-1 overflow-y-auto">
-          {page === "fonds" ? (
+          {/* Un choix posé par la page au-dessus des filtres (3 nov. 2026, Jules : Occupés · Libres pour les Murs). */}
+          {entete && <div className="border-b border-trait p-4">{entete}</div>}
+          {/* Le type d'actif en tête, puis la pilule des pages quand plusieurs sont cochés (3 nov. 2026, Jules). */}
+          {avecTypes && (
+            <div className="flex flex-col gap-3 border-b border-trait p-4">
+              <SectionFiltre titre="Type d'actif" choisis={filtres.types || []} onChange={(v) => { setFiltres((f) => ({ ...f, types: v })); if (v.length === 1) setPage(v[0]); }} options={optionsTypes} />
+              {types.length > 1 && (
+                <div className="flex justify-center">
+                  <div className="flex flex-wrap gap-0.5 rounded-full border border-bord-doux bg-rail p-0.5" role="tablist" aria-label="Les filtres de chaque type d'actif">
+                    {OPTIONS_TYPE.filter(([k]) => types.includes(k)).map(([k, mot]) => (
+                      <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setPage(k)}
+                        className={`h-8 rounded-full px-4 text-[13px] ${page === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+                        style={page === k ? undefined : { background: "transparent" }}>{mot}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {page === "libres" && libres ? (
+            <div className="p-4"><SectionsLibres filtres={libres.filtres} setFiltres={libres.setFiltres} points={libres.points} /></div>
+          ) : page === "bureaux" ? (
+            // Les bureaux (3 nov. 2026, Jules) : le signal, le nombre d'occupants de l'immeuble, la zone, l'activité.
+            <div className="grid gap-5 p-4 md:grid-cols-3">
+              <div className="flex flex-col gap-5">
+                <SectionFiltre titre="Signal" choisis={filtres.bureaux || []} onChange={maj("bureaux")} options={SIGNAUX_BUREAUX.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => !!c.bureaux?.includes(v)) }))} />
+                {villes.length > 1 && <SectionFiltre titre="Zone" multiple={false} choisis={filtres.ville ? [filtres.ville] : []} onChange={un("ville")} options={villes} />}
+              </div>
+              <div className="flex flex-col gap-5">
+                <SectionFiltre titre="Occupants de l'immeuble" multiple={false} choisis={filtres.occupants ? [filtres.occupants] : []} onChange={un("occupants")} options={OPTIONS_OCCUPANTS.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => estBureauASignal(c) && (c.occupants || 1) >= Number(v)) }))} />
+              </div>
+              <div className="flex flex-col gap-5">
+                <SectionFiltre titre="Activité des occupants" recherche choisis={filtres.activites} onChange={maj("activites")} options={activites} />
+              </div>
+            </div>
+          ) : page === "fonds" ? (
             // Le mode Fonds (3 nov. 2026, Jules) : le signal de cession, la zone, l'activité, les chiffres publics et la rue.
             <div className="grid gap-5 p-4 md:grid-cols-3">
               <div className="flex flex-col gap-5">
@@ -181,7 +226,7 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => setFiltres((f) => ({ ...depart, texte: f.texte, emplacement: f.emplacement }))} disabled={!n} className={bouton}>Tout effacer</button>
+                  <button type="button" onClick={() => setFiltres((f) => ({ ...depart, texte: f.texte, emplacement: f.emplacement, types: f.types }))} disabled={!n} className={bouton}>Tout effacer</button>
                   {n > 0 && !recherches.some(memes) && <button type="button" onClick={() => setNomRecherche("")} className="text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><span className="max-md:hidden">Enregistrer cette recherche</span><span className="md:hidden">Enregistrer</span></button>}
                 </div>
                 <button type="button" onClick={() => setOuvert(false)} className={boutonPlein}>Voir {pl(visibles, "commerce")}</button>
@@ -227,14 +272,15 @@ const ouvrirListe = (id) => window.open(`/MandataireProspection?onglet=listes&li
  * espace mandataire, ou une nouvelle. Chaque commerce y devient une fiche de
  * propriétaire à appeler (Prospection > Listes du mandataire).
  */
-export function FenetreListe({ ids, onFermer, onFait }) {
+// `envoyerVers` : un autre envoi que celui des commerces (les murs libres, 3 nov. 2026), avec son mot (« local »).
+export function FenetreListe({ ids, onFermer, onFait, typeBien = null, envoyerVers = null, mot = "commerce" }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["off-market", "simple", "listes"], queryFn: () => req("GET", "/simple/listes") });
   const [nom, setNom] = useState("");
   const envoyer = useMutation({
-    mutationFn: (body) => req("POST", "/simple/listes/envoyer", { ids, ...body }),
+    mutationFn: (body) => (envoyerVers ? envoyerVers(body) : req("POST", "/simple/listes/envoyer", { ids, ...(typeBien ? { type_bien: typeBien } : {}), ...body })),
     onSuccess: (r) => {
-      if (r.ajoutes) toast.success(`${pl(r.ajoutes, "commerce")} dans la liste « ${r.liste.nom} »`, { description: "Dans vos listes de mandataire, onglet Prospection > Listes.", duration: 9000, action: { mot: "Voir la liste", faire: () => ouvrirListe(r.liste.id) } });
+      if (r.ajoutes) toast.success(`${pl(r.ajoutes, mot)} dans la liste « ${r.liste.nom} »`, { description: "Dans vos listes de mandataire, onglet Prospection > Listes.", duration: 9000, action: { mot: "Voir la liste", faire: () => ouvrirListe(r.liste.id) } });
       if (r.deja?.length) toast.error(r.deja.length === 1 ? `${r.deja[0].enseigne} est déjà dans la liste « ${r.deja[0].liste} ».` : `${pl(r.deja.length, "établissement")} déjà dans une liste : laissés de côté.`);
       qc.invalidateQueries({ queryKey: ["off-market", "simple"] });
       onFait?.(r);
@@ -249,7 +295,7 @@ export function FenetreListe({ ids, onFermer, onFait }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="m-0 text-[20px] font-normal text-encre">Envoyer vers une liste</h2>
-            <p className="m-0 mt-1 text-[13px] text-ardoise">{pl(ids.length, "commerce")} · dans vos listes de mandataire (Prospection, onglet Listes).</p>
+            <p className="m-0 mt-1 text-[13px] text-ardoise">{pl(ids.length, mot)} · dans vos listes de mandataire (Prospection, onglet Listes).</p>
           </div>
           <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         </div>

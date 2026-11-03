@@ -80,7 +80,7 @@ function MailDuDossier({ v, dossierId }) {
   if (v.mail_propose) {
     return (
       <div className="mt-4 rounded-[20px] border border-bord-doux bg-barre p-4 max-md:p-3">
-        <p className="m-0 mb-2 text-[12px] uppercase tracking-[.12em] text-brume">{v.mail_propose.genre === "relance" ? "Relance au propriétaire" : "Mail au propriétaire"}</p>
+        <p className="m-0 mb-2 text-[12px] uppercase tracking-[.12em] text-brume">{{ relance: "Relance au propriétaire", preference: "Notification au locataire, par le propriétaire" }[v.mail_propose.genre] || "Mail au propriétaire"}</p>
         <MailPropose key={v.mail_propose.le} dossierId={dossierId} mail={v.mail_propose} boite={v.boite} />
       </div>
     );
@@ -173,9 +173,10 @@ function Pieces({ v, url, relire }) {
 }
 
 const cadre = (survol) => `flex min-h-[150px] flex-col rounded-[14px] border bg-rail p-4 text-left transition-colors ${survol ? "border-menthe" : "border-transparent hover:border-bord-vif"}`;
-// Un petit « + » à la place de « Cliquez ou glissez un fichier » (3 nov. 2026, Jules : « épurer au maximum »).
+// Un petit « + » à la place de « Cliquez ou glissez un fichier » (3 nov. 2026, Jules : « épurer au maximum »), en bas à
+// droite de chaque case, la case libre comprise (3 nov. 2026, Jules).
 const plus = (occupe) => (
-  <span className="m-0 mt-auto flex justify-center pt-4 text-brume" aria-hidden>
+  <span className="m-0 mt-auto flex justify-end pt-4 text-brume" aria-hidden>
     {occupe ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
   </span>
 );
@@ -215,7 +216,7 @@ function ZonePiece({ p, occupe, onDeposer, onRetirer, libre = false }) {
         </ul>
       )}
       <input ref={ref} type="file" multiple className="hidden" onClick={arreter} onChange={(ev) => { onDeposer([...ev.target.files]); ev.target.value = ""; }} />
-      {libre && !n ? <span className="m-auto grid text-brume" aria-hidden>{occupe ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}</span> : plus(occupe)}
+      {plus(occupe)}
     </section>
   );
 }
@@ -313,7 +314,7 @@ function Preference({ v }) {
     <div className="mt-6">
       <h3 className="m-0 text-[14px] font-normal text-encre">Droit de préférence du locataire</h3>
       <p className={`m-0 mt-0.5 text-[13.5px] leading-[1.5] ${regle ? "text-craie" : "text-ambre"}`}>{p.phrase}</p>
-      {p.statut === "a_notifier" && <p className="m-0 mt-1 text-[12.5px] text-brume">L'Assistant KPartners prépare la notification ; dites-lui la date où le locataire l'a reçue, puis sa réponse.</p>}
+      {p.statut === "a_notifier" && !p.courrier_envoye_le && <p className="m-0 mt-1 text-[12.5px] text-brume">L'Assistant KPartners prépare la notification ; dites-lui la date où le locataire l'a reçue, puis sa réponse.</p>}
     </div>
   );
 }

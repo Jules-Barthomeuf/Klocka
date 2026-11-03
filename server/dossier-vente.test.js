@@ -221,3 +221,21 @@ test('le propriétaire dépose : ce que la lecture relève, puis ce qui manque, 
   assert.match(complet.contenu, /Rien à signaler à la lecture\.[\s\S]*La Data room est complète/);
   assert.equal(complet.boutons[0].libelle, 'Mettre en vente');
 });
+
+test('la notification au locataire : un mail au propriétaire, prêt à envoyer à droite, la lettre dedans (3 nov. 2026, Jules)', async () => {
+  const user = { email: 'nina@kpartners.fr', role: 'mandataire' };
+  const { dossier: d } = P.creerDossier({ bien: 'Cave du Port', proprietaire: 'M. Leroy', proprietaire_email: 'leroy@exemple.fr' }, user);
+  const r = await V.executerOutilDossier({ name: 'droit_de_preference', input: { action: 'courrier' } }, user, { dossier_vente_id: d.id });
+  assert.equal(r.ok, true);
+  assert.equal(r.courrier, undefined, 'plus de texte à recopier dans la réponse');
+  assert.match(r.note, /NE RECOPIE NI LE MAIL NI LA LETTRE/);
+  const mail = Records.get('DossierMandataire', d.id).mail_propose;
+  assert.equal(mail.genre, 'preference');
+  assert.equal(mail.a, 'leroy@exemple.fr');
+  assert.match(mail.corps, /^Bonjour M\. Leroy,[\s\S]*recommandé avec accusé de réception[\s\S]*Objet : offre de vente du local/);
+  assert.equal((await V.envoyerMailVendeur(d.id, user, { marquer: true })).genre, 'preference');
+  const apres = Records.get('DossierMandataire', d.id);
+  assert.ok(apres.preference.courrier_envoye_le);
+  assert.equal(apres.depot?.propose_le, undefined, 'le premier mail des pièces n’est pas marqué parti');
+  assert.match(V.etatPreference(apres.preference, { occupe: true }).phrase, /partie chez le propriétaire/);
+});

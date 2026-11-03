@@ -395,7 +395,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
   const derniere = (() => { let d = null; try { d = localStorage.getItem("klocka.liste.derniere"); } catch { /* sans stockage */ } return listes.find((l) => l.id === d) || listes[0] || null; })();
   const retenir = (l) => { try { if (l?.id) localStorage.setItem("klocka.liste.derniere", l.id); } catch { /* sans stockage */ } };
   const ajouter = useMutation({
-    mutationFn: (choix) => base44.request("POST", "/api/off-market/simple/listes/envoyer", { body: { ids: [commerceId], ...choix } }),
+    mutationFn: (choix) => base44.request("POST", "/api/off-market/simple/listes/envoyer", { body: { ids: [commerceId], ...(mode === "fonds" ? { type_bien: "fonds_commerce" } : {}), ...choix } }),
     onSuccess: (r) => {
       if (r.refuses?.length) { toast.error(r.refuses[0]); return; }
       retenir(r.liste); toast.success(`Dans la liste « ${r.liste.nom} »`);
@@ -473,6 +473,8 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
   const signal = s0 ? String(s0.texte).replace(/\s*\([^)]*\)\s*/g, " ").trim() : null;
   const tel = f?.contact.telephone || "";
   const fonds = mode === "fonds" && f?.fonds ? f.fonds : null;
+  // Un bureau (3 nov. 2026, Jules) : l'immeuble et ses occupants, le propriétaire, l'accroche du locataire qui part.
+  const bureau = f?.bureau || null;
   // Le numéro de l'exploitant, cherché une fois sur Google Places quand le commerce n'en a pas (3 nov. 2026, Jules).
   const fc = f?.fonds || null;
   const numeroQ = useQuery({
@@ -523,7 +525,10 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
                 <p className="m-0 inline-flex items-center gap-1.5 text-[13px] text-pervenche"><Sparkles className="h-3.5 w-3.5 flex-none" aria-hidden />Remarque de votre assistant</p>
                 {!!det.signaux?.length && <span className="-my-1 -mr-2"><Fleche ouvert={signauxOuverts} onClick={() => setSignauxOuverts((o) => !o)} quoi="les signaux" /></span>}
               </div>
-              {fonds ? (<>
+              {bureau ? (<>
+                <p className="m-0 mt-1.5 text-[14px] leading-[1.5] text-encre">{bureau.raisons.length ? bureau.raisons.join(" · ") : "Aucun signal connu pour ces bureaux"}</p>
+                <p className="m-0 mt-1.5 text-[13.5px] leading-[1.5] text-craie">À dire au propriétaire : « Votre locataire part : je peux vous trouver un remplaçant. »</p>
+              </>) : fonds ? (<>
                 <p className="m-0 mt-1.5 text-[14px] leading-[1.5] text-encre">{fonds.raisons.length ? fonds.raisons.join(" · ") : "Aucun signal de cession connu"}</p>
               </>) : <p className="m-0 mt-1.5 text-[14px] leading-[1.5] text-encre">{signal ? `${signal}${quand && !/il y a/.test(signal) ? `, ${quand}` : ""}` : "Aucun signal connu"}</p>}
               {/* La passerelle (3 nov. 2026) : un exploitant propriétaire qui céderait son fonds, en mode Murs. */}
@@ -537,12 +542,21 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
                 les murs. Le mode Fonds ne change que la remarque de l'assistant et deux libellés. Deux colonnes égales, un trait
                 entre les rangées (25 oct. 2026). Le téléphone et le mail se corrigent même sans fiche : elle naît alors. */}
             <dl className="m-0 mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+              {bureau && (<>
+                {/* Un bureau : l'immeuble et ses occupants à la place de l'exploitant et du fonds (3 nov. 2026, Jules). */}
+                <Rangee mot="Immeuble" valeur={bureau.adresse || ""} affiche={bureau.adresse || <span className="text-brume">Adresse inconnue</span>} />
+                <Rangee mot={`Occupants (${bureau.occupants.length})`} valeur="" detail={bureau.occupants.slice(5).map((o) => [o.nom, o.activite, o.effectif ? `effectif ${o.effectif}` : null, o.depuis ? `depuis ${o.depuis}` : null].filter(Boolean).join(" · "))}
+                  affiche={<span className="block text-left">{bureau.occupants.slice(0, 5).map((o) => <span key={o.id || o.nom} className="block">{[o.nom, o.depuis ? `depuis ${o.depuis}` : null].filter(Boolean).join(" · ")}</span>)}{bureau.occupants.length > 5 ? <span className="block text-ardoise">et {bureau.occupants.length - 5} autres</span> : null}</span>} />
+                <Rangee mot="Valeur locative" valeur="" affiche={<span className="text-brume">Inconnue</span>} />
+              </>)}
+              {!bureau && (<>
               <Rangee mot={fonds ? "Exploitant (vendeur du fonds)" : "Exploitant"} champ={ch("exploitant")} valeur={f.exploitant.nom} onEnregistrer={enregistrer} detail={det.exploitant || []}
                 affiche={[f.exploitant.nom, f.fonds?.forme, (f.fonds?.depuis || f.exploitant.depuis) ? `depuis ${f.fonds?.depuis || f.exploitant.depuis}` : null].filter(Boolean).join(" · ")} />
               <Rangee mot="Dirigeant" valeur={f.fonds?.dirigeant?.nom || ""} affiche={f.fonds?.dirigeant ? [f.fonds.dirigeant.nom, f.fonds.dirigeant.age].filter(Boolean).join(", ") : <span className="text-brume">Inconnu</span>} />
               <Rangee mot="Chiffres" valeur={f.fonds?.chiffres || ""} affiche={f.fonds?.chiffres || <span className="text-brume">Comptes non publiés</span>} />
               <Rangee mot="Bail" valeur={f.fonds?.bail || ""} affiche={f.fonds?.bail || <span className="text-brume">Inconnu</span>} />
               <Rangee mot="Licence" valeur={f.fonds?.licence || ""} affiche={f.fonds?.licence || <span className="text-brume">Inconnue</span>} />
+              </>)}
               {/* Deux numéros (3 nov. 2026, Jules) : celui de la fiche, que le mandataire corrige, et celui de l'exploitant (le
                   commerce, Google Places), trouvé seul. */}
               <Rangee mot="Téléphone" champ="telephone" type="tel" valeur={tel} onEnregistrer={enregistrer} detail={det.telephone || []}

@@ -168,6 +168,49 @@ export function monterMandataire(app) {
     const { gunzipSync } = await import('zlib');
     res.type('json').send(gunzipSync(r.gzip));
   }));
+  // Les bureaux du secteur (3 nov. 2026, Jules) : le troisième type d'actif, servi comme la carte des commerces.
+  app.get('/api/mandataire/prospecter/bureaux', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await import('../mandataire-prospecter.js')).bureauxDuSecteur(user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    if (/\bgzip\b/.test(String(req.headers['accept-encoding'] || ''))) {
+      res.set({ 'Content-Type': 'application/json; charset=utf-8', 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
+      return res.end(r.gzip);
+    }
+    const { gunzipSync } = await import('zlib');
+    res.type('json').send(gunzipSync(r.gzip));
+  }));
+  // Les murs libres (3 nov. 2026, Jules) : les locaux vides du secteur, leur fiche, l'ajout à une liste, le terrain.
+  const ML = () => import('../murs-libres.js');
+  app.get('/api/mandataire/prospecter/libres', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await ML()).mursLibresDuSecteur(user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.get('/api/mandataire/prospecter/libres/:id', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await ML()).ficheMurLibre(user, req.params.id);
+    if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/mandataire/prospecter/libres/:id/liste', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await ML()).ajouterALaListe(user, req.params.id, { liste_id: req.body?.liste_id || null, nom: req.body?.nom || null });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/mandataire/prospecter/libres/signaler', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await ML()).signalerLocalVide(user, { adresse: req.body?.adresse, note: req.body?.note });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   app.get('/api/mandataire/prospecter/clients/:id', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;

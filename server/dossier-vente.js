@@ -69,7 +69,16 @@ export function etatPreference(pref = {}, { occupe = null, aujourdhui = new Date
       ? { statut: 'expire', fin_delai: fin, phrase: `Le mois du locataire est passé (le ${jour}) sans acceptation : le bien peut être vendu à un tiers.`, ok_pour_vente: true }
       : { statut: 'notifie', fin_delai: fin, phrase: `Notifié au locataire : il a jusqu'au ${jour} pour répondre. On peut présenter le bien, mais pas signer avec un acheteur avant.`, ok_pour_vente: true };
   }
+  if (p.courrier_envoye_le) return { statut: 'a_notifier', courrier_envoye_le: p.courrier_envoye_le, phrase: `La lettre au locataire est partie chez le propriétaire le ${new Date(p.courrier_envoye_le).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })} : il la signe et l'envoie en recommandé. Dites la date où le locataire l'a reçue.`, ok_pour_vente: false };
   return { statut: 'a_notifier', phrase: "Le locataire est prioritaire pour acheter : notifiez-lui l'offre de vente avant de vendre à un tiers.", ok_pour_vente: false };
+}
+
+/** Pure : le mail au propriétaire qui porte la notification à son locataire. */
+export function mailPreference({ bien, proprietaire = null, courrier, signature = null }) {
+  return {
+    objet: `${bien} : la lettre à envoyer à votre locataire`,
+    corps: `Bonjour${proprietaire ? ` ${proprietaire}` : ''},\n\nAvant de présenter votre bien à des acheteurs, la loi impose de proposer d'abord la vente à votre locataire : c'est son droit de préférence (article L. 145-46-1 du Code de commerce). Il a un mois pour répondre.\n\nVoici la lettre à lui adresser. Il vous suffit de la signer et de la lui envoyer en recommandé avec accusé de réception (ou de la lui remettre en main propre contre récépissé), puis de me dire la date à laquelle il l'a reçue : c'est elle qui fait courir son délai.\n\n----------\n\n${courrier}\n\n----------\n\nJe reste à votre disposition pour toute question.\n\nBien cordialement,${signature ? `\n${signature}` : ''}`,
+  };
 }
 
 /** Pure : la notification au locataire, préparée pour le propriétaire (il la signe et l'envoie en recommandé). */
@@ -554,7 +563,7 @@ export function cadreDuDossier(v, d, gestes = []) {
     // L'arrivée fait le travail (2 nov. 2026 au soir, Jules) : plus de question « quels documents avez-vous ? ».
     `LES PIÈCES D'ABORD. Au mandat signé, tu as déjà dit ce qui est dans la Data room, la pièce prioritaire, et préparé le mail au propriétaire : il est dans ce chat, sous ton premier message, et part d'un tap sur « Envoyer » (la Data room, à droite, ne montre que les pièces). Ne demande JAMAIS quels documents il a : la Data room le dit. S'il glisse des pièces ici, range-les. S'il demande le mail, ou s'il a été écarté : mail_vendeur (« premier »), puis dis qu'il est juste dessous. Sans adresse du propriétaire, demande-la en une ligne, c'est la seule question. Les relances : à ${DELAI_RELANCE_JOURS} jours sans pièce, la relance se prépare ici, dans le chat (mail_vendeur « relance ») ; après ${RELANCES_AVANT_APPEL} relances, propose d'appeler. La pièce prioritaire : ${prio ? `${prio.mot} (${prio.raison})` : 'aucune, les requises sont là'}. Ensuite seulement le droit de préférence du locataire, les photos, puis la mise en vente.`,
     gestes.length ? `Gestes à proposer, dans l'ordre : ${gestes.map((x) => x.libelle).join(', ')}.` : '',
-    "Outils : dossier_de_vente (relire l'état), mail_vendeur (premier mail avec le lien de dépôt, ou relance : un brouillon que le mandataire envoie de sa messagerie), trancher_point (Traité, À expliquer à l'acheteur, À corriger avec le vendeur), droit_de_preference (notifiée le, réponse, exception, ou le courrier), mettre_en_vente (une carte à confirmer d'un tap). Pour un point, explique en une phrase ce qu'un acheteur en dira et conseille une décision ; ne tranche que si le mandataire le dit. N'invente jamais une date de notification ni une réponse du locataire.",
+    "Outils : dossier_de_vente (relire l'état), mail_vendeur (premier mail avec le lien de dépôt, ou relance : un brouillon que le mandataire envoie de sa messagerie), trancher_point (Traité, À expliquer à l'acheteur, À corriger avec le vendeur), droit_de_preference (notifiée le, réponse, exception, ou « courrier » : le mail au propriétaire avec la lettre, prêt à envoyer à droite), mettre_en_vente (une carte à confirmer d'un tap). Pour un point, explique en une phrase ce qu'un acheteur en dira et conseille une décision ; ne tranche que si le mandataire le dit. N'invente jamais une date de notification ni une réponse du locataire.",
   ].filter(Boolean).join('\n');
 }
 
@@ -607,8 +616,15 @@ export async function executerOutilDossier(appel, user, contexte = {}) {
   if (appel.name === 'trancher_point') return deciderPoint(d.id, input.cle, input.decision || null, user);
   if (appel.name === 'droit_de_preference') {
     if (input.action === 'courrier') {
+      // Un mail prêt à partir, pas un texte à recopier (3 nov. 2026, Jules : « ça m'a mis le mail en texte normal, pas
+      // dans un module de mail que je peux envoyer directement ») : le mail au propriétaire, la lettre dedans, en haut
+      // de la Data room ; il la signe et l'envoie en recommandé (un mail au locataire ne vaut pas notification).
       const v = await vueDuDossier(d.id, user);
-      return { ok: true, courrier: v.courrier, note: "Donne le courrier dans ta réponse. Le propriétaire le signe et l'envoie en recommandé avec accusé de réception ; le notaire le relit (il doit reproduire l'article mot pour mot)." };
+      const s = signataire(d.mandataire_email);
+      const m = mailPreference({ bien: d.bien, proprietaire: d.proprietaire, courrier: v.courrier, signature: [s.nom, s.telephone].filter(Boolean).join('\n') });
+      Records.update('DossierMandataire', d.id, { mail_propose: { genre: 'preference', raison: "La notification au locataire est prête : le mail au propriétaire, avec la lettre à signer et à envoyer en recommandé.", a: d.proprietaire_email || '', objet: m.objet, corps: m.corps, le: maintenant() } });
+      const boite = await boiteDuMandataire(user.email);
+      return { ok: true, brouillon: { destinataire: d.proprietaire_email || '', objet: m.objet, corps: m.corps, dossier_vente: { id: d.id, genre: 'preference' } }, note: `Le mail au propriétaire, avec la lettre, est à droite, en haut de la Data room : « Envoyer » le fait partir${boite ? ` de ${boite.email}` : ' (sans boîte connectée, il s\'ouvre dans la messagerie)'}. NE RECOPIE NI LE MAIL NI LA LETTRE. Dis en trois lignes courtes comment l'envoyer : le propriétaire signe la lettre et l'envoie au locataire en recommandé avec accusé de réception (ou la remet en main propre contre récépissé) ; un simple mail au locataire ne vaut pas notification ; dès qu'il connaît la date de réception, il te la dit, c'est elle qui ouvre le mois du locataire. Ajoute qu'avant l'envoi, le notaire relit la lettre : elle doit reproduire mot pour mot l'article L. 145-46-1.` };
     }
     if (input.action === 'notifiee') return noterPreference(d.id, { notifie_le: input.date || null }, user);
     if (input.action === 'reponse') return noterPreference(d.id, { reponse: input.reponse || null }, user);
@@ -756,6 +772,7 @@ export async function envoyerMailVendeur(id, user, { objet = null, corps = null,
   const mail = { ...(d.mail_propose || {}), ...(objet ? { objet } : {}), ...(corps ? { corps } : {}), ...(a != null ? { a } : {}) };
   if (!mail.objet || !mail.corps) return { ok: false, error: 'Aucun mail préparé.' };
   const genre = mail.genre || (d.depot?.propose_le ? 'relance' : 'premier');
+  const surDepot = genre === 'premier' || genre === 'relance';
   if (!marquer) {
     if (!String(mail.a || '').includes('@')) return { ok: false, error: "L'adresse du vendeur manque : ajoutez-la au mail." };
     const boite = await boiteDuMandataire(user.email);
@@ -765,8 +782,10 @@ export async function envoyerMailVendeur(id, user, { objet = null, corps = null,
     if (!r?.success) return { ok: false, error: r?.error || "Le mail n'est pas parti." };
   }
   const frais = Records.get('DossierMandataire', d.id);
-  const depot = { ...(frais.depot || {}), [genre === 'premier' ? 'propose_le' : 'relance_le']: maintenant(), ...(genre === 'relance' ? { relances: (frais.depot?.relances || 0) + 1 } : {}) };
-  Records.update('DossierMandataire', d.id, { depot, mail_propose: null, ...(mail.a && !frais.proprietaire_email ? { proprietaire_email: String(mail.a).trim().toLowerCase() } : {}) });
+  const depot = surDepot ? { ...(frais.depot || {}), [genre === 'premier' ? 'propose_le' : 'relance_le']: maintenant(), ...(genre === 'relance' ? { relances: (frais.depot?.relances || 0) + 1 } : {}) } : frais.depot;
+  // La notification partie chez le propriétaire : notée, la date de réception par le locataire viendra de lui.
+  const preference = genre === 'preference' ? { ...(frais.preference || {}), courrier_envoye_le: maintenant() } : frais.preference;
+  Records.update('DossierMandataire', d.id, { depot, preference, mail_propose: null, ...(mail.a && !frais.proprietaire_email ? { proprietaire_email: String(mail.a).trim().toLowerCase() } : {}) });
   return { ok: true, envoye: !marquer, genre };
 }
 
@@ -776,6 +795,7 @@ export async function ecarterMailVendeur(id, user) {
   const d = P.lireDossier(id, user);
   if (!d) return { ok: false, error: 'Dossier introuvable.' };
   const genre = d.mail_propose?.genre;
+  if (genre === 'preference') { Records.update('DossierMandataire', d.id, { mail_propose: null }); return { ok: true }; }
   Records.update('DossierMandataire', d.id, { mail_propose: null, depot: { ...(d.depot || {}), [genre === 'relance' ? 'relance_le' : 'premier_ecarte_le']: maintenant() } });
   return { ok: true };
 }

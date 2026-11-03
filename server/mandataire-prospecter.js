@@ -129,7 +129,7 @@ const lectures = new Map(); // ville_id → { sig, le, p }
 // entre-temps n'y est pas : il compte hors du centre jusqu'au calcul suivant.
 const SIX_HEURES = 6 * 60 * 60_000;
 const centres = new Map(); // ville_id → { le, zone }
-async function lireCommerces(v) {
+export async function lireCommerces(v) {
   const sig = Records.signature('CommerceSimple');
   const deja = lectures.get(v.id);
   if (deja && (deja.sig === sig || Date.now() - deja.le < CINQ_MINUTES)) return deja.p;
@@ -175,7 +175,7 @@ const nz = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLow
  * Les villes où il prospecte « pour mes clients » : celles que Klocka a choisies pour son secteur (24 oct. 2026), et
  * seulement elles. `fiches` : les fiches Ville qui existent, avec leur centre ; `toutes` : chacune avec son état.
  */
-async function villesDuMandataire(secteur, { etats = true } = {}) {
+export async function villesDuMandataire(secteur, { etats = true } = {}) {
   const { villesDuSecteurMandataire, etatVille, preparation } = await import('./villes-secteur.js');
   const villes = Records.list('Ville');
   // Les villes cochées pour le secteur, et les Villes Klocka de son contour (30 oct. 2026).
@@ -184,7 +184,8 @@ async function villesDuMandataire(secteur, { etats = true } = {}) {
     return { choisie: v, fiche: f?.centre?.lat != null ? f : null };
   });
   return {
-    fiches: toutes.filter((x) => x.fiche).map((x) => ({ id: x.fiche.id, nom: x.fiche.nom, centre: x.fiche.centre })),
+    // Le code INSEE sert aux murs libres (3 nov. 2026) : le recensement des vitrines se fait par commune.
+    fiches: toutes.filter((x) => x.fiche).map((x) => ({ id: x.fiche.id, nom: x.fiche.nom, centre: x.fiche.centre, code_insee: x.fiche.code_insee || x.choisie.code || null })),
     // L'état de chaque ville (lecture, propriétaires, prix) : l'écran des clients seulement, pas la carte d'un client.
     toutes: !etats ? [] : await Promise.all(toutes.map(async (x) => ({ id: x.fiche?.id || x.choisie.code || x.choisie.nom, nom: x.choisie.nom, centre: x.fiche?.centre || null, etat: x.fiche ? etatVille(x.fiche) : 'a_lire', preparation: x.fiche ? await preparation(x.fiche) : { en_cours: true } }))),
   };
@@ -244,7 +245,7 @@ export function pointDuSecteur(c, base, ville) {
 
 // Ce que l'écran lit d'un point de tout le secteur : la carte, les filtres, la recherche et le tableau. Le reste (adresse
 // brute, siret, textes des signaux…) vient avec la fiche, au clic.
-const CHAMPS_LEGERS = ['id', 'force', 'classe', 'lien', 'activite', 'drapeaux', 'fonds', 'ca', 'resultat', 'proprietaire', 'proprietaire_type', 'depuis', 'chaine', 'liste', 'adresse', 'centre', 'zone', 'titre', 'nom', 'ville', 'prix', 'reponse', 'fiche'];
+const CHAMPS_LEGERS = ['id', 'force', 'classe', 'lien', 'activite', 'drapeaux', 'fonds', 'bureaux', 'ca', 'resultat', 'proprietaire', 'proprietaire_type', 'depuis', 'chaine', 'liste', 'adresse', 'centre', 'zone', 'titre', 'nom', 'ville', 'prix', 'reponse', 'fiche'];
 /**
  * Pure : un point de tout le secteur, allégé (26 oct. 2026 : 74 000 points, 62 Mo en entier). Les valeurs vides
  * disparaissent, sauf `centre` à faux (le filtre d'emplacement le lit) ; la position est arrondie au mètre.
@@ -267,7 +268,7 @@ export function leger(p) {
  * Tous, sans plafond (26 oct. 2026, Jules : « voir tous les commerces de la ville, ne rien manquer ») : Lyon seul en a
  * plus de 10 000, la carte les dessine sur un canevas. Ceux qu'un autre mandataire tient ne s'affichent pas.
  */
-export async function pointsDuSecteur(user, { max = Infinity } = {}) {
+export async function pointsDuSecteur(user, { max = Infinity, classe = 'commerce' } = {}) {
   const E = await import('./mandataire-espace.js');
   const secteur = E.secteurDe(user);
   if (!secteur) return { ok: false, error: 'Aucun secteur pour vous : Klocka vous en attribue un.' };
@@ -286,7 +287,8 @@ export async function pointsDuSecteur(user, { max = Infinity } = {}) {
     for (const c of liste) {
       lus += 1;
       const t = tenus.get(c.id);
-      if ((t && !t.a_moi) || c.lat == null || c.lon == null || !estCommerce(c)) continue;
+      // Les bureaux à part (3 nov. 2026, Jules : « trois types d'actifs, Fonds, Murs et Bureaux ») : `classe` choisit.
+      if ((t && !t.a_moi) || c.lat == null || c.lon == null || (c.classe || 'commerce') !== classe) continue;
       points.push(leger({ ...pointDuSecteur(c, compact(c, { ...(zone || {}), moi }), v.nom), fiche: t ? { id: t.id, dans_biens: t.dans_biens, statut: t.statut } : null }));
     }
   }
@@ -363,6 +365,49 @@ export async function pointsDuSecteurCompresses(user) {
     const gzip = gzipSync(Buffer.from(JSON.stringify(r)));
     try { Meta.set(carteSurDisque(user), gzip.toString('base64')); } catch { /* le cache en mémoire suffit */ }
     return { ok: true, gzip, total: r.total };
+  });
+}
+
+/**
+ * Pure : les bureaux regroupés par immeuble (même position au mètre près). Le point garde l'occupant le plus parlant
+ * (le plus de signaux, puis un propriétaire connu) pour sa fiche ; il porte le nombre d'occupants, leurs noms (les trois
+ * premiers) et l'union de leurs signaux.
+ */
+export function parImmeuble(points) {
+  const groupes = new Map();
+  for (const p of points) {
+    const k = `${Number(p.lat).toFixed(5)},${Number(p.lon).toFixed(5)}`;
+    if (!groupes.has(k)) groupes.set(k, []);
+    groupes.get(k).push(p);
+  }
+  return [...groupes.values()].map((g) => {
+    const tri = [...g].sort((a, b) => (b.bureaux?.length || 0) - (a.bureaux?.length || 0) || Number(!!b.proprietaire) - Number(!!a.proprietaire));
+    const base = tri[0];
+    const signaux = [...new Set(g.flatMap((p) => p.bureaux || []))];
+    return {
+      ...base,
+      titre: g.length > 1 ? (base.adresse || base.titre) : base.titre,
+      occupants: g.length,
+      noms: g.slice(0, 3).map((p) => p.titre || p.nom).filter(Boolean),
+      bureaux: signaux,
+      proprietaire: base.proprietaire || g.find((p) => p.proprietaire)?.proprietaire || null,
+      fiche: base.fiche || g.find((p) => p.fiche)?.fiche || null,
+    };
+  }).sort((a, b) => (b.bureaux?.length || 0) - (a.bureaux?.length || 0) || b.occupants - a.occupants);
+}
+
+/** Les bureaux du secteur (3 nov. 2026, Jules), compressés et gardés comme la carte des commerces. */
+export async function bureauxDuSecteur(user) {
+  return enCache('bureaux', user, async () => {
+    const r = await pointsDuSecteur(user, { classe: 'bureau' });
+    if (!r.ok) return r;
+    // Un point par immeuble (3 nov. 2026, Jules : « un immeuble où sont domiciliées dix sociétés est un immeuble de
+    // bureaux ») : les établissements à la même position (SIRENE la donne par adresse) se regroupent.
+    r.points = parImmeuble(r.points);
+    r.total = r.points.length;
+    if (!r.points.length) r.pourquoi_vide = 'Aucun bureau recensé dans les villes de votre secteur pour l’instant.';
+    const { gzipSync } = await import('zlib');
+    return { ok: true, gzip: gzipSync(Buffer.from(JSON.stringify(r))), total: r.total };
   });
 }
 

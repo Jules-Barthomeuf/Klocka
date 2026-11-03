@@ -104,22 +104,25 @@ export function drapeauxDe(c, { maintenantMs = Date.now() } = {}) {
  * les établissements fermés et les fonds cédés depuis moins de deux ans n'en ont aucun. Les signaux :
  * - le dirigeant de plus de 60 ans : 70 ans et plus par la tranche du registre, 60 à 70 ans relu dans l'annuaire ;
  * - une procédure collective ou une conciliation annoncée au BODACC depuis moins de deux ans ;
- * et, seulement en plus de l'un des deux : le commerce installé depuis 15 ou 20 ans (la plus ancienne des dates de
- * l'établissement et de la société), le bail à échéance dans l'année (cycle 3-6-9 depuis la dernière cession), un
- * résultat positif aux derniers comptes (« dirigeant âgé, résultat positif »).
+ * et, seulement en plus de l'un des deux : le commerce installé depuis 15 ou 20 ans, la fin du bail estimée dans
+ * l'année (9 ans, puis 18, 27… depuis l'ouverture de l'établissement), un résultat positif aux derniers comptes
+ * (« dirigeant âgé, résultat positif »). Une échéance triennale n'est pas un signal : un commerce sur trois en a une
+ * dans l'année ; elle s'écrit dans la fiche.
  * Le fonds en vente par annonce n'est pas lu : aucune source branchée.
  */
 export function fondsDe(c, { maintenantMs = Date.now() } = {}) {
   const ex = c.exploitant || {};
-  if (c.chaine || c.actif === false || ex.active === false) return [];
+  // Un fonds de commerce n'existe que pour un commerce : ni bureaux ni entrepôts (3 nov. 2026).
+  if ((c.classe || 'commerce') !== 'commerce' || c.chaine || c.actif === false || ex.active === false) return [];
   const ev = c.evenements || [];
   const cessions = ev.filter((e) => /cession|vente/i.test(String(e.type || '')) && e.date).sort((a, b) => String(b.date).localeCompare(String(a.date)));
   if (cessions[0] && annees(cessions[0].date, maintenantMs) <= 2) return [];
   const out = [];
   const gerants = (ex.gerants || []).filter((g) => !g.personne_morale);
-  // La plus ancienne des deux dates : SIRENE ramène les établissements plus anciens à 2008 (le début d'une période
-  // INSEE), la création de la société exploitante remonte plus loin.
-  const depuis = Math.max(annees(c.depuis, maintenantMs) ?? -1, annees(/^1900/.test(String(ex.creation || '')) ? null : ex.creation, maintenantMs) ?? -1);
+  // Installé à cette adresse depuis : l'ouverture de l'établissement quand on la connaît (server/ouverture-commerces.js) ;
+  // sinon la plus ancienne des deux dates, SIRENE ramenant les établissements plus anciens à 2008 (le début d'une
+  // période INSEE) et la création de la société exploitante remontant plus loin.
+  const depuis = c.ouvert_le ? annees(c.ouvert_le, maintenantMs) : Math.max(annees(c.depuis, maintenantMs) ?? -1, annees(/^1900/.test(String(ex.creation || '')) ? null : ex.creation, maintenantMs) ?? -1);
   const v70 = gerants.some((g) => g.tranche_age === '70+');
   const v60 = !v70 && gerants.some((g) => g.plus_de_60 === true);
   if (v70) out.push({ cle: 'dirigeant_70', texte: 'Dirigeant de 70 ans et plus' });
@@ -131,21 +134,58 @@ export function fondsDe(c, { maintenantMs = Date.now() } = {}) {
   if (!out.length) return [];
   if (depuis >= 20) out.push({ cle: 'ancien_20', texte: `Installé depuis ${Math.floor(depuis)} ans` });
   else if (depuis >= 15) out.push({ cle: 'ancien_15', texte: `Installé depuis ${Math.floor(depuis)} ans` });
-  const echeance = cessions[0] ? echeanceDuBail(cessions[0].date, maintenantMs) : null;
-  if (echeance) out.push({ cle: 'bail_echeance', texte: `Bail à échéance en ${echeance.slice(0, 7)} (estimée depuis la cession de ${String(cessions[0].date).slice(0, 4)})`, date: echeance });
+  const bail = c.ouvert_le ? echeancesDuBail(c.ouvert_le, maintenantMs) : null;
+  if (bail?.fin_dans_l_annee) out.push({ cle: 'bail_echeance', texte: `Fin de bail estimée en ${moisAnnee(bail.fin)} (${bail.periode > 1 ? `${bail.periode}e période de 9 ans, ` : ''}ouverture en ${c.ouvert_le.slice(0, 4)})`, date: bail.fin });
   if (ex.comptes_deposes && Number(ex.derniers_comptes?.resultat_net) > 0) out.push({ cle: (v70 || v60) ? 'ideal' : 'resultat', texte: (v70 || v60) ? 'Dirigeant âgé et résultat positif' : 'Résultat positif aux derniers comptes' });
   return out;
 }
 
-/** Pure : la prochaine échéance triennale du bail depuis sa date de départ, si elle tombe dans l'année ; sinon null. */
-export function echeanceDuBail(depart, maintenantMs = Date.now()) {
-  const t = new Date(depart);
-  if (Number.isNaN(t.getTime())) return null;
-  for (let n = 3; n <= 36; n += 3) {
-    const e = Date.UTC(t.getUTCFullYear() + n, t.getUTCMonth(), t.getUTCDate());
-    if (e > maintenantMs) return e - maintenantMs <= 365 * 86400000 ? new Date(e).toISOString().slice(0, 10) : null;
-  }
-  return null;
+/**
+ * Pure : pourquoi des bureaux vont se libérer ou se vendre (3 nov. 2026, Jules : « repérer les bureaux », spec du jour).
+ * Lus dans ce qu'on a de l'occupant et du propriétaire :
+ * - l'occupant radié, dissous ou fermé depuis moins de deux ans : ses bureaux se libèrent ;
+ * - une procédure collective ou une conciliation de l'occupant depuis moins de deux ans ;
+ * - le siège de l'occupant transféré ailleurs depuis moins d'un an (BODACC), alors que ces bureaux n'en sont pas le siège ;
+ * - le gérant de la société propriétaire des murs de 70 ans et plus, comme pour les murs de commerce.
+ * Ni la baisse d'effectif (un seul relevé, pas d'historique) ni le décret tertiaire (pas de surface) : aucune source.
+ */
+export function bureauDe(c, { maintenantMs = Date.now() } = {}) {
+  if ((c.classe || 'commerce') !== 'bureau') return [];
+  const ex = c.exploitant || {};
+  const ev = c.evenements || [];
+  const recent = (re, ans) => ev.find((e) => re.test(String(e.type || '')) && annees(e.date, maintenantMs) <= ans);
+  const out = [];
+  const radie = recent(/radiation|dissolution/i, 2);
+  if (c.actif === false || ex.active === false || radie) out.push({ cle: 'occupant_parti', texte: `L'occupant est ${radie ? `radié ou dissous (${String(radie.date).slice(0, 7)})` : 'fermé'} : les bureaux se libèrent`, source: radie ? 'BODACC' : 'Registre des entreprises', date: radie?.date || ex.fermee_le || null });
+  const procedure = recent(/proc[ée]dure collective|conciliation/i, 2);
+  if (procedure) out.push({ cle: 'procedure', texte: `${/conciliation/i.test(procedure.type) ? 'Conciliation' : 'Procédure collective'} de l'occupant, ${String(procedure.date).slice(0, 7)}`, source: 'BODACC', date: procedure.date });
+  const transfert = recent(/transfert/i, 1);
+  const siegeIci = ex.siege?.adresse && c.adresse && norm(ex.siege.adresse).includes(norm(c.adresse).split(' ').slice(0, 3).join(' '));
+  if (transfert && ex.siege?.adresse && !siegeIci) out.push({ cle: 'demenage', texte: `Le siège de l'occupant a déménagé (${String(transfert.date).slice(0, 7)}) : ces bureaux peuvent se libérer`, source: 'BODACC', date: transfert.date });
+  if ((c.proprietaire?.gerants || []).some((g) => !g.personne_morale && g.tranche_age === '70+')) out.push({ cle: 'sci_agee', texte: 'Gérant de la société propriétaire de 70 ans et plus', source: 'Registre des entreprises' });
+  return out;
+}
+
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const moisAnnee = (iso) => `${MOIS[Number(String(iso).slice(5, 7)) - 1]} ${String(iso).slice(0, 4)}`;
+
+/**
+ * Pure : les échéances estimées d'un bail commercial 3-6-9 qui aurait commencé à `debut` (l'ouverture de
+ * l'établissement) : la prochaine échéance triennale, la fin de la période de 9 ans en cours (renouvelé ou prolongé, le
+ * bail repart par périodes de 9 ans), son rang, et si elle tombe dans l'année. Null sans date valable.
+ */
+export function echeancesDuBail(debut, maintenantMs = Date.now()) {
+  const t = new Date(debut);
+  if (!/^\d{4}-\d{2}-\d{2}/.test(String(debut || '')) || Number.isNaN(t.getTime()) || t.getTime() > maintenantMs) return null;
+  const apres = (pas) => {
+    for (let n = pas; n <= 90; n += pas) { const e = Date.UTC(t.getUTCFullYear() + n, t.getUTCMonth(), t.getUTCDate()); if (e > maintenantMs) return { e, n }; }
+    return null;
+  };
+  const tri = apres(3);
+  const fin = apres(9);
+  if (!tri || !fin) return null;
+  const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
+  return { triennale: iso(tri.e), fin: iso(fin.e), periode: fin.n / 9, fin_dans_l_annee: fin.e - maintenantMs <= 365 * 86400000 };
 }
 
 // ---------------------------------------------------------------------------
@@ -278,7 +318,7 @@ const rayonDe = (ville) => (ville.locaux > 2000 || /^(lyon|marseille|paris|toulo
 /** Pure : un établissement SIRENE en commerce du mode Simple (sans les enrichissements). */
 export const commerceDepuisEtablissement = (e, villeId) => ({
   ville_id: villeId, siret: e.siret, siren: e.siren, nom: e.nom, enseigne: e.enseigne || null, ape: e.ape, activite: e.activite, adresse: e.adresse, numero: e.numero, rue: e.rue, cle_rue: e.cle_rue,
-  code_postal: e.code_postal, ville: e.ville, lat: e.lat, lon: e.lon, depuis: e.depuis, actif: e.actif !== false, chaine: !!e.chaine,
+  code_postal: e.code_postal, ville: e.ville, lat: e.lat, lon: e.lon, depuis: e.depuis, ouvert_le: e.ouvert_le || null, actif: e.actif !== false, chaine: !!e.chaine,
 });
 
 /** Lit (ou relit) tous les commerces actifs d'une ville. Rend vite : les points d'abord, le reste en fond. */
@@ -424,10 +464,12 @@ export function compact(c, { centre = null, densite = null, zoneDe = null, moi =
     proprietaire: c.proprietaire?.nom ? nomLisible(c.proprietaire.nom, { forme: c.proprietaire.forme }) : null, drapeaux: (c.drapeaux || []).map((d) => d.cle), reponse: c.reponse?.choix || null,
     // Les raisons de céder le fonds (3 nov. 2026), à côté des raisons de vendre les murs.
     fonds: fondsDe(c).map((d) => d.cle),
+    // Les raisons des bureaux (3 nov. 2026), seulement pour la classe bureau.
+    bureaux: bureauDe(c).map((d) => d.cle),
     ca: c.exploitant?.derniers_comptes?.ca ?? null, resultat: c.exploitant?.derniers_comptes?.resultat_net ?? null,
     // La liste est celle de la personne connectée, dans son espace mandataire (12 oct. 2026).
     liste: moi && c.listes_mandataires?.[moi] ? { id: c.listes_mandataires[moi].id, nom: c.listes_mandataires[moi].nom } : null, appel_prospection: c.appel_prospection?.titre || null,
-    chaine: !!c.chaine, depuis: c.depuis || null, nom_google: c.nom_google || null, prix: c.estimation?.prix || null, epingle: !!c.epingle, proprietaire_type: typeDeProprietaire(c.proprietaire), source: c.source || 'SIRENE', google: !!c.place_id, centre: c.epingle ? true : centre == null ? null : centre.has(c.id), densite: densite?.get(c.id) ?? null, zone: zoneDe?.get(c.id) || null,
+    chaine: !!c.chaine, depuis: c.ouvert_le || c.depuis || null, nom_google: c.nom_google || null, prix: c.estimation?.prix || null, epingle: !!c.epingle, proprietaire_type: typeDeProprietaire(c.proprietaire), source: c.source || 'SIRENE', google: !!c.place_id, centre: c.epingle ? true : centre == null ? null : centre.has(c.id), densite: densite?.get(c.id) ?? null, zone: zoneDe?.get(c.id) || null,
   };
 }
 
@@ -826,7 +868,9 @@ export async function listesDeCommerces(user) {
 }
 
 /** Envoie des commerces dans une liste du mandataire (existante, ou créée par son nom). */
-export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, user = null } = {}) {
+export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, user = null, type_bien = null } = {}) {
+  // Ajoutée depuis le mode Fonds (3 nov. 2026), la fiche le garde : la page Biens le montre, l'avis s'ouvre en fonds.
+  const type = type_bien === 'fonds_commerce' ? { type_bien } : {};
   const moi = moiDe(user);
   if (!moi) return { ok: false, error: 'Connectez-vous pour faire une liste.' };
   let l = liste_id ? Records.get(LISTE_MANDATAIRE, liste_id) : null;
@@ -850,7 +894,7 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
     // Ma fiche existe déjà, hors liste (née d'un geste sur la carte) : elle entre dans la liste, sans doublon (25 oct. 2026).
     const mienne = Records.list('ProprietaireMandataire').find((p) => p.commerce_simple_id === id && p.mandataire_email === moi);
     if (mienne) {
-      Records.update('ProprietaireMandataire', mienne.id, { liste_id: l.id });
+      Records.update('ProprietaireMandataire', mienne.id, { liste_id: l.id, ...type });
       versLeCrm(mienne.id);
       Records.update(COMMERCE, id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: mienne.id, le: maintenant() } } });
       ajoutes.push(id);
@@ -866,7 +910,7 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
       activite: c.activite || null, ville: c.ville || null, adresse: rueLisible(c.adresse), telephone, email: null,
     }, user);
     if (!r.ok) { refuses.push(`${c.enseigne || c.nom} : ${r.error}`); continue; }
-    Records.update('ProprietaireMandataire', r.proprietaire.id, { liste_id: l.id, commerce_simple_id: c.id, source: 'Off-market' });
+    Records.update('ProprietaireMandataire', r.proprietaire.id, { liste_id: l.id, commerce_simple_id: c.id, source: 'Off-market', ...type });
     versLeCrm(r.proprietaire.id);
     Records.update(COMMERCE, id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: r.proprietaire.id, le: maintenant() } } });
     ajoutes.push(id);

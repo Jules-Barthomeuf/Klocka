@@ -86,7 +86,7 @@ const commence = (naf, prefixes) => { const c = String(naf || '').replace(/\./g,
 export const horsMagasin = (naf, P = P0) => commence(naf, P.hors_magasin);
 const nomDe = (e) => e.enseigne || e.denomination || e.siret;
 // Ce que Google Maps place à une adresse sans que ce soit le local du rez-de-chaussée.
-const TYPES_ETAGE = new Set(['premise', 'subpremise', 'street_address', 'apartment_building', 'apartment_complex', 'lodging', 'parking', 'doctor', 'dentist', 'physiotherapist', 'lawyer', 'accounting', 'corporate_office', 'consultant', 'point_of_interest']);
+export const TYPES_ETAGE = new Set(['premise', 'subpremise', 'street_address', 'apartment_building', 'apartment_complex', 'lodging', 'parking', 'doctor', 'dentist', 'physiotherapist', 'lawyer', 'accounting', 'corporate_office', 'consultant', 'point_of_interest']);
 const estEI = (e) => String(e.categorie_juridique || '') === '1000';
 const MOTS_VIDES = new Set(['SARL', 'SAS', 'SASU', 'EURL', 'SA', 'SCI', 'SNC', 'ET', 'DE', 'DU', 'DES', 'LA', 'LE', 'LES', 'L', 'D', 'AU', 'AUX', 'EN', 'CHEZ']);
 const motsDuNom = (s) => sansAccents(s).toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter((m) => m.length >= 3 && !MOTS_VIDES.has(m));
@@ -201,7 +201,7 @@ export function etatsDesLocaux(etablissements, osm, zone, { maintenantD = new Da
     const osmOuverts = l.osm.filter((o) => !o.vacant);
     const osmVide = l.osm.some((o) => o.vacant);
     l.occupants = ouverts.map((e) => ({ nom: nomDe(e), naf: e.code_naf, depuis: e.date_creation, ei: estEI(e) }));
-    l.dernier = fermes[0] ? { nom: nomDe(fermes[0]), naf: fermes[0].code_naf, ferme_le: fermes[0].date_fermeture } : null;
+    l.dernier = fermes[0] ? { nom: nomDe(fermes[0]), naf: fermes[0].code_naf, ferme_le: fermes[0].date_fermeture, ei: estEI(fermes[0]), enseigne: fermes[0].enseigne || null } : null;
     l.osm_noms = l.osm.map((o) => (o.vacant ? 'local vide' : o.nom || o.type));
     if (ouverts.length) {
       if (osmVide && !osmOuverts.length) { l.etat = 'incertain'; l.raison = `Le registre y voit ${ouverts.map(nomDe).join(', ')} ouvert, OpenStreetMap le dit vide.`; }
@@ -331,7 +331,7 @@ export async function osmAutour(lat, lon, rayon) {
 // Google Maps (Places, recherche autour) : les lieux à 25 m du local, gardés un mois par local.
 db.exec(`CREATE TABLE IF NOT EXISTS vacance_google (cle TEXT PRIMARY KEY, donnees TEXT, lu_le TEXT)`);
 export const COUT_GOOGLE_USD = 0.032;
-async function googleAuLocal(cle, lat, lon) {
+export async function googleAuLocal(cle, lat, lon) {
   const c = db.prepare('SELECT * FROM vacance_google WHERE cle = ?').get(cle);
   if (c && Date.now() - Date.parse(c.lu_le) < 30 * 86400000) return { places: JSON.parse(c.donnees), garde: true };
   const r = await fetch('https://places.googleapis.com/v1/places:searchNearby', {

@@ -180,7 +180,7 @@ export function monterOffMarket(app) {
   }));
   app.post('/api/off-market/simple/listes/envoyer', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
-    rendre(res, await (await Si()).envoyerVersListe(Array.isArray(req.body?.ids) ? req.body.ids : [], { liste_id: req.body?.liste_id || null, nom: req.body?.nom || null, user }));
+    rendre(res, await (await Si()).envoyerVersListe(Array.isArray(req.body?.ids) ? req.body.ids : [], { liste_id: req.body?.liste_id || null, nom: req.body?.nom || null, type_bien: req.body?.type_bien || null, user }));
   }));
   app.get('/api/off-market/simple/appels', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;

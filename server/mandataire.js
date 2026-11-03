@@ -530,6 +530,16 @@ export const OUTILS_MANDATAIRE = [
     },
   },
   {
+    name: 'signaler_local_vide',
+    description:
+      "Le mandataire a vu sur le terrain un local commercial vide (vitrine vide, panneau « à louer » ou « à vendre ») et le dit (3 nov. 2026) : « vitrine vide au 12 rue Sadi-Carnot à Antibes ». Le local entre sur la carte des Murs libres de sa Prospection. L'adresse avec la ville ; dans note, ce qu'il a vu (panneau, agence, numéro affiché). Après l'appel, dis en une ligne qu'il est sur la carte.",
+    input_schema: {
+      type: 'object',
+      properties: { adresse: { type: 'string', description: 'Numéro, rue, ville' }, note: { type: 'string', description: 'Ce qu\'il a vu : panneau, agence, numéro' } },
+      required: ['adresse'],
+    },
+  },
+  {
     name: 'avancer_bien',
     description:
       "Faire avancer un bien d'étape dans Biens. Les étapes (26 oct. 2026 ; Data room le 2 nov.) : Visite (previsite), Avis de valeur (estimation), Mandat, Data room (dataroom), Commercialisation (marche), Offres, Vente. « La visite est faite » sans avis lancé : previsite. « Il est d'accord à 460 k€ » : estimation avec prix (le prix d'accord est le résultat de l'avis). « Le mandat est signé » : mandat. Rien n'est écrit : l'outil prépare le changement et l'écran le fait confirmer d'un tap. Le rendez-vous fixé, lui, passe par noter_rdv ; un avis lancé fait déjà la Pré-visite, sans avancer_bien. Après l'appel, dis en une ligne ce que tu proposes (« Je note l'accord à 460 000 € ? ») puis enchaîne sur la suite (le mandat à préparer).",
@@ -1008,6 +1018,12 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     const phrase = String(input.phrase || '').trim().slice(0, 200);
     if (!phrase) return { ok: false, error: 'Que cherche-t-il ? Demande-le en une ligne.' };
     return { ok: true, fait: `La Prospection s'ouvre filtrée sur « ${phrase} ».`, boutons: [{ libelle: 'Voir les commerces', href: `/MandataireProspection?recherche=${encodeURIComponent(phrase)}`, principal: true }] };
+  }
+  // Un local vide vu sur le terrain (3 nov. 2026, Jules) : il entre sur la carte des Murs libres (server/murs-libres.js).
+  if (name === 'signaler_local_vide') {
+    const r = await (await import('./murs-libres.js')).signalerLocalVide(user, { adresse: input.adresse, note: input.note });
+    if (!r.ok) return r;
+    return { ok: true, fait: `${r.local.adresse}, ${r.local.ville} est sur la carte des Murs libres.`, boutons: [{ libelle: 'Voir les murs libres', href: '/MandataireProspection', principal: true }] };
   }
   // Un bien du portefeuille, raconté avec ses pièces (3 nov. 2026, Jules) : la carte seule, rien n'est écrit avant le tap.
   if (name === 'importer_bien') {

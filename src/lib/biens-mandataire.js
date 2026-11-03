@@ -125,6 +125,14 @@ export function statutDuBien(b) {
   return "Rendez-vous fixé";
 }
 
+// Ce qu'on vend (3 nov. 2026, Jules : « savoir si c'est des murs commerciaux ou un fonds de commerce ») : le type de
+// l'avis, sinon celui de la fiche (ajoutée en mode Fonds). Une fiche de la Prospection sans type cherche les murs.
+export const TYPES_DE_BIEN = { murs_commerce: "Murs commerciaux", fonds_commerce: "Fonds de commerce", immeuble: "Immeuble de rapport", bureaux: "Bureaux", local_activite: "Local d'activité", autre: "Autre bien" };
+export function typeDuBien(b) {
+  const t = b?.estimation?.avis?.type_bien || b?.estimation?.questionnaire?.type_bien || b?.proprietaire?.type_bien || (b?.proprietaire ? "murs_commerce" : null);
+  return t && TYPES_DE_BIEN[t] ? { cle: t, mot: TYPES_DE_BIEN[t] } : null;
+}
+
 const date = (x) => x?.activite || x?.envoye_le || x?.prete_le || (x?.historique || []).at(-1)?.le || x?.cree_le || null;
 const plusRecente = (...xs) => xs.filter(Boolean).sort().at(-1) || null;
 
@@ -186,6 +194,7 @@ export function regrouperBiens({ estimations = [], mandats = [], dossiers = [], 
       // Un bien de test (31 oct. 2026) : une de ses pièces marquée `test`, ou le Bien d'essai ; l'équipe seule en a.
       test: [p, b.estimation, b.mandat, b.dossier, b.marche].some((x) => x?.test || x?.essai_bien),
       etape: etapeDuBien(lui),
+      type: typeDuBien(lui),
       statut: statutDuBien(lui),
       faites: etapesFaites(lui),
       modifie: plusRecente(date(b.estimation), date(b.mandat), date(b.dossier), date(b.marche), p ? (p.historique || []).at(-1)?.le || p.cree_le : null),
@@ -205,7 +214,7 @@ export function bienDuProprietaire(proprietaires, cle) {
   const p = id ? proprietaires.find((x) => x.id === id) : null;
   if (!p) return null;
   const b = { proprietaire: p, estimation: null, mandat: null, dossier: null, marche: null };
-  return { ...b, cle, ids: [cle], titre: [p.commerce || p.nom, p.ville].filter(Boolean).join(" · ") || "Propriétaire", adresse: p.adresse || null, exemple: false, test: !!(p.test || p.essai_bien), etape: etapeDuBien(b), statut: statutDuBien(b), faites: etapesFaites(b), modifie: p.cree_le || null };
+  return { ...b, cle, ids: [cle], titre: [p.commerce || p.nom, p.ville].filter(Boolean).join(" · ") || "Propriétaire", adresse: p.adresse || null, exemple: false, test: !!(p.test || p.essai_bien), etape: etapeDuBien(b), type: typeDuBien(b), statut: statutDuBien(b), faites: etapesFaites(b), modifie: p.cree_le || null };
 }
 
 /** Pure : l'avis est parti et le propriétaire n'a pas encore répondu (le filtre « Estimation envoyée »). */

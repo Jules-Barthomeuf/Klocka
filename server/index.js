@@ -1581,6 +1581,23 @@ if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
   setInterval(relire, 15 * 60_000).unref?.();
 }
 
+// La date d'ouverture des commerces (3 nov. 2026, Jules) : le stock en base tout de suite, le stock national de l'INSEE
+// lu en flux une fois par mois (server/ouverture-commerces.js), dans un processus à part et à basse priorité : lu dans
+// celui du serveur, il ralentissait les fiches de tout le monde. OUVERTURES_COMMERCES=0 la coupe.
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE && process.env.OUVERTURES_COMMERCES !== '0') {
+  let lecteur = null;
+  const dater = async () => {
+    if (lecteur) return;
+    const { spawn } = await import('child_process');
+    const script = path.join(__dirname, 'ouverture-commerces.js');
+    lecteur = spawn(process.platform === 'win32' ? process.execPath : 'nice', process.platform === 'win32' ? [script] : ['-n', '15', process.execPath, script], { cwd: path.join(__dirname, '..'), env: process.env, stdio: ['ignore', 'inherit', 'inherit'] });
+    lecteur.on('exit', () => { lecteur = null; });
+    lecteur.on('error', (e) => { console.warn('[ouvertures]', e?.message || e); lecteur = null; });
+  };
+  setTimeout(dater, 3 * 60_000).unref?.();
+  setInterval(dater, 24 * 3600_000).unref?.();
+}
+
 // L'entretien du disque (22 oct. 2026) : copies du bac à sable oubliées, recherches DVF périmées, journaux trop
 // gros, journal d'écriture de SQLite. Rien que l'application relise. Cinq minutes après le démarrage, puis chaque jour.
 if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {

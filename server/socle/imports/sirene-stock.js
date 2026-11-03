@@ -91,7 +91,10 @@ export function nomUniteLegale(l) {
 export async function dernierStock(fichier = 'StockEtablissement') {
   const r = await fetch(DATASET, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(30000) });
   if (!r.ok) throw new Error(`data.gouv.fr ${r.status}`);
-  const res = ((await r.json()).resources || []).find((x) => String(x.title || '').startsWith(`Sirene : Fichier ${fichier} - `) && !/parquet/i.test(x.title || ''));
+  // Par son titre, ou par son adresse (3 nov. 2026 : le titre du stock des établissements est devenu le nom du fichier,
+  // « stock-stocketablissement-csv.zip ») ; jamais le parquet ni l'historique.
+  const fin = `/stock-${fichier.toLowerCase()}-csv.zip`;
+  const res = ((await r.json()).resources || []).find((x) => (String(x.title || '').startsWith(`Sirene : Fichier ${fichier} - `) && !/parquet/i.test(x.title || '')) || String(x.url || '').toLowerCase().endsWith(fin));
   if (!res) throw new Error(`Fichier ${fichier} introuvable sur data.gouv.fr.`);
   return { url: res.url, millesime: String(res.last_modified || '').slice(0, 10), taille: res.filesize || null };
 }

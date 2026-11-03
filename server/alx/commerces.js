@@ -235,6 +235,9 @@ export function etablissementDe(unite, etab) {
     lat: e.latitude != null ? Number(e.latitude) : null,
     lon: e.longitude != null ? Number(e.longitude) : null,
     depuis: e.date_debut_activite || e.date_creation || null,
+    // L'ouverture à cette adresse (3 nov. 2026) : la date de création de l'établissement, qui approche le début du bail ;
+    // `depuis` (début de la période d'activité) est ramené à 2008 pour les plus anciens.
+    ouvert_le: /^\d{4}-\d{2}-\d{2}$/.test(String(e.date_creation || '')) && !String(e.date_creation).startsWith('1900') ? e.date_creation : null,
     actif: e.etat_administratif === 'A',
     // Une enseigne présente dans dix établissements ou plus : une chaîne, un
     // signe d'emplacement solide.

@@ -31,6 +31,13 @@ test('messageDeLaVisite : « De ce que je sais », puis la question', () => {
   assert.match(m, /Vous me le confirmez \?/);
 });
 
+test("messageDeLaVisite : ce qu'on estime vient en premier, murs ou fonds, pour être corrigé d'un mot (3 nov. 2026)", () => {
+  const murs = messageDeLaVisite({ bien: 'B', de_la_visite: { reponses: reponsesDeLaVisite(fiche) } });
+  assert.match(murs, /De ce que je sais :\n- À estimer : les murs commerciaux\n/);
+  const fonds = messageDeLaVisite({ bien: 'B', de_la_visite: { reponses: reponsesDeLaVisite({ ...fiche, type_bien: 'fonds_commerce' }) } });
+  assert.match(fonds, /- À estimer : le fonds de commerce/);
+});
+
 test('messageDeLaVisite : sans adresse dans la fiche, la première question est l\'adresse', () => {
   const m = messageDeLaVisite({ bien: 'Bien', de_la_visite: { reponses: { type_bien: 'murs_commerce' } } });
   assert.match(m, /quelle est l'adresse du bien \?/);

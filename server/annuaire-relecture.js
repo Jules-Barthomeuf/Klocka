@@ -62,6 +62,11 @@ export function etatRelecture() {
  */
 export async function relire({ arreter = () => false, annuaire = null, filtre = () => true, lot = LOT, entreAppels = ENTRE_APPELS_MS, entreLots = ENTRE_LOTS_MS } = {}) {
   if (enCours || process.env.RELECTURE_ANNUAIRE === '0') return { ok: true, deja: enCours };
+  // Finie, elle ne revérifie qu'une fois par jour (3 nov. 2026) : chercher ce qui reste parcourt les 82 000 commerces, et
+  // les commerces lus ensuite ont déjà « plus de 60 ans » à leur lecture. Les tests (filtre posé) passent toujours.
+  let dernier = null;
+  try { dernier = JSON.parse(Meta.get(ETAT) || 'null'); } catch { /* jamais faite */ }
+  if (!annuaire && dernier?.fini && Date.now() - Date.parse(dernier.le) < 24 * 3600_000) return { ok: true, relus: 0, erreurs: 0, fini: true };
   enCours = true;
   const A = annuaire || await import('./alx/annuaire.js');
   let relus = 0, erreurs = 0;
@@ -94,6 +99,7 @@ export async function relire({ arreter = () => false, annuaire = null, filtre = 
   } finally {
     enCours = false;
   }
-  if (relus || erreurs) Meta.set(ETAT, JSON.stringify({ le: new Date().toISOString(), relus, erreurs, fini: !etatRelecture().reste }));
+  // Un passage qui n'a rien trouvé note aussi sa date : la vérification suivante attend un jour.
+  if (relus || erreurs || !annuaire) Meta.set(ETAT, JSON.stringify({ le: new Date().toISOString(), relus, erreurs, fini: !etatRelecture().reste }));
   return { ok: true, relus, erreurs };
 }

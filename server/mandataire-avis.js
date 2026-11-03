@@ -28,11 +28,13 @@ export const TYPES_BIEN = {
   bureaux: 'Bureaux',
   local_activite: "Local d'activité ou entrepôt",
   immeuble: 'Immeuble de rapport',
+  fonds_commerce: 'Fonds de commerce',
   autre: 'Autre bien professionnel',
 };
 // Ce qu'un mandataire peut ouvrir (31 oct. 2026, PLAN.md 0.4 : commerces seulement). Les bureaux et les locaux
 // d'activité restent lisibles dans les avis déjà faits, ils ne se proposent plus.
-export const TYPES_PROPOSES = ['murs_commerce', 'immeuble', 'autre'];
+// Le fonds de commerce (3 nov. 2026, Jules) : barème, rentabilité et comparables croisés (server/fonds-valeur.js).
+export const TYPES_PROPOSES = ['murs_commerce', 'fonds_commerce', 'immeuble', 'autre'];
 
 // Ce qu'il faut savoir, par type et par situation (occupé ou libre). Les clés
 // optionnelles se demandent, mais « je ne sais pas » laisse « [à compléter] ».
@@ -49,6 +51,10 @@ const PAR_TYPE = {
   immeuble: ['nb_lots', 'composition'],
   autre: ['description'],
 };
+// Un fonds ne se pense ni en surface ni en « loué ou libre » : son activité, ses comptes, et le bail qu'il occupe.
+const FONDS = ['type_bien', 'adresse', 'demandeur', 'activite_fonds', 'ca_n', 'ebe_n', 'loyer_annuel_hc', 'echeance', 'etat', 'date_visite'];
+const FONDS_ESSENTIELS = ['adresse', 'activite_fonds', 'ca_n'];
+const MONTANTS_FONDS = ['ca_n', 'ca_n1', 'ca_n2', 'ebe_n', 'ebe_n1', 'ebe_n2'];
 const OCCUPE = ['locataire', 'activite_locataire', 'bail_type', 'date_effet', 'echeance', 'loyer_annuel_hc', 'indexation', 'taxe_fonciere', 'charges'];
 const OPTIONNELS = ['reserve', 'zones', 'configuration', 'equipements', 'juridique', 'copropriete', 'travaux_votes', 'urbanisme', 'diagnostics', 'servitudes', 'depot_garantie', 'paiements', 'ca_locataire', 'travaux_locataire', 'environnement', 'flux', 'acces', 'vacance'];
 
@@ -58,15 +64,28 @@ const OPTIONNELS = ['reserve', 'zones', 'configuration', 'equipements', 'juridiq
  * se demande, mais ne retient plus la rédaction : il reste « [à compléter] » et se dicte après.
  */
 export function essentielsManquants(q = {}) {
+  if (q.type_bien === 'fonds_commerce') return FONDS_ESSENTIELS.filter((k) => q[k] == null || q[k] === '');
   const requis = ['adresse', 'occupe', 'surface_utile', ...(q.occupe === true ? ['loyer_annuel_hc', 'echeance'] : []), ...(q.type_bien === 'murs_commerce' ? ['rang_rue', 'taux_base'] : [])];
   return requis.filter((k) => q[k] == null || q[k] === '');
 }
 
 /** Pure : ce qui manque encore pour rédiger, selon le type et l'occupation. */
 export function manquants(q) {
+  if (q.type_bien === 'fonds_commerce') return FONDS.filter((k) => q[k] == null || q[k] === '');
   const requis = [...COMMUNS, ...(PAR_TYPE[q.type_bien] || []), ...(q.occupe === true ? OCCUPE : []),
     ...(q.type_bien === 'murs_commerce' && q.occupe === true ? CRITERES_TAUX_OCCUPE : [])];
   return requis.filter((k) => q[k] == null || q[k] === '');
+}
+
+/** Pure : un montant dit, « 320 k€ », « 1,2 M€ », « 320 000 € » → en euros. */
+export function montantDit(t) {
+  if (typeof t === 'number') return t;
+  const n = premierNombre(t);
+  if (n == null) return null;
+  const s = String(t);
+  if (/\d\s*(m€|m\b|millions?)/i.test(s)) return Math.round(n * 1e6);
+  if (/\d\s*(k€|k\b|mille)/i.test(s)) return Math.round(n * 1000);
+  return n;
 }
 
 /**
@@ -149,6 +168,7 @@ export function noter(reponses, user, conversationId = null) {
     q[k] = typeof v === 'string' ? v.trim() : v;
   }
   for (const k of ['loyer_annuel_hc', 'surface_utile', 'taux_base', 'vacance_rue_pct']) if (q[k] != null && typeof q[k] !== 'number') q[k] = premierNombre(q[k]) ?? q[k];
+  for (const k of MONTANTS_FONDS) if (q[k] != null && typeof q[k] !== 'number') q[k] = montantDit(q[k]) ?? q[k];
   // L'échéance d'un 3-6-9 se calcule depuis la date d'effet, sans la demander (1er nov. 2026, Jules) ; une échéance dite
   // l'emporte, une calculée suit la date d'effet si elle change.
   if (q.occupe !== false && (!q.echeance || q.echeance_calculee)) {
@@ -161,6 +181,11 @@ export function noter(reponses, user, conversationId = null) {
   Records.update(ENTITE, e.id, { questionnaire: q, ...(e.nom_choisi ? {} : { bien: titreDe(q) }), adresse: q.adresse || e.adresse, ...(surcouche !== e.surcouche ? { surcouche } : {}) });
   if (q.adresse && !e.proprietaire_id) import('./fiche-du-bien.js').then((f) => f.ficheDeLAvis(e.id, user)).catch((err) => console.warn(`[fiche] ${err?.message || err}`));
   if (q.adresse) prechaufferAvis(e.id, user);
+  // Murs ou fonds corrigé dans le chat : la fiche du bien le garde, la pré-visite et l'avis suivants suivent.
+  if (reponses?.type_bien && e.proprietaire_id && ['murs_commerce', 'fonds_commerce'].includes(q.type_bien)) {
+    const p = Records.get('ProprietaireMandataire', e.proprietaire_id);
+    if (p && (p.type_bien || 'murs_commerce') !== q.type_bien) Records.update('ProprietaireMandataire', p.id, { type_bien: q.type_bien === 'fonds_commerce' ? 'fonds_commerce' : null });
+  }
   // Un taux posé pour rédiger tout de suite, pas encore validé (1er nov. 2026) : il n'apprend rien aux avis suivants.
   if (reponses?.taux_base != null && Number(q.taux_base) > 0) {
     const aValider = reponses.taux_base_a_valider === true;
@@ -280,12 +305,13 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
   const e = enCours(user, conversationId);
   if (!e) return { ok: false, error: 'Aucun avis en cours.' };
   const q = e.questionnaire || {};
+  const fonds = q.type_bien === 'fonds_commerce';
   const reste = manquants(q);
   // « À la main » : le mandataire complétera dans l'éditeur ce qui manque.
   if (reste.length && !aLaMain) return { ok: false, manquants: reste, error: `Il manque encore : ${reste.join(', ')}.` };
   // Des chiffres impossibles se signalent au lieu de produire un avis absurde.
   const surf = Number(q.surface_utile);
-  if ((q.surface_utile != null || !aLaMain) && !(surf > 5 && surf < 50000)) return { ok: false, error: `La surface utile enregistrée (${q.surface_utile}) n'est pas plausible : demande-la de nouveau en une ligne, en m².` };
+  if ((q.surface_utile != null || (!aLaMain && !fonds)) && !(surf > 5 && surf < 50000)) return { ok: false, error: `La surface utile enregistrée (${q.surface_utile}) n'est pas plausible : demande-la de nouveau en une ligne, en m².` };
   if (q.occupe && (q.loyer_annuel_hc != null || !aLaMain) && !(Number(q.loyer_annuel_hc) > 500 && Number(q.loyer_annuel_hc) < 20000000)) return { ok: false, error: `Le loyer annuel enregistré (${q.loyer_annuel_hc}) n'est pas plausible : demande-le de nouveau, en € HT HC par an.` };
 
   // L'adresse précise (BAN) : pour le marché, les ventes, la photo de façade.
@@ -297,7 +323,8 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
   } catch { /* le marché se lira quand même sur le texte */ }
   // L'avis des murs par le rendement (31 oct. 2026, Jules) ne cite plus de ventes : DVF ne se lit plus pour lui.
   // Libre, le loyer de marché peut manquer : les ventes restent alors le relais.
-  const sansVentes = q.type_bien === 'murs_commerce' && Number(q.taux_base) > 0 && q.occupe && Number(q.loyer_annuel_hc) > 0;
+  // Un fonds ne se vaut pas au prix des murs : ni DVF, ni Equimmox, ses comparables sont des cessions de fonds.
+  const sansVentes = fonds || (q.type_bien === 'murs_commerce' && Number(q.taux_base) > 0 && q.occupe && Number(q.loyer_annuel_hc) > 0);
   // Vite (2 nov. 2026, Jules : « la lecture Data-B, Equimmox est trop longue ; juste un taux pour la ville, pondéré ») :
   // des murs occupés se valent loyer ÷ taux ; la valeur locative de marché ne fait qu'un ajustement et une ligne de
   // l'avis. On l'attend quelques secondes (elle est souvent en cache, ou lue en fond pendant les questions) ; au-delà
@@ -309,9 +336,17 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
   const emplacementGarde = lectureFraiche(garde.emplacement_lu, q.adresse) ? garde.emplacement_lu.lu || {} : {};
   // Ce qui arrive après la rédaction, posé dans les cases encore vides.
   const suites = [];
+  // Les chiffres et les photos de la ville ne dépendent que de la commune : lus pendant le reste, attendus à la fin.
+  const commune = lieu?.ville || villeDuTexte(q.adresse);
+  const villeP = lieu?.ville
+    ? import('./ak/agent.js').then(({ executerOutil }) => executerOutil({ name: 'donnees_commune', input: { commune: lieu.ville } }, user)).then(villeDepuisCommune).catch((err) => { console.warn(`[avis] commune : ${err?.message || err}`); return null; })
+    : Promise.resolve(null);
+  const photosP = commune
+    ? import('./photo-commerce.js').then((m) => m.photosDeLaVille(commune)).catch((err) => { console.warn(`[avis] photo de la ville : ${err?.message || err}`); return []; })
+    : Promise.resolve([]);
 
   // L'emplacement se lit pendant les autres lectures. Lu en fond pendant les questions et complet, il ne se relit pas ;
-  // sinon, ce qui arrive en 12 s sert (pressé), le reste complète l'avis ensuite.
+  // sinon, ce qui arrive en 6 s sert (pressé), le reste complète l'avis ensuite.
   const emplacementComplet = emplacementGarde.vacance && (emplacementGarde.transports_300m || emplacementGarde.acces_300m) && (emplacementGarde.voisins_les_plus_proches || emplacementGarde.commerces_150m || emplacementGarde.commerces_klocka);
   const lireIci = !!lieu && !emplacementComplet;
   let emplacementSuite = () => {};
@@ -319,7 +354,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
   const emplacementP = lireIci
     ? import('./emplacement-auto.js').then((m) => {
       const p = e.proprietaire_id ? Records.get('ProprietaireMandataire', e.proprietaire_id) : null;
-      return m.lireEmplacement(q.adresse, { lieu, user, commerceId: p?.commerce_simple_id || null, ...(rapide ? { delai: 12000, surComplet: (tout) => emplacementSuite(tout ? { ...emplacementGarde, ...tout } : null) } : {}) });
+      return m.lireEmplacement(q.adresse, { lieu, user, commerceId: p?.commerce_simple_id || null, ...(rapide ? { delai: 6000, surComplet: (tout) => emplacementSuite(tout ? { ...emplacementGarde, ...tout } : null) } : {}) });
     }).then((lu) => ({ ...emplacementGarde, ...lu })).catch((err) => { console.warn(`[avis] emplacement : ${err?.message || err}`); emplacementSuite(null); return emplacementGarde; })
     : Promise.resolve(emplacementGarde);
 
@@ -404,6 +439,31 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
       else surEtape?.(r.manque ? `Equimmox : il manque ${r.manque.join(', ')}, méthode d'avant` : `Equimmox indisponible (${r.error}) : méthode d'avant`);
     }
   }
+  // Le fonds de commerce (3 nov. 2026, Jules) : barème, rentabilité, comparables. Les cessions viennent de Data-B,
+  // le BODACC en secours (même règle que la carte des cessions) ; vingt secondes au plus, sinon sans comparables.
+  let evaluation = null;
+  if (fonds) {
+    const { evaluerFonds, RAYON_COMPARABLES } = await import('./fonds-valeur.js');
+    surEtape?.('Les cessions de fonds autour (Data-B)');
+    let transactions = []; let sourceCessions = null;
+    try {
+      const { transactionsFonds } = await import('./data-b-transactions.js');
+      const r = await avant(transactionsFonds(q.adresse, { rayon: RAYON_COMPARABLES, user }), 20000, null);
+      if (r?.ok) { transactions = r.resultat.transactions || []; sourceCessions = 'Data-B'; }
+    } catch (err) { console.warn(`[avis] cessions Data-B : ${err?.message || err}`); }
+    if (!transactions.length) {
+      surEtape?.('Data-B sans réponse : les cessions publiées au BODACC');
+      try {
+        const { cessionsAutour } = await import('./cessions-fonds.js');
+        const r = await avant(cessionsAutour(q.adresse, { rayon: RAYON_COMPARABLES, user }), 20000, null);
+        if (r?.ok) { transactions = r.resultat.transactions || []; sourceCessions = 'BODACC'; }
+      } catch (err) { console.warn(`[avis] cessions BODACC : ${err?.message || err}`); }
+    }
+    evaluation = evaluerFonds(q, { transactions, source: sourceCessions });
+    surEtape?.(evaluation.moyenne
+      ? `Fonds : ${evaluation.methodes.map((m) => m.nom.split(' (')[0]).join(', ')} croisés`
+      : 'Fonds : ni comptes ni comparables suffisants, la valeur se posera dans l\u2019éditeur');
+  }
   const parLeRendement = !!rendement;
   surEtape?.(niveau?.basse != null && niveau?.haute != null
     ? `Loyers de marché : ${Math.round(niveau.basse)} à ${Math.round(niveau.haute)} €/m²/an`
@@ -415,7 +475,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
   // L'emplacement lu depuis la seule adresse (1er nov. 2026, Jules) : la voie, les commerces à 150 m, les transports à
   // 300 m (OpenStreetMap), la vacance de la rue (K-Vacance). La page « Emplacement et commercialité » se remplit seule.
   if (lieu) surEtape?.('Lecture de l\u2019emplacement : les commerces voisins, les transports, la vacance de la rue');
-  // Vite aussi : l'emplacement rend ce qu'il a lu en 12 s (lireEmplacement, delai) ; le reste suit, après la rédaction.
+  // Vite aussi : l'emplacement rend ce qu'il a lu en 6 s (lireEmplacement, delai) ; le reste suit, après la rédaction.
   const emplacementLu = await emplacementP;
   if (emplacementTardP) suites.push(emplacementTardP.then((tout) => (tout ? { emplacement: tout } : null)));
 
@@ -424,7 +484,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
   const { mesurer } = await import('./llm-couts.js');
   const { resultat: brut } = await mesurer({ operation: 'mandataire', par: user?.email }, () => invokeLLM({
     prompt:
-      `Tu rédiges, pour un mandataire du réseau K Partners, un AVIS DE VALEUR de ${TYPES_BIEN[q.type_bien] || 'bien professionnel'}${q.occupe ? ' occupé' : ' libre'}. Tout en français. Ton ton : celui d'un professionnel de l'immobilier d'entreprise, phrases courtes, concrètes, sans emphase. N'invente AUCUN fait : ce qui n'est ni dans le questionnaire ni dans les données ne s'écrit pas. Le taux et le prix au m² se justifient par les références ; les chiffres finaux sont calculés par le serveur, tu ne les écris pas.\n\n` +
+      `Tu rédiges, pour un mandataire du réseau K Partners, un AVIS DE VALEUR de ${TYPES_BIEN[q.type_bien] || 'bien professionnel'}${fonds ? '' : q.occupe ? ' occupé' : ' libre'}. Tout en français. Ton ton : celui d'un professionnel de l'immobilier d'entreprise, phrases courtes, concrètes, sans emphase. N'invente AUCUN fait : ce qui n'est ni dans le questionnaire ni dans les données ne s'écrit pas. Le taux et le prix au m² se justifient par les références ; les chiffres finaux sont calculés par le serveur, tu ne les écris pas.\n\n` +
       `Nous sommes le ${jourLong()}.\n\n` +
       `QUESTIONNAIRE (réponses du mandataire) :\n${JSON.stringify(q, null, 1).slice(0, 6000)}\n\n` +
       `VALEUR LOCATIVE DE MARCHÉ (€ HT HC/m²/an, ${marche?.source || 'source indisponible'}) — la « valeur locative de marché » de l'avis cite la fourchette de la RUE telle quelle, sans la baisser ni la moyenner avec autre chose :\n${marche ? JSON.stringify({ rue: marche.rue, quartier: marche.quartier, ville: marche.ville, source: marche.source }).slice(0, 2500) : '(indisponible)'}\n\n` +
@@ -432,10 +492,12 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
       `Avec ces données, remplis TOUJOURS l'emplacement, ligne par ligne, chiffré, sans aucune source entre parenthèses : type_emplacement (rue piétonne, axe principal, rue de desserte, et le rang de la rue s'il est dans le questionnaire) ; flux (ce que la voie, la densité de commerces et la restauration disent du passage, sans chiffre de passants inventé) ; commerces_voisins (combien à 150 m, les métiers dominants, les enseignes nationales citées par leur nom) ; vacance : seulement « x % (taux estimé) », sans phrase ni comparaison ; acces (métro, tram, gare, bus, parkings à 300 m) ; environnement (une phrase d'ensemble). Ce que le mandataire a dit passe devant. Une rubrique dont rien ne parle reste vide.\n\n` +
       `ÉCRITURE (3 nov. 2026, Jules : « gagner la confiance, qu'on n'ait pas à tout relire ») : aucune étiquette de provenance entre parenthèses, ni « (mandataire) », ni « (fiche) », ni « (OpenStreetMap) », « (Google Maps) », « (K-Vacance) », « (Data-B) » : le fait s'écrit tel quel (« emplacement n°1 bis »). Jamais « à confirmer », « à vérifier », « semble », « a priori », « probablement », « depuis longtemps » ni rien qui demande de relire : ce qui est dit s'écrit factuellement (« présente depuis 2018 ») ; ce que rien ne dit ne s'écrit pas, le champ reste vide.\n` +
       `JURIDIQUE ET TECHNIQUE : seulement ce que le mandataire a signalé (clés juridique, copropriete, travaux_votes, urbanisme, diagnostics, servitudes du questionnaire), repris tel quel ; rien de signalé, ou « non » : tous les champs juridique vides.\n\n` +
-      (parLeRendement
+      (parLeRendement || fonds
         ? `CE QUE L'AVIS DIT ET NE DIT PAS (31 oct. 2026) : l'emplacement DÉCRIT l'environnement (zone piétonne ou non, rue commerçante, commerces et enseignes voisins, flux, transports, stationnement) et la vacance locative de la rue ; il ne cite JAMAIS de ventes, de nombre de ventes, de DVF ni de prix au m² de ventes. vigilance et points_a_traiter ne vont PAS dans l'avis : ce sont des notes pour le mandataire (un doute, une incohérence, un document à demander), que l'assistant lui dira dans le chat ; écris-les là, courtes. lecture_marche : vide. prix_m2 : 0.\n\n`
         : `VENTES DE LOCAUX AUTOUR (DVF, 800 m) :\n${references.length ? JSON.stringify(references) : '(aucune vente exploitable)'}${ventes?.prix_m2 ? `\nPrix au m² des ventes : bas ${ventes.prix_m2.bas}, médian ${ventes.prix_m2.median}, haut ${ventes.prix_m2.haut}` : ''}\n\n`) +
-      (rendement
+      (fonds
+        ? `FONDS DE COMMERCE : la valeur est CALCULÉE par le serveur en croisant ${evaluation.methodes.length ? evaluation.methodes.map((m) => `${m.nom} ${m.milieu.toLocaleString('fr-FR')} € (poids ${m.poids})`).join(' ; ') : 'aucune méthode (comptes et comparables manquants)'}${evaluation.ecartees.length ? `. Écartées : ${evaluation.ecartees.map((x) => `${x.cle} (${x.raison})`).join(' ; ')}` : ''}. Rends taux = 0 et prix_m2 = 0. synthese_methodes : en 2 à 3 phrases, pourquoi ces méthodes et ce qu'elles disent ensemble (la rentabilité pèse double, c'est celle des banquiers). justification_taux : vide. lecture_marche : ce que disent les cessions de la même activité autour, sans réécrire les chiffres. La description et l'emplacement parlent du COMMERCE exploité (activité, clientèle, emplacement), pas des murs.`
+        : rendement
         ? `TAUX IMPOSÉ PAR LA MÉTHODE DU RENDEMENT : ${rendement.taux} % (${rendement.lecture}). Valeur = loyer ${rendement.loyer_de_marche ? 'de marché' : 'du bail'} ${Math.round(rendement.loyer).toLocaleString('fr-FR')} € ÷ ${rendement.taux} %. Rends taux = ${rendement.taux} et justifie-le en 2 à 3 phrases : le taux de base de la ville, puis chacun de ces ajustements, sans en ajouter.`
         : equimmox
         ? `VALEUR IMPOSÉE PAR EQUIMMOX (estimation multicritères, ${equimmox.rapport.methodes.map((m) => `${m.nom} ${m.valeur?.toLocaleString('fr-FR')} € coef. ${m.coefficient}`).join(' ; ')}) : ${equimmox.rapport.valeur.toLocaleString('fr-FR')} €.${equimmox.rapport.capitalisation ? ` Taux de capitalisation moyen du secteur : ${equimmox.rapport.capitalisation.taux} % (Data-B). Rends taux = ${equimmox.rapport.capitalisation.taux}.` : ''} Rends prix_m2 = ${equimmox.rapport.valeur_m2}. Justifie le taux et le prix en citant Equimmox et ses comparables, sans réécrire les chiffres. ENVIRONNEMENT (Equimmox) : ${equimmox.rapport.environnement.join(' ; ').slice(0, 1500)}`
@@ -443,17 +505,21 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
         ? `TAUX IMPOSÉ PAR DATA-B : ${dataB.taux} % (taux du secteur pour l'activité « ${dataB.activite} » : ${dataB.taux_base} %, ajusté : ${dataB.ajustements.map((a) => `${a.motif} ${a.delta > 0 ? '+' : ''}${a.delta}`).join(', ') || 'aucun ajustement'}). Rends taux = ${dataB.taux} et justifie-le en citant Data-B et ces ajustements. Choisis seulement un prix au m² utile cohérent avec les ventes.`
         : `Choisis un taux de rendement brut cohérent (murs commerciaux en France : 5 à 9 % le plus souvent ; bureaux et activité un peu plus haut) et un prix au m² utile cohérent avec les ventes.`),
     response_json_schema: SCHEMA_AVIS,
+    // Réflexion moyenne (3 nov. 2026, Jules : « ça prend trop de temps ») : 11 s au lieu de 26 s, la valeur et le taux
+    // étant calculés par le serveur, le modèle n'écrit que les textes.
+    effort: 'medium',
   }));
   if (!brut || typeof brut !== 'object') return { ok: false, error: 'La rédaction n\'a rien rendu : réessayez.' };
 
-  const taux = rendement?.taux || equimmox?.rapport.capitalisation?.taux || (dataB ? dataB.taux : Math.min(12, Math.max(3.5, Number(brut.taux) || 6.5)));
-  surEtape?.(`Taux retenu : ${String(taux).replace('.', ',')} % · calcul des valeurs`);
-  const prixM2 = parLeRendement ? null : equimmox?.rapport.valeur_m2 || Number(brut.prix_m2) || ventes?.prix_m2?.median || null;
+  const taux = fonds ? null : rendement?.taux || equimmox?.rapport.capitalisation?.taux || (dataB ? dataB.taux : Math.min(12, Math.max(3.5, Number(brut.taux) || 6.5)));
+  surEtape?.(fonds ? 'Calcul des valeurs' : `Taux retenu : ${String(taux).replace('.', ',')} % · calcul des valeurs`);
+  const prixM2 = parLeRendement || fonds ? null : equimmox?.rapport.valeur_m2 || Number(brut.prix_m2) || ventes?.prix_m2?.median || null;
   // Equimmox fait la valeur (arrondie au millier) et la fourchette ; chiffrer en tire le reste (rendement, prix affiché…).
   const parRendement = rendement ? { moyenne: rendement.moyenne, basse: rendement.basse, haute: rendement.haute } : null;
+  const parFonds = evaluation?.moyenne ? { moyenne: evaluation.moyenne, basse: evaluation.basse, haute: evaluation.haute } : null;
   const parEquimmox = equimmox ? { moyenne: Math.round(equimmox.rapport.valeur / 1000) * 1000, basse: equimmox.fourchette?.bas || null, haute: equimmox.fourchette?.haut || null } : null;
   // Sans loyer ni surface, la valeur reste à poser dans l'éditeur, qui recalcule le reste.
-  const chiffres = chiffrer(q, { taux, prix_m2: prixM2, loyer_marche_m2: loyerMarcheM2, dataB: parRendement || parEquimmox || dataB })
+  const chiffres = chiffrer(q, { taux, prix_m2: prixM2, loyer_marche_m2: loyerMarcheM2, dataB: parFonds || parRendement || parEquimmox || dataB })
     || (aLaMain ? { valeur: null, bas: null, haut: null, rendement: null, ecart_methodes: null, honoraires_pct: 5, frais_pct: 7.5, prix_affiche: null, cout_total: null } : null);
   if (!chiffres) return { ok: false, error: 'Impossible de chiffrer : il faut un loyer (bien occupé) ou une surface et des ventes comparables.' };
 
@@ -474,7 +540,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
   const juridiqueDit = juridiqueSignale(q);
   const avis = {
     version: 1,
-    methode: rendement ? 'rendement' : null,
+    methode: fonds ? 'fonds' : rendement ? 'rendement' : null,
     type_bien: q.type_bien,
     type_libelle: TYPES_BIEN[q.type_bien] || 'Bien professionnel',
     occupe: !!q.occupe,
@@ -489,12 +555,12 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     demandeur: q.demandeur || '[à compléter]',
     signataire: s,
     cadre: {
-      objet: `Estimer la valeur vénale ${q.type_bien === 'murs_commerce' ? 'des murs' : 'du bien'} en vue d'une éventuelle cession`,
-      bien: `${TYPES_BIEN[q.type_bien] || 'Bien'}${q.occupe ? ' occupé' : ' libre'}, ${q.adresse}`,
+      objet: fonds ? 'Estimer la valeur du fonds de commerce en vue d\'une éventuelle cession' : `Estimer la valeur vénale ${q.type_bien === 'murs_commerce' ? 'des murs' : 'du bien'} en vue d'une éventuelle cession`,
+      bien: fonds ? `Fonds de commerce${evaluation?.activite ? ` (${evaluation.activite})` : ''}, ${q.adresse}` : `${TYPES_BIEN[q.type_bien] || 'Bien'}${q.occupe ? ' occupé' : ' libre'}, ${q.adresse}`,
       visite: q.date_visite ? `Réalisée le ${q.date_visite}${q.visite_avec ? ` en présence ${q.visite_avec}` : ''}` : '[à compléter]',
     },
     description: {
-      resume: sansEtiquettes(brut.resume_bien) || `${q.surface_utile} m² utiles.`,
+      resume: sansEtiquettes(brut.resume_bien) || (q.surface_utile ? `${q.surface_utile} m² utiles.` : ''),
       lignes: [
         ['Désignation', net.description.designation],
         ['Configuration', net.description.configuration],
@@ -509,7 +575,8 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
       lignes: [['Type d\'emplacement', net.emplacement.type_emplacement], ['Flux', net.emplacement.flux], ['Commerces voisins', ouLu(net.emplacement.commerces_voisins, 'commerces_voisins')], ['Environnement', net.emplacement.environnement], ['Vacance', vacanceDite || vacanceEstimee(emplacementLu) || ouLu(net.emplacement.vacance, 'vacance')], ['Accès', ouLu(net.emplacement.acces, 'acces')]]
         .filter(([, v]) => !caseVide(v)).map(([mot, texte, alerte]) => ({ mot, texte, alerte: !!alerte })),
     },
-    locatif: q.occupe ? {
+    // Le fonds occupe un bail : son loyer et son échéance pèsent sur sa valeur, la page les montre.
+    locatif: q.occupe || (fonds && (q.loyer_annuel_hc || q.echeance)) ? {
       lignes: [
         ['Locataire', [q.locataire, q.activite_locataire].filter(Boolean).join(', ')],
         ['Bail', [q.bail_type, q.date_effet ? `à effet du ${q.date_effet}` : null].filter(Boolean).join(', ')],
@@ -534,7 +601,13 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
       return { synthese: net.juridique.synthese || juridiqueDit.libre || '', lignes: lignes.length ? lignes : juridiqueDit.lignes };
     })() : { synthese: '', lignes: [] },
     // Par le rendement, plus d'analyse de marché : seuls les loyers de marché restent (la valeur locative du deck).
-    marche: parLeRendement ? {
+    marche: fonds ? {
+      synthese: evaluation?.comparables.nombre ? `${evaluation.comparables.nombre} cession${evaluation.comparables.nombre > 1 ? 's' : ''} de fonds de la même activité publiée${evaluation.comparables.nombre > 1 ? 's' : ''} autour depuis cinq ans.` : 'Peu de cessions de fonds de la même activité ont été publiées autour.',
+      references: (evaluation?.comparables.retenues || []).map((t) => ({ date: String(t.date || '').slice(0, 4), bien: t.activite || 'Fonds de commerce', adresse: t.adresse || null, surface: null, prix: Number(t.prix) || null, prix_m2: null, distance_m: t.distance_m ?? null })),
+      source: evaluation?.comparables.source ? `Source : ${evaluation.comparables.source}, cessions de fonds de commerce publiées, rayon d'un kilomètre, cinq ans.` : '',
+      loyers: niveau ? { basse: niveau.basse ?? null, haute: niveau.haute ?? null, source: marche?.source || null } : null,
+      lecture: brut.lecture_marche || '',
+    } : parLeRendement ? {
       synthese: '', references: [], source: '', lecture: '',
       loyers: niveau ? { basse: niveau.basse ?? null, haute: niveau.haute ?? null, source: marche?.source || null } : null,
     } : equimmox ? {
@@ -555,7 +628,10 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     },
     methodes: {
       synthese: brut.synthese_methodes || '',
-      taux, justification_taux: brut.justification_taux,
+      taux, justification_taux: fonds ? '' : brut.justification_taux,
+      // Les trois méthodes du fonds, leurs bases, coefficients et poids : la page « Méthode » les montre.
+      fonds: evaluation ? { activite: evaluation.activite, secteur: evaluation.secteur, ca_moyen: evaluation.ca_moyen, ebe_moyen: evaluation.ebe_moyen, exercices: evaluation.exercices,
+        methodes: evaluation.methodes.map(({ retenues: _r, ...m }) => m), ecartees: evaluation.ecartees } : null,
       rendement: rendement ? { taux_base: rendement.taux_base, ajustements: rendement.ajustements, taux_bas: rendement.taux_bas, taux_haut: rendement.taux_haut } : null,
       source_taux: rendement ? `Méthode du rendement : ${rendement.lecture}` : equimmox?.rapport.capitalisation ? `Taux moyen du secteur${dataB ? ` (${dataB.source} · ${dataB.activite})` : ''}, retenu par Equimmox` : dataB ? `${dataB.source} · ${dataB.activite}` : null,
       // Les quatre méthodes d'Equimmox et leur poids : la page « Le calcul » du deck les montre.
@@ -564,7 +640,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
       loyer: q.occupe ? Number(q.loyer_annuel_hc) || null : rendement?.loyer ? Math.round(rendement.loyer) : dataB?.loyer ? Math.round(dataB.loyer) : null,
       surface: Number(q.surface_utile) || null,
     },
-    chiffres,
+    chiffres: fonds ? { ...chiffres, capitalisation: null } : chiffres,
     conclusion: {
       // Plus de « points à traiter » dans l'avis (31 oct. 2026, Jules) : ils se disent dans le chat.
       points: [],
@@ -575,27 +651,14 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
   };
 
   // Les chiffres de la commune pour la page « La ville » du deck (26 oct. 2026) : données publiques, gardés avec l'avis.
-  try {
-    const commune = lieu?.ville || null;
-    if (commune) {
-      surEtape?.(`Les chiffres de ${commune} (INSEE, Le Figaro)`);
-      const { executerOutil } = await import('./ak/agent.js');
-      const ville = villeDepuisCommune(await executerOutil({ name: 'donnees_commune', input: { commune } }, user));
-      if (ville) avis.ville = ville;
-    }
-  } catch (err) { console.warn(`[avis] commune : ${err?.message || err}`); }
+  if (lieu?.ville) surEtape?.(`Les chiffres de ${lieu.ville} (INSEE, Le Figaro)`);
+  const ville = await villeP;
+  if (ville) avis.ville = ville;
   // Une belle photo de la ville pour la page « La ville » et la couverture (1er nov. 2026, Jules : automatiquement).
-  let photosVille = [];
-  try {
-    const commune = lieu?.ville || villeDuTexte(q.adresse);
-    if (commune) {
-      surEtape?.(`Des photos de ${commune}`);
-      // Plusieurs au choix (1er nov. 2026, Jules) : la première sert d'office, le mandataire choisit dans le chat.
-      const { photosDeLaVille } = await import('./photo-commerce.js');
-      photosVille = await photosDeLaVille(commune);
-      if (photosVille[0]) avis.photos = { ...avis.photos, ville: photosVille[0].url, ville_auteur: photosVille[0].auteur || null };
-    }
-  } catch (err) { console.warn(`[avis] photo de la ville : ${err?.message || err}`); }
+  // Plusieurs au choix (1er nov. 2026, Jules) : la première sert d'office, le mandataire choisit dans le chat.
+  if (commune) surEtape?.(`Des photos de ${commune}`);
+  const photosVille = (await photosP) || [];
+  if (photosVille[0]) avis.photos = { ...avis.photos, ville: photosVille[0].url, ville_auteur: photosVille[0].auteur || null };
   // Les retouches faites à la main pendant les questions se reposent sur l'avis rédigé.
   const avisFinal = appliquerSurcouche(avis, Records.get(ENTITE, e.id)?.surcouche);
   Records.update(ENTITE, e.id, {
@@ -719,7 +782,7 @@ export const lectureFraiche = (garde, adresse, maintenant = Date.now()) =>
   !!(garde && adresse && garde.adresse === adresse && maintenant - Date.parse(garde.le || 0) < FRAIS_JOURS * 86400000);
 
 /** La valeur locative de marché : Data-B (cache compris), Equimmox en repli, jamais un modèle ni DVF. */
-async function lireValeurLocative(adresse, user, { surEtape = null, bavard = true } = {}) {
+export async function lireValeurLocative(adresse, user, { surEtape = null, bavard = true } = {}) {
   let lu = null;
   try {
     const D = await import('./data-b.js');
@@ -832,7 +895,7 @@ export function surfacesDe(q) {
 const OUTILS = [
   {
     name: 'commencer_avis',
-    description: "Ouvre un nouvel avis de valeur dès que le type de bien est connu. type_bien : murs_commerce, immeuble, autre. Rend ce qui manque.",
+    description: "Ouvre un nouvel avis de valeur dès que le type de bien est connu. type_bien : murs_commerce (les murs), fonds_commerce (le commerce exploité, sa clientèle, son droit au bail), immeuble, autre. Rend ce qui manque.",
     input_schema: { type: 'object', properties: { type_bien: { type: 'string', enum: TYPES_PROPOSES }, adresse: { type: 'string' }, demandeur: { type: 'string' } }, required: ['type_bien'] },
   },
   {
@@ -841,6 +904,7 @@ const OUTILS = [
       "Enregistre les réponses du mandataire (et ce qu'on lit dans une pièce jointe, un bail par exemple). Clés possibles : occupe (booléen), adresse, demandeur (le propriétaire des murs : le BAILLEUR du bail, souvent une SCI), surface_utile (m²), reserve, zones ([{zone, surface, coef}]), etat (texte libre), date_visite (« 28 septembre 2026 »), visite_avec, " +
       "pour les murs de commerce, les critères du taux de rendement, une valeur parmi la liste, « nc » si on ne sait pas : rang_rue (n1 | n1bis | n2), profil_locataire (enseigne : enseigne nationale | solide : indépendant installé | fragile), charges_refacturees (oui | non), taxe_fonciere_refacturee (oui | non) ; vacance_rue_pct (nombre, si on le connaît) ; taux_base (nombre, en %, celui que le mandataire a validé après proposer_taux_base) avec taux_base_propose (le taux que tu avais proposé en premier) ; ou, pour rédiger tout de suite, ton taux proposé avec taux_base_a_valider: true (il n'apprend rien tant que le mandataire ne l'a pas validé) ; " +
       "les critères Data-B, facultatifs : etat_immeuble (parfait | usage | travaux | renover | grosoeuvre), etat_local (parfait | usage | travaux | brut), angle, extraction, parking, franchise (locataire sous enseigne), retards_paiement, licence_4 (oui | non | nc), pmr (locaux_aux_normes | adap_en_cours | travaux_a_realiser | local_sans_public), anciennete_locataire (moins1an | de1a3ans | de3a6ans | de6a9ans | plus9ans) ; activite_data_b (le métier du locataire en un ou deux mots, « boulangerie », « assurance », « pharmacie ») ; " +
+      "pour un fonds de commerce : activite_fonds (le métier exploité, « restauration rapide », « pharmacie », « tabac-presse »), ca_n, ca_n1, ca_n2 (chiffre d'affaires HT des trois derniers exercices, en €, du plus récent au plus ancien), ebe_n, ebe_n1, ebe_n2 (EBE retraité, en €), et, seulement si le mandataire les dit, bareme_ca_pct (« 60 à 90 », en % du CA) et multiple_ebe (« 3 à 4 ») ; le loyer et l'échéance du bail du fonds dans loyer_annuel_hc et echeance ; " +
       "annee_construction, investissement_a_prevoir (€, travaux à la charge de l'acquéreur, presque toujours vide), puis facade, emplacement, flux, environnement, vacance, acces, configuration, equipements, etage, stationnement, hauteur, acces_poids_lourds, nb_lots, composition, description, locataire, activite_locataire, bail_type, date_effet, echeance, loyer_annuel_hc (€), indexation, taxe_fonciere, charges, depot_garantie, paiements, ca_locataire, travaux_locataire, copropriete, travaux_votes, urbanisme, diagnostics, servitudes ; juridique (la réponse à la question juridique et technique, telle quelle : copropriété, travaux votés ou à prévoir, procédure, autre ; « non » s'il n'y a rien). Les valeurs telles quelles, sans étiquette de source entre parenthèses ni « à confirmer ». « Je ne sais pas » : n'enregistre rien. Rend ce qui manque encore.",
     input_schema: { type: 'object', properties: { reponses: { type: 'object' } }, required: ['reponses'] },
   },
@@ -861,7 +925,7 @@ const OUTILS = [
   },
   {
     name: 'rediger_avis',
-    description: "Rédige l'avis : pour des murs de commerce, la valeur par le taux de rendement (loyer ÷ taux) ; pour les autres biens, l'estimation Equimmox (une à deux minutes) ; le marché, la fourchette. L'éditeur s'ouvre ensuite tout seul. Normalement quand plus rien d'obligatoire ne manque ; avec a_la_main: true, il se rédige tout de suite et ce qui manque reste « [à compléter] » dans l'éditeur.",
+    description: "Rédige l'avis : pour des murs de commerce, la valeur par le taux de rendement (loyer ÷ taux) ; pour un fonds de commerce, barème, rentabilité et cessions comparables croisés ; pour les autres biens, l'estimation Equimmox (une à deux minutes) ; le marché, la fourchette. L'éditeur s'ouvre ensuite tout seul. Normalement quand plus rien d'obligatoire ne manque ; avec a_la_main: true, il se rédige tout de suite et ce qui manque reste « [à compléter] » dans l'éditeur.",
     input_schema: { type: 'object', properties: { a_la_main: { type: 'boolean', description: 'Rédiger malgré les manques, que le mandataire complétera dans l\'éditeur' } } },
   },
 ];
@@ -890,8 +954,10 @@ export function dejaRenseigne(q = {}, limite = 6000) {
 const CONSIGNE = `Tu mènes, pour un mandataire K Partners, un AVIS DE VALEUR dans le chat. TOUJOURS EN FRANÇAIS, jamais une autre langue, même quand une pièce, un outil ou une donnée est en anglais (2 nov. 2026, Jules). Court, sans markdown. Montants : 450 k€ sous le million, 1,3 M€ à partir de 1 000 k€ (jamais « 1 300 k€ ») ; une fourchette garde la même unité, « 1,1 – 1,7 M€ ».
 MURS DE COMMERCE (31 oct. 2026) : la valeur se fait par le TAUX DE RENDEMENT. Valeur = loyer annuel HT hors charges ÷ taux (libre : le loyer de marché du local). Le serveur calcule ; toi, tu fais choisir le taux :
 - le TAUX DE BASE de la ville : appelle proposer_taux_base dès que l'adresse est connue, puis propose UN taux (dans le MÊME message que les questions qui restent : le mandataire répond à tout d'un vocal) (par exemple « Je pars sur 6,5 % pour des murs de commerce à Antibes : ça vous va, ou plutôt plus haut, plus bas ? »), avec sa raison en quelques mots (taille et attrait de la ville, les taux déjà validés). C'est le taux de la ville, avant l'emplacement et le bail. En murs de commerce, un rendement brut se situe entre 4 et 10 %. Le mandataire dit oui, ou « un peu plus », « plus bas », « 7 % » : tu ajustes (un quart à un demi-point pour « un peu ») et tu notes taux_base avec noter_reponses SEULEMENT quand il l'a validé, avec taux_base_propose (ton premier chiffre) : chaque correction est gardée et sert aux avis suivants de tous les mandataires. proposer_taux_base rend ce qui a déjà été validé : pars de là ;
+- le type d'abord : « À estimer » dit les murs ou le fonds. Le mandataire dit que c'est le fonds (ou les murs) : noter_reponses type_bien, et la suite change de méthode ;
 - les critères qui l'ajustent, demandés avec les autres questions : le rang de la rue (n°1, n°1 bis, n°2), le locataire (enseigne nationale, indépendant solide, fragile), les charges et la taxe foncière (refacturées au locataire ou payées par le propriétaire). Le bail (date d'effet, échéance) et le loyer par rapport au marché comptent aussi : le serveur les lit.
 Après la rédaction, l'outil rend le taux retenu et ses ajustements : dis-les en une ligne. Le mandataire veut un autre taux de base : noter_reponses taux_base, puis rediger_avis.
+FONDS DE COMMERCE (3 nov. 2026) : ce qu'on vend, c'est le commerce exploité, pas les murs. La valeur croise trois méthodes, calculées par le serveur : le barème (un % du chiffre d'affaires HT moyen des trois derniers exercices), la rentabilité (un multiple de l'EBE retraité moyen, celle des banquiers, qui pèse double) et les cessions de fonds de la même activité autour (Data-B, BODACC en secours). Demande en un message : l'activité, le chiffre d'affaires HT et l'EBE des trois derniers exercices (le dernier suffit pour commencer ; une liasse ou un bilan joint avec « + » se lit), le loyer et l'échéance du bail. Ni surface obligatoire, ni « loué ou libre », ni taux de rendement. Le barème et le multiple viennent du secteur (restauration, restauration rapide, pharmacie, boulangerie, tabac-presse, coiffure) ; pour une autre activité, demande au mandataire le coefficient d'usage s'il le connaît, sinon la méthode reste écartée. Après la rédaction, dis en une ligne les méthodes retenues et celles écartées.
 AUTRES BIENS : la valeur vient d'Equimmox (26 oct. 2026), son estimation multicritères (offres actuelles, offres anciennes, transactions DVF, capitalisation). Tu rassembles ce qu'il lui faut : l'adresse, la surface, l'état du local et, s'il est occupé, le loyer annuel. Sans Equimmox, Data-B prend le relais.
 
 LE BUT : un avis en CINQ MINUTES, le mandataire dicte un vocal en sortant de la visite et c'est fait (1er nov. 2026, Jules). Reposer une question déjà répondue est la pire faute.
@@ -899,7 +965,7 @@ LE BUT : un avis en CINQ MINUTES, le mandataire dicte un vocal en sortant de la 
 1. Lis tout : ce que dit le mandataire et les pièces (bail surtout). Déduis le type de bien et commence l'avis (commencer_avis), puis enregistre EN UNE FOIS tout ce que tu as lu (noter_reponses). Dans un bail : le demandeur est le BAILLEUR (propriétaire des murs), sauf si le mandataire dit autre chose ; le locataire, son activité (et activite_data_b), le loyer annuel HT HC, la date d'effet, l'échéance, l'indexation, la taxe foncière et les charges (qui paie), la surface, le dépôt de garantie.
 2. Ce qu'il dit en passant s'enregistre aussi : une date de visite (« je l'ai visité hier », « visite le 28 ») devient date_visite en toutes lettres, calculée depuis la date du jour ; un état, un angle, une extraction, un parking, une enseigne, l'ancienneté du locataire, des retards de paiement…
 3. Avant d'envoyer des questions, raye chacune dont la réponse est dans « Déjà renseigné », dans le fil ou dans les messages de cette conversation, et chacune que tu as déjà posée et à laquelle il a répondu, même autrement ou à moitié (2 nov. 2026, Jules : « repose des questions déjà posées ») : sa réponse se note telle quelle, « nc » si elle est floue. Une question restée sans réponse ne revient qu'une fois, en disant « il me manque encore… ».
-Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_reponses le rend dans essentiels_manquants : adresse, loué ou non, surface, loyer et date d'effet si loué, rang de la rue) avec ta proposition de taux de base. L'échéance d'un 3-6-9 se calcule seule depuis la date d'effet : ne la demande jamais, demande la date de début du bail s'il manque : une liste numérotée courte, les choix quand il y en a, et « Répondez en un vocal ». Le reste (état, indexation, charges, façade…) ne se demande pas avant la rédaction, sauf UNE question, une seule fois, dans ce même message tant que juridique n'est pas noté (noter_reponses rend question_juridique_a_poser) : « Côté juridique et technique : copropriété, travaux votés ou à prévoir, procédure en cours, autre chose à savoir ? » (3 nov. 2026, Jules). Sa réponse se note dans juridique, telle qu'il la dit, « non » s'il n'y a rien : la page Juridique et technique de l'avis ne paraît alors pas. Elle ne retient pas la rédaction.
+Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_reponses le rend dans essentiels_manquants : adresse, loué ou non, surface, loyer et date d'effet si loué, rang de la rue ; pour un fonds : l'activité et le chiffre d'affaires) avec, pour des murs de commerce SEULEMENT, ta proposition de taux de base. Jamais de taux de base ni de rang de rue pour un fonds de commerce. L'échéance d'un 3-6-9 se calcule seule depuis la date d'effet : ne la demande jamais, demande la date de début du bail s'il manque : une liste numérotée courte, les choix quand il y en a, et « Répondez en un vocal ». Le reste (état, indexation, charges, façade…) ne se demande pas avant la rédaction, sauf UNE question, une seule fois, dans ce même message tant que juridique n'est pas noté (noter_reponses rend question_juridique_a_poser) : « Côté juridique et technique : copropriété, travaux votés ou à prévoir, procédure en cours, autre chose à savoir ? » (3 nov. 2026, Jules). Sa réponse se note dans juridique, telle qu'il la dit, « non » s'il n'y a rien : la page Juridique et technique de l'avis ne paraît alors pas. Elle ne retient pas la rédaction.
 4. À chaque réponse : noter_reponses. « Je ne sais pas » vaut « nc » : ça ne bloque pas.
 5. DÈS QUE L'ESSENTIEL EST LÀ, rédige sans attendre qu'on te le demande : rediger_avis, avec a_la_main: true s'il manque des cases secondaires. Si seul le taux n'est pas validé, note ton taux proposé avec taux_base_a_valider: true et rédige quand même ; demande ensuite en une ligne s'il convient (« plus haut, plus bas ? ») : à sa réponse, noter_reponses taux_base (validé, sans taux_base_a_valider) puis rediger_avis. Après la rédaction, cite en une ligne les cases encore « à compléter » qu'il peut dicter quand il veut.
 6. MODIFIER L'AVIS (il est affiché à côté du chat) : une demande sur le document lui-même — reformuler, raccourcir, enlever une ligne, changer une taille, une couleur, mettre en gras, déplacer, masquer, poser une image jointe — c'est retoucher_avis, avec la demande telle quelle, avant comme après la rédaction ; pas noter_reponses ni rediger_avis. Une INFORMATION sur le bien (« la surface c'est 85 m² », « le loyer est de 20 000 € ») : noter_reponses, puis rediger_avis si l'avis est déjà rédigé. Après une retouche : une ligne qui dit ce qui a changé.
@@ -1053,7 +1119,7 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
   }
   const contexte = actuel
     ? `\n\nAvis en cours : ${actuel.bien}. Déjà renseigné : ${dejaRenseigne(actuel.questionnaire)}. Encore obligatoire : ${manquants(actuel.questionnaire || {}).join(', ') || 'rien'}.` +
-      (aConfirmer ? `\nCE QUE LA VISITE DIT, montré au mandataire et PAS ENCORE dans l'avis : ${JSON.stringify(aConfirmer.de_la_visite.reponses || {}).slice(0, 2000)}${aConfirmer.de_la_visite.recit ? ` ; récit : ${String(aConfirmer.de_la_visite.recit).slice(0, 600)}` : ''}. Il corrige ou complète : noter_reponses avec TOUTES ces réponses, corrigées de ce qu'il dit, puis la liste des questions qui manquent encore.` : '')
+      (aConfirmer ? `\nCE QUE LA VISITE DIT, montré au mandataire et PAS ENCORE dans l'avis : ${JSON.stringify(aConfirmer.de_la_visite.reponses || {}).slice(0, 2000)}${aConfirmer.de_la_visite.recit ? ` ; récit : ${String(aConfirmer.de_la_visite.recit).slice(0, 600)}` : ''}. Il corrige ou complète : noter_reponses avec TOUTES ces réponses, corrigées de ce qu'il dit, puis la liste des questions qui manquent encore. S'il dit que c'est le fonds de commerce : type_bien fonds_commerce, demandeur = l'exploitant (le locataire), activite_fonds = son activité, et les questions d'un fonds (chiffre d'affaires, EBE), sans taux de base ni rang de rue.` : '')
     : redige
       ? `\n\nL'avis de ${redige.bien} est rédigé (valeur ${redige.avis?.chiffres?.valeur?.toLocaleString('fr-FR')} €) et se trouve dans cette conversation${redige.statut === 'envoye' ? `, ENVOYÉ au propriétaire le ${new Date(redige.envoye_le || Date.now()).toLocaleDateString('fr-FR', { timeZone: PARIS })} (la suite : la relation avec le propriétaire, règle 10).\n${R.filDeLaRelation(redige.proprietaire_id ? Records.get('ProprietaireMandataire', redige.proprietaire_id) : null)}\n` : redige.envoi?.prepare_le ? ', son mail d\'envoi est déjà préparé (à l\'écran)' : ', pas encore envoyé'}. Déjà renseigné : ${dejaRenseigne(redige.questionnaire)}. NE commence PAS un nouvel avis sauf si le mandataire parle d'un AUTRE bien. Une correction ou un ajout : noter_reponses puis rediger_avis, et préviens que les retouches faites à la main dans l'avis seront remplacées.`
       : '\n\nAucun avis en cours.';
@@ -1123,6 +1189,7 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
         const cible = enCours(user, conv) || dernierRedige(user, conv);
         const q = cible?.questionnaire || {};
         if (!q.adresse) return { ok: false, error: "Il faut d'abord l'adresse du bien." };
+        if (q.type_bien === 'fonds_commerce') return { ok: false, error: "Un fonds de commerce ne s'estime pas par un taux de rendement : demande l'activité, le chiffre d'affaires et l'EBE." };
         surEtape?.('Je cherche le bon taux de base pour la ville');
         return reperesDuTaux(cible);
       }
@@ -1555,7 +1622,10 @@ const DOUBLONS = { charges_refacturees: 'charges', taxe_fonciere_refacturee: 'ta
 const sansDoublon = (k, _, tout) => !(DOUBLONS[k] && tout.includes(DOUBLONS[k]));
 
 const QUESTIONS_REPRISE = {
-  type_bien: 'Le type de bien : murs de commerce, immeuble de rapport ?',
+  type_bien: 'Le type de bien : murs de commerce, fonds de commerce, immeuble de rapport ?',
+  activite_fonds: 'L\'activité exploitée',
+  ca_n: 'Le chiffre d\'affaires HT des trois derniers exercices (le dernier suffit pour commencer)',
+  ebe_n: 'L\'EBE (excédent brut d\'exploitation) des mêmes exercices',
   occupe: 'Le local est-il loué ?',
   adresse: 'L\'adresse exacte',
   demandeur: 'Le propriétaire des murs (le demandeur de l\'avis)',
@@ -1624,6 +1694,8 @@ export function messageDeReprise(e) {
 // entrent dans l'avis (il se remplit pour la première fois), puis viennent les questions qui manquent. Sans modèle.
 
 const LIBELLES_VISITE = {
+  // Ce qu'on estime, en premier : un fonds ne s'estime pas comme des murs (3 nov. 2026, Jules) ; le mandataire le corrige d'un mot.
+  type_bien: 'À estimer',
   adresse: 'Adresse', demandeur: 'Propriétaire des murs', occupe: 'Loué', locataire: 'Locataire', activite_locataire: 'Activité',
   surface_utile: 'Surface utile', loyer_annuel_hc: 'Loyer annuel HT HC', date_effet: 'Bail depuis', echeance: 'Fin du bail',
   taxe_fonciere: 'Taxe foncière', charges: 'Charges', etat: 'État du local', flux: 'Passage', environnement: 'Voisinage', date_visite: 'Visite',
@@ -1644,12 +1716,16 @@ export function reponsesDeLaVisite(p = {}) {
   const b = cr.bien || {}; const e = cr.etat || {};
   const faite = p.biens?.visite?.faite_le || cr.le || null;
   const charges = [b.charges, b.refacturees === true ? 'refacturées au locataire' : b.refacturees === false ? 'non refacturées' : null].filter(Boolean).join(', ');
+  // Une fiche ajoutée en mode Fonds (3 nov. 2026) ouvre l'avis d'un fonds : le demandeur est l'exploitant.
+  const fonds = p.type_bien === 'fonds_commerce';
   const r = {
-    type_bien: 'murs_commerce',
+    type_bien: fonds ? 'fonds_commerce' : 'murs_commerce',
+    ...(fonds ? { activite_fonds: p.activite || null } : {}),
     adresse: [p.adresse, p.ville].filter(Boolean).join(', ') || null,
-    demandeur: p.nom || null,
-    occupe: p.commerce || b.loyer_annuel ? true : null,
-    locataire: p.commerce || null,
+    demandeur: (fonds ? p.commerce : p.nom) || null,
+    // Un local des murs libres (3 nov. 2026) : pas de locataire, l'avis se fait sur le loyer de marché.
+    occupe: p.libre ? false : p.commerce || b.loyer_annuel ? true : null,
+    locataire: p.libre ? null : p.commerce || null,
     activite_locataire: p.activite || null,
     surface_utile: b.surface || null,
     loyer_annuel_hc: b.loyer_annuel || null,
@@ -1673,7 +1749,7 @@ export function reponsesDeLaVisite(p = {}) {
 export function messageDeLaVisite(e) {
   const r = e.de_la_visite?.reponses || {};
   const lignes = Object.entries(LIBELLES_VISITE).filter(([k]) => r[k] != null && r[k] !== '').map(([k, mot]) => {
-    const v = k === 'occupe' ? (r[k] ? 'oui' : 'non') : k === 'loyer_annuel_hc' ? `${Number(r[k]).toLocaleString('fr-FR')} €` : k === 'surface_utile' ? `${r[k]} m²` : String(r[k]).replace(/\s+/g, ' ').trim();
+    const v = k === 'type_bien' ? (r[k] === 'fonds_commerce' ? 'le fonds de commerce' : 'les murs commerciaux') : k === 'occupe' ? (r[k] ? 'oui' : 'non') : k === 'loyer_annuel_hc' ? `${Number(r[k]).toLocaleString('fr-FR')} €` : k === 'surface_utile' ? `${r[k]} m²` : String(r[k]).replace(/\s+/g, ' ').trim();
     return `- ${mot} : ${v}`;
   });
   const recit = e.de_la_visite?.recit ? `\nDu récit de la visite : ${String(e.de_la_visite.recit).slice(0, 400)}` : '';
@@ -1709,7 +1785,7 @@ export async function avisDepuisLeBien({ proprietaire_id = null, adresse = null,
   const recit = p && !p.biens?.compte_rendu?.bien && p.biens?.compte_rendu?.texte ? p.biens.compte_rendu.texte : null;
   const de_la_visite = { reponses, ...(recit ? { recit } : {}), le: new Date().toISOString() };
   const bien = [p?.commerce || p?.nom, p?.ville].filter(Boolean).join(' · ') || titre || reponses.adresse || 'Bien';
-  const q = { type_bien: 'murs_commerce', adresse: reponses.adresse || null };
+  const q = { type_bien: p?.type_bien === 'fonds_commerce' ? 'fonds_commerce' : 'murs_commerce', adresse: reponses.adresse || null };
   if (!e) {
     e = Records.create(ENTITE, {
       mandataire_email: moi(user), proprietaire_id: p?.id || null, bien, adresse: reponses.adresse || null,
@@ -1740,8 +1816,10 @@ export function confirmerLaVisite(e, user, conversationId = null) {
   const reste = (n.essentiels_manquants || []).filter((k) => QUESTIONS_REPRISE[k]).filter(sansDoublon);
   // La question juridique et technique, une fois (3 nov. 2026, Jules) : elle ne retient pas la rédaction.
   const juridique = n.question_juridique_a_poser ? `\n${n.question_juridique_a_poser}` : '';
-  if (!reste.length) return { texte: `C'est noté dans l'avis. J'ai l'essentiel : dites « rédige » et je vous propose le taux de base en rédigeant.${juridique}` };
-  return { texte: `C'est noté dans l'avis. Pour le rédiger, il me manque seulement :\n${[...reste.map((k) => QUESTIONS_REPRISE[k]), ...(juridique ? [n.question_juridique_a_poser] : [])].map((t, i) => `${i + 1}. ${t}`).join('\n')}\nRépondez en un vocal : je rédige aussitôt, avec un taux de base et un rang de rue que je vous propose. Le reste se complète après, « je ne sais pas » ne bloque rien.` };
+  // Un fonds se vaut par ses comptes, jamais par un taux de rendement (3 nov. 2026, Jules).
+  const fonds = r.type_bien === 'fonds_commerce';
+  if (!reste.length) return { texte: `C'est noté dans l'avis. J'ai l'essentiel : dites « rédige » et je ${fonds ? 'croise le barème, la rentabilité et les cessions autour' : 'vous propose le taux de base en rédigeant'}.${juridique}` };
+  return { texte: `C'est noté dans l'avis. Pour le rédiger, il me manque seulement :\n${[...reste.map((k) => QUESTIONS_REPRISE[k]), ...(juridique ? [n.question_juridique_a_poser] : [])].map((t, i) => `${i + 1}. ${t}`).join('\n')}\nRépondez en un vocal : je rédige aussitôt${fonds ? '' : ', avec un taux de base et un rang de rue que je vous propose'}. Le reste se complète après, « je ne sais pas » ne bloque rien.` };
 }
 
 /**

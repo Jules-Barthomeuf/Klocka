@@ -217,6 +217,8 @@ function CarteBien({ b, onOuvrir }) {
         <div className="flex min-w-0 flex-col gap-2">
           <p className="m-0 flex min-w-0 items-center text-[17px] font-medium text-encre" title={b.titre}><span className="truncate">{b.titre}</span><PastilleExemple x={b} /><PastilleTest x={b} /></p>
           <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
+            {/* Murs ou fonds, d'un coup d'œil (3 nov. 2026, Jules). */}
+            {b.type && <span className="flex-none rounded-full border border-trait px-2.5 py-[3px] text-[12px] text-craie">{b.type.mot}</span>}
             {b.dossier?.transfere && <span className="flex-none rounded-full border border-menthe/40 px-2.5 py-[3px] text-[12px] text-menthe">Chez {b.dossier.analyste_nom || "Klocka"}</span>}
             <span className="truncate text-[13px] text-ardoise">{lieu}</span>
           </p>

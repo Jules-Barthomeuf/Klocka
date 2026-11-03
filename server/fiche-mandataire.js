@@ -17,7 +17,7 @@
 // Dans Biens, un refus du prix met la fiche En pause, avec une relance.
 
 import { Records } from './db.js';
-import { fondsDe } from './off-market/simple.js';
+import { bureauDe, echeancesDuBail, fondsDe } from './off-market/simple.js';
 import { montant } from './montants.js';
 import { preparationNeutre } from './reference-neutre.js';
 import { CAS_RESTITUTION, appliquerRestitution } from './restitution-avis.js';
@@ -119,8 +119,12 @@ export function fondsDeLaFiche(cs) {
   const exercice = ex.comptes ? Object.keys(ex.comptes).sort().pop() : null;
   const chiffres = c && (c.ca || c.resultat_net) ? [c.ca ? `CA ${montant(c.ca)}` : null, c.resultat_net ? `résultat ${montant(c.resultat_net)}` : null, exercice ? `exercice ${exercice}` : null].filter(Boolean).join(' · ') : null;
   const mursAussi = /^exploitant/.test(String(cs.lien || ''));
-  // Ni le loyer ni la fin du bail ne sont dans les registres : « Inconnu » à l'écran, sauf des murs à lui.
-  const bail = mursAussi ? 'Pas de bail : il possède ses murs' : null;
+  // Le bail estimé depuis l'ouverture de l'établissement (3 nov. 2026, Jules) : la prochaine échéance triennale et la fin
+  // de la période de 9 ans ; le loyer reste inconnu (aucun registre ne le donne).
+  const mois = (iso) => `${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+  const e = cs.ouvert_le ? echeancesDuBail(cs.ouvert_le) : null;
+  const bail = mursAussi ? 'Pas de bail : il possède ses murs'
+    : e ? `Ouvert en ${cs.ouvert_le.slice(0, 4)} · échéance triennale ${mois(e.triennale)} · fin du bail ${mois(e.fin)}${e.periode > 1 ? ` (${e.periode}e période)` : ''}, estimées` : null;
   return {
     raisons: fondsDe(cs).map((x) => x.texte),
     forme: ex.forme || null,
@@ -139,6 +143,28 @@ export function fondsDeLaFiche(cs) {
     telephone_cherche: !!cs.contact_le,
     commerce_id: cs.id || null,
     murs_aussi: mursAussi,
+  };
+}
+
+/**
+ * La fiche d'un bureau (3 nov. 2026, Jules, spec du jour) : l'immeuble (son adresse ; ni étage, ni surface, ni parking :
+ * aucun registre ouvert ne les donne), ses occupants avec leur effectif et depuis quand (les établissements de bureau à la
+ * même position), le propriétaire et son gérant (ligne Murs), les signaux avec leur source et leur date. La valeur
+ * locative reste inconnue : ni Data-B ni Equimmox ne sont lus pour les bureaux.
+ */
+export function bureauDeLaFiche(cs) {
+  const cle = (x) => `${Number(x.lat).toFixed(5)},${Number(x.lon).toFixed(5)}`;
+  let voisins = [];
+  try {
+    voisins = cs.ville_id && cs.lat != null ? Records.champsOu('CommerceSimple', 'ville_id', cs.ville_id, ['lat', 'lon', 'classe', 'nom', 'enseigne', 'activite', 'exploitant.nom', 'exploitant.effectif', 'ouvert_le', 'depuis'])
+      .filter((x) => x.classe === 'bureau' && x.lat != null && cle(x) === cle(cs)) : [];
+  } catch { voisins = []; }
+  const occupants = (voisins.length ? voisins : [{ id: cs.id, nom: cs.nom, enseigne: cs.enseigne, activite: cs.activite, 'exploitant.nom': cs.exploitant?.nom, 'exploitant.effectif': cs.exploitant?.effectif, ouvert_le: cs.ouvert_le, depuis: cs.depuis }])
+    .map((x) => ({ id: x.id, nom: x.enseigne || x['exploitant.nom'] || x.nom, activite: x.activite || null, effectif: x['exploitant.effectif'] || null, depuis: String(x.ouvert_le || x.depuis || '').slice(0, 4) || null }));
+  return {
+    adresse: cs.adresse || null,
+    occupants,
+    raisons: bureauDe(cs).map((x) => [x.texte, [x.source, x.date ? String(x.date).slice(0, 7) : null].filter(Boolean).join(', ')].filter(Boolean).join(' · ')),
   };
 }
 
@@ -262,6 +288,8 @@ async function composer(p) {
       investisseurs,
       // Le fonds de commerce (3 nov. 2026) : ce que la fiche montre en mode Fonds, et la passerelle avec les murs.
       fonds: cs ? fondsDeLaFiche(cs) : null,
+      // Les bureaux (3 nov. 2026) : l'immeuble, ses occupants, les signaux ; seulement pour un établissement de bureau.
+      bureau: cs?.classe === 'bureau' ? bureauDeLaFiche(cs) : null,
       prochaine_action: p.prochaine_action || null, prochaine_action_le: p.prochaine_action_le || null,
       historique: [...(p.historique || [])].reverse(),
       biens,

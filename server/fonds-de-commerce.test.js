@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 process.env.NODE_TEST_CONTEXT ||= '1';
-const { fondsDe, echeanceDuBail } = await import('./off-market/simple.js');
+const { fondsDe, echeancesDuBail } = await import('./off-market/simple.js');
 const { fondsDeLaFiche } = await import('./fiche-mandataire.js');
 const { FILTRES_SIMPLE, comprendre, passeSimple } = await import('../src/lib/off-market-simple.js');
 
@@ -23,13 +23,16 @@ test('les raisons de céder un fonds : dirigeant de plus de 60 ans, ancienneté,
   assert.deepEqual(cles({ depuis: '2024-01-01', exploitant: { comptes_deposes: true, derniers_comptes: { resultat_net: 40000 } } }), [], 'un résultat seul ne fait pas vendre');
 });
 
-test('procédure collective et bail à échéance (cycle 3-6-9 depuis la cession)', () => {
+test('procédure collective, et le bail 3-6-9 estimé depuis l’ouverture de l’établissement', () => {
   assert.deepEqual(cles({ evenements: [{ type: 'procédure collective', date: '2026-02-01' }] }), ['procedure']);
   assert.deepEqual(cles({ evenements: [{ type: 'procédure collective', date: '2020-02-01' }] }), [], 'trop ancienne');
-  assert.equal(echeanceDuBail('2018-06-01', MAINTENANT), '2027-06-01', '9 ans après, dans l’année');
-  assert.equal(echeanceDuBail('2019-01-01', MAINTENANT), null, 'la prochaine échéance (2028) est trop loin');
-  assert.deepEqual(cles({ evenements: [{ type: 'cession', date: '2018-06-01' }] }), [], 'le bail seul ne fait pas un fonds');
-  assert.deepEqual(cles({ ...gerant({ tranche_age: '70+' }), evenements: [{ type: 'cession', date: '2018-06-01' }] }), ['dirigeant_70', 'bail_echeance']);
+  assert.deepEqual(echeancesDuBail('2018-06-01', MAINTENANT), { triennale: '2027-06-01', fin: '2027-06-01', periode: 1, fin_dans_l_annee: true });
+  assert.deepEqual(echeancesDuBail('2016-03-10', MAINTENANT), { triennale: '2028-03-10', fin: '2034-03-10', periode: 2, fin_dans_l_annee: false }, 'renouvelé : 2e période');
+  assert.equal(echeancesDuBail('1900-01-01x', MAINTENANT), null);
+  assert.deepEqual(cles({ ouvert_le: '2018-06-01' }), [], 'la fin de bail seule ne fait pas un fonds');
+  assert.deepEqual(cles({ ...gerant({ tranche_age: '70+' }), ouvert_le: '2018-06-01' }), ['dirigeant_70', 'bail_echeance']);
+  // L'ouverture fait foi pour l'ancienneté : une société de 1990 arrivée ici en 2018 n'est pas installée depuis 35 ans.
+  assert.deepEqual(cles({ ...gerant({ tranche_age: '70+' }), ouvert_le: '2018-06-01', exploitant: { creation: '1990-01-01', gerants: [{ tranche_age: '70+' }] } }), ['dirigeant_70', 'bail_echeance']);
 });
 
 test('pas de fonds à céder : chaîne, fermé, fonds cédé depuis moins de deux ans', () => {
@@ -74,6 +77,38 @@ test('la fiche du fonds : dirigeant, chiffres, bail, et ses murs s’il les poss
   assert.match(f.bail, /il possède ses murs/);
   assert.equal(f.telephone, '04 78 00 00 00');
   assert.ok(f.raisons.includes('Dirigeant âgé et résultat positif'));
-  assert.equal(fondsDeLaFiche({ ...cs, lien: 'tiers', proprietaire: { nom: 'SCI Bellecour' } }).bail, null, 'le loyer et la fin du bail ne sont pas connus');
+  assert.equal(fondsDeLaFiche({ ...cs, lien: 'tiers', proprietaire: { nom: 'SCI Bellecour' } }).bail, null, 'sans date d’ouverture, rien d’estimé');
+  assert.match(fondsDeLaFiche({ ...cs, lien: 'tiers', ouvert_le: '2014-03-01' }).bail, /^Ouvert en 2014 · échéance triennale \d\d\/20\d\d · fin du bail \d\d\/20\d\d.*estimées$/);
   assert.equal(fondsDeLaFiche({ ...cs, exploitant: { ...cs.exploitant, comptes: { 2023: {}, 2024: {} } } }).chiffres, 'CA 420 k€ · résultat 35 k€ · exercice 2024');
+});
+
+test('les bureaux : leurs signaux, un point par immeuble, la page Bureaux', async () => {
+  const { bureauDe } = await import('./off-market/simple.js');
+  const { parImmeuble } = await import('./mandataire-prospecter.js');
+  const { passeBureau } = await import('../src/lib/off-market-simple.js');
+  const b = (x) => bureauDe({ classe: 'bureau', adresse: '12 RUE DE LA REPUBLIQUE', ...x }, { maintenantMs: MAINTENANT }).map((s) => s.cle);
+  assert.deepEqual(b({}), []);
+  assert.deepEqual(b({ evenements: [{ type: 'radiation ou dissolution', date: '2026-03-01' }] }), ['occupant_parti']);
+  assert.deepEqual(b({ evenements: [{ type: 'procédure collective', date: '2026-03-01' }] }), ['procedure']);
+  assert.deepEqual(b({ evenements: [{ type: 'transfert de siège', date: '2026-06-01' }], exploitant: { siege: { adresse: '4 AVENUE FOCH 69006 LYON' } } }), ['demenage'], 'le siège est parti ailleurs');
+  assert.deepEqual(b({ evenements: [{ type: 'transfert de siège', date: '2026-06-01' }], exploitant: { siege: { adresse: '12 RUE DE LA REPUBLIQUE 69002 LYON' } } }), [], 'le siège est arrivé ici');
+  assert.deepEqual(b({ proprietaire: { gerants: [{ tranche_age: '70+' }] } }), ['sci_agee']);
+  assert.deepEqual(bureauDe({ classe: 'commerce', evenements: [{ type: 'procédure collective', date: '2026-03-01' }] }), [], 'un commerce n’a pas de signal de bureau');
+  const pts = parImmeuble([
+    { id: 'a', lat: 45.1, lon: 4.8, titre: 'Cabinet A', adresse: '12 rue X', bureaux: [] },
+    { id: 'b', lat: 45.1, lon: 4.8, titre: 'Conseil B', adresse: '12 rue X', bureaux: ['demenage'], proprietaire: 'SCI X' },
+    { id: 'c', lat: 45.2, lon: 4.8, titre: 'Agence C', bureaux: [] },
+  ]);
+  assert.equal(pts.length, 2);
+  assert.equal(pts[0].id, 'b', 'l’occupant au signal porte la fiche');
+  assert.equal(pts[0].occupants, 2);
+  assert.deepEqual(pts[0].bureaux, ['demenage']);
+  assert.equal(pts[0].titre, '12 rue X');
+  const f = { ...FILTRES_SIMPLE, emplacement: 'partout', types: ['bureaux'] };
+  assert.equal(passeSimple({ classe: 'bureau', bureaux: ['demenage'], occupants: 2 }, f), true);
+  assert.equal(passeSimple({ classe: 'bureau', bureaux: [], occupants: 12 }, f), false, 'sans signal, pas sur la carte');
+  assert.equal(passeSimple({ classe: 'commerce', lien: 'tiers', drapeaux: [], fonds: [] }, f), false, 'un commerce n’est pas un bureau');
+  assert.equal(passeSimple({ classe: 'bureau', lien: 'tiers', drapeaux: [], bureaux: [] }, { ...FILTRES_SIMPLE, emplacement: 'partout', classes: ['bureau'] }), true, 'l’Off-market de l’équipe garde ses bureaux');
+  assert.equal(passeBureau({ classe: 'bureau', bureaux: ['demenage'], occupants: 2 }, { ...f, occupants: '3' }), false);
+  assert.equal(passeSimple({ classe: 'bureau', bureaux: ['sci_agee'] }, { ...f, types: ['murs', 'bureaux'] }), true, 'murs et bureaux ensemble');
 });

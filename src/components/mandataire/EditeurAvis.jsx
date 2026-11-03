@@ -62,6 +62,9 @@ function poser(objet, chemin, valeur) {
 }
 const lire = (objet, chemin) => String(chemin || "").split(".").reduce((o, k) => (o == null ? undefined : o[k]), objet);
 
+/** Ce que l'avis estime, dans ses phrases : les murs, le fonds (3 nov. 2026) ou le bien. */
+const objetDe = (avis) => ({ murs_commerce: "des murs", fonds_commerce: "du fonds" }[avis.type_bien] || "du bien");
+
 /** Les chiffres qui découlent de la valeur retenue. */
 function recalculer(avis) {
   const c = { ...(avis.chiffres || {}) };
@@ -336,6 +339,7 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
   const num = (cle) => sections.indexOf(cle) + 1;
   const page = (cle) => num(cle) + 1;
   const redige = s.nom || "[à compléter]";
+  const estFonds = avis.type_bien === "fonds_commerce";
   const position = c.haut > c.bas ? Math.min(100, Math.max(0, ((c.valeur - c.bas) / (c.haut - c.bas)) * 100)) : 50;
 
   const contenu = {
@@ -353,7 +357,7 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
           </div>
         </Bloc>
         <L avis={avis} k="c_resume" as="p" className="avis-chapeau avis-mt5" onPose={onPose}
-          defaut={`La valeur ${avis.type_bien === "murs_commerce" ? "des murs" : "du bien"} est estimée à ${eur(c.valeur)} net vendeur hors droits, dans une fourchette de ${nb(c.bas)} à ${eur(c.haut)}${c.rendement != null ? `, soit un rendement brut de ${pc(c.rendement)} sur le loyer en place` : ""}.`} />
+          defaut={`La valeur ${objetDe(avis)} est estimée à ${eur(c.valeur)} net vendeur hors droits, dans une fourchette de ${nb(c.bas)} à ${eur(c.haut)}${c.rendement != null ? `, soit un rendement brut de ${pc(c.rendement)} sur le loyer en place` : ""}.`} />
         <L avis={avis} k="titre_cadre" as="h2" className="avis-titre" defaut="Cadre de la mission" onPose={onPose} />
         <Bloc cle="cadre_table" nom="Cadre de la mission">
         <table className="avis-table">
@@ -438,18 +442,19 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
         <L avis={avis} k="titre_marche" as="h2" className="avis-titre" defaut="Analyse de marché" onPose={onPose} />
         <T as="p" className="avis-chapeau" v={avis.marche?.synthese} chemin="marche.synthese" onPose={onPose} />
         {(avis.marche?.references || []).length > 0 && (
-          <Bloc cle="references" nom="Ventes comparables">
+          <Bloc cle="references" nom={estFonds ? "Cessions comparables" : "Ventes comparables"}>
           <table className="avis-grille">
-            <thead><tr><th>Date</th><th>Bien</th><th>Distance</th><th>Surface (m²)</th><th>Prix (€)</th><th>Prix (€/m²)</th></tr></thead>
+            {/* Un fonds se cède sans prix au m² : ni surface ni €/m² (3 nov. 2026). */}
+            <thead><tr><th>Date</th><th>{estFonds ? "Activité" : "Bien"}</th><th>Distance</th>{!estFonds && <th>Surface (m²)</th>}<th>Prix (€)</th>{!estFonds && <th>Prix (€/m²)</th>}</tr></thead>
             <tbody>
               {avis.marche.references.map((r, i) => (
                 <tr key={i}>
                   <td><T v={r.date} chemin={`marche.references.${i}.date`} onPose={onPose} /></td>
                   <td><T v={r.bien} chemin={`marche.references.${i}.bien`} onPose={onPose} /></td>
                   <td><T v={r.distance_m} chemin={`marche.references.${i}.distance_m`} onPose={onPose} nombre format={(v) => (v != null ? `${v} m` : "—")} /></td>
-                  <td><T v={r.surface} chemin={`marche.references.${i}.surface`} onPose={onPose} nombre format={(v) => nb(v)} /></td>
+                  {!estFonds && <td><T v={r.surface} chemin={`marche.references.${i}.surface`} onPose={onPose} nombre format={(v) => nb(v)} /></td>}
                   <td><T v={r.prix} chemin={`marche.references.${i}.prix`} onPose={onPose} nombre format={(v) => nb(v)} /></td>
-                  <td className="fort"><T v={r.prix_m2} chemin={`marche.references.${i}.prix_m2`} onPose={onPose} nombre format={(v) => nb(v)} /></td>
+                  {!estFonds && <td className="fort"><T v={r.prix_m2} chemin={`marche.references.${i}.prix_m2`} onPose={onPose} nombre format={(v) => nb(v)} /></td>}
                 </tr>
               ))}
             </tbody>
@@ -468,7 +473,29 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
       <>
         <L avis={avis} k="titre_methodes" as="h2" className="avis-titre" defaut="Méthode de valorisation" onPose={onPose} />
         <T as="p" className="avis-chapeau" v={avis.methodes?.synthese} chemin="methodes.synthese" onPose={onPose} />
-        {c.capitalisation != null && (
+        {m.fonds && (
+          <Bloc cle="methodes_fonds" nom="Les trois méthodes du fonds">
+            <table className="avis-grille" style={{ margin: "2mm 0 4mm" }}>
+              <thead><tr><th style={{ textAlign: "left" }}>Méthode</th><th>Base</th><th>Coefficient</th><th>Valeur</th><th>Poids</th></tr></thead>
+              <tbody>
+                {(m.fonds.methodes || []).map((x) => (
+                  <tr key={x.cle}>
+                    <td style={{ textAlign: "left" }}>{x.nom}</td>
+                    <td>{x.cle === "bareme" ? `CA moyen ${eur(x.base)}` : x.cle === "rentabilite" ? `EBE moyen ${eur(x.base)}` : `${x.nombre} cessions`}</td>
+                    <td>{x.coefficient ? `${nb(x.coefficient[0], x.coefficient[0] % 1 ? 1 : 0)} à ${nb(x.coefficient[1], x.coefficient[1] % 1 ? 1 : 0)}${x.unite === "%" ? " %" : " fois"}` : "quartiles"}</td>
+                    <td>{nb(x.bas)} – {eur(x.haut)}</td>
+                    <td>{x.poids}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot><tr><td style={{ textAlign: "left" }} colSpan={3}>Valeur croisée (moyenne pondérée)</td><td className="fort">{eur(c.valeur)}</td><td /></tr></tfoot>
+            </table>
+            {(m.fonds.ecartees || []).length > 0 && (
+              <p className="avis-texte avis-note">{m.fonds.ecartees.map((x) => `${{ bareme: "Barème", rentabilite: "Rentabilité", comparables: "Comparables" }[x.cle]} écarté : ${x.raison}`).join(". ")}.</p>
+            )}
+          </Bloc>
+        )}
+        {c.capitalisation != null && !m.fonds && (
           <>
             <p style={{ fontSize: "11pt", margin: "0 0 2mm" }}><L avis={avis} k="titre_methode_1" defaut="Capitalisation du revenu" onPose={onPose} /></p>
             {m.rendement && (
@@ -503,7 +530,7 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
       <>
         <p className="avis-etiquette" style={{ margin: "0 0 3mm" }}>Conclusion</p>
         <L avis={avis} k="c_conclusion" as="p" className="avis-chapeau" onPose={onPose}
-          defaut={`La valeur vénale ${avis.type_bien === "murs_commerce" ? "des murs" : "du bien"} est estimée à ${eur(c.valeur)} net vendeur hors droits, dans une fourchette de ${nb(c.bas)} à ${eur(c.haut)}.`} />
+          defaut={`La valeur vénale ${objetDe(avis)} est estimée à ${eur(c.valeur)} net vendeur hors droits, dans une fourchette de ${nb(c.bas)} à ${eur(c.haut)}.`} />
         <div style={{ fontSize: "44pt", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1 }}>
           <T v={c.valeur} chemin="chiffres.valeur" onPose={onPose} nombre format={(v) => eur(v)} />
         </div>

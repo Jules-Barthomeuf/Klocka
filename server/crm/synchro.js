@@ -114,6 +114,8 @@ export async function ficheDepuisMonday(o, id) {
   const types = new Map([...parNom].map(([k, f]) => [k, f.type]));
   await ajouterOptions(o, parNom, voulu, el);
   if (!twenty?.id) {
+    // « Entré le » (3 nov. 2026, Jules : les derniers rentrés en premier) : la date Monday ; une fiche née dans Twenty prend « maintenant ».
+    if (parNom.has('entreLe') && el.created_at) voulu.entreLe = el.created_at;
     const r = await T.creer(o.namePlural, voulu);
     await Mb.apresEcriture(o.nameSingular, r.id, voulu);
     return { cree: r.id };

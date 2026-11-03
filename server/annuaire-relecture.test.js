@@ -1,4 +1,4 @@
-// La relecture de l'annuaire (3 nov. 2026) : qui relire, ce qu'elle ajoute, la nuit seulement, et la reprise.
+// La relecture de l'annuaire (3 nov. 2026) : qui relire, ce qu'elle ajoute, et la reprise après une coupure.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -22,19 +22,17 @@ test('la relecture ajoute « plus de 60 ans » et les comptes, jamais l’année
   assert.equal(c.relu_annuaire_le, '2026-11-04T02:00:00Z');
 });
 
-test('la nuit seulement, et elle reprend là où elle s’est arrêtée', async () => {
-  assert.equal(R.dansLaNuit(0), false); assert.equal(R.dansLaNuit(1), true); assert.equal(R.dansLaNuit(5), true); assert.equal(R.dansLaNuit(6), false);
+test('elle reprend là où elle s’est arrêtée', async () => {
   const base = String(100000000 + Math.floor(Math.random() * 899999990)).slice(0, 8);
   const ids = [1, 2, 3].map((i) => Records.create('CommerceSimple', { ville_id: 'test-relecture', exploitant: { siren: `${base}${i}`, gerants: [{ nom: `G${i}`, tranche_age: '50-70' }] } }).id);
   const appels = [];
   const annuaire = { refusRecent: () => false, societe: async ({ siren }) => { appels.push(siren); return { gerants: [{ nom: `G${siren.slice(-1)}`, plus_de_60: true }] }; } };
-  assert.equal((await R.relireLaNuit({ heure: () => 12, annuaire })).relus ?? 0, 0, 'le jour, rien');
   const relus = () => ids.filter((id) => Records.get('CommerceSimple', id).exploitant.relu_annuaire_le).length;
   const miens = () => appels.filter((x) => ids.some((id) => Records.get('CommerceSimple', id).exploitant.siren === x));
   // Coupée après un premier commerce, comme un redémarrage.
-  await R.relireLaNuit({ heure: () => 2, annuaire, entreAppels: 0, entreLots: 0, arreter: () => relus() >= 1 });
+  await R.relire({ annuaire, filtre: (l) => ids.includes(l.id), entreAppels: 0, entreLots: 0, arreter: () => relus() >= 1 });
   assert.equal(relus(), 1);
-  await R.relireLaNuit({ heure: () => 2, annuaire, entreAppels: 0, entreLots: 0, arreter: () => relus() === 3 });
+  await R.relire({ annuaire, filtre: (l) => ids.includes(l.id), entreAppels: 0, entreLots: 0, arreter: () => relus() === 3 });
   assert.equal(relus(), 3);
   assert.equal(new Set(miens()).size, miens().length, 'aucun commerce relu deux fois');
   assert.equal(Records.get('CommerceSimple', ids[2]).exploitant.gerants[0].plus_de_60, true);

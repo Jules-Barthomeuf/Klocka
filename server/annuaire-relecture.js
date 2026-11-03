@@ -1,11 +1,11 @@
 // La relecture de l'annuaire des entreprises (3 nov. 2026, Jules : « oui, à trois conditions : les limites de l'API,
-// la nuit et par lots, reprendre là où elle s'est arrêtée »). Les dirigeants lus avant le 3 nov. n'ont que leur tranche
+// par lots, reprendre là où elle s'est arrêtée » ; puis « pas la nuit, lance-le directement »). Les dirigeants lus avant le 3 nov. n'ont que leur tranche
 // (moins de 50, 50 à 70, 70 et plus) et un seul exercice de comptes : la relecture leur donne « plus de 60 ans » et tous
 // les exercices publiés, ce que le mode Fonds de la Prospection lit.
 //
 // - Les limites : l'annuaire tolère sept appels par seconde ; on en fait au plus deux et demi, et un refus « trop
 //   d'appels » (429), ici ou ailleurs dans Klocka, met la relecture en pause une minute.
-// - La nuit, par lots : de 1 h à 6 h (Paris), 200 commerces par lot, trente secondes entre deux lots.
+// - Par lots, tout de suite : 200 commerces par lot, trente secondes entre deux lots, jusqu'à la fin.
 // - Reprendre : chaque commerce relu porte `exploitant.relu_annuaire_le` ; une coupure (redémarrage, déploiement) ne perd
 //   que le commerce en cours, la relecture suivante repart des autres.
 // RELECTURE_ANNUAIRE=0 la coupe.
@@ -20,10 +20,6 @@ const ENTRE_LOTS_MS = 30_000;
 const APRES_REFUS_MS = 60_000;
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-const heureParis = (d = new Date()) => Number(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(d));
-
-/** Pure : l'heure (Paris) permet-elle de relire ? De 1 h à 6 h. */
-export const dansLaNuit = (heure) => heure >= 1 && heure < 6;
 
 /**
  * Pure : faut-il relire ce commerce ? Un SIREN, un dirigeant de 50 à 70 ans (les autres tranches sont déjà sûres pour
@@ -60,20 +56,21 @@ export function etatRelecture() {
 }
 
 /**
- * Une nuit de relecture : des lots tant que l'heure le permet et qu'il reste des commerces. `heure` et `arreter` pour les
- * tests ; `annuaire` remplace l'appel réel.
+ * La relecture : des lots tant qu'il reste des commerces. Pour les tests : `arreter`, `annuaire` (remplace l'appel réel)
+ * et `filtre` (les seuls commerces que le test a créés : la base des tests est la vraie, server/data, le 3 nov. 2026 un
+ * test sans filtre a marqué 20 380 vrais commerces « relus »).
  */
-export async function relireLaNuit({ heure = heureParis, arreter = () => false, annuaire = null, lot = LOT, entreAppels = ENTRE_APPELS_MS, entreLots = ENTRE_LOTS_MS } = {}) {
+export async function relire({ arreter = () => false, annuaire = null, filtre = () => true, lot = LOT, entreAppels = ENTRE_APPELS_MS, entreLots = ENTRE_LOTS_MS } = {}) {
   if (enCours || process.env.RELECTURE_ANNUAIRE === '0') return { ok: true, deja: enCours };
   enCours = true;
   const A = annuaire || await import('./alx/annuaire.js');
   let relus = 0, erreurs = 0;
   try {
-    while (dansLaNuit(heure()) && !arreter()) {
-      const ids = Records.champs(COMMERCE, ['exploitant.siren', 'exploitant.relu_annuaire_le', 'exploitant.gerants']).filter(aRelire).slice(0, lot).map((l) => l.id);
+    while (!arreter()) {
+      const ids = Records.champs(COMMERCE, ['exploitant.siren', 'exploitant.relu_annuaire_le', 'exploitant.gerants']).filter((l) => aRelire(l) && filtre(l)).slice(0, lot).map((l) => l.id);
       if (!ids.length) break;
       for (const id of ids) {
-        if (!dansLaNuit(heure()) || arreter()) break;
+        if (arreter()) break;
         if (A.refusRecent?.(APRES_REFUS_MS)) await pause(APRES_REFUS_MS);
         const c = Records.get(COMMERCE, id);
         if (!c?.exploitant?.siren) continue;
@@ -89,7 +86,7 @@ export async function relireLaNuit({ heure = heureParis, arreter = () => false, 
         await pause(entreAppels);
       }
       Meta.set(ETAT, JSON.stringify({ le: new Date().toISOString(), relus, erreurs }));
-      if (dansLaNuit(heure()) && !arreter()) await pause(entreLots);
+      if (!arreter()) await pause(entreLots);
     }
   } finally {
     enCours = false;

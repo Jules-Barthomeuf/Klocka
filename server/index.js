@@ -1569,16 +1569,16 @@ if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
   setInterval(preparerProspection, 5 * 60_000).unref?.();
 }
 
-// La relecture de l'annuaire (3 nov. 2026, Jules) : la nuit (1 h - 6 h), par lots, sous les limites de l'API, reprise là
-// où elle s'est arrêtée (server/annuaire-relecture.js). Regardée tous les quarts d'heure ; RELECTURE_ANNUAIRE=0 la coupe.
+// La relecture de l'annuaire (3 nov. 2026, Jules : « pas la nuit, lance-le directement ») : deux minutes après le
+// démarrage, par lots, sous les limites de l'API ; reprise tous les quarts d'heure si elle a été coupée, jusqu'à la fin
+// (server/annuaire-relecture.js). RELECTURE_ANNUAIRE=0 la coupe.
 if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
-  setInterval(() => {
-    import('./annuaire-relecture.js').then(async (R) => {
-      if (!R.dansLaNuit(Number(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(new Date())))) return;
-      const r = await R.relireLaNuit();
-      if (r.relus || r.erreurs) console.log(`[annuaire] ${r.relus} relus, ${r.erreurs} en erreur`);
-    }).catch((e) => console.warn('[annuaire]', e?.message || e));
-  }, 15 * 60_000).unref?.();
+  const relire = () => import('./annuaire-relecture.js').then(async (R) => {
+    const r = await R.relire();
+    if (r.relus || r.erreurs) console.log(`[annuaire] ${r.relus} relus, ${r.erreurs} en erreur`);
+  }).catch((e) => console.warn('[annuaire]', e?.message || e));
+  setTimeout(relire, 2 * 60_000).unref?.();
+  setInterval(relire, 15 * 60_000).unref?.();
 }
 
 // L'entretien du disque (22 oct. 2026) : copies du bac à sable oubliées, recherches DVF périmées, journaux trop

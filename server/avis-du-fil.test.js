@@ -100,3 +100,11 @@ test('les photos de la ville au choix, et la couverture choisie', async () => {
   assert.equal(A.poserPhotoDeCouverture(e.id, '/uploads/commerces/b.jpg', lea).ok, true);
   assert.equal(Records.get('EstimationMandataire', e.id).avis.photos.couverture, '/uploads/commerces/b.jpg');
 });
+
+test("les photos d'une ville : les premiers résultats de « {ville} photo », sans doublon ni banque d'images", async () => {
+  const { imagesDuResultat } = await import('./photo-commerce.js');
+  const m = (u) => `<a m="{&quot;murl&quot;:&quot;${u}&quot;,&quot;purl&quot;:&quot;x&quot;}">`;
+  const html = [m('https://a.fr/vieille-ville.jpg'), m('https://c8.alamy.com/x.jpg'), m('https://a.fr/vieille-ville.jpg'), m('https://b.fr/port.jpg')].join('');
+  assert.deepEqual(imagesDuResultat(html), ['https://a.fr/vieille-ville.jpg', 'https://b.fr/port.jpg']);
+  assert.deepEqual(imagesDuResultat(''), []);
+});

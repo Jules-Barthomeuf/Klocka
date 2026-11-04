@@ -17,6 +17,10 @@ import { kEuros } from "@/lib/clients-commerces";
 // corrige, la fiche se met à jour (server/fiche-mandataire.js).
 
 const API = "/api/mandataire/proprietaires";
+// Le type prospecté (3 nov. 2026, Jules : « dès qu'on prospecte des fonds et qu'on les met dans les listes, c'est labellisé
+// fonds de commerce ») : posé sur la fiche à sa naissance, il suit le bien jusqu'à l'estimation.
+const TYPE_DU_MODE = { murs: "murs_commerce", fonds: "fonds_commerce", bureaux: "bureaux" };
+const TYPE_LIBELLE = { murs_commerce: "Murs commerciaux", fonds_commerce: "Fonds de commerce", bureaux: "Bureaux" };
 const dateFr = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "");
 const CHAMPS = { telephone: "Téléphone", email: "Mail", nom: "Nom", remarque: "Remarque" };
 const ISSUES_PROSPECTION = [["", "Rien ne change"], ["contacte", "Contacté"], ["rdv", "Rendez-vous fixé (passe dans Biens)"], ["pas_interet", "Pas d'intérêt (relance dans six mois)"]];
@@ -376,7 +380,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
     // naître sa fiche, puis l'enregistre.
     mutationFn: async ({ champ, valeur }) => {
       let cible = fid;
-      if (!cible && commerceId) cible = (await base44.request("POST", `/api/mandataire/commerces/${encodeURIComponent(commerceId)}/fiche`, { body: {} }))?.proprietaire?.id || null;
+      if (!cible && commerceId) cible = (await base44.request("POST", `/api/mandataire/commerces/${encodeURIComponent(commerceId)}/fiche`, { body: { type_bien: TYPE_DU_MODE[mode] || "murs_commerce" } }))?.proprietaire?.id || null;
       if (!cible) throw new Error("Pas de fiche pour ce commerce");
       return base44.request("PATCH", `${API}/${cible}`, { body: { [champ]: valeur } });
     },
@@ -395,7 +399,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
   const derniere = (() => { let d = null; try { d = localStorage.getItem("klocka.liste.derniere"); } catch { /* sans stockage */ } return listes.find((l) => l.id === d) || listes[0] || null; })();
   const retenir = (l) => { try { if (l?.id) localStorage.setItem("klocka.liste.derniere", l.id); } catch { /* sans stockage */ } };
   const ajouter = useMutation({
-    mutationFn: (choix) => base44.request("POST", "/api/off-market/simple/listes/envoyer", { body: { ids: [commerceId], ...(mode === "fonds" ? { type_bien: "fonds_commerce" } : {}), ...choix } }),
+    mutationFn: (choix) => base44.request("POST", "/api/off-market/simple/listes/envoyer", { body: { ids: [commerceId], type_bien: TYPE_DU_MODE[mode] || "murs_commerce", ...choix } }),
     onSuccess: (r) => {
       if (r.refuses?.length) { toast.error(r.refuses[0]); return; }
       retenir(r.liste); toast.success(`Dans la liste « ${r.liste.nom} »`);
@@ -496,8 +500,8 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
           la bascule, la croix ; l'adresse, la liste et le statut restent dans la vue Fiche. */}
       <div className={`flex justify-between gap-3 px-5 ${enConv ? "items-center pb-2 pt-4" : "items-start pt-5"}`}>
         <div className="min-w-0">
-          <h2 className={`m-0 truncate font-normal leading-[1.2] text-encre ${enConv ? "text-[17px]" : "text-[20px]"}`}>{f?.commerce || repli?.commerce || "Commerce"}</h2>
-          {!enConv && <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">{[f?.activite, f?.adresse || repli?.adresse].filter(Boolean).join(" · ")}</p>}
+          <h2 className={`m-0 truncate font-normal leading-[1.2] text-encre ${enConv ? "text-[17px]" : "text-[20px]"}`}>{f?.commerce || repli?.commerce || (mode === "bureaux" ? "Bureaux" : "Commerce")}</h2>
+          {!enConv && <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">{[TYPE_LIBELLE[f?.type_bien || (mode === "bureaux" ? "bureaux" : null)], f?.activite, f?.adresse || repli?.adresse].filter(Boolean).join(" · ")}</p>}
           {/* « Dans la liste … · changer » retiré de l'en-tête (27 oct. 2026, Jules). */}
         </div>
         <span className="flex flex-none items-center gap-1">
@@ -545,8 +549,8 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
               {bureau && (<>
                 {/* Un bureau : l'immeuble et ses occupants à la place de l'exploitant et du fonds (3 nov. 2026, Jules). */}
                 <Rangee mot="Immeuble" valeur={bureau.adresse || ""} affiche={bureau.adresse || <span className="text-brume">Adresse inconnue</span>} />
-                <Rangee mot={`Occupants (${bureau.occupants.length})`} valeur="" detail={bureau.occupants.slice(5).map((o) => [o.nom, o.activite, o.effectif ? `effectif ${o.effectif}` : null, o.depuis ? `depuis ${o.depuis}` : null].filter(Boolean).join(" · "))}
-                  affiche={<span className="block text-left">{bureau.occupants.slice(0, 5).map((o) => <span key={o.id || o.nom} className="block">{[o.nom, o.depuis ? `depuis ${o.depuis}` : null].filter(Boolean).join(" · ")}</span>)}{bureau.occupants.length > 5 ? <span className="block text-ardoise">et {bureau.occupants.length - 5} autres</span> : null}</span>} />
+                <Rangee mot={`Occupants (${bureau.occupants.length})`} valeur="" detail={bureau.occupants.slice(5).map((o) => [o.nom, o.activite, o.effectif ? `effectif ${o.effectif}` : null, o.parti ? `parti en ${o.parti}` : o.depuis ? `depuis ${o.depuis}` : null].filter(Boolean).join(" · "))}
+                  affiche={<span className="block text-left">{bureau.occupants.slice(0, 5).map((o) => <span key={o.id || o.nom} className="block">{[o.nom, o.parti ? `parti en ${o.parti}` : o.depuis ? `depuis ${o.depuis}` : null].filter(Boolean).join(" · ")}</span>)}{bureau.occupants.length > 5 ? <span className="block text-ardoise">et {bureau.occupants.length - 5} autres</span> : null}</span>} />
                 <Rangee mot="Valeur locative" valeur="" affiche={<span className="text-brume">Inconnue</span>} />
               </>)}
               {!bureau && (<>

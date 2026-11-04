@@ -489,7 +489,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
       `QUESTIONNAIRE (réponses du mandataire) :\n${JSON.stringify(q, null, 1).slice(0, 6000)}\n\n` +
       `VALEUR LOCATIVE DE MARCHÉ (€ HT HC/m²/an, ${marche?.source || 'source indisponible'}) — la « valeur locative de marché » de l'avis cite la fourchette de la RUE telle quelle, sans la baisser ni la moyenner avec autre chose :\n${marche ? JSON.stringify({ rue: marche.rue, quartier: marche.quartier, ville: marche.ville, source: marche.source }).slice(0, 2500) : '(indisponible)'}\n\n` +
       `EMPLACEMENT LU À L'ADRESSE (sans le mandataire) : ${Object.keys(emplacementLu).length ? JSON.stringify(emplacementLu).slice(0, 4000) : '(indisponible)'}\n` +
-      `Avec ces données, remplis TOUJOURS l'emplacement, ligne par ligne, chiffré, sans aucune source entre parenthèses : type_emplacement (rue piétonne, axe principal, rue de desserte, et le rang de la rue s'il est dans le questionnaire) ; flux (ce que la voie, la densité de commerces et la restauration disent du passage, sans chiffre de passants inventé) ; commerces_voisins (combien à 150 m, les métiers dominants, les enseignes nationales citées par leur nom) ; vacance : seulement « x % (taux estimé) », sans phrase ni comparaison ; acces (métro, tram, gare, bus, parkings à 300 m) ; environnement (une phrase d'ensemble). Ce que le mandataire a dit passe devant. Une rubrique dont rien ne parle reste vide.\n\n` +
+      `Avec ces données, remplis TOUJOURS l'emplacement, ligne par ligne, chiffré, sans aucune source entre parenthèses : type_emplacement (rue piétonne, axe principal, rue de desserte, et le rang de la rue s'il est dans le questionnaire) ; flux (quelques mots, sans phrase ni chiffre, comme « Quartier dense et résidentiel ») ; commerces_voisins (seulement « n commerces à 150 m », rien d'autre) ; vacance : seulement « x % (taux estimé) », sans phrase ni comparaison ; acces (métro, tram, gare, bus, parkings à 300 m) ; environnement (une phrase d'ensemble). Ce que le mandataire a dit passe devant. Une rubrique dont rien ne parle reste vide.\n\n` +
       `ÉCRITURE (3 nov. 2026, Jules : « gagner la confiance, qu'on n'ait pas à tout relire ») : aucune étiquette de provenance entre parenthèses, ni « (mandataire) », ni « (fiche) », ni « (OpenStreetMap) », « (Google Maps) », « (K-Vacance) », « (Data-B) » : le fait s'écrit tel quel (« emplacement n°1 bis »). Jamais « à confirmer », « à vérifier », « semble », « a priori », « probablement », « depuis longtemps » ni rien qui demande de relire : ce qui est dit s'écrit factuellement (« présente depuis 2018 ») ; ce que rien ne dit ne s'écrit pas, le champ reste vide.\n` +
       `JURIDIQUE ET TECHNIQUE : seulement ce que le mandataire a signalé (clés juridique, copropriete, travaux_votes, urbanisme, diagnostics, servitudes du questionnaire), repris tel quel ; rien de signalé, ou « non » : tous les champs juridique vides.\n\n` +
       (parLeRendement || fonds
@@ -572,7 +572,7 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     },
     emplacement: {
       synthese: net.emplacement.synthese || '',
-      lignes: [['Type d\'emplacement', net.emplacement.type_emplacement], ['Flux', net.emplacement.flux], ['Commerces voisins', ouLu(net.emplacement.commerces_voisins, 'commerces_voisins')], ['Environnement', net.emplacement.environnement], ['Vacance', vacanceDite || vacanceEstimee(emplacementLu) || ouLu(net.emplacement.vacance, 'vacance')], ['Accès', ouLu(net.emplacement.acces, 'acces')]]
+      lignes: [['Type d\'emplacement', net.emplacement.type_emplacement], ['Flux', net.emplacement.flux], ['Commerces voisins', lues.commerces_voisins || net.emplacement.commerces_voisins], ['Environnement', net.emplacement.environnement], ['Vacance', vacanceDite || vacanceEstimee(emplacementLu) || ouLu(net.emplacement.vacance, 'vacance')], ['Accès', ouLu(net.emplacement.acces, 'acces')]]
         .filter(([, v]) => !caseVide(v)).map(([mot, texte, alerte]) => ({ mot, texte, alerte: !!alerte })),
     },
     // Le fonds occupe un bail : son loyer et son échéance pèsent sur sa valeur, la page les montre.
@@ -920,8 +920,8 @@ const OUTILS = [
   },
   {
     name: 'proposer_photos_ville',
-    description: "Montre au mandataire, sous ton message, plusieurs photos de la ville du bien (Google) : il touche celle qu'il veut en couverture de l'avis. Quand il demande une autre photo de couverture, une photo de la ville, de changer d'image.",
-    input_schema: { type: 'object', properties: {} },
+    description: "Montre au mandataire, sous ton message, plusieurs photos de la ville du bien (Google) : il touche celle qu'il veut en couverture de l'avis. Quand il demande une autre photo de couverture, une photo de la ville, de changer d'image. « D'autres », « pas celles-là », « cherches-en d'autres » : autres: true, de nouvelles photos jamais montrées.",
+    input_schema: { type: 'object', properties: { autres: { type: 'boolean', description: "true : d'autres photos que celles déjà montrées" } } },
   },
   {
     name: 'rediger_avis',
@@ -971,7 +971,7 @@ Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_re
 6. MODIFIER L'AVIS (il est affiché à côté du chat) : une demande sur le document lui-même — reformuler, raccourcir, enlever une ligne, changer une taille, une couleur, mettre en gras, déplacer, masquer, poser une image jointe — c'est retoucher_avis, avec la demande telle quelle, avant comme après la rédaction ; pas noter_reponses ni rediger_avis. Une INFORMATION sur le bien (« la surface c'est 85 m² », « le loyer est de 20 000 € ») : noter_reponses, puis rediger_avis si l'avis est déjà rédigé. Après une retouche : une ligne qui dit ce qui a changé.
 7. Après la rédaction : une seule ligne avec la valeur et la fourchette, et la méthode (le taux retenu et ses ajustements pour des murs de commerce ; Equimmox, ou Data-B s'il a pris le relais, pour les autres). Si l'outil rend a_signaler_au_mandataire : ce ne sont pas des lignes de l'avis, c'est à toi de les dire, à la suite, en quelques lignes courtes (« Attention : … »), un point par ligne. L'avis s'affiche déjà à côté du chat : ne dis pas de l'ouvrir, de le relire ni de télécharger le PDF. Une correction ensuite (« j'ai oublié, la surface c'est 85 m² ») : noter_reponses puis rediger_avis, et préviens que les retouches faites à la main dans l'avis seront remplacées.
 8. La présentation (le deck) se remplit depuis l'avis : ses chiffres ne viennent que de tes outils. La page « La ville » se remplit quand tu appelles donnees_commune. Ne dis JAMAIS qu'une case ou une page est remplie si l'outil ne te l'a pas confirmé (« pose ») ; sinon dis ce qui manque.
-8 bis. LA PHOTO DE COUVERTURE (1er nov. 2026) : à la rédaction, des photos de la ville s'affichent sous ton message ; dis en une ligne qu'il touche celle qu'il veut en couverture. Une autre photo, changer l'image : proposer_photos_ville. Jamais une photo de la rue en couverture.
+8 bis. LA PHOTO DE COUVERTURE (1er nov. 2026) : à la rédaction, des photos de la ville s'affichent sous ton message ; dis en une ligne qu'il touche celle qu'il veut en couverture. Une autre photo, changer l'image : proposer_photos_ville ; « d'autres », « pas celles-là » : proposer_photos_ville avec autres: true, qui en cherche de nouvelles. Jamais une photo de la rue en couverture.
 9. QUAND TOUT EST FINI (l'avis rédigé, plus de question ni de retouche en cours) : propose d'écrire le mail au propriétaire et de l'envoyer avec l'avis en PDF, en une question (« Je prépare le mail au propriétaire, avec l'avis en PDF ? »). À son oui : preparer_envoi_avis. Ne le propose qu'une fois ; pas si l'avis est déjà envoyé.
 10. L'AVIS ENVOYÉ, tu suis la relation avec le propriétaire (27 oct. 2026) : on reste ici, et tu reprends le fil (il est plus bas). Le mandataire raconte : « je l'ai appelé, on a fixé un rendez-vous lundi », « la présentation s'est bien passée, il réfléchit et revient vers moi ». À chaque récit : noter_echange avec un résumé court et la relance qui convient à la situation (le rendez-vous à sa date et son heure, une semaine pour reprendre des nouvelles, la date qu'il a donnée). Rien de fixe : tu adaptes. Puis une ligne : ce qui est noté et la prochaine action datée, et au besoin une question utile (l'heure du rendez-vous, ce qui le fait hésiter). Une réponse qui tranche — d'accord sur un prix, pause, refus, autre agent, plus vendeur — c'est noter_restitution (avec relance_le et relance_quoi si la situation en demande une autre que celle du cas) : le mandataire confirme d'un tap. D'accord sur un prix : le prix va sur la fiche du bien et le bien passe au Mandat au tap ; dis-le en une ligne. Le bail reçu change la valeur : noter_restitution bail_change, puis noter_reponses et rediger_avis pour l'avis corrigé. Les documents (l'avis, la présentation, les sources) restent à côté : n'en parle que si on te les demande.
 On n'invente rien. Dans ce que tu notes et ce que tu écris dans l'avis : ni « (mandataire) » ni autre étiquette de source entre parenthèses, ni « à confirmer » : ce qui est dit se note tel quel (« depuis 2018 »), ce qui n'est pas su ne se note pas (3 nov. 2026, Jules).`;
@@ -1230,8 +1230,11 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
         const q = cible.questionnaire || {};
         const commune = cible.ville_taux || villeDuTexte(q.adresse || cible.adresse || '');
         if (!commune) return { ok: false, error: "L'adresse du bien n'est pas connue : demande-la." };
-        surEtape?.(`Des photos de ${commune}`);
-        const photos = await (await import('./photo-commerce.js')).photosDeLaVille(commune);
+        // « D'autres » : la page suivante de la recherche, retenue sur l'estimation (3 nov. 2026, Jules).
+        const page = input.autres === false ? 0 : (cible.photos_ville_page ?? 0) + (input.autres ? 1 : 0);
+        surEtape?.(page ? `D'autres photos de ${commune}` : `Des photos de ${commune}`);
+        const photos = await (await import('./photo-commerce.js')).photosDeLaVille(commune, { page });
+        Records.update(ENTITE, cible.id, { photos_ville_page: page });
         if (!photos.length) return { ok: false, error: `Aucune photo de ${commune} trouvée : le mandataire peut en joindre une avec « + ».` };
         photosChoix = { estimation_id: cible.id, photos };
         return { ok: true, montrees: `${photos.length} photos de ${commune} s'affichent sous ton message : dis-lui de toucher celle qu'il veut.` };
@@ -1710,16 +1713,19 @@ export const OUI_VISITE = "Oui, c'est juste.";
 
 const ouiNon = (coche, texte) => (coche === true || /refactur|locataire/i.test(texte || '') ? 'oui' : coche === false || /propri[ée]taire|non refactur/i.test(texte || '') ? 'non' : null);
 
+/** Pure : le type de l'avis d'après la fiche du bien (le type prospecté) ; des murs de commerce par défaut. */
+export const typeDeLaFiche = (p) => (['fonds_commerce', 'bureaux', 'murs_commerce'].includes(p?.type_bien) ? p.type_bien : 'murs_commerce');
+
 /** Pure : ce que la fiche et le compte rendu de visite disent déjà, en réponses du questionnaire de l'avis. */
 export function reponsesDeLaVisite(p = {}) {
   const cr = p.biens?.compte_rendu || {};
   const b = cr.bien || {}; const e = cr.etat || {};
   const faite = p.biens?.visite?.faite_le || cr.le || null;
   const charges = [b.charges, b.refacturees === true ? 'refacturées au locataire' : b.refacturees === false ? 'non refacturées' : null].filter(Boolean).join(', ');
-  // Une fiche ajoutée en mode Fonds (3 nov. 2026) ouvre l'avis d'un fonds : le demandeur est l'exploitant.
+  // Le type de la fiche, celui qu'on prospectait (3 nov. 2026) ; un fonds a l'exploitant pour demandeur.
   const fonds = p.type_bien === 'fonds_commerce';
   const r = {
-    type_bien: fonds ? 'fonds_commerce' : 'murs_commerce',
+    type_bien: typeDeLaFiche(p),
     ...(fonds ? { activite_fonds: p.activite || null } : {}),
     adresse: [p.adresse, p.ville].filter(Boolean).join(', ') || null,
     demandeur: (fonds ? p.commerce : p.nom) || null,
@@ -1785,7 +1791,7 @@ export async function avisDepuisLeBien({ proprietaire_id = null, adresse = null,
   const recit = p && !p.biens?.compte_rendu?.bien && p.biens?.compte_rendu?.texte ? p.biens.compte_rendu.texte : null;
   const de_la_visite = { reponses, ...(recit ? { recit } : {}), le: new Date().toISOString() };
   const bien = [p?.commerce || p?.nom, p?.ville].filter(Boolean).join(' · ') || titre || reponses.adresse || 'Bien';
-  const q = { type_bien: p?.type_bien === 'fonds_commerce' ? 'fonds_commerce' : 'murs_commerce', adresse: reponses.adresse || null };
+  const q = { type_bien: typeDeLaFiche(p), adresse: reponses.adresse || null };
   if (!e) {
     e = Records.create(ENTITE, {
       mandataire_email: moi(user), proprietaire_id: p?.id || null, bien, adresse: reponses.adresse || null,
@@ -1793,7 +1799,9 @@ export async function avisDepuisLeBien({ proprietaire_id = null, adresse = null,
       cree_le: new Date().toISOString(), historique: [{ le: new Date().toISOString(), par: user?.email || null, action: 'avis commencé depuis la fiche du bien' }],
     });
   } else {
-    e = Records.update(ENTITE, e.id, { de_la_visite, ...(e.questionnaire ? {} : { questionnaire: q }) });
+    // Pas encore rédigé, l'avis suit le type de la fiche : un murs commencé sur un fonds bascule en fonds.
+    const suit = e.questionnaire && !e.avis && e.questionnaire.type_bien !== q.type_bien ? { questionnaire: { ...e.questionnaire, type_bien: q.type_bien } } : {};
+    e = Records.update(ENTITE, e.id, { de_la_visite, ...(e.questionnaire ? suit : { questionnaire: q }) });
   }
   if (!e.proprietaire_id && e.adresse) import('./fiche-du-bien.js').then((f) => f.ficheDeLAvis(e.id, user)).catch((err) => console.warn(`[fiche] ${err?.message || err}`));
   // La valeur locative et l'emplacement se lisent en fond pendant les questions (3 nov. 2026).

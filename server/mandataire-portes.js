@@ -421,7 +421,17 @@ export function heritageDuDossier({ estimations = [], fiche = null, societe = fa
   const baux = estimations.filter((e) => e?.bail?.url).map((e) => ({ nom: e.bail.nom || 'Bail', url: e.bail.url, le: e.bail.le || le, repris: true }));
   const uniques = baux.filter((b, i) => baux.findIndex((x) => x.url === b.url) === i);
   const photos = (fiche?.biens?.visite?.photos || []).filter((x) => x?.url).map((x) => ({ url: x.url, nom: x.nom || 'Photo de la visite', le: x.le || le }));
-  return { documents: uniques.length ? { bail: uniques } : {}, photos, pieces_demandees: societe ? PIECES_SOCIETE.map((x) => ({ ...x })) : [] };
+  const documents = uniques.length ? { bail: uniques } : {};
+  // Ce qui a été déposé sur le bien avant le mandat (3 nov. 2026, vue d'ensemble du bien) : chaque pièce dans sa case.
+  const CASES = new Set(PIECES.map((x) => x.cle));
+  for (const x of fiche?.biens?.pieces || []) {
+    if (!x?.url || x.nature === 'photos') { if (x?.url) photos.push({ url: x.url, nom: x.nom || 'Photo', le: x.le || le }); continue; }
+    if (x.nature === 'avis' || x.nature === 'mandat') continue;
+    const cle = CASES.has(x.nature) ? x.nature : 'autres';
+    if (Object.values(documents).flat().some((f) => f.url === x.url)) continue;
+    documents[cle] = [...(documents[cle] || []), { nom: x.nom || 'Pièce', url: x.url, le: x.le || le, ...(x.par ? { par: x.par } : {}) }];
+  }
+  return { documents, photos, pieces_demandees: societe ? PIECES_SOCIETE.map((x) => ({ ...x })) : [] };
 }
 
 /** Pure : le prochain numéro du registre, « 2026-0007 ». */
@@ -542,7 +552,7 @@ export function ajouterPiece(id, categorie, fichier, user, { uploadDir = CHEMIN_
   // Mis en vente (27 oct. 2026) : une pièce de plus rejoint encore le dossier d'analyse (et Drive), comme pendant l'étude.
   const enEtude = (d.statut === 'en_etude' || (d.statut === 'go' && d.en_vente_le)) && d.deal_id;
   if (!enEtude && !['documents_en_cours', 'complet', 'complements'].includes(d.statut)) return { ok: false, error: 'Le dossier est décidé : les pièces ne se changent plus.' };
-  const documents = { ...(d.documents || {}), [categorie]: [...((d.documents || {})[categorie] || []), { nom: fichier.filename, url: fichier.url, le: maintenant() }] };
+  const documents = { ...(d.documents || {}), [categorie]: [...((d.documents || {})[categorie] || []), { nom: fichier.filename, url: fichier.url, le: maintenant(), ...(fichier.par ? { par: fichier.par } : {}) }] };
   const complet = checklist({ ...d, documents }).complet;
   const statut = enEtude ? d.statut : d.statut === 'complements' ? 'complements' : complet ? 'complet' : 'documents_en_cours';
   const maj = Records.update('DossierMandataire', d.id, { documents, statut, historique: trace(d, `pièce reçue : ${fichier.filename}`, user) });

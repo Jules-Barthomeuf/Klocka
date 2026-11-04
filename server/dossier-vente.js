@@ -263,6 +263,8 @@ export async function vueDuDossier(id, user) {
   const occupe = typeof q.bien_occupe === 'boolean' ? q.bien_occupe : c.lignes.some((l) => l.cle === 'bail' && l.recue) ? true : null;
   const preference = etatPreference(d.preference, { occupe });
   const etat = etatDuDossier({ dossier: d, checklist: c, points: pointsDesPieces(synth, { echeance }), lecture, preference });
+  const { annoterFichiers } = await import('./annotations-documents.js');
+  etat.pieces = etat.pieces.map((l) => ({ ...l, fichiers: annoterFichiers(l.fichiers || []) }));
   const vendeur = [q.vendeur_societe, [q.vendeur_civilite, q.vendeur_prenom, q.vendeur_nom].filter(Boolean).join(' ')].filter(Boolean).join(', ') || d.proprietaire || null;
   return {
     ok: true,
@@ -399,7 +401,7 @@ export async function deposerParLeVendeur(jeton, fichiers = [], { categorie = nu
   const rangees = [];
   for (const f of fichiers) {
     const cle = categorie || categorieDuNom(f.nom) || 'autres';
-    const r = P.ajouterPiece(d.id, cle, { filename: f.nom, mimetype: f.mimetype, url: f.url }, proprio, { uploadDir });
+    const r = P.ajouterPiece(d.id, cle, { filename: f.nom, mimetype: f.mimetype, url: f.url, par: 'vendeur' }, proprio, { uploadDir });
     if (!r.ok) return r;
     rangees.push({ nom: f.nom, cle, piece: P.piecesDu(d).find((p) => p.cle === cle)?.mot || cle });
   }

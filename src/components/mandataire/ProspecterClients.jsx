@@ -195,6 +195,8 @@ export default function ProspecterClients({ bascule = null }) {
   // La fiche ouverte : un local vide, un immeuble de bureaux, ou un commerce (vu comme fonds ou comme murs).
   const pointLibre = pointsLibres.find((x) => x.id === ouvert) || null;
   const pointOuvert = tousPoints.find((x) => x.id === ouvert) || null;
+  // Le type de chaque commerce envoyé vers une liste (3 nov. 2026, Jules) : ce qu'on prospectait, comme la fiche ouverte.
+  const typeProspecte = (id) => { const c = tousPoints.find((x) => x.id === id); return !c ? "murs_commerce" : estBureau(c) ? "bureaux" : commeFonds(c) ? "fonds_commerce" : "murs_commerce"; };
   const modeFiche = pointOuvert && estBureau(pointOuvert) ? "bureaux" : pointOuvert && commeFonds(pointOuvert) ? "fonds" : "murs";
   const seulementFonds = aFonds && !aMurs && !aBureaux && !aLibres;
 
@@ -285,10 +287,10 @@ export default function ProspecterClients({ bascule = null }) {
 
       {/* Un tableau par type coché, sous la carte. */}
       {prospecte && (aMurs || aFonds) && (
-        <TableauMurs murs={visiblesCommerces} total={murs.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={attente} depart={depart} fonds={seulementFonds} />
+        <TableauMurs murs={visiblesCommerces} total={murs.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={attente} depart={depart} fonds={seulementFonds} typesParId={typeProspecte} />
       )}
       {tous && aBureaux && (
-        <TableauMurs murs={visiblesBureaux} total={bureaux.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={bureauxQ.isLoading} depart={depart} bureaux />
+        <TableauMurs murs={visiblesBureaux} total={bureaux.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={bureauxQ.isLoading} depart={depart} bureaux typesParId={() => "bureaux"} />
       )}
       {tous && aLibres && (
         <TableauLibres points={visiblesLibres} total={pointsLibres.length} filtres={filtresLibres} setFiltres={setFiltresLibres} ouvert={ouvert} onOuvrir={ouvrir} charge={libresQ.isLoading} />
@@ -331,7 +333,7 @@ const GESTE = "inline-flex h-8 items-center gap-1.5 rounded-full border border-t
 const GESTE_PLEIN = "inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3 text-[13.5px] text-sur-menthe hover:bg-menthe-survol";
 
 /** Le tableau des murs : la recherche, « Tout afficher », l'envoi vers une liste, le tri par colonne, les pages. */
-function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charge, depart = FILTRES_DEPART, fonds = false, bureaux = false }) {
+function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charge, depart = FILTRES_DEPART, fonds = false, bureaux = false, typesParId = null }) {
   const qc = useQueryClient();
   const [tri, setTri] = useState({ cle: "force", sens: -1 });
   const [page, setPage] = useState(0);
@@ -441,7 +443,7 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
         </table>
         {!tries.length && !charge && <Vide>{bureaux ? "Aucun immeuble de bureaux avec ces filtres." : fonds ? "Aucun fonds avec ces filtres." : "Aucun mur avec ces filtres."}</Vide>}
       </div>
-      {versListe && <FenetreListe ids={[...coches]} typeBien={fonds ? "fonds_commerce" : null} onFermer={() => setVersListe(false)} onFait={() => { setVersListe(false); setCoches(new Set()); qc.invalidateQueries({ queryKey: ["m-prospecter", "points"] }); }} />}
+      {versListe && <FenetreListe ids={[...coches]} typesParId={typesParId ? Object.fromEntries([...coches].map((id) => [id, typesParId(id)])) : null} onFermer={() => setVersListe(false)} onFait={() => { setVersListe(false); setCoches(new Set()); qc.invalidateQueries({ queryKey: ["m-prospecter", "points"] }); }} />}
     </section>
   );
 }

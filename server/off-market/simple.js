@@ -141,29 +141,18 @@ export function fondsDe(c, { maintenantMs = Date.now() } = {}) {
 }
 
 /**
- * Pure : pourquoi des bureaux vont se libérer ou se vendre (3 nov. 2026, Jules : « repérer les bureaux », spec du jour).
- * Lus dans ce qu'on a de l'occupant et du propriétaire :
- * - l'occupant radié, dissous ou fermé depuis moins de deux ans : ses bureaux se libèrent ;
- * - une procédure collective ou une conciliation de l'occupant depuis moins de deux ans ;
- * - le siège de l'occupant transféré ailleurs depuis moins d'un an (BODACC), alors que ces bureaux n'en sont pas le siège ;
- * - le gérant de la société propriétaire des murs de 70 ans et plus, comme pour les murs de commerce.
- * Ni la baisse d'effectif (un seul relevé, pas d'historique) ni le décret tertiaire (pas de surface) : aucune source.
+ * Pure : des bureaux vides (3 nov. 2026, Jules : « montre juste les bureaux où l'entreprise occupante a bougé dans un
+ * autre local ; simplifie ») : un seul signal, l'occupant parti à une autre adresse depuis moins d'un an (son
+ * établissement fermé ici, un autre ouvert ailleurs, lus dans le stock SIRENE par server/bureaux-vides.js). Les autres
+ * (procédure, transfert de siège BODACC, gérant de la SCI âgé) sont retirés : ils ne disaient pas que les bureaux sont vides.
  */
 export function bureauDe(c, { maintenantMs = Date.now() } = {}) {
   if ((c.classe || 'commerce') !== 'bureau') return [];
-  const ex = c.exploitant || {};
-  const ev = c.evenements || [];
-  const recent = (re, ans) => ev.find((e) => re.test(String(e.type || '')) && annees(e.date, maintenantMs) <= ans);
-  const out = [];
-  const radie = recent(/radiation|dissolution/i, 2);
-  if (c.actif === false || ex.active === false || radie) out.push({ cle: 'occupant_parti', texte: `L'occupant est ${radie ? `radié ou dissous (${String(radie.date).slice(0, 7)})` : 'fermé'} : les bureaux se libèrent`, source: radie ? 'BODACC' : 'Registre des entreprises', date: radie?.date || ex.fermee_le || null });
-  const procedure = recent(/proc[ée]dure collective|conciliation/i, 2);
-  if (procedure) out.push({ cle: 'procedure', texte: `${/conciliation/i.test(procedure.type) ? 'Conciliation' : 'Procédure collective'} de l'occupant, ${String(procedure.date).slice(0, 7)}`, source: 'BODACC', date: procedure.date });
-  const transfert = recent(/transfert/i, 1);
-  const siegeIci = ex.siege?.adresse && c.adresse && norm(ex.siege.adresse).includes(norm(c.adresse).split(' ').slice(0, 3).join(' '));
-  if (transfert && ex.siege?.adresse && !siegeIci) out.push({ cle: 'demenage', texte: `Le siège de l'occupant a déménagé (${String(transfert.date).slice(0, 7)}) : ces bureaux peuvent se libérer`, source: 'BODACC', date: transfert.date });
-  if ((c.proprietaire?.gerants || []).some((g) => !g.personne_morale && g.tranche_age === '70+')) out.push({ cle: 'sci_agee', texte: 'Gérant de la société propriétaire de 70 ans et plus', source: 'Registre des entreprises' });
-  return out;
+  const d = c.demenagement;
+  if (!d?.ferme_le || annees(d.ferme_le, maintenantMs) > 1) return [];
+  const vers = d.vers?.adresse ? ` au ${d.vers.adresse}` : ' ailleurs';
+  const qui = d.effectif ? `L'occupant (${d.effectif})` : "L'occupant";
+  return [{ cle: 'parti', texte: `${qui} est parti${vers} en ${moisAnnee(d.ferme_le)} : ces bureaux sont libres`, source: d.source || 'SIRENE (INSEE)', date: d.ferme_le }];
 }
 
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -212,6 +201,8 @@ const LIBELLES_HORS_COMMERCE = {
   '4941A': 'Transport routier', '4941B': 'Transport routier', '4942Z': 'Déménagement', '5210A': 'Entreposage frigorifique', '5210B': 'Entreposage', '5229A': 'Messagerie', '5229B': 'Affrètement', '5320Z': 'Messagerie',
 };
 const sansPoint = (code) => String(code || '').replace(/\./g, '').toUpperCase();
+/** Pure : le mot d'un bureau ou d'un entrepôt (« Expert-comptable ») depuis son code NAF. */
+export const activiteHorsCommerce = (code) => LIBELLES_HORS_COMMERCE[sansPoint(code)] || null;
 /** Pure : la classe d'actif d'un code NAF (commerce de pied d'immeuble, bureau, entrepôt), ou null. */
 export function classeDeCode(code) {
   const c = sansPoint(code);
@@ -868,9 +859,11 @@ export async function listesDeCommerces(user) {
 }
 
 /** Envoie des commerces dans une liste du mandataire (existante, ou créée par son nom). */
-export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, user = null, type_bien = null } = {}) {
-  // Ajoutée depuis le mode Fonds (3 nov. 2026), la fiche le garde : la page Biens le montre, l'avis s'ouvre en fonds.
-  const type = type_bien === 'fonds_commerce' ? { type_bien } : {};
+// Ce qu'on prospectait en ajoutant à la liste (3 nov. 2026, Jules : « on met ce que c'est ») : il suit le bien jusqu'à l'avis.
+export const TYPES_PROSPECTES = ['murs_commerce', 'fonds_commerce', 'bureaux'];
+export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, user = null, type_bien = null, types = null } = {}) {
+  // `types` : le type de chaque commerce ({ id: type }), quand la sélection mêle fonds, murs et bureaux ; sinon `type_bien`.
+  const typeDe = (id) => { const t = types?.[id] || type_bien; return TYPES_PROSPECTES.includes(t) ? { type_bien: t } : {}; };
   const moi = moiDe(user);
   if (!moi) return { ok: false, error: 'Connectez-vous pour faire une liste.' };
   let l = liste_id ? Records.get(LISTE_MANDATAIRE, liste_id) : null;
@@ -894,7 +887,7 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
     // Ma fiche existe déjà, hors liste (née d'un geste sur la carte) : elle entre dans la liste, sans doublon (25 oct. 2026).
     const mienne = Records.list('ProprietaireMandataire').find((p) => p.commerce_simple_id === id && p.mandataire_email === moi);
     if (mienne) {
-      Records.update('ProprietaireMandataire', mienne.id, { liste_id: l.id, ...type });
+      Records.update('ProprietaireMandataire', mienne.id, { liste_id: l.id, ...typeDe(id) });
       versLeCrm(mienne.id);
       Records.update(COMMERCE, id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: mienne.id, le: maintenant() } } });
       ajoutes.push(id);
@@ -910,7 +903,7 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
       activite: c.activite || null, ville: c.ville || null, adresse: rueLisible(c.adresse), telephone, email: null,
     }, user);
     if (!r.ok) { refuses.push(`${c.enseigne || c.nom} : ${r.error}`); continue; }
-    Records.update('ProprietaireMandataire', r.proprietaire.id, { liste_id: l.id, commerce_simple_id: c.id, source: 'Off-market', ...type });
+    Records.update('ProprietaireMandataire', r.proprietaire.id, { liste_id: l.id, commerce_simple_id: c.id, source: 'Off-market', ...typeDe(id) });
     versLeCrm(r.proprietaire.id);
     Records.update(COMMERCE, id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: r.proprietaire.id, le: maintenant() } } });
     ajoutes.push(id);

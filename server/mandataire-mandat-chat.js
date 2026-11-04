@@ -402,7 +402,16 @@ export async function discuterMandat({ historique = [], texte, user, surEtape = 
       }
     },
   });
-  return { texte: String(text || '').trim(), mandat_id: mandatId, ...(envoi ? { mandat: envoi } : {}) };
+  // Complet et pas encore parti : le bouton sous la réponse (4 nov. 2026, Jules : « comme celui qui va vers l'estimation »).
+  const apres = mandatId ? Records.get(ENTITE, mandatId) : null;
+  const boutons = !envoi && apres ? boutonsMandat(apres) : [];
+  return { texte: String(text || '').trim(), mandat_id: mandatId, ...(envoi ? { mandat: envoi } : {}), ...(boutons.length ? { boutons } : {}) };
+}
+
+/** Pure : le bouton « Envoyer le mandat » d'un mandat complet encore en brouillon ; rien sinon. */
+export function boutonsMandat(m) {
+  if (!m || m.exemple || m.statut !== 'brouillon' || manquantsMandat(m.questionnaire || {}).length) return [];
+  return [{ libelle: 'Envoyer le mandat', texte: "C'est tout bon, envoie le mandat.", principal: true }];
 }
 
 // --- L'aperçu et la reprise --------------------------------------------------
@@ -447,6 +456,7 @@ export async function conversationDuMandat(id, user) {
           ? `J'ai préparé le mandat avec ce qu'on sait déjà${m.prepare_depuis.length ? ` : ${m.prepare_depuis.join(', ')}` : ''}. Vérifiez-le à droite, tout se corrige.${reste.length ? `\n\nPour le finir, il me manque : ${reste.join(', ')}.` : '\n\nIl est complet : je l’envoie ?'}`
           : (reste.length ? `On reprend le mandat. Il manque encore : ${reste.join(', ')}.` : 'Le mandat est complet. Je l’envoie ?')
         : `Mandat ${m.statut === 'demande_envoyee' ? (m.valide_le ? 'validé : il est en signature' : m.a_relire ? 'rempli : il est à relire dans la conversation' : 'envoyé : l’équipe le remplit au plus vite') : m.statut === 'pret' ? 'signé : il est dans la conversation' : m.statut}. Une correction ? Dites-la ici.`,
+      ...(boutonsMandat(m).length ? { boutons: boutonsMandat(m) } : {}),
       ...(m.document || m.mynotary_url ? { cartes: [{ titre: 'Mandat MyNotary', detail: 'Le PDF et le lien pour le compléter', etat: 'fait', lien: `mandat:${m.id}`, action: 'Ouvrir' }] } : {}),
     },
   ];

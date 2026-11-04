@@ -60,11 +60,11 @@ test('un groupe est une entrée ; une page sait son groupe', async () => {
 test('le menu des mandataires : la structure de l’équipe, Biens en une entrée, Feedback dans Autre', async () => {
   const { menuMandataire, groupeDe } = await import('../src/lib/menu.js');
   const { principal, autre } = menuMandataire();
-  assert.deepEqual(principal.map((x) => x.label), ['Assistant', 'Tableau de bord', 'Prospection', 'Biens', 'Clients', 'Bibliothèque', 'Simulateur', 'Twenty CRM']);
+  assert.deepEqual(principal.map((x) => x.label), ['Assistant', 'Tableau de bord', 'Prospection', 'Mes biens', 'Clients', 'Bibliothèque', 'Simulateur', 'Twenty CRM']);
   // Projets retiré (31 oct. 2026, PLAN.md 0.3) : ni au menu, ni dans « Autre ».
   assert.ok(!principal.some((x) => x.cle === 'MandataireProjets') && !autre.some((e) => e.cle === 'MandataireProjets'));
   // Biens, une seule entrée (24 oct. 2026) : les étapes sont dans la page, plus d'onglets en tête.
-  assert.equal(principal.find((x) => x.label === 'Biens').cle, 'MandataireBiens');
+  assert.equal(principal.find((x) => x.label === 'Mes biens').cle, 'MandataireBiens');
   assert.deepEqual(autre.map((e) => e.cle), ['Feedback']);
   assert.equal(groupeDe('MandataireMandat', 'mandataire'), null);
   // L'Off-market est dans la Prospection (23 oct. 2026) : plus d'entrée à part, ni dans « Autre ».

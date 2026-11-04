@@ -596,7 +596,8 @@ export function modifierProprietaire(id, patch, user) {
   const champs = {};
   // Toute la fiche se modifie (26 oct. 2026, Jules : « il faut qu'il puisse modifier toute la fiche ») : contact, commerce,
   // adresse, activité, remarque, prochaine action.
-  for (const c of ['nom', 'telephone', 'email', 'commerce', 'remarque', 'adresse', 'ville', 'activite', 'prochaine_action']) {
+  // `nom_bien` : le nom du bien, changé d'un clic sur son titre (4 nov. 2026, Jules) ; vide, le bien reprend son adresse.
+  for (const c of ['nom', 'telephone', 'email', 'commerce', 'remarque', 'adresse', 'ville', 'activite', 'prochaine_action', 'nom_bien']) {
     if (c in (patch || {})) champs[c] = patch[c] ? String(patch[c]).trim().slice(0, c === 'remarque' ? 1000 : 200) : null;
   }
   if ('prochaine_action_le' in (patch || {})) champs.prochaine_action_le = patch.prochaine_action_le && !Number.isNaN(Date.parse(patch.prochaine_action_le)) ? new Date(patch.prochaine_action_le).toISOString() : null;

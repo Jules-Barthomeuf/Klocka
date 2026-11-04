@@ -37,7 +37,8 @@ export function messageMandatSigne({ occupe = null, exception = false, deja = []
   const prio = priorite ? ` La priorité, c'est ${dite(priorite)} : ${priorite.raison}.` : '';
   const suite = !email
     ? "\n\nIl me manque son adresse e-mail : vous me la donnez ? Le mail part dès que je l'ai."
-    : mail ? '\n\nLe mail est écrit dans l’écran de droite : un tap sur « Envoyer » et il part.' : '';
+    // Le mail s'affiche sous ce message, dans le fil (4 nov. 2026, Jules : il n'était pas dans le chat).
+    : mail ? '\n\nLe voici, juste en dessous : relisez-le, un tap sur « Envoyer » et il part.' : '';
   return `Mandat signé, bien joué ! J'ai préparé un mail au propriétaire pour lui donner accès à la Data room, où il dépose ses documents quand il le souhaite.${prio}${dejaLa}${suite}\n\nSans documents d'ici ${delai} jours, je vous prépare la relance.${locataire}`;
 }
 

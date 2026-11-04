@@ -50,6 +50,12 @@ export function monterMandataire(app) {
         if (etape && lu) etape(`Document lu (${lu.length >= 2000 ? `${Math.round(lu.length / 1000)} k caractères` : `${lu.length} caractères`})`);
         lot.push({ nom: f.originalname, url: `/uploads/${f.filename}`, chemin: f.path, mimetype: f.mimetype, texte: lu });
       }
+      // Joint dans le fil d'un bien : rangé aussi dans ses documents (3 nov. 2026, vue d'ensemble du bien).
+      const pid = req.body?.proprietaire_id || (req.query.espace === 'fiche' ? req.query.fiche : null);
+      if (pid && lot.length) {
+        (await import('../documents-du-bien.js')).deposerAuBien(String(pid), lot, user, { par: 'fil' })
+          .catch((e) => console.warn(`[mandataire] pièce du fil non rangée : ${e?.message || e}`));
+      }
       return lot;
     };
     if (typeof req.body?.historique === 'string') { try { req.body.historique = JSON.parse(req.body.historique); } catch { req.body.historique = []; } }
@@ -172,7 +178,7 @@ export function monterMandataire(app) {
   app.get('/api/mandataire/prospecter/bureaux', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
-    const r = await (await import('../mandataire-prospecter.js')).bureauxDuSecteur(user);
+    const r = await (await import('../mandataire-prospecter.js')).bureauxDuSecteurVite(user);
     if (!r.ok) return res.status(404).json({ error: r.error });
     if (/\bgzip\b/.test(String(req.headers['accept-encoding'] || ''))) {
       res.set({ 'Content-Type': 'application/json; charset=utf-8', 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
@@ -712,6 +718,10 @@ export function monterMandataire(app) {
     const user = mandataire(req, res); if (!user) return;
     rendreFiche(res, await (await FM()).appliquerDictee(req.params.id, req.body?.proposition || {}, user));
   }));
+  app.post('/api/mandataire/proprietaires/:id/etape-actuelle', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await FM()).placerEtape(req.params.id, String(req.body?.etape || ''), user));
+  }));
   app.post('/api/mandataire/proprietaires/:id/etape', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendreFiche(res, (await FM()).validerEtape(req.params.id, String(req.body?.etape || ''), user));
@@ -745,6 +755,52 @@ export function monterMandataire(app) {
   app.post('/api/mandataire/proprietaires/:id/rdv/annuler', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendreFiche(res, await (await PR()).annulerRdv(req.params.id, { motif: req.body?.motif || null }, user));
+  }));
+  // Les documents d'un bien, tous au même endroit (3 nov. 2026, Jules) : la vue d'ensemble du bien.
+  const DB = () => import('../documents-du-bien.js');
+  // Importer un bien qu'on a déjà (4 nov. 2026, Jules) : la fiche naît vide, sa vue d'ensemble s'ouvre et le chat la remplit.
+  app.post('/api/mandataire/biens/importer-un-bien', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = (await import('../bien-repris.js')).creerBienAImporter(user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/mandataire/proprietaires/:id/import/fini', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = (await import('../bien-repris.js')).finirImport(req.params.id, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.get('/api/mandataire/biens/documents', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const q = req.query || {};
+    ok(res, await (await DB()).documentsLus({ proprietaire: q.proprietaire || null, estimation: q.estimation || null, mandat: q.mandat || null, dossier: q.dossier || null, marche: q.marche || null }, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/documents', roleAvantDepot, upload.array('fichier', 20), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const fichiers = (req.files || []).map((f) => ({ nom: f.originalname, url: `/uploads/${f.filename}`, mimetype: f.mimetype }));
+    const r = await (await DB()).deposerAuBien(req.params.id, fichiers, user, { nature: req.body?.nature || null });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  // Le nom et le contexte d'une pièce, par son adresse (4 nov. 2026) : la vue d'ensemble et la page Data room.
+  app.patch('/api/mandataire/documents/annotation', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = (await import('../annotations-documents.js')).annoter(req.body?.url, { nom: req.body?.nom, note: req.body?.note }, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.patch('/api/mandataire/proprietaires/:id/documents/:piece', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = (await DB()).reclasser(req.params.id, req.params.piece, req.body?.nature, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.delete('/api/mandataire/proprietaires/:id/documents/:piece', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = (await DB()).retirerPiece(req.params.id, req.params.piece, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
   }));
   app.post('/api/mandataire/proprietaires/:id/preparation/documents', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
@@ -827,7 +883,7 @@ export function monterMandataire(app) {
   // Le premier geste sur un point de la carte (ajouter, passer, appeler) : la fiche naît, à ce mandataire.
   app.post('/api/mandataire/commerces/:id/fiche', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
-    const r = await (await FM()).ficheDuCommerce(req.params.id, user, { statut: req.body?.statut === 'contacte' ? 'contacte' : 'a_appeler' });
+    const r = await (await FM()).ficheDuCommerce(req.params.id, user, { statut: req.body?.statut === 'contacte' ? 'contacte' : 'a_appeler', type_bien: req.body?.type_bien || null });
     if (!r.ok) return res.status(409).json({ error: r.error });
     ok(res, r);
   }));

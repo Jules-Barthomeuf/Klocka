@@ -25,11 +25,13 @@ function metres(a, b) {
 
 /**
  * Pure : les commerces voisins (à `rayon` mètres, le bien lui-même exclu) résumés : combien, les activités les plus
- * présentes, les enseignes nationales. `marque` : nom → marque ou null.
+ * présentes, les enseignes nationales. `marque` : nom → marque ou null. Les seules vitrines (3 nov. 2026, Jules : un
+ * avis comptait « messagerie 13, grossiste 11, conseil en entreprise 10 » parmi les commerces) : les bureaux et
+ * entrepôts de la base, souvent de simples sièges domiciliés, ne sont pas des voisins de rue.
  */
 export function voisinage(point, commerces = [], { rayon = 150, exclure = null, marque = () => null } = {}) {
   const proches = commerces
-    .filter((c) => c.lat != null && c.lon != null && c.id !== exclure && c.actif !== false)
+    .filter((c) => c.lat != null && c.lon != null && c.id !== exclure && c.actif !== false && (!c.classe || c.classe === 'commerce'))
     .map((c) => ({ c, d: metres(point, { lat: Number(c.lat), lon: Number(c.lon) }) }))
     .filter((x) => x.d <= rayon)
     .sort((a, b) => a.d - b.d);
@@ -127,6 +129,8 @@ export async function prechaufferEnvironnement(estimationId, user = null) {
 }
 
 /** Pure : l'environnement gardé sur l'estimation sert-il encore (même adresse, moins de sept jours) ? */
+// Un environnement lu avant cette heure comptait les bureaux et entrepôts parmi les voisins : il se relit.
+const VITRINES_SEULES = '2026-11-03T14:00:00.000Z';
 export const environnementFrais = (e, adresse, maintenant = Date.now()) =>
-  !!(e?.environnement && e.environnement.adresse === adresse && maintenant - Date.parse(e.environnement.le || 0) < 7 * 86400000);
+  !!(e?.environnement && e.environnement.adresse === adresse && e.environnement.le >= VITRINES_SEULES && maintenant - Date.parse(e.environnement.le || 0) < 7 * 86400000);
 

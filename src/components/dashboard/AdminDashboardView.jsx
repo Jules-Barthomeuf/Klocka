@@ -4,8 +4,6 @@ import { motion } from "framer-motion";
 import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
 import ChatDashboard, { HistoriqueColonne, cartesDe } from "@/components/dashboard/ChatDashboard";
 import BoiteMail from "@/components/dashboard/BoiteMail";
-import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
-import QuestionsDAK from "@/components/dashboard/QuestionsDAK";
 import RaccourcisHaka from "@/components/haka/RaccourcisHaka";
 import LivrableAccueil, { usePropositionsNees } from "@/components/haka/LivrableAccueil";
 import { Depliant, PanneauSources, PastilleSource } from "@/components/haka/ReglagesDemande";
@@ -23,6 +21,8 @@ import { base44 } from "@/api/base44Client";
 // Une demande envoyée (19 oct. 2026, Jules) : la barre de navigation reste, le fond Halo aussi, et le chat
 // prend la mise en page du dossier en mode IA, au milieu. L'écran ne se scinde (Haka à gauche, le livrable à
 // droite) que quand Haka a produit quelque chose : une carte qui s'ouvre, un dossier, une proposition.
+// Les questions d'AK sur les appels et les objections à résoudre ont quitté la page (3 nov. 2026, Jules) ; leurs
+// composants restent (QuestionsDAK, ObjectionsAResoudre).
 
 const CLE_LARGEUR = "klocka.accueil.largeur-chat";
 const LARGEUR_DEFAUT = 420;
@@ -173,14 +173,6 @@ export default function AdminDashboardView() {
                   </div>
                 </Depliant>
                 <Depliant ouvert={sourcesOuvert} className="mx-auto max-w-[900px]"><div className="pt-6">{panneauSources}</div></Depliant>
-              </>
-            )}
-            bas={(
-              <>
-                {/* Pas de défilement sur la page (Jules, 17 oct. 2026) : « À valider » et « Fait par Haka » ont quitté la page, ce qui attend
-                    est dans la cloche. Les questions d'AK sur les appels et les objections restent, seulement quand il y en a. */}
-                <QuestionsDAK className="mt-10" />
-                <ObjectionsAResoudre className="mt-6" />
               </>
             )}
           />

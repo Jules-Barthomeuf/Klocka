@@ -28,17 +28,6 @@ const versChampDate = (iso) => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
-/** La source d'une information, en petit, et « à confirmer » quand elle est déduite. */
-function Source({ source, aConfirmer = false }) {
-  if (!source && !aConfirmer) return null;
-  return (
-    <span className="ml-1.5 inline-flex flex-wrap items-center gap-1.5 align-baseline">
-      {source && <span className="text-[12.5px] text-brume">{source}</span>}
-      {aConfirmer && <span className="rounded-full border border-ambre/40 px-2 py-px text-[11px] text-ambre">à confirmer</span>}
-    </span>
-  );
-}
-
 /** Un bloc de la préparation : son titre, son contenu ; replié, il tient sur une ligne et s'ouvre au tap. */
 function Bloc({ n, titre, resume = null, repliable = false, children }) {
   const [ouvert, setOuvert] = useState(!repliable);
@@ -67,13 +56,6 @@ function Bloc({ n, titre, resume = null, repliable = false, children }) {
     </section>
   );
 }
-
-const Ligne = ({ mot, children }) => (
-  <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 py-1 max-md:grid-cols-1 max-md:gap-0.5">
-    <span className="text-[13.5px] text-ardoise">{mot}</span>
-    <span className="min-w-0 text-encre">{children}</span>
-  </div>
-);
 
 const jourCourt = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : null);
 
@@ -170,26 +152,49 @@ export function CompteRendu({ cr, onEstimation = null }) {
     ["Le locataire", [lo.intentions, lo.solidite].filter(Boolean).join(" · ") || null],
     ["Documents", [d.remis?.length ? `remis : ${d.remis.join(", ")}` : null, d.promis?.length ? `promis : ${d.promis.join(", ")}` : null].filter(Boolean).join(" · ") || null],
   ].filter(([, v]) => v);
+  const remarques = (cr.ecarts?.length || 0) + (cr.a_confirmer || []).length + sans.length;
+  // Au dessin de la fiche du bien (3 nov. 2026, Jules) : le titre en 20 px et sa ligne en 13 px, l'encadré pervenche de
+  // l'assistant (écarts, à confirmer, questions restées sans réponse), puis un tableau à deux colonnes égales, centrées.
   return (
-    <section className="mb-2 mt-3 rounded-[14px] border border-pervenche/40 bg-pervenche/[0.06] px-5 py-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="m-0 flex flex-wrap items-baseline gap-x-2 text-[16px] text-encre"><Sparkles className="h-4 w-4 self-center text-pervenche" />Compte rendu de visite<span className="text-[12.5px] text-brume">interne · {new Date(cr.le).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></p>
-        {onEstimation && pr.vendeur !== false && <button type="button" onClick={onEstimation} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-menthe/50 px-4 text-[13.5px] text-menthe hover:bg-menthe/10" style={{ background: "transparent" }}>Passer à l'estimation</button>}
+    <section className="mb-2 mt-3 overflow-hidden rounded-[18px] border border-trait bg-surface-pleine">
+      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+        <div className="min-w-0">
+          <h2 className="m-0 truncate text-[20px] font-normal leading-[1.2] text-encre">Compte rendu de visite</h2>
+          <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">Interne · {new Date(cr.le).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+        </div>
+        {onEstimation && pr.vendeur !== false
+          ? <button type="button" onClick={onEstimation} className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full border border-menthe/50 px-4 text-[13.5px] text-menthe hover:bg-menthe/10" style={{ background: "transparent" }}>Passer à l'estimation</button>
+          : <span className="flex-none rounded-full bg-pervenche/15 px-2.5 py-1 text-[12px] text-pervenche">Visite faite</span>}
       </div>
-      <div className="mt-2 text-[14.5px]">{lignes.map(([mot, v]) => <Ligne key={mot} mot={mot}>{v}<Source source="visite" /></Ligne>)}</div>
-      {cr.ecarts?.length > 0 && (
-        <div className="mt-3">
-          <p className="m-0 text-[12.5px] text-ambre">Différent de ce qu'on savait</p>
-          {cr.ecarts.map((x) => <p key={x.champ} className="m-0 py-0.5 text-[14px] text-encre">{x.dit} <span className="text-ardoise">au lieu de {x.connu}</span></p>)}
+      <div className="px-5 pb-5 pt-3">
+        <div className="mt-1 rounded-[12px] bg-pervenche/10 px-4 py-3">
+          <p className="m-0 inline-flex items-center gap-1.5 text-[13px] text-pervenche"><Sparkles className="h-3.5 w-3.5 flex-none" aria-hidden />Remarque de votre assistant</p>
+          {!remarques && <p className="m-0 mt-1.5 text-[14px] leading-[1.5] text-encre">Rien de différent de ce qu'on savait, rien à confirmer.</p>}
+          {cr.ecarts?.length > 0 && (
+            <div className="mt-1.5">
+              <p className="m-0 text-[12.5px] text-ambre">Différent de ce qu'on savait</p>
+              {cr.ecarts.map((x) => <p key={x.champ} className="m-0 py-0.5 text-[14px] leading-[1.5] text-encre">{x.dit} <span className="text-ardoise">au lieu de {x.connu}</span></p>)}
+            </div>
+          )}
+          {(cr.a_confirmer || []).length > 0 && <p className="m-0 mt-1.5 text-[14px] leading-[1.5] text-encre"><span className="text-ambre">À confirmer : </span>{cr.a_confirmer.join(" ; ")}</p>}
+          {sans.length > 0 && (
+            <div className="mt-1.5">
+              <p className="m-0 text-[12.5px] text-ardoise">Questions restées sans réponse</p>
+              <ul className="m-0 mt-1 list-none p-0">{sans.map((x) => <li key={x.question} className="flex gap-2 py-0.5 text-[14px] leading-[1.5] text-craie"><span className="mt-[9px] h-1.5 w-1.5 flex-none rounded-full bg-ambre" />{x.question}</li>)}</ul>
+            </div>
+          )}
         </div>
-      )}
-      {(cr.a_confirmer || []).length > 0 && <p className="m-0 mt-3 text-[14px]"><span className="text-ambre">À confirmer : </span>{cr.a_confirmer.join(" ; ")}</p>}
-      {sans.length > 0 && (
-        <div className="mt-3">
-          <p className="m-0 text-[12.5px] text-ardoise">Questions restées sans réponse</p>
-          <ul className="m-0 mt-1 list-none p-0">{sans.map((x) => <li key={x.question} className="flex gap-2 py-0.5 text-[14px] text-craie"><span className="mt-[8px] h-1.5 w-1.5 flex-none rounded-full bg-ambre" />{x.question}</li>)}</ul>
-        </div>
-      )}
+        {lignes.length > 0 && (
+          <dl className="m-0 mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+            {lignes.map(([mot, v]) => (
+              <div key={mot} className="grid grid-cols-2 items-stretch border-t border-trait text-center first:border-t-0">
+                <dt className="flex items-center justify-center px-4 py-3 text-[13px] text-ardoise">{mot}</dt>
+                <dd className="m-0 flex min-w-0 items-center justify-center border-l border-bord-doux px-4 py-3 text-[14px] text-encre"><span className="min-w-0 break-words">{v}</span></dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
     </section>
   );
 }
@@ -362,7 +367,7 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
             <div className={convHaka ? "min-h-0 w-full flex-1" : "w-full"}>
               <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConvHaka}
                 onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
-                barreApercu sansBarreHaut retour={{ libelle: "Tous les biens", onClick: onFermer }} />
+                barreApercu sansBarreHaut retour={{ libelle: "Mes biens", onClick: onFermer }} />
             </div>
           </section>
         )}

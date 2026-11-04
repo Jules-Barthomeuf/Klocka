@@ -1598,6 +1598,22 @@ if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE && process
   setInterval(dater, 24 * 3600_000).unref?.();
 }
 
+// Les bureaux vides (3 nov. 2026, Jules) : le stock SIRENE des départements des secteurs, une fois par mois, puis les
+// sociétés parties à une autre adresse (server/bureaux-vides.js) ; à part et à basse priorité. BUREAUX_VIDES=0 le coupe.
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE && process.env.BUREAUX_VIDES !== '0') {
+  let lecteur = null;
+  const chercher = async () => {
+    if (lecteur) return;
+    const { spawn } = await import('child_process');
+    const script = path.join(__dirname, 'bureaux-vides.js');
+    lecteur = spawn(process.platform === 'win32' ? process.execPath : 'nice', process.platform === 'win32' ? [script] : ['-n', '15', process.execPath, script], { cwd: path.join(__dirname, '..'), env: process.env, stdio: ['ignore', 'inherit', 'inherit'] });
+    lecteur.on('exit', () => { lecteur = null; });
+    lecteur.on('error', (e) => { console.warn('[bureaux-vides]', e?.message || e); lecteur = null; });
+  };
+  setTimeout(chercher, 6 * 60_000).unref?.();
+  setInterval(chercher, 24 * 3600_000).unref?.();
+}
+
 // L'entretien du disque (22 oct. 2026) : copies du bac à sable oubliées, recherches DVF périmées, journaux trop
 // gros, journal d'écriture de SQLite. Rien que l'application relise. Cinq minutes après le démarrage, puis chaque jour.
 if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {

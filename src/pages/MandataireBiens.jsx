@@ -1,8 +1,7 @@
-import React, { useRef, useCallback, useEffect, useMemo, useState } from "react";
+import React, { useRef, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, ChevronRight, FileUp, Loader2, Plus, Search, Send } from "lucide-react";
-import ImportBiens from "@/components/mandataire/ImportBiens";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
@@ -14,7 +13,7 @@ import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
 import { CompteRendu, PreparationDuBien, useVersAvis } from "@/components/mandataire/PreVisite";
 import { FichePoint } from "@/components/mandataire/TableauListe";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { retenirBien } from "@/components/mandataire/BiensRecents";
 import { DocumentTelephone } from "@/components/mandataire/GenerationDocument";
 import ApercuMandat, { FenetreMandatPret } from "@/components/mandataire/ApercuMandat";
@@ -33,6 +32,7 @@ import { ApercuAvis } from "@/pages/MandataireEstimation";
 import { Detail as DetailMarche, ETAPES_MARCHE } from "@/pages/MandataireMarche";
 import Visites from "@/components/mandataire/Visites";
 import DossierVente, { MailDuChat } from "@/components/mandataire/DossierVente";
+import VueEnsembleBien from "@/components/mandataire/VueEnsembleBien";
 import TeaserBien, { ActionsTeaser } from "@/components/mandataire/Teaser";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { Conversation, Resume, depuisMandataire } from "@/components/conversations/EspaceConversations";
@@ -80,7 +80,8 @@ export default function MandataireBiens() {
   // Les adresses d'avant le 26 oct. 2026 (notifications, liens gardés) : rdv et visite mènent à la Pré-visite,
   // prix_accord à l'Avis de valeur.
   const demandee = { rdv: "previsite", visite: "previsite", prix_accord: "estimation", analyse: "marche" }[params.get("etape")] || params.get("etape");
-  const etape = ETAPES_BIEN.find((e) => e.id === demandee)?.id || (bien ? ETAPES_BIEN[bien.etape - 1].id : "estimation");
+  // Un bien s'ouvre sur sa vue d'ensemble (3 nov. 2026, Jules) ; une étape demandée dans l'adresse s'ouvre directement.
+  const etape = demandee === "ensemble" && bien ? "ensemble" : ETAPES_BIEN.find((e) => e.id === demandee)?.id || (bien ? "ensemble" : "estimation");
 
   // L'adresse ne porte que le bien et l'étape : les écrans d'étape ne lisent plus rien dans l'adresse.
   const aller = (cleBien, id) => setParams(new URLSearchParams({ bien: cleBien, etape: id }));
@@ -94,7 +95,7 @@ export default function MandataireBiens() {
   // Le bouton « Scénarios » du bien d'essai est retiré de l'écran (31 oct. 2026, Jules) ; ScenariosEssai.jsx reste.
   if (cle && !nouveau && !bien && chargement) return <Chargement taille="grand" />;
   if (cle && (bien || nouveau)) return <BienOuvert bien={bien} etape={etape} onAller={(id) => aller(bien ? bien.cle : "nouveau", id)} onFermer={fermer} onCree={surCree} types={marches.data?.types_activite || {}} estimations={dossiers.data?.estimations || []} />;
-  return <TousLesBiens biens={biens} chargement={chargement} erreur={erreur} onOuvrir={(b) => aller(b.cle, ETAPES_BIEN[b.etape - 1].id)} onNouveau={() => aller("nouveau", "estimation")} onTest={(id) => aller(`proprietaire:${id}`, "previsite")} />;
+  return <TousLesBiens biens={biens} chargement={chargement} erreur={erreur} onOuvrir={(b) => aller(b.cle, "ensemble")} onNouveau={() => aller("nouveau", "estimation")} onTest={(id) => aller(`proprietaire:${id}`, "previsite")} onImporte={(id) => aller(`proprietaire:${id}`, "ensemble")} />;
 }
 
 /** L'arrivée : tous les biens, en cartes, chacun à son statut. « Aujourd'hui » retiré le 24 oct. 2026 (Jules). */
@@ -121,9 +122,17 @@ function BoutonBienTest({ onCree }) {
 
 const PAR_PAGE = 9;
 
-function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }) {
+function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest, onImporte }) {
   const [recherche, setRecherche] = useState("");
-  const [importOuvert, setImport] = useState(false);
+  const queryClient = useQueryClient();
+  // Importer un bien qu'on a déjà (4 nov. 2026, Jules) : sa fiche naît tout de suite, sa vue d'ensemble s'ouvre, et le
+  // chat du milieu la remplit (l'adresse, le type, le récit en vocal, puis les documents). L'import d'un registre de
+  // mandats (ImportBiens) reste dans le code.
+  const importer = useMutation({
+    mutationFn: () => base44.request("POST", "/api/mandataire/biens/importer-un-bien"),
+    onSuccess: async (r) => { await queryClient.refetchQueries({ queryKey: ["m-proprietaires"] }); onImporte(r.proprietaire.id); },
+    onError: (e) => toast.error(e?.message || "Import impossible"),
+  });
   // « Estimation envoyée » (26 oct. 2026, Jules ; renommé le 27 avec la restitution) : les avis envoyés sans réponse
   // du propriétaire, ce que l'étape Prix d'accord montrait.
   const [enAttente, setEnAttente] = useState(false);
@@ -152,11 +161,9 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest }
           <button type="button" onClick={onNouveau} aria-label="Nouveau bien" title="Nouveau bien" className="grid h-11 w-11 flex-none place-items-center rounded-full bg-encre text-fond hover:opacity-90">
             <Plus className="h-4 w-4" />
           </button>
-          {/* Les biens déjà en mandat (31 oct. 2026, PLAN.md 3.2) : PDF, registre ou liste collée, relus avant d'entrer. */}
-          <button type="button" onClick={() => setImport(true)} className="inline-flex h-11 flex-none items-center gap-2 whitespace-nowrap rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-            <FileUp className="h-3.5 w-3.5" /> Importer
+          <button type="button" onClick={() => importer.mutate()} disabled={importer.isPending} className="inline-flex h-11 flex-none items-center gap-2 whitespace-nowrap rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+            {importer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />} Importer
           </button>
-          {importOuvert && <ImportBiens onFermer={() => setImport(false)} />}
           <BoutonBienTest onCree={onTest} />
         </div>
       </header>
@@ -252,18 +259,22 @@ function useEcranLarge() {
  * d'Ariane ; au téléphone il remplace la frise.
  */
 // Au téléphone (27 oct. 2026, Jules) : la flèche et le nom de l'étape ; les étapes sont dans le menu de droite.
+// Le libellé de la flèche de retour : « Vue d'ensemble » dans une étape, « Mes biens » ailleurs.
+const RetourBien = React.createContext("Mes biens");
+const libelleEtape = (etape) => (etape === "ensemble" ? "Vue d'ensemble" : ETAPES_BIEN.find((e) => e.id === etape)?.label);
 function EnTeteBien({ bien, etape, onFermer, className = "" }) {
+  const retour = useContext(RetourBien);
   return (
     <nav aria-label="Fil d'Ariane" className={`flex min-h-[56px] min-w-0 items-center gap-1.5 text-[13.5px] max-md:relative max-md:min-h-[48px] ${className}`}>
-      <button type="button" onClick={onFermer} aria-label="Tous les biens" className="flex flex-none items-center gap-1.5 text-ardoise transition-colors hover:text-encre max-md:-ml-2 max-md:h-10 max-md:w-10 max-md:justify-center" style={{ background: "transparent" }}>
-        <ArrowLeft className="h-3.5 w-3.5 max-md:h-5 max-md:w-5" /><span className="max-md:hidden">Tous les biens</span>
+      <button type="button" onClick={onFermer} aria-label={retour} className="flex flex-none items-center gap-1.5 text-ardoise transition-colors hover:text-encre max-md:-ml-2 max-md:h-10 max-md:w-10 max-md:justify-center" style={{ background: "transparent" }}>
+        <ArrowLeft className="h-3.5 w-3.5 max-md:h-5 max-md:w-5" /><span className="max-md:hidden">{retour}</span>
       </button>
       {/* Au téléphone, l'étape sur la ligne de la flèche, centrée (27 oct. 2026, Jules). */}
-      <span className="pointer-events-none absolute inset-x-12 truncate text-center text-[17px] text-encre md:hidden">{ETAPES_BIEN.find((e) => e.id === etape)?.label}</span>
+      <span className="pointer-events-none absolute inset-x-12 truncate text-center text-[17px] text-encre md:hidden">{libelleEtape(etape)}</span>
       <ChevronRight className="h-3.5 w-3.5 flex-none text-brume max-md:hidden" />
       <span className="min-w-0 truncate text-craie max-md:hidden">{bien ? bien.titre : "Nouveau bien"}</span>
       <ChevronRight className="h-3.5 w-3.5 flex-none text-brume max-md:hidden" />
-      <span className="flex-none text-encre max-md:hidden">{ETAPES_BIEN.find((e) => e.id === etape)?.label}</span>
+      <span className="flex-none text-encre max-md:hidden">{libelleEtape(etape)}</span>
     </nav>
   );
 }
@@ -309,7 +320,11 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
     marcheAvant.current = marcheId;
   }, [marcheId, etape, onAller]);
   // Un fil par bien (1er nov. 2026, Jules) : la Pré-visite aussi, sur ordinateur, a le chat à gauche et la préparation à droite.
-  const chat = ["previsite", "estimation", "mandat"].includes(etape) || dossierVente || enVente;
+  // La vue d'ensemble, sans chat (3 nov. 2026, Jules : « ne mets pas le chat à gauche ») : le tableau de bord du bien seul.
+  const ensemble = etape === "ensemble";
+  // Un bien qu'on importe, sur ordinateur (4 nov. 2026, Jules) : le chat d'abord, puis le bien à droite comme une page éditeur.
+  const enImport = ensemble && large && !!bien?.proprietaire?.biens?.import && !bien.proprietaire.biens.import.fini;
+  const chat = ["previsite", "estimation", "mandat"].includes(etape) || dossierVente || enVente || enImport;
   const plein = chat && large;
   useEffect(() => {
     if (!plein) return undefined;
@@ -317,23 +332,31 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
     window.scrollTo(0, 0);
     return () => document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak");
   }, [plein]);
-  const entete = <EnTeteBien bien={bien} etape={etape} onFermer={onFermer} />;
+  // Dans une étape, la flèche ramène à la vue d'ensemble du bien ; de la vue d'ensemble, à tous les biens (4 nov. 2026, Jules).
+  const retourEtape = useMemo(() => (ensemble || !bien ? onFermer : () => onAller("ensemble")), [ensemble, bien, onFermer, onAller]);
+  const libelleRetour = ensemble || !bien ? "Mes biens" : "Vue d'ensemble";
+  const entete = <EnTeteBien bien={bien} etape={etape} onFermer={retourEtape} />;
   return (
+    <RetourBien.Provider value={libelleRetour}>
     <div className="relative w-full">
       {/* Un seul titre et plus de frise (25 oct. 2026, Jules) : l'Estimation et le Mandat portent le titre dans leur colonne de chat. */}
-      {!chat && etape !== "previsite" && <EnTeteBien bien={bien} etape={etape} onFermer={onFermer} className="px-5 pt-3 md:px-10 md:pr-20" />}
+      {!chat && etape !== "previsite" && <EnTeteBien bien={bien} etape={etape} onFermer={retourEtape} className="px-5 pt-3 md:px-10 md:pr-20" />}
       <div key={etape} className="animate-in fade-in duration-500 ease-out">
-        {etape === "previsite" && <EtapeRaconte bien={bien} etape={etape} large={large} onFermer={onFermer} entete={entete} onAvis={() => onAller("estimation")} />}
-        {etape === "estimation" && <EtapeChat espace="estimation" bien={bien} objet={bien?.estimation} large={large} entete={entete} onFermer={onFermer} onCree={(id) => onCree("estimation", id)} />}
-        {etape === "mandat" && <EtapeChat espace="mandat" bien={bien} objet={bien?.mandat} large={large} entete={entete} onFermer={onFermer} onCree={(id) => onCree("mandat", id)} onSuivante={() => onAller("dataroom")} />}
-        {dossierVente && <EtapeDossierVente bien={bien} large={large} entete={entete} onFermer={onFermer} />}
-        {enVente && <EtapeVente bien={bien} large={large} entete={entete} onFermer={onFermer} onSuivante={() => onAller("offre")} />}
+        {enImport && <EtapeImport bien={bien} onAller={onAller} onFermer={retourEtape} entete={entete} />}
+        {ensemble && !enImport && <div className="mx-auto max-w-[1180px] px-5 pb-16 pt-6 md:px-10 md:pr-20"><VueEnsembleBien bien={bien} onAller={onAller} /></div>}
+        {etape === "previsite" && <EtapeRaconte bien={bien} etape={etape} large={large} onFermer={retourEtape} entete={entete} onAvis={() => onAller("estimation")} />}
+        {etape === "estimation" && <EtapeChat espace="estimation" bien={bien} objet={bien?.estimation} large={large} entete={entete} onFermer={retourEtape} onCree={(id) => onCree("estimation", id)} />}
+        {etape === "mandat" && <EtapeChat espace="mandat" bien={bien} objet={bien?.mandat} large={large} entete={entete} onFermer={retourEtape} onCree={(id) => onCree("mandat", id)} onSuivante={() => onAller("dataroom")} />}
+        {dossierVente && <EtapeDossierVente bien={bien} large={large} entete={entete} onFermer={retourEtape} />}
+        {enVente && <EtapeVente bien={bien} large={large} entete={entete} onFermer={retourEtape} onSuivante={() => onAller("offre")} />}
         {["dataroom", "marche", "offre", "vente"].includes(etape) && !dossierVente && !enVente && <EtapeMarche bien={bien} types={types} etape={etape} />}
       </div>
       {/* Le check à droite d'une étape la valide, avec celles d'avant, comme dans les dossiers de l'équipe : seulement pour
           un bien né d'une fiche de la Prospection (24 oct. 2026). */}
-      <MenuEtapesDroite items={items} valeur={etape} onChange={onAller} onValider={bien?.proprietaire ? (n) => valider.mutate(ETAPES_BIEN[n - 1].id) : null} occupe={valider.isPending} telephone />
+      {/* La vue d'ensemble porte déjà les étapes, à gauche : pas de menu à droite (maquette de Jules, 3 nov. 2026). */}
+      {!ensemble && <MenuEtapesDroite items={items} valeur={etape} onChange={onAller} tete={{ cle: "ensemble", titre: "Vue d'ensemble" }} enCours={ETAPES_BIEN[(bien?.etape || 1) - 1].id} onValider={bien?.proprietaire ? (n) => valider.mutate(ETAPES_BIEN[n - 1].id) : null} occupe={valider.isPending} telephone />}
     </div>
+    </RetourBien.Provider>
   );
 }
 
@@ -380,16 +403,13 @@ function TempsMandat({ mandat, large, compact = false, geste = null }) {
   );
 }
 
-/** La droite de l'Estimation tant que l'avis n'est pas rédigé : une phrase et une flèche vers le chat de gauche. */
+/** La droite de l'Estimation tant que l'avis n'est pas rédigé : une phrase, sans flèche (3 nov. 2026, Jules). */
 function GuideAssistant() {
   return (
     <div className="grid h-[100dvh] place-items-center border-l border-trait px-10">
-      <div className="flex items-center gap-5">
-        <ArrowLeft className="k-guide-fleche h-10 w-10 flex-none text-menthe" strokeWidth={1.6} aria-hidden />
-        <div className="max-w-[34ch]">
-          <p className="m-0 text-[24px] leading-[1.25] tracking-[-0.01em] text-encre">Laissez-vous guider par votre assistant</p>
-          <p className="m-0 mt-2 text-[14px] leading-[1.55] text-ardoise">Répondez-lui dans le chat : l'avis de valeur s'affichera ici, une fois rédigé.</p>
-        </div>
+      <div className="max-w-[34ch]">
+        <p className="m-0 text-[24px] leading-[1.25] tracking-[-0.01em] text-encre">Laissez-vous guider par votre assistant</p>
+        <p className="m-0 mt-2 text-[14px] leading-[1.55] text-ardoise">Répondez-lui dans le chat : l'avis de valeur s'affichera ici, une fois rédigé.</p>
       </div>
     </div>
   );
@@ -405,6 +425,7 @@ const TEXTES = {
  * sans objet encore, le chat qui le commence. Aucune liste : seulement ce bien.
  */
 function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSuivante = null }) {
+  const libelleRetour = useContext(RetourBien);
   const t = TEXTES[espace];
   // Les sources, choisies par « Sources » dans la barre (26 oct. 2026, Jules ; sans la ligne de compétences sous la saisie).
   const outilsChat = useReglagesChatMandataire(espace === "estimation" ? ["estimation"] : ["mandat", "dossier"]);
@@ -665,7 +686,7 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
           proprietaireId={bien?.proprietaire?.id || null} reprendre={!!bien?.proprietaire?.id}
           enTeteFil={null}
           placeholderFil={relation ? "Racontez la suite : l'appel, le rendez-vous, sa réponse…" : null} onHistorique={sansHistorique} onReponse={surReponse} onRecherche={surRecherche}
-          menusVersLeHaut avisACote={espace === "estimation" && large} barreApercu={large && conversation && !choixGauche} sansBarreHaut={(!large || !!choixGauche) && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} />
+          menusVersLeHaut avisACote={espace === "estimation" && large} barreApercu={large && conversation && !choixGauche} sansBarreHaut={(!large || !!choixGauche) && conversation} retour={{ libelle: libelleRetour, onClick: onFermer }} />
       </div>
     </div>
   );
@@ -732,7 +753,8 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
   return (
     <EcranHaka bien={bien} large={large} entete={entete} onFermer={onFermer} dossierVenteId={dossierId} cles={["m-dossier-vente", "m-dossiers", "m-marches"]}
       placeholder="Demandez à l'Assistant KPartners : écris au vendeur, relance-le, explique ce point…" proposition={proposition} barre="La Data room" libelleTel="Voir la Data room"
-      droite={<DossierVente dossierId={dossierId} lecture />} classeDroite="k-dataroom-fond" />
+      droite={<DossierVente dossierId={dossierId} lecture />} classeDroite="k-dataroom-fond"
+      finFil={v?.mail_propose ? <MailDuChat key={v.mail_propose.le} dossierId={dossierId} mail={v.mail_propose} boite={v.boite} /> : null} />
   );
 }
 
@@ -769,7 +791,8 @@ function EtapeVente({ bien, large, entete, onFermer, onSuivante }) {
  * L'écran scindé d'une étape pilotée par Haka : son chat à gauche (la conversation du bien quand il vient de la
  * Prospection), ce qu'il propose tant qu'on n'a rien dit, et le document à droite. Au téléphone, comme la Visite.
  */
-function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, marcheId = null, cles = [], placeholder, proposition, droite, barre, libelleTel, classeDroite = "" }) {
+function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, marcheId = null, cles = [], placeholder, proposition, droite, barre, libelleTel, classeDroite = "", finFil = null }) {
+  const libelleRetour = useContext(RetourBien);
   const outilsChat = useReglagesChatMandataire(["mail", "dossier"]);
   const largeurChat = useLargeurChat();
   const queryClient = useQueryClient();
@@ -797,7 +820,7 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
   const chat = (
     <ChatDashboard lueur dansLeFil={!!p} espace="mandataire" proprietaireId={p?.id || null} dossierVenteId={dossierVenteId} marcheId={marcheId} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
       onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil={placeholder}
-      barreApercu={large} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} reprendre={!!p} />
+      barreApercu={large} sansBarreHaut={!large && conversation} retour={{ libelle: libelleRetour, onClick: onFermer }} reprendre={!!p} finFil={finFil} />
   );
 
   if (large) {
@@ -1010,11 +1033,68 @@ const QUESTIONS = {
 };
 
 /**
+ * Faire entrer un bien qu'on a déjà (4 nov. 2026, Jules : « comme dans les autres pages avec Assistant KPartners » ; « lorsqu'il
+ * crée le dossier, la preview se met à droite comme dans une page éditeur, avec une transition smooth »). D'abord le chat
+ * seul, centré, sous sa question ; au premier message, la colonne du chat glisse à gauche et la vue d'ensemble du bien
+ * arrive à droite, qui se remplit à chaque réponse. Le même arbre avant et après : le chat ne se recharge pas. La
+ * transition ne joue pas pendant qu'on tire la poignée : la colonne suit le curseur sans retard.
+ */
+function EtapeImport({ bien, onAller, onFermer, entete }) {
+  const p = bien.proprietaire;
+  const queryClient = useQueryClient();
+  const outilsChat = useReglagesChatMandataire(["estimation", "mandat", "dossier"]);
+  const largeurChat = useLargeurChat();
+  const [conversation, setConversation] = useState(false);
+  const sansHistorique = useCallback(() => {}, []);
+  const relire = () => ["m-proprietaires", "m-documents-bien", "m-fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+  const finir = useMutation({
+    mutationFn: () => base44.request("POST", `/api/mandataire/proprietaires/${p.id}/import/fini`),
+    onSuccess: relire,
+    onError: (e) => toast.error(e?.message || "Non enregistré"),
+  });
+  return (
+    <div className={`k-page-presentation k-dossier-ia k-bien-ia relative grid h-[100dvh] overflow-hidden ${largeurChat.tire ? "select-none" : "transition-[grid-template-columns] duration-700 ease-[cubic-bezier(.22,1,.36,1)]"}`}
+      style={{ gridTemplateColumns: conversation ? `${largeurChat.largeur}px minmax(0,1fr)` : "minmax(0,1fr) 0px" }}>
+      {conversation && largeurChat.poignee}
+      <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5">
+        {!conversation && entete}
+        {!conversation && (
+          <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 overflow-y-auto py-6 text-center">
+            <h1 className="k-balayage m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Faire entrer ce bien</h1>
+            <p className="mx-auto m-0 max-w-[60ch] text-[14px] text-ardoise">Dites l'adresse et ce que c'est (murs, fonds de commerce, bureaux), puis racontez où vous en êtes, en vocal si vous voulez. Ensuite, ajoutez ce que vous avez avec « + ».</p>
+          </div>
+        )}
+        <div className={conversation ? "min-h-0 w-full flex-1" : "mx-auto w-full max-w-[760px] flex-none pb-8"}>
+          <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
+            onReponse={relire} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="L'adresse, le type, puis où vous en êtes…"
+            barreApercu={conversation} retour={{ libelle: "Mes biens", onClick: onFermer }} reprendre />
+        </div>
+      </div>
+      <div className="k-apercu-bien relative min-h-0 min-w-0 overflow-hidden">
+        <AnimatePresence>
+          {conversation && (
+            <motion.div key="apercu" className="flex h-full min-h-0 flex-col border-l border-trait"
+              initial={{ opacity: 0, x: 48 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 48 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}>
+              <div className="k-barre-apercu flex h-14 flex-none items-center justify-between gap-3 border-b border-trait pl-5 pr-20 text-[12.5px] text-ardoise">
+                <span className="truncate">{bien.titre}</span>
+                <button type="button" onClick={() => finir.mutate()} disabled={finir.isPending} className="inline-flex h-8 flex-none items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>C'est fait</button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto pb-10 pl-6 pr-20 pt-2"><div className="mx-auto max-w-[1180px]"><VueEnsembleBien bien={bien} onAller={onAller} sansImport /></div></div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+/**
  * La Pré-visite (26 oct. 2026, Jules) : le chat du bien à gauche, la fiche et sa préparation à droite, dès l'arrivée.
  * La conversation est celle du bien (gardée sur la fiche) : elle se rouvre d'elle-même en revenant. Raconter la visite
  * lance l'avis, et le bien passe à l'Avis de valeur. Au téléphone, le chat et « Voir la fiche ».
  */
 function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
+  const libelleRetour = useContext(RetourBien);
   const outilsChat = useReglagesChatMandataire(["appel", "mail", "estimation"]);
   const largeurChat = useLargeurChat();
   const p = bien?.proprietaire;
@@ -1054,7 +1134,7 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
   const chat = (
     <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
       onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
-      barreApercu={scinde} sansBarreHaut={!large && conversation} retour={{ libelle: "Tous les biens", onClick: onFermer }} reprendre />
+      barreApercu={scinde} sansBarreHaut={!large && conversation} retour={{ libelle: libelleRetour, onClick: onFermer }} reprendre />
   );
   // Le contenu de la préparation (26 oct. 2026, refait) au-dessus de la fiche, qui ne la répète pas. Au téléphone, la fiche
   // du bien d'abord, la préparation ensuite (31 oct. 2026, Jules).

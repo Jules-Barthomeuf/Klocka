@@ -67,7 +67,7 @@ export const ENTREES_MANDATAIRE = [
   { cle: "MandataireProspection", label: "Prospection" },
   { cle: "MandataireClients", label: "Clients" },
   { cle: "MandataireDocuments", label: "Bibliothèque" },
-  { cle: "MandataireBiens", label: "Biens" },
+  { cle: "MandataireBiens", label: "Mes biens" },
   { cle: "MandataireEstimation", label: "Estimation" },
   { cle: "MandataireMandat", label: "Mandat" },
   { cle: "MandataireDossier", label: "Dossiers" },
@@ -119,7 +119,7 @@ export const MENU_MANDATAIRE = [
   { cle: "MandataireProspection", label: "Prospection" },
   // Biens, une seule entrée (24 oct. 2026, Jules) : tous les biens en cartes, puis un bien suivi comme un dossier de
   // l'équipe, ses étapes à droite (Estimation, Mandat, Analyse, Mise en marché, Offre, Vente).
-  { cle: "MandataireBiens", label: "Biens" },
+  { cle: "MandataireBiens", label: "Mes biens" },
   { cle: "MandataireClients", label: "Clients" },
   // Bibliothèque (2 nov. 2026, Jules) : mandats, avis de valeur, comptes rendus, teasers, offres, tous biens confondus.
   { cle: "MandataireDocuments", label: "Bibliothèque" },

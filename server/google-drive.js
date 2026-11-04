@@ -338,8 +338,9 @@ export async function uploaderEnDoc(compteEmail, { nom, buffer, parentId = null 
  * @param {string} compteEmail
  * @param {{ dossierId?: string, recherche?: string, limite?: number }} options
  */
-export async function listerFichiers(compteEmail, { dossierId = null, recherche = '', limite = 50 } = {}) {
-  const account = await compteDriveEffectif(compteEmail);
+export async function listerFichiers(compteEmail, { dossierId = null, recherche = '', limite = 50, propre = false } = {}) {
+  // `propre` (4 nov. 2026, le « + » partout) : le compte de la personne seul, jamais un autre qui verrait le Drive partagé.
+  const account = propre ? compteDrive(compteEmail) : await compteDriveEffectif(compteEmail);
   const token = await accessTokenFor(account);
   const clauses = ["trashed = false", "not mimeType contains 'application/vnd.google-apps'"];
   if (dossierId) clauses.push(`'${q(dossierId)}' in parents`);
@@ -369,8 +370,8 @@ export async function listerFichiers(compteEmail, { dossierId = null, recherche 
  * ou Slides n'a pas de contenu binaire : il sort en PDF, comme on l'enverrait
  * à la main.
  */
-export async function telechargerFichier(compteEmail, fileId) {
-  const account = await compteDriveEffectif(compteEmail);
+export async function telechargerFichier(compteEmail, fileId, { propre = false } = {}) {
+  const account = propre ? compteDrive(compteEmail) : await compteDriveEffectif(compteEmail);
   const token = await accessTokenFor(account);
   const meta = await driveFetch(
     token,

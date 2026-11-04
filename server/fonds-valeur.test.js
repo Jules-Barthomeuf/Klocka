@@ -93,3 +93,14 @@ test('la page Biens dit ce qu\'on vend : le type de l\'avis, sinon celui de la f
   assert.equal(typeDuBien({ proprietaire: {} })?.mot, 'Murs commerciaux', 'la Prospection cherche les murs par défaut');
   assert.equal(typeDuBien({ dossier: {} }), null, 'rien ne le dit : pas de pastille');
 });
+
+test('le type prospecté suit le bien jusqu\'à l\'avis (3 nov. 2026, Jules)', async () => {
+  const { typeDeLaFiche, reponsesDeLaVisite } = await import('./mandataire-avis.js');
+  assert.equal(typeDeLaFiche({ type_bien: 'fonds_commerce' }), 'fonds_commerce');
+  assert.equal(typeDeLaFiche({ type_bien: 'bureaux' }), 'bureaux');
+  assert.equal(typeDeLaFiche({}), 'murs_commerce', 'une fiche sans type : des murs');
+  const r = reponsesDeLaVisite({ type_bien: 'fonds_commerce', commerce: 'Boulangerie Martin', nom: 'SCI DU PORT', activite: 'Boulangerie', adresse: '1 rue X', ville: 'Lyon' });
+  assert.equal(r.type_bien, 'fonds_commerce');
+  assert.equal(r.demandeur, 'Boulangerie Martin', 'le fonds se vend par son exploitant');
+  assert.equal(r.activite_fonds, 'Boulangerie');
+});

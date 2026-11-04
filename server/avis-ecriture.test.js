@@ -29,11 +29,11 @@ test('les lignes Commerces voisins, Accès et Vacance, écrites depuis les lectu
     transports_300m: { métro: ['Cordeliers'], 'arrêt de bus': ['Opéra'], parking: ['Grolée'] },
     vacance: { taux_estime: 9.4 },
   });
-  assert.equal(l.commerces_voisins, '12 commerces à moins de 150 m, dont 3 cafés ou restaurants ; enseignes voisines : Carrefour City, Paul.');
+  assert.equal(l.commerces_voisins, '12 commerces à 150 m', 'le seul compte : ni métiers ni enseignes');
   assert.equal(l.acces, 'Métro Cordeliers ; Bus Opéra ; Parking Grolée, à moins de 300 m.');
   assert.equal(espace(l.vacance), '9,4 % (taux estimé)');
   // Les commerces que Klocka connaît prennent le relais d'OpenStreetMap.
-  assert.match(lignesDeLEmplacement({ commerces_klocka: { commerces: 5, activites: [{ activite: 'Coiffure', n: 2 }], enseignes_nationales: [{ marque: 'Quick' }] } }).commerces_voisins, /^5 commerces .*coiffure 2.*Quick\.$/);
+  assert.equal(lignesDeLEmplacement({ commerces_klocka: { commerces: 5, activites: [{ activite: 'Coiffure', n: 2 }], enseignes_nationales: [{ marque: 'Quick' }] } }).commerces_voisins, '5 commerces à 150 m');
   assert.deepEqual(lignesDeLEmplacement({}), {});
 });
 

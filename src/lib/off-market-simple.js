@@ -10,9 +10,9 @@ export const FILTRES_SIMPLE = Object.freeze({ texte: "", rue: "", emplacement: "
 // Filtrer, coché comme les autres ; plusieurs cochés, chacun a sa page de filtres. Les murs libres viennent d'une autre
 // source (server/murs-libres.js), leurs filtres aussi (src/lib/murs-libres.js).
 export const OPTIONS_TYPE = [["murs", "Murs occupés"], ["libres", "Murs libres"], ["fonds", "Fonds de commerce"], ["bureaux", "Bureaux"]];
-// Les signaux des bureaux (server/off-market/simple.js, bureauDe).
-export const SIGNAUX_BUREAUX = [["occupant_parti", "Occupant radié ou fermé"], ["demenage", "Siège parti ailleurs"], ["procedure", "Procédure collective"], ["sci_agee", "Gérant de la SCI de 70 ans et plus"]];
-export const BUREAUX_COURTS = { occupant_parti: "Occupant parti", demenage: "Siège parti", procedure: "Procédure collective", sci_agee: "SCI, gérant 70 ans+" };
+// Le signal des bureaux (server/off-market/simple.js, bureauDe) : un seul depuis le 3 nov. 2026, l'occupant parti ailleurs.
+export const SIGNAUX_BUREAUX = [["parti", "Occupant parti ailleurs"]];
+export const BUREAUX_COURTS = { parti: "Occupant parti ailleurs" };
 export const OPTIONS_OCCUPANTS = [["3", "3 occupants et plus"], ["5", "5 occupants et plus"], ["10", "10 occupants et plus"]];
 // Les signaux d'un fonds, comme on les coche (server/off-market/simple.js, fondsDe) : chacun regroupe ses raisons.
 export const SIGNAUX_FONDS = [

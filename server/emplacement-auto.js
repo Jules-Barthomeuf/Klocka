@@ -167,18 +167,9 @@ export function lignesDeLEmplacement(lu = {}) {
   const out = {};
   const osm = lu.commerces_150m;
   const klocka = lu.commerces_klocka;
-  const google = lu.voisins_les_plus_proches;
   const nombre = osm?.nombre > 0 ? osm.nombre : klocka?.commerces > 0 ? klocka.commerces : null;
-  const morceaux = [];
-  if (nombre) {
-    const resto = osm?.nombre > 0 ? osm.restauration : null;
-    morceaux.push(`${nombre} commerce${nombre > 1 ? 's' : ''} à moins de 150 m${resto ? `, dont ${resto} café${resto > 1 ? 's' : ''} ou restaurant${resto > 1 ? 's' : ''}` : ''}`);
-  }
-  if (!osm?.nombre && klocka?.activites?.length) morceaux.push(`surtout ${klocka.activites.slice(0, 4).map((a) => `${String(a.activite).toLowerCase()} ${a.n}`).join(', ')}`);
-  const enseignes = [...new Set([...(osm?.enseignes || []), ...(klocka?.enseignes_nationales || []).map((x) => x.marque)])];
-  if (enseignes.length) morceaux.push(`enseignes voisines : ${liste(enseignes, 6)}`);
-  else if (google?.noms?.length) morceaux.push(`${nombre ? 'les plus proches' : 'Les commerces les plus proches'} : ${liste(google.noms.map((n) => String(n).replace(/\s*\([^()]*\)\s*$/, '')), 6)}`);
-  if (morceaux.length) out.commerces_voisins = `${morceaux.join(' ; ').replace(/^./, (c) => c.toUpperCase())}.`;
+  // Le seul compte (3 nov. 2026, Jules : « juste 98 commerces à 150 m ») : ni métiers, ni enseignes, ni voisins.
+  if (nombre) out.commerces_voisins = `${nombre} commerce${nombre > 1 ? 's' : ''} à 150 m`;
 
   const t = lu.transports_300m;
   const transports = t ? GENRES_TRANSPORT.filter(([k]) => t[k]?.length).map(([k, mot]) => `${mot} ${liste(t[k], 3)}`) : [];

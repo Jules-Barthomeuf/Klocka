@@ -407,8 +407,28 @@ export async function bureauxDuSecteur(user) {
     r.total = r.points.length;
     if (!r.points.length) r.pourquoi_vide = 'Aucun bureau recensé dans les villes de votre secteur pour l’instant.';
     const { gzipSync } = await import('zlib');
-    return { ok: true, gzip: gzipSync(Buffer.from(JSON.stringify(r))), total: r.total };
+    const gzip = gzipSync(Buffer.from(JSON.stringify(r)));
+    try { Meta.set(bureauxSurDisque(user), gzip.toString('base64')); } catch { /* le cache en mémoire suffit */ }
+    return { ok: true, gzip, total: r.total };
   });
+}
+
+/**
+ * Les bureaux tout de suite (3 nov. 2026, Jules : « pourquoi je ne vois pas les bureaux ? ») : comme la carte des
+ * commerces, le dernier calcul gardé (mémoire, sinon disque) sert pendant que le suivant se fait ; le calcul (dix
+ * secondes à Lyon) se prépare au démarrage avec les secteurs.
+ */
+const bureauxSurDisque = (user) => `mandataire.bureaux.v2:${emailDe(user)}`;
+export async function bureauxDuSecteurVite(user) {
+  const garde = caches.get(`bureaux:${emailDe(user)}`);
+  if (encoreBon(garde, signatures())) return garde.valeur;
+  const calcul = bureauxDuSecteur(user);
+  if (garde?.valeur?.ok) { calcul.catch(() => {}); return garde.valeur; }
+  try {
+    const b = Meta.get(bureauxSurDisque(user));
+    if (b) { calcul.catch(() => {}); return { ok: true, gzip: Buffer.from(b, 'base64') }; }
+  } catch { /* on attend le calcul */ }
+  return calcul;
 }
 
 /**
@@ -482,13 +502,15 @@ export async function preparerLesSecteurs() {
       // Une carte encore vide (les villes d'un secteur neuf se lisent en fond) se refait au tour suivant.
       let prete = null;
       try { prete = JSON.parse(Meta.get(clePrete(email)) || 'null'); } catch { /* à refaire */ }
-      if (prete?.points && prete.le >= (s.updated_date || '')) continue;
+      // `bureaux` absent : une carte préparée avant les bureaux (3 nov. 2026), refaite une fois pour eux.
+      if (prete?.points && prete.bureaux != null && prete.le >= (s.updated_date || '')) continue;
       // Le vrai compte : l'équipe voit aussi les clients de test, et le résultat est gardé par adresse.
       const user = Records.findBy('User', 'email', email) || { email, role: 'mandataire' };
       try {
         await prospecterEnCache(user);
         const carte = await pointsDuSecteurCompresses(user);
-        Meta.set(clePrete(email), JSON.stringify({ le: new Date().toISOString(), points: carte.total || 0 }));
+        const bureaux = await bureauxDuSecteur(user);
+        Meta.set(clePrete(email), JSON.stringify({ le: new Date().toISOString(), points: carte.total || 0, bureaux: bureaux.total || 0 }));
         n += 1;
       } catch (e) { console.warn(`[prospection] ${email} : ${e?.message || e}`); }
     }

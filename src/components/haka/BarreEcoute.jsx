@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, Square, X } from "lucide-react";
+import { ArrowUp, Check, Square, X } from "lucide-react";
 
 // Le mode micro du chat de Haka (25 oct. 2026, maquette « Rubans » de Jules) : pendant la dictée, la barre du bas
 // devient Annuler, trois rubans qui ondulent avec la voix, le minuteur et Envoyer ; la lumière de l'aura ralentit et
@@ -55,7 +55,7 @@ export function useAuraPosee(cadre, ecoute) {
  * @param {{ niveau: {current: number}, cadre: {current: HTMLElement|null}, onAnnuler: () => void, onEnvoyer: () => void, peutEnvoyer?: boolean, envoi?: boolean }} props
  *   `envoi` : la flèche a été cliquée, le message part dès que les derniers mots sont écrits.
  */
-export default function BarreEcoute({ niveau, cadre, onAnnuler, onEnvoyer, peutEnvoyer = true, envoi = false }) {
+export default function BarreEcoute({ niveau, cadre, onAnnuler, onEnvoyer, onTerminer = null, peutEnvoyer = true, envoi = false }) {
   const rubans = [useRef(null), useRef(null), useRef(null)];
   const [secondes, setSecondes] = useState(0);
   useEffect(() => {
@@ -105,6 +105,13 @@ export default function BarreEcoute({ niveau, cadre, onAnnuler, onEnvoyer, peutE
         {rubans.map((r, i) => <path key={i} ref={r} vectorEffect="non-scaling-stroke" />)}
       </svg>
       <span className="flex-none text-[14px] tabular-nums text-ardoise">{Math.floor(secondes / 60)}:{String(secondes % 60).padStart(2, "0")}</span>
+      {/* Terminer sans envoyer (4 nov. 2026, Jules) : le texte reste dans la saisie, on joint des documents, puis on envoie. */}
+      {onTerminer && (
+        <button type="button" onClick={onTerminer} disabled={envoi} aria-label="Terminer sans envoyer" title="Terminer sans envoyer"
+          className="grid h-9 w-9 flex-none place-items-center rounded-full text-craie transition-colors hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}>
+          <Check className="h-[18px] w-[18px]" strokeWidth={2} />
+        </button>
+      )}
       <button type="button" onClick={onEnvoyer} disabled={!peutEnvoyer || envoi} aria-busy={envoi} aria-label="Terminer et envoyer" title="Terminer et envoyer"
         className={`grid h-9 w-9 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe ${envoi ? "" : "disabled:opacity-30"}`} style={{ background: "transparent" }}>
         {envoi ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}

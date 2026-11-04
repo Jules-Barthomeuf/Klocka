@@ -18,6 +18,8 @@ test('les commerces voisins : le bien exclu, au-delà du rayon ignorés, activit
     { id: 'b', lat: 43.5776, lon: 7.1184, activite: 'Coiffure', enseigne: 'Coiffure Bis' },
     { id: 'c', lat: 43.5778, lon: 7.1187, activite: 'Restauration rapide', enseigne: 'Quick' },
     { id: 'loin', lat: 43.59, lon: 7.13, activite: 'Banque', enseigne: 'BNP' },
+    { id: 'siege', lat: 43.5775, lon: 7.1185, activite: 'Messagerie', classe: 'entrepot' },
+    { id: 'conseil', lat: 43.5775, lon: 7.1185, activite: 'Conseil en entreprise', classe: 'bureau' },
   ];
   const v = voisinage(p, c, { exclure: 'bien', marque: (n) => (n === 'Quick' ? { n: 'Quick' } : null) });
   assert.equal(v.commerces, 3);
@@ -36,9 +38,11 @@ test('la vacance lisible : le taux et les rues, pas les locaux un à un', () => 
 });
 
 test("l'environnement gardé sert pour la même adresse, sept jours", () => {
-  const le = new Date('2026-11-01T10:00:00Z').toISOString();
+  const le = new Date('2026-11-04T10:00:00Z').toISOString();
   const e = { environnement: { adresse: '35 bd Wilson', le } };
-  assert.equal(environnementFrais(e, '35 bd Wilson', Date.parse('2026-11-03T10:00:00Z')), true);
-  assert.equal(environnementFrais(e, '12 rue Sade', Date.parse('2026-11-03T10:00:00Z')), false);
-  assert.equal(environnementFrais(e, '35 bd Wilson', Date.parse('2026-11-09T10:00:00Z')), false);
+  assert.equal(environnementFrais(e, '35 bd Wilson', Date.parse('2026-11-06T10:00:00Z')), true);
+  assert.equal(environnementFrais(e, '12 rue Sade', Date.parse('2026-11-06T10:00:00Z')), false);
+  assert.equal(environnementFrais(e, '35 bd Wilson', Date.parse('2026-11-12T10:00:00Z')), false);
+  const avant = { environnement: { adresse: '35 bd Wilson', le: '2026-11-02T10:00:00.000Z' } };
+  assert.equal(environnementFrais(avant, '35 bd Wilson', Date.parse('2026-11-03T15:00:00Z')), false, 'lu quand les bureaux comptaient : relu');
 });

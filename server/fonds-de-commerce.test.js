@@ -88,27 +88,27 @@ test('les bureaux : leurs signaux, un point par immeuble, la page Bureaux', asyn
   const { passeBureau } = await import('../src/lib/off-market-simple.js');
   const b = (x) => bureauDe({ classe: 'bureau', adresse: '12 RUE DE LA REPUBLIQUE', ...x }, { maintenantMs: MAINTENANT }).map((s) => s.cle);
   assert.deepEqual(b({}), []);
-  assert.deepEqual(b({ evenements: [{ type: 'radiation ou dissolution', date: '2026-03-01' }] }), ['occupant_parti']);
-  assert.deepEqual(b({ evenements: [{ type: 'procédure collective', date: '2026-03-01' }] }), ['procedure']);
-  assert.deepEqual(b({ evenements: [{ type: 'transfert de siège', date: '2026-06-01' }], exploitant: { siege: { adresse: '4 AVENUE FOCH 69006 LYON' } } }), ['demenage'], 'le siège est parti ailleurs');
-  assert.deepEqual(b({ evenements: [{ type: 'transfert de siège', date: '2026-06-01' }], exploitant: { siege: { adresse: '12 RUE DE LA REPUBLIQUE 69002 LYON' } } }), [], 'le siège est arrivé ici');
-  assert.deepEqual(b({ proprietaire: { gerants: [{ tranche_age: '70+' }] } }), ['sci_agee']);
+  // Un seul signal (3 nov. 2026, Jules : « simplifie ») : l'occupant parti à une autre adresse depuis moins d'un an.
+  assert.deepEqual(b({ demenagement: { ferme_le: '2026-06-01', vers: { adresse: '4 AVENUE FOCH 69006 LYON' } } }), ['parti']);
+  assert.match(bureauDe({ classe: 'bureau', demenagement: { ferme_le: '2026-06-01', vers: { adresse: '4 AVENUE FOCH 69006 LYON' } } }, { maintenantMs: MAINTENANT })[0].texte, /parti au 4 AVENUE FOCH 69006 LYON en juin 2026/);
+  assert.deepEqual(b({ demenagement: { ferme_le: '2024-01-01' } }), [], 'parti il y a plus d’un an');
+  assert.deepEqual(b({ evenements: [{ type: 'procédure collective', date: '2026-03-01' }], proprietaire: { gerants: [{ tranche_age: '70+' }] } }), [], 'les anciens signaux ne comptent plus');
   assert.deepEqual(bureauDe({ classe: 'commerce', evenements: [{ type: 'procédure collective', date: '2026-03-01' }] }), [], 'un commerce n’a pas de signal de bureau');
   const pts = parImmeuble([
     { id: 'a', lat: 45.1, lon: 4.8, titre: 'Cabinet A', adresse: '12 rue X', bureaux: [] },
-    { id: 'b', lat: 45.1, lon: 4.8, titre: 'Conseil B', adresse: '12 rue X', bureaux: ['demenage'], proprietaire: 'SCI X' },
+    { id: 'b', lat: 45.1, lon: 4.8, titre: 'Conseil B', adresse: '12 rue X', bureaux: ['parti'], proprietaire: 'SCI X' },
     { id: 'c', lat: 45.2, lon: 4.8, titre: 'Agence C', bureaux: [] },
   ]);
   assert.equal(pts.length, 2);
   assert.equal(pts[0].id, 'b', 'l’occupant au signal porte la fiche');
   assert.equal(pts[0].occupants, 2);
-  assert.deepEqual(pts[0].bureaux, ['demenage']);
+  assert.deepEqual(pts[0].bureaux, ['parti']);
   assert.equal(pts[0].titre, '12 rue X');
   const f = { ...FILTRES_SIMPLE, emplacement: 'partout', types: ['bureaux'] };
-  assert.equal(passeSimple({ classe: 'bureau', bureaux: ['demenage'], occupants: 2 }, f), true);
+  assert.equal(passeSimple({ classe: 'bureau', bureaux: ['parti'], occupants: 2 }, f), true);
   assert.equal(passeSimple({ classe: 'bureau', bureaux: [], occupants: 12 }, f), false, 'sans signal, pas sur la carte');
   assert.equal(passeSimple({ classe: 'commerce', lien: 'tiers', drapeaux: [], fonds: [] }, f), false, 'un commerce n’est pas un bureau');
   assert.equal(passeSimple({ classe: 'bureau', lien: 'tiers', drapeaux: [], bureaux: [] }, { ...FILTRES_SIMPLE, emplacement: 'partout', classes: ['bureau'] }), true, 'l’Off-market de l’équipe garde ses bureaux');
-  assert.equal(passeBureau({ classe: 'bureau', bureaux: ['demenage'], occupants: 2 }, { ...f, occupants: '3' }), false);
-  assert.equal(passeSimple({ classe: 'bureau', bureaux: ['sci_agee'] }, { ...f, types: ['murs', 'bureaux'] }), true, 'murs et bureaux ensemble');
+  assert.equal(passeBureau({ classe: 'bureau', bureaux: ['parti'], occupants: 2 }, { ...f, occupants: '3' }), false);
+  assert.equal(passeSimple({ classe: 'bureau', bureaux: ['parti'] }, { ...f, types: ['murs', 'bureaux'] }), true, 'murs et bureaux ensemble');
 });

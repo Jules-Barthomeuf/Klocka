@@ -62,6 +62,14 @@ const MARCHE_VENDU = new Set(["acte", "commission_payee"]);
  * commercialisation aussi) ; mis en vente, la Data room ; présenté, la Commercialisation ; compromis, les Offres ;
  * acte, la Vente.
  */
+// Un bien importé encore sans nom porte son adresse (4 nov. 2026, Jules : « au lieu de Nouveau bien, l'adresse »).
+const nomDuBien = (p) => {
+  if (!p) return "";
+  if (p.nom_bien) return p.nom_bien;
+  if (p.commerce === "Nouveau bien" && p.adresse) return p.adresse;
+  return [p.commerce || p.nom, p.ville].filter(Boolean).join(" · ");
+};
+
 export function etapesFaites(b) {
   const m = b?.marche;
   const faites = new Set();
@@ -188,7 +196,7 @@ export function regrouperBiens({ estimations = [], mandats = [], dossiers = [], 
       ...lui,
       cle: premier,
       ids: [p && `proprietaire:${p.id}`, b.estimation && `estimation:${b.estimation.id}`, b.mandat && `mandat:${b.mandat.id}`, b.dossier && `dossier:${b.dossier.id}`, b.marche && `marche:${b.marche.id}`].filter(Boolean),
-      titre: b.dossier?.bien || b.mandat?.bien || b.estimation?.bien || b.marche?.bien || [p?.commerce || p?.nom, p?.ville].filter(Boolean).join(" · ") || "Bien sans nom",
+      titre: p?.nom_bien || b.dossier?.bien || b.mandat?.bien || b.estimation?.bien || b.marche?.bien || nomDuBien(p) || "Bien sans nom",
       adresse: b.dossier?.adresse || b.estimation?.adresse || b.mandat?.questionnaire?.bien_adresse || p?.adresse || null,
       exemple: !!source?.exemple,
       // Un bien de test (31 oct. 2026) : une de ses pièces marquée `test`, ou le Bien d'essai ; l'équipe seule en a.
@@ -214,7 +222,7 @@ export function bienDuProprietaire(proprietaires, cle) {
   const p = id ? proprietaires.find((x) => x.id === id) : null;
   if (!p) return null;
   const b = { proprietaire: p, estimation: null, mandat: null, dossier: null, marche: null };
-  return { ...b, cle, ids: [cle], titre: [p.commerce || p.nom, p.ville].filter(Boolean).join(" · ") || "Propriétaire", adresse: p.adresse || null, exemple: false, test: !!(p.test || p.essai_bien), etape: etapeDuBien(b), type: typeDuBien(b), statut: statutDuBien(b), faites: etapesFaites(b), modifie: p.cree_le || null };
+  return { ...b, cle, ids: [cle], titre: nomDuBien(p) || "Propriétaire", adresse: p.adresse || null, exemple: false, test: !!(p.test || p.essai_bien), etape: etapeDuBien(b), type: typeDuBien(b), statut: statutDuBien(b), faites: etapesFaites(b), modifie: p.cree_le || null };
 }
 
 /** Pure : l'avis est parti et le propriétaire n'a pas encore répondu (le filtre « Estimation envoyée »). */

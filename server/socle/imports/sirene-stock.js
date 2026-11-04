@@ -29,7 +29,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_entrepot_sirene_siren ON entrepot_sirene(siren);
 `);
 // Le nom et la catégorie juridique de l'entreprise : du fichier des unités légales, en seconde passe.
-for (const col of ['denomination TEXT', 'categorie_juridique TEXT']) {
+// L'effectif et le complément d'adresse (3 nov. 2026) : les bureaux vides (server/bureaux-vides.js) écartent le consultant
+// chez lui et la vitrine du rez-de-chaussée.
+for (const col of ['denomination TEXT', 'categorie_juridique TEXT', 'tranche_effectifs TEXT', 'complement_adresse TEXT']) {
   try { db.exec(`ALTER TABLE entrepot_sirene ADD COLUMN ${col}`); } catch { /* déjà là */ }
 }
 
@@ -141,7 +143,7 @@ export async function importerSireneStock({ departement, url = null, urlUnites =
   if (!r.ok || !r.body) throw new Error(`Téléchargement du stock : ${r.status}`);
   const depuis = new Date(Date.now() - HUIT_ANS * 365.25 * 86400000).toISOString().slice(0, 10);
   const ins = db.prepare(`INSERT OR REPLACE INTO entrepot_sirene (siret, siren, departement, commune, code_postal, etat, date_debut, date_creation, siege, naf,
-    enseigne, denomination_usuelle, numero, indice, type_voie, voie, libelle_commune, x, y, millesime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    enseigne, denomination_usuelle, numero, indice, type_voie, voie, libelle_commune, x, y, millesime, tranche_effectifs, complement_adresse) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   let entetes = null;
   let lues = 0;
   let gardees = 0;
@@ -161,7 +163,7 @@ export async function importerSireneStock({ departement, url = null, urlUnites =
       l.dateCreationEtablissement || null, l.etablissementSiege === 'true' ? 1 : 0, l.activitePrincipaleEtablissement || null, l.enseigne1Etablissement || null,
       l.denominationUsuelleEtablissement || null, l.numeroVoieEtablissement || null, l.indiceRepetitionEtablissement || null, l.typeVoieEtablissement || null,
       l.libelleVoieEtablissement || null, l.libelleCommuneEtablissement || null, Number(l.coordonneeLambertAbscisseEtablissement) || null,
-      Number(l.coordonneeLambertOrdonneeEtablissement) || null, stock.millesime]);
+      Number(l.coordonneeLambertOrdonneeEtablissement) || null, stock.millesime, l.trancheEffectifsEtablissement || '', l.complementAdresseEtablissement || '']);
     if (lot.length >= 2000) vider();
     if (lues % 2000000 === 0) surProgres?.(`${(lues / 1e6).toFixed(0)} millions de lignes lues, ${gardees} gardées`);
   }

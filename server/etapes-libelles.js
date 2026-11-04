@@ -122,6 +122,9 @@ const LIBELLES = {
   mes_rappels: () => 'Lecture de vos rappels',
   demandes_clients: (i) => `Lecture des demandes clients${entre(i.ville)}`,
   avis_de_marche: (i) => `Lecture du marché${entre(i.adresse || i.qui)}`,
+  documents_du_bien: () => 'Lecture des documents du bien',
+  lire_document: (i) => `Lecture du document${entre(i.document)}`,
+  reprendre_bien: () => 'Mise à jour du bien',
 };
 
 /** Pure : la ligne à afficher quand l'outil part. */

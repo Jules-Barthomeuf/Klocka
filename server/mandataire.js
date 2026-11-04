@@ -240,7 +240,7 @@ const OUTILS_MARCHE_MANDATAIRE = [
   },
   {
     name: 'loyers_marche',
-    description: "Les loyers commerciaux au m² autour d'une adresse : les baux constatés par Equimmox, Data-B (rue, quartier, ville) en repli. « Quel loyer dans cette rue ? », « le loyer est-il au marché ? ». Une lecture de moins de trente jours est reprise. Seules sources de loyer : jamais un chiffre de tête.",
+    description: "Les loyers commerciaux au m² autour d'une adresse (rue, quartier, ville) : Data-B, Equimmox en repli, la même lecture que l'avis de valeur. « Quel loyer dans cette rue ? », « le loyer est-il au marché ? ». Une lecture de moins de trente jours est reprise. Seules sources de loyer : jamais un chiffre de tête.",
     input_schema: { type: 'object', properties: { adresse: { type: 'string' } }, required: ['adresse'] },
   },
   {
@@ -742,12 +742,15 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     return executerOutil({ name: 'donnees_commune', input: { commune: input.commune } }, user);
   }
   if (name === 'loyers_marche') {
-    const { valeurLocative } = await import('./valeur-locative.js');
-    const r = await valeurLocative(String(input.adresse || ''), { user });
-    if (!r.ok) return r;
-    const x = r.resultat || {};
+    // La même lecture que l'avis (3 nov. 2026, Jules : le chat citait Equimmox, l'avis Data-B, deux fourchettes) :
+    // celle gardée sur une estimation de cette adresse, sinon Data-B, Equimmox en repli.
+    const A = await import('./mandataire-avis.js');
+    const adresse = String(input.adresse || '');
+    const gardee = Records.list('EstimationMandataire').find((e) => e.mandataire_email === user?.email && A.lectureFraiche(e.valeur_locative_lue, adresse));
+    const x = gardee?.valeur_locative_lue?.resultat || await A.lireValeurLocative(adresse, user, { bavard: false });
+    if (!x) return { ok: false, error: 'Aucune valeur locative lisible ici : ni Data-B ni Equimmox n\'ont répondu.' };
     const niveau = (n) => (n ? { bas: n.basse ?? null, moyenne: n.moyenne ?? null, haut: n.haute ?? null } : null);
-    return { ok: true, source: x.source || 'Equimmox, Data-B', unite: '€/m²/an', rue: niveau(x.rue), quartier: niveau(x.quartier), ville: niveau(x.ville), du_cache: !!r.du_cache };
+    return { ok: true, source: x.source || 'Data-B', unite: '€ HT HC/m²/an', rue: niveau(x.rue), quartier: niveau(x.quartier), ville: niveau(x.ville), note: "La même lecture que la valeur locative de l'avis : cite-la telle quelle, ne la contredis pas." };
   }
   if (name === 'prix_murs') {
     const { analysePrix } = await import('./equimmox.js');
@@ -1519,6 +1522,10 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   // Le dossier de vente (27 oct. 2026, Jules : « le chat va piloter toute cette partie ») : ouvert à l'écran, ou celui du
   // mandat de la fiche. Haka lit son état, propose le geste suivant et a ses outils.
   const V = await import('./dossier-vente.js');
+  // Les documents du bien ouvert (3 nov. 2026) : l'assistant les liste et les lit pour répondre dessus.
+  const DB = await import('./documents-du-bien.js');
+  // Un bien en cours d'import (4 nov. 2026) : l'assistant remplit sa fiche depuis le récit du mandataire.
+  const BR = await import('./bien-repris.js');
   const dossierVente = V.dossierDuContexte({ dossier_vente_id, fiche: ficheOuverte }, user);
   let surVente = '';
   if (dossierVente && !['go', 'no_go'].includes(dossierVente.statut)) {
@@ -1541,10 +1548,10 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   const trace = [];
   const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire', par: user?.email || null }, signal, surTexte,
     // La consigne stable en cache ; la date, le secteur et la prospection ouverte après (1.7, 12 oct. 2026).
-    system: [{ texte: consigne(), cache: true }, { texte: `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.${cadre}${surPage}${surDossier}${surFiche}${surBien}${surVente}${surTeaser}${surSortie}${surCompetence}${surSources}` }],
+    system: [{ texte: consigne(), cache: true }, { texte: `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.${cadre}${surPage}${surDossier}${surFiche}${surBien}${BR.cadreImport(ficheOuverte)}${surVente}${surTeaser}${surSortie}${surCompetence}${surSources}` }],
     cache: true,
     messages,
-    tools: [...OUTILS_MANDATAIRE, ...OUTILS_MARCHE_MANDATAIRE, ...(ouverte ? [OUTIL_AFFINER, OUTIL_RESULTATS] : []), ...(surVente ? V.OUTILS_DOSSIER_VENTE : []), ...(surTeaser ? [TZ.OUTIL_TEASER] : [])]
+    tools: [...OUTILS_MANDATAIRE, ...OUTILS_MARCHE_MANDATAIRE, ...(ouverte ? [OUTIL_AFFINER, OUTIL_RESULTATS] : []), ...(surVente ? V.OUTILS_DOSSIER_VENTE : []), ...(surTeaser ? [TZ.OUTIL_TEASER] : []), ...(ficheOuverte ? DB.OUTILS_DOCUMENTS : []), ...(ficheOuverte?.biens?.import && !ficheOuverte.biens.import.fini ? [BR.OUTIL_REPRENDRE] : [])]
       .filter((o) => !choisies.length || !OUTILS_DE_DONNEES.has(o.name) || permis.has(o.name)),
     onTool: tracer(async (appel) => {
       // Stop : plus aucune écriture, le modèle est prié de conclure sur l'acquis.
@@ -1569,6 +1576,10 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
       }
       const r = appel.name === 'modifier_teaser'
         ? await TZ.executerOutilTeaser(appel, user, { marche_id: marcheOuvert?.id || null })
+        : appel.name === 'reprendre_bien'
+        ? BR.executerReprise(appel.input || {}, user, { fiche: ficheOuverte })
+        : DB.NOMS_DOCUMENTS.has(appel.name)
+        ? await DB.executerOutilDocuments(appel, user, { fiche: ficheOuverte })
         : V.NOMS_DOSSIER_VENTE.has(appel.name)
         ? await V.executerOutilDossier(appel, user, { dossier_vente_id: dossierVente?.id || null, fiche: ficheOuverte })
         : await executerOutilMandataire(appel, user, { pieces: lot, fiche: ficheOuverte, texte });

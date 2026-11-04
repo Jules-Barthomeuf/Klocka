@@ -90,7 +90,7 @@ export async function depuisLeStock({ url = null, surProgres = null } = {}) {
  * Les octets du stock, repris là où ils se sont arrêtés (3 nov. 2026 : data.gouv.fr cesse d'envoyer au milieu des
  * 2,9 Go). Trois minutes sans un octet, ou une erreur : on redemande la suite exacte (en-tête Range), dix fois au plus.
  */
-async function* morceauxReprenables(url, { surProgres = null, essais = 10, silenceMs = 3 * 60_000 } = {}) {
+export async function* morceauxReprenables(url, { surProgres = null, essais = 10, silenceMs = 3 * 60_000 } = {}) {
   let recus = 0;
   for (let essai = 0; ; essai += 1) {
     const arret = new AbortController();

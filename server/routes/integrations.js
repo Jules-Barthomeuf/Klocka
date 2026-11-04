@@ -29,6 +29,45 @@ async function resolveFileText(url) {
 
 /** Monte les routes « integrations » sur l'application. */
 export function monterIntegrations(app) {
+  // Le « + » partout (4 nov. 2026, Jules : « importer un fichier depuis l'ordi, ou depuis le Drive ») : les fichiers du
+  // Drive de la personne, puis le contenu d'un fichier choisi, que l'écran dépose comme un fichier de l'ordinateur.
+  // Son propre compte Google seulement (`propre`) : jamais celui d'un autre, ni le Drive partagé de l'équipe par lui.
+  const compteDrivePropre = async (user) => {
+    const { listAccounts } = await import('../email.js');
+    return (listAccounts(user?.email) || []).find((a) => a.peut_drive)?.id || null;
+  };
+  app.get('/api/drive/mes-fichiers', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connexion requise.' });
+    const compte = await compteDrivePropre(user);
+    if (!compte) return ok(res, { compte: null, fichiers: [] });
+    const { listerFichiers } = await import('../google-drive.js');
+    ok(res, { compte, fichiers: await listerFichiers(compte, { recherche: String(req.query?.recherche || '').trim().slice(0, 100), propre: true }) });
+  }));
+  // Le vrai Google Drive (4 nov. 2026, Jules : « il faut que ça ouvre le vrai Google Drive ») : le sélecteur de Google
+  // (Picker) s'ouvre dans la page avec le jeton du compte Google de la personne ; app_id, le numéro du projet Google
+  // (le début de GOOGLE_CLIENT_ID), donne à l'application les fichiers choisis quand la portée est drive.file.
+  app.get('/api/drive/jeton', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connexion requise.' });
+    const compte = await compteDrivePropre(user);
+    if (!compte) return ok(res, { compte: null });
+    const { storedAccount, accessTokenFor } = await import('../google-oauth.js');
+    const jeton = await accessTokenFor(storedAccount(compte));
+    ok(res, { compte, jeton, app_id: (String(process.env.GOOGLE_CLIENT_ID || '').match(/^(\d+)-/) || [])[1] || null });
+  }));
+  app.get('/api/drive/mes-fichiers/:id/contenu', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connexion requise.' });
+    const compte = await compteDrivePropre(user);
+    if (!compte) return res.status(400).json({ error: "Aucun compte Google avec accès Drive n'est connecté." });
+    const { telechargerFichier } = await import('../google-drive.js');
+    const f = await telechargerFichier(compte, String(req.params.id), { propre: true });
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('X-Nom-Fichier', encodeURIComponent(f.nom || 'fichier'));
+    res.send(f.buffer);
+  }));
+
   // ---------------------------------------------------------------------------
   // Integrations (Core)
   // ---------------------------------------------------------------------------

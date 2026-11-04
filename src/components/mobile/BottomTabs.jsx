@@ -15,7 +15,7 @@ const TABS_CLIENT = [
 const TABS_MANDATAIRE = [
   { label: "Accueil", icon: LayoutDashboard, page: "Dashboard" },
   { label: "Prospection", icon: MapPin, page: "MandataireProspection" },
-  { label: "Biens", icon: Folder, page: "MandataireBiens" },
+  { label: "Mes biens", icon: Folder, page: "MandataireBiens" },
 ];
 
 export default function BottomTabs({ vue = "client", onMenu = null, menuOuvert = false }) {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
 import { FRISE } from "@/lib/dossiers-architecture";
 
 // Les étapes d'un dossier ouvert : le menu de droite (grand écran) et la frise
@@ -50,7 +50,9 @@ export function FriseDossier({ vue, atteinte = 1, onAller, occupe = false, etape
 // `telephone` : il sert aussi au téléphone, à la place de la frise, collé au bord (25 oct. 2026, Jules, pour les biens).
 // `intitule`, `numeros`, `memoire` : le même menu pour des onglets (la Prospection, 25 oct. 2026, Jules) : son titre, pas de
 // numéro dans les ronds, et sa propre mémoire ouvert / fermé et position.
-export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onValider = null, telephone = false, intitule = "Étapes", numeros = true, memoire = "klocka.dossier.etapes" }) {
+// `tete` (3 nov. 2026, Jules : la vue d'ensemble du bien) : une entrée sans numéro au-dessus des étapes, séparée d'elles,
+// hors du compte « 4/7 » ; `enCours` dit l'étape comptée quand c'est elle qui est ouverte.
+export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onValider = null, telephone = false, intitule = "Étapes", numeros = true, memoire = "klocka.dossier.etapes", tete = null, enCours = null }) {
   const [petitEcran] = useState(() => telephone && typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
   // Au téléphone, l'état ouvert / fermé est gardé à part, et fermé par défaut (26 oct. 2026).
   const cleOuvert = petitEcran ? `${memoire}.tel` : memoire;
@@ -66,7 +68,7 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
   const basculer = () => setOuvert((o) => { try { localStorage.setItem(cleOuvert, o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
   // Une page choisie dans le menu ouvert : on y arrive menu fermé (29 oct. 2026, Jules).
   const fermer = () => { setOuvert(false); try { localStorage.setItem(cleOuvert, "ferme"); } catch { /* navigation privée */ } };
-  const ici = Math.max(0, items.findIndex((o) => o.cle === valeur));
+  const ici = Math.max(0, items.findIndex((o) => o.cle === (tete && valeur === tete.cle ? enCours : valeur)));
   // Au téléphone, le menu part du haut de l'écran, sous le titre, et non du milieu (26 oct. 2026) : au milieu, il couvrait
   // le bouton Envoyer du chat. Il se glisse plus bas s'il gêne ; sa position est gardée à part.
   const cleY = petitEcran ? `${memoire}.y.tel` : `${memoire}.y`;
@@ -106,6 +108,14 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
               <button type="button" onClick={cliquer} aria-label={`Fermer le menu : ${intitule}`} title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
             </div>
             <nav className="flex flex-col p-1.5">
+              {tete && (
+                <button type="button" onClick={() => { onChange(tete.cle); fermer(); }} disabled={occupe} aria-current={valeur === tete.cle ? "page" : undefined}
+                  className={`mb-1.5 flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${valeur === tete.cle ? "bg-rail-actif text-encre" : "text-craie hover:bg-rail-actif hover:text-encre"}`} style={valeur === tete.cle ? undefined : { background: "transparent" }}>
+                  <span className="grid h-[20px] w-[20px] flex-none place-items-center text-ardoise"><LayoutGrid className="h-3.5 w-3.5" /></span>
+                  <span className="min-w-0 truncate">{tete.titre}</span>
+                </button>
+              )}
+              {tete && <span aria-hidden className="mx-3 mb-1.5 border-t border-trait" />}
               {items.map((o) => {
                 const actif = valeur === o.cle;
                 return (
@@ -138,6 +148,14 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
           <motion.div key="ferme" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }}
             className={`flex flex-col items-center rounded-[16px] border border-bord-doux bg-rail shadow-[0_16px_40px_rgb(0_0_0/0.3)] ${petitEcran ? "w-[40px] gap-1 py-2" : "w-[44px] gap-3 py-3"}`}>
             <button type="button" onPointerDown={attraper} onClick={cliquer} aria-label={`Ouvrir le menu : ${intitule}`} title="Cliquer pour ouvrir · tenir et glisser pour déplacer" className="grid h-6 w-6 cursor-grab touch-none place-items-center rounded-full text-ardoise transition-colors hover:text-encre active:cursor-grabbing" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
+            {tete && (
+              <button type="button" onClick={() => onChange(tete.cle)} disabled={occupe} aria-label={tete.titre}
+                className={`group/point relative grid h-5 w-5 place-items-center rounded-[6px] transition-colors ${valeur === tete.cle ? "text-encre" : "text-brume hover:text-craie"}`} style={{ background: "transparent" }}>
+                <span className="pointer-events-none absolute right-full top-1/2 mr-4 hidden -translate-y-1/2 whitespace-nowrap rounded-full border border-bord-doux bg-rail px-3 py-1 text-[13px] text-encre shadow-[0_8px_24px_rgb(0_0_0/0.25)] group-hover/point:block">{tete.titre}</span>
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {tete && <span aria-hidden className="w-5 border-t border-trait" />}
             {items.map((o) => {
               const actif = valeur === o.cle;
               return (

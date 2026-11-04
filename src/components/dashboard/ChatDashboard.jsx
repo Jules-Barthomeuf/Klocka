@@ -17,6 +17,7 @@ import { avis, poser, toast } from "@/components/ui/avis";
 import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, CalendarCheck, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BarreEcoute, { useAuraPosee } from "@/components/haka/BarreEcoute";
+import { useAjoutFichier } from "@/components/ui/ajout-fichier";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import { telLisible } from "@/components/dashboard/CeQuiVousAttend";
@@ -1064,7 +1065,7 @@ function MessageAvecPiece({ m }) {
 // `lueur` : une lumière fait lentement le tour du cadre de la saisie, pour qu'on la voie (la fiche d'un commerce, 25 oct. 2026, Jules).
 // Dans tous les chats depuis le 26 oct. 2026 (Jules : « dans le dashboard, dans admin, dans tous les chats ») : `lueur={false}` l'éteint.
 // `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
-export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null }) {
+export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null, finFil = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026) ; depuis le 1er nov. 2026 (Jules : « un
   // fil par bien »), l'Avis de valeur et le Mandat d'un bien aussi : un seul fil, seul le moteur qui répond change.
@@ -1921,6 +1922,9 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     joindre(e.dataTransfer?.files);
   };
 
+  // Le « + » : l'ordinateur ou Google Drive (4 nov. 2026, Jules).
+  const ajoutFichier = useAjoutFichier({ onOrdinateur: () => fichierRef.current?.click(), onFichiers: joindre });
+
   const aDuContenu = fil.length > 0 || fiche || brouillon;
 
   // Le mode choisi, et sa vignette. Sans mode, la barre fait le tri.
@@ -1981,13 +1985,14 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
             className="block max-h-[45dvh] w-full resize-none overflow-y-auto border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
           />
           <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" multiple className="hidden" onChange={(e) => { joindre(e.target.files); e.target.value = ""; }} />
+          {ajoutFichier.rendu}
 
           {/* Pendant la dictée, la barre du mode micro : Annuler, l'onde, le minuteur, Envoyer. */}
-          {ecoute && <BarreEcoute niveau={niveau} cadre={cadreAura} onAnnuler={annulerDictee} onEnvoyer={() => lancer()} envoi={envoiDemande} />}
+          {ecoute && <BarreEcoute niveau={niveau} cadre={cadreAura} onAnnuler={annulerDictee} onEnvoyer={() => lancer()} onTerminer={() => { arreter(); setTimeout(() => champRef.current?.focus(), 30); }} envoi={envoiDemande} />}
           <div className={`mt-4 flex flex-wrap items-center gap-1.5 max-md:flex-nowrap ${ecoute ? "hidden" : ""}`}>
             {E.fichier && <button
               type="button"
-              onClick={() => fichierRef.current?.click()}
+              onClick={ajoutFichier.ouvrir}
               aria-label={mandataire || espace === "dossier" ? "Joindre une pièce (bail, quittances, Kbis, photo…)" : "Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"}
               title={mandataire || espace === "dossier" ? "Joindre une pièce (bail, quittances, Kbis, photo…)" : "Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"}
               className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-barre-relief hover:text-encre"
@@ -2304,6 +2309,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
               )}
             </div>
           )}
+          {/* `finFil` (4 nov. 2026, Jules) : ce que la page pose au bout du fil, le mail préparé de la Data room. */}
+          {finFil && !travaille && <div className={compact ? "" : "pl-[3.25rem]"}>{finFil}</div>}
           <div ref={finRef} />
         </div>
         </div>

@@ -62,6 +62,21 @@ export function validerEtape(id, etape, user) {
   return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(entre ? { statut: 'rdv_pris' } : {}), biens: { ...(p.biens || {}), validee: marqueurDe(cle), pause: null }, historique: ajouter(p, { type: 'etape', texte }) }) };
 }
 
+/**
+ * Mettre le bien à une étape (4 nov. 2026, Jules : « on clique sur 5 et ça le met à l'étape 5 ») : celles d'avant
+ * deviennent faites, celle-ci en cours, en avant comme en arrière. Les objets du bien (avis, mandat signé, dossier…)
+ * gardent leurs étapes faites : on ne recule pas sous eux.
+ */
+export function placerEtape(id, etape, user) {
+  const p = sienne(id, user);
+  if (!p) return { ok: false, error: 'Fiche introuvable.' };
+  const cle = ALIAS_ETAPES[etape] || etape;
+  const i = IDS.indexOf(cle);
+  if (i < 0) return { ok: false, error: 'Étape inconnue.' };
+  const texte = `Étape actuelle : ${ETAPES_BIENS[i][1]}`;
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(!dansBiens(p) ? { statut: 'rdv_pris' } : {}), biens: { ...(p.biens || {}), validee: i ? marqueurDe(IDS[i - 1]) : null, pause: null }, historique: ajouter(p, { type: 'etape', texte }) }) };
+}
+
 /** Dans Biens, le propriétaire refuse le prix : En pause, une relance programmée et un nouvel argument. */
 export async function mettreEnPause(id, { argument = null, dans_jours = 30 } = {}, user) {
   const p = sienne(id, user);
@@ -156,11 +171,13 @@ export function bureauDeLaFiche(cs) {
   const cle = (x) => `${Number(x.lat).toFixed(5)},${Number(x.lon).toFixed(5)}`;
   let voisins = [];
   try {
-    voisins = cs.ville_id && cs.lat != null ? Records.champsOu('CommerceSimple', 'ville_id', cs.ville_id, ['lat', 'lon', 'classe', 'nom', 'enseigne', 'activite', 'exploitant.nom', 'exploitant.effectif', 'ouvert_le', 'depuis'])
+    voisins = cs.ville_id && cs.lat != null ? Records.champsOu('CommerceSimple', 'ville_id', cs.ville_id, ['lat', 'lon', 'classe', 'nom', 'enseigne', 'activite', 'exploitant.nom', 'exploitant.effectif', 'ouvert_le', 'depuis', 'demenagement.ferme_le'])
       .filter((x) => x.classe === 'bureau' && x.lat != null && cle(x) === cle(cs)) : [];
   } catch { voisins = []; }
   const occupants = (voisins.length ? voisins : [{ id: cs.id, nom: cs.nom, enseigne: cs.enseigne, activite: cs.activite, 'exploitant.nom': cs.exploitant?.nom, 'exploitant.effectif': cs.exploitant?.effectif, ouvert_le: cs.ouvert_le, depuis: cs.depuis }])
-    .map((x) => ({ id: x.id, nom: x.enseigne || x['exploitant.nom'] || x.nom, activite: x.activite || null, effectif: x['exploitant.effectif'] || null, depuis: String(x.ouvert_le || x.depuis || '').slice(0, 4) || null }));
+    .map((x) => ({ id: x.id, nom: x.enseigne || x['exploitant.nom'] || x.nom, activite: x.activite || null, effectif: x['exploitant.effectif'] || null, depuis: String(x.ouvert_le || x.depuis || '').slice(0, 4) || null,
+      // La société partie ailleurs (3 nov. 2026) : dite comme telle, l'année de son départ.
+      parti: String(x['demenagement.ferme_le'] || (x.id === cs.id ? cs.demenagement?.ferme_le : '') || '').slice(0, 4) || null }));
   return {
     adresse: cs.adresse || null,
     occupants,
@@ -276,6 +293,8 @@ async function composer(p) {
       corrections: cor,
       // La classe d'actif (26 oct. 2026) : commerce, bureaux, entrepôt.
       classe: cs?.classe || 'commerce',
+      // Ce qu'on prospectait en l'ajoutant à la liste (3 nov. 2026, Jules) : il suit le bien jusqu'à l'estimation.
+      type_bien: p.apercu ? null : p.type_bien || 'murs_commerce',
       // Les parties libres ajoutées à la fiche (26 oct. 2026).
       sections: Array.isArray(p.sections) ? p.sections : [],
       // La préparation du rendez-vous (26 oct. 2026) : prête en fond au rendez-vous fixé, mise à jour la veille à 18 h.
@@ -428,7 +447,7 @@ export async function appliquerDictee(id, proposition = {}, user) {
  * La fiche d'un commerce de la carte, au premier geste (24 oct. 2026) : créée si elle n'existe pas, à ce mandataire ;
  * refusée si un autre mandataire l'a déjà. Rend la fiche (existante ou nouvelle).
  */
-export async function ficheDuCommerce(commerceId, user, { statut = 'a_appeler' } = {}) {
+export async function ficheDuCommerce(commerceId, user, { statut = 'a_appeler', type_bien = null } = {}) {
   const c = Records.get('CommerceSimple', commerceId);
   if (!c) return { ok: false, error: 'Commerce introuvable.' };
   const moi = emailDe(user);
@@ -446,7 +465,9 @@ export async function ficheDuCommerce(commerceId, user, { statut = 'a_appeler' }
     activite: activiteVue(c), ville: c.ville || null, adresse: rueLisible(c.adresse), telephone, statut,
   }, user);
   if (!r.ok) return r;
-  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', r.proprietaire.id, { commerce_simple_id: commerceId, source: 'Carte', ...(telephone ? { telephone_source: 'commerce (exploitant propriétaire)' } : {}) }) };
+  // Le type prospecté (3 nov. 2026, Jules) : un geste fait en mode Fonds fait une fiche de fonds.
+  const type = ['murs_commerce', 'fonds_commerce', 'bureaux'].includes(type_bien) ? { type_bien } : {};
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', r.proprietaire.id, { commerce_simple_id: commerceId, source: 'Carte', ...type, ...(telephone ? { telephone_source: 'commerce (exploitant propriétaire)' } : {}) }) };
 }
 
 /** Pure : qui tient chaque commerce de la carte (commerce_simple_id → { a_moi, dans_biens }). */

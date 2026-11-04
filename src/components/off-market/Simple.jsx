@@ -10,7 +10,7 @@ import CarteOffMarket from "./CarteOffMarket";
 import FacadeLocal from "./FacadeLocal";
 import { BlocZone, dessinAvecZone, useFileAJuger, useZone } from "./JugementZone";
 import { Case, Vide, bouton, boutonPlein, champ, dateCourte, euros, pl, req } from "./commun";
-import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_CLASSE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_CA, OPTIONS_OCCUPANTS, OPTIONS_PROPRIETAIRE, OPTIONS_TYPE, SIGNAUX_BUREAUX, SIGNAUX_FONDS, aLeSignal, basculer, cleLien, compteDe, depuisAuMoins, estBureauASignal, estExploitant, estFonds, nbFiltres, passeSimple, typesDe } from "@/lib/off-market-simple";
+import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_CLASSE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_CA, OPTIONS_PROPRIETAIRE, OPTIONS_TYPE, SIGNAUX_FONDS, aLeSignal, basculer, cleLien, compteDe, depuisAuMoins, estBureauASignal, estExploitant, estFonds, nbFiltres, passeSimple, typesDe } from "@/lib/off-market-simple";
 import { SectionsLibres } from "@/components/mandataire/MursLibres";
 import Chargement from "@/components/ui/Chargement";
 import { accroche, budgetDe, exclusionsDe, pourClient, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
@@ -156,17 +156,14 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
           {page === "libres" && libres ? (
             <div className="p-4"><SectionsLibres filtres={libres.filtres} setFiltres={libres.setFiltres} points={libres.points} /></div>
           ) : page === "bureaux" ? (
-            // Les bureaux (3 nov. 2026, Jules) : le signal, le nombre d'occupants de l'immeuble, la zone, l'activité.
-            <div className="grid gap-5 p-4 md:grid-cols-3">
+            // Les bureaux (3 nov. 2026, Jules : « simplifie ») : un seul signal, l'occupant parti ailleurs ; la zone et l'activité
+            // de la société partie.
+            <div className="grid gap-5 p-4 md:grid-cols-2">
               <div className="flex flex-col gap-5">
-                <SectionFiltre titre="Signal" choisis={filtres.bureaux || []} onChange={maj("bureaux")} options={SIGNAUX_BUREAUX.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => !!c.bureaux?.includes(v)) }))} />
                 {villes.length > 1 && <SectionFiltre titre="Zone" multiple={false} choisis={filtres.ville ? [filtres.ville] : []} onChange={un("ville")} options={villes} />}
               </div>
               <div className="flex flex-col gap-5">
-                <SectionFiltre titre="Occupants de l'immeuble" multiple={false} choisis={filtres.occupants ? [filtres.occupants] : []} onChange={un("occupants")} options={OPTIONS_OCCUPANTS.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => estBureauASignal(c) && (c.occupants || 1) >= Number(v)) }))} />
-              </div>
-              <div className="flex flex-col gap-5">
-                <SectionFiltre titre="Activité des occupants" recherche choisis={filtres.activites} onChange={maj("activites")} options={activites} />
+                <SectionFiltre titre="Activité de la société partie" recherche choisis={filtres.activites} onChange={maj("activites")} options={activites} />
               </div>
             </div>
           ) : page === "fonds" ? (
@@ -273,12 +270,12 @@ const ouvrirListe = (id) => window.open(`/MandataireProspection?onglet=listes&li
  * propriétaire à appeler (Prospection > Listes du mandataire).
  */
 // `envoyerVers` : un autre envoi que celui des commerces (les murs libres, 3 nov. 2026), avec son mot (« local »).
-export function FenetreListe({ ids, onFermer, onFait, typeBien = null, envoyerVers = null, mot = "commerce" }) {
+export function FenetreListe({ ids, onFermer, onFait, typeBien = null, typesParId = null, envoyerVers = null, mot = "commerce" }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["off-market", "simple", "listes"], queryFn: () => req("GET", "/simple/listes") });
   const [nom, setNom] = useState("");
   const envoyer = useMutation({
-    mutationFn: (body) => (envoyerVers ? envoyerVers(body) : req("POST", "/simple/listes/envoyer", { ids, ...(typeBien ? { type_bien: typeBien } : {}), ...body })),
+    mutationFn: (body) => (envoyerVers ? envoyerVers(body) : req("POST", "/simple/listes/envoyer", { ids, ...(typeBien ? { type_bien: typeBien } : {}), ...(typesParId ? { types: typesParId } : {}), ...body })),
     onSuccess: (r) => {
       if (r.ajoutes) toast.success(`${pl(r.ajoutes, mot)} dans la liste « ${r.liste.nom} »`, { description: "Dans vos listes de mandataire, onglet Prospection > Listes.", duration: 9000, action: { mot: "Voir la liste", faire: () => ouvrirListe(r.liste.id) } });
       if (r.deja?.length) toast.error(r.deja.length === 1 ? `${r.deja[0].enseigne} est déjà dans la liste « ${r.deja[0].liste} ».` : `${pl(r.deja.length, "établissement")} déjà dans une liste : laissés de côté.`);

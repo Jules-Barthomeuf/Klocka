@@ -1,11 +1,12 @@
 import React, { useRef, useState } from "react";
 import Loader from "@/components/ui/Loader";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Mail, Plus, X } from "lucide-react";
+import { Check, Loader2, Mail, Pencil, Plus, X } from "lucide-react";
 import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
 import { Brouillon } from "@/components/dashboard/ChatDashboard";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import { useAjoutFichier } from "@/components/ui/ajout-fichier";
 import { bouton, boutonPlein, champ } from "@/components/off-market/commun";
 
 // Le dossier de vente (27 oct. 2026, Jules : plus d'analyste). Le premier temps de la Commercialisation d'un bien :
@@ -147,12 +148,12 @@ function Pieces({ v, url, relire }) {
         {v.pieces.filter((p) => p !== libre).map((p) => (
           <ZonePiece key={p.cle} p={p} occupe={enCours === p.cle}
             onDeposer={(fichiers) => fichiers.length && deposer.mutate({ fichiers, categorie: p.cle })}
-            onRetirer={(f) => retirer.mutate({ cle: p.cle, u: f.url })} />
+            onRetirer={(f) => retirer.mutate({ cle: p.cle, u: f.url })} onAnnote={relire} />
         ))}
         <ZonePhotos photos={v.dossier.photos} url={url} relire={relire} />
         {libre && <ZonePiece p={libre} libre occupe={enCours === libre.cle}
           onDeposer={(fichiers) => fichiers.length && deposer.mutate({ fichiers, categorie: libre.cle })}
-          onRetirer={(f) => retirer.mutate({ cle: libre.cle, u: f.url })} />}
+          onRetirer={(f) => retirer.mutate({ cle: libre.cle, u: f.url })} onAnnote={relire} />}
       </div>
       {aClasser.length > 0 && (
         <ul className="m-0 mt-3 list-none p-0">
@@ -183,16 +184,64 @@ const plus = (occupe) => (
 const arreter = (ev) => ev.stopPropagation();
 
 /** Une pièce : son nom, son état en haut à droite (check quand elle est là), ses fichiers avec leur vignette. */
-function ZonePiece({ p, occupe, onDeposer, onRetirer, libre = false }) {
+/**
+ * Une pièce reçue, avec son nom et son contexte (4 nov. 2026, Jules : « la nommer et donner du contexte sous chaque
+ * document »). Le crayon ouvre le nom et la note ; Entrée ou « OK » enregistre, Échap annule. Gardés par adresse
+ * (server/annotations-documents.js) : la vue d'ensemble et la page Data room disent la même chose.
+ */
+function LignePiece({ f, onRetirer, onAnnote }) {
+  const [edite, setEdite] = useState(null);
+  const enregistrer = useMutation({
+    mutationFn: (x) => base44.request("PATCH", "/api/mandataire/documents/annotation", { body: { url: f.url, ...x } }),
+    onSuccess: () => { setEdite(null); onAnnote?.(); },
+    onError: (e) => toast.error(e?.message || "Non enregistré"),
+  });
+  const valider = () => enregistrer.mutate({ nom: edite.nom.trim() === (f.nom_origine || f.nom) ? "" : edite.nom, note: edite.note });
+  if (edite) {
+    return (
+      <li className="rounded-[10px] border border-bord-doux bg-fond p-2.5" onClick={arreter} onKeyDown={(ev) => { ev.stopPropagation(); if (ev.key === "Escape") setEdite(null); }}>
+        <input autoFocus value={edite.nom} onChange={(ev) => setEdite({ ...edite, nom: ev.target.value })} onKeyDown={(ev) => { if (ev.key === "Enter") valider(); }}
+          aria-label="Nom du document" placeholder={f.nom_origine || f.nom} maxLength={160}
+          className="w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] text-encre outline-none focus:border-bord-vif max-md:text-[16px]" />
+        <textarea value={edite.note} onChange={(ev) => setEdite({ ...edite, note: ev.target.value })} rows={2} maxLength={1000}
+          aria-label="Contexte" placeholder="Le contexte : ce que c'est, d'où il vient, ce qu'il faut savoir…"
+          className="mt-2 w-full resize-none rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13px] leading-[1.5] text-craie outline-none focus:border-bord-vif max-md:text-[16px]" />
+        <div className="mt-2 flex justify-end gap-2">
+          <button type="button" onClick={() => setEdite(null)} className="h-7 rounded-full px-3 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+          <button type="button" onClick={valider} disabled={enregistrer.isPending} className="inline-flex h-7 items-center gap-1.5 rounded-full bg-menthe px-3 text-[12.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+            {enregistrer.isPending && <Loader2 className="h-3 w-3 animate-spin" />} OK
+          </button>
+        </div>
+      </li>
+    );
+  }
+  return (
+    <li className="group text-[13px]">
+      <div className="flex items-center gap-2.5">
+        <MiniaturePiece url={f.url} largeur={32} />
+        <span className="min-w-0 flex-1 truncate text-craie" title={f.nom_origine ? `${f.nom} (${f.nom_origine})` : f.nom}>{f.nom}</span>
+        {f.url && (
+          <button type="button" onClick={(ev) => { arreter(ev); setEdite({ nom: f.nom || "", note: f.note || "" }); }} className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-encre group-hover:opacity-100 focus:opacity-100 max-md:opacity-100" style={{ background: "transparent" }} aria-label={`Nommer ou décrire ${f.nom}`} title="Nom et contexte"><Pencil className="h-3 w-3" /></button>
+        )}
+        <button type="button" onClick={(ev) => { arreter(ev); onRetirer(f); }} className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-encre group-hover:opacity-100 focus:opacity-100 max-md:opacity-100" style={{ background: "transparent" }} aria-label={`Retirer ${f.nom}`} title="Retirer"><X className="h-3 w-3" /></button>
+      </div>
+      {f.note && <p className="m-0 ml-[42px] mt-1 whitespace-pre-wrap text-[12.5px] leading-[1.5] text-ardoise">{f.note}</p>}
+    </li>
+  );
+}
+
+export function ZonePiece({ p, occupe, onDeposer, onRetirer, onAnnote = null, libre = false }) {
   const ref = useRef(null);
   const [survol, setSurvol] = useState(false);
   const fichiers = p.fichiers || [];
   const n = fichiers.length;
   const [couleur, mot] = ETATS[p.etat] || ETATS.manquante;
-  const ouvrir = () => !occupe && ref.current?.click();
+  // Le « + » : l'ordinateur ou Google Drive (4 nov. 2026, Jules).
+  const ajout = useAjoutFichier({ onOrdinateur: () => ref.current?.click(), onFichiers: onDeposer });
+  const ouvrir = (ev) => !occupe && ajout.ouvrir(ev);
   return (
     <section role="button" tabIndex={0} aria-label={libre ? "Ajouter un autre document" : `Importer : ${p.mot}`}
-      onClick={ouvrir} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); ouvrir(); } }}
+      onClick={ouvrir} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); ouvrir(ev); } }}
       onDragOver={(ev) => { ev.preventDefault(); setSurvol(true); }}
       onDragLeave={() => setSurvol(false)}
       onDrop={(ev) => { ev.preventDefault(); setSurvol(false); onDeposer([...ev.dataTransfer.files]); }}
@@ -206,17 +255,12 @@ function ZonePiece({ p, occupe, onDeposer, onRetirer, libre = false }) {
       </div>}
       {n > 0 && (
         <ul className="m-0 mt-2 list-none space-y-1.5 p-0">
-          {fichiers.map((f) => (
-            <li key={f.url || f.nom} className="group flex items-center gap-2.5 text-[13px]">
-              <MiniaturePiece url={f.url} largeur={32} />
-              <span className="min-w-0 flex-1 truncate text-craie" title={f.nom}>{f.nom}</span>
-              <button type="button" onClick={(ev) => { arreter(ev); onRetirer(f); }} className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-encre group-hover:opacity-100 focus:opacity-100 max-md:opacity-100" style={{ background: "transparent" }} aria-label={`Retirer ${f.nom}`} title="Retirer"><X className="h-3 w-3" /></button>
-            </li>
-          ))}
+          {fichiers.map((f) => <LignePiece key={f.url || f.nom} f={f} onRetirer={onRetirer} onAnnote={onAnnote} />)}
         </ul>
       )}
       <input ref={ref} type="file" multiple className="hidden" onClick={arreter} onChange={(ev) => { onDeposer([...ev.target.files]); ev.target.value = ""; }} />
       {plus(occupe)}
+      {ajout.rendu}
     </section>
   );
 }
@@ -231,10 +275,11 @@ function ZonePhotos({ photos = [], url, relire }) {
     onError: (e) => toast.error(e?.message || "Photo refusée"),
   });
   const retirer = useMutation({ mutationFn: (u) => base44.request("DELETE", `${url}/photos?url=${encodeURIComponent(u)}`), onSuccess: relire });
-  const ouvrir = () => !ajouter.isPending && ref.current?.click();
+  const ajout = useAjoutFichier({ onOrdinateur: () => ref.current?.click(), onFichiers: (f) => ajouter.mutate(f) });
+  const ouvrir = (ev) => !ajouter.isPending && ajout.ouvrir(ev);
   return (
     <section role="button" tabIndex={0} aria-label="Importer : Photos du bien"
-      onClick={ouvrir} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); ouvrir(); } }}
+      onClick={ouvrir} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); ouvrir(ev); } }}
       onDragOver={(ev) => { ev.preventDefault(); setSurvol(true); }}
       onDragLeave={() => setSurvol(false)}
       onDrop={(ev) => { ev.preventDefault(); setSurvol(false); ajouter.mutate([...ev.dataTransfer.files]); }}
@@ -255,6 +300,7 @@ function ZonePhotos({ photos = [], url, relire }) {
       )}
       <input ref={ref} type="file" accept="image/*" multiple className="hidden" onClick={arreter} onChange={(ev) => { const l = [...(ev.target.files || [])]; ev.target.value = ""; if (l.length) ajouter.mutate(l); }} />
       {plus(ajouter.isPending)}
+      {ajout.rendu}
     </section>
   );
 }

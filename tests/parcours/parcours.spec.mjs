@@ -77,7 +77,7 @@ test('Étape 6 · dictée « Rendez-vous fixé… » → un bien dans Biens, ét
   const textes = (p.historique || []).map((h) => h.texte).join(' | ');
   expect(textes, 'historique de la fiche').toMatch(/exploitante|Contacté/i);
   expect(textes).toMatch(/RDV|rendez-vous/i);
-  await allerA(page, 'Biens');
+  await allerA(page, 'Mes biens');
   await expect(page).toHaveURL(/\/Biens/);
   await page.getByText(COMMERCE.nom).first().click();
   await expect(page).toHaveURL(/etape=previsite/);
@@ -161,7 +161,7 @@ test('Étape 10 · signature MyNotary simulée → « Mandat signé »', async (
     return mandats.find((x) => x.id === etat.mandat_id)?.statut;
   }, { message: 'statut du mandat', timeout: 10_000 }).toBe('signe');
   // Dans Biens, le bien test (nommé d'après le mandat) passe à la Data room, quatrième des sept étapes (2 nov. 2026).
-  await allerA(page, 'Biens');
+  await allerA(page, 'Mes biens');
   const carte = page.getByText(/Safranier/).first().locator('xpath=ancestor::*[contains(., "4 / 7")][1]');
   await expect(carte).toBeVisible({ timeout: 15_000 });
 });

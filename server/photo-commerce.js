@@ -157,9 +157,10 @@ export function choisirPhotosDeVille(photos = [], n = 4) {
 
 /**
  * Plusieurs photos d'une ville, au choix du mandataire (1er nov. 2026, Jules : « que le chat laisse le choix entre
- * différentes images »). `[{ url, auteur }]`, gardées comme les autres : rechoisir ne coûte plus rien.
+ * différentes images »). `[{ url, auteur }]`, gardées comme les autres. Depuis le 3 nov., seulement en repli de la
+ * recherche d'images.
  */
-export async function photosDeLaVille(commune, n = 4) {
+async function photosGoogleDeLaVille(commune, n = 4) {
   const v = norm(commune);
   if (!v || !cle()) return [];
   const k = `ville-choix:${v}`;
@@ -181,3 +182,88 @@ export async function photosDeLaVille(commune, n = 4) {
   enCours.set(k, travail);
   return travail;
 }
+
+// --- Les photos d'une ville par la recherche d'images (3 nov. 2026, Jules : « faut juste qu'il cherche {ville} photo
+// et prenne les tops images ; si on lui demande d'aller en chercher d'autres, il faut que ça le fasse »). Les photos de
+// la fiche Google de la ville étaient celles des visiteurs, toujours les mêmes. La recherche « {ville} photo » (Bing
+// Images, grandes, en paysage) rend les premières dans l'ordre ; les banques d'images, filigranées, sont écartées.
+// Chaque image est rapatriée dans /uploads/commerces. « D'autres » : la page suivante des résultats gardés.
+
+const RECHERCHE_IMAGES = 'https://www.bing.com/images/search';
+const NAVIGATEUR = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
+const BANQUES = /alamy|dreamstime|istockphoto|shutterstock|gettyimages|depositphotos|123rf|stock\.adobe|bigstockphoto|agefotostock|masterfile|pond5|vecteezy|freepik/i;
+const ENTITES = { '&quot;': '"', '&amp;': '&', '&#39;': "'", '&lt;': '<', '&gt;': '>' };
+
+/** Pure : les adresses des images d'une page de résultats, dans l'ordre, sans doublon ni banque d'images. */
+export function imagesDuResultat(html = '') {
+  const vues = new Set();
+  const out = [];
+  for (const [, brut] of String(html).matchAll(/\bm="(\{[^"]*\})"/g)) {
+    let murl = null;
+    try { murl = JSON.parse(brut.replace(/&(quot|amp|#39|lt|gt);/g, (e) => ENTITES[e]))?.murl || null; } catch { continue; }
+    if (!/^https?:\/\//.test(murl || '') || BANQUES.test(murl) || vues.has(murl)) continue;
+    vues.add(murl);
+    out.push(murl);
+  }
+  return out;
+}
+
+async function chercherImages(requete) {
+  const q = new URLSearchParams({ q: requete, qft: '+filterui:aspect-wide+filterui:imagesize-large', form: 'IRFLTR', first: '1' });
+  const r = await fetch(`${RECHERCHE_IMAGES}?${q}`, { headers: { 'User-Agent': NAVIGATEUR, 'Accept-Language': 'fr-FR,fr;q=0.9' }, signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw new Error(`la recherche d'images a répondu ${r.status}`);
+  return imagesDuResultat(await r.text());
+}
+
+async function rapatrier(url) {
+  const r = await fetch(url, { headers: { 'User-Agent': NAVIGATEUR }, signal: AbortSignal.timeout(12000), redirect: 'follow' });
+  const type = r.headers.get('content-type') || '';
+  if (!r.ok || !/^image\/(jpeg|png|webp)/.test(type)) throw new Error(`image refusée (${r.status} ${type})`);
+  const buffer = Buffer.from(await r.arrayBuffer());
+  if (buffer.length < 30000) throw new Error('image trop petite');
+  const dossier = path.join(CHEMIN_UPLOADS, 'commerces');
+  fs.mkdirSync(dossier, { recursive: true });
+  const fichier = `${randomUUID()}.${type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg'}`;
+  fs.writeFileSync(path.join(dossier, fichier), buffer);
+  return `/uploads/commerces/${fichier}`;
+}
+
+/**
+ * Les photos d'une ville, au choix du mandataire : `[{ url, auteur, source }]`, n par page. `page` 0 : les premières ;
+ * 1, 2… : les suivantes (« d'autres »), qui reviennent au début une fois la liste parcourue. Les images rapatriées
+ * sont gardées : revenir à une page ne retélécharge rien. La fiche Google de la ville en repli.
+ */
+export async function photosDeLaVille(commune, { n = 4, page = 0 } = {}) {
+  const v = norm(commune);
+  if (!v) return [];
+  const k = `ville-images:${v}`;
+  const cleTravail = `${k}#${page}`;
+  if (enCours.has(cleTravail)) return enCours.get(cleTravail);
+  const travail = (async () => {
+    let garde = Records.findBy(ENTITE, 'cle', k);
+    if (!garde?.candidats?.length || Date.now() - new Date(garde.le).getTime() > RECHERCHER_APRES_MS) {
+      let candidats = [];
+      try { candidats = await chercherImages(`${commune} photo`); } catch (err) { console.warn(`[photo-ville] ${err?.message || err}`); }
+      if (!candidats.length) return n === 4 && !page ? photosGoogleDeLaVille(commune, n) : [];
+      const fiche = { cle: k, candidats, photos: [], ecartees: [], le: new Date().toISOString() };
+      garde = garde ? Records.update(ENTITE, garde.id, fiche) : Records.create(ENTITE, fiche);
+    }
+    const photos = [...(garde.photos || [])];
+    const ecartees = new Set(garde.ecartees || []);
+    const restantes = garde.candidats.filter((u) => !ecartees.has(u) && !photos.some((p) => p.source === u)).length;
+    const pages = Math.max(1, Math.ceil((photos.length + restantes) / n));
+    const debut = (page % pages) * n;
+    for (const u of garde.candidats) {
+      if (photos.length >= debut + n) break;
+      if (ecartees.has(u) || photos.some((p) => p.source === u)) continue;
+      try { photos.push({ url: await rapatrier(u), auteur: null, source: u }); } catch (err) { ecartees.add(u); console.warn(`[photo-ville] ${u} : ${err?.message || err}`); }
+    }
+    Records.update(ENTITE, garde.id, { photos, ecartees: [...ecartees] });
+    const rendues = photos.slice(debut, debut + n);
+    console.log(`[photo-ville] ${JSON.stringify(commune)} page ${page} → ${rendues.length} photo(s)`);
+    return rendues.length ? rendues : photos.slice(0, n);
+  })().finally(() => enCours.delete(cleTravail));
+  enCours.set(cleTravail, travail);
+  return travail;
+}
+

@@ -84,7 +84,10 @@ const TON_STATUT = { a_appeler: "neutre", contacte: "ambre", en_discussion: "men
 // Les colonnes. D'abord ce qui sert à l'appel, puis ce que la plateforme sait
 // du propriétaire et de sa société, en défilant à droite. `cle` éditable :
 // la cellule s'écrit, comme dans une Sheet.
+// Ce qu'on prospectait en ajoutant à la liste (3 nov. 2026, Jules : « c'est labellisé fonds de commerce »).
+const TYPES_BIEN = { murs_commerce: "Murs commerciaux", fonds_commerce: "Fonds de commerce", bureaux: "Bureaux" };
 const COLONNES = [
+  { cle: "type_bien", titre: "Type d'actif", largeur: 150, lire: (p) => TYPES_BIEN[p.type_bien] || TYPES_BIEN.murs_commerce },
   { cle: "activite", titre: "Type d'activité", largeur: 160, lire: (p) => p.cible?.activite || p.activite || "" },
   { cle: "appel", titre: "Appel", largeur: 200 },
   // Les clients Klocka (anonymisés) que ce commerce pourrait intéresser.

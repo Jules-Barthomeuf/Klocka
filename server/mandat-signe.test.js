@@ -9,7 +9,7 @@ test("au mandat signé : le travail est fait, aucune question qu'on sait déjà 
   assert.match(m, /^Mandat signé, bien joué ! J'ai préparé un mail au propriétaire pour lui donner accès à la Data room/);
   assert.match(m, /La priorité, c'est les trois dernières quittances : elles prouvent que le loyer est bien payé\./);
   assert.match(m, /On a déjà le bail, je l'ai mis dans la Data room\./);
-  assert.match(m, /Le mail est écrit dans l’écran de droite/);
+  assert.match(m, /Le voici, juste en dessous/);
   assert.match(m, /Sans documents d'ici 3 jours, je vous prépare la relance\./);
   assert.match(m, /Le locataire a un droit de préférence.*un mois pour répondre/);
   assert.doesNotMatch(m, /Quels documents|€|registre|\*\*/);
@@ -18,7 +18,7 @@ test("au mandat signé : le travail est fait, aucune question qu'on sait déjà 
 test("sans l'adresse du propriétaire : c'est la seule question", () => {
   const m = messageMandatSigne({ occupe: false, manquantes: ['Bail commercial'], priorite: { cle: 'bail', mot: 'Bail commercial', raison: 'x' }, email: false });
   assert.match(m, /Il me manque son adresse e-mail : vous me la donnez \?/);
-  assert.doesNotMatch(m, /écran de droite/);
+  assert.doesNotMatch(m, /juste en dessous/);
 });
 
 test('vendu libre ou exception notée : pas de locataire ; dossier complet : les photos, puis le teaser', () => {

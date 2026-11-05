@@ -125,6 +125,11 @@ const LIBELLES = {
   documents_du_bien: () => 'Lecture des documents du bien',
   lire_document: (i) => `Lecture du document${entre(i.document)}`,
   reprendre_bien: () => 'Mise à jour du bien',
+  ranger_documents: () => 'Rangement des documents',
+  noter_touche: (i) => `Touche notée${entre(i.nom)}`,
+  envoyer_en_prospection: (i) => (i.liste ? `Mise dans la Prospection${entre(i.liste)}` : 'Lecture de vos listes'),
+  mettre_au_crm: () => 'Écriture dans le CRM',
+  passer_en_clients: () => 'Passage en Clients dans le CRM',
 };
 
 /** Pure : la ligne à afficher quand l'outil part. */

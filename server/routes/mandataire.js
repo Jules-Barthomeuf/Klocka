@@ -765,9 +765,16 @@ export function monterMandataire(app) {
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
+  // La relecture d'un bien importé : une information corrigée d'un clic (4 nov. 2026).
+  app.patch('/api/mandataire/proprietaires/:id/infos', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = (await import('../bien-repris.js')).corrigerInfos(req.params.id, req.body || {}, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/mandataire/proprietaires/:id/import/fini', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
-    const r = (await import('../bien-repris.js')).finirImport(req.params.id, user);
+    const r = await (await import('../bien-repris.js')).finirImport(req.params.id, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
@@ -779,7 +786,14 @@ export function monterMandataire(app) {
   app.post('/api/mandataire/proprietaires/:id/documents', roleAvantDepot, upload.array('fichier', 20), wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     const fichiers = (req.files || []).map((f) => ({ nom: f.originalname, url: `/uploads/${f.filename}`, mimetype: f.mimetype }));
-    const r = await (await DB()).deposerAuBien(req.params.id, fichiers, user, { nature: req.body?.nature || null });
+    const r = await (await DB()).deposerAuBien(req.params.id, fichiers, user, { nature: req.body?.nature || null, casePerso: req.body?.case || null });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  // Une case nommée de la Data room du bien, avant le dossier (4 nov. 2026).
+  app.post('/api/mandataire/proprietaires/:id/cases', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = (await DB()).nouvelleCaseDuBien(req.params.id, req.body?.mot, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));

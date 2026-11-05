@@ -78,6 +78,23 @@ button:focus-visible {
    (bg-fond/70, bg-encre/[0.07]) continuent de fonctionner. Un jeton
    translucide est donné entier : son alpha lui appartient. */
 :root {
+    /* Les couleurs des statuts (jetons.json, « _statuts »). */
+    --k-statut-lavande-rgb: 167 171 237;
+    --k-statut-lavande-fond-rgb: 38 39 51;
+    --k-statut-bleu-rgb: 141 193 238;
+    --k-statut-bleu-fond-rgb: 34 43 52;
+    --k-statut-menthe-rgb: 147 214 179;
+    --k-statut-menthe-fond-rgb: 35 46 42;
+    --k-statut-ambre-rgb: 238 203 138;
+    --k-statut-ambre-fond-rgb: 50 44 36;
+    --k-statut-corail-rgb: 240 166 158;
+    --k-statut-corail-fond-rgb: 50 38 39;
+    --k-statut-turquoise-rgb: 134 210 211;
+    --k-statut-turquoise-fond-rgb: 33 45 47;
+    --k-statut-orchidee-rgb: 221 166 227;
+    --k-statut-orchidee-fond-rgb: 47 38 50;
+    --k-statut-gris-rgb: 163 166 180;
+    --k-statut-gris-fond-rgb: 38 38 42;
     --k-fond-rgb: 18 19 18;
     --k-fond-halo-rgb: 18 19 18;
     --k-surface: rgba(242, 243, 245, 0.045);
@@ -117,6 +134,8 @@ button:focus-visible {
     --k-bleu-rgb: 143 182 232;
     /* La pervenche (accent « Pervenche » des jetons) : le contour du chat dans une fiche (24 oct. 2026). */
     --k-pervenche-rgb: 166 171 242;
+    /* Le texte posé sur la pervenche pleine, sombre dans les deux thèmes (5 nov. 2026). */
+    --k-sur-pervenche-rgb: 30 32 58;
     --k-appel-rgb: 201 168 137;
     --k-ecrire-rgb: 150 192 184;
     --k-surveiller-rgb: 139 147 143;
@@ -132,6 +151,23 @@ button:focus-visible {
    Chaque accent clair passe le plancher de 4,5 pour 1 sur blanc. Les boutons
    pleins suivent : « sur-menthe » devient blanc, posé sur la menthe foncée. */
 :root[data-theme="clair"] {
+    /* Les couleurs des statuts, thème clair. */
+    --k-statut-lavande-rgb: 110 116 216;
+    --k-statut-lavande-fond-rgb: 236 237 251;
+    --k-statut-bleu-rgb: 45 96 178;
+    --k-statut-bleu-fond-rgb: 230 238 249;
+    --k-statut-menthe-rgb: 47 122 85;
+    --k-statut-menthe-fond-rgb: 228 242 234;
+    --k-statut-ambre-rgb: 138 90 18;
+    --k-statut-ambre-fond-rgb: 248 238 220;
+    --k-statut-corail-rgb: 184 65 47;
+    --k-statut-corail-fond-rgb: 249 229 226;
+    --k-statut-turquoise-rgb: 31 122 123;
+    --k-statut-turquoise-fond-rgb: 225 242 242;
+    --k-statut-orchidee-rgb: 138 63 148;
+    --k-statut-orchidee-fond-rgb: 244 230 246;
+    --k-statut-gris-rgb: 92 95 107;
+    --k-statut-gris-fond-rgb: 236 236 238;
     --k-fond-rgb: 240 240 238;
     --k-fond-halo-rgb: 240 240 238;
     --k-surface: rgba(255, 255, 255, 0.72);
@@ -165,7 +201,7 @@ button:focus-visible {
     --k-jaune-rgb: 150 120 10;
     --k-lu-ia-rgb: 224 206 169;
     --k-bleu-rgb: 91 111 168;
-    --k-pervenche-rgb: 75 82 196;
+    --k-pervenche-rgb: 166 171 242;
     --k-appel-rgb: 168 121 74;
     --k-ecrire-rgb: 63 116 102;
     --k-surveiller-rgb: 111 113 110;
@@ -792,7 +828,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
     --k-jaune-rgb: 150 120 10;
     --k-lu-ia-rgb: 224 206 169;
     --k-bleu-rgb: 91 111 168;
-    --k-pervenche-rgb: 75 82 196;
+    --k-pervenche-rgb: 166 171 242;
     --k-appel-rgb: 168 121 74;
     --k-ecrire-rgb: 63 116 102;
     --k-surveiller-rgb: 111 113 110;
@@ -907,6 +943,30 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    côte) pose cette classe sur <html> : la barre latérale s'efface, le
    contenu reprend sa largeur. Elle revient dès que la page retire la classe. */
 html.k-sans-barre .k-barre-laterale { display: none !important; }
+/* Twenty CRM (5 nov. 2026, Jules : « la nav barre et la partie du haut doivent être une seule partie ») : sur la page du
+   CRM, la barre de navigation perd son bord et son arrondi ; avec la bande du haut, de la même couleur, elles font un
+   seul bloc continu, et le contenu s'y pose avec son coin arrondi, comme dans Monday. */
+html.k-cadre-crm .k-barre-laterale { border-color: transparent !important; border-radius: 0 !important; }
+html.k-cadre-crm .k-barre-laterale::before { border-radius: 0 !important; }
+/* Sur la page du CRM, le logo « crm_ » remplace la marque en haut de la barre (Layout) ; le logo K Partners est dans la
+   case de l'espace (Jules, même jour). */
+/* Ni cloche ni mode appel en haut à droite de la page du CRM (Jules, même jour) : la bande du haut reste libre. */
+html.k-cadre-crm .k-flottant-haut { display: none !important; }
+/* Le tableau du CRM : sur le fond de la barre en sombre, blanc en clair, et des gris plus légers en clair (5 nov. 2026). */
+html.k-cadre-crm { --k-crm-tableau: rgb(var(--k-rail-rgb)); }
+/* En clair, un filet `trait` sépare le blanc de la page du bleuté de la barre et de la bande du haut (5 nov. 2026). */
+html.k-cadre-crm[data-theme="clair"] .k-crm-contenu { border-top: 1px solid var(--k-trait); border-left: 1px solid var(--k-trait); }
+@media (max-width: 767px) { html.k-cadre-crm[data-theme="clair"] .k-crm-contenu { border-left: 0; } }
+html.k-cadre-crm[data-theme="clair"] {
+  --k-crm-tableau: rgb(255 255 255);
+  /* La barre de navigation et la bande du haut, sur la capture de Jules (5 nov. 2026) : #F6F7FB. */
+  --k-rail-rgb: 246 247 251;
+  /* Le reste de la page en blanc pur (capture de Jules, 5 nov. 2026). */
+  --k-fond-rgb: 255 255 255;
+  --k-fond-halo-rgb: 255 255 255;
+  --k-statut-gris-fond-rgb: 243 243 245;
+  --k-relief: rgba(28, 29, 28, 0.04);
+}
 /* Un dossier en mode IA (17 oct. 2026, Jules) : pas d'AK flottant en bas à gauche, le chat du dossier est déjà là. */
 html.k-sans-ak .k-ak-flottant { display: none !important; }
 /* Le fond du contenu passe sous la barre latérale (18 oct. 2026) : le contenu s'en écarte par un padding, plus par une marge,

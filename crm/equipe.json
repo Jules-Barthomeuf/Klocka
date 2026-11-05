@@ -7,5 +7,28 @@
   "Maxime Pama": "maxime.p@klocka.immo",
   "hugo.r@kpartners.immo": "hugo.r@kpartners.immo",
   "Nora LORINQUER": "nora.l@klocka.immo",
-  "Coralie GUILLAUD": "coralie.g@klocka.immo"
+  "Coralie GUILLAUD": "coralie.g@klocka.immo",
+  "_spoc": [
+    {
+      "nom": "Jules Barthomeuf",
+      "email": "jules.b@klocka.immo"
+    },
+    {
+      "nom": "Maxime Pama",
+      "email": "maxime.p@klocka.immo"
+    },
+    {
+      "nom": "Nora Lorinquer",
+      "email": "nora.l@klocka.immo"
+    },
+    {
+      "nom": "Paul de Zulueta",
+      "email": "paul.dz@klocka.immo"
+    },
+    {
+      "nom": "Coralie Guillaud",
+      "email": "coralie.g@klocka.immo"
+    }
+  ],
+  "_note_spoc": "Les personnes proposées dans un champ SPOC de l'écran CRM (5 nov. 2026, Jules), dans cet ordre ; la valeur écrite est leur nom Monday ci-dessus."
 }

@@ -243,17 +243,19 @@ export const accentHex = (cle, theme) => (/^#[0-9a-f]{6}$/i.test(String(cle || "
 export function famille(cle, theme) {
   const clair = theme === CLAIR;
   const base = hexVersRgb(accentHex(cle, theme));
+  // Un accent pâle en clair (la pervenche, 5 nov. 2026 : Jules ne veut pas d'indigo) porte un texte sombre, pas blanc.
+  const sur = clair && luminance(base) < 0.35 ? [255, 255, 255] : luminosite(base, -0.55);
   return {
     menthe: base,
     "menthe-clair": luminosite(base, clair ? -0.08 : 0.14),
     "menthe-survol": luminosite(base, clair ? -0.05 : 0.07),
     "menthe-fonce": luminosite(base, clair ? -0.14 : -0.1),
     "menthe-texte": clair ? luminosite(base, -0.08) : base,
-    "sur-menthe": clair ? [255, 255, 255] : luminosite(base, -0.55),
+    "sur-menthe": sur,
     // Le bouton « Fait » des cartes d'action, l'envoi du chat : ils suivaient la menthe d'origine quel que soit l'accent
     // (31 oct. 2026, Jules : « à chaque fois la mauvaise couleur »).
     "menthe-pale": base,
-    "sur-menthe-pale": clair ? [255, 255, 255] : luminosite(base, -0.55),
+    "sur-menthe-pale": sur,
     ecrire: base,
   };
 }
@@ -306,11 +308,21 @@ export function definirEspace(espace) {
   if (dernieresPrefs) appliquerPrefs(dernieresPrefs);
 }
 
+// Le CRM ne se personnalise pas (5 nov. 2026, Jules : « c'est juste mode clair, mode sombre, mais il n'y a pas plus de
+// choses ») : sur sa page, seul le mode du compte compte ; accent pervenche, fond, barre, police et taille d'origine.
+let cadreCrm = false;
+export const ACCENT_CRM = "pervenche";
+export function definirCadreCrm(actif) {
+  if (!!actif === cadreCrm) return;
+  cadreCrm = !!actif;
+  if (dernieresPrefs) appliquerPrefs(dernieresPrefs);
+}
+
 export function appliquerPrefs(brut) {
   if (typeof document === "undefined") return;
   dernieresPrefs = brut;
-  const p = normaliser(pageNeutre() ? DEFAUT : brut);
-  if (espaceCourant === "mandataire" && !pageNeutre()) p.accent = ACCENT_MANDATAIRE;
+  const p = normaliser(pageNeutre() ? DEFAUT : cadreCrm ? { mode: normaliser(brut).mode, accent: ACCENT_CRM } : brut);
+  if (espaceCourant === "mandataire" && !pageNeutre() && !cadreCrm) p.accent = ACCENT_MANDATAIRE;
   const theme = themeEffectif(p);
   const clair = theme === CLAIR;
   appliquerTheme(theme);

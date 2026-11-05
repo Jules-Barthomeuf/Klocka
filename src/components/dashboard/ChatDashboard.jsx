@@ -887,7 +887,7 @@ function PhotosAuChoix({ choix, onChoisie }) {
         <button key={p.url} type="button" onClick={() => choisir(p.url)} aria-pressed={prise === p.url} aria-label={`Photo ${n + 1}${p.auteur ? `, par ${p.auteur}` : ""}`}
           className={`relative aspect-[4/3] overflow-hidden rounded-[12px] border-2 transition-transform duration-200 hover:-translate-y-0.5 ${prise === p.url ? "border-pervenche" : "border-transparent"}`}
           style={{ background: `center / cover no-repeat url(${JSON.stringify(p.url)})` }}>
-          {prise === p.url && <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-pervenche text-fond"><Check className="h-3.5 w-3.5" /></span>}
+          {prise === p.url && <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-pervenche text-sur-pervenche"><Check className="h-3.5 w-3.5" /></span>}
           {envoi === p.url && <span className="absolute inset-0 grid place-items-center bg-fond/40"><Loader2 className="h-5 w-5 animate-spin text-encre" /></span>}
         </button>
       ))}

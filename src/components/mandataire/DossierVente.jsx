@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import Loader from "@/components/ui/Loader";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Mail, Pencil, Plus, X } from "lucide-react";
+import { Check, EyeOff, Loader2, Mail, Pencil, Plus, X } from "lucide-react";
 import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
 import { Brouillon } from "@/components/dashboard/ChatDashboard";
 import { base44 } from "@/api/base44Client";
@@ -107,6 +107,8 @@ function MailDuDossier({ v, dossierId }) {
  */
 function Pieces({ v, url, relire }) {
   const [aClasser, setAClasser] = useState([]);
+  // Les documents importés par la case « + » : on choisit leur case, ou on en nomme une nouvelle (4 nov. 2026, Jules).
+  const [aRanger, setARanger] = useState([]);
   const [enCours, setEnCours] = useState(null);
   const deposer = useMutation({
     mutationFn: async ({ fichiers, categorie = null }) => {
@@ -137,6 +139,23 @@ function Pieces({ v, url, relire }) {
     onSuccess: () => { toast.success("Pièce retirée"); relire(); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+  // Masquer une case vide, ou les réafficher toutes (4 nov. 2026, Jules : « masquer les box qu'on ne veut plus voir »).
+  const masquer = useMutation({
+    mutationFn: ({ cle, oui }) => base44.request("POST", `${url}/pieces-masquees`, { body: { cle, masquer: oui } }),
+    onSuccess: relire,
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const masquees = v.dossier?.pieces_masquees || [];
+  const nouvelle = useMutation({
+    mutationFn: async ({ mot, fichiers }) => {
+      const r = await base44.request("POST", `${url}/cases`, { body: { mot } });
+      await deposer.mutateAsync({ fichiers, categorie: r.cle });
+      return r;
+    },
+    onSuccess: () => setARanger([]),
+    onError: (e) => toast.error(e?.message || "Case non créée"),
+  });
+  const ranger = (categorie) => { const f = aRanger; setARanger([]); deposer.mutate({ fichiers: f, categorie }); };
   const categories = v.pieces.map((p) => [p.cle, p.mot]);
   // « Autres documents » devient la case « + » du bas, pour tout le reste (3 nov. 2026, Jules).
   const libre = v.pieces.find((p) => p.cle === "autres");
@@ -148,27 +167,71 @@ function Pieces({ v, url, relire }) {
         {v.pieces.filter((p) => p !== libre).map((p) => (
           <ZonePiece key={p.cle} p={p} occupe={enCours === p.cle}
             onDeposer={(fichiers) => fichiers.length && deposer.mutate({ fichiers, categorie: p.cle })}
-            onRetirer={(f) => retirer.mutate({ cle: p.cle, u: f.url })} onAnnote={relire} />
+            onRetirer={(f) => retirer.mutate({ cle: p.cle, u: f.url })} onAnnote={relire}
+            onMasquer={() => masquer.mutate({ cle: p.cle, oui: true })} />
         ))}
         <ZonePhotos photos={v.dossier.photos} url={url} relire={relire} />
-        {libre && <ZonePiece p={libre} libre occupe={enCours === libre.cle}
-          onDeposer={(fichiers) => fichiers.length && deposer.mutate({ fichiers, categorie: libre.cle })}
+        {libre && <ZonePiece p={libre} libre occupe={enCours === libre.cle || nouvelle.isPending}
+          onDeposer={(fichiers) => fichiers.length && setARanger(fichiers)}
           onRetirer={(f) => retirer.mutate({ cle: libre.cle, u: f.url })} onAnnote={relire} />}
       </div>
+      {aRanger.length > 0 && (
+        <Ranger fichiers={aRanger} cases={v.pieces.filter((p) => p !== libre)} occupe={nouvelle.isPending || deposer.isPending}
+          onChoisir={ranger} onNouvelle={(mot) => nouvelle.mutate({ mot, fichiers: aRanger })} onAnnuler={() => setARanger([])} />
+      )}
+      {masquees.length > 0 && (
+        <button type="button" onClick={() => masquer.mutate({ cle: null, oui: false })} disabled={masquer.isPending}
+          className="mt-3 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+          {masquees.length} case{masquees.length > 1 ? "s" : ""} masquée{masquees.length > 1 ? "s" : ""} · Réafficher
+        </button>
+      )}
       {aClasser.length > 0 && (
         <ul className="m-0 mt-3 list-none p-0">
           {aClasser.map((f) => (
             <li key={`${f.name}-${f.size}`} className="flex flex-wrap items-center gap-2 py-1.5 text-[13px] text-craie">
               <span className="min-w-0 flex-1 truncate">À classer : {f.name}</span>
-              <select aria-label={`La pièce ${f.name}`} defaultValue="" onChange={(e) => e.target.value && deposer.mutate({ fichiers: [f], categorie: e.target.value })} className={champ}>
+              <select aria-label={`La pièce ${f.name}`} defaultValue="" onChange={(e) => {
+                if (e.target.value === "__nouvelle") { setAClasser((l) => l.filter((x) => x !== f)); setARanger((l) => [...l, f]); return; }
+                if (e.target.value) deposer.mutate({ fichiers: [f], categorie: e.target.value });
+              }} className={champ}>
                 <option value="" disabled>Quelle pièce ?</option>
-                {categories.map(([k, m]) => <option key={k} value={k}>{m}</option>)}
+                {categories.filter(([k]) => k !== "autres").map(([k, m]) => <option key={k} value={k}>{m}</option>)}
+                <option value="__nouvelle">Nouvelle case…</option>
               </select>
               <button type="button" aria-label="Ne pas déposer" onClick={() => setAClasser((l) => l.filter((x) => x !== f))} className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
             </li>
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/**
+ * Où ranger les documents importés par la case « + » (4 nov. 2026, Jules : « sélectionner soit la box de la data room,
+ * soit une nouvelle que je vais nommer ») : les cases en pastilles, puis un champ pour en nommer une nouvelle.
+ */
+export function Ranger({ fichiers, cases, occupe, onChoisir, onNouvelle, onAnnuler }) {
+  const [nom, setNom] = useState("");
+  const n = fichiers.length;
+  const valider = () => nom.trim() && !occupe && onNouvelle(nom.trim());
+  return (
+    <div className="mt-3 rounded-[14px] bg-rail p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="m-0 text-[15px] text-encre">{n > 1 ? `Où ranger ces ${n} documents ?` : `Où ranger ${fichiers[0].name} ?`}</p>
+        <button type="button" aria-label="Annuler" onClick={onAnnuler} className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {cases.map((p) => (
+          <button key={p.cle} type="button" disabled={occupe} onClick={() => onChoisir(p.cle)}
+            className="inline-flex h-8 items-center rounded-full border border-trait px-3 text-[13.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>{p.mot}</button>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <input value={nom} onChange={(e) => setNom(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); valider(); } if (e.key === "Escape") onAnnuler(); }}
+          placeholder="Ou une nouvelle case : son nom" aria-label="Nom de la nouvelle case" className={`${champ} min-w-0 flex-1`} />
+        <button type="button" onClick={valider} disabled={!nom.trim() || occupe} className={boutonPlein}>{occupe ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer et ranger"}</button>
+      </div>
     </div>
   );
 }
@@ -230,7 +293,7 @@ function LignePiece({ f, onRetirer, onAnnote }) {
   );
 }
 
-export function ZonePiece({ p, occupe, onDeposer, onRetirer, onAnnote = null, libre = false }) {
+export function ZonePiece({ p, occupe, onDeposer, onRetirer, onAnnote = null, onMasquer = null, libre = false }) {
   const ref = useRef(null);
   const [survol, setSurvol] = useState(false);
   const fichiers = p.fichiers || [];
@@ -245,7 +308,7 @@ export function ZonePiece({ p, occupe, onDeposer, onRetirer, onAnnote = null, li
       onDragOver={(ev) => { ev.preventDefault(); setSurvol(true); }}
       onDragLeave={() => setSurvol(false)}
       onDrop={(ev) => { ev.preventDefault(); setSurvol(false); onDeposer([...ev.dataTransfer.files]); }}
-      className={`cursor-pointer ${cadre(survol)}`}>
+      className={`group/case relative cursor-pointer ${cadre(survol)}`}>
       {/* La case libre n'a qu'un « + » tant qu'elle est vide. */}
       {(!libre || n > 0) && <div className="flex items-baseline justify-between gap-3">
         <p className="m-0 text-[15px] text-encre">{p.mot}</p>
@@ -253,6 +316,13 @@ export function ZonePiece({ p, occupe, onDeposer, onRetirer, onAnnote = null, li
           ? <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-menthe/15 text-menthe" aria-label="Reçue"><Check className="h-3.5 w-3.5" /></span>
           : <span className={`flex-none text-[12.5px] ${p.etat === "manquante" ? (p.requise ? "text-ambre" : "text-brume") : couleur}`}>{p.etat === "manquante" ? (p.requise ? "Obligatoire" : "Facultatif") : mot}</span>}
       </div>}
+      {/* Masquer une case vide : l'œil barré au survol, en bas à gauche (en face du « + »). */}
+      {onMasquer && !libre && n === 0 && (
+        <button type="button" onClick={(ev) => { arreter(ev); onMasquer(); }} aria-label={`Masquer : ${p.mot}`} title="Masquer cette case"
+          className="absolute bottom-3 left-3 grid h-7 w-7 place-items-center rounded-full text-brume opacity-0 transition-opacity hover:text-encre focus:opacity-100 group-hover/case:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}>
+          <EyeOff className="h-3.5 w-3.5" />
+        </button>
+      )}
       {n > 0 && (
         <ul className="m-0 mt-2 list-none space-y-1.5 p-0">
           {fichiers.map((f) => <LignePiece key={f.url || f.nom} f={f} onRetirer={onRetirer} onAnnote={onAnnote} />)}

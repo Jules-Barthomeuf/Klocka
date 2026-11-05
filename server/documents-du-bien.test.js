@@ -69,6 +69,26 @@ test('déposer sur le bien : rangé par nature, le sien seulement, reclassable ;
   assert.equal(h.documents.autres[0].url, '/uploads/cr.pdf');
 });
 
+test('une case nommée sur le bien : ses documents y vont, la Data room la reprend à sa naissance (4 nov. 2026)', async () => {
+  const user = { email: 'm@kpartners.fr', role: 'mandataire' };
+  const p = Records.create('ProprietaireMandataire', { mandataire_email: 'm@kpartners.fr', commerce: 'Cave', statut: 'rdv_pris', biens: {} });
+  assert.equal(D.nouvelleCaseDuBien(p.id, '  ', user).ok, false, 'un nom est demandé');
+  assert.equal(D.nouvelleCaseDuBien(p.id, 'Licence IV', { email: 'autre@kpartners.fr', role: 'mandataire' }).ok, false);
+  const c = D.nouvelleCaseDuBien(p.id, 'Licence IV', user);
+  assert.ok(c.ok && c.cle.startsWith('perso-'));
+  assert.equal(D.nouvelleCaseDuBien(p.id, 'licence iv', user).cle, c.cle, 'un nom déjà pris rend la même case');
+  assert.equal((await D.deposerAuBien(p.id, [{ nom: 'x.pdf', url: '/uploads/x-perso.pdf' }], user, { casePerso: 'perso-inconnue' })).ok, false);
+  const r = await D.deposerAuBien(p.id, [{ nom: 'Bail licence.pdf', url: '/uploads/licence.pdf' }], user, { casePerso: c.cle });
+  assert.equal(r.deposes[0].nature, 'autres');
+  assert.equal(r.deposes[0].case_perso, c.cle, 'rangé dans la case choisie, pas d’après son nom');
+  const lus = await D.documentsLus({ proprietaire: p.id }, user);
+  assert.deepEqual(lus.cases_perso.map((x) => x.mot), ['Licence IV']);
+  assert.equal(lus.groupes.flatMap((g) => g.documents).find((d) => d.url === '/uploads/licence.pdf').case_perso, c.cle);
+  const h = P.heritageDuDossier({ fiche: Records.get('ProprietaireMandataire', p.id) });
+  assert.deepEqual(h.pieces_perso.map((x) => [x.cle, x.mot]), [[c.cle, 'Licence IV']]);
+  assert.equal(h.documents[c.cle][0].url, '/uploads/licence.pdf');
+});
+
 test("les outils de l'assistant : sans bien ouvert, il le dit ; il lit un fichier texte du bien", async () => {
   const user = { email: 'm@kpartners.fr', role: 'mandataire' };
   assert.equal((await D.executerOutilDocuments({ name: 'documents_du_bien', input: {} }, user, {})).ok, false);

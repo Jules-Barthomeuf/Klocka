@@ -37,7 +37,19 @@ export async function agentTwenty(agent, T) {
     ...(agent.telephone ? { telephone: versTwenty('PHONES', agent.telephone) } : {}),
     ...(agent.agence ? { entreprise: agent.agence } : {}),
   });
+  if (cree?.id) await versMonday('agentImmobilier', cree);
   return cree?.id || null;
+}
+
+// En CRM=double, ce que la Mémoire crée dans Twenty naît aussi dans Monday (5 nov. 2026, Jules : « Monday et Twenty,
+// tout mis ensemble »). Un agent, et un bien en dossier ; un bien au statut Mémoire reste dans Twenty seul (donnée de
+// marché, hors pipeline, sans statut dans Monday).
+async function versMonday(singulier, fiche, champs = []) {
+  const M = await import('../monday.js');
+  if (!M.crmDouble() || !fiche?.id) return;
+  const S = await import('../crm/synchro.js');
+  const o = S.objetSchema(singulier);
+  if (o) M.enFileCrm(`Mémoire → Monday (${singulier})`, () => S.ficheVersMonday(o, fiche.mondayId ? 'updated' : 'created', fiche, champs));
 }
 
 /** Pose ou met à jour un bien de la Mémoire dans « Propriétés ». */
@@ -61,6 +73,7 @@ export async function pousserBienMemoire(bien) {
   };
   for (const k of Object.keys(valeurs)) if (valeurs[k] === undefined) delete valeurs[k];
   const r = await T.poser(PROPRIETES, { id: bien.twenty_id || null, valeurs });
+  if (valeurs.statut !== 'MEMOIRE') await versMonday('proprietes', await T.lire(PROPRIETES, r.id).catch(() => null), Object.keys(valeurs));
   Records.update(ENTITE, bien.id, { twenty_id: r.id, twenty_le: new Date().toISOString(), twenty_agent_id: agentId });
   return { id: r.id, cree: !!r.cree, agent_id: agentId };
 }

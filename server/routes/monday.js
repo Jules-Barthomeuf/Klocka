@@ -5,7 +5,7 @@
 
 import { Records } from '../db.js';
 import { obtenirDossier } from '../deal/index.js';
-import { currentUser, ok, wrap } from '../contexte.js';
+import { currentUser, ok, upload, wrap } from '../contexte.js';
 
 /** Monte les routes « monday » sur l'application. */
 export function monterMonday(app) {
@@ -19,6 +19,58 @@ export function monterMonday(app) {
     if (M.crmTwenty() || M.crmDouble()) lien = await (await import('../crm/monday-sur-twenty.js')).lienDepuisMonday(tableau, id);
     res.redirect(302, lien || M.lienMondayDirect(tableau, id));
   }));
+
+  // Twenty CRM dans Klocka (5 nov. 2026, Jules) : la barre, les fiches, une fiche, un champ, une note ; selon le rôle Twenty.
+  const ecran = () => import('../crm/ecran.js');
+  // Qui regarde : un mandataire, ou Jules dans l'espace mandataire (?espace=mandataire), a les droits de K Partners.
+  const quiDe = (u, req) => ({ email: u.email, admin: u.role === 'admin', mandataire: u.role === 'mandataire' || (u.role === 'admin' && req.query.espace === 'mandataire') });
+  const crm = (fn) => wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (!u) return res.status(401).json({ error: 'Connexion requise.' });
+    try { ok(res, await fn(u, req)); } catch (e) { res.status(e.status || 502).json({ error: e.status ? e.message : `Twenty ne répond pas : ${e.message}`.slice(0, 300) }); }
+  });
+  app.get('/api/crm/ecran', crm(async (u, req) => (await ecran()).barre(quiDe(u, req))));
+  const filtresDe = (req) => { try { const f = JSON.parse(String(req.query.filtres || '[]')); return Array.isArray(f) ? f.slice(0, 20) : []; } catch { return []; } };
+  app.get('/api/crm/ecran-photo/:id', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).end();
+    const image = await (await ecran()).photoMembre(String(req.params.id)).catch(() => null);
+    if (!image) return res.status(404).end();
+    res.set('Content-Type', image.type);
+    res.set('Cache-Control', 'private, max-age=3600');
+    res.send(image.octets);
+  }));
+  app.get('/api/crm/ecran-modeles', crm(async (u, req) => (await ecran()).modeles(quiDe(u, req))));
+  app.patch('/api/crm/ecran-taches/:id', crm(async (u, req) => (await ecran()).cocherTache(quiDe(u, req), req.params.id, !!req.body?.faite)));
+  app.get('/api/crm/ecran/:objet', crm(async (u, req) => (await ecran()).page(quiDe(u, req), req.params.objet, { q: String(req.query.q || ''), tri: req.query.tri || null, sens: req.query.sens === 'desc' ? 'desc' : 'asc', apres: req.query.apres || null, filtres: filtresDe(req) })));
+  app.get('/api/crm/ecran/:objet/chercher', crm(async (u, req) => (await ecran()).chercherLien(quiDe(u, req), req.params.objet, String(req.query.q || ''))));
+  app.post('/api/crm/ecran/:objet', crm(async (u, req) => (await ecran()).ajouter(quiDe(u, req), req.params.objet, req.body?.nom, req.body?.valeurs)));
+  app.post('/api/crm/ecran/:objet/lot', crm(async (u, req) => (await ecran()).lot(quiDe(u, req), req.params.objet, req.body || {})));
+  app.get('/api/crm/ecran/:objet/export', wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (!u) return res.status(401).json({ error: 'Connexion requise.' });
+    try {
+      const r = await (await ecran()).exporter(quiDe(u, req), req.params.objet, { q: String(req.query.q || ''), tri: req.query.tri || null, sens: req.query.sens === 'desc' ? 'desc' : 'asc', filtres: filtresDe(req), colonnes: String(req.query.colonnes || '').split(',').filter(Boolean) });
+      res.set('Content-Type', 'text/csv; charset=utf-8');
+      res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(r.nom)}`);
+      res.send(r.csv);
+    } catch (e) { res.status(e.status || 502).json({ error: e.message }); }
+  }));
+  app.post('/api/crm/ecran/:objet/vues', crm(async (u, req) => (await ecran()).creerVue(quiDe(u, req), req.params.objet, req.body || {})));
+  app.patch('/api/crm/ecran/:objet/vues/:vue', crm(async (u, req) => (await ecran()).majVue(quiDe(u, req), req.params.objet, req.params.vue, req.body || {})));
+  app.delete('/api/crm/ecran/:objet/vues/:vue', crm(async (u, req) => (await ecran()).supprimerVue(quiDe(u, req), req.params.objet, req.params.vue)));
+  app.get('/api/crm/ecran/:objet/:id', crm(async (u, req) => (await ecran()).fiche(quiDe(u, req), req.params.objet, req.params.id)));
+  app.patch('/api/crm/ecran/:objet/:id', crm(async (u, req) => (await ecran()).changer(quiDe(u, req), req.params.objet, req.params.id, req.body?.champ, req.body?.valeur)));
+  app.post('/api/crm/ecran/:objet/:id/notes', crm(async (u, req) => (await ecran()).noterFiche(quiDe(u, req), req.params.objet, req.params.id, req.body?.texte, u.full_name || u.email)));
+  app.get('/api/crm/ecran/:objet/:id/historique', crm(async (u, req) => (await ecran()).historique(quiDe(u, req), req.params.objet, req.params.id)));
+  app.post('/api/crm/ecran/:objet/:id/fichiers', upload.single('fichier'), crm(async (u, req) => {
+    if (!req.file) throw Object.assign(new Error('Aucun fichier.'), { status: 400 });
+    const fs = await import('fs');
+    try {
+      return await (await ecran()).deposer(quiDe(u, req), req.params.objet, req.params.id, { chemin: req.file.path, nom: Buffer.from(req.file.originalname, 'latin1').toString('utf8'), taille: req.file.size, type: req.file.mimetype });
+    } finally { fs.promises.unlink(req.file.path).catch(() => {}); }
+  }));
+  app.post('/api/crm/ecran/:objet/:id/taches', crm(async (u, req) => (await ecran()).ajouterTache(quiDe(u, req), req.params.objet, req.params.id, req.body || {})));
+  app.post('/api/crm/ecran/:objet/:id/mail', crm(async (u, req) => (await ecran()).envoyerMail(u, req.params.objet, req.params.id, req.body || {}, quiDe(u, req))));
 
   // Monday : découverte des tableaux et de leurs colonnes. Sans les identifiants
   // de colonnes, impossible d'écrire quoi que ce soit — chacune est adressée par

@@ -3500,6 +3500,88 @@
           "label": "Créé dans Monday le",
           "type": "DATE_TIME",
           "systeme": true
+        },
+        {
+          "name": "statutContact",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "color_mm8sd6ah",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "CONTACT",
+              "label": "Contact",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "VISITE_FAITE",
+              "label": "Visite faite",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "OFFRE",
+              "label": "Offre",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "PERDU",
+              "label": "Perdu",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "PRE_VISITE",
+              "label": "Pré-visite",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "AVIS_DE_VALEUR",
+              "label": "Avis de valeur",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "AVIS_ACCEPTE",
+              "label": "Avis accepté",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "MANDAT_SIGNE",
+              "label": "Mandat signé",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "EN_VENTE",
+              "label": "En vente",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "SOUS_OFFRE",
+              "label": "Sous offre",
+              "color": "gray",
+              "position": 9
+            },
+            {
+              "value": "SOUS_PROMESSE",
+              "label": "Sous promesse",
+              "color": "green",
+              "position": 10
+            }
+          ]
+        },
+        {
+          "name": "prochaineRelance",
+          "label": "Prochaine relance",
+          "type": "DATE",
+          "mondayColonne": "date_mm8s5gcf",
+          "mondayType": "date"
         }
       ]
     },
@@ -3741,6 +3823,88 @@
           "label": "Créé dans Monday le",
           "type": "DATE_TIME",
           "systeme": true
+        },
+        {
+          "name": "statutContact",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "color_mm8sq63",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "CONTACT",
+              "label": "Contact",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "VISITE_FAITE",
+              "label": "Visite faite",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "OFFRE",
+              "label": "Offre",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "PERDU",
+              "label": "Perdu",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "PRE_VISITE",
+              "label": "Pré-visite",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "AVIS_DE_VALEUR",
+              "label": "Avis de valeur",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "AVIS_ACCEPTE",
+              "label": "Avis accepté",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "MANDAT_SIGNE",
+              "label": "Mandat signé",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "EN_VENTE",
+              "label": "En vente",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "SOUS_OFFRE",
+              "label": "Sous offre",
+              "color": "gray",
+              "position": 9
+            },
+            {
+              "value": "SOUS_PROMESSE",
+              "label": "Sous promesse",
+              "color": "green",
+              "position": 10
+            }
+          ]
+        },
+        {
+          "name": "prochaineRelance",
+          "label": "Prochaine relance",
+          "type": "DATE",
+          "mondayColonne": "date_mm8s9787",
+          "mondayType": "date"
         }
       ]
     },
@@ -4310,6 +4474,36 @@
               "label": "Offre faite",
               "color": "yellow",
               "position": 8
+            },
+            {
+              "value": "PRE_VISITE",
+              "label": "Pré-visite",
+              "color": "green",
+              "position": 9
+            },
+            {
+              "value": "AVIS_DE_VALEUR",
+              "label": "Avis de valeur",
+              "color": "turquoise",
+              "position": 10
+            },
+            {
+              "value": "MANDAT_SIGNE",
+              "label": "Mandat signé",
+              "color": "sky",
+              "position": 11
+            },
+            {
+              "value": "DATA_ROOM",
+              "label": "Data room",
+              "color": "blue",
+              "position": 12
+            },
+            {
+              "value": "EN_VENTE",
+              "label": "En vente",
+              "color": "purple",
+              "position": 13
             }
           ]
         },
@@ -4418,6 +4612,30 @@
               "label": "Condo",
               "color": "red",
               "position": 6
+            },
+            {
+              "value": "MURS_COMMERCIAUX",
+              "label": "Murs commerciaux",
+              "color": "green",
+              "position": 7
+            },
+            {
+              "value": "FONDS_DE_COMMERCE",
+              "label": "Fonds de commerce",
+              "color": "turquoise",
+              "position": 8
+            },
+            {
+              "value": "BUREAUX",
+              "label": "Bureaux",
+              "color": "sky",
+              "position": 9
+            },
+            {
+              "value": "MURS_ET_FONDS",
+              "label": "Murs et fonds",
+              "color": "blue",
+              "position": 10
             }
           ]
         },

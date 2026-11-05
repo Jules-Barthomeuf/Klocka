@@ -39,6 +39,8 @@ export function brancherPourTests({ objets: o = null, monday = null, twenty = nu
 
 const objetDuTableau = (boardId) => objets().find((o) => o.mondayTableau === String(boardId)) || null;
 const objetDuNom = (singulier) => objets().find((o) => o.nameSingular === singulier) || null;
+/** L'objet du schéma (crm/schema.json) d'un nom Twenty, pour l'écran CRM de Klocka. */
+export const objetSchema = (singulier) => objetDuNom(singulier);
 
 let metaCache = null;
 async function meta(o) {

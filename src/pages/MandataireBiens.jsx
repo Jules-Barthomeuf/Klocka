@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, ChevronRight, FileUp, Loader2, Plus, Search, Send } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, FileUp, Loader2, Plus, Search, Send, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
@@ -33,6 +33,8 @@ import { Detail as DetailMarche, ETAPES_MARCHE } from "@/pages/MandataireMarche"
 import Visites from "@/components/mandataire/Visites";
 import DossierVente, { MailDuChat } from "@/components/mandataire/DossierVente";
 import VueEnsembleBien from "@/components/mandataire/VueEnsembleBien";
+import RelectureBien from "@/components/mandataire/RelectureBien";
+import AnnoncesBien from "@/components/mandataire/AnnoncesBien";
 import TeaserBien, { ActionsTeaser } from "@/components/mandataire/Teaser";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { Conversation, Resume, depuisMandataire } from "@/components/conversations/EspaceConversations";
@@ -133,6 +135,16 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest, 
     onSuccess: async (r) => { await queryClient.refetchQueries({ queryKey: ["m-proprietaires"] }); onImporte(r.proprietaire.id); },
     onError: (e) => toast.error(e?.message || "Import impossible"),
   });
+  // Supprimer un bien qu'on ne veut plus (4 nov. 2026, Jules) : il quitte la page tout de suite, « Annuler » le remet.
+  const relireBiens = () => Promise.all(["m-proprietaires", "m-estimations", "m-mandats", "m-dossiers", "m-marches"].map((k) => queryClient.invalidateQueries({ queryKey: [k] })));
+  const supprimer = useMutation({
+    mutationFn: ({ ids, annuler = false }) => base44.request("POST", "/api/mandataire/biens/retirer", { body: { ids, annuler } }),
+    onSuccess: async (_, { ids, titre, annuler }) => {
+      await relireBiens();
+      if (!annuler) toast.success(`${titre} supprimé`, { action: { mot: "Annuler", faire: () => supprimer.mutate({ ids, titre, annuler: true }) } });
+    },
+    onError: (e) => toast.error(e?.message || "Suppression impossible"),
+  });
   // « Estimation envoyée » (26 oct. 2026, Jules ; renommé le 27 avec la restitution) : les avis envoyés sans réponse
   // du propriétaire, ce que l'étape Prix d'accord montrait.
   const [enAttente, setEnAttente] = useState(false);
@@ -187,7 +199,7 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest, 
       <BandeauExemples liste={biens} />
       {!!liste.length && (
         <div className="mt-[26px] grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-3">
-          {vus.map((b) => <CarteBien key={b.cle} b={b} onOuvrir={() => onOuvrir(b)} />)}
+          {vus.map((b) => <CarteBien key={b.cle} b={b} onOuvrir={() => onOuvrir(b)} onSupprimer={() => supprimer.mutate({ ids: b.ids, titre: b.titre })} />)}
         </div>
       )}
       {pages > 1 && (
@@ -202,7 +214,7 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest, 
 }
 
 /** La carte d'un bien, au dessin de celle d'un dossier : le statut et la date sur la grille de points, le bien, puis ses étapes en segments. */
-function CarteBien({ b, onOuvrir }) {
+function CarteBien({ b, onOuvrir, onSupprimer = null }) {
   const e = ETAPES_BIEN[b.etape - 1];
   const nonLus = b.dossier?.transfere ? b.dossier.fil_non_lus || 0 : 0;
   const ecarte = b.dossier?.statut === "no_go" && !b.marche;
@@ -210,7 +222,7 @@ function CarteBien({ b, onOuvrir }) {
   const fourchette = b.estimation?.rapport?.prix_bas ? `${euros(b.estimation.rapport.prix_bas)} – ${euros(b.estimation.rapport.prix_haut)}` : null;
   const lieu = [b.dossier?.carte?.ville, b.dossier?.carte?.surface_m2 ? `${b.dossier.carte.surface_m2} m²` : null, prix ? euros(prix) : fourchette].filter(Boolean).join(" · ") || b.adresse || "Adresse à compléter";
   return (
-    <article className="relative flex cursor-pointer flex-col rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}
+    <article className="group relative flex cursor-pointer flex-col rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}
       role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === "Enter") onOuvrir(); }}>
       <div className="k-grid k-grid-toujours relative h-[112px] flex-none rounded-t-[17px] border-b border-trait">
         <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
@@ -219,6 +231,13 @@ function CarteBien({ b, onOuvrir }) {
         <span className="absolute right-4 top-[18px] inline-flex items-center gap-2 text-[12px] tabular-nums text-brume">
           <PointNouveau n={nonLus} />{b.modifie ? new Date(b.modifie).toLocaleDateString("fr-FR") : ""}
         </span>
+        {/* Supprimer : la corbeille au survol, sous la date (toujours visible au téléphone). Les exemples ne se suppriment pas. */}
+        {onSupprimer && !b.exemple && (
+          <button type="button" onClick={(ev) => { ev.stopPropagation(); onSupprimer(); }} aria-label={`Supprimer ${b.titre}`} title="Supprimer ce bien"
+            className="absolute bottom-3 right-3 grid h-8 w-8 place-items-center rounded-full border border-trait bg-fond text-ardoise opacity-0 transition-opacity hover:text-alerte focus:opacity-100 group-hover:opacity-100 max-md:opacity-100">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-3.5 px-5 pb-5 pt-[18px]">
         <div className="flex min-w-0 flex-col gap-2">
@@ -669,7 +688,7 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
                 {/* Les trois documents de l'avis (27 oct. 2026, Jules) : Présenter, l'Avis de valeur, ses Sources. */}
                 {espace === "estimation" && (
                   <button type="button" onClick={() => setPresenter(true)}
-                    className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full bg-pervenche px-3.5 text-[13px] text-fond">Présenter</button>
+                    className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full bg-pervenche px-3.5 text-[13px] text-sur-pervenche">Présenter</button>
                 )}
                 {suivi && <DocumentTelephone enLigne serre libelle="Suivi"><SuiviBien proprietaireId={bien.proprietaire.id} /></DocumentTelephone>}
                 <DocumentTelephone enLigne serre libelle={espace === "estimation" ? "Avis de valeur" : "Voir le mandat"}>{document}</DocumentTelephone>
@@ -766,6 +785,8 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
 function EtapeVente({ bien, large, entete, onFermer, onSuivante }) {
   const m = bien.marche;
   const [mode, setMode] = useState("edition");
+  // Le teaser ou les annonces (4 nov. 2026, Jules) : la même colonne de droite, une bascule dans sa barre.
+  const [vue, setVue] = useState("teaser");
   const proposition = (
     <div className="text-left">
       <p className="m-0 text-[12.5px] text-ardoise">L'Assistant KPartners</p>
@@ -782,8 +803,19 @@ function EtapeVente({ bien, large, entete, onFermer, onSuivante }) {
   // Le teaser seul (28 oct. 2026, Jules) : la frise, les visites, le dossier investisseur et les offres vont aux Offres.
   return (
     <EcranHaka bien={bien} large={large} entete={entete} onFermer={onFermer} marcheId={m.id} cles={["m-teaser", "m-marches"]}
-      placeholder="Demandez à l'Assistant KPartners : raccourcis le titre, mets le rendement en avant…" proposition={proposition} libelleTel="Voir le teaser" droite={<TeaserBien marcheId={m.id} mode={mode} />}
-      barre={<div className="flex w-full items-center justify-between gap-3 md:pr-14"><span>Le teaser</span><ActionsTeaser marcheId={m.id} mode={mode} onMode={setMode} onValide={onSuivante} /></div>} />
+      placeholder="Demandez à l'Assistant KPartners : raccourcis le titre, mets le rendement en avant…" proposition={proposition} libelleTel={vue === "annonces" ? "Voir les annonces" : "Voir le teaser"}
+      droite={vue === "annonces" ? <AnnoncesBien marcheId={m.id} dossierId={bien?.dossier?.id || null} /> : <TeaserBien marcheId={m.id} mode={mode} />}
+      barre={(
+        <div className="flex w-full items-center justify-between gap-3 md:pr-14">
+          <div className="flex w-fit gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Teaser ou annonces">
+            {[["teaser", "Le teaser"], ["annonces", "Annonces"]].map(([k, mot]) => (
+              <button key={k} type="button" role="tab" aria-selected={vue === k} onClick={() => setVue(k)}
+                className={`h-7 rounded-full px-3.5 text-[13px] ${vue === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-craie"}`} style={vue === k ? undefined : { background: "transparent" }}>{mot}</button>
+            ))}
+          </div>
+          {vue === "teaser" && <ActionsTeaser marcheId={m.id} mode={mode} onMode={setMode} onValide={onSuivante} />}
+        </div>
+      )} />
   );
 }
 
@@ -1046,7 +1078,18 @@ function EtapeImport({ bien, onAller, onFermer, entete }) {
   const largeurChat = useLargeurChat();
   const [conversation, setConversation] = useState(false);
   const sansHistorique = useCallback(() => {}, []);
-  const relire = () => ["m-proprietaires", "m-documents-bien", "m-fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+  const [, setParams] = useSearchParams();
+  const relire = () => ["m-proprietaires", "m-documents-bien", "m-fiche", "m-dossiers"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+  // L'assistant a reconnu un bien déjà là (même adresse) : l'écran ouvre celui-là, la conversation l'a suivi (4 nov. 2026).
+  const surReponse = async (r) => {
+    const ouvrir = (r?.actions || []).find((a) => a.type === "ouvrir_bien");
+    if (ouvrir) {
+      await queryClient.refetchQueries({ queryKey: ["m-proprietaires"] });
+      setParams(new URLSearchParams({ bien: `proprietaire:${ouvrir.proprietaire_id}`, etape: "ensemble" }));
+      return;
+    }
+    relire();
+  };
   const finir = useMutation({
     mutationFn: () => base44.request("POST", `/api/mandataire/proprietaires/${p.id}/import/fini`),
     onSuccess: relire,
@@ -1061,12 +1104,12 @@ function EtapeImport({ bien, onAller, onFermer, entete }) {
         {!conversation && (
           <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 overflow-y-auto py-6 text-center">
             <h1 className="k-balayage m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Faire entrer ce bien</h1>
-            <p className="mx-auto m-0 max-w-[60ch] text-[14px] text-ardoise">Dites l'adresse et ce que c'est (murs, fonds de commerce, bureaux), puis racontez où vous en êtes, en vocal si vous voulez. Ensuite, ajoutez ce que vous avez avec « + ».</p>
+            <p className="mx-auto m-0 max-w-[60ch] text-[14px] text-ardoise">Racontez-moi ce bien : où il est, ce que c'est, où vous en êtes avec le propriétaire, qui s'est placé dessus. En vocal si vous voulez, et joignez ce que vous avez (mandat, avis de valeur, bail).</p>
           </div>
         )}
         <div className={conversation ? "min-h-0 w-full flex-1" : "mx-auto w-full max-w-[760px] flex-none pb-8"}>
           <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
-            onReponse={relire} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="L'adresse, le type, puis où vous en êtes…"
+            onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Racontez ce bien…"
             barreApercu={conversation} retour={{ libelle: "Mes biens", onClick: onFermer }} reprendre />
         </div>
       </div>
@@ -1079,7 +1122,7 @@ function EtapeImport({ bien, onAller, onFermer, entete }) {
                 <span className="truncate">{bien.titre}</span>
                 <button type="button" onClick={() => finir.mutate()} disabled={finir.isPending} className="inline-flex h-8 flex-none items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>C'est fait</button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto pb-10 pl-6 pr-20 pt-2"><div className="mx-auto max-w-[1180px]"><VueEnsembleBien bien={bien} onAller={onAller} sansImport /></div></div>
+              <div className="min-h-0 flex-1 overflow-y-auto pb-10 pl-6 pr-20 pt-2"><div className="mx-auto max-w-[1180px]"><RelectureBien proprietaire={p} /><VueEnsembleBien bien={bien} onAller={onAller} sansImport /></div></div>
             </motion.div>
           )}
         </AnimatePresence>

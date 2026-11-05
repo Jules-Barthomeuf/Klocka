@@ -103,7 +103,7 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
   return (
     <div className="relative">
       <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif">
-        <SlidersHorizontal className="h-4 w-4" />Filtrer{n > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-pervenche px-1.5 text-[11.5px] text-fond">{n}</span>}
+        <SlidersHorizontal className="h-4 w-4" />Filtrer{n > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-pervenche px-1.5 text-[11.5px] text-sur-pervenche">{n}</span>}
       </button>
       {/* La fenêtre des filtres monte du bas et se pose au milieu de l'écran (Jules, 11 oct. 2026). */}
       <AnimatePresence>

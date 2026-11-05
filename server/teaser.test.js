@@ -26,7 +26,7 @@ test('murs loués : prix, loyer, rendement en pervenche ; ni adresse ni nom dans
   const t = T.composer(f, 'murs_loues', { ville: "d'une ville moyenne (Bourgogne-Franche-Comté)", ref: 'KP-0001' });
   assert.deepEqual(t.tuiles.map((x) => x.valeur), ['300 000 €', '21 600 €', '7,2 %']);
   assert.equal(t.tuiles[2].etoile, true);
-  assert.equal(t.filigrane, '7,2 %');
+  assert.equal(t.filigrane, undefined);
   assert.equal(t.titre, 'Murs commerciaux loués, centre-ville');
   assert.doesNotMatch(`${t.titre} ${t.sous_titre}`, /Carnot|Mâcon|Boulangerie/);
   assert.equal(t.sous_titre, "Centre-ville d'une ville moyenne (Bourgogne-Franche-Comté)");
@@ -39,7 +39,6 @@ test('fonds et droit au bail : pas de rendement, leur intitulé, leur confidenti
   const f = T.faitsDuBien({ mandat: { prix: 150000 }, estimation: { questionnaire: { loyer_annuel_hc: 12000 } } });
   const fonds = T.composer(f, 'fonds');
   assert.equal(fonds.tableau_titre, 'Le fonds');
-  assert.equal(fonds.filigrane, '3×');
   assert.match(fonds.confidentialite, /salariés/);
   assert.ok(!fonds.points.some((p) => /Rendement/.test(p)));
   const db = T.composer(f, 'droit_au_bail');

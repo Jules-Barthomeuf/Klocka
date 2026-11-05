@@ -88,7 +88,7 @@ export function documentsDuBien({ fiche = null, estimations = [], mandats = [], 
     docs.push(d);
   };
   for (const x of fiche?.biens?.pieces || []) {
-    ajouter({ id: `piece:${x.id}`, nature: CLES.has(x.nature) ? x.nature : 'autres', nom: x.nom, url: x.url, le: x.le || null, source: SOURCE_PIECE[x.par] || SOURCE_PIECE.mandataire, modifiable: true });
+    ajouter({ id: `piece:${x.id}`, nature: CLES.has(x.nature) ? x.nature : 'autres', nom: x.nom, url: x.url, le: x.le || null, source: SOURCE_PIECE[x.par] || SOURCE_PIECE.mandataire, modifiable: true, ...(x.case_perso ? { case_perso: x.case_perso } : {}) });
   }
   // Les pièces jointes à l'import d'un bien en portefeuille (server/biens-import.js).
   for (const x of fiche?.pieces_importees || []) {
@@ -136,7 +136,9 @@ export function objetsDuBienLus({ proprietaire = null, estimation = null, mandat
   const m0 = mandat ? Records.get('MandatMandataire', mandat) : null;
   const mandats = aLui(m0, user) ? [m0] : Records.list('MandatMandataire').filter((m) => estimations.some((e) => e.id === m.estimation_id) && aLui(m, user)).slice(0, 1);
   const d0 = dossier ? Records.get('DossierMandataire', dossier) : null;
-  const d = aLui(d0, user) ? d0 : mandats[0] ? Records.list('DossierMandataire').find((x) => x.mandat_id === mandats[0].id && aLui(x, user)) || null : null;
+  const d = aLui(d0, user) ? d0 : mandats[0] ? Records.list('DossierMandataire').find((x) => x.mandat_id === mandats[0].id && aLui(x, user)) || null
+    // Un bien importé : sa Data room porte son propriétaire (4 nov. 2026).
+    : ficheOk ? Records.list('DossierMandataire').find((x) => x.proprietaire_id === ficheOk.id && aLui(x, user)) || null : null;
   const k0 = marche ? Records.get('MiseEnMarche', marche) : null;
   const marches = aLui(k0, user) ? [k0] : [];
   return { fiche: ficheOk, estimations, mandats, dossier: d, marches };
@@ -150,22 +152,26 @@ export async function documentsLus(ids, user) {
   // Le nom choisi et la note de chaque pièce (4 nov. 2026, server/annotations-documents.js).
   const { annotationsDe, annote } = await import('./annotations-documents.js');
   const a = annotationsDe(lus.groupes.flatMap((g) => g.documents.map((d) => d.url)));
-  return { ok: true, ...lus, groupes: lus.groupes.map((g) => ({ ...g, documents: g.documents.map((d) => annote(d, a)) })), deposable: !!o.fiche };
+  return { ok: true, ...lus, groupes: lus.groupes.map((g) => ({ ...g, documents: g.documents.map((d) => annote(d, a)) })), deposable: !!o.fiche, cases_perso: o.fiche?.biens?.cases_perso || [] };
 }
 
 /**
  * Des fichiers déposés sur un bien (sa fiche) : rangés par nature d'après leur nom, sauf nature dite. Ils rejoignent
  * aussi la Data room du bien quand elle existe. `fichiers` : [{ nom, url, mimetype }]. `par` : mandataire, fil, vendeur.
  */
-export async function deposerAuBien(proprietaireId, fichiers = [], user, { nature = null, par = 'mandataire' } = {}) {
+export async function deposerAuBien(proprietaireId, fichiers = [], user, { nature = null, casePerso = null, par = 'mandataire' } = {}) {
   const p = Records.get('ProprietaireMandataire', proprietaireId);
   if (!aLui(p, user)) return { ok: false, error: 'Bien introuvable.' };
   if (!fichiers.length) return { ok: false, error: 'Aucun fichier reçu.' };
+  // Une case nommée par le mandataire (4 nov. 2026) : ses documents sont des « autres », rangés dans cette case.
+  const perso = casePerso ? (p.biens?.cases_perso || []).find((x) => x.cle === casePerso) : null;
+  if (casePerso && !perso) return { ok: false, error: 'Case inconnue.' };
+  if (perso) nature = 'autres';
   if (nature && !CLES.has(nature)) return { ok: false, error: 'Nature inconnue.' };
   const le = new Date().toISOString();
   const avant = p.biens?.pieces || [];
   const nouvelles = fichiers.filter((f) => f?.url && !avant.some((x) => x.url === f.url))
-    .map((f) => ({ id: crypto.randomUUID().slice(0, 12), nom: f.nom || 'Document', url: f.url, nature: nature || natureDuNom(f.nom, f.mimetype), le, par }));
+    .map((f) => ({ id: crypto.randomUUID().slice(0, 12), nom: f.nom || 'Document', url: f.url, nature: nature || natureDuNom(f.nom, f.mimetype), le, par, ...(perso ? { case_perso: perso.cle } : {}) }));
   if (!nouvelles.length) return { ok: true, deposes: [] };
   // Un bien en import : le mandat déposé le fait passer au mandat signé, l'avis à la visite faite (4 nov. 2026, Jules).
   let validee = p.biens?.validee ?? null;
@@ -178,13 +184,33 @@ export async function deposerAuBien(proprietaireId, fichiers = [], user, { natur
   const o = objetsDuBienLus({ proprietaire: p.id }, user);
   if (o.dossier) {
     const P = await import('./mandataire-portes.js');
+    const qui = { ...user, email: o.dossier.mandataire_email };
+    // La case nommée existe aussi dans la Data room : la même, retrouvée par son nom, ou créée.
+    const cleDossier = perso ? (await (await import('./dossier-vente.js')).nouvelleCase(o.dossier.id, perso.mot, qui)).cle : null;
     for (const x of nouvelles) {
       if (x.nature === 'photos' || horsDataroom(x.nature)) continue;
-      const r = P.ajouterPiece(o.dossier.id, caseDataroom(x.nature), { filename: x.nom, url: x.url, par }, { ...user, email: o.dossier.mandataire_email });
+      const r = P.ajouterPiece(o.dossier.id, cleDossier || caseDataroom(x.nature), { filename: x.nom, url: x.url, par }, qui);
       if (!r.ok) console.warn(`[documents du bien] Data room : ${r.error}`);
     }
   }
   return { ok: true, deposes: nouvelles };
+}
+
+/**
+ * Une case nommée par le mandataire sur le bien, avant la Data room (4 nov. 2026, Jules : « soit la box de la data room,
+ * soit une nouvelle que je vais nommer »). Un nom déjà pris rend la case existante. La Data room la reprend à sa naissance.
+ */
+export function nouvelleCaseDuBien(proprietaireId, mot, user) {
+  const p = Records.get('ProprietaireMandataire', proprietaireId);
+  if (!aLui(p, user)) return { ok: false, error: 'Bien introuvable.' };
+  const nom = String(mot || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (!nom) return { ok: false, error: 'Nommez la case.' };
+  const cases = p.biens?.cases_perso || [];
+  const meme = cases.find((x) => x.mot.toLowerCase() === nom.toLowerCase());
+  if (meme) return { ok: true, cle: meme.cle, mot: meme.mot };
+  const cle = `perso-${Date.now().toString(36)}`;
+  Records.update('ProprietaireMandataire', p.id, { biens: { ...(p.biens || {}), cases_perso: [...cases, { cle, mot: nom, le: new Date().toISOString() }] } });
+  return { ok: true, cle, mot: nom };
 }
 
 /** Une pièce déposée sur le bien, rangée dans une autre nature. */

@@ -1551,8 +1551,10 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     system: [{ texte: consigne(), cache: true }, { texte: `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.${cadre}${surPage}${surDossier}${surFiche}${surBien}${BR.cadreImport(ficheOuverte)}${surVente}${surTeaser}${surSortie}${surCompetence}${surSources}` }],
     cache: true,
     messages,
-    tools: [...OUTILS_MANDATAIRE, ...OUTILS_MARCHE_MANDATAIRE, ...(ouverte ? [OUTIL_AFFINER, OUTIL_RESULTATS] : []), ...(surVente ? V.OUTILS_DOSSIER_VENTE : []), ...(surTeaser ? [TZ.OUTIL_TEASER] : []), ...(ficheOuverte ? DB.OUTILS_DOCUMENTS : []), ...(ficheOuverte?.biens?.import && !ficheOuverte.biens.import.fini ? [BR.OUTIL_REPRENDRE] : [])]
-      .filter((o) => !choisies.length || !OUTILS_DE_DONNEES.has(o.name) || permis.has(o.name)),
+    tools: [...OUTILS_MANDATAIRE, ...OUTILS_MARCHE_MANDATAIRE, ...(ouverte ? [OUTIL_AFFINER, OUTIL_RESULTATS] : []), ...(surVente ? V.OUTILS_DOSSIER_VENTE : []), ...(surTeaser ? [TZ.OUTIL_TEASER] : []), ...(ficheOuverte ? DB.OUTILS_DOCUMENTS : []), ...(ficheOuverte?.biens?.import && !ficheOuverte.biens.import.fini ? [BR.OUTIL_REPRENDRE, ...BR.OUTILS_IMPORT] : [])]
+      .filter((o) => !choisies.length || !OUTILS_DE_DONNEES.has(o.name) || permis.has(o.name))
+      // Pendant l'import d'un bien, la carte « importer_bien » ferait un second bien.
+      .filter((o) => !(o.name === 'importer_bien' && ficheOuverte?.biens?.import && !ficheOuverte.biens.import.fini)),
     onTool: tracer(async (appel) => {
       // Stop : plus aucune écriture, le modèle est prié de conclure sur l'acquis.
       if (estAnnule?.()) return { ok: false, error: 'Le mandataire a arrêté la demande : ne fais plus rien, dis en une ligne ce qui a déjà été fait.' };
@@ -1577,7 +1579,9 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
       const r = appel.name === 'modifier_teaser'
         ? await TZ.executerOutilTeaser(appel, user, { marche_id: marcheOuvert?.id || null })
         : appel.name === 'reprendre_bien'
-        ? BR.executerReprise(appel.input || {}, user, { fiche: ficheOuverte })
+        ? await BR.executerReprise(appel.input || {}, user, { fiche: ficheOuverte })
+        : BR.NOMS_IMPORT.has(appel.name)
+        ? await BR.executerOutilImport(appel, user, { fiche: ficheOuverte })
         : DB.NOMS_DOCUMENTS.has(appel.name)
         ? await DB.executerOutilDocuments(appel, user, { fiche: ficheOuverte })
         : V.NOMS_DOSSIER_VENTE.has(appel.name)
@@ -1590,6 +1594,10 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
       // Twenty ou en double, Klocka ouvre la fiche Twenty par l'id Monday ; en Monday seul, la carte dit Monday.
       if (r?.monday?.lien) actions.push({ type: 'monday', id: `monday-${r.proprietaire_id}`, titre: `${r.monday.cree ? 'Prospect créé' : 'Prospect mis à jour'} dans ${r.monday.crm}`, pour: 'K Partners · Prospects', lien: r.monday.lien });
       if (r?.monday?.erreur) actions.push({ type: 'monday', id: `monday-${r.proprietaire_id}`, titre: 'Pas envoyé dans Twenty CRM', pour: r.monday.erreur, etat: 'rate' });
+      // Le bien importé était déjà là : l'écran ouvre celui-là ; envoyé en Prospection, il quitte Mes biens (4 nov. 2026).
+      if (r?.ouvrir_bien) actions.push({ type: 'ouvrir_bien', id: `ouvrir-${r.ouvrir_bien.id}`, proprietaire_id: r.ouvrir_bien.id, titre: 'Bien déjà là, complété', pour: r.ouvrir_bien.titre });
+      if (r?.vers_prospection) actions.push({ type: 'vers_prospection', id: `prospection-${ficheOuverte?.id}`, titre: 'Mis dans la Prospection', pour: r.fait });
+      if (r?.lien && appel.name === 'mettre_au_crm') actions.push({ type: 'monday', id: `crm-${ficheOuverte?.id}`, titre: 'Mis au CRM', pour: 'Propriétés KPartners · Prospects', lien: r.lien });
       if (r?.piece_rangee) actions.push({ type: 'piece', id: `piece-${Date.now()}-${actions.length}`, titre: r.titre, pour: r.pour, lien: r.lien });
       if (r?.cree && r.estimation_id) actions.push({ type: 'estimation', id: r.estimation_id, titre: r.titre, pour: r.pour, lien: r.lien });
       if (r?.cree && r.visite_id) actions.push({ type: 'visite', id: `visite-${r.visite_id}-${appel.name}`, titre: r.titre, pour: r.pour, lien: r.lien });

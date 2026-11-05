@@ -99,7 +99,7 @@ export const MENU_ADMIN = [
   // première page, et des onglets en tête de page passent de l'une à l'autre.
   { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
   // Le CRM (27 oct. 2026, Jules) : Twenty, hébergé à part, s'ouvre dans un nouvel onglet ; il remplace Monday.
-  { cle: "CRM", label: "Twenty CRM", externe: true, fixe: true },
+  { cle: "CRM", label: "Twenty CRM", fixe: true },
   { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" }, { cle: "AdminAccesCrm", label: "Accès CRM" },
     // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
     { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
@@ -121,17 +121,17 @@ export const MENU_MANDATAIRE = [
   // l'équipe, ses étapes à droite (Estimation, Mandat, Analyse, Mise en marché, Offre, Vente).
   { cle: "MandataireBiens", label: "Mes biens" },
   { cle: "MandataireClients", label: "Clients" },
-  // Bibliothèque (2 nov. 2026, Jules) : mandats, avis de valeur, comptes rendus, teasers, offres, tous biens confondus.
-  { cle: "MandataireDocuments", label: "Bibliothèque" },
+  // Bibliothèque retirée du menu (4 nov. 2026, Jules) : la page reste à son adresse, les documents se voient dans chaque bien.
   // Projets retiré (31 oct. 2026, Jules, PLAN.md 0.3) : son adresse mène à Biens.
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
   // Twenty CRM aussi chez les mandataires (30 oct. 2026, Jules) : la même entrée externe que l'équipe.
-  { cle: "CRM", label: "Twenty CRM", externe: true, fixe: true },
+  { cle: "CRM", label: "Twenty CRM", fixe: true },
 ];
 // Off-market n'est plus une page à part pour un mandataire (23 oct. 2026) : son adresse mène à la Prospection.
 // Les quatre pages d'étape restent ouvertes par leur adresse (notifications, liens) ; elles vivent dans Biens.
 // Projets aussi (31 oct. 2026) : l'adresse mène à Biens, l'entrée ne passe pas dans « Autre ».
-const HORS_MENU_MANDATAIRE = ["Personnalisation", "MandataireOffMarket", "MandataireEstimation", "MandataireMandat", "MandataireDossier", "MandataireMarche", "MandataireProjets"];
+// La Bibliothèque aussi (4 nov. 2026, Jules) : ni au menu, ni dans « Autre ».
+const HORS_MENU_MANDATAIRE = ["Personnalisation", "MandataireOffMarket", "MandataireEstimation", "MandataireMandat", "MandataireDossier", "MandataireMarche", "MandataireProjets", "MandataireDocuments"];
 
 /** Pure : le groupe du menu (équipe ou mandataires) auquel une page appartient, ou null. */
 export const groupeDe = (page, vue = "admin") => (vue === "mandataire" ? MENU_MANDATAIRE : MENU_ADMIN)

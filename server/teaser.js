@@ -1,6 +1,6 @@
 // Le teaser K Partners (28 oct. 2026, Jules : « la première chose qu'on voit quand on passe à mettre en vente : ça fait
 // le teaser pour l'agent immobilier directement »). Une page A4, la même trame pour les sept classes d'actif ; ce qui
-// change, ce sont les trois chiffres clés, le tableau, le filigrane, le libellé de la photo et la confidentialité.
+// change, ce sont les trois chiffres clés, le tableau, le libellé de la photo et la confidentialité.
 //
 // Tout est rempli par le CODE, depuis le mandat, l'avis de valeur et le dossier : aucun appel au modèle. Le titre ne
 // porte jamais d'adresse ni de nom ; le sous-titre situe par la taille de la ville (API Géo) et la région. Le mandataire
@@ -17,13 +17,13 @@ const AFAIRE = '[à compléter]';
 
 /** Les sept classes d'actif : ce que l'acheteur regarde en premier. `etoile` : la tuile en pervenche. */
 export const CLASSES = {
-  murs_loues: { libelle: 'Murs loués', tableau: 'Le bien', photo: 'Façade', filigrane: 'rendement', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface', 'locataire', 'bail'] },
-  murs_libres: { libelle: 'Murs libres', tableau: 'Le bien', photo: 'Façade', filigrane: 'rendement_potentiel', tuiles: ['prix_m2', 'loyer_marche', 'rendement_potentiel'], etoile: 2, lignes: ['occupation', 'surface_vitrine', 'destination'] },
-  fonds: { libelle: 'Fonds de commerce', tableau: 'Le fonds', photo: 'Boutique', filigrane: 'multiple', tuiles: ['prix_multiple', 'ca', 'ebe'], etoile: 2, lignes: ['equipe', 'bail', 'motif'] },
-  droit_au_bail: { libelle: 'Droit au bail', tableau: 'Le droit au bail', photo: 'Vitrine et rue', filigrane: 'n1', tuiles: ['prix_cession', 'loyer', 'surfaces'], etoile: 1, lignes: ['surfaces', 'destination', 'bail'] },
-  bureaux: { libelle: 'Bureaux', tableau: 'Le bien', photo: 'Plateau', filigrane: 'rendement', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface_divisibilite', 'locataire', 'performance'] },
-  local_activite: { libelle: "Local d'activité", tableau: 'Le bien', photo: 'Bâtiment et cour', filigrane: 'rendement', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface_terrain', 'hauteur_acces', 'locataire'] },
-  entrepot: { libelle: 'Entrepôt logistique', tableau: 'Le bien', photo: 'Vue aérienne', filigrane: 'rendement', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface', 'hauteur_quais', 'icpe', 'locataire'] },
+  murs_loues: { libelle: 'Murs loués', tableau: 'Le bien', photo: 'Façade', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface', 'locataire', 'bail'] },
+  murs_libres: { libelle: 'Murs libres', tableau: 'Le bien', photo: 'Façade', tuiles: ['prix_m2', 'loyer_marche', 'rendement_potentiel'], etoile: 2, lignes: ['occupation', 'surface_vitrine', 'destination'] },
+  fonds: { libelle: 'Fonds de commerce', tableau: 'Le fonds', photo: 'Boutique', tuiles: ['prix_multiple', 'ca', 'ebe'], etoile: 2, lignes: ['equipe', 'bail', 'motif'] },
+  droit_au_bail: { libelle: 'Droit au bail', tableau: 'Le droit au bail', photo: 'Vitrine et rue', tuiles: ['prix_cession', 'loyer', 'surfaces'], etoile: 1, lignes: ['surfaces', 'destination', 'bail'] },
+  bureaux: { libelle: 'Bureaux', tableau: 'Le bien', photo: 'Plateau', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface_divisibilite', 'locataire', 'performance'] },
+  local_activite: { libelle: "Local d'activité", tableau: 'Le bien', photo: 'Bâtiment et cour', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface_terrain', 'hauteur_acces', 'locataire'] },
+  entrepot: { libelle: 'Entrepôt logistique', tableau: 'Le bien', photo: 'Vue aérienne', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface', 'hauteur_quais', 'icpe', 'locataire'] },
 };
 
 const LIBELLES_TUILES = {
@@ -120,7 +120,6 @@ export function composer(f, classe, { ville = null, ref = 'KP-0000' } = {}) {
   };
   const lieu = /centre.?ville|hyper.?centre/i.test(f.emplacement) ? 'centre-ville' : classe === 'bureaux' ? "quartier d'affaires" : 'emplacement commerçant';
   const nature = { murs_loues: 'Murs commerciaux loués', murs_libres: 'Murs commerciaux libres', fonds: 'Fonds de commerce', droit_au_bail: 'Droit au bail', bureaux: 'Plateau de bureaux loué', local_activite: "Local d'activité loué", entrepot: 'Entrepôt logistique loué' }[classe];
-  const filigrane = { rendement: pct(rendement), rendement_potentiel: pct(potentiel), multiple: '3×', n1: 'n°1' }[c.filigrane] || null;
   // D'où vient chaque champ (mode Sources, 28 oct. 2026) : le mandat, l'avis, un calcul, une règle, l'API Géo.
   const S = (nature, origine, detail, calcul) => ({ nature, origine, detail, ...(calcul ? { calcul } : {}) });
   const parTuile = {
@@ -152,7 +151,6 @@ export function composer(f, classe, { ville = null, ref = 'KP-0000' } = {}) {
     v: 1, classe, ref, sources,
     titre: `${nature}, ${lieu}`,
     sous_titre: ville ? `${lieu.charAt(0).toUpperCase()}${lieu.slice(1)} ${ville}` : AFAIRE,
-    filigrane,
     photo: f.photo, photo_libelle: c.photo,
     tuiles: c.tuiles.map((k, i) => ({ cle: k, valeur: valeurs[k] || AFAIRE, libelle: LIBELLES_TUILES[k], etoile: i === c.etoile })),
     tableau_titre: c.tableau,
@@ -197,7 +195,7 @@ export async function teaserDe(marcheId, user, { refaire = false, classe = null 
   return { ok: true, teaser: Records.get('MiseEnMarche', m.id).teaser, marche_id: m.id };
 }
 
-const CHAMPS_LIBRES = ['titre', 'sous_titre', 'filigrane', 'photo', 'photo_libelle', 'tableau_titre', 'confidentialite'];
+const CHAMPS_LIBRES = ['titre', 'sous_titre', 'photo', 'photo_libelle', 'tableau_titre', 'confidentialite'];
 
 /** Le mandataire corrige : un champ texte, une tuile, une ligne, un point fort. */
 export async function modifierTeaser(marcheId, user, patch = {}, { par = 'mandataire' } = {}) {

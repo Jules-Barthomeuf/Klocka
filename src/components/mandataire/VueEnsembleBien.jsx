@@ -12,7 +12,7 @@ import { CompteRendu } from "@/components/mandataire/PreVisite";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { useReglagesChatMandataire } from "@/components/mandataire/ReglagesChatMandataire";
 import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
-import DossierVente, { ZonePiece } from "@/components/mandataire/DossierVente";
+import DossierVente, { Ranger, ZonePiece } from "@/components/mandataire/DossierVente";
 import { ETAPES_BIEN } from "@/lib/biens-mandataire";
 
 // La vue d'ensemble d'un bien (3 nov. 2026, Jules : « un tableau de bord du bien, où on n'est pas dans une étape précise,
@@ -273,10 +273,11 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
   // Les biens aussi : un mandat déposé fait avancer l'étape d'un bien importé (4 nov. 2026).
   const relire = () => { ["m-documents-bien", "m-proprietaires"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); if (dossierId) queryClient.invalidateQueries({ queryKey: ["m-dossier-vente", dossierId] }); };
   const deposer = useMutation({
-    mutationFn: ({ fichiers, nature = null }) => {
+    mutationFn: ({ fichiers, nature = null, cas = null }) => {
       const fd = new FormData();
       for (const f of fichiers) fd.append("fichier", f);
       if (nature) fd.append("nature", nature);
+      if (cas) fd.append("case", cas);
       return base44.request("POST", `/api/mandataire/proprietaires/${pid}/documents`, { body: fd });
     },
     onSuccess: (r) => { relire(); toast.success(r?.deposes?.length > 1 ? `${r.deposes.length} documents rangés` : "Document rangé"); },
@@ -290,15 +291,27 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
   const [enCours, setEnCours] = useState(null);
   const choixDoc = useRef(null);
   // Le « + » des documents : l'ordinateur ou Google Drive (4 nov. 2026, Jules).
-  const ajoutDoc = useAjoutFichier({ onOrdinateur: () => choixDoc.current?.click(), onFichiers: (f) => deposerDans("documents", null)(f) });
+  const ajoutDoc = useAjoutFichier({ onOrdinateur: () => choixDoc.current?.click(), onFichiers: (f) => demander(f, true) });
+  // Un document importé par le « + » : on choisit sa case de la Data room, ou on en nomme une nouvelle (4 nov. 2026,
+  // Jules). `haut` : le « + » des documents du bien, qui propose aussi l'avis de valeur et le mandat.
+  const [aRanger, setARanger] = useState(null);
+  const demander = (fichiers, haut = false) => { if (deposable && fichiers.length) setARanger({ fichiers, haut }); };
+  const nouvelleCase = useMutation({
+    mutationFn: async ({ mot, fichiers }) => {
+      const r = await base44.request("POST", `/api/mandataire/proprietaires/${pid}/cases`, { body: { mot } });
+      await deposer.mutateAsync({ fichiers, cas: r.cle });
+    },
+    onSuccess: () => setARanger(null),
+    onError: (e) => toast.error(e?.message || "Case non créée"),
+  });
   const [fiche, setFiche] = useState(false);
   const [toutHistorique, setToutHistorique] = useState(false);
   const deposable = !!pid && data?.deposable !== false;
   // Une case de la Data room reçoit ses fichiers rangés dans sa nature ; la case « + », d'après leur nom.
-  const deposerDans = (cle, nature) => (fichiers) => {
+  const deposerDans = (cle, nature, cas = null) => (fichiers) => {
     if (!deposable || !fichiers.length) return;
     setEnCours(cle);
-    deposer.mutate({ fichiers, nature }, { onSettled: () => setEnCours(null) });
+    deposer.mutate({ fichiers, nature, cas }, { onSettled: () => setEnCours(null) });
   };
   const retirerDoc = (d) => (d?.modifiable ? retirer.mutate(d) : toast.error("Ce document se retire depuis son étape."));
 
@@ -315,7 +328,26 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
   const photos = deposes.filter((d) => d.nature === "photos");
   // L'avis et le mandat importés (faits ailleurs) vont avec les documents du bien, en haut ; pas dans la Data room.
   const importes = deposes.filter((d) => d.nature === "avis" || d.nature === "mandat");
-  const autres = deposes.filter((d) => d.nature !== "photos" && d.nature !== "avis" && d.nature !== "mandat" && !attendues.some((x) => x.document?.id === d.id));
+  const casesPerso = (data?.cases_perso || []).map((c) => ({ ...c, documents: deposes.filter((d) => d.case_perso === c.cle) }));
+  const autres = deposes.filter((d) => d.nature !== "photos" && d.nature !== "avis" && d.nature !== "mandat" && !d.case_perso && !attendues.some((x) => x.document?.id === d.id));
+  // Les cases proposées pour ranger : celles qu'on voit, dans le même ordre ; la clé dit où va le fichier.
+  const casesARanger = (haut) => [
+    ...(haut ? [{ cle: "n:avis", mot: "Avis de valeur" }, { cle: "n:mandat", mot: "Mandat" }] : []),
+    ...attendues.filter((x) => x.nature).map((x) => ({ cle: `n:${x.nature}:${x.mot}`, mot: x.mot })),
+    ...casesPerso.map((c) => ({ cle: `p:${c.cle}`, mot: c.mot })),
+    { cle: "n:photos", mot: "Photos du bien" },
+    { cle: "n:autres", mot: "Autres documents" },
+  ];
+  const ranger = (k) => {
+    const { fichiers, haut } = aRanger;
+    setARanger(null);
+    if (k.startsWith("p:")) deposerDans(haut ? "documents" : k.slice(2), null, k.slice(2))(fichiers);
+    else { const [, nature, mot] = k.split(":"); deposerDans(haut ? "documents" : mot || nature, nature)(fichiers); }
+  };
+  const blocRanger = (haut) => aRanger && aRanger.haut === haut && (
+    <Ranger fichiers={aRanger.fichiers} cases={casesARanger(haut)} occupe={nouvelleCase.isPending || deposer.isPending}
+      onChoisir={ranger} onNouvelle={(mot) => nouvelleCase.mutate({ mot, fichiers: aRanger.fichiers })} onAnnuler={() => setARanger(null)} />
+  );
 
   const e = bien?.estimation || null;
   const q = e?.questionnaire || {};
@@ -348,12 +380,12 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
             <p className="m-0 text-[15px] text-encre">Faire entrer ce bien</p>
             <button type="button" onClick={() => finir.mutate()} disabled={finir.isPending} className="text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>C'est fait</button>
           </div>
-          <p className="m-0 pb-4 text-[14px] leading-[1.55] text-craie">Dites l'adresse et ce que c'est (murs, fonds de commerce, bureaux), puis racontez où vous en êtes, en vocal si vous voulez : la visite, l'avis de valeur, le mandat, avec les dates. Ensuite, ajoutez ce que vous avez avec « + ».</p>
+          <p className="m-0 pb-4 text-[14px] leading-[1.55] text-craie">Racontez-moi ce bien : où il est, ce que c'est, où vous en êtes avec le propriétaire, qui s'est placé dessus. En vocal si vous voulez, et joignez ce que vous avez (mandat, avis de valeur, bail).</p>
           {/* Le même chat que les autres pages du bien (4 nov. 2026, Jules : « comme dans les autres pages avec Assistant
               KPartners ») : le fil du bien, ses sources, l'avatar, et plus le chat compact de la fiche. */}
           <div className="h-[560px] max-md:h-[70dvh]">
             <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={pid} reglages={outilsChat.reglages} onReponse={relireTout} onConversation={() => {}}
-              sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="L'adresse, le type, puis où vous en êtes…" sansBarreHaut reprendre />
+              sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Racontez ce bien…" sansBarreHaut reprendre />
           </div>
         </section>
       )}
@@ -444,9 +476,9 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
               {deposable && (
                 <>
                   {ajoutDoc.rendu}
-                  <input ref={choixDoc} type="file" multiple className="hidden" onChange={(ev) => { const f = [...(ev.target.files || [])]; ev.target.value = ""; if (f.length) deposerDans("documents", null)(f); }} />
+                  <input ref={choixDoc} type="file" multiple className="hidden" onChange={(ev) => { const f = [...(ev.target.files || [])]; ev.target.value = ""; demander(f, true); }} />
                   <button type="button" onClick={ajoutDoc.ouvrir} aria-label="Ajouter des documents" title="Ajouter des documents : avis de valeur, mandat…"
-                    onDragOver={(ev) => ev.preventDefault()} onDrop={(ev) => { ev.preventDefault(); deposerDans("documents", null)([...(ev.dataTransfer?.files || [])]); }}
+                    onDragOver={(ev) => ev.preventDefault()} onDrop={(ev) => { ev.preventDefault(); demander([...(ev.dataTransfer?.files || [])], true); }}
                     className="group block w-[165px] flex-none text-left" style={{ background: "transparent" }}>
                     <span className="grid h-[233px] place-items-center rounded-[6px] border border-dashed border-bord text-brume transition-colors group-hover:border-bord-vif group-hover:text-craie">
                       {enCours === "documents" ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
@@ -457,6 +489,7 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
               )}
               {!e && !cr && !pid && !autresFaits.length && !importes.length && <p className="m-0 text-[13.5px] text-brume">{isLoading ? "Lecture des documents…" : "Aucun document encore."}</p>}
             </div>
+            {blocRanger(true)}
           </section>
         </div>
       </div>
@@ -516,11 +549,17 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
             <ZonePiece occupe={enCours === "photos"}
               p={{ cle: "photos", mot: "Photos du bien", requise: false, etat: photos.length ? "recue" : "manquante", fichiers: photos.map((d) => ({ nom: d.nom, url: d.url, note: d.note, nom_origine: d.nom_origine })) }}
               onDeposer={deposerDans("photos", "photos")} onAnnote={relire} onRetirer={(f) => retirerDoc(photos.find((d) => d.url === f.url))} />
-            <ZonePiece libre occupe={enCours === "autres"}
+            {casesPerso.map((c) => (
+              <ZonePiece key={c.cle} occupe={enCours === c.cle}
+                p={{ cle: c.cle, mot: c.mot, requise: false, etat: c.documents.length ? "recue" : "manquante", fichiers: c.documents.map((d) => ({ nom: d.nom, url: d.url, id: d.id, note: d.note, nom_origine: d.nom_origine })) }}
+                onDeposer={deposerDans(c.cle, null, c.cle)} onAnnote={relire} onRetirer={(f) => retirerDoc(c.documents.find((d) => d.url === f.url))} />
+            ))}
+            <ZonePiece libre occupe={enCours === "autres" || nouvelleCase.isPending}
               p={{ cle: "autres", mot: "Autres documents", etat: autres.length ? "recue" : "manquante", fichiers: autres.map((d) => ({ nom: d.nom, url: d.url, note: d.note, nom_origine: d.nom_origine })) }}
-              onDeposer={deposerDans("autres", null)} onAnnote={relire} onRetirer={(f) => retirerDoc(autres.find((d) => d.url === f.url))} />
+              onDeposer={(f) => demander(f)} onAnnote={relire} onRetirer={(f) => retirerDoc(autres.find((d) => d.url === f.url))} />
           </div>
         )}
+        {!dossierId && blocRanger(false)}
       </section>
       <AnimatePresence>{fiche && pid && <FichePoint key={pid} fiche={{ id: pid, commerce: p.commerce, nom: p.nom, adresse: p.adresse }} onFermer={() => setFiche(false)} />}</AnimatePresence>
     </div>

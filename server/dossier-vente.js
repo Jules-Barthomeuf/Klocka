@@ -268,7 +268,7 @@ export async function vueDuDossier(id, user) {
   const vendeur = [q.vendeur_societe, [q.vendeur_civilite, q.vendeur_prenom, q.vendeur_nom].filter(Boolean).join(' ')].filter(Boolean).join(', ') || d.proprietaire || null;
   return {
     ok: true,
-    dossier: { id: d.id, bien: d.bien, statut: d.statut, en_vente_le: d.en_vente_le || null, photos: d.photos || [], proprietaire_email: d.proprietaire_email || null },
+    dossier: { id: d.id, bien: d.bien, statut: d.statut, en_vente_le: d.en_vente_le || null, photos: d.photos || [], proprietaire_email: d.proprietaire_email || null, pieces_masquees: d.pieces_masquees || [] },
     ...etat,
     relance: P.relanceProprietaire(d),
     courrier: courrierPreference({ bailleur: [vendeur, q.vendeur_adresse].filter(Boolean).join('\n') || null, locataire: q.bien_locataire || null, adresse: q.bien_adresse || d.adresse || null, designation: q.bien_designation || null, prix: d.preference?.prix || mandat?.prix || d.prix || null }),
@@ -292,6 +292,46 @@ export async function deciderPoint(id, cle, decision, user) {
   else delete points[String(cle)];
   Records.update('DossierMandataire', d.id, { points_vente: points });
   return { ok: true };
+}
+
+/**
+ * Masquer une case de la Data room, ou la réafficher (4 nov. 2026, Jules : « on doit pouvoir masquer les box qu'on ne
+ * veut plus voir »). Seulement vide : une pièce déposée ne disparaît pas de la vue. Masquée, elle ne compte plus parmi
+ * les pièces qui manquent. `cle` null avec `masquer` faux : toutes reviennent.
+ */
+export async function masquerPiece(id, cle, masquer, user) {
+  const P = await import('./mandataire-portes.js');
+  const d = P.lireDossier(id, user);
+  if (!d) return { ok: false, error: 'Dossier introuvable.' };
+  const deja = new Set(d.pieces_masquees || []);
+  if (!cle) { if (masquer) return { ok: false, error: 'Quelle case ?' }; deja.clear(); }
+  else if (masquer) {
+    if (String(cle) === 'autres') return { ok: false, error: 'La case « + » reste.' };
+    if ((d.documents?.[cle] || []).length) return { ok: false, error: 'Cette case a déjà une pièce : retirez-la d’abord.' };
+    deja.add(String(cle));
+  } else deja.delete(String(cle));
+  Records.update('DossierMandataire', d.id, { pieces_masquees: [...deja] });
+  return { ok: true, pieces_masquees: [...deja] };
+}
+
+/**
+ * Une case nommée par le mandataire à l'import d'un document (4 nov. 2026, Jules : « sélectionner soit la box de la
+ * data room, soit une nouvelle que je vais nommer »). Facultative ; un nom déjà pris rend la case existante.
+ */
+export async function nouvelleCase(id, mot, user) {
+  const P = await import('./mandataire-portes.js');
+  const d = P.lireDossier(id, user);
+  if (!d) return { ok: false, error: 'Dossier introuvable.' };
+  const nom = String(mot || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (!nom) return { ok: false, error: 'Nommez la case.' };
+  const meme = P.piecesDu({ ...d, pieces_masquees: [] }).find((p) => p.mot.toLowerCase() === nom.toLowerCase());
+  if (meme) {
+    if ((d.pieces_masquees || []).includes(meme.cle)) Records.update('DossierMandataire', d.id, { pieces_masquees: d.pieces_masquees.filter((c) => c !== meme.cle) });
+    return { ok: true, cle: meme.cle, mot: meme.mot };
+  }
+  const cle = `perso-${Date.now().toString(36)}`;
+  Records.update('DossierMandataire', d.id, { pieces_perso: [...(d.pieces_perso || []), { cle, mot: nom, le: maintenant() }] });
+  return { ok: true, cle, mot: nom };
 }
 
 /** Ce que le mandataire note du droit de préférence : une exception, la notification (date), la réponse, le prix. */
@@ -542,7 +582,7 @@ export function dossierDuContexte({ dossier_vente_id = null, fiche = null } = {}
   if (!fiche) return null;
   const mandats = Records.list('MandatMandataire').filter((m) => m.proprietaire_id === fiche.id || (fiche.biens?.estimation_id && m.estimation_id === fiche.biens.estimation_id));
   const ids = new Set(mandats.map((m) => m.id));
-  return a(Records.list('DossierMandataire').find((d) => d.mandat_id && ids.has(d.mandat_id)) || null);
+  return a(Records.list('DossierMandataire').find((d) => d.mandat_id && ids.has(d.mandat_id)) || Records.list('DossierMandataire').find((d) => d.proprietaire_id === fiche.id && !d.retire_le) || null);
 }
 
 /** Pure : ce que Haka sait du dossier, en tête de la conversation. */

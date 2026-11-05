@@ -43,7 +43,10 @@ export function monterMandatairePortes(app) {
   // --- Le fichier acquéreurs du mandataire (30 oct. 2026) -------------------
   app.get('/api/mandataire/acquereurs', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
-    ok(res, { acquereurs: (await import('../acquereurs-mandataire.js')).mesAcquereurs(vue(req, user)) });
+    // Une touche notée sur un bien (4 nov. 2026) : le bien qui l'intéresse, par son adresse.
+    const { Records } = await import('../db.js');
+    const bienDe = (id) => { const p = id ? Records.get('ProprietaireMandataire', id) : null; return p && !p.retire_le ? { id: p.id, titre: p.nom_bien || [p.adresse, p.ville].filter(Boolean).join(', ') || p.commerce } : null; };
+    ok(res, { acquereurs: (await import('../acquereurs-mandataire.js')).mesAcquereurs(vue(req, user)).map((a) => ({ ...a, bien: bienDe(a.proprietaire_id) })) });
   }));
   // Un fichier (Excel, CSV) ou une liste collée : lus, puis enregistrés sans doublon.
   app.post('/api/mandataire/acquereurs/import', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
@@ -67,6 +70,10 @@ export function monterMandatairePortes(app) {
     const { lireBiens } = await import('../biens-import.js');
     const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () => lireBiens({ buffer: f?.buffer || null, nom: f?.filename || '', mimetype: f?.mimetype || null, texte }, vue(req, user)));
     rendre(res, resultat);
+  }));
+  app.post('/api/mandataire/biens/retirer', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await P()).retirerBien(req.body?.ids, vue(req, user), { annuler: !!req.body?.annuler }));
   }));
   app.post('/api/mandataire/biens/import', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
@@ -458,6 +465,14 @@ export function monterMandatairePortes(app) {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, await (await V()).deciderPoint(req.params.id, req.body?.cle, req.body?.decision || null, vue(req, user)));
   }));
+  app.post('/api/mandataire/dossiers/:id/cases', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await V()).nouvelleCase(req.params.id, req.body?.mot, vue(req, user)));
+  }));
+  app.post('/api/mandataire/dossiers/:id/pieces-masquees', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await V()).masquerPiece(req.params.id, req.body?.cle || null, !!req.body?.masquer, vue(req, user)));
+  }));
   app.post('/api/mandataire/dossiers/:id/preference', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, await (await V()).noterPreference(req.params.id, req.body || {}, vue(req, user)));
@@ -486,6 +501,19 @@ export function monterMandatairePortes(app) {
       return res.status(400).json({ error: r.error });
     }
     ok(res, r);
+  }));
+  // --- Les annonces (4 nov. 2026, Jules) : une par canal, à copier ; la couverture se dessine dans l'écran ------
+  const AN = () => import('../annonces-bien.js');
+  app.get('/api/mandataire/marches/:id/annonces', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const A = await AN();
+    const r = await A.annoncesDe(req.params.id, vue(req, user), { refaire: req.query.refaire === '1' });
+    if (!r.ok) return rendre(res, r);
+    ok(res, { ...r, canaux: A.CANAUX.map(({ cle, nom, titre }) => ({ cle, nom, titre })) });
+  }));
+  app.patch('/api/mandataire/marches/:id/annonces', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await AN()).modifierAnnonce(req.params.id, vue(req, user), req.body || {}));
   }));
   // --- Le teaser (28 oct. 2026, Jules) : composé par le code, corrigé par le mandataire, imprimé en A4 -------
   const T = () => import('../teaser.js');

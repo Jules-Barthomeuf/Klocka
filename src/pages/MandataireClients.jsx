@@ -7,6 +7,7 @@ import { Avatar } from "@/components/mandataire/AvatarClient";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import MesAcquereurs from "@/components/mandataire/MesAcquereurs";
+import MesVendeurs from "@/components/mandataire/MesVendeurs";
 import { Onglets } from "@/components/ui/kit";
 import { J } from "@/design/jetons";
 import Chargement from "@/components/ui/Chargement";
@@ -94,8 +95,8 @@ export default function MandataireClients() {
         )}
       </header>
 
-      <Onglets taille="page" valeur={onglet} onChange={setOnglet} items={[{ cle: "klocka", titre: "Clients Klocka" }, { cle: "acquereurs", titre: "Mes acquéreurs" }]} />
-      {onglet === "acquereurs" ? <MesAcquereurs /> : (<>
+      <Onglets taille="page" valeur={onglet} onChange={setOnglet} items={[{ cle: "klocka", titre: "Clients Klocka" }, { cle: "acquereurs", titre: "Mes acquéreurs" }, { cle: "vendeurs", titre: "Mes vendeurs" }]} />
+      {onglet === "vendeurs" ? <MesVendeurs /> : onglet === "acquereurs" ? <MesAcquereurs /> : (<>
 
       <p className="m-0 -mt-3 text-[14px] text-ardoise">Les clients restent anonymes. Vous trouvez le bien, Klocka fait le lien avec eux.</p>
 

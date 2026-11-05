@@ -69,7 +69,6 @@ export function PageTeaser({ t, signataire, classe, onPatch = null, onPhoto = nu
           </>
         )}
         <div className="tz-entete"><span>Teaser · {classe}</span><span>Réf. {t.ref}</span></div>
-        {t.filigrane && t.filigrane !== AFAIRE && <div className="tz-filigrane" aria-hidden="true">{t.filigrane}</div>}
         <div className="tz-titres">
           <h1 className="tz-titre"><Texte v={t.titre} chemin="titre" onChange={ed((x) => onPatch({ titre: x }))} /></h1>
           <p className="tz-sous"><Texte v={t.sous_titre} chemin="sous_titre" onChange={ed((x) => onPatch({ sous_titre: x }))} /></p>

@@ -60,7 +60,23 @@
     "menthe-pale": "#9cc3bc",
     "sur-menthe-pale": "#0b1211",
     "rail": "#191a19",
-    "rail-actif": "rgba(242, 243, 245, 0.08)"
+    "rail-actif": "rgba(242, 243, 245, 0.08)",
+    "statut-lavande": "#a7abed",
+    "statut-lavande-fond": "#262733",
+    "statut-bleu": "#8dc1ee",
+    "statut-bleu-fond": "#222b34",
+    "statut-menthe": "#93d6b3",
+    "statut-menthe-fond": "#232e2a",
+    "statut-ambre": "#eecb8a",
+    "statut-ambre-fond": "#322c24",
+    "statut-corail": "#f0a69e",
+    "statut-corail-fond": "#322627",
+    "statut-turquoise": "#86d2d3",
+    "statut-turquoise-fond": "#212d2f",
+    "statut-orchidee": "#dda6e3",
+    "statut-orchidee-fond": "#2f2632",
+    "statut-gris": "#a3a6b4",
+    "statut-gris-fond": "#26262a"
   },
   "_texte": [
     "Sept pas, et rien entre les deux. 11 pour une étiquette en capitales,",
@@ -84,6 +100,7 @@
     "bloc": "20px",
     "pastille": "9999px"
   },
+  "_statuts": "Les couleurs des statuts (5 nov. 2026, Jules) : un texte et son fond, une couleur un sens partout. Lavande = proposé, vendeur ; bleu = contacté, en cours ; menthe = client, signé (réussi) ; ambre = à relancer, expire bientôt, acquéreur (agir) ; corail = perdu, refusé ; turquoise et orchidée = types de biens (bureaux, local commercial) ; gris = neutre et par défaut (prospects, non proposé, fonds de commerce). Pas de couleur pour les colonnes sans statut.",
   "_clair": [
     "Klocka est sombre par défaut. Le mode clair est un fond blanc, sans halo ni",
     "dégradé : les neutres s'inversent, et les accents gardent leur teinte mais",
@@ -134,7 +151,23 @@
     "surveiller": "#6f716e",
     "emplacement-1": "#3c5ac8",
     "emplacement-1bis": "#d9700f",
-    "emplacement-2": "#a8483b"
+    "emplacement-2": "#a8483b",
+    "statut-lavande": "#6e74d8",
+    "statut-lavande-fond": "#ecedfb",
+    "statut-bleu": "#2d60b2",
+    "statut-bleu-fond": "#e6eef9",
+    "statut-menthe": "#2f7a55",
+    "statut-menthe-fond": "#e4f2ea",
+    "statut-ambre": "#8a5a12",
+    "statut-ambre-fond": "#f8eedc",
+    "statut-corail": "#b8412f",
+    "statut-corail-fond": "#f9e5e2",
+    "statut-turquoise": "#1f7a7b",
+    "statut-turquoise-fond": "#e1f2f2",
+    "statut-orchidee": "#8a3f94",
+    "statut-orchidee-fond": "#f4e6f6",
+    "statut-gris": "#5c5f6b",
+    "statut-gris-fond": "#ececee"
   },
   "_personnalisation": [
     "La page Personnalisation laisse choisir l'accent, le fond et des surfaces",
@@ -162,7 +195,7 @@
     "pervenche": {
       "nom": "Pervenche",
       "sombre": "#a6abf2",
-      "clair": "#4b52c4"
+      "clair": "#a6abf2"
     },
     "ambre": {
       "nom": "Ambre",
@@ -341,5 +374,12 @@
       "#4a3aa7",
       "#e34948"
     ]
+  },
+  "_couverture_kp": "La couverture des annonces K Partners (4 nov. 2026, canva de Jules) : fond lavande, deux blocs nuit, le logo kp en blanc et son trait. Couleurs d'image exportée : elles ne suivent pas le thème.",
+  "couverture_kp": {
+    "lavande": "#a4a7e4",
+    "nuit": "#0e0e10",
+    "blanc": "#ffffff",
+    "trait": "#a8abea"
   }
 }

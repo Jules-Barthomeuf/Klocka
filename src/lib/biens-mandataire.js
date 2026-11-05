@@ -180,14 +180,16 @@ export function regrouperBiens({ estimations = [], mandats = [], dossiers = [], 
   const P = parId(proprietaires);
   const pris_p = new Set();
   for (const b of biens) {
-    const p = b.estimation?.proprietaire_id ? P.get(b.estimation.proprietaire_id) : null;
+    // Un bien importé ouvre sa Data room sans estimation ni mandat Klocka : le dossier porte son propriétaire (4 nov. 2026).
+    const p = b.estimation?.proprietaire_id ? P.get(b.estimation.proprietaire_id) : b.dossier?.proprietaire_id ? P.get(b.dossier.proprietaire_id) : null;
     if (p && !pris_p.has(p.id)) { b.proprietaire = p; pris_p.add(p.id); }
   }
   for (const p of proprietaires.filter((x) => !pris_p.has(x.id) && PROPRIETAIRE_EN_COURS.has(x.statut))) {
     biens.push({ proprietaire: p, estimation: null, mandat: null, dossier: null, marche: null });
   }
 
-  return biens.map((b) => {
+  // Un bien retiré de « Mes biens » (4 nov. 2026, Jules) : un de ses objets porte `retire_le`.
+  return biens.filter((b) => ![b.proprietaire, b.estimation, b.mandat, b.dossier, b.marche].some((x) => x?.retire_le)).map((b) => {
     const p = b.proprietaire || null;
     const premier = p ? `proprietaire:${p.id}` : b.estimation ? `estimation:${b.estimation.id}` : b.mandat ? `mandat:${b.mandat.id}` : b.dossier ? `dossier:${b.dossier.id}` : `marche:${b.marche.id}`;
     const source = b.marche || b.dossier || b.mandat || b.estimation || p;

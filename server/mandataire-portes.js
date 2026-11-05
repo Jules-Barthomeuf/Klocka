@@ -394,7 +394,7 @@ export async function ouvrirDossierDuMandat(mandat, user) {
   const fiche = pid ? Records.get('ProprietaireMandataire', pid) : null;
   const estimations = Records.list('EstimationMandataire').filter((e) => e.id === mandat.estimation_id || (fiche && e.proprietaire_id === fiche.id));
   const h = heritageDuDossier({ estimations, fiche, societe: q.vendeur_genre === 'morale' || !!q.vendeur_societe });
-  const d = Records.update('DossierMandataire', r.dossier.id, { mandat_id: mandat.id, documents: h.documents, photos: h.photos, ...(h.pieces_demandees.length ? { pieces_demandees: h.pieces_demandees } : {}) });
+  const d = Records.update('DossierMandataire', r.dossier.id, { mandat_id: mandat.id, documents: h.documents, photos: h.photos, ...(h.pieces_demandees.length ? { pieces_demandees: h.pieces_demandees } : {}), ...(h.pieces_perso.length ? { pieces_perso: h.pieces_perso } : {}) });
   if (Object.keys(h.documents).length && lectureDesPieces()) import('./dossier-vente.js').then((V) => V.lirePieces(d.id, { ...user, email: mandat.mandataire_email })).catch(() => {});
   const F = await import('./fil-dossier.js');
   F.evenement(d.id, 'Mandat signé : le dossier est ouvert. Déposez les pièces et les photos ici, puis transférez-le à Klocka quand vous le souhaitez.');
@@ -424,14 +424,17 @@ export function heritageDuDossier({ estimations = [], fiche = null, societe = fa
   const documents = uniques.length ? { bail: uniques } : {};
   // Ce qui a été déposé sur le bien avant le mandat (3 nov. 2026, vue d'ensemble du bien) : chaque pièce dans sa case.
   const CASES = new Set(PIECES.map((x) => x.cle));
+  const cases_perso = (fiche?.biens?.cases_perso || []).map((c) => ({ cle: c.cle, mot: c.mot, le: c.le || le }));
   for (const x of fiche?.biens?.pieces || []) {
     if (!x?.url || x.nature === 'photos') { if (x?.url) photos.push({ url: x.url, nom: x.nom || 'Photo', le: x.le || le }); continue; }
     if (x.nature === 'avis' || x.nature === 'mandat') continue;
-    const cle = CASES.has(x.nature) ? x.nature : 'autres';
+    // Une case nommée sur le bien (4 nov. 2026) : la Data room la reprend, avec ses documents.
+    const perso = x.case_perso ? cases_perso.find((c) => c.cle === x.case_perso) : null;
+    const cle = perso ? perso.cle : CASES.has(x.nature) ? x.nature : 'autres';
     if (Object.values(documents).flat().some((f) => f.url === x.url)) continue;
     documents[cle] = [...(documents[cle] || []), { nom: x.nom || 'Pièce', url: x.url, le: x.le || le, ...(x.par ? { par: x.par } : {}) }];
   }
-  return { documents, photos, pieces_demandees: societe ? PIECES_SOCIETE.map((x) => ({ ...x })) : [] };
+  return { documents, photos, pieces_demandees: societe ? PIECES_SOCIETE.map((x) => ({ ...x })) : [], pieces_perso: cases_perso };
 }
 
 /** Pure : le prochain numéro du registre, « 2026-0007 ». */
@@ -492,6 +495,21 @@ export const PIECES = [
   { cle: 'autres', mot: 'Autres documents', requise: false },
 ];
 
+/**
+ * Retirer un bien de « Mes biens » (4 nov. 2026, Jules : « on doit pouvoir supprimer un bien qu'on ne veut plus ») :
+ * chacun de ses objets (`type:id` : propriétaire, estimation, mandat, dossier, mise en marché) porte `retire_le`, et la
+ * page ne le montre plus. Rien n'est effacé : « Annuler » le remet, et l'historique, le CRM et les pièces restent.
+ */
+const ENTITES_DU_BIEN = { proprietaire: 'ProprietaireMandataire', estimation: 'EstimationMandataire', mandat: 'MandatMandataire', dossier: 'DossierMandataire', marche: 'MiseEnMarche' };
+export function retirerBien(ids, user, { annuler = false } = {}) {
+  const objets = (Array.isArray(ids) ? ids : []).map((x) => String(x).split(':')).filter(([t, id]) => ENTITES_DU_BIEN[t] && id);
+  if (!objets.length) return { ok: false, error: 'Quel bien ?' };
+  const lus = objets.map(([t, id]) => [ENTITES_DU_BIEN[t], lire(ENTITES_DU_BIEN[t], id, user)]);
+  if (lus.some(([, x]) => !x)) return { ok: false, error: 'Bien introuvable.' };
+  for (const [entite, x] of lus) Records.update(entite, x.id, { retire_le: annuler ? null : maintenant(), retire_par: annuler ? null : emailDe(user) });
+  return { ok: true, n: lus.length };
+}
+
 export const listerDossiers = (user) => lister('DossierMandataire', user);
 export const lireDossier = (id, user) => lire('DossierMandataire', id, user);
 
@@ -506,7 +524,14 @@ export function piecesDu(dossier) {
   const demandees = (dossier.pieces_demandees || []).map((x) => ({ ...x, ...(PIECES_SOCIETE.find((s) => s.cle === x.cle) || {}) }));
   const base = PIECES.map((p) => (demandees.some((x) => x.cle === p.cle) ? { ...p, requise: true, demandee: true } : p));
   const nouvelles = demandees.filter((x) => !PIECES.some((p) => p.cle === x.cle)).map((x) => ({ cle: x.cle, mot: x.mot, requise: x.requise !== false, demandee: true }));
-  return [...base, ...nouvelles];
+  // Les cases nommées par le mandataire à l'import (4 nov. 2026, Jules) : facultatives, avant la case « + ».
+  const perso = (dossier.pieces_perso || []).filter((x) => !base.some((p) => p.cle === x.cle) && !nouvelles.some((p) => p.cle === x.cle)).map((x) => ({ cle: x.cle, mot: x.mot, requise: false, perso: true }));
+  const avecPerso = [...base, ...nouvelles];
+  const iAutres = avecPerso.findIndex((p) => p.cle === 'autres');
+  if (iAutres >= 0) avecPerso.splice(iAutres, 0, ...perso); else avecPerso.push(...perso);
+  // Les cases masquées par le mandataire (4 nov. 2026) : hors de la vue et des pièces qui manquent, sauf déposées.
+  const masquees = new Set(dossier.pieces_masquees || []);
+  return avecPerso.filter((p) => !masquees.has(p.cle) || (dossier.documents?.[p.cle] || []).length);
 }
 
 /**

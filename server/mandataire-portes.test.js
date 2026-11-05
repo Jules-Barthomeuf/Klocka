@@ -197,5 +197,25 @@ test('la Data room hérite : le bail de l’avis, les photos de la visite, les p
   assert.ok(c.lignes.some((l) => l.cle === 'pouvoirs' && !l.requise), 'les pouvoirs se demandent, facultatifs');
   assert.ok(!c.manquantes.some((l) => l.cle === 'pouvoirs'));
   assert.equal(P.piecesDu({ pieces_demandees: [{ cle: 'kbis_vendeur', mot: 'Kbis de la société venderesse' }] })[P.PIECES.length].mot, 'Kbis de la société vendeuse', 'un ancien dossier se lit avec les mots du jour');
-  assert.deepEqual(P.heritageDuDossier({}), { documents: {}, photos: [], pieces_demandees: [] });
+  assert.deepEqual(P.heritageDuDossier({}), { documents: {}, photos: [], pieces_demandees: [], pieces_perso: [] });
+});
+
+test('Data room : une case vide se masque, une case déposée reste (4 nov. 2026)', async () => {
+  const { piecesDu, checklist } = await import('./mandataire-portes.js');
+  const d = { pieces_masquees: ['diagnostics', 'bail'], documents: { bail: [{ url: '/u/bail.pdf', nom: 'bail.pdf' }] } };
+  const cles = piecesDu(d).map((p) => p.cle);
+  assert.equal(cles.includes('diagnostics'), false, 'masquée et vide : hors de la vue');
+  assert.equal(cles.includes('bail'), true, 'masquée mais déposée : reste');
+  assert.equal(checklist(d).manquantes.some((p) => p.cle === 'diagnostics'), false, 'masquée : ne manque plus');
+});
+
+test('Data room : une case nommée à l’import, facultative, avant la case « + » (4 nov. 2026)', async () => {
+  const { piecesDu, checklist } = await import('./mandataire-portes.js');
+  const d = { pieces_perso: [{ cle: 'perso-1', mot: 'Bail du parking' }], documents: {} };
+  const l = piecesDu(d);
+  const i = l.findIndex((p) => p.cle === 'perso-1');
+  assert.equal(l[i].mot, 'Bail du parking');
+  assert.equal(l[i].requise, false);
+  assert.equal(l[i + 1].cle, 'autres', 'juste avant la case « + »');
+  assert.equal(checklist(d).manquantes.some((p) => p.cle === 'perso-1'), false);
 });

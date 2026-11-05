@@ -120,7 +120,7 @@ export function Preparation({ prep, p = null, onDecaler = null }) {
                 return (
                   <li key={d}>
                     <button type="button" onClick={() => basculer(d)} disabled={!p} aria-pressed={fait} className="flex w-full items-start gap-3 py-1.5 text-left text-[14.5px] leading-[1.55] disabled:cursor-default" style={{ background: "transparent" }}>
-                      <span className={`mt-[2px] grid h-5 w-5 flex-none place-items-center rounded-[6px] border ${fait ? "border-pervenche bg-pervenche text-fond" : "border-bord-doux"}`}>{fait && <Check className="h-3.5 w-3.5" />}</span>
+                      <span className={`mt-[2px] grid h-5 w-5 flex-none place-items-center rounded-[6px] border ${fait ? "border-pervenche bg-pervenche text-sur-pervenche" : "border-bord-doux"}`}>{fait && <Check className="h-3.5 w-3.5" />}</span>
                       <span className={fait ? "text-ardoise line-through" : "text-encre"}>{d}</span>
                     </button>
                   </li>

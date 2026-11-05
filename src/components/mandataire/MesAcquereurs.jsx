@@ -11,6 +11,7 @@ import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 // biens (Haka : « qui je peux appeler pour ce bien ? »). Le tableau a le dessin de celui d'une liste.
 
 const API = "/api/mandataire/acquereurs";
+const STATUT_TOUCHE = { contact: "Contact", visite: "Visite faite", offre: "Offre", perdu: "Perdu" };
 const TRAIT = "border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)]";
 const budgetDe = (a) => (a.budget_min && a.budget_max ? fourchetteEuros(a.budget_min, a.budget_max) : kEuros(a.budget_max) || (a.budget_min ? `dès ${kEuros(a.budget_min)}` : null));
 
@@ -47,7 +48,7 @@ export default function MesAcquereurs() {
         <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px]">
           <thead>
             <tr>
-              {["Acquéreur", "Contact", "Ce qu'il cherche", "Villes", "Budget", "Rendement", ""].map((h, i, l) => (
+              {["Acquéreur", "Contact", "Bien suivi", "Ce qu'il cherche", "Villes", "Budget", "Rendement", ""].map((h, i, l) => (
                 <th key={h || i} className={`border-b ${i < l.length - 1 ? "border-r" : ""} ${TRAIT} bg-rail px-4 py-3.5 font-normal text-encre ${i === 0 ? "sticky left-0 z-20 min-w-[200px]" : ""}`}>{h}</th>
               ))}
             </tr>
@@ -63,6 +64,11 @@ export default function MesAcquereurs() {
                   {a.telephone ? <a href={`tel:${String(a.telephone).replace(/[^\d+]/g, "")}`} className="block whitespace-nowrap text-encre hover:text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{a.telephone}</a> : null}
                   {a.email ? <a href={`mailto:${a.email}`} className="block max-w-[240px] truncate text-ardoise hover:text-encre">{a.email}</a> : null}
                   {!a.telephone && !a.email && <span className="text-brume">—</span>}
+                </td>
+                {/* Une touche notée par l'assistant (4 nov. 2026) : le bien qui l'intéresse et où il en est. */}
+                <td className={`border-b border-r ${TRAIT} max-w-[240px] px-4 py-4 align-middle`}>
+                  {a.bien ? <a href={`/MandataireBiens?bien=proprietaire:${a.bien.id}&etape=ensemble`} className="block truncate text-encre hover:text-menthe">{a.bien.titre}</a> : <span className="text-brume">—</span>}
+                  {a.bien && <span className="block text-ardoise">{STATUT_TOUCHE[a.statut_touche] || "Contact"}{a.offre_montant ? ` · ${Number(a.offre_montant).toLocaleString("fr-FR")} €` : ""}</span>}
                 </td>
                 <td className={`border-b border-r ${TRAIT} max-w-[260px] px-4 py-4 align-middle`}><span className="line-clamp-2 text-encre">{a.recherche || <span className="text-brume">—</span>}</span></td>
                 <td className={`border-b border-r ${TRAIT} max-w-[220px] px-4 py-4 align-middle`}><span className="line-clamp-2 text-encre">{(a.villes || []).join(", ") || <span className="text-brume">—</span>}</span></td>

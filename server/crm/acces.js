@@ -12,7 +12,7 @@ import { objetsTwenty, twentyConfigure } from '../twenty.js';
 
 const URL_ = () => String(process.env.TWENTY_URL || '').replace(/\/+$/, '');
 
-async function gql(query, variables) {
+export async function gql(query, variables) {
   const r = await fetch(`${URL_()}/metadata`, { method: 'POST', headers: { Authorization: `Bearer ${process.env.TWENTY_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query, variables }) });
   const d = await r.json();
   if (d.errors?.length) throw new Error(String(d.errors[0]?.message || 'Twenty a refusé').slice(0, 300));
@@ -41,8 +41,8 @@ export function niveauDe(role, objetId) {
 export const champCache = (role, champId) => (role.fieldPermissions || []).some((f) => f.fieldMetadataId === champId && f.canReadFieldValue === false);
 
 const ROLE = 'id label isEditable canReadAllObjectRecords canUpdateAllObjectRecords workspaceMembers { id userEmail name { firstName lastName } } objectPermissions { objectMetadataId canReadObjectRecords canUpdateObjectRecords canSoftDeleteObjectRecords canDestroyObjectRecords } fieldPermissions { objectMetadataId fieldMetadataId canReadFieldValue canUpdateFieldValue }';
-const lireRoles = async () => (await gql(`{ getRoles { ${ROLE} } }`)).getRoles;
-const lireMenu = async () => (await gql('{ navigationMenuItems { id name type position folderId targetObjectMetadataId userWorkspaceId } }')).navigationMenuItems;
+export const lireRoles = async () => (await gql(`{ getRoles { ${ROLE} } }`)).getRoles;
+export const lireMenu = async () => (await gql('{ navigationMenuItems { id name type position folderId targetObjectMetadataId userWorkspaceId } }')).navigationMenuItems;
 
 /**
  * Pure : la vue de la page. Les tableaux dans l'ordre de la barre de gauche de Twenty (dossier par dossier) ; un même

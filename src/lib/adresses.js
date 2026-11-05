@@ -80,6 +80,8 @@ export const ADRESSES = {
   // Les mandats reçus des mandataires, côté Klocka (27 oct. 2026).
   MandatsMandataires: "Mandats",
   MemoireKlocka: "Memoire",
+  // Twenty CRM dans Klocka (5 nov. 2026).
+  CrmTwenty: "CRM",
   Portail: "Portail",
   Portail2Fois: "PortailDeuxFois",
   AdminBrouillons: "Verification",

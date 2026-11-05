@@ -173,8 +173,6 @@ function BasculeTheme({ clair, onBasculer }) {
 // Onglet Double Check masqué du menu. La page /AdminBrouillons reste en place et
 // accessible par son URL : passez ce drapeau à true pour la remontrer.
 const AFFICHER_DOUBLE_CHECK = false;
-// L'adresse du CRM (Twenty, crm.klocka.immo) ; vide tant que Twenty n'est pas en ligne.
-const CRM_URL = String(import.meta.env.VITE_CRM_URL || "").trim();
 
 // Marque Klocka : monogramme officiel + capitales espacées
 function Wordmark({ collapsed = false }) {
@@ -541,8 +539,8 @@ function LayoutContent({ children, currentPageName }) {
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: BookUser, actif: isActivePage("AdminClients") },
-    // Le CRM (Twenty) : sans adresse configurée, l'entrée ne s'affiche pas.
-    CRM: { href: CRM_URL || null, icon: CRM_URL ? Globe : null, actif: false },
+    // Le CRM (Twenty), dans Klocka depuis le 5 nov. 2026 : la page /CRM, plus d'onglet dehors.
+    CRM: { to: createPageUrl("CrmTwenty"), icon: Globe, actif: isActivePage("CrmTwenty") },
     AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
     Automatismes: { to: createPageUrl("Automatismes"), icon: Workflow, actif: isActivePage("Automatismes") },
     // Modèles (26 oct. 2026) : les documents de Klocka et de K Partners, remplis avec un exemple.
@@ -606,8 +604,11 @@ function LayoutContent({ children, currentPageName }) {
     return (
       <div className="flex h-full flex-col">
         {/* La marque, et le repli. */}
-        <div className={`flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
-          {vue === "mandataire" ? (
+        <div className={`k-barre-marque flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
+          {currentPageName === "CrmTwenty" ? (
+            // Sur la page du CRM, la marque laisse la place au logo « crm_ », posé par la page au-dessus de la barre (5 nov. 2026).
+            <span aria-hidden="true" className="h-6" />
+          ) : vue === "mandataire" ? (
             // Côté mandataire, le logo K Partners à la place de Klocka OS (25 oct. 2026, Jules).
             <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center" title="K Partners">
               <LogoKP fond="theme" className={replie ? "text-[22px]" : "text-[26px]"} />
@@ -913,12 +914,12 @@ function LayoutContent({ children, currentPageName }) {
       {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), et l'icône Rappel, seule, dans la marge du coin, pour ne jamais couvrir le bouton d'un en-tête. */}
       {vueAdmin && !hideNavbar && !modoKData && (
         <>
-          <div id="k-haut-droite" className={`fixed ${boutonRappel ? "right-[120px]" : "right-[68px]"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
+          <div id="k-haut-droite" className={`k-flottant-haut fixed ${boutonRappel ? "right-[120px]" : "right-[68px]"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
           {/* L'agent testeur (10 oct. 2026), à gauche du rappel : un clic, et l'IA audite la page ouverte dans un bac à sable. */}
-          {testeurVisible && <div className={`fixed ${boutonRappel ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
-          {boutonRappel && <div className="fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
+          {testeurVisible && <div className={`k-flottant-haut fixed ${boutonRappel ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
+          {boutonRappel && <div className="k-flottant-haut fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
           {/* La cloche (17 oct. 2026, Jules) : entre les boîtes connectées et le mode appel, sur toutes les pages de l'équipe. */}
-          <Cloche className={`fixed ${boutonRappel ? "right-[68px]" : "right-4"} top-4 max-md:hidden`} />
+          <Cloche className={`k-flottant-haut fixed ${boutonRappel ? "right-[68px]" : "right-4"} top-4 max-md:hidden`} />
           {/* Une fiche commerciale arrivée : « je la rentre ? Oui / Non », en fenêtre, d'elle-même (20 oct. 2026, Jules). */}
           <PopupFicheRecue />
         </>
@@ -926,7 +927,7 @@ function LayoutContent({ children, currentPageName }) {
       {/* La cloche du mandataire, en haut à droite comme chez l'équipe, au téléphone aussi (25 oct. 2026, Jules). */}
       {/* Au téléphone, plus de bouton cloche (1er nov. 2026, Jules) : le nombre en gros sur le hamburger, « Notifications » en
           tête du menu. */}
-      {vue === "mandataire" && !hideNavbar && <Cloche mandataire sansBoutonTelephone className="fixed right-4 top-4" />}
+      {vue === "mandataire" && !hideNavbar && <Cloche mandataire sansBoutonTelephone className="k-flottant-haut fixed right-4 top-4" />}
       {/* Au téléphone, le hamburger à droite de la cloche ouvre le menu (27 oct. 2026, Jules : plus d'onglets en bas). */}
       {vue === "mandataire" && !hideNavbar && (
         <button type="button" onClick={() => setIsMobileMenuOpen((o) => !o)} aria-label={isMobileMenuOpen ? "Fermer le menu" : nonLues ? `Ouvrir le menu, ${nonLues} notification${nonLues > 1 ? "s" : ""}` : "Ouvrir le menu"} aria-expanded={isMobileMenuOpen}

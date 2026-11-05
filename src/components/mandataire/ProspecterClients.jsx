@@ -71,6 +71,9 @@ export default function ProspecterClients({ bascule = null }) {
   const aMurs = types.includes("murs");
   const aFonds = types.includes("fonds");
   const aBureaux = types.includes("bureaux");
+  // Le mode Bureaux en développement (4 nov. 2026, Jules : « je ne veux pas voir de points pour l'instant ») : la pilule
+  // reste, la carte et le tableau laissent place à un écran d'attente ; rien n'est demandé au serveur.
+  const bureauxEnDev = aBureaux;
   const aLibres = types.includes("libres");
   const typeUnique = types[0];
   const choisirType = (k) => {
@@ -119,7 +122,7 @@ export default function ProspecterClients({ bascule = null }) {
     refetchInterval: enPreparation ? 30_000 : false,
   });
   // Les bureaux, un point par immeuble (3 nov. 2026, Jules), et les locaux vides : chacun sa requête, seulement coché.
-  const bureauxQ = useQuery({ queryKey: ["m-prospecter", "points", "bureaux"], queryFn: () => base44.request("GET", `${API}/bureaux`), enabled: aBureaux && tous, staleTime: 5 * 60_000 });
+  const bureauxQ = useQuery({ queryKey: ["m-prospecter", "points", "bureaux"], queryFn: () => base44.request("GET", `${API}/bureaux`), enabled: aBureaux && tous && !bureauxEnDev, staleTime: 5 * 60_000 });
   const libresQ = useQuery({ queryKey: ["m-prospecter", "libres"], queryFn: () => base44.request("GET", API_LIBRES), enabled: aLibres && tous, staleTime: 60_000,
     refetchInterval: (q) => (q.state.data?.en_preparation?.length || q.state.data?.en_verification ? 20_000 : false) });
   const attente = (aMurs || aFonds) && points.isLoading;
@@ -218,7 +221,7 @@ export default function ProspecterClients({ bascule = null }) {
         {bascule}
         <SelecteurActif actif={typeUnique === "libres" ? "murs" : typeUnique} onChange={choisirType} />
         {aMurs && clients.length > 0 && <BasculeMode clients={!tous} onChange={(oui) => choisir(oui ? i : null)} />}
-        {prospecte && (
+        {prospecte && !bureauxEnDev && (
           <MenuFiltres filtres={filtres} setFiltres={setFiltres} commerces={tousPoints} tous={tousPoints} activites={activites} visibles={visibles.length + visiblesLibres.length} depart={depart}
             entete={(aMurs || aLibres) && tous ? choixOccupation : null} libres={tous ? { filtres: filtresLibres, setFiltres: setFiltresLibres, points: pointsLibres } : null} />
         )}
@@ -226,7 +229,7 @@ export default function ProspecterClients({ bascule = null }) {
             tableau, le chargement sur « Mettre à jour », et changer de client remplace les murs. */}
         <span className="flex-1" />
         {/* La préparation de ses villes, en fond : une ville à lire, des propriétaires à chercher. */}
-        {enPreparation && (aMurs || aFonds || aBureaux) && <Preparation villes={data.villes} />}
+        {enPreparation && (aMurs || aFonds) && <Preparation villes={data.villes} />}
         {/* Une commune pas encore recensée (une à deux minutes la première fois) : la page se relit seule. */}
         {aLibres && (libresQ.data?.en_preparation || []).length > 0 && (
           <span className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Recensement de {libresQ.data.en_preparation.join(", ")}</span>
@@ -239,7 +242,14 @@ export default function ProspecterClients({ bascule = null }) {
 
         {/* À gauche : le secteur, et ce que les types cochés y posent. */}
         <div className="relative h-[62vh] min-h-[460px] w-full min-w-0 overflow-hidden rounded-bloc border border-trait max-md:h-[380px] max-md:min-h-0">
-          <CarteGoogleSecteurs secteurs={secteurs} choisi={data.secteur.id} contourSeul={!!prospecte} margesChoisi={MARGES} marqueurs={marqueurs} marqueurActif={ouvert} onMarqueur={ouvrir} />
+          {bureauxEnDev ? (
+            <div className="grid h-full place-items-center bg-rail px-6 text-center">
+              <div>
+                <p className="m-0 text-[20px] text-encre">Mode Bureaux en développement</p>
+                <p className="m-0 mt-2 max-w-[44ch] text-[13.5px] leading-[1.6] text-ardoise">Les bureaux vides de votre secteur arrivent bientôt ici. En attendant, les Murs et les Fonds sont prêts.</p>
+              </div>
+            </div>
+          ) : <CarteGoogleSecteurs secteurs={secteurs} choisi={data.secteur.id} contourSeul={!!prospecte} margesChoisi={MARGES} marqueurs={marqueurs} marqueurActif={ouvert} onMarqueur={ouvrir} />}
         </div>
       </div>
 
@@ -289,7 +299,7 @@ export default function ProspecterClients({ bascule = null }) {
       {prospecte && (aMurs || aFonds) && (
         <TableauMurs murs={visiblesCommerces} total={murs.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={attente} depart={depart} fonds={seulementFonds} typesParId={typeProspecte} />
       )}
-      {tous && aBureaux && (
+      {tous && aBureaux && !bureauxEnDev && (
         <TableauMurs murs={visiblesBureaux} total={bureaux.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={bureauxQ.isLoading} depart={depart} bureaux typesParId={() => "bureaux"} />
       )}
       {tous && aLibres && (

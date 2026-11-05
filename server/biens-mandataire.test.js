@@ -681,3 +681,22 @@ test("la ligne Murs dit le propriétaire donné par le mandataire, pas celui du 
   assert.equal(f.murs.proprietaire, 'M. Bernard');
   assert.equal(f.murs.forme, null);
 });
+
+test('Mes biens : un bien retiré ne se montre plus (4 nov. 2026, Jules)', async () => {
+  const { regrouperBiens } = await import('../src/lib/biens-mandataire.js');
+  const estimations = [{ id: 'e1', bien: 'Local A', cree_le: '2026-11-01' }, { id: 'e2', bien: 'Local B', cree_le: '2026-11-02', retire_le: '2026-11-04T08:00:00Z' }];
+  const mandats = [{ id: 'm2', bien: 'Local B', estimation_id: 'e2' }];
+  assert.deepEqual(regrouperBiens({ estimations, mandats }).map((b) => b.titre), ['Local A'], 'le mandat suit son estimation retirée');
+});
+
+test('Mes biens : retirer puis annuler, jamais le bien d’un autre', async () => {
+  const { Records } = await import('./db.js');
+  const { retirerBien } = await import('./mandataire-portes.js');
+  const moi = { email: 'test-retirer-bien@klocka.test', role: 'mandataire' };
+  const e = Records.create('EstimationMandataire', { bien: 'Bien à retirer (test)', mandataire_email: moi.email, cree_le: new Date().toISOString() });
+  assert.equal(retirerBien([`estimation:${e.id}`], { email: 'autre@klocka.test', role: 'mandataire' }).ok, false);
+  assert.equal(retirerBien([`estimation:${e.id}`], moi).ok, true);
+  assert.ok(Records.get('EstimationMandataire', e.id).retire_le);
+  retirerBien([`estimation:${e.id}`], moi, { annuler: true });
+  assert.equal(Records.get('EstimationMandataire', e.id).retire_le, null);
+});

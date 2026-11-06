@@ -20,9 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
-import { Mail, Users, Search, Trash2, Crown, FileText, Plus, X, Upload, Download, Building2, Link, Unlink, GitCompare, User, TrendingUp, Target, Sparkles, Edit, Loader2, ChevronDown } from "lucide-react";
+import { CLASSES_STATUT, couleurStatut } from "@/lib/couleur-statut";
+import { Mail, Users, Search, Trash2, Crown, FileText, Plus, X, Upload, Download, Building2, Link, Unlink, GitCompare, User, TrendingUp, Target, Sparkles, Edit, Loader2, ChevronDown, Check } from "lucide-react";
 
 import {
   Dialog,
@@ -55,6 +54,32 @@ const etapeLabels = [
 "Financement",
 "Signature"];
 
+
+// Le tableau des utilisateurs reprend celui du CRM (6 nov. 2026, Jules : « copie le tableau du CRM ») : cases à traits
+// pleins, en-têtes de 35 px, lignes de 36 px, texte en 14 px ; la dernière ligne et la dernière colonne sans filet.
+const TABLEAU = "w-full border-collapse text-[14px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0";
+const TETE = "h-[35px] whitespace-nowrap border-b border-r border-trait px-2.5 align-middle font-normal text-encre";
+const CELLULE = "h-[36px] border-b border-r border-trait align-middle";
+
+/** La case de sélection d'une ligne, copiée du CRM : un carré bordé aux coins doux, centré dans sa colonne. */
+function CaseLigne({ cochee, onChange, label }) {
+  return (
+    <button type="button" role="checkbox" aria-checked={cochee} aria-label={label} title={label} onClick={onChange}
+      className={`mx-auto grid h-[17px] w-[17px] place-items-center rounded-[4px] border transition-colors ${cochee ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif hover:border-craie"}`}
+      style={cochee ? undefined : { background: "transparent" }}>
+      {cochee && <Check className="h-3 w-3" strokeWidth={3} />}
+    </button>
+  );
+}
+
+/** L'initiale d'un compte, en tête de sa ligne (menthe pour un admin). */
+function Initiale({ nom, admin = false }) {
+  return (
+    <span className={`grid h-6 w-6 flex-none place-items-center rounded-full text-[11px] font-semibold ${admin ? "bg-menthe/[0.16] text-menthe" : "bg-relief text-craie"}`}>
+      {nom?.charAt(0)?.toUpperCase() || "?"}
+    </span>
+  );
+}
 
 // La recherche : sans accents, mots dans n'importe quel ordre, sur le nom,
 // l'adresse mail et le téléphone. « helene dupont » trouve « Hélène Dupont »,
@@ -523,7 +548,6 @@ export default function AdminUtilisateurs() {
           />
         </div>
       </header>
-      <p className="m-0 -mt-3 text-[14px] text-ardoise">Les comptes de la plateforme : les clients et leur étape, les invitations à envoyer, les familles qui partagent un dossier, l'équipe.</p>
 
       {onglet === "mandataires" ? (
         <>
@@ -619,59 +643,97 @@ export default function AdminUtilisateurs() {
             }
       </div>
 
-      {/* Section En attente d'activation */}
+      {/* Section En attente d'activation : le même tableau que les utilisateurs (6 nov. 2026, Jules). */}
       {pendingUsers.length > 0 && (
-        <div className="overflow-hidden rounded-[16px] border border-trait bg-rail">
+        <div className="overflow-hidden rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-rail">
           <button
             onClick={() => setPendingCollapsed(prev => !prev)}
-            className="group flex w-full items-center gap-2.5 px-5 py-4 text-left"
+            className="group flex w-full items-center gap-2.5 px-4 py-3 text-left"
             style={{ background: "transparent" }}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-menthe" />
             <span className="flex-1 text-[15px] text-encre">En attente d'activation <span className="text-[13.5px] tabular-nums text-ardoise">{pendingUsers.length}</span></span>
             <ChevronDown className={`w-3.5 h-3.5 text-menthe/60 group-hover:text-menthe transition-transform ${pendingCollapsed && !searchTerm.trim() ? "-rotate-90" : ""}`} />
           </button>
           {(!pendingCollapsed || searchTerm.trim()) && (
-            <div>
-              {pendingUsers.map((user) => (
-                <div key={user.id} className="flex items-center gap-4 border-t border-trait px-5 py-3.5 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-2.5">
-                  <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-relief">
-                    <span className="text-[12px] font-semibold text-craie">{user.full_name?.charAt(0)?.toUpperCase() || "?"}</span>
-                  </div>
-                  <div className="flex-1 min-w-0 max-md:min-w-[calc(100%-3rem)]">
-                    <p className="text-encre text-[15px] truncate m-0">{user.full_name || "Sans nom"}</p>
-                    <p className="text-ardoise text-xs truncate m-0">{user.email}</p>
-                  </div>
-                  <button
-                    onClick={() => inviterUn.mutate(user)}
-                    disabled={inviterUn.isPending}
-                    aria-label="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1" title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
-                    className="h-9 flex-shrink-0 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-50"
-                  >
-                    {inviterUn.isPending && inviterUn.variables?.id === user.id ? "Envoi…" : "Inviter"}
-                  </button>
-                  <button
-                    onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
-                    disabled={updateUserMutation.isPending}
-                    aria-label="Passer client tout de suite (étape 1), sans envoyer de lien maintenant" title="Passer client tout de suite (étape 1), sans envoyer de lien maintenant"
-                    className="h-9 flex-shrink-0 rounded-full border border-trait px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-40"
-                    style={{ background: "transparent" }}
-                  >
-                    Client direct
-                  </button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)}
-                    className="h-8 w-8 text-brume hover:text-red-400 hover:bg-transparent flex-shrink-0 max-md:ml-auto" aria-label="Supprimer" title="Supprimer">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
+            <div className="overflow-x-auto border-t border-trait">
+              <table className={`${TABLEAU} min-w-[640px]`}>
+                <thead>
+                  <tr className="text-encre">
+                    <th className={`${TETE} text-left`}>Nom</th>
+                    <th className={`${TETE} text-left`}>Adresse mail</th>
+                    <th className={TETE}>Invitation</th>
+                    <th className={`${TETE} w-[44px]`}><span className="sr-only">Supprimer</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-relief/60">
+                      <td className={`${CELLULE} max-w-[260px] px-3 text-encre`}>
+                        <span className="flex items-center gap-2.5">
+                          <Initiale nom={user.full_name} />
+                          <span className="truncate">{user.full_name || "Sans nom"}</span>
+                        </span>
+                      </td>
+                      <td className={`${CELLULE} max-w-[280px] truncate px-2.5 text-craie`}>{user.email}</td>
+                      <td className={`${CELLULE} px-2.5`}>
+                        <span className="flex items-center justify-center gap-1.5 whitespace-nowrap py-1">
+                          <button
+                            onClick={() => inviterUn.mutate(user)}
+                            disabled={inviterUn.isPending}
+                            aria-label="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1" title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
+                            className="h-7 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-50"
+                          >
+                            {inviterUn.isPending && inviterUn.variables?.id === user.id ? "Envoi…" : "Inviter"}
+                          </button>
+                          <button
+                            onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
+                            disabled={updateUserMutation.isPending}
+                            aria-label="Passer client tout de suite (étape 1), sans envoyer de lien maintenant" title="Passer client tout de suite (étape 1), sans envoyer de lien maintenant"
+                            className="h-7 rounded-full border border-trait px-3.5 text-[13px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-40"
+                            style={{ background: "transparent" }}
+                          >
+                            Client direct
+                          </button>
+                        </span>
+                      </td>
+                      <td className={`${CELLULE} text-center`}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)}
+                          className="h-8 w-8 text-brume hover:text-red-400 hover:bg-transparent" aria-label="Supprimer" title="Supprimer">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       )}
 
-      {/* Liste des utilisateurs — rangées filetées, détail repliable */}
-      <div className="overflow-hidden rounded-[16px] border border-trait bg-rail">
+      {/* Les utilisateurs en tableau, sur le modèle du CRM (6 nov. 2026, Jules : « un tableau avec des colonnes et des
+          cases cochées ou pas ») : cases à traits pleins, une colonne par rôle ; le nom ouvre le détail, en dessous. Au
+          téléphone, le tableau défile dans son cadre. */}
+      <div className="max-w-full overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-rail">
+        <table className={`${TABLEAU} min-w-[1120px]`}>
+          <thead>
+            <tr className="text-encre">
+              <th className={`${TETE} w-[37px] min-w-[37px] p-0`}>
+                <CaseLigne cochee={filteredUsers.length > 0 && filteredUsers.every((u) => selectedUsersForCompare.includes(u.id))} label="Tout sélectionner pour comparer"
+                  onChange={() => { const tous = filteredUsers.every((u) => selectedUsersForCompare.includes(u.id)); setSelectedUsersForCompare((t) => (tous ? t.filter((x) => !filteredUsers.some((u) => u.id === x)) : [...new Set([...t, ...filteredUsers.map((u) => u.id)])])); }} />
+              </th>
+              <th className={`${TETE} text-left`}>Nom</th>
+              <th className={`${TETE} text-left`}>Adresse mail</th>
+              <th className={`${TETE} w-[96px]`}>Admin</th>
+              <th className={`${TETE} w-[110px]`}>Mandataire</th>
+              <th className={TETE}>Villes</th>
+              <th className={`${TETE} w-[170px]`}>Étape</th>
+              <th className={`${TETE} w-[120px]`}>Progression</th>
+              <th className={TETE}>Profil</th>
+              <th className={`${TETE} w-[190px]`}><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
         {filteredUsers.map((user) => {
           const isAdmin = user.role === "admin";
           const roles = rolesDuCompte(user);
@@ -680,72 +742,69 @@ export default function AdminUtilisateurs() {
           const isExpanded = expandedUserId === user.id;
           const isSelected = selectedUsersForCompare.includes(user.id);
           const etape = user.etape_actuelle ?? 0;
+          const client = !roles.admin && !roles.mandataire;
 
           return (
-            <div key={user.id} id={`utilisateur-${user.id}`} className={`border-t border-trait px-5 transition-colors first:border-t-0 ${isSelected ? "bg-menthe/[0.05]" : isExpanded ? "bg-encre/[0.02]" : ""}`}>
-              {/* Rangée principale */}
-              <div className="flex items-center gap-4 max-md:gap-3 py-4 max-md:flex-wrap">
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={() => toggleUserSelection(user.id)}
-                  className="border-bord-vif rounded-[4px] data-[state=checked]:bg-menthe data-[state=checked]:border-menthe flex-shrink-0"
-                  title="Sélectionner pour comparer" />
-
-                <button
-                  onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
-                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                >
-                  <div className={`grid h-9 w-9 flex-shrink-0 place-items-center rounded-full ${isAdmin ? "bg-menthe/[0.16]" : "bg-relief"}`}>
-                    <span className={`text-[12px] font-semibold ${isAdmin ? "text-menthe" : "text-craie"}`}>
-                      {user.full_name?.charAt(0)?.toUpperCase() || "U"}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-encre text-[15px] truncate">{user.full_name || "Sans nom"}</span>
-                      {membre?.super_admin && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-menthe">Super admin</span>}
-                      {user.est_compte_shadow && user.compte_maitre_email && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie" title={`Voit le dossier de ${user.compte_maitre_email}`}>Famille</span>}
-                      {user.comptes_lies && user.comptes_lies.length > 0 && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie">Famille · {user.comptes_lies.length + 1}</span>}
-                      {user.profil_investisseur && <span className="text-[12.5px] text-ardoise max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
-                    </div>
-                    <p className="text-ardoise text-xs truncate m-0 mt-0.5">{user.email}</p>
-                  </div>
+            <React.Fragment key={user.id}>
+            <tr id={`utilisateur-${user.id}`} className={isSelected || isExpanded ? "bg-relief" : "hover:bg-relief/60"}>
+              <td className={`${CELLULE} w-[37px] min-w-[37px] p-0`}>
+                <CaseLigne cochee={isSelected} onChange={() => toggleUserSelection(user.id)} label="Sélectionner pour comparer" />
+              </td>
+              {/* Le nom ouvre le détail de la ligne. */}
+              <td className={`${CELLULE} max-w-[300px] p-0 text-encre`}>
+                <button onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
+                  className="flex w-full min-w-0 items-center gap-2.5 px-3 py-1.5 text-left text-encre hover:text-menthe" style={{ background: "transparent" }}>
+                  <Initiale nom={user.full_name} admin={isAdmin} />
+                  <span className="truncate">{user.full_name || "Sans nom"}</span>
+                  {membre?.super_admin && <span className="flex-none rounded-full bg-rail-actif px-2 py-0.5 text-[12px] text-menthe">Super admin</span>}
+                  {user.est_compte_shadow && user.compte_maitre_email && <span className="flex-none rounded-full bg-rail-actif px-2 py-0.5 text-[12px] text-craie" title={`Voit le dossier de ${user.compte_maitre_email}`}>Famille</span>}
+                  {user.comptes_lies && user.comptes_lies.length > 0 && <span className="flex-none rounded-full bg-rail-actif px-2 py-0.5 text-[12px] text-craie">Famille · {user.comptes_lies.length + 1}</span>}
                 </button>
-
-                {/* Les deux cases (3 nov. 2026) : sans case cochée, c'est un client. */}
-                <div className="flex flex-none items-center gap-4 max-md:order-last max-md:w-full max-md:pl-9">
-                  <CaseRole coche={roles.admin} mot="Admin" libelle={`Admin : ${user.full_name || user.email}`} desactive={!peutCocher || changerRoles.isPending || (roles.admin && intouchable)} onChange={(v) => poserRoles(user, v, roles.mandataire)} />
-                  <CaseRole coche={roles.mandataire} mot="Mandataire" libelle={`Mandataire : ${user.full_name || user.email}`} desactive={!peutCocher || changerRoles.isPending} onChange={(v) => poserRoles(user, roles.admin, v)} />
-                </div>
-
-                {/* Le secteur d'un mandataire : il ouvre son réglage (secteur, fiche, analyste). */}
+              </td>
+              <td className={`${CELLULE} max-w-[260px] truncate px-2.5 text-craie`}>{user.email}</td>
+              {/* Les deux cases (3 nov. 2026) : sans case cochée, c'est un client. */}
+              <td className={`${CELLULE} text-center`}>
+                <CaseRole petite coche={roles.admin} libelle={`Admin : ${user.full_name || user.email}`} desactive={!peutCocher || changerRoles.isPending || (roles.admin && intouchable)} onChange={(v) => poserRoles(user, v, roles.mandataire)} />
+              </td>
+              <td className={`${CELLULE} text-center`}>
+                <CaseRole petite coche={roles.mandataire} libelle={`Mandataire : ${user.full_name || user.email}`} desactive={!peutCocher || changerRoles.isPending} onChange={(v) => poserRoles(user, roles.admin, v)} />
+              </td>
+              {/* Les villes d'un mandataire : elles ouvrent son réglage (villes, fiche). */}
+              <td className={`${CELLULE} max-w-[220px] p-0 text-center`}>
                 {roles.mandataire && (
-                  <button type="button" onClick={() => gererMandataire(user)} className="w-44 flex-none truncate text-left text-[13.5px] text-craie hover:text-menthe max-md:order-last max-md:w-full max-md:pl-9" style={{ background: "transparent" }}>
-                    {membre?.secteur ? `${membre.secteur.nom} ›` : <span className="text-ardoise">Sans secteur ›</span>}
+                  <button type="button" onClick={() => gererMandataire(user)} className="block w-full truncate px-2.5 py-1.5 text-[13.5px] text-craie hover:text-menthe" style={{ background: "transparent" }}>
+                    {/* Ses villes (6 nov. 2026) ; un ancien secteur tracé, son nom. */}
+                    {membre?.secteur?.villes?.length ? `${membre.secteur.villes.join(", ")} ›` : membre?.secteur && !membre.secteur.villes ? `${membre.secteur.nom} ›` : <span className="text-ardoise">Sans ville ›</span>}
                   </button>
                 )}
-
-                {/* Étape + progression : les clients seulement. */}
-                {!roles.admin && !roles.mandataire && (
-                  <div className="flex items-center gap-4 max-md:w-full max-md:order-last max-md:pl-9">
-                    <div className="w-44 max-md:flex-1">
-                      <AnimatedDropdown
-                        value={etape.toString()}
-                        onChange={(v) => handleChangeEtape(user.id, v)}
-                        options={[0, 1, 2, 3, 4, 5].map((e) => ({ value: e.toString(), label: `${e}. ${etapeLabels[e]}` }))}
-                      />
+              </td>
+              {/* Étape + progression : les clients seulement. La case prend la couleur de l'étape, comme un statut du CRM. */}
+              <td className={`${CELLULE} p-0 ${client ? `text-center ${CLASSES_STATUT[couleurStatut(etapeLabels[etape])]}` : ""}`}>
+                {client && (
+                  <Select value={etape.toString()} onValueChange={(v) => handleChangeEtape(user.id, v)}>
+                    <SelectTrigger aria-label={`Étape de ${user.full_name || user.email}`} className="h-[36px] justify-center gap-1.5 rounded-none border-0 bg-transparent px-2.5 text-[14px] text-current shadow-none focus:ring-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-fond border-bord">
+                      {[0, 1, 2, 3, 4, 5].map((e) => <SelectItem key={e} value={e.toString()} className="text-encre">{`${e}. ${etapeLabels[e]}`}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </td>
+              <td className={`${CELLULE} px-2.5`}>
+                {client && (
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex-1 h-px bg-encre/[0.14] relative">
+                      <div className="absolute inset-y-0 left-0 bg-menthe transition-all duration-500 rounded-full" style={{ width: `${etape / 5 * 100}%`, height: "2px", top: "-0.5px" }} />
                     </div>
-                    <div className="w-24 max-md:w-20 flex items-center gap-2.5">
-                      <div className="flex-1 h-px bg-encre/[0.14] relative">
-                        <div className="absolute inset-y-0 left-0 bg-menthe transition-all duration-500 rounded-full" style={{ width: `${etape / 5 * 100}%`, height: "2px", top: "-0.5px" }} />
-                      </div>
-                      <span className="text-[11px] text-menthe-clair" style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(etape / 5 * 100)}%</span>
-                    </div>
+                    <span className="text-[11px] text-menthe-clair" style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(etape / 5 * 100)}%</span>
                   </div>
                 )}
-
-                {/* Actions rapides */}
-                <div className="flex items-center gap-0.5 flex-shrink-0">
+              </td>
+              <td className={`${CELLULE} whitespace-nowrap px-2.5 text-center text-[13px] text-ardoise`}>{user.profil_investisseur ? profilLabels[user.profil_investisseur] : ""}</td>
+              {/* Actions rapides */}
+              <td className={`${CELLULE} px-1.5`}>
+                <div className="flex items-center justify-end gap-0.5">
                   {!isAdmin && !user.mot_de_passe_defini && <BoutonLienInvitation user={user} />}
                   <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(user)}
                     className="h-8 w-8 text-brume hover:text-encre hover:bg-transparent" title="Modifier la fiche client">
@@ -764,11 +823,14 @@ export default function AdminUtilisateurs() {
                     <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                   </button>
                 </div>
-              </div>
+              </td>
+            </tr>
 
-              {/* Panneau de détail */}
+              {/* Panneau de détail : une ligne pleine largeur sous la ligne, collé à gauche quand le tableau défile. */}
               {isExpanded && (
-                <div className="space-y-6 pb-6 pl-[84px] pr-2 max-md:pl-0">
+                <tr className="bg-relief/40">
+                <td colSpan={10} className={`${CELLULE} p-0`}>
+                <div className="sticky left-0 max-w-[calc(100vw-2.5rem)] space-y-6 px-5 pb-6 pt-5 md:pl-12">
                   {/* Profil investisseur */}
                   <div>
                     <div className="mb-3 text-[11px] uppercase tracking-[.16em] text-brume">Profil investisseur</div>
@@ -843,21 +905,27 @@ export default function AdminUtilisateurs() {
                     </div>
                   </div>
                 </div>
+                </td>
+                </tr>
               )}
-            </div>
+            </React.Fragment>
           );
         })}
 
         {filteredUsers.length === 0 && (
-          <div className="px-5 pb-16 pt-10 text-center">
+          <tr>
+          <td colSpan={10} className="px-5 pb-16 pt-10 text-center">
             <Users className="w-8 h-8 text-encre/15 mx-auto mb-5" />
             <p className="text-ardoise text-sm mb-0">
               {searchTerm.trim() && pendingUsers.length
                 ? `Aucun client actif ne correspond : ${pendingUsers.length === 1 ? "le compte trouvé est" : `les ${pendingUsers.length} comptes trouvés sont`} en attente d'activation, plus haut.`
                 : searchTerm || etapeFilter !== "all" ? "Aucun utilisateur ne correspond" : "Aucun utilisateur"}
             </p>
-          </div>
+          </td>
+          </tr>
         )}
+          </tbody>
+        </table>
       </div>
       {/* Les pages de chaque administrateur (ex-page Équipe), sous le filtre Admins. */}
       {roleFilter === "admins" && moi?.gere_les_acces && (

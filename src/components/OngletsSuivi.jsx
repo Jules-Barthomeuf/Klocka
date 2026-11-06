@@ -11,16 +11,11 @@ import { J } from "@/design/jetons";
 
 const PAGES = [
   { to: "/Suivi", mot: "Usage" },
-  // L'audience hors équipe : clients, mandataires, pages publiques (14 oct. 2026).
-  { to: "/SuiviAudience", mot: "Audience" },
   { to: "/SuiviAppels", mot: "Appels" },
   // Enregistrer une réunion, qui nourrit l'Intelligence (14 oct. 2026).
   { to: "/SuiviReunion", mot: "Réunion" },
-  { to: "/SuiviMandataires", mot: "Mandataires" },
-  { to: "/SuiviChat", mot: "Chat" },
-  // Haka (17 oct. 2026) : coûts par tâche, décisions, motifs de rejet.
-  { to: "/SuiviHaka", mot: "Assistant KPartners" },
-  // Coûts IA et Agent testeur retirés des onglets le 16 oct. 2026 (Jules) ; leurs pages restent à leur adresse.
+  // Mandataires, Chat et Assistant KPartners retirés des onglets le 6 nov. 2026 (Jules), comme Coûts IA et Agent testeur
+  // le 16 oct. ; leurs pages restent à leur adresse.
 ];
 
 export default function OngletsSuivi({ className = "" }) {

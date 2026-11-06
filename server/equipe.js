@@ -32,7 +32,7 @@ export function listerEquipe() {
       // Actif : un mot de passe, ou une connexion Google déjà vue.
       actif: !!u.mot_de_passe || !!visites.get(email), invitation_en_attente: !!u.invitation_jeton && !u.mot_de_passe && !visites.get(email), invite_le: u.invite_le || null,
       pages_fermees: u.role === 'admin' ? pagesFermees(u).length : 0, derniere_visite: visites.get(email) || null,
-      secteur: s ? { id: s.id, nom: s.nom } : null, telephone: f?.telephone || u.telephone || u.phone || null, arrivee_le: f?.arrivee_le || null,
+      secteur: s ? { id: s.id, nom: s.nom, villes: s.villes_seules ? (s.villes_choisies || []).map((v) => v.nom) : null } : null, telephone: f?.telephone || u.telephone || u.phone || null, arrivee_le: f?.arrivee_le || null,
       role_modifie_le: u.role_modifie_le || null, role_modifie_par: u.role_modifie_par || null,
     };
   };

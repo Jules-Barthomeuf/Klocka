@@ -89,7 +89,8 @@ function AppelEntier({ x, ouvert, onBasculer }) {
   );
 }
 
-function TiroirAgent({ id, onFermer }) {
+/** Le tiroir d'un agent ; aussi ouvert depuis le CRM (6 nov. 2026), `onCrm` y ajoute le lien vers sa ligne de Twenty. */
+export function TiroirAgent({ id, onFermer, onCrm = null }) {
   const { data, isLoading } = useQuery({ queryKey: ["agent-appels", id], queryFn: () => base44.request("GET", `/api/prospection/agents/${id}/appels`) });
   const [ouverts, setOuverts] = useState(() => new Set());
   useEffect(() => {
@@ -104,6 +105,7 @@ function TiroirAgent({ id, onFermer }) {
     <div className="fixed inset-0 z-[80]">
       <div className="absolute inset-0 bg-fond/60 backdrop-blur-[2px]" onClick={onFermer} />
       <aside role="dialog" aria-modal="true" aria-label="Fiche de l'agent" className="absolute inset-y-0 right-0 flex w-[640px] max-w-full flex-col overflow-y-auto border-l border-trait bg-surface-pleine px-7 pb-10 pt-5 animate-in slide-in-from-right duration-200 max-md:px-5">
+        {onCrm && <button type="button" onClick={onCrm} className="mb-3 self-start p-0 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Sa ligne dans Twenty CRM →</button>}
         <FicheContact depart={{ type: "agent", id }} onFermer={onFermer} />
         <div className="mt-8 flex items-baseline justify-between gap-3">
           <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Tous ses appels{appels.length ? ` · ${appels.length}` : ""}</p>

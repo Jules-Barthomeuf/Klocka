@@ -604,7 +604,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
               {/* Le projet à droite du titre, à toutes les étapes (30 oct. 2026, Jules) : « Rentrer le projet » tant qu'il
                   n'existe pas, puis « Projet ↗ » et sa mise à jour depuis le dossier. */}
-              {!apercu && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
+              {/* Sur la Pré-analyse, il passe à droite des modes Fiche / Tableau (5 nov. 2026, Jules). */}
+              {!apercu && !(vue === "preanalyse" && dossier?.lots?.length) && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
               {aRelancer && (
                 <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
                   <Clock className="w-3 h-3" /> À relancer
@@ -1037,6 +1038,7 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
       {dossier.lots.map((lot) => (
         <CarteLot
           key={lot.index}
+          apresModes={!apercu && lot.index === dossier.lots[0].index ? <BoutonProjet dossier={dossier} onRefresh={onRefresh} /> : null}
           sansSimulateur
           lot={lot}
           dossier={dossier}
@@ -1503,20 +1505,21 @@ function BoutonProjet({ dossier, onRefresh }) {
   if (dossier.projet_id) {
     return (
       <span className="inline-flex flex-none items-center gap-1">
-        <Link to={`/Projets?id=${dossier.projet_id}`} className="inline-flex h-7 items-center gap-1 rounded-full bg-menthe/15 px-3 text-[12.5px] text-menthe transition-colors hover:bg-menthe/25">
-          Projet <ExternalLink className="h-3 w-3" />
+        <Link to={`/Projets?id=${dossier.projet_id}`} className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif">
+          Projet <ExternalLink className="h-3.5 w-3.5 text-ardoise" />
         </Link>
         <button type="button" disabled={maj.isPending} title="Mettre à jour le projet depuis le dossier" aria-label="Mettre à jour le projet depuis le dossier"
           onClick={() => { if (window.confirm("Mettre à jour le projet depuis le dossier ? Les chiffres du dossier et les cases OK de l'Analyse remplacent ceux du projet ; les photos et les textes restent.")) maj.mutate(); }}
-          className="grid h-7 w-7 place-items-center rounded-full text-menthe transition-colors hover:bg-menthe/15 disabled:opacity-50" style={{ background: "transparent" }}>
+          className="grid h-10 w-10 place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
           {maj.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
         </button>
       </span>
     );
   }
   return (
-    <button type="button" onClick={() => creer.mutate()} disabled={creer.isPending} className="inline-flex h-7 flex-none items-center gap-1.5 rounded-full border border-menthe px-3 text-[12.5px] text-encre transition-colors hover:bg-menthe/10 disabled:opacity-60" style={{ background: "transparent" }}>
-      {creer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Briefcase className="h-3.5 w-3.5" />} Rentrer le projet
+    // Le dessin de l'interrupteur Mode Fiche / Mode Tableau (5 nov. 2026, Jules : « comme dans les modes »).
+    <button type="button" onClick={() => creer.mutate()} disabled={creer.isPending} className="inline-flex h-10 flex-none items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif disabled:opacity-60">
+      {creer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4 text-ardoise" />} Rentrer le projet
     </button>
   );
 }

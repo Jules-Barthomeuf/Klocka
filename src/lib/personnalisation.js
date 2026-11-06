@@ -309,9 +309,9 @@ export function definirEspace(espace) {
 }
 
 // Le CRM ne se personnalise pas (5 nov. 2026, Jules : « c'est juste mode clair, mode sombre, mais il n'y a pas plus de
-// choses ») : sur sa page, seul le mode du compte compte ; accent pervenche, fond, barre, police et taille d'origine.
+// choses ») : sur sa page, le mode et la couleur d'accent du compte (6 nov. 2026, Jules : « la couleur système », en
+// admin comme en mandataire) ; fond, barre, police et taille d'origine.
 let cadreCrm = false;
-export const ACCENT_CRM = "pervenche";
 export function definirCadreCrm(actif) {
   if (!!actif === cadreCrm) return;
   cadreCrm = !!actif;
@@ -321,7 +321,7 @@ export function definirCadreCrm(actif) {
 export function appliquerPrefs(brut) {
   if (typeof document === "undefined") return;
   dernieresPrefs = brut;
-  const p = normaliser(pageNeutre() ? DEFAUT : cadreCrm ? { mode: normaliser(brut).mode, accent: ACCENT_CRM } : brut);
+  const p = normaliser(pageNeutre() ? DEFAUT : cadreCrm ? { mode: normaliser(brut).mode, accent: normaliser(brut).accent } : brut);
   if (espaceCourant === "mandataire" && !pageNeutre() && !cadreCrm) p.accent = ACCENT_MANDATAIRE;
   const theme = themeEffectif(p);
   const clair = theme === CLAIR;

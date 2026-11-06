@@ -18,6 +18,8 @@ export const ENTITES_INTERDITES = new Set([
   'TemplateMatrice',
   'MemoireMatrice',
   'AgendaAnalyste',
+  // Les analyses Tokimo (6 nov. 2026) : par /api/tokimo seulement, qui se ferme avec la page.
+  'AnalyseTokimo',
 ]);
 
 /**

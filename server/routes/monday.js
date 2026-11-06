@@ -30,6 +30,15 @@ export function monterMonday(app) {
     try { ok(res, await fn(u, req)); } catch (e) { res.status(e.status || 502).json({ error: e.status ? e.message : `Twenty ne répond pas : ${e.message}`.slice(0, 300) }); }
   });
   app.get('/api/crm/ecran', crm(async (u, req) => (await ecran()).barre(quiDe(u, req))));
+  // Les fiches de Klocka depuis le CRM, et la carte des clients de Twenty (6 nov. 2026) : l'équipe seule.
+  const equipe = (fn) => wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (u?.role !== 'admin') return res.status(403).json({ error: "Réservé à l'équipe Klocka." });
+    try { ok(res, await fn(u, req)); } catch (e) { res.status(e.status || 502).json({ error: `Twenty ne répond pas : ${e.message}`.slice(0, 300) }); }
+  });
+  app.get('/api/crm/klocka/carte', equipe(async (u, req) => (await import('../crm/klocka.js')).carteClients({ frais: req.query.frais === '1' })));
+  app.get('/api/crm/klocka/:objet/:id', equipe(async (u, req) => ({ fiche: await (await import('../crm/klocka.js')).ficheKlocka(req.params.objet, req.params.id) })));
+  app.put('/api/crm/ecran-ordre', crm(async (u, req) => (await ecran()).poserOrdre(quiDe(u, req), req.body?.espace, req.body?.pages)));
   const filtresDe = (req) => { try { const f = JSON.parse(String(req.query.filtres || '[]')); return Array.isArray(f) ? f.slice(0, 20) : []; } catch { return []; } };
   app.get('/api/crm/ecran-photo/:id', wrap(async (req, res) => {
     if (!currentUser(req)) return res.status(401).end();

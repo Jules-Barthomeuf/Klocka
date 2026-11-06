@@ -1,30 +1,10 @@
-// L'audience de la plateforme hors équipe, et les enregistrements d'écran des appels (14 oct. 2026).
+// Les enregistrements d'écran des appels (14 oct. 2026). L'audience de la plateforme est supprimée (6 nov. 2026, Jules).
 
 import fs from 'fs';
 import express from 'express';
 import { currentUser, ok, wrap } from '../contexte.js';
 
 export function monterAudience(app) {
-  // Le passage d'un navigateur : ouvert sans connexion (les pages publiques en ont besoin), borné, sans effet ailleurs.
-  app.post('/api/visites/passage', wrap(async (req, res) => {
-    const V = await import('../visiteurs.js');
-    const b = req.body || {};
-    V.consignerPassage({ visiteur: b.visiteur, page: b.page, url: b.url, referrer: b.referrer, largeur: b.largeur, fuseau: b.fuseau, langue: b.langue, ua: req.get('user-agent'), hote: req.get('host'), user: currentUser(req) });
-    ok(res, { ok: true });
-  }));
-  // Un battement : texte brut (navigator.sendBeacon) ou JSON.
-  app.post('/api/visites/battement', express.text({ type: '*/*', limit: '2kb' }), wrap(async (req, res) => {
-    let b = req.body;
-    if (typeof b === 'string') { try { b = JSON.parse(b); } catch { b = {}; } }
-    (await import('../visiteurs.js')).battement({ visiteur: b?.visiteur });
-    res.status(204).end();
-  }));
-  app.get('/api/monitoring/audience', wrap(async (req, res) => {
-    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
-    const jours = Math.min(Math.max(Number(req.query.jours) || 30, 1), 365);
-    ok(res, (await import('../visiteurs.js')).audience({ jours }));
-  }));
-
   // Les enregistrements d'écran : l'analyste dépose le sien, seuls les super-admins les regardent.
   app.post('/api/journal/ecran', express.raw({ type: 'application/octet-stream', limit: '60mb' }), wrap(async (req, res) => {
     const user = currentUser(req);

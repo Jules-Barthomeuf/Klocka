@@ -253,6 +253,55 @@ export function monterMandataire(app) {
 
   // --- Le secteur et la recherche (mandataire) -----------------------------
 
+  // Ses villes (6 nov. 2026, Jules : « il tape une ville ») : la liste qui fait foi pour le Mode Clients et la carte.
+  const VS = () => import('../villes-secteur.js');
+  app.get('/api/mandataire/villes', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    ok(res, { villes: await (await VS()).villesDe(user.email) });
+  }));
+  app.post('/api/mandataire/villes', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await VS()).ajouterVille(user.email, { nom: req.body?.nom, code: req.body?.code || null, population: req.body?.population || null }, user.email);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, { ville: r.ville, prete: r.prete, pret_dans: r.pret_dans });
+  }));
+  app.delete('/api/mandataire/villes/:cle', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await VS()).retirerVille(user.email, req.params.cle, user.email);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, { ok: true });
+  }));
+  app.get('/api/mandataire/communes', wrap(async (req, res) => {
+    if (!mandataire(req, res)) return;
+    try {
+      ok(res, { communes: await (await import('../mandataire-geo.js')).chercherCommunes(req.query.q) });
+    } catch (e) {
+      res.status(502).json({ error: `Recherche des communes indisponible : ${e?.message || e}` });
+    }
+  }));
+  // Les mêmes, posées par l'équipe sur la fiche d'un mandataire : prêtes avant qu'il arrive.
+  app.get('/api/mandataire/admin/mandataires/:email/villes', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { villes: await (await VS()).villesDe(req.params.email) });
+  }));
+  app.post('/api/mandataire/admin/mandataires/:email/villes', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await VS()).ajouterVille(req.params.email, { nom: req.body?.nom, code: req.body?.code || null, population: req.body?.population || null }, user.email);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, { ville: r.ville, prete: r.prete, pret_dans: r.pret_dans });
+  }));
+  app.delete('/api/mandataire/admin/mandataires/:email/villes/:cle', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await VS()).retirerVille(req.params.email, req.params.cle, user.email);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, { ok: true });
+  }));
+
   app.get('/api/mandataire/secteur', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;

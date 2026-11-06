@@ -180,7 +180,8 @@ function telechargerPdf(nom) {
 }
 
 /** La fiche d'un client, à droite : tout ce qu'on sait de lui, ses appels, ce qu'en voient les mandataires. */
-function FicheClient({ id, onFermer, onAppel }) {
+/** La fiche d'un client ; aussi ouverte depuis le CRM (6 nov. 2026), `onCrm` y ajoute le lien vers sa ligne de Twenty. */
+export function FicheClient({ id, onFermer, onAppel, onCrm = null }) {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["client-equipe", id], queryFn: () => base44.request("GET", `/api/clients-equipe/${id}`) });
   const [ouvert, setOuvert] = useState(null);
@@ -216,6 +217,7 @@ function FicheClient({ id, onFermer, onAppel }) {
             </div>
             <div className="flex flex-wrap gap-2.5">
               <button type="button" onClick={() => onAppel(d, "enregistrer")} className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol"><Mic className="h-4 w-4" />Enregistrer l'appel</button>
+              {onCrm && <button type="button" onClick={onCrm} className="inline-flex h-11 items-center rounded-full border border-bord-doux px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Sa ligne dans Twenty CRM</button>}
               <button type="button" onClick={() => onAppel(d, "coller")} className="h-11 rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Coller un résumé</button>
               <button type="button" onClick={() => telechargerPdf(d.nom)} className="inline-flex h-11 items-center gap-2 rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><Download className="h-4 w-4" />Télécharger le PDF</button>
             </div>

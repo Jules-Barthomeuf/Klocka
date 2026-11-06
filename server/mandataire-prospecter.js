@@ -271,7 +271,7 @@ export function leger(p) {
 export async function pointsDuSecteur(user, { max = Infinity, classe = 'commerce' } = {}) {
   const E = await import('./mandataire-espace.js');
   const secteur = E.secteurDe(user);
-  if (!secteur) return { ok: false, error: 'Aucun secteur pour vous : Klocka vous en attribue un.' };
+  if (!secteur) return { ok: false, error: 'Aucune ville encore : tapez-en une pour commencer.' };
   const { compact } = await import('./off-market/simple.js');
   const { teneurs } = await import('./fiche-mandataire.js');
   const moi = emailDe(user);
@@ -295,7 +295,7 @@ export async function pointsDuSecteur(user, { max = Infinity, classe = 'commerce
   points.sort((a, b) => b.force - a.force || Number(!!b.proprietaire) - Number(!!a.proprietaire) || String(a.titre || '').localeCompare(String(b.titre || ''), 'fr'));
   return {
     ok: true, villes: fiches.map((v) => v.nom), points: points.slice(0, max), total: points.length, prospecte_le: null,
-    compte: { commerces: lus }, pourquoi_vide: points.length ? null : (toutes.length ? 'Les commerces de votre secteur ne sont pas encore lus : ils arrivent en fond, revenez dans un moment.' : "Klocka n'a pas encore choisi les villes de votre secteur."),
+    compte: { commerces: lus }, pourquoi_vide: points.length ? null : (toutes.length ? 'Les commerces de vos villes ne sont pas encore lus : ils arrivent en fond, en direct.' : 'Aucune ville encore : tapez-en une pour commencer.'),
   };
 }
 
@@ -525,7 +525,7 @@ export const oublierCaches = () => { caches.clear(); };
 export async function pointsDuClient(user, demandeId, { noter = false } = {}) {
   const E = await import('./mandataire-espace.js');
   const secteur = E.secteurDe(user);
-  if (!secteur) return { ok: false, error: 'Aucun secteur pour vous : Klocka vous en attribue un.' };
+  if (!secteur) return { ok: false, error: 'Aucune ville encore : tapez-en une pour commencer.' };
   const d = E.demandesVisibles({ avecTest: E.voitTest(user) }).find((x) => x.id === demandeId);
   if (!d) return { ok: false, error: 'Client introuvable.' };
   const villes = await villesDuClient(d, (await villesDuMandataire(secteur, { etats: false })).fiches);

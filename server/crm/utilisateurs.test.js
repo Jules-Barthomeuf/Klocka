@@ -1,24 +1,40 @@
-import { test } from 'node:test';
+// Les comptes de Klocka, tableau du CRM (6 nov. 2026).
+import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
-// CRM=twenty (30 oct. 2026) : les personnes Monday viennent du fichier figé, sans appel à Monday.
-process.env.CRM = 'twenty';
-const { utilisateursMonday } = await import('../monday.js');
+process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-crm-utilisateurs-'));
+const U = await import('./utilisateurs.js');
 
-test('en CRM=twenty, les personnes Monday sont lues dans crm/utilisateurs-monday.json', async () => {
-  const avant = globalThis.fetch;
-  globalThis.fetch = () => { throw new Error('Monday ne doit pas être appelé'); };
-  try {
-    const l = await utilisateursMonday();
-    assert.ok(l.length > 0);
-    assert.ok(l.every((u) => u.id && u.name && 'email' in u));
-    assert.ok(l.some((u) => u.email === 'paul.dz@klocka.immo'));
-  } finally {
-    globalThis.fetch = avant;
-  }
+const comptes = [
+  { id: '1', email: 'Jean@x.fr', full_name: 'Jean', role: 'user', etape_actuelle: 0, created_date: '2026-10-01' },
+  { id: '2', email: 'lea@x.fr', full_name: 'Léa', role: 'user', etape_actuelle: 3, created_date: '2026-10-03' },
+  { id: '3', email: 'paul@kp.fr', full_name: 'Paul', role: 'mandataire', created_date: '2026-10-02' },
+  { id: '4', email: 'jules@klocka.immo', full_name: 'Jules', role: 'admin', aussi_mandataire: true, created_date: '2026-09-01' },
+];
+const secteurs = [{ mandataire_email: 'paul@kp.fr', villes_seules: true, villes_choisies: [{ nom: 'Lyon' }, { nom: 'Villeurbanne' }] }];
+const lignes = comptes.map((u) => U.ligne(u, secteurs));
+
+test('une ligne : type, statut, rôles, étape, villes', () => {
+  assert.deepEqual(lignes.map((l) => [l.type, l.statut, l.admin, l.mandataire]), [['CLIENT', 'EN_ATTENTE', false, false], ['CLIENT', 'EN_COURS', false, false], ['MANDATAIRE', 'EN_COURS', false, true], ['EQUIPE', 'EN_COURS', true, true]]);
+  assert.equal(lignes[1].etape, '3');
+  assert.equal(lignes[2].villes, 'Lyon, Villeurbanne');
+  assert.equal(lignes[0].email, 'jean@x.fr');
 });
 
-test('en CRM=twenty, un ancien id Monday donne le lien de Klocka qui retrouve la fiche Twenty', async () => {
-  const { lienMonday } = await import('../monday.js');
-  assert.match(lienMonday(2110621760, '5091573479'), /\/api\/crm\/fiche\/2110621760\/5091573479$/);
+test('les vues, la recherche et le tri', () => {
+  const o = U.objet();
+  const vue = (id) => o.vues.find((v) => v.id === id).filtres;
+  assert.deepEqual(U.choisir(lignes, { filtres: vue('u-en-attente') }).map((l) => l.name), ['Jean']);
+  assert.deepEqual(U.choisir(lignes, { filtres: vue('u-mandataires') }).map((l) => l.name), ['Paul', 'Jules']);
+  assert.deepEqual(U.choisir(lignes, { q: 'villeur' }).map((l) => l.name), ['Paul']);
+  assert.deepEqual(U.choisir(lignes).map((l) => l.name), ['Léa', 'Paul', 'Jean', 'Jules'], 'les plus récents d\'abord');
+  assert.deepEqual(U.choisir(lignes, { tri: 'name', sens: 'asc' }).map((l) => l.name), ['Jean', 'Jules', 'Léa', 'Paul']);
+});
+
+test('les rôles ne se cochent que pour un super administrateur', () => {
+  assert.equal(U.objet().champs.find((c) => c.nom === 'admin').modifiable, false);
+  assert.equal(U.objet({ superAdmin: true }).champs.find((c) => c.nom === 'admin').modifiable, true);
 });

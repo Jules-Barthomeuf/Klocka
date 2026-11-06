@@ -116,7 +116,7 @@ export async function mursLibresDuSecteur(user, { forcer = false, vieuxPermis = 
 async function calculer(user, moi) {
   const E = await import('./mandataire-espace.js');
   const secteur = E.secteurDe(user);
-  if (!secteur) return { ok: false, error: 'Aucun secteur pour vous : Klocka vous en attribue un.' };
+  if (!secteur) return { ok: false, error: 'Aucune ville encore : tapez-en une pour commencer.' };
   const P = await import('./mandataire-prospecter.js');
   const V = await import('./outils/vacance-taux.js');
   const { libelleActivite } = await import('./naf.js');

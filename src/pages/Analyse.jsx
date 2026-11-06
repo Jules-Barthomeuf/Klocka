@@ -303,8 +303,17 @@ export default function Analyse() {
   // plus voir le chat ») ; la conversation reste. L'Offre garde toujours le sien en grand.
   const [chatReduit, setChatReduit] = useState(false);
   const [ongletAnalyse, setOngletAnalyse] = useState(null);
-  // Chaque dossier s'ouvre chat ouvert.
-  useEffect(() => { setChatReduit(false); }, [dealId]);
+  // Chaque dossier s'ouvre chat ouvert, sauf sur sa Pré-analyse (5 nov. 2026, Jules : « lorsqu'on ouvre une fiche de
+  // préanalyse, le chat de gauche doit être fermé de base ») : la première étape montrée décide, puis on choisit.
+  // Le chat attend replié que le dossier dise sa première étape (pas d'ouverture puis de fermeture à l'écran).
+  const ouverture = useRef(null);
+  useEffect(() => { ouverture.current = dealId; setChatReduit(true); }, [dealId]);
+  const surVue = (v) => {
+    setVueDossier(v);
+    if (!v || ouverture.current !== dealId) return;
+    ouverture.current = null;
+    setChatReduit(v === "preanalyse");
+  };
   const modeIA = true;
   const reduit = chatReduit && vueDossier !== "offre";
   // Fermer et ouvrir le panneau du chat, à gauche de la maison (2 nov. 2026, Jules : « enlève l'icône IA et mets l'icône
@@ -395,7 +404,7 @@ export default function Analyse() {
           onSaisie={(index, saisie) => setBrouillons((b) => ajouterAuBrouillon(b, index, saisie))}
           onRefresh={recharger}
           onLargeur={setLarge}
-          onVue={setVueDossier}
+          onVue={surVue}
           onGrille={setOngletAnalyse}
           assistantAGauche={scinde}
           onOuvrirAssistant={ecranLarge ? (texte) => { setChatReduit(false); if (texte) setTimeout(() => window.dispatchEvent(new CustomEvent("klocka:lancer", { detail: { texte } })), 400); } : null}

@@ -13,7 +13,7 @@ import Competences from "@/components/haka/Competences";
 import Sources from "@/components/socle/Sources";
 import AccesAdmins from "@/components/compte/AccesAdmins";
 import MesMails from "@/components/compte/MesMails";
-import CommunesAgent from "@/components/mandataire/CommunesAgent";
+import { ListeVilles } from "@/components/mandataire/VillesMandataire";
 import { estApercuTelephone } from "@/components/ApercuTelephone";
 import { createPageUrl } from "@/utils";
 
@@ -381,7 +381,7 @@ export default function Personnalisation() {
   const sections = [
     ["profil", "Profil", true],
     ["acces", "Accès de l'équipe", !vueClient && !!user?.gere_les_acces],
-    ["agent", "Agent IA", vueMandataire],
+    ["agent", "Mes villes", vueMandataire],
     ["couleurs", "Couleurs", true],
     ["affichage", "Affichage", true],
     // Haka à sa façon (18 oct. 2026, Jules) : son portrait, la longueur de ses réponses, les tableaux.
@@ -434,12 +434,12 @@ export default function Personnalisation() {
       {/* Jules seul : qui, parmi les admins, ouvre quelles pages. */}
       {section === "acces" && <AccesAdmins />}
 
-      {/* Le mandataire : où cherche son agent IA, réglé à l'accueil, modifiable ici. */}
+      {/* Le mandataire : ses villes (6 nov. 2026, Jules), les mêmes que la pilule Villes de la Prospection. */}
       {section === "agent" && (
         <section id="agent" className="scroll-mt-6 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-          <p className={`${etiq} pt-4`}>Votre agent IA</p>
-          <Reglage titre="Où il cherche" note="Les villes Klocka sont toujours lues. Cochez les autres communes de votre secteur que vous travaillez pour votre activité.">
-            <CommunesAgent />
+          <p className={`${etiq} pt-4`}>Mes villes</p>
+          <Reglage titre="Où vous prospectez" note="Vos clients qui cherchent dans ces villes s'affichent dans la Prospection. Une ville ajoutée se prépare en fond.">
+            <ListeVilles vide="Aucune ville encore." />
           </Reglage>
         </section>
       )}

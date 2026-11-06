@@ -46,6 +46,21 @@ export default [
     },
   },
   {
+    // Le site public (klocka.immo) : les mêmes garde-fous React, mais sa charte
+    // est la sienne (noir et sauge, repris de Base44) et n'a pas de jetons.
+    files: ["site/src/**/*.{js,jsx}"],
+    languageOptions: { globals: globals.browser, parserOptions: { ecmaFeatures: { jsx: true } } },
+    ...pluginReact.configs.flat.recommended,
+    settings: { react: { version: "detect" } },
+    plugins: { react: pluginReact, "react-hooks": pluginReactHooks },
+    rules: {
+      "react/prop-types": "off",
+      "react/react-in-jsx-scope": "off",
+      "react/jsx-no-undef": "error",
+      "react-hooks/rules-of-hooks": "error",
+    },
+  },
+  {
     // Le socle lui-même a le droit de nommer les couleurs.
     files: ["src/design/**"],
     rules: { "no-restricted-syntax": "off" },

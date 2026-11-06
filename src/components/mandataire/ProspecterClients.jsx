@@ -17,6 +17,7 @@ import jetons from "@/design/jetons.json";
 import { montant } from "../../../server/montants.js";
 import { budgetDe, exclusionsDe, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
 import { API_LIBRES, FILTRES_LIBRES, FicheLibre, TableauLibres, couleurLibre, duree, passeLibre } from "@/components/mandataire/MursLibres";
+import { EnFond, PiluleVilles, memeVille } from "@/components/mandataire/VillesMandataire";
 
 // Prospecter pour ses clients (24 oct. 2026, Jules) : à gauche, la carte de son
 // secteur, toujours délimité ; à droite, ses clients en carrousel, seulement
@@ -62,6 +63,8 @@ export default function ProspecterClients({ bascule = null }) {
   const [prospecte, setProspecte] = useState("tous"); // « tous », ou l'id du client dont les murs sont sur la carte
   const [ouvert, setOuvert] = useState(null); // le commerce dont la fiche est ouverte
   const [replie, setReplie] = useState(false); // la carte du client, repliée quand une fiche s'ouvre
+  // La ville regardée (6 nov. 2026, Jules) : null, toutes ses villes.
+  const [villeVue, setVilleVue] = useState(null);
   // Le type d'actif (3 nov. 2026, Jules) : la pilule Fonds · Murs · Bureaux, hors du menu Filtrer (« remets les modes en
   // dehors des filtres ») ; Occupés · Libres, premier choix du menu des Murs. Un type à la fois dans `filtres.types` ;
   // le reste de l'écran sait en montrer plusieurs, chacun sa source.
@@ -132,8 +135,8 @@ export default function ProspecterClients({ bascule = null }) {
   const cherche = (c, t) => !t || `${c.titre || ""} ${c.enseigne || ""} ${c.nom || ""} ${c.activite || ""} ${c.adresse || ""} ${c.proprietaire || ""} ${c.ville || ""} ${(c.noms || []).join(" ")}`.toLowerCase().includes(t);
   const visibles = useMemo(() => {
     const t = filtres.texte.trim().toLowerCase();
-    return tousPoints.filter((c) => passeSimple(c, filtres) && cherche(c, t));
-  }, [tousPoints, filtres]);
+    return tousPoints.filter((c) => (!villeVue || memeVille(c.ville, villeVue)) && passeSimple(c, filtres) && cherche(c, t));
+  }, [tousPoints, filtres, villeVue]);
   const estBureau = (c) => (c.classe || "commerce") === "bureau";
   // Un commerce montré pour son fonds seul : en ambre ; ses murs gardent le menthe (exploitant) et le bleu (bailleur).
   const commeFonds = (c) => !estBureau(c) && aFonds && !(aMurs && passeMurs(c, filtres));
@@ -204,13 +207,18 @@ export default function ProspecterClients({ bascule = null }) {
   const seulementFonds = aFonds && !aMurs && !aBureaux && !aLibres;
 
   // Chargement, erreur, pas de secteur : la bascule reste, pour passer à « Tous les commerces ».
-  const seul = (contenu) => <div className="flex flex-col gap-4">{bascule && <div className="flex flex-wrap items-center gap-2">{bascule}</div>}{contenu}</div>;
-  if (isLoading) return seul(<Loader titre="Votre secteur et vos clients…" />);
+  const seul = (contenu) => <div className="flex flex-col gap-4"><div className="flex flex-wrap items-center gap-2">{bascule}<PiluleVilles choisie={villeVue} onChoisir={setVilleVue} /></div>{contenu}<EnFond /></div>;
+  // Les locaux vides en fond : une commune pas encore recensée, des locaux à vérifier sur Google Maps (3 nov. 2026).
+  const autresEnFond = !aLibres ? [] : (libresQ.data?.en_preparation || []).length
+    ? [{ cle: "recensement", titre: "Locaux vides", detail: `Recensement de ${libresQ.data.en_preparation.join(", ")}` }]
+    : libresQ.data?.en_verification > 0 ? [{ cle: "verification", titre: "Locaux vides", detail: `Vérification sur Google Maps : ${libresQ.data.en_verification} locaux` }] : [];
+  if (isLoading) return seul(<Loader titre="Vos villes et vos clients…" />);
   if (isError) return seul(<p className="m-0 mt-6 text-[13.5px] text-alerte">La prospection ne se charge pas. Rechargez la page.</p>);
-  if (!data?.secteur) return seul(<p className="m-0 mt-12 text-center text-[14px] text-brume">Aucun secteur pour vous encore : K Partners vous en attribue un, puis vos clients s'affichent ici.</p>);
+  if (!data?.secteur) return seul(<p className="m-0 mt-12 text-center text-[14px] text-brume">Tapez une ville pour commencer : ses commerces et vos clients qui y cherchent s'affichent ici.</p>);
 
   return (
     <div className="flex flex-col gap-4 pb-10">
+      <EnFond autres={autresEnFond} />
       {/* Deux colonnes dès le haut (25 oct. 2026, Jules) : à gauche la barre puis la carte, à droite la carte du client
           dont le haut s'aligne sur la bascule « Pour mes clients / Tous les commerces ». Au téléphone, une seule colonne à la
           largeur de l'écran (`minmax(0, 1fr)`, sinon la colonne implicite prend la largeur de son contenu et déborde). */}
@@ -219,6 +227,7 @@ export default function ProspecterClients({ bascule = null }) {
       {/* La barre du haut : la bascule, Mode Libre / Mode Clients (les murs seulement), Filtrer, où en sont les villes. */}
       <div className="flex flex-wrap items-center gap-2">
         {bascule}
+        <PiluleVilles choisie={villeVue} onChoisir={setVilleVue} />
         <SelecteurActif actif={typeUnique === "libres" ? "murs" : typeUnique} onChange={choisirType} />
         {aMurs && clients.length > 0 && <BasculeMode clients={!tous} onChange={(oui) => choisir(oui ? i : null)} />}
         {prospecte && !bureauxEnDev && (
@@ -228,16 +237,8 @@ export default function ProspecterClients({ bascule = null }) {
         {/* Plus de pastille « n murs pour … » (25 oct. 2026, Jules) : le nombre est sur la carte du client et au-dessus du
             tableau, le chargement sur « Mettre à jour », et changer de client remplace les murs. */}
         <span className="flex-1" />
-        {/* La préparation de ses villes, en fond : une ville à lire, des propriétaires à chercher. */}
-        {enPreparation && (aMurs || aFonds) && <Preparation villes={data.villes} />}
-        {/* Une commune pas encore recensée (une à deux minutes la première fois) : la page se relit seule. */}
-        {aLibres && (libresQ.data?.en_preparation || []).length > 0 && (
-          <span className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Recensement de {libresQ.data.en_preparation.join(", ")}</span>
-        )}
-        {/* Un local ne paraît qu'une fois vérifié vide sur Google Maps (3 nov. 2026, Jules) : les autres arrivent en direct. */}
-        {aLibres && !(libresQ.data?.en_preparation || []).length && libresQ.data?.en_verification > 0 && (
-          <span className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Vérification sur Google Maps : {libresQ.data.en_verification} locaux</span>
-        )}
+        {/* Ce qui tourne en fond (lecture des villes, propriétaires, recensement des locaux vides) quitte la barre
+            (6 nov. 2026, Jules : « ça gêne la vue ») : le bouton En fond, en bas à gauche. */}
       </div>
 
         {/* À gauche : le secteur, et ce que les types cochés y posent. */}
@@ -259,7 +260,7 @@ export default function ProspecterClients({ bascule = null }) {
         <div className="relative min-w-0 max-lg:h-[62vh] max-lg:min-h-[460px] max-md:h-auto">
         <div className="flex min-w-0 flex-col gap-3 lg:absolute lg:inset-0 max-lg:h-full max-md:h-auto">
           {!aMurs ? null : !(data.villes || []).length ? (
-            <p className="m-0 rounded-bloc border border-trait px-5 py-6 text-[13.5px] leading-[1.6] text-ardoise">K Partners n'a pas encore choisi les villes de votre secteur : vos clients s'afficheront ici dès qu'elles le seront.</p>
+            <p className="m-0 rounded-bloc border border-trait px-5 py-6 text-[13.5px] leading-[1.6] text-ardoise">Ajoutez une ville : vos clients qui y cherchent s'afficheront ici.</p>
           ) : !clients.length ? (
             <CarteTous n={points.data?.total ?? murs.length} villes={data.villes} charge={attente} seule />
           ) : (
@@ -318,24 +319,6 @@ function PointOuFiche({ id, onFermer, point, mode = "murs" }) {
   // La fiche des listes, la même partout (25 oct. 2026, Jules) : celle de la carte d'une liste ; sans fiche encore, son
   // aperçu, avec « Ajouter à ma liste » qui la fait naître.
   return <FicheMandataire id={point?.fiche?.id || null} commerceId={id} onFermer={onFermer} mode={mode} />;
-}
-
-/** Où en est la préparation des villes (lecture, propriétaires, prix) : une pastille, le détail au survol. */
-function Preparation({ villes }) {
-  const p = villes.map((v) => v.preparation || {});
-  const somme = (k) => p.reduce((n, x) => n + (x[k] || 0), 0);
-  const aLire = villes.filter((v) => v.etat !== "lue").map((v) => v.nom);
-  const reste = somme("proprietaires_a_faire");
-  const detail = villes.map((v) => `${v.nom} : ${v.etat !== "lue" ? "lecture à venir" : `${v.preparation?.proprietaires_faits || 0} propriétaires cherchés sur ${v.preparation?.commerces || 0}, ${v.preparation?.avec_prix || 0} prix`}`).join("\n");
-  // Plus de « Prix en cours d'estimation · les murs s'ajoutent en direct » (1er nov. 2026, Jules) : reste seulement ce
-  // qui change ce que le mandataire voit (une ville pas encore lue, des propriétaires à chercher).
-  if (!aLire.length && !reste) return null;
-  return (
-    <span title={detail} className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre">
-      <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />
-      {aLire.length ? `Lecture de ${aLire.join(", ")}` : `Propriétaires : ${reste} à chercher`}
-    </span>
-  );
 }
 
 const TRAIT = "border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)]";
@@ -479,11 +462,11 @@ function BasculeMode({ clients, onChange }) {
   return (
     <button type="button" role="switch" aria-checked={clients} onClick={() => onChange(!clients)}
       className="inline-flex h-10 items-center gap-3 rounded-full border border-bord-doux bg-rail px-4 text-[14px] hover:border-bord-vif">
-      <span className={`transition-colors duration-300 ${clients ? "text-ardoise" : "text-encre"}`}>Mode Libre</span>
+      <span className={`transition-colors duration-300 ${clients ? "text-ardoise" : "text-encre"}`}>Libre</span>
       <span aria-hidden className={`relative h-[20px] w-[36px] flex-none rounded-full transition-colors duration-300 ${clients ? "bg-menthe" : "bg-relief"}`}>
         <span className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-fond shadow-sm transition-all duration-300 ease-out ${clients ? "left-[18px]" : "left-[2px]"}`} />
       </span>
-      <span className={`transition-colors duration-300 ${clients ? "text-encre" : "text-ardoise"}`}>Mode Clients</span>
+      <span className={`transition-colors duration-300 ${clients ? "text-encre" : "text-ardoise"}`}>Clients</span>
     </button>
   );
 }

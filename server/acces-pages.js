@@ -35,6 +35,8 @@ export const API_DES_PAGES = {
   AdminClients: ['/api/clients-equipe'],
   // La Mémoire Klocka (30 oct. 2026) : les fiches gardées et le lecteur des boîtes, fermés avec leur page.
   MemoireKlocka: ['/api/memoire'],
+  // Tokimo (6 nov. 2026) : le module d'analyse des opérations présentées à Tokimo.
+  Tokimo: ['/api/tokimo'],
   // Agents (16 oct. 2026) : la liste et les appels en entier ; la fiche reste celle de la Prospection.
   Agents: ['/api/prospection/agents-liste', '/api/prospection/agents', '/api/prospection/fiche', '/api/prospection/agent-ia/equipe'],
 };

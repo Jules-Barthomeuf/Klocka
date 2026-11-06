@@ -1,0 +1,114 @@
+@font-face {
+  font-family: 'Neue Haas Grotesk Display';
+  src: url('/fonts/neue-haas-grotesk-400-normal.woff2') format('woff2');
+  font-weight: 300 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Neue Haas Grotesk Display';
+  src: url('/fonts/neue-haas-grotesk-500-normal.woff2') format('woff2');
+  font-weight: 500 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-heading: 'PP Neue Montreal', 'Neue Haas Grotesk Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-body: 'PP Neue Montreal', 'Neue Haas Grotesk Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-mono: 'PP Neue Montreal', 'Neue Haas Grotesk Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --k-ease: cubic-bezier(.2,.7,.2,1);
+  }
+}
+
+@layer base {
+  * { border-color: #fff; }
+
+  html { zoom: 0.95; }
+
+  body {
+    background: #000;
+    color: #fff;
+    font-family: var(--font-body);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.03em;
+    font-weight: 300;
+  }
+
+  p { text-wrap: pretty; }
+
+  :focus-visible {
+    outline: 2px solid #8DAEAA;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .k-wrap { max-width: 1500px; margin-inline: auto; padding-inline: 6vw; }
+  .k-section { padding-block: clamp(80px, 9vw, 110px); }
+  .k-h1 { font-weight: 300; font-size: clamp(38px, 6.4vw, 108px); line-height: 1.02; letter-spacing: -0.035em; text-wrap: balance; }
+  .k-h2 { font-weight: 300; font-size: clamp(34px, 5.2vw, 86px); line-height: 1.04; letter-spacing: -0.035em; text-wrap: balance; }
+  .k-serif { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; color: #8DAEAA; letter-spacing: -0.02em; }
+  .k-label { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.14em; color: #9aa3a1; font-weight: 400; }
+  .k-body { font-size: 17px; line-height: 1.55; font-weight: 300; text-wrap: pretty; }
+
+  .k-btn-primary {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px; background: #8DAEAA; color: #000;
+    font-size: 16px; font-weight: 400; padding: 12px 64px;
+    transition: background 260ms var(--k-ease), color 260ms var(--k-ease);
+  }
+  .k-btn-primary:hover { background: #fff; }
+
+  .k-btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px; border: 1px solid rgba(255,255,255,0.22); color: #fff;
+    font-size: 15px; font-weight: 400; padding: 15px 28px;
+    transition: background 260ms var(--k-ease), color 260ms var(--k-ease), border-color 260ms var(--k-ease);
+  }
+  .k-btn-secondary:hover { background: #8DAEAA; color: #000; border-color: #8DAEAA; }
+
+  .k-mask-x {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  }
+  .k-marquee { animation: k-marquee 40s linear infinite; }
+
+  /* Le curseur du simulateur (remplace le Slider Radix de Base44). */
+  .k-range { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 999px; outline-offset: 6px;
+    background: linear-gradient(90deg, #8DAEAA var(--k-pct, 0%), rgba(255,255,255,0.15) var(--k-pct, 0%)); }
+  .k-range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 999px; background: #fff; border: 2px solid #8DAEAA; cursor: pointer; }
+  .k-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 999px; background: #fff; border: 2px solid #8DAEAA; cursor: pointer; }
+}
+
+@layer utilities {
+  @keyframes k-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .text-gradient {
+    background: linear-gradient(90deg, #8DAEAA, #8B9CF7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

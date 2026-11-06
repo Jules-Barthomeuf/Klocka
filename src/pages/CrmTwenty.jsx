@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, createContext, lazy, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,23 @@ import LogoKP from "@/components/mandataire/LogoKP";
 import { CLASSES_STATUT, couleurStatut } from "@/lib/couleur-statut";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, definirCadreCrm, themeEffectif } from "@/lib/personnalisation";
+import { useUser } from "@/components/providers/UserProvider";
+
+// Des pages de Klocka dans le CRM (6 nov. 2026, Jules : « mets la page utilisateurs dans le CRM en gardant celle
+// actuelle aussi », puis « fais pareil pour Mandataires ») : en bas de l'espace Klocka, pour l'équipe seule, et pas des
+// tableaux de Twenty. Les comptes restent dans Klocka : ce sont les pages d'Administration, ouvertes ici.
+// Le tableau de bord (la carte des clients de Twenty) et les fiches de Klocka d'un agent ou d'un client (6 nov. 2026).
+const CarteClientsTwenty = lazy(() => import("@/components/crm/CarteClientsTwenty"));
+const TiroirAgent = lazy(() => import("@/pages/Agents").then((m) => ({ default: m.TiroirAgent })));
+const FicheClient = lazy(() => import("@/pages/AdminClients").then((m) => ({ default: m.FicheClient })));
+const AppelClient = lazy(() => import("@/components/clients/AppelClient"));
+// Les tableaux de Twenty dont une ligne ouvre la fiche de Klocka (Relations), quand elle en a une.
+const AVEC_FICHE_KLOCKA = new Set(["agentImmobilier", "clients"]);
+const pageKlocka = (singulier, nom) => ({ singulier, nom, local: true, champs: [], vues: [], niveau: "local" });
+// Utilisateurs n'est plus une page ouverte ici (6 nov. 2026, Jules : « la même structure que Clients ») : c'est un
+// tableau que le serveur ajoute à l'espace Klocka (server/crm/utilisateurs.js), lu comme ceux de Twenty.
+// Mandataires aussi, le même jour (« un tableau, chaque champ une colonne », server/crm/mandataires.js).
+const PAGES_KLOCKA = [pageKlocka("tableau-de-bord", "Tableau de bord")];
 
 // Twenty CRM dans Klocka (5 nov. 2026, Jules : « recrée Twenty et mets-le dans notre plateforme », puis « finis tout
 // pour que ce soit le plus proche de ce qu'on a sur Twenty »). Twenty reste la base ; la page la lit et l'écrit par le
@@ -120,7 +137,7 @@ function ChoixLien({ c, onChoisir }) {
   );
 }
 
-/** La tête d'une personne de l'équipe (SPOC…) : sa photo de Twenty CRM, ou ses initiales sur la pervenche. Le nom
+/** La tête d'une personne de l'équipe (SPOC…) : sa photo de Twenty CRM, ou ses initiales sur la couleur d'accent. Le nom
  *  peut être celui de Monday (« JulesB ») : les alias des membres le retrouvent. */
 function Tete({ nom, className = "", taille = "h-7 w-7 text-[11px]" }) {
   const membres = useContext(Membres);
@@ -130,7 +147,7 @@ function Tete({ nom, className = "", taille = "h-7 w-7 text-[11px]" }) {
   const m = membres.find((x) => x.id === choix?.membre) || membres.find((x) => (x.alias || [x.nom]).some((a) => norme(a) === norme(nom)));
   const initiales = String(choix?.nom || m?.nom || nom || "").split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join("").toUpperCase();
   if (m && !sansPhoto) return <img src={`/api/crm/ecran-photo/${m.id}`} alt={nom} title={choix?.nom || nom} onError={() => setSansPhoto(true)} className={`${taille} rounded-full object-cover ${className}`} />;
-  return <span title={nom} className={`grid ${taille} place-items-center rounded-full bg-pervenche font-medium text-sur-pervenche ${className}`}>{initiales}</span>;
+  return <span title={nom} className={`grid ${taille} place-items-center rounded-full bg-menthe font-medium text-sur-menthe ${className}`}>{initiales}</span>;
 }
 
 /** Le contenu d'une fenêtre de saisie, selon le type du champ ; `onFini(valeur)` enregistre, `onFini()` annule. */
@@ -225,8 +242,8 @@ function Corrigeable({ c, valeur, liens, onEnregistrer, onMail, className = "", 
   );
 }
 
-const lienValeur = (vu, lien) => (lien?.onClick ? <button type="button" onClick={lien.onClick} className="max-w-full truncate text-left text-encre hover:text-pervenche hover:underline" style={{ background: "transparent" }}>{vu}</button>
-  : lien ? <a {...lien} onClick={(e) => e.stopPropagation()} className="truncate text-encre hover:text-pervenche hover:underline">{vu}</a> : vu);
+const lienValeur = (vu, lien) => (lien?.onClick ? <button type="button" onClick={lien.onClick} className="max-w-full truncate text-left text-encre hover:text-menthe hover:underline" style={{ background: "transparent" }}>{vu}</button>
+  : lien ? <a {...lien} onClick={(e) => e.stopPropagation()} className="truncate text-encre hover:text-menthe hover:underline">{vu}</a> : vu);
 
 /** La fenêtre d'envoi d'un mail, en bas à droite, comme dans Twenty : À, Objet, le texte, les Modèles, Envoyer. */
 function EnvoiMail({ envoi, onFermer }) {
@@ -355,7 +372,8 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
   const champNom = objet.champs.find((c) => c.nom === objet.principal);
   const nom = f ? affiche(champNom || SANS_NOM, f[objet.principal]) : "";
   const ouvertes = data?.taches?.filter((t) => t.statut !== "DONE").length || 0;
-  const ONGLETS = [["fiche", "Fiche"], ["historique", "Historique"], ["taches", `Tâches${ouvertes ? ` ${ouvertes}` : ""}`], ["notes", `Notes${data?.notes?.length ? ` ${data.notes.length}` : ""}`], ["fichiers", `Fichiers${data?.pieces?.length ? ` ${data.pieces.length}` : ""}`]];
+  // Un tableau de Klocka (Utilisateurs) n'a ni historique, ni tâches, ni notes, ni fichiers dans Twenty.
+  const ONGLETS = objet.klocka ? [["fiche", "Fiche"]] : [["fiche", "Fiche"], ["historique", "Historique"], ["taches", `Tâches${ouvertes ? ` ${ouvertes}` : ""}`], ["notes", `Notes${data?.notes?.length ? ` ${data.notes.length}` : ""}`], ["fichiers", `Fichiers${data?.pieces?.length ? ` ${data.pieces.length}` : ""}`]];
   const boiteSaisie = "mb-3 rounded-[12px] border border-trait bg-surface px-3 py-2 focus-within:border-bord-doux";
   // Au téléphone, la fiche passe par-dessus tout l'écran, barre de Klocka comprise : elle sort de la page (portail).
   const telephone = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
@@ -397,7 +415,7 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
                       {(vu, lien) => (vu ? (
                         <span className="line-clamp-4 min-w-0 whitespace-pre-line break-words">
                           {c.type === "RELATION" && objets.some((o) => o.singulier === c.cible)
-                            ? <button type="button" onClick={(e) => { e.stopPropagation(); onOuvrir(c.cible, f[c.nom]); }} className="text-encre underline decoration-trait underline-offset-2 hover:text-pervenche" style={{ background: "transparent" }}>{vu}</button>
+                            ? <button type="button" onClick={(e) => { e.stopPropagation(); onOuvrir(c.cible, f[c.nom]); }} className="text-encre underline decoration-trait underline-offset-2 hover:text-menthe" style={{ background: "transparent" }}>{vu}</button>
                             : lienValeur(vu, lien)}
                         </span>
                       ) : <span className="text-brume">{c.modifiable ? "À compléter" : "Vide"}</span>)}
@@ -594,7 +612,7 @@ function PastilleFiltre({ c, f, champs, onChanger, onRetirer, deVue = false }) {
   const [ouvert, setOuvert] = useState(false);
   const ancre = useRef(null);
   return (
-    <span ref={ancre} className={`inline-flex h-8 items-center gap-1 rounded-full border text-[13px] ${deVue ? "border-trait px-3 text-ardoise" : "border-pervenche/40 bg-pervenche/10 pl-3 pr-1 text-encre"}`}>
+    <span ref={ancre} className={`inline-flex h-8 items-center gap-1 rounded-full border text-[13px] ${deVue ? "border-trait px-3 text-ardoise" : "border-menthe/40 bg-menthe/10 pl-3 pr-1 text-encre"}`}>
       {deVue ? <span className="max-w-[260px] truncate">{motFiltre(c, f)}</span> : (
         <>
           <button type="button" onClick={() => setOuvert(true)} className="max-w-[260px] truncate" style={{ background: "transparent" }}>{motFiltre(c, f)}</button>
@@ -743,7 +761,7 @@ const couleurCase = (c, v) => `text-center ${CLASSES_STATUT[couleurStatut(c.opti
 function Case({ cochee, onChange, label }) {
   return (
     <button type="button" role="checkbox" aria-checked={cochee} aria-label={label} onClick={onChange}
-      className={`mx-auto grid h-[17px] w-[17px] place-items-center rounded-[4px] border transition-colors ${cochee ? "border-pervenche bg-pervenche text-sur-pervenche" : "border-bord-vif hover:border-craie"}`}
+      className={`mx-auto grid h-[17px] w-[17px] place-items-center rounded-[4px] border transition-colors ${cochee ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif hover:border-craie"}`}
       style={cochee ? undefined : { background: "transparent" }}>
       {cochee && <Check className="h-3 w-3" strokeWidth={3} />}
     </button>
@@ -763,7 +781,9 @@ export default function CrmTwenty() {
   const barre = useQuery({ queryKey: ["crm-barre", ESPACE()], queryFn: () => req("GET", API), staleTime: 120_000, retry: false });
   // Sans la liste du serveur (une ancienne réponse gardée), les membres de Twenty : le choix n'est jamais vide.
   const spoc = barre.data?.spoc?.length ? barre.data.spoc : (barre.data?.membres || []).map((m) => ({ nom: m.nom.replace(/\s+/g, " "), valeur: m.nom, membre: m.id }));
-  const objets = useMemo(() => (barre.data?.dossiers || []).filter((d) => !d.ferme).flatMap((d) => d.objets.filter((o) => !o.ferme)), [barre.data]);
+  const moi = useUser();
+  const equipe = moi?.role === "admin" && !ESPACE();
+  const objets = useMemo(() => [...(barre.data?.dossiers || []).filter((d) => !d.ferme).flatMap((d) => d.objets.filter((o) => !o.ferme)), ...(equipe ? PAGES_KLOCKA : [])], [barre.data, equipe]);
   const objet = objets.find((o) => o.singulier === params.get("t")) || objets[0] || null;
   const vue = objet?.vues.find((v) => v.id === params.get("v")) || objet?.vues[0] || null;
   const ficheId = params.get("f");
@@ -780,12 +800,65 @@ export default function CrmTwenty() {
   const [modifierLot, setModifierLot] = useState(null);
   const boutonModifier = useRef(null);
   const [envoi, setEnvoi] = useState(null);
+  // La fiche de Klocka ouverte depuis une ligne (`{ type, id, singulier, twenty }`), et un appel client lancé depuis elle.
+  const [klocka, setKlocka] = useState(null);
+  const [appel, setAppel] = useState(null);
   // Le panneau de l'espace de travail : l'espace choisi, le panneau replié ou non (gardés dans le navigateur).
   const lireLocal = (cle, defaut) => { try { return JSON.parse(localStorage.getItem(cle)) ?? defaut; } catch { return defaut; } };
   const ecrireLocal = (cle, v) => { try { localStorage.setItem(cle, JSON.stringify(v)); } catch { /* sans stockage */ } };
   const [espaceChoisi, setEspaceChoisi] = useState(() => lireLocal(`crm-espace-${ESPACE() || "equipe"}`, null));
   const [panneauReplie, setPanneauReplie] = useState(() => lireLocal("crm-panneau-replie", false));
   const [choixEspace, setChoixEspace] = useState(false);
+  const [glisse, setGlisse] = useState(null);
+  const apresGlisse = useRef(false);
+  // Le glisser se fait à la souris (pointeur), pas par le glisser-déposer du navigateur, qui ne prend pas un bouton
+  // partout (Firefox) : au-delà de 4 px, la page suit ; relâchée sur une autre, elle se pose avant ou après elle.
+  const commencerGlisse = (e, esp, de) => {
+    if (e.button !== 0 || e.pointerType !== "mouse" || !esp || esp.objets.find((x) => x.singulier === de)?.local) return;
+    const x0 = e.clientX;
+    const y0 = e.clientY;
+    let etat = null;
+    const bouger = (m) => {
+      if (!etat && Math.hypot(m.clientX - x0, m.clientY - y0) < 4) return;
+      m.preventDefault();
+      const el = document.elementFromPoint(m.clientX, m.clientY)?.closest?.("[data-page]:not([data-fixe])");
+      const sur = el?.dataset.page || null;
+      const apres = el ? m.clientY > el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2 : false;
+      if (!etat || etat.sur !== sur || etat.apres !== apres) { etat = { de, sur, apres }; setGlisse(etat); }
+    };
+    const lacher = () => {
+      window.removeEventListener("pointermove", bouger);
+      window.removeEventListener("pointerup", lacher);
+      window.removeEventListener("pointercancel", lacher);
+      if (!etat) return;
+      apresGlisse.current = true;
+      setTimeout(() => { apresGlisse.current = false; }, 0);
+      if (etat.sur && etat.sur !== de) rangerPage(esp, de, esp.objets.filter((x) => !x.local).findIndex((x) => x.singulier === etat.sur), etat.apres);
+      setGlisse(null);
+    };
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", lacher);
+    window.addEventListener("pointercancel", lacher);
+  };
+  const ordrePages = useMutation({
+    mutationFn: (corps) => req("PUT", "/api/crm/ecran-ordre", { body: corps }),
+    onError: () => { toast("L'ordre des pages n'a pas été gardé."); queryClient.invalidateQueries({ queryKey: ["crm-barre", ESPACE()] }); },
+  });
+  // Une page glissée sur une autre se pose avant ou après elle ; l'ordre est gardé pour la personne, à l'écran tout de suite.
+  const rangerPage = (esp, de, vers, apres) => {
+    if (!esp) return;
+    const rangees = esp.objets.filter((o) => !o.local);
+    const pages = rangees.map((o) => o.singulier);
+    const depuis = pages.indexOf(de);
+    if (depuis < 0) return;
+    pages.splice(depuis, 1);
+    let ici = vers + (apres ? 1 : 0);
+    if (depuis < ici) ici -= 1;
+    pages.splice(ici, 0, de);
+    if (pages.every((p, k) => p === rangees[k].singulier)) return;
+    queryClient.setQueryData(["crm-barre", ESPACE()], (d) => (d ? { ...d, ordre: { ...(d.ordre || {}), [esp.nom]: pages } } : d));
+    ordrePages.mutate({ espace: esp.nom, pages });
+  };
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
   const [personne, setPersonne] = useState(false);
   const [grouper, setGrouper] = useState(false);
@@ -810,12 +883,22 @@ export default function CrmTwenty() {
 
   const aller = (patch) => setParams((p) => { const n = new URLSearchParams(p); Object.entries(patch).forEach(([k, v]) => (v ? n.set(k, v) : n.delete(k))); return n; });
   const ouvrir = (singulier, id) => aller(singulier === objet?.singulier ? { f: id, ft: null } : { f: id, ft: singulier });
+  // Un agent ou un client : sa fiche de Klocka, comme dans Relations ; sans fiche de Klocka, sa fiche du CRM.
+  const ouvrirLigne = async (singulier, id) => {
+    if (!equipe || !AVEC_FICHE_KLOCKA.has(singulier)) { ouvrir(singulier, id); return; }
+    try {
+      const r = await queryClient.fetchQuery({ queryKey: ["crm-klocka", singulier, id], queryFn: () => req("GET", `/api/crm/klocka/${singulier}/${id}`), staleTime: 5 * 60_000 });
+      if (r?.fiche) { setKlocka({ ...r.fiche, singulier, twenty: id }); return; }
+    } catch { /* la fiche du CRM, faute de mieux */ }
+    ouvrir(singulier, id);
+  };
+  const versCrm = () => { const k = klocka; setKlocka(null); if (k) aller({ t: k.singulier, v: null, f: k.twenty, ft: null }); };
   const kanban = vue?.kanban || null;
   const tousFiltres = useMemo(() => [...(vue?.filtres || []), ...filtres], [vue, filtres]);
   const triVu = tri || vue?.tri;
   const liste = useInfiniteQuery({
     queryKey: ["crm-page", objet?.singulier, vue?.id, q, triVu?.champ, triVu?.sens, JSON.stringify(tousFiltres)],
-    enabled: !!objet,
+    enabled: !!objet && !objet.local,
     initialPageParam: null,
     queryFn: ({ pageParam }) => req("GET", `${API}/${objet.singulier}?${new URLSearchParams({ q, ...(triVu ? { tri: triVu.champ, sens: triVu.sens } : {}), filtres: JSON.stringify(tousFiltres), ...(pageParam ? { apres: pageParam } : {}) })}`),
     getNextPageParam: (d) => d.suite || undefined,
@@ -871,8 +954,20 @@ export default function CrmTwenty() {
   // L'espace de travail montré dans le panneau : celui choisi, sinon celui de la page ouverte, sinon le premier ouvert.
   // Les pages hors dossier de Twenty (Propriétés, Déplacements, Modèles…) se rangent dans « Autres ».
   const horsDossier = barre.data.dossiers.find((d) => !d.nom);
-  const espaces = barre.data.dossiers.filter((d) => d.nom).map((d) => (d.nom === "Autres" && horsDossier && !d.ferme && !horsDossier.ferme ? { ...d, objets: [...d.objets, ...horsDossier.objets] } : d));
+  const espaces = barre.data.dossiers.filter((d) => d.nom).map((d) => (d.nom === "Autres" && horsDossier && !d.ferme && !horsDossier.ferme ? { ...d, objets: [...d.objets, ...horsDossier.objets] } : { ...d }));
   if (horsDossier && !horsDossier.ferme && !espaces.some((d) => d.nom === "Autres")) espaces.push({ ...horsDossier, nom: "Autres" });
+  // L'ordre des pages que la personne a choisi en les glissant (6 nov. 2026) ; les autres gardent l'ordre de Twenty.
+  for (const d of espaces) {
+    const rang = new Map((barre.data.ordre?.[d.nom] || []).map((s, i) => [s, i]));
+    if (rang.size) d.objets = d.objets.map((o, i) => [o, rang.has(o.singulier) ? rang.get(o.singulier) : rang.size + i]).sort((x, y) => x[1] - y[1]).map(([o]) => o);
+  }
+  // Le tableau de bord en tête de l'espace Klocka (créé s'il manque), pour l'équipe seule ; après l'ordre choisi, qui
+  // ne range que les tableaux.
+  if (equipe) {
+    const klocka = espaces.find((d) => d.nom === "Klocka");
+    if (klocka) klocka.objets = [...PAGES_KLOCKA, ...klocka.objets];
+    else espaces.unshift({ nom: "Klocka", objets: PAGES_KLOCKA });
+  }
   const espaceDeLaPage = espaces.find((d) => !d.ferme && d.objets.some((o) => o.singulier === objet?.singulier && !o.ferme));
   const espace = (espaceChoisi && espaces.find((d) => d.nom === espaceChoisi && !d.ferme && d.objets.some((o) => o.singulier === objet?.singulier))) || espaceDeLaPage || espaces.find((d) => !d.ferme) || null;
   const choisirEspace = (d) => {
@@ -931,7 +1026,7 @@ export default function CrmTwenty() {
               {colonnes.map((c, i) => (
                 <td key={c.nom} className={`h-[36px] max-w-[280px] border-b border-r border-trait p-0 ${i === 0 ? "text-encre" : c.type === "SELECT" && f[c.nom] ? couleurCase(c, f[c.nom]) : "text-center text-craie"} ${NUMERIQUES.includes(c.type) ? "tabular-nums" : ""}`}>
                   {i === 0 ? (
-                    <button type="button" onClick={() => aller({ f: f.id, ft: null })} className="block w-full truncate px-4 py-1.5 text-left text-encre hover:text-menthe" style={{ background: "transparent" }}>
+                    <button type="button" onClick={() => ouvrirLigne(objet.singulier, f.id)} className="block w-full truncate px-4 py-1.5 text-left text-encre hover:text-menthe" style={{ background: "transparent" }}>
                       {affiche(c, f[c.nom], liens) || <span className="text-brume">Sans nom</span>}
                     </button>
                   ) : (
@@ -941,7 +1036,7 @@ export default function CrmTwenty() {
                         // Un champ Personnes (SPOC) : les têtes des gens (photo de Twenty CRM, sinon initiales), comme dans Monday.
                         ? <span className="flex -space-x-1.5" title={vu}>{vu.split(",").map((n) => n.trim()).filter(Boolean).slice(0, 3).map((n) => <Tete key={n} nom={n} className="border-2 border-crm-tableau" />)}</span>
                         : c.type === "RELATION" && vu && objets.some((o) => o.singulier === c.cible)
-                          ? <button type="button" onClick={(e) => { e.stopPropagation(); ouvrir(c.cible, f[c.nom]); }} className="max-w-full truncate text-encre underline decoration-trait underline-offset-2 hover:text-pervenche" style={{ background: "transparent" }}>{vu}</button>
+                          ? <button type="button" onClick={(e) => { e.stopPropagation(); ouvrir(c.cible, f[c.nom]); }} className="max-w-full truncate text-encre underline decoration-trait underline-offset-2 hover:text-menthe" style={{ background: "transparent" }}>{vu}</button>
                           : c.type === "SELECT" && vu ? <span className="truncate">{vu}</span>
                           : (c.type === "EMAILS" || c.type === "PHONES" || c.type === "LINKS") && vu ? <span className="truncate text-encre">{lienValeur(vu, lien)}</span>
                           : lienValeur(vu, lien))}
@@ -1006,14 +1101,19 @@ export default function CrmTwenty() {
                 </Flottant>
               )}
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6 max-md:flex max-md:gap-1.5 max-md:overflow-x-auto max-md:pb-3">
+            <div className={`min-h-0 flex-1 overflow-y-auto px-3 pb-6 ${glisse ? "cursor-grabbing select-none" : ""} max-md:flex max-md:gap-1.5 max-md:overflow-x-auto max-md:pb-3`}>
               {(espace?.objets || []).map((o) => {
                 const ici = o.singulier === objet?.singulier && !o.ferme;
+                // Glisser une page pour la ranger : un filet dans la couleur d'accent montre où elle tombera.
+                const cible = glisse && glisse.de !== o.singulier && glisse.sur === o.singulier;
                 return (
-                  <button key={o.singulier} type="button" onClick={() => (o.ferme ? toast(o.raison || espace?.raison) : aller({ t: o.singulier, v: null, f: null, ft: null }))}
+                  <button key={o.singulier} type="button" onClick={() => (apresGlisse.current ? (apresGlisse.current = false) : o.ferme ? toast(o.raison || espace?.raison) : aller({ t: o.singulier, v: null, f: null, ft: null }))}
+                    data-page={o.singulier} data-fixe={o.local ? "" : undefined}
+                    onPointerDown={(e) => commencerGlisse(e, espace, o.singulier)}
                     title={o.ferme ? o.raison : o.niveau === "lecture" ? "En lecture" : undefined}
-                    className={`flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2.5 text-left text-[14px] transition-colors max-md:w-auto max-md:flex-none max-md:whitespace-nowrap ${o.ferme ? "text-brume max-md:hidden" : ici ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}
+                    className={`relative flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2.5 text-left text-[14px] transition-colors max-md:w-auto max-md:flex-none max-md:whitespace-nowrap ${o.ferme ? "text-brume max-md:hidden" : ici ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"} ${glisse?.de === o.singulier ? "opacity-40" : ""}`}
                     style={ici ? undefined : { background: "transparent" }}>
+                    {cible && <span className={`pointer-events-none absolute inset-x-1 h-0.5 rounded-full bg-menthe ${glisse.apres ? "-bottom-px" : "-top-px"}`} />}
                     {/* L'icône d'une page : un tableau ; un cadenas dessus quand elle est fermée ou en lecture. */}
                     <span className="relative flex-none max-md:hidden">
                       <PanelLeft className="h-4 w-4" strokeWidth={1.7} />
@@ -1028,7 +1128,21 @@ export default function CrmTwenty() {
         )}
 
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-          {objet && (
+          {objet?.local && (
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <Suspense fallback={<Chargement />}>
+                {objet.singulier === "tableau-de-bord" && (
+                  <div className="px-10 pb-10 pt-[18px] max-md:px-4">
+                    <h1 className="m-0 text-[25px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">Tableau de bord</h1>
+                    <p className="m-0 mt-1 text-[13px] text-ardoise">Les clients de Twenty, à leur localisation. Un clic ouvre sa fiche.</p>
+                    <CarteClientsTwenty hauteur="calc(100dvh - 240px)" className="mt-4 min-h-[460px]"
+                      onClient={(p) => (p.klocka ? setKlocka({ type: "client", id: p.klocka, singulier: "clients", twenty: p.id }) : aller({ t: "clients", v: null, f: p.id, ft: null }))} />
+                  </div>
+                )}
+              </Suspense>
+            </div>
+          )}
+          {objet && !objet.local && (
             <>
               {/* Le titre de la page, puis ses vues en onglets soulignés (le … de la vue ouverte, + pour une nouvelle vue). */}
               <div className="flex items-center gap-3 px-10 pb-1 pt-[18px] max-md:px-4">
@@ -1041,7 +1155,7 @@ export default function CrmTwenty() {
                 {objet.vues.map((v) => {
                   const active = v.id === vue?.id;
                   return (
-                    <span key={v.id} className={`-mb-px flex flex-none items-center gap-1 border-b-2 px-1.5 pb-1.5 pt-1.5 ${active ? "border-pervenche" : "border-transparent"}`}>
+                    <span key={v.id} className={`-mb-px flex flex-none items-center gap-1 border-b-2 px-1.5 pb-1.5 pt-1.5 ${active ? "border-menthe" : "border-transparent"}`}>
                       <button type="button" onClick={() => aller({ v: v.id === objet.vues[0].id ? null : v.id, f: null, ft: null })} className={`whitespace-nowrap rounded-[6px] px-1.5 py-1 text-[14px] ${active ? "text-encre" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={{ background: "transparent" }}>
                         {v.nom === "Tout" ? "Tableau principal" : v.nom}{v.kanban ? " · Kanban" : ""}
                       </button>
@@ -1099,7 +1213,7 @@ export default function CrmTwenty() {
                 )}
               </div>
 
-              {/* Les filtres posés : ceux de la vue en gris, les siens en pervenche. */}
+              {/* Les filtres posés : ceux de la vue en gris, les siens dans la couleur d'accent. */}
               {((vue?.filtres || []).length > 0 || filtres.length > 0) && (
                 <div className="flex flex-wrap items-center gap-2 px-10 pb-2 max-md:px-4">
                   {(vue?.filtres || []).map((f, i) => { const c = objet.champs.find((x) => x.nom === f.champ); return c ? <PastilleFiltre key={`v${i}`} c={c} f={f} champs={objet.champs} deVue /> : null; })}
@@ -1149,18 +1263,18 @@ export default function CrmTwenty() {
               <div className="min-h-0 flex-1 overflow-auto px-10 pb-10 max-md:px-4">
                 {liste.isLoading ? <Chargement /> : liste.isError ? <p className="py-16 text-center text-[14px] text-ardoise">{liste.error?.message || "Twenty ne répond pas."}</p>
                   : !fiches.length ? <p className="py-16 text-center text-[14px] text-brume">{q || tousFiltres.length ? "Rien ne correspond." : "Aucune fiche."}</p>
-                  : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => aller({ f: id, ft: null })} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />
+                  : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => ouvrirLigne(objet.singulier, id)} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />
                   : lignesGroupees.map((g) => {
                     const ferme = groupesFermes.includes(g.cle);
                     return (
                       <section key={g.cle} className="mt-6 first:mt-4">
-                        {/* Un groupe, comme ceux de Monday : son nom en pervenche, un chevron qui le replie, un filet à gauche. */}
+                        {/* Un groupe, comme ceux de Monday : son nom dans la couleur d'accent, un chevron qui le replie, un filet à gauche. */}
                         {g.libelle && (
-                          <button type="button" onClick={() => setGroupesFermes((t) => (ferme ? t.filter((x) => x !== g.cle) : [...t, g.cle]))} className="mb-2.5 inline-flex items-center gap-2 text-[19px] text-pervenche" style={{ background: "transparent" }}>
+                          <button type="button" onClick={() => setGroupesFermes((t) => (ferme ? t.filter((x) => x !== g.cle) : [...t, g.cle]))} className="mb-2.5 inline-flex items-center gap-2 text-[19px] text-menthe" style={{ background: "transparent" }}>
                             {ferme ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronDown className="h-[18px] w-[18px]" />}{g.libelle}<span className="text-[13px] tabular-nums text-ardoise">{g.fiches.length}</span>
                           </button>
                         )}
-                        {!ferme && <div className="overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-pervenche bg-crm-tableau">{tableau(g.fiches)}</div>}
+                        {!ferme && <div className="overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{tableau(g.fiches)}</div>}
                       </section>
                     );
                   })}
@@ -1180,6 +1294,11 @@ export default function CrmTwenty() {
         </div>
       </div>
       {envoi && <EnvoiMail envoi={envoi} onFermer={() => setEnvoi(null)} />}
+      <Suspense fallback={null}>
+        {klocka?.type === "agent" && <TiroirAgent id={klocka.id} onFermer={() => setKlocka(null)} onCrm={versCrm} />}
+        {klocka?.type === "client" && <FicheClient id={klocka.id} onFermer={() => setKlocka(null)} onAppel={(client, mode) => setAppel({ client, mode })} onCrm={versCrm} />}
+        {appel && <AppelClient client={appel.client} mode={appel.mode} onFermer={() => setAppel(null)} onFait={() => queryClient.invalidateQueries({ queryKey: ["client-equipe"] })} />}
+      </Suspense>
     </div>
     </Spoc.Provider></Membres.Provider>
   );

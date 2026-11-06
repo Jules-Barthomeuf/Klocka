@@ -42,7 +42,6 @@ export const ADRESSES = {
   Monitoring: "Suivi",
   CoutsIA: "CoutsIA",
   SuiviAppels: "SuiviAppels",
-  SuiviAudience: "SuiviAudience",
   SuiviMandataires: "SuiviMandataires",
   SuiviActivite: "SuiviActivite",
   MandataireTableauDeBord: "MonTableauDeBord",

@@ -9,7 +9,6 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
 import NotificationsApp from "@/components/NotificationsApp";
-import AccueilMandataire from "@/components/mandataire/AccueilMandataire";
 import InstallerApp from "@/components/InstallerApp";
 import {
   BookUser,
@@ -40,13 +39,13 @@ import {
   ChevronLeft,
   ChevronDown,
   Globe,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, Bell, LibraryBig, ChartColumn } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, Bell, LibraryBig, ChartColumn, FileSpreadsheet } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, definirEspace, themeEffectif } from "@/lib/personnalisation";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, menuAdmin, menuMandataire, repartir } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, masquesDe, menuAdmin, menuMandataire, repartir } from "@/lib/menu";
 import { apercuAdmin, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -534,7 +533,7 @@ function LayoutContent({ children, currentPageName }) {
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     SuiviActivite: { to: "/SuiviActivite", icon: ChartColumn, actif: isActivePage("SuiviActivite") },
     MandataireTableauDeBord: { to: createPageUrl("MandataireTableauDeBord"), icon: ChartColumn, actif: isActivePage("MandataireTableauDeBord") },
-    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviAudience") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") },
+    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
@@ -550,6 +549,8 @@ function LayoutContent({ children, currentPageName }) {
     // Offres : les lettres d'intention d'achat, rédigées au chat.
     Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },
     AdminBanque: { to: createPageUrl("AdminBanque"), icon: Landmark, actif: isActivePage("AdminBanque") },
+    // Tokimo (6 nov. 2026) : l'analyse des opérations présentées à Tokimo.
+    Tokimo: { to: createPageUrl("Tokimo"), icon: FileSpreadsheet, actif: isActivePage("Tokimo") },
     // Emailing : les séquences des leads et les mails de la plateforme (Resend).
     Emailing: { to: createPageUrl("Emailing"), icon: Mail, actif: isActivePage("Emailing") },
     AdminPresentations: { to: "/Presentations", icon: Presentation, actif: isActivePage("AdminPresentations") },
@@ -874,7 +875,7 @@ function LayoutContent({ children, currentPageName }) {
           {((vue === "admin" && !showClientView) || vue === "mandataire") && !hideNavbar && groupeDe(currentPageName, vue) && (
             <nav aria-label={groupeDe(currentPageName, vue).groupe} className="flex justify-center px-4 pt-6 max-md:pt-4">
               <div className="inline-flex gap-1 rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl">
-                {groupeDe(currentPageName, vue).entrees.map((x) => {
+                {groupeDe(currentPageName, vue).entrees.filter((x) => x.cle === currentPageName || !masquesDe(user?.email).includes(x.cle)).map((x) => {
                   const ici = currentPageName === x.cle || DETAILS[x.cle]?.actif;
                   return (
                     <Link key={x.cle} to={DETAILS[x.cle]?.to || createPageUrl(x.cle)} aria-current={ici ? "page" : undefined}
@@ -951,8 +952,7 @@ function LayoutContent({ children, currentPageName }) {
       {rappelOuvert && !hideNavbar && <RappelEntrant />}
       {/* « Klocka arrive sur vos téléphones » (12 oct. 2026) : le tuto d'installation, pour tout le monde, une fois. */}
       {!hideNavbar && <InstallerApp />}
-      {/* L'accueil du mandataire : ses réglages à l'arrivée, tant qu'ils ne sont pas validés. */}
-      {vue === "mandataire" && !hideNavbar && <AccueilMandataire />}
+      {/* Plus d'accueil « Où cherche votre agent » (6 nov. 2026, Jules) : ses villes se posent dans la Prospection. */}
 
       {/* Barre d'onglets mobile */}
       {!hideNavbar && showClientView && vue !== "mandataire" && <BottomTabs vue={vue} onMenu={() => setIsMobileMenuOpen((o) => !o)} menuOuvert={isMobileMenuOpen} />}

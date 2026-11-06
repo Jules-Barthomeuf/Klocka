@@ -220,18 +220,13 @@ function VueEnsemble({ data, jours, c, onChoisir }) {
   const issues = Object.entries(e.issues || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ nom: ISSUES_MOTS[k] || k, valeur: n }));
   const modes = data.sources.map((x) => ({ nom: x.libelle, valeur: x.appels }));
   const apres = e.apres_appel || {};
-  const post = apres.valide;
   return (
     <div className="k-monte flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+      {/* Deux chiffres seulement (6 nov. 2026, Jules) : Joints, Enregistrés, Post-appel moyen, Sans correction AK et Non
+          validés sont retirés. */}
+      <div className="grid grid-cols-2 gap-3">
         <Chiffre valeur={e.appels} libelle="Appels" note={`${e.jours_actifs} jour${e.jours_actifs > 1 ? "s" : ""} actif${e.jours_actifs > 1 ? "s" : ""}`} />
-        <Chiffre valeur={p100(e.joints_pct)} libelle="Joints" note={`${e.aboutis} conversation${e.aboutis > 1 ? "s" : ""}`} />
-        <Chiffre valeur={p100(e.enregistres_pct)} libelle="Enregistrés" note="depuis le 9 oct." />
         <Chiffre valeur={dureeLisible(e.duree_moyenne_s)} libelle="Durée moyenne" note={`${dureeLisible(e.duree_totale_s)} au téléphone`} />
-        {/* Le post-appel moyen (14 oct. 2026, Jules) : du raccrochage à la validation des actions. */}
-        <Chiffre valeur={post?.moyenne_ms != null ? secondesLisibles(post.moyenne_ms) : "—"} libelle="Post-appel moyen" note={post?.n ? `raccroché → validé · ${post.n} appel${post.n > 1 ? "s" : ""}` : "mesuré depuis le 13 oct."} />
-        <Chiffre valeur={p100(e.sans_correction_pct)} libelle="Sans correction AK" note={`${e.issue_changee} issue${e.issue_changee > 1 ? "s" : ""} changée${e.issue_changee > 1 ? "s" : ""}`} />
-        <Chiffre valeur={e.oublies} libelle="Non validés" note="plus d'une heure après l'appel" />
       </div>
 
       {unJour ? (
@@ -281,13 +276,6 @@ function VueEnsemble({ data, jours, c, onChoisir }) {
           })}
         </Cadre>
       </div>
-
-      <Cadre titre="Rappels entrants">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[["Reçus", data.rappels.total], ["Terminés", data.rappels.termines], ["Abandonnés", data.rappels.abandonnes], ["À terminer", data.rappels.en_cours]].map(([t, n]) => <div key={t}><p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{t}</p><p className="m-0 mt-1 text-[22px] font-light text-encre">{n}</p></div>)}
-        </div>
-        <p className="m-0 mt-3 text-[12px] text-brume">Mails partis : {e.mails_partis} · Twenty CRM écrit : {e.monday_ok} · lecture AK moyenne : {e.lecture_moyenne_ms ? `${(e.lecture_moyenne_ms / 1000).toFixed(1)} s` : "—"}</p>
-      </Cadre>
     </div>
   );
 }

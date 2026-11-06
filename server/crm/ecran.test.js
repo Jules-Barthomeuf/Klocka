@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { avecAlias, barrePour, choixSpoc, champMontre, depuisFiltreDeVue, filtreTwenty, ligneHistorique, membresDe, nomDe, rechercheTwenty, roleDe, sansCaches, structurePour, texteCase, valeurPourTwenty, versFiltreDeVue } from './ecran.js';
+import { avecAlias, rangerPages, barrePour, choixSpoc, champMontre, depuisFiltreDeVue, filtreTwenty, ligneHistorique, membresDe, nomDe, rechercheTwenty, roleDe, sansCaches, structurePour, texteCase, valeurPourTwenty, versFiltreDeVue } from './ecran.js';
 
 const objets = [
   { id: 'o1', nameSingular: 'agentImmobilier', namePlural: 'agentImmobilierListe', labelSingular: 'Agent immobilier', labelPlural: 'Agents', fields: [
@@ -177,4 +177,11 @@ test('le SPOC : les noms Monday retrouvent le membre, la liste de Jules écrit l
   assert.deepEqual(avecAlias(membresDe(roles), roles, equipe)[0].alias, ['Jules Barthomeuf', 'JulesB']);
   const choix = choixSpoc([{ nom: 'Jules Barthomeuf', email: 'jules.b@klocka.immo' }, { nom: 'Coralie Guillaud', email: 'coralie.g@klocka.immo' }], equipe, roles);
   assert.deepEqual(choix, [{ nom: 'Jules Barthomeuf', valeur: 'JulesB', membre: 'm1' }, { nom: 'Coralie Guillaud', valeur: 'Coralie GUILLAUD', membre: null }]);
+});
+
+test("l'ordre des pages : celles choisies d'abord, les autres ensuite dans l'ordre de Twenty", () => {
+  const pages = ['agent', 'propriete', 'client', 'prospect'].map((singulier) => ({ singulier }));
+  assert.deepEqual(rangerPages(pages, ['client', 'agent']).map((o) => o.singulier), ['client', 'agent', 'propriete', 'prospect']);
+  assert.deepEqual(rangerPages(pages, ['disparue', 'prospect']).map((o) => o.singulier), ['prospect', 'agent', 'propriete', 'client']);
+  assert.deepEqual(rangerPages(pages, null).map((o) => o.singulier), ['agent', 'propriete', 'client', 'prospect']);
 });

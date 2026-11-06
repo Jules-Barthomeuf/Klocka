@@ -14,6 +14,7 @@ import compression from 'compression';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { siteMiddleware } from './site-public.js';
 
 import { Records, Meta, infoStockage } from './db.js';
 import { derniersIncidents, noterIncident } from './incidents.js';
@@ -86,6 +87,7 @@ import { monterKEstimation } from './routes/kestimation.js';
 import { monterKValeurLocative } from './routes/kvaleurlocative.js';
 import { monterSocle } from './routes/socle.js';
 import { monterKFoncier } from './routes/kfoncier.js';
+import { monterTokimo } from './routes/tokimo.js';
 import { monterKProspective } from './routes/kprospective.js';
 import { monterLeadMagnet } from './routes/leadmagnet.js';
 import { monterKTransactions } from './routes/ktransactions.js';
@@ -221,6 +223,9 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'same-origin');
   next();
 });
+// Le site public : sous /klocka.immo/ partout, et à la racine de klocka.immo, dont les autres adresses
+// partent vers la plateforme (site-public.js).
+app.use(siteMiddleware(path.join(__dirname, '..', 'dist', 'klocka.immo')));
 // Le webhook de Resend se vérifie sur le corps brut : on le garde, pour lui seul.
 app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook') || req.url.startsWith('/api/emailing/calendly') || req.url.startsWith('/api/whatsapp/webhook')) req.corpsBrut = buf.toString('utf8'); } }));
 
@@ -1354,6 +1359,7 @@ import('./socle/entrepot.js').then((m) => m.planifierImports()).catch((e) => con
 // La collecte d'annonces des sites d'agences (lot 3) : éteinte tant que BOITE_OUTILS, la source « annonces » et ANNONCES_COLLECTE=1 ne sont pas réunis.
 import('./annonces/collecte.js').then((m) => m.planifierCollecte()).catch((e) => console.error('[annonces] :', e.message));
 monterKFoncier(app);
+monterTokimo(app);
 monterKProspective(app);
 monterLeadMagnet(app);
 monterKTransactions(app);
@@ -1407,7 +1413,8 @@ if (fs.existsSync(DIST_DIR)) {
   app.use(
     express.static(DIST_DIR, {
       setHeaders: (res, chemin) => {
-        if (/[/\\]assets[/\\]/.test(chemin)) {
+        // Seul dist/assets porte des empreintes : le site vitrine (dist/kpartners/assets) n'en a pas.
+        if (chemin.startsWith(path.join(DIST_DIR, 'assets') + path.sep)) {
           res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         } else if (chemin.endsWith('index.html')) {
           res.setHeader('Cache-Control', 'no-cache');

@@ -317,7 +317,45 @@ export const membresDe = (roles) => [...new Map((roles || []).flatMap((r) => r.w
 export async function barre(email) {
   const { role, barreVue, s } = await contexte(email);
   const membres = avecAlias(membresDe(s.roles), s.roles, equipe());
-  return { role: role.label, dossiers: barreVue, membres, spoc: choixSpoc(spocLu(), equipe(), s.roles) };
+  // Les comptes de Klocka (6 nov. 2026) : un tableau de plus dans l'espace Klocka, pour l'équipe hors espace mandataire.
+  const klocka = equipeKlocka(email) && barreVue.find((d) => d.nom === 'Klocka' && !d.ferme);
+  if (klocka) klocka.objets = [...klocka.objets, (await import('./utilisateurs.js')).objet({ superAdmin: await superAdmin(email) }), (await import('./mandataires.js')).objet()];
+  return { role: role.label, dossiers: barreVue, membres, spoc: choixSpoc(spocLu(), equipe(), s.roles), ordre: await ordreLu(email) };
+}
+
+// Les tableaux Utilisateurs et Mandataires (server/crm/utilisateurs.js, mandataires.js) : l'équipe seule, hors espace
+// mandataire.
+const equipeKlocka = (qui) => typeof qui === 'object' && !!qui?.admin && !qui?.mandataire;
+const compteDe = async (qui) => (await import('../db.js')).Records.findBy('User', 'email', String(qui?.email || '').toLowerCase());
+const superAdmin = async (qui) => (await import('../acces-pages.js')).estSuperAdmin(await compteDe(qui));
+const TABLEAUX_KLOCKA = { utilisateurs: () => import('./utilisateurs.js'), mandataires: () => import('./mandataires.js') };
+const U = async (qui, singulier) => {
+  if (!equipeKlocka(qui)) throw erreur(403, "Réservé à l'équipe Klocka.");
+  return TABLEAUX_KLOCKA[singulier]();
+};
+
+// L'ordre des pages de chaque espace (6 nov. 2026, Jules : « réorganiser les pages en drag & drop, mettre Clients en
+// haut ») : le sien, gardé dans Klocka par personne ; Twenty n'est pas touché. Une page absente de la liste garde sa
+// place d'origine, après les autres.
+const cleOrdre = (qui) => `crm.ordre_pages.${String((typeof qui === 'string' ? qui : qui?.email) || '').toLowerCase()}`;
+async function ordreLu(qui) {
+  const { Meta } = await import('../db.js');
+  try { const o = JSON.parse(Meta.get(cleOrdre(qui)) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch { return {}; }
+}
+
+/** Pure : les pages d'un espace dans l'ordre choisi ; les autres ensuite, dans l'ordre de Twenty. */
+export function rangerPages(objets, ordre) {
+  const rang = new Map((Array.isArray(ordre) ? ordre : []).map((s, i) => [s, i]));
+  return objets.map((o, i) => [o, rang.has(o.singulier) ? rang.get(o.singulier) : rang.size + i]).sort((a, b) => a[1] - b[1]).map(([o]) => o);
+}
+
+export async function poserOrdre(qui, espace, pages) {
+  if (!espace || !Array.isArray(pages)) throw erreur(400, 'Espace et pages attendus.');
+  const { Meta } = await import('../db.js');
+  const ordre = await ordreLu(qui);
+  ordre[String(espace).slice(0, 80)] = [...new Set(pages.map(String))].slice(0, 100);
+  Meta.set(cleOrdre(qui), JSON.stringify(ordre));
+  return { ordre };
 }
 
 // Les personnes proposées dans un champ SPOC (crm/equipe.json, « _spoc »), dans l'ordre de Jules.
@@ -390,6 +428,7 @@ export function rechercheTwenty(champs, texte) {
 
 /** Une page de fiches : recherche, filtres, tri, 50 par page. */
 export async function page(email, singulier, { q: texte = '', tri = null, sens = 'asc', apres = null, filtres = [] } = {}) {
+  if (TABLEAUX_KLOCKA[singulier]) return (await U(email, singulier)).page({ q: texte, tri, sens, filtres });
   const { dossiers, membreId, s } = await contexte(email);
   const o = objetDe(dossiers, singulier);
   const params = new URLSearchParams({ limit: String(PAR_PAGE), depth: '0' });
@@ -408,6 +447,7 @@ const cible = (singulier) => `target${singulier[0].toUpperCase()}${singulier.sli
 
 /** Une fiche, ses fiches liées, ses notes, ses tâches et ses pièces jointes. */
 export async function fiche(email, singulier, id) {
+  if (TABLEAUX_KLOCKA[singulier]) return (await U(email, singulier)).fiche(id);
   const { dossiers, s } = await contexte(email);
   const o = objetDe(dossiers, singulier);
   const f = await lire(o.pluriel, id);
@@ -452,6 +492,7 @@ async function noteVersMonday(singulier, noteId, ficheId) {
 }
 
 export async function changer(email, singulier, id, nomChamp, saisie) {
+  if (TABLEAUX_KLOCKA[singulier]) return (await U(email, singulier)).changer(await compteDe(email), id, nomChamp, saisie);
   const { dossiers, s } = await contexte(email);
   const o = objetDe(dossiers, singulier);
   const c = o.champs.find((x) => x.nom === nomChamp);

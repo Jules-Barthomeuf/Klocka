@@ -44,6 +44,8 @@ export const ENTREES_AUTRE = [
   { cle: "AdminMandataires", label: "Mandataires" },
   // Les dossiers bancaires des clients (présentations aux banques), page d'admin (26 oct. 2026, Jules : de retour dans Autre).
   { cle: "AdminBanque", label: "Dossier bancaire" },
+  // Tokimo (6 nov. 2026, Jules) : l'analyse des opérations présentées à Tokimo, à part de tout le reste.
+  { cle: "Tokimo", label: "Tokimo" },
   // Par défaut en bas de « Autre » ; déplaçable comme toutes les autres.
   { cle: "Personnalisation", label: "Paramètres" },
 ];
@@ -97,12 +99,15 @@ export const MENU_ADMIN = [
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
   // Un groupe est une seule entrée du menu (17 oct. 2026, Jules : « pas un truc déroulant ») : un clic ouvre sa
   // première page, et des onglets en tête de page passent de l'une à l'autre.
-  { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
+  // Relations quitte le menu (6 nov. 2026, Jules) : ses fiches s'ouvrent depuis le CRM (Agent immobilier, Clients) ;
+  // les pages restent à leur adresse.
   // Le CRM (27 oct. 2026, Jules) : Twenty, hébergé à part, s'ouvre dans un nouvel onglet ; il remplace Monday.
   { cle: "CRM", label: "Twenty CRM", fixe: true },
-  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" }, { cle: "AdminAccesCrm", label: "Accès CRM" },
+  { groupe: "Administration", cle: "Administration", label: "Administration", // Accès CRM quitte le menu, Mandataires y entre (6 nov. 2026, Jules) ; la page /AccesCRM reste ouverte.
+    // Utilisateurs et Mandataires quittent Administration le 6 nov. 2026 (Jules) : ce sont des tableaux du CRM.
+    entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" },
     // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
-    { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
+    { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
 ];
 /**
  * Le menu des mandataires, sur la structure de celui de l'équipe (18 oct. 2026, Jules) : des entrées simples et
@@ -159,7 +164,8 @@ const HORS_MENU_ADMIN = ["Semaine", "Personnalisation"];
  */
 // Offres et le Dossier bancaire y reviennent le 26 oct. 2026 (Jules), puis les Présentations bancaires (chat à gauche, diapositives à droite).
 // Feedback en tête, les Présentations et Offres dessous (26 oct. 2026, Jules).
-const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions", "AdminPresentations", "Offres", "AdminBanque"];
+// Tokimo y entre le 6 nov. 2026 (Jules).
+const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions", "AdminPresentations", "Offres", "AdminBanque", "Tokimo"];
 
 /**
  * Pure : le menu de l'équipe, ses groupes, et « Autre » (Feedback seulement).
@@ -170,9 +176,17 @@ const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions", "AdminPresentations", "Offres",
 const RACCOURCIS_PAR_PERSONNE = {
   "paul.dz@klocka.immo": ["AdminUtilisateurs"],
 };
+// Des pages qu'une personne ne voit plus dans son menu (6 nov. 2026, Jules : Intelligence et Automatismes, pour lui seul).
+// Leur adresse reste ouverte ; les autres membres de l'équipe les gardent.
+const MASQUES_PAR_PERSONNE = {
+  "jules.b@klocka.immo": ["Cerveau", "Automatismes"],
+};
+/** Pure : les pages qu'une personne ne voit pas dans son menu. */
+export const masquesDe = (email) => MASQUES_PAR_PERSONNE[String(email || "").toLowerCase()] || [];
 
 export function menuAdmin(masques = [], { email = null } = {}) {
-  const garde = (e) => e.fixe || !masques.includes(e.cle);
+  const caches = masquesDe(email);
+  const garde = (e) => e.fixe || (!masques.includes(e.cle) && !caches.includes(e.cle));
   const places = new Set(HORS_MENU_ADMIN);
   const principal = MENU_ADMIN.map((x) => {
     if (x.groupe) { x.entrees.forEach((e) => places.add(e.cle)); return { ...x, entrees: x.entrees.filter(garde) }; }

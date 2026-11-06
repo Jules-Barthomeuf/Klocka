@@ -2,11 +2,12 @@
    Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
    échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
-import { TEINTE, FOND, MOT, Th, teinteDe, statutAffiche, useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
+import { FOND, MOT, Th, teinteDe, useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { Depliant } from "@/components/haka/ReglagesDemande";
 
-const SUIVANT = { ok: "a_verifier", a_verifier: "no_go", warning: "no_go", no_go: "ok", vide: "ok" };
-const COLONNES_FICHE = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2fr)_120px_minmax(0,1.6fr)]";
+// Les colonnes et les traits du tableau de l'Analyse (AnalysePieces.jsx), sans la colonne Source : Critère, Valeur, Notes.
+const COLONNES_FICHE = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)]";
+const CELLULES_FICHE = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-bord-doux lg:[&>*]:px-3.5";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,13 +20,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Info, Loader2, MapPin, Pencil, Quote, Send, Trash2, X,
+  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Loader2, MapPin, Pencil, Quote, Send, Trash2, X,
 } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 import CarteGoogle from "@/components/CarteGoogle";
 import StreetViewRue from "@/components/projet/StreetViewRue";
-import FicheSource from "@/components/preanalyse/FicheSource";
+import FicheSource, { boutonFicheSource } from "@/components/preanalyse/FicheSource";
 import PenseeIA from "@/components/PenseeIA";
 
 // Sans clé Maps, ni la rue ni le plan ne s'affichent : on le dit plutôt que de
@@ -313,38 +314,6 @@ function notesMarche(m, marche) {
   return notes;
 }
 
-/**
- * Le petit i à droite du titre : ce que la grille attend de chaque ligne.
- * L'attendu a quitté le tableau pour laisser la place aux notes ; il reste
- * à un survol.
- */
-function AttendusInfo({ lignes }) {
-  const [ouvert, setOuvert] = useState(false);
-  const ref = useFermerAuClicAilleurs(ouvert, () => setOuvert(false));
-  const attendus = lignes.map((l) => ({ id: l.id, element: l.element, attendu: l.c?.attendu || l.attenduMarche || null })).filter((l) => l.attendu);
-  if (!attendus.length) return null;
-  return (
-    <span ref={ref} className="relative inline-flex max-md:static" onPointerEnter={(e) => { if (e.pointerType === "mouse") setOuvert(true); }} onPointerLeave={(e) => { if (e.pointerType === "mouse") setOuvert(false); }}>
-      <button type="button" onClick={() => setOuvert((o) => !o)} aria-label="Ce que la grille attend de chaque ligne" aria-expanded={ouvert} className="grid h-5 w-5 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>
-        <Info className="h-4 w-4" />
-      </button>
-      <div className={`absolute left-0 top-full z-30 pt-2 max-md:left-3 max-md:right-3 transition-[opacity,transform] duration-200 ease-out ${ouvert ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}>
-        <div className="w-[340px] max-md:w-auto rounded-lg border border-trait p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)]" style={{ background: "rgb(var(--k-surface-pleine-rgb))" }}>
-          <p className="m-0 mb-2 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Attendu</p>
-          <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
-            {attendus.map((a) => (
-              <React.Fragment key={a.id}>
-                <dt className="text-[12.5px] text-ardoise">{a.element}</dt>
-                <dd className="m-0 text-[12.5px] text-encre">{a.attendu}</dd>
-              </React.Fragment>
-            ))}
-          </dl>
-        </div>
-      </div>
-    </span>
-  );
-}
-
 function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
   // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
   const { data: marche, isLoading: marcheEnLecture } = useQuery({
@@ -363,9 +332,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   const grille = lot.evaluation?.grille || [];
   const ctx = lot.evaluation?.contexte || {};
   const enr = lot.enrichissement || {};
-  const [ouverts, setOuverts] = useState(() => new Set());
   const [source, setSource] = useState(null); // "prix" | "loyer"
-  const bascule = (id) => setOuverts((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const loyerFiche = valChamp(lot.lot?.loyer_annuel_ht_hc);
   const { hors, fai } = prixDuLot(lot);
   // La fiche ne l'écrit pas toujours : le loyer sur le prix FAI en tient lieu.
@@ -478,82 +445,67 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
     const calcule = statutDe(c);
     return { ...l, c, decision, st: decision?.statut || (reserve && calcule === "ok" ? "a_verifier" : calcule) };
   });
-  const resume = { ok: 0, warning: 0, no_go: 0, vide: 0 };
-  for (const l of lignes) {
-    const st = l.st;
-    if (st === "info") continue;
-    if (st === "ok") resume.ok += 1;
-    else if (st === "no_go") resume.no_go += 1;
-    else if (st === "vide") resume.vide += 1;
-    else resume.warning += 1;
-  }
-
+  // Le tableau de l'Analyse (5 nov. 2026, Jules : « adapte le tableau pour le mettre comme le module d'Analyse ») : le
+  // cadre fermé, des traits entre les colonnes, le nom du tableau dans la case du haut à gauche, et l'état porté par la
+  // case du critère, toute colorée. Deux états seulement, comme l'Analyse (5 nov. 2026, Jules : « la couleur du design et
+  // l'autre, comme dans l'analyse ») : vérifié en menthe (l'accent), le reste en sable « lu par l'IA » ; un clic passe
+  // de l'un à l'autre. Une ligne sans valeur reste neutre et ne se clique pas. Plus de légende des couleurs.
+  const FOND_ETAT = { ok: "bg-menthe/15 hover:bg-menthe/25", a_verifier: "bg-lu-ia/25 hover:bg-lu-ia/35", warning: "bg-lu-ia/25 hover:bg-lu-ia/35", no_go: "bg-lu-ia/25 hover:bg-lu-ia/35" };
   return (
-    <div className="relative rounded-[16px] border border-trait bg-rail">
-      <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 max-md:relative max-md:px-4">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <span className="inline-flex items-center gap-2">
-            <h2 className="m-0 text-[18px] font-semibold text-encre">{titre}</h2>
-            <AttendusInfo lignes={lignes} />
-          </span>
-          {sousTitre && <span className="text-[12.5px] text-ardoise">{sousTitre}</span>}
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="flex flex-wrap items-center gap-3 text-[12.5px] text-craie">
-            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.ok }} />{resume.ok} OK</span>
-            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} à vérifier</span>
-            {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} bloquant{resume.no_go > 1 ? "s" : ""}</span>}
-            {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.vide }} />{resume.vide} non trouvé{resume.vide > 1 ? "s" : ""}</span>}
-          </span>
+    <section>
+      {(sousTitre || actions) && (
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4">
+          {sousTitre ? <span className="text-[12.5px] text-ardoise">{sousTitre}</span> : <span />}
           {actions}
         </div>
-      </header>
-      {/* Le dessin de l'onglet Bien de l'Analyse (18 oct. 2026, Jules) : des lignes sans cadre, le statut en mot ou en pastille. */}
-      <div className={`grid ${COLONNES_FICHE} gap-x-6 border-t border-trait px-5 py-3 text-[13px] text-ardoise max-lg:hidden`}>
-        <span>Critère</span><span>Valeur</span><span>Statut</span><span>Notes</span>
+      )}
+      <div className="flex flex-col items-center gap-1 px-2 pb-4 text-center lg:hidden">
+        <p className="m-0 text-[20px] leading-[1.2] tracking-[-0.01em] text-encre">{titre}</p>
       </div>
-      <div className="k-cascade">
-        {lignes.map(({ id, element, c, st, decision, marche: cleMarche }, iLigne) => {
-          const modifiable = !!(c && onVerifier);
-          const [mot, classe, puce] = st === "info" ? ["Info", "bg-rail-actif text-craie", true] : statutAffiche({ statut: st });
-          return (
-            <React.Fragment key={id}>
-              <div className={`grid ${COLONNES_FICHE} gap-x-6 border-t border-trait px-5 py-3.5 transition-colors duration-200 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
-                <div className="min-w-0">
-                  <button type="button" onClick={() => bascule(id)} className="text-left text-[14.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{element}</button>
-                  <Depliant ouvert={ouverts.has(id) && !!c?.critere}><p className="m-0 mt-1 text-[12px] leading-[1.45] text-brume">{c?.critere}{c?.groupe ? ` · ${c.groupe}` : ""}</p></Depliant>
+      <div className="relative overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux lg:bg-rail">
+        <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-bord-doux py-3 text-[13.5px] text-craie max-lg:hidden lg:border-t-0 lg:[&>*]:py-3.5`}>
+          <span className="text-[15px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">{titre}</span><span>Valeur</span><span>Notes</span>
+        </div>
+        <div className="k-cascade">
+          {lignes.map(({ id, element, c, st, decision, marche: cleMarche }) => {
+            const modifiable = !!(c && onVerifier) && st !== "vide" && st !== "info";
+            const enChangement = c && enVerification === cleLigne(c);
+            const etat = !modifiable ? null : st === "ok" ? `Vérifié${decision?.par ? ` par ${decision.par.split("@")[0]}` : ""} · cliquer pour revenir à « lu par l'IA »` : "Lu par l'IA · cliquer quand c'est vérifié";
+            const aide = [c?.critere ? `${c.critere}${c.groupe ? ` · ${c.groupe}` : ""}` : null, etat].filter(Boolean).join("\n");
+            return (
+              <React.Fragment key={id}>
+                <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-bord-doux py-3.5 transition-colors hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-3.5`}>
+                  {/* Un clic sur la case fait tourner le statut : OK, À vérifier, Bloquant (18 oct. 2026, Jules). */}
+                  <button type="button" disabled={!modifiable || enChangement} title={aide || undefined}
+                    onClick={() => modifiable && onVerifier(cleLigne(c), st === "ok" ? "a_verifier" : "ok")}
+                    className={`m-0 flex select-none items-start justify-between gap-2 text-left text-[14.5px] text-craie transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${FOND_ETAT[st] || ""}`}
+                    style={FOND_ETAT[st] ? undefined : { background: "transparent" }}>
+                    <span>{element}</span>
+                    {enChangement && <Loader2 className="mt-1 h-3.5 w-3.5 flex-none animate-spin" aria-label="Changement en cours" />}
+                  </button>
+                  <div className="min-w-0 break-words text-[14.5px] [&_*]:whitespace-normal">{valeur(id)}</div>
+                  <div className="min-w-0">
+                    {/* Vérifiée (couleur du design), la ligne perd ses notes calculées, comme l'Analyse (5 nov. 2026, Jules) ; une
+                        note écrite à la main reste. */}
+                    <NotesLigne
+                      textes={st === "ok" ? [] : [...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]}
+                      manuelle={lot.notes_manuelles?.[id] || null}
+                      onNoter={onNoter ? (texte) => onNoter(id, texte) : null}
+                      enCours={enNote === id}
+                    />
+                  </div>
                 </div>
-                <div className="min-w-0 break-words text-[14.5px] [&_*]:whitespace-normal">{valeur(id)}</div>
-                {/* Un clic sur la case fait tourner le statut : OK, À vérifier, Bloquant (18 oct. 2026, Jules : « cliquer sur la case autour »). */}
-                <button type="button" disabled={!modifiable || (c && enVerification === cleLigne(c))}
-                  onClick={() => modifiable && onVerifier(cleLigne(c), SUIVANT[st] || "ok")}
-                  title={modifiable ? "Cliquer pour changer le statut" : undefined}
-                  className={`-mx-2 -my-1.5 self-start rounded-[10px] px-2 py-1.5 text-left transition-colors ${modifiable ? "cursor-pointer hover:bg-encre/[0.05]" : "cursor-default"}`} style={{ background: "transparent" }}>
-                  <span className={`inline-flex items-center gap-2 text-[13px] ${puce ? `h-7 rounded-full px-3 ${classe}` : classe}`}>
-                    {mot}
-                    {c && enVerification === cleLigne(c) && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label="Changement en cours" />}
-                  </span>
-                  {decision && <span className="mt-0.5 block text-[11.5px] text-brume">décidé{decision.par ? ` · ${decision.par.split("@")[0]}` : ""}</span>}
-                </button>
-                <div className="min-w-0">
-                  <NotesLigne
-                    textes={[...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]}
-                    manuelle={lot.notes_manuelles?.[id] || null}
-                    onNoter={onNoter ? (texte) => onNoter(id, texte) : null}
-                    enCours={enNote === id}
-                  />
-                </div>
-              </div>
-              {cleMarche && marche?.[cleMarche] && (
-                <Depliant ouvert={source === cleMarche}>
-                  <div className="border-t border-trait bg-fond/40"><SourceMarche marche={marche[cleMarche]} /></div>
-                </Depliant>
-              )}
-            </React.Fragment>
-          );
-        })}
+                {cleMarche && marche?.[cleMarche] && (
+                  <Depliant ouvert={source === cleMarche}>
+                    <div className="border-t border-bord-doux bg-fond/40"><SourceMarche marche={marche[cleMarche]} /></div>
+                  </Depliant>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -1178,13 +1130,18 @@ export function BandeauRecalcul({ actif }) {
   );
 }
 
-export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false, sansSimulateur = false }) {
+export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false, sansSimulateur = false, apresModes = null }) {
   // Vérifier un critère à la main : vert, jaune, ou retour au calcul.
+  // Changer la couleur d'une ligne ne recalcule rien (5 nov. 2026, Jules : « juste on change la couleur ») : l'écran la
+  // change tout de suite, le serveur l'enregistre derrière, le dossier n'est pas relu. Un échec la remet.
+  const [statutsLocaux, setStatutsLocaux] = useState({});
   const verifier = useMutation({
     mutationFn: ({ cle, statut }) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot.index ?? 0}/verification`, { body: { cle, statut } }),
-    onSuccess: () => onRefresh?.(),
-    onError: (e) => toast.error(e?.message || "Impossible"),
+    onMutate: ({ cle, statut }) => setStatutsLocaux((x) => ({ ...x, [cle]: { statut, par: null, le: new Date().toISOString() } })),
+    onError: (e, { cle }) => { setStatutsLocaux((x) => { const n = { ...x }; delete n[cle]; return n; }); toast.error(e?.message || "Impossible"); },
   });
+  const [modeFiche, setModeFiche] = useState("tableau");
+  const lotVu = Object.keys(statutsLocaux).length ? { ...lot, verifications: { ...(lot.verifications || {}), ...statutsLocaux } } : lot;
   // Réécrire la note d'une ligne, ou la vider pour revenir à la note calculée.
   const noter = useMutation({
     mutationFn: ({ ligne, texte }) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot.index ?? 0}/note`, { body: { ligne, texte } }),
@@ -1194,7 +1151,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
   // Le détail (critères, données extraites, enrichissement, lieu, marché) se
   // déplie en bas : on y descend pour vérifier, pas pour lire.
 
-  const [mailOuvert, setMailOuvert] = useState(false);
   const enr = lot.enrichissement;
 
   return (
@@ -1204,28 +1160,27 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
           {/* La fiche du bien : un tableau au dessin des grilles du bail. */}
           <section className="pb-8">
             <BandeauRecalcul actif={enCours} />
-            <TableauBien
-              lot={lot}
-              onSaisie={onSaisie}
-              enCours={enCours}
-              apercu={apercu}
-              onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })}
-              titre="Fiche du bien"
-              dealId={dossier?.deal_id || null}
-              enVerification={verifier.isPending ? verifier.variables?.cle : null}
-              onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
-              enNote={noter.isPending ? noter.variables?.ligne : null}
-              actions={(
-                <span className="flex flex-wrap items-center gap-2">
-                  <FicheSource dossier={dossier} />
-                  {lot.mail_agent && (
-                    <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-40">
-                      <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent
-                    </button>
-                  )}
-                </span>
-              )}
-            />
+            {/* Mode Fiche ou Tableau, en haut à gauche, à la place du bouton « Fiche commerciale » (5 nov. 2026, Jules). */}
+            {/* « Rentrer le projet » à droite des deux modes (5 nov. 2026, Jules). */}
+            {(boutonFicheSource(dossier) || apresModes) && (
+              <div className="flex flex-wrap items-center gap-3 pb-4">
+                {boutonFicheSource(dossier) && <BasculeFiche tableau={modeFiche === "tableau"} onChange={(oui) => setModeFiche(oui ? "tableau" : "fiche")} />}
+                {apresModes}
+              </div>
+            )}
+            {modeFiche === "fiche" && boutonFicheSource(dossier) ? <FicheSource dossier={dossier} /> : (
+              <TableauBien
+                lot={lotVu}
+                onSaisie={onSaisie}
+                enCours={enCours}
+                apercu={apercu}
+                onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })}
+                titre="Fiche du bien"
+                dealId={dossier?.deal_id || null}
+                onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
+                enNote={noter.isPending ? noter.variables?.ligne : null}
+              />
+            )}
           </section>
 
           {/* L'emplacement (boutons N°1, N°2…) retiré le 17 oct. 2026 (Jules) ; Street View et plan sont dans la colonne de droite du dossier. */}
@@ -1250,16 +1205,24 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
 
       </div>
 
-      {mailOuvert && (
-        <DialogMailIntention
-          dossier={dossier}
-          intention="complement"
-          mailInitial={lot.mail_agent}
-          onClose={() => setMailOuvert(false)}
-          onDone={() => setMailOuvert(false)}
-        />
-      )}
     </div>
+  );
+}
+
+/**
+ * L'interrupteur Mode Fiche / Mode Tableau (5 nov. 2026, Jules : « comme le mode Libre / mode Clients de la Prospection
+ * du mandataire, à la taille de son contenu ») : le dessin de BasculeMode (ProspecterClients.jsx).
+ */
+function BasculeFiche({ tableau, onChange }) {
+  return (
+    <button type="button" role="switch" aria-checked={tableau} onClick={() => onChange(!tableau)}
+      className="inline-flex h-10 w-fit items-center gap-3 rounded-full border border-bord-doux bg-rail px-4 text-[14px] hover:border-bord-vif">
+      <span className={`transition-colors duration-300 ${tableau ? "text-ardoise" : "text-encre"}`}>Mode Fiche</span>
+      <span aria-hidden className={`relative h-[20px] w-[36px] flex-none rounded-full transition-colors duration-300 ${tableau ? "bg-menthe" : "bg-relief"}`}>
+        <span className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-fond shadow-sm transition-all duration-300 ease-out ${tableau ? "left-[18px]" : "left-[2px]"}`} />
+      </span>
+      <span className={`transition-colors duration-300 ${tableau ? "text-encre" : "text-ardoise"}`}>Mode Tableau</span>
+    </button>
   );
 }
 

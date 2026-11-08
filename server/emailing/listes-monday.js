@@ -161,7 +161,7 @@ export function ranger(contacts, { par = null, quand = new Date() } = {}) {
 /** Lit Monday (lecture seule) et range. `lire` remplace Monday dans les tests. */
 export async function synchroniser({ par = null, lire = null, quand = new Date() } = {}) {
   const M = await import('../monday.js');
-  if (!lire && !M.mondayConfigure()) return { ok: false, error: 'Monday n\'est pas branché sur ce serveur (MONDAY_TOKEN).' };
+  if (!lire && !M.mondayConfigure()) return { ok: false, error: 'Twenty CRM n\'est pas branché sur ce serveur.' };
   const ids = { agents: M.TABLEAUX.agents, clients: M.TABLEAUX.investisseurs, prospects: M.TABLEAUX.prospects };
   const lecture = lire || (async (id) => ({ colonnes: await M.colonnesDuTableau(id), lignes: await M.lireTableau(id, 10000) }));
   const tableaux = {};

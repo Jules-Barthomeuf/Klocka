@@ -11,8 +11,9 @@
 import fs from 'fs';
 import { Records } from './db.js';
 import { rangValide } from '../src/lib/biens-mandataire.js';
+import { STATUTS_CANDIDAT, estLocation } from '../src/lib/location.js';
 
-const TABLEAUX = {
+export const TABLEAUX_KP = {
   proprietes: () => (process.env.MONDAY_BOARD_KPARTNERS_PROPRIETES || '5100528599').trim(),
   prospects: () => (process.env.MONDAY_BOARD_KPARTNERS_PROSPECTS || '5091573479').trim(),
   clients: () => (process.env.MONDAY_BOARD_KPARTNERS_CLIENTS || '5091576378').trim(),
@@ -21,7 +22,7 @@ const TABLEAUX = {
 // Les colonnes, lues dans crm/schema.json par leur titre : une colonne ajoutée (Statut, Prochaine relance) y est
 // reprise dès qu'elle existe, sans toucher au code.
 let schema = null;
-function colonnesDe(tableau) {
+export function colonnesDe(tableau) {
   if (!schema) {
     try { schema = JSON.parse(fs.readFileSync(new URL('../crm/schema.json', import.meta.url), 'utf8')); } catch { schema = { objets: [] }; }
   }
@@ -38,6 +39,11 @@ const BIEN_CONTACT = { murs_commerce: 'Local commercial', fonds_commerce: 'Fond 
 const ETAPES = ['previsite', 'estimation', 'mandat', 'dataroom', 'marche', 'offre', 'vente'];
 export const STATUTS_TOUCHE = { contact: 'Contact', visite: 'Visite faite', offre: 'Offre', perdu: 'Perdu' };
 const STATUT_VENDEUR = { previsite: 'Pré-visite', estimation: 'Avis de valeur', mandat: 'Avis accepté', dataroom: 'Mandat signé', marche: 'En vente', offre: 'Sous offre', vente: 'Sous promesse' };
+// La location (6 nov. 2026, Jules : « adapter tout le système à la location ») : Type Location, pas de prix, le loyer
+// demandé ; le propriétaire en Bailleur, chaque touche en Locataire avec les statuts d'un candidat. Les options qui
+// manquent dans Twenty sont ajoutées par server/crm/monday-sur-twenty.js.
+const STATUT_PROPRIETE_LOCATION = { previsite: 'Pré-visite', estimation: 'Estimation du loyer', mandat: 'Estimation du loyer', dataroom: 'Mandat de location signé', marche: 'En location', offre: 'Candidat retenu', vente: 'Loué' };
+const STATUT_BAILLEUR = { previsite: 'Pré-visite', estimation: 'Estimation du loyer', mandat: 'Estimation acceptée', dataroom: 'Mandat de location signé', marche: 'En location', offre: 'Candidat retenu', vente: 'Loué' };
 
 const jour = (v) => (String(v || '').match(/^\d{4}-\d{2}-\d{2}/) || [])[0] || null;
 
@@ -56,23 +62,26 @@ export function prochaineRelance(p, rappels = Records.list('Rappel')) {
 /** Pure : le vendeur est-il « commité » (avis accepté ou mandat signé) ? */
 export const vendeurCommite = (p) => rangValide(p?.biens?.validee) >= 1;
 /** Pure : l'acquéreur est-il « commité » (une offre, ou une visite avec un budget validé) ? */
-export const acquereurCommite = (a) => a?.statut_touche === 'offre' || (a?.statut_touche === 'visite' && !!a?.budget_valide);
+export const acquereurCommite = (a) => a?.statut_touche === 'offre' || (a?.statut_touche === 'visite' && !!a?.budget_valide)
+  // Un candidat locataire : à l'accord ou au bail signé (6 nov. 2026).
+  || ['accord', 'bail_signe'].includes(a?.statut_touche);
 
 const prixDe = (p) => p?.biens?.prix_accord || p?.mandat_importe?.prix || p?.biens?.repris?.prix || null;
 const adresseDe = (p) => [p?.adresse, p?.ville].filter(Boolean).join(', ') || null;
 
 /** Pure : les cases de la ligne du bien dans Propriétés KPartners. */
 export function colonnesPropriete(p, { touches = [], relance = null, adresse = null } = {}) {
-  const C = colonnesDe(TABLEAUX.proprietes());
+  const C = colonnesDe(TABLEAUX_KP.proprietes());
   const out = {};
   const mettre = (titre, v) => { if (C[titre] && v != null && v !== '') out[C[titre]] = v; };
   const etape = etapeDe(p);
   const r = p?.biens?.repris || {};
   const m = p?.mandat_importe || {};
-  mettre('Statut', { label: STATUT_PROPRIETE[etape] });
+  const location = estLocation(p);
+  mettre('Statut', { label: (location ? STATUT_PROPRIETE_LOCATION : STATUT_PROPRIETE)[etape] });
   if (p?.type_bien) mettre('Type de propriété', { label: TYPE_PROPRIETE[p.type_bien] });
-  mettre('Type', { labels: ['Vente'] });
-  mettre('Prix', prixDe(p));
+  mettre('Type', { labels: [location ? 'Location' : 'Vente'] });
+  if (!location) mettre('Prix', prixDe(p));
   mettre('Loyer', r.loyer_annuel || m.loyer_annuel || null);
   mettre('M²', r.surface || null);
   mettre('Activité Locataire', p?.activite || (p?.commerce && p.commerce !== p.adresse ? p.commerce : null));
@@ -82,7 +91,8 @@ export function colonnesPropriete(p, { touches = [], relance = null, adresse = n
   const notes = [
     p?.nom ? `Propriétaire : ${p.nom}${p.telephone ? `, ${p.telephone}` : ''}${p.email ? `, ${p.email}` : ''}` : null,
     m.signe_le || m.echeance ? `Mandat${m.exclusif === true ? ' exclusif' : m.exclusif === false ? ' simple' : ''}${m.enseigne ? ` (${m.enseigne})` : ''}${m.signe_le ? ` signé le ${jour(m.signe_le).split('-').reverse().join('/')}` : ''}${m.echeance ? `, échéance le ${jour(m.echeance).split('-').reverse().join('/')}` : ''}${m.honoraires ? `, honoraires ${m.honoraires}` : ''}` : null,
-    touches.length ? `Touches : ${touches.map((a) => `${a.nom} (${STATUTS_TOUCHE[a.statut_touche] || 'Contact'})`).join(', ')}` : null,
+    touches.length ? `${location ? 'Candidats' : 'Touches'} : ${touches.map((a) => `${a.nom} (${(location ? STATUTS_CANDIDAT : STATUTS_TOUCHE)[a.statut_touche] || 'Contact'})`).join(', ')}` : null,
+    location && p?.biens?.loue ? `Loué${p.biens.loue.locataire ? ` à ${p.biens.loue.locataire}` : ''}${p.biens.loue.le ? ` le ${jour(p.biens.loue.le).split('-').reverse().join('/')}` : ''}${p.biens.loue.loyer_annuel ? `, ${p.biens.loue.loyer_annuel.toLocaleString('fr-FR')} € par an` : ''}` : null,
     ...(p?.biens?.jalons || []).map((j) => `${jour(j.le)} ${j.texte}`),
     `Mandataire : ${p?.mandataire_email}. Entré depuis Klocka.`,
   ].filter(Boolean);
@@ -97,7 +107,8 @@ export function colonnesContact(tableau, c, { relance = null, proprieteId = null
   const mettre = (titre, v) => { if (C[titre] && v != null && v !== '') out[C[titre]] = v; };
   mettre('Email', c.email || null);
   mettre('Numéro', c.telephone || null);
-  mettre('Type', { labels: [c.vendeur ? 'Vendeur' : 'Acquéreur'] });
+  // En location : Bailleur et Locataire (6 nov. 2026).
+  mettre('Type', { labels: [c.location ? (c.vendeur ? 'Bailleur' : 'Locataire') : c.vendeur ? 'Vendeur' : 'Acquéreur'] });
   if (c.bien) mettre('Bien', { label: c.bien });
   if (c.mandat) mettre('Mandat', { label: c.mandat });
   mettre('Budget', c.budget || null);
@@ -106,38 +117,55 @@ export function colonnesContact(tableau, c, { relance = null, proprieteId = null
   if (proprieteId) mettre('Propriétés', { item_ids: [Number(proprieteId)] });
   const criteres = [c.bien_texte ? `Bien : ${c.bien_texte}` : null, c.remarque || null, `Mandataire : ${c.mandataire_email}. Depuis Klocka.`].filter(Boolean).join('\n');
   // « Critères » est un texte long dans Prospects, un texte court dans Clients.
-  mettre('Critères', tableau === TABLEAUX.prospects() ? { text: criteres } : criteres.slice(0, 250));
+  mettre('Critères', tableau === TABLEAUX_KP.prospects() ? { text: criteres } : criteres.slice(0, 250));
   return out;
 }
 
 /** Pure : le propriétaire vu comme contact. */
 export function contactVendeur(p) {
   const etape = etapeDe(p);
+  const location = estLocation(p);
   return {
-    vendeur: true, nom: p.nom || p.commerce || 'Propriétaire', email: p.email || null, telephone: p.telephone || null,
-    bien: BIEN_CONTACT[p.type_bien] || 'Local commercial', mandat: rangValide(p.biens?.validee) >= 2 ? 'Signé' : rangValide(p.biens?.validee) >= 0 ? 'En cours' : null,
-    statut: STATUT_VENDEUR[etape], bien_texte: adresseDe(p), mandataire_email: p.mandataire_email,
+    vendeur: true, location, nom: p.nom || p.commerce || 'Propriétaire', email: p.email || null, telephone: p.telephone || null,
+    bien: location ? 'Local commercial' : BIEN_CONTACT[p.type_bien] || 'Local commercial', mandat: rangValide(p.biens?.validee) >= 2 ? 'Signé' : rangValide(p.biens?.validee) >= 0 ? 'En cours' : null,
+    statut: (location ? STATUT_BAILLEUR : STATUT_VENDEUR)[etape], bien_texte: adresseDe(p), mandataire_email: p.mandataire_email,
   };
 }
 
-/** Pure : une touche vue comme contact. */
+/** Pure : une touche vue comme contact ; sur un bien à louer, un candidat locataire (son budget : le loyer qu'il accepte). */
 export function contactAcquereur(a, p) {
+  const location = estLocation(p) || a?.role === 'locataire';
   return {
-    vendeur: false, nom: a.nom, email: a.email || null, telephone: a.telephone || null, budget: a.budget_max || a.budget_min || null,
-    statut: STATUTS_TOUCHE[a.statut_touche] || 'Contact', bien_texte: adresseDe(p), remarque: a.remarque || null, mandataire_email: a.mandataire_email,
+    vendeur: false, location, nom: a.nom, email: a.email || null, telephone: a.telephone || null, budget: a.budget_max || a.budget_min || null,
+    ...(location ? { bien: 'Local commercial' } : {}),
+    // « A acheté » n'est pas une option du CRM : il y garde « Offre », et la remarque le dit (6 nov. 2026).
+    statut: location ? STATUTS_CANDIDAT[a.statut_touche] || 'Contact' : a.statut_touche === 'achete' ? 'Offre' : STATUTS_TOUCHE[a.statut_touche] || 'Contact', bien_texte: adresseDe(p),
+    remarque: [a.statut_touche === 'achete' ? 'A acheté ce bien.' : null, a.role === 'locataire' ? 'Candidat locataire (location).' : null, a.en_recherche && a.recherche ? `Cherche : ${a.recherche}.` : null, a.remarque || null].filter(Boolean).join(' ') || null,
+    mandataire_email: a.mandataire_email,
   };
 }
 
 const ok = (x) => x && !x.test && !x.essai_bien;
 
+// Une colonne de liaison sans tableau relié dans Monday (« The column has no connected boards », 6 nov. 2026, sur la
+// colonne Propriétés de KP · Prospects) fait refuser toute l'écriture : on la réécrit sans les liaisons, le reste part.
+const LIAISON_ORPHELINE = /no connected boards/i;
+const sansLiaisons = (colonnes) => Object.fromEntries(Object.entries(colonnes).filter(([, v]) => !(v && typeof v === 'object' && 'item_ids' in v)));
+
 /** Écrit une ligne : mise à jour si on a son id, sinon créée (les étiquettes qui manquent sont ajoutées). */
-async function poser(crm, tableau, { id, nom, colonnes }) {
+export async function poser(crm, tableau, { id, nom, colonnes }) {
+  const essayer = async (f) => {
+    try { return await f(colonnes); } catch (e) {
+      if (!LIAISON_ORPHELINE.test(e?.message || '')) throw e;
+      return f(sansLiaisons(colonnes));
+    }
+  };
   if (id) {
-    try { await crm.majElement(tableau, id, colonnes, { labels: true }); return { id: String(id), cree: false }; } catch (e) {
+    try { await essayer((c) => crm.majElement(tableau, id, c, { labels: true })); return { id: String(id), cree: false }; } catch (e) {
       if (!/not found|does not exist|invalid|inactive/i.test(e?.message || '')) throw e;
     }
   }
-  const r = await crm.creerElement(tableau, nom, colonnes, { labels: true });
+  const r = await essayer((c) => crm.creerElement(tableau, nom, c, { labels: true }));
   if (!r?.id) throw new Error("Le CRM n'a pas rendu d'identifiant");
   return { id: String(r.id), cree: true };
 }
@@ -161,30 +189,30 @@ export async function mettreAuCrm(proprietaireId, user, { crm = null, geocoder =
   const crmIds = { ...(p.crm || {}) };
   const faits = [];
   const nomBien = p.nom_bien || adresseDe(p) || p.commerce || 'Bien';
-  const propriete = await poser(M, TABLEAUX.proprietes(), { id: crmIds.propriete, nom: nomBien, colonnes: colonnesPropriete(p, { touches, relance, adresse }) });
+  const propriete = await poser(M, TABLEAUX_KP.proprietes(), { id: crmIds.propriete, nom: nomBien, colonnes: colonnesPropriete(p, { touches, relance, adresse }) });
   crmIds.propriete = propriete.id;
   faits.push(`${propriete.cree ? 'Bien créé' : 'Bien mis à jour'} dans Propriétés KPartners`);
   const vendeur = contactVendeur(p);
-  const prospect = await poser(M, TABLEAUX.prospects(), { id: crmIds.prospect || p.monday_id, nom: vendeur.nom, colonnes: colonnesContact(TABLEAUX.prospects(), vendeur, { relance, proprieteId: propriete.id }) });
+  const prospect = await poser(M, TABLEAUX_KP.prospects(), { id: crmIds.prospect || p.monday_id, nom: vendeur.nom, colonnes: colonnesContact(TABLEAUX_KP.prospects(), vendeur, { relance, proprieteId: propriete.id }) });
   crmIds.prospect = prospect.id;
-  faits.push(`${vendeur.nom} ${prospect.cree ? 'ajouté' : 'mis à jour'} dans Prospects (vendeur)`);
+  faits.push(`${vendeur.nom} ${prospect.cree ? 'ajouté' : 'mis à jour'} dans Prospects (${vendeur.location ? 'bailleur' : 'vendeur'})`);
   for (const a of touches) {
     const c = contactAcquereur(a, p);
-    const r = await poser(M, TABLEAUX.prospects(), { id: a.crm?.prospect, nom: c.nom, colonnes: colonnesContact(TABLEAUX.prospects(), c, { relance: jour(a.prochaine_relance), proprieteId: propriete.id }) });
+    const r = await poser(M, TABLEAUX_KP.prospects(), { id: a.crm?.prospect, nom: c.nom, colonnes: colonnesContact(TABLEAUX_KP.prospects(), c, { relance: jour(a.prochaine_relance), proprieteId: propriete.id }) });
     Records.update('AcquereurMandataire', a.id, { crm: { ...(a.crm || {}), prospect: r.id } });
-    faits.push(`${c.nom} ${r.cree ? 'ajouté' : 'mis à jour'} dans Prospects (acquéreur)`);
+    faits.push(`${c.nom} ${r.cree ? 'ajouté' : 'mis à jour'} dans Prospects (${c.location ? 'candidat locataire' : 'acquéreur'})`);
   }
   // Déjà dans Clients : mis à jour au même geste.
-  if (crmIds.client) await poser(M, TABLEAUX.clients(), { id: crmIds.client, nom: vendeur.nom, colonnes: colonnesContact(TABLEAUX.clients(), vendeur, { relance, proprieteId: propriete.id }) });
+  if (crmIds.client) await poser(M, TABLEAUX_KP.clients(), { id: crmIds.client, nom: vendeur.nom, colonnes: colonnesContact(TABLEAUX_KP.clients(), vendeur, { relance, proprieteId: propriete.id }) });
   for (const a of touches.filter((x) => x.crm?.client)) {
-    await poser(M, TABLEAUX.clients(), { id: a.crm.client, nom: a.nom, colonnes: colonnesContact(TABLEAUX.clients(), contactAcquereur(a, p), { relance: jour(a.prochaine_relance), proprieteId: propriete.id }) });
+    await poser(M, TABLEAUX_KP.clients(), { id: a.crm.client, nom: a.nom, colonnes: colonnesContact(TABLEAUX_KP.clients(), contactAcquereur(a, p), { relance: jour(a.prochaine_relance), proprieteId: propriete.id }) });
   }
   Records.update('ProprietaireMandataire', p.id, { crm: { ...crmIds, le: new Date().toISOString() }, monday_id: prospect.id, historique: [...(p.historique || []), { le: new Date().toISOString(), type: 'note', texte: `Mis au CRM : ${faits.join(' ; ')}` }] });
   const aProposer = [
-    ...(vendeurCommite(p) && !crmIds.client ? [{ qui: 'proprietaire', nom: vendeur.nom, pourquoi: rangValide(p.biens?.validee) >= 2 ? 'mandat signé' : 'avis accepté' }] : []),
-    ...touches.filter((a) => acquereurCommite(a) && !a.crm?.client).map((a) => ({ qui: a.id, nom: a.nom, pourquoi: a.statut_touche === 'offre' ? 'offre faite' : 'visite faite, budget validé' })),
+    ...(vendeurCommite(p) && !crmIds.client ? [{ qui: 'proprietaire', nom: vendeur.nom, pourquoi: rangValide(p.biens?.validee) >= 2 ? 'mandat signé' : estLocation(p) ? 'estimation du loyer acceptée' : 'avis accepté' }] : []),
+    ...touches.filter((a) => acquereurCommite(a) && !a.crm?.client).map((a) => ({ qui: a.id, nom: a.nom, pourquoi: a.statut_touche === 'offre' ? 'offre faite' : a.statut_touche === 'accord' ? 'accord du candidat' : a.statut_touche === 'bail_signe' ? 'bail signé' : 'visite faite, budget validé' })),
   ];
-  return { ok: true, faits, propriete_id: propriete.id, lien: M.lienMonday ? M.lienMonday(TABLEAUX.proprietes(), propriete.id) : null, a_proposer_en_clients: aProposer };
+  return { ok: true, faits, propriete_id: propriete.id, lien: M.lienMonday ? M.lienMonday(TABLEAUX_KP.proprietes(), propriete.id) : null, a_proposer_en_clients: aProposer };
 }
 
 /** Recopie dans Clients les contacts dits (« proprietaire » ou l'id d'une touche), au oui du mandataire. */
@@ -200,16 +228,16 @@ export async function passerEnClients(proprietaireId, qui = [], user, { crm = nu
   for (const q of Array.isArray(qui) ? qui : [qui]) {
     if (q === 'proprietaire') {
       const v = contactVendeur(p);
-      const r = await poser(M, TABLEAUX.clients(), { id: crmIds.client, nom: v.nom, colonnes: colonnesContact(TABLEAUX.clients(), v, { relance, proprieteId: crmIds.propriete }) });
+      const r = await poser(M, TABLEAUX_KP.clients(), { id: crmIds.client, nom: v.nom, colonnes: colonnesContact(TABLEAUX_KP.clients(), v, { relance, proprieteId: crmIds.propriete }) });
       crmIds.client = r.id;
-      faits.push(`${v.nom} dans Clients (vendeur)`);
+      faits.push(`${v.nom} dans Clients (${v.location ? 'bailleur' : 'vendeur'})`);
       continue;
     }
     const a = Records.get('AcquereurMandataire', q);
     if (!a || a.mandataire_email !== moi || a.proprietaire_id !== p.id) continue;
-    const r = await poser(M, TABLEAUX.clients(), { id: a.crm?.client, nom: a.nom, colonnes: colonnesContact(TABLEAUX.clients(), contactAcquereur(a, p), { relance: jour(a.prochaine_relance), proprieteId: crmIds.propriete }) });
+    const r = await poser(M, TABLEAUX_KP.clients(), { id: a.crm?.client, nom: a.nom, colonnes: colonnesContact(TABLEAUX_KP.clients(), contactAcquereur(a, p), { relance: jour(a.prochaine_relance), proprieteId: crmIds.propriete }) });
     Records.update('AcquereurMandataire', a.id, { crm: { ...(a.crm || {}), client: r.id } });
-    faits.push(`${a.nom} dans Clients (acquéreur)`);
+    faits.push(`${a.nom} dans Clients (${estLocation(p) || a.role === 'locataire' ? 'candidat locataire' : 'acquéreur'})`);
   }
   if (!faits.length) return { ok: false, error: 'Personne à passer en Clients.' };
   Records.update('ProprietaireMandataire', p.id, { crm: crmIds });

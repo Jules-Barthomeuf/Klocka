@@ -22,7 +22,9 @@ import { montant } from './montants.js';
 import { preparationNeutre } from './reference-neutre.js';
 import { CAS_RESTITUTION, appliquerRestitution } from './restitution-avis.js';
 // Les étapes faites se comptent comme à l'écran (src/lib/biens-mandataire.js).
-import { ETAPES_BIEN, etapesFaites as faitesDuBien, marqueurDe, sourceLisible } from '../src/lib/biens-mandataire.js';
+import { ETAPES_BIEN, etapesDuBien, etapesFaites as faitesDuBien, libelleVisible, marqueurDe, sourceLisible } from '../src/lib/biens-mandataire.js';
+import { estLocation } from '../src/lib/location.js';
+import { bailSigneDe, candidatsDuBien } from './acquereurs-mandataire.js';
 
 const maintenant = () => new Date().toISOString();
 const emailDe = (u) => String(u?.email || '').toLowerCase();
@@ -54,12 +56,15 @@ export function validerEtape(id, etape, user) {
   const cle = ALIAS_ETAPES[etape] || etape;
   const i = IDS.indexOf(cle);
   if (i < 0) return { ok: false, error: 'Étape inconnue.' };
-  const mot = ETAPES_BIENS[i][1];
+  const mot = etapesDuBien(p)[i].label;
   // Sauter des étapes (1er nov. 2026, Jules : « si on veut passer directement en mandat ou en estimation, on doit
   // pouvoir ») : une fiche pas encore dans Biens y entre à l'étape choisie, sans rendez-vous, et l'historique le dit.
   const entre = !dansBiens(p);
   const texte = entre ? `Entré dans Biens, étapes sautées jusqu'à : ${mot}` : `Étape validée : ${mot}`;
-  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(entre ? { statut: 'rdv_pris' } : {}), biens: { ...(p.biens || {}), validee: marqueurDe(cle), pause: null }, historique: ajouter(p, { type: 'etape', texte }) }) };
+  // Le bail signé d'un bien à louer (6 nov. 2026, Jules) : la dernière étape validée, le bien est loué
+  // (`biens.loue = { le, locataire, loyer_annuel }`), avec le candidat au bail signé ou à l'accord.
+  const loue = cle === 'vente' && estLocation(p) ? bailSigneDe(p, { candidats: candidatsDuBien(p) }) : null;
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(entre ? { statut: 'rdv_pris' } : {}), biens: { ...(p.biens || {}), validee: marqueurDe(cle), pause: null, ...(loue ? { loue } : {}) }, historique: ajouter(p, { type: 'etape', texte }) }) };
 }
 
 /**
@@ -73,8 +78,12 @@ export function placerEtape(id, etape, user) {
   const cle = ALIAS_ETAPES[etape] || etape;
   const i = IDS.indexOf(cle);
   if (i < 0) return { ok: false, error: 'Étape inconnue.' };
-  const texte = `Étape actuelle : ${ETAPES_BIENS[i][1]}`;
-  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(!dansBiens(p) ? { statut: 'rdv_pris' } : {}), biens: { ...(p.biens || {}), validee: i ? marqueurDe(IDS[i - 1]) : null, pause: null }, historique: ajouter(p, { type: 'etape', texte }) }) };
+  const texte = `Étape actuelle : ${etapesDuBien(p)[i].label}`;
+  // Placer une étape la met en cours (6 nov. 2026) : un bien loué remis à une étape n'est plus loué, même au Bail signé
+  // (en cours, pas encore signé) ; le bail se signe en validant l'étape.
+  const biens = { ...(p.biens || {}), validee: i ? marqueurDe(IDS[i - 1]) : null, pause: null };
+  delete biens.loue;
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { ...(!dansBiens(p) ? { statut: 'rdv_pris' } : {}), biens, historique: ajouter(p, { type: 'etape', texte }) }) };
 }
 
 /** Dans Biens, le propriétaire refuse le prix : En pause, une relance programmée et un nouvel argument. */
@@ -229,7 +238,14 @@ export function detailsDe({ p = {}, commerce: cs = null, cible = null, signaux =
 export async function fiche(id, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
-  return composer(p);
+  return avecAvis(await composer(p), p.commerce_simple_id, user);
+}
+
+// Le commerce de la fiche et le pouce de la personne dessus (6 nov. 2026, server/avis-commerces.js).
+async function avecAvis(r, commerceId, user) {
+  if (!r?.ok || !commerceId) return r;
+  const { monAvis } = await import('./avis-commerces.js');
+  return { ...r, fiche: { ...r.fiche, commerce_id: commerceId, avis_commerce: monAvis(commerceId, user) } };
 }
 
 /**
@@ -241,7 +257,7 @@ export async function ficheDeCommerce(commerceId, user) {
   const c = Records.get('CommerceSimple', commerceId);
   if (!c) return { ok: false, error: 'Commerce introuvable.' };
   const deja = Records.list('ProprietaireMandataire').find((x) => x.commerce_simple_id === commerceId);
-  if (deja) return deja.mandataire_email === emailDe(user) ? composer(deja) : { ok: false, error: 'Ce commerce est déjà suivi par un autre mandataire.' };
+  if (deja) return deja.mandataire_email === emailDe(user) ? avecAvis(await composer(deja), commerceId, user) : { ok: false, error: 'Ce commerce est déjà suivi par un autre mandataire.' };
   const { nomLisible, societeLisible, rueLisible } = await import('./off-market/casse.js');
   const { enseigneVue, activiteVue } = await import('./off-market/simple.js');
   const ex = c.exploitant || {};
@@ -253,7 +269,7 @@ export async function ficheDeCommerce(commerceId, user) {
     activite: activiteVue(c), ville: c.ville || null, adresse: rueLisible(c.adresse), telephone,
     telephone_source: telephone ? 'commerce (exploitant propriétaire)' : null, historique: [],
   };
-  return composer(virtuelle);
+  return avecAvis(await composer(virtuelle), commerceId, user);
 }
 
 async function composer(p) {
@@ -280,7 +296,8 @@ async function composer(p) {
     const dossier = mandat ? Records.list('DossierMandataire').find((d) => d.mandat_id === mandat.id) || null : null;
     const marche = dossier ? Records.list('MiseEnMarche').find((k) => k.dossier_id === dossier.id) || null : null;
     const faites = faitesDuBien({ proprietaire: p, estimation, mandat, dossier, marche });
-    biens = { etapes: ETAPES_BIENS.map(([k, mot]) => ({ id: k, mot, faite: faites.has(k) })), en_cours: IDS[Math.min(IDS.length - 1, Math.max(-1, ...IDS.map((k, i) => (faites.has(k) ? i : -1))) + 1)], pause: p.biens?.pause || null };
+    // Le mot visible (7 nov. 2026) : la Data room et la Commercialisation se disent « Mise en vente ».
+    biens = { etapes: etapesDuBien(p).map(({ id: k }) => ({ id: k, mot: libelleVisible(p, k), faite: faites.has(k) })), en_cours: IDS[Math.min(IDS.length - 1, Math.max(-1, ...IDS.map((k, i) => (faites.has(k) ? i : -1))) + 1)], pause: p.biens?.pause || null };
   }
   return {
     ok: true,

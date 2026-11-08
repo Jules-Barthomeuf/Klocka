@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Loader from "@/components/ui/Loader";
 import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
+import { STATUTS_CANDIDAT } from "@/lib/location";
 
 // Le fichier acquéreurs du mandataire (30 oct. 2026, Jules) : il l'importe s'il en a un (Excel, CSV, ou une liste
 // collée), Haka reconnaît les colonnes, et chaque acquéreur reste à lui seul. Ils servent au rapprochement avec ses
@@ -13,6 +14,9 @@ import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 const API = "/api/mandataire/acquereurs";
 const STATUT_TOUCHE = { contact: "Contact", visite: "Visite faite", offre: "Offre", perdu: "Perdu" };
 const TRAIT = "border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)]";
+// Un candidat locataire (6 nov. 2026, Jules : la location) : une touche d'un bien à louer ; ses statuts sont ceux d'un
+// candidat, son budget est le loyer qu'il accepte, et il n'a pas de rendement.
+const estCandidat = (a) => a.role === "locataire" || !!a.bien?.location;
 const budgetDe = (a) => (a.budget_min && a.budget_max ? fourchetteEuros(a.budget_min, a.budget_max) : kEuros(a.budget_max) || (a.budget_min ? `dès ${kEuros(a.budget_min)}` : null));
 
 export default function MesAcquereurs() {
@@ -29,6 +33,8 @@ export default function MesAcquereurs() {
   const t = q.trim().toLowerCase();
   const lignes = t ? tous.filter((a) => [a.nom, a.telephone, a.email, a.recherche, (a.villes || []).join(" "), a.remarque].filter(Boolean).join(" ").toLowerCase().includes(t)) : tous;
 
+  const candidats = lignes.filter(estCandidat).length;
+
   if (isLoading) return <Loader titre="Vos acquéreurs" />;
   if (!tous.length || importer) return <Import vide={!tous.length} onFermer={tous.length ? () => setImporter(false) : null} onFait={() => setImporter(false)} />;
   return (
@@ -39,7 +45,7 @@ export default function MesAcquereurs() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nom, ville, ce qu'il cherche…"
             className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
-        <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0"><span className="tabular-nums text-menthe">{lignes.length}</span> acquéreur{lignes.length > 1 ? "s" : ""}{lignes.length !== tous.length ? <> sur <span className="tabular-nums text-encre">{tous.length}</span></> : null}</span>
+        <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0"><span className="tabular-nums text-menthe">{lignes.length - candidats}</span> acquéreur{lignes.length - candidats > 1 ? "s" : ""}{candidats ? <>, <span className="tabular-nums text-menthe">{candidats}</span> candidat{candidats > 1 ? "s" : ""}</> : null}{lignes.length !== tous.length ? <> sur <span className="tabular-nums text-encre">{tous.length}</span></> : null}</span>
         <button type="button" onClick={() => setImporter(true)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
           <FileUp className="h-3.5 w-3.5" /> Importer un fichier
         </button>
@@ -48,7 +54,7 @@ export default function MesAcquereurs() {
         <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px]">
           <thead>
             <tr>
-              {["Acquéreur", "Contact", "Bien suivi", "Ce qu'il cherche", "Villes", "Budget", "Rendement", ""].map((h, i, l) => (
+              {[candidats ? "Acquéreur ou candidat" : "Acquéreur", "Contact", "Bien suivi", "Ce qu'il cherche", "Villes", candidats ? "Budget ou loyer accepté" : "Budget", "Rendement", ""].map((h, i, l) => (
                 <th key={h || i} className={`border-b ${i < l.length - 1 ? "border-r" : ""} ${TRAIT} bg-rail px-4 py-3.5 font-normal text-encre ${i === 0 ? "sticky left-0 z-20 min-w-[200px]" : ""}`}>{h}</th>
               ))}
             </tr>
@@ -58,6 +64,7 @@ export default function MesAcquereurs() {
               <tr key={a.id} className="group transition-colors hover:bg-relief/30">
                 <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail px-4 py-4 align-middle`}>
                   <span className="block max-w-[260px] truncate text-encre">{a.nom}</span>
+                  {estCandidat(a) && <span className="block text-ardoise">Candidat locataire</span>}
                   {a.remarque && <span className="block max-w-[260px] truncate text-ardoise" title={a.remarque}>{a.remarque}</span>}
                 </td>
                 <td className={`border-b border-r ${TRAIT} px-4 py-4 align-middle`}>
@@ -68,12 +75,12 @@ export default function MesAcquereurs() {
                 {/* Une touche notée par l'assistant (4 nov. 2026) : le bien qui l'intéresse et où il en est. */}
                 <td className={`border-b border-r ${TRAIT} max-w-[240px] px-4 py-4 align-middle`}>
                   {a.bien ? <a href={`/MandataireBiens?bien=proprietaire:${a.bien.id}&etape=ensemble`} className="block truncate text-encre hover:text-menthe">{a.bien.titre}</a> : <span className="text-brume">—</span>}
-                  {a.bien && <span className="block text-ardoise">{STATUT_TOUCHE[a.statut_touche] || "Contact"}{a.offre_montant ? ` · ${Number(a.offre_montant).toLocaleString("fr-FR")} €` : ""}</span>}
+                  {a.bien && <span className="block text-ardoise">{estCandidat(a) ? STATUTS_CANDIDAT[a.statut_touche] || "Contact" : <>{STATUT_TOUCHE[a.statut_touche] || "Contact"}{a.offre_montant ? ` · ${Number(a.offre_montant).toLocaleString("fr-FR")} €` : ""}</>}</span>}
                 </td>
                 <td className={`border-b border-r ${TRAIT} max-w-[260px] px-4 py-4 align-middle`}><span className="line-clamp-2 text-encre">{a.recherche || <span className="text-brume">—</span>}</span></td>
                 <td className={`border-b border-r ${TRAIT} max-w-[220px] px-4 py-4 align-middle`}><span className="line-clamp-2 text-encre">{(a.villes || []).join(", ") || <span className="text-brume">—</span>}</span></td>
-                <td className={`border-b border-r ${TRAIT} whitespace-nowrap px-4 py-4 align-middle tabular-nums text-encre`}>{budgetDe(a) || <span className="text-brume">—</span>}</td>
-                <td className={`border-b border-r ${TRAIT} whitespace-nowrap px-4 py-4 align-middle tabular-nums text-encre`}>{a.rendement_min ? `${String(a.rendement_min).replace(".", ",")} %` : <span className="text-brume">—</span>}</td>
+                <td className={`border-b border-r ${TRAIT} whitespace-nowrap px-4 py-4 align-middle tabular-nums text-encre`}>{budgetDe(a) ? <>{budgetDe(a)}{estCandidat(a) && <span className="block text-ardoise">loyer accepté par an</span>}</> : <span className="text-brume">—</span>}</td>
+                <td className={`border-b border-r ${TRAIT} whitespace-nowrap px-4 py-4 align-middle tabular-nums text-encre`}>{a.rendement_min && !estCandidat(a) ? `${String(a.rendement_min).replace(".", ",")} %` : <span className="text-brume">—</span>}</td>
                 <td className={`border-b ${TRAIT} w-12 px-2 py-4 text-center align-middle`}>
                   <button type="button" onClick={() => { if (window.confirm(`Retirer ${a.nom} de vos acquéreurs ?`)) retirer.mutate(a.id); }} aria-label={`Retirer ${a.nom}`} title="Retirer"
                     className="grid h-7 w-7 place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 focus:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}>

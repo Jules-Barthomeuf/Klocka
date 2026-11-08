@@ -138,7 +138,8 @@ export async function surEtape(mandat, statut) {
   const bien = titreDe(mandat);
   if (statut === 'demande_envoyee') {
     evenement(mandat.id, 'Mandat envoyé : il est saisi sur MyNotary au plus vite, puis vous arrive ici pour relecture. Après votre validation, il part en signature, et le mandat signé arrivera dans cette conversation.');
-    await prevenir(responsable(mandat), `Mandat à saisir sur MyNotary · ${bien}`, `${mandat.vendeur || ''}${mandat.prix ? ` · ${Number(mandat.prix).toLocaleString('fr-FR')} €` : ''}`.replace(/^ · /, '') || null, lienKlocka(mandat), `mandat-demande:${mandat.id}`);
+    // Un mandat de location se saisit sur le modèle de location de MyNotary (6 nov. 2026) : le titre le dit.
+    await prevenir(responsable(mandat), `Mandat${mandat.transaction === 'location' ? ' de location' : ''} à saisir sur MyNotary · ${bien}`, `${mandat.vendeur || ''}${mandat.prix ? ` · ${Number(mandat.prix).toLocaleString('fr-FR')} €` : mandat.loyer ? ` · location, ${Number(mandat.loyer).toLocaleString('fr-FR')} € HT HC par an` : ''}`.replace(/^ · /, '') || null, lienKlocka(mandat), `mandat-demande:${mandat.id}`);
   } else if (statut === 'valide') {
     evenement(mandat.id, 'Mandat validé : il part en signature.');
     await prevenir(responsable(mandat), `Mandat validé · ${bien}`, 'À envoyer en signature sur MyNotary.', lienKlocka(mandat), `mandat-valide:${mandat.id}`);

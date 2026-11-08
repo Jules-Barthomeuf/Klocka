@@ -4,6 +4,7 @@
 // acquéreur appartient à son seul mandataire ; il sert ensuite au rapprochement avec ses biens (acquereursPour).
 
 import { Records } from './db.js';
+import { STATUTS_CANDIDAT, estLocation } from '../src/lib/location.js';
 
 const ENTITE = 'AcquereurMandataire';
 const moi = (user) => String(user?.email || '').toLowerCase();
@@ -158,6 +159,29 @@ export function enregistrerAcquereurs(liste = [], user, { source = 'import' } = 
 }
 
 export const mesAcquereurs = (user) => Records.list(ENTITE).filter((a) => a.mandataire_email === moi(user)).sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le)));
+
+// Les candidats locataires (6 nov. 2026, Jules : « adapter tout le système à la location ») : sur un bien à louer, les
+// touches sont des candidats, avec leurs statuts (STATUTS_CANDIDAT) ; leur budget est le loyer qu'ils acceptent. Ils ne
+// sont jamais rapprochés des investisseurs de Klocka.
+/** Pure : la touche est-elle un candidat locataire (son rôle, ou le bien à louer) ? */
+export const estCandidat = (a, p = null) => a?.role === 'locataire' || estLocation(p);
+
+/** Les candidats d'un bien à louer, les plus avancés d'abord. */
+export function candidatsDuBien(p, liste = Records.list(ENTITE)) {
+  const ordre = Object.keys(STATUTS_CANDIDAT);
+  const rangDe = (a) => (a.statut_touche === 'perdu' ? -1 : ordre.indexOf(a.statut_touche));
+  return liste.filter((a) => p && a.proprietaire_id === p.id && a.mandataire_email === p.mandataire_email).sort((x, y) => rangDe(y) - rangDe(x));
+}
+
+/**
+ * Pure : le bail signé d'un bien à louer, `biens.loue = { le, locataire, loyer_annuel }`. Le locataire est le candidat
+ * dit (ou celui au bail signé, sinon à l'accord) ; le loyer est celui qu'il accepte, sinon le loyer demandé.
+ */
+export function bailSigneDe(p, { candidat = null, candidats = [], le = new Date().toISOString() } = {}) {
+  const c = candidat || candidats.find((a) => a.statut_touche === 'bail_signe') || candidats.find((a) => a.statut_touche === 'accord') || null;
+  const loyer = Number(c?.budget_max) || Number(p?.biens?.repris?.loyer_annuel) || Number(p?.mandat_importe?.loyer_annuel) || null;
+  return { le: p?.biens?.loue?.le || le, locataire: c?.nom || p?.biens?.loue?.locataire || null, loyer_annuel: loyer || p?.biens?.loue?.loyer_annuel || null };
+}
 
 export function supprimerAcquereur(id, user) {
   const a = Records.get(ENTITE, id);

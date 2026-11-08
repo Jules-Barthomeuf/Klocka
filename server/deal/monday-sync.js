@@ -135,7 +135,7 @@ async function elementAgent(email) {
  * @param {{ motif?: string }} [opts]
  */
 export async function pousserBien(deal, { motif, par = null } = {}) {
-  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!mondayConfigure()) return { ignore: true, raison: "Twenty CRM n'est pas branché ici" };
   if (!TABLEAUX.proprietes)
     return { ignore: true, raison: 'le tableau Propriétés n\'est pas déclaré (MONDAY_BOARD_PROPRIETES)' };
   if (deal.test) return { ignore: true, raison: "c'est un dossier de test : rien n'est poussé dans le CRM" };
@@ -225,7 +225,7 @@ function completerAnnonce(entite, record, bien, itemId) {
  * @param {object} projet - enregistrement Project
  */
 export async function pousserProjet(projet, { motif, par = null } = {}) {
-  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!mondayConfigure()) return { ignore: true, raison: "Twenty CRM n'est pas branché ici" };
   if (!TABLEAUX.proprietes)
     return { ignore: true, raison: 'le tableau Propriétés n\'est pas déclaré (MONDAY_BOARD_PROPRIETES)' };
   if (!projet) return { ignore: true, raison: 'aucun projet fourni' };
@@ -295,7 +295,7 @@ const DUREE_CACHE = 5 * 60 * 1000;
  * laisser la liaison vide, on propose de l'y inscrire.
  */
 export async function creerAgentMonday({ nom, email, telephone, ville, entreprise }) {
-  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!mondayConfigure()) return { ignore: true, raison: "Twenty CRM n'est pas branché ici" };
   if (!TABLEAUX.agents)
     return { ignore: true, raison: "le tableau Agent immobilier n'est pas déclaré (MONDAY_BOARD_AGENTS)" };
   if (!email) return { erreur: 'Adresse mail manquante' };
@@ -333,7 +333,7 @@ export async function creerAgentMonday({ nom, email, telephone, ville, entrepris
  * deux fois la même. Le statut n'est posé que s'il existe dans la liste.
  */
 export async function creerClientMonday({ nom, email, telephone, budget, apport, localisation, recherche, statut }) {
-  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!mondayConfigure()) return { ignore: true, raison: "Twenty CRM n'est pas branché ici" };
   if (!TABLEAUX.investisseurs) return { ignore: true, raison: "le tableau Clients n'est pas déclaré (MONDAY_BOARD_INVESTISSEURS)" };
   if (!nom && !email) return { erreur: 'Il faut au moins un nom ou une adresse mail.' };
   const mail = email ? String(email).trim().toLowerCase() : null;
@@ -400,7 +400,7 @@ const jourFr = (iso) => new Date(iso).toLocaleDateString('fr-FR', { day: '2-digi
  * retrouve par l'adresse, sinon par le nom ; sinon elle naît.
  */
 export async function noterAppelAgent({ prenom, nom, email, telephone, ville, entreprise, remarque, relance, par } = {}) {
-  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!mondayConfigure()) return { ignore: true, raison: "Twenty CRM n'est pas branché ici" };
   if (!TABLEAUX.agents) return { ignore: true, raison: "le tableau Agent immobilier n'est pas déclaré (MONDAY_BOARD_AGENTS)" };
 
   const adresse = email ? String(email).trim().toLowerCase() : null;

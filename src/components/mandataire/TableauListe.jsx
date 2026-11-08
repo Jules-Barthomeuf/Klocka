@@ -452,16 +452,8 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
   useEffect(() => { setPage(1); }, [q, filtre, listeId, tri]);
   const pageCourante = Math.min(page, Math.max(1, Math.ceil(lignes.length / PAR_PAGE)));
   const pageBrute = lignes.slice((pageCourante - 1) * PAR_PAGE, pageCourante * PAR_PAGE);
-  // L'emplacement de chaque commerce (il lance la photo à l'ouverture de sa fiche), pour les lignes affichées seulement.
-  const idsPage = pageBrute.map((p) => p.id);
-  const details = useQuery({
-    queryKey: ["m-listes-details", idsPage],
-    queryFn: () => base44.request("POST", `${API}/listes/details`, { body: { ids: idsPage } }),
-    enabled: idsPage.length > 0,
-    staleTime: 5 * 60_000,
-  });
-  const avecDetails = (p) => (p && details.data?.details?.[p.id] ? { ...p, ...details.data.details[p.id] } : p);
-  const affichees = pageBrute.map(avecDetails);
+  // Plus de détails demandés par page : ils ne servaient qu'à lancer la photo de la fiche, retirée le 6 nov. 2026.
+  const affichees = pageBrute;
   // Les cases suivent la liste : une fiche partie n'est plus cochée.
   useEffect(() => { setCoches((c) => new Set([...c].filter((id) => (fiches || []).some((p) => p.id === id)))); }, [fiches]);
   const tout = lignes.length > 0 && lignes.every((p) => coches.has(p.id));
@@ -633,7 +625,7 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
       <Pages page={pageCourante} total={lignes.length} parPage={PAR_PAGE} onPage={setPage} />
       <AnimatePresence>
         {ouvert && (fiches || []).some((p) => p.id === ouvert) && (
-          <PanneauCommerce key={ouvert} p={avecDetails((fiches || []).find((p) => p.id === ouvert))} onFermer={() => setOuvert(null)} />
+          <PanneauCommerce key={ouvert} p={(fiches || []).find((p) => p.id === ouvert)} onFermer={() => setOuvert(null)} />
         )}
       </AnimatePresence>
       <AlertDialog open={retirer} onOpenChange={(o) => { if (!o) setRetirer(false); }}>

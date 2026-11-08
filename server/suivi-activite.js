@@ -9,7 +9,8 @@
 // prix de l'offre acceptée (sinon le prix du mandat).
 
 import { Records } from './db.js';
-import { ETAPES_BIEN, regrouperBiens } from '../src/lib/biens-mandataire.js';
+import { NB_ETAPES_VISIBLES, etapesVisibles, rangVisible, regrouperBiens } from '../src/lib/biens-mandataire.js';
+import { estLocation, honorairesLocation } from '../src/lib/location.js';
 
 const JOUR = 86400000;
 const norm = (e) => String(e || '').trim().toLowerCase();
@@ -75,12 +76,19 @@ export function gestesDuBien(b) {
     estimations: b.estimation?.cree_le ? [b.estimation.cree_le] : [],
     mandats: m && MANDAT_FAIT.has(m.statut) ? [m.signe_le || m.updated_date || m.cree_le].filter(Boolean) : [],
     offres: (k?.offres || []).map((o) => o.le).filter(Boolean),
-    ventes: k && VENDU.has(k.statut) ? [k.acte_le || k.updated_date].filter(Boolean) : [],
+    // Un bien à louer ne se vend pas : son bail signé (`biens.loue`) compte à part (6 nov. 2026, Jules).
+    ventes: k && VENDU.has(k.statut) && !estLocation(p) ? [k.acte_le || k.updated_date].filter(Boolean) : [],
+    locations: estLocation(p) && p?.biens?.loue?.le ? [p.biens.loue.le] : [],
   };
 }
 
 /** Pure : les honoraires d'un bien. Le mandat les dit en pourcentage ; un ancien mandat, en euros (au-delà de 100). */
 export function honorairesDuBien(b) {
+  // Une location : les honoraires de location (15 % HT du loyer annuel, à la charge du preneur), sur le loyer du bail.
+  if (estLocation(b.proprietaire)) {
+    const loyer = b.proprietaire.biens?.loue?.loyer_annuel || b.proprietaire.biens?.repris?.loyer_annuel || b.proprietaire.mandat_importe?.loyer_annuel;
+    return honorairesLocation(loyer) || 0;
+  }
   const acceptee = (b.marche?.offres || []).find((o) => o.reponse === 'acceptee' && Number(o.montant));
   const prix = Number(acceptee?.montant) || Number(b.mandat?.prix) || Number(b.estimation?.avis?.chiffres?.valeur) || 0;
   const h = Number(b.mandat?.honoraires ?? b.estimation?.avis?.chiffres?.honoraires_pct) || 0;
@@ -114,7 +122,9 @@ export function suiviActivite({ periode = 'annee', maintenant = new Date(), tabl
   const dans = (le, w) => !!le && le >= w.de && le <= w.a;
   const compte = (cle, w) => tousGestes.reduce((s, { g }) => s + g[cle].filter((le) => dans(le, w)).length, 0);
   const vendus = (w) => tousGestes.filter(({ g }) => g.ventes.some((le) => dans(le, w)));
-  const encaisse = (w) => vendus(w).reduce((s, { b }) => s + honorairesDuBien(b), 0);
+  const loues = (w) => tousGestes.filter(({ g }) => g.locations.some((le) => dans(le, w)));
+  // Les honoraires encaissés : ceux des ventes à l'acte et ceux des locations au bail signé.
+  const encaisse = (w) => [...vendus(w), ...loues(w)].reduce((s, { b }) => s + honorairesDuBien(b), 0);
   const passage = (w) => { const r = compte('rdv', w); return r ? Math.min(100, Math.round((compte('mandats', w) / r) * 100)) : null; };
   const delai = (w) => {
     const mois = vendus(w).map(({ g }) => (g.mandats[0] && g.ventes[0] ? (Date.parse(g.ventes[0]) - Date.parse(g.mandats[0])) / (30.44 * JOUR) : null));
@@ -159,23 +169,26 @@ export function suiviActivite({ periode = 'annee', maintenant = new Date(), tabl
   let mandataires = null;
   if (!email) {
     const par = new Map();
-    const de = (e) => par.get(e) || par.set(e, { email: e, nom: nomDe(e), etapes: ETAPES_BIEN.map(() => 0), vendus: 0, mandats: 0, honoraires: 0, prospects: 0 }).get(e);
+    const de = (e) => par.get(e) || par.set(e, { email: e, nom: nomDe(e), etapes: Array(NB_ETAPES_VISIBLES).fill(0), vendus: 0, loues: 0, mandats: 0, honoraires: 0, prospects: 0 }).get(e);
     for (const b of biens) {
       const m = de(proprietaireDe(b));
       const g = gestesDuBien(b);
-      if (b.faites?.has('vente')) m.vendus += 1; else if (vivant(b)) m.etapes[b.etape - 1] += 1;
+      // Un bien loué compte à part des vendus (6 nov. 2026).
+      if (b.faites?.has('vente')) { if (estLocation(b.proprietaire)) m.loues += 1; else m.vendus += 1; } else if (vivant(b)) m.etapes[rangVisible(b.etape) - 1] += 1; // six étapes à l'écran (7 nov. 2026)
       m.mandats += g.mandats.filter((le) => dans(le, f)).length;
-      if (g.ventes.some((le) => dans(le, f))) m.honoraires += honorairesDuBien(b);
+      if ([...g.ventes, ...g.locations].some((le) => dans(le, f))) m.honoraires += honorairesDuBien(b);
     }
     for (const { proprietaire: p } of prospects) de(norm(p.mandataire_email)).prospects += 1;
-    mandataires = [...par.values()].map((m) => ({ ...m, biens: m.etapes.reduce((s, n) => s + n, 0) + m.vendus }))
+    mandataires = [...par.values()].map((m) => ({ ...m, biens: m.etapes.reduce((s, n) => s + n, 0) + m.vendus + m.loues }))
       .sort((a, b) => b.honoraires - a.honoraires || b.biens - a.biens || b.prospects - a.prospects);
   }
 
   return {
     periode, au: maintenant.toISOString(), etendue: f.etendue, annee_avant: maintenant.getFullYear() - 1,
     nom: email ? nomDe(norm(email)) : null,
-    etapes: ETAPES_BIEN.map((e) => ({ id: e.id, label: e.label })),
+    etapes: etapesVisibles(null).map((e) => ({ id: e.id, label: e.label })),
     indicateurs, cette_semaine: cetteSemaine, entonnoir, mandataires,
+    // Les baux signés de la période, à part des ventes de l'entonnoir (6 nov. 2026).
+    locations: { n: compte('locations', f), avant: compte('locations', f.avant) },
   };
 }

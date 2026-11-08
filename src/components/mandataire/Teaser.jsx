@@ -49,14 +49,14 @@ export async function enJpeg(fichier) {
 }
 
 /** La page A4 du teaser, dessinée en 794 × 1123. */
-export function PageTeaser({ t, signataire, classe, onPatch = null, onPhoto = null }) {
+export function PageTeaser({ t, signataire, classe, onPatch = null, onPhoto = null, co = null }) {
   const ed = (f) => (onPatch ? f : null);
   const choisir = useRef(null);
   // La mise en forme vient du teaser lui-même : l'écran et le PDF la lisent pareil.
   const dehors = useContext(EditionTeaser);
   return (
     <EditionTeaser.Provider value={{ ...dehors, styles: t.styles || {}, positions: t.positions || {} }}>
-    <div className="tz-page">
+    <div className={`tz-page${co ? " tz-co" : ""}`}>
       <div className="tz-haut">
         {t.photo ? <img src={t.photo} alt={t.photo_libelle || ""} data-chemin="photo" /> : <span className="tz-sans-photo">Photo · {t.photo_libelle}</span>}
         <div className="tz-voile" />
@@ -68,12 +68,13 @@ export function PageTeaser({ t, signataire, classe, onPatch = null, onPhoto = nu
             <button type="button" className="tz-photo-choix" onClick={() => choisir.current?.click()}>{t.photo ? "Changer la photo" : "Importer une photo"}</button>
           </>
         )}
-        <div className="tz-entete"><span>Teaser · {classe}</span><span>Réf. {t.ref}</span></div>
+        <div className="tz-entete"><span>{co ? "Fiche confrère" : "Teaser"} · {classe}</span><span>Réf. {t.ref}</span></div>
         <div className="tz-titres">
           <h1 className="tz-titre"><Texte v={t.titre} chemin="titre" onChange={ed((x) => onPatch({ titre: x }))} /></h1>
           <p className="tz-sous"><Texte v={t.sous_titre} chemin="sous_titre" onChange={ed((x) => onPatch({ sous_titre: x }))} /></p>
         </div>
       </div>
+      <div className="tz-corps">
       <div className="tz-carte">
         <div className="tz-tuiles">
           {t.tuiles.map((x, i) => <div key={x.cle} className={`tz-tuile ${x.etoile ? "tz-etoile" : ""}`}><b><Texte v={x.valeur} chemin={`tuiles.${i}`} onChange={ed((val) => onPatch({ tuiles: t.tuiles.map((y, j) => (j === i ? { ...y, valeur: val } : y)) }))} /></b><span><Texte v={x.libelle} chemin={`tuiles.${i}.libelle`} onChange={ed((val) => onPatch({ tuiles: t.tuiles.map((y, j) => (j === i ? { ...y, libelle: val } : y)) }))} /></span></div>)}
@@ -82,10 +83,23 @@ export function PageTeaser({ t, signataire, classe, onPatch = null, onPhoto = nu
         <div className="tz-tableau">
           {t.lignes.map((l, i) => <div key={`${l.cle}-${i}`} className="tz-ligne"><span><Texte v={l.intitule} chemin={`lignes.${i}.intitule`} onChange={ed((val) => onPatch({ lignes: t.lignes.map((y, j) => (j === i ? { ...y, intitule: val } : y)) }))} /></span><b><Texte v={l.detail} chemin={`lignes.${i}`} onChange={ed((val) => onPatch({ lignes: t.lignes.map((y, j) => (j === i ? { ...y, detail: val } : y)) }))} /></b></div>)}
         </div>
-        <p className="tz-rubrique">Points forts</p>
-        <div className="tz-points">{t.points.map((p, i) => <span key={i} className="tz-point"><Texte v={p} chemin={`points.${i}`} onChange={ed((val) => onPatch({ points: t.points.map((y, j) => (j === i ? val : y)) }))} /></span>)}</div>
+        {/* La fiche confrère (6 nov. 2026) : le co-courtage à la place des points forts, ses conditions en bas de page. */}
+        {co ? (
+          <>
+            <p className="tz-rubrique">Co-courtage</p>
+            <div className="tz-tableau">
+              {co.lignes.map((l) => <div key={l.cle} className="tz-ligne"><span>{l.intitule}</span><b><Texte v={l.detail} /></b></div>)}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="tz-rubrique">Points forts</p>
+            <div className="tz-points">{t.points.map((p, i) => <span key={i} className="tz-point"><Texte v={p} chemin={`points.${i}`} onChange={ed((val) => onPatch({ points: t.points.map((y, j) => (j === i ? val : y)) }))} /></span>)}</div>
+          </>
+        )}
       </div>
-      <p className="tz-confidentiel"><Texte v={t.confidentialite} chemin="confidentialite" onChange={ed((x) => onPatch({ confidentialite: x }))} /></p>
+      <p className="tz-confidentiel">{co ? co.conditions : <Texte v={t.confidentialite} chemin="confidentialite" onChange={ed((x) => onPatch({ confidentialite: x }))} />}</p>
+      </div>
       <div className="tz-pied">
         <LogoKP fond="nuit" />
         <div className="tz-pied-qui">
@@ -100,7 +114,7 @@ export function PageTeaser({ t, signataire, classe, onPatch = null, onPhoto = nu
 }
 
 /** La page à l'échelle de son conteneur (largeur donnée par le parent). */
-function Apercu({ children }) {
+export function Apercu({ children }) {
   const ref = useRef(null);
   const [echelle, setEchelle] = useState(0.5);
   useEffect(() => {
@@ -168,12 +182,13 @@ export function ActionsTeaser({ marcheId, mode, onMode, onValide = null }) {
   const t = data?.teaser;
   if (!t) return null;
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-nowrap items-center gap-2">
       <ModesEditeur mode={mode} onMode={onMode} />
-      <button type="button" onClick={telecharger} disabled={pdf} className={`${bouton} h-8 text-[12.5px]`}>{pdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}PDF</button>
-      <button type="button" onClick={() => valider.mutate(undefined, { onSuccess: () => onValide?.() })} disabled={valider.isPending}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[12.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-        {valider.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}{t.valide_le ? "Validé · passer aux offres" : "Valider le teaser"}
+      <button type="button" onClick={telecharger} disabled={pdf} className={`${bouton} h-8 flex-none whitespace-nowrap text-[12.5px]`}>{pdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}PDF</button>
+      {/* Valider le teaser mène aux annonces (7 nov. 2026, Jules) ; validé, le bouton y mène encore. */}
+      <button type="button" onClick={() => (t.valide_le ? onValide?.() : valider.mutate(undefined, { onSuccess: () => onValide?.() }))} disabled={valider.isPending}
+        className="inline-flex h-8 flex-none items-center gap-1.5 whitespace-nowrap rounded-full bg-menthe px-3.5 text-[12.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+        {valider.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}{t.valide_le ? "Validé · annonces" : "Valider"}
       </button>
     </div>
   );
@@ -216,7 +231,7 @@ export default function TeaserBien({ marcheId, mode = "edition" }) {
         </SurvolSources>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12.5px] text-brume">
-        <span className={manque ? "text-ambre" : undefined}>{mode === "sources" ? "Survolez un champ pour voir d'où il vient." : mode === "lecture" ? "Le teaser tel que l'acquéreur le lira." : `${manque ? "Complétez ce qui est en sable : " : ""}cliquez sur un texte pour le corriger et le mettre en forme, ou sur la photo pour la changer.`}</span>
+        <span className={manque ? "text-ambre" : undefined}>{mode === "sources" ? "Survolez un champ pour voir d'où il vient." : mode === "lecture" ? `Le teaser tel que ${t.classe === "a_louer" ? "le candidat" : "l'acquéreur"} le lira.` : `${manque ? "Complétez ce qui est en sable : " : ""}cliquez sur un texte pour le corriger et le mettre en forme, ou sur la photo pour la changer.`}</span>
         <button type="button" onClick={() => recomposer.mutate(t.classe)} disabled={recomposer.isPending} className="inline-flex items-center gap-1.5 text-ardoise hover:text-encre" style={{ background: "transparent" }}>
           <RotateCcw className="h-3.5 w-3.5" />Recomposer depuis le mandat et l'avis
         </button>

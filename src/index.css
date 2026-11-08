@@ -248,8 +248,9 @@ button:focus-visible {
 }
 /* Un bouton pressé s'enfonce d'un souffle. La propriété `scale`, à part de
    transform, compose avec les utilitaires translate : un bouton centré par
-   -translate-y-1/2 ne saute pas quand on le presse. */
-:where(button, [role="button"]):not(:disabled):active { scale: .98; }
+   -translate-y-1/2 ne saute pas quand on le presse. Un onglet ne s'enfonce pas : raccordé
+   à son panneau, il laisserait voir le fond entre les deux (6 nov. 2026, Jules, intercalaires des Listes). */
+:where(button, [role="button"]):not(:disabled):not([role="tab"]):active { scale: .98; }
 
 /* Les petits effets de l'espace K Partners (1er nov. 2026, Jules : « rapides mais premium, partout »).
    L'entrée d'un écran : un fondu et 8 px de montée, 0,38 s. `backwards` : aucun transform ne reste après
@@ -1011,6 +1012,8 @@ html.k-sans-ascenseur::-webkit-scrollbar, html.k-sans-ascenseur body::-webkit-sc
    chat et de la barre latérale ») : en sombre, le noir de la barre des aperçus ; en clair, rien ne change. */
 :root:not([data-theme="clair"]) .k-bien-ia .k-apercu-bien.k-dataroom-fond > div,
 :root:not([data-theme="clair"]) .k-bien-ia .k-apercu-bien.k-dataroom-fond .k-barre-apercu { background: #000000 !important; }
+/* La Mise en vente (8 nov. 2026, Jules : « le fond de la barre du haut, je veux qu'il soit noir ») : le haut aussi, Data room ouverte. */
+:root:not([data-theme="clair"]) .k-bien-ia .k-haut-vente.k-dataroom-fond { background: #000000; }
 /* Une présentation ouverte : le fond choisi, uni ; ni halo, ni grain, ni points. */
 html.k-sobre body::after,
 html.k-sobre .k-halo,
@@ -1198,14 +1201,10 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
   .k-titre-metal { color: rgb(var(--k-encre-rgb)); background: none; }
 }
 
-/* « AK a un nouveau look » (16 oct. 2026, Jules) : le portrait tourne sur lui-même en arrivant, puis flotte ;
-   un anneau de lumière tourne autour. Même registre que « Tout préparé » : blanc et gris. */
-.k-ak-portrait { animation: k-ak-tour 1.4s cubic-bezier(.2, .8, .2, 1) .2s both, k-ak-flotte 4s ease-in-out 1.8s infinite; transform-style: preserve-3d; }
-@keyframes k-ak-tour { from { opacity: 0; transform: perspective(600px) rotateY(-540deg) scale(.6); } to { opacity: 1; transform: perspective(600px) rotateY(0) scale(1); } }
-@keyframes k-ak-flotte { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+/* L'anneau de lumière autour du portrait d'AK (16 oct. 2026) : il tourne quand des messages attendent. */
 .k-ak-anneau { background: conic-gradient(from 0deg, transparent 0deg, rgb(var(--k-encre-rgb) / .15) 30deg, rgb(var(--k-encre-rgb)) 90deg, transparent 100deg, transparent 360deg); animation: k-ak-anneau 2.4s linear infinite; mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); }
 @keyframes k-ak-anneau { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .k-ak-portrait, .k-ak-anneau { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .k-ak-anneau { animation: none; } }
 
 /* La fiche client en PDF (16 oct. 2026) : le reste de la page ne prend aucune place (sinon des pages blanches suivent), fond blanc. */
 @media print {

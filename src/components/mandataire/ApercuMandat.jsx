@@ -6,6 +6,7 @@ import GenerationDocument from "@/components/mandataire/GenerationDocument";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { eurosEnLettres } from "@/lib/nombre-en-lettres";
+import { estLocation } from "@/lib/location";
 import AGENCE from "@/lib/agence-klocka.json";
 import { MODES_EDITEUR, ModesEditeur } from "@/components/editeur/Editeur";
 import "./mandat-mynotary.css";
@@ -119,13 +120,41 @@ function honorairesDe(q) {
   return { taux: enPourcent ? String(valeur).replace(".", ",") : prix ? String(Math.round((valeur / prix) * 10000) / 100).replace(".", ",") : null, ttc, ht: Math.round((ttc / 1.2) * 100) / 100 };
 }
 
-/** Le document lui-même, fidèle au modèle MyNotary « Mandat de vente ». */
+// Le mandat de location (6 nov. 2026, Jules : « adapte celui qui est actuellement utilisé pour la vente en location ») :
+// le même document, les conditions du bail à la place du prix, les honoraires en % HT du loyer annuel HT HC.
+/** Pure : les honoraires de location, un taux HT du loyer annuel HT HC (ou un montant HT), et le TTC à 20 %. */
+function honorairesLocationDe(q) {
+  const loyer = Number(q.loyer) || 0;
+  const valeur = Number(q.honoraires);
+  if (!(valeur > 0)) return { taux: null, ht: null, ttc: null };
+  const enPourcent = q.honoraires_unite !== "€" && valeur <= 100;
+  const ht = enPourcent ? (loyer * valeur) / 100 : valeur;
+  const taux = enPourcent ? String(valeur).replace(".", ",") : loyer ? String(Math.round((valeur / loyer) * 10000) / 100).replace(".", ",") : null;
+  return { taux, ht: ht || null, ttc: ht ? Math.round(ht * 1.2 * 100) / 100 : null };
+}
+const BAIL_369 = "neuf années entières et consécutives, le Preneur pouvant donner congé à l'expiration de chaque période triennale (bail dit « 3-6-9 »)";
+const CHOIX_CHARGES = { oui: "refacturées au Preneur", non: "conservées à la charge du Bailleur" };
+const CHOIX_TAXE = { oui: "remboursée par le Preneur au Bailleur", non: "conservée à la charge du Bailleur" };
+const CHOIX_TVA_LOYER = { oui: "majoré de la TVA au taux en vigueur", non: "non soumis à la TVA" };
+const CHOIX_CHARGE_HONORAIRES = { preneur: "du Preneur", bailleur: "du Bailleur" };
+/** Pure : un oui/non du questionnaire dit comme le choix du modèle, et sa valeur brute pour le choix. */
+const ouiNon = (b, choix) => ({ v: b === true ? choix.oui : b === false ? choix.non : null, brut: b === true ? "oui" : b === false ? "non" : "" });
+
+/** Le document lui-même, fidèle au modèle MyNotary « Mandat de vente » ; en location, sa version location. */
 export function DocumentMandat({ q = {}, numero = null, onChamp = null }) {
   const type = q.type_mandat ? TYPES[q.type_mandat] : null;
   const h = honorairesDe(q);
   const prixTTC = Number(q.prix) || null;
   const acquereur = q.honoraires_charge === "acquereur";
   const totalMois = Number(q.duree_mois) || null;
+  const loc = estLocation(q.transaction);
+  // Le mot de la vente, ou celui de la location.
+  const L = (vente, location) => (loc ? location : vente);
+  const hl = honorairesLocationDe(q);
+  const loyer = Number(q.loyer) || null;
+  const charges = ouiNon(q.charges_refacturees, CHOIX_CHARGES);
+  const taxe = ouiNon(q.taxe_fonciere_refacturee, CHOIX_TAXE);
+  const tvaLoyer = ouiNon(q.loyer_tva, CHOIX_TVA_LOYER);
   return (
     <EditionMandat.Provider value={onChamp}>
     <div className={`mn-doc${onChamp ? " mn-editable" : ""}`}>
@@ -135,7 +164,7 @@ export function DocumentMandat({ q = {}, numero = null, onChamp = null }) {
           {/* Aux couleurs de K Partners (charte d'octobre 2026) ; le mandat reste au nom de l'agence qui porte la carte T. */}
           <LogoKP className="mn-garde-k" />
           <h1 className="mn-garde-titre">
-            Mandat {type ? <span>{type.toUpperCase()}</span> : <span className="mn-ligne" />}<br />de vente n°{numero ? ` ${numero}` : ""}
+            Mandat {type ? <span>{type.toUpperCase()}</span> : <span className="mn-ligne" />}<br />de {L("vente", "location")} n°{numero ? ` ${numero}` : ""}
           </h1>
           <div className="mn-garde-trait" />
           <p className="mn-garde-loi">Conformément à la loi 70-9 du 2 Janvier 1970 et au décret 72-678 du 20 Juillet 1972</p>
@@ -149,7 +178,7 @@ export function DocumentMandat({ q = {}, numero = null, onChamp = null }) {
       {/* Le corps. */}
       <section className="mn-page">
         <div className="mn-corps">
-          <h2 className="mn-titre">Mandat {type ? type.toUpperCase() : "_________________"} de vente n°</h2>
+          <h2 className="mn-titre">Mandat {type ? type.toUpperCase() : "_________________"} de {L("vente", "location")} n°</h2>
           <p className="mn-titre-num">{numero || ""}</p>
           <p className="mn-loi">Conformément à la loi 70-9 du 2 Janvier 1970 et au décret 72-678 du 20 Juillet 1972</p>
 
@@ -173,7 +202,11 @@ export function DocumentMandat({ q = {}, numero = null, onChamp = null }) {
           <p className="mn-p">Le Mandataire est représenté à l'acte comme indiqué ci-dessus.</p>
 
           <h3 className="mn-h1">Objet du contrat</h3>
-          <p className="mn-p">Le Mandant confère au Mandataire un mandat <V v={type} champ="type_mandat" brut={q.type_mandat} choix={TYPES} /> de vendre le Bien qui sera désigné ci-dessous, aux conditions, prix et charges qui suivent, convenus entre les parties.<br />Ce mandat porte le n°<V v={numero} court /> au registre des mandats.</p>
+          {loc ? (
+            <p className="mn-p">Le Mandant confère au Mandataire un mandat <V v={type} champ="type_mandat" brut={q.type_mandat} choix={TYPES} /> de rechercher un locataire pour le Bien qui sera désigné ci-dessous et de négocier un bail commercial, régi par les articles L.145-1 et suivants du Code de commerce, aux conditions et charges qui suivent, convenues entre les parties.<br />Ce mandat porte le n°<V v={numero} court /> au registre des mandats.</p>
+          ) : (
+            <p className="mn-p">Le Mandant confère au Mandataire un mandat <V v={type} champ="type_mandat" brut={q.type_mandat} choix={TYPES} /> de vendre le Bien qui sera désigné ci-dessous, aux conditions, prix et charges qui suivent, convenus entre les parties.<br />Ce mandat porte le n°<V v={numero} court /> au registre des mandats.</p>
+          )}
           <p className="mn-p mn-gras">Le Mandant déclare agir dans le cadre de ses activités professionnelles, les dispositions du code de la consommation sont donc inapplicables.</p>
 
           <p className="mn-h2">Désignation du bien</p>
@@ -182,6 +215,30 @@ export function DocumentMandat({ q = {}, numero = null, onChamp = null }) {
           ) : null}
           <p className="mn-p">L'intégralité de ce Bien sera désignée dans le mandat sous le terme "le Bien".</p>
 
+          {loc ? (
+            <>
+              <p className="mn-h2 mn-italique">Conditions de la location</p>
+              <p className="mn-p">Le Bien sera donné à bail commercial, soumis aux articles L.145-1 et suivants du Code de commerce, aux conditions suivantes, que le Mandataire négociera au mieux des intérêts du Mandant :</p>
+              <ul className="mn-liste">
+                <li>Loyer annuel demandé : <V v={loyer ? eurosEnLettres(loyer) : null} champ="loyer" brut={q.loyer} />, hors taxes et hors charges{q.loyer_tva !== undefined || onChamp ? <>, <V v={tvaLoyer.v} champ="loyer_tva" brut={tvaLoyer.brut} choix={CHOIX_TVA_LOYER} /></> : null} ;</li>
+                <li>Charges locatives : <V v={charges.v} champ="charges_refacturees" brut={charges.brut} choix={CHOIX_CHARGES} /> ;</li>
+                <li>Taxe foncière : <V v={taxe.v} champ="taxe_fonciere_refacturee" brut={taxe.brut} choix={CHOIX_TAXE} /> ;</li>
+                <li>Dépôt de garantie : <V v={q.depot_garantie} champ="depot_garantie" /> ;</li>
+                <li>Durée du bail : <V v={q.bail_duree || BAIL_369} champ="bail_duree" brut={q.bail_duree || ""} /> ;</li>
+                <li>Destination autorisée : <V v={q.destination} champ="destination" /> ;</li>
+                <li>Date de disponibilité du Bien : <V v={q.disponibilite} court champ="disponibilite" />.</li>
+              </ul>
+              <p className="mn-p">Les conditions de la location ont été fixées par le Mandant après avoir pris connaissance de l'estimation de la valeur locative qui en a été faite par le Mandataire à partir des connaissances que ce dernier a du marché immobilier local et des loyers pratiqués pour des biens présentant des caractéristiques similaires.</p>
+
+              <p className="mn-h2">Conditions relatives au contrat de mandat</p>
+              <p className="mn-h2 mn-italique">Honoraires du Mandataire</p>
+              <p className="mn-p">En cas de conclusion d'un bail avec un Preneur présenté par le Mandataire, ou un Mandataire substitué ou dirigé vers lui, le Mandataire aura droit à une rémunération d'un montant représentant <V v={hl.taux} court champ="honoraires" brut={q.honoraires} /> <b>%</b> hors taxes du loyer annuel hors taxes et hors charges, soit la somme de <V v={hl.ht ? `${eurosEnLettres(hl.ht)} HT` : null} />{hl.ttc ? <> ({eurosEnLettres(hl.ttc)} TTC)</> : null}.</p>
+              <p className="mn-p">Ces honoraires sont à la charge <V v={CHOIX_CHARGE_HONORAIRES[q.honoraires_charge] || null} champ="honoraires_charge" brut={q.honoraires_charge} choix={CHOIX_CHARGE_HONORAIRES} />.</p>
+              <p className="mn-p">Il est précisé que le taux actuel de la TVA est susceptible de modification conformément à la règlementation fiscale ; le taux appliqué sera celui en vigueur le jour où les honoraires seront exigibles.</p>
+              <p className="mn-p">La rémunération du Mandataire sera exigible le jour de la signature du bail.</p>
+            </>
+          ) : (
+          <>
           <p className="mn-h2 mn-italique">Disponibilité du bien</p>
           {q.bien_occupe === true && <p className="mn-p">Le Bien est vendu occupé{q.bien_locataire || onChamp ? <> par <V v={q.bien_locataire} champ="bien_locataire" /></> : null}.</p>}
           {q.bien_occupe === false && <p className="mn-p">Le Bien est vendu libre de toute occupation.</p>}
@@ -208,6 +265,8 @@ export function DocumentMandat({ q = {}, numero = null, onChamp = null }) {
           </p>
           <p className="mn-p">Il est précisé que le taux actuel de la TVA est susceptible de modification conformément à la règlementation fiscale ; le taux appliqué sera celui en vigueur le jour où les honoraires seront exigibles.</p>
           <p className="mn-p">La rémunération du Mandataire sera exigible le jour où l'opération sera effectivement conclue et réitérée par acte authentique.</p>
+          </>
+          )}
 
           <p className="mn-h2 mn-italique">Durée du mandat</p>
           <p className="mn-p">Le présent mandat est donné pour une durée de <b>3</b> mois à compter de sa signature.</p>
@@ -219,40 +278,43 @@ export function DocumentMandat({ q = {}, numero = null, onChamp = null }) {
           <p className="mn-h3">Obligations du Mandant</p>
           <p className="mn-p">Le Mandant déclare, sous sa propre responsabilité :</p>
           <ul className="mn-liste">
-            <li>avoir la capacité juridique pour disposer pleinement dudit bien ;</li>
+            <li>{L("avoir la capacité juridique pour disposer pleinement dudit bien ;", "avoir la capacité juridique pour donner ledit bien à bail ;")}</li>
             <li>ne faire l'objet d'aucune mesure de protection de la personne ni d'aucune procédure collective, de redressement ou de liquidation judiciaire, à l'exception de ce qui peut être indiqué à son état civil;</li>
             <li>que le bien objet du mandat ne fait l'objet d'aucune procédure de saisie immobilière ;</li>
           </ul>
           <p className="mn-p">Il s'engage par ailleurs à remettre dans les meilleurs délais au Mandataire tous les documents nécessaires à l'exécution de son mandat, notamment les suivants, sans que cette liste soit exhaustive :</p>
           <ul className="mn-liste">
             <li>Les pièces justificatives de son titre propriété ;</li>
-            <li>Le Diagnostic de Performance Energétique, qui doit être affiché dès l'annonce de mise en vente du bien ;</li>
-            <li>Le reste du dossier de diagnostic technique obligatoire, au plus tard pour le jour de l'avant contrat. Le coût de production et d'établissement de ces documents restera à la charge du Mandant.</li>
+            <li>Le Diagnostic de Performance Energétique, qui doit être affiché dès l'annonce de mise en {L("vente", "location")} du bien ;</li>
+            {loc && <li>Les plans du Bien ;</li>}
+            {loc && <li>Le règlement de copropriété, s'il en existe un, qui doit permettre la destination prévue au bail ;</li>}
+            {loc && <li>Le dernier avis de taxe foncière ;</li>}
+            <li>Le reste du dossier de diagnostic technique obligatoire, au plus tard pour le jour {L("de l'avant contrat", "de la signature du bail")}. Le coût de production et d'établissement de ces documents restera à la charge du Mandant.</li>
           </ul>
           <p className="mn-p">Le Mandant donne tout pouvoir au Mandataire pour commander et réclamer toute pièce complémentaire, tels que des documents d'urbanisme par exemple.</p>
           <p className="mn-p">Le Mandant autorise le Mandataire :</p>
           <ul className="mn-liste">
-            <li>à présenter et à faire visiter le bien, y compris à distance et de manière virtuelle, étant précisé et accepté par le Mandant que le Mandataire ne pourra, en aucun cas, être considéré comme le gardien juridique du bien à vendre,</li>
-            <li>à établir tout acte sous seing privé aux clauses et conditions nécessaires à l'accomplissement des présentes et, notamment, le compromis ou la promesse de vente.</li>
+            <li>à présenter et à faire visiter le bien, y compris à distance et de manière virtuelle, étant précisé et accepté par le Mandant que le Mandataire ne pourra, en aucun cas, être considéré comme le gardien juridique du bien à {L("vendre", "louer")},</li>
+            <li>à établir tout acte sous seing privé aux clauses et conditions nécessaires à l'accomplissement des présentes et, notamment, {L("le compromis ou la promesse de vente", "le projet de bail commercial")}.</li>
             <li>à faire appel, en tant que de besoin et sous sa responsabilité, à tout concours extérieur qu'il jugerait utile en vue de mener à bonne fin le présent mandat,</li>
-            <li>à accomplir une mission de séquestre des sommes qui pourront être éventuellement versées par l'acquéreur.</li>
+            <li>à accomplir une mission de séquestre des sommes qui pourront être éventuellement versées par {L("l'acquéreur", "le preneur")}.</li>
             <li>à déléguer le présent mandat à tous professionnels choisis par ce dernier et dûment habilité à cet effet, pendant toute la durée du mandat.</li>
           </ul>
-          <p className="mn-p">Pendant le cours du présent mandat et dans l'année qui suivra l'expiration ou la résiliation du présent mandat, le Mandant s'interdit de vendre le Bien, directement ou indirectement, à une personne présentée à lui par le Mandataire ou un Mandataire qu'il aura substitué.<br />La présente interdiction vise également le conjoint ou partenaire avec lequel cette personne se porterait acquéreur.</p>
-          <p className="mn-penale">Si le Mandant ne respectait pas cette interdiction de vendre a une personne presentee par le Mandataire, le Mandataire aura droit, à titre de clause pénale, à une indemnité forfaitaire à la charge du Mandant, d'un montant égal à celui de la rémunération toutes taxes comprises du Mandataire prévue au présent mandat</p>
-          <p className="mn-p">En outre, le Mandant s'oblige, s'il vend le bien sans l'intermédiaire du Mandataire, à lui communiquer immédiatement, les nom et adresse de l'acquéreur.</p>
+          <p className="mn-p">Pendant le cours du présent mandat et dans l'année qui suivra l'expiration ou la résiliation du présent mandat, le Mandant s'interdit de {L("vendre", "louer")} le Bien, directement ou indirectement, à une personne présentée à lui par le Mandataire ou un Mandataire qu'il aura substitué.<br />La présente interdiction vise également le conjoint ou partenaire avec lequel cette personne se porterait {L("acquéreur", "preneur")}.</p>
+          <p className="mn-penale">Si le Mandant ne respectait pas cette interdiction de {L("vendre", "louer")} a une personne presentee par le Mandataire, le Mandataire aura droit, à titre de clause pénale, à une indemnité forfaitaire à la charge du Mandant, d'un montant égal à celui de la rémunération toutes taxes comprises du Mandataire prévue au présent mandat</p>
+          <p className="mn-p">En outre, le Mandant s'oblige, s'il {L("vend", "loue")} le bien sans l'intermédiaire du Mandataire, à lui communiquer immédiatement, les nom et adresse {L("de l'acquéreur", "du preneur")}.</p>
           <p className="mn-h3">Obligations du Mandataire</p>
           <p className="mn-p">Le Mandataire s'engage à réaliser les actions de commercialisation et de communication suivantes :</p>
           <ul className="mn-liste">
-            <li>Etablir un dossier complet de présentation du Bien à vendre</li>
-            <li>Etablir un dossier photo du Bien à vendre</li>
-            <li>Publier l'annonce du Bien à vendre sur le site internet du réseau dont fait partie le Mandataire</li>
-            <li>Publier l'annonce du Bien à vendre sur tous les principaux sites internet spécialisés dans la vente de biens immobiliers, que le Mandataire jugera efficaces</li>
+            <li>Etablir un dossier complet de présentation du Bien à {L("vendre", "louer")}</li>
+            <li>Etablir un dossier photo du Bien à {L("vendre", "louer")}</li>
+            <li>Publier l'annonce du Bien à {L("vendre", "louer")} sur le site internet du réseau dont fait partie le Mandataire</li>
+            <li>Publier l'annonce du Bien à {L("vendre", "louer")} sur tous les principaux sites internet spécialisés dans la {L("vente", "location")} de biens immobiliers, que le Mandataire jugera efficaces</li>
           </ul>
           <p className="mn-p">Le Mandataire s'oblige à tenir informé le Mandant de ses actions après chaque visite du bien, en lui adressant systématiquement un compte rendu complet.</p>
 
           <p className="mn-h2">ENGAGEMENT DE NON-DISCRIMINATION</p>
-          <p className="mn-p">Il est ici rappelé que constitue une discrimination toute distinction opérée entre les personnes en raison de leurs origine, sexe, situation de famille, grossesse, apparence physique, particulière vulnérabilité résultant de leur situation économique, apparente ou connue de son auteur, patronyme, lieu de résidence, état de santé, perte d'autonomie, handicap, caractéristiques génétiques, moeurs, orientation sexuelle, identité de genre, âge, opinions politiques, activités syndicales, capacité à s'exprimer dans une langue autre que le français, appartenance ou non-appartenance, vraie ou supposée, à une ethnie, une nation, une prétendue race ou une religion déterminée. Le mandataire informe le mandant que toute discrimination commise à l'égard d'une personne est ainsi punie de trois ans d'emprisonnement et de 45 000 € d'amende (article 225-2 du code pénal).<br />En conséquence, les parties prennent l'engagement exprès de n'opposer à un candidat à l'acquisition des présents biens aucun refus fondé sur un motif discriminatoire au sens de l'article 225-1 du code pénal.<br />Par ailleurs, le mandant s'interdit expressément de donner au mandataire des directives et consignes, verbales ou écrites, tendant à refuser l'acquisition pour des motifs discriminatoires au sens de l'article 225-1 du code pénal.</p>
+          <p className="mn-p">Il est ici rappelé que constitue une discrimination toute distinction opérée entre les personnes en raison de leurs origine, sexe, situation de famille, grossesse, apparence physique, particulière vulnérabilité résultant de leur situation économique, apparente ou connue de son auteur, patronyme, lieu de résidence, état de santé, perte d'autonomie, handicap, caractéristiques génétiques, moeurs, orientation sexuelle, identité de genre, âge, opinions politiques, activités syndicales, capacité à s'exprimer dans une langue autre que le français, appartenance ou non-appartenance, vraie ou supposée, à une ethnie, une nation, une prétendue race ou une religion déterminée. Le mandataire informe le mandant que toute discrimination commise à l'égard d'une personne est ainsi punie de trois ans d'emprisonnement et de 45 000 € d'amende (article 225-2 du code pénal).<br />En conséquence, les parties prennent l'engagement exprès de n'opposer à un candidat à {L("l'acquisition", "la location")} des présents biens aucun refus fondé sur un motif discriminatoire au sens de l'article 225-1 du code pénal.<br />Par ailleurs, le mandant s'interdit expressément de donner au mandataire des directives et consignes, verbales ou écrites, tendant à refuser {L("l'acquisition", "la location")} pour des motifs discriminatoires au sens de l'article 225-1 du code pénal.</p>
 
           <p className="mn-h2">Données personnelles</p>
           <ol className="mn-liste-num">

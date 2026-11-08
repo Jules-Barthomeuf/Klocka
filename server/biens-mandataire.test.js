@@ -700,3 +700,12 @@ test('Mes biens : retirer puis annuler, jamais le bien d’un autre', async () =
   retirerBien([`estimation:${e.id}`], moi, { annuler: true });
   assert.equal(Records.get('EstimationMandataire', e.id).retire_le, null);
 });
+
+test("le propriétaire écrit sur le dossier prime sur celui d'une estimation rattachée par l'adresse", () => {
+  const proprietaires = [{ id: 'p-vrai', statut: 'mandat_signe', nom_bien: '210 route de l’Armistice' }, { id: 'p-ancien', statut: 'rdv_pris' }];
+  const estimations = [{ id: 'e1', proprietaire_id: 'p-ancien', statut: 'brouillon' }];
+  const dossiers = [{ id: 'd1', proprietaire_id: 'p-vrai', estimation: { id: 'e1' }, statut: 'documents_en_cours' }];
+  const biens = regrouperBiens({ estimations, dossiers, proprietaires });
+  const b = bienDe(biens, 'proprietaire:p-vrai');
+  assert.equal(b?.dossier?.id, 'd1', 'la Data room du bien est bien la sienne');
+});

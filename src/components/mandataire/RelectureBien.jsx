@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import { estLocation } from "@/lib/location";
 
 /**
  * La fiche à relire d'un bien qu'on fait entrer (4 nov. 2026, Jules : « il faut qu'il le relise, et s'il y a des choses
@@ -21,15 +22,18 @@ export function lignesDeRelecture(p) {
   const m = p?.mandat_importe || {};
   const visite = (b.jalons || []).find((j) => j.quoi === "visite");
   const prix = b.prix_accord || m.prix || r.prix || null;
+  const location = estLocation(p);
   const lignes = [
     { cle: "adresse", mot: "Adresse", valeur: p?.adresse || "", envoi: (v) => ({ adresse: v }) },
     { cle: "ville", mot: "Ville", valeur: p?.ville || "", envoi: (v) => ({ ville: v }) },
+    { cle: "transaction", mot: "Opération", valeur: location ? "location" : "vente", lu: location ? "Location" : "Vente", choix: [["vente", "Vente"], ["location", "Location"]], envoi: (v) => ({ transaction: v }) },
     { cle: "type_bien", mot: "Type", valeur: p?.type_bien || "", lu: TYPES.find(([k]) => k === p?.type_bien)?.[1] || "", choix: TYPES, envoi: (v) => ({ type_bien: v }) },
     { cle: "proprietaire", mot: "Propriétaire", valeur: p?.nom || "", envoi: (v) => ({ proprietaire: v }) },
     { cle: "telephone", mot: "Téléphone", valeur: p?.telephone || "", envoi: (v) => ({ telephone: v }) },
     { cle: "email", mot: "Mail", valeur: p?.email || "", envoi: (v) => ({ email: v }) },
-    { cle: "prix", mot: "Prix", valeur: prix ? String(prix) : "", lu: euros(prix), nombre: true, envoi: (v) => ({ prix: v }) },
-    { cle: "loyer_annuel", mot: "Loyer annuel", valeur: r.loyer_annuel ? String(r.loyer_annuel) : "", lu: euros(r.loyer_annuel), nombre: true, envoi: (v) => ({ loyer_annuel: v }) },
+    // Une location n'a pas de prix : le loyer demandé suffit (6 nov. 2026).
+    ...(location ? [] : [{ cle: "prix", mot: "Prix", valeur: prix ? String(prix) : "", lu: euros(prix), nombre: true, envoi: (v) => ({ prix: v }) }]),
+    { cle: "loyer_annuel", mot: location ? "Loyer demandé / an" : "Loyer annuel", valeur: r.loyer_annuel ? String(r.loyer_annuel) : "", lu: euros(r.loyer_annuel), nombre: true, envoi: (v) => ({ loyer_annuel: v }) },
     { cle: "surface", mot: "Surface", valeur: r.surface ? String(r.surface) : "", lu: r.surface ? `${r.surface} m²` : "", nombre: true, envoi: (v) => ({ surface: v }) },
     { cle: "visite_le", mot: "Visite", valeur: jour(visite?.le), lu: date(visite?.le), date: true, envoi: (v) => ({ visite_le: v }) },
   ];

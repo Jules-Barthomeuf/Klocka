@@ -61,7 +61,7 @@ const normaliser = (s) => String(s || '').toLowerCase().normalize('NFD').replace
  * @returns {Promise<{ok: true, prospect: object} | {ok: false, error: string, candidats?: Array}>}
  */
 export async function chercherProspect({ email = null, nom = null } = {}) {
-  if (!mondayConfigure()) return { ok: false, error: "Monday n'est pas configuré (MONDAY_TOKEN)." };
+  if (!mondayConfigure()) return { ok: false, error: "Twenty CRM n'est pas branché ici." };
   if (!TABLEAUX.prospects) return { ok: false, error: "Le tableau Prospects n'est pas déclaré (MONDAY_BOARD_PROSPECTS)." };
   if (!email && !nom) return { ok: false, error: 'Ni nom ni adresse : rien à chercher.' };
 

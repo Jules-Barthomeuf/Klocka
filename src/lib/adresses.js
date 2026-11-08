@@ -31,6 +31,8 @@ export const ADRESSES = {
   ImpressionPresentation: "ImpressionPresentation",
   ImpressionAvis: "ImpressionAvis",
   DepotVendeur: "DepotVendeur",
+  // Le jeton suit dans le chemin : /data-room/:jeton (7 nov. 2026).
+  DataRoomAcquereur: "data-room",
   ImpressionTeaser: "ImpressionTeaser",
   ImpressionLoi: "ImpressionLoi",
   ALX: "ALX",

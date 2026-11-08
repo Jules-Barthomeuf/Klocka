@@ -13,6 +13,8 @@ import { J } from "@/design/jetons";
 import Chargement from "@/components/ui/Chargement";
 import { PastilleTest } from "@/components/mandataire/kit";
 import { exclusionsDe, kEuros, fourchetteEuros } from "@/lib/clients-commerces";
+import VillesCotees from "@/components/clients/VillesCotees";
+import { resumeVillesCotees } from "../../server/villes-cotees.js";
 
 // Les clients Klocka vus du mandataire (maquette « Clients Admin », 4 oct.
 // 2026, reprise pour le côté mandataire) : des cartes ou un tableau, une
@@ -20,7 +22,9 @@ import { exclusionsDe, kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 // Les clients restent anonymes : des initiales, jamais un nom, un mail ou
 // une société, ni le conseiller qui les suit.
 
-const zonesDe = (d) => (d.zones?.length ? d.zones.join(", ") : "Toute la France");
+// Sans zone précise, les villes cotées (6 nov. 2026, Jules) : leur détail au clic sur « +n villes ».
+const zonesDe = (d) => (d.zones?.length ? d.zones.join(", ") : resumeVillesCotees());
+const zonesVues = (d) => (d.zones?.length ? d.zones.join(", ") : <VillesCotees />);
 const typeDe = (d) => (d.type_commerce ? d.type_commerce.charAt(0).toUpperCase() + d.type_commerce.slice(1) : "Tout commerce");
 const nomDe = (d) => (/^client/i.test(d.reference || "") ? d.reference : `Client ${d.reference}`);
 const rendementDe = (d) => (d.rendement_min ? `${String(d.rendement_min).replace(".", ",")} %` : "—");
@@ -167,7 +171,7 @@ function CarteClient({ d, onOuvrir }) {
         <div className="grid grid-cols-2 gap-x-3.5 gap-y-3">
           <Critere mot="Budget" valeur={budget(d)} />
           <Critere mot="Rendement min." valeur={rendementDe(d)} />
-          <Critere mot="Zones" valeur={zonesDe(d)} large />
+          <Critere mot="Zones" valeur={zonesVues(d)} large />
         </div>
         <div className="mt-auto flex items-center justify-between gap-2.5 border-t border-trait pt-3.5 max-md:flex-wrap">
           <span className="text-[14px]">
@@ -208,7 +212,7 @@ function TableauClients({ lignes, onOuvrir }) {
               </div>
             </div>
             <span className="text-[14px] text-encre">{typeDe(d)}</span>
-            <span className="text-[14px] text-craie">{zonesDe(d)}</span>
+            <span className="text-[14px] text-craie">{zonesVues(d)}</span>
             <span className="text-[14px] tabular-nums text-encre">{budget(d)}</span>
             <span className="text-[14px] tabular-nums text-encre">{rendementDe(d)}</span>
             <span className="text-[13px] leading-[1.4] text-ardoise">{exclusionsDe(d).map((f) => f.mot).join(", ") || "—"}</span>
@@ -229,7 +233,7 @@ function FicheClient({ d, onFermer, onProspecter }) {
   }, [onFermer]);
   const criteres = [
     ["Type de bien", typeDe(d)],
-    ["Zones", zonesDe(d)],
+    ["Zones", zonesVues(d)],
     ["Budget", budget(d)],
     ["Rendement minimum", rendementDe(d)],
     ["Exclusions", exclusionsDe(d).length ? exclusionsDe(d).map((f) => f.mot).join(", ") : "—"],

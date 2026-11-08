@@ -32,6 +32,21 @@ export function monterVisites(app) {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await V()).signerBon(req.params.id, req.body || {}, user));
   }));
+  // Le bon signé à distance (7 nov. 2026) : le lien à envoyer au visiteur, puis sa page publique (hors de la garde
+  // /api/mandataire), ouverte par le jeton seul.
+  app.post('/api/mandataire/visites/:id/lien', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await V()).lienDeSignature(req.params.id, user));
+  }));
+  app.get('/api/bon-visite/:jeton', wrap(async (req, res) => {
+    const r = await (await V()).bonParJeton(req.params.jeton);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/bon-visite/:jeton', wrap(async (req, res) => {
+    const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+    rendre(res, await (await V()).signerParJeton(req.params.jeton, req.body || {}, { ip, navigateur: req.headers['user-agent'] || null }));
+  }));
   app.post('/api/mandataire/visites/:id/recit', roleAvantDepot, upload.single('audio'), wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     const fs = await import('fs');

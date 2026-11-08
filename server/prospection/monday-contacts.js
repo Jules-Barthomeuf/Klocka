@@ -62,7 +62,7 @@ export function valeursContact(c, x, { aujourdhui = new Date().toISOString().sli
  */
 export async function versMonday(contacts, user = null) {
   const { mondayConfigure, creerElement, utilisateursMonday } = await import('../monday.js');
-  if (!mondayConfigure()) return { ok: false, error: "Monday n'est pas configuré (MONDAY_TOKEN)." };
+  if (!mondayConfigure()) return { ok: false, error: "Twenty CRM n'est pas branché ici." };
   const c = await colonnesDuTableau();
   const deja = await dejaAuTableau();
   let collaborateur = null;

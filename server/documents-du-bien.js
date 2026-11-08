@@ -15,6 +15,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { Records, CHEMIN_UPLOADS } from './db.js';
 import { documentsDuMandataire } from './documents-mandataire.js';
+import { CASES as CASES_CONNUES, caseDuType } from '../src/lib/data-room.js';
 
 /** Les natures, dans l'ordre où la vue d'ensemble les montre. */
 export const NATURES = [
@@ -23,6 +24,8 @@ export const NATURES = [
   ['bail', 'Bail'],
   ['quittances', 'Quittances et loyers'],
   ['bilans', 'Bilans et comptes'],
+  ['liasses', 'Liasses fiscales'],
+  ['ca_en_cours', "Chiffre d'affaires de l'année"],
   ['taxe_fonciere', 'Taxe foncière'],
   ['diagnostics', 'Diagnostics'],
   ['copropriete', 'Copropriété'],
@@ -30,6 +33,12 @@ export const NATURES = [
   ['titre', 'Titre de propriété'],
   ['plans', 'Plans et surfaces'],
   ['kbis', 'Kbis et statuts'],
+  ['kbis_fonds', 'Kbis du fonds'],
+  ['statuts', 'Statuts'],
+  ['inventaire', 'Inventaire du matériel'],
+  ['personnel', 'Personnel'],
+  ['licences', 'Licences et autorisations'],
+  ['contrats', 'Contrats en cours'],
   ['photos', 'Photos'],
   ['autres', 'Autres documents'],
   ['assistant', "Faits avec l'assistant"],
@@ -38,7 +47,8 @@ const CLES = new Set(NATURES.map(([k]) => k));
 // Les pièces de la Data room qui portent un autre nom que leur nature.
 const DE_LA_DATAROOM = { statuts_vendeur: 'kbis', kbis_vendeur: 'kbis', pouvoirs: 'kbis' };
 // Une nature dont la Data room a la case ; les autres y vont dans « Autres documents ».
-const CASES_DATAROOM = new Set(['bail', 'quittances', 'kbis', 'copropriete', 'diagnostics', 'taxe_fonciere', 'titre', 'charges', 'plans', 'autres']);
+// Toutes les cases connues (murs, fonds…, src/lib/data-room.js, 6 nov. 2026).
+const CASES_DATAROOM = new Set(Object.keys(CASES_CONNUES));
 
 const sans = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -68,7 +78,9 @@ export function natureDuNom(nom, mimetype = null) {
 export const horsDataroom = (nature) => nature === 'avis' || nature === 'mandat';
 
 /** Pure : la case de la Data room où va un document de cette nature. */
-export const caseDataroom = (nature) => (CASES_DATAROOM.has(nature) ? nature : 'autres');
+// La case dépend du type du bien (6 nov. 2026) : des bilans vont dans leur case pour un fonds, dans « Autres » pour des murs.
+// Un bien à louer a sa liste à lui (`transaction`, 6 nov. 2026).
+export const caseDataroom = (nature, type = null, transaction = null) => (CASES_DATAROOM.has(nature) && caseDuType(nature, type, transaction)) || 'autres';
 
 // Ce que l'assistant a fait s'ouvre dans son étape du bien.
 const ETAPE_DU_TYPE = { mandat: 'mandat', avis: 'estimation', compte_rendu: 'previsite', teaser: 'marche', offre: 'offre' };
@@ -171,8 +183,14 @@ export async function deposerAuBien(proprietaireId, fichiers = [], user, { natur
   const le = new Date().toISOString();
   const avant = p.biens?.pieces || [];
   const nouvelles = fichiers.filter((f) => f?.url && !avant.some((x) => x.url === f.url))
-    .map((f) => ({ id: crypto.randomUUID().slice(0, 12), nom: f.nom || 'Document', url: f.url, nature: nature || natureDuNom(f.nom, f.mimetype), le, par, ...(perso ? { case_perso: perso.cle } : {}) }));
+    .map((f) => ({ id: crypto.randomUUID().slice(0, 12), nom: f.nom || 'Document', url: f.url, nature: nature || (f.nature && CLES.has(f.nature) ? f.nature : natureDuNom(f.nom, f.mimetype)), le, par, ...(f.decoupe_de ? { decoupe_de: f.decoupe_de } : {}), ...(perso ? { case_perso: perso.cle } : {}) }));
   if (!nouvelles.length) return { ok: true, deposes: [] };
+  // Une case choisie (sa nature ou une case nommée) garde dix documents au plus (6 nov. 2026, Jules) ; « autres » et les
+  // photos n'ont pas de limite.
+  if ((nature && !['autres', 'photos'].includes(nature)) || perso) {
+    const deja = avant.filter((x) => (perso ? x.case_perso === perso.cle : x.nature === nature && !x.case_perso)).length;
+    if (deja + nouvelles.length > 10) return { ok: false, error: `10 documents au plus dans une case${deja < 10 ? ` : il reste ${10 - deja} place${10 - deja > 1 ? 's' : ''}` : ''}.` };
+  }
   // Un bien en import : le mandat déposé le fait passer au mandat signé, l'avis à la visite faite (4 nov. 2026, Jules).
   let validee = p.biens?.validee ?? null;
   if (p.biens?.import && !p.biens.import.fini) {
@@ -189,7 +207,7 @@ export async function deposerAuBien(proprietaireId, fichiers = [], user, { natur
     const cleDossier = perso ? (await (await import('./dossier-vente.js')).nouvelleCase(o.dossier.id, perso.mot, qui)).cle : null;
     for (const x of nouvelles) {
       if (x.nature === 'photos' || horsDataroom(x.nature)) continue;
-      const r = P.ajouterPiece(o.dossier.id, cleDossier || caseDataroom(x.nature), { filename: x.nom, url: x.url, par }, qui);
+      const r = P.ajouterPiece(o.dossier.id, cleDossier || caseDataroom(x.nature, P.typeDuDossier(o.dossier), P.transactionDuDossier(o.dossier)), { filename: x.nom, url: x.url, par }, qui);
       if (!r.ok) console.warn(`[documents du bien] Data room : ${r.error}`);
     }
   }

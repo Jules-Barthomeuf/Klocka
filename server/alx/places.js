@@ -94,7 +94,7 @@ export async function numerosDeLaRue(nom, ville) {
   const out = [];
   for (const n of sondes) {
     try {
-      const r = await fetch(`https://api-adresse.data.gouv.fr/search/?type=housenumber&limit=1&q=${encodeURIComponent(`${n} ${nom} ${ville}`)}`, { signal: AbortSignal.timeout(15000) });
+      const r = await fetch(`https://data.geopf.fr/geocodage/search/?type=housenumber&limit=1&q=${encodeURIComponent(`${n} ${nom} ${ville}`)}`, { signal: AbortSignal.timeout(15000) });
       const f = (await r.json()).features?.[0];
       if (f && cleRue(f.properties.street || f.properties.name) === k && f.properties.housenumber) out.push({ numero: f.properties.housenumber, lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] });
     } catch {

@@ -249,7 +249,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     if (clientsConfigure()) {
       const clients = await clientsActifs();
       const budgets = clients.map((c) => c.budget).filter(Boolean);
-      noter(villeId, `${clients.length} client${clients.length > 1 ? 's' : ''} actif${clients.length > 1 ? 's' : ''} sur Monday${budgets.length ? `, budgets de ${Math.min(...budgets).toLocaleString('fr-FR')} à ${Math.max(...budgets).toLocaleString('fr-FR')} €` : ''}.`);
+      noter(villeId, `${clients.length} client${clients.length > 1 ? 's' : ''} actif${clients.length > 1 ? 's' : ''} dans Twenty CRM${budgets.length ? `, budgets de ${Math.min(...budgets).toLocaleString('fr-FR')} à ${Math.max(...budgets).toLocaleString('fr-FR')} €` : ''}.`);
     } else {
       noter(villeId, 'Twenty CRM non connecté : ALX cherche pour le mandat général, 200 000 à 1 000 000 €.');
     }

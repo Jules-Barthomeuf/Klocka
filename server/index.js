@@ -1712,6 +1712,8 @@ app.listen(PORT, () => {
   // Un démarrage est un incident comme un autre : c'est lui qui date les
   // redémarrages, et donc les 502 qu'ils ont provoqués.
   noterIncident('demarrage', `Klocka démarre sur le port ${PORT}`);
+  // Les acquéreurs des biens en vente partent dans Twenty (8 nov. 2026, server/crm-acquereurs.js) : relus toutes les 20 s.
+  import('./crm-acquereurs.js').then((m) => m.demarrerRattrapage({ toutesLes: 20000 })).catch((e) => console.warn(`[crm] acquéreurs : ${e?.message || e}`));
   const url = process.env.APP_URL || `http://localhost:${PORT}`;
   const accounts = listAccounts();
   console.log(`\n  ▸ Klocka : ${url}\n`);

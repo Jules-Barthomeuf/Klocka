@@ -58,7 +58,7 @@ export async function geolocaliser(project) {
   const biais = pres ? `&lat=${pres.lat}&lon=${pres.lon}` : "";
   for (const q of adressesAEssayer(project)) {
     try {
-      const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=5&q=" + encodeURIComponent(q) + biais);
+      const r = await fetch("https://data.geopf.fr/geocodage/search/?limit=5&q=" + encodeURIComponent(q) + biais);
       const f = r.ok ? ((await r.json()).features || []).find((x) => resultatPlausible(project, x, pres)) : null;
       if (f) return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], rue: f.properties?.street || f.properties?.name || null };
     } catch {

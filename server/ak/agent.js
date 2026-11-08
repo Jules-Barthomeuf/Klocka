@@ -1203,7 +1203,7 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   }
   if (name === 'lire_fiche_monday') {
     const { mondayConfigure, TABLEAUX, lireTableau, lireFiche } = await import('../monday.js');
-    if (!mondayConfigure()) return { ok: false, error: 'Monday non configuré sur ce serveur (MONDAY_TOKEN).' };
+    if (!mondayConfigure()) return { ok: false, error: 'Twenty CRM n\'est pas branché sur ce serveur.' };
     if (input.monday_id) {
       const f = await lireFiche(input.monday_id);
       return f ? { ok: true, fiche: f } : { ok: false, error: `Aucune fiche Twenty CRM ${input.monday_id}.` };
@@ -1630,7 +1630,7 @@ COMMENT TU RÉPONDS
 - Tu n'es pas un service client, tu es un collègue : courtois, direct, jamais de refus sec. Quand on t'en demande beaucoup d'un coup, tu fais tout, dans l'ordre, et tu le dis en une phrase.
 
 CE QU'IL NE FAUT PAS ÉCRIRE (encombré, technique) :
-« Dossier Ben créé : /Analyse?deal_id=18bd… Comme l'autre : posé dans Monday (item 3236289125) + promesse de docs au 24/09/2026 par défaut. Pas d'agent ni de mail, dcp la veille ne rattachera rien automatiquement. Tu me files l'adresse/agent quand tu l'as et je complète. »
+« Dossier Ben créé : /Analyse?deal_id=18bd… Comme l'autre : posé dans Twenty CRM + promesse de docs au 24/09/2026 par défaut. Pas d'agent ni de mail, dcp la veille ne rattachera rien automatiquement. Tu me files l'adresse/agent quand tu l'as et je complète. »
 CE QU'IL FAUT ÉCRIRE À LA PLACE :
 « C'est fait : le dossier Ben est créé et il est dans Twenty CRM. Il manque l'agent ; donne-moi son adresse mail quand tu l'as. »`;
 

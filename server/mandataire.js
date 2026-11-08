@@ -15,6 +15,7 @@
 import { effortDuChat } from './ak/effort.js';
 import { OUTIL_RESTITUTION } from './restitution-avis.js';
 import { OUTILS_VISITE, NOMS_OUTILS_VISITE } from './visites-acquereur.js';
+import { OUTIL_ACQUEREUR } from './acquereurs-du-bien.js';
 import { auBanc, SIMULES_MANDATAIRE, simule } from './ak/banc/garde.js';
 import { tracer } from './ak/trace.js';
 import fs from 'fs';
@@ -296,10 +297,29 @@ export function marchePourChat({ sources = null, competence = null } = {}) {
 export const OUTILS_MANDATAIRE = [
   OUTIL_RESTITUTION,
   ...OUTILS_VISITE,
+  // Le tableau des acquéreurs d'un bien en vente (7 nov. 2026, Jules : « comme dans un tableau Monday »).
+  OUTIL_ACQUEREUR,
   {
     name: 'annuler_derniere',
     description: "Annule la dernière relance ou le dernier rendez-vous que tu as créé pour ce mandataire (« annule la dernière relance »). Rend ce qui a été annulé.",
     input_schema: { type: 'object', properties: { genre: { type: 'string', enum: ['relance', 'rdv', 'tout'], description: 'relance, rdv, ou le dernier des deux' } } },
+  },
+  {
+    // 7 nov. 2026, Jules : « Antoine Pétry veut des murs à Lyon à 500 000 € » ; l'assistant disait ne pas pouvoir l'ajouter.
+    name: 'ajouter_acquereur',
+    description: "Ajoute un acquéreur (ou un candidat locataire) dans le fichier du mandataire (Clients › Mes acquéreurs), avec ce qu'il cherche : quand le mandataire dit que quelqu'un cherche un bien (« Antoine Pétry veut des murs à Lyon à 500 000 € »). Un acquéreur déjà là (même nom, téléphone ou e-mail) n'est pas doublé. N'invente rien : un critère non dit reste vide. Puis mes_acquereurs n'est pas utile ; cherche plutôt dans ses biens ce qui lui correspond.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        nom: { type: 'string' }, telephone: { type: 'string' }, email: { type: 'string' },
+        recherche: { type: 'string', description: "Ce qu'il cherche, en clair : « murs de commerce loués, pas de fonds »" },
+        villes: { type: 'string', description: 'Les villes ou quartiers, séparés par des virgules' },
+        budget_min: { type: 'string' }, budget_max: { type: 'string', description: '« 500 k », « 500 000 »' },
+        rendement_min: { type: 'string', description: 'En %, s’il le dit' },
+        remarque: { type: 'string' },
+      },
+      required: ['nom'],
+    },
   },
   {
     name: 'mes_acquereurs',
@@ -308,7 +328,7 @@ export const OUTILS_MANDATAIRE = [
   },
   {
     name: 'mes_dossiers',
-    description: "L'état des biens du mandataire : estimation (brouillon, prête, envoyée — elle est au mandataire, pas de validation Klocka), mandat (demandé, prêt, signé, enregistré), dossier (pièces reçues et manquantes, en étude, go, compléments, no-go), mise en marché (préparation, présenté, offre, compromis, acte). Avec la date du dernier changement et le mot de Klocka. Filtre facultatif par bien ou par propriétaire (« M. Durand » retrouve sa pharmacie).",
+    description: "L'état des biens du mandataire : estimation (brouillon, prête, envoyée — elle est au mandataire, pas de validation Klocka), mandat (demandé, prêt, signé, enregistré), dossier ou Data room (pièces reçues et manquantes ; plus d'étude ni de go de Klocka : les pièces obligatoires reçues, le mandataire met en vente lui-même), mise en marché (préparation, présenté, offre, compromis, acte). Avec la date du dernier changement et le mot de Klocka. Filtre facultatif par bien ou par propriétaire (« M. Durand » retrouve sa pharmacie).",
     input_schema: { type: 'object', properties: { bien: { type: 'string', description: 'Le bien (« la pharmacie ») ou le propriétaire (« M. Durand »), facultatif' } } },
   },
   {
@@ -542,7 +562,7 @@ export const OUTILS_MANDATAIRE = [
   {
     name: 'avancer_bien',
     description:
-      "Faire avancer un bien d'étape dans Biens. Les étapes (26 oct. 2026 ; Data room le 2 nov.) : Visite (previsite), Avis de valeur (estimation), Mandat, Data room (dataroom), Commercialisation (marche), Offres, Vente. « La visite est faite » sans avis lancé : previsite. « Il est d'accord à 460 k€ » : estimation avec prix (le prix d'accord est le résultat de l'avis). « Le mandat est signé » : mandat. Rien n'est écrit : l'outil prépare le changement et l'écran le fait confirmer d'un tap. Le rendez-vous fixé, lui, passe par noter_rdv ; un avis lancé fait déjà la Pré-visite, sans avancer_bien. Après l'appel, dis en une ligne ce que tu proposes (« Je note l'accord à 460 000 € ? ») puis enchaîne sur la suite (le mandat à préparer).",
+      "Faire avancer un bien d'étape dans Biens. Les étapes (six à l'écran depuis le 7 nov. 2026) : Visite (previsite), Avis de valeur (estimation), Mandat, Mise en vente en deux temps (la Data room : dataroom ; le teaser et les annonces : marche), Offres, Vente. « La visite est faite » sans avis lancé : previsite. « Il est d'accord à 460 k€ » : estimation avec prix (le prix d'accord est le résultat de l'avis). « Le mandat est signé » : mandat. Rien n'est écrit : l'outil prépare le changement et l'écran le fait confirmer d'un tap. Le rendez-vous fixé, lui, passe par noter_rdv ; un avis lancé fait déjà la Pré-visite, sans avancer_bien. Après l'appel, dis en une ligne ce que tu proposes (« Je note l'accord à 460 000 € ? ») puis enchaîne sur la suite (le mandat à préparer).",
     input_schema: {
       type: 'object',
       properties: {
@@ -550,6 +570,18 @@ export const OUTILS_MANDATAIRE = [
         proprietaire_id: { type: 'string', description: "L'id de la fiche, si la conversation est ouverte depuis elle" },
         etape: { type: 'string', enum: ['previsite', 'estimation', 'mandat', 'dataroom', 'marche', 'offre', 'vente'] },
         prix: { type: 'string', description: "Pour estimation : le prix convenu avec le propriétaire (« 460 k€ »)" },
+      },
+      required: ['etape'],
+    },
+  },
+  {
+    name: 'ouvrir_etape',
+    description: "Ouvre à l'écran une étape du bien, tout de suite, sans bouton à toucher (6 nov. 2026, Jules) : « on passe à l'estimation », « allons au mandat », ou un oui à « Passer à l'estimation ? ». La page du bien s'ouvre sur l'étape ; ce qui a été dit (le compte rendu, la visite) la suit. Une étape plus loin que celle en cours devient l'étape en cours (jamais en arrière). Après l'appel, une ligne : ce qui s'ouvre et ce que tu vas demander.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        etape: { type: 'string', enum: ['previsite', 'estimation', 'mandat', 'dataroom', 'marche', 'offre', 'vente'], description: 'Visite (previsite), Avis de valeur ou Estimation du loyer (estimation), Mandat, Mise en vente ou en location : la Data room (dataroom), le teaser et les annonces (marche), Offres ou Candidats (offre), Vente ou Bail signé (vente)' },
+        qui: { type: 'string', description: 'Le bien, inutile depuis une fiche ou une page de bien' },
       },
       required: ['etape'],
     },
@@ -578,6 +610,7 @@ export const OUTILS_MANDATAIRE = [
         prochaine_action_le: { type: 'string', description: 'Sa date, AAAA-MM-JJ ou AAAA-MM-JJTHH:MM' },
         statut: { type: 'string', enum: ['a_appeler', 'contacte', 'pas_vendeur'], description: 'Pas d\'intérêt pose une relance dans six mois. Le rendez-vous passe par noter_rdv, une étape de Biens par avancer_bien.' },
         liste: { type: 'string', description: 'Le nom de la liste où ranger la fiche (créée si elle n\'existe pas)' },
+        transaction: { type: 'string', enum: ['vente', 'location'], description: "L'opération du bien, dès que la conversation la dit sans qu'on la demande : location quand le propriétaire veut louer son local (trouver un locataire, un loyer demandé, un mandat de location) ; vente quand il veut vendre. Tout le parcours suit (estimation du loyer, mandat de location, candidats)." },
         section: {
           type: 'object', description: 'Une partie libre de la fiche',
           properties: { action: { type: 'string', enum: ['ajouter', 'modifier', 'retirer'] }, titre: { type: 'string' }, texte: { type: 'string' } },
@@ -721,6 +754,42 @@ export function telephoneDicte(texte) {
   return /^0[1-9]\d{8}$/.test(c) ? { ok: true, numero: c.replace(/(\d{2})(?=\d)/g, '$1 ') } : { ok: false, chiffres: c };
 }
 
+const ADRESSE = /[^\s<>,;]+@[^\s<>,;]+\.[a-z]{2,}/i;
+
+/**
+ * L'adresse d'un mail préparé (7 nov. 2026, Jules : « il faut que ça reprenne le bon mail et pas que ça dise juste Mme
+ * Odile Ferrand ») : une adresse dite reste telle quelle ; un nom se lit dans la fiche ouverte, la Data room du bien et
+ * le questionnaire de son mandat, puis dans les fiches du mandataire. Rien de sûr : le nom reste, le mandataire complète.
+ */
+export function adresseDuDestinataire(dit, { fiche = null, user = null } = {}) {
+  const brut = String(dit || '').trim();
+  const lue = brut.match(ADRESSE)?.[0];
+  if (lue) return lue;
+  const moi = String(user?.email || '').toLowerCase();
+  const sienne = (x) => x && String(x.mandataire_email || '').toLowerCase() === moi;
+  const deLaFiche = (p) => {
+    if (!p) return null;
+    if (ADRESSE.test(p.email || '')) return p.email.match(ADRESSE)[0];
+    const dossier = Records.list('DossierMandataire').find((d) => d.proprietaire_id === p.id && sienne(d));
+    if (ADRESSE.test(dossier?.proprietaire_email || '')) return dossier.proprietaire_email.match(ADRESSE)[0];
+    const mandats = Records.list('MandatMandataire').filter((m) => sienne(m) && (m.proprietaire_id === p.id || (dossier?.mandat_id && m.id === dossier.mandat_id)));
+    for (const m of mandats) {
+      const x = m.questionnaire?.vendeur_email || m.vendeur_contact;
+      if (ADRESSE.test(x || '')) return String(x).match(ADRESSE)[0];
+    }
+    return null;
+  };
+  const mots = norme(brut).replace(/\b(mme|mr|m|madame|monsieur|mlle)\b\.?/g, ' ').split(/[^a-z0-9]+/).filter((m) => m.length > 2);
+  const nomme = (p) => mots.length && mots.every((m) => norme(`${p?.nom || ''} ${p?.gerant || ''} ${p?.exploitant || ''}`).includes(m));
+  if (fiche && (!mots.length || nomme(fiche))) { const a = deLaFiche(fiche); if (a) return a; }
+  if (mots.length) {
+    const candidates = Records.list('ProprietaireMandataire').filter((p) => sienne(p) && nomme(p));
+    const adresses = [...new Set(candidates.map(deLaFiche).filter(Boolean))];
+    if (adresses.length === 1) return adresses[0];
+  }
+  return brut;
+}
+
 export async function executerOutilMandataire(appel, user, contexte = {}) {
   // Un nouveau contact pas encore confirmé ne crée rien : il passe, même au banc, pour rendre sa question.
   if (auBanc() && SIMULES_MANDATAIRE.has(appel?.name) && !(appel.name === 'nouveau_contact' && appel.input?.confirme !== true)) return simule(appel.name);
@@ -736,7 +805,8 @@ export async function executerOutilMandataire(appel, user, contexte = {}) {
 async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: seule = null, pieces = null, fiche = null, texte: recit = '' } = {}) {
   const { lotDePieces, choisirPiece } = await import('./pieces-jointes.js');
   const lot = lotDePieces({ piece: seule, pieces });
-  if (NOMS_OUTILS_VISITE.has(name)) return (await import('./visites-acquereur.js')).executerOutilVisite(name, input, user);
+  if (NOMS_OUTILS_VISITE.has(name)) return (await import('./visites-acquereur.js')).executerOutilVisite(name, input, user, { fiche });
+  if (name === 'noter_acquereur') return (await import('./acquereurs-du-bien.js')).noterAcquereur(input, user, { fiche });
   if (name === 'donnees_commune') {
     const { executerOutil } = await import('./ak/agent.js');
     return executerOutil({ name: 'donnees_commune', input: { commune: input.commune } }, user);
@@ -875,6 +945,8 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     // Depuis la fiche d'un bien : le mandat suit son estimation, le prix d'accord à défaut de prix dit.
     const { objetsDuBien } = await import('./bien-etapes.js');
     const duBien = fiche ? objetsDuBien(fiche) : {};
+    // Un bien à louer ne passe pas par cette demande de mandat de vente (6 nov. 2026) : il a son mandat de location.
+    if (fiche?.biens?.transaction === 'location') return { ok: false, error: "Ce bien est à louer : son mandat de location se prépare à l'étape Mandat de location du bien (le chat du mandat), pas par une demande de mandat de vente." };
     const r = P.demanderMandat({
       ...input,
       prix: input.prix || fiche?.biens?.prix_accord || input.prix,
@@ -902,9 +974,13 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
   }
 
   if (name === 'ranger_piece' || name === 'bail_estimation') {
-    const piece = choisirPiece(lot, input.piece);
-    if (piece === 'ambigu') return { ok: false, error: `Plusieurs pièces sont jointes (${lot.map((p) => p.nom).join(', ')}) : redis laquelle dans « piece », un appel par pièce.` };
-    if (!piece?.url) return { ok: false, error: "Il n'y a pas de pièce jointe à ce message." };
+    // Sans pièce dans ce message : celle d'un message précédent (« dépose-le quand même »), la plus récente, ou celle
+    // que « piece » nomme.
+    const { piecesRecentes } = await import('./pieces-jointes.js');
+    const recentes = lot.length ? lot : piecesRecentes(user?.email);
+    const piece = lot.length ? choisirPiece(lot, input.piece) : input.piece ? choisirPiece(recentes, input.piece) : recentes[0] || null;
+    if (piece === 'ambigu') return { ok: false, error: `Plusieurs pièces sont jointes (${recentes.map((p) => p.nom).join(', ')}) : redis laquelle dans « piece », un appel par pièce.` };
+    if (!piece?.url) return { ok: false, error: "Aucune pièce jointe dans ce message ni dans ceux des deux dernières heures : demande-la." };
     const P = await import('./mandataire-portes.js');
     if (name === 'ranger_piece') {
       let d = trouverParBien('DossierMandataire', input.bien, user);
@@ -992,6 +1068,13 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
       r = modifierProprietaire(cible.id, patch, user);
       if (!r.ok) return r;
     }
+    // L'opération lue dans la conversation (6 nov. 2026, Jules : « que ça détecte que c'est une location, sans rien
+    // cocher ») : toute la chaîne du bien suit.
+    if (['vente', 'location'].includes(input.transaction) && (cible.biens?.transaction || 'vente') !== input.transaction) {
+      const frais = Records.get('ProprietaireMandataire', cible.id);
+      Records.update('ProprietaireMandataire', cible.id, { biens: { ...(frais.biens || {}), transaction: input.transaction } });
+      faits.push(input.transaction === 'location' ? 'bien à louer : le parcours passe en location' : 'bien à vendre');
+    }
     if (input.liste) {
       const { changerDeListe } = await import('./off-market/simple.js');
       const l = changerDeListe(cible.id, { nom: input.liste, user });
@@ -1048,6 +1131,29 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
       note: "Pas encore créé : le mandataire confirme d'un tap (« Confirmer · Créer le bien »).",
     };
   }
+  if (name === 'ouvrir_etape') {
+    const { retrouverProprietaire, titreProprietaire } = await import('./mandataire-espace.js');
+    const moi = String(user?.email || '').toLowerCase();
+    let cible = fiche?.id && !input.qui ? Records.get('ProprietaireMandataire', fiche.id) : null;
+    if (!cible) {
+      if (!input.qui) return { ok: false, error: 'De quel bien parle-t-il ? Demande-le en une ligne.' };
+      const { ambigu, candidats } = retrouverProprietaire(input.qui, user, { ouverte: fiche });
+      if (!candidats.length) return { ok: false, error: `Aucun bien ne correspond à « ${input.qui} ».` };
+      if (ambigu) return { ok: false, ambigu: true, choix: candidats.map((c) => titreProprietaire(c)), error: 'Plusieurs biens correspondent : demande lequel en une ligne.' };
+      cible = candidats[0];
+    }
+    if (!cible || cible.mandataire_email !== moi) return { ok: false, error: 'Bien introuvable.' };
+    const { etapesDuBien, rangValide } = await import('../src/lib/biens-mandataire.js');
+    const e = etapesDuBien(cible).find((x) => x.id === input.etape);
+    if (!e) return { ok: false, error: 'Étape inconnue.' };
+    // Dite en toutes lettres, l'étape plus loin se pose aussi (jamais en arrière) : le bien suit la page.
+    if (e.n > rangValide(cible.biens?.validee) + 2) {
+      const r = (await import('./fiche-mandataire.js')).placerEtape(cible.id, e.id, user);
+      if (!r.ok) return r;
+    }
+    return { ok: true, aller: { proprietaire_id: cible.id, etape: e.id, mot: e.label, href: `/MandataireBiens?bien=proprietaire:${cible.id}&etape=${e.id}` }, titre: titreProprietaire(cible), fait: `${e.label} s'ouvre à l'écran.` };
+  }
+
   if (name === 'avancer_bien') {
     const { retrouverProprietaire, titreProprietaire } = await import('./mandataire-espace.js');
     const { ETAPES_BIENS } = await import('./fiche-mandataire.js');
@@ -1072,7 +1178,10 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     const prix = id === 'estimation' ? lirePrix(input.prix) : null;
     // L'accord sur un prix se confirme par la route du prix (l'écran reconnaît « prix_accord ») ; il fait l'Avis de valeur.
     if (prix) return { ok: true, a_confirmer: true, proprietaire_id: cible.id, etape: 'prix_accord', mot: `Avis accepté à ${prix.toLocaleString('fr-FR')} €`, prix, titre: titreProprietaire(cible), note: "Pas encore fait : le mandataire confirme d'un tap à l'écran." };
-    return { ok: true, a_confirmer: true, proprietaire_id: cible.id, etape: e[0], mot: e[1], prix: null, titre: titreProprietaire(cible), note: "Pas encore fait : le mandataire confirme d'un tap à l'écran." };
+    // Les mots de la location (« Bail signé ») pour un bien à louer (6 nov. 2026).
+    const { etapesDuBien } = await import('../src/lib/biens-mandataire.js');
+    const mot = etapesDuBien(cible).find((x) => x.id === e[0])?.label || e[1];
+    return { ok: true, a_confirmer: true, proprietaire_id: cible.id, etape: e[0], mot, prix: null, titre: titreProprietaire(cible), note: "Pas encore fait : le mandataire confirme d'un tap à l'écran." };
   }
   // La restitution de l'avis (27 oct. 2026) : le cas dicté, proposé ; l'écran le fait confirmer d'un tap.
   if (name === 'noter_restitution') {
@@ -1091,9 +1200,14 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     const { proposerRestitution } = await import('./restitution-avis.js');
     return proposerRestitution(cible.id, input, user);
   }
-  if (name === 'appel_sans_reponse' || name === 'resultat_appel' || (name === 'noter_rdv' && input.qui)) {
+  // Un rendez-vous fixé depuis une fiche se pose sur elle, comme avancer_bien (6 nov. 2026, Jules : « on a planifié un
+  // rendez-vous et le bien n'est pas entré dans Vos biens ») : sans « qui », ou quand « qui » ne retrouve aucune fiche,
+  // c'est la fiche ouverte ; avant, le RDV naissait sans fiche et rien n'entrait dans Biens.
+  if (name === 'appel_sans_reponse' || name === 'resultat_appel' || (name === 'noter_rdv' && (input.qui || fiche?.id))) {
     const { retrouverProprietaire, noterSansReponse, noterResultat, titreProprietaire } = await import('./mandataire-espace.js');
-    const { ambigu, candidats } = retrouverProprietaire(input.qui, user, { ouverte: fiche });
+    const trouves = retrouverProprietaire(input.qui || '', user, { ouverte: fiche });
+    const ouverte = name === 'noter_rdv' && !trouves.candidats.length && fiche?.id ? Records.get('ProprietaireMandataire', fiche.id) : null;
+    const { ambigu, candidats } = ouverte && ouverte.mandataire_email === String(user?.email || '').toLowerCase() ? { ambigu: false, candidats: [ouverte] } : trouves;
     if (!candidats.length && name !== 'noter_rdv') {
       return { ok: false, error: `Aucune fiche ne correspond à « ${input.qui} ». Propose de créer le contact (nouveau_contact) ou demande de préciser.` };
     }
@@ -1186,6 +1300,12 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
 
   if (name === 'mes_acquereurs') {
     const A = await import('./acquereurs-mandataire.js');
+    // Un bien à louer (6 nov. 2026, Jules) : ses candidats locataires, jamais un rapprochement avec des acquéreurs.
+    if (fiche?.biens?.transaction === 'location') {
+      const { STATUTS_CANDIDAT } = await import('../src/lib/location.js');
+      const c = A.candidatsDuBien(fiche, A.mesAcquereurs(user));
+      return { ok: true, location: true, candidats: c.slice(0, 25).map((a) => ({ nom: a.nom, telephone: a.telephone, email: a.email, statut: STATUTS_CANDIDAT[a.statut_touche] || 'Contact', loyer_accepte: a.budget_max || null, remarque: a.remarque || null })), conseil: "C'est une location : on cherche un locataire. À l'écran, ce sont les « acquéreurs » (onglet Acquéreurs) : dis acquéreurs, jamais candidats. Parle d'eux (contact, visite, dossier reçu : Kbis, bilans, projet, garanties ; accord ; bail signé) et du loyer qu'ils acceptent ; jamais d'investisseurs ni de rendement." };
+    }
     const tous = A.mesAcquereurs(user);
     if (!tous.length) return { ok: true, acquereurs: [], conseil: "Aucun fichier acquéreurs : il s'importe dans Clients › Mes acquéreurs (Excel, CSV ou liste collée)." };
     const bien = { ville: input.ville || fiche?.ville || null, prix: input.prix || null, type: input.type || null, activite: fiche?.activite || null };
@@ -1207,7 +1327,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     const manque = [!input.commerce && !input.adresse && 'le commerce ou l\'adresse', !input.ville && 'la ville'].filter(Boolean);
     if (manque.length) {
       const secteurAide = secteurDe(user);
-      const communes = (secteurAide?.unites || []).filter((u) => u.niveau === 'commune').map((u) => u.nom);
+      const communes = [...new Set([...(secteurAide?.unites || []).filter((u) => u.niveau === 'commune').map((u) => u.nom), ...(secteurAide?.villes_choisies || []).map((v) => v.nom)])].filter(Boolean);
       const piste = !input.ville && communes.length ? ` Pour la ville, propose celles du secteur (${communes.slice(0, 4).join(', ')}).` : '';
       return { ok: false, a_demander: manque, error: `Il manque ${manque.join(' et ')} : demande-le en une ligne, ne crée rien.${piste}` };
     }
@@ -1366,8 +1486,22 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     return { indicatif: true, resultat: r.resultat };
   }
 
+  if (name === 'ajouter_acquereur') {
+    const A = await import('./acquereurs-mandataire.js');
+    if (!String(input.nom || '').trim()) return { ok: false, error: 'Son nom ?' };
+    const a = {
+      nom: String(input.nom).trim(), telephone: input.telephone || null, email: input.email ? String(input.email).trim().toLowerCase() : null,
+      recherche: input.recherche || null, villes: input.villes ? String(input.villes).split(/[,;/|]| et /).map((x) => x.trim()).filter(Boolean).slice(0, 20) : null, remarque: input.remarque || null,
+      budget_min: A.montant(input.budget_min), budget_max: A.montant(input.budget_max), rendement_min: input.rendement_min ? Number(String(input.rendement_min).replace(',', '.').replace(/[^\d.]/g, '')) || null : null,
+    };
+    const r = A.enregistrerAcquereurs([a], user, { source: 'chat' });
+    return r.ajoutes
+      ? { ok: true, cree: true, titre: `${a.nom} ajouté à vos acquéreurs`, pour: [a.recherche, a.villes, a.budget_max ? `jusqu'à ${a.budget_max.toLocaleString('fr-FR')} €` : null].filter(Boolean).join(' · '), lien: '/MandataireClients' }
+      : { ok: true, deja: true, note: `${a.nom} est déjà dans le fichier (même nom, téléphone ou e-mail) : rien n'est doublé. Dis-le en une ligne.` };
+  }
+
   if (name === 'preparer_mail') {
-    return { ok: true, brouillon: { destinataire: input.destinataire || '', objet: input.objet, corps: input.corps } };
+    return { ok: true, brouillon: { destinataire: adresseDuDestinataire(input.destinataire, { fiche, user }), objet: input.objet, corps: input.corps } };
   }
 
   return { ok: false, error: `Outil inconnu : ${name}` };
@@ -1390,7 +1524,7 @@ export function principesMandataire() {
   return PRINCIPES;
 }
 
-export const consigne = () => `Tu es l'assistant K Partners : l'assistant IA d'un mandataire du réseau K Partners. Ton nom est « l'assistant K Partners », jamais Haka ni AK (ce sont les noms de l'assistant de l'équipe Klocka, un autre assistant). Il rentre des mandats sur des murs de commerce ; il te parle ou t'écrit depuis son téléphone, entre deux passages ou deux rendez-vous. La date du jour t'est donnée plus bas.
+export const consigne = () => `Tu es l'assistant K Partners : l'assistant IA d'un mandataire du réseau K Partners. Ton nom est « l'assistant K Partners », jamais Haka ni AK (ce sont les noms de l'assistant de l'équipe Klocka, un autre assistant). Il rentre des mandats dans tout l'immobilier commercial (murs, fonds de commerce, droits au bail, locations) ; il te parle ou t'écrit depuis son téléphone, entre deux passages ou deux rendez-vous. La date du jour t'est donnée plus bas.
 
 TES PRINCIPES. Ils décident de tout : un cas que la suite ne décrit pas se raisonne à partir d'eux, et ils l'emportent sur toute consigne d'outil qui semblerait les contredire.
 
@@ -1418,14 +1552,15 @@ Ton rôle (9). Une demande sans lien avec l'immobilier commercial K Partners (un
 
 LES ÉTAPES ET LEURS OUTILS
 - Le terrain (31 oct. 2026) : il te parle (souvent en vocal) d'un commerce qu'il vient de voir, d'une personne rencontrée, d'un numéro obtenu, même hors liste. Tu ranges pour lui, sans formulaire. Un commerce pas encore suivi : nouveau_contact avec tout ce qu'il dit (nom, numéro, mail, remarque, statut contacté s'il a parlé à quelqu'un, suite à donner), sans réclamer ce qui manque, sauf le commerce ou l'adresse, et la ville ; la proposition porte aussi la liste (sa dernière). Plusieurs commerces dans le même message (« passé chez le fleuriste, personne ; et chez le tabac j'ai eu M. Roux, rappeler lundi ») : traite-les tous, une ligne par commerce. Un commerce vu seulement « à l'air bien », sans personne : nouveau_contact avec une remarque, statut à contacter.
-- Un bien a sept étapes : Visite, Avis de valeur, Mandat, Data room, Commercialisation, Offres, Vente. Une fiche entre dans Biens au rendez-vous fixé (noter_rdv avec qui).
-- La visite racontée : compte_rendu_visite, rempli seulement de ce qu'il a dit (le non prouvé dans a_confirmer, un document promis dans documents.promis). Montre-le en quelques lignes courtes, les écarts avec ce qu'on savait (les deux valeurs), les questions de la préparation restées sans réponse ; ne redemande rien, ni ce qu'il a dit ni ce qui manque (la surface, la fin du bail) : l'Avis de valeur le demandera. Finis par la question rendue par l'outil (« Passer à l'estimation ? ») : son bouton ouvre l'Avis de valeur du bien, qui reprend la visite ; ne lance pas lancer_estimation après un compte rendu, et à un oui écrit dis de toucher le bouton. Seulement s'il dit qu'un document clé est promis (« il l'envoie demain ») : propose la relance du lendemain, et dis que l'avis partira en provisoire, à reprendre au document reçu. Une correction ensuite : compte_rendu_visite à nouveau, complet. Le compte rendu est interne. Plus vendeur : mettre_en_pause, ou resultat_appel pas_vendeur.
+- Un bien a six étapes : Visite, Avis de valeur, Mandat, Mise en vente (deux temps, en onglets : la Data room, id dataroom ; puis le teaser et les annonces, id marche), Offres, Vente. Une fiche entre dans Biens au rendez-vous fixé (noter_rdv avec qui).
+- Vente ou location : rien ne se coche. Dès que la conversation dit que le propriétaire veut louer son local (un locataire à trouver, un loyer demandé), modifier_fiche transaction location, sans le demander, et dis-le en une ligne (« Je passe le bien en location : estimation du loyer, mandat de location, candidats ») ; l'inverse avec vente.
+- La visite racontée : compte_rendu_visite, rempli seulement de ce qu'il a dit (le non prouvé dans a_confirmer, un document promis dans documents.promis). Montre-le en quelques lignes courtes, les écarts avec ce qu'on savait (les deux valeurs), les questions de la préparation restées sans réponse ; ne redemande rien, ni ce qu'il a dit ni ce qui manque (la surface, la fin du bail) : l'Avis de valeur le demandera. Finis par la question rendue par l'outil (« Passer à l'estimation ? ») : son bouton ouvre l'Avis de valeur du bien, qui reprend la visite ; ne lance pas lancer_estimation après un compte rendu ; à un oui écrit, ou s'il dit de passer à l'estimation, appelle ouvrir_etape estimation : l'Avis de valeur s'ouvre de lui-même, sans bouton. Seulement s'il dit qu'un document clé est promis (« il l'envoie demain ») : propose la relance du lendemain, et dis que l'avis partira en provisoire, à reprendre au document reçu. Une correction ensuite : compte_rendu_visite à nouveau, complet. Le compte rendu est interne. Plus vendeur : mettre_en_pause, ou resultat_appel pas_vendeur.
 - Un accord sur un prix (« il est d'accord à 410 ») : noter_restitution avec le prix en euros (410 = 410 000 €) si l'avis est envoyé, sinon avancer_bien estimation avec le prix ; puis propose le mandat, pré-rempli de ce que tu sais (vendeur, bien, prix), en demandant seulement ce qui manque (exclusif ou simple, honoraires). Le mandat se prépare avec demander_mandat à son oui.
 - Un bien qu'il a déjà en portefeuille (3 nov. 2026, Jules : « il fait un vocal à l'assistant puis joint tous les documents ») : un mandat signé chez K Partners ou ailleurs, un avis de valeur fait, un bien sous offre ou vendu, raconté avec ou sans pièces. importer_bien, rempli du récit et des pièces : il prépare la carte, le mandataire la confirme d'un tap. Un bien par message ; s'il en raconte plusieurs, demande-les un par un, chacun avec ses pièces. Une pièce seule sans récit (un mandat) suffit. L'agence du mandat illisible : demande « Signé chez K Partners ou dans une autre agence ? » avant d'appeler.
-- Un avis de marché (avis_de_marche) est une fourchette rapide de loyer ; le rapport d'estimation complet, c'est lancer_estimation (bail déposé ou infos dictées), sans validation Klocka. S'il veut passer directement à l'estimation ou au mandat, ne pose aucune condition (ni bail, ni loyer, ni visite) : avancer_bien tout de suite (previsite pour aller à l'Avis de valeur, estimation pour aller au Mandat), l'étape d'arrivée demande ce qui manque et « je ne sais pas » n'y bloque rien. Le mandat, le dossier et la mise en marché se font sur leurs pages (Mandat, Dossier, Mise en marché) : quand il en parle, dis-lui d'y aller.
+- Un avis de marché (avis_de_marche) est une fourchette rapide de loyer ; le rapport d'estimation complet, c'est lancer_estimation (bail déposé ou infos dictées), sans validation Klocka. S'il veut passer directement à l'estimation ou au mandat, ne pose aucune condition (ni bail, ni loyer, ni visite) : ouvrir_etape tout de suite (estimation pour l'Avis de valeur, mandat pour le Mandat) : le bien y passe et la page s'ouvre, sans bouton ; l'étape d'arrivée demande ce qui manque et « je ne sais pas » n'y bloque rien. Le mandat, le dossier et la mise en marché se font sur leurs pages (Mandat, Dossier, Mise en marché) : quand il en parle, dis-lui d'y aller.
 - Un nouveau contact part aussi dans Twenty CRM : dis-le en une ligne si l'outil le confirme ; sur une erreur Twenty CRM, dis que la fiche est créée mais pas encore dans Twenty CRM.
-- Une pièce jointe (photo ou PDF) : reconnais ce que c'est (bail, quittance, Kbis, diagnostic, taxe foncière, règlement de copropriété) et de quel bien il s'agit, puis ranger_piece (un appel par pièce) ; un bail apporté pour estimer : bail_estimation. Bien pas clair : demande avant de ranger. Pièces d'un dossier : bail, quittances, diagnostics et taxe foncière obligatoires ; Kbis et règlement de copropriété facultatifs.
-- Les visites d'acquéreurs, pendant la Commercialisation, ne sont pas la visite du propriétaire : une visite à venir, noter_visite_acquereur ; une visite racontée, raconter_visite_acquereur avec tout le récit, puis dis que les deux documents attendent sa validation à l'écran. Un bon de visite non signé : dis franchement que la commission n'est pas protégée.
+- Une pièce jointe (photo ou PDF) : reconnais ce que c'est (bail, quittance, Kbis, diagnostic, taxe foncière, règlement de copropriété) et de quel bien il s'agit, puis ranger_piece (un appel par pièce) ; un bail apporté pour estimer : bail_estimation. Bien pas clair : demande avant de ranger. Une pièce jointe à un message précédent reste là deux heures : à « range-le quand même », ranger_piece la retrouve seule (piece = son nom), ne demande pas de la renvoyer. Pièces d'un dossier : bail, quittances, diagnostics et taxe foncière obligatoires ; Kbis et règlement de copropriété facultatifs.
+- Les visites d'acquéreurs, pendant la Commercialisation, ne sont pas la visite du propriétaire : une visite à venir, noter_visite_acquereur (elle rejoint la ligne de la personne et devient sa prochaine action ; le bon se signe dans sa fiche, onglet Acquéreurs, « Bon de visite ») ; « envoie le bon de visite », envoyer_bon_visite (un brouillon de mail) ; une visite racontée, raconter_visite_acquereur avec tout le récit, puis dis que les deux documents attendent sa validation à l'écran. Un bon de visite non signé : dis franchement que la commission n'est pas protégée.
 - Chaque écriture faite se dit en une ligne (« Relance créée pour jeudi. ») ; le bouton Annuler est ajouté par l'écran, ne le mentionne pas.`;
 
 /**
@@ -1466,6 +1601,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   // Les pièces jointes : leur nom et ce qu'on y a lu accompagnent le message (plusieurs depuis le 27 oct. 2026).
   const { lotDePieces, texteAvecPieces } = await import('./pieces-jointes.js');
   const lot = lotDePieces({ piece, pieces });
+  (await import('./pieces-jointes.js')).retenirPieces(user?.email, lot);
   for (const p of lot) surEtape?.(`Lecture de ${p.nom}`);
   // Parler de ce commerce à l'assistant, c'est l'avoir prospecté (31 oct. 2026, Jules : le point rouge du terrain).
   if (proprietaire_id && (String(texte || '').trim() || lot.length)) (await import('./mandataire-espace.js')).noterParole(proprietaire_id, user);
@@ -1479,9 +1615,9 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
     .slice(-20)
     .map((m) => ({ role: m.role, content: m.contenu }));
-  const { secteurDe } = await import('./mandataire-espace.js');
+  const { secteurDe, nomsDuSecteur } = await import('./mandataire-espace.js');
   const secteur = secteurDe(user);
-  const communes = (secteur?.unites || []).map((u) => u.nom);
+  const communes = nomsDuSecteur(secteur);
   const cadre = secteur
     ? `\n\nSecteur du mandataire : « ${secteur.nom} »${communes.length ? ` (${communes.join(', ')})` : ''}.`
     : "\n\nCe mandataire n'a pas encore de secteur attribué.";
@@ -1535,7 +1671,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   // Le teaser du bien en vente, ouvert à l'écran (28 oct. 2026) : Haka le relit et le retouche.
   const TZ = await import('./teaser.js');
   const marcheOuvert = marche_id ? (await import('./mandataire-portes.js')).lireMarche(marche_id, user) : null;
-  const surTeaser = marcheOuvert?.teaser ? TZ.cadreDuTeaser(marcheOuvert.teaser) : '';
+  const surTeaser = marcheOuvert?.teaser ? `${TZ.cadreDuTeaser(marcheOuvert.teaser)}${(await import('./co-courtage.js')).cadreDeLaDiffusion(marcheOuvert)}` : '';
   const surSortie = sortie === 'produire'
     ? "\n\nLe mandataire a choisi « Produire » : il attend un livrable, pas une réponse. Fais-le avec tes outils (l'avis de valeur par lancer_estimation, le mandat par demander_mandat, un mail par preparer_mail, une relance ou un rendez-vous par noter_relance ou noter_rdv), puis dis en deux lignes ce qui est prêt et où le trouver."
     : '';
@@ -1603,7 +1739,11 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
       if (r?.cree && r.visite_id) actions.push({ type: 'visite', id: `visite-${r.visite_id}-${appel.name}`, titre: r.titre, pour: r.pour, lien: r.lien });
       // Une étape à confirmer d'un tap (25 oct. 2026) : rien n'est écrit tant que le mandataire n'a pas touché « Confirmer ».
       if (r?.a_confirmer && r.carte) actions.push(r.carte);
-      else if (r?.a_confirmer) actions.push({ type: 'confirmer_etape', id: `etape-${r.proprietaire_id}-${r.etape}`, proprietaire_id: r.proprietaire_id, etape: r.etape, mot: r.mot, prix: r.prix || null, titre: r.titre, pour: r.prix ? `${r.mot} · ${Number(r.prix).toLocaleString('fr-FR')} €` : r.mot });
+      // Seule une étape proposée (un mot à confirmer) : une fiche relue porte aussi son champ a_confirmer, un objet
+      // (8 nov. 2026 : « Confirmer · undefined » sous un rendez-vous posé).
+      else if (r?.a_confirmer === true && r.etape && r.mot) actions.push({ type: 'confirmer_etape', id: `etape-${r.proprietaire_id}-${r.etape}`, proprietaire_id: r.proprietaire_id, etape: r.etape, mot: r.mot, prix: r.prix || null, titre: r.titre, pour: r.prix ? `${r.mot} · ${Number(r.prix).toLocaleString('fr-FR')} €` : r.mot });
+      // Une étape ouverte à l'écran (6 nov. 2026) : la page du bien y va d'elle-même.
+      if (r?.aller) actions.push({ type: 'aller_etape', id: `aller-${r.aller.proprietaire_id}-${r.aller.etape}`, titre: `${r.aller.mot} ouvert`, pour: r.titre, ...r.aller });
       if (r?.brouillon) brouillon = r.brouillon;
       // Les réponses en un tap (27 oct. 2026) : « Passer à l'estimation ? » Oui / Non, après le compte rendu de visite.
       if (Array.isArray(r?.boutons)) boutons = r.boutons;
@@ -1627,7 +1767,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   // Le bouton revient (2 nov. 2026, Jules : « quand j'ai mis un message, ça a enlevé le bouton, je ne peux plus cliquer
   // dessus ») : un message envoyé efface les boutons de la réponse d'avant ; quand l'assistant renvoie à « Oui, passer à
   // l'estimation » et que le bien a son compte rendu mais pas encore d'avis, les boutons suivent cette réponse-ci.
-  if (!boutons.length && cibleFil?.biens?.compte_rendu && /passer à l.estimation/i.test(reponse)) {
+  if (!boutons.length && !actions.some((a) => a.type === 'aller_etape') && cibleFil?.biens?.compte_rendu && /passer à l.estimation/i.test(reponse)) {
     const { objetsDuBien } = await import('./bien-etapes.js');
     if (!objetsDuBien(cibleFil).estimation) boutons = (await import('./preparation-rdv.js')).boutonsEstimation(cibleFil);
   }

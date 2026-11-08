@@ -171,6 +171,7 @@ test("Twenty CRM « Agents immobiliers » : la bonne ligne, Remarques allongées
 
 test('les zones écrites à la main se rapprochent de la ville par son département', () => {
   assert.equal(MA.zoneCouvre('Toute la France', { ville: 'Nice', departement: '06' }), 'partout');
+  assert.equal(MA.zoneCouvre('Toute la France', { ville: 'Le Havre', departement: '76' }), null, 'hors des villes cotées');
   assert.equal(MA.zoneCouvre('Côte d\'Azur', { ville: 'Nice', departement: '06' }), 'region');
   assert.equal(MA.zoneCouvre('Sud', { ville: 'Nice', departement: '06' }), 'region');
   assert.equal(MA.zoneCouvre('Est de la france en priorité', { ville: 'Nice', departement: '06' }), null);
@@ -183,7 +184,7 @@ test('les zones écrites à la main se rapprochent de la ville par son départem
     { active: true, zones: [], zone_libre: 'Toute la France', budget_min: 850000, budget_max: 1150000 },
     { active: true, zones: ['Côte d\'Azur'], budget_min: 300000, budget_max: 800000 },
   ], 'Nice', { departement: '06' });
-  assert.deepEqual(l, ['murs de commerce, 300 k€ à 800 k€, Côte d\'Azur', '2 clients partout en France, de 200 k€ à 1,2 M€']);
+  assert.deepEqual(l, ['murs de commerce, 300 k€ à 800 k€, Côte d\'Azur', '2 clients sur les villes cotées, de 200 k€ à 1,2 M€']);
 });
 
 test("un ancien rapprochement Twenty CRM sans confiance : le nom ne donne qu'une correspondance probable", () => {

@@ -154,3 +154,125 @@ test('touches, documents rangés, envoi en Prospection, relecture, Data room à 
   assert.equal(h.commerce, 'Tabac');
   assert.ok(h.liste_id && h.biens.import.fini);
 });
+
+test("une visite faite met le bien à l'Estimation, jamais en Pré-visite", () => {
+  const p = { biens: { import: { le: '2026-11-06' } } };
+  const a = R.repriseDe(p, { visite_le: '2026-11-04', etape_actuelle: 'previsite' });
+  assert.equal(a.etape, 'estimation');
+  assert.equal(a.maj.biens.validee, 'previsite', 'la pré-visite est franchie');
+  const b = R.repriseDe(p, { jalons: [{ quoi: 'visite', date: '2026-11-04' }] });
+  assert.equal(b.etape, 'estimation');
+  const c = R.repriseDe(p, { visite_le: '2099-01-10' });
+  assert.equal(c.etape, null, 'une visite à venir ne change rien');
+  const d = R.repriseDe(p, { visite_le: '2026-11-04', etape_actuelle: 'mandat' });
+  assert.equal(d.etape, 'mandat', 'une étape plus loin reste');
+});
+
+// Le banc d'import du 6 nov. 2026 (11 scénarios de Jules) : ce que l'assistant comprenait mais que la fiche enregistrait mal.
+test("un mandat pas encore signé reste à l'étape Mandat ; « Import terminé » n'ouvre pas de dossier de vente", async () => {
+  const { proprietaire: p } = R.creerBienAImporter(user);
+  const r = await R.executerReprise({ adresse: '31 rue Hoche', ville: 'Cannes', type_bien: 'murs_commerce', prix: 395000, etape_actuelle: 'dataroom', mandat: { exclusif: true, honoraires: '20 000 €' } }, user, { fiche: p });
+  assert.equal(r.etape, 'mandat');
+  const f = Records.get('ProprietaireMandataire', p.id);
+  assert.notEqual(f.statut, 'mandat_signe');
+  assert.equal(f.biens.validee, 'avis_accepte');
+  const fin = await R.finirImport(p.id, user);
+  assert.ok(fin.ok && !fin.dossier_id, 'pas de dossier de vente sans signature');
+});
+
+test("l'étape corrigée par le mandataire se pose, même en arrière, pendant l'import", () => {
+  const p = { statut: 'mandat_signe', biens: { import: { le: '2026-11-06' }, validee: 'mandat' } };
+  const { maj } = R.repriseDe(p, { etape_actuelle: 'mandat', corriger_etape: true });
+  assert.equal(maj.biens.validee, 'avis_accepte');
+  assert.equal(maj.statut, 'rdv_pris');
+  assert.equal(R.repriseDe(p, { etape_actuelle: 'mandat' }).maj.biens.validee, 'mandat', 'sans correction, rien ne recule');
+});
+
+test('un bien vendu : toutes les étapes faites, le dossier clos, pas de dossier de vente', async () => {
+  const { proprietaire: p } = R.creerBienAImporter(user);
+  await R.executerReprise({ adresse: "17 rue d'Italie", ville: 'Aix-en-Provence', prix: 395000, mandat: { signe_le: '2025-03-24', echeance: '2025-06-24' },
+    jalons: [{ quoi: 'offre', date: '2025-05-02' }, { quoi: 'compromis', date: '2025-06-10' }, { quoi: 'vente', date: '2025-09-12' }] }, user, { fiche: p });
+  const f = Records.get('ProprietaireMandataire', p.id);
+  assert.equal(f.biens.validee, 'vente');
+  assert.ok(f.biens.vendu?.le.startsWith('2025-09-12'));
+  const fin = await R.finirImport(p.id, user);
+  assert.ok(fin.ok && !fin.dossier_id);
+  const { statutDuBien, etapesFaites } = await import('../src/lib/biens-mandataire.js');
+  assert.equal(statutDuBien({ proprietaire: f }), 'Vendu');
+  assert.ok(etapesFaites({ proprietaire: f }).has('vente'));
+});
+
+test('une location : ni prix ni dossier de vente, des candidats locataires', async () => {
+  const { proprietaire: p } = R.creerBienAImporter(user);
+  await R.executerReprise({ adresse: "9 rue de l'Oratoire", ville: 'Grasse', transaction: 'location', loyer_annuel: 13200, prix: 13200, mandat: { signe_le: '2026-10-22', echeance: '2027-04-22' } }, user, { fiche: p });
+  const f = Records.get('ProprietaireMandataire', p.id);
+  assert.equal(f.biens.transaction, 'location');
+  assert.equal(f.biens.prix_accord, undefined);
+  const t = await R.executerOutilImport({ name: 'noter_touche', input: { nom: 'Sofia Lemaire', locataire: true } }, user, { fiche: f });
+  assert.match(t.fait, /candidat locataire/);
+  const fin = await R.finirImport(p.id, user);
+  assert.ok(fin.ok && !fin.dossier_id);
+});
+
+// Le cas S08 du banc d'import (6 nov. 2026) : un local vacant à Grasse, un mandat de location, une candidate.
+test('S08 : la location de Grasse, sans prix, 13 200 € de loyer, Sofia Lemaire candidate, puis le bail signé', async () => {
+  const { statutDuBien, etapesDuBien, etapesFaites } = await import('../src/lib/biens-mandataire.js');
+  // Pur : le loyer redit en « prix » n'en fait pas un prix.
+  const pur = R.repriseDe({ biens: { import: { le: 'x' } } }, { transaction: 'location', prix: 13200, mandat: { signe_le: '2026-10-22', echeance: '2027-04-22' } });
+  assert.equal(pur.maj.biens.transaction, 'location');
+  assert.equal(pur.maj.biens.repris.loyer_annuel, 13200);
+  assert.equal(pur.maj.biens.repris.prix, undefined);
+  assert.equal(pur.maj.mandat_importe.prix, undefined);
+  assert.equal(pur.maj.mandat_importe.loyer_annuel, 13200);
+  assert.equal(pur.maj.biens.prix_accord, undefined);
+  // Le récit entier.
+  const { proprietaire: p } = R.creerBienAImporter(user);
+  await R.executerReprise({ adresse: '4 place aux Aires', ville: 'Grasse', type_bien: 'murs_commerce', transaction: 'location', loyer_annuel: 13200, prix: 13200, mandat: { signe_le: '2026-10-22', echeance: '2027-04-22' } }, user, { fiche: p });
+  let f = Records.get('ProprietaireMandataire', p.id);
+  assert.equal(f.biens.repris.prix, undefined, 'pas de prix');
+  assert.equal(f.biens.repris.loyer_annuel, 13200);
+  assert.deepEqual(etapesDuBien({ proprietaire: f }).map((e) => e.label).slice(1, 3), ['Estimation du loyer', 'Mandat de location']);
+  assert.equal(statutDuBien({ proprietaire: f }), 'Mandat de location signé');
+  assert.ok(R.manqueSelonEtape(f, [{ nom: 'Mandat.pdf', nature: 'mandat' }], []).every((m) => m !== 'le prix'));
+  await R.executerOutilImport({ name: 'noter_touche', input: { nom: 'Sofia Lemaire', statut: 'dossier', budget: 12600 } }, user, { fiche: f });
+  const sofia = Records.list('AcquereurMandataire').find((a) => a.proprietaire_id === p.id);
+  assert.equal(sofia.role, 'locataire', 'sur un bien à louer, une touche est une candidate');
+  assert.equal(sofia.statut_touche, 'dossier');
+  assert.match(R.cadreImport(Records.get('ProprietaireMandataire', p.id)), /LOCATION : on cherche un locataire.*candidats : Sofia Lemaire \(dossier\)/);
+  // Le bail signé : le bien est loué, toutes les étapes sont faites.
+  await R.executerOutilImport({ name: 'noter_touche', input: { nom: 'Sofia Lemaire', statut: 'bail_signe' } }, user, { fiche: f });
+  f = Records.get('ProprietaireMandataire', p.id);
+  assert.equal(f.biens.loue.locataire, 'Sofia Lemaire');
+  assert.equal(f.biens.loue.loyer_annuel, 12600, 'le loyer accepté par la candidate');
+  assert.equal(statutDuBien({ proprietaire: f }), 'Loué');
+  assert.ok(etapesFaites({ proprietaire: f }).has('vente'));
+  const fin = await R.finirImport(p.id, user);
+  assert.ok(fin.ok && !fin.dossier_id);
+});
+
+test('les loyers gardent leur source ; plusieurs lots ; l’adresse sans la ville répétée', () => {
+  const p = { biens: { import: { le: '2026-11-06' } } };
+  const { maj } = R.repriseDe(p, { adresse: '38 rue de la République, 06600 Antibes', ville: 'Antibes', loyers: [{ montant: 37200, depuis: '2022-03-01', source: 'avenant n°1' }, { montant: 36000, depuis: '2018-03-01', source: 'bail' }, { montant: 39450, source: 'quittances', actuel: true }] });
+  assert.equal(maj.adresse, '38 rue de la République');
+  assert.deepEqual(maj.biens.repris.loyers.map((l) => l.source), ['quittances', 'bail', 'avenant n°1'], 'tous gardés, datés du plus ancien (le sans date en tête)');
+  assert.equal(maj.biens.repris.loyer_annuel, 39450);
+  const lots = R.repriseDe(p, { lots: [{ nom: 'Lot A', loyer_actuel: 14400 }, { nom: 'Lot B', loyer_actuel: 9600, locataire_personne: true, fin_bail: '2027-01-31' }] }).maj.biens.repris;
+  assert.equal(lots.lots.length, 2);
+  assert.equal(lots.loyer_annuel, 24000);
+  const lotsEtLoyers = R.repriseDe(p, { lots: [{ loyer_actuel: 14400 }, { loyer_actuel: 9600 }], loyers: [{ montant: 14400, source: 'lot A', actuel: true }, { montant: 9600, source: 'lot B', actuel: true }] }).maj.biens.repris;
+  assert.equal(lotsEtLoyers.loyer_annuel, 24000, 'la somme des lots, pas le premier loyer actuel');
+  assert.equal(lots.lots[1].locataire_personne, true);
+  assert.equal(R.sansVille('12 rue Carnot', 'Mâcon'), '12 rue Carnot');
+});
+
+test('un bien hors de ses villes entre quand même, signalé', async () => {
+  const S = Records.create('SecteurMandataire', { nom: 'Lyonnais', mandataire_email: user.email, villes_seules: true, villes_choisies: [{ nom: 'Lyon', code: '69123' }] });
+  const { proprietaire: p } = R.creerBienAImporter(user);
+  const r = await R.executerReprise({ adresse: '112 boulevard Gambetta', ville: 'Nice' }, user, { fiche: p });
+  assert.equal(r.hors_secteur?.ville, 'Nice');
+  assert.ok(Records.get('ProprietaireMandataire', p.id).hors_secteur);
+  const { proprietaire: q } = R.creerBienAImporter(user);
+  const r2 = await R.executerReprise({ adresse: '2 rue Mercière', ville: 'Lyon' }, user, { fiche: q });
+  assert.equal(r2.hors_secteur, undefined);
+  Records.update('SecteurMandataire', S.id, { retire_le: new Date().toISOString(), mandataire_email: 'personne@x.fr' });
+});

@@ -583,7 +583,7 @@ export default function FeuilleDeRoute() {
         // Toute la Base Adresse, numéro de voie compris : une ville seule
         // donnait des prix de quartier moyennés sur toute la commune et des
         // commerces pris au hasard autour du centre.
-        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?autocomplete=1&limit=6&q=${encodeURIComponent(q)}`);
+        const r = await fetch(`https://data.geopf.fr/geocodage/search/?autocomplete=1&limit=6&q=${encodeURIComponent(q)}`);
         const d = r.ok ? (await r.json()).features || [] : [];
         setSuggestions(d.map((x) => x.properties?.label).filter(Boolean));
       } catch { /* la Base Adresse ne répond pas : on saisit à la main */ }

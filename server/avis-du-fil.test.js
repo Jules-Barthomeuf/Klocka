@@ -101,10 +101,11 @@ test('les photos de la ville au choix, et la couverture choisie', async () => {
   assert.equal(Records.get('EstimationMandataire', e.id).avis.photos.couverture, '/uploads/commerces/b.jpg');
 });
 
-test("les photos d'une ville : les premiers résultats de « {ville} photo », sans doublon ni banque d'images", async () => {
-  const { imagesDuResultat } = await import('./photo-commerce.js');
-  const m = (u) => `<a m="{&quot;murl&quot;:&quot;${u}&quot;,&quot;purl&quot;:&quot;x&quot;}">`;
-  const html = [m('https://a.fr/vieille-ville.jpg'), m('https://c8.alamy.com/x.jpg'), m('https://a.fr/vieille-ville.jpg'), m('https://b.fr/port.jpg')].join('');
-  assert.deepEqual(imagesDuResultat(html), ['https://a.fr/vieille-ville.jpg', 'https://b.fr/port.jpg']);
-  assert.deepEqual(imagesDuResultat(''), []);
+test("les photos d'une ville : les vues de son article Wikipédia, en paysage, sans plan ni blason (6 nov. 2026)", async () => {
+  const { vuesDeLaVille } = await import('./photo-commerce.js');
+  const i = (titre, width, height, mime = 'image/jpeg') => ({ titre, width, height, mime, url: `https://w/${titre}` });
+  const vues = vuesDeLaVille([i('Fichier:Vue_generale_Antibes.jpg', 2048, 1024), i('Fichier:Plan_d\'Antibes_1785.jpg', 3000, 2000), i('Fichier:Antibes_quartiers2.png', 2000, 1200, 'image/png'),
+    i('Fichier:Fort_carré.jpg', 2048, 1536), i('Fichier:Clocher.jpg', 1000, 2000), i('Fichier:Petite.jpg', 800, 500), i('Fichier:Plaque_safranier_Antibes.JPG', 2000, 1500)]);
+  assert.deepEqual(vues.map((v) => v.titre), ['Fichier:Vue_generale_Antibes.jpg', 'Fichier:Fort_carré.jpg']);
+  assert.deepEqual(vuesDeLaVille([]), []);
 });

@@ -18,7 +18,7 @@ import { Records } from './db.js';
 import { resoudreAdresse } from './adresse-ban.js';
 import { cessionsDeLaCommune } from './ktransactions.js';
 
-const BAN_LOT = 'https://api-adresse.data.gouv.fr/search/csv/';
+const BAN_LOT = 'https://data.geopf.fr/geocodage/search/csv/';
 const UA = 'Klocka/1.0 (sourcing@klocka.immo)';
 const DELAI_MS = 90000;
 const CACHE_GEO = 'CacheCessionsGeo';

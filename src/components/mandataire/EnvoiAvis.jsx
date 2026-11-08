@@ -42,11 +42,13 @@ export default function EnvoiAvis({ estimationId, onFermer }) {
   const [mail, setMail] = useState(null);
   const [parti, setParti] = useState(false);
   const [erreur, setErreur] = useState(null);
+  // Un avis de valeur locative (6 nov. 2026, Jules) : les mots disent le loyer, pas le prix.
+  const [location, setLocation] = useState(false);
   useEffect(() => {
     let vivant = true;
     setMail(null); setParti(false); setErreur(null);
     base44.request("POST", `/api/mandataire/estimations/${encodeURIComponent(estimationId)}/envoi`, { body: {} })
-      .then((r) => { if (vivant) setMail({ a: r.envoi?.a || "", objet: r.envoi?.objet || "", texte: r.envoi?.texte || "" }); })
+      .then((r) => { if (vivant) { setMail({ a: r.envoi?.a || "", objet: r.envoi?.objet || "", texte: r.envoi?.texte || "" }); setLocation(!!r.location); } })
       .catch((e) => { if (vivant) setErreur(e?.message || "Le mail ne s'est pas préparé."); });
     return () => { vivant = false; };
   }, [estimationId]);
@@ -74,7 +76,7 @@ export default function EnvoiAvis({ estimationId, onFermer }) {
   const fini = (de) => {
     ["m-proprietaires", "m-fiche", "m-estimations", "m-rappels"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
     toast.success(de ? `Avis envoyé de ${de}` : "Estimation envoyée");
-    window.dispatchEvent(new CustomEvent("klocka:dire", { detail: { texte: "L'avis est parti. Racontez-moi la suite quand vous avez des nouvelles : un appel, un rendez-vous, sa réponse. Je note, je pose les relances, et on passe au mandat quand le prix est d'accord." } }));
+    window.dispatchEvent(new CustomEvent("klocka:dire", { detail: { texte: `L'avis est parti. Racontez-moi la suite quand vous avez des nouvelles : un appel, un rendez-vous, sa réponse. Je note, je pose les relances, et on passe au mandat ${location ? "de location quand le loyer" : "quand le prix"} est d'accord.` } }));
     onFermer();
   };
   const direct = useMutation({
@@ -121,7 +123,7 @@ export default function EnvoiAvis({ estimationId, onFermer }) {
             <textarea value={mail.texte} onChange={(e) => setMail({ ...mail, texte: e.target.value })} aria-label="Le mail"
               rows={Math.min(14, Math.max(7, mail.texte.split("\n").length + 1))} className={`${CHAMP} resize-y py-2.5 leading-[1.6]`} />
             <p className="m-0 text-[12.5px] text-ardoise">
-              {boite ? "L'avis de valeur part en PDF, joint au mail." : "L'avis de valeur part en PDF, joint au mail. Connectez votre boîte Gmail pour l'envoyer d'ici."}
+              {`L'avis de valeur${location ? " locative" : ""} part en PDF, joint au mail.${boite ? "" : " Connectez votre boîte Gmail pour l'envoyer d'ici."}`}
             </p>
             <div className="mt-1 flex flex-wrap items-center justify-end gap-2">
               <button type="button" onClick={() => pdfSeul.mutate()} disabled={pdfSeul.isPending} className={`${BOUTON} border border-trait text-craie hover:text-encre`} style={{ background: "transparent" }}>

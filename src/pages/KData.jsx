@@ -200,7 +200,7 @@ function Composeur({ onLancer, enCours, questions, notes }) {
     if (q.length < 3 || q === choisie.current) { setSuggestions([]); return undefined; }
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?autocomplete=1&limit=5&q=${encodeURIComponent(q)}`);
+        const r = await fetch(`https://data.geopf.fr/geocodage/search/?autocomplete=1&limit=5&q=${encodeURIComponent(q)}`);
         const f = r.ok ? (await r.json()).features || [] : [];
         setSuggestions(f.map((x) => x.properties?.label).filter(Boolean));
       } catch { /* la Base Adresse ne répond pas : on saisit à la main */ }

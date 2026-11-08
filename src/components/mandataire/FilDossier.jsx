@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { devinerPiece } from "@/lib/pieces-dossier";
 import Chargement from "@/components/ui/Chargement";
+import { entreeEnvoie } from "@/lib/entree-envoie";
 
 // La conversation d'un dossier mandataire : le mandataire et son analyste
 // Klocka, avec les événements du dossier (pièce reçue, envoi, décision,
@@ -240,7 +241,7 @@ export default function FilDossier({ dossierId, api = null, titre = null, vide =
           </button>
           <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={1}
             placeholder={klocka ? (interne ? "Note pour l'équipe Klocka…" : "Écrire au mandataire…") : api ? "Votre message…" : "Écrire à votre analyste…"}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); soumettre(); } }}
+            onKeyDown={(e) => { if (entreeEnvoie(e)) { e.preventDefault(); soumettre(); } }}
             className="max-h-32 min-w-0 flex-1 resize-none border-none bg-transparent px-1 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" style={{ background: "transparent" }} />
           <button type="submit" disabled={!peutEnvoyer} aria-label="Envoyer" title="Envoyer"
             className="grid h-9 w-9 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe disabled:opacity-30" style={{ background: "transparent" }}>

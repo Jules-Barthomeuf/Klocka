@@ -10,6 +10,7 @@ import { Records } from '../db.js';
 import { TRANSCRIPTION_MAX } from './aujourdhui.js';
 import * as R from './regles.js';
 import { ligneDeRemarque } from './monday-agents.js';
+import { estVilleCotee } from '../villes-cotees.js';
 
 const AGENCE = 'AgenceProspect';
 const LISTE = 'ListeAgences';
@@ -272,7 +273,8 @@ const PARTOUT = /(toute la france|france entiere|partout|toutes? regions?|peu im
 export function zoneCouvre(zone, { ville = null, departement = null } = {}) {
   const z = R.norm(zone).replace(/[-']/g, ' ');
   if (!z) return null;
-  if (PARTOUT.test(z)) return 'partout';
+  // « Toute la France », c'est les villes cotées (6 nov. 2026, Jules) : ailleurs, la recherche ne compte pas.
+  if (PARTOUT.test(z)) return ville && !estVilleCotee(ville) ? null : 'partout';
   const v = R.norm(ville).replace(/[-']/g, ' ');
   if (v && (z.includes(v) || v.includes(z))) return 'ville';
   if (!departement) return null;
@@ -311,7 +313,7 @@ export function recherchesDeLaZone(demandes, ville, { departement = null } = {})
   if (partout.length) {
     const budgets = partout.flatMap((d) => [d.budget_min, d.budget_max]).filter((n) => n > 0);
     const fourchette = budgets.length ? `, de ${k(Math.min(...budgets))} à ${k(Math.max(...budgets))}` : '';
-    lignes.push(`${partout.length} client${partout.length > 1 ? 's' : ''} partout en France${fourchette}`);
+    lignes.push(`${partout.length} client${partout.length > 1 ? 's' : ''} sur les villes cotées${fourchette}`);
   }
   return lignes;
 }

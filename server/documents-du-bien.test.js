@@ -111,3 +111,15 @@ test("retirer pour réimporter : une pièce jointe à l'import d'un portefeuille
   assert.ok(D.retirerPiece(p.id, 'importee:/uploads/m.pdf', user).ok);
   assert.deepEqual(Records.get('ProprietaireMandataire', p.id).pieces_importees, []);
 });
+
+test('une case du bien garde dix documents au plus ; « autres » sans limite', async () => {
+  const user = { email: 'm@kpartners.fr', role: 'mandataire' };
+  const p = Records.create('ProprietaireMandataire', { mandataire_email: 'm@kpartners.fr', commerce: 'Murs Gambetta', statut: 'rdv_pris', biens: {} });
+  const lot = (n, de = 0) => Array.from({ length: n }, (_, i) => ({ nom: `quittance ${de + i}.pdf`, url: `/uploads/q-${de + i}.pdf` }));
+  assert.ok((await D.deposerAuBien(p.id, lot(8), user, { nature: 'quittances' })).ok);
+  const trop = await D.deposerAuBien(p.id, lot(3, 8), user, { nature: 'quittances' });
+  assert.equal(trop.ok, false);
+  assert.match(trop.error, /il reste 2 places/);
+  assert.ok((await D.deposerAuBien(p.id, lot(2, 8), user, { nature: 'quittances' })).ok);
+  assert.ok((await D.deposerAuBien(p.id, lot(12, 100), user, { nature: 'autres' })).ok);
+});

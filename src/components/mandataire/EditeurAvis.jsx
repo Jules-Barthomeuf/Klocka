@@ -9,6 +9,8 @@ import AGENCE from "@/lib/agence-klocka.json";
 import "./avis-valeur.css";
 import Chargement from "@/components/ui/Chargement";
 import { GroupePanneau, PALETTE_DOC, PanneauEditeur, ReglagesDesign, couleurDoc } from "@/components/editeur/Editeur";
+import { recalculerLoyer, TITRE_AVIS_LOCATION } from "@/lib/avis-location";
+import { entreeEnvoie } from "@/lib/entree-envoie";
 
 // L'éditeur de l'avis de valeur, comme un atelier de design : à gauche le
 // chat de retouche (« raccourcis la synthèse », « mets la photo plus grande »,
@@ -45,6 +47,11 @@ const nombreDe = (t) => Number(String(t).replace(/[^\d,.-]/g, "").replace(/\s/g,
 
 export const SECTIONS = ["cadre", "description", "emplacement", "locatif", "juridique", "marche", "methodes", "conclusion"];
 const LABELS = { cadre: "Cadre de la mission", description: "Description du bien", emplacement: "Emplacement", locatif: "Situation locative", juridique: "Juridique et technique", marche: "Analyse de marché", methodes: "Méthode", conclusion: "Conclusion" };
+// Un avis de valeur locative (6 nov. 2026, Jules) : le marché devient les loyers du secteur, la méthode celle du loyer.
+const LABELS_LOCATION = { marche: "Loyers du secteur", methodes: "Méthode du loyer", description: "Description du local" };
+const labelDe = (cle, avis) => (avis?.location && LABELS_LOCATION[cle]) || LABELS[cle];
+/** Le titre du document : « Avis de valeur », ou « Avis de valeur locative » pour un local à louer. */
+const titreDocument = (avis) => (avis?.location ? avis.titre_document || TITRE_AVIS_LOCATION : "Avis de valeur");
 const NOMS = { ...LABELS, libre: "Texte", chiffres: "Chiffres", bien: "Bien", demandeur: "Demandeur", date: "Date", type_libelle: "Type de bien", mise_en_page: "Mise en page" };
 
 /** Pose une valeur à un chemin (« conclusion.points.1 »), sans muter. */
@@ -67,6 +74,8 @@ const objetDe = (avis) => ({ murs_commerce: "des murs", fonds_commerce: "du fond
 
 /** Les chiffres qui découlent de la valeur retenue. */
 function recalculer(avis) {
+  // À louer : le loyer au m², le mensuel et les conditions suivent le loyer retenu (src/lib/avis-location.js).
+  if (avis?.location) return recalculerLoyer(avis);
   const c = { ...(avis.chiffres || {}) };
   if (!(c.valeur > 0)) return avis;
   const loyer = avis.methodes?.loyer || null;
@@ -237,19 +246,19 @@ function Page({ cle, num, avis, numero, children }) {
   const choisi = sel.chemin === `section.${cle}`;
   return (
     <section className={`avis-page ${choisi ? "avis-page-choisie" : ""}`} data-section={cle} id={`avis-page-${cle}`}>
-      <aside className="avis-bande" onClick={() => sel.choisir({ chemin: `section.${cle}`, texte: LABELS[cle] })} title="Sélectionner la page">
+      <aside className="avis-bande" onClick={() => sel.choisir({ chemin: `section.${cle}`, texte: labelDe(cle, avis) })} title="Sélectionner la page">
         <span className="avis-bande-num">{String(num).padStart(2, "0")}</span>
-        <span className="avis-bande-label">{LABELS[cle]}</span>
+        <span className="avis-bande-label">{labelDe(cle, avis)}</span>
       </aside>
       <div className="avis-corps">
         <div className="avis-entete">
-          <span>Avis de valeur · {avis.bien.rue}, {avis.bien.ville}</span>
+          <span>{titreDocument(avis)} · {avis.bien.rue}, {avis.bien.ville}</span>
           <b>{numero}</b>
         </div>
         <div className="avis-contenu"><PageCtx.Provider value={cle}>{children}</PageCtx.Provider></div>
         <div className="avis-pied">
           <div className="avis-pied-trait"><LogoPied /></div>
-          <span className="avis-pied-texte">Page {numero} · Avis de valeur · {avis.type_libelle} · {avis.bien.rue}, {avis.bien.ville}</span>
+          <span className="avis-pied-texte">Page {numero} · {titreDocument(avis)} · {avis.type_libelle} · {avis.bien.rue}, {avis.bien.ville}</span>
         </div>
       </div>
     </section>
@@ -321,13 +330,137 @@ function Photo({ avis, cle, className, style, estimationId, onAvis, cap = 0 }) {
 // La page Juridique et technique ne paraît que si le mandataire a signalé quelque chose (3 nov. 2026, Jules : « si la
 // réponse est non, la section n'apparaît pas »).
 const juridiqueVide = (avis) => !String(avis.juridique?.synthese || "").trim() && !(avis.juridique?.lignes || []).length;
-const avecSection = (avis, cle) => (cle !== "locatif" || !!avis.locatif) && cle !== "marche" && (cle !== "juridique" || !juridiqueVide(avis));
+// Un avis de valeur locative garde sa page de marché : les loyers du secteur (6 nov. 2026).
+const avecSection = (avis, cle) => (cle !== "locatif" || !!avis.locatif) && (cle !== "marche" || !!avis.location) && (cle !== "juridique" || !juridiqueVide(avis));
 
 /** Les sections visibles, dans l'ordre voulu. */
 export function sectionsDe(avis) {
   const masquees = new Set(avis.masquees || []);
   const ordre = [...new Set([...(avis.ordre || []), ...SECTIONS])].filter((x) => SECTIONS.includes(x));
   return ordre.filter((cle) => avecSection(avis, cle) && !masquees.has(cle));
+}
+
+/** Le résumé d'un avis de valeur locative : le loyer annuel, sa fourchette et le loyer au m². */
+function ResumeLoyer({ avis, onPose, mep }) {
+  const c = avis.chiffres || {};
+  return (
+    <>
+      <Bloc cle="resume" nom="Résumé de l'avis" style={{ display: "flex", alignItems: "flex-end", gap: "10mm", paddingBottom: "5mm", borderBottom: "1px solid var(--sauge)" }}>
+        <div>
+          <div style={{ fontSize: `${mep.taille_valeur_pt || 36}pt`, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1 }}><T v={c.valeur} chemin="chiffres.valeur" onPose={onPose} nombre format={(v) => eur(v)} /></div>
+          <L avis={avis} k="loyer_annuel" defaut="Loyer annuel HT HC" onPose={onPose} as="div" className="avis-texte avis-mt2" />
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: "9mm" }}>
+          <div><div className="avis-texte">Fourchette</div><b style={{ fontSize: "11pt" }}><T v={c.bas} chemin="chiffres.bas" onPose={onPose} nombre format={(v) => nb(v)} /> – <T v={c.haut} chemin="chiffres.haut" onPose={onPose} nombre format={(v) => eur(v)} /></b></div>
+          {c.loyer_m2 != null && <div><div className="avis-texte">Loyer au m²</div><b style={{ fontSize: "11pt" }}><L avis={avis} k="c_loyer_m2" defaut={`${nb(c.loyer_m2)} €/m²/an`} onPose={onPose} /></b></div>}
+        </div>
+      </Bloc>
+      <L avis={avis} k="c_resume" as="p" className="avis-chapeau avis-mt5" onPose={onPose}
+        defaut={c.valeur ? `La valeur locative du local est estimée à ${eur(c.valeur)} HT HC par an, dans une fourchette de ${nb(c.bas)} à ${eur(c.haut)}${c.loyer_m2 ? `, soit ${nb(c.loyer_m2)} € HT HC par m² et par an` : ""}.` : "La valeur locative du local se pose à la rédaction, sur les loyers de marché du secteur."} />
+    </>
+  );
+}
+
+/** Les pages propres à l'avis de valeur locative : les loyers du secteur, la méthode du loyer, la conclusion. */
+function pagesLoyer({ avis, onPose, position, redige }) {
+  const c = avis.chiffres || {};
+  const m = avis.methodes || {};
+  const k = avis.conditions || {};
+  const s = avis.signataire || {};
+  const secteur = avis.marche?.secteur || [];
+  return {
+    marche: (
+      <>
+        <L avis={avis} k="titre_marche" as="h2" className="avis-titre" defaut="Les loyers du secteur" onPose={onPose} />
+        <T as="p" className="avis-chapeau" v={avis.marche?.synthese} chemin="marche.synthese" onPose={onPose} />
+        {secteur.length > 0 && (
+          <Bloc cle="secteur" nom="Loyers du secteur">
+            <table className="avis-grille">
+              <thead><tr><th style={{ textAlign: "left" }}>Échelle</th><th style={{ textAlign: "left" }}>Secteur</th><th>Bas (€/m²/an)</th><th>Haut (€/m²/an)</th></tr></thead>
+              <tbody>
+                {secteur.map((l, i) => (
+                  <tr key={i}>
+                    <td style={{ textAlign: "left" }}><T v={l.echelle} chemin={`marche.secteur.${i}.echelle`} onPose={onPose} /></td>
+                    <td style={{ textAlign: "left" }}><T v={l.nom} chemin={`marche.secteur.${i}.nom`} onPose={onPose} /></td>
+                    <td><T v={l.basse} chemin={`marche.secteur.${i}.basse`} onPose={onPose} nombre format={(v) => nb(v)} /></td>
+                    <td className="fort"><T v={l.haute} chemin={`marche.secteur.${i}.haute`} onPose={onPose} nombre format={(v) => nb(v)} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Bloc>
+        )}
+        {avis.marche?.source && <T as="p" className="avis-texte avis-note" v={avis.marche.source} chemin="marche.source" onPose={onPose} />}
+        <Bloc cle="encadre_marche" nom="Lecture du marché" className="avis-encadre"><T as="div" v={avis.marche?.lecture} chemin="marche.lecture" onPose={onPose} /></Bloc>
+      </>
+    ),
+    methodes: (
+      <>
+        <L avis={avis} k="titre_methodes" as="h2" className="avis-titre" defaut="Méthode : la valeur locative de marché" onPose={onPose} />
+        <T as="p" className="avis-chapeau" v={m.synthese} chemin="methodes.synthese" onPose={onPose} />
+        <Bloc cle="methode_loyer" nom="Le loyer, pas à pas">
+          <table className="avis-grille" style={{ margin: "2mm 0 4mm" }}>
+            <thead><tr><th style={{ textAlign: "left" }}>Le loyer au m²</th><th>Effet</th></tr></thead>
+            <tbody>
+              <tr><td style={{ textAlign: "left" }}>Valeur locative de marché{m.echelle ? ` (${{ rue: "la rue", quartier: "le quartier", ville: "la ville" }[m.echelle] || m.echelle})` : ""}</td><td>{m.loyer_m2_marche ? `${nb(m.loyer_m2_marche)} €/m²/an` : "[à compléter]"}</td></tr>
+              {(m.ajustements || []).map((a, i) => (
+                <tr key={i}><td style={{ textAlign: "left" }}>{String(a.motif || "").replace(/^./, (x) => x.toUpperCase())}</td><td>{a.pct > 0 ? "+" : "−"}{Math.abs(a.pct)} %</td></tr>
+              ))}
+            </tbody>
+            <tfoot><tr><td style={{ textAlign: "left" }}>Loyer retenu au m²</td><td className="fort">{c.loyer_m2 ? `${nb(c.loyer_m2)} €/m²/an` : "[à compléter]"}</td></tr></tfoot>
+          </table>
+        </Bloc>
+        <Bloc cle="formule_loyer" nom="Formule du loyer" className="avis-formule">
+          <i>L</i> = {c.loyer_m2 ? `${nb(c.loyer_m2)} €/m²` : "loyer au m²"} × {c.surface_ponderee || m.surface_ponderee ? `${nb(c.surface_ponderee || m.surface_ponderee)} m²` : "surface pondérée"}
+          ≈ <span className="resultat"><T v={c.valeur} chemin="chiffres.valeur" onPose={onPose} nombre format={(v) => eur(v)} /></span>
+        </Bloc>
+        <L avis={avis} k="note_methode_loyer" as="p" className="avis-texte avis-gris" onPose={onPose}
+          defaut="Les loyers de marché viennent de Data-B et d'Equimmox, relevés à la date de l'avis. Le loyer s'entend hors taxes et hors charges, par an." />
+      </>
+    ),
+    conclusion: (
+      <>
+        <p className="avis-etiquette" style={{ margin: "0 0 3mm" }}>Conclusion</p>
+        <L avis={avis} k="c_conclusion" as="p" className="avis-chapeau" onPose={onPose}
+          defaut={`La valeur locative du local est estimée à ${eur(c.valeur)} HT HC par an, dans une fourchette de ${nb(c.bas)} à ${eur(c.haut)}.`} />
+        <div style={{ fontSize: "44pt", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1 }}>
+          <T v={c.valeur} chemin="chiffres.valeur" onPose={onPose} nombre format={(v) => eur(v)} />
+        </div>
+        <L avis={avis} k="c_net" as="p" className="avis-texte avis-mt2" onPose={onPose} defaut={`HT HC par an${c.mensuel ? ` · ${eur(c.mensuel)} par mois` : ""}${c.loyer_m2 ? ` · ${nb(c.loyer_m2)} €/m²/an` : ""}`} />
+        <Bloc cle="curseur" nom="Curseur de la fourchette" className="avis-curseur"><span style={{ left: `${position}%` }} /></Bloc>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9pt", color: "var(--gris)" }}>
+          <T v={c.bas} chemin="chiffres.bas" onPose={onPose} nombre format={(v) => eur(v)} />
+          <b style={{ color: "var(--encre)" }}>{eur(c.valeur)}</b>
+          <T v={c.haut} chemin="chiffres.haut" onPose={onPose} nombre format={(v) => eur(v)} />
+        </div>
+        <Bloc cle="conditions" nom="Conditions conseillées">
+          <p className="avis-etiquette" style={{ margin: "6mm 0 2mm" }}>Conditions conseillées</p>
+          <table className="avis-grille">
+            <tbody>
+              <tr><td style={{ textAlign: "left" }}>Dépôt de garantie, <T v={k.depot_garantie_mois} chemin="conditions.depot_garantie_mois" onPose={onPose} nombre format={(v) => nb(v)} /> mois de loyer HT</td><td><b><L avis={avis} k="c_depot" defaut={eur(k.depot_garantie)} onPose={onPose} /></b></td></tr>
+              <tr><td style={{ textAlign: "left" }}>Franchise de loyer{k.franchise_motif ? `, ${k.franchise_motif}` : ""}</td><td><b><T v={k.franchise_mois} chemin="conditions.franchise_mois" onPose={onPose} nombre format={(v) => (v ? `${nb(v)} mois` : "Aucune")} /></b></td></tr>
+              <tr><td style={{ textAlign: "left" }}>Honoraires de location, {nb(k.honoraires_pct ?? 15)} % HT {k.honoraires_base || "du loyer annuel HT HC"}, à la charge du {k.honoraires_charge || "preneur"}</td><td><b><L avis={avis} k="c_honoraires" defaut={`${eur(k.honoraires)} HT`} onPose={onPose} /></b></td></tr>
+            </tbody>
+          </table>
+        </Bloc>
+        <T as="p" className="avis-texte" v={avis.conclusion?.reserves} chemin="conclusion.reserves" onPose={onPose} />
+        <Bloc cle="mentions" nom="Mentions légales">
+          <L avis={avis} k="mentions_legales" as="p" className="avis-texte avis-mentions" onPose={onPose}
+            defaut={`${AGENCE.denomination}, ${AGENCE.forme} au capital de ${AGENCE.capital}, siège ${AGENCE.siege}, ${AGENCE.rcs}. Carte professionnelle ${AGENCE.carte.numero} délivrée le ${AGENCE.carte.delivree_le} par ${AGENCE.carte.par}. Garantie financière ${AGENCE.garantie.organisme} de ${AGENCE.garantie.montant}. RCP ${AGENCE.rcp.organisme}, police n° ${AGENCE.rcp.police}. Contact : ${AGENCE.email}.`} />
+        </Bloc>
+        <Bloc cle="signature" nom="Signature" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "6mm" }}>
+          <div style={{ fontSize: "9.5pt" }}>
+            <p style={{ margin: 0 }}>Fait à <T v={avis.conclusion?.fait_a} chemin="conclusion.fait_a" onPose={onPose} />, le <T v={avis.date} chemin="date" onPose={onPose} />.</p>
+            <b><L avis={avis} k="signature_nom" defaut={s.nom || redige} onPose={onPose} /></b>
+          </div>
+          <div>
+            <p className="avis-texte" style={{ margin: "0 0 1.5mm" }}>Signature</p>
+            <div className="avis-signature">{s.signature && <img src={s.signature} alt="Signature" />}</div>
+          </div>
+        </Bloc>
+      </>
+    ),
+  };
 }
 
 export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" }) {
@@ -346,6 +479,7 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
     cadre: (
       <>
         <p className="avis-etiquette" style={{ margin: "0 0 4mm" }}>Résumé de l'avis</p>
+        {avis.location ? <ResumeLoyer avis={avis} onPose={onPose} mep={mep} /> : (<>
         <Bloc cle="resume" nom="Résumé de l'avis" style={{ display: "flex", alignItems: "flex-end", gap: "10mm", paddingBottom: "5mm", borderBottom: "1px solid var(--sauge)" }}>
           <div>
             <div style={{ fontSize: `${mep.taille_valeur_pt || 36}pt`, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1 }}><T v={c.valeur} chemin="chiffres.valeur" onPose={onPose} nombre format={(v) => eur(v)} /></div>
@@ -358,6 +492,7 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
         </Bloc>
         <L avis={avis} k="c_resume" as="p" className="avis-chapeau avis-mt5" onPose={onPose}
           defaut={`La valeur ${objetDe(avis)} est estimée à ${eur(c.valeur)} net vendeur hors droits, dans une fourchette de ${nb(c.bas)} à ${eur(c.haut)}${c.rendement != null ? `, soit un rendement brut de ${pc(c.rendement)} sur le loyer en place` : ""}.`} />
+        </>)}
         <L avis={avis} k="titre_cadre" as="h2" className="avis-titre" defaut="Cadre de la mission" onPose={onPose} />
         <Bloc cle="cadre_table" nom="Cadre de la mission">
         <table className="avis-table">
@@ -567,6 +702,9 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
       </>
     ),
   };
+  // L'avis de valeur locative (6 nov. 2026, Jules) : les loyers du secteur, la méthode du loyer et une conclusion qui dit
+  // le loyer et les conditions conseillées ; jamais de prix, de rendement ni de frais d'acquisition.
+  if (avis.location) Object.assign(contenu, pagesLoyer({ avis, onPose, position, redige }));
 
   return (
     <MarqueAvis.Provider value={marque === "klocka" ? "klocka" : "kp"}>
@@ -576,7 +714,7 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" })
         <PageCtx.Provider value="couverture">
         <Photo avis={avis} cle="couverture" className="avis-couverture-photo" estimationId={estimationId} onAvis={onAvis} />
         <Bloc cle="couverture_texte" nom="Texte de couverture" className="avis-couverture-texte">
-          <p className="avis-etiquette" style={{ margin: 0 }}>Avis de valeur · <T v={avis.type_libelle} chemin="type_libelle" onPose={onPose} /></p>
+          <p className="avis-etiquette" style={{ margin: 0 }}>{titreDocument(avis)} · <T v={avis.type_libelle} chemin="type_libelle" onPose={onPose} /></p>
           <h1><T v={avis.bien.rue} chemin="bien.rue" onPose={onPose} /></h1>
           <p className="ville" style={{ margin: 0 }}><T v={avis.bien.ville} chemin="bien.ville" onPose={onPose} /></p>
           <Bloc cle="logo" nom="Logo" className="avis-logo-bloc"><Logo /></Bloc>
@@ -903,7 +1041,7 @@ function Retouches({ estimation, avis, selection, onSelection, onAvis }) {
           </button>
           <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={2}
             placeholder={image ? (photoChoisie ? "Envoyez, ou précisez" : "En couverture, ou à l'emplacement ?") : selection?.chemin ? "Que changer sur la sélection ?" : "Modifie, déplace, reformule, enlève…"}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(texte); } }}
+            onKeyDown={(e) => { if (entreeEnvoie(e)) { e.preventDefault(); envoyer(texte); } }}
             className="w-full resize-none border-none bg-transparent text-[13.5px] leading-[1.5] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
           <button type="submit" disabled={(!texte.trim() && !image) || enCours} aria-label="Envoyer" className={`grid h-8 w-8 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe ${enCours ? "" : "disabled:opacity-30"}`} style={{ background: "transparent" }}>
             {enCours ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}
@@ -1174,7 +1312,7 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
       chemins = { ...cheminsPoses.current, [ligne && mot ? `${ligne[1]}.@${mot}.${ligne[3]}` : chemin]: valeur };
     }
     let suivant = poser(avis, chemin, valeur);
-    if (chemin.startsWith("chiffres.")) suivant = recalculer(suivant);
+    if (chemin.startsWith("chiffres.") || (avis.location && chemin.startsWith("conditions."))) suivant = recalculer(suivant);
     appliquer(suivant, { chemins });
   };
   // Le déplacement d'un élément (page:chemin) : null le remet en place.
@@ -1279,36 +1417,36 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
           </button>
         )}
         <button type="button" onClick={() => setPanneau((v) => !v)} aria-pressed={panneau} title="Retouches, plan, versions"
-          className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] ${panneau ? "bg-encre/[0.08] text-encre" : "text-ardoise hover:text-encre"}`} style={panneau ? undefined : { background: "transparent" }}>
-          {integre ? <ListTree className="h-3.5 w-3.5" /> : <MessageSquareText className="h-3.5 w-3.5" />} <span className="max-md:hidden">{integre ? "Plan et versions" : "Atelier"}</span>
+          className={`inline-flex h-8 flex-none items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[12.5px] ${panneau ? "bg-encre/[0.08] text-encre" : "text-ardoise hover:text-encre"}`} style={panneau ? undefined : { background: "transparent" }}>
+          {integre ? <ListTree className="h-3.5 w-3.5" /> : <MessageSquareText className="h-3.5 w-3.5" />} <span className={integre ? "hidden 2xl:inline" : "max-md:hidden"}>{integre ? "Plan et versions" : "Atelier"}</span>
         </button>
         {/* À côté du chat, la barre dit où en est l'avis (une seule barre, comme celle du chat). */}
         <div className="flex min-w-0 flex-1 items-baseline justify-center gap-2 max-md:hidden">
           <NomAvis estimation={estimation} />
           {statut && <span className="flex-none truncate text-[12.5px] text-ardoise">· {statut}</span>}
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="flex flex-none items-center gap-0.5">
           <button type="button" onClick={annuler} disabled={!passe.current.length} aria-label="Annuler" title="Annuler (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
           <button type="button" onClick={retablir} disabled={!futur.current.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
         </div>
-        <div className="flex items-center gap-0.5 max-md:hidden">
+        <div className="flex flex-none items-center gap-0.5 max-md:hidden">
           <button type="button" onClick={() => setZoom((z) => Math.max(0.35, Math.round((z - 0.1) * 100) / 100))} aria-label="Réduire" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><ZoomOut className="h-4 w-4" /></button>
           <span className="w-10 text-center text-[12px] tabular-nums text-ardoise">{Math.round(zoom * 100)} %</span>
           <button type="button" onClick={() => setZoom((z) => Math.min(1.5, Math.round((z + 0.1) * 100) / 100))} aria-label="Agrandir" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><ZoomIn className="h-4 w-4" /></button>
           <button type="button" onClick={ajuster} aria-label="Ajuster à la largeur" title="Ajuster" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><Maximize2 className="h-4 w-4" /></button>
         </div>
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-brume max-md:hidden">
+        <span className="inline-flex flex-none items-center gap-1.5 whitespace-nowrap text-[12.5px] text-brume max-md:hidden">
           {etat === "envoi" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : etat === "enregistre" ? <Check className="h-3.5 w-3.5 text-menthe" /> : null}
-          {etat === "envoi" ? "Enregistrement…" : etat === "enregistre" ? "Enregistré" : "Modifications…"}
+          <span className={integre ? "hidden 2xl:inline" : undefined}>{etat === "envoi" ? "Enregistrement…" : etat === "enregistre" ? "Enregistré" : "Modifications…"}</span>
         </span>
         {/* Télécharger aux couleurs de la barre de gauche, Envoyer à sa droite quand l'avis est prêt (27 oct. 2026, Jules). */}
         <button type="button" onClick={imprimerAvis}
-          className="inline-flex h-9 items-center gap-2 rounded-full border border-trait bg-rail px-4 text-[13px] font-medium text-encre hover:bg-rail-actif">
-          <Download className="h-4 w-4" /> <span className="max-md:hidden">Télécharger le</span> PDF
+          className="inline-flex h-9 flex-none items-center gap-2 whitespace-nowrap rounded-full border border-trait bg-rail px-4 text-[13px] font-medium text-encre hover:bg-rail-actif">
+          <Download className="h-4 w-4" /> <span className={integre ? "hidden 2xl:inline" : "max-md:hidden"}>Télécharger le</span> PDF
         </button>
         {onEnvoyer && !provisoire && ["prete", "en_validation", "valide"].includes(estimation.statut) && (
           <button type="button" onClick={() => onEnvoyer(estimation.id)}
-            className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] font-medium text-sur-menthe hover:bg-menthe-survol">
+            className="inline-flex h-9 flex-none items-center gap-2 whitespace-nowrap rounded-full bg-menthe px-4 text-[13px] font-medium text-sur-menthe hover:bg-menthe-survol">
             <Send className="h-4 w-4" /> Envoyer
           </button>
         )}

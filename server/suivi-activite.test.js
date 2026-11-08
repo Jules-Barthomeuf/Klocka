@@ -80,3 +80,17 @@ test("l'équipe : tout le monde, et chaque mandataire", () => {
   assert.equal(reperes.avant, 1, 'la fiche créée le mercredi précédent');
   assert.equal(reperes.jours[2].avant, 1);
 });
+
+// La location (6 nov. 2026, Jules) : un bien loué compte à part des vendus, ses honoraires sont ceux de la location.
+test('un bien loué : à part des vendus, honoraires de location (15 % du loyer annuel)', () => {
+  const loue = { id: 'p8', mandataire_email: L, commerce: 'Local Grasse', statut: 'mandat_signe', biens: { transaction: 'location', validee: 'vente', loue: { le: '2026-06-01T09:00:00Z', locataire: 'Sofia Lemaire', loyer_annuel: 13200 } }, historique: [] };
+  assert.equal(honorairesDuBien({ proprietaire: loue }), 1980);
+  const r = suiviActivite({ periode: 'annee', maintenant, tables: { ...tables, proprietaires: [...tables.proprietaires, loue] } });
+  const lea = r.mandataires.find((m) => m.nom === 'Léa');
+  assert.equal(lea.loues, 1);
+  assert.equal(lea.vendus, 0);
+  assert.equal(lea.honoraires, 1980);
+  assert.deepEqual(r.locations, { n: 1, avant: 0 });
+  assert.equal(r.indicateurs.find((x) => x.cle === 'honoraires').valeur, 14400 + 1980);
+  assert.equal(r.entonnoir.find((x) => x.cle === 'ventes').n, 1, 'la location ne compte pas comme une vente');
+});

@@ -1,14 +1,16 @@
 @import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&display=swap");
 
 /* Le mandat de vente, au plus près du modèle MyNotary « Mandat de vente » (page de garde, titres soulignés,
-   bandeaux clairs des sous-parties), aux couleurs de la charte K Partners (octobre 2026) : titres indigo, bandeaux
-   brume, texte nuit, Hanken Grotesk ; la page de garde porte le logo kp, le halo pervenche et le panneau indigo.
+   bandeaux clairs des sous-parties), aux couleurs de la charte K Partners (octobre 2026) : titres pervenche (indigo avant le 7 nov. 2026), bandeaux
+   brume, texte nuit, Hanken Grotesk ; la page de garde porte le logo kp, le halo pervenche et le panneau pervenche.
    Les variables gardent leurs noms d'origine (vert…) : un rôle, plus une teinte. Couleurs du document imprimé :
    il reste clair, même en thème sombre. */
 
 .mn-doc {
-  --vert: #3f47b8;
-  --vert-texte: #3f47b8;
+  /* Pervenche comme l'avis de valeur et les autres livrables (7 nov. 2026, Jules) : titres, filets et panneau ; le texte
+     des bandeaux en nuit, pour se lire sur la brume. */
+  --vert: #a7abed;
+  --vert-texte: #0e0e10;
   --bandeau: #eef0ff;
   --encre: #0e0e10;
   --texte: #2b2d36;
@@ -38,7 +40,7 @@
 }
 
 /* --- La page de garde ------------------------------------------------------ */
-/* Le fond brume continue sous la découpe du panneau indigo : pas de bande blanche au-dessus de la diagonale. */
+/* Le fond brume continue sous la découpe du panneau pervenche : pas de bande blanche au-dessus de la diagonale. */
 .mn-garde { height: 297mm; display: flex; flex-direction: column; background: #eef0ff; }
 .mn-garde-haut { position: relative; flex: 1; padding: 26mm 18mm 0; background: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #eef0ff 100%); }
 .mn-garde-k { position: absolute; top: 13mm; right: 13mm; font-size: 30pt; }
@@ -50,8 +52,8 @@
 .mn-garde-reseau { margin: 13mm 0 0; font-size: 9pt; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--vert); }
 .mn-garde-agence { margin: 3mm 0 0; font-size: 15pt; font-weight: 500; color: var(--encre); }
 .mn-garde-adresse { margin: 2mm 0 0; font-size: 13pt; color: var(--gris); }
-.mn-garde-bas { position: relative; height: 92mm; background: radial-gradient(90% 120% at 50% 110%, rgb(167 171 237 / 0.45) 0%, rgb(167 171 237 / 0) 60%), linear-gradient(135deg, #4a52c9 0%, #3f47b8 55%, #262a85 100%); clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%); }
-.mn-garde-bas::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, var(--pervenche), #ffffff); transform-origin: left; transform: rotate(-4.7deg) translateY(17mm); }
+.mn-garde-bas { position: relative; height: 92mm; background: linear-gradient(135deg, #b3b7f1 0%, #a7abed 55%, #9599dd 100%); clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%); }
+.mn-garde-bas::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, #ffffff, rgb(255 255 255 / 0)); transform-origin: left; transform: rotate(-4.7deg) translateY(17mm); }
 
 /* --- Le corps --------------------------------------------------------------- */
 .mn-corps { padding: 16mm 11mm 18mm; }
@@ -128,3 +130,6 @@
   .mn-editable .mn-champ:hover { background: none; box-shadow: none; }
 }
 
+
+/* Le trait du logo kp en pervenche, comme sur l'avis (7 nov. 2026). */
+.mn-doc .logo-kp-trait { background: var(--pervenche); }

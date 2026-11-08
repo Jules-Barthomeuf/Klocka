@@ -9,7 +9,6 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
 import NotificationsApp from "@/components/NotificationsApp";
-import InstallerApp from "@/components/InstallerApp";
 import {
   BookUser,
   Contact,
@@ -57,7 +56,6 @@ import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackSurvol from "@/components/FeedbackSurvol";
 import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
-import AKNouveauLook from "@/components/AKNouveauLook";
 import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
@@ -903,7 +901,6 @@ function LayoutContent({ children, currentPageName }) {
       {/* La pilule flottante se tait sur le dashboard : le chat y est déjà. */}
       {vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
       {/* Dès l'arrivée, sur n'importe quelle page de l'équipe (16 oct. 2026, Jules) : l'annonce d'AK, une fois ; puis « Quoi de neuf », une fois par jour. */}
-      {vueAdmin && !hideNavbar && !enCadre && <AKNouveauLook />}
       {/* « Quoi de neuf » n'est plus une fenêtre (18 oct. 2026, Jules) : les nouveautés arrivent dans le mail « Ma journée ». */}
       {/* Les messages d'AK, en bas à gauche (16 oct. 2026, Jules) : la fiche pré-analysée, et la discussion. */}
       {/* AK (sa tête en bas à gauche, ses messages) retiré de la barre et de l'écran le 17 oct. 2026 (Jules). */}
@@ -950,8 +947,7 @@ function LayoutContent({ children, currentPageName }) {
         </Link>
       )}
       {rappelOuvert && !hideNavbar && <RappelEntrant />}
-      {/* « Klocka arrive sur vos téléphones » (12 oct. 2026) : le tuto d'installation, pour tout le monde, une fois. */}
-      {!hideNavbar && <InstallerApp />}
+      {/* Plus de fenêtre « Klocka arrive sur vos téléphones » (8 nov. 2026, Jules) : on arrive direct sur la plateforme. */}
       {/* Plus d'accueil « Où cherche votre agent » (6 nov. 2026, Jules) : ses villes se posent dans la Prospection. */}
 
       {/* Barre d'onglets mobile */}

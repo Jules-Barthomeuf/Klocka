@@ -18,6 +18,13 @@ export const CHAPITRES = [
   ["valeur", "La valeur retenue", "La valeur retenue"],
   ["mandataire", "Votre mandataire", "Votre mandataire"],
 ];
+// Les chapitres propres à l'avis de valeur locative (6 nov. 2026, Jules) : les loyers du secteur et les conditions.
+const CHAPITRES_LOCATION = [
+  ["secteur", "Les loyers du secteur", "Les loyers du secteur"],
+  ["valeur", "Le loyer estimé", "Le loyer estimé"],
+  ["conditions", "Les conditions conseillées", "Les conditions"],
+];
+const chapitreDe = (cle, location) => ((location ? CHAPITRES_LOCATION.find(([k]) => k === cle) : null) || CHAPITRES.find(([k]) => k === cle) || [])[1];
 
 const nombre = (v) => {
   if (v == null || v === "") return null;
@@ -97,6 +104,9 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
   // Un fonds de commerce (3 nov. 2026) ne se vaut ni par un taux ni par un loyer capitalisé : ses pages Taux et Calcul
   // ne paraissent pas, la méthode est dans l'avis.
   const fonds = avis.type_bien === "fonds_commerce";
+  // Un local à louer (6 nov. 2026, Jules) : l'avis de valeur locative. Ni bail en place, ni taux, ni calcul du prix ;
+  // les loyers du secteur, le loyer estimé et les conditions conseillées à la place.
+  const location = avis.location === true;
 
   // Le bail : de sa date d'effet à son échéance, les triennales entre les deux.
   const effet = dateDe(q.date_effet);
@@ -160,13 +170,14 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
   const accroche = court(ligne(desc.lignes, "Désignation"), 50) || court(premiereLigne(desc.resume), 50) || null;
 
   const pages = [
-      { cle: "couverture", section: "Avis de valeur", titre: titreBien, phrase: null,
+      { cle: "couverture", section: location ? "Avis de valeur locative" : "Avis de valeur", titre: titreBien, phrase: null,
         adresse: [trou(avis.bien?.rue) ? null : avis.bien?.rue, trou(avis.bien?.ville) ? (avis.bien?.adresse || "").match(/\d{5}\s+[^,]+$/)?.[0] : avis.bien?.ville].filter(Boolean).join(", ") || A_RENSEIGNER,
         mandataire: trou(sig.nom) ? A_RENSEIGNER : sig.nom, proprietaire: trou(avis.demandeur) ? A_RENSEIGNER : avis.demandeur,
-        etat: fonds ? type : `${type}${avis.occupe === false ? " libres" : " loués"}`, lieu: lieu || A_RENSEIGNER, accroche,
+        etat: location ? `${type} à louer` : fonds ? type : `${type}${avis.occupe === false ? " libres" : " loués"}`, lieu: lieu || A_RENSEIGNER, accroche,
+        ...(location ? { location: true, disponible: court(q.disponible_le, 30) || null } : {}),
         // Une surface pondérée égale à l'utile n'est pas pondérée (31 oct. 2026 : « 80 m² · Surface pondérée » pour 80 m² utiles).
-        loyer, surface: ponderee ? surfacePonderee : surfaceUtile || surfacePonderee, surface_ponderee: ponderee, echeance: fin ? fin.getUTCFullYear() : null, restant },
-      { cle: "sommaire", section: "Sommaire", titre: "Sommaire", phrase: ["Le bail, puis la ville, le quartier et le local.", "Enfin, le prix et son calcul."],
+        loyer: location ? nombre(c.valeur) : loyer, surface: ponderee ? surfacePonderee : surfaceUtile || surfacePonderee, surface_ponderee: ponderee, echeance: fin ? fin.getUTCFullYear() : null, restant },
+      { cle: "sommaire", section: "Sommaire", titre: "Sommaire", phrase: location ? ["La ville, le quartier et le local.", "Puis les loyers du secteur, le loyer et les conditions."] : ["Le bail, puis la ville, le quartier et le local.", "Enfin, le prix et son calcul."],
         chapitres: CHAPITRES.map(([, mot], i) => ({ n: i + 1, mot, page: i + 3 })) },
       { cle: "locatif", section: "Situation locative", titre: "Le bilan locatif",
         phrase: avis.occupe === false ? ["Le local est libre.", "Sa valeur se lit au loyer qu'il peut porter."] : [premiereLigne(loc.synthese) || "Un locataire en place, un loyer à lire.", fin ? `Un revenu jusqu'en ${fin.getUTCFullYear()}.` : ""],
@@ -189,13 +200,17 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
         tuiles: surfaces.slice(0, 3).map((x) => ({ valeur: m2(x.utile), mot: x.zone })),
         lignes: lignesLocal },
       { cle: "usages", section: "Activités et loyer", titre: "Les usages", phrase: ["Ce que le local peut accueillir,", "et le loyer qu'il porte."],
-        autorisees: [
+        autorisees: location ? [
+          { mot: "Destination", texte: court(q.destination, 60) || court(ligne(desc.lignes, "Destination"), 60) || A_RENSEIGNER },
+          { mot: "Extraction", texte: court(ligne(desc.lignes, "Extraction"), 60) || court(q.extraction, 60) || A_RENSEIGNER },
+          { mot: "PLU", texte: court(ligne(jur.lignes, "Urbanisme"), 60) || A_RENSEIGNER },
+        ] : [
           { mot: "Bail", texte: court(q.activite_locataire, 60) || court(ligne(loc.lignes, "Locataire"), 60) || A_RENSEIGNER },
           { mot: "Copropriété", texte: court(ligne(jur.lignes, "Copropriété"), 60) || A_RENSEIGNER },
           { mot: "PLU", texte: court(ligne(jur.lignes, "Urbanisme"), 60) || A_RENSEIGNER },
         ],
         marche: marcheBas && marcheHaut ? { bas: marcheBas, haut: marcheHaut, annuel_bas: boutique ? Math.round(marcheBas * boutique / 100) * 100 : null, annuel_haut: boutique ? Math.round(marcheHaut * boutique / 100) * 100 : null } : null,
-        loyer_m2: loyerM2, au_marche: auMarche, source: loyersMarche?.source || null },
+        loyer_m2: location ? nombre(c.loyer_m2) : loyerM2, au_marche: location ? null : auMarche, source: loyersMarche?.source || null, ...(location ? { location: true } : {}) },
       { cle: "taux", section: "Le taux", titre: "Le taux", phrase: [m.rendement ? "On part du taux de la ville, puis on l'ajuste au bien." : "On part du taux du secteur, puis on l'ajuste au bien.", "C'est lui qui fait le prix."],
         taux, justification: m.justification_taux || "", source: m.rendement ? null : m.source_taux || null,
         // Le taux pas à pas (31 oct. 2026) : la base de la ville, puis chaque ajustement du bien.
@@ -216,6 +231,36 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
         nom: sig.nom || A_RENSEIGNER, telephone: sig.telephone || A_RENSEIGNER, email: sig.email || A_RENSEIGNER,
         secteur: sig.ville_signature || A_RENSEIGNER, photo: sig.photo || null },
   ];
+  // L'avis de valeur locative (6 nov. 2026, Jules) : les loyers du secteur, le loyer estimé et les conditions conseillées
+  // prennent la place du taux, du calcul et de la valeur. Tout vient de l'avis : rien ne s'invente ici.
+  if (location) {
+    const cond = avis.conditions || {};
+    const ech = { Rue: "Dans la rue", Quartier: "Dans le quartier", Ville: "Dans la ville" };
+    const secteur = (avis.marche?.secteur || []).map((l) => ({ mot: ech[l.echelle] || l.echelle, sous: court(l.nom, 50), texte: nombre(l.basse) && nombre(l.haute) && nombre(l.basse) !== nombre(l.haute) ? `${Math.round(l.basse).toLocaleString("fr-FR")} – ${Math.round(l.haute).toLocaleString("fr-FR")} €/m²/an` : `${Math.round(nombre(l.basse) || nombre(l.haute)).toLocaleString("fr-FR")} €/m²/an` }));
+    const surfaceLoyer = nombre(c.surface_ponderee) ?? surfacePonderee ?? surfaceUtile;
+    const iValeur = pages.findIndex((x) => x.cle === "valeur");
+    pages[iValeur] = {
+      cle: "valeur", section: "Le loyer estimé", titre: "Le loyer", location: true,
+      phrase: valeur && c.bas && c.haut ? [`Votre local se loue entre ${euros(c.bas)} et ${euros(c.haut)} par an.`, `Nous retenons ${euros(valeur)} HT HC.`] : ["Le loyer de votre local.", ""],
+      valeur, bas: nombre(c.bas), haut: nombre(c.haut), m2: nombre(c.loyer_m2), mensuel: nombre(c.mensuel), surface: surfaceLoyer, m2_pondere: !!surfacePonderee,
+    };
+    pages.splice(iValeur, 0, {
+      cle: "secteur", section: "Les loyers du secteur", titre: "Les loyers du secteur", phrase: ["Ce que se louent les locaux autour,", "au m² et par an."],
+      lignes: secteur.length ? secteur : [{ mot: "Valeur locative de marché", texte: A_RENSEIGNER, vide: true }],
+      lecture: court(avis.marche?.lecture, 220) || "", source: avis.marche?.loyers?.source || null,
+      ajustements: (avis.methodes?.ajustements || []).map((a) => ({ mot: String(a.motif || "").replace(/^./, (x) => x.toUpperCase()), valeur: `${a.pct > 0 ? "+" : "−"} ${Math.abs(a.pct)} %` })),
+      m2_marche: nombre(avis.methodes?.loyer_m2_marche),
+    });
+    pages.splice(iValeur + 2, 0, {
+      cle: "conditions", section: "Les conditions conseillées", titre: "Les conditions", phrase: ["Ce que nous conseillons", "pour louer vite et bien."],
+      lignes: [
+        { mot: "Loyer annuel", texte: valeur ? `${euros(valeur)} HT HC` : A_RENSEIGNER, vide: !valeur },
+        { mot: "Dépôt de garantie", texte: nombre(cond.depot_garantie) ? `${euros(cond.depot_garantie)}, ${cond.depot_garantie_mois || 3} mois de loyer HT` : A_RENSEIGNER, vide: !nombre(cond.depot_garantie) },
+        { mot: "Franchise", texte: nombre(cond.franchise_mois) ? `${cond.franchise_mois} mois${cond.franchise_motif ? `, ${cond.franchise_motif}` : ""}` : "Aucune" },
+        { mot: "Honoraires", texte: nombre(cond.honoraires) ? `${euros(cond.honoraires)} HT, ${cond.honoraires_pct ?? 15} % ${cond.honoraires_base || "du loyer annuel HT HC"}, à la charge du ${cond.honoraires_charge || "preneur"}` : A_RENSEIGNER, vide: !nombre(cond.honoraires) },
+      ],
+    });
+  }
   // Les retouches du deck (26 oct. 2026, mode Édition) : le titre et la phrase d'une page, gardés dans l'avis (`avis.deck`,
   // « locatif.titre », « locatif.phrase »). Les chiffres ne se retouchent pas ici : ils viennent de l'avis.
   const retouches = avis.deck || {};
@@ -225,16 +270,18 @@ export function deckDeLAvis({ avis = {}, estimation = {} } = {}, { aujourdhui = 
   }
   // Les pages retirées du deck (26 oct. 2026, Jules : « on supprime la 6, la 7 devient la 6 ») : gardées dans l'avis
   // (`avis.deck.masquees`), jamais la couverture. Les numéros suivent l'ordre qui reste, et le sommaire aussi.
-  const masquees = new Set([...(Array.isArray(retouches.masquees) ? retouches.masquees.filter((c) => c !== "couverture") : []), ...(fonds ? ["taux", "calcul"] : [])]);
+  const masquees = new Set([...(Array.isArray(retouches.masquees) ? retouches.masquees.filter((c) => c !== "couverture") : []), ...(fonds ? ["taux", "calcul"] : []), ...(location ? ["locatif", "taux", "calcul"] : [])]);
   const restantes = pages.filter((x) => !masquees.has(x.cle));
   const sommaire = restantes.find((x) => x.cle === "sommaire");
   if (sommaire) {
     sommaire.chapitres = restantes
       .map((x, i) => ({ x, page: i + 1 }))
       .filter(({ x }) => x.cle !== "couverture" && x.cle !== "sommaire")
-      .map(({ x, page }, i) => ({ n: i + 1, mot: (CHAPITRES.find(([k]) => k === x.cle) || [])[1] || x.titre, page }));
+      .map(({ x, page }, i) => ({ n: i + 1, mot: chapitreDe(x.cle, location) || x.titre, page }));
   }
   // Les textes des cartes retouchés en mode Édition (« <page>.c.<texte> ») : le deck les affiche à la place du calcul.
   const textes = Object.fromEntries(Object.entries(retouches).filter(([k, v]) => /^[a-z]+\.c\./.test(k) && typeof v === "string"));
-  return { titre: titreBien, pages: restantes, masquees: [...masquees], retouches: textes };
+  // Les pages qu'un avis de valeur locative n'a pas ne sont pas « retirées » : « Remettre » ne les propose pas.
+  const retirees = location ? [...masquees].filter((k) => !["locatif", "taux", "calcul"].includes(k)) : [...masquees];
+  return { titre: titreBien, pages: restantes, masquees: retirees, retouches: textes, etiquette: location ? "Avis de valeur locative" : "Avis de valeur", ...(location ? { location: true } : {}) };
 }

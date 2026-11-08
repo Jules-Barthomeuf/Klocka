@@ -7,7 +7,7 @@
 // Meilleur effort : null en cas d'échec. Aucun appelant ne doit échouer parce
 // qu'une adresse n'a pas été reconnue.
 
-const URL_BAN = 'https://api-adresse.data.gouv.fr/search/';
+const URL_BAN = 'https://data.geopf.fr/geocodage/search/';
 
 // En dessous, la correspondance est trop incertaine pour être exploitée.
 const SCORE_MINIMUM = 0.35;

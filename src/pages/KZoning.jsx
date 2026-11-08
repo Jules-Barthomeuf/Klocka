@@ -73,7 +73,7 @@ function ChercheAdresse({ onChoisi }) {
     // fois inutile et impolie envers un service public.
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?autocomplete=1&limit=6&q=${encodeURIComponent(q)}`);
+        const r = await fetch(`https://data.geopf.fr/geocodage/search/?autocomplete=1&limit=6&q=${encodeURIComponent(q)}`);
         const f = r.ok ? (await r.json()).features || [] : [];
         setSuggestions(f.map((x) => ({
           libelle: x.properties?.label,

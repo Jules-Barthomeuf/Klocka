@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { avecAlias, rangerPages, barrePour, choixSpoc, champMontre, depuisFiltreDeVue, filtreTwenty, ligneHistorique, membresDe, nomDe, rechercheTwenty, roleDe, sansCaches, structurePour, texteCase, valeurPourTwenty, versFiltreDeVue } from './ecran.js';
+import { avecAlias, parTranche, rangerPages, barrePour, choixSpoc, champMontre, depuisFiltreDeVue, filtreTwenty, ligneHistorique, membresDe, nomDe, rechercheTwenty, roleDe, sansCaches, structurePour, texteCase, valeurPourTwenty, versFiltreDeVue } from './ecran.js';
 
 const objets = [
   { id: 'o1', nameSingular: 'agentImmobilier', namePlural: 'agentImmobilierListe', labelSingular: 'Agent immobilier', labelPlural: 'Agents', fields: [
@@ -147,6 +147,7 @@ test('une case d’export se lit comme à l’écran, sans mise en forme', () =>
   assert.equal(texteCase({ type: 'PHONES' }, { primaryPhoneNumber: '612345678', primaryPhoneCallingCode: '+33' }), '+33612345678');
   assert.equal(texteCase({ type: 'RELATION', nom: 'agent' }, 'a1', { agent: { a1: 'Bruno' } }), 'Bruno');
   assert.equal(texteCase({ type: 'TEXT' }, null), '');
+  assert.equal(texteCase({ type: 'ADDRESS' }, { addressStreet1: 'Chaumont', addressCity: 'Chaumont', addressCountry: 'France' }), 'Chaumont, France');
 });
 
 test('l’espace mandataire : KPartners d’abord et ouvert, le reste fermé avec sa raison', () => {
@@ -184,4 +185,12 @@ test("l'ordre des pages : celles choisies d'abord, les autres ensuite dans l'ord
   assert.deepEqual(rangerPages(pages, ['client', 'agent']).map((o) => o.singulier), ['client', 'agent', 'propriete', 'prospect']);
   assert.deepEqual(rangerPages(pages, ['disparue', 'prospect']).map((o) => o.singulier), ['prospect', 'agent', 'propriete', 'client']);
   assert.deepEqual(rangerPages(pages, null).map((o) => o.singulier), ['agent', 'propriete', 'client', 'prospect']);
+});
+
+test('un tableau de Klocka arrive par 50, « Voir plus » reprend au rang suivant', () => {
+  const r = { fiches: Array.from({ length: 120 }, (_, i) => ({ id: String(i) })), liens: {}, suite: null, total: 120 };
+  const a = parTranche(r);
+  assert.equal(a.fiches.length, 50); assert.equal(a.suite, '50'); assert.equal(a.total, 120);
+  const c = parTranche(r, '100');
+  assert.equal(c.fiches.length, 20); assert.equal(c.fiches[0].id, '100'); assert.equal(c.suite, null);
 });

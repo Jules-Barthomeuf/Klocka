@@ -29,7 +29,7 @@ const LIBELLES = {
   marche_ville: (i) => `Lecture du marché${entre(i.ville)}`,
   data_b: (i) => `Lecture Data-B : ${({ valeur_locative: 'valeur locative', cessions_fonds: 'cessions de fonds', etude_implantation: "étude d'implantation", proprietaire: 'propriétaire des murs' })[i.quoi] || 'données'}${entre(i.adresse)}`,
   verifier: () => 'Vérification des chiffres',
-  creer_agent_monday: (i) => `Ajout de l'agent dans Monday${entre(i.nom || i.email)}`,
+  creer_agent_monday: (i) => `Ajout de l'agent dans Twenty CRM${entre(i.nom || i.email)}`,
   interroger_documents: (i) => `Lecture des documents${i.question ? ` : ${court(i.question, 40)}` : ''}`,
   envoyer_mail: (i) => `Envoi du mail${i.destinataire ? ` à ${court(i.destinataire, 40)}` : ''}`,
   annuler_derniere_action: () => 'Annulation de la dernière action',
@@ -83,7 +83,7 @@ const LIBELLES = {
   alx_appel: () => "Préparation de l'appel",
   lancer_alx: (i) => `Lancement de la prospection ALX${entre(i.ville)}`,
   ajouter_document: () => 'Ajout du document au dossier',
-  creer_client_monday: (i) => `Création du client dans Monday${entre(i.nom)}`,
+  creer_client_monday: (i) => `Création du client dans Twenty CRM${entre(i.nom)}`,
   modifier_dossier: (i) => {
     const champs = Object.keys(i || {}).filter((k) => k !== 'deal_id' && k !== 'lot_index');
     return `Modification du dossier${champs.length ? ` (${champs.join(', ')})` : ''}`;

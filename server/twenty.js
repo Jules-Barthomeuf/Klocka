@@ -142,7 +142,9 @@ export async function noter(cibleChamp, cibleId, titre, texte) {
 }
 
 /** L'adresse d'une fiche dans Twenty. */
-export const lienFiche = (singulier, id) => (URL_() && id ? `${URL_()}/object/${singulier}/${id}` : null);
+// Une fiche s'ouvre dans le CRM de Klocka, la page /CRM (6 nov. 2026, Jules : « Voir redirige vers le serveur Twenty,
+// c'est normal que ce soit pas notre CRM interne ? ») : le tableau (`t`) et la fiche (`f`), plus l'application Twenty.
+export const lienFiche = (singulier, id) => (singulier && id ? `/CRM?${new URLSearchParams({ t: singulier, f: id })}` : null);
 
 // --- Le schéma (API metadata) ---
 

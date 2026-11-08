@@ -31,6 +31,8 @@ import { CarteCriteres, FenetreMulticriteres } from "@/components/mandataire/Pro
 import Chargement from "@/components/ui/Chargement";
 import { lienCrm } from "@/lib/crm";
 import { kEuros } from "@/lib/clients-commerces";
+import VillesCotees from "@/components/clients/VillesCotees";
+import { entreeEnvoie } from "@/lib/entree-envoie";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -971,7 +973,7 @@ function ChoixClient({ onLancer, disabled }) {
                   <td className="px-3 py-2.5">{caseDe(oui)}</td>
                   <td className="whitespace-nowrap px-2 py-2.5 text-encre">{d.reference}<span className="block text-[11.5px] text-brume">{d.profil}</span></td>
                   <td className="px-2 py-2.5 text-craie">{d.type_commerce ? `Murs de ${d.type_commerce}` : "Murs commerciaux"}</td>
-                  <td className="px-2 py-2.5 text-craie max-md:hidden">{d.zones?.length ? d.zones.slice(0, 2).join(", ") : "Toute la France"}</td>
+                  <td className="px-2 py-2.5 text-craie max-md:hidden">{d.zones?.length ? d.zones.slice(0, 2).join(", ") : <VillesCotees />}</td>
                   <td className="whitespace-nowrap px-2 py-2.5 tabular-nums text-craie max-md:hidden">{d.budget_min && d.budget_max ? `${Math.round(d.budget_min / 1000)} – ${k(d.budget_max)}` : k(d.budget_max || d.budget_min) || "—"}</td>
                   <td className="px-2 py-2.5 tabular-nums text-craie max-md:hidden">{d.rendement_min ? `${d.rendement_min} %` : "—"}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-menthe">{d.a_prospecter ?? d.commerces_du_secteur ?? 0}</td>
@@ -1057,7 +1059,8 @@ function MessageAvecPiece({ m }) {
   return (
     <>
       {pieces && <div className="flex max-w-[80%] flex-wrap justify-end gap-2">{pieces.map((p, i) => <CartePiece key={p.pid || i} piece={p} />)}</div>}
-      {texte && <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["barre"] }}>{texte}</div>}
+      {/* La couleur de la barre de navigation (6 nov. 2026, Jules) : « barre » se confondait avec le fond des fiches. */}
+      {texte && <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["rail"] }}>{texte}</div>}
     </>
   );
 }
@@ -1102,7 +1105,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
   useEffect(() => {
     if (!ouverture || ouvertureMontree.current) return;
     ouvertureMontree.current = true;
-    setFil((f) => (f.length ? f : [{ role: "assistant", contenu: ouverture, reprise: true }]));
+    setFil((f) => (f.length ? f : [{ role: "assistant", contenu: ouverture, reprise: true, ouverture: true }]));
     onOuverture?.();
   }, [ouverture]);
   const [brouillon, setBrouillon] = useState(null);
@@ -1183,7 +1186,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     if (!fil.some((m) => m.role === "user")) return undefined;
     clearTimeout(sauvegarde.current);
     sauvegarde.current = setTimeout(() => {
-      base44.request("POST", `${E.api}/conversations${qs}`, { body: { id: conversationId, messages: fil } })
+      // Le mot d'ouverture d'une étape ne s'enregistre pas : il se repose à chaque arrivée, à jour.
+      base44.request("POST", `${E.api}/conversations${qs}`, { body: { id: conversationId, messages: fil.filter((m) => !m.ouverture) } })
         .then((r) => {
           if (r?.id && r.id !== conversationId) setConversationId(r.id);
           if (r?.titre) setTitreSauve(r.titre);
@@ -1216,7 +1220,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     repris.current = proprietaireId;
     base44.request("GET", `${E.api}/conversations${qs}`)
       .then((r) => { const derniere = r?.conversations?.[0]; return derniere ? base44.request("GET", `${E.api}/conversations/${derniere.id}${qs}`) : null; })
-      .then((c) => { if (c?.messages?.length && repris.current === proprietaireId) { onReprise?.(); ouvrirConversation(c); } })
+      // Une étape qui a son mot d'ouverture (6 nov. 2026) : il suit la conversation reprise, en dernier.
+      .then((c) => { if (c?.messages?.length && repris.current === proprietaireId) { onReprise?.(); ouvrirConversation(ouverture ? { ...c, messages: [...c.messages, { role: "assistant", contenu: ouverture, reprise: true, ouverture: true }] } : c); } })
       .catch(() => { /* sans elle, le chat repart à vide */ });
   }, [reprendre, proprietaireId, qs]);
   const nouvelleConversation = () => {
@@ -1344,9 +1349,17 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
       toast.error(e?.message || "Étape non enregistrée");
     }
   };
-  const suitesMandataire = (r) => (r.actions || []).filter((a) => a.type !== "monday" && a.type !== "piece").slice(0, 3).map((a) => (a.type === "confirmer_etape" || a.type === "confirmer_restitution" || a.type === "confirmer_vente" || a.type === "confirmer_import" ? {
+  // « On passe à l'estimation » (6 nov. 2026, Jules : « on a juste un bouton ») : l'étape ouverte par l'assistant
+  // s'affiche d'elle-même, le temps de lire sa réponse.
+  const allerSiDemande = (actions = []) => {
+    const a = actions.find((x) => x.type === "aller_etape" && x.href);
+    if (!a) return;
+    rafraichir();
+    setTimeout(() => navigate(a.href), 900);
+  };
+  const suitesMandataire = (r) => (r.actions || []).filter((a) => a.type !== "monday" && a.type !== "piece" && a.type !== "aller_etape").slice(0, 3).map((a) => (a.type === "confirmer_etape" || a.type === "confirmer_restitution" || a.type === "confirmer_vente" || a.type === "confirmer_import" ? {
     cle: a.id,
-    libelle: `Confirmer · ${a.mot}`,
+    libelle: a.mot ? `Confirmer · ${a.mot}` : "Confirmer",
     principal: true,
     faire: () => confirmerEtape(a),
   } : {
@@ -1468,6 +1481,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
         if (r.envoi) window.dispatchEvent(new CustomEvent("klocka:envoyer-avis", { detail: { estimation_id: r.envoi.estimation_id } }));
         onReponse?.(r);
         setSuites(suitesMandataire(r));
+        allerSiDemande(r.actions);
         return;
       }
       if (mandatEspace) {
@@ -1536,6 +1550,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
         pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra });
         if (r.brouillon) setBrouillon({ destinataire: r.brouillon.destinataire || "", objet: r.brouillon.objet || "", corps: r.brouillon.corps || "", dossier_vente: r.brouillon.dossier_vente || null });
         // Les réponses en un tap que l'assistant propose (« Passer à l'estimation ? » Oui / Non, 27 oct. 2026).
+        allerSiDemande(r.actions || []);
         setSuites([...suitesMandataire(r), ...(Array.isArray(r.boutons) ? r.boutons.map((b) => ({ cle: b.libelle, libelle: b.libelle, texte: b.texte, href: b.href || null, principal: !!b.principal, ...(/^tel:/.test(b.href || "") ? { faire: () => { window.location.href = b.href; } } : {}) })) : [])]);
         return;
       }
@@ -1595,6 +1610,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
             cartes: actionsVives.current.filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_import").map((a) => ({ titre: a.titre, detail: a.pour || null, etat: a.etat === "rate" ? "rate" : "fait", genre: a.type || null, lien: a.lien || null })),
           });
           setSuites(suitesMandataire({ actions: actionsVives.current }));
+          allerSiDemande(actionsVives.current);
           actionsVives.current = [];
         }
         return null;
@@ -1782,7 +1798,9 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     a.remove();
   };
   // Une fiche du CRM passe par le serveur (/api/crm/fiche) : nouvel onglet, comme un lien externe.
-  const ouvrirLienExterne = (lien) => (/^(https?:|\/api\/)/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
+  // Un ancien lien vers l'application Twenty (« …/object/agentImmobilier/<id> ») s'ouvre dans le CRM de Klocka (6 nov. 2026).
+  const versCrm = (lien) => { const m = String(lien).match(/^https?:\/\/[^/]+\/object\/([A-Za-z0-9]+)\/([0-9a-f-]{36})/); return m ? `/CRM?t=${m[1]}&f=${m[2]}` : lien; };
+  const ouvrirLienExterne = (brut) => { const lien = versCrm(brut); return /^(https?:|\/api\/)/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien); };
 
   const envoiEnVol = useRef(false);
   useEffect(() => { if (!boite.isPending && !analyser.isPending && !rappeler.isPending) envoiEnVol.current = false; }, [boite.isPending, analyser.isPending, rappeler.isPending]);
@@ -1979,7 +1997,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
             rows={choixDossier && !conversation ? 3 : 2}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || jointes.length || reglages?.competence) && !enCours) { e.preventDefault(); lancer(); } }}
+            onKeyDown={(e) => { if (entreeEnvoie(e) && (texte.trim() || jointes.length || reglages?.competence) && !enCours) { e.preventDefault(); lancer(); } }}
             placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? placeholderFil || "Répondre ou ajouter une précision…" : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
             className="block max-h-[45dvh] w-full resize-none overflow-y-auto border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"

@@ -170,7 +170,7 @@ function ParMandataire({ mandataires, etapes, c }) {
       {mandataires.map((m) => (
         <div key={m.email || "sans"} className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_80px_80px_96px] items-center gap-3 border-t border-trait py-2 text-[12.5px] max-md:grid-cols-3 max-md:gap-y-1.5">
           <span className="truncate text-encre max-md:col-span-3">{m.nom}</span>
-          <span className="flex items-center gap-2 max-md:col-span-3" title={etapes.map((e, i) => `${e.label} : ${m.etapes[i]}`).join(" · ") + (m.vendus ? ` · Vendus : ${m.vendus}` : "")}>
+          <span className="flex items-center gap-2 max-md:col-span-3" title={etapes.map((e, i) => `${e.label} : ${m.etapes[i]}`).join(" · ") + (m.vendus ? ` · Vendus : ${m.vendus}` : "") + (m.loues ? ` · Loués : ${m.loues}` : "")}>
             <span className="flex h-2.5 overflow-hidden rounded-full" style={{ width: `${Math.max(4, (m.biens / max) * 100)}%`, background: c.trait }}>
               {m.etapes.map((n, i) => (n ? <span key={i} className="h-full" style={{ width: `${(n / Math.max(1, m.biens)) * 100}%`, background: teintes[i] }} /> : null))}
               {m.vendus ? <span className="h-full" style={{ width: `${(m.vendus / m.biens) * 100}%`, background: c.encre }} /> : null}

@@ -10,6 +10,8 @@ import AppelClient from "@/components/clients/AppelClient";
 import Chargement from "@/components/ui/Chargement";
 import { PastilleTest } from "@/components/mandataire/kit";
 import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
+import VillesCotees from "@/components/clients/VillesCotees";
+import { resumeVillesCotees } from "../../server/villes-cotees.js";
 
 // Les clients, côté équipe (16 oct. 2026, Jules) : la page Clients des
 // mandataires, mais avec les vrais noms, et une fiche très personnelle nourrie
@@ -17,7 +19,9 @@ import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 // colle le résumé) : la fiche, Monday et le réseau des mandataires se
 // remplissent. Les comptes de la plateforme sont dans Utilisateurs.
 
-const zonesDe = (d) => (d.zones?.length ? d.zones.join(", ") : "Toute la France");
+// Sans zone précise, les villes cotées (6 nov. 2026, Jules) : leur détail au clic sur « +n villes ».
+const zonesDe = (d) => (d.zones?.length ? d.zones.join(", ") : resumeVillesCotees());
+const zonesVues = (d) => (d.zones?.length ? d.zones.join(", ") : <VillesCotees />);
 const typeDe = (d) => (d.type_commerce ? d.type_commerce.charAt(0).toUpperCase() + d.type_commerce.slice(1) : "Tout commerce");
 const budgetDe = (d) => kEuros(d.budget) || (d.budget_min && d.budget_max ? fourchetteEuros(d.budget_min, d.budget_max) : kEuros(d.budget_max || d.budget_min)) || "—";
 const rendementDe = (d) => (d.rendement_min ? `${String(d.rendement_min).replace(".", ",")} %` : "—");
@@ -67,7 +71,7 @@ function CarteClient({ d, onOuvrir }) {
         <div className="grid grid-cols-2 gap-x-3.5 gap-y-3">
           <Critere mot="Budget" valeur={budgetDe(d)} />
           <Critere mot="Apport" valeur={kEuros(d.apport) || "—"} />
-          <Critere mot="Zones" valeur={zonesDe(d)} large />
+          <Critere mot="Zones" valeur={zonesVues(d)} large />
         </div>
         <div className="mt-auto flex items-center justify-between gap-2.5 border-t border-trait pt-3.5 text-[13px]">
           <span className="min-w-0 truncate text-ardoise">{d.prochaine_etape?.texte ? <><span className="text-menthe">Ensuite · </span>{d.prochaine_etape.texte}</> : d.appels ? `${d.appels} appel${d.appels > 1 ? "s" : ""} · dernier le ${quand(d.dernier_appel)}` : "Aucun appel enregistré"}</span>
@@ -97,7 +101,7 @@ function TableauClients({ lignes, onOuvrir }) {
               </div>
             </div>
             <span className="text-[14px] text-encre">{typeDe(d)}</span>
-            <span className="text-[14px] text-craie">{zonesDe(d)}</span>
+            <span className="text-[14px] text-craie">{zonesVues(d)}</span>
             <span className="text-[14px] tabular-nums text-encre">{budgetDe(d)}</span>
             <span className="text-[14px] tabular-nums text-craie">{d.appels || "—"}</span>
             <span className="truncate text-[13px] text-ardoise">{d.prochaine_etape?.texte || "—"}</span>
@@ -234,7 +238,7 @@ export function FicheClient({ id, onFermer, onAppel, onCrm = null }) {
           <div className="flex flex-col px-7 py-5 max-md:px-5">
             <Titre>CE QU'IL CHERCHE</Titre>
             <Ligne mot="Type de bien">{typeDe(d)}</Ligne>
-            <Ligne mot="Zones">{zonesDe(d)}</Ligne>
+            <Ligne mot="Zones">{zonesVues(d)}</Ligne>
             <Ligne mot="Budget">{budgetDe(d)}</Ligne>
             <Ligne mot="Apport">{kEuros(d.apport) || "—"}</Ligne>
             <Ligne mot="Rendement minimum">{rendementDe(d)}</Ligne>

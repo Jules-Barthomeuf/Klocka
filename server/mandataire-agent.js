@@ -22,6 +22,7 @@
 import { Records, Meta } from './db.js';
 import { referenceNeutre } from './reference-neutre.js';
 import { montant } from './montants.js';
+import { estVilleCotee } from './villes-cotees.js';
 
 const ENTITE = 'TrouvailleAgent';
 const QUATORZE_JOURS = 14 * 86400000;
@@ -324,7 +325,8 @@ export async function matcheurInvestisseurs() {
       const typeOk = !!type && type.split(/\s+/).some((m) => m.length > 2 && activite.includes(m));
       const zones = (d.zones || []).filter((z) => !/toute la france|^france$/i.test(z));
       const zone = zones.find((z) => zoneCouvre(z, lieu));
-      if ((type && !typeOk) || (zones.length && !zone)) continue;
+      // Sans zone, seulement dans les villes cotées (6 nov. 2026, Jules).
+      if ((type && !typeOk) || (zones.length && !zone) || (!zones.length && !estVilleCotee(c.ville))) continue;
       const score = (typeOk ? 2 : 0) + (zone ? 2 : 0);
       if (!score) continue;
       res.push({

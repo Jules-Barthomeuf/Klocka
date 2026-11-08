@@ -45,7 +45,7 @@ export function monterMandatairePortes(app) {
     const user = mandataire(req, res); if (!user) return;
     // Une touche notée sur un bien (4 nov. 2026) : le bien qui l'intéresse, par son adresse.
     const { Records } = await import('../db.js');
-    const bienDe = (id) => { const p = id ? Records.get('ProprietaireMandataire', id) : null; return p && !p.retire_le ? { id: p.id, titre: p.nom_bien || [p.adresse, p.ville].filter(Boolean).join(', ') || p.commerce } : null; };
+    const bienDe = (id) => { const p = id ? Records.get('ProprietaireMandataire', id) : null; return p && !p.retire_le ? { id: p.id, titre: p.nom_bien || [p.adresse, p.ville].filter(Boolean).join(', ') || p.commerce, location: p.biens?.transaction === 'location' } : null; };
     ok(res, { acquereurs: (await import('../acquereurs-mandataire.js')).mesAcquereurs(vue(req, user)).map((a) => ({ ...a, bien: bienDe(a.proprietaire_id) })) });
   }));
   // Un fichier (Excel, CSV) ou une liste collée : lus, puis enregistrés sans doublon.
@@ -401,15 +401,107 @@ export function monterMandatairePortes(app) {
     const f = await fichierDe(req); if (!f) return sansFichier(res);
     rendre(res, (await P()).ajouterPiece(req.params.id, req.params.categorie, f, user));
   }));
+  // --- La Data room d'un bien avant son dossier (6 nov. 2026) -------------
+  // Les mêmes adresses que celle du dossier, sous le bien : un seul composant montre l'une ou l'autre (server/data-room-bien.js).
+  const DR = () => import('../data-room-bien.js');
+  const base = '/api/mandataire/biens/:pid/dataroom';
+  app.get(`${base}/vente`, wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await DR()).vueDataroom(req.params.pid, vue(req, user)));
+  }));
+  app.post(`${base}/pieces/:categorie`, roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const f = await fichierDe(req); if (!f) return sansFichier(res);
+    rendre(res, await (await DR()).deposerDansCase(req.params.pid, req.params.categorie, f, vue(req, user)));
+  }));
+  app.post(`${base}/pieces`, roleAvantDepot, upload.array('fichiers', 20), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    if (!req.files?.length) return sansFichier(res);
+    const fichiers = req.files.map((f) => ({ filename: f.originalname, mimetype: f.mimetype, url: `/uploads/${f.filename}` }));
+    rendre(res, await (await DR()).deposerParNom(req.params.pid, fichiers, vue(req, user)));
+  }));
+  app.delete(`${base}/pieces/:categorie`, wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await DR()).retirerDeLaFiche(req.params.pid, String(req.query.url || ''), vue(req, user)));
+  }));
+  app.post(`${base}/pieces-masquees`, wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await DR()).masquerCase(req.params.pid, req.body?.cle || null, !!req.body?.masquer, vue(req, user)));
+  }));
+  app.post(`${base}/cases`, wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await DR()).nouvelleCase(req.params.pid, req.body?.mot, vue(req, user)));
+  }));
+  app.post(`${base}/photos`, roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const f = await fichierDe(req); if (!f) return sansFichier(res);
+    rendre(res, await (await DR()).deposerDansCase(req.params.pid, 'photos', f, vue(req, user)));
+  }));
+  app.delete(`${base}/photos`, wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await DR()).retirerDeLaFiche(req.params.pid, String(req.query.url || ''), vue(req, user)));
+  }));
   // --- Le dossier de vente (27 oct. 2026, Jules : plus d'analyste) ---------
   const V = () => import('../dossier-vente.js');
+  const DRA = () => import('../dataroom-acquereur.js');
   app.get('/api/mandataire/dossiers/:id/vente', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     // La veille passe d'abord (sans appel au modèle) : le mail que Haka doit proposer est prêt dès l'arrivée.
     const mod = await V();
     const u = vue(req, user);
     if ((await P()).lireDossier(req.params.id, u)) await mod.veilleDuDossier(req.params.id).catch(() => null);
-    rendre(res, await mod.vueDuDossier(req.params.id, u));
+    const r = await mod.vueDuDossier(req.params.id, u);
+    // La Data room partagée (7 nov. 2026, Jules) : chaque pièce dit si les acquéreurs la voient, qui l'a consultée, qui l'a demandée.
+    if (r?.ok && Array.isArray(r.pieces)) {
+      const { Records } = await import('../db.js');
+      const d = Records.get('DossierMandataire', req.params.id);
+      const marches = Records.list('MiseEnMarche').filter((m) => m.dossier_id === d.id).map((m) => m.id);
+      const pistes = Records.list('PisteAcquereur').filter((x) => marches.includes(x.marche_id));
+      r.pieces = (await DRA()).enrichirPieces(r.pieces, d, pistes);
+    }
+    rendre(res, r);
+  }));
+  // --- La Data room partagée avec les acquéreurs (7 nov. 2026, Jules) : server/dataroom-acquereur.js ---------
+  app.patch('/api/mandataire/dossiers/:id/pieces/:cle/visibilite', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await DRA()).poserVisibilite(req.params.id, req.params.cle, req.body?.visible, vue(req, user)));
+  }));
+  app.post('/api/mandataire/pistes/:id/lien-dataroom', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await DRA()).lienDataroom(req.params.id, vue(req, user)));
+  }));
+  // Publiques, ouvertes par le jeton seul (hors de la garde /api/mandataire) ; un peu de retenue par jeton.
+  const retenue = async (req, res) => {
+    if ((await DRA()).tropDAppels(req.params.jeton)) { res.status(429).json({ error: 'Trop de demandes : réessayez dans une minute.' }); return false; }
+    return true;
+  };
+  app.get('/api/data-room/:jeton', wrap(async (req, res) => {
+    if (!(await retenue(req, res))) return;
+    const r = await (await DRA()).vuePublique(req.params.jeton);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    res.set('Cache-Control', 'no-store');
+    ok(res, r);
+  }));
+  app.get('/api/data-room/:jeton/fichier/:fid', wrap(async (req, res) => {
+    if (!(await retenue(req, res))) return;
+    const r = (await DRA()).fichierPublic(req.params.jeton, req.params.fid);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    const url = String(r.fichier.url || '');
+    res.set('Cache-Control', 'no-store');
+    if (/^https?:\/\//i.test(url)) return res.redirect(url);
+    if (!url.startsWith('/uploads/')) return res.status(404).json({ error: 'Document introuvable.' });
+    const path = await import('path');
+    const fs = await import('fs');
+    const chemin = path.join(UPLOAD_DIR, path.basename(decodeURIComponent(url.slice('/uploads/'.length))));
+    if (!fs.existsSync(chemin)) return res.status(404).json({ error: 'Document introuvable.' });
+    res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(r.fichier.nom || path.basename(chemin))}`);
+    res.sendFile(chemin);
+  }));
+  app.post('/api/data-room/:jeton/demande', wrap(async (req, res) => {
+    if (!(await retenue(req, res))) return;
+    const r = await (await DRA()).demanderPiece(req.params.jeton, req.body?.cle);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
   }));
   // Le mail préparé par Haka part de la boîte du mandataire ; sans boîte, `sans_boite` et l'écran ouvre sa messagerie.
   app.post('/api/mandataire/dossiers/:id/mail', wrap(async (req, res) => {
@@ -449,11 +541,12 @@ export function monterMandatairePortes(app) {
     if (!req.files?.length) return sansFichier(res);
     const fs = await import('fs');
     const { categorieDuNom } = await V();
-    const { ajouterPiece } = await P();
+    const { ajouterPiece, lireDossier, typeDuDossier } = await P();
+    const leDossier = lireDossier(req.params.id, user);
     const rangees = [];
     const aClasser = [];
     for (const f of req.files) {
-      const categorie = categorieDuNom(f.originalname);
+      const categorie = categorieDuNom(f.originalname, leDossier ? typeDuDossier(leDossier) : null);
       if (!categorie) { aClasser.push(f.originalname); try { fs.unlinkSync(f.path); } catch { /* déjà parti */ } continue; }
       const r = ajouterPiece(req.params.id, categorie, { filename: f.originalname, mimetype: f.mimetype, url: `/uploads/${f.filename}` }, user);
       if (!r.ok) return rendre(res, r);
@@ -514,6 +607,26 @@ export function monterMandatairePortes(app) {
   app.patch('/api/mandataire/marches/:id/annonces', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, await (await AN()).modifierAnnonce(req.params.id, vue(req, user), req.body || {}));
+  }));
+  // --- La fiche confrère (6 nov. 2026, Jules : « les fiches anonymes de co ») : le teaser et le co-courtage ---------
+  const CO = () => import('../co-courtage.js');
+  app.get('/api/mandataire/marches/:id/co', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = await (await CO()).coDe(req.params.id, vue(req, user), { refaire: req.query.refaire === '1' });
+    if (!r.ok) return rendre(res, r);
+    ok(res, { ...r, partages: (await CO()).PARTAGES });
+  }));
+  app.patch('/api/mandataire/marches/:id/co', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await CO()).modifierCo(req.params.id, vue(req, user), req.body || {}));
+  }));
+  app.get('/api/mandataire/marches/:id/co/pdf', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { PORT } = await import('../contexte.js');
+    const r = await (await T()).teaserPdf(req.params.id, vue(req, user), { base: `http://127.0.0.1:${PORT}`, co: true });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    res.set('Cache-Control', 'no-store');
+    res.download(r.fichier, r.nom);
   }));
   // --- Le teaser (28 oct. 2026, Jules) : composé par le code, corrigé par le mandataire, imprimé en A4 -------
   const T = () => import('../teaser.js');
@@ -679,6 +792,60 @@ export function monterMandatairePortes(app) {
   app.post('/api/mandataire/admin/dossiers/:id/avancement', wrap(async (req, res) => {
     const user = admin(req, res); if (!user) return;
     rendre(res, await (await V()).cocherAvancement(req.params.id, req.body?.etape, req.body?.fait !== false, user));
+  }));
+  // Le tableau des acquéreurs d'un bien en vente (7 nov. 2026) : server/acquereurs-du-bien.js.
+  const AQ = () => import('../acquereurs-du-bien.js');
+  const MV = () => import('../mise-en-vente.js');
+  app.get('/api/mandataire/marches/:id/acquereurs', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    // Les lignes enrichies pour la Mise en vente (7 nov. 2026) : score, température, documents, consultations.
+    rendre(res, await (await MV()).tableauEnrichi(req.params.id, vue(req, user)));
+  }));
+  app.post('/api/mandataire/marches/:id/acquereurs', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await AQ()).ajouterLigne(req.params.id, req.body || {}, vue(req, user)));
+  }));
+  app.patch('/api/mandataire/acquereurs/:id', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await MV()).modifierPiste(req.params.id, req.body || {}, vue(req, user)));
+  }));
+  // Une ligne retirée du tableau : sous /pistes, car DELETE /api/mandataire/acquereurs/:id est celui du carnet (plus haut).
+  app.delete('/api/mandataire/pistes/:id', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await AQ()).retirerLigne(req.params.id, vue(req, user)));
+  }));
+  // --- La Mise en vente (7 nov. 2026, Jules) : la phase, la diffusion, les offres, le rapport au vendeur ---------
+  app.get('/api/mandataire/marches/:id/vente-etat', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await MV()).etatVente(req.params.id, vue(req, user)));
+  }));
+  app.get('/api/mandataire/marches/:id/diffusion', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await MV()).diffusionVente(req.params.id, vue(req, user)));
+  }));
+  app.post('/api/mandataire/marches/:id/envois', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await MV()).envoyerTeaser(req.params.id, req.body?.acquereur_id || null, vue(req, user)));
+  }));
+  app.post('/api/mandataire/marches/:id/reseaux/:cle', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await MV()).proposerReseau(req.params.id, req.params.cle, vue(req, user)));
+  }));
+  app.get('/api/mandataire/marches/:id/offres-tout', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await MV()).offresVente(req.params.id, vue(req, user)));
+  }));
+  app.get('/api/mandataire/marches/:id/rapport-vendeur', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await MV()).rapportVendeur(req.params.id, vue(req, user)));
+  }));
+  app.post('/api/mandataire/marches/:id/rapport-vendeur/recommandation', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await MV()).recommandationVendeur(req.params.id, vue(req, user)));
+  }));
+  app.post('/api/mandataire/acquereurs/:id/visite', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await AQ()).planifierVisite(req.params.id, req.body || {}, vue(req, user)));
   }));
   app.post('/api/mandataire/marches/:id/voie', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;

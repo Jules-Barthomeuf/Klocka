@@ -24,13 +24,18 @@ import * as Twenty from './crm/monday-sur-twenty.js';
 // Le CRM de Klocka est Twenty depuis le 27 oct. 2026 : avec CRM=twenty, chaque verbe ci-dessous passe par
 // server/crm/monday-sur-twenty.js (mêmes appels, mêmes ids de tableaux et de colonnes). L'annuaire des personnes
 // reste lu dans Monday pendant la bascule. CRM=monday (par défaut) : rien ne change.
-export const crmTwenty = () => String(process.env.CRM || '').trim().toLowerCase() === 'twenty';
+// Monday est arrêté le 6 nov. 2026 (Jules : « j'ai arrêté ma souscription Monday, tout doit être sur notre CRM interne ») :
+// Twenty est le CRM, que CRM vaille « twenty », « double » ou rien. Seul CRM=monday, posé par les tests (package.json),
+// garde l'ancien chemin pour leurs faux Monday.
+const modeCrm = () => String(process.env.CRM || '').trim().toLowerCase();
+export const crmTwenty = () => modeCrm() !== 'monday' && !crmDouble();
 
 // CRM=double (28 oct. 2026, Jules) : Monday reste le CRM de Klocka, exactement comme avant la bascule (lectures, ids,
 // liens), et chaque écriture réussie dans Monday est recopiée dans Twenty, dans l'ordre, sans faire attendre ni
 // échouer l'appelant (un échec de copie est journalisé « [crm] copie Twenty »). Une fiche née dans Twenty pendant la
 // bascule (id Twenty gardé localement) retrouve sa jumelle Monday par le champ mondayId.
-export const crmDouble = () => ['double', 'monday+twenty'].includes(String(process.env.CRM || '').trim().toLowerCase());
+// Plus de double écriture depuis l'arrêt de Monday (6 nov. 2026) : les tests seuls la rallument (CRM=double sous node --test).
+export const crmDouble = () => !!process.env.NODE_TEST_CONTEXT && ['double', 'monday+twenty'].includes(modeCrm());
 
 let copieForcee = false;
 /** Pour les tests : la copie tourne aussi sous NODE_TEST_CONTEXT, sur l'API Twenty que les tests branchent. */

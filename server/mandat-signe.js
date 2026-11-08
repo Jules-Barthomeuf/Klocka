@@ -4,11 +4,13 @@
 // mail est écrit dans l'écran de droite ») : l'assistant arrive avec le travail fait, il ne demande rien qu'il sache déjà.
 // Le droit de préférence du locataire (art. L. 145-46-1 du Code de commerce) est rappelé, sauf bien vendu libre ou
 // exception notée. Ni les chiffres du mandat (il vient de les signer), ni le registre.
+// En location (6 nov. 2026, Jules), messageMandatLocation : ni droit de préférence, ni investisseurs, ni teaser.
 // Le message s'écrit dans le fil du bien, au clic sur « Mandat signé reçu » comme au dépôt d'un mandat signé à la main.
 // Un mandat sans fiche (fait sans avis de valeur) n'a pas de fil de bien : le message va dans sa propre conversation,
 // celle que « Parler à l'assistant » rouvre à l'étape Mandat.
 
 import { Records } from './db.js';
+import { estLocation } from '../src/lib/location.js';
 
 const minuscule = (t) => String(t || '').charAt(0).toLowerCase() + String(t || '').slice(1);
 // La pièce dite dans une phrase, avec son article (« le bail », « les trois dernières quittances »).
@@ -25,7 +27,8 @@ const liste = (mots) => (mots.length > 1 ? `${mots.slice(0, -1).join(', ')} et $
  * pièces reprises dans la Data room ; `manquantes` : les requises qui manquent ; `priorite` : { mot, raison } ;
  * `email` : l'adresse du propriétaire est connue ; `mail` : le premier mail est prêt à droite.
  */
-export function messageMandatSigne({ occupe = null, exception = false, deja = [], manquantes = [], priorite = null, email = true, mail = true, photos = 0, delai = 3 } = {}) {
+export function messageMandatSigne({ occupe = null, exception = false, deja = [], manquantes = [], priorite = null, email = true, mail = true, photos = 0, delai = 3, location = false } = {}) {
+  if (location) return messageMandatLocation({ deja, manquantes, priorite, email, mail, photos, delai });
   const locataire = occupe !== false && !exception
     ? "\n\nLe locataire a un droit de préférence : il doit recevoir l'offre de vente avant tout acheteur, et il a un mois pour répondre. Je préparerai sa notification."
     : '';
@@ -40,6 +43,40 @@ export function messageMandatSigne({ occupe = null, exception = false, deja = []
     // Le mail s'affiche sous ce message, dans le fil (4 nov. 2026, Jules : il n'était pas dans le chat).
     : mail ? '\n\nLe voici, juste en dessous : relisez-le, un tap sur « Envoyer » et il part.' : '';
   return `Mandat signé, bien joué ! J'ai préparé un mail au propriétaire pour lui donner accès à la Data room, où il dépose ses documents quand il le souhaite.${prio}${dejaLa}${suite}\n\nSans documents d'ici ${delai} jours, je vous prépare la relance.${locataire}`;
+}
+
+// Les pièces d'une location (6 nov. 2026, Jules), dans l'ordre où on les dit : la destination se vérifie au règlement.
+const PIECES_LOCATION = [
+  ['diagnostics', 'le DPE'],
+  ['plans', 'les plans'],
+  ['copropriete', 'le règlement de copropriété (il doit permettre la destination prévue)'],
+  ['taxe_fonciere', 'la dernière taxe foncière'],
+];
+
+/**
+ * Pure : le message d'un mandat de location signé (6 nov. 2026, Jules). Pas de droit de préférence (il ne vaut que pour
+ * une vente), ni investisseurs, ni teaser : les pièces à réunir, les photos, la fiche de présentation, puis la
+ * recherche de candidats.
+ */
+function messageMandatLocation({ deja = [], manquantes = [], priorite = null, email = true, mail = true, photos = 0, delai = 3 }) {
+  const recues = new Set(deja.map((p) => p?.cle).filter(Boolean));
+  const areunir = PIECES_LOCATION.filter(([cle]) => !recues.has(cle)).map(([, mot]) => mot);
+  const pluriel = deja.length > 1 || /^les /.test(dite(deja[0]));
+  const dejaLa = deja.length ? ` On a déjà ${liste(deja.map(dite))}, je ${pluriel ? 'les ai mis' : "l'ai mis"} dans la Data room.` : '';
+  const pieces = areunir.length ? `\n\nPour le louer, il faut réunir ${liste(areunir)}.` : '';
+  const photosDites = photos < 6 ? `six à huit photos du local, de la façade et de la rue${photos ? ` (vous en avez ${photos})` : ''}` : null;
+  if (!manquantes.length) {
+    const suite = photosDites
+      ? `Il faut maintenant ${photosDites} : vous me les envoyez ici ? Ensuite, je prépare la fiche de présentation, puis on lance la recherche de candidats.`
+      : 'On prépare la fiche de présentation ? Ensuite, on lance la recherche de candidats.';
+    return `Mandat signé, bien joué !${dejaLa} Les pièces du dossier sont toutes là.\n\n${suite}`;
+  }
+  const prio = priorite ? ` La priorité, c'est ${dite(priorite)} : ${priorite.raison}.` : '';
+  const suite = !email
+    ? "\n\nIl me manque son adresse e-mail : vous me la donnez ? Le mail part dès que je l'ai."
+    : mail ? '\n\nLe voici, juste en dessous : relisez-le, un tap sur « Envoyer » et il part.' : '';
+  const ensuite = `\n\nEnsuite : ${photosDites ? `${photosDites}, ` : ''}la fiche de présentation, puis la recherche de candidats.`;
+  return `Mandat signé, bien joué ! J'ai préparé un mail au propriétaire pour lui donner accès à la Data room, où il dépose ses documents quand il le souhaite.${pieces}${prio}${dejaLa}${suite}\n\nSans documents d'ici ${delai} jours, je vous prépare la relance.${ensuite}`;
 }
 
 /** Le fil où l'assistant parle au mandataire d'un dossier : celui du bien, sinon la conversation du mandat. */
@@ -92,7 +129,11 @@ export async function direLaSuite(mandat, dossier, user) {
     // Le mail est prêt avant que le mandataire n'arrive : il n'a qu'à l'envoyer.
     if (manquantes.length) mail = !!(await V.veilleDuDossier(dossier.id, { notifier: false }));
   }
+  // Un bien à louer : la suite d'une location (6 nov. 2026). Le questionnaire le dit, sinon la fiche du bien.
+  const pid = filDuMandat(mandat);
+  const location = q.transaction ? estLocation(q.transaction) : estLocation(pid ? Records.get('ProprietaireMandataire', pid) : null);
   const contenu = messageMandatSigne({
+    location,
     occupe: typeof q.bien_occupe === 'boolean' ? q.bien_occupe : null,
     exception: !!dossier?.preference?.exception,
     deja, manquantes, priorite, email, mail, photos,

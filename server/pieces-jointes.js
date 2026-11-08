@@ -33,3 +33,21 @@ export function choisirPiece(pieces = [], nom = null) {
   }
   return pieces.length === 1 ? pieces[0] : 'ambigu';
 }
+
+// Les pièces jointes des derniers messages (7 nov. 2026, Jules : « il a pas pu le mettre car le pdf était dans le message
+// précédent ») : gardées deux heures par personne, pour qu'un « dépose-le quand même » au message suivant les retrouve.
+const RECENTES = new Map();
+const DUREE_RECENTES = 2 * 60 * 60 * 1000;
+
+/** Retient les pièces d'un message, les plus récentes d'abord (dix au plus). */
+export function retenirPieces(email, pieces = [], maintenant = Date.now()) {
+  const qui = String(email || '').toLowerCase();
+  if (!qui || !pieces.length) return;
+  const avant = (RECENTES.get(qui) || []).filter((p) => maintenant - p.retenue_le < DUREE_RECENTES && !pieces.some((x) => x.url === p.url));
+  RECENTES.set(qui, [...pieces.filter((p) => p?.url).map((p) => ({ ...p, retenue_le: maintenant })), ...avant].slice(0, 10));
+}
+
+/** Les pièces jointes des deux dernières heures, les plus récentes d'abord. */
+export function piecesRecentes(email, maintenant = Date.now()) {
+  return (RECENTES.get(String(email || '').toLowerCase()) || []).filter((p) => maintenant - p.retenue_le < DUREE_RECENTES);
+}

@@ -11,6 +11,7 @@
 import { Records } from './db.js';
 import { creerProprietaire } from './mandataire-espace.js';
 import { relanceAvant } from './biens-import.js';
+import { bailSigneDe } from './acquereurs-mandataire.js';
 
 /** Les jalons qu'un récit peut dater, avec leur mot dans l'historique et leur étape. */
 export const JALONS = {
@@ -23,6 +24,10 @@ export const JALONS = {
   offre: ['Offre reçue', 'offre'],
   compromis: ['Compromis signé', 'vente'],
   vente: ['Vente signée', 'vente'],
+  // La location (6 nov. 2026, Jules) : le bien mis en location, un candidat retenu, le bail signé (le bien est loué).
+  mise_en_location: ['Bien mis en location', 'marche'],
+  candidat_retenu: ['Candidat retenu', 'offre'],
+  bail_signe: ['Bail signé', 'vente'],
 };
 const ETAPES = ['previsite', 'estimation', 'mandat', 'dataroom', 'marche', 'offre', 'vente'];
 // La dernière étape franchie (`biens.validee`) quand on est à celle-ci : celle d'avant, avec son ancien mot pour l'avis.
@@ -56,11 +61,45 @@ export function creerBienAImporter(user) {
   return { ok: true, proprietaire: p };
 }
 
+const sansAccents = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+/** Pure : l'adresse sans la ville (ni son code postal) qu'on répète à la fin. */
+export function sansVille(adresse, ville) {
+  const a = String(adresse || '').trim();
+  if (!ville) return a;
+  const v = sansAccents(ville).replace(/[^a-z0-9]+/g, ' ').trim();
+  const morceaux = a.split(',');
+  if (morceaux.length < 2) return a;
+  const fin = sansAccents(morceaux[morceaux.length - 1]).replace(/\b\d{5}\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  return fin === v || fin === '' ? morceaux.slice(0, -1).join(',').trim() : a;
+}
+
+/** Pure : les loyers dits ou lus, chacun avec sa date et sa source ; le plus ancien d'abord. */
+export function loyersDe(liste) {
+  return (Array.isArray(liste) ? liste : [])
+    .map((l) => ({ montant: nombre(l?.montant), depuis: date(l?.depuis)?.slice(0, 10) || null, source: String(l?.source || '').trim().slice(0, 80) || null, actuel: l?.actuel === true }))
+    .filter((l) => l.montant)
+    .sort((a, b) => String(a.depuis || '').localeCompare(String(b.depuis || '')));
+}
+
+/** Pure : les lots d'un même bien, un locataire chacun. */
+export function lotsDe(liste) {
+  return (Array.isArray(liste) ? liste : []).slice(0, 12).map((l, i) => ({
+    nom: String(l?.nom || '').trim().slice(0, 60) || `Lot ${String.fromCharCode(65 + i)}`,
+    surface: nombre(l?.surface), activite: String(l?.activite || '').trim().slice(0, 80) || null,
+    locataire: String(l?.locataire || '').trim().slice(0, 120) || null,
+    locataire_personne: l?.locataire_personne === true,
+    loyer_bail: nombre(l?.loyer_bail), loyer_actuel: nombre(l?.loyer_actuel),
+    fin_bail: date(l?.fin_bail)?.slice(0, 10) || null,
+  })).filter((l) => l.surface || l.locataire || l.loyer_bail || l.loyer_actuel);
+}
+
 /** Pure : ce que le récit change sur la fiche, depuis l'entrée de l'outil. Rend { maj, jalons, etape }. */
 export function repriseDe(p, input = {}) {
   const biens = { ...(p?.biens || {}) };
   const maj = {};
   for (const k of ['adresse', 'ville', 'telephone', 'email', 'activite']) if (String(input[k] || '').trim()) maj[k] = String(input[k]).trim();
+  // « 38 rue de la République, Antibes » et la ville Antibes : la ville ne se répète pas dans l'adresse (6 nov. 2026, banc d'import).
+  if (maj.adresse) maj.adresse = sansVille(maj.adresse, maj.ville || p?.ville);
   if (String(input.proprietaire || '').trim()) maj.nom = String(input.proprietaire).trim();
   const commerce = String(input.commerce || '').trim();
   if (commerce) maj.commerce = commerce;
@@ -71,8 +110,31 @@ export function repriseDe(p, input = {}) {
   if (TYPES.has(input.type_bien)) maj.type_bien = input.type_bien;
   // Les chiffres dits : ils s'affichent en tête de la vue d'ensemble tant qu'aucun avis ne les porte.
   const repris = { ...(biens.repris || {}) };
-  for (const [k, v] of [['prix', input.prix], ['loyer_annuel', input.loyer_annuel], ['surface', input.surface], ['ca', input.ca], ['ebe', input.ebe]]) if (nombre(v)) repris[k] = nombre(v);
+  // Une location n'a pas de prix (6 nov. 2026, banc d'import S08 : le loyer redit en « prix ») : un prix dit sans loyer
+  // est le loyer demandé, sinon il est écarté.
+  const location = input.transaction ? input.transaction === 'location' : biens.transaction === 'location';
+  const prixDit = location ? null : input.prix;
+  const loyerDit = location && !nombre(input.loyer_annuel) ? input.prix : input.loyer_annuel;
+  if (location) delete repris.prix;
+  for (const [k, v] of [['prix', prixDit], ['loyer_annuel', loyerDit], ['surface', input.surface], ['ca', input.ca], ['ebe', input.ebe]]) if (nombre(v)) repris[k] = nombre(v);
+  // Les loyers et leur source (6 nov. 2026, banc d'import : « 17 400 au bail, 18 600 aujourd'hui » ne gardait qu'un chiffre) :
+  // chacun avec sa date et d'où il vient ; le loyer du bien est l'actuel, sinon le plus récent.
+  const loyers = loyersDe(input.loyers);
+  if (loyers.length) {
+    repris.loyers = loyers;
+    repris.loyer_annuel = (loyers.find((l) => l.actuel) || loyers[loyers.length - 1]).montant;
+  }
+  // Plusieurs lots sous un même mandat (deux boutiques côte à côte) : un locataire chacun, le loyer du bien est leur somme.
+  const lots = lotsDe(input.lots);
+  if (lots.length) {
+    repris.lots = lots;
+    const somme = lots.reduce((t, l) => t + (l.loyer_actuel || l.loyer_bail || 0), 0);
+    // Le loyer du bien est la somme des lots, même quand chaque loyer de lot est aussi dit avec sa source.
+    if (somme) repris.loyer_annuel = somme;
+  }
   if (Object.keys(repris).length) biens.repris = repris;
+  // Une location n'est pas une vente (6 nov. 2026) : ni prix, ni dossier de vente, des candidats locataires.
+  if (['vente', 'location'].includes(input.transaction)) biens.transaction = input.transaction;
   const jalons = [];
   for (const j of Array.isArray(input.jalons) ? input.jalons : []) {
     const quoi = JALONS[j?.quoi] ? j.quoi : 'autre';
@@ -93,7 +155,8 @@ export function repriseDe(p, input = {}) {
     for (const k of ['numero', 'enseigne', 'honoraires']) if (String(mi[k] || '').trim()) mandat[k] = String(mi[k]).trim();
     for (const k of ['signe_le', 'echeance']) if (date(mi[k])) mandat[k] = date(mi[k]).slice(0, 10);
     if (typeof mi.exclusif === 'boolean') mandat.exclusif = mi.exclusif;
-    if (nombre(input.prix)) mandat.prix = nombre(input.prix);
+    if (nombre(prixDit)) mandat.prix = nombre(prixDit);
+    if (location) { delete mandat.prix; if (nombre(loyerDit)) mandat.loyer_annuel = nombre(loyerDit); }
     mandat.k_partners = !mandat.enseigne || /k ?partners|klocka/i.test(mandat.enseigne);
     mandat.importe_le = mandat.importe_le || new Date().toISOString();
     if (mandat.signe_le && !jalons.some((j) => j.quoi === 'mandat_signe')) jalons.push({ le: `${mandat.signe_le}T09:00:00.000Z`, quoi: 'mandat_signe', texte: JALONS.mandat_signe[0], etape: JALONS.mandat_signe[1], detail: mandat.enseigne && !mandat.k_partners ? `chez ${mandat.enseigne}` : null });
@@ -103,16 +166,35 @@ export function repriseDe(p, input = {}) {
   const nouveaux = jalons.filter((j) => !deja.some((x) => x.quoi === j.quoi && x.le === j.le && x.texte === j.texte));
   if (nouveaux.length) biens.jalons = [...deja, ...nouveaux].sort((a, b) => a.le.localeCompare(b.le));
   let etape = ETAPES.includes(input.etape_actuelle) ? input.etape_actuelle : null;
-  // Un mandat K Partners fait au moins la Data room ; signé ailleurs, il reste à re-signer chez K Partners (l'étape Mandat).
-  const plancher = maj.mandat_importe ? (maj.mandat_importe.k_partners === false ? 'mandat' : 'dataroom') : null;
+  // Le bien vendu (acte signé) : toutes les étapes sont faites, le dossier est clos.
+  // Le bail signé d'une location vaut l'acte : le bien est loué, toutes ses étapes sont faites.
+  const acte = [...(biens.jalons || []), ...jalons].find((j) => j.quoi === (location ? 'bail_signe' : 'vente'));
+  if (acte) etape = 'vente';
+  // Une visite faite (datée d'aujourd'hui ou avant) met le bien au moins à l'Estimation, jamais en Pré-visite (6 nov. 2026,
+  // Jules : « ça a mis Pré-visite alors que j'avais visité, je lui ai dit, et que c'était en estimation »).
+  const visiteFaite = [...(biens.jalons || []), ...jalons].some((j) => j.quoi === 'visite' && j.le <= new Date().toISOString());
+  if (visiteFaite && (!etape || etape === 'previsite')) etape = 'estimation';
+  // Un mandat K Partners signé fait au moins la Data room ; signé ailleurs, il reste à re-signer chez K Partners ; pas encore
+  // signé (un projet, envoyé sur MyNotary), il reste à l'étape Mandat (6 nov. 2026, banc d'import : un projet non signé
+  // passait « mandat signé » et ouvrait un dossier de vente).
+  const signe = !!maj.mandat_importe?.signe_le;
+  const plancher = maj.mandat_importe ? (maj.mandat_importe.k_partners === false || !signe ? 'mandat' : 'dataroom') : null;
   if (plancher && (!etape || ETAPES.indexOf(etape) < ETAPES.indexOf(plancher))) etape = plancher;
-  if (etape) biens.validee = auPlusLoin(biens.validee, FRANCHIE_AVANT[etape]);
-  if (etape && ETAPES.indexOf(etape) >= ETAPES.indexOf('dataroom')) maj.statut = 'mandat_signe';
+  // Sans signature, l'étape dite ne dépasse pas le Mandat.
+  if (maj.mandat_importe && !signe && etape && ETAPES.indexOf(etape) > ETAPES.indexOf('mandat') && !acte) etape = 'mandat';
+  // Le mandataire corrige l'étape (« il n'est pas signé ») : elle se pose telle quelle, même en arrière, tant que l'import dure.
+  const corrige = input.corriger_etape === true && etape && biens.import && !biens.import.fini;
+  if (etape) biens.validee = acte ? 'vente' : corrige ? FRANCHIE_AVANT[etape] : auPlusLoin(biens.validee, FRANCHIE_AVANT[etape]);
+  if (acte && location) biens.loue = bailSigneDe({ ...p, biens, mandat_importe: mandat }, { le: acte.le, candidats: p?.id ? Records.list('AcquereurMandataire').filter((a) => a.proprietaire_id === p.id) : [] });
+  else if (acte) biens.vendu = { le: acte.le, prix: nombre(input.prix) || mandat?.prix || null };
+  const rangFinal = ETAPES.indexOf(etapeImportDe({ biens }));
+  if (rangFinal >= ETAPES.indexOf('dataroom')) maj.statut = 'mandat_signe';
+  else if (corrige && p?.statut === 'mandat_signe') maj.statut = 'rdv_pris';
   if (mandat && mandat.k_partners === false && !p?.prochaine_action_le) {
     maj.prochaine_action = 'Re-signer le mandat chez K Partners';
     maj.prochaine_action_le = relanceAvant(mandat.echeance);
   }
-  if (nombre(input.prix) && ['mandat', 'dataroom', 'marche', 'offre', 'vente'].includes(etape) && !biens.prix_accord) biens.prix_accord = nombre(input.prix);
+  if (nombre(input.prix) && biens.transaction !== 'location' && ['mandat', 'dataroom', 'marche', 'offre', 'vente'].includes(etape) && !biens.prix_accord) biens.prix_accord = nombre(input.prix);
   if (etape && biens.import) biens.import = { ...biens.import, repris_le: new Date().toISOString() };
   return { maj: { ...maj, biens }, jalons: nouveaux, etape };
 }
@@ -128,19 +210,29 @@ export const OUTIL_REPRENDRE = {
     type: 'object',
     properties: {
       adresse: { type: 'string' }, ville: { type: 'string' },
-      type_bien: { type: 'string', enum: ['murs_commerce', 'fonds_commerce', 'bureaux', 'murs_et_fonds'] },
+      type_bien: { type: 'string', enum: ['murs_commerce', 'fonds_commerce', 'bureaux', 'murs_et_fonds'], description: "Ce qui se vend. S'il hésite (« peut-être les murs et le fonds séparément, elle ne sait pas »), ne le tranche pas : laisse vide et note son hésitation." },
+      transaction: { type: 'string', enum: ['vente', 'location'], description: "location quand le mandat est un mandat de location (on cherche un locataire) : le loyer demandé va dans loyer_annuel, pas de prix" },
       commerce: { type: 'string', description: "L'enseigne ou l'activité du commerce en place" },
       activite: { type: 'string' },
       proprietaire: { type: 'string', description: 'Le propriétaire (des murs, ou le cédant du fonds)' },
       telephone: { type: 'string' }, email: { type: 'string' },
       prix: { type: 'number', description: "Le prix du mandat ou la valeur de l'avis, en euros" },
       loyer_annuel: { type: 'number' }, surface: { type: 'number' }, ca: { type: 'number' }, ebe: { type: 'number' },
+      loyers: {
+        type: 'array', description: "Chaque loyer annuel connu, avec sa date et sa source : celui du bail, celui d'un avenant, celui des quittances, celui que le propriétaire déclare. Marque l'actuel. Ne garde jamais un seul chiffre quand plusieurs sont dits ou lus.",
+        items: { type: 'object', properties: { montant: { type: 'number' }, depuis: { type: 'string', description: 'AAAA-MM-JJ' }, source: { type: 'string', description: '« bail », « avenant n°1 », « quittances », « déclaré par le propriétaire »' }, actuel: { type: 'boolean' } }, required: ['montant'] },
+      },
+      lots: {
+        type: 'array', description: 'Plusieurs locaux vendus sous un même mandat (deux boutiques, un immeuble) : un lot par locataire.',
+        items: { type: 'object', properties: { nom: { type: 'string', description: '« Lot A, 21 rue des Marchands »' }, surface: { type: 'number' }, activite: { type: 'string' }, locataire: { type: 'string' }, locataire_personne: { type: 'boolean', description: 'Le locataire est une personne seule (entrepreneur individuel) et non une société : plus fragile' }, loyer_bail: { type: 'number' }, loyer_actuel: { type: 'number' }, fin_bail: { type: 'string', description: 'AAAA-MM-JJ' } } },
+      },
+      corriger_etape: { type: 'boolean', description: "true seulement quand le mandataire dit que l'étape posée est fausse (« il n'est pas signé ») : l'étape se pose telle quelle, même en arrière" },
       visite_le: { type: 'string', description: 'La date de la visite chez le propriétaire, AAAA-MM-JJ' },
       mandat: {
         type: 'object', description: 'Le mandat, lu dans son PDF ou raconté',
-        properties: { numero: { type: 'string' }, signe_le: { type: 'string', description: 'AAAA-MM-JJ' }, echeance: { type: 'string', description: 'AAAA-MM-JJ ; une durée « 3 mois » se compte depuis la signature' }, exclusif: { type: 'boolean' }, enseigne: { type: 'string', description: "L'agence ou le réseau sous lequel il est signé" }, honoraires: { type: 'string' } },
+        properties: { numero: { type: 'string' }, signe_le: { type: 'string', description: "AAAA-MM-JJ, seulement s'il est signé par le propriétaire : un projet ou un mandat envoyé en signature n'a pas de signe_le" }, echeance: { type: 'string', description: 'AAAA-MM-JJ ; une durée « 3 mois » se compte depuis la signature' }, exclusif: { type: 'boolean' }, enseigne: { type: 'string', description: "L'agence ou le réseau sous lequel il est signé" }, honoraires: { type: 'string' } },
       },
-      etape_actuelle: { type: 'string', enum: ETAPES, description: "L'étape où il en est : previsite (visite à faire), estimation (avis à faire, à envoyer, ou en attente de la réponse), mandat (avis accepté, mandat à faire signer, ou signé dans une autre agence), dataroom (mandat signé, pièces à réunir), marche (en vente), offre (offres reçues), vente (compromis ou acte)" },
+      etape_actuelle: { type: 'string', enum: ETAPES, description: "L'étape où il en est : previsite (visite PAS encore faite), estimation (visite faite ; avis à faire, à envoyer, ou en attente de la réponse), mandat (avis accepté, mandat à faire signer, ou signé dans une autre agence), dataroom (mandat signé, pièces à réunir), marche (en vente), offre (offres reçues), vente (compromis ou acte)" },
       jalons: {
         type: 'array',
         items: { type: 'object', properties: { quoi: { type: 'string', enum: [...Object.keys(JALONS), 'autre'] }, date: { type: 'string', description: 'AAAA-MM-JJ' }, texte: { type: 'string', description: "Ce qui s'est passé, en quelques mots (pour « autre », ou un détail)" } }, required: ['quoi', 'date'] },
@@ -210,7 +302,18 @@ export async function executerReprise(input, user, { fiche = null } = {}) {
   const { maj, jalons, etape } = repriseDe(p, input);
   const historique = [...(p.historique || []), ...jalons.map((j) => ({ le: j.le, type: 'jalon', texte: j.texte }))];
   Records.update('ProprietaireMandataire', p.id, { ...maj, historique });
-  const frais = Records.get('ProprietaireMandataire', p.id);
+  let frais = Records.get('ProprietaireMandataire', p.id);
+  // Hors de ses villes (6 nov. 2026, Jules : « je l'entre en le signalant ») : un bien qu'il a déjà s'entre quand même,
+  // marqué pour que Klocka le voie ; l'assistant le dit en une ligne.
+  let horsSecteur = null;
+  if (frais.ville && !frais.hors_secteur) {
+    const E = await import('./mandataire-espace.js');
+    const sect = E.secteurDe(user);
+    if (sect && !E.communeDansSecteur({ nom: frais.ville }, sect)) {
+      horsSecteur = { ville: frais.ville, le: new Date().toISOString(), secteur: sect.nom || null };
+      frais = Records.update('ProprietaireMandataire', p.id, { hors_secteur: horsSecteur, historique: [...(frais.historique || []), { le: horsSecteur.le, type: 'note', texte: `Hors secteur : ${frais.ville} n'est pas dans ses villes, signalé à Klocka` }] });
+    }
+  }
   const manque = manqueSelonEtape(frais, documentsDeLaFiche(frais));
   // La prochaine action du bien, à dire à la fin (et à proposer de faire).
   const suite = {
@@ -220,11 +323,12 @@ export async function executerReprise(input, user, { fiche = null } = {}) {
     dataroom: 'Ensuite : le mandat est signé, les pièces de la Data room à réunir (le mail au propriétaire).',
     marche: 'Ensuite : le bien est en vente, le teaser et les touches.',
     offre: 'Ensuite : les offres reçues (montant, conditions).',
-    vente: "Ensuite : la date de l'acte.",
+    vente: frais.biens?.vendu ? 'Le bien est vendu : le dossier est clos, ne propose aucune relance ni action sur ce bien (seulement garder les contacts utiles).' : "Ensuite : la date de l'acte.",
   }[etape || etapeImportDe(frais)];
   return {
     ok: true, fiche_id: p.id, jalons_ajoutes: jalons.length, etape: etape || null,
     ...(fusion ? { ouvrir_bien: fusion } : {}),
+    ...(horsSecteur ? { hors_secteur: horsSecteur, note: `${horsSecteur.ville} n'est pas dans ses villes : le bien est entré quand même et signalé à Klocka. Dis-le-lui en une ligne, sans en faire un sujet.` } : {}),
     fait: `${fusion ? `Ce bien était déjà là (${fusion.titre}) : il est complété, sans doublon, et l'écran l'ouvre. ` : ''}Fiche à jour${jalons.length ? `, ${jalons.length} événement${jalons.length > 1 ? 's' : ''} dans l'historique` : ''}${etape ? `, étape actuelle : ${etape}` : ''}.${manque.length ? ` Il manque encore : ${manque.join(', ')}.` : ' Le minimum de son étape est là.'} ${suite || ''}`.trim(),
   };
 }
@@ -248,6 +352,22 @@ export function manqueSelonEtape(p, documents = [], touches = null) {
   const rang = ETAPES.indexOf(etapeImportDe(p));
   const m = p?.mandat_importe || {};
   const jalons = b.jalons || [];
+  // Une location (6 nov. 2026) : le loyer demandé au lieu du prix, le candidat retenu au lieu de l'offre.
+  if (b.transaction === 'location') {
+    const retenus = (touches ?? Records.list('AcquereurMandataire').filter((a) => a.proprietaire_id === p?.id)).filter((a) => ['accord', 'bail_signe'].includes(a.statut_touche));
+    return [
+      !p?.adresse && "l'adresse",
+      !p?.type_bien && 'le type de bien',
+      !p?.nom && 'le propriétaire',
+      !p?.telephone && 'le téléphone du propriétaire',
+      rang >= 1 && !jalons.some((j) => j.quoi === 'visite') && 'la date de la visite',
+      rang >= 3 && !(b.repris?.loyer_annuel || m.loyer_annuel) && 'le loyer demandé',
+      rang >= 3 && !m.signe_le && 'la date de signature du mandat',
+      rang >= 3 && !m.echeance && "l'échéance du mandat",
+      rang >= 3 && !documents.some((d) => d.nature === 'mandat' || /mandat/i.test(d.nom || '')) && 'le PDF du mandat',
+      rang >= 5 && !b.loue && !retenus.length && 'le candidat retenu',
+    ].filter(Boolean);
+  }
   const offres = touches ?? Records.list('AcquereurMandataire').filter((a) => a.proprietaire_id === p?.id && a.statut_touche === 'offre');
   return [
     !p?.adresse && "l'adresse",
@@ -280,13 +400,15 @@ export function cadreImport(p) {
   const manque = manqueSelonEtape(p, docs);
   const touches = Records.list('AcquereurMandataire').filter((a) => a.proprietaire_id === p.id);
   const relances = Records.list('Rappel').filter((r) => r.proprietaire_id === p.id && !r.fait_le);
+  const location = p.biens?.transaction === 'location';
   const etat = [
+    location ? 'LOCATION : on cherche un locataire (loyer demandé, candidats, bail ; ni prix, ni rendement, ni investisseurs de Klocka, ni mise en vente ; le bail signé se note en jalon bail_signe ou statut bail_signe du candidat)' : null,
     `étape actuelle : ${etapeImportDe(p)}`,
     docs.length ? `documents : ${docs.map((d) => `« ${d.nom} »${d.nature ? ` (${d.nature})` : ''}`).join(', ')}` : 'aucun document encore',
-    touches.length ? `touches : ${touches.map((a) => `${a.nom} (${a.statut_touche || 'contact'})`).join(', ')}` : 'aucune touche notée',
+    touches.length ? `${location ? 'candidats' : 'touches'} : ${touches.map((a) => `${a.nom} (${a.statut_touche || 'contact'})`).join(', ')}` : location ? 'aucun candidat noté' : 'aucune touche notée',
     relances.length ? `relances : ${relances.length}` : 'aucune relance posée',
     p.crm?.le ? `déjà au CRM le ${String(p.crm.le).slice(0, 10)}` : 'pas encore au CRM',
-  ].join(' ; ');
+  ].filter(Boolean).join(' ; ');
   return `\n\nCE BIEN EST EN COURS D'IMPORT : le mandataire l'a déjà, tu le fais entrer dans Klocka comme Jules le ferait lui-même. Tu es libre : tu t'adaptes à ce qu'il te donne, sans formulaire. Vouvoie-le, phrases courtes.
 - Tu commences par le laisser raconter (« Racontez-moi ce bien »), puis tu tries. Demande aussi le contexte : qui s'est placé sur le bien, qui l'a visité, où en est chacun.
 - Ce qui n'est pas clair, demande-le tout de suite, en une question courte. N'invente rien.
@@ -294,11 +416,13 @@ export function cadreImport(p) {
 - reprendre_bien écrit la fiche : l'adresse et le type dès qu'il les dit (le bien prend « adresse, ville » pour nom ; une adresse déjà connue complète le bien existant), le reste après un résumé de trois lignes et son oui. L'étape se déduit de ce qu'il dit ; si elle n'est pas claire, demande-la.
 - Un bien sans rien de fait (propriétaire repéré, pas visité) : demande-lui s'il le met dans sa Prospection (envoyer_en_prospection, dans la liste qu'il nomme) ou dans ses biens.
 - Demande-lui tous les documents qu'il a (mandat, avis de valeur, bail, quittances, taxe foncière, diagnostics, photos…) : il les joint ici ou les glisse à droite. Puis ranger_documents leur donne un nom clair (« Bail commercial », « Mandat exclusif ») et la bonne case.
-- Chaque acquéreur potentiel qu'il cite : noter_touche (statut, visite, offre, budget, relance).
+- Chaque acquéreur potentiel qu'il cite : noter_touche (statut, visite, offre, budget, relance). Celui qui a acheté : statut achete ; ce qu'il cherche d'autre va dans recherche. Un candidat locataire : locataire true.
+- Les cas qui changent tout (6 nov. 2026) : un mandat de location → transaction location (ni prix ni rendement, des candidats locataires) ; un mandat pas encore signé (un projet, envoyé sur MyNotary) → pas de signe_le, l'étape reste Mandat ; un bien vendu (acte signé) → le jalon vente, le dossier est clos, aucune relance ; plusieurs locaux sous un même mandat → lots, un par locataire, et signale un locataire personne seule (entrepreneur individuel) comme un point de fragilité. Chaque loyer dit ou lu va dans loyers avec sa source (bail, avenant, quittances, déclaré), sans en perdre un. Un type de bien qu'il n'a pas tranché ne se tranche pas. Si l'étape posée est fausse et qu'il te le dit, rappelle reprendre_bien avec corriger_etape.
 - Demande-lui quelles relances il veut (le propriétaire, les touches, l'échéance du mandat) : noter_relance, une par relance. Ne pose rien d'office.
 - Il manque des pièces que seul le propriétaire a : propose le mail au propriétaire (preparer_mail), prêt à envoyer d'un clic.
-- Quand le minimum est là : fais-lui relire la fiche à droite (tout s'y corrige d'un clic, ou il te dit ce qui est faux et tu corriges), puis demande « Je mets tout ça dans le CRM ? ». À son oui : mettre_au_crm. S'il rend des contacts à passer en Clients (vendeur à l'avis accepté ou au mandat signé, acquéreur à l'offre ou après une visite avec un budget validé), propose-le par leur nom ; à son oui : passer_en_clients.
-- À la fin, dis en deux lignes ce qui est fait et la prochaine action du bien, puis qu'il touche « C'est fait ».
+- Le CRM, d'office (6 nov. 2026, Jules : « il est proactif, on n'a pas à lui dire de le rentrer, mais il vérifie toujours avant ») : dès que tu connais le propriétaire (son nom) et l'adresse, propose-le toi-même dans ta réponse, en une question, par son nom et sa liste : « Je rentre Jean Bernard en prospect (vendeur) ? ». Pareil pour chaque touche notée (« Je rentre M. Martin en prospect (acquéreur) ? »). N'attends pas qu'il le demande, et n'écris jamais sans son oui. À son oui : mettre_au_crm. S'il répond « non, en client » (ou « mets-le en client ») : mettre_au_crm puis passer_en_clients pour cette personne. Quand mettre_au_crm rend des contacts à passer en Clients, propose-le par leur nom ; à son oui : passer_en_clients. Une fois au CRM, si la fiche change (téléphone, étape, prix…), propose la mise à jour en une ligne (« Je mets le CRM à jour ? ») et, au oui, rappelle mettre_au_crm. Si le CRM refuse, dis-le en une phrase, sans détail technique, et propose de réessayer.
+- Quand le minimum est là : fais-lui relire la fiche à droite (tout s'y corrige d'un clic, ou il te dit ce qui est faux et tu corriges).
+- À la fin, dis en deux lignes ce qui est fait et la prochaine action du bien, puis qu'il touche « Import terminé » (le bouton pervenche) : ce bouton finit l'import et met aussi le bien et ses contacts au CRM s'ils n'y sont pas.
 OÙ ON EN EST : ${etat}.${manque.length ? ` IL MANQUE ENCORE POUR SON ÉTAPE : ${manque.join(', ')} (demande-le, une ou deux choses à la fois ; il peut tout dire en un vocal).` : ' Le minimum de son étape est là.'}`;
 }
 
@@ -319,7 +443,9 @@ export const OUTILS_IMPORT = [
       type: 'object',
       properties: {
         nom: { type: 'string' }, telephone: { type: 'string' }, email: { type: 'string' },
-        statut: { type: 'string', enum: ['contact', 'visite', 'offre', 'perdu'], description: 'Contact (intéressé), visite faite, offre faite, perdu' },
+        statut: { type: 'string', enum: ['contact', 'visite', 'offre', 'achete', 'dossier', 'accord', 'bail_signe', 'perdu'], description: "Contact (intéressé), visite faite, offre faite, a acheté ce bien (vente conclue), perdu. Un candidat locataire : contact, visite, dossier (Kbis, bilans, projet, garanties reçus), accord, bail_signe (le bien est loué), perdu" },
+        locataire: { type: 'boolean', description: "true pour un candidat locataire (le bien est en location), pas un acquéreur ; son budget est le loyer annuel qu'il accepte" },
+        recherche: { type: 'string', description: "Ce qu'il cherche d'autre, s'il le dit (« des murs commerciaux à Aix-en-Provence ») : il devient un investisseur à suivre" },
         visite_le: { type: 'string', description: 'AAAA-MM-JJ' },
         offre_montant: { type: 'number', description: "Le montant de l'offre, en euros" },
         budget: { type: 'number', description: 'Son budget, en euros' },
@@ -337,7 +463,7 @@ export const OUTILS_IMPORT = [
   },
   {
     name: 'mettre_au_crm',
-    description: "Après son oui à « Je mets tout ça dans le CRM ? » : écrit le bien dans Propriétés KPartners (chaque case connue), le propriétaire et chaque touche dans Prospects, avec leur statut et leur prochaine relance. Rend les contacts à proposer pour Clients.",
+    description: "Après son oui à ta proposition (« Je rentre Jean Bernard en prospect ? », « Je mets le CRM à jour ? ») : écrit le bien dans Propriétés KPartners (chaque case connue), le propriétaire et chaque touche dans Prospects, avec leur statut et leur prochaine relance. Rend les contacts à proposer pour Clients.",
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -391,6 +517,9 @@ export async function executerOutilImport(appel, user, { fiche = null } = {}) {
       ...(typeof input.budget_valide === 'boolean' ? { budget_valide: input.budget_valide } : {}),
       ...(date(input.prochaine_relance) ? { prochaine_relance: date(input.prochaine_relance).slice(0, 10) } : {}),
       ...(String(input.remarque || '').trim() ? { remarque: String(input.remarque).trim().slice(0, 500) } : {}),
+      // Sur un bien à louer, toute touche est un candidat locataire (6 nov. 2026).
+      ...(input.locataire === true || p.biens?.transaction === 'location' ? { role: 'locataire' } : {}),
+      ...(String(input.recherche || '').trim() ? { recherche: String(input.recherche).trim().slice(0, 200), en_recherche: true } : {}),
     };
     const a = deja ? Records.update('AcquereurMandataire', deja.id, champs)
       : Records.create('AcquereurMandataire', { statut_touche: 'contact', ...champs, mandataire_email: p.mandataire_email, proprietaire_id: p.id, recherche: [p.type_bien, p.activite].filter(Boolean).join(' ') || null, villes: p.ville ? [p.ville] : [], source: 'touche', cree_le: new Date().toISOString() });
@@ -398,7 +527,13 @@ export async function executerOutilImport(appel, user, { fiche = null } = {}) {
       const f = Records.get('ProprietaireMandataire', p.id);
       Records.update('ProprietaireMandataire', p.id, { historique: [...(f.historique || []), { le: new Date().toISOString(), type: 'note', texte: `Offre de ${nom} : ${champs.offre_montant.toLocaleString('fr-FR')} €` }] });
     }
-    return { ok: true, touche_id: a.id, fait: `${nom} ${deja ? 'mis à jour' : 'noté'} dans Mes acquéreurs, relié à ce bien (${a.statut_touche}).` };
+    // Le bail signé avec un candidat (6 nov. 2026) : le bien est loué, toutes ses étapes sont faites.
+    if (input.statut === 'bail_signe' && a.role === 'locataire') {
+      const f = Records.get('ProprietaireMandataire', p.id);
+      const loue = bailSigneDe(f, { candidat: a });
+      Records.update('ProprietaireMandataire', p.id, { biens: { ...(f.biens || {}), validee: 'vente', loue }, historique: [...(f.historique || []), { le: new Date().toISOString(), type: 'jalon', texte: `Bail signé avec ${nom}${loue.loyer_annuel ? ` (${loue.loyer_annuel.toLocaleString('fr-FR')} € par an)` : ''}` }] });
+    }
+    return { ok: true, touche_id: a.id, fait: `${nom} ${deja ? 'mis à jour' : 'noté'} dans Mes acquéreurs, relié à ce bien (${a.role === 'locataire' ? 'candidat locataire, ' : ''}${a.statut_touche}${a.en_recherche ? `, cherche : ${a.recherche}` : ''}).` };
   }
   if (appel.name === 'envoyer_en_prospection') {
     const listes = Records.list('ListeMandataire').filter((l) => l.mandataire_email === p.mandataire_email && !l.agent && !l.suggeree);
@@ -443,22 +578,36 @@ export async function executerOutilImport(appel, user, { fiche = null } = {}) {
  * ouvre sa Data room, avec ce qui a été déposé (4 nov. 2026, Jules : « je crée la Data room »).
  */
 export async function finirImport(proprietaireId, user) {
-  const p = Records.get('ProprietaireMandataire', proprietaireId);
+  let p = Records.get('ProprietaireMandataire', proprietaireId);
   if (!p || p.mandataire_email !== email(user)) return { ok: false, error: 'Bien introuvable.' };
   if (!p.biens?.import) return { ok: true };
+  // « Import terminé » vaut le oui du mandataire (6 nov. 2026, Jules : « on clique dessus et ça l'importe ») : le bien,
+  // son propriétaire et ses touches partent au CRM s'ils n'y sont pas, ou y sont mis à jour. Un refus du CRM ne retient
+  // pas la fin de l'import : l'écran le dit.
+  let crm = null;
+  if (!p.test && !p.essai_bien && (p.adresse || p.nom)) {
+    try {
+      const { mettreAuCrm } = await import('./crm-bien.js');
+      const r = await mettreAuCrm(p.id, user);
+      crm = r.ok ? { ok: true, faits: r.faits } : { ok: false, error: r.error };
+    } catch (e) { crm = { ok: false, error: String(e?.message || e).slice(0, 200) }; }
+  }
+  const avecCrm = (r) => ({ ...r, ...(crm ? { crm } : {}) });
+  p = Records.get('ProprietaireMandataire', p.id);
   Records.update('ProprietaireMandataire', p.id, { biens: { ...p.biens, import: { ...p.biens.import, fini: new Date().toISOString() } } });
   const rang = ETAPES.indexOf(etapeImportDe(p));
   const deja = Records.list('DossierMandataire').some((d) => d.proprietaire_id === p.id && !d.retire_le);
-  if (rang >= 3 && !deja && p.mandat_importe?.k_partners !== false && !p.test) {
+  // Une location ou un bien déjà vendu n'ouvrent pas de dossier de vente (6 nov. 2026, banc d'import).
+  if (rang >= 3 && !deja && p.mandat_importe?.k_partners !== false && p.mandat_importe?.signe_le && !p.test && p.biens?.transaction !== 'location' && !p.biens?.vendu) {
     const P = await import('./mandataire-portes.js');
     const r = P.creerDossier({ bien: [p.adresse, p.ville].filter(Boolean).join(', ') || p.commerce, adresse: [p.adresse, p.ville].filter(Boolean).join(', ') || null, proprietaire: p.nom || null, proprietaire_email: p.email || null, prix: p.biens?.prix_accord || p.mandat_importe?.prix || null, loyer_annuel: p.biens?.repris?.loyer_annuel || null, surface_m2: p.biens?.repris?.surface || null }, user);
     if (r.ok) {
       const h = P.heritageDuDossier({ fiche: Records.get('ProprietaireMandataire', p.id) });
-      Records.update('DossierMandataire', r.dossier.id, { proprietaire_id: p.id, documents: h.documents, photos: h.photos, ...(h.pieces_perso.length ? { pieces_perso: h.pieces_perso } : {}) });
-      return { ok: true, dossier_id: r.dossier.id };
+      Records.update('DossierMandataire', r.dossier.id, { proprietaire_id: p.id, documents: h.documents, photos: h.photos, ...(h.pieces_perso.length ? { pieces_perso: h.pieces_perso } : {}), ...(h.pieces_masquees.length ? { pieces_masquees: h.pieces_masquees } : {}) });
+      return avecCrm({ ok: true, dossier_id: r.dossier.id });
     }
   }
-  return { ok: true };
+  return avecCrm({ ok: true });
 }
 
 /**
@@ -472,6 +621,8 @@ export function corrigerInfos(proprietaireId, champs = {}, user) {
   const maj = {};
   const biens = { ...(p.biens || {}) };
   for (const [k, cle] of [['adresse', 'adresse'], ['ville', 'ville'], ['proprietaire', 'nom'], ['telephone', 'telephone'], ['email', 'email'], ['activite', 'activite']]) if (k in champs) maj[cle] = txt(champs[k]);
+  // Vente ou location (6 nov. 2026) : un clic sur la fiche à relire bascule le bien.
+  if ('transaction' in champs) { if (!['vente', 'location'].includes(champs.transaction)) return { ok: false, error: 'Opération inconnue.' }; biens.transaction = champs.transaction; }
   if ('type_bien' in champs) { if (champs.type_bien && !TYPES.has(champs.type_bien)) return { ok: false, error: 'Type inconnu.' }; maj.type_bien = champs.type_bien || null; }
   const repris = { ...(biens.repris || {}) };
   for (const k of ['loyer_annuel', 'surface', 'ca', 'ebe']) if (k in champs) { if (nombre(champs[k])) repris[k] = nombre(champs[k]); else delete repris[k]; }

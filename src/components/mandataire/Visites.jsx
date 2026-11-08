@@ -4,11 +4,12 @@ import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUp, Check, Loader2, Mic, PenLine, Plus, Printer, Send, Square, X } from "lucide-react";
+import { ArrowUp, Check, Link2, Loader2, Mic, PenLine, Plus, Printer, Send, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useMicro } from "@/components/mandataire/FicheMandataire";
 import { bouton, boutonPlein, champ } from "@/components/off-market/commun";
+import { LienASigner } from "@/components/mandataire/TableauAcquereurs";
 import jetons from "@/design/jetons.json";
 
 // Les visites d'acquéreurs (27 oct. 2026, Jules), dans la Commercialisation d'un bien : avant, la visite et son bon
@@ -74,18 +75,19 @@ export default function Visites({ bien }) {
 }
 
 /** Un panneau au centre de l'écran (plein écran au téléphone), la croix en haut à droite. */
-export function Panneau({ titre, sous = null, onFermer, children, large = false }) {
+// `plein` : en plein écran (le bon de visite qu'on tend au visiteur, 8 nov. 2026, Jules).
+export function Panneau({ titre, sous = null, onFermer, children, large = false, plein = false }) {
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape") onFermer(); };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, [onFermer]);
   return createPortal(
-    <motion.div className="fixed inset-0 z-[95] flex items-start justify-center overflow-y-auto bg-fond/70 px-4 py-10 backdrop-blur-sm max-md:p-0"
+    <motion.div className={`fixed inset-0 flex items-start justify-center overflow-y-auto bg-fond/70 backdrop-blur-sm max-md:p-0 ${plein ? "z-[100] p-0" : "z-[95] px-4 py-10"}`}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} onClick={onFermer}>
       <motion.div role="dialog" aria-label={titre} onClick={(e) => e.stopPropagation()}
         initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }} transition={{ duration: 0.25, ease: "easeOut" }}
-        className={`relative w-full ${large ? "max-w-[820px]" : "max-w-[560px]"} rounded-[18px] border border-bord-doux bg-rail px-6 pb-6 pt-5 shadow-[0_20px_50px_rgb(0_0_0/0.28)] max-md:min-h-full max-md:rounded-none max-md:px-4`}>
+        className={`relative w-full ${plein ? "min-h-full max-w-none rounded-none border-0 px-[max(1.5rem,calc((100vw-720px)/2))] pb-10 pt-8" : `${large ? "max-w-[820px]" : "max-w-[560px]"} rounded-[18px] border border-bord-doux px-6 pb-6 pt-5 shadow-[0_20px_50px_rgb(0_0_0/0.28)]`} bg-rail max-md:min-h-full max-md:rounded-none max-md:px-4`}>
         <button type="button" onClick={onFermer} aria-label="Fermer" className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         <h2 className="m-0 pr-10 text-[18px] font-normal text-encre">{titre}</h2>
         {sous && <p className="m-0 mt-1 text-[13px] text-ardoise">{sous}</p>}
@@ -147,6 +149,7 @@ function VisiteOuverte({ id, onFermer }) {
   const v = data?.visite;
   const [signer, setSigner] = useState(false);
   const [voirBon, setVoirBon] = useState(false);
+  const [aDistance, setADistance] = useState(false);
   const maj = (r) => { qc.setQueryData(["m-visite", id], r); qc.invalidateQueries({ queryKey: ["m-visites"] }); };
   if (isLoading || isError || !v) {
     return <Panneau titre="Visite" onFermer={onFermer}>{isError ? <p className="m-0 text-[13.5px] text-alerte">Visite introuvable.</p> : <Loader2 className="h-5 w-5 animate-spin text-menthe" />}</Panneau>;
@@ -161,7 +164,11 @@ function VisiteOuverte({ id, onFermer }) {
         <span className="flex-1" />
         {v.bon?.signe_le
           ? <button type="button" onClick={() => setVoirBon(true)} className={bouton}><Printer className="h-4 w-4" /> Voir le bon</button>
-          : <button type="button" onClick={() => setSigner(true)} className={boutonPlein}><PenLine className="h-4 w-4" /> Faire signer</button>}
+          : (<>
+            {/* Sur place, au doigt sur votre téléphone ; ou à distance, un lien qu'il signe sur le sien (8 nov. 2026). */}
+            <button type="button" onClick={() => setADistance(true)} className={bouton} style={{ background: "transparent" }}><Link2 className="h-4 w-4" /> Lien à distance</button>
+            <button type="button" onClick={() => setSigner(true)} className={boutonPlein}><PenLine className="h-4 w-4" /> Faire signer</button>
+          </>)}
       </div>
       {v.etat_bon === "manquant" && <p className="m-0 mt-2 text-[12.5px] text-alerte">L'heure de la visite est passée sans bon signé : la commission n'est pas protégée. Faites-le signer dès que possible.</p>}
 
@@ -175,6 +182,7 @@ function VisiteOuverte({ id, onFermer }) {
       <AnimatePresence>
         {signer && <SignatureBon key="s" id={id} onFermer={() => setSigner(false)} onFait={(r) => { maj(r); setSigner(false); toast.success("Bon de visite signé."); }} />}
         {voirBon && <BonDeVisite key="b" id={id} onFermer={() => setVoirBon(false)} />}
+        {aDistance && <LienASigner key="l" visiteId={id} onFermer={() => setADistance(false)} />}
       </AnimatePresence>
     </Panneau>
   );
@@ -317,7 +325,7 @@ function FeuilleBon({ bon, children = null }) {
 }
 
 /** Signer sur place : le visiteur lit le bon, écrit son nom et signe au doigt ; plein écran au téléphone. */
-function SignatureBon({ id, onFermer, onFait }) {
+export function SignatureBon({ id, onFermer, onFait, plein = false }) {
   const { data } = useQuery({ queryKey: ["m-visite-bon", id], queryFn: () => base44.request("GET", `${API}/${id}/bon`) });
   const [nom, setNom] = useState("");
   const [trace, setTrace] = useState(false);
@@ -352,7 +360,7 @@ function SignatureBon({ id, onFermer, onFait }) {
   });
   const bon = data?.bon ? { ...data.bon, lignes: data.bon.lignes.map((l) => l.replace("Je soussigné(e) …", `Je soussigné(e) ${nom.trim() || "…"}`)) } : null;
   return (
-    <Panneau titre="Bon de visite" sous="À faire lire et signer par le visiteur, avant d'entrer." onFermer={onFermer}>
+    <Panneau titre="Bon de visite" sous="À faire lire et signer par le visiteur, avant d'entrer." onFermer={onFermer} plein={plein}>
       {!bon ? <Loader2 className="h-5 w-5 animate-spin text-menthe" /> : (
         <>
           <FeuilleBon bon={bon} />
@@ -373,7 +381,7 @@ function SignatureBon({ id, onFermer, onFait }) {
 }
 
 /** Le bon signé, à montrer ou imprimer. */
-function BonDeVisite({ id, onFermer }) {
+export function BonDeVisite({ id, onFermer }) {
   const { data } = useQuery({ queryKey: ["m-visite-bon", id, "signe"], queryFn: () => base44.request("GET", `${API}/${id}/bon`) });
   const bon = data?.bon;
   const imprimer = () => {

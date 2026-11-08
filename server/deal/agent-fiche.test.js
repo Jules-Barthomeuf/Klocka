@@ -7,6 +7,9 @@ import path from 'path';
 // Base jetable, et Monday coupé : aucun test n'écrit dans le vrai CRM.
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-agent-'));
 process.env.MONDAY_TOKEN = '';
+// Twenty coupé aussi : un .env en CRM=twenty (essais locaux) ne doit pas faire lire ni écrire le vrai CRM.
+process.env.CRM = 'monday';
+process.env.TWENTY_API_KEY = '';
 const { Records } = await import('../db.js');
 const { agentDuDossier, phraseAgent, rattacherAgent } = await import('./agent-fiche.js');
 const { verifierAgent } = await import('./extract.js');

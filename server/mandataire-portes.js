@@ -12,6 +12,7 @@
 // relance du propriétaire se préparent ; le mandataire les envoie lui-même.
 
 import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
+import { CASES as CASES_CONNUES, casesDuType, motDeCase } from '../src/lib/data-room.js';
 import { semerExemples, exemplesParEtape, exemplesLyon, REFUS_EXEMPLE } from './mandataire-exemples.js';
 
 const maintenant = () => new Date().toISOString();
@@ -394,7 +395,7 @@ export async function ouvrirDossierDuMandat(mandat, user) {
   const fiche = pid ? Records.get('ProprietaireMandataire', pid) : null;
   const estimations = Records.list('EstimationMandataire').filter((e) => e.id === mandat.estimation_id || (fiche && e.proprietaire_id === fiche.id));
   const h = heritageDuDossier({ estimations, fiche, societe: q.vendeur_genre === 'morale' || !!q.vendeur_societe });
-  const d = Records.update('DossierMandataire', r.dossier.id, { mandat_id: mandat.id, documents: h.documents, photos: h.photos, ...(h.pieces_demandees.length ? { pieces_demandees: h.pieces_demandees } : {}), ...(h.pieces_perso.length ? { pieces_perso: h.pieces_perso } : {}) });
+  const d = Records.update('DossierMandataire', r.dossier.id, { mandat_id: mandat.id, documents: h.documents, photos: h.photos, ...(h.pieces_demandees.length ? { pieces_demandees: h.pieces_demandees } : {}), ...(h.pieces_perso.length ? { pieces_perso: h.pieces_perso } : {}), ...(h.pieces_masquees.length ? { pieces_masquees: h.pieces_masquees } : {}) });
   if (Object.keys(h.documents).length && lectureDesPieces()) import('./dossier-vente.js').then((V) => V.lirePieces(d.id, { ...user, email: mandat.mandataire_email })).catch(() => {});
   const F = await import('./fil-dossier.js');
   F.evenement(d.id, 'Mandat signé : le dossier est ouvert. Déposez les pièces et les photos ici, puis transférez-le à Klocka quand vous le souhaitez.');
@@ -423,7 +424,8 @@ export function heritageDuDossier({ estimations = [], fiche = null, societe = fa
   const photos = (fiche?.biens?.visite?.photos || []).filter((x) => x?.url).map((x) => ({ url: x.url, nom: x.nom || 'Photo de la visite', le: x.le || le }));
   const documents = uniques.length ? { bail: uniques } : {};
   // Ce qui a été déposé sur le bien avant le mandat (3 nov. 2026, vue d'ensemble du bien) : chaque pièce dans sa case.
-  const CASES = new Set(PIECES.map((x) => x.cle));
+  // Toutes les cases connues (murs, fonds…) : une pièce déposée sur le bien garde sa case.
+  const CASES = new Set([...PIECES.map((x) => x.cle), ...Object.keys(CASES_CONNUES)]);
   const cases_perso = (fiche?.biens?.cases_perso || []).map((c) => ({ cle: c.cle, mot: c.mot, le: c.le || le }));
   for (const x of fiche?.biens?.pieces || []) {
     if (!x?.url || x.nature === 'photos') { if (x?.url) photos.push({ url: x.url, nom: x.nom || 'Photo', le: x.le || le }); continue; }
@@ -434,7 +436,8 @@ export function heritageDuDossier({ estimations = [], fiche = null, societe = fa
     if (Object.values(documents).flat().some((f) => f.url === x.url)) continue;
     documents[cle] = [...(documents[cle] || []), { nom: x.nom || 'Pièce', url: x.url, le: x.le || le, ...(x.par ? { par: x.par } : {}) }];
   }
-  return { documents, photos, pieces_demandees: societe ? PIECES_SOCIETE.map((x) => ({ ...x })) : [], pieces_perso: cases_perso };
+  // Les cases masquées avant le mandat restent masquées : c'est la même Data room (6 nov. 2026).
+  return { documents, photos, pieces_demandees: societe ? PIECES_SOCIETE.map((x) => ({ ...x })) : [], pieces_perso: cases_perso, pieces_masquees: [...(fiche?.biens?.cases_masquees || [])] };
 }
 
 /** Pure : le prochain numéro du registre, « 2026-0007 ». */
@@ -518,12 +521,45 @@ export const lireDossier = (id, user) => lire('DossierMandataire', id, user);
  * demandées en compléments (une facultative devient obligatoire, une pièce
  * nouvelle s'ajoute).
  */
+/**
+ * Le type du bien d'un dossier, qui choisit ses cases (6 nov. 2026) : comme typeDuBien à l'écran, l'avis de valeur
+ * d'abord, puis la fiche du bien ; sans rien, les murs.
+ */
+export function typeDuDossier(dossier) {
+  if (dossier?.type_bien) return dossier.type_bien;
+  const e = dossier?.estimation_id ? Records.get('EstimationMandataire', dossier.estimation_id) : null;
+  const p = dossier?.proprietaire_id ? Records.get('ProprietaireMandataire', dossier.proprietaire_id) : null;
+  return e?.avis?.type_bien || e?.questionnaire?.type_bien || p?.type_bien || null;
+}
+
+/**
+ * La fiche du bien d'un dossier (ProprietaireMandataire), par le dossier, son mandat ou son estimation ; null sinon.
+ * Elle dit la transaction (6 nov. 2026, Jules : la location).
+ */
+export function ficheDuDossier(dossier) {
+  if (!dossier) return null;
+  const mandat = dossier.mandat_id ? Records.get('MandatMandataire', dossier.mandat_id) : null;
+  const estimationId = dossier.estimation_id || mandat?.estimation_id || null;
+  const pid = dossier.proprietaire_id || mandat?.proprietaire_id || (estimationId ? Records.get('EstimationMandataire', estimationId)?.proprietaire_id : null);
+  return pid ? Records.get('ProprietaireMandataire', pid) || null : null;
+}
+
+/** « location » quand le bien du dossier est à louer, sinon « vente ». */
+export const transactionDuDossier = (dossier) => (ficheDuDossier(dossier)?.biens?.transaction === 'location' ? 'location' : 'vente');
+
 export function piecesDu(dossier) {
+  // Les cases du type du bien (6 nov. 2026, src/lib/data-room.js) ; une case qui a déjà des pièces reste quand le type
+  // change : rien ne se perd. Un bien à louer a la liste de la location.
+  const duType = casesDuType(typeDuDossier(dossier), transactionDuDossier(dossier));
+  const gardees = Object.entries(dossier.documents || {})
+    .filter(([cle, f]) => (f || []).length && !duType.some((p) => p.cle === cle) && motDeCase(cle))
+    .map(([cle]) => ({ cle, mot: motDeCase(cle), requise: false }));
+  const PIECES_DU_TYPE = [...duType.filter((p) => p.cle !== 'autres'), ...gardees, ...duType.filter((p) => p.cle === 'autres')];
   // Les pièces d'une société vendeuse se lisent dans leur définition du jour : les dossiers nés avant le 3 nov. 2026
   // les gardaient obligatoires, et « venderesse ».
   const demandees = (dossier.pieces_demandees || []).map((x) => ({ ...x, ...(PIECES_SOCIETE.find((s) => s.cle === x.cle) || {}) }));
-  const base = PIECES.map((p) => (demandees.some((x) => x.cle === p.cle) ? { ...p, requise: true, demandee: true } : p));
-  const nouvelles = demandees.filter((x) => !PIECES.some((p) => p.cle === x.cle)).map((x) => ({ cle: x.cle, mot: x.mot, requise: x.requise !== false, demandee: true }));
+  const base = PIECES_DU_TYPE.map((p) => (demandees.some((x) => x.cle === p.cle) ? { ...p, requise: true, demandee: true } : p));
+  const nouvelles = demandees.filter((x) => !PIECES_DU_TYPE.some((p) => p.cle === x.cle)).map((x) => ({ cle: x.cle, mot: x.mot, requise: x.requise !== false, demandee: true }));
   // Les cases nommées par le mandataire à l'import (4 nov. 2026, Jules) : facultatives, avant la case « + ».
   const perso = (dossier.pieces_perso || []).filter((x) => !base.some((p) => p.cle === x.cle) && !nouvelles.some((p) => p.cle === x.cle)).map((x) => ({ cle: x.cle, mot: x.mot, requise: false, perso: true }));
   const avecPerso = [...base, ...nouvelles];
@@ -568,6 +604,9 @@ export function creerDossier({ bien, adresse = null, proprietaire = null, propri
   return { ok: true, dossier: d };
 }
 
+/** Dix documents au plus dans une case de la Data room. */
+export const MAX_PAR_CASE = 10;
+
 export function ajouterPiece(id, categorie, fichier, user, { uploadDir = CHEMIN_UPLOADS } = {}) {
   const d = lireDossier(id, user);
   if (!d) return { ok: false, error: 'Dossier introuvable.' };
@@ -577,6 +616,8 @@ export function ajouterPiece(id, categorie, fichier, user, { uploadDir = CHEMIN_
   // Mis en vente (27 oct. 2026) : une pièce de plus rejoint encore le dossier d'analyse (et Drive), comme pendant l'étude.
   const enEtude = (d.statut === 'en_etude' || (d.statut === 'go' && d.en_vente_le)) && d.deal_id;
   if (!enEtude && !['documents_en_cours', 'complet', 'complements'].includes(d.statut)) return { ok: false, error: 'Le dossier est décidé : les pièces ne se changent plus.' };
+  // Dix documents au plus dans une case (6 nov. 2026, Jules : « plusieurs documents dans chaque box, jusqu'à 10 »).
+  if (((d.documents || {})[categorie] || []).length >= MAX_PAR_CASE) return { ok: false, error: `${MAX_PAR_CASE} documents au plus dans une case.` };
   const documents = { ...(d.documents || {}), [categorie]: [...((d.documents || {})[categorie] || []), { nom: fichier.filename, url: fichier.url, le: maintenant(), ...(fichier.par ? { par: fichier.par } : {}) }] };
   const complet = checklist({ ...d, documents }).complet;
   const statut = enEtude ? d.statut : d.statut === 'complements' ? 'complements' : complet ? 'complet' : 'documents_en_cours';
@@ -973,7 +1014,7 @@ export function normaliserPiecesDemandees(pieces = []) {
   for (const brut of Array.isArray(pieces) ? pieces : []) {
     const texte = String(typeof brut === 'object' ? brut?.mot || brut?.cle || '' : brut).trim();
     if (!texte) continue;
-    const connue = PIECES.find((p) => p.cle === texte || p.mot.toLowerCase() === texte.toLowerCase());
+    const connue = [...PIECES, ...Object.entries(CASES_CONNUES).map(([cle, mot]) => ({ cle, mot }))].find((p) => p.cle === texte || p.mot.toLowerCase() === texte.toLowerCase());
     const cle = connue ? connue.cle : `autre_${texte.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').slice(0, 40)}`;
     if (vues.has(cle)) continue;
     vues.add(cle);
@@ -1060,6 +1101,10 @@ export async function ouvrirLaVente(id, user, { uploadDir = CHEMIN_UPLOADS } = {
   const r = passer('DossierMandataire', d, ['documents_en_cours', 'complet', 'complements', 'en_etude'], 'go', user, 'mis en vente par le mandataire', { en_vente_le: maintenant(), deal_lecture: false });
   if (!r.ok) return r;
   r.marche = ouvrirMarche(d, user, 'mis en vente par le mandataire');
+  // Dès la mise en vente, Klocka compose ce qu'il faut pour vendre (6 nov. 2026, Jules : « il faut que ça construise
+  // les annonces pour eux, ainsi que les fiches anonymes de co ») : le teaser, les annonces et la fiche confrère sont
+  // prêts quand il ouvre la Commercialisation.
+  if (!process.env.NODE_TEST_CONTEXT) preparerLaVente(r.marche.id, user).catch((e) => console.warn('[portes] préparation de la vente :', e?.message || e));
   const frais = Records.get('DossierMandataire', d.id);
   if (frais.deal_id) {
     const deal = Records.findBy('Deal', 'deal_id', frais.deal_id);
@@ -1075,6 +1120,33 @@ export async function ouvrirLaVente(id, user, { uploadDir = CHEMIN_UPLOADS } = {
   return r;
 }
 
+/**
+ * « Mettre en location » (6 nov. 2026, Jules : « adapter tout le système à la location ») : le bien passe en
+ * Commercialisation, rien de plus. Le mandataire cherche ses candidats lui-même : l'équipe ne voit pas le dossier, aucun
+ * projet ne naît, rien ne part aux investisseurs de Klocka, ni vers Drive.
+ */
+export function ouvrirLaLocation(id, user) {
+  const d = lireDossier(id, user);
+  if (!d) return { ok: false, error: 'Dossier introuvable.' };
+  if (d.exemple) return { ok: false, error: REFUS_EXEMPLE };
+  const r = passer('DossierMandataire', d, ['documents_en_cours', 'complet', 'complements', 'en_etude'], 'go', user, 'mis en location par le mandataire', { en_vente_le: maintenant(), en_location: true });
+  if (!r.ok) return r;
+  r.marche = ouvrirMarche(d, user, 'mis en location par le mandataire');
+  import('./fil-dossier.js').then((F) => F.evenement(d.id, 'Mis en location : le mandataire cherche les candidats (Commercialisation).')).catch(() => {});
+  return r;
+}
+
+/** Le teaser, les annonces et la fiche confrère d'un bien mis en vente, composés d'avance. */
+export async function preparerLaVente(marcheId, user) {
+  const { teaserDe } = await import('./teaser.js');
+  const t = await teaserDe(marcheId, user);
+  if (!t.ok) return t;
+  // La fiche confrère n'est plus composée d'office (7 nov. 2026, Jules : « enlève le truc confrères ») ; son code reste
+  // (server/co-courtage.js).
+  const a = await import('./annonces-bien.js').then((A) => A.annoncesDe(marcheId, user));
+  return { ok: !!a.ok, annonces: a.ok };
+}
+
 // ===========================================================================
 // 4. Mise en marché — porte 3
 // Dossier en préparation → Présenté aux clients → Offre → Compromis → Acte → Commission payée
@@ -1086,8 +1158,12 @@ export const lireMarche = (id, user) => lire('MiseEnMarche', id, user);
 
 /** Ce que le mandataire lit d'une offre : jamais le nom du client. */
 export function marcheVuParMandataire(m) {
+  const d = m?.dossier_id ? Records.get('DossierMandataire', m.dossier_id) : null;
+  // Klocka ne reprend que des murs à vendre (7 nov. 2026, Jules) : l'écran ne propose pas l'envoi sinon.
+  const klocka = !!d && transactionDuDossier(d) !== 'location' && !['a_louer', 'fonds', 'droit_au_bail'].includes(m?.teaser?.classe) && !/^(FONDS|fonds|droit_au_bail)$/.test(String(typeDuDossier(d) || ''));
   return {
     ...m,
+    klocka_possible: klocka,
     offres: (m.offres || []).filter((o) => o.validee).map(({ client_nom, ...o }) => o),
     activite: (m.activite || []).map(({ client_nom, ...a }) => a),
   };

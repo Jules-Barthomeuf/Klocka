@@ -2,6 +2,7 @@ import React from "react";
 import { ArrowUp, ChevronDown, Mic, Square } from "lucide-react";
 import { J, alpha } from "@/design/jetons";
 import BordureEcoute from "@/components/BordureEcoute";
+import { entreeEnvoie } from "@/lib/entree-envoie";
 
 // La barre de chat de Klocka : une pilule, la même partout.
 //
@@ -98,7 +99,7 @@ export default function BarreChat({
           rows={multiligne ? Math.min(6, Math.max(2, String(valeur || "").split("\n").length)) : 1}
           value={valeur}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && envoyable && !enCours) { e.preventDefault(); onEnvoyer(); } }}
+          onKeyDown={(e) => { if (entreeEnvoie(e) && envoyable && !enCours) { e.preventDefault(); onEnvoyer(); } }}
           placeholder={placeholder}
           disabled={disabled || enCours}
           className="min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"

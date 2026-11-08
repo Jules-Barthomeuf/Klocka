@@ -70,7 +70,7 @@ async function geocoder(project) {
   if (!project.adresse_complete) return null;
   try {
     const r = await fetch(
-      'https://api-adresse.data.gouv.fr/search/?limit=1&q=' + encodeURIComponent(project.adresse_complete),
+      'https://data.geopf.fr/geocodage/search/?limit=1&q=' + encodeURIComponent(project.adresse_complete),
       { signal: AbortSignal.timeout(6000) }
     );
     const f = (await r.json()).features?.[0];

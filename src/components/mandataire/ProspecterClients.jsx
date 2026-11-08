@@ -271,7 +271,7 @@ export default function ProspecterClients({ bascule = null }) {
               onProspecter={() => { geste.current = client.id; if (prospecte === client.id) points.refetch(); else qc.invalidateQueries({ queryKey: ["m-prospecter", "points", client.id] }); setProspecte(client.id); setVusIci((v) => ({ ...v, [client.id]: new Date().toISOString() })); ouvrir(null); }} />
           )}
           {/* Au téléphone, une fiche ouverte prend presque tout l'écran, et la page descend jusqu'à elle (31 oct. 2026, Jules). */}
-          <div ref={boiteFiche} className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-rail max-lg:min-h-[320px] ${ouvert ? "max-md:h-[86dvh] max-md:flex-none" : ""}`}>
+          <div ref={boiteFiche} className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-surface-pleine max-lg:min-h-[320px] ${ouvert ? "max-md:h-[86dvh] max-md:flex-none" : ""}`}>
             {/* Fermer la fiche, ou changer de point, se fait en fondu (24 oct. 2026). */}
             <AnimatePresence mode="wait" initial={false}>
             {ouvert ? (

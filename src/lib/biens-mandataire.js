@@ -21,6 +21,8 @@
  */
 export const sourceLisible = (s) => (s ? String(s).replace(/\bdit à Haka\b/g, "dit à l'assistant") : s);
 
+import { estLocation, etapesSelon } from "./location.js";
+
 export const ETAPES_BIEN = [
   { n: 1, id: "previsite", label: "Visite" },
   { n: 2, id: "estimation", label: "Avis de valeur" },
@@ -31,6 +33,35 @@ export const ETAPES_BIEN = [
   { n: 7, id: "vente", label: "Vente" },
 ];
 const IDS = ETAPES_BIEN.map((e) => e.id);
+/** Pure : les étapes d'un bien, avec les mots de la location quand il est à louer (6 nov. 2026). */
+export const etapesDuBien = (b) => etapesSelon(ETAPES_BIEN, estLocation(b));
+
+/**
+ * Les étapes que voit le mandataire (7 nov. 2026, Jules : « combine la Data room et la Commercialisation en une étape,
+ * avec des onglets comme dans l'Analyse ») : six. La quatrième, « Mise en vente » (« Mise en location »), couvre les
+ * étapes internes Data room puis Commercialisation, qui restent sept pour les rangs enregistrés, le CRM et l'import :
+ * elle s'ouvre par l'id « dataroom » et elle est faite quand la Commercialisation l'est (`fin`).
+ */
+const ETAPES_VISIBLES = [
+  ETAPES_BIEN[0], ETAPES_BIEN[1], ETAPES_BIEN[2],
+  { n: 4, id: "dataroom", fin: "marche", label: "Mise en vente" },
+  { n: 5, id: "offre", label: "Offres" },
+  { n: 6, id: "vente", label: "Vente" },
+];
+/** Pure : les six étapes visibles d'un bien, aux mots de la location quand il est à louer. */
+export const etapesVisibles = (b) => {
+  const location = estLocation(b);
+  return etapesSelon(ETAPES_VISIBLES, location).map((e) => (e.id === "dataroom" ? { ...e, label: location ? "Mise en location" : "Mise en vente" } : e));
+};
+export const NB_ETAPES_VISIBLES = ETAPES_VISIBLES.length;
+/** Pure : l'étape visible d'une étape interne (« marche » est dans « dataroom »). */
+export const versVisible = (id) => (id === "marche" ? "dataroom" : id);
+/** Pure : le rang visible (1 à 6) d'un rang interne (1 à 7). */
+export const rangVisible = (n) => [1, 2, 3, 4, 4, 5, 6][Math.max(1, Math.min(7, Number(n) || 1)) - 1];
+/** Pure : une étape visible est-elle faite ? La Mise en vente l'est quand la Commercialisation l'est. */
+export const etapeFaite = (faites, e) => !!faites?.has(e.fin || e.id);
+/** Pure : le mot visible d'une étape interne (« Data room » et « Commercialisation » se disent « Mise en vente »). */
+export const libelleVisible = (b, id) => etapesVisibles(b).find((e) => e.id === versVisible(id))?.label || null;
 
 /**
  * Pure : la dernière étape validée à la main sur une fiche (`biens.validee`), en rang (-1 : aucune). Les fiches d'avant
@@ -93,6 +124,8 @@ export function etapesFaites(b) {
   if (m && (MARCHE_PRESENTE.has(m.statut) || m.teaser?.valide_le)) faites.add("marche");
   if (m && MARCHE_VENTE.has(m.statut)) faites.add("offre");
   if (m && MARCHE_VENDU.has(m.statut)) faites.add("vente");
+  // Un bien importé déjà vendu (6 nov. 2026) : toutes ses étapes sont faites ; loué, de même (le bail signé).
+  if (p?.biens?.vendu || p?.biens?.loue) IDS.forEach((k) => faites.add(k));
   return faites;
 }
 
@@ -105,11 +138,33 @@ export function etapeDuBien(b) {
 }
 
 /** Le statut d'un bien, dit comme le mandataire le dit : En pause, ou la dernière étape franchie (les détails de la vente). */
+/** Pure : le statut d'un bien à louer, dit avec les mots de la location (6 nov. 2026). */
+function statutLocation(b) {
+  const p = b?.proprietaire;
+  if (p?.biens?.loue) return "Loué";
+  const m = b?.marche;
+  if (m) return (m.offres || []).length ? "Candidat retenu" : "En location";
+  const d = b?.dossier;
+  if (d) return d.statut === "go" || d.en_vente_le ? "En location" : d.statut === "complet" ? "Dossier complet" : "Dossier à compléter";
+  const faites = etapesFaites(b);
+  if (faites.has("dataroom") || faites.has("marche")) return "En location";
+  if ((b?.mandat && MANDAT_FAIT.has(b.mandat.statut)) || p?.statut === "mandat_signe" || faites.has("mandat")) return "Mandat de location signé";
+  if (b?.mandat) return "Mandat de location en préparation";
+  if (p?.biens?.prix_accord || faites.has("estimation")) return "Loyer d'accord";
+  const e = b?.estimation;
+  if (e) return e.statut === "envoye" ? "Estimation du loyer envoyée" : ESTIMATION_FAITE.has(e.statut) ? "Estimation du loyer prête" : "Estimation du loyer en cours";
+  if (faites.has("previsite")) return "Visite faite";
+  return p && !PROPRIETAIRE_EN_COURS.has(p.statut) ? "À louer" : "Rendez-vous fixé";
+}
+
 export function statutDuBien(b) {
   // Perdu garde son motif ; En pause n'est pas Perdu (27 oct. 2026, la restitution de l'avis) : les deux restent dans Biens.
   const perdu = b?.proprietaire?.biens?.perdu;
   if (perdu && !b?.mandat) return `Perdu · ${MOTS_PERDU[perdu.motif] || perdu.motif || "sans motif"}`;
   if (b?.proprietaire?.biens?.pause) return "En pause";
+  // Un bien importé déjà vendu, et une location (6 nov. 2026, banc d'import).
+  if (b?.proprietaire?.biens?.vendu) return "Vendu";
+  if (estLocation(b)) return statutLocation(b);
   // Une fiche encore en Prospection (ouverte depuis la carte ou une liste) : ses mots à elle.
   const p = b?.proprietaire;
   if (p && !PROPRIETAIRE_EN_COURS.has(p.statut) && !b?.estimation && !b?.mandat && !b?.dossier && !b?.marche) return p.statut === "pas_vendeur" ? "Pas d'intérêt" : ["contacte", "en_discussion"].includes(p.statut) ? "Contacté" : "À contacter";
@@ -181,7 +236,9 @@ export function regrouperBiens({ estimations = [], mandats = [], dossiers = [], 
   const pris_p = new Set();
   for (const b of biens) {
     // Un bien importé ouvre sa Data room sans estimation ni mandat Klocka : le dossier porte son propriétaire (4 nov. 2026).
-    const p = b.estimation?.proprietaire_id ? P.get(b.estimation.proprietaire_id) : b.dossier?.proprietaire_id ? P.get(b.dossier.proprietaire_id) : null;
+    // Le propriétaire écrit sur le dossier prime sur celui d'une estimation rattachée par l'adresse (6 nov. 2026 : un
+    // brouillon d'avis d'une autre fiche, à la même adresse, coupait le bien en deux et sa Data room semblait fermée).
+    const p = b.dossier?.proprietaire_id && P.get(b.dossier.proprietaire_id) ? P.get(b.dossier.proprietaire_id) : b.estimation?.proprietaire_id ? P.get(b.estimation.proprietaire_id) : null;
     if (p && !pris_p.has(p.id)) { b.proprietaire = p; pris_p.add(p.id); }
   }
   for (const p of proprietaires.filter((x) => !pris_p.has(x.id) && PROPRIETAIRE_EN_COURS.has(x.statut))) {

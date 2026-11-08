@@ -14,7 +14,7 @@ const RAYON = 300;
 // Sans adresse, on lit le quartier : un cercle plus large, pour avoir assez de ventes.
 const RAYON_QUARTIER = 600;
 const RAYON_ELARGI = 1500;
-const BAN = 'https://api-adresse.data.gouv.fr';
+const BAN = 'https://data.geopf.fr/geocodage';
 const JOURS_GARDE = 7;
 // Au-delà de 15 % d'écart, on le dit ; en deçà, c'est le bruit du marché.
 const SEUIL = 15;

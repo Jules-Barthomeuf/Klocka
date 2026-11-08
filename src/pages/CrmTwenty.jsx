@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleUser, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Plus, Rows3, Search, Send, Sun, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleUser, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
@@ -72,7 +72,7 @@ function affiche(c, v, liens = {}) {
     case "LINKS": return String(v.primaryLinkUrl || "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
     case "CURRENCY": return v.amountMicros == null ? "" : montant(v.amountMicros / 1e6);
     case "FULL_NAME": return [v.firstName, v.lastName].filter(Boolean).join(" ");
-    case "ADDRESS": return [v.addressStreet1, [v.addressPostcode, v.addressCity].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    case "ADDRESS": return [v.addressCity || v.addressStreet1, v.addressCountry].filter(Boolean).join(", ");
     case "RICH_TEXT": case "RICH_TEXT_V2": return typeof v === "string" ? v : v.markdown || "";
     case "RELATION": return liens[c.nom]?.[v] || "Fiche liée";
     default: return typeof v === "object" ? "" : String(v);
@@ -320,7 +320,7 @@ function useSupprimer(objet, apres) {
 function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
   const queryClient = useQueryClient();
   const cle = ["crm-fiche", objet.singulier, id];
-  const { data, isLoading, isError, error } = useQuery({ queryKey: cle, queryFn: () => req("GET", `${API}/${objet.singulier}/${id}`) });
+  const { data, isLoading, isError, error } = useQuery({ queryKey: cle, queryFn: () => req("GET", `${API}/${objet.singulier}/${id}`), staleTime: 30_000 });
   const [onglet, setOnglet] = useState("fiche");
   const [note, setNote] = useState("");
   const [tache, setTache] = useState("");
@@ -753,6 +753,66 @@ function MenuVue({ objet, vue, filtres, tri, onVue, declencheur = "menu" }) {
 }
 
 
+// Les réglages d'une colonne (Jules, 6 nov. 2026 : « une petite roue, je clique dessus et je vois les paramètres ») :
+// l'alignement et la largeur, gardés par personne dans ce navigateur ; Twenty n'est pas touché.
+const ALIGNEMENTS = [["gauche", "Gauche"], ["centre", "Centre"], ["droite", "Droite"]];
+const CLASSES_ALIGNEMENT = { gauche: "justify-start text-left", centre: "justify-center text-center", droite: "justify-end text-right" };
+const LARGEUR_MIN = 70;
+
+/** L'en-tête d'une colonne : un clic trie ; la roue au survol ouvre ses réglages ; le bord droit se glisse pour la largeur. */
+function EnTeteColonne({ c, tri, reglage, onTri, onReglage, alignementDefaut }) {
+  const [ouvert, setOuvert] = useState(false);
+  const roue = useRef(null);
+  const cellule = useRef(null);
+  const alignement = reglage.align || alignementDefaut;
+  const glisser = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const depart = e.clientX;
+    const largeurDepart = cellule.current.getBoundingClientRect().width;
+    let largeur = largeurDepart;
+    // Pendant le geste, seules les colonnes bougent (pas de rendu du tableau) ; la largeur s'enregistre au lâcher.
+    const cols = document.querySelectorAll(`col[data-col="${CSS.escape(c.nom)}"]`);
+    const bouger = (m) => { largeur = Math.max(LARGEUR_MIN, Math.round(largeurDepart + m.clientX - depart)); cols.forEach((x) => { x.style.width = `${largeur}px`; }); };
+    const lacher = () => { window.removeEventListener("pointermove", bouger); window.removeEventListener("pointerup", lacher); document.body.style.cursor = ""; onReglage({ largeur }); };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", lacher);
+  };
+  return (
+    <th ref={cellule} className="group relative h-[35px] overflow-hidden whitespace-nowrap border-b border-r border-trait px-2.5 font-normal">
+      <div className={`flex items-center gap-1 ${CLASSES_ALIGNEMENT[alignement]}`}>
+        <button type="button" onClick={() => onTri()} className="inline-flex min-w-0 items-center gap-1 text-encre hover:text-menthe" style={{ background: "transparent" }}>
+          <span className="truncate">{c.libelle}</span>
+          {tri?.champ === c.nom && (tri.sens === "desc" ? <ArrowDown className="h-3 w-3 flex-none" /> : <ArrowUp className="h-3 w-3 flex-none" />)}
+        </button>
+        <button ref={roue} type="button" onClick={() => setOuvert(true)} aria-label={`Réglages de la colonne ${c.libelle}`} title="Réglages de la colonne"
+          className={`grid h-6 w-6 flex-none place-items-center rounded-[6px] text-ardoise hover:bg-relief hover:text-encre group-hover:opacity-100 max-md:opacity-100 ${ouvert ? "opacity-100" : "opacity-0 focus:opacity-100"}`} style={{ background: "transparent" }}>
+          <Settings2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <span role="separator" aria-orientation="vertical" aria-label="Glisser pour changer la largeur" title="Glisser pour changer la largeur, double-clic pour la largeur automatique"
+        onPointerDown={glisser} onDoubleClick={() => onReglage({ largeur: null })}
+        className="absolute inset-y-0 right-0 w-1.5 cursor-col-resize touch-none hover:bg-menthe/60" />
+      {ouvert && (
+        <Flottant ancre={roue.current} onFermer={() => setOuvert(false)} largeur={240}>
+          <p className="m-0 px-2.5 pb-1 pt-1.5 text-[12px] text-brume">Alignement</p>
+          <div className="flex gap-1 px-1.5 pb-1.5">
+            {ALIGNEMENTS.map(([cle, mot]) => (
+              <button key={cle} type="button" onClick={() => onReglage({ align: cle === alignementDefaut ? null : cle })}
+                className={`h-8 flex-1 rounded-[8px] text-[13px] ${alignement === cle ? "bg-menthe text-sur-menthe" : "text-encre hover:bg-relief"}`} style={alignement === cle ? undefined : { background: "transparent" }}>{mot}</button>
+            ))}
+          </div>
+          <div className="my-1 border-t border-trait" />
+          <button type="button" onClick={() => { setOuvert(false); onTri("asc"); }} className={ligneMenu} style={{ background: "transparent" }}><span className="inline-flex items-center gap-2"><ArrowUp className="h-3.5 w-3.5" />Trier croissant</span></button>
+          <button type="button" onClick={() => { setOuvert(false); onTri("desc"); }} className={ligneMenu} style={{ background: "transparent" }}><span className="inline-flex items-center gap-2"><ArrowDown className="h-3.5 w-3.5" />Trier décroissant</span></button>
+          {reglage.largeur && <button type="button" onClick={() => { setOuvert(false); onReglage({ largeur: null }); }} className={ligneMenu} style={{ background: "transparent" }}>Largeur automatique</button>}
+          <p className="m-0 px-2.5 pb-1 pt-2 text-[12px] text-brume">Glissez le bord droit de la colonne pour changer sa largeur.</p>
+        </Flottant>
+      )}
+    </th>
+  );
+}
+
 // Les cases d'un choix (Groupe, Mandat, Statut…) sont colorées, pas en pastille (Jules, 5 nov. 2026) : texte et fond de
 // la couleur du statut, une couleur un sens partout (src/lib/couleur-statut.js) ; le gris pour ce qui est neutre.
 const couleurCase = (c, v) => `text-center ${CLASSES_STATUT[couleurStatut(c.options.find((o) => o.valeur === v)?.libelle || v)]}`;
@@ -782,7 +842,8 @@ export default function CrmTwenty() {
   // Sans la liste du serveur (une ancienne réponse gardée), les membres de Twenty : le choix n'est jamais vide.
   const spoc = barre.data?.spoc?.length ? barre.data.spoc : (barre.data?.membres || []).map((m) => ({ nom: m.nom.replace(/\s+/g, " "), valeur: m.nom, membre: m.id }));
   const moi = useUser();
-  const equipe = moi?.role === "admin" && !ESPACE();
+  // Un admin garde les pages de Klocka dans la vue mandataire, où l'espace Klocka lui reste ouvert (6 nov. 2026).
+  const equipe = moi?.role === "admin";
   const objets = useMemo(() => [...(barre.data?.dossiers || []).filter((d) => !d.ferme).flatMap((d) => d.objets.filter((o) => !o.ferme)), ...(equipe ? PAGES_KLOCKA : [])], [barre.data, equipe]);
   const objet = objets.find((o) => o.singulier === params.get("t")) || objets[0] || null;
   const vue = objet?.vues.find((v) => v.id === params.get("v")) || objet?.vues[0] || null;
@@ -864,6 +925,7 @@ export default function CrmTwenty() {
   const [grouper, setGrouper] = useState(false);
   const [groupesFermes, setGroupesFermes] = useState([]);
   const [groupes, setGroupes] = useState(() => lireLocal("crm-groupes", {}));
+  const [reglagesColonnes, setReglagesColonnes] = useState(() => lireLocal("crm-colonnes", {}));
   const boutonEspace = useRef(null);
   const boutonPersonne = useRef(null);
   const boutonGrouper = useRef(null);
@@ -902,12 +964,16 @@ export default function CrmTwenty() {
     initialPageParam: null,
     queryFn: ({ pageParam }) => req("GET", `${API}/${objet.singulier}?${new URLSearchParams({ q, ...(triVu ? { tri: triVu.champ, sens: triVu.sens } : {}), filtres: JSON.stringify(tousFiltres), ...(pageParam ? { apres: pageParam } : {}) })}`),
     getNextPageParam: (d) => d.suite || undefined,
+    // Twenty répond en une demi-seconde à une seconde (8 nov. 2026, Jules : « le crm lag ») : une page vue il y a moins
+    // de 30 s ne se relit pas, et pendant une recherche, un tri ou un filtre, le tableau du même onglet reste à l'écran.
+    staleTime: 30_000,
+    placeholderData: (avant, requete) => (requete?.queryKey[1] === objet?.singulier && requete?.queryKey[2] === vue?.id ? avant : undefined),
   });
-  // Toutes les fiches arrivent d'elles-mêmes, 200 par page (5 nov. 2026, Jules : « il n'y a pas tous les agents ») :
-  // les groupes et les colonnes du Kanban sont justes. Au-delà de 3 000, « Voir plus ».
+  // 50 fiches, puis « Voir plus » charge les 50 suivantes (6 nov. 2026, Jules : « dans les tableaux mets 50 maximum »).
+  // Le Kanban seul les charge toutes d'elles-mêmes (jusqu'à 750) : ses colonnes n'ont pas de « Voir plus ».
   const pagesChargees = liste.data?.pages.length || 0;
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = liste;
-  useEffect(() => { if (hasNextPage && !isFetchingNextPage && pagesChargees < 15) fetchNextPage(); }, [hasNextPage, isFetchingNextPage, pagesChargees, fetchNextPage]);
+  useEffect(() => { if (kanban && hasNextPage && !isFetchingNextPage && pagesChargees < 15) fetchNextPage(); }, [kanban, hasNextPage, isFetchingNextPage, pagesChargees, fetchNextPage]);
   const fiches = liste.data?.pages.flatMap((p) => p.fiches) || [];
   const liens = useMemo(() => {
     const out = {};
@@ -997,22 +1063,40 @@ export default function CrmTwenty() {
   const outil = "inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[14px] text-craie hover:bg-relief hover:text-encre";
 
   /** Le tableau d'un groupe : cases à traits pleins, comme Monday ; la première colonne ouvre la fiche. */
+  // Les réglages des colonnes de ce tableau (alignement, largeur) ; une colonne sans largeur partage la place qui reste.
+  const reglagesTableau = reglagesColonnes[objet?.singulier] || {};
+  const reglageDe = (c) => reglagesTableau[c.nom] || {};
+  // La première colonne (le nom de la fiche) part plus large que les autres.
+  const largeurDe = (c, i) => reglageDe(c).largeur || (i === 0 ? 220 : null);
+  const alignementDefaut = (i) => (i === 0 ? "gauche" : "centre");
+  const regler = (c, change) => {
+    const r = { ...reglageDe(c), ...change };
+    for (const k of Object.keys(r)) if (r[k] == null) delete r[k];
+    const tableauNouveau = { ...reglagesTableau, [c.nom]: r };
+    if (!Object.keys(r).length) delete tableauNouveau[c.nom];
+    const n = { ...reglagesColonnes, [objet.singulier]: tableauNouveau };
+    setReglagesColonnes(n); ecrireLocal("crm-colonnes", n);
+  };
+  const toutesReglees = colonnes.length > 0 && colonnes.every((c, i) => largeurDe(c, i));
+  const largeurMini = 37 + colonnes.reduce((s, c, i) => s + (largeurDe(c, i) || 140), 0);
   const tableau = (lignes) => (
-    <table className="w-full border-collapse text-[14px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0" style={{ minWidth: Math.max(720, colonnes.length * 140 + 44) }}>
+    <table className="w-full table-fixed border-collapse text-[14px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0" style={{ minWidth: Math.max(720, largeurMini) }}>
+      <colgroup>
+        <col style={{ width: 37 }} />
+        {colonnes.map((c, i) => <col key={c.nom} data-col={c.nom} style={largeurDe(c, i) ? { width: largeurDe(c, i) } : undefined} />)}
+        {/* Quand toutes les colonnes ont leur largeur, une colonne vide prend le reste au lieu de les élargir. */}
+        {toutesReglees && <col />}
+      </colgroup>
       <thead>
         <tr className="text-encre">
-          <th className="h-[35px] w-[37px] min-w-[37px] border-b border-r border-trait p-0 align-middle">
+          <th className="h-[35px] border-b border-r border-trait p-0 align-middle">
             <Case cochee={lignes.every((f) => choisies.includes(f.id))} label="Tout cocher" onChange={() => { const tous = lignes.every((f) => choisies.includes(f.id)); setChoisies((t) => (tous ? t.filter((x) => !lignes.some((f) => f.id === x)) : [...new Set([...t, ...lignes.map((f) => f.id)])])); }} />
           </th>
-          {colonnes.map((c) => (
-            <th key={c.nom} className="h-[35px] whitespace-nowrap border-b border-r border-trait px-2.5 font-normal">
-              <button type="button" onClick={() => setTri((t) => (t?.champ === c.nom ? (t.sens === "asc" ? { champ: c.nom, sens: "desc" } : null) : { champ: c.nom, sens: "asc" }))}
-                className="inline-flex items-center gap-1 text-encre hover:text-menthe" style={{ background: "transparent" }}>
-                {c.libelle}
-                {triVu?.champ === c.nom && (triVu.sens === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
-              </button>
-            </th>
+          {colonnes.map((c, i) => (
+            <EnTeteColonne key={c.nom} c={c} tri={triVu} reglage={reglageDe(c)} alignementDefaut={alignementDefaut(i)} onReglage={(change) => regler(c, change)}
+              onTri={(sens) => setTri((t) => (sens ? { champ: c.nom, sens } : t?.champ === c.nom ? (t.sens === "asc" ? { champ: c.nom, sens: "desc" } : null) : { champ: c.nom, sens: "asc" }))} />
           ))}
+          {toutesReglees && <th className="border-b border-trait" />}
         </tr>
       </thead>
       <tbody>
@@ -1020,18 +1104,18 @@ export default function CrmTwenty() {
           const cochee = choisies.includes(f.id);
           return (
             <tr key={f.id} className={f.id === ficheId || cochee ? "bg-relief" : "hover:bg-relief/60"}>
-              <td className="w-[37px] min-w-[37px] border-b border-r border-trait p-0 align-middle">
+              <td className="border-b border-r border-trait p-0 align-middle">
                 <Case cochee={cochee} label="Cocher la fiche" onChange={() => setChoisies((t) => (cochee ? t.filter((x) => x !== f.id) : [...t, f.id]))} />
               </td>
               {colonnes.map((c, i) => (
-                <td key={c.nom} className={`h-[36px] max-w-[280px] border-b border-r border-trait p-0 ${i === 0 ? "text-encre" : c.type === "SELECT" && f[c.nom] ? couleurCase(c, f[c.nom]) : "text-center text-craie"} ${NUMERIQUES.includes(c.type) ? "tabular-nums" : ""}`}>
+                <td key={c.nom} className={`h-[36px] overflow-hidden border-b border-r border-trait p-0 ${i === 0 ? "text-encre" : c.type === "SELECT" && f[c.nom] ? couleurCase(c, f[c.nom]) : "text-craie"} ${NUMERIQUES.includes(c.type) ? "tabular-nums" : ""}`}>
                   {i === 0 ? (
-                    <button type="button" onClick={() => ouvrirLigne(objet.singulier, f.id)} className="block w-full truncate px-4 py-1.5 text-left text-encre hover:text-menthe" style={{ background: "transparent" }}>
+                    <button type="button" onPointerDown={() => { if (!objet.local) queryClient.prefetchQuery({ queryKey: ["crm-fiche", objet.singulier, f.id], queryFn: () => req("GET", `${API}/${objet.singulier}/${f.id}`), staleTime: 30_000 }); }} onClick={() => ouvrirLigne(objet.singulier, f.id)} className={`block w-full truncate px-4 py-1.5 text-encre hover:text-menthe ${CLASSES_ALIGNEMENT[reglageDe(c).align || "gauche"].split(" ")[1]}`} style={{ background: "transparent" }}>
                       {affiche(c, f[c.nom], liens) || <span className="text-brume">Sans nom</span>}
                     </button>
                   ) : (
                     <Corrigeable c={c} valeur={f[c.nom]} liens={liens} onEnregistrer={(champ, valeur) => changerCase.mutate({ id: f.id, champ, valeur })} onMail={(a) => setEnvoi({ a, objet: objet.singulier, id: f.id, nom: nomDeFiche(f) })}
-                      className="flex min-h-[36px] items-center justify-center truncate px-2.5 py-1">
+                      className={`flex min-h-[36px] items-center truncate px-2.5 py-1 ${CLASSES_ALIGNEMENT[reglageDe(c).align || alignementDefaut(i)]}`}>
                       {(vu, lien) => (c.personnes && vu
                         // Un champ Personnes (SPOC) : les têtes des gens (photo de Twenty CRM, sinon initiales), comme dans Monday.
                         ? <span className="flex -space-x-1.5" title={vu}>{vu.split(",").map((n) => n.trim()).filter(Boolean).slice(0, 3).map((n) => <Tete key={n} nom={n} className="border-2 border-crm-tableau" />)}</span>
@@ -1044,6 +1128,7 @@ export default function CrmTwenty() {
                   )}
                 </td>
               ))}
+              {toutesReglees && <td className="border-b border-trait" />}
             </tr>
           );
         })}
@@ -1271,7 +1356,7 @@ export default function CrmTwenty() {
                         {/* Un groupe, comme ceux de Monday : son nom dans la couleur d'accent, un chevron qui le replie, un filet à gauche. */}
                         {g.libelle && (
                           <button type="button" onClick={() => setGroupesFermes((t) => (ferme ? t.filter((x) => x !== g.cle) : [...t, g.cle]))} className="mb-2.5 inline-flex items-center gap-2 text-[19px] text-menthe" style={{ background: "transparent" }}>
-                            {ferme ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronDown className="h-[18px] w-[18px]" />}{g.libelle}<span className="text-[13px] tabular-nums text-ardoise">{g.fiches.length}</span>
+                            {ferme ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronDown className="h-[18px] w-[18px]" />}{g.libelle}<span className="text-[13px] tabular-nums text-ardoise">{lignesGroupees.length === 1 && total != null ? total : g.fiches.length}</span>
                           </button>
                         )}
                         {!ferme && <div className="overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{tableau(g.fiches)}</div>}

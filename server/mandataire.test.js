@@ -32,8 +32,8 @@ test("l'heure dite est celle de Paris, été comme hiver", () => {
 test("aucun outil du mandataire n'envoie, ne lit les dossiers ni ne touche Twenty CRM", () => {
   const noms = OUTILS_MANDATAIRE.map((o) => o.name);
   assert.deepEqual(noms.sort(), [
-    'annuler_derniere', 'appel_sans_reponse', 'avancer_bien', 'avis_de_marche', 'bail_estimation', 'compte_rendu_visite', 'corriger_mandat', 'corriger_preparation', 'demander_mandat', 'demandes_clients', 'importer_bien', 'lancer_estimation', 'ma_fiche', 'mes_acquereurs', 'mes_dossiers', 'mes_proprietaires',
-    'mes_rappels', 'mettre_en_pause', 'modifier_fiche', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'preparer_mail', 'prospecter_commerces', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'signaler_local_vide', 'visite_du_moment',
+    'ajouter_acquereur', 'annuler_derniere', 'appel_sans_reponse', 'avancer_bien', 'avis_de_marche', 'bail_estimation', 'compte_rendu_visite', 'corriger_mandat', 'corriger_preparation', 'demander_mandat', 'demandes_clients', 'envoyer_bon_visite', 'importer_bien', 'lancer_estimation', 'ma_fiche', 'mes_acquereurs', 'mes_dossiers', 'mes_proprietaires',
+    'mes_rappels', 'mettre_en_pause', 'modifier_fiche', 'noter_acquereur', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'ouvrir_etape', 'preparer_mail', 'prospecter_commerces', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'signaler_local_vide', 'visite_du_moment',
   ]);
 });
 
@@ -129,6 +129,43 @@ test("annuler une relance ou un RDV remet la fiche dans son état d'avant", asyn
   assert.equal(Records.get('ProprietaireMandataire', p.id).statut, 'rdv_pris');
   await executerOutilMandataire({ name: 'annuler_derniere', input: { genre: 'rdv' } }, moi);
   assert.equal(Records.get('ProprietaireMandataire', p.id).statut, 'a_appeler', 'le RDV annulé rend la fiche comme avant');
+});
+
+test("un RDV fixé depuis une fiche la fait entrer dans Biens, même sans « qui » reconnu (6 nov. 2026)", async () => {
+  const { creerProprietaire } = await import('./mandataire-espace.js');
+  const { executerOutilMandataire } = await import('./mandataire.js');
+  const moi = { email: 'rdv-fiche@test.fr', role: 'mandataire' };
+  const { proprietaire: p } = creerProprietaire({ nom: 'Mme Blanc', commerce: 'Fleurs du Quai', ville: 'Annecy' }, moi);
+  // Le nom du gérant dit au téléphone, absent de la fiche : avant, le RDV naissait sans fiche.
+  const r = await executerOutilMandataire({ name: 'noter_rdv', input: { qui: 'Monsieur Gaspard', avec: 'M. Gaspard', quand: '2026-12-02T10:00' } }, moi, { fiche: p });
+  assert.equal(r.ok, true);
+  assert.equal(r.fiche_id, p.id, 'le RDV est posé sur la fiche ouverte');
+  assert.equal(Records.get('ProprietaireMandataire', p.id).statut, 'rdv_pris', 'la fiche entre dans Biens');
+  // Sans « qui » du tout, la fiche ouverte aussi.
+  const { proprietaire: q } = creerProprietaire({ nom: 'M. Vert', commerce: 'Cave du Lac', ville: 'Annecy' }, moi);
+  const r2 = await executerOutilMandataire({ name: 'noter_rdv', input: { avec: 'M. Vert', quand: '2026-12-03T10:00' } }, moi, { fiche: q });
+  assert.equal(r2.fiche_id, q.id);
+  assert.equal(Records.get('ProprietaireMandataire', q.id).statut, 'rdv_pris');
+});
+
+test("« on passe à l'estimation » ouvre l'étape et y met le bien ; une location dite passe le bien en location (6 nov. 2026)", async () => {
+  const { creerProprietaire } = await import('./mandataire-espace.js');
+  const { executerOutilMandataire } = await import('./mandataire.js');
+  const moi = { email: 'etape-direct@test.fr', role: 'mandataire' };
+  const { proprietaire: p } = creerProprietaire({ nom: 'M. Roche', commerce: 'Bijouterie du Cours', ville: 'Antibes' }, moi);
+  const r = await executerOutilMandataire({ name: 'ouvrir_etape', input: { etape: 'estimation' } }, moi, { fiche: p });
+  assert.equal(r.ok, true);
+  assert.equal(r.aller.href, `/MandataireBiens?bien=proprietaire:${p.id}&etape=estimation`);
+  const apres = Records.get('ProprietaireMandataire', p.id);
+  assert.equal(apres.statut, 'rdv_pris', 'le bien entre dans Biens');
+  assert.equal(apres.biens.validee, 'previsite', "la visite est franchie : l'Avis de valeur est en cours");
+  // Revenir à la Visite ouvre la page sans reculer le bien.
+  await executerOutilMandataire({ name: 'ouvrir_etape', input: { etape: 'previsite' } }, moi, { fiche: apres });
+  assert.equal(Records.get('ProprietaireMandataire', p.id).biens.validee, 'previsite');
+  // « Il veut louer son local » : le bien passe en location, sans rien cocher.
+  const m = await executerOutilMandataire({ name: 'modifier_fiche', input: { transaction: 'location' } }, moi, { fiche: apres });
+  assert.equal(m.ok, true);
+  assert.equal(Records.get('ProprietaireMandataire', p.id).biens.transaction, 'location');
 });
 
 test('rueDeLAdresse : le nom de rue sans le numéro', async () => {
@@ -543,4 +580,16 @@ test("la bonne pharmacie : le commerce dit, ou la fiche ouverte, l'emporte sur u
   const m = await executerOutilMandataire({ name: 'modifier_fiche', input: { qui: "Pharmacie de l'Europe · Lyon", telephone: '06 12 34 56 78' } }, moi, { fiche: europe });
   assert.equal(m.ok, true);
   assert.equal(Records.get('ProprietaireMandataire', europe.id).telephone, '06 12 34 56 78');
+});
+
+test('un mail préparé pour « Mme Odile Ferrand » part à son adresse (7 nov. 2026)', async () => {
+  const { adresseDuDestinataire } = await import('./mandataire.js');
+  const p = Records.create('ProprietaireMandataire', { nom: 'Odile Ferrand', mandataire_email: MOI.email, statut: 'mandat_signe' });
+  const m = Records.create('MandatMandataire', { mandataire_email: MOI.email, vendeur: 'Odile Ferrand', questionnaire: { vendeur_email: 'odile@exemple.fr' } });
+  Records.create('DossierMandataire', { mandataire_email: MOI.email, bien: 'Pressing', mandat_id: m.id });
+  Records.create('DossierMandataire', { mandataire_email: MOI.email, bien: 'Pressing du Port', proprietaire_id: p.id, mandat_id: m.id });
+  assert.equal(adresseDuDestinataire('Mme Odile Ferrand', { user: MOI }), 'odile@exemple.fr');
+  assert.equal(adresseDuDestinataire('Madame Ferrand', { fiche: p, user: MOI }), 'odile@exemple.fr');
+  assert.equal(adresseDuDestinataire('Odile <o@autre.fr>', { user: MOI }), 'o@autre.fr');
+  assert.equal(adresseDuDestinataire('M. Inconnu', { user: MOI }), 'M. Inconnu');
 });

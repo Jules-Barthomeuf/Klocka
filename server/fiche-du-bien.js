@@ -65,6 +65,9 @@ export async function ficheDeLAvis(estimationId, user) {
   if (!adresse) return null;
   const pid = await trouverOuCreerFiche({ adresse, titre: e.nom_choisi ? e.bien : null, nom: e.questionnaire?.demandeur || null }, { ...user, email: e.mandataire_email });
   if (pid) Records.update('EstimationMandataire', e.id, { proprietaire_id: pid });
+  // Un avis ouvert pour une location fait de sa fiche un bien à louer (6 nov. 2026).
+  const f = pid && e.questionnaire?.transaction === 'location' ? Records.get('ProprietaireMandataire', pid) : null;
+  if (f && f.biens?.transaction !== 'location') Records.update('ProprietaireMandataire', pid, { biens: { ...(f.biens || {}), transaction: 'location' } });
   return pid;
 }
 

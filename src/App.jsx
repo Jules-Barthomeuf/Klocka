@@ -51,6 +51,8 @@ const SuiviTesteur = lazy(() => import('@/pages/SuiviTesteur'));
 const ImpressionPresentation = lazy(() => import('@/pages/ImpressionPresentation'));
 const ImpressionAvis = lazy(() => import('@/pages/ImpressionAvis'));
 const DepotVendeur = lazy(() => import('@/pages/DepotVendeur'));
+const SignerBon = lazy(() => import('@/pages/SignerBon'));
+const DataRoomAcquereur = lazy(() => import('@/pages/DataRoomAcquereur'));
 const ImpressionTeaser = lazy(() => import('@/pages/ImpressionTeaser'));
 const ImpressionLoi = lazy(() => import('@/pages/ImpressionLoi'));
 const SuiviChat = lazy(() => import('@/pages/SuiviChat'));
@@ -159,6 +161,10 @@ const PAGES_PUBLIQUES = {
   ImpressionPresentation: <ImpressionPresentation />,
   ImpressionAvis: <ImpressionAvis />,
   DepotVendeur: <DepotVendeur />,
+  // Le bon de visite signé à distance par le visiteur (7 nov. 2026).
+  SignerBon: <SignerBon />,
+  // La data room ouverte à un acquéreur par son lien (7 nov. 2026) : /data-room/:jeton.
+  DataRoomAcquereur: <DataRoomAcquereur />,
   ImpressionTeaser: <ImpressionTeaser />,
   ImpressionLoi: <ImpressionLoi />,
 };
@@ -184,6 +190,7 @@ const AuthenticatedApp = () => {
       <Suspense fallback={<EnChargement />}>
       <Routes>
         {Object.entries(PAGES_PUBLIQUES).flatMap(([page, element]) => routesDe(page, element))}
+        <Route path="/data-room/:jeton" element={<DataRoomAcquereur />} />
       </Routes>
       </Suspense>
     );

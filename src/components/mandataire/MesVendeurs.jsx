@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import Loader from "@/components/ui/Loader";
-import { ETAPES_BIEN, rangValide } from "@/lib/biens-mandataire";
+import { ETAPES_BIEN, etapesVisibles, rangValide, rangVisible } from "@/lib/biens-mandataire";
 
 // Les propriétaires vendeurs du mandataire (4 nov. 2026, Jules : « un onglet Mes vendeurs ») : chaque propriétaire d'un
 // bien de Mes biens, avec son bien, son contact et l'étape où en est le bien. Le même tableau que Mes acquéreurs.
@@ -18,7 +18,8 @@ export function vendeursDe(proprietaires = []) {
     .map((p) => ({
       id: p.id, nom: p.nom || "Propriétaire", telephone: p.telephone || null, email: p.email || null,
       bien: p.nom_bien || [p.adresse, p.ville].filter(Boolean).join(", ") || p.commerce || "Bien",
-      etape: ETAPES_BIEN[Math.min(ETAPES_BIEN.length - 1, rangValide(p.biens?.validee) + 1)]?.label || "",
+      // L'étape visible (7 nov. 2026) : la Data room et la Commercialisation se disent « Mise en vente ».
+      etape: etapesVisibles(p)[rangVisible(Math.min(ETAPES_BIEN.length, rangValide(p.biens?.validee) + 2)) - 1]?.label || "",
     }));
 }
 

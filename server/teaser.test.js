@@ -67,3 +67,36 @@ test('L\'Assistant KPartners retouche le teaser : un champ, une tuile, un point 
   assert.equal((await T.executerOutilTeaser({ name: 'modifier_teaser', input: { titre: 'x' } }, { email: 'autre@kpartners.fr', role: 'mandataire' }, { marche_id: m.id })).ok, false, 'pas le teaser d’un autre');
   assert.match(T.cadreDuTeaser(t), /\[0\] Prix FAI = 420 000 €/);
 });
+
+test('local à louer : loyer demandé en tête, ni prix ni rendement, adresse cachée (6 nov. 2026)', () => {
+  assert.equal(T.classeDe({ type_bien: 'murs_commerce', occupe: true, location: true }), 'a_louer');
+  const f = T.faitsDuBien({
+    fiche: { biens: { transaction: 'location', repris: { loyer_annuel: 24000 } } },
+    mandat: { prix: 300000, questionnaire: { bien_adresse: '12 rue Carnot, 71000 Mâcon', bien_surface: 80 } },
+    estimation: { questionnaire: { type_bien: 'murs_commerce' }, avis: { chiffres: { prix_affiche: 310000 }, emplacement: { synthese: 'Emplacement de centre-ville' }, bien: { ville: '71000 Mâcon' } } },
+  });
+  assert.equal(f.prix, null, 'une location n’a pas de prix');
+  const t = T.composer(f, 'a_louer', { ville: "d'une ville moyenne", ref: 'KP-0009' });
+  assert.deepEqual(t.tuiles.map((x) => x.valeur), ['24 000 €', '300 € / m²', '80 m²']);
+  assert.equal(t.tuiles[0].etoile, true, 'le loyer demandé en pervenche');
+  assert.doesNotMatch(JSON.stringify(t.tuiles), /Prix|Rendement/);
+  assert.doesNotMatch(t.points.join(' '), /Rendement|Bail en cours|Prix au m²/);
+  assert.equal(t.titre, 'Local commercial à louer, centre-ville');
+  assert.doesNotMatch(`${t.titre} ${t.sous_titre}`, /Carnot|Mâcon/);
+  assert.deepEqual(t.lignes.map((l) => l.intitule), ['Destination', 'Disponibilité', 'Conditions']);
+  assert.match(t.lignes[2].detail, /15 % HT du loyer annuel HT HC \(3 600 € HT\), à la charge du preneur/);
+  assert.match(t.lignes[2].detail, /Dépôt de garantie \[à compléter\]/);
+  assert.match(t.confidentialite, /adresse du local/);
+  assert.equal(T.CLASSES.a_louer.libelle, 'Local à louer');
+});
+
+test("un bien importé : le teaser lit sa fiche (prix honoraires inclus, loyer, surface) (6 nov. 2026)", async () => {
+  const T = await import('./teaser.js');
+  const f = T.faitsDuBien({ dossier: { prix: 560000 }, fiche: { ville: 'Montpellier', type_bien: 'murs_commerce', activite: 'Brasserie', mandat_importe: { prix: 560000, honoraires: '22 400 €' }, biens: { repris: { loyer_annuel: 39450, surface: 140 } } } });
+  assert.equal(f.prix, 582400);
+  assert.equal(f.loyer, 39450);
+  assert.equal(f.surface, 140);
+  assert.equal(f.occupe, true);
+  assert.equal(f.ville, 'Montpellier');
+  assert.equal(T.faiDuMandatImporte({ prix: 300000, honoraires: '5 % charge vendeur' }), 300000);
+});

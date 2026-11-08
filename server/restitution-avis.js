@@ -16,6 +16,7 @@ import fs from 'fs';
 import path from 'path';
 import { Records, CHEMIN_UPLOADS } from './db.js';
 import { entrerDansBiens, lirePrix, noterPrixAccord, objetsDuBien } from './bien-etapes.js';
+import { estLocation } from '../src/lib/location.js';
 
 const JOUR = 86400000;
 const PARIS = 'Europe/Paris';
@@ -84,7 +85,7 @@ export function planDeRestitution(cas, o = {}) {
   // Un accord se range selon son prix : sans prix, celui conseillé ; au-dessus du haut de la fourchette, l'alerte.
   if (CAS_RESTITUTION[cle].statut === 'prix_accord') {
     if (!prix && cle === 'accord_conseille') prix = c.valeur ? Math.round(c.valeur) : null;
-    if (!prix) return { ok: false, error: "Quel prix ? Dites le chiffre convenu avec le propriétaire." };
+    if (!prix) return { ok: false, error: o.location ? 'Quel loyer ? Dites le loyer annuel HT HC convenu avec le propriétaire.' : "Quel prix ? Dites le chiffre convenu avec le propriétaire." };
     if (c.haut && prix > c.haut) cle = 'accord_au_dessus';
     else if (cle === 'accord_au_dessus') cle = 'accord_fourchette';
   }
@@ -140,6 +141,13 @@ export function planDeRestitution(cas, o = {}) {
   if (plan.statut === 'perdu' && MOTIFS_PERDU[o.motif]) plan.motif = o.motif;
   // La relance dite par Haka, adaptée à ce qu'a raconté le mandataire, passe avant celle du cas.
   if (dite) plan.relance = dite;
+  // À louer (6 nov. 2026, Jules) : le prix d'accord est le loyer annuel accepté, les mots le disent.
+  if (o.location) {
+    plan.location = true;
+    plan.mot = cle === 'plus_vendeur' ? 'Ne veut plus louer' : plan.mot.replace(/prix/g, 'loyer');
+    if (plan.alerte) plan.alerte = plan.alerte.replace('Une révision du prix est prévue au mandat', 'Une révision du loyer est prévue au mandat');
+    if (plan.relance?.quoi && !dite) plan.relance = { ...plan.relance, quoi: plan.relance.quoi.replace('Préparer le mandat', 'Préparer le mandat de location').replace('les nouvelles ventes du secteur', 'les loyers du secteur').replace('révision du prix', 'révision du loyer') };
+  }
   return plan;
 }
 
@@ -149,11 +157,13 @@ function sienne(id, user) {
 }
 
 const MOTS_STATUT = { prix_accord: "Prix d'accord", envoyee: 'Estimation envoyée', pause: 'En pause', perdu: 'Perdu' };
+/** Pure : le mot d'un statut, « Loyer d'accord » pour un bien à louer (6 nov. 2026). */
+const motStatut = (statut, location = false) => (location && statut === 'prix_accord' ? "Loyer d'accord" : MOTS_STATUT[statut]);
 
 /** Pure : la carte « à confirmer » que Haka pose dans le chat pour un cas de restitution. */
 export function carteRestitution(p, plan) {
   const titre = [p?.commerce || p?.nom, p?.ville].filter(Boolean).join(' · ') || 'Ce bien';
-  const statut = `${MOTS_STATUT[plan.statut]}${plan.motif ? ` (${MOTIFS_PERDU[plan.motif] || plan.motif})` : ''}${plan.a_revoir ? ', à revoir' : ''}`;
+  const statut = `${motStatut(plan.statut, plan.location)}${plan.motif ? ` (${MOTIFS_PERDU[plan.motif] || plan.motif})` : ''}${plan.a_revoir ? ', à revoir' : ''}`;
   return {
     type: 'confirmer_restitution', id: `restitution-${p?.id}-${plan.cas}`, proprietaire_id: p?.id, cas: plan.cas, prix: plan.prix, date: plan.relance?.le?.slice(0, 10) || null, motif: plan.motif,
     relance_le: plan.relance?.le || null, relance_quoi: plan.relance?.quoi || null, canal: plan.relance?.canal || null, vers_mandat: plan.statut === 'prix_accord',
@@ -167,7 +177,7 @@ export function proposerRestitution(id, { cas, prix = null, date = null, motif =
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
   const { estimation: e } = objetsDuBien(p);
   if (!e) return { ok: false, error: "Pas encore d'avis de valeur sur ce bien." };
-  const plan = planDeRestitution(cas, { prix, date, motif, relance_le, relance_quoi, canal, envoye_le: e.envoye_le, chiffres: e.avis?.chiffres, compatibles: p.preparation?.clients_compatibles?.liste });
+  const plan = planDeRestitution(cas, { prix, date, motif, relance_le, relance_quoi, canal, envoye_le: e.envoye_le, chiffres: e.avis?.chiffres, compatibles: p.preparation?.clients_compatibles?.liste, ...(estLocation(p) ? { location: true } : {}) });
   if (!plan.ok) return plan;
   return { ok: true, a_confirmer: true, plan, carte: carteRestitution(p, plan), note: "Rien n'est écrit : le mandataire confirme d'un tap. Dis en une ligne le statut et la prochaine action datée, et l'alerte s'il y en a une." };
 }
@@ -180,7 +190,7 @@ export function appliquerRestitution(id, { cas, prix = null, date = null, motif 
   if (!e) return { ok: false, error: "Pas encore d'avis de valeur sur ce bien." };
   // Un avis fait sans RDV noté : la fiche entre dans Biens maintenant (2 nov. 2026).
   entrerDansBiens(p, user);
-  const plan = planDeRestitution(cas, { prix, date, motif, relance_le, relance_quoi, canal, envoye_le: e.envoye_le, chiffres: e.avis?.chiffres, compatibles: p.preparation?.clients_compatibles?.liste });
+  const plan = planDeRestitution(cas, { prix, date, motif, relance_le, relance_quoi, canal, envoye_le: e.envoye_le, chiffres: e.avis?.chiffres, compatibles: p.preparation?.clients_compatibles?.liste, ...(estLocation(p) ? { location: true } : {}) });
   if (!plan.ok) return plan;
   if (plan.statut === 'prix_accord') {
     const r = noterPrixAccord(p.id, plan.prix, user);
@@ -201,7 +211,7 @@ export function appliquerRestitution(id, { cas, prix = null, date = null, motif 
     espace: 'mandataire', genre: 'relance', proprietaire_id: p.id, nom, quoi: `${plan.relance.quoi} (${nom})`, canal: plan.relance.canal,
     note: plan.alerte || null, telephone: p.telephone || null, echeance: plan.relance.le, cree_le: le, cree_par: user?.email || null, fait_le: null,
   });
-  const texte = `${plan.mot} : ${MOTS_STATUT[plan.statut]}${plan.motif ? ` (${MOTIFS_PERDU[plan.motif] || plan.motif})` : ''}${plan.prix ? ` à ${eur(plan.prix)}` : ''}. Prochaine action : ${plan.relance.quoi}, le ${jourFr(plan.relance.le)}.`;
+  const texte = `${plan.mot} : ${motStatut(plan.statut, plan.location)}${plan.motif ? ` (${MOTIFS_PERDU[plan.motif] || plan.motif})` : ''}${plan.prix ? ` à ${eur(plan.prix)}` : ''}. Prochaine action : ${plan.relance.quoi}, le ${jourFr(plan.relance.le)}.`;
   const maj = Records.update('ProprietaireMandataire', p.id, {
     biens, prochaine_action: plan.relance.quoi, prochaine_action_le: plan.relance.le,
     historique: [...(q.historique || []), { le, type: 'restitution', texte }],
@@ -233,6 +243,15 @@ export function sansMontant(texte) {
 
 export function mailParDefaut({ avis = {}, proprietaire = null, signataire = {} } = {}) {
   const qui = proprietaire?.nom || avis.demandeur || null;
+  // L'avis de valeur locative d'un local à louer (6 nov. 2026, Jules) : le mail le nomme ainsi, toujours sans montant.
+  if (avis.location) {
+    return {
+      objet: `Avis de valeur locative${avis.bien?.rue ? `, ${avis.bien.rue}` : ''}`,
+      texte: [qui ? `Bonjour ${qui},` : 'Bonjour,', '', `Suite à notre visite, vous trouverez ci-joint l'avis de valeur locative de votre local${avis.bien?.rue ? `, ${avis.bien.rue}` : ''}, en vue de sa mise en location.`, '',
+        "Je vous appelle très prochainement pour vous le présenter, avec les conditions que je vous conseille, et répondre à vos questions.", '', 'Bien cordialement,',
+        [signataire.nom, signataire.telephone].filter(Boolean).join('\n') || null].filter((l) => l !== null).join('\n'),
+    };
+  }
   const bien = [avis.type_libelle ? avis.type_libelle.toLowerCase() : 'votre bien', avis.bien?.rue].filter(Boolean).join(', ');
   const lignes = [
     qui ? `Bonjour ${qui},` : 'Bonjour,',
@@ -263,7 +282,7 @@ export async function preparerEnvoi(id, { objet = null, texte = null } = {}, use
     texte: sansMontant(String(texte || '').trim().slice(0, 4000) || e.envoi?.texte || defaut.texte),
     prepare_le: maintenant(), par_haka: !!texte || !!e.envoi?.par_haka,
   };
-  return { ok: true, envoi, estimation: Records.update('EstimationMandataire', e.id, { envoi }) };
+  return { ok: true, envoi, ...(e.avis.location ? { location: true } : {}), estimation: Records.update('EstimationMandataire', e.id, { envoi }) };
 }
 
 /**
@@ -355,7 +374,7 @@ export function filDeLaRelation(p, n = 12) {
   return [
     lignes.length ? `Le fil avec le propriétaire :\n${lignes.join('\n')}` : 'Le fil avec le propriétaire : rien de noté depuis l\'envoi.',
     prochaine?.le ? `Prochaine action : ${prochaine.quoi}, le ${jourFr(prochaine.le)}.` : 'Aucune relance posée.',
-    p.biens?.prix_accord ? `Prix d'accord : ${eur(p.biens.prix_accord)}.` : null,
+    p.biens?.prix_accord ? (estLocation(p) ? `Loyer d'accord : ${eur(p.biens.prix_accord)} HT HC par an.` : `Prix d'accord : ${eur(p.biens.prix_accord)}.`) : null,
   ].filter(Boolean).join('\n');
 }
 
@@ -371,7 +390,7 @@ export async function avisParJeton(jeton) {
 }
 
 /** Pure : le nom du fichier joint, lisible par le propriétaire. */
-export const nomDuPdf = (e) => `Avis de valeur${e?.avis?.bien?.rue ? ` - ${String(e.avis.bien.rue).replace(/[\\/:*?"<>|]/g, ' ')}` : ''}.pdf`;
+export const nomDuPdf = (e) => `${e?.avis?.location ? 'Avis de valeur locative' : 'Avis de valeur'}${e?.avis?.bien?.rue ? ` - ${String(e.avis.bien.rue).replace(/[\\/:*?"<>|]/g, ' ')}` : ''}.pdf`;
 
 /**
  * L'avis en PDF, tel que l'éditeur le montre : un navigateur sans écran ouvre la page d'impression (les mêmes pages
@@ -411,14 +430,14 @@ export async function exporterAvisPdf(id, user, { base }) {
 export const OUTIL_RESTITUTION = {
   name: 'noter_restitution',
   description:
-    "Après l'envoi de l'avis de valeur, ce que le propriétaire en dit (la restitution, dictée par le mandataire). Choisis le cas : accord_conseille (d'accord sur le prix conseillé), accord_fourchette (d'accord à un autre prix, donne prix), accord_au_dessus (veut un prix au-dessus de la fourchette, donne prix), reflechit (hésite, veut réfléchir), sans_reponse (ne répond pas), consulte (veut d'abord parler à sa famille, son comptable : date s'il en donne une), attend (un document ou un événement, fin de bail, succession : sa date), trop_bas (trouve le prix trop bas et refuse), concurrent (a signé avec un autre agent), plus_vendeur (ne veut plus vendre), injoignable, bail_change (le bail reçu change la valeur). Rien n'est écrit : l'écran fait confirmer d'un tap. Ensuite, une ligne : le statut et la prochaine action datée, et l'alerte s'il y en a une.",
+    "Après l'envoi de l'avis de valeur, ce que le propriétaire en dit (la restitution, dictée par le mandataire). Choisis le cas : accord_conseille (d'accord sur le prix conseillé), accord_fourchette (d'accord à un autre prix, donne prix), accord_au_dessus (veut un prix au-dessus de la fourchette, donne prix), reflechit (hésite, veut réfléchir), sans_reponse (ne répond pas), consulte (veut d'abord parler à sa famille, son comptable : date s'il en donne une), attend (un document ou un événement, fin de bail, succession : sa date), trop_bas (trouve le prix trop bas et refuse), concurrent (a signé avec un autre agent), plus_vendeur (ne veut plus vendre), injoignable, bail_change (le bail reçu change la valeur). Un local À LOUER : le « prix » est le loyer annuel HT HC accepté par le propriétaire (« 36 k€ par an »), trop_bas veut dire le loyer, plus_vendeur qu'il ne veut plus louer. Rien n'est écrit : l'écran fait confirmer d'un tap. Ensuite, une ligne : le statut et la prochaine action datée, et l'alerte s'il y en a une.",
   input_schema: {
     type: 'object',
     properties: {
       cas: { type: 'string', enum: Object.keys(CAS_RESTITUTION) },
       qui: { type: 'string', description: 'Le commerce ou le propriétaire, comme le mandataire le dit' },
       proprietaire_id: { type: 'string', description: "L'id de la fiche, si on la connaît" },
-      prix: { type: 'string', description: 'Le prix convenu ou demandé (« 460 k€ »)' },
+      prix: { type: 'string', description: 'Le prix convenu ou demandé (« 460 k€ ») ; pour un local à louer, le loyer annuel HT HC (« 36 k€ »)' },
       date: { type: 'string', description: 'AAAA-MM-JJ : la date donnée par le propriétaire (événement, rendez-vous de famille)' },
       motif: { type: 'string', enum: Object.keys(MOTIFS_PERDU), description: 'Pour une affaire perdue, si le mandataire le précise' },
       relance_le: { type: 'string', description: "AAAA-MM-JJ (ou AAAA-MM-JJTHH:MM) : la relance qui convient à ce qu'il a raconté, si elle diffère de celle du cas" },
@@ -467,7 +486,8 @@ export function suiviDuBien(id, user) {
   const { estimation: e, mandat } = objetsDuBien(p);
   const c = e?.avis?.chiffres || {};
   const b = p.biens || {};
-  const statut = b.perdu ? `Perdu${b.perdu.motif ? ` · ${MOTIFS_PERDU[b.perdu.motif] || b.perdu.motif}` : ''}` : b.pause ? 'En pause' : b.prix_accord ? "Prix d'accord" : e?.statut === 'envoye' ? 'Estimation envoyée' : e ? 'Avis de valeur' : 'Visite';
+  const location = estLocation(p);
+  const statut = b.perdu ? `Perdu${b.perdu.motif ? ` · ${MOTIFS_PERDU[b.perdu.motif] || b.perdu.motif}` : ''}` : b.pause ? 'En pause' : b.prix_accord ? (location ? "Loyer d'accord" : "Prix d'accord") : e?.statut === 'envoye' ? 'Estimation envoyée' : e ? (location ? 'Avis de valeur locative' : 'Avis de valeur') : 'Visite';
   const rappels = Records.list('Rappel').filter((r) => r.proprietaire_id === p.id && r.espace === 'mandataire');
   const ligne = (r) => ({ id: r.id, quoi: String(r.quoi || '').replace(` (${r.nom})`, '').trim(), canal: r.canal || null, echeance: r.echeance || null, fait_le: r.fait_le || null });
   const a_faire = rappels.filter((r) => !r.fait_le).sort((x, y) => String(x.echeance).localeCompare(String(y.echeance))).map(ligne);
@@ -479,6 +499,8 @@ export function suiviDuBien(id, user) {
       titre: [p.commerce || p.nom, p.ville].filter(Boolean).join(' · ') || 'Ce bien',
       statut,
       prix_accord: b.prix_accord || null,
+      // À louer : le prix d'accord est le loyer annuel accepté (6 nov. 2026), l'écran le dit.
+      ...(location ? { location: true, libelle_accord: "Loyer d'accord" } : {}),
       revision_prix_jours: b.revision_prix_jours || null,
       valeur: c.valeur || null, bas: c.bas || null, haut: c.haut || null,
       envoye_le: e?.envoye_le || null,

@@ -110,7 +110,7 @@ ${String(texte || '').slice(0, 24000)}
 /** La fiche Monday du client, créée ou mise à jour (par adresse mail). */
 export async function poserClientMonday(champs, { par } = {}) {
   const { mondayConfigure, TABLEAUX, poserElement, personneMonday } = await import('./monday.js');
-  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!mondayConfigure()) return { ignore: true, raison: "Twenty CRM n'est pas branché ici" };
   if (!TABLEAUX.investisseurs) return { ignore: true, raison: 'le tableau Clients n\'est pas déclaré (MONDAY_BOARD_INVESTISSEURS)' };
   const { valeurAdresse, oublierCache } = await import('./deal/monday-sync.js');
 

@@ -23,7 +23,10 @@
 .tz-titre { margin: 0; font-size: 38px; line-height: 1.12; font-weight: 500; letter-spacing: -.02em; }
 .tz-sous { margin: 12px 0 0; font-size: 16px; line-height: 1.4; opacity: .95; }
 .tz-sans-photo { position: absolute; left: 48px; top: 70px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; opacity: .6; }
-.tz-carte { position: absolute; left: 48px; right: 48px; top: 468px; border-radius: 28px; background: var(--tz-carte); color: #fff; padding: 30px 30px 32px; box-shadow: 0 30px 60px rgba(20, 20, 60, .25); }
+/* La carte et la confidentialité se suivent entre la photo et le pied (7 nov. 2026, Jules : la confidentialité passait
+   sous une carte plus haute que prévu, en bas à gauche) : la carte d'abord, la mention au bas, jamais l'une sur l'autre. */
+.tz-corps { position: absolute; left: 48px; right: 48px; top: 446px; bottom: 108px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
+.tz-carte { flex: none; border-radius: 28px; background: var(--tz-carte); color: #fff; padding: 30px 30px 32px; box-shadow: 0 30px 60px rgba(20, 20, 60, .25); }
 .tz-tuiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .tz-tuile { border-radius: 16px; background: var(--tz-tuile); border: 1px solid var(--tz-filet); padding: 22px 12px 18px; text-align: center; }
 .tz-tuile > b { display: block; font-size: 26px; font-weight: 400; letter-spacing: -.01em; }
@@ -39,7 +42,7 @@
 .tz-point { display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; background: var(--tz-pastille); padding: 9px 16px; font-size: 13.5px; }
 .tz-point::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--tz-pervenche); }
 .tz-afaire { color: #e6b86a; }
-.tz-confidentiel { position: absolute; left: 48px; right: 48px; bottom: 112px; margin: 0; font-size: 11.5px; line-height: 1.5; color: #1d1e2c; }
+.tz-confidentiel { flex: none; margin: 0; font-size: 11.5px; line-height: 1.5; color: #1d1e2c; }
 .tz-pied { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; background: #0e0e10; color: #fff; display: flex; align-items: center; gap: 34px; padding: 0 48px; }
 .tz-pied .logo-kp { font-size: 30px; }
 .tz-pied-qui { flex: 1; font-size: 13px; line-height: 1.55; color: #d9dae3; }
@@ -60,4 +63,13 @@
 .tz-palette {
   --encre: #0e0e10; --sauge: #3f47b8; --sauge-fonce: #262a85; --kp: #a7abed; --ocre: #262a85; --gris: #9a9cab; --blanc: #ffffff;
   --doc-encre: #0e0e10; --doc-noir: #141418; --doc-gris: #9a9cab; --doc-accent: #a7abed; --doc-encart: #26262d; --doc-blanc: #ffffff;
+}
+/* La fiche confrère (6 nov. 2026) : le co-courtage tient dans la place des points forts. */
+.tz-co .tz-ligne { font-size: 13.5px; }
+.tz-co .tz-ligne > span, .tz-co .tz-ligne > b { padding: 8px 14px; }
+.tz-co .tz-rubrique { margin: 18px 0 10px; }
+/* L'impression de l'avis (avis-valeur.css) cache tout ce qui n'est pas l'avis, dans la même feuille : le teaser et la
+   fiche confrère sortaient en PDF blanc (6 nov. 2026). Ils se remontrent. */
+@media print {
+  .tz-page, .tz-page * { visibility: visible !important; }
 }

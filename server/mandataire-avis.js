@@ -18,6 +18,8 @@ import { effortDuChat } from './ak/effort.js';
 import { Records } from './db.js';
 import { villeDuTexte, echeanceDuBail } from './taux-rendement.js';
 import { lignesDeLEmplacement } from './emplacement-auto.js';
+import { estLocation } from '../src/lib/location.js';
+import { manquantsLocation, essentielsLocation, chiffrerLoyer, conditionsLocation, recalculerLoyer, etatDuLocal, ETATS_LOCAL, TITRE_AVIS_LOCATION, OBJET_AVIS_LOCATION } from '../src/lib/avis-location.js';
 
 const ENTITE = 'EstimationMandataire';
 const moi = (user) => String(user?.email || '').toLowerCase();
@@ -64,6 +66,8 @@ const OPTIONNELS = ['reserve', 'zones', 'configuration', 'equipements', 'juridiq
  * se demande, mais ne retient plus la rédaction : il reste « [à compléter] » et se dicte après.
  */
 export function essentielsManquants(q = {}) {
+  // À louer (6 nov. 2026, Jules) : ni loué ou libre, ni loyer en place, ni taux ; la destination, l'extraction, l'état.
+  if (q.transaction === 'location') return essentielsLocation(q);
   if (q.type_bien === 'fonds_commerce') return FONDS_ESSENTIELS.filter((k) => q[k] == null || q[k] === '');
   const requis = ['adresse', 'occupe', 'surface_utile', ...(q.occupe === true ? ['loyer_annuel_hc', 'echeance'] : []), ...(q.type_bien === 'murs_commerce' ? ['rang_rue', 'taux_base'] : [])];
   return requis.filter((k) => q[k] == null || q[k] === '');
@@ -71,6 +75,7 @@ export function essentielsManquants(q = {}) {
 
 /** Pure : ce qui manque encore pour rédiger, selon le type et l'occupation. */
 export function manquants(q) {
+  if (q.transaction === 'location') return manquantsLocation(q);
   if (q.type_bien === 'fonds_commerce') return FONDS.filter((k) => q[k] == null || q[k] === '');
   const requis = [...COMMUNS, ...(PAR_TYPE[q.type_bien] || []), ...(q.occupe === true ? OCCUPE : []),
     ...(q.type_bien === 'murs_commerce' && q.occupe === true ? CRITERES_TAUX_OCCUPE : [])];
@@ -139,11 +144,22 @@ function dernierRedige(user, conversationId = null) {
 
 const titreDe = (q) => [TYPES_BIEN[q.type_bien] || 'Bien', q.adresse].filter(Boolean).join(' · ');
 
-export function commencer({ type_bien, adresse = null, demandeur = null }, user, conversationId = null) {
+/**
+ * Le bien de l'avis est-il à louer (6 nov. 2026, Jules) ? La fiche du bien le dit (`biens.transaction`), ou le
+ * questionnaire quand l'avis a commencé dans le chat avant la fiche.
+ */
+export function avisEnLocation(e) {
+  if (e?.questionnaire?.transaction === 'location') return true;
+  const p = e?.proprietaire_id ? Records.get('ProprietaireMandataire', e.proprietaire_id) : null;
+  return estLocation(p);
+}
+
+export function commencer({ type_bien, adresse = null, demandeur = null, transaction = null }, user, conversationId = null) {
   for (const e of Records.list(ENTITE).filter((x) => x.mandataire_email === moi(user) && x.questionnaire_en_cours && (!conversationId || !x.conversation_id || x.conversation_id === conversationId))) {
     Records.update(ENTITE, e.id, { questionnaire_en_cours: false });
   }
-  const q = { type_bien: TYPES_PROPOSES.includes(type_bien) ? type_bien : 'autre', adresse, demandeur };
+  // Un local à louer (6 nov. 2026) : le type reste celui du local, la transaction dit qu'on estime un loyer.
+  const q = { type_bien: TYPES_PROPOSES.includes(type_bien) ? type_bien : 'autre', adresse, demandeur, ...(transaction === 'location' ? { transaction: 'location' } : {}) };
   const e = Records.create(ENTITE, {
     mandataire_email: moi(user), conversation_id: conversationId, bien: titreDe(q), adresse, statut: 'brouillon', questionnaire_en_cours: true, questionnaire: q,
     cree_le: new Date().toISOString(), historique: [{ le: new Date().toISOString(), par: user?.email || null, action: 'avis commencé par le chat' }],
@@ -169,9 +185,19 @@ export function noter(reponses, user, conversationId = null) {
   }
   for (const k of ['loyer_annuel_hc', 'surface_utile', 'taux_base', 'vacance_rue_pct']) if (q[k] != null && typeof q[k] !== 'number') q[k] = premierNombre(q[k]) ?? q[k];
   for (const k of MONTANTS_FONDS) if (q[k] != null && typeof q[k] !== 'number') q[k] = montantDit(q[k]) ?? q[k];
+  // À louer (6 nov. 2026) : la fiche le dit, le questionnaire le garde ; l'état se range en trois mots.
+  const location = q.transaction === 'location' || avisEnLocation(e);
+  if (location) {
+    q.transaction = 'location';
+    if (q.etat_local != null && etatDuLocal(q.etat_local)) q.etat_local = etatDuLocal(q.etat_local);
+    if (reponses?.transaction === 'location' && e.proprietaire_id) {
+      const p = Records.get('ProprietaireMandataire', e.proprietaire_id);
+      if (p && !estLocation(p)) Records.update('ProprietaireMandataire', p.id, { biens: { ...(p.biens || {}), transaction: 'location' } });
+    }
+  }
   // L'échéance d'un 3-6-9 se calcule depuis la date d'effet, sans la demander (1er nov. 2026, Jules) ; une échéance dite
   // l'emporte, une calculée suit la date d'effet si elle change.
-  if (q.occupe !== false && (!q.echeance || q.echeance_calculee)) {
+  if (!location && q.occupe !== false && (!q.echeance || q.echeance_calculee)) {
     const c = echeanceDuBail(q);
     if (c) Object.assign(q, { echeance: c.echeance, echeance_calculee: true, ...(c.suppose ? { bail_type: '3-6-9 (supposé)' } : {}) });
   }
@@ -304,6 +330,8 @@ const jourLong = (d = new Date()) => d.toLocaleDateString('fr-FR', { day: 'numer
 export async function rediger(user, { surEtape = null, aLaMain = false, conversationId = null } = {}) {
   const e = enCours(user, conversationId);
   if (!e) return { ok: false, error: 'Aucun avis en cours.' };
+  // Un local à louer s'estime en loyer, par son propre chemin (6 nov. 2026, Jules) : la vente ne change pas.
+  if (avisEnLocation(e)) return redigerLocation(e, user, { surEtape, aLaMain });
   const q = e.questionnaire || {};
   const fonds = q.type_bien === 'fonds_commerce';
   const reste = manquants(q);
@@ -681,6 +709,293 @@ export async function rediger(user, { surEtape = null, aLaMain = false, conversa
     ...(photosVille.length > 1 ? { photos_ville: photosVille } : {}) };
 }
 
+// --- L'avis de valeur locative (6 nov. 2026, Jules : « adapter tout le système à la location ») ---------------------
+//
+// Un local à louer : l'avis estime le loyer (src/lib/avis-location.js). La valeur locative de marché au m² (Data-B,
+// Equimmox en repli, jamais un modèle ni DVF) sur la surface pondérée, ajustée par les critères du local, puis les
+// conditions conseillées (dépôt de garantie, franchise, honoraires). Jamais de prix, de taux de rendement, de valeur
+// vénale ni de frais de notaire. Sans valeur de marché lue, pas de loyer inventé : l'avis le dit.
+
+const RESERVES_LOCATION = `Cet avis de valeur locative ne constitue pas une expertise au sens de la charte de l'expertise en évaluation immobilière. Il n'a pas de valeur opposable devant un tiers ou une juridiction. Il repose sur les informations remises par le demandeur, sur une visite non technique et sur les valeurs locatives de marché relevées à sa date, sans vérification des surfaces par un géomètre. Il est valable 6 mois à compter de sa date, sous réserve d'une évolution significative du marché locatif.`;
+
+const SCHEMA_AVIS_LOCATION = {
+  type: 'object',
+  properties: {
+    resume_bien: { type: 'string', description: 'Une phrase qui décrit le local (surface, niveau, réserve)' },
+    description: SCHEMA_AVIS.properties.description,
+    emplacement: SCHEMA_AVIS.properties.emplacement,
+    juridique: SCHEMA_AVIS.properties.juridique,
+    lecture_marche: { type: 'string', description: 'Ce que disent les loyers du secteur, 2 à 3 phrases, sans réécrire les chiffres' },
+    synthese_methodes: { type: 'string', description: 'Comment se lit le loyer : la valeur locative de marché au m², la surface pondérée, les ajustements du local, 2 phrases sans chiffres' },
+    points_a_traiter: { type: 'array', items: { type: 'string' }, description: 'Ce qu\'il faut régler avant la mise en location' },
+  },
+  required: ['description', 'emplacement', 'points_a_traiter'],
+};
+
+/** Pure : les loyers du secteur de l'avis, échelle par échelle (la rue, le quartier, la ville), depuis la lecture. */
+export function loyersDuSecteur(marche) {
+  return [['rue', 'Rue'], ['quartier', 'Quartier'], ['ville', 'Ville']]
+    .map(([cle, mot]) => ({ echelle: mot, nom: marche?.[cle]?.nom || null, basse: Number(marche?.[cle]?.basse) || null, haute: Number(marche?.[cle]?.haute) || null }))
+    .filter((l) => l.basse || l.haute);
+}
+
+/** Rédige l'avis de valeur locative du questionnaire en cours (voir rediger). */
+async function redigerLocation(e, user, { surEtape = null, aLaMain = false } = {}) {
+  const q = { ...(e.questionnaire || {}), transaction: 'location' };
+  const reste = manquants(q);
+  if (reste.length && !aLaMain) return { ok: false, manquants: reste, error: `Il manque encore : ${reste.join(', ')}.` };
+  const surf = Number(q.surface_utile);
+  if ((q.surface_utile != null || !aLaMain) && !(surf > 5 && surf < 50000)) return { ok: false, error: `La surface utile enregistrée (${q.surface_utile}) n'est pas plausible : demande-la de nouveau en une ligne, en m².` };
+  const avant = (promesse, ms, defaut) => Promise.race([promesse, new Promise((ok) => { setTimeout(() => ok(defaut), Math.max(0, ms)).unref?.(); })]);
+
+  let lieu = null;
+  try {
+    const { resoudreAdresse } = await import('./adresse-ban.js');
+    lieu = await resoudreAdresse(q.adresse);
+    if (lieu) surEtape?.(`Adresse reconnue : ${[lieu.numero, lieu.rue].filter(Boolean).join(' ')}, ${lieu.ville || ''}`.trim());
+  } catch { /* le marché se lira quand même sur le texte */ }
+  const commune = lieu?.ville || villeDuTexte(q.adresse);
+  const villeP = lieu?.ville
+    ? import('./ak/agent.js').then(({ executerOutil }) => executerOutil({ name: 'donnees_commune', input: { commune: lieu.ville } }, user)).then(villeDepuisCommune).catch((err) => { console.warn(`[avis] commune : ${err?.message || err}`); return null; })
+    : Promise.resolve(null);
+  const photosP = commune
+    ? import('./photo-commerce.js').then((m) => m.photosDeLaVille(commune)).catch((err) => { console.warn(`[avis] photo de la ville : ${err?.message || err}`); return []; })
+    : Promise.resolve([]);
+  const garde = Records.get(ENTITE, e.id) || e;
+  const marcheGarde = lectureFraiche(garde.valeur_locative_lue, q.adresse) ? garde.valeur_locative_lue.resultat : null;
+  const emplacementGarde = lectureFraiche(garde.emplacement_lu, q.adresse) ? garde.emplacement_lu.lu || {} : {};
+  const lireIci = !!lieu && !Object.keys(emplacementGarde).length;
+  const emplacementP = lireIci
+    ? import('./emplacement-auto.js').then((m) => {
+      const p = e.proprietaire_id ? Records.get('ProprietaireMandataire', e.proprietaire_id) : null;
+      return m.lireEmplacement(q.adresse, { lieu, user, commerceId: p?.commerce_simple_id || null, delai: 6000 });
+    }).then((lu) => ({ ...emplacementGarde, ...lu })).catch((err) => { console.warn(`[avis] emplacement : ${err?.message || err}`); return emplacementGarde; })
+    : Promise.resolve(emplacementGarde);
+
+  // Le loyer se fait sur la valeur locative de marché : on l'attend (une minute au plus, Equimmox en repli est lent).
+  surEtape?.('Lecture de la valeur locative de marché (Data-B)');
+  const marche = marcheGarde || await avant(lireValeurLocative(q.adresse, user, { surEtape }), 60000, null);
+  const surfaces = surfacesDe(q);
+  const surfacePonderee = surfaces.reduce((t, s) => t + (Number(s.ponderee) || 0), 0) || Number(q.surface_utile) || null;
+  const calcul = chiffrerLoyer(q, { marche, surfacePonderee });
+  if (!calcul && !aLaMain) {
+    return { ok: false, manque: 'valeur_locative', error: marche ? 'Il faut la surface du local pour estimer le loyer.' : "Aucune valeur locative de marché lue pour cette adresse (ni Data-B, ni Equimmox) : le loyer ne s'invente pas. Dis-le au mandataire ; il peut réessayer plus tard, ou rédiger avec a_la_main: true et poser le loyer lui-même dans l'éditeur." };
+  }
+  surEtape?.(calcul
+    ? `Loyer de marché : ${calcul.marche.m2.toLocaleString('fr-FR')} €/m²/an (${calcul.marche.echelle})${calcul.ajustement_pct ? `, ajusté de ${calcul.ajustement_pct > 0 ? '+' : ''}${calcul.ajustement_pct} %` : ''}`
+    : 'Valeur locative de marché indisponible : le loyer se posera dans l’éditeur');
+  const emplacementLu = await emplacementP;
+
+  surEtape?.('Rédaction des analyses');
+  const { invokeLLM } = await import('./llm.js');
+  const { mesurer } = await import('./llm-couts.js');
+  const { resultat: brut } = await mesurer({ operation: 'mandataire', par: user?.email }, () => invokeLLM({
+    prompt:
+      `Tu rédiges, pour un mandataire du réseau K Partners, un AVIS DE VALEUR LOCATIVE : ${TYPES_BIEN[q.type_bien] || 'local professionnel'} À LOUER, estimé en loyer annuel HT HC. Tout en français. Ton ton : celui d'un professionnel de l'immobilier d'entreprise, phrases courtes, concrètes, sans emphase. N'invente AUCUN fait : ce qui n'est ni dans le questionnaire ni dans les données ne s'écrit pas. Le loyer est calculé par le serveur : tu n'écris aucun chiffre de loyer.\n` +
+      `C'EST UNE LOCATION (6 nov. 2026, Jules) : jamais de prix de vente, de valeur vénale, de taux de rendement, de capitalisation, de frais de notaire, d'acquéreur ni d'investisseur. On parle du loyer, du preneur (le futur locataire), des activités possibles et de la mise en location.\n\n` +
+      `Nous sommes le ${jourLong()}.\n\n` +
+      `QUESTIONNAIRE (réponses du mandataire) :\n${JSON.stringify(q, null, 1).slice(0, 6000)}\n\n` +
+      `VALEUR LOCATIVE DE MARCHÉ (€ HT HC/m²/an, ${marche?.source || 'source indisponible'}) :\n${marche ? JSON.stringify({ rue: marche.rue, quartier: marche.quartier, ville: marche.ville, source: marche.source }).slice(0, 2500) : '(indisponible)'}\n` +
+      (calcul ? `CALCUL DU SERVEUR : loyer de marché ${calcul.marche.m2} €/m²/an (${calcul.marche.echelle}), ajustements : ${calcul.ajustements.map((a) => `${a.motif} ${a.pct > 0 ? '+' : ''}${a.pct} %`).join(', ') || 'aucun'}.\n\n` : '\n') +
+      `EMPLACEMENT LU À L'ADRESSE (sans le mandataire) : ${Object.keys(emplacementLu).length ? JSON.stringify(emplacementLu).slice(0, 4000) : '(indisponible)'}\n` +
+      `Avec ces données, remplis l'emplacement, ligne par ligne, sans aucune source entre parenthèses : type_emplacement ; flux (quelques mots) ; commerces_voisins (seulement « n commerces à 150 m ») ; vacance : seulement « x % (taux estimé) » ; acces (métro, tram, gare, bus, parkings à 300 m) ; environnement (une phrase). Une rubrique dont rien ne parle reste vide.\n` +
+      `La description dit le local tel qu'il se loue : surface, configuration, façade, équipements (extraction comprise), état ; la destination (les activités permises) va dans designation.\n` +
+      `ÉCRITURE : aucune étiquette de provenance entre parenthèses ; jamais « à confirmer », « à vérifier », « semble », « probablement ». JURIDIQUE ET TECHNIQUE : seulement ce que le mandataire a signalé, repris tel quel ; rien de signalé : tous les champs vides.\n` +
+      `lecture_marche : ce que disent les loyers de la rue, du quartier et de la ville, sans réécrire les chiffres. vigilance et points_a_traiter : des notes courtes pour le mandataire, pas pour l'avis.`,
+    response_json_schema: SCHEMA_AVIS_LOCATION,
+    effort: 'medium',
+  }));
+  if (!brut || typeof brut !== 'object') return { ok: false, error: 'La rédaction n\'a rien rendu : réessayez.' };
+
+  surEtape?.(calcul ? `Loyer estimé : ${calcul.valeur.toLocaleString('fr-FR')} € HT HC par an (fourchette ${calcul.bas.toLocaleString('fr-FR')} – ${calcul.haut.toLocaleString('fr-FR')} €)` : 'Loyer à poser dans l’éditeur');
+  surEtape?.('Mise en page de l’avis dans l’éditeur');
+  const s = signataire(user);
+  const aSignaler = [brut.emplacement?.vigilance, ...(brut.points_a_traiter || [])].filter((x) => x && !/^aucun/i.test(String(x).trim())).slice(0, 6);
+  const net = { description: nettoyerTextes(brut.description || {}), emplacement: nettoyerTextes(brut.emplacement || {}), juridique: nettoyerTextes(brut.juridique || {}) };
+  const lues = lignesDeLEmplacement(emplacementLu);
+  const ouLu = (texte, cle) => (caseVide(texte) ? lues[cle] || '' : texte);
+  const vacanceDite = Number(q.vacance_rue_pct) > 0 ? `${Number(q.vacance_rue_pct).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %` : null;
+  const juridiqueDit = juridiqueSignale(q);
+  const etat = etatDuLocal(q.etat_local);
+  const extraction = q.extraction == null || q.extraction === '' ? null : /^\s*(oui|true)\b/i.test(String(q.extraction)) || q.extraction === true ? 'Oui' : /^\s*(non|false)\b/i.test(String(q.extraction)) || q.extraction === false ? 'Non' : String(q.extraction);
+  const conditions = conditionsLocation(calcul?.valeur, q);
+  const niveau = calcul?.marche || null;
+  const avis = {
+    version: 1,
+    location: true,
+    titre_document: TITRE_AVIS_LOCATION,
+    methode: 'loyer',
+    type_bien: q.type_bien,
+    type_libelle: TYPES_BIEN[q.type_bien] || 'Local professionnel',
+    occupe: false,
+    date: jourLong(),
+    bien: {
+      rue: lieu ? [lieu.numero, lieu.rue].filter(Boolean).join(' ') : q.adresse,
+      ville: lieu ? `${lieu.code_postal || ''} ${lieu.ville || ''}`.trim() : '',
+      adresse: q.adresse, lat: lieu?.lat ?? null, lon: lieu?.lon ?? null,
+    },
+    demandeur: q.demandeur || '[à compléter]',
+    signataire: s,
+    cadre: {
+      objet: OBJET_AVIS_LOCATION,
+      bien: `${TYPES_BIEN[q.type_bien] || 'Local'} à louer, ${q.adresse}`,
+      visite: q.date_visite ? `Réalisée le ${q.date_visite}${q.visite_avec ? ` en présence ${q.visite_avec}` : ''}` : '[à compléter]',
+    },
+    description: {
+      resume: sansEtiquettes(brut.resume_bien) || (q.surface_utile ? `${q.surface_utile} m² utiles.` : ''),
+      lignes: [
+        ['Destination', q.destination || net.description.designation],
+        ['Configuration', net.description.configuration],
+        ...(q.type_bien === 'murs_commerce' ? [['Façade', net.description.facade || q.facade]] : []),
+        ['Extraction', extraction],
+        ['Équipements', net.description.equipements],
+        ['État', etat ? ETATS_LOCAL[etat] : net.description.etat || q.etat_local],
+        ['Disponible', q.disponible_le],
+      ].filter(([, v]) => !caseVide(v)).map(([mot, texte]) => ({ mot, texte: sansEtiquettes(String(texte)) })),
+      surfaces,
+    },
+    emplacement: {
+      synthese: net.emplacement.synthese || '',
+      lignes: [['Type d\'emplacement', net.emplacement.type_emplacement], ['Flux', net.emplacement.flux], ['Commerces voisins', lues.commerces_voisins || net.emplacement.commerces_voisins], ['Environnement', net.emplacement.environnement], ['Vacance', vacanceDite || vacanceEstimee(emplacementLu) || ouLu(net.emplacement.vacance, 'vacance')], ['Accès', ouLu(net.emplacement.acces, 'acces')]]
+        .filter(([, v]) => !caseVide(v)).map(([mot, texte]) => ({ mot, texte, alerte: false })),
+    },
+    // Pas de bail en place : la situation locative ne paraît pas.
+    locatif: null,
+    juridique: juridiqueDit ? (() => {
+      const lignes = [['Copropriété', net.juridique.copropriete], ['Travaux votés', net.juridique.travaux, true], ['Urbanisme', net.juridique.urbanisme], ['Diagnostics', net.juridique.diagnostics], ['Technique', net.juridique.technique, true], ['Servitudes', net.juridique.servitudes]]
+        .filter(([, v]) => !caseVide(v) && !RIEN_A_SIGNALER.test(String(v))).map(([mot, texte, alerte]) => ({ mot, texte, alerte: !!alerte && !/aucun/i.test(texte) }));
+      return { synthese: net.juridique.synthese || juridiqueDit.libre || '', lignes: lignes.length ? lignes : juridiqueDit.lignes };
+    })() : { synthese: '', lignes: [] },
+    // Les loyers du secteur : la rue, le quartier, la ville, tels que Data-B (ou Equimmox) les donne.
+    marche: {
+      synthese: niveau ? `La valeur locative de marché se situe ${niveau.basse && niveau.haute ? `entre ${Math.round(niveau.basse).toLocaleString('fr-FR')} et ${Math.round(niveau.haute).toLocaleString('fr-FR')}` : `autour de ${niveau.m2.toLocaleString('fr-FR')}`} € HT HC par m² et par an ${{ rue: 'dans la rue', quartier: 'dans le quartier', ville: 'dans la ville' }[niveau.echelle] || ''}.` : 'Aucune valeur locative de marché n’a pu être lue pour cette adresse.',
+      references: [],
+      secteur: loyersDuSecteur(marche),
+      source: marche?.source ? `Source : ${/equimmox/i.test(marche.source) ? 'Equimmox' : 'Data-B'}, valeurs locatives de marché (€ HT HC par m² et par an).` : '',
+      loyers: niveau ? { basse: niveau.basse, haute: niveau.haute, source: marche?.source || null } : null,
+      lecture: brut.lecture_marche || '',
+    },
+    methodes: {
+      synthese: brut.synthese_methodes || '',
+      taux: null, justification_taux: '', prix_m2: null, justification_prix: '',
+      loyer_m2_marche: niveau?.m2 || null, echelle: niveau?.echelle || null,
+      ajustements: calcul?.ajustements || [], ajustement_pct: calcul?.ajustement_pct || 0,
+      loyer: calcul?.valeur || null,
+      surface: Number(q.surface_utile) || null,
+      surface_ponderee: calcul?.surface_ponderee || (surfacePonderee ? Math.round(surfacePonderee) : null),
+    },
+    chiffres: calcul
+      ? { valeur: calcul.valeur, bas: calcul.bas, haut: calcul.haut, loyer_m2: calcul.loyer_m2, loyer_m2_bas: calcul.loyer_m2_bas, loyer_m2_haut: calcul.loyer_m2_haut, mensuel: calcul.mensuel, surface_ponderee: calcul.surface_ponderee }
+      : { valeur: null, bas: null, haut: null, loyer_m2: null, mensuel: null, surface_ponderee: surfacePonderee ? Math.round(surfacePonderee) : null },
+    conditions,
+    conclusion: { points: [], reserves: RESERVES_LOCATION, fait_a: s.ville_signature || (lieu?.ville || '[ville]') },
+    photos: { couverture: null, emplacement: null },
+  };
+  if (lieu?.ville) surEtape?.(`Les chiffres de ${lieu.ville} (INSEE, Le Figaro)`);
+  const ville = await villeP;
+  if (ville) avis.ville = ville;
+  if (commune) surEtape?.(`Des photos de ${commune}`);
+  const photosVille = (await photosP) || [];
+  if (photosVille[0]) avis.photos = { ...avis.photos, ville: photosVille[0].url, ville_auteur: photosVille[0].auteur || null };
+  const avisFinal = appliquerSurcouche(avis, Records.get(ENTITE, e.id)?.surcouche);
+  Records.update(ENTITE, e.id, {
+    avis: avisFinal, questionnaire: q, questionnaire_en_cours: false, statut: 'prete', prete_le: new Date().toISOString(),
+    rapport: { prix_bas: avis.chiffres.bas, prix_haut: avis.chiffres.haut, loyer: true, synthese: avis.chiffres.valeur ? `Loyer estimé ${avis.chiffres.valeur.toLocaleString('fr-FR')} € HT HC par an.` : 'Loyer à compléter dans l\'avis.', rendement: null, genere_le: new Date().toISOString() },
+    historique: [...(e.historique || []), { le: new Date().toISOString(), par: user?.email || null, action: 'avis de valeur locative rédigé' }],
+    ...(marche && !marcheGarde ? { valeur_locative_lue: { adresse: q.adresse, le: new Date().toISOString(), resultat: marche } } : {}),
+    ...(lireIci && Object.keys(emplacementLu).length ? { emplacement_lu: { adresse: q.adresse, le: new Date().toISOString(), lu: emplacementLu } } : {}),
+    // Data-B ou l'emplacement muets pendant la rédaction : relus en fond, l'avis se complète (l'éditeur le relit).
+    complement_en_fond_jusqu_a: (!marche || !avis.emplacement.lignes.length) && !process.env.NODE_TEST_CONTEXT ? new Date(Date.now() + 4 * 60000).toISOString() : null,
+  });
+  if ((!marche || !avis.emplacement.lignes.length) && !process.env.NODE_TEST_CONTEXT) {
+    completerLocationEnFond(e.id, { marche: !marche, emplacement: !avis.emplacement.lignes.length, lieu, surfacePonderee }, user)
+      .catch((err) => console.warn(`[avis] complément location : ${err?.message || err}`))
+      .finally(() => { if (Records.get(ENTITE, e.id)) Records.update(ENTITE, e.id, { complement_en_fond_jusqu_a: null }); });
+  }
+  return { ok: true, estimation_id: e.id, location: true, valeur: avis.chiffres.valeur, bas: avis.chiffres.bas, haut: avis.chiffres.haut, loyer_m2: avis.chiffres.loyer_m2, a_completer: reste,
+    ...(calcul ? { loyer_retenu: `${calcul.marche.m2} €/m²/an de marché (${calcul.marche.echelle})${calcul.ajustements.length ? `, ${calcul.ajustements.map((a) => `${a.motif} ${a.pct > 0 ? '+' : ''}${a.pct} %`).join(', ')}` : ''}, sur ${calcul.surface_ponderee} m² pondérés` } : {}),
+    ...(aSignaler.length ? { a_signaler_au_mandataire: aSignaler } : {}),
+    ...(photosVille.length > 1 ? { photos_ville: photosVille } : {}) };
+}
+
+/**
+ * Un avis de valeur locative rédigé sans Data-B ou sans emplacement (6 nov. 2026, Jules : « emplacement et commercialité
+ * ne se remplit pas, ni Data-B ni Equimmox n'ont répondu », pour une adresse du centre d'Antibes que Data-B lit très
+ * bien) : la valeur locative est relue trois fois au plus, puis le loyer se calcule et se pose, si le mandataire ne l'a
+ * pas posé lui-même ; l'emplacement relu remplit ses lignes vides. Rien de ce qu'il a retouché n'est remplacé.
+ */
+export async function completerLocationEnFond(id, { marche: lireMarche = false, emplacement: lireEmpl = false, lieu = null, surfacePonderee = null } = {}, user = null) {
+  const e0 = Records.get(ENTITE, id);
+  const adresse = e0?.questionnaire?.adresse || e0?.adresse;
+  if (!adresse) return;
+  const attendre = (ms) => new Promise((ok) => { setTimeout(ok, ms).unref?.(); });
+  // L'adresse non reconnue pendant la rédaction (l'API Adresse muette) : relue ici, trois fois au plus.
+  for (let i = 0; lireEmpl && !lieu && i < 3; i += 1) {
+    lieu = await (await import('./adresse-ban.js')).resoudreAdresse(adresse).catch(() => null);
+    if (!lieu) await attendre(15000);
+  }
+  const [marche, emplacement] = await Promise.all([
+    lireMarche ? (async () => {
+      for (let i = 0; i < 3; i += 1) {
+        const lu = await lireValeurLocative(adresse, user, { bavard: false }).catch(() => null);
+        if (lu) return lu;
+        await attendre(20000);
+      }
+      return null;
+    })() : null,
+    lireEmpl && lieu ? (async () => {
+      const p = e0.proprietaire_id ? Records.get('ProprietaireMandataire', e0.proprietaire_id) : null;
+      return (await import('./emplacement-auto.js')).lireEmplacement(adresse, { lieu, user, commerceId: p?.commerce_simple_id || null }).catch(() => null);
+    })() : null,
+  ]);
+  const e = Records.get(ENTITE, id);
+  if (!e?.avis?.location) return;
+  let avis = e.avis;
+  const maj = {};
+  if (emplacement && Object.keys(emplacement).length) {
+    maj.emplacement_lu = { adresse, le: new Date().toISOString(), lu: emplacement };
+    const lues = lignesDeLEmplacement(emplacement);
+    const lignes = [...(avis.emplacement?.lignes || [])];
+    for (const [cle, mot] of [['commerces_voisins', 'Commerces voisins'], ['acces', 'Accès']]) {
+      if (lues[cle] && !lignes.some((l) => memeIntitule(l?.mot, mot) && !caseVide(l.texte))) lignes.push({ mot, texte: lues[cle], alerte: false });
+    }
+    const vacance = vacanceEstimee(emplacement) || lues.vacance;
+    if (vacance && !lignes.some((l) => memeIntitule(l?.mot, 'Vacance') && !caseVide(l.texte))) lignes.push({ mot: 'Vacance', texte: vacance, alerte: false });
+    avis = { ...avis, emplacement: { ...(avis.emplacement || {}), lignes } };
+  }
+  if (marche) {
+    maj.valeur_locative_lue = { adresse, le: new Date().toISOString(), resultat: marche };
+    const q = { ...(e.questionnaire || {}), transaction: 'location' };
+    const calcul = chiffrerLoyer(q, { marche, surfacePonderee });
+    const niveau = calcul?.marche || null;
+    avis = {
+      ...avis,
+      marche: {
+        ...(avis.marche || {}),
+        synthese: niveau ? `La valeur locative de marché se situe ${niveau.basse && niveau.haute ? `entre ${Math.round(niveau.basse).toLocaleString('fr-FR')} et ${Math.round(niveau.haute).toLocaleString('fr-FR')}` : `autour de ${niveau.m2.toLocaleString('fr-FR')}`} € HT HC par m² et par an ${{ rue: 'dans la rue', quartier: 'dans le quartier', ville: 'dans la ville' }[niveau.echelle] || ''}.` : avis.marche?.synthese,
+        secteur: loyersDuSecteur(marche),
+        source: `Source : ${/equimmox/i.test(marche.source || '') ? 'Equimmox' : 'Data-B'}, valeurs locatives de marché (€ HT HC par m² et par an).`,
+        loyers: niveau ? { basse: niveau.basse, haute: niveau.haute, source: marche.source || null } : avis.marche?.loyers || null,
+        // La lecture rédigée sans données disait qu'il n'y en avait pas : elle ne tient plus.
+        lecture: /aucune valeur locative|ne peut pas être situ/i.test(avis.marche?.lecture || '') ? '' : avis.marche?.lecture || '',
+      },
+    };
+    // Le loyer se pose s'il manque encore : une valeur posée par le mandataire ne se remplace pas.
+    if (calcul && !avis.chiffres?.valeur) {
+      avis = {
+        ...avis,
+        methodes: { ...(avis.methodes || {}), loyer_m2_marche: niveau.m2, echelle: niveau.echelle, ajustements: calcul.ajustements, ajustement_pct: calcul.ajustement_pct, loyer: calcul.valeur, surface_ponderee: calcul.surface_ponderee },
+        chiffres: { valeur: calcul.valeur, bas: calcul.bas, haut: calcul.haut, loyer_m2: calcul.loyer_m2, loyer_m2_bas: calcul.loyer_m2_bas, loyer_m2_haut: calcul.loyer_m2_haut, mensuel: calcul.mensuel, surface_ponderee: calcul.surface_ponderee },
+        conditions: conditionsLocation(calcul.valeur, q),
+      };
+      maj.rapport = { ...(e.rapport || {}), prix_bas: calcul.bas, prix_haut: calcul.haut, synthese: `Loyer estimé ${calcul.valeur.toLocaleString('fr-FR')} € HT HC par an.` };
+    }
+  }
+  if (avis !== e.avis) Object.assign(maj, { avis, avis_retouche_le: new Date().toISOString() });
+  if (Object.keys(maj).length) Records.update(ENTITE, id, maj);
+  console.log(`[avis] complément location ${id} : ${marche ? 'valeur locative lue' : 'valeur locative toujours muette'}, ${emplacement && Object.keys(emplacement).length ? 'emplacement lu' : 'emplacement muet'}`);
+}
+
 /**
  * La photo de couverture choisie parmi celles de la ville (1er nov. 2026, Jules : « on choisit laquelle on veut »).
  * Avant la rédaction, elle attend dans la surcouche comme une photo envoyée ; seule une photo gardée par le serveur
@@ -895,8 +1210,8 @@ export function surfacesDe(q) {
 const OUTILS = [
   {
     name: 'commencer_avis',
-    description: "Ouvre un nouvel avis de valeur dès que le type de bien est connu. type_bien : murs_commerce (les murs), fonds_commerce (le commerce exploité, sa clientèle, son droit au bail), immeuble, autre. Rend ce qui manque.",
-    input_schema: { type: 'object', properties: { type_bien: { type: 'string', enum: TYPES_PROPOSES }, adresse: { type: 'string' }, demandeur: { type: 'string' } }, required: ['type_bien'] },
+    description: "Ouvre un nouvel avis de valeur dès que le type de bien est connu. type_bien : murs_commerce (les murs), fonds_commerce (le commerce exploité, sa clientèle, son droit au bail), immeuble, autre. transaction : location quand le propriétaire veut LOUER son local (l'avis estime alors un loyer, type_bien murs_commerce en général), sinon rien. Rend ce qui manque.",
+    input_schema: { type: 'object', properties: { type_bien: { type: 'string', enum: TYPES_PROPOSES }, adresse: { type: 'string' }, demandeur: { type: 'string' }, transaction: { type: 'string', enum: ['vente', 'location'] } }, required: ['type_bien'] },
   },
   {
     name: 'noter_reponses',
@@ -905,6 +1220,7 @@ const OUTILS = [
       "pour les murs de commerce, les critères du taux de rendement, une valeur parmi la liste, « nc » si on ne sait pas : rang_rue (n1 | n1bis | n2), profil_locataire (enseigne : enseigne nationale | solide : indépendant installé | fragile), charges_refacturees (oui | non), taxe_fonciere_refacturee (oui | non) ; vacance_rue_pct (nombre, si on le connaît) ; taux_base (nombre, en %, celui que le mandataire a validé après proposer_taux_base) avec taux_base_propose (le taux que tu avais proposé en premier) ; ou, pour rédiger tout de suite, ton taux proposé avec taux_base_a_valider: true (il n'apprend rien tant que le mandataire ne l'a pas validé) ; " +
       "les critères Data-B, facultatifs : etat_immeuble (parfait | usage | travaux | renover | grosoeuvre), etat_local (parfait | usage | travaux | brut), angle, extraction, parking, franchise (locataire sous enseigne), retards_paiement, licence_4 (oui | non | nc), pmr (locaux_aux_normes | adap_en_cours | travaux_a_realiser | local_sans_public), anciennete_locataire (moins1an | de1a3ans | de3a6ans | de6a9ans | plus9ans) ; activite_data_b (le métier du locataire en un ou deux mots, « boulangerie », « assurance », « pharmacie ») ; " +
       "pour un fonds de commerce : activite_fonds (le métier exploité, « restauration rapide », « pharmacie », « tabac-presse »), ca_n, ca_n1, ca_n2 (chiffre d'affaires HT des trois derniers exercices, en €, du plus récent au plus ancien), ebe_n, ebe_n1, ebe_n2 (EBE retraité, en €), et, seulement si le mandataire les dit, bareme_ca_pct (« 60 à 90 », en % du CA) et multiple_ebe (« 3 à 4 ») ; le loyer et l'échéance du bail du fonds dans loyer_annuel_hc et echeance ; " +
+      "pour un local À LOUER (avis de valeur locative) : destination (les activités permises, « tous commerces sauf restauration »), extraction (oui | non), etat_local (a_rafraichir | bon | refait), disponible_le (« 1er janvier 2027 », « immédiatement »), franchise_mois (seulement si le mandataire la dit), rang_rue, facade, angle ; ni occupe, ni loyer_annuel_hc, ni echeance, ni taux_base ; " +
       "annee_construction, investissement_a_prevoir (€, travaux à la charge de l'acquéreur, presque toujours vide), puis facade, emplacement, flux, environnement, vacance, acces, configuration, equipements, etage, stationnement, hauteur, acces_poids_lourds, nb_lots, composition, description, locataire, activite_locataire, bail_type, date_effet, echeance, loyer_annuel_hc (€), indexation, taxe_fonciere, charges, depot_garantie, paiements, ca_locataire, travaux_locataire, copropriete, travaux_votes, urbanisme, diagnostics, servitudes ; juridique (la réponse à la question juridique et technique, telle quelle : copropriété, travaux votés ou à prévoir, procédure, autre ; « non » s'il n'y a rien). Les valeurs telles quelles, sans étiquette de source entre parenthèses ni « à confirmer ». « Je ne sais pas » : n'enregistre rien. Rend ce qui manque encore.",
     input_schema: { type: 'object', properties: { reponses: { type: 'object' } }, required: ['reponses'] },
   },
@@ -925,7 +1241,7 @@ const OUTILS = [
   },
   {
     name: 'rediger_avis',
-    description: "Rédige l'avis : pour des murs de commerce, la valeur par le taux de rendement (loyer ÷ taux) ; pour un fonds de commerce, barème, rentabilité et cessions comparables croisés ; pour les autres biens, l'estimation Equimmox (une à deux minutes) ; le marché, la fourchette. L'éditeur s'ouvre ensuite tout seul. Normalement quand plus rien d'obligatoire ne manque ; avec a_la_main: true, il se rédige tout de suite et ce qui manque reste « [à compléter] » dans l'éditeur.",
+    description: "Rédige l'avis : pour un local à louer, le loyer (valeur locative de marché Data-B ou Equimmox au m², sur la surface pondérée, ajustée) et les conditions conseillées ; pour des murs de commerce, la valeur par le taux de rendement (loyer ÷ taux) ; pour un fonds de commerce, barème, rentabilité et cessions comparables croisés ; pour les autres biens, l'estimation Equimmox (une à deux minutes) ; le marché, la fourchette. L'éditeur s'ouvre ensuite tout seul. Normalement quand plus rien d'obligatoire ne manque ; avec a_la_main: true, il se rédige tout de suite et ce qui manque reste « [à compléter] » dans l'éditeur.",
     input_schema: { type: 'object', properties: { a_la_main: { type: 'boolean', description: 'Rédiger malgré les manques, que le mandataire complétera dans l\'éditeur' } } },
   },
 ];
@@ -959,6 +1275,7 @@ MURS DE COMMERCE (31 oct. 2026) : la valeur se fait par le TAUX DE RENDEMENT. Va
 Après la rédaction, l'outil rend le taux retenu et ses ajustements : dis-les en une ligne. Le mandataire veut un autre taux de base : noter_reponses taux_base, puis rediger_avis.
 FONDS DE COMMERCE (3 nov. 2026) : ce qu'on vend, c'est le commerce exploité, pas les murs. La valeur croise trois méthodes, calculées par le serveur : le barème (un % du chiffre d'affaires HT moyen des trois derniers exercices), la rentabilité (un multiple de l'EBE retraité moyen, celle des banquiers, qui pèse double) et les cessions de fonds de la même activité autour (Data-B, BODACC en secours). Demande en un message : l'activité, le chiffre d'affaires HT et l'EBE des trois derniers exercices (le dernier suffit pour commencer ; une liasse ou un bilan joint avec « + » se lit), le loyer et l'échéance du bail. Ni surface obligatoire, ni « loué ou libre », ni taux de rendement. Le barème et le multiple viennent du secteur (restauration, restauration rapide, pharmacie, boulangerie, tabac-presse, coiffure) ; pour une autre activité, demande au mandataire le coefficient d'usage s'il le connaît, sinon la méthode reste écartée. Après la rédaction, dis en une ligne les méthodes retenues et celles écartées.
 AUTRES BIENS : la valeur vient d'Equimmox (26 oct. 2026), son estimation multicritères (offres actuelles, offres anciennes, transactions DVF, capitalisation). Tu rassembles ce qu'il lui faut : l'adresse, la surface, l'état du local et, s'il est occupé, le loyer annuel. Sans Equimmox, Data-B prend le relais.
+LOCAL À LOUER (6 nov. 2026, Jules) : quand le propriétaire veut LOUER (la fiche le dit, ou le mandataire : « il veut le louer », « mise en location »), c'est un AVIS DE VALEUR LOCATIVE : commencer_avis avec transaction location. On estime un LOYER annuel HT HC, jamais un prix : ni valeur vénale, ni taux de rendement, ni taux de base, ni rang de rue proposé avec un taux, ni frais de notaire, ni investisseurs, ni acquéreurs (on parle du preneur, le futur locataire). Le loyer vient de la valeur locative de marché (Data-B, Equimmox en repli) au m², sur la surface pondérée, ajustée par le local (rang de la rue, façade, angle, extraction, état) : le serveur calcule, toi tu ne proposes aucun loyer de ta tête. L'essentiel à demander : l'adresse, la surface utile, la destination (les activités permises), l'extraction (oui ou non), l'état du local (à rafraîchir, bon, refait), la date de disponibilité. Ni « loué ou libre », ni loyer en place, ni bail, ni échéance. Après la rédaction : une ligne avec le loyer annuel, la fourchette et le loyer au m², puis les conditions conseillées (dépôt de garantie de 3 mois, franchise s'il y a des travaux, honoraires de 15 % HT du loyer annuel à la charge du preneur). Sans valeur locative de marché, l'outil le dit : répète-le au mandataire, n'invente aucun chiffre. La restitution : le propriétaire d'accord sur un LOYER (le loyer annuel accepté va sur la fiche, dans le prix d'accord) ; le mail d'envoi parle de l'avis de valeur locative.
 
 LE BUT : un avis en CINQ MINUTES, le mandataire dicte un vocal en sortant de la visite et c'est fait (1er nov. 2026, Jules). Reposer une question déjà répondue est la pire faute.
 0. AVANT TOUTE QUESTION, relis TOUT : le fil du bien plus bas (appels, pré-visite, visite, du plus ancien au plus récent), la fiche, « Déjà renseigné ». Ce qui y est dit, même il y a longtemps ou dit autrement (« 2 000 € par mois » = 24 000 € par an, « bail signé en 2019 », « c'est la rue principale » = n1), se note avec noter_reponses SANS être redemandé. Ne demande que ce que rien ne dit.
@@ -972,7 +1289,7 @@ Puis pose, EN UN SEUL MESSAGE, seulement l'ESSENTIEL qui manque encore (noter_re
 7. Après la rédaction : une seule ligne avec la valeur et la fourchette, et la méthode (le taux retenu et ses ajustements pour des murs de commerce ; Equimmox, ou Data-B s'il a pris le relais, pour les autres). Si l'outil rend a_signaler_au_mandataire : ce ne sont pas des lignes de l'avis, c'est à toi de les dire, à la suite, en quelques lignes courtes (« Attention : … »), un point par ligne. L'avis s'affiche déjà à côté du chat : ne dis pas de l'ouvrir, de le relire ni de télécharger le PDF. Une correction ensuite (« j'ai oublié, la surface c'est 85 m² ») : noter_reponses puis rediger_avis, et préviens que les retouches faites à la main dans l'avis seront remplacées.
 8. La présentation (le deck) se remplit depuis l'avis : ses chiffres ne viennent que de tes outils. La page « La ville » se remplit quand tu appelles donnees_commune. Ne dis JAMAIS qu'une case ou une page est remplie si l'outil ne te l'a pas confirmé (« pose ») ; sinon dis ce qui manque.
 8 bis. LA PHOTO DE COUVERTURE (1er nov. 2026) : à la rédaction, des photos de la ville s'affichent sous ton message ; dis en une ligne qu'il touche celle qu'il veut en couverture. Une autre photo, changer l'image : proposer_photos_ville ; « d'autres », « pas celles-là » : proposer_photos_ville avec autres: true, qui en cherche de nouvelles. Jamais une photo de la rue en couverture.
-9. QUAND TOUT EST FINI (l'avis rédigé, plus de question ni de retouche en cours) : propose d'écrire le mail au propriétaire et de l'envoyer avec l'avis en PDF, en une question (« Je prépare le mail au propriétaire, avec l'avis en PDF ? »). À son oui : preparer_envoi_avis. Ne le propose qu'une fois ; pas si l'avis est déjà envoyé.
+9. QUAND TOUT EST FINI (l'avis rédigé, plus de question ni de retouche en cours) : propose d'écrire le mail au propriétaire et de l'envoyer avec l'avis en PDF, en une question (« Je prépare le mail au propriétaire, avec l'avis en PDF ? »). Juste avant la question, une ligne sur l'onglet Présentation (7 nov. 2026, Jules) : il reprend l'avis en pages à montrer, pour défendre la valeur devant le propriétaire au rendez-vous. À son oui : preparer_envoi_avis. Ne le propose qu'une fois ; pas si l'avis est déjà envoyé.
 10. L'AVIS ENVOYÉ, tu suis la relation avec le propriétaire (27 oct. 2026) : on reste ici, et tu reprends le fil (il est plus bas). Le mandataire raconte : « je l'ai appelé, on a fixé un rendez-vous lundi », « la présentation s'est bien passée, il réfléchit et revient vers moi ». À chaque récit : noter_echange avec un résumé court et la relance qui convient à la situation (le rendez-vous à sa date et son heure, une semaine pour reprendre des nouvelles, la date qu'il a donnée). Rien de fixe : tu adaptes. Puis une ligne : ce qui est noté et la prochaine action datée, et au besoin une question utile (l'heure du rendez-vous, ce qui le fait hésiter). Une réponse qui tranche — d'accord sur un prix, pause, refus, autre agent, plus vendeur — c'est noter_restitution (avec relance_le et relance_quoi si la situation en demande une autre que celle du cas) : le mandataire confirme d'un tap. D'accord sur un prix : le prix va sur la fiche du bien et le bien passe au Mandat au tap ; dis-le en une ligne. Le bail reçu change la valeur : noter_restitution bail_change, puis noter_reponses et rediger_avis pour l'avis corrigé. Les documents (l'avis, la présentation, les sources) restent à côté : n'en parle que si on te les demande.
 On n'invente rien. Dans ce que tu notes et ce que tu écris dans l'avis : ni « (mandataire) » ni autre étiquette de source entre parenthèses, ni « à confirmer » : ce qui est dit se note tel quel (« depuis 2018 »), ce qui n'est pas su ne se note pas (3 nov. 2026, Jules).`;
 
@@ -1079,12 +1396,24 @@ const PAGES_DECK = [
   [11, 'La valeur', "les chiffres de l'avis"],
   [12, 'Votre mandataire', "la fiche du mandataire, tenue par l'équipe Klocka : rien à écrire ici"],
 ];
+// Le deck de l'avis de valeur locative (6 nov. 2026) : sans bilan locatif, taux ni calcul ; les loyers du secteur, le
+// loyer estimé et les conditions conseillées.
+const PAGES_DECK_LOCATION = [
+  [1, 'Couverture', "le loyer estimé, la surface et la disponibilité : tout vient des chiffres de l'avis (rediger_avis)"],
+  [2, 'Sommaire', 'rien à remplir'],
+  ...PAGES_DECK.slice(3, 7).map(([, t, quoi], i) => [i + 3, t, quoi]),
+  [7, 'Les loyers du secteur', 'la valeur locative de Data-B (rue, quartier, ville) : rediger_avis'],
+  [8, 'Le loyer estimé', "le loyer annuel HT HC, sa fourchette et le loyer au m² de l'avis"],
+  [9, 'Les conditions conseillées', "dépôt de garantie, franchise, honoraires : retoucher_avis"],
+  [10, 'Votre mandataire', "la fiche du mandataire, tenue par l'équipe Klocka : rien à écrire ici"],
+];
 /** Pure : ce que Haka doit savoir de ce que le mandataire regarde à droite (l'avis, le deck et sa page, le rapport). */
-export function cadreDeLaVue(vue) {
+export function cadreDeLaVue(vue, { location = false } = {}) {
   if (!vue?.document) return '';
   if (vue.document === 'presentation') {
     const p = vue.page || {};
-    return `\n\nLE MANDATAIRE REGARDE LA PRÉSENTATION (le deck de 12 pages)${p.n ? `, page ${String(p.n).padStart(2, '0')} « ${p.titre || p.section || ''} »` : ''}. « La page N », « cette page », « ici » désignent une page DU DECK, jamais une page de l'avis. Les pages du deck et ce qui les remplit : ${PAGES_DECK.map(([n, t, quoi]) => `${String(n).padStart(2, '0')} ${t} : ${quoi}`).join(' ; ')}. Le deck se recompose seul depuis l'avis : pour compléter une page, remplis ce qui la nourrit, puis dis ce qui a changé sur cette page du deck. Si tu ne peux pas la compléter, dis ce qui manque et d'où ça viendrait. Retirer une page du deck : le mandataire le fait en mode Édition (« Supprimer la page »), les suivantes reprennent son numéro ; dis-le-lui plutôt que de vider la page.`;
+    const pagesDeck = location ? PAGES_DECK_LOCATION : PAGES_DECK;
+    return `\n\nLE MANDATAIRE REGARDE LA PRÉSENTATION (le deck de ${pagesDeck.length} pages)${p.n ? `, page ${String(p.n).padStart(2, '0')} « ${p.titre || p.section || ''} »` : ''}. « La page N », « cette page », « ici » désignent une page DU DECK, jamais une page de l'avis. Les pages du deck et ce qui les remplit : ${pagesDeck.map(([n, t, quoi]) => `${String(n).padStart(2, '0')} ${t} : ${quoi}`).join(' ; ')}. Le deck se recompose seul depuis l'avis : pour compléter une page, remplis ce qui la nourrit, puis dis ce qui a changé sur cette page du deck. Si tu ne peux pas la compléter, dis ce qui manque et d'où ça viendrait. Retirer une page du deck : le mandataire le fait en mode Édition (« Supprimer la page »), les suivantes reprennent son numéro ; dis-le-lui plutôt que de vider la page.`;
   }
   if (vue.document === 'suivi') return "\n\nLe mandataire regarde le Suivi du bien : son statut, le prix d'accord, les relances à faire et l'historique. Ce que tu notes (noter_echange, noter_restitution) s'y affiche aussitôt.";
   if (vue.document === 'sources') return "\n\nLe mandataire regarde les Sources de l'avis (lecture seule) : ce qu'il a dit, l'estimation Equimmox et ses comparables, les ventes DVF, les loyers, le taux, la commune. Elles se refont en rédigeant l'avis de nouveau.";
@@ -1123,6 +1452,12 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
     : redige
       ? `\n\nL'avis de ${redige.bien} est rédigé (valeur ${redige.avis?.chiffres?.valeur?.toLocaleString('fr-FR')} €) et se trouve dans cette conversation${redige.statut === 'envoye' ? `, ENVOYÉ au propriétaire le ${new Date(redige.envoye_le || Date.now()).toLocaleDateString('fr-FR', { timeZone: PARIS })} (la suite : la relation avec le propriétaire, règle 10).\n${R.filDeLaRelation(redige.proprietaire_id ? Records.get('ProprietaireMandataire', redige.proprietaire_id) : null)}\n` : redige.envoi?.prepare_le ? ', son mail d\'envoi est déjà préparé (à l\'écran)' : ', pas encore envoyé'}. Déjà renseigné : ${dejaRenseigne(redige.questionnaire)}. NE commence PAS un nouvel avis sauf si le mandataire parle d'un AUTRE bien. Une correction ou un ajout : noter_reponses puis rediger_avis, et préviens que les retouches faites à la main dans l'avis seront remplacées.`
       : '\n\nAucun avis en cours.';
+  // Un local à louer (6 nov. 2026, Jules) : l'assistant parle de loyer, jamais de prix, de rendement ni d'investisseurs.
+  const cibleLocation = actuel || redige;
+  const enLocation = cibleLocation ? avisEnLocation(cibleLocation) : false;
+  const cadreLocation = enLocation
+    ? `\n\nCE LOCAL EST À LOUER : c'est un AVIS DE VALEUR LOCATIVE (règle LOCAL À LOUER). Tu parles de loyer annuel HT HC, de loyer au m², de preneur et de conditions (dépôt de garantie, franchise, honoraires de location) ; jamais de prix, de valeur vénale, de taux de rendement, de taux de base, d'acquéreur ni d'investisseur. N'appelle pas proposer_taux_base.${redige?.avis?.chiffres?.valeur ? ` Le loyer estimé de l'avis rédigé : ${redige.avis.chiffres.valeur.toLocaleString('fr-FR')} € HT HC par an (et non une valeur).` : ''}`
+    : '';
   // Le fil du bien entier (1er nov. 2026, Jules : « ça doit vérifier dans le fil toutes les informations ») : le chat
   // ne voit que les 24 derniers messages ; la fiche et tout ce qui les précède lui sont redonnés ici.
   let filAvant = '';
@@ -1134,7 +1469,7 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
     if (lignes.length) filAvant = `\n\nLE FIL DU BIEN ET SA FICHE, avant les derniers messages (du plus ancien au plus récent). Relis-le avant toute question : ce qui y est dit ne se redemande pas.\n${borne(lignes, 30000)}`;
   } catch (err) { console.warn(`[avis] fil du bien : ${err?.message || err}`); }
   const choisi = selection?.chemin ? `\n\nÉLÉMENT SÉLECTIONNÉ dans l'avis par le mandataire (« ça », « ce texte », « cette photo » le désignent) : ${selection.chemin}${selection.texte ? ` — « ${String(selection.texte).slice(0, 300)} »` : ''}. Une demande qui le vise : retoucher_avis.` : '';
-  const facon = choisi + cadreDeLaVue(vue) + `\n\nNous sommes le ${jourLong()}.` + (mode === 'sans_document'
+  const facon = choisi + cadreDeLaVue(vue, { location: enLocation }) + `\n\nNous sommes le ${jourLong()}.` + (mode === 'sans_document'
     ? '\nMode : SANS DOCUMENT. Pas de pièce : enregistre ce qui est dit, puis toutes les questions restantes en un seul message (le loyer, la surface, le bail, les critères du taux).'
     : mode === 'document' ? '\nMode : AVEC LE BAIL. Lis tout, puis toutes les questions restantes en un seul message.' : '');
   let avisPret = null;
@@ -1147,7 +1482,7 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
     .slice(-24)
     .map((m) => ({ role: m.role, content: m.contenu }));
   const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire-estimation', par: user?.email || null },
-    system: CONSIGNE + facon + contexte + filAvant + marche.cadre,
+    system: CONSIGNE + facon + contexte + cadreLocation + filAvant + marche.cadre,
     messages,
     tools: [...OUTILS, R.OUTIL_ENVOI, R.OUTIL_RESTITUTION, R.OUTIL_ECHANGE, ...marche.tools],
     onTool: async ({ name, input = {} }) => {
@@ -1190,10 +1525,11 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
         const q = cible?.questionnaire || {};
         if (!q.adresse) return { ok: false, error: "Il faut d'abord l'adresse du bien." };
         if (q.type_bien === 'fonds_commerce') return { ok: false, error: "Un fonds de commerce ne s'estime pas par un taux de rendement : demande l'activité, le chiffre d'affaires et l'EBE." };
+        if (avisEnLocation(cible)) return { ok: false, error: "Ce local est à louer : pas de taux de rendement. Le loyer se calcule sur la valeur locative de marché ; demande ce qui manque (surface, destination, extraction, état, disponibilité)." };
         surEtape?.('Je cherche le bon taux de base pour la ville');
         return reperesDuTaux(cible);
       }
-      if (name === 'commencer_avis') { surEtape?.('Nouvel avis de valeur'); return commencer(input, user, conv); }
+      if (name === 'commencer_avis') { surEtape?.(input.transaction === 'location' ? 'Nouvel avis de valeur locative' : 'Nouvel avis de valeur'); return commencer(input, user, conv); }
       if (name === 'noter_reponses') {
         // Une étape par valeur notée, avec la valeur : « Loyer annuel hc : 50 000 € ».
         const notees = Object.entries(input.reponses || {}).filter(([, v]) => v != null && String(v).trim() !== '');
@@ -1300,7 +1636,7 @@ export function stylerElement(actuel = {}, chemin, s = {}) {
   }
   return Object.keys(suivant).length ? suivant : null;
 }
-const CHEMINS_NOMBRES = /^(chiffres\.|methodes\.(taux|prix_m2|loyer|surface)$|description\.surfaces\.\d+\.(utile|coef)$|marche\.references\.\d+\.(surface|prix|prix_m2|distance_m)$|mise_en_page\.)/;
+const CHEMINS_NOMBRES = /^(chiffres\.|conditions\.(depot_garantie|depot_garantie_mois|franchise_mois|honoraires|honoraires_pct)$|methodes\.(taux|prix_m2|loyer|surface)$|description\.surfaces\.\d+\.(utile|coef)$|marche\.references\.\d+\.(surface|prix|prix_m2|distance_m)$|mise_en_page\.)/;
 
 const nombreDe = (t) => {
   if (typeof t === 'number') return t;
@@ -1329,6 +1665,8 @@ const memeIntitule = (a, b) => { const x = normIntitule(a); const y = normIntitu
 
 /** Pure : les chiffres qui découlent de la valeur retenue, comme dans l'éditeur. */
 export function recalculerChiffres(avis) {
+  // Un avis de valeur locative (6 nov. 2026) : le loyer au m², le mensuel et les conditions suivent le loyer retenu.
+  if (avis?.location) return recalculerLoyer(avis);
   const c = { ...(avis.chiffres || {}) };
   if (!(c.valeur > 0)) return avis;
   for (const k of ['valeur', 'bas', 'haut']) if (c[k] > 0) c[k] = prixRond(c[k]);
@@ -1665,9 +2003,28 @@ const QUESTIONS_REPRISE = {
   juridique: 'Côté juridique et technique : copropriété, travaux votés ou à prévoir, procédure en cours, autre chose à savoir ? Si rien, dites non.',
 };
 
+// Les questions d'un local à louer (6 nov. 2026, Jules) : elles remplacent celles du bail et du taux.
+const QUESTIONS_LOCATION = {
+  type_bien: QUESTIONS_REPRISE.type_bien,
+  adresse: QUESTIONS_REPRISE.adresse,
+  demandeur: 'Le propriétaire du local (le demandeur de l\'avis)',
+  surface_utile: QUESTIONS_REPRISE.surface_utile,
+  destination: 'La destination : les activités permises (bail, copropriété, PLU)',
+  extraction: 'Y a-t-il une extraction (restauration possible) ?',
+  etat_local: 'L\'état du local : à rafraîchir, bon état, refait ?',
+  disponible_le: 'La date à laquelle le local est disponible',
+  date_visite: QUESTIONS_REPRISE.date_visite,
+  facade: QUESTIONS_REPRISE.facade,
+  rang_rue: 'L\'emplacement : n° 1, n° 1 bis, secondaire ?',
+  juridique: QUESTIONS_REPRISE.juridique,
+};
+// Ce qu'on cherche dans le fil d'un local à louer, avec la question de chaque clé.
+const CLES_DU_FIL_LOCATION = Object.fromEntries(Object.entries(QUESTIONS_LOCATION).filter(([k]) => k !== 'type_bien'));
+
 /** Pure : le message qui rouvre une estimation dans le chat — ce qu'on sait, ce qui reste. */
 export function messageDeReprise(e) {
   const q = e.questionnaire || {};
+  if (q.transaction === 'location') return repriseLocation(e);
   const connu = Object.entries(LIBELLES_QUESTIONNAIRE)
     .map(([k, mot]) => [mot, k === 'occupe' ? (q.occupe === true ? 'oui' : q.occupe === false ? 'non' : null) : k === 'loyer_annuel_hc' && q[k] ? `${Number(q[k]).toLocaleString('fr-FR')} €` : k === 'surface_utile' && q[k] ? `${q[k]} m²` : q[k]])
     .filter(([, v]) => v != null && v !== '')
@@ -1688,6 +2045,22 @@ export function messageDeReprise(e) {
   const visite = e.infos_rdv ? '\nJ\'ai repris le compte rendu de la visite.' : '';
   const questions = [...reste.slice(0, 12), ...(q.juridique == null ? ['juridique'] : [])].map((k, i) => `${i + 1}. ${QUESTIONS_REPRISE[k]}`);
   return `Reprenons l'estimation de ${e.bien}.${visite}${connu.length ? `\nCe que j'ai déjà : ${connu.join(' · ')}.` : ''}\n${questions.length ? `Pour rédiger l'avis, il me manque :\n${questions.join('\n')}\nRépondez en vrac, au micro si vous voulez, ou joignez le bail avec « + ». « Je ne sais pas » ne bloque rien.` : 'Dites « rédige l\'avis » et je m\'y mets, ou ajoutez ce que vous savez encore.'}`;
+}
+
+/** Pure : la reprise d'un avis de valeur locative : ce qu'on sait, puis les questions d'un local à louer. */
+function repriseLocation(e) {
+  const q = e.questionnaire || {};
+  if (e.avis) {
+    const c = e.avis.chiffres || {};
+    return `L'avis de valeur locative de ${e.bien} est rédigé${c.valeur ? ` : loyer de ${c.valeur.toLocaleString('fr-FR')} € HT HC par an (fourchette ${c.bas?.toLocaleString('fr-FR')} – ${c.haut?.toLocaleString('fr-FR')} €)` : ''}. Dites-moi ce qu'il faut corriger ou compléter : je le rédigerai de nouveau.`;
+  }
+  if (e.de_la_visite && !e.de_la_visite.confirme_le) return messageDeLaVisite(e);
+  const connu = [['Adresse', q.adresse || e.adresse], ['Surface utile', q.surface_utile ? `${q.surface_utile} m²` : null], ['Destination', q.destination], ['Extraction', q.extraction], ['État', ETATS_LOCAL[etatDuLocal(q.etat_local)] || q.etat_local], ['Disponible', q.disponible_le]]
+    .filter(([, v]) => v != null && v !== '').map(([mot, v]) => `${mot} : ${String(v).replace(/\s+/g, ' ').trim().slice(0, 90)}`);
+  const ordre = Object.keys(QUESTIONS_LOCATION);
+  const reste = manquants({ type_bien: 'murs_commerce', ...q }).filter((k) => QUESTIONS_LOCATION[k]).sort((x, y) => ordre.indexOf(x) - ordre.indexOf(y));
+  const questions = [...reste.slice(0, 12), ...(q.juridique == null ? ['juridique'] : [])].map((k, i) => `${i + 1}. ${QUESTIONS_LOCATION[k]}`);
+  return `Reprenons l'avis de valeur locative de ${e.bien}.${connu.length ? `\nCe que j'ai déjà : ${connu.join(' · ')}.` : ''}\n${questions.length ? `Pour estimer le loyer, il me manque :\n${questions.join('\n')}\nRépondez en vrac, au micro si vous voulez. « Je ne sais pas » ne bloque rien.` : 'Dites « rédige l\'avis » et je m\'y mets, ou ajoutez ce que vous savez encore.'}`;
 }
 
 // --- De la visite à l'avis (29 oct. 2026, Jules) -------------------------------
@@ -1754,6 +2127,16 @@ export function reponsesDeLaVisite(p = {}) {
 /** Pure : le message « De ce que je sais… », à confirmer d'un tap. */
 export function messageDeLaVisite(e) {
   const r = e.de_la_visite?.reponses || {};
+  // À louer (6 nov. 2026) : ni bail ni loyer en place, les mots d'un local à louer.
+  const location = r.transaction === 'location' || e.questionnaire?.transaction === 'location';
+  const libelles = location
+    ? { adresse: 'Adresse', demandeur: 'Propriétaire du local', surface_utile: 'Surface utile', destination: 'Destination', extraction: 'Extraction', etat_local: 'État du local', disponible_le: 'Disponible', facade: 'Façade', rang_rue: 'Rang de la rue', flux: 'Passage', environnement: 'Voisinage', date_visite: 'Visite' }
+    : LIBELLES_VISITE;
+  if (location) {
+    const lignesL = Object.entries(libelles).filter(([k]) => r[k] != null && r[k] !== '').map(([k, mot]) => `- ${mot} : ${k === 'surface_utile' ? `${r[k]} m²` : k === 'etat_local' ? ETATS_LOCAL[etatDuLocal(r[k])] || r[k] : String(r[k]).replace(/\s+/g, ' ').trim()}`);
+    if (!r.adresse) return `Commençons l'avis de valeur locative de ${e.bien}.${lignesL.length ? ` De ce que je sais :\n${lignesL.join('\n')}\n` : '\n'}La fiche n'a pas d'adresse : quelle est l'adresse du local ?`;
+    return `Commençons l'avis de valeur locative de ${e.bien}. De ce que je sais :\n${lignesL.join('\n')}\nVous me le confirmez ? Corrigez ce qui est faux, ou dites oui : l'avis commence.`;
+  }
   const lignes = Object.entries(LIBELLES_VISITE).filter(([k]) => r[k] != null && r[k] !== '').map(([k, mot]) => {
     const v = k === 'type_bien' ? (r[k] === 'fonds_commerce' ? 'le fonds de commerce' : 'les murs commerciaux') : k === 'occupe' ? (r[k] ? 'oui' : 'non') : k === 'loyer_annuel_hc' ? `${Number(r[k]).toLocaleString('fr-FR')} €` : k === 'surface_utile' ? `${r[k]} m²` : String(r[k]).replace(/\s+/g, ' ').trim();
     return `- ${mot} : ${v}`;
@@ -1775,8 +2158,15 @@ export async function avisDepuisLeBien({ proprietaire_id = null, adresse = null,
   let e = p ? objetsDuBien(p).estimation : null;
   if (e?.avis || e?.de_la_visite) return { ok: true, estimation_id: e.id };
   // L'adresse vient de la fiche du bien (le propriétaire, ou le dossier d'où l'on vient) ; sinon Haka la demande.
-  const reponses = reponsesDeLaVisite({ ...(p || {}), adresse: p?.adresse || adresse || null, ville: p?.adresse ? p.ville : p ? p.ville : null });
+  let reponses = reponsesDeLaVisite({ ...(p || {}), adresse: p?.adresse || adresse || null, ville: p?.adresse ? p.ville : p ? p.ville : null });
   if (!reponses.adresse && adresse) reponses.adresse = String(adresse).trim();
+  // À louer (6 nov. 2026, Jules) : rien du bail ni du loyer en place, l'avis estime le loyer à venir.
+  const location = estLocation(p);
+  if (location) {
+    reponses = Object.fromEntries(Object.entries(reponses).filter(([k]) => !['occupe', 'locataire', 'activite_locataire', 'loyer_annuel_hc', 'date_effet', 'echeance', 'taxe_fonciere', 'charges', 'charges_refacturees', 'taxe_fonciere_refacturee', 'activite_fonds'].includes(k)));
+    if (reponses.type_bien === 'fonds_commerce') reponses.type_bien = 'murs_commerce';
+    reponses.transaction = 'location';
+  }
   // Tout le fil du bien et sa fiche relus (1er nov. 2026, Jules : « pour pas que ça me repose les mêmes questions ») :
   // ce qui y a été dit, même au premier appel, entre dans « De ce que je sais ». L'adresse de la fiche reste.
   if (p) {
@@ -1784,14 +2174,14 @@ export async function avisDepuisLeBien({ proprietaire_id = null, adresse = null,
     try {
       const { lireLeBien } = await import('./avis-du-fil.js');
       const { filDuBien } = await import('./fil-du-bien.js');
-      const lu = await lireLeBien({ p, messages: filDuBien(user, p.id)?.messages || [], cles: CLES_DU_FIL, aujourdhui: jourLong(), user, invoke: lireLeFil });
+      const lu = await lireLeBien({ p, messages: filDuBien(user, p.id)?.messages || [], cles: location ? CLES_DU_FIL_LOCATION : CLES_DU_FIL, aujourdhui: jourLong(), user, invoke: lireLeFil, ...(location ? { location: true } : {}) });
       for (const [k, v] of Object.entries(lu)) if (k !== 'adresse' || !reponses.adresse) reponses[k] = v;
     } catch (err) { console.warn(`[avis] lecture du fil : ${err?.message || err}`); }
   }
   const recit = p && !p.biens?.compte_rendu?.bien && p.biens?.compte_rendu?.texte ? p.biens.compte_rendu.texte : null;
   const de_la_visite = { reponses, ...(recit ? { recit } : {}), le: new Date().toISOString() };
   const bien = [p?.commerce || p?.nom, p?.ville].filter(Boolean).join(' · ') || titre || reponses.adresse || 'Bien';
-  const q = { type_bien: typeDeLaFiche(p), adresse: reponses.adresse || null };
+  const q = { type_bien: location && typeDeLaFiche(p) === 'fonds_commerce' ? 'murs_commerce' : typeDeLaFiche(p), adresse: reponses.adresse || null, ...(location ? { transaction: 'location' } : {}) };
   if (!e) {
     e = Records.create(ENTITE, {
       mandataire_email: moi(user), proprietaire_id: p?.id || null, bien, adresse: reponses.adresse || null,
@@ -1820,6 +2210,13 @@ export function confirmerLaVisite(e, user, conversationId = null) {
   Records.update(ENTITE, e.id, { de_la_visite: { ...e.de_la_visite, confirme_le: new Date().toISOString() }, ...(e.de_la_visite?.recit && !e.infos_rdv ? { infos_rdv: e.de_la_visite.recit } : {}) });
   const n = noter(r, user, conversationId);
   if (!n.ok) return { texte: n.error };
+  // À louer (6 nov. 2026) : les questions d'un local à louer, sans taux de base.
+  if (r.transaction === 'location' || Records.get(ENTITE, e.id)?.questionnaire?.transaction === 'location') {
+    const resteL = (n.essentiels_manquants || []).filter((k) => QUESTIONS_LOCATION[k]);
+    const jur = n.question_juridique_a_poser ? [n.question_juridique_a_poser] : [];
+    if (!resteL.length) return { texte: `C'est noté dans l'avis. J'ai l'essentiel : dites « rédige » et j'estime le loyer sur la valeur locative de marché.${jur.length ? `\n${jur[0]}` : ''}` };
+    return { texte: `C'est noté dans l'avis. Pour estimer le loyer, il me manque seulement :\n${[...resteL.map((k) => QUESTIONS_LOCATION[k]), ...jur].map((t, i) => `${i + 1}. ${t}`).join('\n')}\nRépondez en un vocal : je rédige aussitôt. Le reste se complète après, « je ne sais pas » ne bloque rien.` };
+  }
   // L'essentiel seulement (1er nov. 2026, Jules : « l'estimation en cinq minutes ») : le reste reste « à compléter ».
   const reste = (n.essentiels_manquants || []).filter((k) => QUESTIONS_REPRISE[k]).filter(sansDoublon);
   // La question juridique et technique, une fois (3 nov. 2026, Jules) : elle ne retient pas la rédaction.
@@ -1878,6 +2275,7 @@ const lignesDe = (paires) => paires.filter(([, v]) => v != null && v !== '').map
  */
 export function avisProvisoire(e, signataireAvis = {}) {
   const q = e.questionnaire || {};
+  if (q.transaction === 'location') return avisProvisoireLocation(e, signataireAvis);
   const occupe = q.occupe === true;
   // Lu en fond pendant les questions (3 nov. 2026) : les commerces voisins, l'accès et la vacance paraissent déjà.
   const lues = lectureFraiche(e.emplacement_lu, q.adresse || e.adresse) ? lignesDeLEmplacement(e.emplacement_lu.lu || {}) : {};
@@ -1931,16 +2329,59 @@ export function avisProvisoire(e, signataireAvis = {}) {
   };
 }
 
+/** Pure : l'avis de valeur locative tel qu'il s'écrit pendant les questions (6 nov. 2026) ; le loyer attend la rédaction. */
+export function avisProvisoireLocation(e, signataireAvis = {}) {
+  const q = e.questionnaire || {};
+  const lues = lectureFraiche(e.emplacement_lu, q.adresse || e.adresse) ? lignesDeLEmplacement(e.emplacement_lu.lu || {}) : {};
+  const juridiqueDit = juridiqueSignale(q);
+  const surface = Number(q.surface_utile) || null;
+  const etat = etatDuLocal(q.etat_local);
+  return {
+    version: 1, provisoire: true, location: true, titre_document: TITRE_AVIS_LOCATION, methode: 'loyer',
+    type_bien: q.type_bien || 'murs_commerce',
+    type_libelle: TYPES_BIEN[q.type_bien] || TYPES_BIEN.murs_commerce,
+    occupe: false,
+    date: jourLong(),
+    bien: { rue: q.adresse || e.adresse || null, ville: '', adresse: q.adresse || e.adresse || null, lat: null, lon: null },
+    demandeur: q.demandeur || null,
+    signataire: signataireAvis,
+    cadre: {
+      objet: OBJET_AVIS_LOCATION,
+      bien: `${TYPES_BIEN[q.type_bien] || 'Local'} à louer${q.adresse ? `, ${q.adresse}` : ''}`,
+      visite: q.date_visite ? `Réalisée le ${q.date_visite}${q.visite_avec ? ` en présence ${q.visite_avec}` : ''}` : null,
+    },
+    description: {
+      resume: surface ? `${surface} m² utiles${q.reserve ? `, réserve ${q.reserve}` : ''}.` : null,
+      lignes: lignesDe([['Destination', q.destination], ['Configuration', q.configuration], ['Façade', q.facade], ['Extraction', q.extraction], ['Équipements', q.equipements], ['État', etat ? ETATS_LOCAL[etat] : q.etat_local], ['Disponible', q.disponible_le]]),
+      surfaces: surfacesDe(q),
+    },
+    emplacement: {
+      synthese: q.emplacement || '',
+      lignes: lignesDe([['Flux', q.flux], ['Commerces voisins', lues.commerces_voisins], ['Environnement', q.environnement], ['Vacance', q.vacance || lues.vacance], ['Accès', q.acces || lues.acces]]),
+    },
+    locatif: null,
+    juridique: { synthese: juridiqueDit?.libre || '', lignes: juridiqueDit?.lignes || [] },
+    marche: { synthese: 'Les loyers du secteur (Data-B, Equimmox) se lisent à la rédaction.', references: [], secteur: [], source: '', loyers: null, lecture: '' },
+    methodes: { synthese: 'Le loyer se calcule à la rédaction : la valeur locative de marché au m², sur la surface pondérée, ajustée par les critères du local.', taux: null, justification_taux: '', prix_m2: null, justification_prix: '', loyer: null, surface, ajustements: [] },
+    chiffres: { valeur: null, bas: null, haut: null, loyer_m2: null, mensuel: null },
+    conditions: conditionsLocation(null, q),
+    conclusion: { points: [], reserves: RESERVES_LOCATION, fait_a: signataireAvis.ville_signature || '[ville]' },
+    photos: { couverture: null, emplacement: null, portrait: null, ville: e.photo_ville || null },
+  };
+}
+
 /** L'aperçu d'une estimation : l'avis rédigé, sinon celui qui se construit. */
 export function apercuEstimation(id, user) {
   const e = Records.get(ENTITE, id);
   if (!e || e.mandataire_email !== moi(user) && user?.role !== 'admin') return { ok: false, error: 'Estimation introuvable.' };
-  const manque = e.questionnaire ? manquants(e.questionnaire) : [];
+  // Un local à louer dont le questionnaire ne le sait pas encore (la fiche le dit) : l'aperçu est déjà celui d'un loyer.
+  const vu = !e.avis && e.questionnaire?.transaction !== 'location' && avisEnLocation(e) ? { ...e, questionnaire: { ...(e.questionnaire || {}), transaction: 'location' } } : e;
+  const manque = vu.questionnaire ? manquants(vu.questionnaire) : [];
   return {
     ok: true,
     estimation: e,
     provisoire: !e.avis,
-    avis: e.avis || appliquerSurcouche(avisProvisoire(e, signataire({ email: e.mandataire_email })), e.surcouche),
+    avis: e.avis || appliquerSurcouche(avisProvisoire(vu, signataire({ email: e.mandataire_email })), e.surcouche),
     manquants: manque,
   };
 }

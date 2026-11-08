@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, ChevronRight, FileUp, Loader2, Plus, Search, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, FileUp, Loader2, Plus, Search, Send, Sparkles, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
@@ -11,8 +11,15 @@ import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
+import { ouvertureDeLEtape } from "@/lib/ouverture-etape";
+import { Onglets } from "@/components/ui/kit";
+import BandeauVente, { useVenteEtat } from "@/components/mandataire/vente/BandeauVente";
+import ConseilVente from "@/components/mandataire/vente/ConseilVente";
+import OngletDiffusion from "@/components/mandataire/vente/OngletDiffusion";
+import OngletAcquereurs from "@/components/mandataire/vente/OngletAcquereurs";
+import OngletOffres from "@/components/mandataire/vente/OngletOffres";
+import OngletVendeur from "@/components/mandataire/vente/OngletVendeur";
 import { CompteRendu, PreparationDuBien, useVersAvis } from "@/components/mandataire/PreVisite";
-import { FichePoint } from "@/components/mandataire/TableauListe";
 import { AnimatePresence, motion } from "framer-motion";
 import { retenirBien } from "@/components/mandataire/BiensRecents";
 import { DocumentTelephone } from "@/components/mandataire/GenerationDocument";
@@ -27,15 +34,14 @@ import { ModesEditeur } from "@/components/editeur/Editeur";
 import { useReglagesChatMandataire } from "@/components/mandataire/ReglagesChatMandataire";
 import { useLargeurChat } from "@/components/mandataire/PoigneeChat";
 import Chargement from "@/components/ui/Chargement";
-import { ETAPES_BIEN, MOTS_PERDU, bienDe, bienDuProprietaire, enAttenteDuProprietaire, regrouperBiens } from "@/lib/biens-mandataire";
+import { ETAPES_BIEN, MOTS_PERDU, NB_ETAPES_VISIBLES, etapeFaite, etapesVisibles, rangVisible, versVisible, bienDe, bienDuProprietaire, enAttenteDuProprietaire, regrouperBiens } from "@/lib/biens-mandataire";
 import { ApercuAvis } from "@/pages/MandataireEstimation";
 import { Detail as DetailMarche, ETAPES_MARCHE } from "@/pages/MandataireMarche";
 import Visites from "@/components/mandataire/Visites";
-import DossierVente, { MailDuChat } from "@/components/mandataire/DossierVente";
+import TableauAcquereurs from "@/components/mandataire/TableauAcquereurs";
+import DossierVente, { DataRoom, MailDuChat } from "@/components/mandataire/DossierVente";
 import VueEnsembleBien from "@/components/mandataire/VueEnsembleBien";
 import RelectureBien from "@/components/mandataire/RelectureBien";
-import AnnoncesBien from "@/components/mandataire/AnnoncesBien";
-import TeaserBien, { ActionsTeaser } from "@/components/mandataire/Teaser";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { Conversation, Resume, depuisMandataire } from "@/components/conversations/EspaceConversations";
 
@@ -215,7 +221,9 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest, 
 
 /** La carte d'un bien, au dessin de celle d'un dossier : le statut et la date sur la grille de points, le bien, puis ses étapes en segments. */
 function CarteBien({ b, onOuvrir, onSupprimer = null }) {
-  const e = ETAPES_BIEN[b.etape - 1];
+  // Six étapes à l'écran (7 nov. 2026) : la Data room et la Commercialisation font la Mise en vente.
+  const lesEtapes = etapesVisibles(b);
+  const e = lesEtapes[rangVisible(b.etape) - 1];
   const nonLus = b.dossier?.transfere ? b.dossier.fil_non_lus || 0 : 0;
   const ecarte = b.dossier?.statut === "no_go" && !b.marche;
   const prix = b.mandat?.prix || b.dossier?.carte?.prix || b.dossier?.prix || null;
@@ -249,10 +257,10 @@ function CarteBien({ b, onOuvrir, onSupprimer = null }) {
             <span className="truncate text-[13px] text-ardoise">{lieu}</span>
           </p>
         </div>
-        <div className="flex flex-col gap-1.5" aria-label={`Étape ${e.n} sur ${ETAPES_BIEN.length} : ${e.label}`}>
-          <div className="flex justify-between text-[12px] text-ardoise"><span>Étapes</span><span className="tabular-nums">{e.n} / {ETAPES_BIEN.length}</span></div>
-          <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${ETAPES_BIEN.length}, minmax(0, 1fr))` }}>
-            {ETAPES_BIEN.map((x) => <span key={x.id} className={`h-1 rounded-full ${b.faites.has(x.id) ? "bg-menthe" : x.n === e.n ? "bg-menthe/45" : "bg-encre/[0.12]"}`} />)}
+        <div className="flex flex-col gap-1.5" aria-label={`Étape ${e.n} sur ${NB_ETAPES_VISIBLES} : ${e.label}`}>
+          <div className="flex justify-between text-[12px] text-ardoise"><span>Étapes</span><span className="tabular-nums">{e.n} / {NB_ETAPES_VISIBLES}</span></div>
+          <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${NB_ETAPES_VISIBLES}, minmax(0, 1fr))` }}>
+            {lesEtapes.map((x) => <span key={x.id} className={`h-1 rounded-full ${etapeFaite(b.faites, x) ? "bg-menthe" : x.n === e.n ? "bg-menthe/45" : "bg-encre/[0.12]"}`} />)}
           </div>
         </div>
       </div>
@@ -280,7 +288,7 @@ function useEcranLarge() {
 // Au téléphone (27 oct. 2026, Jules) : la flèche et le nom de l'étape ; les étapes sont dans le menu de droite.
 // Le libellé de la flèche de retour : « Vue d'ensemble » dans une étape, « Mes biens » ailleurs.
 const RetourBien = React.createContext("Mes biens");
-const libelleEtape = (etape) => (etape === "ensemble" ? "Vue d'ensemble" : ETAPES_BIEN.find((e) => e.id === etape)?.label);
+const libelleEtape = (etape, bien) => (etape === "ensemble" ? "Vue d'ensemble" : etapesVisibles(bien).find((e) => e.id === versVisible(etape))?.label);
 function EnTeteBien({ bien, etape, onFermer, className = "" }) {
   const retour = useContext(RetourBien);
   return (
@@ -289,11 +297,11 @@ function EnTeteBien({ bien, etape, onFermer, className = "" }) {
         <ArrowLeft className="h-3.5 w-3.5 max-md:h-5 max-md:w-5" /><span className="max-md:hidden">{retour}</span>
       </button>
       {/* Au téléphone, l'étape sur la ligne de la flèche, centrée (27 oct. 2026, Jules). */}
-      <span className="pointer-events-none absolute inset-x-12 truncate text-center text-[17px] text-encre md:hidden">{libelleEtape(etape)}</span>
+      <span className="pointer-events-none absolute inset-x-12 truncate text-center text-[17px] text-encre md:hidden">{libelleEtape(etape, bien)}</span>
       <ChevronRight className="h-3.5 w-3.5 flex-none text-brume max-md:hidden" />
       <span className="min-w-0 truncate text-craie max-md:hidden">{bien ? bien.titre : "Nouveau bien"}</span>
       <ChevronRight className="h-3.5 w-3.5 flex-none text-brume max-md:hidden" />
-      <span className="flex-none text-encre max-md:hidden">{libelleEtape(etape)}</span>
+      <span className="flex-none text-encre max-md:hidden">{libelleEtape(etape, bien)}</span>
     </nav>
   );
 }
@@ -321,23 +329,59 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
     return () => window.removeEventListener("klocka:aller-etape", aller);
   }, [pid, onAller]);
   const faites = bien?.faites || new Set();
-  const items = ETAPES_BIEN.map((e) => ({ cle: e.id, titre: e.label, n: e.n, faite: faites.has(e.id) }));
+  const items = etapesVisibles(bien).map((e) => ({ cle: e.id, titre: e.label, n: e.n, faite: etapeFaite(faites, e) }));
   // Les étapes à chat portent le titre du bien dans leur colonne : Pré-visite, Avis de valeur, Mandat (26 oct. 2026).
   // La Pré-visite (26 oct. 2026, refaite) : sur ordinateur, la préparation au centre, la page défile, ni écran scindé ni
   // frise en haut ; au téléphone, la mise en page d'avant (le chat), seul le contenu de la préparation change.
   // Le dossier de vente, piloté par Haka (27 oct. 2026, Jules) : chat à gauche. Il est l'étape Data room depuis le
   // 2 nov. 2026 (Jules, après avis produit : la Commercialisation portait deux métiers).
-  const dossierVente = etape === "dataroom" && !!bien?.dossier?.id;
-  // En vente, la Commercialisation garde Haka à gauche, le teaser à droite (28 oct. 2026, Jules).
-  const enVente = etape === "marche" && !!bien?.marche;
-  // Mis en vente depuis la Data room (l'assistant le propose), le bien passe à la Commercialisation, comme le mandat
-  // signé passe à la Data room.
+  // La Mise en vente (7 nov. 2026, Jules : « combine la Data room et la Commercialisation en une étape, dedans des
+  // onglets comme dans l'Analyse ») ; le même jour, la maquette de Jules : cinq onglets (Data room, Diffusion,
+  // Acquéreurs, Offres, Vendeur), le bandeau des six temps de la vente dessous, et l'assistant qui dit à gauche la chose
+  // importante de l'onglet ouvert. Un bien en vente s'ouvre sur la Diffusion, les autres sur la Data room ; les adresses
+  // d'avant (« marche », le teaser) ouvrent la Diffusion.
+  const miseEnVente = etape === "dataroom" || etape === "marche";
   const marcheId = bien?.marche?.id || null;
+  // Une visite demandée dans l'adresse (la notification « Faire signer ») : l'onglet Acquéreurs, où sont les visites.
+  const visiteDemandee = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("visite");
+  const [ongletVente, setOngletVente] = useState(() => (visiteDemandee && bien?.marche ? "acquereurs" : etape === "marche" || bien?.marche ? "diffusion" : "dataroom"));
+  useEffect(() => { if (etape === "marche") setOngletVente(visiteDemandee ? "acquereurs" : "diffusion"); }, [etape, visiteDemandee]);
+  const dansDataRoom = miseEnVente && ongletVente === "dataroom";
+  // En vente, chaque onglet garde Haka à gauche (28 oct. 2026) ; avant, seule la Data room a son écran scindé.
+  const enVente = miseEnVente && !!marcheId;
+  const dossierVente = !enVente && dansDataRoom && !!bien?.dossier?.id;
+  // Mis en vente depuis la Data room (l'assistant le propose), l'étape passe à la Diffusion.
   const marcheAvant = useRef(marcheId);
   useEffect(() => {
-    if (marcheId && !marcheAvant.current && etape === "dataroom") onAller("marche");
+    if (marcheId && !marcheAvant.current && miseEnVente) setOngletVente("diffusion");
     marcheAvant.current = marcheId;
-  }, [marcheId, etape, onAller]);
+  }, [marcheId, miseEnVente]);
+  const etatVente = useVenteEtat(miseEnVente ? marcheId : null).data;
+  const compte = (n) => (n ? <span className="ml-1.5 rounded-full bg-pervenche/15 px-1.5 text-[11px] tabular-nums text-pervenche">{n}</span> : null);
+  // L'assistant replié (7 nov. 2026, Jules : « pas le chat ouvert en grand, mais qu'on puisse l'ouvrir ; un onglet IA à
+  // gauche de Data room ») : la Mise en vente s'ouvre sur le document en pleine largeur ; « IA » ouvre l'assistant à
+  // gauche et le referme. Le choix tient d'un onglet à l'autre.
+  const [iaVente, setIaVente] = useState(false);
+  const ongletIa = (
+    <button type="button" onClick={() => setIaVente((o) => !o)} aria-pressed={iaVente} title={iaVente ? "Fermer l'assistant" : "Ouvrir l'assistant"}
+      className={`relative inline-flex items-center gap-1.5 whitespace-nowrap pb-3 text-[13.5px] transition-colors ${iaVente ? "font-semibold text-encre" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent", marginBottom: -1 }}>
+      <Sparkles className="h-3.5 w-3.5" />Assistant IA
+      {iaVente && <span aria-hidden className="absolute inset-x-0 -bottom-px h-[1.5px] bg-menthe" />}
+    </button>
+  );
+  const ongletsDeLaVente = (avecIa) => (
+    <div className="mx-auto mb-px flex items-end justify-center gap-6 self-end">
+      {avecIa && ongletIa}
+      <Onglets items={[
+      { cle: "dataroom", titre: "Data room" },
+      { cle: "diffusion", titre: "Diffusion" },
+      { cle: "acquereurs", titre: <span className="inline-flex items-center">Acquéreurs{compte(etatVente?.onglets?.acquereurs)}</span> },
+      { cle: "offres", titre: <span className="inline-flex items-center">Offres{compte(etatVente?.onglets?.offres)}</span> },
+      { cle: "vendeur", titre: "Vendeur" },
+    ]} valeur={ongletVente} onChange={setOngletVente} taille="page" className="!gap-6 !border-b-0" />
+    </div>
+  );
+  const ongletsVente = ongletsDeLaVente(true);
   // Un fil par bien (1er nov. 2026, Jules) : la Pré-visite aussi, sur ordinateur, a le chat à gauche et la préparation à droite.
   // La vue d'ensemble, sans chat (3 nov. 2026, Jules : « ne mets pas le chat à gauche ») : le tableau de bord du bien seul.
   const ensemble = etape === "ensemble";
@@ -366,14 +410,15 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
         {etape === "previsite" && <EtapeRaconte bien={bien} etape={etape} large={large} onFermer={retourEtape} entete={entete} onAvis={() => onAller("estimation")} />}
         {etape === "estimation" && <EtapeChat espace="estimation" bien={bien} objet={bien?.estimation} large={large} entete={entete} onFermer={retourEtape} onCree={(id) => onCree("estimation", id)} />}
         {etape === "mandat" && <EtapeChat espace="mandat" bien={bien} objet={bien?.mandat} large={large} entete={entete} onFermer={retourEtape} onCree={(id) => onCree("mandat", id)} onSuivante={() => onAller("dataroom")} />}
-        {dossierVente && <EtapeDossierVente bien={bien} large={large} entete={entete} onFermer={retourEtape} />}
-        {enVente && <EtapeVente bien={bien} large={large} entete={entete} onFermer={retourEtape} onSuivante={() => onAller("offre")} />}
-        {["dataroom", "marche", "offre", "vente"].includes(etape) && !dossierVente && !enVente && <EtapeMarche bien={bien} types={types} etape={etape} />}
+        {dossierVente && <EtapeDossierVente bien={bien} large={large} entete={entete} onFermer={retourEtape} onglets={ongletsVente} chatFerme={!iaVente} />}
+        {enVente && <EtapeEnVente bien={bien} large={large} entete={entete} onFermer={retourEtape} chatFerme={!iaVente} onglet={ongletVente} onOnglet={setOngletVente} onglets={ongletsVente} conseils={etatVente?.conseils} />}
+        {miseEnVente && !dossierVente && !enVente && <div className="mx-auto flex max-w-[1180px] px-5 pt-2 md:px-10 md:pr-20 [&>div]:w-full [&>div]:!border-b [&>div]:border-trait">{ongletsDeLaVente(false)}</div>}
+        {["dataroom", "marche", "offre", "vente"].includes(etape) && !dossierVente && !enVente && <EtapeMarche bien={bien} types={types} etape={miseEnVente ? (dansDataRoom ? "dataroom" : "marche") : etape} />}
       </div>
       {/* Le check à droite d'une étape la valide, avec celles d'avant, comme dans les dossiers de l'équipe : seulement pour
           un bien né d'une fiche de la Prospection (24 oct. 2026). */}
       {/* La vue d'ensemble porte déjà les étapes, à gauche : pas de menu à droite (maquette de Jules, 3 nov. 2026). */}
-      {!ensemble && <MenuEtapesDroite items={items} valeur={etape} onChange={onAller} tete={{ cle: "ensemble", titre: "Vue d'ensemble" }} enCours={ETAPES_BIEN[(bien?.etape || 1) - 1].id} onValider={bien?.proprietaire ? (n) => valider.mutate(ETAPES_BIEN[n - 1].id) : null} occupe={valider.isPending} telephone />}
+      {!ensemble && <MenuEtapesDroite items={items} valeur={versVisible(etape)} onChange={onAller} tete={{ cle: "ensemble", titre: "Vue d'ensemble" }} enCours={versVisible(ETAPES_BIEN[(bien?.etape || 1) - 1].id)} onValider={bien?.proprietaire ? (n) => { const e = etapesVisibles(bien)[n - 1]; valider.mutate(e.fin || e.id); } : null} occupe={valider.isPending} telephone />}
     </div>
     </RetourBien.Provider>
   );
@@ -703,6 +748,7 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
         {/* Dans un bien, l'estimation n'a plus le choix « Avec le bail / Sans document » (25 oct. 2026, Jules) : `epure`. */}
         <ChatDashboard lueur epure={espace === "estimation"} espace={espace} reglages={reglagesChat} onConversation={setConversation}
           proprietaireId={bien?.proprietaire?.id || null} reprendre={!!bien?.proprietaire?.id}
+          ouverture={ouvertureDeLEtape(bien, espace)}
           enTeteFil={null}
           placeholderFil={relation ? "Racontez la suite : l'appel, le rendez-vous, sa réponse…" : null} onHistorique={sansHistorique} onReponse={surReponse} onRecherche={surRecherche}
           menusVersLeHaut avisACote={espace === "estimation" && large} barreApercu={large && conversation && !choixGauche} sansBarreHaut={(!large || !!choixGauche) && conversation} retour={{ libelle: libelleRetour, onClick: onFermer }} />
@@ -735,7 +781,7 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
  * dépôt, relancer, trancher les points, notifier le locataire, mettre en vente) et rédige ; le dossier, à droite.
  * La conversation est celle du bien quand il vient de la Prospection.
  */
-function EtapeDossierVente({ bien, large, entete, onFermer }) {
+function EtapeDossierVente({ bien, large, entete, onFermer, onglets = null, chatFerme = false }) {
   const dossierId = bien.dossier.id;
   const { data: v } = useQuery({ queryKey: ["m-dossier-vente", dossierId], queryFn: () => base44.request("GET", `/api/mandataire/dossiers/${encodeURIComponent(dossierId)}/vente`) });
   // Ce que Haka propose, tant que la conversation n'a pas commencé : la phrase du dossier, puis ses gestes en un tap.
@@ -770,52 +816,42 @@ function EtapeDossierVente({ bien, large, entete, onFermer }) {
     </div>
   ) : null;
   return (
-    <EcranHaka bien={bien} large={large} entete={entete} onFermer={onFermer} dossierVenteId={dossierId} cles={["m-dossier-vente", "m-dossiers", "m-marches"]}
-      placeholder="Demandez à l'Assistant KPartners : écris au vendeur, relance-le, explique ce point…" proposition={proposition} barre="La Data room" libelleTel="Voir la Data room"
+    <EcranHaka bien={bien} etape="dataroom" large={large} entete={entete} onFermer={onFermer} chatFerme={chatFerme} dossierVenteId={dossierId} cles={["m-dossier-vente", "m-dossiers", "m-marches"]}
+      placeholder="Demandez à l'Assistant KPartners : écris au vendeur, relance-le, explique ce point…" proposition={proposition} barre={onglets || "La Data room"} libelleTel="Voir la Data room"
       droite={<DossierVente dossierId={dossierId} lecture />} classeDroite="k-dataroom-fond"
       finFil={v?.mail_propose ? <MailDuChat key={v.mail_propose.le} dossierId={dossierId} mail={v.mail_propose} boite={v.boite} /> : null} />
   );
 }
 
 /**
- * La Commercialisation une fois en vente (28 oct. 2026, Jules : « le teaser à droite et le chat à gauche, on modifie
- * comme dans le mandat ou l'avis ») : Haka à gauche (il retouche le teaser sur demande), le teaser à droite, modifiable
- * d'un clic, puis la frise de la vente, les visites et le suivi.
+ * La Mise en vente d'un bien en vente (7 nov. 2026, maquette de Jules) : Haka à gauche, qui dit en tête de son fil la
+ * chose importante de l'onglet ouvert (ConseilVente, deux gestes au plus) ; à droite, les cinq onglets dans la barre,
+ * le bandeau des six temps de la vente et le contenu de l'onglet. La fiche d'un contact s'ouvre d'un geste du conseil.
  */
-function EtapeVente({ bien, large, entete, onFermer, onSuivante }) {
+function EtapeEnVente({ bien, large, entete, onFermer, onglet, onOnglet, onglets, conseils = null, chatFerme = false }) {
   const m = bien.marche;
-  const [mode, setMode] = useState("edition");
-  // Le teaser ou les annonces (4 nov. 2026, Jules) : la même colonne de droite, une bascule dans sa barre.
-  const [vue, setVue] = useState("teaser");
-  const proposition = (
-    <div className="text-left">
-      <p className="m-0 text-[12.5px] text-ardoise">L'Assistant KPartners</p>
-      <p className="m-0 mt-1 text-[15px] leading-[1.55] text-encre">Le bien est en vente. J'ai composé le teaser depuis le mandat et l'avis : relisez-le à droite, corrigez d'un clic ou dites-moi ce qu'il faut changer. Validé, on passe aux offres.</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {[["Relis le teaser", "Relis le teaser et dis-moi ce qui manque ou ce qui affaiblit l'argument."], ["Complète les champs", "Complète les champs du teaser encore à compléter avec ce que tu sais du bien."]].map(([l, t], i) => (
-          <button key={l} type="button" onClick={() => window.dispatchEvent(new CustomEvent("klocka:lancer", { detail: { texte: t } }))}
-            className={i === 0 ? "inline-flex h-9 items-center rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol" : "inline-flex h-9 items-center rounded-full border border-bord-vif px-3.5 text-[13px] text-craie hover:border-menthe hover:text-encre"}
-            style={i === 0 ? undefined : { background: "transparent" }}>{l}</button>
-        ))}
-      </div>
-    </div>
-  );
-  // Le teaser seul (28 oct. 2026, Jules) : la frise, les visites, le dossier investisseur et les offres vont aux Offres.
+  const visiteDemandee = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("visite") : null;
+  const dossierId = bien?.dossier?.id || null;
+  const [piste, setPiste] = useState(null);
+  const ouvrirPiste = (id) => { onOnglet("acquereurs"); setPiste(id); };
+  const conseil = <ConseilVente conseil={conseils?.[onglet]} onglet={onglet} onOnglet={onOnglet} onPiste={ouvrirPiste} />;
+  const contenu = {
+    dataroom: dossierId ? <DossierVente dossierId={dossierId} lecture /> : <PasEncore texte="La Data room du bien n'a pas de dossier." />,
+    diffusion: <OngletDiffusion marcheId={m.id} bien={bien} />,
+    // Le bon de visite se signe dans la fiche de la personne (8 nov. 2026, Jules : « on clique sur le nom, puis Bon de
+    // visite ») ; plus de liste « Nouvelle visite » ici. La notification « Faire signer » ouvre la fiche de son visiteur.
+    acquereurs: <OngletAcquereurs marcheId={m.id} piste={piste} onPiste={setPiste} visite={visiteDemandee} proprietaireId={bien?.proprietaire?.id || null} />,
+    offres: <OngletOffres marcheId={m.id} onPiste={ouvrirPiste} />,
+    vendeur: <OngletVendeur marcheId={m.id} />,
+  }[onglet];
   return (
-    <EcranHaka bien={bien} large={large} entete={entete} onFermer={onFermer} marcheId={m.id} cles={["m-teaser", "m-marches"]}
-      placeholder="Demandez à l'Assistant KPartners : raccourcis le titre, mets le rendement en avant…" proposition={proposition} libelleTel={vue === "annonces" ? "Voir les annonces" : "Voir le teaser"}
-      droite={vue === "annonces" ? <AnnoncesBien marcheId={m.id} dossierId={bien?.dossier?.id || null} /> : <TeaserBien marcheId={m.id} mode={mode} />}
-      barre={(
-        <div className="flex w-full items-center justify-between gap-3 md:pr-14">
-          <div className="flex w-fit gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Teaser ou annonces">
-            {[["teaser", "Le teaser"], ["annonces", "Annonces"]].map(([k, mot]) => (
-              <button key={k} type="button" role="tab" aria-selected={vue === k} onClick={() => setVue(k)}
-                className={`h-7 rounded-full px-3.5 text-[13px] ${vue === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-craie"}`} style={vue === k ? undefined : { background: "transparent" }}>{mot}</button>
-            ))}
-          </div>
-          {vue === "teaser" && <ActionsTeaser marcheId={m.id} mode={mode} onMode={setMode} onValide={onSuivante} />}
-        </div>
-      )} />
+    <EcranHaka bien={bien} etape={onglet === "dataroom" ? "dataroom" : "marche"} large={large} entete={entete} onFermer={onFermer} chatFerme={chatFerme} dossierVenteId={dossierId} marcheId={m.id}
+      cles={["m-vente-etat", "m-acquereurs", "m-dossier-vente", "m-marches", "m-teaser"]}
+      placeholder="Demandez à l'Assistant KPartners : relance le vendeur, prépare un message, compare les offres…" proposition={conseil} finFil={conseil}
+      barre={onglets} libelleTel="Voir la mise en vente" classeDroite={onglet === "dataroom" ? "k-dataroom-fond" : ""}
+      droite={<><BandeauVente marcheId={m.id} />
+        {/* Changer d'onglet : le contenu entre en fondu en montant un peu, comme dans l'Analyse (7 nov. 2026, Jules). */}
+        <motion.div key={onglet} className="pt-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>{contenu}</motion.div></>} />
   );
 }
 
@@ -823,7 +859,7 @@ function EtapeVente({ bien, large, entete, onFermer, onSuivante }) {
  * L'écran scindé d'une étape pilotée par Haka : son chat à gauche (la conversation du bien quand il vient de la
  * Prospection), ce qu'il propose tant qu'on n'a rien dit, et le document à droite. Au téléphone, comme la Visite.
  */
-function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, marcheId = null, cles = [], placeholder, proposition, droite, barre, libelleTel, classeDroite = "", finFil = null }) {
+function EcranHaka({ bien, etape = null, large, entete, onFermer, chatFerme = undefined, dossierVenteId = null, marcheId = null, cles = [], placeholder, proposition, droite, barre, libelleTel, classeDroite = "", finFil = null }) {
   const libelleRetour = useContext(RetourBien);
   const outilsChat = useReglagesChatMandataire(["mail", "dossier"]);
   const largeurChat = useLargeurChat();
@@ -840,7 +876,7 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
       .then(() => queryClient.invalidateQueries({ queryKey: ["m-proprietaires"] })).catch(() => {});
   }, [lie, p, queryClient]);
   const surReponse = () => cles.forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
-  const replier = conversation && large;
+  const replier = conversation && large && !chatFerme;
   useEffect(() => {
     if (!replier) return undefined;
     window.dispatchEvent(new CustomEvent("klocka:replier-barre", { detail: { replier: true } }));
@@ -852,25 +888,71 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
   const chat = (
     <ChatDashboard lueur dansLeFil={!!p} espace="mandataire" proprietaireId={p?.id || null} dossierVenteId={dossierVenteId} marcheId={marcheId} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
       onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil={placeholder}
-      barreApercu={large} sansBarreHaut={!large && conversation} retour={{ libelle: libelleRetour, onClick: onFermer }} reprendre={!!p} finFil={finFil} />
+      // Dans la Mise en vente, pas de barre « Vue d'ensemble » en tête du chat (8 nov. 2026, Jules) : le fil d'Ariane du haut le dit.
+      barreApercu={large && chatFerme === undefined} sansBarreHaut={chatFerme !== undefined || (!large && conversation)} retour={chatFerme !== undefined ? null : { libelle: libelleRetour, onClick: onFermer }} reprendre={!!p} finFil={finFil}
+      ouverture={etape ? ouvertureDeLEtape(bien, etape) : null} />
   );
 
   if (large) {
     // Le dossier ouvert d'office, sans bouton pour le fermer (2 nov. 2026, Jules : « on arrive, il doit être ouvert »).
-    return (
-      <div className={`k-page-presentation k-dossier-ia k-bien-ia relative grid h-[100dvh] overflow-hidden ${largeurChat.tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat.largeur}px minmax(0,1fr)` }}>
-        {largeurChat.poignee}
-        <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5">
-          {!conversation && entete}
-          {!conversation && <div className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto py-6">{proposition}</div>}
-          <div className={conversation ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>{chat}</div>
-        </div>
-        <div className={`k-apercu-bien min-h-0 min-w-0 ${classeDroite}`}>
-          <div className="flex h-full min-h-0 flex-col border-l border-trait">
-            <div className="k-barre-apercu flex h-14 flex-none items-center border-b border-trait px-5 text-[12.5px] text-ardoise">{barre}</div>
-            <div className="min-h-0 flex-1 overflow-y-auto pb-6 pl-6 pr-20 pt-4"><div className="mx-auto max-w-[820px]">{droite}</div></div>
+    // L'assistant replié (`chatFerme`, la Mise en vente, 7 nov. 2026, Jules : « c'est trop brutal ») : sa colonne glisse
+    // à zéro et le document s'élargit ; le chat reste monté, la conversation ne se perd pas.
+    const ouvert = !chatFerme;
+    const doux = "cubic-bezier(.22,1,.36,1)";
+    // La Mise en vente (8 nov. 2026, Jules : « l'assistant ne touche pas au haut ») : le fil d'Ariane et la barre d'onglets
+    // restent en haut sur toute la largeur ; seule la page, dessous, se partage entre le chat à gauche et le contenu.
+    if (chatFerme !== undefined) {
+      return (
+        <div className={`k-page-presentation k-dossier-ia k-bien-ia flex h-[100dvh] flex-col overflow-hidden ${largeurChat.tire ? "select-none" : ""}`}>
+          {/* Le haut (8 nov. 2026, Jules) : la barre d'onglets un peu plus près du fil d'Ariane, et le fond noir de la Data room
+              quand elle est ouverte, comme le contenu dessous. */}
+          <div className={`k-haut-vente flex-none ${classeDroite}`}>
+            <div className="-mb-1.5 pl-6 pr-20">{entete}</div>
+            <div className="flex h-12 items-center border-b border-trait px-5 text-[12.5px] text-ardoise">{barre}</div>
+          </div>
+          {/* La rangée du bas bornée à la hauteur qui reste : sans elle, le chat s'allongeait et sa saisie sortait de l'écran. */}
+          <div className="relative grid min-h-0 flex-1" style={{ gridTemplateRows: "minmax(0,1fr)", gridTemplateColumns: `${ouvert ? largeurChat.largeur : 0}px minmax(0,1fr)`, transition: largeurChat.tire ? "none" : `grid-template-columns .45s ${doux}` }}>
+            {ouvert && largeurChat.poignee}
+            <div aria-hidden={!ouvert} inert={ouvert ? undefined : ""} className={`k-colonne-chat min-h-0 min-w-0 overflow-hidden transition-opacity duration-300 ${ouvert ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+              <div className="flex h-full min-h-0 flex-col px-5" style={{ width: largeurChat.largeur }}>
+                {!conversation && <div className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto py-6">{proposition}</div>}
+                <div className={conversation ? "min-h-0 w-full flex-1 pt-3" : "w-full flex-none pb-5"}>{chat}</div>
+              </div>
+            </div>
+            <div className={`k-apercu-bien min-h-0 min-w-0 border-l transition-colors duration-300 ${ouvert ? "border-trait" : "border-transparent"} ${classeDroite}`}>
+              <div className="h-full min-h-0 overflow-y-auto pb-6 pl-6 pr-20 pt-4"><div className="mx-auto max-w-[1180px]">{droite}</div></div>
+            </div>
           </div>
         </div>
+      );
+    }
+    return (
+      <div className={`k-page-presentation k-dossier-ia k-bien-ia relative grid h-[100dvh] overflow-hidden ${largeurChat.tire ? "select-none" : ""}`}
+        style={{ gridTemplateColumns: `${ouvert ? largeurChat.largeur : 0}px minmax(0,1fr)`, transition: largeurChat.tire ? "none" : `grid-template-columns .45s ${doux}` }}>
+        {ouvert && largeurChat.poignee}
+        <div aria-hidden={!ouvert} inert={ouvert ? undefined : ""} className={`k-colonne-chat min-h-0 min-w-0 overflow-hidden transition-opacity duration-300 ${ouvert ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+          <div className="flex h-[100dvh] min-h-0 flex-col px-5" style={{ width: largeurChat.largeur }}>
+            {!conversation && entete}
+            {!conversation && <div className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto py-6">{proposition}</div>}
+            <div className={conversation ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>{chat}</div>
+          </div>
+        </div>
+        <div className={`k-apercu-bien min-h-0 min-w-0 ${classeDroite}`}>
+          <div className={`flex h-full min-h-0 flex-col border-l transition-colors duration-300 ${ouvert ? "border-trait" : "border-transparent"}`}>
+            <div className="k-barre-apercu flex h-14 flex-none items-center border-b border-trait px-5 text-[12.5px] text-ardoise">{barre}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto pb-6 pl-6 pr-20 pt-4"><div className="mx-auto max-w-[1180px]">{droite}</div></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // Au téléphone, l'assistant replié : le document seul, sans la saisie collée en bas.
+  if (chatFerme) {
+    return (
+      <div className="flex flex-col px-5 pb-10">
+        {entete}
+        {barreTel}
+        {droite}
       </div>
     );
   }
@@ -897,21 +979,39 @@ function EcranHaka({ bien, large, entete, onFermer, dossierVenteId = null, march
 function EtapeMarche({ bien, types, etape }) {
   const queryClient = useQueryClient();
   const m = bien?.marche;
-  // Sans dossier, la Data room attend le mandat signé ; sans mise en vente, la Commercialisation attend la Data room.
+  // Avant le mandat, la Data room est déjà là : la même que dans la vue d'ensemble (6 nov. 2026, Jules : « c'est la
+  // même que dans l'étape 4 »). Seule la mise en vente attend le mandat signé.
+  if (!m && etape === "dataroom" && !bien?.dossier?.id && bien?.proprietaire?.id) {
+    return (
+      <div className="mx-auto max-w-[1180px] px-5 pb-16 pt-3 md:px-10 md:pr-20">
+        <p className="m-0 text-[13.5px] text-ardoise">La mise en vente s'ouvre au mandat signé. Les pièces, elles, se rangent dès maintenant.</p>
+        <DataRoom proprietaireId={bien.proprietaire.id} />
+      </div>
+    );
+  }
+  // Les pièces obligatoires rassemblées, la Commercialisation est ouverte (7 nov. 2026, Jules) : y entrer met le bien en
+  // vente (ou en location) et prépare teaser, annonces et fiche confrère.
+  if (!m && etape !== "dataroom" && bien?.dossier?.id && bien.dossier.statut === "complet") return <OuvrirLaCommercialisation dossierId={bien.dossier.id} location={bien?.proprietaire?.biens?.transaction === "location"} />;
+  // Sans mise en vente, la Commercialisation attend la Data room.
   if (!m) {
     return (
       <div className="mx-auto max-w-[900px] px-5 pb-16 pt-3 md:px-8">
-        <PasEncore texte={etape === "dataroom" || !bien?.dossier?.id ? "La Data room du bien s'ouvre au mandat signé : les pièces, leurs vérifications, puis la mise en vente se font ici." : "La Commercialisation commence à la mise en vente : l'assistant la propose dans la Data room quand le dossier est prêt."} />
+        <PasEncore texte={etape === "dataroom" || !bien?.dossier?.id ? "La Data room du bien s'ouvre au mandat signé : les pièces, leurs vérifications, puis la mise en vente se font ici." : "La Commercialisation s'ouvre dès que les pièces obligatoires de la Data room sont là."} />
       </div>
     );
   }
   // Après le teaser, deux voies (28 oct. 2026, Jules) : le commercialiser soi-même, ou l'envoyer à Klocka, qui fait le
   // reste ; l'analyste coche l'avancement dans la conversation du dossier.
-  if (!m.voie) return <ChoixVoie m={m} />;
+  // Une location, un fonds ou un droit au bail ne part pas chez Klocka (7 nov. 2026, Jules) : pas de choix, le mandataire
+  // le commercialise lui-même.
+  if (!m.voie && m.klocka_possible !== false) return <ChoixVoie m={m} />;
   if (m.voie === "klocka" && m.dossier_id) return <ChezKlocka dossierId={m.dossier_id} marcheId={m.id} />;
   return (
-    <div className="mx-auto max-w-[1100px] px-5 pb-16 pt-3 md:px-8">
-      {m.voie === "moi" && <div className="mb-2 flex justify-end"><ChangerVoie marcheId={m.id} vers="klocka" /></div>}
+    // Plus large que les autres étapes (7 nov. 2026) : le tableau des acquéreurs a ses onze colonnes, comme Monday.
+    <div className="mx-auto max-w-[1600px] px-5 pb-16 pt-3 md:px-8">
+      {m.voie === "moi" && m.klocka_possible !== false && <div className="mb-2 flex justify-end"><ChangerVoie marcheId={m.id} vers="klocka" /></div>}
+      {/* Les acquéreurs d'abord, en tableau Monday (7 nov. 2026, Jules) : c'est là que le mandataire passe son temps. */}
+      <TableauAcquereurs marcheId={m.id} />
       <Carte actif>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="m-0 text-[15.5px] text-encre">{m.bien}<PastilleExemple x={m} /></p>
@@ -1057,6 +1157,26 @@ function EtatAvis({ bien, className = "mb-3" }) {
   );
 }
 
+/** La Commercialisation ouverte d'office, une fois (pièces obligatoires reçues) : l'écran attend la mise en vente. */
+function OuvrirLaCommercialisation({ dossierId, location }) {
+  const queryClient = useQueryClient();
+  const [erreur, setErreur] = React.useState(null);
+  const lance = React.useRef(false);
+  React.useEffect(() => {
+    if (lance.current) return;
+    lance.current = true;
+    base44.request("POST", `/api/mandataire/dossiers/${dossierId}/vente`, { body: {} })
+      .then(() => Promise.all(["m-proprietaires", "m-dossiers", "m-marches"].map((k) => queryClient.invalidateQueries({ queryKey: [k] }))))
+      .catch((e) => setErreur(e?.message || "La commercialisation ne s'ouvre pas."));
+  }, [dossierId, queryClient]);
+  if (erreur) return <PasEncore texte={erreur} />;
+  return (
+    <p className="m-0 flex items-center justify-center gap-2 px-5 py-20 text-[14px] text-ardoise">
+      <Loader2 className="h-4 w-4 animate-spin" />{location ? "Le local passe en location : le teaser et les annonces se préparent…" : "Le bien passe en vente : le teaser, les annonces et la fiche confrère se préparent…"}
+    </p>
+  );
+}
+
 const PasEncore = ({ texte }) => <p className="m-0 mx-auto max-w-[56ch] px-5 py-20 text-center text-[14px] leading-[1.6] text-brume">{texte}</p>;
 
 // Ce que dit la Pré-visite en tête de son chat (26 oct. 2026 : Visité et Prix d'accord ne sont plus des étapes).
@@ -1092,7 +1212,8 @@ function EtapeImport({ bien, onAller, onFermer, entete }) {
   };
   const finir = useMutation({
     mutationFn: () => base44.request("POST", `/api/mandataire/proprietaires/${p.id}/import/fini`),
-    onSuccess: relire,
+    // « Import terminé » met aussi le bien et ses contacts au CRM (6 nov. 2026) : l'écran dit ce qui est parti.
+    onSuccess: (r) => { relire(); if (r?.crm?.ok) toast.success("Import terminé, le bien est au CRM."); else if (r?.crm) toast.error(`Import terminé, mais le CRM a refusé : ${r.crm.error || "réessayez depuis le chat"}`); else toast.success("Import terminé."); },
     onError: (e) => toast.error(e?.message || "Non enregistré"),
   });
   return (
@@ -1120,7 +1241,7 @@ function EtapeImport({ bien, onAller, onFermer, entete }) {
               initial={{ opacity: 0, x: 48 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 48 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}>
               <div className="k-barre-apercu flex h-14 flex-none items-center justify-between gap-3 border-b border-trait pl-5 pr-20 text-[12.5px] text-ardoise">
                 <span className="truncate">{bien.titre}</span>
-                <button type="button" onClick={() => finir.mutate()} disabled={finir.isPending} className="inline-flex h-8 flex-none items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>C'est fait</button>
+                <button type="button" onClick={() => finir.mutate()} disabled={finir.isPending} className="inline-flex h-8 flex-none items-center rounded-full bg-pervenche px-3.5 text-[13px] text-sur-pervenche hover:brightness-110 disabled:opacity-50">{finir.isPending ? "Import…" : "Import terminé"}</button>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto pb-10 pl-6 pr-20 pt-2"><div className="mx-auto max-w-[1180px]"><RelectureBien proprietaire={p} /><VueEnsembleBien bien={bien} onAller={onAller} sansImport /></div></div>
             </motion.div>
@@ -1177,7 +1298,8 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
   const chat = (
     <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={p.id} cible={cible} reglages={outilsChat.reglages} onHistorique={sansHistorique} onConversation={setConversation}
       onConversationId={lier} onReponse={surReponse} sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Une question, ou racontez la visite…"
-      barreApercu={scinde} sansBarreHaut={!large && conversation} retour={{ libelle: libelleRetour, onClick: onFermer }} reprendre />
+      barreApercu={scinde} sansBarreHaut={!large && conversation} retour={{ libelle: libelleRetour, onClick: onFermer }} reprendre
+      ouverture={ouvertureDeLEtape(bien, etape)} />
   );
   // Le contenu de la préparation (26 oct. 2026, refait) au-dessus de la fiche, qui ne la répète pas. Au téléphone, la fiche
   // du bien d'abord, la préparation ensuite (31 oct. 2026, Jules).
@@ -1223,17 +1345,22 @@ function EtapeRaconte({ bien, etape, large, onFermer, entete, onAvis = null }) {
       </div>
       {/* Comme le Mandat (26 oct. 2026, Jules) : une ligne verticale entre le chat et la fiche, et la barre du haut à droite,
           soulignée d'une ligne horizontale. */}
-      {/* La préparation à droite, seule (1er nov. 2026, Jules) : la fiche du bien n'est plus une colonne ouverte en
-          permanence, « La fiche » l'ouvre en panneau, comme un point de la carte du terrain. */}
+      {/* La préparation à droite (1er nov. 2026, Jules). La fiche du bien prend sa place dans l'éditeur, plus par-dessus
+          (6 nov. 2026, Jules : « on voit la fiche à la place des questions, dans l'éditeur ») : « Préparation · Fiche ». */}
       <div className="k-apercu-bien relative min-h-0 min-w-0">
         <div className="flex h-full min-h-0 flex-col border-l border-trait">
           <div className="k-barre-apercu flex h-14 flex-none items-center justify-between gap-3 border-b border-trait pl-5 pr-20 text-[12.5px] text-ardoise">
-            <span>Préparer la visite</span>
-            <button type="button" onClick={() => setFicheOuverte(true)} className="inline-flex h-8 items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>La fiche</button>
+            <span>{ficheOuverte ? "La fiche du bien" : "Préparer la visite"}</span>
+            <div className="flex gap-0.5 rounded-full border border-bord-doux bg-rail p-1" role="tablist" aria-label="Préparation ou fiche">
+              {[[false, "Préparation"], [true, "Fiche"]].map(([v, mot]) => (
+                <button key={mot} type="button" role="tab" aria-selected={ficheOuverte === v} onClick={() => setFicheOuverte(v)}
+                  className={`h-7 rounded-full px-3.5 text-[13px] ${ficheOuverte === v ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+                  style={ficheOuverte === v ? undefined : { background: "transparent" }}>{mot}</button>
+              ))}
+            </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto pb-6 pl-6 pr-20 pt-6"><div className="mx-auto max-w-[760px]">{fiche}</div></div>
+          <div className="min-h-0 flex-1 overflow-y-auto pb-6 pl-6 pr-20 pt-6"><div className="mx-auto max-w-[760px]">{ficheOuverte ? ficheDuBien : fiche}</div></div>
         </div>
-        <AnimatePresence>{ficheOuverte && <FichePoint key={p.id} fiche={{ id: p.id, commerce: p.commerce, nom: p.nom, adresse: p.adresse }} onFermer={() => setFicheOuverte(false)} />}</AnimatePresence>
       </div>
     </div>
   ) : (

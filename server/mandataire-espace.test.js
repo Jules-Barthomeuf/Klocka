@@ -341,3 +341,13 @@ test('une fiche ne devient un prospect du CRM que dans une liste faite à la mai
   assert.equal(r.ok, false);
   assert.match(r.error, /pas dans une liste/);
 });
+
+test('communeDansSecteur : une ville de la liste du mandataire est dans son secteur, même hors du contour', async () => {
+  const { communeDansSecteur, nomsDuSecteur } = await import('./mandataire-espace.js');
+  const lyonnais = { nom: 'Lyonnais', unites: [{ niveau: 'departement', code: '69', nom: 'Rhône' }], villes_choisies: [{ nom: 'Lyon', code: '69123' }, { nom: 'Lille', code: '59350' }] };
+  const lille = { nom: 'Lille', code: '59350', codeDepartement: '59', codeRegion: '32', lat: 50.63, lon: 3.06 };
+  assert.equal(communeDansSecteur(lille, lyonnais), true);
+  assert.equal(communeDansSecteur({ ...lille, code: null }, lyonnais), true);
+  assert.equal(communeDansSecteur({ nom: 'Roubaix', code: '59512', codeDepartement: '59', codeRegion: '32', lat: 50.69, lon: 3.17 }, lyonnais), false);
+  assert.deepEqual(nomsDuSecteur(lyonnais), ['Rhône', 'Lyon', 'Lille']);
+});

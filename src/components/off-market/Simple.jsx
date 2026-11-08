@@ -14,6 +14,7 @@ import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_CLASSE, OPTIONS_EMPLACEMENT
 import { SectionsLibres } from "@/components/mandataire/MursLibres";
 import Chargement from "@/components/ui/Chargement";
 import { accroche, budgetDe, exclusionsDe, pourClient, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
+import VillesCotees from "@/components/clients/VillesCotees";
 
 // Off-market, le mode Simple (spec de Jules du 11 oct. 2026) : la carte de la
 // ville avec tous ses commerces, la couleur dit seulement si l'on sait qui
@@ -462,7 +463,7 @@ function ClientProspection({ clients, client, nPour, ville, n, charge, onChoisir
   const i = clients.findIndex((d) => d.id === client.id);
   const aller = (k) => onChoisir(clients[(i + k + clients.length) % clients.length].id);
   const rendement = client.rendement_min ? `${String(client.rendement_min).replace(".", ",")} %` : "—";
-  const zones = (client.zones || []).join(", ") || "Toute la France";
+  const zones = (client.zones || []).join(", ") || <VillesCotees />;
   return (
     <div className="relative overflow-hidden rounded-[14px] border border-bord-doux bg-rail">
       <div className="flex items-center gap-3 border-b border-trait px-4 py-3">

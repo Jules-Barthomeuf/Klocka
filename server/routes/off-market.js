@@ -4,6 +4,7 @@
 
 import { ok, wrap, currentUser } from '../contexte.js';
 import { Records } from '../db.js';
+import { estVilleCotee } from '../villes-cotees.js';
 
 const L = () => import('../off-market/locaux.js');
 const S = () => import('../off-market/suivi.js');
@@ -34,7 +35,7 @@ export function monterOffMarket(app) {
     const q = String(req.query.q || '').trim();
     if (q.length < 2) return ok(res, { communes: [] });
     try {
-      const r = await fetch(`https://api-adresse.data.gouv.fr/search/?type=municipality&limit=6&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(8000) });
+      const r = await fetch(`https://data.geopf.fr/geocodage/search/?type=municipality&limit=6&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(8000) });
       const j = r.ok ? await r.json() : { features: [] };
       ok(res, { communes: (j.features || []).map((f) => ({ nom: f.properties.city || f.properties.name, code_postal: f.properties.postcode || null, code_insee: f.properties.citycode || null, contexte: f.properties.context || null })) });
     } catch { ok(res, { communes: [] }); }
@@ -75,7 +76,8 @@ export function monterOffMarket(app) {
     const clients = demandesVisibles({ avecTest: voitTest(user) }).map((d) => {
       const zones = (d.zones || []).filter((z) => !/toute la france|^france$/i.test(z));
       const zone = zones.find((z) => zoneCouvre(z, lieu)) || null;
-      return { ...d, couvre: !zones.length || !!zone, zone_couverte: zone };
+      // Sans zone, le client cherche dans les villes cotées (6 nov. 2026, Jules), pas dans toute la France.
+      return { ...d, couvre: zones.length ? !!zone : estVilleCotee(v?.nom), zone_couverte: zone };
     });
     ok(res, { ville: v?.nom || null, clients });
   }));

@@ -125,6 +125,39 @@ export async function villesDuSecteurMandataire(secteur) {
   return unir(villesChoisies(secteur).map((v) => ({ nom: v.nom, code: v.code || null })), klocka);
 }
 
+/**
+ * Pure : le secteur dessiné d'après ses villes (6 nov. 2026, Jules : « dès qu'ils mettent une ville, ça trace leur
+ * secteur : Lyon, Nice, Marseille font un triangle ; Grenoble au milieu ne change rien »). L'enveloppe qui relie les
+ * villes du bord, chacune entourée de `rayonKm` (une ville seule fait un rond, deux une gélule). Un repère sur la
+ * carte, rien de plus : il ne filtre ni les commerces ni les clients. `centres` : [{ lat, lon }] ; rend un anneau
+ * [[lat, lon], …], ou null sans ville.
+ */
+export function enveloppeDesVilles(centres = [], { rayonKm = 8, cotes = 16 } = {}) {
+  const pts = (centres || []).filter((c) => Number.isFinite(c?.lat) && Number.isFinite(c?.lon));
+  if (!pts.length) return null;
+  // Le milieu des extrêmes, pas la moyenne : une ville du dedans ne change rien au dessin.
+  const lat0 = (Math.min(...pts.map((c) => c.lat)) + Math.max(...pts.map((c) => c.lat))) / 2;
+  const kx = 111.32 * Math.cos((lat0 * Math.PI) / 180);
+  const ky = 110.57;
+  // En kilomètres autour du premier point, pour que le rond soit rond.
+  const autour = [];
+  for (const c of pts) {
+    for (let i = 0; i < cotes; i += 1) {
+      const a = (2 * Math.PI * i) / cotes;
+      autour.push([(c.lon - pts[0].lon) * kx + rayonKm * Math.cos(a), (c.lat - pts[0].lat) * ky + rayonKm * Math.sin(a)]);
+    }
+  }
+  // Chaîne monotone d'Andrew : l'enveloppe convexe.
+  autour.sort((u, v) => u[0] - v[0] || u[1] - v[1]);
+  const vire = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const bas = [];
+  for (const q of autour) { while (bas.length >= 2 && vire(bas[bas.length - 2], bas[bas.length - 1], q) <= 0) bas.pop(); bas.push(q); }
+  const haut = [];
+  for (const q of [...autour].reverse()) { while (haut.length >= 2 && vire(haut[haut.length - 2], haut[haut.length - 1], q) <= 0) haut.pop(); haut.push(q); }
+  const coque = [...bas.slice(0, -1), ...haut.slice(0, -1)];
+  return coque.map(([x, y]) => [Number((pts[0].lat + y / ky).toFixed(5)), Number((pts[0].lon + x / kx).toFixed(5))]);
+}
+
 /** La fiche Ville d'une commune : retrouvée par son code ou son nom, sinon créée ; son centre posé s'il manque. */
 export async function assurerVille({ nom, code = null }, { lire = fetch } = {}) {
   let v = Records.list('Ville').find((x) => (code && x.code_insee === code) || norm(x.nom) === norm(nom)) || null;

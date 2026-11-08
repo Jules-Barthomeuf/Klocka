@@ -8,6 +8,7 @@
 import { Records, Meta } from './db.js';
 import { pourClient } from '../src/lib/clients-commerces.js';
 import { texteDrapeau, enseigneVue, activiteVue } from './off-market/simple.js';
+import { estVilleCotee } from './villes-cotees.js';
 
 // Une cinquantaine de murs par ville (24 oct. 2026, Jules : « zoomer sur une ville montre ses 50 points »).
 export const POINTS_MAX = 50;
@@ -96,11 +97,11 @@ export function pourquoiVide(n = {}, d = {}, villes = []) {
   return `${n.connus} commerces ont un signal et un propriétaire connus, mais aucun ne répond à ses critères (activité, exclusions, emplacement) ou à son budget.`;
 }
 
-/** Les villes du secteur qu'un client cherche (toutes s'il ne dit pas de zone). */
+/** Les villes du secteur qu'un client cherche (les villes cotées s'il ne dit pas de zone, 6 nov. 2026). */
 async function villesDuClient(d, villes, geos = new Map()) {
   const { geoDe, zoneCouvre } = await import('./mandataire-agent.js');
   const zones = (d.zones || []).filter((z) => !/toute la france|^france$/i.test(z));
-  if (!zones.length) return villes;
+  if (!zones.length) return villes.filter((v) => estVilleCotee(v.nom));
   const out = [];
   for (const v of villes) {
     // Le département et la région d'une ville, lus une fois par appel (l'API Géo, quand la ville ne les garde pas).
@@ -154,11 +155,12 @@ async function pointsDans(d, villes, cache = null, moi = null, compte = null) {
   // sa fiche (noir sur la carte une fois dans Biens).
   const { teneurs } = await import('./fiche-mandataire.js');
   const tenus = teneurs(Records.list('ProprietaireMandataire'), moi);
+  const garder = (await import('./avis-commerces.js')).filtreDesAvis({ email: moi });
   const tous = [];
   for (const v of villes) {
     await new Promise((r) => setImmediate(r));
     const { liste, zone, centreDe } = await commercesDeLaVille(v, cache);
-    const libres = liste.filter((c) => { const t = tenus.get(c.id); return !t || t.a_moi; });
+    const libres = liste.filter((c) => { const t = tenus.get(c.id); return t ? t.a_moi : garder(c); });
     const compacter = (c) => compact(c, { ...(zone || {}), moi });
     tous.push(...pointsPourClient(libres, d, { centreDe, compacter, compte, max: POINTS_MAX }).map((p) => {
       const t = tenus.get(p.id);
@@ -202,6 +204,19 @@ export function noterProspecte(user, demandeId, n) {
   Meta.set(clePropectes(user), JSON.stringify({ ...prospectes(user), [demandeId]: { le: new Date().toISOString(), n } }));
 }
 
+/**
+ * Les contours montrés sur la carte (6 nov. 2026) : un secteur fait de villes se dessine d'après elles (l'enveloppe
+ * de server/villes-secteur.js) ; l'ancien contour dessiné, pour un secteur d'avant.
+ */
+export async function anneauxAffiches(secteur, fiches = null) {
+  const E = await import('./mandataire-espace.js');
+  if (!secteur?.villes_seules) return E.anneauxSecteur(secteur);
+  const { enveloppeDesVilles } = await import('./villes-secteur.js');
+  const centres = (fiches || (await villesDuMandataire(secteur, { etats: false })).fiches).map((v) => v.centre);
+  const anneau = enveloppeDesVilles(centres);
+  return anneau ? [anneau] : [];
+}
+
 /** Le secteur du mandataire et ses clients qui cherchent dedans, chacun avec ses villes et son nombre de points. */
 export async function prospecter(user) {
   const E = await import('./mandataire-espace.js');
@@ -221,7 +236,7 @@ export async function prospecter(user) {
   }
   clients.sort((a, b) => b.n - a.n);
   return {
-    secteur: { id: secteur.id, nom: secteur.nom, teinte: secteur.teinte || null, motif: secteur.motif ?? 0, polygones: E.anneauxSecteur(secteur) },
+    secteur: { id: secteur.id, nom: secteur.nom, teinte: secteur.teinte || null, motif: secteur.motif ?? 0, polygones: await anneauxAffiches(secteur, villes) },
     villes: toutes,
     clients,
   };
@@ -277,6 +292,8 @@ export async function pointsDuSecteur(user, { max = Infinity, classe = 'commerce
   const moi = emailDe(user);
   const tenus = teneurs(Records.list('ProprietaireMandataire'), moi);
   const { fiches, toutes } = await villesDuMandataire(secteur);
+  // Les pouces (6 nov. 2026, server/avis-commerces.js) : ce qu'il a écarté, et les activités écartées par tous.
+  const garder = (await import('./avis-commerces.js')).filtreDesAvis(user);
   const points = [];
   let lus = 0;
   for (const v of fiches) {
@@ -288,7 +305,7 @@ export async function pointsDuSecteur(user, { max = Infinity, classe = 'commerce
       lus += 1;
       const t = tenus.get(c.id);
       // Les bureaux à part (3 nov. 2026, Jules : « trois types d'actifs, Fonds, Murs et Bureaux ») : `classe` choisit.
-      if ((t && !t.a_moi) || c.lat == null || c.lon == null || (c.classe || 'commerce') !== classe) continue;
+      if ((t && !t.a_moi) || c.lat == null || c.lon == null || (c.classe || 'commerce') !== classe || (!t && !garder(c))) continue;
       points.push(leger({ ...pointDuSecteur(c, compact(c, { ...(zone || {}), moi }), v.nom), fiche: t ? { id: t.id, dans_biens: t.dans_biens, statut: t.statut } : null }));
     }
   }
@@ -327,7 +344,7 @@ function tenues() {
 
 const signatures = () => ({
   // La liste des Villes Klocka compte aussi : une ville ajoutée entre dans « Mon secteur » tout de suite.
-  fiches: `${tenues()}|${Records.signature('SecteurMandataire')}|${Records.signature('DemandeClient')}|${Meta.get('villes-klocka') || ''}`,
+  fiches: `${tenues()}|${Records.signature('SecteurMandataire')}|${Records.signature('DemandeClient')}|${Records.signature('AvisCommerce')}|${Meta.get('villes-klocka') || ''}`,
   donnees: `${Records.signature('CommerceSimple')}|${Records.signature('Ville')}`,
 });
 

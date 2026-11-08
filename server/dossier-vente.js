@@ -6,6 +6,7 @@
 // Les pièces se lisent dans un dossier d'analyse muet (`cache_equipe`) : l'équipe ne le voit pas dans sa liste tant
 // que le bien n'est pas en vente. Rien ne part vers Drive ni Monday avant la mise en vente.
 
+import { caseDuNom } from '../src/lib/data-room.js';
 import { Records } from './db.js';
 import { URL_CANONIQUE } from './contexte.js';
 
@@ -17,22 +18,27 @@ const eur = (n) => `${Math.round(n).toLocaleString('fr-FR').replace(/[\u202f\u00
 /** Ce que le mandataire décide d'un point relevé sur les pièces. */
 export const DECISIONS_POINT = { traite: 'Traité', expliquer: "À expliquer à l'acheteur", corriger: 'À corriger avec le vendeur' };
 
-/** Pure : la catégorie d'une pièce d'après son nom de fichier (dépôt groupé) ; null quand rien ne la reconnaît. */
-export function categorieDuNom(nom) {
-  const t = sans(nom).replace(/[_\-.]+/g, ' ');
-  const regles = [
-    ['quittances', /quittance|appel de loyer|avis d ?echeance|etat locatif/],
-    ['bail', /\bbail\b|avenant/],
-    ['taxe_fonciere', /taxe fonciere|\btf\b|avis d ?imposition|impots? fonciers?/],
-    ['diagnostics', /\bdpe\b|amiante|\bdta\b|diagnostic|\berp\b|\besris\b|termite|plomb|\bcrep\b|electri/],
-    ['kbis', /k ?bis|extrait k/],
-    ['titre', /titre de propriete|attestation (notariee|de propriete)|acte de vente/],
-    ['copropriete', /copro|\bpv\b|proces verbal|assemblee|reglement|\brcp\b|\bedd\b|etat descriptif/],
-    ['charges', /appel de (charges|fonds)|\bcharges\b/],
-    ['plans', /\bplans?\b|surfaces?|metrage|carrez/],
-  ];
-  return regles.find(([, re]) => re.test(t))?.[0] || null;
-}
+/**
+ * Pure : la catégorie d'une pièce d'après son nom de fichier (dépôt groupé), parmi les cases du type du bien
+ * (src/lib/data-room.js, 6 nov. 2026) ; null quand rien ne la reconnaît.
+ */
+export const categorieDuNom = (nom, type = null, transaction = null) => caseDuNom(nom, type, transaction);
+
+// ---------------------------------------------------------------------------
+// Le dossier de location (6 nov. 2026, Jules : « adapter tout le système à la location »). Le même dossier, d'autres
+// mots : pas de droit de préférence (l'article L. 145-46-1 vise la vente du local), pas d'investisseurs ni d'équipe
+// Klocka ; « Mettre en location » ne fait que passer le bien en Commercialisation, le mandataire cherche ses candidats.
+// ---------------------------------------------------------------------------
+
+/** Ce que le mandataire décide d'un point relevé, quand le local se loue. */
+export const DECISIONS_POINT_LOCATION = { traite: 'Traité', expliquer: 'À expliquer au candidat', corriger: 'À corriger avec le propriétaire' };
+
+/** Pure : le contrôle propre à la location, la destination demandée face au règlement de copropriété. */
+export const POINT_DESTINATION = {
+  cle: 'copropriete.destination', niveau: 'signale', onglet: 'Copropriété', ligne: 'Destination permise', valeur: null,
+  motif: "Vérifiez dans le règlement de copropriété que l'activité du futur locataire est permise (clause de destination, activités interdites, nuisances, extraction) : sinon, le bail ne pourra pas s'exercer.",
+  source: 'Règlement de copropriété',
+};
 
 // ---------------------------------------------------------------------------
 // Le droit de préférence du locataire (article L. 145-46-1 du Code de commerce)
@@ -119,11 +125,13 @@ const dateFr = (t) => { const m = String(t || '').match(/(\d{2})\/(\d{2})\/(\d{4
  * Pure : les points que les pièces lues font apparaître. Ceux des grilles de l'analyse (un bloquant, ou ce qu'un
  * acheteur relèvera), et le terme du bail : à moins de deux ans, l'acheteur demandera ce que fera le locataire.
  */
-export function pointsDesPieces(synth, { echeance = null, aujourdhui = new Date() } = {}) {
+export function pointsDesPieces(synth, { echeance = null, aujourdhui = new Date(), location = false } = {}) {
   const points = (synth?.signalements || [])
     // Le rendement sous 5 % est un critère d'investisseur de l'équipe, pas un défaut du dossier du vendeur.
     .filter((s) => s.cle !== 'bien.rendement')
     .map((s) => ({ cle: s.cle, niveau: s.niveau, onglet: s.onglet_titre, ligne: s.ligne, valeur: s.valeur || null, motif: s.motif || null, source: s.source || null }));
+  // En location, ni rendement ni terme d'un bail en cours : le contrôle de la destination face à la copropriété.
+  if (location) return [...points.filter((p) => !/rendement/.test(p.cle) && !String(p.cle).startsWith('bail.')), { ...POINT_DESTINATION }];
   const fin = dateFr(String(echeance || '').split(/\bau\b/i)[1] || '');
   if (fin) {
     const mois = (fin.getTime() - new Date(aujourdhui).getTime()) / (30.44 * JOUR);
@@ -149,11 +157,17 @@ export function etatDuDossier({ dossier, checklist, points = [], lecture = null,
   });
   const bloquants = avecDecision.filter((p) => p.niveau === 'bloquant' && p.decision !== 'traite');
   const manquantes = lignes.filter((l) => l.requise && l.etat === 'manquante');
+  // La Commercialisation s'ouvre dès que les pièces obligatoires sont là (7 nov. 2026, Jules : « ouverte du moment qu'on a
+  // rassemblé les documents obligatoires »). Les points bloquants, la lecture en cours et le droit de préférence ne la
+  // retiennent plus : ils se règlent pendant la commercialisation, avant d'accepter une offre (`avant_offre`). Seul un
+  // locataire qui achète le local la ferme.
   const raisons = [];
   if (manquantes.length) raisons.push(`Il manque ${manquantes.map((m) => m.mot.charAt(0).toLowerCase() + m.mot.slice(1)).join(', ')}.`);
-  if (lecture === 'en_cours') raisons.push('Les pièces se lisent.');
-  if (bloquants.length) raisons.push(`${bloquants.length} point${bloquants.length > 1 ? 's' : ''} bloquant${bloquants.length > 1 ? 's' : ''} à traiter.`);
-  if (preference && !preference.ok_pour_vente) raisons.push(preference.statut === 'accepte' ? 'Le locataire achète le local.' : 'Le droit de préférence du locataire est à régler.');
+  if (preference?.statut === 'accepte') raisons.push('Le locataire achète le local.');
+  const avantOffre = [];
+  if (lecture === 'en_cours') avantOffre.push('Les pièces se lisent.');
+  if (bloquants.length) avantOffre.push(`${bloquants.length} point${bloquants.length > 1 ? 's' : ''} bloquant${bloquants.length > 1 ? 's' : ''} à traiter.`);
+  if (preference && !preference.ok_pour_vente && preference.statut !== 'accepte') avantOffre.push('Le droit de préférence du locataire est à régler.');
   const recues = lignes.filter((l) => l.etat !== 'manquante').length;
   return {
     pieces: lignes,
@@ -161,6 +175,7 @@ export function etatDuDossier({ dossier, checklist, points = [], lecture = null,
     preference,
     pret: raisons.length === 0,
     raisons,
+    avant_offre: avantOffre,
     phrase: raisons[0] || `Dossier complet : ${recues} pièce${recues > 1 ? 's' : ''}, ${avecDecision.length ? `${avecDecision.filter((p) => p.decision).length} point${avecDecision.length > 1 ? 's' : ''} sur ${avecDecision.length} traités` : 'aucun point relevé'}.`,
   };
 }
@@ -261,21 +276,24 @@ export async function vueDuDossier(id, user) {
   const mandat = d.mandat_id ? Records.get('MandatMandataire', d.mandat_id) : null;
   const q = mandat?.questionnaire || {};
   const occupe = typeof q.bien_occupe === 'boolean' ? q.bien_occupe : c.lignes.some((l) => l.cle === 'bail' && l.recue) ? true : null;
-  const preference = etatPreference(d.preference, { occupe });
-  const etat = etatDuDossier({ dossier: d, checklist: c, points: pointsDesPieces(synth, { echeance }), lecture, preference });
+  // Un local à louer : pas de droit de préférence (il ne se vend pas), les points de la location.
+  const location = P.transactionDuDossier(d) === 'location';
+  const preference = location ? null : etatPreference(d.preference, { occupe });
+  const etat = etatDuDossier({ dossier: d, checklist: c, points: pointsDesPieces(synth, { echeance, location }), lecture, preference });
   const { annoterFichiers } = await import('./annotations-documents.js');
   etat.pieces = etat.pieces.map((l) => ({ ...l, fichiers: annoterFichiers(l.fichiers || []) }));
   const vendeur = [q.vendeur_societe, [q.vendeur_civilite, q.vendeur_prenom, q.vendeur_nom].filter(Boolean).join(' ')].filter(Boolean).join(', ') || d.proprietaire || null;
   return {
     ok: true,
+    location,
     dossier: { id: d.id, bien: d.bien, statut: d.statut, en_vente_le: d.en_vente_le || null, photos: d.photos || [], proprietaire_email: d.proprietaire_email || null, pieces_masquees: d.pieces_masquees || [] },
     ...etat,
     relance: P.relanceProprietaire(d),
-    courrier: courrierPreference({ bailleur: [vendeur, q.vendeur_adresse].filter(Boolean).join('\n') || null, locataire: q.bien_locataire || null, adresse: q.bien_adresse || d.adresse || null, designation: q.bien_designation || null, prix: d.preference?.prix || mandat?.prix || d.prix || null }),
-    exceptions: EXCEPTIONS_PREFERENCE,
-    decisions: DECISIONS_POINT,
+    courrier: location ? null : courrierPreference({ bailleur: [vendeur, q.vendeur_adresse].filter(Boolean).join('\n') || null, locataire: q.bien_locataire || null, adresse: q.bien_adresse || d.adresse || null, designation: q.bien_designation || null, prix: d.preference?.prix || mandat?.prix || d.prix || null }),
+    exceptions: location ? null : EXCEPTIONS_PREFERENCE,
+    decisions: location ? DECISIONS_POINT_LOCATION : DECISIONS_POINT,
     depot: d.depot?.jeton ? { url: urlDeDepot(d.depot.jeton), propose_le: d.depot.propose_le || null, relance_le: d.depot.relance_le || null, ouvert_le: d.depot.ouvert_le || null, deposes: d.depot.deposes || 0, dernier_depot_le: d.depot.dernier_depot_le || null, relances: d.depot.relances || 0 } : null,
-    gestes: prochainsGestes(etat, { depot: d.depot }),
+    gestes: prochainsGestes(etat, { depot: d.depot, location }),
     mail_propose: d.mail_propose || null,
     boite: (await boiteDuMandataire(d.mandataire_email))?.email || null,
   };
@@ -339,6 +357,7 @@ export async function noterPreference(id, body = {}, user) {
   const P = await import('./mandataire-portes.js');
   const d = P.lireDossier(id, user);
   if (!d) return { ok: false, error: 'Dossier introuvable.' };
+  if (P.transactionDuDossier(d) === 'location') return { ok: false, error: "Pas de droit de préférence : le local se loue, il ne se vend pas." };
   const avant = d.preference || {};
   const pref = { ...avant };
   if ('exception' in body) {
@@ -370,6 +389,8 @@ export async function mettreEnVente(id, user, { uploadDir } = {}) {
   if (['go'].includes(v.dossier.statut)) return { ok: true, deja: true };
   if (!v.pret) return { ok: false, error: v.raisons.join(' ') };
   const P = await import('./mandataire-portes.js');
+  // « Mettre en location » (6 nov. 2026) : la Commercialisation seule, sans équipe, projet ni investisseurs.
+  if (v.location) return P.ouvrirLaLocation(id, user);
   return P.ouvrirLaVente(id, user, { uploadDir });
 }
 
@@ -440,7 +461,7 @@ export async function deposerParLeVendeur(jeton, fichiers = [], { categorie = nu
   const proprio = { email: d.mandataire_email, role: 'mandataire', full_name: 'le vendeur' };
   const rangees = [];
   for (const f of fichiers) {
-    const cle = categorie || categorieDuNom(f.nom) || 'autres';
+    const cle = categorie || categorieDuNom(f.nom, P.typeDuDossier(d), P.transactionDuDossier(d)) || 'autres';
     const r = P.ajouterPiece(d.id, cle, { filename: f.nom, mimetype: f.mimetype, url: f.url, par: 'vendeur' }, proprio, { uploadDir });
     if (!r.ok) return r;
     rangees.push({ nom: f.nom, cle, piece: P.piecesDu(d).find((p) => p.cle === cle)?.mot || cle });
@@ -473,6 +494,7 @@ export function messagePiecesRecues(v, cles = []) {
   }
   if (!lignes.length) return null;
   const tete = lignes.length > 1 ? `Le propriétaire a déposé ${lignes.length} pièces.\n\n${lignes.map((l) => `- ${l}`).join('\n')}` : `Le propriétaire a déposé une pièce. ${lignes[0]}`;
+  if (v.pret && v.location) return { contenu: `${tete}\n\nLa Data room est complète : on peut mettre le local en location, puis préparer le teaser. J'y vais ?`, boutons: [{ libelle: 'Mettre en location', texte: 'Mets le local en location.', principal: true }] };
   if (v.pret) return { contenu: `${tete}\n\nLa Data room est complète : on peut mettre le bien en vente, puis préparer le teaser. J'y vais ?`, boutons: [{ libelle: 'Mettre en vente', texte: 'Mets le bien en vente.', principal: true }] };
   const manquantes = v.pieces.filter((x) => x.requise && x.etat === 'manquante');
   const prio = prioriteDesPieces(manquantes);
@@ -510,7 +532,7 @@ export async function direLesPiecesRecues(dossierId, cles = []) {
 // ---------------------------------------------------------------------------
 
 /** Pure : les gestes que Haka propose, dans l'ordre du travail (au plus trois). */
-export function prochainsGestes(v, { depot = null, aujourdhui = new Date() } = {}) {
+export function prochainsGestes(v, { depot = null, aujourdhui = new Date(), location = false } = {}) {
   const g = [];
   if (!v) return g;
   const manquantes = v.pieces.filter((p) => p.requise && p.etat === 'manquante');
@@ -522,7 +544,7 @@ export function prochainsGestes(v, { depot = null, aujourdhui = new Date() } = {
   // Le droit de préférence en tête (28 oct. 2026, Jules : « Haka doit direct le proposer ») : le mois du locataire ne
   // court qu'à la réception de la notification, plus tôt elle part, plus tôt le bien peut être vendu à un tiers.
   if (v.preference?.statut === 'a_notifier') g.unshift({ cle: 'preference', libelle: 'Préparer la notification au locataire', texte: 'Prépare la notification du droit de préférence au locataire et dis-moi comment l’envoyer.', principal: true });
-  if (v.pret) g.unshift({ cle: 'vente', libelle: 'Mettre en vente', texte: 'Le dossier est prêt : mets le bien en vente.', principal: true });
+  if (v.pret) g.unshift(location || v.location ? { cle: 'vente', libelle: 'Mettre en location', texte: 'Le dossier est prêt : mets le local en location.', principal: true } : { cle: 'vente', libelle: 'Mettre en vente', texte: 'Le dossier est prêt : mets le bien en vente.', principal: true });
   return g.slice(0, 3);
 }
 
@@ -555,8 +577,10 @@ export function prioriteDesPieces(manquantes = []) {
  * 2026, Jules : « je ne veux pas que le mandataire ait à modifier le mail ») : la priorité en tête, puis les autres
  * pièces requises ; les facultatives ne se listent plus, « tout autre document utile » les couvre.
  */
-export function mailVendeur({ genre = 'premier', bien, proprietaire = null, manquantes = [], priorite = null, url, signature = null }) {
+export function mailVendeur({ genre = 'premier', bien, proprietaire = null, manquantes = [], priorite = null, url, signature = null, location = false }) {
   const bonjour = `Bonjour${proprietaire ? ` ${proprietaire}` : ''},`;
+  // Un local à louer (6 nov. 2026) : on le présente aux candidats, pas aux investisseurs.
+  if (location) return mailProprietaireLocation({ genre, bien, bonjour, manquantes, priorite, url, signature });
   const mots = manquantes.map((m) => (typeof m === 'string' ? m : m.mot));
   const autres = priorite ? mots.filter((m) => m !== priorite.mot) : mots;
   const enTete = priorite ? `En priorité : ${priorite.mot.charAt(0).toLowerCase()}${priorite.mot.slice(1)} (${priorite.raison}).` : '';
@@ -571,6 +595,25 @@ export function mailVendeur({ genre = 'premier', bien, proprietaire = null, manq
   return {
     objet: `${bien} : votre espace pour déposer les documents de la vente`,
     corps: `${bonjour}\n\nMerci encore pour votre confiance. Pour préparer la mise en vente de votre bien, j'ai besoin de quelques documents.${enTete ? `\n\n${enTete}` : ''}${liste ? `\n\n${enTete ? 'Ensuite :' : 'Il s’agit de :'}\n${liste}` : ''}\n\nVous pouvez tout déposer ici, quand vous le souhaitez, en photo ou en PDF, sans créer de compte : chaque document se range tout seul, et je suis prévenu à chaque envoi.\n${url}\n\nTout autre document utile (titre de propriété, charges, plans, travaux, échanges avec le locataire) est le bienvenu. Je reviens vers vous dès que le dossier est complet, avec les prochaines étapes.${fin}`,
+  };
+}
+
+/** Pure : le mail au propriétaire d'un local à louer, premier envoi ou relance, sur la même trame que la vente. */
+function mailProprietaireLocation({ genre, bien, bonjour, manquantes = [], priorite = null, url, signature = null }) {
+  const mots = manquantes.map((m) => (typeof m === 'string' ? m : m.mot));
+  const autres = priorite ? mots.filter((m) => m !== priorite.mot) : mots;
+  const enTete = priorite ? `En priorité : ${priorite.mot.charAt(0).toLowerCase()}${priorite.mot.slice(1)} (${priorite.raison}).` : '';
+  const liste = autres.map((m) => `- ${m}`).join('\n');
+  const fin = `\n\nBien cordialement,${signature ? `\n${signature}` : ''}`;
+  if (genre === 'relance') {
+    return {
+      objet: `${bien} : les documents qui manquent encore`,
+      corps: `${bonjour}\n\nPour présenter votre local aux candidats, il me manque encore quelques documents.${enTete ? `\n\n${enTete}` : ''}${liste ? `\n\n${enTete ? 'Puis :' : 'Il s’agit de :'}\n${liste}` : ''}\n\nVous pouvez les déposer directement ici, en photo ou en PDF, sans créer de compte :\n${url}\n\nMerci beaucoup.${fin}`,
+    };
+  }
+  return {
+    objet: `${bien} : votre espace pour déposer les documents de la location`,
+    corps: `${bonjour}\n\nMerci encore pour votre confiance. Pour présenter votre local aux candidats, j'ai besoin de quelques documents.${enTete ? `\n\n${enTete}` : ''}${liste ? `\n\n${enTete ? 'Ensuite :' : 'Il s’agit de :'}\n${liste}` : ''}\n\nVous pouvez tout déposer ici, quand vous le souhaitez, en photo ou en PDF, sans créer de compte : chaque document se range tout seul, et je suis prévenu à chaque envoi.\n${url}\n\nTout autre document utile (règlement de copropriété, charges, plans, travaux, autorisations) est le bienvenu. Je reviens vers vous dès que le dossier est complet, avec les prochaines étapes.${fin}`,
   };
 }
 
@@ -593,17 +636,22 @@ export function cadreDuDossier(v, d, gestes = []) {
   const depot = d?.depot;
   const prio = prioriteDesPieces(v.pieces.filter((p) => p.requise && p.etat === 'manquante'));
   return [
-    `\n\nDOSSIER DE VENTE ouvert à l'écran : « ${d.bien} » (dossier ${d.id}), statut ${d.statut}. Plus d'analyste : le mandataire complète le dossier, puis le met en vente lui-même. Tu es son assistant pour cette étape : tu proposes le geste suivant, tu rédiges, il valide.`,
+    v.location
+      ? `\n\nDOSSIER DE LOCATION ouvert à l'écran : « ${d.bien} » (dossier ${d.id}), statut ${d.statut}. Le local SE LOUE : le mandataire complète le dossier, puis le met en location lui-même et cherche ses candidats ; rien ne part aux investisseurs ni à l'équipe Klocka. Tu es son assistant pour cette étape : tu proposes le geste suivant, tu rédiges, il valide.`
+      : `\n\nDOSSIER DE VENTE ouvert à l'écran : « ${d.bien} » (dossier ${d.id}), statut ${d.statut}. Plus d'analyste : le mandataire complète le dossier, puis le met en vente lui-même. Tu es son assistant pour cette étape : tu proposes le geste suivant, tu rédiges, il valide.`,
     `Pièces : ${pieces}.`,
     points ? `Points relevés sur les pièces :\n${points}` : 'Aucun point relevé pour l\'instant.',
-    `Droit de préférence du locataire (art. L. 145-46-1) : ${v.preference.phrase}`,
+    v.preference ? `Droit de préférence du locataire (art. L. 145-46-1) : ${v.preference.phrase}` : "Pas de droit de préférence : il ne vise que la vente du local. N'en parle pas.",
     `Espace de dépôt du vendeur : ${depot?.jeton ? `lien créé${depot.propose_le ? `, mail proposé le ${depot.propose_le.slice(0, 10)}` : ''}${depot.ouvert_le ? `, ouvert par le vendeur le ${depot.ouvert_le.slice(0, 10)}` : ', pas encore ouvert'}${depot.deposes ? `, ${depot.deposes} fichier(s) déposé(s) par le vendeur` : ''}` : 'pas encore créé'}.`,
-    `Mise en vente : ${v.pret ? 'possible maintenant' : `pas encore (${v.raisons.join(' ')})`}.`,
+    `Mise en ${v.location ? 'location' : 'vente'} : ${v.pret ? 'possible maintenant' : `pas encore (${v.raisons.join(' ')})`}.${v.avant_offre?.length ? ` À régler pendant la commercialisation, avant d'accepter une offre : ${v.avant_offre.join(' ')}` : ''}`,
+    // La suite, dite simplement (7 nov. 2026, Jules : « on est déjà en data room puisque le mandat est signé ») : plus
+    // d'étude ni de go de Klocka, la Data room mène droit à la Commercialisation.
+    `LA SUITE, si le mandataire demande ce qui vient après : on est déjà dans la Data room (le mandat est signé). ${v.pret ? `Les pièces obligatoires sont là : la prochaine étape est la Commercialisation (${v.location ? 'mettre le local en location' : 'mettre le bien en vente'}), où le teaser, les annonces et la fiche confrère se préparent d'office ; ensuite il pilote la relation avec les ${v.location ? 'candidats' : 'acquéreurs'}, les visites et les offres.` : `Une fois les pièces obligatoires reçues, la prochaine étape est la Commercialisation ; ensuite il pilote la relation avec les ${v.location ? 'candidats' : 'acquéreurs'}, les visites et les offres.`} JAMAIS d'étude du dossier par Klocka, ni de go, de compléments ou de no-go : cela n'existe plus.`,
     // C'est l'assistant qui guide, pas des boutons (2 nov. 2026, Jules : « c'est l'assistant qui demande et propose ce
     // qu'il y a à faire, pas l'humain qui va appuyer sur des boutons ») : la colonne de droite se lit, elle n'agit pas.
     `C'EST TOI QUI GUIDES : la colonne de droite montre le dossier en lecture seule, sans bouton ; le mandataire n'agit que par toi. Tu demandes, tu proposes le geste, il dit oui.`,
     // L'arrivée fait le travail (2 nov. 2026 au soir, Jules) : plus de question « quels documents avez-vous ? ».
-    `LES PIÈCES D'ABORD. Au mandat signé, tu as déjà dit ce qui est dans la Data room, la pièce prioritaire, et préparé le mail au propriétaire : il est dans ce chat, sous ton premier message, et part d'un tap sur « Envoyer » (la Data room, à droite, ne montre que les pièces). Ne demande JAMAIS quels documents il a : la Data room le dit. S'il glisse des pièces ici, range-les. S'il demande le mail, ou s'il a été écarté : mail_vendeur (« premier »), puis dis qu'il est juste dessous. Sans adresse du propriétaire, demande-la en une ligne, c'est la seule question. Les relances : à ${DELAI_RELANCE_JOURS} jours sans pièce, la relance se prépare ici, dans le chat (mail_vendeur « relance ») ; après ${RELANCES_AVANT_APPEL} relances, propose d'appeler. La pièce prioritaire : ${prio ? `${prio.mot} (${prio.raison})` : 'aucune, les requises sont là'}. Ensuite seulement le droit de préférence du locataire, les photos, puis la mise en vente.`,
+    `LES PIÈCES D'ABORD. Au mandat signé, tu as déjà dit ce qui est dans la Data room, la pièce prioritaire, et préparé le mail au propriétaire : il est dans ce chat, sous ton premier message, et part d'un tap sur « Envoyer » (la Data room, à droite, ne montre que les pièces). Ne demande JAMAIS quels documents il a : la Data room le dit. S'il glisse des pièces ici, range-les. S'il demande le mail, ou s'il a été écarté : mail_vendeur (« premier »), puis dis qu'il est juste dessous. Sans adresse du propriétaire, demande-la en une ligne, c'est la seule question. Les relances : à ${DELAI_RELANCE_JOURS} jours sans pièce, la relance se prépare ici, dans le chat (mail_vendeur « relance ») ; après ${RELANCES_AVANT_APPEL} relances, propose d'appeler. La pièce prioritaire : ${prio ? `${prio.mot} (${prio.raison})` : 'aucune, les requises sont là'}. Les pièces obligatoires reçues, propose ${v.location ? 'la mise en location' : 'la mise en vente'} (mettre_en_vente) ; ${v.location ? 'les photos' : 'le droit de préférence du locataire et les photos'} suivent en parallèle.`,
     gestes.length ? `Gestes à proposer, dans l'ordre : ${gestes.map((x) => x.libelle).join(', ')}.` : '',
     "Outils : dossier_de_vente (relire l'état), mail_vendeur (premier mail avec le lien de dépôt, ou relance : un brouillon que le mandataire envoie de sa messagerie), trancher_point (Traité, À expliquer à l'acheteur, À corriger avec le vendeur), droit_de_preference (notifiée le, réponse, exception, ou « courrier » : le mail au propriétaire avec la lettre, prêt à envoyer à droite), mettre_en_vente (une carte à confirmer d'un tap). Pour un point, explique en une phrase ce qu'un acheteur en dira et conseille une décision ; ne tranche que si le mandataire le dit. N'invente jamais une date de notification ni une réponse du locataire.",
   ].filter(Boolean).join('\n');
@@ -638,7 +686,7 @@ export async function executerOutilDossier(appel, user, contexte = {}) {
   if (appel.name === 'dossier_de_vente') {
     const v = await vueDuDossier(d.id, user);
     if (!v.ok) return v;
-    return { ok: true, phrase: v.phrase, pret: v.pret, raisons: v.raisons, pieces: v.pieces.map((p) => ({ piece: p.mot, requise: p.requise, etat: p.etat })), points: v.points, preference: v.preference.phrase, depot: d.depot || null, gestes: prochainsGestes(v, { depot: d.depot }) };
+    return { ok: true, phrase: v.phrase, pret: v.pret, raisons: v.raisons, pieces: v.pieces.map((p) => ({ piece: p.mot, requise: p.requise, etat: p.etat })), points: v.points, location: v.location, preference: v.preference?.phrase || null, depot: d.depot || null, gestes: prochainsGestes(v, { depot: d.depot }) };
   }
   if (appel.name === 'mail_vendeur') {
     const l = await lienDeDepot(d.id, user);
@@ -646,7 +694,7 @@ export async function executerOutilDossier(appel, user, contexte = {}) {
     const v = await vueDuDossier(d.id, user);
     const manquantes = v.pieces.filter((p) => p.requise && p.etat === 'manquante');
     const s = signataire(d.mandataire_email);
-    const m = mailVendeur({ genre: input.genre, bien: d.bien, proprietaire: d.proprietaire, manquantes, priorite: prioriteDesPieces(manquantes), url: l.url, signature: [s.nom, s.telephone].filter(Boolean).join('\n') });
+    const m = mailVendeur({ genre: input.genre, bien: d.bien, proprietaire: d.proprietaire, manquantes, priorite: prioriteDesPieces(manquantes), url: l.url, signature: [s.nom, s.telephone].filter(Boolean).join('\n'), location: v.location });
     let corps = String(input.corps || '').trim() || m.corps;
     if (!corps.includes(l.url)) corps = `${corps}\n\nLe lien pour déposer les documents :\n${l.url}`;
     // Le mail attend sur le dossier comme celui de la veille ; il est marqué parti à l'envoi seulement.
@@ -657,6 +705,7 @@ export async function executerOutilDossier(appel, user, contexte = {}) {
   }
   if (appel.name === 'trancher_point') return deciderPoint(d.id, input.cle, input.decision || null, user);
   if (appel.name === 'droit_de_preference') {
+    if ((await import('./mandataire-portes.js')).transactionDuDossier(d) === 'location') return { ok: false, error: "Pas de droit de préférence : le local se loue, il ne se vend pas." };
     if (input.action === 'courrier') {
       // Un mail prêt à partir, pas un texte à recopier (3 nov. 2026, Jules : « ça m'a mis le mail en texte normal, pas
       // dans un module de mail que je peux envoyer directement ») : le mail au propriétaire, la lettre dedans, en haut
@@ -676,7 +725,8 @@ export async function executerOutilDossier(appel, user, contexte = {}) {
   if (appel.name === 'mettre_en_vente') {
     const v = await vueDuDossier(d.id, user);
     if (!v.pret) return { ok: false, error: `Pas encore : ${v.raisons.join(' ')}` };
-    return { ok: true, a_confirmer: true, carte: { type: 'confirmer_vente', id: `vente-${d.id}`, dossier_id: d.id, mot: 'Mettre en vente', titre: d.bien, pour: 'Mettre en vente' }, note: "Pas encore fait : le mandataire confirme d'un tap." };
+    const mot = v.location ? 'Mettre en location' : 'Mettre en vente';
+    return { ok: true, a_confirmer: true, carte: { type: 'confirmer_vente', id: `vente-${d.id}`, dossier_id: d.id, mot, titre: d.bien, pour: mot }, note: "Pas encore fait : le mandataire confirme d'un tap." };
   }
   return { ok: false, error: 'Outil inconnu.' };
 }
@@ -716,10 +766,10 @@ export function mailAPreparer(v, depot = null, { aujourdhui = new Date(), deja =
 }
 
 /** Pure : quoi dire au propriétaire au téléphone, quand les relances n'ont rien donné. */
-export function quoiDireAuTelephone({ proprietaire = null, manquantes = [], priorite = null } = {}) {
+export function quoiDireAuTelephone({ proprietaire = null, manquantes = [], priorite = null, location = false } = {}) {
   const pieces = manquantes.map((m) => m.charAt(0).toLowerCase() + m.slice(1));
   return [
-    `« Bonjour${proprietaire ? ` ${proprietaire}` : ''}, je vous appelle pour la vente de votre bien : tout avance, il ne me manque que ${pieces.length > 1 ? `${pieces.slice(0, -1).join(', ')} et ${pieces.at(-1)}` : pieces[0]}. »`,
+    `« Bonjour${proprietaire ? ` ${proprietaire}` : ''}, je vous appelle pour ${location ? 'la location de votre local' : 'la vente de votre bien'} : tout avance, il ne me manque que ${pieces.length > 1 ? `${pieces.slice(0, -1).join(', ')} et ${pieces.at(-1)}` : pieces[0]}. »`,
     priorite ? `Dites pourquoi : ${priorite.raison}.` : null,
     "Proposez de l'aider : une photo prise au téléphone suffit, ou l'expert-comptable, le notaire ou le syndic peut l'envoyer directement par le lien.",
     "Fixez ensemble un jour : « Je regarde jeudi, ça vous va ? »",
@@ -742,7 +792,7 @@ export async function veilleDuDossier(id, { notifier: prevenir = true } = {}) {
   if (a.genre === 'appel') {
     const tel = mandat?.questionnaire?.vendeur_telephone || null;
     Records.update('DossierMandataire', d.id, { depot: { ...(d.depot || {}), appel_propose_le: maintenant() } });
-    await M.direAuMandataire(mandat, `${a.raison} Voici quoi lui dire :\n\n${quoiDireAuTelephone({ proprietaire: d.proprietaire, manquantes: a.manquantes, priorite })}`, {
+    await M.direAuMandataire(mandat, `${a.raison} Voici quoi lui dire :\n\n${quoiDireAuTelephone({ proprietaire: d.proprietaire, manquantes: a.manquantes, priorite, location: v.location })}`, {
       boutons: [
         ...(tel ? [{ libelle: 'Appeler', href: `tel:${String(tel).replace(/[^\d+]/g, '')}`, principal: true }] : []),
         { libelle: 'Une dernière relance par mail', texte: 'Prépare une dernière relance par mail au propriétaire.' },
@@ -752,7 +802,7 @@ export async function veilleDuDossier(id, { notifier: prevenir = true } = {}) {
   }
   const l = await lienDeDepot(d.id, proprio);
   const s = signataire(d.mandataire_email);
-  const m = mailVendeur({ genre: a.genre, bien: d.bien, proprietaire: d.proprietaire, manquantes: requises, priorite, url: l.url, signature: [s.nom, s.telephone].filter(Boolean).join('\n') });
+  const m = mailVendeur({ genre: a.genre, bien: d.bien, proprietaire: d.proprietaire, manquantes: requises, priorite, url: l.url, signature: [s.nom, s.telephone].filter(Boolean).join('\n'), location: v.location });
   const mail = { genre: a.genre, raison: a.raison, a: d.proprietaire_email || '', objet: m.objet, corps: m.corps, le: maintenant() };
   Records.update('DossierMandataire', d.id, { mail_propose: mail });
   // La relance se dit aussi dans le fil du bien, là où le mandataire travaille ; le premier mail, lui, est annoncé par
@@ -850,6 +900,12 @@ export async function ecarterMailVendeur(id, user) {
 export const ETAPES_KLOCKA = [['analyse', 'Analyse'], ['presentation', 'Présentation'], ['interesse', 'Intéressé'], ['offre', 'Offre'], ['financement', 'Financement']];
 
 /** Le mandataire choisit la voie : « klocka » (envoyé à Klocka) ou « moi » (il le commercialise lui-même). */
+/** Pure : Klocka reprend la vente de murs seulement (7 nov. 2026, Jules) : ni location, ni fonds, ni droit au bail. */
+export function envoiAKlocka(m, typeBien = null) {
+  if (['a_louer', 'fonds', 'droit_au_bail'].includes(m?.teaser?.classe)) return false;
+  return !/fonds|droit_au_bail|^FONDS$/i.test(String(typeBien || '')) || /murs/i.test(String(typeBien || ''));
+}
+
 export async function choisirVoie(marcheId, voie, user) {
   if (!['klocka', 'moi'].includes(voie)) return { ok: false, error: 'Voie inconnue.' };
   const P = await import('./mandataire-portes.js');
@@ -857,6 +913,10 @@ export async function choisirVoie(marcheId, voie, user) {
   if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   const d = m.dossier_id ? Records.get('DossierMandataire', m.dossier_id) : null;
   if (voie === 'klocka' && !d) return { ok: false, error: "Ce bien n'a pas de dossier à envoyer." };
+  // Un local à louer ne part jamais chez Klocka (6 nov. 2026) : le mandataire cherche ses candidats lui-même.
+  if (voie === 'klocka' && P.transactionDuDossier(d) === 'location') return { ok: false, error: "Un local à louer ne s'envoie pas à Klocka : vous cherchez vos candidats vous-même." };
+  // Un fonds de commerce ou un droit au bail non plus (7 nov. 2026, Jules) : Klocka présente des murs à ses investisseurs.
+  if (voie === 'klocka' && !envoiAKlocka(m, P.typeDuDossier(d))) return { ok: false, error: "Un fonds de commerce ou un droit au bail ne s'envoie pas à Klocka : vous le commercialisez vous-même." };
   Records.update('MiseEnMarche', m.id, { voie, voie_le: maintenant() });
   if (voie === 'klocka') {
     // L'équipe voit le dossier, un analyste le prend, la conversation s'ouvre.

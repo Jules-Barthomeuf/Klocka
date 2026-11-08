@@ -3,7 +3,8 @@
 // et ce que le chat en dit à Haka.
 
 import { Records, Conversations } from './db.js';
-import { ETAPES_BIEN, marqueurDe, rangValide } from '../src/lib/biens-mandataire.js';
+import { etapesDuBien, etapesVisibles, libelleVisible, marqueurDe, rangValide } from '../src/lib/biens-mandataire.js';
+import { estLocation } from '../src/lib/location.js';
 import { montant, fourchette } from './montants.js';
 import * as F from './fil-du-bien.js';
 
@@ -87,7 +88,12 @@ export function cadreDuBien(p) {
   const r = estimation?.rapport || {};
   const lignes = [];
   const rang = rangValide(p.biens?.validee);
-  lignes.push(`Ce bien est dans Biens, étapes ${ETAPES_BIEN.map((e) => e.label).join(', ')} ; dernière franchie à la main : ${rang < 0 ? 'aucune (le rendez-vous est pris)' : ETAPES_BIEN[rang].label}.`);
+  const etapes = etapesDuBien(p);
+  if (estLocation(p)) lignes.push("C'est une LOCATION, pas une vente : on cherche un locataire. L'estimation donne un loyer (pas de prix ni de rendement), le mandat est un mandat de location, les acquéreurs sont des candidats locataires, et le bien n'est jamais proposé aux investisseurs de Klocka. À l'écran, les futurs locataires s'appellent des ACQUÉREURS (onglet Acquéreurs, 8 nov. 2026, Jules) : dis « acquéreurs », jamais « candidats » ni « onglet Candidats »."
+    // Ce qui suit dans ce cadre parle de vente (prix d'accord, net vendeur, mise en vente) : en location, il se lit en
+    // loyer, candidats et bail (6 nov. 2026, Jules).
+    + " Ce qui suit sur le prix d'accord, le net vendeur, le rendement, les demandes des clients et la mise en vente se lit ici en loyer demandé, candidats (contact, visite, dossier reçu : Kbis, bilans, projet, garanties ; accord ; bail signé) et bail commercial ; le mandat porte le loyer demandé, pas un prix ; le bien loué, c'est le bail signé (avancer_bien à la dernière étape, ou le candidat au statut bail_signe).");
+  lignes.push(`Ce bien est dans Biens, étapes ${etapesVisibles(p).map((e) => e.label).join(', ')} (la ${etapesVisibles(p)[3].label} a deux temps : la Data room, puis le teaser et les annonces) ; dernière franchie à la main : ${rang < 0 ? 'aucune (le rendez-vous est pris)' : `${libelleVisible(p, etapes[rang].id)}${['dataroom', 'marche'].includes(etapes[rang].id) ? ` (${etapes[rang].id === 'dataroom' ? 'Data room réunie' : 'teaser validé'})` : ''}`}.`);
   if (estimation) lignes.push(`Avis de valeur « ${estimation.bien} » : ${estimation.statut}${r.prix_bas ? `, ${r.prix_bas.toLocaleString('fr-FR')} à ${r.prix_haut.toLocaleString('fr-FR')} €` : ''}.`);
   else lignes.push('Pas encore d\'avis de valeur.');
   if (p.biens?.prix_accord) lignes.push(`Prix d'accord avec le propriétaire : ${p.biens.prix_accord.toLocaleString('fr-FR')} € net vendeur.`);

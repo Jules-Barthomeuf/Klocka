@@ -569,7 +569,7 @@ export default function KEstimation() {
     if (q.length < 3 || q === choisie.current) { setSuggestions([]); return; }
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?autocomplete=1&limit=5&q=${encodeURIComponent(q)}`);
+        const r = await fetch(`https://data.geopf.fr/geocodage/search/?autocomplete=1&limit=5&q=${encodeURIComponent(q)}`);
         const f = r.ok ? (await r.json()).features || [] : [];
         setSuggestions(f.map((x) => x.properties?.label).filter(Boolean));
       } catch { /* BAN injoignable */ }

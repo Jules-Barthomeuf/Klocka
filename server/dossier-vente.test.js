@@ -19,8 +19,9 @@ test('une pièce se range d’après son nom de fichier', () => {
   assert.equal(V.categorieDuNom('TF 2025.pdf'), 'taxe_fonciere');
   assert.equal(V.categorieDuNom('DPE local.pdf'), 'diagnostics');
   assert.equal(V.categorieDuNom('PV AG 2024.pdf'), 'copropriete');
-  assert.equal(V.categorieDuNom('Appel de charges T3.pdf'), 'charges');
-  assert.equal(V.categorieDuNom('extrait kbis.pdf'), 'kbis');
+  assert.equal(V.categorieDuNom('Appel de charges T3.pdf'), 'copropriete', 'les charges vont avec la copropriété');
+  assert.equal(V.categorieDuNom('extrait kbis.pdf'), null, 'plus de case Kbis pour des murs');
+  assert.equal(V.categorieDuNom('extrait kbis.pdf', 'fonds_commerce'), 'kbis_fonds');
   assert.equal(V.categorieDuNom('IMG_2034.jpg'), null);
 });
 
@@ -50,7 +51,7 @@ test('les points des pièces : sans le critère d’investisseur, avec le terme 
   assert.equal(V.pointsDesPieces(synth, { echeance: 'du 01/01/2024 au 31/12/2032', aujourdhui: AUJ }).length, 1);
 });
 
-test('« Mettre en vente » attend les pièces, les bloquants traités et le droit de préférence', () => {
+test('« Mettre en vente » attend les pièces obligatoires seules ; le reste se règle avant une offre (7 nov. 2026)', () => {
   const lignes = (recues) => ({ lignes: P.PIECES.map((p) => ({ ...p, recue: recues.includes(p.cle), fichiers: [] })) });
   const pref = V.etatPreference({ exception: 'libre' });
   const dossier = { points_vente: {} };
@@ -59,14 +60,15 @@ test('« Mettre en vente » attend les pièces, les bloquants traités et le dro
   assert.match(manque.phrase, /Il manque trois dernières quittances/);
   const toutes = ['bail', 'quittances', 'diagnostics', 'taxe_fonciere'];
   const bloque = V.etatDuDossier({ dossier, checklist: lignes(toutes), points: [{ cle: 'x', niveau: 'bloquant', onglet: 'Bail' }], preference: pref });
-  assert.equal(bloque.pret, false);
+  assert.equal(bloque.pret, true, 'un point bloquant se règle avant une offre');
+  assert.match(bloque.avant_offre.join(' '), /1 point bloquant/);
   assert.equal(bloque.pieces.find((p) => p.cle === 'bail').etat, 'a_verifier');
-  const corrige = V.etatDuDossier({ dossier: { points_vente: { x: { decision: 'corriger' } } }, checklist: lignes(toutes), points: [{ cle: 'x', niveau: 'bloquant', onglet: 'Bail' }], preference: pref });
-  assert.equal(corrige.pret, false, 'à corriger ne débloque pas');
   const traite = V.etatDuDossier({ dossier: { points_vente: { x: { decision: 'traite' } } }, checklist: lignes(toutes), points: [{ cle: 'x', niveau: 'bloquant', onglet: 'Bail' }], preference: pref });
-  assert.equal(traite.pret, true);
-  assert.equal(V.etatDuDossier({ dossier, checklist: lignes(toutes), preference: V.etatPreference({}, { occupe: true }) }).pret, false);
-  assert.equal(V.etatDuDossier({ dossier, checklist: lignes(toutes), lecture: 'en_cours', preference: pref }).pret, false);
+  assert.deepEqual(traite.avant_offre, []);
+  const aNotifier = V.etatDuDossier({ dossier, checklist: lignes(toutes), preference: V.etatPreference({}, { occupe: true }) });
+  assert.equal(aNotifier.pret, true);
+  assert.match(aNotifier.avant_offre.join(' '), /droit de préférence/);
+  assert.equal(V.etatDuDossier({ dossier, checklist: lignes(toutes), lecture: 'en_cours', preference: pref }).pret, true);
 });
 
 test('de bout en bout : préférence notée, mise en vente par le mandataire, sans analyste', async () => {
@@ -76,7 +78,8 @@ test('de bout en bout : préférence notée, mise en vente par le mandataire, sa
   Records.update('DossierMandataire', d.id, { documents: docs, statut: 'complet' });
   const avant = await V.vueDuDossier(d.id, user);
   assert.equal(avant.preference.statut, 'a_notifier', 'un bail déposé : le bien est loué');
-  assert.equal((await V.mettreEnVente(d.id, user)).ok, false);
+  assert.equal(avant.pret, true, 'les pièces obligatoires suffisent à ouvrir la vente (7 nov. 2026)');
+  assert.match(avant.avant_offre.join(' '), /droit de préférence/);
   assert.equal((await V.noterPreference(d.id, { notifie_le: '2030-01-01' }, user)).ok, false, 'pas dans le futur');
   assert.equal((await V.noterPreference(d.id, { notifie_le: '2026-10-20' }, user)).ok, true);
   assert.equal((await V.deciderPoint(d.id, 'bail.tva', 'expliquer', user)).ok, true);
@@ -238,4 +241,41 @@ test('la notification au locataire : un mail au propriétaire, prêt à envoyer 
   assert.ok(apres.preference.courrier_envoye_le);
   assert.equal(apres.depot?.propose_le, undefined, 'le premier mail des pièces n’est pas marqué parti');
   assert.match(V.etatPreference(apres.preference, { occupe: true }).phrase, /partie chez le propriétaire/);
+});
+
+test('le dossier de location : sans droit de préférence ni investisseurs, « Mettre en location » ouvre la Commercialisation seule (6 nov. 2026)', async () => {
+  const user = { email: 'loc@kpartners.fr', role: 'mandataire' };
+  const fiche = Records.create('ProprietaireMandataire', { mandataire_email: user.email, commerce: 'Local rue Neuve', statut: 'rdv_pris', type_bien: 'murs_commerce', biens: { transaction: 'location' } });
+  const mandat = Records.create('MandatMandataire', { mandataire_email: user.email, bien: 'Local rue Neuve', proprietaire_id: fiche.id, questionnaire: { bien_occupe: false } });
+  const { dossier: d } = P.creerDossier({ bien: 'Local rue Neuve' }, user);
+  Records.update('DossierMandataire', d.id, { mandat_id: mandat.id });
+  assert.equal(P.transactionDuDossier(Records.get('DossierMandataire', d.id)), 'location');
+  const avant = await V.vueDuDossier(d.id, user);
+  assert.equal(avant.location, true);
+  assert.equal(avant.preference, null, 'pas de droit de préférence');
+  assert.equal(avant.courrier, null);
+  assert.ok(!avant.pieces.some((p) => ['bail', 'quittances', 'bilans'].includes(p.cle)));
+  assert.match(avant.phrase, /Il manque diagnostics.*plans et surfaces/);
+  assert.ok(avant.points.some((p) => p.cle === 'copropriete.destination'), 'la destination face à la copropriété');
+  assert.equal(avant.decisions.expliquer, 'À expliquer au candidat');
+  assert.equal((await V.noterPreference(d.id, { exception: 'libre' }, user)).ok, false);
+  const docs = { diagnostics: [{ nom: 'DPE.pdf', url: '/uploads/dpe.pdf' }], plans: [{ nom: 'plans.pdf', url: '/uploads/plans.pdf' }] };
+  Records.update('DossierMandataire', d.id, { documents: docs, statut: 'complet' });
+  const pret = await V.vueDuDossier(d.id, user);
+  assert.equal(pret.pret, true, 'la destination se vérifie, elle ne bloque pas');
+  assert.equal(pret.gestes[0].libelle, 'Mettre en location');
+  assert.match(V.cadreDuDossier(pret, Records.get('DossierMandataire', d.id)), /DOSSIER DE LOCATION/);
+  const r = await V.mettreEnVente(d.id, user);
+  assert.equal(r.ok, true);
+  assert.equal(r.dossier.statut, 'go');
+  assert.equal(r.marche.statut, 'preparation');
+  const apres = Records.get('DossierMandataire', d.id);
+  assert.equal(apres.deal_id, null, 'aucun dossier d’analyse pour l’équipe');
+  assert.equal(apres.projet_id, undefined, 'aucun projet Klocka');
+  assert.equal((await V.choisirVoie(r.marche.id, 'klocka', user)).ok, false, 'pas d’envoi à Klocka');
+  const m = V.mailVendeur({ genre: 'premier', bien: 'Local rue Neuve', manquantes: ['Plans et surfaces'], url: 'https://x/d', location: true });
+  assert.match(m.corps, /présenter votre local aux candidats/);
+  assert.doesNotMatch(`${m.objet} ${m.corps}`, /investisseurs|vente/);
+  assert.match(V.mailVendeur({ genre: 'relance', bien: 'B', manquantes: ['DPE'], url: 'u', location: true }).corps, /aux candidats/);
+  assert.match(V.mailVendeur({ genre: 'relance', bien: 'B', manquantes: ['DPE'], url: 'u' }).corps, /aux investisseurs/, 'la vente ne change pas');
 });

@@ -62,7 +62,7 @@ export function reponsesLues(brut, cles) {
  * Ce que le fil et la fiche disent, en réponses du questionnaire de l'avis. `cles` : les clés à chercher, avec leur
  * libellé. Sans modèle (tests, pas de clé) ou sans rien à lire : {}. `invoke` remplace le modèle dans les tests.
  */
-export async function lireLeBien({ p = null, messages = [], cles = {}, aujourdhui = '', user = null, invoke = null } = {}) {
+export async function lireLeBien({ p = null, messages = [], cles = {}, aujourdhui = '', user = null, invoke = null, location = false } = {}) {
   const texte = texteDuBien(p, messages);
   if (!texte.trim()) return {};
   const appeler = invoke || (async (args) => {
@@ -75,7 +75,10 @@ export async function lireLeBien({ p = null, messages = [], cles = {}, aujourdhu
   const brut = await appeler({
     prompt:
       `Voici tout ce qu'un mandataire K Partners sait d'un local commercial : la fiche, puis la conversation du bien (appels, pré-visite, visite, avis), du plus ancien au plus récent. Nous sommes le ${aujourdhui}.\n\n` +
-      `Remplis les réponses du questionnaire de son avis de valeur avec ce qui est DIT, et seulement ce qui est dit. Une information dite deux fois : la plus récente l'emporte. Rien de déduit ni d'inventé : une clé dont rien ne parle reste absente. Les montants en nombre (loyer annuel HT hors charges en €, surface utile en m²) ; un loyer mensuel se multiplie par 12. Les dates en toutes lettres (« 12 mars 2021 »), une date relative (« hier ») calculée depuis la date du jour. Critères du taux : rang_rue (n1 | n1bis | n2), profil_locataire (enseigne | solide | fragile), charges_refacturees et taxe_fonciere_refacturee (oui | non).\n\n` +
+      `Remplis les réponses du questionnaire de son avis de valeur${location ? ' locative (le local est À LOUER : on estimera son loyer, il n\'a pas de bail en place)' : ''} avec ce qui est DIT, et seulement ce qui est dit. Une information dite deux fois : la plus récente l'emporte. Rien de déduit ni d'inventé : une clé dont rien ne parle reste absente. Les montants en nombre (loyer annuel HT hors charges en €, surface utile en m²) ; un loyer mensuel se multiplie par 12. Les dates en toutes lettres (« 12 mars 2021 »), une date relative (« hier ») calculée depuis la date du jour. ${location
+        // Un local à louer (6 nov. 2026, Jules) : ses critères à lui, ni bail ni taux.
+        ? 'Critères du local : rang_rue (n1 | n1bis | n2), extraction (oui | non), etat_local (a_rafraichir | bon | refait).'
+        : 'Critères du taux : rang_rue (n1 | n1bis | n2), profil_locataire (enseigne | solide | fragile), charges_refacturees et taxe_fonciere_refacturee (oui | non).'}\n\n` +
       `Les clés :\n${Object.entries(cles).map(([k, mot]) => `- ${k} : ${mot}`).join('\n')}\n\n` +
       `CE QU'ON SAIT :\n${texte}`,
     response_json_schema: { type: 'object', properties: proprietes },

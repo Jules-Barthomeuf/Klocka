@@ -99,7 +99,7 @@ export async function communesProches(recherche) {
   const q = String(recherche || '').trim();
   if (q.length < 3) return [];
   try {
-    const r = await fetch(`https://api-adresse.data.gouv.fr/search/?type=municipality&limit=5&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(8000) });
+    const r = await fetch(`https://data.geopf.fr/geocodage/search/?type=municipality&limit=5&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return [];
     const noms = ((await r.json()).features || [])
       .filter((f) => (f.properties?.score ?? 0) >= 0.4)
@@ -423,9 +423,9 @@ export const poseLaQuestionDuMode = (texte) => /multicrit[eè]re/i.test(texte ||
  */
 export async function discuterProspection({ historique = [], texte, user, surEtape = null }) {
   const { runAgent } = await import('./llm.js');
-  const { secteurDe } = await import('./mandataire-espace.js');
+  const { secteurDe, nomsDuSecteur } = await import('./mandataire-espace.js');
   const secteur = secteurDe(user);
-  const communes = (secteur?.unites || []).map((u) => u.nom);
+  const communes = nomsDuSecteur(secteur);
   let formulaire = null;
   let prospective = null;
   let villeChoisie = null;

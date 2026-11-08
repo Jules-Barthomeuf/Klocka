@@ -7,7 +7,7 @@ import { euros } from "@/components/mandataire/kit";
 
 // Le Suivi d'un bien dont l'avis est parti (27 oct. 2026, Jules), refait le 2 nov. 2026 (Jules, après l'avis produit
 // « où j'en suis avec ce propriétaire, et qu'est-ce que je fais maintenant ? ») : dans l'ordre du travail, l'état en
-// titre, le propriétaire sur une ligne, le prix en trois tuiles (l'avis, ce qu'il pensait, l'accord), puis l'historique
+// titre, le propriétaire sur une ligne, le prix en deux tuiles (l'avis, l'accord), puis l'historique
 // depuis l'envoi, ce qu'il reste à faire en tête. Tout se remplit depuis le chat : ici on lit, on coche « Fait ».
 // Révision du prix et mandat vont à l'étape Mandat ; les relances faites deviennent des lignes de l'historique.
 // La carte « Prochaine action » est retirée le même jour : l'action à faire est la première ligne de l'historique.
@@ -84,11 +84,11 @@ export default function SuiviBien({ proprietaireId }) {
           </p>
         )}
 
-        {/* Le prix en trois tuiles : l'écart entre l'avis et ce qu'il pensait fait la négociation. */}
-        <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
-          <Tuile mot="Avis">{b.valeur ? euros(b.valeur) : <span className="text-brume">-</span>}</Tuile>
-          <Tuile mot="Il pensait à">{b.prix_pense ? euros(b.prix_pense) : <span className="text-brume">-</span>}</Tuile>
-          <Tuile mot="Accord" accent={!!b.prix_accord}>{b.prix_accord ? euros(b.prix_accord) : <span className="text-[14px] text-brume">Pas encore</span>}</Tuile>
+        {/* Le prix en deux tuiles : l'avis et l'accord. « Il pensait à » est retiré le 7 nov. 2026 (Jules). En location,
+            l'avis est un loyer annuel : la tuile le dit, pour ne pas le lire comme un prix. */}
+        <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+          <Tuile mot={b.location ? "Loyer de l'avis" : "Avis"}>{b.valeur ? `${euros(b.valeur)}${b.location ? " /an" : ""}` : <span className="text-brume">-</span>}</Tuile>
+          <Tuile mot={b.location ? "Loyer d'accord" : "Accord"} accent={!!b.prix_accord}>{b.prix_accord ? `${euros(b.prix_accord)}${b.location ? " /an" : ""}` : <span className="text-[14px] text-brume">Pas encore</span>}</Tuile>
         </div>
 
         <Titre>Historique{depuis ? " depuis l'envoi" : ""}</Titre>

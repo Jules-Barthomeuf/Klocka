@@ -130,7 +130,7 @@ test('pièce glissée : le nom du fichier désigne la bonne ligne, sinon rien', 
   assert.equal(devinerPiece('quittances T1-T3 2026.pdf', lignes), 'quittances');
   assert.equal(devinerPiece('DPE local.pdf', lignes), 'diagnostics');
   assert.equal(devinerPiece('avis taxe fonciere 2025.pdf', lignes), 'taxe_fonciere');
-  assert.equal(devinerPiece('Kbis-Aux-Delices.pdf', lignes), 'kbis');
+  assert.equal(devinerPiece('Kbis-Aux-Delices.pdf', lignes), null, 'plus de case Kbis pour des murs (6 nov. 2026)');
   assert.equal(devinerPiece('PV AG 2024.pdf', lignes), 'copropriete');
   assert.equal(devinerPiece('plan rdc.pdf', lignes), 'autre_plan_du_local');
   assert.equal(devinerPiece('scan0003.pdf', lignes), null, 'un nom muet ne range rien');

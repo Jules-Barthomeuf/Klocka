@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowUp, Square } from "lucide-react";
 import PenseeIA from "@/components/PenseeIA";
+import { entreeEnvoie } from "@/lib/entree-envoie";
 
 // La boîte de saisie, la même partout : un cadre sombre arrondi, le texte,
 // une barre en bas avec les commandes discrètes à gauche et le bouton blanc à
@@ -56,7 +57,7 @@ export default function BoiteSaisie({
           style={maxLignes ? { maxHeight: `${maxLignes * 1.55}em`, overflowY: "auto" } : undefined}
           value={valeur}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer && !enCours) { e.preventDefault(); onEnvoyer(); } }}
+          onKeyDown={(e) => { if (entreeEnvoie(e) && peutEnvoyer && !enCours) { e.preventDefault(); onEnvoyer(); } }}
           placeholder={placeholder}
           disabled={disabled}
           className={`w-full bg-transparent border-0 outline-none resize-none ${compact ? "text-[15px] max-md:text-[16px]" : "text-[18px] max-md:text-[16px]"} leading-[1.55] text-encre placeholder:text-brume disabled:opacity-50`}

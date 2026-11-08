@@ -4,7 +4,7 @@ import { PageTeaser } from "@/components/mandataire/Teaser";
 // La page d'impression du teaser (28 oct. 2026) : ouverte par le navigateur du serveur, jamais par une personne. Quand
 // les polices et la photo sont là, la page le dit (window.__impressionPrete) et le serveur imprime en A4.
 
-const CLASSES = { murs_loues: "Murs loués", murs_libres: "Murs libres", fonds: "Fonds de commerce", droit_au_bail: "Droit au bail", bureaux: "Bureaux", local_activite: "Local d'activité", entrepot: "Entrepôt logistique" };
+const CLASSES = { murs_loues: "Murs loués", murs_libres: "Murs libres", fonds: "Fonds de commerce", droit_au_bail: "Droit au bail", bureaux: "Bureaux", local_activite: "Local d'activité", entrepot: "Entrepôt logistique", a_louer: "Local à louer" };
 const attendreImages = () => Promise.all([...document.images].map((img) => (img.complete ? null : new Promise((ok) => { img.onload = ok; img.onerror = ok; }))));
 
 export default function ImpressionTeaser() {
@@ -28,5 +28,5 @@ export default function ImpressionTeaser() {
     return () => { fini = true; };
   }, [data]);
   if (!data) return null;
-  return <PageTeaser t={data.teaser} signataire={data.signataire} classe={CLASSES[data.teaser.classe] || ""} />;
+  return <PageTeaser t={data.teaser} signataire={data.signataire} classe={CLASSES[data.teaser.classe] || ""} co={data.co || null} />;
 }

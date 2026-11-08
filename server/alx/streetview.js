@@ -217,7 +217,7 @@ async function banJson(url) {
 }
 
 async function rueDe(lat, lon) {
-  const f = (await banJson(`https://api-adresse.data.gouv.fr/reverse/?lat=${lat}&lon=${lon}&limit=1`))?.features?.[0];
+  const f = (await banJson(`https://data.geopf.fr/geocodage/reverse/?lat=${lat}&lon=${lon}&limit=1`))?.features?.[0];
   return f?.properties?.street || f?.properties?.name || null;
 }
 
@@ -227,7 +227,7 @@ async function rueDuTexte(texte, point) {
   // ajoutée au texte est parfois l'enseigne du titre.
   const essais = [...new Set([texte, String(texte).split(',')[0]].map((x) => x.trim()).filter(Boolean))];
   for (const q of essais) {
-    const d = await banJson(`https://api-adresse.data.gouv.fr/search/?limit=5&q=${encodeURIComponent(q)}&lat=${point.lat}&lon=${point.lon}`);
+    const d = await banJson(`https://data.geopf.fr/geocodage/search/?limit=5&q=${encodeURIComponent(q)}&lat=${point.lat}&lon=${point.lon}`);
     const f = (d?.features || []).find((x) => ['housenumber', 'street'].includes(x.properties?.type)
       && metres(point, { lat: x.geometry.coordinates[1], lon: x.geometry.coordinates[0] }) <= 300);
     if (f) return f.properties?.street || f.properties?.name || null;
@@ -287,7 +287,7 @@ export async function panoramaDeLaRue({ lat, lon, rue = null }) {
 // qui va avec : Street View y choisit ensuite son panorama.
 
 const LIEU = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json';
-const BAN = 'https://api-adresse.data.gouv.fr/search/';
+const BAN = 'https://data.geopf.fr/geocodage/search/';
 const lieux = new Map();
 const normTexte = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 

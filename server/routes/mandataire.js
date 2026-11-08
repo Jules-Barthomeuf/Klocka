@@ -48,6 +48,14 @@ export function monterMandataire(app) {
         let lu = '';
         try { lu = (await ingerer({ buffer: fs.readFileSync(f.path), filename: f.originalname, mimetype: f.mimetype })).texte || ''; } catch (e) { console.warn(`[mandataire] pièce illisible : ${e?.message || e}`); }
         if (etape && lu) etape(`Document lu (${lu.length >= 2000 ? `${Math.round(lu.length / 1000)} k caractères` : `${lu.length} caractères`})`);
+        // Un PDF qui réunit plusieurs documents (le bail et la taxe foncière scannés ensemble) se découpe : chacun est
+        // rangé et lu à part (6 nov. 2026, banc d'import).
+        const parts = /\.pdf$/i.test(f.originalname) ? await (await import('../decouper-pdf.js')).decouperSiPlusieurs({ nom: f.originalname, chemin: f.path }).catch(() => null) : null;
+        if (parts?.length) {
+          etape?.(`${f.originalname} réunit ${parts.length} documents : ${parts.map((x) => x.nom.replace(/\.pdf$/, '')).join(', ')}`);
+          for (const x of parts) lot.push({ nom: x.nom, url: x.url, chemin: x.chemin, mimetype: x.mimetype, texte: x.texte, nature: x.nature, decoupe_de: f.originalname });
+          continue;
+        }
         lot.push({ nom: f.originalname, url: `/uploads/${f.filename}`, chemin: f.path, mimetype: f.mimetype, texte: lu });
       }
       // Joint dans le fil d'un bien : rangé aussi dans ses documents (3 nov. 2026, vue d'ensemble du bien).
@@ -308,7 +316,8 @@ export function monterMandataire(app) {
     const { secteurDe, villesDuSecteur } = await E();
     const secteur = secteurDe(user);
     const { anneauxSecteur } = await E();
-    ok(res, { secteur: secteur ? { id: secteur.id, nom: secteur.nom, points: secteur.points, polygones: anneauxSecteur(secteur) } : null, villes: secteur ? villesDuSecteur(secteur) : [] });
+    const { anneauxAffiches } = await import('../mandataire-prospecter.js');
+    ok(res, { secteur: secteur ? { id: secteur.id, nom: secteur.nom, points: secteur.villes_seules ? [] : secteur.points, polygones: secteur.villes_seules ? await anneauxAffiches(secteur) : anneauxSecteur(secteur) } : null, villes: secteur ? villesDuSecteur(secteur) : [] });
   }));
 
   // La recherche, ses étapes dites au fil de l'eau (`surEtape`) : la zone,
@@ -750,6 +759,15 @@ export function monterMandataire(app) {
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
+  // Le pouce sur un commerce (6 nov. 2026, server/avis-commerces.js) : « oui », « non », ou null pour le reprendre.
+  app.post('/api/mandataire/commerces/:id/avis', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const avis = req.body?.avis == null ? null : String(req.body.avis);
+    const r = (await import('../avis-commerces.js')).noterAvisCommerce(req.params.id, avis, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   // L'aperçu d'un commerce sans fiche : la même fiche, rien n'est créé (25 oct. 2026).
   app.get('/api/mandataire/commerces/:id/apercu', wrap(async (req, res) => {
     const user = mandataire(req, res);
@@ -1025,10 +1043,12 @@ export function monterMandataire(app) {
     const { etatVille } = await import('../villes-secteur.js');
     const { Records } = await import('../db.js');
     // Chaque ville avec son état de lecture (lue, en lecture, en attente) : l'équipe voit où en est le secteur.
-    ok(res, { secteurs: listerSecteurs().map((s) => {
+    const { anneauxAffiches } = await import('../mandataire-prospecter.js');
+    // Un secteur fait de villes se dessine d'après elles (6 nov. 2026), comme chez le mandataire.
+    ok(res, { secteurs: await Promise.all(listerSecteurs().map(async (s) => {
       const villes = villesDuSecteur(s);
-      return { ...s, polygones: anneauxSecteur(s), villes: villes.map((v) => v.nom), lectures: villes.map((v) => ({ nom: v.nom, etat: etatVille(Records.get('Ville', v.id)) })) };
-    }) });
+      return { ...s, ...(s.villes_seules ? { points: [] } : {}), polygones: s.villes_seules ? await anneauxAffiches(s) : anneauxSecteur(s), villes: villes.map((v) => v.nom), lectures: villes.map((v) => ({ nom: v.nom, etat: etatVille(Records.get('Ville', v.id)) })) };
+    })) });
   }));
 
   app.post('/api/mandataire/admin/secteurs', wrap(async (req, res) => {

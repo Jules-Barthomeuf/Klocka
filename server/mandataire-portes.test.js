@@ -196,8 +196,8 @@ test('la Data room hérite : le bail de l’avis, les photos de la visite, les p
   // Facultatives depuis le 3 nov. 2026 (Jules) : elles se proposent sans bloquer.
   assert.ok(c.lignes.some((l) => l.cle === 'pouvoirs' && !l.requise), 'les pouvoirs se demandent, facultatifs');
   assert.ok(!c.manquantes.some((l) => l.cle === 'pouvoirs'));
-  assert.equal(P.piecesDu({ pieces_demandees: [{ cle: 'kbis_vendeur', mot: 'Kbis de la société venderesse' }] })[P.PIECES.length].mot, 'Kbis de la société vendeuse', 'un ancien dossier se lit avec les mots du jour');
-  assert.deepEqual(P.heritageDuDossier({}), { documents: {}, photos: [], pieces_demandees: [], pieces_perso: [] });
+  assert.equal(P.piecesDu({ pieces_demandees: [{ cle: 'kbis_vendeur', mot: 'Kbis de la société venderesse' }] }).find((p) => p.cle === 'kbis_vendeur').mot, 'Kbis de la société vendeuse', 'un ancien dossier se lit avec les mots du jour');
+  assert.deepEqual(P.heritageDuDossier({}), { documents: {}, photos: [], pieces_demandees: [], pieces_perso: [], pieces_masquees: [] });
 });
 
 test('Data room : une case vide se masque, une case déposée reste (4 nov. 2026)', async () => {
@@ -218,4 +218,24 @@ test('Data room : une case nommée à l’import, facultative, avant la case « 
   assert.equal(l[i].requise, false);
   assert.equal(l[i + 1].cle, 'autres', 'juste avant la case « + »');
   assert.equal(checklist(d).manquantes.some((p) => p.cle === 'perso-1'), false);
+});
+
+test('une case de la Data room garde dix documents au plus', () => {
+  const { dossier: d } = P.creerDossier({ bien: 'Murs Gambetta' }, MOI);
+  for (let i = 1; i <= 10; i += 1) assert.ok(P.ajouterPiece(d.id, 'bail', { filename: `bail-${i}.pdf`, url: `/uploads/bail-${i}.pdf` }, MOI).ok);
+  const onzieme = P.ajouterPiece(d.id, 'bail', { filename: 'bail-11.pdf', url: '/uploads/bail-11.pdf' }, MOI);
+  assert.equal(onzieme.ok, false);
+  assert.match(onzieme.error, /10 documents au plus/);
+});
+
+test('les cases du dossier suivent le type du bien ; une case qui a des pièces reste quand le type change', () => {
+  const murs = P.piecesDu({ documents: {} }).map((p) => p.cle);
+  assert.deepEqual(murs, ['bail', 'quittances', 'diagnostics', 'taxe_fonciere', 'copropriete', 'titre', 'autres'], 'sans type, les murs : sept cases');
+  assert.equal(P.piecesDu({ type_bien: 'murs_et_fonds', documents: {} }).length, 9, 'murs et fonds : neuf cases, sans quittances');
+  const fonds = P.piecesDu({ type_bien: 'fonds_commerce', documents: {} });
+  assert.deepEqual(fonds.filter((p) => p.requise).map((p) => p.cle), ['bail', 'bilans']);
+  assert.ok(!fonds.some((p) => p.cle === 'quittances'));
+  const change = P.piecesDu({ type_bien: 'fonds_commerce', documents: { quittances: [{ nom: 'q.pdf', url: '/u/q.pdf' }] } });
+  assert.ok(change.some((p) => p.cle === 'quittances'), 'les quittances déposées restent');
+  assert.deepEqual(P.piecesDu({ type_bien: 'autre', documents: {} }).map((p) => p.cle), ['autres'], 'un autre bien part de zéro');
 });

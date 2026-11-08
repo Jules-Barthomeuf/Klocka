@@ -7,6 +7,7 @@
 // corrige ce qu'il veut ; ce qu'il a écrit n'est plus jamais recalculé.
 
 import { Records, Meta } from './db.js';
+import { estLocation, HONORAIRES_LOCATION, honorairesLocation } from '../src/lib/location.js';
 
 const eur = (n) => (n == null || !Number.isFinite(Number(n)) ? null : `${Math.round(Number(n)).toLocaleString('fr-FR').replace(/[\u202f\u00a0]/g, ' ')} €`);
 const pct = (n) => (n == null || !Number.isFinite(n) ? null : `${n.toFixed(1).replace('.', ',')} %`);
@@ -24,22 +25,29 @@ export const CLASSES = {
   bureaux: { libelle: 'Bureaux', tableau: 'Le bien', photo: 'Plateau', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface_divisibilite', 'locataire', 'performance'] },
   local_activite: { libelle: "Local d'activité", tableau: 'Le bien', photo: 'Bâtiment et cour', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface_terrain', 'hauteur_acces', 'locataire'] },
   entrepot: { libelle: 'Entrepôt logistique', tableau: 'Le bien', photo: 'Vue aérienne', tuiles: ['prix', 'loyer', 'rendement'], etoile: 2, lignes: ['surface', 'hauteur_quais', 'icpe', 'locataire'] },
+  // Un local à louer (6 nov. 2026, Jules : « adapter tout le système à la location ») : le candidat regarde le loyer,
+  // pas un prix ni un rendement. L'adresse reste cachée, comme en vente.
+  a_louer: { libelle: 'Local à louer', tableau: 'Le local', photo: 'Façade', tuiles: ['loyer_demande', 'loyer_m2', 'surface_louee'], etoile: 0, lignes: ['destination', 'disponibilite', 'conditions'] },
 };
 
 const LIBELLES_TUILES = {
   prix: 'Prix FAI', loyer: 'Loyer HT HC / an', rendement: 'Rendement brut', prix_m2: 'Prix FAI', loyer_marche: 'Loyer de marché estimé / an',
   rendement_potentiel: 'Rendement potentiel', prix_multiple: 'Prix', ca: "Chiffre d'affaires", ebe: 'EBE', prix_cession: 'Prix de cession', surfaces: 'Surfaces',
+  loyer_demande: 'Loyer HT HC / an', loyer_m2: 'Loyer / m² / an', surface_louee: 'Surface',
 };
 const LIBELLES_LIGNES = {
   surface: 'Surface', locataire: 'Locataire', bail: 'Bail', occupation: 'Occupation', surface_vitrine: 'Surface et vitrine', destination: 'Destination',
   equipe: 'Équipe', motif: 'Motif de la cession', surfaces: 'Surfaces', surface_divisibilite: 'Surface', performance: 'Performance',
   surface_terrain: 'Surface et terrain', hauteur_acces: 'Hauteur et accès', hauteur_quais: 'Hauteur et quais', icpe: 'ICPE',
+  disponibilite: 'Disponibilité', conditions: 'Conditions',
 };
 export const CONFIDENTIALITE = "Document confidentiel. L'adresse du bien et l'identité du vendeur sont communiquées après signature d'un engagement de confidentialité.";
+export const CONFIDENTIALITE_LOCATION = "Document confidentiel. L'adresse du local et l'identité du propriétaire sont communiquées après signature d'un engagement de confidentialité.";
 export const CONFIDENTIALITE_FONDS = `${CONFIDENTIALITE} Merci de ne prévenir ni les salariés, ni les clients, ni les fournisseurs : une cession qui s'ébruite abîme le fonds.`;
 
-/** Pure : la classe d'actif, d'après le type de l'avis, l'occupation et la désignation du mandat. */
-export function classeDe({ type_bien = null, occupe = null, designation = '' } = {}) {
+/** Pure : la classe d'actif, d'après le type de l'avis, l'occupation et la désignation du mandat ; un bien à louer, d'office « Local à louer ». */
+export function classeDe({ type_bien = null, occupe = null, designation = '', location = false } = {}) {
+  if (location) return 'a_louer';
   const t = sans(designation);
   if (/droit au bail/.test(t)) return 'droit_au_bail';
   if (/fonds de commerce|\bfonds\b/.test(t)) return 'fonds';
@@ -59,30 +67,62 @@ export function tailleDeVille(population) {
   return "d'une petite ville";
 }
 
-/** Pure : les faits du bien, rassemblés depuis le mandat (q), l'avis (a) et son questionnaire (e). */
-export function faitsDuBien({ mandat = null, estimation = null, dossier = null } = {}) {
+/**
+ * Pure : les faits du bien, rassemblés depuis le mandat (q), l'avis (a) et son questionnaire (e). Un bien à louer (la
+ * fiche, `biens.transaction`) n'a pas de prix : son loyer est le loyer demandé.
+ */
+export function faitsDuBien({ mandat = null, estimation = null, dossier = null, fiche = null } = {}) {
   const q = mandat?.questionnaire || {};
   const e = estimation?.questionnaire || {};
   const a = estimation?.avis || {};
-  const prix = nombre(mandat?.prix, dossier?.prix, a.chiffres?.prix_affiche, a.chiffres?.valeur);
-  const loyer = nombre(e.loyer_annuel_hc, dossier?.loyer_annuel);
-  const surface = nombre(q.bien_surface, e.surface_utile, dossier?.surface_m2);
+  const location = estLocation(fiche);
+  // Un bien importé (6 nov. 2026, banc d'import) n'a ni mandat ni avis de Klocka : son mandat importé et ce que le
+  // mandataire a raconté (`biens.repris`) font le teaser. Le prix affiché est honoraires inclus quand ils sont à la
+  // charge de l'acquéreur.
+  const r = fiche?.biens?.repris || {};
+  const mi = fiche?.mandat_importe || null;
+  const faiImporte = !mandat && mi ? faiDuMandatImporte(mi) : null;
+  const prix = location ? null : nombre(mandat?.prix, faiImporte, dossier?.prix, a.chiffres?.prix_affiche, a.chiffres?.valeur, r.prix);
+  // En location, le loyer demandé : le mandat de location (`loyer`), sinon le loyer estimé par l'avis (sa valeur).
+  const loyer = location ? nombre(fiche?.mandat_importe?.loyer_annuel, fiche?.biens?.repris?.loyer_annuel, fiche?.biens?.loyer_annuel, q.loyer_annuel, q.loyer, mandat?.loyer, dossier?.loyer_annuel, e.loyer_annuel_hc, a.chiffres?.loyer_marche, a.methodes === 'loyer' || a.chiffres?.loyer_m2 ? a.chiffres?.valeur : null) : nombre(e.loyer_annuel_hc, dossier?.loyer_annuel, r.loyer_annuel);
+  const surface = nombre(q.bien_surface, e.surface_utile, dossier?.surface_m2, r.surface);
   const effet = String(e.date_effet || '').match(/(\d{4})/)?.[1] || null;
   const echeance = String(e.echeance || '').match(/(\d{4})/)?.[1] || null;
-  const occupe = typeof q.bien_occupe === 'boolean' ? q.bien_occupe : typeof e.occupe === 'boolean' ? e.occupe : typeof a.occupe === 'boolean' ? a.occupe : null;
+  const occupe = typeof q.bien_occupe === 'boolean' ? q.bien_occupe : typeof e.occupe === 'boolean' ? e.occupe : typeof a.occupe === 'boolean' ? a.occupe : r.loyer_annuel && !location ? true : null;
+  // Ce que l'avis a écrit du local et de sa rue (7 nov. 2026) : la destination, la disponibilité, l'état, l'extraction,
+  // les commerces voisins et les accès, pour remplir le local à louer et ses points forts sans rien inventer.
+  const ligneAvis = (bloc, re) => (a[bloc]?.lignes || []).find((l) => re.test(String(l.mot || '')))?.texte || null;
   return {
-    prix, loyer, surface, occupe, effet, echeance,
-    type_bien: e.type_bien || a.type_bien || null,
+    prix, loyer, surface, occupe, effet, echeance, location,
+    destination: q.destination || ligneAvis('description', /destination/i) || null,
+    disponibilite: q.disponibilite || ligneAvis('description', /disponib/i) || null,
+    depot: q.depot_garantie || null,
+    etat: ligneAvis('description', /^état/i),
+    extraction: ligneAvis('description', /extraction/i),
+    commerces_voisins: ligneAvis('emplacement', /commerces voisins/i),
+    acces: ligneAvis('emplacement', /accès|transports/i),
+    type_bien: e.type_bien || a.type_bien || fiche?.type_bien || null,
     designation: q.bien_designation || a.description?.resume || '',
-    activite: e.activite_locataire || q.bien_locataire_activite || null,
+    activite: e.activite_locataire || q.bien_locataire_activite || fiche?.activite || null,
     bail_type: e.bail_type || null,
     dpe: String(e.diagnostics || '').match(/\bDPE\s*:?\s*([A-G])\b/i)?.[1]?.toUpperCase() || null,
     loyer_marche: nombre(a.chiffres?.loyer_marche),
     emplacement: a.emplacement?.synthese || e.emplacement || '',
-    ville: String(a.bien?.ville || q.bien_adresse || dossier?.adresse || '').replace(/^\d{5}\s*/, '').split(',').pop().trim() || null,
+    ville: fiche?.ville && !a.bien?.ville ? fiche.ville : String(a.bien?.ville || q.bien_adresse || dossier?.adresse || '').replace(/^\d{5}\s*/, '').split(',').pop().trim() || null,
     mediane_m2: nombre(String(a.marche?.synthese || '').match(/médiane\s+([\d\s\u202f]+)\s*€/i)?.[1]),
-    photo: a.photos?.couverture || dossier?.photos?.[0]?.url || null,
+    // La photo du local d'abord (le dossier, puis la fiche) ; la couverture de l'avis, souvent la ville, en dernier.
+    photo: dossier?.photos?.[0]?.url || (fiche?.biens?.pieces || []).find((x) => x.nature === 'photos')?.url || a.photos?.couverture || null,
   };
+}
+
+/** Pure : le prix honoraires inclus d'un mandat importé (« 22 400 € » à la charge de l'acquéreur s'ajoutent au prix). */
+export function faiDuMandatImporte(mi) {
+  const prix = nombre(mi?.prix);
+  if (!prix) return null;
+  const h = String(mi.honoraires || '').replace(/[\u202f\u00a0]/g, ' ').match(/(\d[\d ]*(?:[.,]\d+)?)\s*(€|%)/);
+  if (!h || /vendeur/i.test(mi.honoraires)) return prix;
+  const n = Number(h[1].replace(/ /g, '').replace(',', '.'));
+  return h[2] === '%' ? Math.round(prix * (1 + n / 100)) : prix + n;
 }
 
 /** Pure : les trois points forts, par règles, dans l'ordre de ce qui rassure un acheteur. */
@@ -90,12 +130,24 @@ export function pointsForts(f, classe, { annee = new Date().getFullYear() } = {}
   const p = [];
   const rendement = f.prix && f.loyer ? (f.loyer / f.prix) * 100 : null;
   if (/centre.?ville|hyper.?centre|n°\s*1|numero 1|emplacement n/i.test(f.emplacement)) p.push('Emplacement de centre-ville');
-  if (f.echeance && Number(f.echeance) - annee >= 3) p.push(`Bail en cours jusqu'en ${f.echeance}`);
-  else if (f.effet && annee - Number(f.effet) >= 5) p.push(`Locataire en place depuis ${f.effet}`);
-  if (rendement && rendement >= 6.5 && !['fonds', 'droit_au_bail'].includes(classe)) p.push(`Rendement de ${pct(rendement)}`);
-  if (f.prix && f.surface && f.mediane_m2 && f.prix / f.surface < f.mediane_m2) p.push('Prix au m² sous la médiane du secteur');
+  // Le local à louer : ni bail en cours, ni rendement, ni prix au m² (6 nov. 2026).
+  const aLouer = classe === 'a_louer';
+  if (!aLouer && f.echeance && Number(f.echeance) - annee >= 3) p.push(`Bail en cours jusqu'en ${f.echeance}`);
+  else if (!aLouer && f.effet && annee - Number(f.effet) >= 5) p.push(`Locataire en place depuis ${f.effet}`);
+  if (!aLouer && rendement && rendement >= 6.5 && !['fonds', 'droit_au_bail'].includes(classe)) p.push(`Rendement de ${pct(rendement)}`);
+  if (!aLouer && f.prix && f.surface && f.mediane_m2 && f.prix / f.surface < f.mediane_m2) p.push('Prix au m² sous la médiane du secteur');
   if (f.dpe && 'ABC'.includes(f.dpe)) p.push(`DPE ${f.dpe}`);
   if (f.activite && classe === 'murs_loues') p.push(`Activité établie : ${String(f.activite).toLowerCase()}`);
+  // Le local à louer (7 nov. 2026) : ce que l'avis et le mandat disent du local et de sa rue.
+  if (aLouer) {
+    const voisins = Number(String(f.commerces_voisins || '').match(/(\d+)\s*commerces/)?.[1]);
+    if (voisins >= 20) p.push(`Rue commerçante : ${f.commerces_voisins}`);
+    if (/tous commerces/i.test(f.destination || '')) p.push('Destination tous commerces');
+    if (/imm[ée]diat/i.test(f.disponibilite || '')) p.push('Disponible immédiatement');
+    if (/^oui/i.test(f.extraction || '')) p.push('Extraction en place');
+    if (/bon|excellent|neuf|refait/i.test(f.etat || '')) p.push(`Local en ${String(f.etat).toLowerCase()}`);
+    if (f.acces && /bus|gare|m[ée]tro|tram|parking/i.test(f.acces)) p.push('Transports et parkings à proximité');
+  }
   while (p.length < 3) p.push(AFAIRE);
   return p.slice(0, 3);
 }
@@ -110,16 +162,23 @@ export function composer(f, classe, { ville = null, ref = 'KP-0000' } = {}) {
     prix_m2: f.prix ? `${eur(f.prix)}${f.surface ? ` · ${eur(f.prix / f.surface)}/m²` : ''}` : null,
     loyer_marche: eur(f.loyer_marche), rendement_potentiel: pct(potentiel),
     prix_multiple: null, ca: null, ebe: null, prix_cession: eur(f.prix), surfaces: m2(f.surface),
+    loyer_demande: eur(f.loyer), loyer_m2: f.loyer && f.surface ? `${eur(f.loyer / f.surface)} / m²` : null, surface_louee: m2(f.surface),
   };
+  // Les conditions d'une location : le dépôt (dit par le mandataire) et les honoraires, à la charge du preneur.
+  const honoraires = honorairesLocation(f.loyer);
+  const depot = f.depot ? (/loyer/i.test(f.depot) ? f.depot : `${f.depot} de loyer`) : AFAIRE;
+  const conditions = `Dépôt de garantie ${depot} ; honoraires ${Math.round(HONORAIRES_LOCATION.taux * 100)} % HT ${HONORAIRES_LOCATION.base}${honoraires ? ` (${eur(honoraires)} HT)` : ''}, à la charge du preneur`;
   const lignes = {
     surface: m2(f.surface), locataire: f.activite ? `${f.activite}${f.effet ? `, en place depuis ${f.effet}` : ''}` : null,
     bail: [f.bail_type, f.echeance ? `échéance ${f.echeance}` : null].filter(Boolean).join(', ') || null,
-    occupation: f.occupe === false ? 'Libre de toute occupation' : null, surface_vitrine: m2(f.surface), destination: null,
+    occupation: f.occupe === false ? 'Libre de toute occupation' : null, surface_vitrine: m2(f.surface), destination: f.destination ? f.destination.charAt(0).toUpperCase() + f.destination.slice(1) : null,
     equipe: null, motif: null, surfaces: m2(f.surface), surface_divisibilite: m2(f.surface),
     performance: f.dpe ? `DPE ${f.dpe}` : null, surface_terrain: m2(f.surface), hauteur_acces: null, hauteur_quais: null, icpe: null,
+    disponibilite: f.disponibilite ? (/imm[ée]diat/i.test(f.disponibilite) ? 'Disponible immédiatement' : `Disponible ${f.disponibilite}`) : null, conditions,
   };
   const lieu = /centre.?ville|hyper.?centre/i.test(f.emplacement) ? 'centre-ville' : classe === 'bureaux' ? "quartier d'affaires" : 'emplacement commerçant';
-  const nature = { murs_loues: 'Murs commerciaux loués', murs_libres: 'Murs commerciaux libres', fonds: 'Fonds de commerce', droit_au_bail: 'Droit au bail', bureaux: 'Plateau de bureaux loué', local_activite: "Local d'activité loué", entrepot: 'Entrepôt logistique loué' }[classe];
+  const aLouer = { bureaux: 'Bureaux à louer', local_activite: "Local d'activité à louer" }[f.type_bien] || 'Local commercial à louer';
+  const nature = { murs_loues: 'Murs commerciaux loués', murs_libres: 'Murs commerciaux libres', fonds: 'Fonds de commerce', droit_au_bail: 'Droit au bail', bureaux: 'Plateau de bureaux loué', local_activite: "Local d'activité loué", entrepot: 'Entrepôt logistique loué', a_louer: aLouer }[classe];
   // D'où vient chaque champ (mode Sources, 28 oct. 2026) : le mandat, l'avis, un calcul, une règle, l'API Géo.
   const S = (nature, origine, detail, calcul) => ({ nature, origine, detail, ...(calcul ? { calcul } : {}) });
   const parTuile = {
@@ -131,6 +190,9 @@ export function composer(f, classe, { ville = null, ref = 'KP-0000' } = {}) {
     rendement_potentiel: S('calcul', 'Calcul', 'Le loyer de marché divisé par le prix FAI.', f.prix && f.loyer_marche ? `${eur(f.loyer_marche)} ÷ ${eur(f.prix)} = ${pct(potentiel)}` : null),
     prix_cession: S('saisie', 'Mandat signé', 'Le prix de cession du mandat.'),
     surfaces: S('saisie', 'Mandat et avis', 'La surface du mandat, sinon celle de l\'avis.'),
+    loyer_demande: S('saisie', 'Fiche du bien', 'Le loyer annuel demandé, hors taxes et hors charges, sinon celui de l\'estimation.'),
+    loyer_m2: S('calcul', 'Calcul', 'Le loyer annuel demandé divisé par la surface.', f.loyer && f.surface ? `${eur(f.loyer)} ÷ ${m2(f.surface)}` : null),
+    surface_louee: S('saisie', 'Mandat et avis', 'La surface du mandat, sinon celle de l\'avis.'),
   };
   const parLigne = {
     surface: S('saisie', 'Mandat et avis', 'La surface du mandat, sinon celle de l\'avis.'),
@@ -138,6 +200,7 @@ export function composer(f, classe, { ville = null, ref = 'KP-0000' } = {}) {
     bail: S('saisie', 'Avis de valeur', 'Le type de bail et son échéance, lus dans le bail ou dits par le mandataire.'),
     performance: S('saisie', 'Avis de valeur', 'Le DPE noté dans les diagnostics.'),
     occupation: S('saisie', 'Mandat signé', 'Le mandat dit le bien libre.'),
+    conditions: S('calcul', 'Règle Klocka', `Les honoraires de location : ${Math.round(HONORAIRES_LOCATION.taux * 100)} % HT ${HONORAIRES_LOCATION.base}, à la charge du preneur, sauf ce que le mandat dit d'autre.`),
   };
   const sources = {
     titre: S('modele', 'Composé par Klocka', "Le type de bien et l'emplacement, lus dans l'avis de valeur. Jamais d'adresse ni de nom."),
@@ -156,7 +219,7 @@ export function composer(f, classe, { ville = null, ref = 'KP-0000' } = {}) {
     tableau_titre: c.tableau,
     lignes: c.lignes.map((k) => ({ cle: k, intitule: LIBELLES_LIGNES[k], detail: lignes[k] || AFAIRE })),
     points: pointsForts(f, classe),
-    confidentialite: classe === 'fonds' ? CONFIDENTIALITE_FONDS : CONFIDENTIALITE,
+    confidentialite: classe === 'fonds' ? CONFIDENTIALITE_FONDS : classe === 'a_louer' ? CONFIDENTIALITE_LOCATION : CONFIDENTIALITE,
   };
 }
 
@@ -172,10 +235,33 @@ async function situer(ville) {
   if (!ville) return null;
   try {
     const { communeParNom } = await import('./chiffres-commune.js');
-    const c = await communeParNom(ville);
-    const taille = tailleDeVille(c?.population);
-    return taille ? `${taille}${c.region?.nom ? ` (${c.region.nom})` : ''}` : null;
+    const c = await communeParNom(ville).catch(() => null);
+    if (c?.population) return `${tailleDeVille(c.population)}${c.region?.nom ? ` (${c.region.nom})` : ''}`;
+    // L'API Géo ne répond pas (7 nov. 2026, Jules : « le teaser ne se complète pas tout seul ») : le cache des communes
+    // déjà résolues (server/deal/enrich.js) donne la même chose.
+    const { resoudreCommune } = await import('./deal/enrich.js');
+    const k = await resoudreCommune('', ville).catch(() => null);
+    const taille = tailleDeVille(k?.population);
+    return taille ? `${taille}${k.region ? ` (${typeof k.region === 'string' ? k.region : k.region.nom})` : ''}` : null;
   } catch { return null; }
+}
+
+/** Pure : le teaser gardé, ses seuls champs « [à compléter] » remplis par une composition neuve de la même classe. */
+export function completerTeaser(deja, neuf) {
+  const vide = (v) => String(v ?? '').includes(AFAIRE);
+  const plein = (v) => v != null && !vide(v);
+  const patch = {};
+  const sources = { ...(deja.sources || {}) };
+  for (const k of ['titre', 'sous_titre']) if (vide(deja[k]) && plein(neuf[k])) { patch[k] = neuf[k]; sources[k] = neuf.sources?.[k] || null; }
+  if (!deja.photo && neuf.photo) { patch.photo = neuf.photo; sources.photo = neuf.sources?.photo || null; }
+  const tuiles = (deja.tuiles || []).map((x, i) => { const n = neuf.tuiles?.find((y) => y.cle === x.cle); if (vide(x.valeur) && plein(n?.valeur)) { sources[`tuiles.${i}`] = neuf.sources?.[`tuiles.${neuf.tuiles.indexOf(n)}`] || null; return { ...x, valeur: n.valeur }; } return x; });
+  const lignes = (deja.lignes || []).map((x, i) => { const n = neuf.lignes?.find((y) => y.cle === x.cle); if (vide(x.detail) && plein(n?.detail)) { sources[`lignes.${i}`] = neuf.sources?.[`lignes.${neuf.lignes.indexOf(n)}`] || null; return { ...x, detail: n.detail }; } return x; });
+  const libres = (neuf.points || []).filter((p) => plein(p) && !(deja.points || []).includes(p));
+  const points = (deja.points || []).map((p) => (vide(p) && libres.length ? libres.shift() : p));
+  if (JSON.stringify(tuiles) !== JSON.stringify(deja.tuiles)) patch.tuiles = tuiles;
+  if (JSON.stringify(lignes) !== JSON.stringify(deja.lignes)) patch.lignes = lignes;
+  if (JSON.stringify(points) !== JSON.stringify(deja.points)) patch.points = points;
+  return Object.keys(patch).length ? { ...deja, ...patch, sources } : deja;
 }
 
 /** Le teaser d'une mise en marché : composé une fois, puis gardé tel que le mandataire l'a corrigé. */
@@ -184,12 +270,20 @@ export async function teaserDe(marcheId, user, { refaire = false, classe = null 
   const m = P.lireMarche(marcheId, user);
   if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   const deja = m.teaser;
-  if (deja?.v && !refaire && !classe) return { ok: true, teaser: deja, marche_id: m.id };
   const d = m.dossier_id ? Records.get('DossierMandataire', m.dossier_id) : null;
   const mandat = d?.mandat_id ? Records.get('MandatMandataire', d.mandat_id) : null;
   const estimation = d ? P.estimationDu(d) : null;
-  const f = faitsDuBien({ mandat, estimation, dossier: d });
-  const k = CLASSES[classe] ? classe : deja?.classe && !refaire ? deja.classe : classeDe({ type_bien: f.type_bien, occupe: f.occupe, designation: f.designation });
+  const f = faitsDuBien({ mandat, estimation, dossier: d, fiche: d ? P.ficheDuDossier(d) : null });
+  if (deja?.v && !refaire && !classe) {
+    // Le teaser se complète seul (7 nov. 2026, Jules) : ce qui reste « [à compléter] » se remplit dès que le mandat,
+    // l'avis ou l'API Géo le donnent ; ce que le mandataire ou l'assistant ont écrit ne bouge pas.
+    if (!champsACompleter(deja).length) return { ok: true, teaser: deja, marche_id: m.id };
+    const neuf = composer(f, deja.classe, { ville: /\[à compléter\]/.test(deja.sous_titre || '') ? await situer(f.ville) : null, ref: deja.ref });
+    const complete = completerTeaser(deja, neuf);
+    if (complete !== deja) Records.update('MiseEnMarche', m.id, { teaser: complete });
+    return { ok: true, teaser: complete, marche_id: m.id };
+  }
+  const k = CLASSES[classe] ? classe : deja?.classe && !refaire ? deja.classe : classeDe({ type_bien: f.type_bien, occupe: f.occupe, designation: f.designation, location: f.location });
   const t = composer(f, k, { ville: await situer(f.ville), ref: deja?.ref || prochaineRef() });
   Records.update('MiseEnMarche', m.id, { teaser: { ...t, compose_le: new Date().toISOString() } });
   return { ok: true, teaser: Records.get('MiseEnMarche', m.id).teaser, marche_id: m.id };
@@ -239,9 +333,14 @@ export function signataireDe(email) {
 }
 
 /** Le teaser en PDF, imprimé par le navigateur du serveur sur la page d'impression (jeton de deux minutes). */
-export async function teaserPdf(marcheId, user, { base }) {
+export async function teaserPdf(marcheId, user, { base, co = false }) {
   const r = await teaserDe(marcheId, user);
   if (!r.ok) return r;
+  // La fiche confrère (6 nov. 2026) : la même page, avec le bloc du co-courtage à la place de la confidentialité.
+  if (co) {
+    const c = await (await import('./co-courtage.js')).coDe(marcheId, user);
+    if (!c.ok) return c;
+  }
   const fs = await import('fs');
   const path = await import('path');
   const { CHEMIN_UPLOADS } = await import('./db.js');
@@ -250,10 +349,10 @@ export async function teaserPdf(marcheId, user, { base }) {
   const nav = await lancerNavigateur('Le teaser en PDF');
   const contexte = await nav.newContext({ viewport: { width: 794, height: 1123 }, locale: 'fr-FR' });
   const dossier = path.join(CHEMIN_UPLOADS, 'teasers');
-  const fichier = path.join(dossier, `teaser-${String(r.marche_id).replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`);
+  const fichier = path.join(dossier, `${co ? 'confrere' : 'teaser'}-${String(r.marche_id).replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`);
   try {
     const page = await contexte.newPage();
-    const jeton = jetonImpression(`teaser:${r.marche_id}`);
+    const jeton = jetonImpression(`${co ? 'co' : 'teaser'}:${r.marche_id}`);
     await page.setExtraHTTPHeaders({ 'X-Klocka-Impression': jeton });
     await page.goto(`${base}/ImpressionTeaser?jeton=${jeton}`, { waitUntil: 'networkidle', timeout: 60000 });
     await page.waitForFunction('window.__impressionPrete === true || !!window.__impressionErreur', null, { timeout: 60000 });
@@ -266,13 +365,14 @@ export async function teaserPdf(marcheId, user, { base }) {
   } finally {
     await contexte.close().catch(() => {});
   }
-  return { ok: true, fichier, nom: `Teaser ${r.teaser.ref} · ${CLASSES[r.teaser.classe]?.libelle || 'K Partners'}.pdf` };
+  return { ok: true, fichier, nom: `${co ? 'Fiche confrère' : 'Teaser'} ${r.teaser.ref} · ${CLASSES[r.teaser.classe]?.libelle || 'K Partners'}.pdf` };
 }
 
 /** Le teaser lu par la page d'impression (jeton seul). */
 export async function teaserParJeton(jeton) {
   const { cibleDuJeton } = await import('./presentation-pdf.js');
   const cible = cibleDuJeton(jeton);
+  if (String(cible || '').startsWith('co:')) return (await import('./co-courtage.js')).coParJeton(jeton);
   if (!cible || !String(cible).startsWith('teaser:')) return null;
   const m = Records.get('MiseEnMarche', String(cible).slice(7));
   if (!m?.teaser) return null;
@@ -283,7 +383,7 @@ export async function teaserParJeton(jeton) {
 
 export const OUTIL_TEASER = {
   name: 'modifier_teaser',
-  description: "Retouche le teaser du bien en vente, ouvert à l'écran. Ne passe que ce qui change : titre, sous_titre, tuiles (index 0 à 2 et valeur), lignes (index et detail), points (les trois points forts), confidentialite, ou classe (murs_loues, murs_libres, fonds, droit_au_bail, bureaux, local_activite, entrepot : la page se recompose). Jamais d'adresse, de nom du vendeur ni de nom du locataire dans le titre, le sous-titre ou les points forts. N'invente aucun chiffre : un chiffre vient du mandat, de l'avis ou du mandataire.",
+  description: "Retouche le teaser du bien en vente, ouvert à l'écran. Ne passe que ce qui change : titre, sous_titre, tuiles (index 0 à 2 et valeur), lignes (index et detail), points (les trois points forts), confidentialite, ou classe (murs_loues, murs_libres, fonds, droit_au_bail, bureaux, local_activite, entrepot, a_louer pour un local à louer : la page se recompose). Un local à louer n'a ni prix ni rendement : le loyer demandé, le loyer au m², la surface. Jamais d'adresse, de nom du vendeur ni de nom du locataire dans le titre, le sous-titre ou les points forts. N'invente aucun chiffre : un chiffre vient du mandat, de l'avis ou du mandataire.",
   input_schema: {
     type: 'object',
     properties: {
@@ -296,9 +396,23 @@ export const OUTIL_TEASER = {
   },
 };
 
+/** Pure : les champs du teaser encore « [à compléter] », nommés comme l'écran les montre. */
+export function champsACompleter(t) {
+  if (!t) return [];
+  const a = (v) => String(v || '').includes(AFAIRE);
+  return [
+    a(t.titre) && 'le titre',
+    a(t.sous_titre) && 'le sous-titre',
+    ...(t.tuiles || []).filter((x) => a(x.valeur)).map((x) => `la tuile « ${x.libelle} »`),
+    ...(t.lignes || []).filter((x) => a(x.detail)).map((x) => `la ligne « ${x.intitule} »`),
+    ...(t.points || []).filter(a).map((_, i, l) => (l.length > 1 ? `un point fort (${i + 1})` : 'un point fort')),
+  ].filter(Boolean);
+}
+
 /** Pure : ce que Haka sait du teaser, en tête de la conversation. */
 export function cadreDuTeaser(t) {
   if (!t) return '';
+  const reste = champsACompleter(t);
   return [
     `\n\nTEASER ouvert à l'écran (réf. ${t.ref}, classe ${CLASSES[t.classe]?.libelle || t.classe}) : le mandataire le relit et le corrige avec toi ; modifier_teaser l'écrit, la page se met à jour.`,
     `Titre : ${t.titre}. Sous-titre : ${t.sous_titre}.`,
@@ -306,6 +420,8 @@ export function cadreDuTeaser(t) {
     `${t.tableau_titre} : ${t.lignes.map((l, i) => `[${i}] ${l.intitule} = ${l.detail}`).join(' ; ')}.`,
     `Points forts : ${t.points.join(' ; ')}.`,
     '« [à compléter] » marque ce qui manque : demande-le au mandataire plutôt que de l\'inventer. Dis en une phrase ce que tu as changé.',
+    // 7 nov. 2026, Jules : « il dit que c'est complété mais non, il y a encore un champ à compléter ».
+    reste.length ? `ENCORE À COMPLÉTER : ${reste.join(', ')}. Ne dis JAMAIS que le teaser est complet tant que cette liste n'est pas vide ; après une retouche, relis ce que l'outil rend (reste) et nomme ce qui manque encore.` : 'Tout est rempli : plus rien « à compléter ».',
   ].join('\n');
 }
 
@@ -327,7 +443,9 @@ export async function executerOutilTeaser(appel, user, { marche_id = null } = {}
   if (Array.isArray(input.points) && input.points.length) patch.points = [...input.points, ...t.points].slice(0, 3);
   if (!Object.keys(patch).length) return { ok: true, fait: input.classe ? `Teaser recomposé en ${CLASSES[input.classe].libelle}.` : 'Rien à changer.' };
   const r = await modifierTeaser(marche_id, user, patch, { par: 'haka' });
-  return r.ok ? { ok: true, fait: `Teaser à jour : ${Object.keys(patch).join(', ')}.` } : r;
+  if (!r.ok) return r;
+  const reste = champsACompleter(P.lireMarche(marche_id, user)?.teaser);
+  return { ok: true, fait: `Teaser à jour : ${Object.keys(patch).join(', ')}.`, reste: reste.length ? `Encore à compléter : ${reste.join(', ')}. Dis-le, ne dis pas que tout est complet.` : 'Plus rien à compléter.' };
 }
 
 /** Le mandataire valide le teaser : la Commercialisation est faite, on passe aux offres (28 oct. 2026, Jules). */

@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Loader from "@/components/ui/Loader";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, Check, ChevronDown, Loader2, Mic, Pause, Play, Plus, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Loader2, Mic, Pause, Play, Plus, Sparkles, Square, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
-import FacadeLocal from "@/components/off-market/FacadeLocal";
 import { toast } from "@/components/ui/avis";
 import { kEuros } from "@/lib/clients-commerces";
+import { entreeEnvoie } from "@/lib/entree-envoie";
 
 // La fiche du mandataire sur une page (24 oct. 2026, Jules) : le commerce et
 // l'exploitant ; le propriétaire des murs (SCI, gérant, âge) ; les signaux,
@@ -75,7 +75,7 @@ export function Dictee({ id, dansBiens, onFait }) {
         <>
           <div className="flex items-end gap-1.5 rounded-[22px] border border-bord-doux bg-surface px-3 py-1.5 focus-within:border-menthe">
             <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={1} placeholder="Parler à l'assistant…" aria-label="Parler à l'assistant"
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && texte.trim() && !lire.isPending) { e.preventDefault(); lire.mutate(null); } }}
+              onKeyDown={(e) => { if (entreeEnvoie(e) && texte.trim() && !lire.isPending) { e.preventDefault(); lire.mutate(null); } }}
               className="max-h-[140px] min-h-[36px] w-full resize-none border-none bg-transparent py-1.5 text-[14px] leading-[1.5] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
             <button type="button" onClick={micro.enCours ? micro.arreter : micro.demarrer} disabled={lire.isPending} aria-label={micro.enCours ? "Arrêter la dictée" : "Dicter"} title={micro.enCours ? "Arrêter" : "Dicter"}
               className={`grid h-9 w-9 flex-none place-items-center rounded-full ${micro.enCours ? "text-alerte" : "text-craie hover:text-encre"}`} style={{ background: "transparent" }}>
@@ -148,10 +148,46 @@ export function ChatFiche({ id, onReponse = null, onConversation = null, onRepri
   );
 }
 
+/**
+ * Les pouces d'un commerce de la Prospection (6 nov. 2026, Jules : « une résidence étudiante dans les commerces, on
+ * clique sur un pouce et ça enregistre que ce n'est pas bien ») : en bas, il sort de sa prospection, et son activité
+ * sort de celle de tous quand elle est écartée assez souvent (server/avis-commerces.js) ; en haut, bonne cible.
+ * Un second appui reprend l'avis ; « Annuler » sur l'avis aussi.
+ */
+function PoucesCommerce({ commerceId, avis, onEcarte = null }) {
+  const queryClient = useQueryClient();
+  const noter = useMutation({
+    mutationFn: (v) => base44.request("POST", `/api/mandataire/commerces/${encodeURIComponent(commerceId)}/avis`, { body: { avis: v } }),
+    onSuccess: (r, v) => {
+      ["m-fiche", "m-prospecter"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+      if (v !== "non") return;
+      // La fiche se ferme : l'annulation ne passe plus par ce composant, qui n'est plus là.
+      const annuler = () => base44.request("POST", `/api/mandataire/commerces/${encodeURIComponent(commerceId)}/avis`, { body: { avis: null } })
+        .then(() => ["m-fiche", "m-prospecter"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }))).catch(() => toast.error("Pas annulé"));
+      toast.success("Écarté de votre prospection", { description: r.activite_ecartee ? `« ${r.activite} » est écartée pour tous : assez de pouces l'ont jugée hors cible.` : "Le système le retient pour la suite.", action: { mot: "Annuler", faire: annuler } });
+      onEcarte?.();
+    },
+    onError: (e) => toast.error(e?.message || "Avis non enregistré"),
+  });
+  const bouton = (v, Icone, mot, actif) => (
+    <button type="button" onClick={() => noter.mutate(avis === v ? null : v)} disabled={noter.isPending} aria-pressed={avis === v} aria-label={mot} title={mot}
+      className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:opacity-50 ${avis === v ? actif : "text-brume hover:text-encre"}`}
+      style={avis === v ? undefined : { background: "transparent" }}>
+      <Icone className="h-4 w-4" />
+    </button>
+  );
+  return (
+    <span className="flex items-center">
+      {bouton("oui", ThumbsUp, "Bonne cible", "bg-pervenche/15 text-pervenche")}
+      {bouton("non", ThumbsDown, "Pas une cible : l'écarter", "bg-alerte/15 text-alerte")}
+    </span>
+  );
+}
+
 /** Fiche · Conversation : la bascule d'une fiche dont la conversation est ouverte (25 oct. 2026, Jules). */
 const BasculeFiche = ({ vue, onVue }) => (
   <div className="flex w-fit gap-0.5 rounded-full border border-bord-doux bg-rail p-1" role="tablist" aria-label="Vue de la fiche">
-    {[["fiche", "Fiche"], ["conversation", "Conversation"]].map(([k, mot]) => (
+    {[["fiche", "Fiche"], ["conversation", "Assistant"]].map(([k, mot]) => (
       <button key={k} type="button" role="tab" aria-selected={vue === k} onClick={() => onVue(k)}
         className={`h-8 rounded-full px-4 text-[13.5px] ${vue === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
         style={vue === k ? undefined : { background: "transparent" }}>{mot}</button>
@@ -461,7 +497,6 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
     const bords = parseFloat(c.paddingTop) + parseFloat(c.paddingBottom);
     setHauteurPanneau(Math.max(320, (Number.isFinite(max) ? max : e.clientHeight) - bords));
   }, [enConv]);
-  const ou = f || repli?.ou || null;
   // Le chat se monte un instant après la fiche (1er nov. 2026, Jules : « c'est super long ») : ses propres lectures ne
   // passent plus devant celles de la fiche et de sa photo. Une barre de même hauteur tient sa place.
   const [chatPret, setChatPret] = useState(false);
@@ -505,17 +540,14 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
           {/* « Dans la liste … · changer » retiré de l'en-tête (27 oct. 2026, Jules). */}
         </div>
         <span className="flex flex-none items-center gap-1">
+          {!enConv && f?.commerce_id && !f.dans_biens && <PoucesCommerce commerceId={f.commerce_id} avis={f.avis_commerce || null} onEcarte={onFermer} />}
           {enConv ? <BasculeFiche vue={vue} onVue={setVue} /> : f && !f.apercu && !f.dans_biens ? <MenuStatut f={f} onChoisir={(k) => statut.mutate(k)} occupe={statut.isPending} />
             : <span className={`rounded-full px-2.5 py-1 text-[12px] ${f?.biens?.pause ? "bg-ambre/15 text-ambre" : f?.apercu ? "bg-relief text-ardoise" : "bg-pervenche/15 text-pervenche"}`}>{f?.biens?.pause ? "En pause" : etapeBiens || f?.statut_mot || "…"}</span>}
           {onFermer && <button type="button" onClick={onFermer} aria-label="Fermer la fiche" title="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>}
         </span>
       </div>
       {discussion && !enConv && <div className="px-5 pt-3"><BasculeFiche vue={vue} onVue={setVue} /></div>}
-      {/* La photo du commerce (sa fiche Google, plus Street View depuis le 31 oct. 2026), en tête de toute fiche, même un commerce pas encore dans une liste (25 oct. 2026, Jules). */}
-      {/* Avant la fiche, l'emplacement que porte la liste (`repli.ou`, 1er nov. 2026) : la photo part dès l'ouverture. */}
-      {!enConv && ou && (ou.adresse || ou.position) && (
-        <div className="px-5 pt-3"><FacadeLocal adresse={ou.adresse} lat={ou.position?.lat ?? null} lon={ou.position?.lon ?? null} nom={ou.commerce} placeId={ou.place_id} /></div>
-      )}
+      {/* Plus de photo du commerce en tête de la fiche (6 nov. 2026, Jules : « pour le chargement et une fiche épurée »). */}
       {!enConv && media}
       <div className={enConv ? "hidden" : "px-5 pb-5 pt-3"}>
         {isLoading && <Loader titre="La fiche…" />}

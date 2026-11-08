@@ -14,6 +14,9 @@ import { bouton, boutonPlein, champ } from "@/components/off-market/commun";
 // droit de préférence du locataire, puis « Mettre en vente », actif quand le dossier est complet et sans point
 // bloquant. Le serveur est dans server/dossier-vente.js.
 
+// Dix documents au plus dans une case (6 nov. 2026, Jules : « plusieurs documents dans chaque box, jusqu'à 10 »).
+export const MAX_PAR_CASE = 10;
+
 const ETATS = {
   recue: ["text-menthe", "Reçue"],
   en_lecture: ["text-ardoise k-scintille", "En lecture"],
@@ -39,12 +42,13 @@ export default function DossierVente({ dossierId, lecture = false }) {
     // Les pièces se lisent en arrière-plan : l'écran se relit tant que la lecture tourne.
     refetchInterval: (q) => (q.state.data?.pieces?.some((p) => p.etat === "en_lecture") ? 5000 : false),
   });
-  const relire = () => { queryClient.invalidateQueries({ queryKey: cle }); queryClient.invalidateQueries({ queryKey: ["m-dossiers"] }); };
+  // Rend la relecture de la Data room elle-même : le dépôt l'attend avant de dire « Pièce importée » (7 nov. 2026).
+  const relire = () => { [["m-dossiers"], ["m-documents-bien"], ["m-proprietaires"]].forEach((k) => queryClient.invalidateQueries({ queryKey: k })); return queryClient.invalidateQueries({ queryKey: cle }); };
   const vente = useMutation({
     mutationFn: () => base44.request("POST", `${url}/vente`),
     onSuccess: () => {
       ["m-dossiers", "m-marches", "m-dossier-vente"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
-      toast.success("Le bien est en vente");
+      toast.success(v?.location ? "Le local est mis en location" : "Le bien est en vente");
     },
     onError: (e) => toast.error(e?.message || "Pas encore"),
   });
@@ -52,24 +56,55 @@ export default function DossierVente({ dossierId, lecture = false }) {
   if (isLoading) return <Loader titre="Le dossier…" />;
   if (!v) return null;
 
+  // Le dossier de location (6 nov. 2026, Jules : « adapter tout le système à la location ») : sans droit de préférence,
+  // « Mettre en location » passe le bien en Commercialisation, le mandataire cherche ses candidats.
   return (
-    <section aria-label="La Data room" className="mt-2">
+    <section aria-label={v.location ? "Le dossier de location" : "La Data room"} className="mt-2">
       {/* Les pièces seules (3 nov. 2026, Jules : « trop de petits trucs parasites ») : ni la phrase de ce qui manque, ni le
           mail (il s'écrit dans le chat, à gauche), ni le droit de préférence (l'assistant le porte), ni les notes du dépôt. */}
       {!lecture && <div className="flex flex-wrap items-center gap-3">
         <p className={`m-0 min-w-0 flex-1 text-[13.5px] ${v.pret ? "text-menthe" : "text-ambre"}`}>{v.phrase}</p>
         {(
           <button type="button" onClick={() => vente.mutate()} disabled={!v.pret || vente.isPending} title={v.pret ? undefined : v.raisons.join(" ")} className={`${boutonPlein} max-md:w-full max-md:justify-center`}>
-            {vente.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}Mettre en vente
+            {vente.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{v.location ? "Mettre en location" : "Mettre en vente"}
           </button>
         )}
       </div>}
 
       {!lecture && <MailDuDossier v={v} dossierId={dossierId} />}
       <Pieces v={v} url={url} relire={relire} />
-      {v.points.length > 0 && <Points points={v.points} decisions={v.decisions} url={url} relire={relire} lecture={lecture} />}
-      {!lecture && <Preference v={v} />}
+      {/* « Ce que les pièces montrent » retiré de la Data room (8 nov. 2026, Jules) : l'assistant garde ces points. */}
+      {!lecture && v.preference && <Preference v={v} />}
     </section>
+  );
+}
+
+/**
+ * La Data room d'un bien, d'où qu'on la regarde (6 nov. 2026, Jules : « dans l'étape Data room et la vue d'ensemble,
+ * ça doit être la même data room : dès qu'on renomme un truc, ça le renomme dans l'autre »). Le dossier quand il existe
+ * (au mandat signé), sinon la fiche du bien (server/data-room-bien.js, mêmes adresses) : mêmes cases, mêmes gestes.
+ */
+export function useDataRoom(proprietaireId, dossierId) {
+  const queryClient = useQueryClient();
+  const url = dossierId ? `/api/mandataire/dossiers/${encodeURIComponent(dossierId)}` : proprietaireId ? `/api/mandataire/biens/${encodeURIComponent(proprietaireId)}/dataroom` : null;
+  const cle = dossierId ? ["m-dossier-vente", dossierId] : ["m-dataroom-bien", proprietaireId];
+  const q = useQuery({ queryKey: cle, queryFn: () => base44.request("GET", `${url}/vente`), enabled: !!url,
+    refetchInterval: (x) => (x.state.data?.pieces?.some((p) => p.etat === "en_lecture") ? 5000 : false) });
+  // Un geste d'un côté se voit de l'autre : la vue d'ensemble (ses documents, sa fiche) et l'étape 4 se relisent ensemble.
+  // Rend la relecture de la Data room elle-même : le dépôt l'attend avant de dire « Pièce importée » (7 nov. 2026).
+  const relire = () => { [["m-dossiers"], ["m-documents-bien"], ["m-proprietaires"]].forEach((k) => queryClient.invalidateQueries({ queryKey: k })); return queryClient.invalidateQueries({ queryKey: cle }); };
+  return { v: q.data, chargement: q.isLoading, url, relire };
+}
+
+/** Les cases de la Data room d'un bien, avant ou après le mandat : le même composant que l'étape 4. */
+export function DataRoom({ proprietaireId, dossierId }) {
+  const { v, chargement, url, relire } = useDataRoom(proprietaireId, dossierId);
+  if (chargement) return <Loader titre="La Data room…" />;
+  if (!v) return null;
+  return (
+    <>
+      <Pieces v={v} url={url} relire={relire} />
+    </>
   );
 }
 
@@ -128,8 +163,8 @@ function Pieces({ v, url, relire }) {
     onSuccess: (r, { fichiers, categorie }) => {
       if (categorie) setAClasser((l) => l.filter((f) => !fichiers.includes(f)));
       else setAClasser((l) => [...l, ...fichiers.filter((f) => (r.a_classer || []).includes(f.name))]);
-      if (r.rangees?.length) toast.success(r.rangees.length > 1 ? `${r.rangees.length} pièces importées` : "Pièce importée");
-      relire();
+      // La pièce se voit dans sa case quand le message s'affiche, pas quelques secondes après (7 nov. 2026, Jules).
+      return Promise.resolve(relire()).then(() => { if (r.rangees?.length) toast.success(r.rangees.length > 1 ? `${r.rangees.length} pièces importées` : "Pièce importée"); });
     },
     onError: (e) => toast.error(e?.message || "Dépôt refusé"),
     onSettled: () => setEnCours(null),
@@ -146,6 +181,13 @@ function Pieces({ v, url, relire }) {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const masquees = v.dossier?.pieces_masquees || [];
+  // Visible des acquéreurs ou interne (7 nov. 2026, Jules) : seulement sur le dossier, celui que la data room de l'acquéreur lit.
+  const dossier = /\/api\/mandataire\/dossiers\//.test(url || "");
+  const visibilite = useMutation({
+    mutationFn: ({ cle, visible }) => base44.request("PATCH", `${url}/pieces/${encodeURIComponent(cle)}/visibilite`, { body: { visible } }),
+    onSuccess: relire,
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
   const nouvelle = useMutation({
     mutationFn: async ({ mot, fichiers }) => {
       const r = await base44.request("POST", `${url}/cases`, { body: { mot } });
@@ -168,7 +210,8 @@ function Pieces({ v, url, relire }) {
           <ZonePiece key={p.cle} p={p} occupe={enCours === p.cle}
             onDeposer={(fichiers) => fichiers.length && deposer.mutate({ fichiers, categorie: p.cle })}
             onRetirer={(f) => retirer.mutate({ cle: p.cle, u: f.url })} onAnnote={relire}
-            onMasquer={() => masquer.mutate({ cle: p.cle, oui: true })} />
+            onMasquer={() => masquer.mutate({ cle: p.cle, oui: true })}
+            onVisibilite={dossier ? (visible) => visibilite.mutate({ cle: p.cle, visible }) : null} />
         ))}
         <ZonePhotos photos={v.dossier.photos} url={url} relire={relire} />
         {libre && <ZonePiece p={libre} libre occupe={enCours === libre.cle || nouvelle.isPending}
@@ -293,25 +336,76 @@ function LignePiece({ f, onRetirer, onAnnote }) {
   );
 }
 
-export function ZonePiece({ p, occupe, onDeposer, onRetirer, onAnnote = null, onMasquer = null, libre = false }) {
+/**
+ * Qui a ouvert la pièce, qui l'attend, et si elle est visible des acquéreurs (7 nov. 2026, Jules) : en bas de la case,
+ * « Consulté par N » en pervenche et « Demandé par N » en ambre, chacun se déplie sur les noms ; la pastille bascule
+ * entre « Visible acquéreurs » et « Interne ». Les clics restent dans la ligne : ils n'ouvrent pas l'ajout de fichier.
+ */
+function SuiviPiece({ p, onVisibilite }) {
+  const [ouvert, setOuvert] = useState(null);
+  const consulte = p.consulte_par || [];
+  const demande = p.demande_par || [];
+  if (!consulte.length && !demande.length && !onVisibilite) return null;
+  const jourCourt = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
+  const basculer = (k) => (ev) => { arreter(ev); setOuvert((o) => (o === k ? null : k)); };
+  return (
+    <div className="mt-auto pt-3" onClick={arreter} onKeyDown={arreter}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12.5px]">
+        {consulte.length > 0 && <button type="button" onClick={basculer("consulte")} aria-expanded={ouvert === "consulte"} className="text-pervenche hover:text-encre" style={{ background: "transparent" }}>Consulté par {consulte.length}</button>}
+        {demande.length > 0 && <button type="button" onClick={basculer("demande")} aria-expanded={ouvert === "demande"} className="text-ambre hover:text-encre" style={{ background: "transparent" }}>Demandé par {demande.length}</button>}
+        <span className="flex-1" />
+        {onVisibilite && (
+          <button type="button" onClick={(ev) => { arreter(ev); onVisibilite(p.visible === false); }} title={p.visible === false ? "Rendre visible des acquéreurs" : "Garder en interne"}
+            className={`rounded-full px-2 py-px text-[12px] ${p.visible === false ? "bg-relief text-ardoise" : "bg-pervenche/15 text-pervenche"}`}>
+            {p.visible === false ? "Interne" : "Visible acquéreurs"}
+          </button>
+        )}
+      </div>
+      {ouvert === "consulte" && (
+        <ul className="m-0 mt-1.5 list-none space-y-0.5 p-0 text-[12.5px] text-craie">
+          {consulte.map((x, i) => <li key={`${x.piste_id}-${i}`}>Ouvert · {x.nom}{x.fois ? ` (${x.fois} fois${x.dernier_le ? `, le ${jourCourt(x.dernier_le)}` : ""})` : x.dernier_le ? ` (le ${jourCourt(x.dernier_le)})` : ""}</li>)}
+        </ul>
+      )}
+      {ouvert === "demande" && (
+        <ul className="m-0 mt-1.5 list-none space-y-0.5 p-0 text-[12.5px] text-craie">
+          {demande.map((x, i) => <li key={`${x.piste_id}-${i}`}>Attend · {x.nom}{x.le ? ` (depuis le ${jourCourt(x.le)})` : ""}</li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export function ZonePiece({ p, occupe, onDeposer, onRetirer, onAnnote = null, onMasquer = null, onVisibilite = null, libre = false, max = MAX_PAR_CASE }) {
   const ref = useRef(null);
   const [survol, setSurvol] = useState(false);
   const fichiers = p.fichiers || [];
   const n = fichiers.length;
   const [couleur, mot] = ETATS[p.etat] || ETATS.manquante;
   // Le « + » : l'ordinateur ou Google Drive (4 nov. 2026, Jules).
-  const ajout = useAjoutFichier({ onOrdinateur: () => ref.current?.click(), onFichiers: onDeposer });
-  const ouvrir = (ev) => !occupe && ajout.ouvrir(ev);
+  // Une case pleine refuse le surplus ; la case libre « + » et les photos n'ont pas de limite.
+  const place = libre ? Infinity : max - n;
+  const deposerBorne = (l) => {
+    if (!l.length) return;
+    if (place <= 0) { toast.error(`${max} documents au plus dans « ${p.mot} ».`); return; }
+    if (l.length > place) toast.error(`${max} documents au plus dans « ${p.mot} » : ${place} ajouté${place > 1 ? "s" : ""}.`);
+    onDeposer(l.slice(0, place));
+  };
+  const ajout = useAjoutFichier({ onOrdinateur: () => ref.current?.click(), onFichiers: deposerBorne });
+  const ouvrir = (ev) => {
+    if (occupe) return;
+    if (place <= 0) { arreter(ev); toast.error(`${max} documents au plus dans « ${p.mot} ».`); return; }
+    ajout.ouvrir(ev);
+  };
   return (
     <section role="button" tabIndex={0} aria-label={libre ? "Ajouter un autre document" : `Importer : ${p.mot}`}
       onClick={ouvrir} onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); ouvrir(ev); } }}
       onDragOver={(ev) => { ev.preventDefault(); setSurvol(true); }}
       onDragLeave={() => setSurvol(false)}
-      onDrop={(ev) => { ev.preventDefault(); setSurvol(false); onDeposer([...ev.dataTransfer.files]); }}
+      onDrop={(ev) => { ev.preventDefault(); setSurvol(false); deposerBorne([...ev.dataTransfer.files]); }}
       className={`group/case relative cursor-pointer ${cadre(survol)}`}>
-      {/* La case libre n'a qu'un « + » tant qu'elle est vide. */}
-      {(!libre || n > 0) && <div className="flex items-baseline justify-between gap-3">
-        <p className="m-0 text-[15px] text-encre">{p.mot}</p>
+      {/* La case libre s'appelle « Autre » (6 nov. 2026, Jules : « mets Autre au lieu de rien »), vide ou pas. */}
+      {<div className="flex items-baseline justify-between gap-3">
+        <p className="m-0 text-[15px] text-encre">{libre ? "Autre" : p.mot}</p>
         {libre ? null : p.etat === "recue"
           ? <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-menthe/15 text-menthe" aria-label="Reçue"><Check className="h-3.5 w-3.5" /></span>
           : <span className={`flex-none text-[12.5px] ${p.etat === "manquante" ? (p.requise ? "text-ambre" : "text-brume") : couleur}`}>{p.etat === "manquante" ? (p.requise ? "Obligatoire" : "Facultatif") : mot}</span>}
@@ -328,8 +422,9 @@ export function ZonePiece({ p, occupe, onDeposer, onRetirer, onAnnote = null, on
           {fichiers.map((f) => <LignePiece key={f.url || f.nom} f={f} onRetirer={onRetirer} onAnnote={onAnnote} />)}
         </ul>
       )}
-      <input ref={ref} type="file" multiple className="hidden" onClick={arreter} onChange={(ev) => { onDeposer([...ev.target.files]); ev.target.value = ""; }} />
-      {plus(occupe)}
+      <input ref={ref} type="file" multiple className="hidden" onClick={arreter} onChange={(ev) => { deposerBorne([...ev.target.files]); ev.target.value = ""; }} />
+      {!libre && <SuiviPiece p={p} onVisibilite={onVisibilite} />}
+      {place > 0 && plus(occupe)}
       {ajout.rendu}
     </section>
   );
@@ -372,50 +467,6 @@ function ZonePhotos({ photos = [], url, relire }) {
       {plus(ajouter.isPending)}
       {ajout.rendu}
     </section>
-  );
-}
-
-/** Les points relevés sur les pièces : bloquants d'abord ; chacun se tranche d'un clic. */
-function Points({ points, decisions, url, relire, lecture = false }) {
-  const decider = useMutation({
-    mutationFn: ({ cle, decision }) => base44.request("POST", `${url}/points`, { body: { cle, decision } }),
-    onSuccess: relire,
-    onError: (e) => toast.error(e?.message || "Non enregistré"),
-  });
-  const restants = points.filter((p) => !p.decision).length;
-  return (
-    <div className="mt-6">
-      <h3 className="m-0 text-[14px] font-normal text-encre">Ce que les pièces montrent{restants ? <span className="text-ambre"> · {restants} à trancher</span> : null}</h3>
-      <ul className="m-0 mt-2 list-none overflow-hidden rounded-bloc border border-trait p-0">
-        {points.map((p) => {
-          const [couleur, niveau] = NIVEAUX[p.niveau] || NIVEAUX.signale;
-          // Un bloquant ne s'explique pas à l'acheteur : il se corrige.
-          const choix = Object.entries(decisions).filter(([k]) => p.niveau !== "bloquant" || k !== "expliquer");
-          return (
-            <li key={p.cle} className="border-b border-trait px-4 py-3 last:border-b-0">
-              <div className="flex flex-wrap items-baseline gap-x-2">
-                <span className={`text-[12.5px] ${couleur}`}>{niveau}</span>
-                <span className="text-[14px] text-encre">{p.ligne}</span>
-                <span className="text-[12.5px] text-brume">{p.onglet}</span>
-              </div>
-              {p.motif && <p className={`m-0 mt-0.5 text-[13.5px] leading-[1.5] ${p.niveau === "bloquant" ? "text-alerte" : "text-ambre"}`}>{p.motif}</p>}
-              {p.valeur && <p className="m-0 mt-0.5 text-[13px] text-craie">{p.valeur}</p>}
-              {lecture ? (
-                <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">{p.decision ? decisions[p.decision] : "À trancher avec l'assistant"}</p>
-              ) : <div className="mt-2 flex flex-wrap gap-1.5">
-                {choix.map(([k, mot]) => {
-                  const actif = p.decision === k;
-                  return (
-                    <button key={k} type="button" onClick={() => decider.mutate({ cle: p.cle, decision: actif ? null : k })} aria-pressed={actif}
-                      className={`h-8 rounded-full px-3 text-[12.5px] transition-colors ${actif ? "bg-menthe text-sur-menthe" : "border border-trait text-craie hover:text-encre"}`} style={actif ? undefined : { background: "transparent" }}>{mot}</button>
-                  );
-                })}
-              </div>}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
   );
 }
 

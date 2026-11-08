@@ -34,16 +34,18 @@ export function faitsDuTeaser(t = {}) {
 }
 
 /** Pure : les mentions sous chaque annonce. `s` : le signataire (server/mandataire-avis.js) ; `mandat` : prix, honoraires. */
-export function mentionsDe({ ref = null, s = {}, mandat = null } = {}) {
+export function mentionsDe({ ref = null, s = {}, mandat = null, location = false } = {}) {
   // Comme le registre des mandats (mandataire-portes.js) : un nombre au-dessus de 100 est en euros, sinon en %.
+  // Une location (7 nov. 2026) : des honoraires du loyer annuel, à la charge du preneur, et pas de prix honoraires inclus.
+  const charge = { acquereur: "de l'acquéreur", preneur: 'du preneur', bailleur: 'du bailleur' }[mandat?.honoraires_charge] || (location ? 'du preneur' : 'du vendeur');
   const honoraires = mandat?.honoraires != null
-    ? `Honoraires : ${mandat.honoraires}${Number(mandat.honoraires) > 100 ? ' €' : ' %'} à la charge ${mandat.honoraires_charge === 'acquereur' ? "de l'acquéreur" : 'du vendeur'}.`
+    ? `Honoraires : ${mandat.honoraires}${Number(mandat.honoraires) > 100 ? ' €' : ` %${location ? ' HT du loyer annuel HT HC' : ''}`} à la charge ${charge}.`
     : `Honoraires : ${AFAIRE}.`;
   const qui = [s.nom, s.qualite || 'agent commercial'].filter(Boolean).join(', ');
   const rsac = s.rsac ? `RSAC ${s.ville_rsac ? `de ${s.ville_rsac} ` : ''}n° ${s.rsac}` : `RSAC ${AFAIRE}`;
   return [
     ref ? `Réf. ${ref}.` : null,
-    'Prix honoraires inclus.',
+    location ? 'Loyer hors taxes et hors charges.' : 'Prix honoraires inclus.',
     honoraires,
     `Annonce publiée par ${qui || AFAIRE} (${rsac}), mandataire de K Partners${s.carte_t ? `, carte professionnelle n° ${s.carte_t}` : ''}.`,
     [s.telephone, s.email].filter(Boolean).join(' · ') || null,
@@ -89,13 +91,13 @@ export async function annoncesDe(marcheId, user, { refaire = false } = {}) {
   const mandat = d?.mandat_id ? Records.get('MandatMandataire', d.mandat_id) : null;
   const { signataire } = await import('./mandataire-avis.js');
   const canaux = Object.fromEntries(CANAUX.map((c) => [c.cle, { titre: c.titre ? String(lu?.[c.cle]?.titre || '').trim() : null, texte: String(lu?.[c.cle]?.texte || '').trim() }]));
-  const annonces = { v: 1, le: new Date().toISOString(), ref: t.teaser.ref || null, canaux, mentions: mentionsDe({ ref: t.teaser.ref, s: signataire({ email: m.mandataire_email }), mandat }), photo: m.annonces?.photo || t.teaser.photo || null };
+  const annonces = { v: 1, le: new Date().toISOString(), ref: t.teaser.ref || null, canaux, mentions: mentionsDe({ ref: t.teaser.ref, s: signataire({ email: m.mandataire_email }), mandat, location: t.teaser.classe === 'a_louer' }), photo: m.annonces?.photo || t.teaser.photo || null, diffusion: m.annonces?.diffusion || null };
   Records.update('MiseEnMarche', m.id, { annonces });
   return { ok: true, annonces };
 }
 
 /** Une retouche à la main : le titre ou le texte d'un canal, les mentions, ou la photo de couverture. */
-export async function modifierAnnonce(marcheId, user, { canal = null, titre, texte, mentions, photo } = {}) {
+export async function modifierAnnonce(marcheId, user, { canal = null, titre, texte, mentions, photo, publie } = {}) {
   const P = await import('./mandataire-portes.js');
   const m = P.lireMarche(marcheId, user);
   if (!m?.annonces) return { ok: false, error: 'Annonces introuvables.' };
@@ -106,6 +108,8 @@ export async function modifierAnnonce(marcheId, user, { canal = null, titre, tex
   }
   if (mentions !== undefined) a.mentions = String(mentions);
   if (photo !== undefined) a.photo = photo && /^\/uploads\//.test(String(photo)) ? String(photo) : null;
+  // Où l'annonce est en ligne (6 nov. 2026) : le mandataire le coche, la date se garde ; l'assistant le sait.
+  if (publie !== undefined && canal) a.diffusion = { ...(a.diffusion || {}), [canal]: publie ? new Date().toISOString() : null };
   Records.update('MiseEnMarche', m.id, { annonces: a });
   return { ok: true, annonces: a };
 }

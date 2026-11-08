@@ -183,40 +183,41 @@ async function photosGoogleDeLaVille(commune, n = 4) {
   return travail;
 }
 
-// --- Les photos d'une ville par la recherche d'images (3 nov. 2026, Jules : « faut juste qu'il cherche {ville} photo
-// et prenne les tops images ; si on lui demande d'aller en chercher d'autres, il faut que ça le fasse »). Les photos de
-// la fiche Google de la ville étaient celles des visiteurs, toujours les mêmes. La recherche « {ville} photo » (Bing
-// Images, grandes, en paysage) rend les premières dans l'ordre ; les banques d'images, filigranées, sont écartées.
-// Chaque image est rapatriée dans /uploads/commerces. « D'autres » : la page suivante des résultats gardés.
+// --- Les photos d'une ville (3 nov. 2026, Jules : « qu'il prenne les tops images ; si on lui demande d'en chercher
+// d'autres, il faut que ça le fasse »). La recherche d'images de Bing (« {ville} photo ») ne rendait plus la ville :
+// le 6 nov. 2026, « Antibes photo » a donné une photo de presse de Tom Cruise (Jules : « WTF cette image »). Les photos
+// viennent désormais de l'article Wikipédia de la commune, dans son ordre : vues de la ville, en paysage, assez grandes ;
+// ni plan, ni carte, ni blason, ni plaque, ni tableau. La fiche Google de la ville en repli. Chaque image est rapatriée
+// dans /uploads/commerces. « D'autres » : la page suivante des photos gardées.
 
-const RECHERCHE_IMAGES = 'https://www.bing.com/images/search';
-const NAVIGATEUR = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
-const BANQUES = /alamy|dreamstime|istockphoto|shutterstock|gettyimages|depositphotos|123rf|stock\.adobe|bigstockphoto|agefotostock|masterfile|pond5|vecteezy|freepik/i;
-const ENTITES = { '&quot;': '"', '&amp;': '&', '&#39;': "'", '&lt;': '<', '&gt;': '>' };
+const WIKIPEDIA = 'https://fr.wikipedia.org';
+const AGENT = 'Klocka/1.0 (https://klocka.immo)';
+const PAS_UNE_VUE = /plan|carte|map|blason|armoiries|logo|flag|drapeau|plaque|panneau|st[eè]le|table|tableau|peinture|gravure|par_|portrait|localisation|location|schema|sch[ée]ma|graph|courbe|diagram|r[ée]partition|population|meteo|climat|windrose|vote|elect/i;
 
-/** Pure : les adresses des images d'une page de résultats, dans l'ordre, sans doublon ni banque d'images. */
-export function imagesDuResultat(html = '') {
-  const vues = new Set();
-  const out = [];
-  for (const [, brut] of String(html).matchAll(/\bm="(\{[^"]*\})"/g)) {
-    let murl = null;
-    try { murl = JSON.parse(brut.replace(/&(quot|amp|#39|lt|gt);/g, (e) => ENTITES[e]))?.murl || null; } catch { continue; }
-    if (!/^https?:\/\//.test(murl || '') || BANQUES.test(murl) || vues.has(murl)) continue;
-    vues.add(murl);
-    out.push(murl);
-  }
-  return out;
+/** Pure : les vues d'une ville parmi les images de son article (titre, largeur, hauteur, type), dans l'ordre donné. */
+export function vuesDeLaVille(images = []) {
+  return images.filter((i) => /^image\/jpeg$/.test(i.mime || '') && i.width >= 1200 && i.width >= i.height * 1.2 && !PAS_UNE_VUE.test(String(i.titre || '').replace(/^Fichier:/, '')) && i.url);
 }
 
-async function chercherImages(requete) {
-  const q = new URLSearchParams({ q: requete, qft: '+filterui:aspect-wide+filterui:imagesize-large', form: 'IRFLTR', first: '1' });
-  const r = await fetch(`${RECHERCHE_IMAGES}?${q}`, { headers: { 'User-Agent': NAVIGATEUR, 'Accept-Language': 'fr-FR,fr;q=0.9' }, signal: AbortSignal.timeout(12000) });
-  if (!r.ok) throw new Error(`la recherche d'images a répondu ${r.status}`);
-  return imagesDuResultat(await r.text());
+const wiki = async (chemin) => {
+  const r = await fetch(`${WIKIPEDIA}${chemin}`, { headers: { 'User-Agent': AGENT, 'Api-User-Agent': AGENT }, signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw new Error(`Wikipédia a répondu ${r.status}`);
+  return r.json();
+};
+
+/** Les adresses des vues de l'article Wikipédia d'une commune, à 1 600 px, dans l'ordre de l'article. */
+async function imagesWikipedia(commune) {
+  const liste = await wiki(`/api/rest_v1/page/media-list/${encodeURIComponent(String(commune).trim().replace(/ /g, '_'))}`);
+  const titres = (liste.items || []).filter((i) => i.type === 'image' && i.title && !/\.svg$/i.test(i.title)).map((i) => i.title).slice(0, 50);
+  if (!titres.length) return [];
+  const q = new URLSearchParams({ action: 'query', titles: titres.join('|'), prop: 'imageinfo', iiprop: 'url|size|mime', iiurlwidth: '1600', format: 'json', formatversion: '2' });
+  const infos = new Map((((await wiki(`/w/api.php?${q}`)).query || {}).pages || []).map((p) => [p.title.replace(/ /g, '_'), p.imageinfo?.[0] || {}]));
+  const images = titres.map((t) => { const i = infos.get(t.replace(/ /g, '_')) || {}; return { titre: t, width: i.width, height: i.height, mime: i.mime, url: i.thumburl || i.url }; });
+  return vuesDeLaVille(images).map((i) => i.url);
 }
 
 async function rapatrier(url) {
-  const r = await fetch(url, { headers: { 'User-Agent': NAVIGATEUR }, signal: AbortSignal.timeout(12000), redirect: 'follow' });
+  const r = await fetch(url, { headers: { 'User-Agent': AGENT }, signal: AbortSignal.timeout(12000), redirect: 'follow' });
   const type = r.headers.get('content-type') || '';
   if (!r.ok || !/^image\/(jpeg|png|webp)/.test(type)) throw new Error(`image refusée (${r.status} ${type})`);
   const buffer = Buffer.from(await r.arrayBuffer());
@@ -236,14 +237,14 @@ async function rapatrier(url) {
 export async function photosDeLaVille(commune, { n = 4, page = 0 } = {}) {
   const v = norm(commune);
   if (!v) return [];
-  const k = `ville-images:${v}`;
+  const k = `ville-vues:${v}`; // « ville-images » : les résultats de Bing, abandonnés le 6 nov. 2026.
   const cleTravail = `${k}#${page}`;
   if (enCours.has(cleTravail)) return enCours.get(cleTravail);
   const travail = (async () => {
     let garde = Records.findBy(ENTITE, 'cle', k);
     if (!garde?.candidats?.length || Date.now() - new Date(garde.le).getTime() > RECHERCHER_APRES_MS) {
       let candidats = [];
-      try { candidats = await chercherImages(`${commune} photo`); } catch (err) { console.warn(`[photo-ville] ${err?.message || err}`); }
+      try { candidats = await imagesWikipedia(commune); } catch (err) { console.warn(`[photo-ville] ${err?.message || err}`); }
       if (!candidats.length) return n === 4 && !page ? photosGoogleDeLaVille(commune, n) : [];
       const fiche = { cle: k, candidats, photos: [], ecartees: [], le: new Date().toISOString() };
       garde = garde ? Records.update(ENTITE, garde.id, fiche) : Records.create(ENTITE, fiche);

@@ -97,8 +97,10 @@ export default function ModeTerrain({ listes = [], libelles = {}, onFermer }) {
   const marqueurs = useMemo(() => fiches.map((p) => ({
     id: p.id, lat: p.position.lat, lon: p.position.lon,
     titre: [p.commerce || p.nom, libelles[p.statut] || null].filter(Boolean).join(" · "),
-    // Un fonds de commerce à céder en ambre, comme dans Mon secteur (3 nov. 2026, Jules) ; prospecté, le rouge passe devant.
-    couleur: prospecte(p) ? JL.alerte : p.fonds ? JL.ambre : PERVENCHE,
+    // Deux couleurs par sorte de bien (6 nov. 2026, Jules : « juste couleur système et rouge ») : la pervenche, l'ambre pour
+    // un bien de type fonds de commerce (plus pour un simple signal de cession sur des murs), le rouge une fois prospecté.
+    // Une liste de murs a donc deux couleurs, une liste de fonds aussi ; trois seulement quand on les mélange.
+    couleur: prospecte(p) ? JL.alerte : p.type_bien === "fonds_commerce" ? JL.ambre : PERVENCHE,
   })), [fiches, libelles]);
   const fiche = fiches.find((p) => p.id === choisi) || null;
   // Une fiche s'ouvre tout de suite (3 nov. 2026, Jules : « charger une fiche en mode terrain, c'est trop long, je veux

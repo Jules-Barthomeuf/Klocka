@@ -26,7 +26,7 @@ async function parLots(items, n, fn) {
 
 /** La commune par la Base Adresse Nationale : INSEE, centre. */
 export async function communeDe(nom) {
-  const r = await fetch(`https://api-adresse.data.gouv.fr/search/?limit=1&type=municipality&q=${encodeURIComponent(nom)}`, { signal: AbortSignal.timeout(15000) });
+  const r = await fetch(`https://data.geopf.fr/geocodage/search/?limit=1&type=municipality&q=${encodeURIComponent(nom)}`, { signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error(`La Base Adresse Nationale a répondu ${r.status}.`);
   const f = (await r.json()).features?.[0];
   if (!f || (f.properties?.score ?? 0) < 0.5) return null;
@@ -51,7 +51,7 @@ export async function rueOfficielle(nom, ville, codeInsee = null, { souple = fal
     // Le code commune tient la BAN dans la ville : sans lui, une rue Jean Jaurès
     // de Cannes peut revenir de Lyon, et la carte avec.
     if (codeInsee) params.set('citycode', String(codeInsee));
-    const r = await fetch(`https://api-adresse.data.gouv.fr/search/?${params}`, { signal: AbortSignal.timeout(15000) });
+    const r = await fetch(`https://data.geopf.fr/geocodage/search/?${params}`, { signal: AbortSignal.timeout(15000) });
     const f = (await r.json()).features?.[0];
     if (!f || (f.properties?.score ?? 0) < (souple && codeInsee ? 0.35 : 0.5)) return null;
     const p = f.properties;

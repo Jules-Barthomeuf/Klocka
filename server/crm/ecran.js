@@ -19,8 +19,8 @@ const MONTRES = new Set(['TEXT', 'NUMBER', 'DATE', 'DATE_TIME', 'SELECT', 'MULTI
 const MODIFIABLES = new Set(['TEXT', 'NUMBER', 'DATE', 'DATE_TIME', 'SELECT', 'MULTI_SELECT', 'BOOLEAN', 'EMAILS', 'PHONES', 'LINKS', 'CURRENCY', 'FULL_NAME', 'RELATION']);
 // Les relations vers les objets de Twenty lui-même (notes, tâches, fichiers, historique) : la fiche les montre à part.
 const CIBLES_SYSTEME = new Set(['attachment', 'noteTarget', 'taskTarget', 'timelineActivity', 'agentChatThreadTarget', 'favorite', 'messageParticipant', 'calendarEventParticipant']);
-// 200 par page, le plafond de Twenty : un tableau de 567 agents arrive en trois appels (5 nov. 2026).
-const PAR_PAGE = 200;
+// 50 par page, « Voir plus » pour la suite (6 nov. 2026, Jules) ; Twenty accepte 200 au plus.
+const PAR_PAGE = 50;
 // Les libellés standard de Twenty, restés en anglais.
 const EN_FRANCAIS = { Name: 'Nom', 'Creation date': 'Créée le', 'Last update': 'Modifiée le', Title: 'Titre', Status: 'Statut', 'Due Date': 'Échéance', Assignee: 'Assignée à', Body: 'Texte', Tasks: 'Tâches', Task: 'Tâche', Notes: 'Notes', Note: 'Note', 'By Status': 'Par statut', 'Assigned to Me': 'Mes tâches', 'By Stage': 'Par étape' };
 // Les choix standard de Twenty (tâches), restés en anglais.
@@ -298,16 +298,17 @@ export const sansCaches = (fiche, champs) => (fiche ? { id: fiche.id, ...Object.
 /** Les noms des fiches liées d'une page ({ champ: { id: nom } }), une requête par relation montrée. */
 async function nomsLies(o, fiches, dossiers, membresVus = null) {
   const out = {};
-  for (const c of o.champs.filter((x) => x.type === 'RELATION')) {
+  // Les colonnes liées se lisent en même temps (8 nov. 2026, Jules : « le crm lag ») : une requête Twenty chacune.
+  await Promise.all(o.champs.filter((x) => x.type === 'RELATION').map(async (c) => {
     const ids = [...new Set(fiches.map((f) => f[c.nom]).filter(Boolean))];
-    if (!ids.length) continue;
+    if (!ids.length) return;
     // Une personne de l'équipe (assignée à…) : son nom vient des membres de Twenty.
-    if (c.cible === 'workspaceMember') { out[c.nom] = Object.fromEntries((membresVus || []).filter((m) => ids.includes(m.id)).map((m) => [m.id, m.nom])); continue; }
+    if (c.cible === 'workspaceMember') { out[c.nom] = Object.fromEntries((membresVus || []).filter((m) => ids.includes(m.id)).map((m) => [m.id, m.nom])); return; }
     const cible = objetsVus(dossiers).find((x) => x.singulier === c.cible);
-    if (!cible) continue;
+    if (!cible) return;
     const r = await requeteTwenty('GET', `/${cible.pluriel}?limit=${Math.min(200, ids.length)}&depth=0&filter=${encodeURIComponent(`id[in]:[${ids.map(q).join(',')}]`)}`);
     out[c.nom] = Object.fromEntries((r?.data?.[cible.pluriel] || []).map((x) => [x.id, nomDe(x)]));
-  }
+  }));
   return out;
 }
 
@@ -317,15 +318,15 @@ export const membresDe = (roles) => [...new Map((roles || []).flatMap((r) => r.w
 export async function barre(email) {
   const { role, barreVue, s } = await contexte(email);
   const membres = avecAlias(membresDe(s.roles), s.roles, equipe());
-  // Les comptes de Klocka (6 nov. 2026) : un tableau de plus dans l'espace Klocka, pour l'équipe hors espace mandataire.
+  // Les comptes de Klocka (6 nov. 2026) : un tableau de plus dans l'espace Klocka, pour l'équipe (un admin les garde dans la vue mandataire).
   const klocka = equipeKlocka(email) && barreVue.find((d) => d.nom === 'Klocka' && !d.ferme);
   if (klocka) klocka.objets = [...klocka.objets, (await import('./utilisateurs.js')).objet({ superAdmin: await superAdmin(email) }), (await import('./mandataires.js')).objet()];
   return { role: role.label, dossiers: barreVue, membres, spoc: choixSpoc(spocLu(), equipe(), s.roles), ordre: await ordreLu(email) };
 }
 
-// Les tableaux Utilisateurs et Mandataires (server/crm/utilisateurs.js, mandataires.js) : l'équipe seule, hors espace
-// mandataire.
-const equipeKlocka = (qui) => typeof qui === 'object' && !!qui?.admin && !qui?.mandataire;
+// Les tableaux Utilisateurs et Mandataires (server/crm/utilisateurs.js, mandataires.js) : l'équipe seule. Un admin les
+// garde dans la vue mandataire, où l'espace Klocka lui reste ouvert (6 nov. 2026, Jules : « je ne les vois plus »).
+const equipeKlocka = (qui) => typeof qui === 'object' && !!qui?.admin;
 const compteDe = async (qui) => (await import('../db.js')).Records.findBy('User', 'email', String(qui?.email || '').toLowerCase());
 const superAdmin = async (qui) => (await import('../acces-pages.js')).estSuperAdmin(await compteDe(qui));
 const TABLEAUX_KLOCKA = { utilisateurs: () => import('./utilisateurs.js'), mandataires: () => import('./mandataires.js') };
@@ -426,9 +427,16 @@ export function rechercheTwenty(champs, texte) {
   return parts.length > 1 ? `or(${parts.join(',')})` : parts[0] || null;
 }
 
+/** Pure : une tranche de 50 d'un tableau servi par Klocka ; `apres` est le rang où reprendre. */
+export function parTranche(r, apres = null) {
+  const de = Math.max(0, Number(apres) || 0);
+  const fiches = r.fiches.slice(de, de + PAR_PAGE);
+  return { ...r, fiches, suite: de + PAR_PAGE < r.fiches.length ? String(de + PAR_PAGE) : null };
+}
+
 /** Une page de fiches : recherche, filtres, tri, 50 par page. */
 export async function page(email, singulier, { q: texte = '', tri = null, sens = 'asc', apres = null, filtres = [] } = {}) {
-  if (TABLEAUX_KLOCKA[singulier]) return (await U(email, singulier)).page({ q: texte, tri, sens, filtres });
+  if (TABLEAUX_KLOCKA[singulier]) return parTranche(await (await U(email, singulier)).page({ q: texte, tri, sens, filtres }), apres);
   const { dossiers, membreId, s } = await contexte(email);
   const o = objetDe(dossiers, singulier);
   const params = new URLSearchParams({ limit: String(PAR_PAGE), depth: '0' });
@@ -802,7 +810,7 @@ export function texteCase(c, v, liens = {}) {
     case 'LINKS': return v.primaryLinkUrl || '';
     case 'CURRENCY': return v.amountMicros == null ? '' : String(v.amountMicros / 1e6);
     case 'FULL_NAME': return [v.firstName, v.lastName].filter(Boolean).join(' ');
-    case 'ADDRESS': return [v.addressStreet1, v.addressPostcode, v.addressCity].filter(Boolean).join(' ');
+    case 'ADDRESS': return [v.addressCity || v.addressStreet1, v.addressCountry].filter(Boolean).join(', ');
     case 'RICH_TEXT': case 'RICH_TEXT_V2': return typeof v === 'string' ? v : v.markdown || '';
     case 'RELATION': return liens[c.nom]?.[v] || v;
     default: return typeof v === 'object' ? JSON.stringify(v) : String(v);

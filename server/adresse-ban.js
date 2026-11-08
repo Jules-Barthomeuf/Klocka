@@ -30,7 +30,7 @@ const SEUIL_BAN = 0.4;
 const DELAIS_MS = [12000, 20000, 30000];
 
 export async function propositionsBan(q, limite = 8) {
-  const url = `https://api-adresse.data.gouv.fr/search/?limit=${limite}&q=${encodeURIComponent(q)}`;
+  const url = `https://data.geopf.fr/geocodage/search/?limit=${limite}&q=${encodeURIComponent(q)}`;
   let r; let derniere;
   for (const delai of DELAIS_MS) {
     try {

@@ -15,6 +15,7 @@ import { Records, Meta } from './db.js';
 import { dansNJoursParis } from './rappels.js';
 import { ANALYSTES } from './fil-dossier.js';
 import { exclusionsDe, veutEmplacement1, veutEnseigneNationale } from '../src/lib/clients-commerces.js';
+import { estVilleCotee } from './villes-cotees.js';
 
 const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const aMidi = (d) => { const x = new Date(d); x.setHours(12, 0, 0, 0); return x; };
@@ -85,6 +86,9 @@ export const dansSecteur = (p, s) => anneauxSecteur(s).some((a) => dansPolygone(
  * @param {{code?: string, codeDepartement?: string, codeRegion?: string, lat: number, lon: number}} c
  */
 export function communeDansSecteur(c, s) {
+  // Les villes que Klocka a ajoutées à sa liste (page Mandataires, colonne Villes du CRM) en font partie, même hors du
+  // contour (6 nov. 2026, Jules : « j'ai mis Lille dans ses villes et le chat me dit hors secteur »).
+  if (villesDuMandataire(s).some((v) => (v.code && c?.code && String(v.code) === String(c.code)) || (v.nom && norm(v.nom) === norm(c?.nom)))) return true;
   const unites = s?.unites || [];
   if (unites.length) {
     const codes = { commune: c.code, departement: c.codeDepartement, region: c.codeRegion };
@@ -92,6 +96,14 @@ export function communeDansSecteur(c, s) {
     if (c.code && unites.every((u) => u.niveau in codes)) return false;
   }
   return dansSecteur([c.lat, c.lon], s);
+}
+
+const villesDuMandataire = (s) => (Array.isArray(s?.villes_choisies) ? s.villes_choisies : []);
+
+/** Pure : les noms qui disent le secteur au chat, ses unités puis les villes de sa liste, sans doublon. */
+export function nomsDuSecteur(s) {
+  const vus = new Set();
+  return [...(s?.unites || []), ...villesDuMandataire(s)].map((u) => u?.nom).filter((n) => n && !vus.has(norm(n)) && vus.add(norm(n)));
 }
 
 /** Deux secteurs se chevauchent : une même unité (département, commune…), ou la géométrie. */
@@ -559,7 +571,8 @@ export function correspond(cible, demande) {
   const type = norm(demande.type_commerce);
   const activiteOk = !type || type.split(/\s+/).some((m) => m.length > 2 && activite.includes(m));
   const ville = norm(cible.ville);
-  const zonesOk = !demande.zones?.length || demande.zones.some((z) => ville.includes(norm(z)) || norm(z).includes(ville));
+  // Sans zone, les villes cotées (6 nov. 2026, Jules) ; une cible sans ville passe.
+  const zonesOk = demande.zones?.length ? demande.zones.some((z) => ville.includes(norm(z)) || norm(z).includes(ville)) : !ville || estVilleCotee(cible.ville);
   return activiteOk && zonesOk;
 }
 

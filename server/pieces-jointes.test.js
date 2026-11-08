@@ -40,3 +40,13 @@ test('le lot : pieces d’abord, sinon la pièce seule', () => {
   assert.deepEqual(lotDePieces({ piece: BAIL, pieces: [KBIS] }), [KBIS]);
   assert.deepEqual(lotDePieces({}), []);
 });
+
+test('les pièces du message précédent restent deux heures (7 nov. 2026)', async () => {
+  const { retenirPieces, piecesRecentes } = await import('./pieces-jointes.js');
+  const t = 1_800_000_000_000;
+  retenirPieces('A@x.fr', [{ nom: 'dpe.pdf', url: '/uploads/dpe.pdf' }], t);
+  retenirPieces('a@x.fr', [{ nom: 'bail.pdf', url: '/uploads/bail.pdf' }], t + 1000);
+  assert.deepEqual(piecesRecentes('a@x.fr', t + 2000).map((p) => p.nom), ['bail.pdf', 'dpe.pdf']);
+  assert.deepEqual(piecesRecentes('a@x.fr', t + 3 * 3600 * 1000), []);
+  assert.deepEqual(piecesRecentes('b@x.fr', t), []);
+});

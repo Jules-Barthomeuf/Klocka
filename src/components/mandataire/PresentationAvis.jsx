@@ -55,7 +55,7 @@ export function PresentationPleinEcran({ id, onFermer }) {
     ? { position: "absolute", top: "50%", left: "50%", width: "100dvh", height: "100vw", transform: "translate(-50%, -50%) rotate(90deg)" }
     : { position: "absolute", inset: 0 };
   return createPortal(
-    <div className="fixed inset-0 z-[95] overflow-hidden bg-black" role="dialog" aria-label="Présentation de l'avis de valeur">
+    <div className="fixed inset-0 z-[95] overflow-hidden bg-black" role="dialog" aria-label={`Présentation de l'${deck?.etiquette?.toLowerCase() || "avis de valeur"}`}>
       <div style={scene}>
         {deck ? <DeckAvis deck={deck} adresse tourne={vertical} /> : <div className="grid h-full place-items-center text-[14px] text-white/60">{isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Pas encore d'avis rédigé."}</div>}
         <button type="button" onClick={onFermer} aria-label="Fermer la présentation" title="Fermer (Échap)"

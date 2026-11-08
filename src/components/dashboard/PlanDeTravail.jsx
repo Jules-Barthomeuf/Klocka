@@ -36,6 +36,9 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
         )}
         {chat && <div className={conversation ? "h-full w-full" : `relative mt-9 w-full max-md:mt-6 ${apresChat ? "max-w-[820px]" : "max-w-[660px]"}`}>{chat}</div>}
         {!conversation && !historique && apresChat && <div className="relative w-full">{apresChat}</div>}
+        {/* L'historique des conversations sous la saisie (7 nov. 2026, Jules : « dans l'assistant on ne peut pas voir
+            l'historique des conversations ») : le bouton le demandait, la colonne n'était jamais posée. */}
+        {!conversation && historique && <div className="relative mt-8 w-full text-left">{historique}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}

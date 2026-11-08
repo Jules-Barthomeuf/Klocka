@@ -5,6 +5,7 @@
 // propose les deux documents, il valide ; le compte rendu part de sa messagerie. Rien ne part sans validation.
 
 import { referenceNeutre } from './reference-neutre.js';
+import crypto from 'crypto';
 import { Records } from './db.js';
 
 const VISITE = 'VisiteAcquereur';
@@ -46,7 +47,7 @@ export function texteDuBon(v, signataire = {}) {
     lignes: [
       `Je soussigné(e) ${qui}, reconnais avoir visité le ${date} à ${heure}, par l'intermédiaire de ${par}, le bien suivant :`,
       [v.bien?.titre, v.bien?.adresse].filter(Boolean).join(', '),
-      "Je reconnais que ce bien m'a été présenté par K Partners. En cas d'acquisition, directement ou par une personne ou une société interposée, je m'engage à ne traiter que par son intermédiaire, et à ne pas traiter directement avec le propriétaire ni par un autre intermédiaire pendant la durée du mandat et les douze mois qui suivent son expiration.",
+      `Je reconnais que ce bien m'a été présenté par K Partners. En cas ${v.bien?.location ? 'de prise à bail' : "d'acquisition"}, directement ou par une personne ou une société interposée, je m'engage à ne traiter que par son intermédiaire, et à ne pas traiter directement avec le propriétaire ni par un autre intermédiaire pendant la durée du mandat et les douze mois qui suivent son expiration.`,
       `Fait le ${date}.`,
     ],
   };
@@ -165,14 +166,99 @@ export async function creerVisite({ bien, acquereur = {}, quand } = {}, user) {
   return { ok: true, visite: vue(v) };
 }
 
+/**
+ * Le bon signé (8 nov. 2026, Jules) : la ligne du contact dans le tableau des acquéreurs passe à Visite (une visite
+ * prévue n'y était que la prochaine action), et la prochaine action devient d'envoyer le bon et d'attendre son retour.
+ */
+function apresBonSigne(v) {
+  const x = Records.list('PisteAcquereur').find((p) => p.acquereur_id && p.acquereur_id === v.acquereur?.acquereur_id && (!v.bien?.marche_id || p.marche_id === v.bien.marche_id));
+  if (!x) return;
+  const RANG = { contact: 0, qualifie: 1, visite: 2, offre: 3, signe: 4, ecarte: -1 };
+  const le = maintenant();
+  Records.update('PisteAcquereur', x.id, {
+    ...((RANG[x.statut] ?? 0) < RANG.visite && x.statut !== 'ecarte' ? { statut: 'visite' } : {}),
+    ...(/^visite /i.test(x.prochaine || '') ? { prochaine: 'Envoyer le bon de visite, puis son avis', prochaine_le: le.slice(0, 10) } : {}),
+    maj_le: le,
+    historique: [...(x.historique || []), { le, par: v.mandataire_email || null, action: `bon de visite signé par ${v.bon?.nom || 'le visiteur'}` }].slice(-50),
+  });
+}
+
 /** Le bon signé sur place : le nom écrit par le visiteur et sa signature au doigt (une image PNG). */
 export function signerBon(id, { nom, signature } = {}, user) {
   const v = sienne(id, user);
   if (!v) return { ok: false, error: 'Visite introuvable.' };
   if (!texte(nom)) return { ok: false, error: 'Le visiteur écrit son nom.' };
   if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(String(signature || '')) || String(signature).length > 400_000) return { ok: false, error: 'La signature est manquante.' };
-  const bon = { nom: texte(nom, 120), signature, signe_le: maintenant() };
-  return { ok: true, visite: vue(Records.update(VISITE, id, { bon, historique: [...(v.historique || []), { le: bon.signe_le, par: emailDe(user), action: `bon de visite signé par ${bon.nom}` }] }), { complete: true }) };
+  const bon = { nom: texte(nom, 120), signature, signe_le: maintenant(), via: 'sur_place', empreinte: empreinteDuBon(v, nom, signature) };
+  const fait = Records.update(VISITE, id, { bon, historique: [...(v.historique || []), { le: bon.signe_le, par: emailDe(user), action: `bon de visite signé par ${bon.nom}` }] });
+  apresBonSigne(fait);
+  return { ok: true, visite: vue(fait, { complete: true }) };
+}
+
+// ---------------------------------------------------------------------------
+// Le bon signé à distance (7 nov. 2026, Jules : « il faut qu'ils puissent signer directement depuis l'application ») :
+// un lien personnel, sans compte, que le mandataire envoie au visiteur (SMS, WhatsApp, mail) ; le visiteur lit le bon,
+// écrit son nom et signe au doigt sur son téléphone. La preuve gardée : le texte signé et son empreinte, l'heure, l'adresse
+// IP et le navigateur. Une signature électronique simple, recevable comme preuve (art. 1366 et 1367 du Code civil).
+// ---------------------------------------------------------------------------
+
+const DUREE_LIEN = 30 * 24 * 3600 * 1000;
+
+/** Pure : l'empreinte SHA-256 du bon signé (son texte, le nom écrit et la signature), pour prouver qu'il n'a pas changé. */
+export function empreinteDuBon(v, nom, signature) {
+  const { createHash } = crypto;
+  const t = texteDuBon({ ...v, bon: { ...(v.bon || {}), nom } });
+  return createHash('sha256').update(JSON.stringify([t.lignes, String(nom || '').trim(), String(signature || '')])).digest('hex');
+}
+
+/** Le lien de signature d'une visite : créé une fois, prolongé quand il resert. */
+export async function lienDeSignature(id, user) {
+  const v = sienne(id, user);
+  if (!v) return { ok: false, error: 'Visite introuvable.' };
+  if (v.bon?.signe_le) return { ok: false, error: 'Le bon est déjà signé.' };
+  const { randomBytes } = await import('crypto');
+  const lien = v.lien_bon?.jeton ? { ...v.lien_bon } : { jeton: randomBytes(24).toString('base64url'), cree_le: maintenant() };
+  lien.expire_le = new Date(Date.now() + DUREE_LIEN).toISOString();
+  Records.update(VISITE, v.id, { lien_bon: lien });
+  const { URL_CANONIQUE } = await import('./contexte.js');
+  const url = `${URL_CANONIQUE}/SignerBon?jeton=${encodeURIComponent(lien.jeton)}`;
+  const s = await signataireDe(user);
+  const quand = new Date(v.quand).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: PARIS }).replace(':', ' h ');
+  const message = `Bonjour${v.acquereur?.nom ? ` ${v.acquereur.nom}` : ''}, pour notre visite ${quand}, voici le bon de visite à signer sur votre téléphone, en une minute : ${url}\n${s?.nom || 'Votre conseiller'}, K Partners`;
+  return { ok: true, url, message, telephone: v.acquereur?.telephone || null, email: v.acquereur?.email || null };
+}
+
+const parJeton = (jeton) => {
+  const j = String(jeton || '').trim();
+  if (j.length < 20) return null;
+  const v = Records.list(VISITE).find((x) => x.lien_bon?.jeton === j);
+  if (!v || Date.parse(v.lien_bon.expire_le || '') < Date.now()) return null;
+  return v;
+};
+
+/** Ce que voit le visiteur par son lien : le bon prérempli, le bien sans adresse s'il n'est pas encore signé. */
+export async function bonParJeton(jeton) {
+  const v = parJeton(jeton);
+  if (!v) return { ok: false, error: "Ce lien n'est plus valable : demandez-en un nouveau à votre conseiller." };
+  const s = await (await import('./mandataire-avis.js')).signataire({ email: v.mandataire_email });
+  // Signé, le lien montre le bon et sa signature : c'est la copie envoyée au visiteur (8 nov. 2026, « envoie le bon de visite »).
+  return { ok: true, bon: texteDuBon(v, s), nom: v.bon?.nom || v.acquereur?.nom || '', signe_le: v.bon?.signe_le || null, signature: v.bon?.signe_le ? v.bon.signature || null : null, conseiller: { nom: s?.nom || null, telephone: s?.telephone || null } };
+}
+
+/** Le visiteur signe par son lien. Le mandataire est prévenu. */
+export async function signerParJeton(jeton, { nom, signature } = {}, preuve = {}) {
+  const v = parJeton(jeton);
+  if (!v) return { ok: false, error: "Ce lien n'est plus valable : demandez-en un nouveau à votre conseiller." };
+  if (v.bon?.signe_le) return { ok: true, deja: true };
+  if (!texte(nom)) return { ok: false, error: 'Écrivez votre nom et prénom.' };
+  if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(String(signature || '')) || String(signature).length > 400_000) return { ok: false, error: 'Signez dans le cadre.' };
+  const bon = { nom: texte(nom, 120), signature, signe_le: maintenant(), via: 'lien', ip: texte(preuve.ip, 80), navigateur: texte(preuve.navigateur, 300), empreinte: empreinteDuBon(v, nom, signature) };
+  apresBonSigne(Records.update(VISITE, v.id, { bon, historique: [...(v.historique || []), { le: bon.signe_le, par: 'visiteur', action: `bon de visite signé à distance par ${bon.nom}` }] }));
+  try {
+    const { notifier } = await import('./notifications.js');
+    notifier({ pour: v.mandataire_email, titre: `Bon de visite signé · ${bon.nom}`, texte: [v.bien?.titre, new Date(v.quand).toLocaleString('fr-FR', { timeZone: PARIS, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })].filter(Boolean).join(' · '), lien: `/MandataireBiens?visite=${v.id}`, action: 'Voir', cle: `bon-signe:${v.id}` });
+  } catch { /* la ligne du tableau le dit */ }
+  return { ok: true };
 }
 
 export function lireVisite(id, user) {
@@ -351,12 +437,27 @@ export async function biensDe(user) {
 }
 
 /** Pure : le bien qu'il nomme, parmi les siens ; « ambigu » quand plusieurs se valent. */
+// Les mots qui ne désignent aucun bien (7 nov. 2026 : « Pressing du Port, 38 rue de la République » répondait aussi à la
+// librairie du 12 rue de la République à Lyon, par « rue » et « republique » seuls).
+const MOTS_VIDES = new Set(['rue', 'avenue', 'boulevard', 'place', 'quai', 'chemin', 'allee', 'route', 'impasse', 'cours', 'les', 'des', 'du', 'de', 'la', 'le', 'local', 'murs', 'commerce', 'bien', 'madame', 'monsieur', 'mme']);
+const texteDuBien = (b) => nz([b.titre, b.adresse, b.proprietaire?.commerce, b.proprietaire?.nom, b.proprietaire?.nom_bien, b.proprietaire?.ville, b.mandat?.vendeur, b.dossier?.proprietaire].filter(Boolean).join(' '));
+
 export function trouverBien(biens, qui) {
-  const q = nz(qui).split(' ').filter((m) => m.length >= 3);
+  // Les mots du nom, et le numéro de rue (« 38 ») : un chiffre compte, un mot vide non.
+  const q = [...new Set(nz(qui).split(/[^a-z0-9]+/).filter((m) => (/^\d+$/.test(m) || m.length >= 3) && !MOTS_VIDES.has(m)))];
   if (!q.length) return null;
-  const notes = biens.map((b) => [b, q.filter((m) => nz(`${b.titre} ${b.adresse || ''}`).includes(m)).length]).filter(([, n]) => n > 0).sort((x, y) => y[1] - x[1]);
+  const notes = biens.map((b) => { const mots = new Set(texteDuBien(b).split(/[^a-z0-9]+/)); return [b, q.filter((m) => (/^\d+$/.test(m) ? mots.has(m) : texteDuBien(b).includes(m))).length]; })
+    .filter(([, n]) => n > 0).sort((x, y) => y[1] - x[1]);
   if (!notes.length) return null;
   return notes.length === 1 || notes[0][1] > notes[1][1] ? notes[0][0] : 'ambigu';
+}
+
+/** Pure : les biens à égalité quand le nom est ambigu, pour que l'assistant les nomme au mandataire. */
+export function biensAEgalite(biens, qui) {
+  const q = nz(qui).split(/[^a-z0-9]+/).filter((m) => (/^\d+$/.test(m) || m.length >= 3) && !MOTS_VIDES.has(m));
+  const notes = biens.map((b) => [b, q.filter((m) => texteDuBien(b).includes(m)).length]).filter(([, n]) => n > 0);
+  const max = Math.max(0, ...notes.map(([, n]) => n));
+  return notes.filter(([, n]) => n === max).map(([b]) => [b.titre, b.adresse].filter(Boolean).join(', '));
 }
 
 /** Pure : la visite qu'il raconte : celle du bien nommé (ou de l'acquéreur), la plus proche de maintenant, pas encore validée. */
@@ -368,6 +469,17 @@ export function visiteRacontee(visites, { qui = null, acquereur = null } = {}, q
 }
 
 export const OUTILS_VISITE = [
+  {
+    name: 'envoyer_bon_visite',
+    description: "Prépare le mail qui envoie au visiteur son bon de visite signé (« envoie le bon de visite », « envoie le bon à Sophie Martin »). Un brouillon, rien ne part : le mandataire l'envoie de sa messagerie. Le mail porte le lien vers le bon signé.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        acquereur: { type: 'string', description: 'Le visiteur, comme le mandataire le dit (vide : la dernière visite signée)' },
+        bien: { type: 'string', description: 'Le bien, si le mandataire le nomme' },
+      },
+    },
+  },
   {
     name: 'noter_visite_acquereur',
     description:
@@ -402,17 +514,60 @@ export const NOMS_OUTILS_VISITE = new Set(OUTILS_VISITE.map((o) => o.name));
 
 const lienVisite = (v) => `/MandataireBiens?bien=${encodeURIComponent(v.bien?.cles?.[0] || '')}&etape=marche&visite=${v.id}`;
 
-export async function executerOutilVisite(name, input = {}, user, { llm = null } = {}) {
+export async function executerOutilVisite(name, input = {}, user, { llm = null, fiche = null } = {}) {
+  if (name === 'envoyer_bon_visite') {
+    // Le bon signé de la personne, le plus récent (8 nov. 2026, Jules : « il dit à l'assistant : envoie le bon de visite »).
+    const a = nz(input.acquereur), q = nz(input.bien);
+    const mots = (t) => nz(t).replace(/\([^)]*\)/g, ' ').split(/[^a-z0-9]+/).filter((m) => m.length > 2 && !['les', 'des', 'mme', 'test'].includes(m));
+    const signees = Records.list(VISITE).filter((v) => v.mandataire_email === emailDe(user) && v.bon?.signe_le)
+      .filter((v) => !a || mots(input.acquereur).every((m) => mots(nomAcquereur(v)).includes(m)) || mots(nomAcquereur(v)).every((m) => mots(input.acquereur).includes(m)))
+      .filter((v) => !q || mots(input.bien).some((m) => nz(`${v.bien?.titre} ${v.bien?.adresse}`).includes(m)))
+      .filter((v) => !fiche || !v.bien?.proprietaire_id || v.bien.proprietaire_id === fiche.id || input.bien)
+      .sort((x, y) => String(y.bon.signe_le).localeCompare(String(x.bon.signe_le)));
+    const v = signees[0];
+    if (!v) return { ok: false, error: input.acquereur ? `Pas de bon de visite signé pour « ${input.acquereur} » : il se signe dans sa fiche (onglet Acquéreurs, son nom, « Bon de visite »).` : "Aucun bon de visite signé pour l'instant." };
+    // Le lien du bon : celui de la signature à distance, ou un nouveau, qui montre le bon signé et sa signature.
+    const lien = v.lien_bon?.jeton ? { ...v.lien_bon } : { jeton: crypto.randomBytes(24).toString('base64url'), cree_le: maintenant() };
+    lien.expire_le = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString();
+    Records.update(VISITE, v.id, { lien_bon: lien });
+    const { URL_CANONIQUE } = await import('./contexte.js');
+    const s = await signataireDe(user);
+    const quand = new Date(v.quand).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: PARIS }).replace(':', ' h ');
+    const nom = v.bon?.nom || nomAcquereur(v);
+    const corps = `Bonjour ${nom},\n\nMerci pour votre visite de ${quand}. Vous trouverez ici votre bon de visite signé, pour vos dossiers :\n${URL_CANONIQUE}/SignerBon?jeton=${encodeURIComponent(lien.jeton)}\n\nJe reste à votre disposition pour toute question sur le bien.\n\nBien cordialement,\n${s?.nom || ''}${s?.telephone ? `\n${s.telephone}` : ''}\nK Partners`;
+    return { ok: true, brouillon: { destinataire: v.acquereur?.email || '', objet: `Votre bon de visite${v.bien?.titre ? ` · ${v.bien.titre}` : ''}`, corps }, note: `Brouillon prêt pour ${nom}${v.acquereur?.email ? '' : " (pas de mail connu : à ajouter dans le champ À)"}. Dis-le en une ligne ; rien ne part sans lui.` };
+  }
   if (name === 'noter_visite_acquereur') {
-    const b = trouverBien(await biensDe(user), input.bien);
+    const biens = await biensDe(user);
+    // Le bien ouvert à l'écran passe devant : la visite le concerne, sauf s'il en nomme clairement un autre.
+    const ouvert = fiche ? biens.find((x) => (x.ids || [x.cle]).includes(`proprietaire:${fiche.id}`)) : null;
+    const b = ouvert && (!input.bien || trouverBien([ouvert], input.bien)) ? ouvert : trouverBien(biens, input.bien);
     if (!b) return { ok: false, error: `Je ne trouve pas « ${input.bien} » dans vos biens.` };
-    if (b === 'ambigu') return { ok: false, error: `Plusieurs biens répondent à « ${input.bien} » : lequel ?` };
+    if (b === 'ambigu') return { ok: false, error: `Plusieurs biens répondent à « ${input.bien} » : ${biensAEgalite(biens, input.bien).join(' ; ')}. Demande lequel en les nommant, puis rappelle l'outil avec le nom exact.` };
+    // Un bien en vente : la visite rejoint la ligne de la personne dans le tableau des acquéreurs, retrouvée sans doublon,
+    // et devient sa prochaine action (8 nov. 2026, Jules : « préparer la visite en le disant, rien à remplir à la main »).
+    const marcheDuBien = (b.ids || [b.cle]).find((x) => String(x).startsWith('marche:'));
+    if (marcheDuBien && input.acquereur) {
+      const m = Records.get('MiseEnMarche', marcheDuBien.slice(7));
+      const A = await import('./acquereurs-du-bien.js');
+      const r = await A.noterAcquereur({ bien: m?.bien || input.bien, nom: input.acquereur, telephone: input.telephone, email: input.email, visite_le: input.quand }, user, { fiche });
+      if (!r.ok) return r;
+      if (!r.visite_id) return { ok: false, error: r.avertissement || 'La visite n\'est pas créée.' };
+      const v = Records.get(VISITE, r.visite_id);
+      return { ok: true, cree: true, visite_id: v.id, titre: `Visite notée : ${nomAcquereur(v)}`, pour: `${b.titre} · ${new Date(v.quand).toLocaleString('fr-FR', { timeZone: PARIS, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} · bon à signer dans sa fiche`, lien: lienVisite(v), note: r.note };
+    }
     const acquereurs = await acquereursDe(user);
     const q = nz(input.acquereur);
     const sien = acquereurs.siens.find((x) => nz(x.nom) === q);
     const client = acquereurs.klocka.find((x) => nz(x.reference) === q);
     const r = await creerVisite({ bien: bienDeVisite(b), quand: input.quand, acquereur: sien ? { acquereur_id: sien.id } : client ? { demande_id: client.demande_id } : { nom: input.acquereur, telephone: input.telephone, email: input.email } }, user);
     if (!r.ok) return r;
+    // La visite rejoint aussi le tableau des acquéreurs du bien en vente (7 nov. 2026) : une ligne en Visite.
+    const marcheId = (b.ids || [b.cle]).find((x) => String(x).startsWith('marche:'))?.slice(7);
+    if (marcheId && r.visite.acquereur?.acquereur_id) {
+      const deja = Records.list('PisteAcquereur').find((x) => x.marche_id === marcheId && x.acquereur_id === r.visite.acquereur.acquereur_id);
+      if (!deja) Records.create('PisteAcquereur', { mandataire_email: emailDe(user), marche_id: marcheId, acquereur_id: r.visite.acquereur.acquereur_id, nom: r.visite.acquereur.nom, telephone: r.visite.acquereur.telephone || null, email: r.visite.acquereur.email || null, statut: 'visite', cree_le: maintenant(), maj_le: maintenant(), historique: [{ le: maintenant(), par: emailDe(user), action: 'ajouté par la visite' }] });
+    }
     return { ok: true, cree: true, visite_id: r.visite.id, titre: `Visite notée : ${r.visite.acquereur_nom}`, pour: `${b.titre} · ${new Date(r.visite.quand).toLocaleString('fr-FR', { timeZone: PARIS, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} · bon à signer sur place`, lien: lienVisite(r.visite) };
   }
   if (name === 'raconter_visite_acquereur') {

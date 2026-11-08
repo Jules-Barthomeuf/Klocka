@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Plus, X } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
@@ -9,11 +9,13 @@ import { montant, fourchette as fourchetteDe } from "../../../server/montants.js
 import { FichePoint } from "@/components/mandataire/TableauListe";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
 import { CompteRendu } from "@/components/mandataire/PreVisite";
+import { DocumentMandat } from "@/components/mandataire/ApercuMandat";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { useReglagesChatMandataire } from "@/components/mandataire/ReglagesChatMandataire";
 import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
-import DossierVente, { Ranger, ZonePiece } from "@/components/mandataire/DossierVente";
-import { ETAPES_BIEN } from "@/lib/biens-mandataire";
+import { DataRoom, Ranger, useDataRoom } from "@/components/mandataire/DossierVente";
+import { etapeFaite, etapesDuBien, etapesVisibles, rangVisible, versVisible } from "@/lib/biens-mandataire";
+import { estLocation } from "@/lib/location";
 
 // La vue d'ensemble d'un bien (3 nov. 2026, Jules : « un tableau de bord du bien, où on n'est pas dans une étape précise,
 // on voit tout ; ça rajoute du liant »). On arrive toujours ici. Sans chat, sur la maquette de Jules du même jour :
@@ -56,12 +58,18 @@ export function chiffresDuBien(bien) {
   const ca = q.ca_n || r.ca;
   const ebe = q.ebe_n || r.ebe;
   const surface = q.surface_utile || r.surface;
-  if (loyer) out.push({ texte: `loyer ${montant(loyer)}/an` });
+  const location = b.transaction === "location";
+  if (location) out.push({ texte: "à louer" });
+  // Le loyer actuel et celui du bail quand ils diffèrent (6 nov. 2026, banc d'import : les deux se gardent, avec leur source).
+  const auBail = (r.loyers || []).find((l) => /bail/i.test(l.source || "") && !/avenant/i.test(l.source || ""));
+  if (loyer) out.push({ texte: `${location ? "loyer demandé" : "loyer"} ${montant(loyer)}/an${auBail && auBail.montant !== loyer ? ` (${montant(auBail.montant)} au bail)` : ""}` });
+  if ((r.lots || []).length > 1) out.push({ texte: `${r.lots.length} lots` });
   if (ca) out.push({ texte: `CA ${montant(ca)}` });
   if (ebe) out.push({ texte: `EBE ${montant(ebe)}` });
   if (surface) out.push({ texte: `${Number(surface).toLocaleString("fr-FR")} m²` });
   const bail = String(q.bail_type || "").match(/3-6-9|dérogatoire|précaire|professionnel/i)?.[0];
   if (bail) out.push({ texte: `bail ${bail.toLowerCase()}` });
+  if (bien?.proprietaire?.hors_secteur) out.push({ texte: "hors secteur" });
   return out;
 }
 
@@ -87,40 +95,11 @@ export function historiqueDuBien(bien) {
   return lignes.sort((a, b) => String(b.le).localeCompare(String(a.le)));
 }
 
-// Les pièces attendues dans la Data room, par type de bien, avec leur repère. `nature` : celle que le serveur donne à un
-// document déposé (server/documents-du-bien.js) ; `nom` : un mot du nom de fichier quand la nature ne suffit pas.
-const PIECES = {
-  fonds_commerce: [
-    { mot: "Bail commercial", aide: "bail 3-6-9", nature: "bail", requise: true },
-    { mot: "3 derniers bilans", aide: "confirme CA et EBE", nature: "bilans", sauf: /liasse/i, requise: true },
-    { mot: "Liasses fiscales", aide: "3 derniers exercices", nature: "bilans", nom: /liasse/i },
-    { mot: "Extrait Kbis", aide: "moins de 3 mois", nature: "kbis" },
-    { mot: "Taxe foncière", aide: "dernier avis", nature: "taxe_fonciere" },
-    { mot: "Registre du personnel", aide: "si salariés", nom: /registre|personnel|salari/i },
-  ],
-  murs_commerce: [
-    { mot: "Bail commercial", aide: "et ses avenants", nature: "bail", requise: true },
-    { mot: "Quittances de loyer", aide: "les trois dernières", nature: "quittances", requise: true },
-    { mot: "Taxe foncière", aide: "dernier avis", nature: "taxe_fonciere" },
-    { mot: "Titre de propriété", aide: "acte de vente", nature: "titre" },
-    { mot: "Diagnostics", aide: "DPE, amiante, ERP", nature: "diagnostics", requise: true },
-    { mot: "Copropriété", aide: "PV d'AG, règlement", nature: "copropriete" },
-  ],
-};
-
-/** Pure : les pièces attendues pour vendre ce bien, chacune avec le document déposé qui la remplit (ou null). */
-export function piecesAttendues(typeBien, documents = []) {
-  const liste = PIECES[typeBien] || PIECES.murs_commerce;
-  const pris = new Set();
-  return liste.map((x) => {
-    const d = documents.find((doc) => !pris.has(doc.id)
-      && (x.nature ? doc.nature === x.nature : true)
-      && (x.nom ? x.nom.test(doc.nom || "") : true)
-      && (x.sauf ? !x.sauf.test(doc.nom || "") : true));
-    if (d) pris.add(d.id);
-    return { ...x, document: d || null };
-  });
-}
+// Un document renommé (« Mandat simple n° 24 ») perd son extension : on regarde le fichier lui-même (son adresse, son nom
+// d'origine), pas son nom affiché, pour montrer sa vraie page (6 nov. 2026, Jules).
+const extension = (d) => [d?.url, d?.nom_origine, d?.nom].map((x) => String(x || "").split("?")[0].match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase()).find(Boolean) || "";
+const estPdf = (d) => extension(d) === "pdf";
+const estImage = (d) => ["jpg", "jpeg", "png", "webp", "gif", "heic"].includes(extension(d));
 
 // Qui a apporté un document, d'après sa provenance (server/documents-du-bien.js).
 const AUTEUR_SOURCE = { "déposé par le vendeur": "Le vendeur", "déposé par vous": "Vous", "joint dans le fil du bien": "Vous", "joint à l'avis de valeur": "Vous", "déposé dans la Data room": "Vous", "photo de la visite": "Vous", "déposée dans la Data room": "Vous" };
@@ -138,12 +117,14 @@ export function jalonsDuBien(bien, documents = []) {
   const e = bien?.estimation || null;
   const m = bien?.mandat || null;
   const d = bien?.dossier || null;
+  const loc = estLocation(bien);
   jalon(p?.biens?.visite?.faite_le, "Visite faite", "previsite", "Vous");
   // Les événements racontés à l'import du bien (server/bien-repris.js), datés par le mandataire.
   for (const j of p?.biens?.jalons || []) jalon(j.le, j.detail && j.detail !== j.texte ? `${j.texte} (${j.detail})` : j.texte, j.etape || "", "Vous");
-  jalon(e?.envoye_le, "Avis de valeur envoyé au propriétaire", "estimation", "Vous");
-  jalon(m?.signe_le, "Mandat signé", "mandat", "Le vendeur");
-  jalon(d?.en_vente_le, "Bien mis en vente", "marche", "Vous");
+  jalon(e?.envoye_le, loc ? "Estimation du loyer envoyée au propriétaire" : "Avis de valeur envoyé au propriétaire", "estimation", "Vous");
+  jalon(m?.signe_le, loc ? "Mandat de location signé" : "Mandat signé", "mandat", loc ? "Le propriétaire" : "Le vendeur");
+  jalon(d?.en_vente_le, loc ? "Local mis en location" : "Bien mis en vente", "marche", "Vous");
+  jalon(p?.biens?.loue?.le, "Bail signé", "vente", "Vous");
   for (const o of bien?.marche?.offres || []) jalon(o.validee_le || o.le, `Offre reçue${o.montant ? ` : ${montant(o.montant)}` : ""}`, "offre", "L'équipe Klocka");
   // Les documents reçus, un lot par jour et par provenance.
   const lots = new Map();
@@ -169,7 +150,8 @@ function gesteDe(etape, bien) {
   if (etape === "estimation") return e?.avis && e.statut !== "envoye" ? ["Envoyer l'avis de valeur", "estimation"] : e?.statut === "envoye" ? ["Suivre la réponse", "estimation"] : ["Faire l'avis de valeur", "estimation"];
   return {
     mandat: ["Préparer le mandat", "mandat"], dataroom: ["Compléter la Data room", "dataroom"], marche: ["Suivre la commercialisation", "marche"],
-    offre: ["Voir les offres", "offre"], vente: ["Finaliser la vente", "vente"],
+    // Plus de « Voir les offres » (8 nov. 2026, Jules) : les offres se suivent dans la Mise en vente, onglet Offres.
+    vente: ["Finaliser la vente", "vente"],
   }[etape] || null;
 }
 
@@ -267,11 +249,28 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
   const relireTout = () => { ["m-proprietaires", "m-documents-bien", "m-fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); };
   const finir = useMutation({
     mutationFn: () => base44.request("POST", `/api/mandataire/proprietaires/${pid}/import/fini`),
-    onSuccess: relireTout,
+    // « Import terminé » met aussi le bien et ses contacts au CRM (6 nov. 2026) : l'écran dit ce qui est parti.
+    onSuccess: (r) => { relireTout(); if (r?.crm?.ok) toast.success("Import terminé, le bien est au CRM."); else if (r?.crm) toast.error(`Import terminé, mais le CRM a refusé : ${r.crm.error || "réessayez depuis le chat"}`); else toast.success("Import terminé."); },
     onError: (e) => toast.error(e?.message || "Non enregistré"),
   });
   // Les biens aussi : un mandat déposé fait avancer l'étape d'un bien importé (4 nov. 2026).
   const relire = () => { ["m-documents-bien", "m-proprietaires"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); if (dossierId) queryClient.invalidateQueries({ queryKey: ["m-dossier-vente", dossierId] }); };
+  const dataroom = useDataRoom(pid, dossierId);
+  // Un fichier rangé dans une case de la Data room (celle du dossier, ou celle du bien avant le mandat).
+  const dansLaDataRoom = async (cle, fichiers) => {
+    if (!dataroom.url || !fichiers.length) return;
+    setEnCours("documents");
+    try {
+      for (const f of fichiers) {
+        const fd = new FormData();
+        fd.append("fichier", f);
+        await base44.request("POST", cle === "photos" ? `${dataroom.url}/photos` : `${dataroom.url}/pieces/${encodeURIComponent(cle)}`, { body: fd });
+      }
+      toast.success(fichiers.length > 1 ? `${fichiers.length} documents rangés` : "Document rangé");
+    } catch (err) { toast.error(err?.message || "Dépôt impossible"); }
+    setEnCours(null);
+    dataroom.relire();
+  };
   const deposer = useMutation({
     mutationFn: ({ fichiers, nature = null, cas = null }) => {
       const fd = new FormData();
@@ -298,14 +297,21 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
   const demander = (fichiers, haut = false) => { if (deposable && fichiers.length) setARanger({ fichiers, haut }); };
   const nouvelleCase = useMutation({
     mutationFn: async ({ mot, fichiers }) => {
-      const r = await base44.request("POST", `/api/mandataire/proprietaires/${pid}/cases`, { body: { mot } });
-      await deposer.mutateAsync({ fichiers, cas: r.cle });
+      const r = await base44.request("POST", `${dataroom.url}/cases`, { body: { mot } });
+      await dansLaDataRoom(r.cle, fichiers);
     },
     onSuccess: () => setARanger(null),
     onError: (e) => toast.error(e?.message || "Case non créée"),
   });
   const [fiche, setFiche] = useState(false);
   const [toutHistorique, setToutHistorique] = useState(false);
+  const [ordi, setOrdi] = useState(() => typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 768px)");
+    const suivre = () => setOrdi(m.matches);
+    m.addEventListener("change", suivre);
+    return () => m.removeEventListener("change", suivre);
+  }, []);
   const deposable = !!pid && data?.deposable !== false;
   // Une case de la Data room reçoit ses fichiers rangés dans sa nature ; la case « + », d'après leur nom.
   const deposerDans = (cle, nature, cas = null) => (fichiers) => {
@@ -313,36 +319,37 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
     setEnCours(cle);
     deposer.mutate({ fichiers, nature, cas }, { onSettled: () => setEnCours(null) });
   };
-  const retirerDoc = (d) => (d?.modifiable ? retirer.mutate(d) : toast.error("Ce document se retire depuis son étape."));
 
-  const etape = ETAPES_BIEN[(bien?.etape || 1) - 1];
+  // Six étapes à l'écran (7 nov. 2026) : la Data room et la Commercialisation font la Mise en vente ; le geste suit
+  // l'étape interne (compléter la Data room, puis suivre la commercialisation).
+  const lesEtapes = etapesVisibles(bien);
+  const etape = lesEtapes[rangVisible(bien?.etape || 1) - 1];
+  const interne = etapesDuBien(bien)[(bien?.etape || 1) - 1];
   const faites = new Set(bien?.faites || []);
   const chiffres = chiffresDuBien(bien);
-  const geste = gesteDe(etape.id, bien);
+  const geste = gesteDe(interne.id, bien);
   const groupes = data?.groupes || [];
   const faitsAvecAssistant = groupes.find((g) => g.nature === "assistant")?.documents || [];
   const deposes = groupes.filter((g) => g.nature !== "assistant").flatMap((g) => g.documents);
   const historique = jalonsDuBien(bien, deposes);
-  const attendues = piecesAttendues(bien?.type?.cle, deposes);
-  const recues = attendues.filter((x) => x.document).length;
-  const photos = deposes.filter((d) => d.nature === "photos");
+  // Ce que compte l'en-tête de la Data room : ses cases nommées par le type, reçues ou non.
+  const comptees = (dataroom.v?.pieces || []).filter((x) => x.cle !== "autres" && !x.perso);
+  const recues = comptees.filter((x) => x.etat !== "manquante").length;
   // L'avis et le mandat importés (faits ailleurs) vont avec les documents du bien, en haut ; pas dans la Data room.
   const importes = deposes.filter((d) => d.nature === "avis" || d.nature === "mandat");
-  const casesPerso = (data?.cases_perso || []).map((c) => ({ ...c, documents: deposes.filter((d) => d.case_perso === c.cle) }));
-  const autres = deposes.filter((d) => d.nature !== "photos" && d.nature !== "avis" && d.nature !== "mandat" && !d.case_perso && !attendues.some((x) => x.document?.id === d.id));
   // Les cases proposées pour ranger : celles qu'on voit, dans le même ordre ; la clé dit où va le fichier.
   const casesARanger = (haut) => [
     ...(haut ? [{ cle: "n:avis", mot: "Avis de valeur" }, { cle: "n:mandat", mot: "Mandat" }] : []),
-    ...attendues.filter((x) => x.nature).map((x) => ({ cle: `n:${x.nature}:${x.mot}`, mot: x.mot })),
-    ...casesPerso.map((c) => ({ cle: `p:${c.cle}`, mot: c.mot })),
-    { cle: "n:photos", mot: "Photos du bien" },
-    { cle: "n:autres", mot: "Autres documents" },
+    ...(dataroom.v?.pieces || []).filter((x) => x.cle !== "autres").map((x) => ({ cle: `c:${x.cle}`, mot: x.mot })),
+    { cle: "c:photos", mot: "Photos du bien" },
+    { cle: "c:autres", mot: "Autres documents" },
   ];
   const ranger = (k) => {
-    const { fichiers, haut } = aRanger;
+    const { fichiers } = aRanger;
     setARanger(null);
-    if (k.startsWith("p:")) deposerDans(haut ? "documents" : k.slice(2), null, k.slice(2))(fichiers);
-    else { const [, nature, mot] = k.split(":"); deposerDans(haut ? "documents" : mot || nature, nature)(fichiers); }
+    // L'avis et le mandat restent des documents du bien ; le reste va dans une case de la Data room, la même partout.
+    if (k.startsWith("n:")) deposerDans("documents", k.slice(2))(fichiers);
+    else dansLaDataRoom(k.slice(2), fichiers);
   };
   const blocRanger = (haut) => aRanger && aRanger.haut === haut && (
     <Ranger fichiers={aRanger.fichiers} cases={casesARanger(haut)} occupe={nouvelleCase.isPending || deposer.isPending}
@@ -357,11 +364,49 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
   // Les autres documents faits avec l'assistant (mandat, teaser, offres) : l'avis et le compte rendu ont leur vignette.
   const autresFaits = faitsAvecAssistant.filter((d) => !["estimation", "previsite"].includes(d.etape));
 
+  // Le chat de l'assistant et l'historique changent de place avec l'écran (7 nov. 2026, Jules) : au téléphone, le chat
+  // sous les étapes et l'historique en bas ; à l'ordinateur, l'historique sous les étapes et le chat sous les documents.
+  const chat = pid && !enImport ? (
+    <section aria-label="L'assistant" className="py-8">
+      <div className="h-[460px] max-md:h-[60dvh]">
+        <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={pid} reglages={outilsChat.reglages} onReponse={relireTout} onConversation={() => {}}
+          sansSkills epure libelleAccueil="Assistant KPartners" menusVersLeHaut placeholderAccueil="Demandez à l'assistant…" sansBarreHaut reprendre compact />
+      </div>
+    </section>
+  ) : null;
+  const historiqueBloc = () => (
+    <section className="border-t border-bord-vif py-8">
+      <p className={intertitre}>Historique</p>
+      {!historique.length ? <p className="m-0 text-[13.5px] text-brume">Rien encore.</p> : (
+        <ul className="m-0 list-none p-0">
+          {(toutHistorique ? historique : historique.slice(0, 8)).map((h, i) => (
+            <li key={`${h.le}-${i}`} className="flex gap-3 border-b border-trait py-2.5 last:border-b-0">
+              <span className="w-[52px] flex-none text-[12.5px] tabular-nums text-ardoise">{jourCourt(h.le)}</span>
+              <span className="min-w-0 flex-1 text-[13.5px] leading-[1.5] text-encre">{h.texte}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {historique.length > 8 && (
+        <button type="button" onClick={() => setToutHistorique((x) => !x)} className="mt-2 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+          {toutHistorique ? "Moins" : `Tout voir (${historique.length})`}
+        </button>
+      )}
+    </section>
+  );
+
   return (
     <div>
       {/* L'adresse, et ses chiffres en une ligne. */}
       <header className="border-b border-bord-vif pb-8 pt-2 text-center">
         <TitreModifiable titre={p?.nom_bien || titre} onChanger={pid ? (t) => renommer.mutate(t) : null} />
+        {/* Plus de bascule Vente · Location (6 nov. 2026, Jules : « que ça détecte, pas qu'on ait à cocher ») : l'import, l'avis,
+            le mandat et le chat posent la location d'eux-mêmes ; l'en-tête la dit seulement. */}
+        {pid && estLocation(p) && (
+          <div className="mt-3 flex justify-center">
+            <span className="inline-flex h-7 items-center rounded-full bg-pervenche/15 px-3 text-[12.5px] text-pervenche">À louer</span>
+          </div>
+        )}
         {chiffres.length > 0 && (
           <p className="m-0 mt-2 text-[15px] text-craie">
             {chiffres.map((x, i) => (
@@ -378,7 +423,7 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
         <section className="mx-auto w-full max-w-[760px] border-b border-bord-vif py-8">
           <div className="flex items-baseline justify-between gap-3 pb-3">
             <p className="m-0 text-[15px] text-encre">Faire entrer ce bien</p>
-            <button type="button" onClick={() => finir.mutate()} disabled={finir.isPending} className="text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>C'est fait</button>
+            <button type="button" onClick={() => finir.mutate()} disabled={finir.isPending} className="inline-flex h-8 flex-none items-center rounded-full bg-pervenche px-3.5 text-[13px] text-sur-pervenche hover:brightness-110 disabled:opacity-50">{finir.isPending ? "Import…" : "Import terminé"}</button>
           </div>
           <p className="m-0 pb-4 text-[14px] leading-[1.55] text-craie">Racontez-moi ce bien : où il est, ce que c'est, où vous en êtes avec le propriétaire, qui s'est placé dessus. En vocal si vous voulez, et joignez ce que vous avez (mandat, avis de valeur, bail).</p>
           {/* Le même chat que les autres pages du bien (4 nov. 2026, Jules : « comme dans les autres pages avec Assistant
@@ -392,13 +437,15 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
 
       {/* Des filets fins entre les sections, comme les pages éditeur (3 nov. 2026, Jules). */}
       <div className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[340px_minmax(0,1fr)]">
-        {/* Les étapes reliées : faites, en cours (dépliée), à venir. */}
-        <ol className="relative m-0 list-none self-start p-0 py-8 max-md:border-b max-md:border-bord-vif md:pr-10">
+        {/* Les étapes reliées, puis le chat de l'assistant juste dessous (7 nov. 2026, Jules : « mettre le chat de l'assistant
+            sous la timeline ») : au téléphone, entre les étapes et les documents ; à l'ordinateur, dans la colonne de gauche. */}
+        <div className="self-start max-md:border-b max-md:border-bord-vif md:pr-10">
+        <ol className="relative m-0 list-none p-0 py-8">
           <span aria-hidden className="absolute bottom-[54px] left-[9px] top-[44px] w-px bg-bord-vif" />
-          {ETAPES_BIEN.map((x) => {
-            const faite = faites.has(x.id);
+          {lesEtapes.map((x) => {
+            const faite = etapeFaite(faites, x);
             const courante = x.id === etape.id && !faite;
-            const sesLignes = courante ? historique.filter((h) => h.etape === x.id).slice(0, 4).reverse() : [];
+            const sesLignes = courante ? historique.filter((h) => versVisible(h.etape) === x.id).slice(0, 4).reverse() : [];
             return (
               <li key={x.id} className="relative pb-3">
                 {/* Le numéro met le bien à cette étape, en avant comme en arrière (4 nov. 2026, Jules : « on clique sur 5 et
@@ -432,6 +479,8 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
             );
           })}
         </ol>
+        {ordi ? historiqueBloc(true) : chat}
+        </div>
 
         <div className="min-w-0 md:border-l md:border-bord-vif">
           {/* Les documents du bien, en vignettes. */}
@@ -456,7 +505,9 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
               {autresFaits.map((d) => (
                 <Vignette key={d.id} titre={d.nom} etat={jourCourt(d.le)} onClick={() => d.etape && onAller(d.etape)} href={!d.etape && d.url ? d.url : null}>
                   {d.vignette ? <PageImage src={d.vignette} />
-                    : /\.pdf($|\?)/i.test(d.url || "") || String(d.id).startsWith("mandat:") && d.url ? <MiniaturePiece url={d.url} largeur={165} className="!rounded-none !border-0 !shadow-none" />
+                    : estPdf(d) || String(d.id).startsWith("mandat:") && d.url ? <MiniaturePiece url={d.url} largeur={165} className="!rounded-none !border-0 !shadow-none" />
+                    // Le mandat fait avec l'assistant, sans PDF : sa vraie première page, comme le teaser (7 nov. 2026, Jules).
+                    : String(d.id).startsWith("mandat:") && bien?.mandat?.questionnaire ? <span className="block h-full bg-white"><Reduit largeur={794}><span className="block [&_.mn-doc]:p-0"><DocumentMandat q={bien.mandat.questionnaire} numero={bien.mandat.numero_registre || null} /></span></Reduit></span>
                     : (
                       // Une offre n'a pas de page : son texte, sur une page.
                       <span className="block p-4 text-black">
@@ -469,7 +520,9 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
               {importes.map((d) => (
                 <Vignette key={d.id} titre={d.nature === "mandat" ? "Mandat" : "Avis de valeur"} etat={[d.source, jourCourt(d.le)].filter(Boolean).join(" · ")} href={d.url}
                   onRetirer={d.modifiable ? () => { if (window.confirm(`Retirer « ${d.nom} » des documents du bien ?`)) retirer.mutate(d); } : null}>
-                  {/\.pdf($|\?)/i.test(d.nom || d.url || "") ? <MiniaturePiece url={d.url} largeur={165} className="!rounded-none !border-0 !shadow-none" /> : <span className="block p-4 text-[9px] text-black">{d.nom}</span>}
+                  {estPdf(d) ? <MiniaturePiece url={d.url} largeur={165} className="!rounded-none !border-0 !shadow-none" />
+                    : estImage(d) ? <img src={d.url} alt="" className="h-full w-full object-cover" />
+                    : <span className="block p-4 text-[9px] text-black">{d.nom}</span>}
                 </Vignette>
               ))}
               {/* Le « + » des documents (4 nov. 2026, Jules) : l'avis de valeur, le mandat, ce qu'on a ; rangés d'après leur nom. */}
@@ -491,10 +544,13 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
             </div>
             {blocRanger(true)}
           </section>
+          {ordi && chat && <div className="border-t border-bord-vif md:pl-10">{chat}</div>}
         </div>
       </div>
 
-      {/* L'historique, en tableau, sur toute la largeur (4 nov. 2026, Jules). */}
+      {/* L'historique, en tableau, sur toute la largeur au téléphone (4 nov. 2026, Jules) ; à l'ordinateur, il est sous les
+          étapes, à gauche (7 nov. 2026). */}
+      {!ordi && (
       <section className="border-t border-bord-vif py-8">
         <p className={intertitre}>Historique</p>
         {!historique.length ? <p className="m-0 text-[13.5px] text-brume">Rien encore.</p> : (
@@ -512,7 +568,7 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
                 <tr key={`${h.le}-${i}`} className="border-b border-trait">
                   <td className="py-3 align-top text-[13.5px] tabular-nums text-ardoise">{jour(h.le)}</td>
                   <td className="py-3 pr-6 text-[14px] text-encre">{h.texte}</td>
-                  <td className="py-3 align-top text-[13.5px] text-ardoise max-md:hidden">{ETAPES_BIEN.find((x) => x.id === h.etape)?.label || ""}</td>
+                  <td className="py-3 align-top text-[13.5px] text-ardoise max-md:hidden">{lesEtapes.find((x) => x.id === h.etape)?.label || ""}</td>
                   <td className="py-3 text-right align-top text-[13.5px] text-ardoise max-md:hidden">{h.auteur}</td>
                 </tr>
               ))}
@@ -525,43 +581,22 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
           </button>
         )}
       </section>
+      )}
 
-      {/* La Data room, comme dans son onglet (4 nov. 2026, Jules) : une case par pièce, le fichier glissé ou « + », un check
-          quand elle est là ; les photos ; la case « + » du bas pour le reste. Ouverte au mandat, c'est l'onglet lui-même. */}
+      {/* La Data room : la même que l'étape 4, avant comme après le mandat (6 nov. 2026, Jules : « c'est la même : dès
+          qu'on renomme un truc, ça le renomme dans l'autre »). Ses cases suivent le type du bien (src/lib/data-room.js). */}
       <section className="border-t border-bord-vif pt-8">
         <div className="flex items-baseline justify-between gap-3">
           <p className="m-0 text-[15px] text-encre">Data room</p>
           <span className="flex items-baseline gap-4">
-            {dossierId && <button type="button" onClick={() => onAller("dataroom")} className="text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Ouvrir</button>}
-            {!dossierId && <span className="text-[13px] tabular-nums text-ardoise"><span className={recues === attendues.length ? "text-menthe" : ""}>{recues}</span> pièce{recues > 1 ? "s" : ""} sur {attendues.length}</span>}
+            {comptees.length > 0 && <span className="text-[13px] tabular-nums text-ardoise"><span className={recues === comptees.length ? "text-menthe" : ""}>{recues}</span> pièce{recues > 1 ? "s" : ""} sur {comptees.length}</span>}
+            {pid && <button type="button" onClick={() => onAller("dataroom")} className="text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Ouvrir</button>}
           </span>
         </div>
-        {dossierId ? <DossierVente dossierId={dossierId} lecture /> : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {attendues.map((x) => {
-              const docs = x.document ? [x.document] : [];
-              return (
-                <ZonePiece key={x.mot} occupe={enCours === x.mot}
-                  p={{ cle: x.mot, mot: x.mot, requise: !!x.requise, etat: docs.length ? "recue" : "manquante", fichiers: docs.map((d) => ({ nom: d.nom, url: d.url, id: d.id, note: d.note, nom_origine: d.nom_origine })) }}
-                  onDeposer={deposerDans(x.mot, x.nature || "autres")} onAnnote={relire} onRetirer={(f) => retirerDoc(docs.find((d) => d.url === f.url))} />
-              );
-            })}
-            <ZonePiece occupe={enCours === "photos"}
-              p={{ cle: "photos", mot: "Photos du bien", requise: false, etat: photos.length ? "recue" : "manquante", fichiers: photos.map((d) => ({ nom: d.nom, url: d.url, note: d.note, nom_origine: d.nom_origine })) }}
-              onDeposer={deposerDans("photos", "photos")} onAnnote={relire} onRetirer={(f) => retirerDoc(photos.find((d) => d.url === f.url))} />
-            {casesPerso.map((c) => (
-              <ZonePiece key={c.cle} occupe={enCours === c.cle}
-                p={{ cle: c.cle, mot: c.mot, requise: false, etat: c.documents.length ? "recue" : "manquante", fichiers: c.documents.map((d) => ({ nom: d.nom, url: d.url, id: d.id, note: d.note, nom_origine: d.nom_origine })) }}
-                onDeposer={deposerDans(c.cle, null, c.cle)} onAnnote={relire} onRetirer={(f) => retirerDoc(c.documents.find((d) => d.url === f.url))} />
-            ))}
-            <ZonePiece libre occupe={enCours === "autres" || nouvelleCase.isPending}
-              p={{ cle: "autres", mot: "Autres documents", etat: autres.length ? "recue" : "manquante", fichiers: autres.map((d) => ({ nom: d.nom, url: d.url, note: d.note, nom_origine: d.nom_origine })) }}
-              onDeposer={(f) => demander(f)} onAnnote={relire} onRetirer={(f) => retirerDoc(autres.find((d) => d.url === f.url))} />
-          </div>
-        )}
-        {!dossierId && blocRanger(false)}
+        {(pid || dossierId) && <DataRoom proprietaireId={pid} dossierId={dossierId} />}
       </section>
       <AnimatePresence>{fiche && pid && <FichePoint key={pid} fiche={{ id: pid, commerce: p.commerce, nom: p.nom, adresse: p.adresse }} onFermer={() => setFiche(false)} />}</AnimatePresence>
     </div>
   );
 }
+

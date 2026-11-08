@@ -30,7 +30,7 @@ export function depenseDuJour(d = new Date()) {
   const n = lireJson(CLE_NUIT, null);
   return n?.jour === jourParis(d) ? Number(n.depense) || 0 : 0;
 }
-const ajouterDepense = (eur, d = new Date()) => ecrireJson(CLE_NUIT, { jour: jourParis(d), depense: depenseDuJour(d) + (Number(eur) || 0) });
+export const ajouterDepense = (eur, d = new Date()) => ecrireJson(CLE_NUIT, { jour: jourParis(d), depense: depenseDuJour(d) + (Number(eur) || 0) });
 
 export const enPause = () => Meta.get(CLE_PAUSE) === '1';
 export const mettreEnPause = (oui) => Meta.set(CLE_PAUSE, oui ? '1' : '0');
@@ -198,7 +198,13 @@ export async function tour() {
   let twenty = null;
   try {
     veille = (await traiterMailsRecus()).fiches;
-    twenty = await (await import('./twenty.js')).synchroniser({ max: 50 });
+    const T = await import('./twenty.js');
+    twenty = await T.synchroniser({ max: 50 });
+    const klocka = await T.synchroniserKlocka({ max: 50 });
+    twenty = { ...twenty, klocka };
+    // Le Drive Klocka une fois toutes les fiches reçues posées (8 nov. 2026, Jules) ; sur Render seulement : les fiches
+    // de la Mémoire sont sur son disque.
+    if (process.env.RENDER && klocka.restants === 0) (await import('./drive.js')).lireDrive().catch((e) => console.warn('[mémoire] Drive :', e?.message || e));
   } catch (e) { console.warn('[mémoire] tour :', e?.message || e); }
   return { lancees, veille, twenty };
 }

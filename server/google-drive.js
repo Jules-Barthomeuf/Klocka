@@ -366,6 +366,32 @@ export async function listerFichiers(compteEmail, { dossierId = null, recherche 
 }
 
 /**
+ * Une page des PDF et des Word du Drive partagé (8 nov. 2026, la lecture du Drive par la Mémoire), du plus ancien au
+ * plus récent : l'ordre ne bouge pas pendant une lecture qui dure.
+ */
+export async function pageDuDrive(compteEmail, { pageToken = null, taille = 100 } = {}) {
+  const account = await compteDriveEffectif(compteEmail);
+  const token = await accessTokenFor(account);
+  const partage = await trouverDrivePartage(token);
+  const params = new URLSearchParams({
+    q: "trashed = false and (mimeType = 'application/pdf' or mimeType = 'application/msword' or mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')",
+    fields: 'nextPageToken,files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink)',
+    orderBy: 'createdTime',
+    pageSize: String(Math.min(1000, taille)),
+    supportsAllDrives: 'true',
+    includeItemsFromAllDrives: 'true',
+    ...(partage ? { corpora: 'drive', driveId: partage.id } : { corpora: 'allDrives' }),
+    ...(pageToken ? { pageToken } : {}),
+  });
+  const data = await driveFetch(token, `${DRIVE_API}/files?${params}`);
+  return {
+    compte: account.email,
+    suivant: data.nextPageToken || null,
+    fichiers: (data.files || []).map((f) => ({ id: f.id, nom: f.name, mime: f.mimeType, taille: Number(f.size) || 0, cree_le: f.createdTime || f.modifiedTime || null, url: f.webViewLink || null })),
+  };
+}
+
+/**
  * Rapatrie un fichier du Drive : son contenu et son nom. Un Google Doc, Sheet
  * ou Slides n'a pas de contenu binaire : il sort en PDF, comme on l'enverrait
  * à la main.

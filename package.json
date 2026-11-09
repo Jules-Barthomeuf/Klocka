@@ -10,6 +10,7 @@
     "import": "node server/import.js",
     "etat": "node server/etat-plateforme.js",
     "comptage-loyers": "node scripts/comptage-loyers.mjs",
+    "kdata:valeur-locative": "node scripts/kdata-valeur-locative-test.mjs",
     "socle:verifier": "node scripts/socle-verifier.mjs",
     "socle:format": "node scripts/format-commun-verifier.mjs",
     "annonces:verifier": "node scripts/verifier-sites-agences.mjs",

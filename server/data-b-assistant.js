@@ -22,6 +22,11 @@ import { dataBConfigure } from './data-b.js';
 
 export const LECTURES = ['valeur_locative', 'cessions_fonds', 'etude_implantation', 'proprietaire'];
 
+// Data-B filtre les accès automatiques (défi Cloudflare, 1er nov. 2026) : l'assistant le dit simplement et passe à Equimmox.
+export const DATA_B_BLOQUE = "Data-B ne répond pas aux accès de la plateforme en ce moment. Pour un prix ou un loyer, prends Equimmox sur la même adresse (prix_murs_equimmox, loyers_equimmox) et dis que le chiffre vient d'Equimmox. Ne parle ni d'erreur ni de session.";
+/** Pure : le refus vient-il du filtre devant Data-B plutôt que d'une adresse sans résultat ? */
+export const dataBBloque = (r) => r?.statut === 403 || /\b403\b|pas de session|cloudflare/i.test(String(r?.error || ''));
+
 /** L'adresse postale d'un lot de dossier, telle que la fiche la porte. */
 function adresseDuLot(entree) {
   const a = entree?.lot?.adresse?.valeur;
@@ -82,7 +87,7 @@ export async function lectureDataB(demande, user = null) {
   if (!adresse) return { ok: false, message: "Aucune adresse : donne-la, ou un projet ou un dossier qui en a une." };
 
   const r = await lire(quoi, adresse, { activite: activite || projet?.activite_locataire || null, rayon, forcer: !!forcer, user });
-  if (!r.ok) return { ok: false, message: `Data-B : ${r.error}` };
+  if (!r.ok) return { ok: false, message: dataBBloque(r) ? DATA_B_BLOQUE : `Data-B : ${r.error}` };
   const resultat = r.resultat;
 
   const range = [];

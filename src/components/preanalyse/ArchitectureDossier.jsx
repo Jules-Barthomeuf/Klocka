@@ -1,9 +1,10 @@
-import { VuesLieu } from "@/components/preanalyse/DealResultat";
+import { VERDICTS, VuesLieu } from "@/components/preanalyse/DealResultat";
 import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Archive, Check, MoreHorizontal, Trash2 } from "lucide-react";
+import { Filtres } from "@/components/mandataire/elements";
 import { base44 } from "@/api/base44Client";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
@@ -48,6 +49,24 @@ const bloc = "relative overflow-hidden rounded-[12px] border border-trait bg-rai
 const titreBloc = "m-0 mb-2 text-[12.5px] text-ardoise";
 
 /** La colonne de droite : la Data Room en liste à cocher (17 oct. 2026), et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
+/** Le verdict de l'équipe, sous les clients intéressés (9 nov. 2026, Jules) : on choisit, un second clic retire le choix. */
+function BlocVerdict({ dossier }) {
+  const [choisi, setChoisi] = useState(dossier.verdict_choisi?.valeur || "");
+  const choisir = (v) => {
+    const avant = choisi;
+    const suivant = v === choisi ? "" : v;
+    setChoisi(suivant);
+    base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/verdict`, { body: { verdict: suivant || null } })
+      .catch((e) => { setChoisi(avant); toast.error(e?.message || "Verdict non enregistré"); });
+  };
+  return (
+    <section className={bloc}>
+      <p className={titreBloc}>Verdict</p>
+      <Filtres label="Verdict du dossier" valeur={choisi} onChange={choisir} options={Object.entries(VERDICTS).map(([k, v]) => [k, v.libelle])} />
+    </section>
+  );
+}
+
 export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = null, onRefresh = null }) {
   // Pré-analyse : à qui ce bien pourrait correspondre, d'après les investisseurs de Monday (revenu le 18 oct. 2026, Jules).
   const correspondances = useQuery({
@@ -83,6 +102,7 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
           <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
         </section>
       )}
+      {vue === "preanalyse" && dossier?.deal_id && !apercu && <BlocVerdict dossier={dossier} />}
       {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Seulement à l'étape Data Room (18 oct. 2026, Jules). */}
       {vue === "documents" && (
       <ZoneConversion onAjouter={ajouter}>

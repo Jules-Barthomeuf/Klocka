@@ -154,8 +154,21 @@ export function nomDuLocal(locataire, activite) {
 
 // Le titre d'un projet : le nom du local seul (30 oct. 2026, Jules : l'adresse est écrite juste en dessous, la répéter
 // dans le titre ne sert à rien). Sans nom, le bien se nomme par ce qu'il est. `adresse` n'est plus lue, gardée pour les appels.
+// Un titre propre : court, sur une ligne, pas un paragraphe de « points forts » glissé dans le nom du locataire
+// (9 nov. 2026, Jules : un projet s'appelait « Points forts (+) Ancienneté… »).
+export function titrePropre(t) {
+  const v = String(t || '').trim();
+  return !!v && v.length <= 60 && !/[\n\r]/.test(v) && !/points?\s*forts|anciennet|notori[ée]t|diversif|[àa]\s+l.attention|\bcpf\b/i.test(v);
+}
+
 export function titreProjet(locataire, adresse, activite = null) {
-  return nomDuLocal(locataire, activite) || 'Murs commerciaux';
+  const nom = nomDuLocal(locataire, activite);
+  if (titrePropre(nom)) return nom;
+  // Nom vide : « Murs commerciaux », comme avant. Nom pollué (un paragraphe de points forts) : on l'écarte et on
+  // nomme par la ville de l'adresse, jamais par le champ pollué (9 nov. 2026, Jules).
+  if (!nom) return 'Murs commerciaux';
+  const ville = typeof adresse === 'string' ? adresse.split(',').pop().replace(/\b\d{4,5}\b/g, '').trim() : null;
+  return ville ? `Murs commerciaux · ${ville}` : 'Murs commerciaux';
 }
 
 // Equimmox : bas, moyenne et haut des loyers observés, en € par m² et par an,

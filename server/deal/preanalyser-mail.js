@@ -11,6 +11,7 @@ import { Records } from '../db.js';
 import { telechargerRaw, telechargerPieceJointe } from '../gmail-inbox.js';
 import { analyserFiche } from './index.js';
 import { piecesFiche, dossierDeLaConversation, doublonDe, contexteDesConversations } from './fiches-auto.js';
+import { fichesDuZip, zipsDuMail } from './zip-fiches.js';
 import { ajouterSuivi } from './lifecycle.js';
 
 /**
@@ -43,6 +44,31 @@ export async function preanalyserMail(mailRecu, { user = null, uploadDir = null,
   // un mail transféré par quelqu'un de l'équipe n'a pas d'agent dedans.
   const contact = contactEmail === undefined ? mailRecu.de_email || null : contactEmail;
   const origine = { mail_recu_id: mailRecu.id, de: mailRecu.de, objet: mailRecu.objet, date: mailRecu.date };
+
+  // Un ou plusieurs ZIP joints (9 nov. 2026, Jules) : on les ouvre et chaque fiche dedans donne son dossier, comme
+  // des pièces jointes séparées. Sans ZIP, le chemin habituel ne change pas.
+  const zips = zipsDuMail(mailRecu);
+  if (zips.length) {
+    const aCreer = [];
+    for (const p of piecesFiche(mailRecu).filter((x) => x?.piece_id)) {
+      const buffer = await telechargerPieceJointe(mailRecu.compte, mailRecu.gmail_message_id, p.piece_id);
+      aCreer.push({ nom: p.nom, mime: p.mime, buffer });
+    }
+    for (const z of zips) {
+      const zbuf = await telechargerPieceJointe(mailRecu.compte, mailRecu.gmail_message_id, z.piece_id);
+      aCreer.push(...(await fichesDuZip(zbuf)));
+    }
+    if (aCreer.length) {
+      const dossiers = [];
+      for (const f of aCreer) {
+        const dossier = await analyserFiche({ buffer: f.buffer, filename: f.nom, mimetype: f.mime || undefined, contactEmail: contact }, { user, uploadDir, automatique });
+        Records.update('Deal', Records.findBy('Deal', 'deal_id', dossier.deal_id).id, { source_mail: { ...origine, piece: f.nom } });
+        dossiers.push(dossier);
+      }
+      Records.update('MailRecu', mailRecu.id, { deal_id: dossiers[0].deal_id, deal_ids: dossiers.map((d) => d.deal_id) });
+      return Object.assign(dossiers[0], { dossiers });
+    }
+  }
 
   const fiches = piecesFiche(mailRecu).filter((p) => p?.piece_id);
   if (fiches.length >= 2) {

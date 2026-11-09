@@ -122,3 +122,13 @@ export function modifierChamps(projetId, changements, { par = null, editeur = fa
   Records.update('Project', projetId, maj);
   return { ok: true, faits: r.faits, projet: Records.get('Project', projetId) };
 }
+
+/** Renommer un projet à la main (9 nov. 2026, Jules) : un titre propre, sur une ligne. */
+export function renommerProjet(projetId, titre, user) {
+  const p = Records.get('Project', String(projetId || ''));
+  if (!p) return { ok: false, error: 'Projet introuvable.' };
+  const t = String(titre || '').replace(/[\n\r]+/g, ' ').trim().slice(0, 120);
+  if (!t) return { ok: false, error: 'Donne un titre.' };
+  Records.update('Project', p.id, { titre: t }, user?.email);
+  return { ok: true, titre: t };
+}

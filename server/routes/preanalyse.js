@@ -113,6 +113,17 @@ export function monterPreanalyse(app) {
     ok(res, d);
   }));
 
+  // Le verdict choisi par l'équipe (9 nov. 2026, Jules) : un choix posé à la main, rien ne s'y branche ; null le retire.
+  app.post('/api/preanalyse/dossiers/:dealId/verdict', wrap((req, res) => {
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+    const valeur = req.body?.verdict ?? null;
+    if (valeur !== null && !['GO', 'GO SOUS RÉSERVE', 'INSUFFISANT', 'NO-GO'].includes(valeur)) return res.status(400).json({ error: 'Verdict inconnu' });
+    const verdict_choisi = valeur ? { valeur, par: currentUser(req)?.email || null, le: new Date().toISOString() } : null;
+    Records.update('Deal', brut.id, { verdict_choisi });
+    ok(res, { ok: true, verdict_choisi });
+  }));
+
   // Les chiffres du simulateur, enregistrés sur le lot pour y revenir.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/simulateur', wrap(async (req, res) => {
     const { enregistrerSimulateur } = await import('../deal/index.js');

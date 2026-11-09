@@ -10,6 +10,7 @@ const COLONNES_FICHE = "grid-cols-[150px_minmax(0,1fr)_160px]";
 const CELLULES_FICHE = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-trait lg:[&>*]:px-2.5";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import TexteEnPlace from "@/components/ui/texte-en-place";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -255,46 +256,19 @@ function statutDe(c) {
  * vide pour y revenir.
  */
 function NotesLigne({ textes, manuelle = null, onNoter = null, enCours = false }) {
-  const [edition, setEdition] = useState(null);
+  // On modifie le texte directement, sans cadre ni « OK / Annuler » qui le faisaient sauter (9 nov. 2026, Jules) : TexteEnPlace.
   const affiches = manuelle ? [manuelle.texte] : textes;
-  const valider = () => { onNoter?.(edition.trim()); setEdition(null); };
-
-  if (edition !== null) {
-    return (
-      <div className="flex flex-col gap-2">
-        <textarea
-          autoFocus
-          value={edition}
-          onChange={(e) => setEdition(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) valider(); }}
-          rows={Math.min(8, Math.max(3, edition.split("\n").length + 1))}
-          className="w-full resize-y rounded-md border border-menthe/40 bg-fond px-2.5 py-2 text-[12.5px] leading-[1.5] text-encre outline-none focus:border-menthe/70 max-md:text-[16px]"
-        />
-        <span className="flex items-center gap-3">
-          <button type="button" onClick={valider} disabled={enCours} className="inline-flex items-center gap-1 rounded-full bg-menthe px-2.5 py-1 text-[12px] font-semibold text-sur-menthe disabled:opacity-40"><Check className="h-3 w-3" /> Enregistrer</button>
-          <button type="button" onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
-        </span>
-      </div>
-    );
+  if (!onNoter) {
+    return affiches.length
+      ? <ul className="m-0 flex list-none flex-col gap-1.5 p-0">{affiches.map((t) => <li key={t} className="whitespace-pre-line text-[12.5px] leading-[1.5] text-craie">{t}</li>)}</ul>
+      : <span className="text-[12.5px] text-brume">—</span>;
   }
 
   return (
     <div className="group">
-      <button
-        type="button"
-        onClick={() => onNoter && setEdition(affiches.join("\n"))}
-        disabled={!onNoter}
-        title={onNoter ? "Modifier la note" : undefined}
-        className="block w-full text-left disabled:cursor-default"
-        style={{ background: "transparent" }}
-      >
-        {affiches.length ? (
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {affiches.map((t) => <li key={t} className="whitespace-pre-line text-[12.5px] leading-[1.5] text-craie">{t}</li>)}
-          </ul>
-        ) : <span className="text-[12.5px] text-brume">{onNoter ? "— ajouter une note" : "—"}</span>}
-        {onNoter && <Pencil className="mt-1 h-3 w-3 text-brume opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100" />}
-      </button>
+      <TexteEnPlace valeur={affiches.join("\n")} disabled={enCours} placeholder="— ajouter une note"
+        onEnregistrer={(t) => onNoter(t)}
+        className="whitespace-pre-line text-[12.5px] leading-[1.5] text-craie placeholder:text-brume max-md:text-[16px]" />
       {manuelle && (
         <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-ambre">
           écrite à la main{manuelle.par ? ` · ${manuelle.par.split("@")[0]}` : ""}
@@ -957,7 +931,7 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = 
       <div className="space-y-3">
         <div className={`grid grid-cols-1 gap-4 ${empile ? "" : "lg:grid-cols-2"}`}>
           <figure className="m-0">
-            <div className={`relative ${empile ? "h-[180px] rounded-[8px]" : "h-[300px] rounded-[14px]"} overflow-hidden border border-trait bg-surface`}>
+            <div className={`relative ${empile ? "h-[280px] rounded-[10px]" : "h-[300px] rounded-[14px]"} overflow-hidden border border-trait bg-surface`}>
               {!CLE_MAPS ? (
                 <p className="absolute inset-0 flex items-center justify-center m-0 px-6 text-center text-[12.5px] text-ardoise">Street View indisponible : renseignez <code className="text-craie mx-1">VITE_GOOGLE_MAPS_API_KEY</code>.</p>
               ) : localisable ? <StreetViewRue project={lieu} /> : (
@@ -966,8 +940,8 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = 
             </div>
           </figure>
           <figure className="m-0">
-            <div className={empile ? "[&_iframe]:!h-[180px] [&_iframe]:!rounded-[8px]" : "[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]"}>
-              <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} hauteur={empile ? "h-[180px]" : "h-[300px]"} />
+            <div className={empile ? "[&_iframe]:!h-[280px] [&_iframe]:!rounded-[10px]" : "[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]"}>
+              <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} hauteur={empile ? "h-[280px]" : "h-[300px]"} />
             </div>
           </figure>
         </div>

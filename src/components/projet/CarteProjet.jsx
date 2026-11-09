@@ -105,10 +105,15 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
   const rang = Math.max(0, ETAPES_PROJET.indexOf(project.statut || "prospect"));
   const derniere = rang >= ETAPES_PROJET.length - 1;
 
-  // La carte de la page Projets de l'équipe (8 nov. 2026, Jules) : sans la zone photo, le statut en case, mêmes chiffres.
+  // La carte de la page Projets de l'équipe (8 nov. 2026, Jules) : le statut en case, mêmes chiffres ; la photo revient en tête le 9 nov.
   if (compacte) return (
     <div onClick={(e) => { if (onOuvrir && !e.target.closest("button, a, input, select, textarea, label")) onOuvrir(); }}
       className={`group relative flex flex-col rounded-[12px] border border-trait bg-rail px-3.5 py-3 transition-colors hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
+      <div className="-mx-3.5 -mt-3 mb-3 h-[150px] overflow-hidden rounded-t-[11px]">
+        {photo
+          ? <img src={photo} alt="" loading="lazy" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+          : <TramePhoto mot="" />}
+      </div>
       <div className="flex min-w-0 items-center justify-between gap-2.5">
         <h2 className="m-0 truncate text-[15px] font-normal text-encre">{titreSansAdresse(project.titre, project.adresse_complete)}</h2>
         <Statut className="flex-none">{statutLabels[project.statut] || "Prospect"}</Statut>

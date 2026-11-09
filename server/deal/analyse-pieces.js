@@ -151,6 +151,9 @@ export const GRILLES_LUES = [
 // Trois quittances ou trois PV disent chacun leur période : leurs valeurs s'empilent. Ailleurs, deux
 // pièces qui ne disent pas la même chose (bail et avenant, deux avis) demandent un choix.
 const EMPILEES = new Set(['quittances', 'pv_ag']);
+// Les lignes ajoutées à la main sous un tableau (9 nov. 2026, Jules : « rajouter une ligne sous un tableau, n'importe quel onglet »).
+const lignesPersoDe = (etat, gid) => (etat?.lignes_perso?.[gid] || []);
+const grillePersoOk = (gid) => !!GRILLES[gid];
 
 // Le nom d'une fiche commerciale dit souvent « bail » (« murs loués, bail 3/6/9 ») : on la reconnaît d'abord.
 const NOM_DE_FICHE = /\bfiche|teaser|plaquette|pr[ée]sentation|annonce|descriptif|opportunit/i;
@@ -611,7 +614,57 @@ function lireGrille(gid, brut, docs, ctx) {
       par: humain?.par || null, le: humain?.le || null, introuvable_par: humain?.statut === 'introuvable' ? humain.par : null,
     };
   });
+  // Les lignes ajoutées à la main : une valeur et une note libres, l'intitulé modifiable, aucune source.
+  for (const p of lignesPersoDe(etat, gid)) {
+    const cle = `${gid}.${p.id}`;
+    const humain = etat.cases?.[cle] || null;
+    const ok = humain?.statut === 'verifie' || humain?.statut === 'corrige';
+    lignes.push({
+      id: p.id, cle, libelle: p.libelle || '', format: '', regle: null, perso: true,
+      statut: ok ? humain.statut : 'perso', valeur: ok ? humain.valeur : humain?.valeur_main ?? null,
+      sources: [], retenue: null, a_choisir: false, relue: null, alerte: null,
+      note: humain?.note || null, valeur_main: humain?.statut === 'corrige' ? humain.valeur : humain?.valeur_main || null,
+      par: humain?.par || null, le: humain?.le || null,
+    });
+  }
   return { id: gid, titre: grille.titre, pieces: pieces.map((d) => ({ id: d.id, nom: d.nom, type: d.type, extraction: d.extraction })), lignes };
+}
+
+// --- Les lignes ajoutées à la main sous un tableau ----------------------------------------------------------
+let compteurLignePerso = 0;
+const nouvelIdPerso = () => `perso_${Date.now().toString(36)}_${(compteurLignePerso++).toString(36)}`;
+
+/** Ajoute une ligne vide sous un tableau de l'analyse (Bail, Quittances, Copropriété, Diagnostics). */
+export function ajouterLigne(dealId, grilleId, { libelle = '' } = {}) {
+  if (!grillePersoOk(grilleId)) return { ok: false, error: 'Tableau inconnu.' };
+  const id = nouvelIdPerso();
+  const fait = majEtat(dealId, (etat) => {
+    etat.lignes_perso = etat.lignes_perso || {};
+    etat.lignes_perso[grilleId] = [...(etat.lignes_perso[grilleId] || []), { id, libelle: String(libelle || '').slice(0, 200) }];
+  });
+  return fait ? { ok: true, id } : { ok: false, error: 'Dossier introuvable' };
+}
+
+/** Renomme l'intitulé d'une ligne ajoutée à la main. */
+export function renommerLigne(dealId, grilleId, ligneId, libelle) {
+  const fait = majEtat(dealId, (etat) => {
+    const liste = etat.lignes_perso?.[grilleId];
+    const l = liste?.find((x) => x.id === ligneId);
+    if (!l) return false;
+    l.libelle = String(libelle || '').slice(0, 200);
+  });
+  return fait ? { ok: true } : { ok: false, error: 'Ligne introuvable' };
+}
+
+/** Retire une ligne ajoutée à la main, avec sa valeur et sa note. */
+export function supprimerLigne(dealId, grilleId, ligneId) {
+  const fait = majEtat(dealId, (etat) => {
+    const liste = etat.lignes_perso?.[grilleId];
+    if (!liste?.some((x) => x.id === ligneId)) return false;
+    etat.lignes_perso[grilleId] = liste.filter((x) => x.id !== ligneId);
+    if (etat.cases) delete etat.cases[`${grilleId}.${ligneId}`];
+  });
+  return fait ? { ok: true } : { ok: false, error: 'Ligne introuvable' };
 }
 
 // --- Les résolutions des PV d'AG : un onglet par assemblée, une ligne par résolution ---------------------------
@@ -862,7 +915,8 @@ export function deciderCase(dealId, grilleId, critereId, { action, valeur, sourc
   // L'onglet Bien a ses propres lignes (« bien.surface », « bien.vendeur »…) : modifiables comme les grilles.
   const grille = grilleDe(grilleId);
   // Bien et Marché (29 oct. 2026) ont leurs propres lignes, calculées ailleurs : toute ligne au bon format.
-  const connue = grilleId === 'bien' || grilleId === 'marche' ? /^[a-z_]{2,40}$/.test(String(critereId)) : !!grille?.criteres.some((c) => c.id === critereId);
+  const perso = lignesPersoDe(dealDe(dealId)?.analyse_pieces || {}, grilleId).some((p) => p.id === critereId);
+  const connue = perso || (grilleId === 'bien' || grilleId === 'marche' ? /^[a-z_]{2,40}$/.test(String(critereId)) : !!grille?.criteres.some((c) => c.id === critereId));
   if (!connue) return { ok: false, error: 'Case inconnue' };
   const cle = `${grilleId}.${critereId}`;
   const signe = { par: user?.email || null, le: new Date().toISOString() };

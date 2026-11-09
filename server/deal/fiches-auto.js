@@ -47,16 +47,19 @@ const lisibleDe = (nom) => nom.replace(/[_\-.()]+/g, ' ');
 /** Pure : une pièce que son nom désigne comme une fiche (« Fiche », « Teaser », « Présentation »…). */
 export const nomDitFiche = (p) => NOM_DE_FICHE.test(lisibleDe(nomPiece(p))) && !PAS_UNE_FICHE.test(lisibleDe(nomPiece(p)));
 
-/** Pure : les pièces qui peuvent être la fiche. Un bail, un PV, un diagnostic, un devis, un CV n'en sont pas. */
+/** Pure : un nom de fichier qui peut être une fiche. Un bail, un PV, un diagnostic, un devis, un CV n'en sont pas. */
+export function estUneFiche(nom0) {
+  const nom = nomPiece(nom0);
+  if (!FICHE.test(nom) || PARASITES.test(nom)) return false;
+  const lisible = lisibleDe(nom);
+  if (PAS_UNE_FICHE.test(lisible)) return false;
+  if (NOM_DE_FICHE.test(lisible)) return true;
+  return !typeDepuisCategorie(null, nom) && !DOCUMENT_DE_DOSSIER.test(lisible);
+}
+
+/** Pure : les pièces qui peuvent être la fiche. */
 export function piecesFiche(mail) {
-  return (mail?.pieces_jointes || []).filter((p) => {
-    const nom = nomPiece(p);
-    if (!FICHE.test(nom) || PARASITES.test(nom)) return false;
-    const lisible = lisibleDe(nom);
-    if (PAS_UNE_FICHE.test(lisible)) return false;
-    if (NOM_DE_FICHE.test(lisible)) return true;
-    return !typeDepuisCategorie(null, nom) && !DOCUMENT_DE_DOSSIER.test(lisible);
-  });
+  return (mail?.pieces_jointes || []).filter((p) => estUneFiche(nomPiece(p)));
 }
 
 /** Pure : le mail parle-t-il d'un bien à vendre (objet, début du texte) ? */

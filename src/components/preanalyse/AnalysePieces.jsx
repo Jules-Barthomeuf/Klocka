@@ -286,17 +286,30 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
           <div className={`grid ${COLONNES} ${CELLULES} ${ENTETE_GRILLE}`}>
             <span className="text-[13.5px] text-encre">{g.titre}</span><span>Valeur</span><span>Source</span><span>Notes</span>
           </div>
-          <div className={g.pieces.length ? "" : "pointer-events-none select-none"} aria-hidden={g.pieces.length ? undefined : true}>
+          {/* On écrit dans toutes les cases, même sans pièce ni extraction (9 nov. 2026, Jules). */}
+          <div>
           {g.lignes.filter(garde).map((l) => {
             const choisie = ouverte?.case?.grille === g.id && ouverte?.case?.id === l.id;
             return (
               <div key={l.id}
                 className={`group/ligne grid ${COLONNES} ${CELLULES} ${LIGNE_GRILLE} ${choisie ? "bg-menthe/[0.06]" : ""}`}>
-                {/* Le libellé ouvre la source ; la valeur se modifie ; l'état se choisit (29 oct. 2026, Jules). */}
+                {/* Une ligne ajoutée à la main (9 nov. 2026, Jules) : l'intitulé se tape, une croix la retire. Sinon, le libellé ouvre la source et l'état se choisit. */}
+                {l.perso ? (
+                  <div className="flex min-w-0 items-center gap-1">
+                    <TexteEnPlace valeur={l.libelle} placeholder="Intitulé" disabled={geste.isPending}
+                      onEnregistrer={(t) => geste.mutate({ chemin: `cases/${g.id}/lignes/${l.id}`, corps: { libelle: t } })}
+                      className="text-[13.5px] leading-[1.4] text-encre placeholder:text-brume max-md:text-[16px]" />
+                    <button type="button" onClick={() => geste.mutate({ chemin: `cases/${g.id}/lignes/${l.id}/supprimer` })} disabled={geste.isPending}
+                      aria-label="Retirer la ligne" title="Retirer la ligne" className="grid h-6 w-6 flex-none place-items-center rounded-full text-brume opacity-0 transition hover:text-alerte group-hover/ligne:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
                 <CaseNom libelle={l.libelle} etat={l.statut} par={l.par} valeur={l.valeur} occupe={geste.isPending}
                   onChoix={(id) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: corpsDuChoix(id, l.valeur, l.valeur_main) })} />
+                )}
                 <ValeurModifiable valeur={l.valeur} occupe={geste.isPending}
-                  vide={l.statut === "manquant" ? "Pas encore de pièce" : l.statut === "lecture" ? "En cours de lecture" : l.statut === "non_lu" ? "Pièce pas encore lue" : "Non trouvé dans les pièces"}
+                  vide={l.perso ? "À compléter" : l.statut === "manquant" ? "Pas encore de pièce" : l.statut === "lecture" ? "En cours de lecture" : l.statut === "non_lu" ? "Pièce pas encore lue" : "Non trouvé dans les pièces"}
                   onEnregistrer={(t) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: corpsDeLaSaisie(t) })} />
                 <Sources sources={l.sources.slice(0, 3)} retenue={l.retenue}
                   onOuvrir={(s) => setOuverte({ seul: true, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation })} />
@@ -304,6 +317,11 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
               </div>
             );
           })}
+          {/* Ajouter une ligne sous le tableau, dans n'importe quel onglet (9 nov. 2026, Jules). */}
+          <button type="button" onClick={() => geste.mutate({ chemin: `cases/${g.id}/lignes` })} disabled={geste.isPending}
+            className="flex w-full items-center gap-1.5 border-t border-trait px-2.5 py-2.5 text-left text-[13px] text-ardoise transition-colors hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+            <Plus className="h-3.5 w-3.5" /> Ajouter une ligne
+          </button>
           </div>
           </div>
         </section>

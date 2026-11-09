@@ -103,12 +103,35 @@ export function monterAnalysePieces(app) {
     ok(res, r);
   }));
 
-  // Relire une seule case, sur les pièces de son emplacement.
+  // Les lignes ajoutées à la main sous un tableau (9 nov. 2026, Jules) : /lignes passe avant /:critere.
+  app.post(`${base}/cases/:grille/lignes`, wrap((req, res) => {
+    const r = A.ajouterLigne(req.params.dealId, req.params.grille, req.body || {});
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post(`${base}/cases/:grille/lignes/:id/supprimer`, wrap((req, res) => {
+    const r = A.supprimerLigne(req.params.dealId, req.params.grille, req.params.id);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post(`${base}/cases/:grille/lignes/:id`, wrap((req, res) => {
+    const r = A.renommerLigne(req.params.dealId, req.params.grille, req.params.id, req.body?.libelle);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  // Une ligne ajoutée à la main sous un tableau de l'analyse (9 nov. 2026, Jules) : les routes /lignes passent avant /:critere.
   app.post(`${base}/cases/:grille/:critere/relire`, wrap((req, res) => {
     const ids = A.piecesDeLaGrille(req.params.dealId, req.params.grille);
     if (!ids.length) return res.status(400).json({ error: 'Aucune pièce rangée pour cette grille.' });
     for (const id of ids) A.enfiler(req.params.dealId, id, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulement: [req.params.critere] });
     ok(res, { ok: true, pieces: ids.length });
+  }));
+
+  // Écrire ou trancher une case (valeur, OK, introuvable, note…).
+  app.post(`${base}/cases/:grille/:critere`, wrap((req, res) => {
+    const r = A.deciderCase(req.params.dealId, req.params.grille, req.params.critere, req.body || {}, currentUser(req));
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
   }));
 
   // Le statut d'une résolution de PV d'AG (À vérifier, Vérifié), ou la cacher ; sur l'id du PV, tout réafficher.
@@ -118,11 +141,6 @@ export function monterAnalysePieces(app) {
     ok(res, r);
   }));
 
-  app.post(`${base}/cases/:grille/:critere`, wrap((req, res) => {
-    const r = A.deciderCase(req.params.dealId, req.params.grille, req.params.critere, req.body || {}, currentUser(req));
-    if (!r.ok) return res.status(400).json({ error: r.error });
-    ok(res, r);
-  }));
 
   // Les versions du dossier : Annuler et Rétablir, les flèches à droite de « Tous les dossiers » (29 oct. 2026, Jules).
   app.get(`${base}/versions`, wrap((req, res) => ok(res, A.versionsDe(req.params.dealId))));

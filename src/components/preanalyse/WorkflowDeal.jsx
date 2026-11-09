@@ -639,7 +639,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* À côté du chat (écran scindé), la colonne de droite ne se met à côté qu'à partir de 1700 px ; avant, elle passe dessous. */}
       <div>
       <div>
-      <div className={dossier && !pleineLargeur ? `grid items-start gap-3 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_300px]" : "lg:grid-cols-[minmax(0,1fr)_300px]"}` : ""}>
+      <div className={dossier && !pleineLargeur ? `grid items-start gap-4 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_400px]" : "lg:grid-cols-[minmax(0,1fr)_400px]"}` : ""}>
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
       {/* La Data Room : une zone de dépôt par type de pièce, rien d'autre (29 oct. 2026, Jules). */}

@@ -573,6 +573,11 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'renommer_projet',
+    description: "Renomme un projet (« renomme le projet en Boulangerie Martin », titre faussé à corriger). Nécessite le projet_id (etat_projet, chercher_projet). Un titre court, sur une ligne.",
+    input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, titre: { type: 'string' } }, required: ['projet_id', 'titre'] },
+  },
+  {
     // 14 oct. 2026 (Jules) : l'éditeur de projet avec AK à gauche, comme les présentations.
     name: 'modifier_projet',
     description: "Modifie les chiffres d'un projet, celui ouvert à droite (page Projets) : chaque changement pose une valeur à un champ, avec sa source et sa raison, que le mode Sources de l'éditeur montre au survol. Champs : marché (marche_loyer_autour en €/m²/an, marche_rue_prix_m2, marche_evolution_1an, marche_evolution_5ans, marche_quartier_nom, marche_offre_bas/moyenne/haut), ville (ville_habitants_agglo, ville_revenu_median, ville_secteur_champ1), bien (surface_m2, surface_detail, detenu_depuis, derniere_vente_annee, derniere_vente_prix), bail et locataire (bail_date_debut, echeance_bail, locataire_depuis), copropriété (quote_part_lot, charges_copropriete, provision_charges, taxe_fonciere_an), simulateur (sim_loyer_initial_ht, sim_surface, sim_prix_bien_fai, sim_prix_bien_negocie, sim_apport, sim_taux_interet, sim_duree_credit…), et les chiffres calculés forcés : valeurs_forcees.<cle> (prix_revient, rendement_net, commercial_loyer_projet, commercial_ecart, revenu_ecart, loyer_mensuel…). Jamais le titre, les clients ni les admins. Un chiffre sans source vérifiable ne s'écrit pas.",
@@ -601,17 +606,27 @@ const OUTILS_AK = [
   {
     name: 'loyers_equimmox',
     description: "Les loyers commerciaux moyens autour d'un projet, lus sur Equimmox (les baux existants de la classe Commerces, à 500 m, surface du bien à ±20 %) : « va chercher les loyers autour dans Equimmox », « le loyer du secteur ». Nécessite le projet_id (trouver_bien ou chercher_projet). Rend la fourchette et la moyenne en €/m²/an avec leur source. Une lecture de moins de trente jours est reprise ; sinon Equimmox est interrogé, ce qui prend une à deux minutes (forcer relit). Si Equimmox n'a rien constaté, le projet retombe sur Data-B : la source rendue le dit, répète-la telle quelle. Ne dis jamais que tu n'as pas accès à Equimmox : c'est cet outil.",
-    input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, forcer: { type: 'boolean', description: 'relire Equimmox même si une lecture récente existe : seulement si la personne le demande ; jamais juste après une lecture, qui rendrait le même chiffre' } }, required: ['projet_id'] },
+    input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, deal_id: { type: 'string', description: "le dossier, pour lire son adresse sans créer de projet" }, adresse: { type: 'string', description: "ou une adresse avec sa rue et sa ville ; une ville seule ne se cherche pas" }, surface: { type: 'number' }, forcer: { type: 'boolean', description: 'relire Equimmox même si une lecture récente existe : seulement si la personne le demande ; jamais juste après une lecture, qui rendrait le même chiffre' } } },
   },
   {
     name: 'prix_murs_equimmox',
     description: "Le prix des murs commerciaux au m² autour d'un projet, lu sur Equimmox (Analyse → Analyse de prix : les offres de vente de la classe Commerce, surface du bien à ±20 %, dans le rayon qu'Equimmox propose) : « estime le prix des murs avec Equimmox », « la valeur des murs du secteur », la case « Prix des murs commerciaux » ou « Valeur moyenne des murs » d'une présentation. Nécessite le projet_id. Rend Bas, Moyenne et Haut en €/m², le nombre d'offres, le rayon et la date. Ce sont des prix demandés (des annonces), pas des ventes signées : dis-le. Une lecture de moins de trente jours est reprise ; sinon une quarantaine de secondes.",
-    input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, forcer: { type: 'boolean', description: 'relire Equimmox même si une lecture récente existe : seulement si la personne le demande' } }, required: ['projet_id'] },
+    input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, deal_id: { type: 'string', description: "le dossier, pour lire son adresse sans créer de projet" }, adresse: { type: 'string', description: "ou une adresse avec sa rue et sa ville ; une ville seule ne se cherche pas" }, surface: { type: 'number' }, forcer: { type: 'boolean', description: 'relire Equimmox même si une lecture récente existe : seulement si la personne le demande' } } },
+  },
+  {
+    name: 'ventes_dvf',
+    description: "Les ventes de locaux commerciaux signées autour d'une adresse ou d'un dossier (DVF, données publiques des notaires) : « va chercher sur DVF », « qu'est-ce qui s'est vendu autour ? ». Donne le prix au m² et des exemples. Avec le deal_id (lit l'adresse du dossier) ou une adresse avec sa rue ; jamais sur une ville seule.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, adresse: { type: 'string' }, rayon: { type: 'number', description: 'en mètres, 800 par défaut' } } },
   },
   {
     name: 'generer_prez_bancaire',
     description: "Génère la préz bancaire (projet de financement, PPTX) d'un projet de la plateforme et la dépose sur le Drive partagé en Google Slides. Nécessite l'identifiant rendu par chercher_projet. Tâche de fond : AK donnera le lien dans le chat quand c'est prêt.",
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
+  },
+  {
+    name: 'recherche_web',
+    description: "Une recherche sur le web, avec les pages consultées, quand la réponse n'est NI dans la plateforme NI un chiffre de marché : une enseigne ou une société (« c'est quoi Artilect FabLab ? », « qui est le locataire X ? », sa solidité), une actualité locale, un projet d'aménagement, un commerce. Rend un texte et ses sources : cite-les toujours. Ne réponds JAMAIS de mémoire sur une entité ou un fait extérieur : passe par ici. Pas pour un loyer ni un prix (Equimmox, Data-B, DVF le font).",
+    input_schema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'] },
   },
   {
     name: 'chercher_agents',
@@ -753,6 +768,16 @@ export function cleGeste(name, input = {}, qui = null) {
 export function dejaFait(cle, gestes, maintenant = Date.now()) {
   const le = gestes[cle];
   return le && maintenant - le < DOUBLON_MS ? Math.max(1, Math.round((maintenant - le) / 60000)) : null;
+}
+
+// L'adresse d'un travail de marché : celle du dossier (deal_id) ou l'adresse donnée, jamais une ville seule (9 nov. 2026, Jules).
+async function adresseDeMarche(input) {
+  if (String(input?.adresse || '').trim()) return String(input.adresse).trim();
+  if (input?.deal_id) {
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
+    if (deal) { const { adresseDuLot } = await import('../deal/comparaison-marche.js'); return adresseDuLot(deal.lots?.[0] || deal); }
+  }
+  return null;
 }
 
 export async function executerOutil(appel, user, options = {}) {
@@ -936,6 +961,27 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   if (name === 'chercher_agents') {
     const agents = chercherAgents(input || {});
     return { ok: true, nombre: agents.length, agents, note: input?.genre ? 'genre déduit du prénom' : null };
+  }
+  if (name === 'recherche_web') {
+    const { invokeLLMGrounded } = await import('../llm.js');
+    const r = await invokeLLMGrounded({ prompt: `Recherche pour un professionnel de l'immobilier commercial, en français, réponse courte et factuelle, avec les sources : ${String(input.question || '').slice(0, 800)}` }).catch((e) => { throw new Error(e?.message || 'recherche indisponible'); });
+    if (!r) return { ok: false, error: "La recherche web n'est pas branchée dans cette session. Dis-le simplement, ne réponds pas de mémoire." };
+    return { ok: true, texte: r.text.slice(0, 4000), sources: (r.sources || []).slice(0, 8), note: 'Cite les sources ; sans source, ne l\'affirme pas.' };
+  }
+  if (name === 'ventes_dvf') {
+    const { adresseAvecRue } = await import('../adresse-ban.js');
+    const adresse = await adresseDeMarche(input);
+    if (!adresseAvecRue(adresse || '')) return { ok: false, error: input.deal_id ? "Ce dossier n'a pas d'adresse lisible : complète-la, ou donne-moi une adresse." : "DVF cherche autour d'une adresse : donne la rue." };
+    const { ventesAutour } = await import('../dvf.js');
+    const r = await ventesAutour(adresse, { rayon: Number(input.rayon) || 800, user });
+    if (!r.ok) return r;
+    const v = r.resultat || {};
+    return { ok: true, adresse, source: 'DVF (Demandes de valeurs foncières)', prix_m2: v.prix_m2 || null, ventes: (v.ventes || []).slice(0, 10).map((x) => ({ date: x.date, adresse: x.adresse, surface: x.surface, prix: x.prix, prix_m2: x.prix_m2, distance_m: x.distance_m })), note: 'Des ventes signées, publiques. Cite DVF.' };
+  }
+  if (name === 'renommer_projet') {
+    const { renommerProjet } = await import('../projet-edition.js');
+    const r = renommerProjet(input.projet_id, input.titre, user);
+    return r.ok ? { ok: true, titre: r.titre } : { ok: false, error: r.error };
   }
   if (name === 'avis_dossier') {
     if (!Records.findBy('Deal', 'deal_id', input.deal_id)) return { ok: false, error: 'Dossier introuvable.' };
@@ -1424,6 +1470,21 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const r = E.modifierChamps(String(input.projet_id || ''), input.changements || [], { par: 'AK' });
     return r.ok ? { ok: true, projet_id: String(input.projet_id), faits: r.faits } : r;
   }
+  if ((name === 'loyers_equimmox' || name === 'prix_murs_equimmox') && !input.projet_id) {
+    // Sur l'adresse du dossier ou une adresse donnée, sans créer de projet (9 nov. 2026, Jules).
+    const { adresseAvecRue } = await import('../adresse-ban.js');
+    const adresse = await adresseDeMarche(input);
+    if (!adresseAvecRue(adresse || '')) return { ok: false, error: input.deal_id ? "Ce dossier n'a pas d'adresse lisible (rue et ville) : complète-la, ou donne-moi une adresse." : "Equimmox cherche autour d'une adresse : demande la rue (une ville seule ne se cherche pas)." };
+    const E = await import('../equimmox.js');
+    const surface = Number(input.surface) || null;
+    const prix = name === 'prix_murs_equimmox';
+    const r = await (prix ? E.analysePrix : E.analyseLoyer)(adresse, { surface, forcer: !!input.forcer, user });
+    if (!r.ok) return { ok: false, error: `Equimmox : ${r.error}` };
+    const x = r.resultat;
+    return prix
+      ? { ok: true, adresse: x.adresse, source: `${x.source} (offres de vente)`, prix_m2_bas: x.bas, prix_m2_moyen: x.moyenne, prix_m2_haut: x.haut, offres: x.offres, rayon: x.rayon, lu_le: x.le, valeur_du_local: surface && x.moyenne ? Math.round(surface * x.moyenne) : null, note: 'Des prix demandés, pas des ventes signées : dis-le.' }
+      : { ok: true, adresse: x.adresse, source: `${x.source} (baux existants)`, loyer_m2_an: x.moyenne, loyer_bas: x.bas, loyer_haut: x.haut, rayon: x.rayon, lu_le: x.le };
+  }
   if (name === 'loyers_equimmox') {
     const projet = Records.get('Project', String(input.projet_id || ''));
     if (!projet) return { ok: false, error: 'Projet introuvable.' };
@@ -1593,6 +1654,9 @@ DOSSIERS ET PROJETS
 - Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 - « Crée une LOI », « fais la lettre d'intention pour X » : trouver_bien si un bien de la plateforme est nommé, puis rediger_loi. « À l'attention de » se remplit seul (l'agent lié au bien dans Twenty CRM et son agence) ; le vendeur est facultatif (« Le vendeur » sans nom). L'apport se met seul à 15 % du prix, arrondi, et les échéances tombent du lundi au jeudi. Il te manque l'acquéreur (nom, société, adresse) et le prix si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne (« C'est qui l'acheteur ? »), puis rédige. Ne devine jamais un nom ou un prix.
 
+LE WEB ET CE QUE TU NE SAIS PAS
+- Une question sur une entité ou un fait HORS plateforme et hors chiffres de marché (une enseigne, une société, un locataire, une actualité, un projet local : « c'est quoi Artilect FabLab ? », « ce locataire est-il solide ? ») : recherche_web, puis tu réponds avec les sources. Ne réponds JAMAIS de mémoire sur ce genre de chose, même en prévenant que ce n'est pas vérifié : si recherche_web n'est pas disponible ou ne rend rien, dis seulement que tu ne peux pas vérifier et ce qu'il te faudrait (le bail, le nom du locataire), sans avancer de fait de ta mémoire.
+
 LES MAILS
 - Un mail à l'agent d'un dossier (« fais un mail de feedback à l'agent, l'emplacement est nul », « refuse-le », « demande les docs », « prépare la relance pour l'agent de Dieppe ») : trouver_bien si le dossier n'est pas celui dont on parle, puis mail_agent avec les raisons dans les mots de la personne.
 - Tout autre mail (un client, un agent sans dossier, une présentation, une demande de fiche) : mail_libre, jamais un texte que tu écrirais toi-même dans ta réponse. Il te faut l'adresse : sans elle, demande-la. Une retouche sur un mail qui attend (« objet Klocka », « mets le site », « dis qu'on a un mandat ») : retoucher_brouillon avec toute la retouche, dans ses mots.
@@ -1607,7 +1671,9 @@ LA BOÎTE MAIL, LE DRIVE, L'AGENDA
 - Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour.
 
 LE MARCHÉ, DATA-B ET K-DATA
-- Les données de marché viennent de Data-B et d'Equimmox. « Fais-moi X sur Data-B », une valeur locative, des cessions de fonds, une étude d'implantation, le propriétaire des murs : data_b, avec le projet_id ou le deal_id quand on parle d'un bien de la plateforme (le résultat y est rangé), sinon l'adresse. Une question sur une rue (« ça se loue combien ici ? ») : data_b sur cette adresse, et tu rends les chiffres avec leur source.
+- Les données de marché viennent de Data-B et d'Equimmox. « Fais-moi X sur Data-B », une valeur locative, des cessions de fonds, une étude d'implantation, le propriétaire des murs : data_b, avec le projet_id ou le deal_id quand on parle d'un bien de la plateforme (le résultat y est rangé), sinon l'adresse.
+- « Le prix du marché », « à combien se vendent les murs », « ça se loue combien ici ? », sans nommer Data-B : prix_murs_equimmox ou loyers_equimmox. Sur un dossier, passe son deal_id (l'adresse est lue dedans) : NE CRÉE JAMAIS un projet juste pour lire le marché. Sinon l'adresse. « Va chercher sur DVF », les ventes signées : ventes_dvf, avec le deal_id ou l'adresse. Sans rue (« à Toulouse ») : demande la rue en une ligne. Si Data-B ne répond pas, dis-le simplement, sans code d'erreur, et passe à Equimmox.
+- Un titre de projet faussé (il reprend des points forts ou une phrase) : renommer_projet avec le projet_id et un titre court.
 - Les Outils (ex-K-Data) ne sont pas encore au point : ils ne partent que si la personne les nomme. « Fais l'analyse K-Data » ou « lance les Outils » : demande d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms ; ne lance rien tant que la personne n'a pas choisi, sauf si ses préférences disent que tu peux lancer les Outils sans demander (alors K-Zoning, K-Expertise et Estimation). Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 
 LA PROSPECTION ET L'OFF-MARKET (ALX)

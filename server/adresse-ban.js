@@ -117,3 +117,9 @@ export async function resoudreAdresse(texte) {
     alternatives: classees.filter((x) => x !== p).slice(0, 3).map((x) => ({ label: x.label, score: x.score })),
   };
 }
+
+/** Pure : l'adresse nomme-t-elle une rue ? « Toulouse » seul se résout en rue de Toulouse à Vayres : une ville seule ne se cherche pas. */
+export function adresseAvecRue(texte) {
+  const t = String(texte || '').toLowerCase();
+  return /\d/.test(t.replace(/\b\d{5}\b/g, '')) || /\b(rue|avenue|av\.?|boulevard|bd|place|quai|all[ée]e|cours|chemin|route|impasse|square|passage|faubourg|promenade|esplanade|rond-point|zone|za|zac)\b/.test(t);
+}

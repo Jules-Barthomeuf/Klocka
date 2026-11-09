@@ -823,6 +823,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece: 
     return { ok: true, source: x.source || 'Data-B', unite: '€ HT HC/m²/an', rue: niveau(x.rue), quartier: niveau(x.quartier), ville: niveau(x.ville), note: "La même lecture que la valeur locative de l'avis : cite-la telle quelle, ne la contredis pas." };
   }
   if (name === 'prix_murs') {
+    if (!(await import('./adresse-ban.js')).adresseAvecRue(input.adresse)) return { ok: false, error: "Equimmox cherche autour d'une adresse : demande la rue (une ville seule ne se cherche pas)." };
     const { analysePrix } = await import('./equimmox.js');
     const r = await analysePrix(String(input.adresse || ''), { surface: Number(input.surface) || null, user });
     if (!r.ok) return { ok: false, error: `Equimmox : ${r.error}` };

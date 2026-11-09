@@ -6,6 +6,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ResponsiveContainer, ReferenceDot } from "recharts";
 import { J } from "@/design/jetons";
 
+// Les courbes du simulateur en pervenche, comme ses curseurs (8 nov. 2026, Jules).
+const PERVENCHE = "rgb(var(--k-pervenche-rgb))";
+
 const fmtK = (v) => `${Math.round(v / 1000)}`;
 
 // Au téléphone, le graphique reprend la place des marges et du titre de
@@ -38,7 +41,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Cash-flow annuel",
         subtitle: `Projection sur ${horizon} ans`,
         bigValue: formatCurrency(calculs.indicateurs.cashFlowMoyenAn),
-        color: J["menthe"],
+        color: PERVENCHE,
         data: rows.map((r) => ({ annee: `${r.annee}`, value: Math.round(r.cashFlowAnnuel) })),
       };
     }
@@ -63,7 +66,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Patrimoine net",
         subtitle: `Valeur à la revente année ${anneeRevente}`,
         bigValue: formatCurrency(calculs.revente.prixVenteNet),
-        color: J["menthe"],
+        color: PERVENCHE,
         data,
         markers: { recupApport, doubleApport },
       };
@@ -110,7 +113,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
           <p className="text-encre text-sm font-medium">{config.title}</p>
           <p className="text-ardoise text-xs mt-0.5">{config.subtitle}</p>
         </div>
-        <p className="text-menthe text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
+        <p className="text-pervenche text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
       </div>
       <div className="h-[26rem] max-md:h-[20rem]">
         <ResponsiveContainer width="100%" height="100%">
@@ -138,7 +141,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "#fff" }} formatter={(v) => [formatCurrency(v), ""]} />
               <Area type="monotone" dataKey="value" stroke={config.color} strokeWidth={2} fill="url(#simHeroFill)" />
               {config.markers?.recupApport && (
-                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill={J["menthe"]} stroke={J["surface-pleine"]} strokeWidth={2} isFront />
+                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill={PERVENCHE} stroke={J["surface-pleine"]} strokeWidth={2} isFront />
               )}
               {config.markers?.doubleApport && (
                 <ReferenceDot x={config.markers.doubleApport.annee} y={config.markers.doubleApport.value} r={6} fill="#a8894f" stroke={J["surface-pleine"]} strokeWidth={2} isFront />
@@ -151,7 +154,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
           {config.markers.recupApport && (
             <div className="flex items-center gap-2 border border-trait rounded-md px-3 py-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-menthe flex-shrink-0" />
+              <span className="w-2.5 h-2.5 rounded-full bg-pervenche flex-shrink-0" />
               <div>
                 <p className="text-encre text-xs font-medium">Récupération de l'apport</p>
                 <p className="text-ardoise text-[11px]">Année {config.markers.recupApport.annee} – Vous récupérez vos {formatCurrency(config.markers.recupApport.montant)}</p>

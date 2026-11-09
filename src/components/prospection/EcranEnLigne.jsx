@@ -85,7 +85,7 @@ export function TranscriptionEnLigne({ morceaux, interlocuteur = "Agent", attend
   const enCours = attend || morceaux.some((x) => x.etat === "envoi");
   return (
     <div className={`flex min-h-[380px] flex-col gap-4 p-6 max-md:p-5 ${CARTE}`}>
-      <span className={ETIQUETTE}>TRANSCRIPTION EN DIRECT</span>
+      <span className={ETIQUETTE}>Transcription en direct</span>
       <div className="flex max-h-[520px] flex-col gap-4 overflow-y-auto pr-1">
         {!textes.length && <p className="m-0 text-[14px] text-brume">La transcription apparaît ici, quelques secondes après chaque phrase.</p>}
         {textes.map((x) => {
@@ -133,7 +133,7 @@ export function CalculatriceEnLigne({ textes }) {
   return (
     <div className={`flex flex-col gap-4 p-5 ${CARTE}`}>
       <div className="flex items-center justify-between gap-3">
-        <span className={ETIQUETTE}>CALCULATRICE</span>
+        <span className={ETIQUETTE}>Calculatrice</span>
         {repris && <span className="text-[12px] text-menthe">Loyer repris de l'appel</span>}
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -161,7 +161,7 @@ export function CalculatriceEnLigne({ textes }) {
 export function NotesEnLigne({ valeur, onChange, placeholder = "Ce que le micro capte mal : email, numéro, orthographe d'un nom…" }) {
   return (
     <label className={`flex flex-col gap-2 p-5 ${CARTE}`}>
-      <span className={ETIQUETTE}>NOTES</span>
+      <span className={ETIQUETTE}>Notes</span>
       <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={3} placeholder={placeholder}
         className="w-full resize-y bg-transparent text-[14.5px] leading-[1.55] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
     </label>

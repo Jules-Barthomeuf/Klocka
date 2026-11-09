@@ -248,7 +248,7 @@ function TitreDossier({ dossier, apercu, onRefresh }) {
     onSuccess: () => { setEdition(false); onRefresh?.(); },
     onError: (e) => toast.error(e?.message || "Renommage impossible"),
   });
-  const classe = "m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]";
+  const classe = "m-0 text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre";
   const valider = () => {
     const nom = valeur.replace(/\s+/g, " ").trim();
     if (!nom || nom === affiche) { setEdition(false); setValeur(affiche); return; }
@@ -588,7 +588,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         <>
           {/* À l'étape Offre, la lettre seule : ni le nom du dossier, ni le choix du mode (28 oct. 2026, Jules). */}
           {/* Une seule ligne (29 oct. 2026, Jules) : « Tous les dossiers » à gauche, le nom au milieu, les gestes à droite. */}
-          {!enCarte && vue !== "offre" && <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 max-md:grid-cols-[1fr_auto] max-md:gap-3">
+          {!enCarte && vue !== "offre" && <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 md:pr-[112px] max-md:grid-cols-[1fr_auto] max-md:gap-3">
             <div className="flex min-w-0 items-center gap-1">
               {/* Le bouton du panneau du chat, à gauche de la maison (2 nov. 2026, Jules). */}
               {avantRetour}
@@ -600,7 +600,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 </button>
               )}
             </div>
-            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2.5 text-center max-md:col-span-2 max-md:row-start-2 max-md:justify-start max-md:text-left">
+            <div className="flex min-w-0 flex-wrap items-center gap-2.5 text-left max-md:col-span-2 max-md:row-start-2">
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
               {/* Le projet à droite du titre, à toutes les étapes (30 oct. 2026, Jules) : « Rentrer le projet » tant qu'il
                   n'existe pas, puis « Projet ↗ » et sa mise à jour depuis le dossier. */}

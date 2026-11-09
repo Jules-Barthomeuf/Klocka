@@ -13,7 +13,7 @@ import LecteurEcran from "@/components/monitoring/LecteurEcran";
 // écran rejoué. Ici, Jules lit les réponses, voit ce qui revient, et fait
 // la synthèse de ce qu'il faut améliorer dans le module. Réservé à Jules.
 
-const etiq = "m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal";
+const etiq = "m-0 mb-3 text-[14px] font-normal text-encre";
 const prenom = (email) => { const p = String(email || "").split("@")[0].split(".")[0]; return p ? p.charAt(0).toUpperCase() + p.slice(1) : "?"; };
 const quand = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 const ETATS = { ouverte: ["Sans réponse", "text-ambre"], repondue: ["Répondue", "text-menthe"], obsolete: ["Plus d'actualité", "text-brume"] };
@@ -38,7 +38,7 @@ function Ligne({ q }) {
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-6 px-1 pb-5 max-md:grid-cols-1">
           <div>
             {q.resume && <p className="m-0 mb-3 text-[14px] leading-[1.55] text-encre">{q.resume}</p>}
-            <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Ce que l'analyste a fait</p>
+            <p className="m-0 text-[12.5px] text-brume">Ce que l'analyste a fait</p>
             <ul className="m-0 mt-1.5 list-none p-0">
               {q.chronologie.map((e, k) => <li key={k} className="border-t border-trait py-1.5 text-[13px] leading-[1.45] first:border-t-0"><span className="text-encre">{e.quoi}</span>{e.detail ? <span className="text-ardoise"> · {e.detail}</span> : null}</li>)}
             </ul>
@@ -48,7 +48,7 @@ function Ligne({ q }) {
             {ecran && <LecteurEcran url={`/api/questions-appels/${q.id}/ecran`} titre={`Écran de ${prenom(q.par)} · ${q.agence || q.agent || "appel"}`} onFermer={() => setEcran(false)} />}
           </div>
           <div>
-            <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Questions et réponses</p>
+            <p className="m-0 text-[12.5px] text-brume">Questions et réponses</p>
             {q.questions.map((x) => (
               <div key={x.id} className="mt-2.5">
                 <p className="m-0 text-[13.5px] leading-[1.5] text-ardoise">{x.texte}</p>
@@ -72,7 +72,7 @@ function Synthese({ s, peut }) {
     onError: (e) => toast.error(e?.message || "La synthèse n'a pas pris."),
   });
   return (
-    <div className="mb-6 rounded-md border border-trait p-4">
+    <div className="mb-6 rounded-[12px] border border-trait p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
         <p className={`${etiq} !mb-0`}>Ce qui revient, et ce qu'il faut améliorer</p>
         <button type="button" onClick={() => faire.mutate()} disabled={!peut || faire.isPending} className="inline-flex h-8 items-center gap-2 rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
@@ -84,7 +84,7 @@ function Synthese({ s, peut }) {
           <p className="m-0 mb-3 text-[12px] text-brume">Faite le {quand(s.genere_le)} sur {s.n_reponses} réponse{s.n_reponses > 1 ? "s" : ""}{s.a_jour ? "" : " · de nouvelles réponses sont arrivées depuis"}.</p>
           <div className="grid grid-cols-2 gap-6 max-md:grid-cols-1">
             <div>
-              <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Ce qui revient</p>
+              <p className="m-0 text-[12.5px] text-brume">Ce qui revient</p>
               <ul className="m-0 mt-1.5 list-none p-0">
                 {s.themes.map((t, k) => (
                   <li key={k} className="border-t border-trait py-2 first:border-t-0">
@@ -95,7 +95,7 @@ function Synthese({ s, peut }) {
               </ul>
             </div>
             <div>
-              <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">À améliorer dans le module</p>
+              <p className="m-0 text-[12.5px] text-brume">À améliorer dans le module</p>
               <ol className="m-0 mt-1.5 list-none p-0">
                 {s.ameliorations.map((a, k) => (
                   <li key={k} className="grid grid-cols-[22px_minmax(0,1fr)] gap-2 border-t border-trait py-2 first:border-t-0">
@@ -129,14 +129,14 @@ export default function RetoursAnalystes({ jours = 30 }) {
 
       <div className="mb-6 grid grid-cols-5 gap-3 max-md:grid-cols-2">
         {data.par_motif.map((m) => (
-          <button key={m.motif} type="button" onClick={() => setMotif(motif === m.motif ? "tous" : m.motif)} className={`rounded-md border px-4 py-3.5 text-left transition-colors ${motif === m.motif ? "border-menthe bg-menthe/[0.06]" : "border-trait bg-surface hover:border-bord-vif"}`}>
-            <p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{m.libelle}</p>
+          <button key={m.motif} type="button" onClick={() => setMotif(motif === m.motif ? "tous" : m.motif)} className={`rounded-[12px] border px-4 py-3.5 text-left transition-colors ${motif === m.motif ? "border-menthe bg-menthe/[0.06]" : "border-trait bg-surface hover:border-bord-vif"}`}>
+            <p className="m-0 text-[12.5px] text-ardoise">{m.libelle}</p>
             <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{m.appels}<span className="ml-1.5 text-[13px] text-brume">appel{m.appels > 1 ? "s" : ""}</span></p>
             <p className="m-0 mt-0.5 text-[12px] text-brume">{m.repondues} réponse{m.repondues > 1 ? "s" : ""} sur {m.questions}</p>
           </button>
         ))}
-        <div className="rounded-md border border-trait bg-surface px-4 py-3.5">
-          <p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">Réponses</p>
+        <div className="rounded-[12px] border border-trait bg-surface px-4 py-3.5">
+          <p className="m-0 text-[12.5px] text-ardoise">Réponses</p>
           <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{taux ? `${Math.round((faites / taux) * 100)} %` : "—"}</p>
           <p className="m-0 mt-0.5 text-[12px] text-brume">{faites} sur {taux} questions</p>
         </div>
@@ -149,7 +149,7 @@ export default function RetoursAnalystes({ jours = 30 }) {
         {motif !== "tous" && <button type="button" onClick={() => setMotif("tous")} className={filtre(true)}>{data.par_motif.find((m) => m.motif === motif)?.libelle} ×</button>}
         <span className="ml-auto text-[12.5px] text-brume">{liste.length} appel{liste.length > 1 ? "s" : ""}</span>
       </div>
-      <div className="rounded-md border border-trait px-3">
+      <div className="rounded-[12px] border border-trait px-3">
         {liste.map((q) => <Ligne key={q.id} q={q} />)}
         {!liste.length && <p className="m-0 py-8 text-center text-[13px] text-brume">{data.total ? "Aucune question ne correspond." : "Aucune question pour l'instant : AK n'a rien relevé dans le journal des appels."}</p>}
       </div>

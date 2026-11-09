@@ -2,7 +2,6 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import { toast } from "@/components/ui/avis";
 import { createPortal } from "react-dom";
 import { Check, Eye, Info, Loader2, X } from "lucide-react";
-import jetons from "@/design/jetons.json";
 import { base44 } from "@/api/base44Client";
 import Calendrier from "@/components/ui/calendrier";
 
@@ -138,98 +137,58 @@ function ChampDate({ valeur, onChoisir, label }) {
   );
 }
 
-// --- La ligne Monday, telle que Monday la montre (9 oct. 2026) -----------------
-// Les colonnes dans l'ordre du tableau Agents immobiliers, les cellules au
-// dessin de Monday : lien bleu pour l'e-mail, drapeau et numéro, étiquettes de
-// statut pleines, puce pour l'entreprise, date « oct. 14 ». L'analyste y
-// reconnaît la ligne qu'il retrouvera dans Monday. Contact, téléphone, e-mail et
-// prochaine relance se corrigent dans la cellule.
-const MO = jetons.monday;
+// --- La ligne Twenty : les colonnes dans l'ordre du tableau Agents immobiliers ---------
 const ORDRE_MONDAY = ["Contact", "SPOC", "Prénom", "Date", "E-mail", "Téléphone", "Statut", "Dernier contact", "Liste de diffusion", "Ville", "Entreprise", "Remarques", "Prochaine relance"];
-const LARGEURS_MONDAY = { Contact: 210, SPOC: 80, "Prénom": 110, Date: 110, "E-mail": 210, "Téléphone": 170, Statut: 180, "Dernier contact": 170, "Liste de diffusion": 140, Ville: 130, Entreprise: 170, Remarques: 280, "Prochaine relance": 160 };
-const MOIS_COURTS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
-const dateMonday = (v) => (/^\d{4}-\d{2}-\d{2}/.test(String(v || "")) ? `${MOIS_COURTS[Number(String(v).slice(5, 7)) - 1]} ${Number(String(v).slice(8, 10))}` : v || "");
-const initiales = (n) => String(n || "").split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0].toUpperCase()).join("");
 
-function CelluleMonday({ col }) {
-  const [ouvert, setOuvert] = useState(false);
-  const v = col.valeur;
-  const vide = !String(v ?? "").trim();
-  const champ = "w-full min-w-0 bg-transparent px-2 text-center text-[14px] outline-none";
-  if (col.edit?.type === "texte") {
-    const lien = col.titre === "E-mail" || col.titre === "Téléphone";
-    const valeur = String(col.edit.valeur ?? "");
-    // Statut et liste de diffusion gardent leur étiquette pleine, l'entreprise sa puce : on tape dedans.
-    const etiquette = ["Statut", "Liste de diffusion"].includes(col.titre) && valeur.trim();
-    const puce = col.titre === "Entreprise" && valeur.trim();
-    const fond = etiquette ? MO.etiquettes[valeur.trim()] || MO.etiquette_defaut : puce ? MO.puce : "transparent";
-    return (
-      <span className="flex h-full items-center gap-2 px-2">
-        {col.titre === "Téléphone" && !vide && <Drapeau />}
-        {col.titre === "Remarques" ? (
-          // Les remarques sont longues : une zone sur plusieurs lignes plutôt qu'une ligne coupée.
-          <textarea value={valeur} onChange={(e) => col.edit.changer(e.target.value)} rows={Math.min(5, Math.max(2, Math.ceil(valeur.length / 90)))} aria-label={col.titre} placeholder="—"
-            className="w-full min-w-0 resize-y rounded-[4px] bg-transparent px-2 py-1.5 text-left text-[14px] leading-[1.45] outline-none focus:ring-1" style={{ color: MO.texte, "--tw-ring-color": MO.lien }} />
-        ) : <input value={valeur} onChange={(e) => col.edit.changer(e.target.value)} placeholder={col.edit.placeholder || "—"} aria-label={col.titre} title={valeur || col.edit.placeholder || col.titre}
-          className={`${champ} !text-left h-[28px] rounded-[4px] focus:ring-1`} style={{ color: etiquette ? MO.fond : lien ? MO.lien : MO.texte, background: fond, "--tw-ring-color": MO.lien }} />}
-      </span>
-    );
-  }
-  if (col.desactivee) return <span className="flex h-full items-center px-3 text-[13px]" title={col.desactivee} style={{ color: MO.texte_doux }}>{col.desactivee}</span>;
-  if (col.edit?.type === "date") {
-    return (
-      <span className="relative flex h-full items-center">
-        <button type="button" onClick={() => setOuvert((x) => !x)} title="Changer la date" className="flex w-full items-center gap-2 px-3 text-[14px]" style={{ background: "transparent", color: MO.texte }}>
-          <HorlogeMonday />{dateMonday(col.edit.valeur) || "—"}
-        </button>
-        {ouvert && (
-          <>
-            <div className="fixed inset-0 z-[85]" onClick={() => setOuvert(false)} />
-            <div className="absolute left-0 top-full z-[90] mt-2 rounded-[14px] border border-bord-vif bg-surface-pleine p-3 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
-              <Calendrier valeur={col.edit.valeur || ""} onChoisir={(d) => { col.edit.changer(d); setOuvert(false); }} label={col.titre} />
-            </div>
-          </>
-        )}
-      </span>
-    );
-  }
-  if (["Statut", "Liste de diffusion"].includes(col.titre) && !vide && v !== "v") {
-    return <span className="flex h-full items-center justify-center truncate px-2 text-[14px]" title={v} style={{ background: MO.etiquettes[v] || MO.etiquette_defaut, color: MO.fond }}>{v}</span>;
-  }
-  if (col.titre === "Liste de diffusion" && v === "v") return <span className="flex h-full items-center justify-center"><Check className="h-4 w-4" style={{ color: MO.etiquettes.Oui }} strokeWidth={3} /></span>;
-  if (col.titre === "Entreprise" && !vide) return <span className="flex h-full items-center justify-center px-2"><span className="truncate rounded-[4px] px-2 py-0.5 text-[14px]" title={v} style={{ background: MO.puce, color: MO.texte }}>{v}</span></span>;
-  if (col.titre === "SPOC" && !vide) return <span className="flex h-full items-center justify-center" title={v}><span className="grid h-[26px] w-[26px] place-items-center rounded-full text-[11px]" style={{ background: MO.avatar, color: MO.fond }}>{initiales(v)}</span></span>;
-  if (["Date", "Prochaine relance"].includes(col.titre)) return <span className="flex h-full items-center justify-center gap-2 px-2 text-[14px]" style={{ color: MO.texte }}>{col.titre === "Prochaine relance" && !vide && <HorlogeMonday />}{vide ? "" : dateMonday(v)}</span>;
-  return <span className={`block truncate px-2 text-[14px] leading-[36px] ${col.titre === "Contact" ? "text-left" : "text-center"}`} title={v} style={{ color: vide ? MO.texte_doux : MO.texte }}>{vide ? "" : v}</span>;
+// La valeur d'un champ, comme dans une fiche Twenty (9 nov. 2026, Jules : « le design exact de Twenty ») : centrée, tout se corrige d'un clic, vide : « À compléter ».
+const jourTwenty = (v) => (/^\d{4}-\d{2}-\d{2}/.test(String(v || "")) ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : v || "");
+const SAISIE_TWENTY = "block w-full min-w-0 bg-transparent px-4 py-3 text-center text-[14px] text-encre outline-none placeholder:text-brume focus:bg-relief/50";
+
+function DateTwenty({ col }) {
+  const [place, setPlace] = useState(null);
+  const ouvrir = (e) => { const r = e.currentTarget.getBoundingClientRect(); setPlace({ left: Math.min(r.left, window.innerWidth - 320), top: r.bottom + 340 > window.innerHeight ? Math.max(8, r.top - 340) : r.bottom + 6 }); };
+  return (
+    <>
+      <button type="button" onClick={ouvrir} title="Changer la date" className="flex min-h-full w-full flex-1 items-center justify-center px-4 py-3 text-[14px] text-encre hover:bg-relief/50" style={{ background: "transparent" }}>
+        {jourTwenty(col.edit.valeur) || <span className="text-brume">À compléter</span>}
+      </button>
+      {place && createPortal(
+        <>
+          <div className="fixed inset-0 z-[85]" onClick={() => setPlace(null)} />
+          <div className="fixed z-[90] rounded-[14px] border border-bord-vif bg-surface-pleine p-3 shadow-[0_18px_40px_rgb(0_0_0/0.18)]" style={place}>
+            <Calendrier valeur={col.edit.valeur || ""} onChoisir={(d) => { col.edit.changer(d); setPlace(null); }} label={col.titre} />
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
+  );
 }
 
-const Drapeau = () => (
-  <span className="flex h-[14px] w-[21px] flex-none overflow-hidden rounded-[1px]" aria-label="France">
-    <span className="flex-1" style={{ background: MO.drapeau_bleu }} /><span className="flex-1" style={{ background: MO.drapeau_blanc }} /><span className="flex-1" style={{ background: MO.drapeau_rouge }} />
-  </span>
-);
-const HorlogeMonday = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke={MO.texte_doux} strokeWidth="1.4" /><path d="M8 8 L8 1.5 A6.5 6.5 0 0 1 13.6 11.2 Z" fill={MO.texte_doux} /></svg>
-);
+function ValeurTwenty({ col }) {
+  if (col.desactivee) return <span className="flex flex-1 items-center justify-center px-4 py-3 text-[13px] text-brume">{col.desactivee}</span>;
+  if (col.edit?.type === "date") return <DateTwenty col={col} />;
+  if (col.edit?.type === "texte") {
+    const valeur = String(col.edit.valeur ?? "");
+    if (col.titre === "Remarques") return <ZoneQuiGrandit valeur={valeur} onChange={col.edit.changer} lignes={2} label={col.titre} className={`${SAISIE_TWENTY} resize-none overflow-hidden leading-[1.45] hover:bg-relief/50`} />;
+    return <input value={valeur} onChange={(e) => col.edit.changer(e.target.value)} placeholder="À compléter" aria-label={col.titre} title={valeur || col.titre} className={`${SAISIE_TWENTY} hover:bg-relief/50`} />;
+  }
+  const v = col.valeur === "v" ? "Oui" : ["Date", "Prochaine relance"].includes(col.titre) ? jourTwenty(col.valeur) : col.valeur;
+  return <span className="flex min-w-0 flex-1 items-center justify-center px-4 py-3"><span className="line-clamp-4 min-w-0 whitespace-pre-line break-words">{v || <span className="text-brume">Vide</span>}</span></span>;
+}
 
-// Les champs en colonne, sur deux colonnes (16 oct. 2026, Jules : « là ils sont en ligne, je les veux en colonne ») :
-// chaque champ garde le dessin de Monday, son titre sur fond d'en-tête à gauche, sa cellule à droite ; les
-// remarques prennent toute la largeur.
+// Les champs comme dans une fiche du CRM (`Fiche` de CrmTwenty.jsx) : une seule colonne, le libellé à gauche, la valeur à droite, tout centré.
 function TableauMonday({ colonnes }) {
   const cols = [...colonnes].sort((a, b) => ORDRE_MONDAY.indexOf(a.titre) - ORDRE_MONDAY.indexOf(b.titre));
-  const bord = { borderColor: MO.trait };
   return (
-    <div className="grid grid-cols-2 overflow-hidden rounded-[8px] border max-md:grid-cols-1" style={{ ...bord, background: MO.fond, fontFamily: "Figtree, 'Instrument Sans', system-ui, sans-serif" }}>
+    <dl className="m-0 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
       {cols.map((c) => (
-        <div key={c.titre} className={`relative grid min-w-0 grid-cols-[minmax(0,140px)_minmax(0,1fr)] border-b border-r ${c.titre === "Remarques" ? "col-span-2 max-md:col-span-1" : ""}`} style={bord}>
-          {c.titre === "Contact" && <span className="absolute inset-y-0 left-0 w-[6px]" style={{ background: MO.groupe }} aria-hidden />}
-          <span className={`flex min-h-[40px] items-center gap-1.5 border-r px-3 text-[13.5px] ${c.titre === "Contact" ? "pl-4" : ""}`} style={{ ...bord, color: MO.texte, background: MO.entete }}>
-            {c.titre}{c.titre === "Prochaine relance" && <Info className="h-3.5 w-3.5 flex-none" style={{ color: MO.texte_doux }} />}
-          </span>
-          <span className={`block min-h-[40px] min-w-0 ${c.titre === "Remarques" ? "py-1" : ""}`}><CelluleMonday col={c} /></span>
+        <div key={c.titre} className="grid grid-cols-2 items-stretch border-t border-trait text-center first:border-t-0">
+          <dt className="flex items-center justify-center px-4 py-3 text-[13px] text-ardoise">{c.titre}</dt>
+          <dd className="m-0 flex min-w-0 border-l border-bord-doux text-[14px] text-encre"><ValeurTwenty col={c} /></dd>
         </div>
       ))}
-    </div>
+    </dl>
   );
 }
 
@@ -306,15 +265,6 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
   const avant = useRef(i);
   const sens = i >= avant.current ? "slide-in-from-right-6" : "slide-in-from-left-6";
   useEffect(() => { avant.current = i; }, [i]);
-  // La barre blanche de l'étape ouverte glisse d'une étape à l'autre (9 oct. 2026) : une seule barre, posée sur celle de l'étape.
-  const barres = useRef({});
-  const [repere, setRepere] = useState(null);
-  const actifK = !fini && !enEnvoi ? courant.k : null;
-  useLayoutEffect(() => {
-    const el = actifK ? barres.current[actifK] : null;
-    setRepere(el ? { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth } : null);
-    el?.parentElement?.scrollIntoView?.({ block: "nearest", inline: "nearest", behavior: "smooth" });
-  }, [actifK, pas.length]);
   const gardees = pas.filter((x) => x.on);
   const retirees = pas.filter((x) => !x.on);
   const cases = c.cases || [];
@@ -324,35 +274,25 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
   // Rendue dans le body : sous un parent qui crée son propre empilement, la barre du téléphone passait devant.
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-fond/80 p-6 backdrop-blur-xl md:left-[var(--k-barre-largeur)] max-md:p-0" onMouseDown={(e) => { if (e.target === e.currentTarget && !enEnvoi) fermer(); }}>
+      {/* Redessinée sur les autres pages (9 nov. 2026, Jules) : le fond de la page, sans bande noire ni points, les intercalaires des listes, des commandes de 36 px. */}
       <div role="dialog" aria-modal="true" aria-label={fini ? "Étapes vérifiées" : courant.court}
-        className="flex h-[min(680px,100%)] w-full max-w-[1000px] flex-col overflow-hidden rounded-[28px] border border-bord-vif bg-surface-pleine shadow-[0_18px_40px_rgb(0_0_0/0.18)] max-md:h-full max-md:max-h-none max-md:max-w-none max-md:rounded-none">
-        <div className="flex-none bg-black/55 px-8 pt-6 [[data-theme=clair]_&]:bg-fond max-md:px-4 max-md:pt-[calc(14px+env(safe-area-inset-top))]">
-          <div className="relative flex min-h-[52px] items-center justify-center">
-            <h2 key={enEnvoi ? "envoi" : fini ? "fini" : courant.k} className="m-0 truncate px-28 duration-300 animate-in fade-in-0 text-center text-[22px] font-normal leading-[1.15] tracking-[-0.01em] text-encre max-md:px-20 max-md:text-[18px]">{enEnvoi ? "Envoi en cours" : fini ? "Étapes vérifiées" : courant.court}</h2>
-            <div className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-4 max-md:gap-2">
-              <span className="text-[13px] tabular-nums text-ardoise">{fini ? `${pas.length} / ${pas.length}` : `${i + 1} / ${pas.length}`}</span>
-              <button type="button" onClick={fermer} aria-label="Fermer" className="grid h-10 w-10 place-items-center rounded-full border border-bord-doux text-craie hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
-            </div>
-          </div>
-          <nav aria-label="Les étapes" className="relative mt-4 flex gap-3 overflow-x-auto pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {pas.map((x, n) => {
-              const actif = !fini && !enEnvoi && x.k === courant.k;
-              const debut = n === 0 || pas[n - 1].groupe !== x.groupe;
-              return (
-                <button key={x.k} type="button" onClick={() => ouvrir(x.k)} aria-current={actif ? "step" : undefined}
-                  className="flex min-w-[100px] flex-1 flex-col items-stretch gap-2 p-0 text-left" style={{ background: "transparent" }}>
-                  <span className="h-4 truncate text-[11px] uppercase tracking-[.16em] text-ardoise">{debut ? x.groupe : ""}</span>
-                  {/* La barre blanche est portée par l'onglet ouvert lui-même (16 oct. 2026, Jules : elle restait sur « Contact Twenty CRM ») : plus de mesure, elle suit toujours. */}
-                  <span ref={(el) => { barres.current[x.k] = el; }} className={`w-full rounded-full transition-all duration-300 ${actif ? "h-[5px] -translate-y-px bg-encre" : `h-[3px] ${(fini || enEnvoi) && x.on ? "bg-menthe" : "bg-relief"}`}`} />
-                  <span className={`truncate pt-1 text-[13px] transition-colors ${actif ? "text-encre" : x.on ? "text-craie hover:text-encre" : "text-brume"}`}>{x.court}</span>
-                </button>
-              );
-            })}
-            {/* L'ancien repère glissant, mesuré après coup, retiré : il pouvait rester sur l'onglet d'avant. */}
-          </nav>
+        className="flex h-[min(640px,100%)] w-full max-w-[820px] flex-col overflow-hidden rounded-[18px] border border-bord-vif bg-fond shadow-[0_18px_40px_rgb(0_0_0/0.18)] max-md:h-full max-md:max-h-none max-md:max-w-none max-md:rounded-none">
+        <div className="relative flex h-14 flex-none items-center justify-center border-b border-trait px-14 max-md:h-[calc(56px+env(safe-area-inset-top))] max-md:px-12 max-md:pt-[env(safe-area-inset-top)]">
+          {enEnvoi ? <h2 className="m-0 text-[15px] font-normal text-encre">Envoi en cours</h2> : (
+            <nav aria-label="Les étapes" className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {pas.map((x) => {
+                const actif = !fini && x.k === courant.k;
+                return (
+                  <button key={x.k} type="button" onClick={() => ouvrir(x.k)} aria-current={actif ? "step" : undefined}
+                    className={`flex h-7 flex-none items-center rounded-[8px] px-3 text-[13px] transition-colors max-md:h-10 ${actif ? "bg-rail-actif text-encre" : x.on ? "text-craie hover:bg-relief hover:text-encre" : "text-brume line-through hover:bg-relief"}`} style={actif ? undefined : { background: "transparent" }}>{x.court}</button>
+                );
+              })}
+            </nav>
+          )}
+          <button type="button" onClick={fermer} aria-label="Fermer" className="absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre max-md:mt-[calc(env(safe-area-inset-top)/2)] max-md:h-10 max-md:w-10" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         </div>
         {enEnvoi ? (
-          <div key="envoi" className="k-fond-points min-h-0 flex-1 overflow-y-auto px-8 py-8 duration-300 animate-in fade-in-0 max-md:px-4 max-md:py-6">
+          <div key="envoi" className="min-h-0 flex-1 overflow-y-auto px-6 py-6 duration-300 animate-in fade-in-0 max-md:px-4">
             <p className="m-0 text-[13.5px] text-ardoise">Validé. Chaque ligne se coche une fois relue.</p>
             <div className="mt-5 border-t border-trait">
               {!re && <div className="flex items-center gap-3 py-3 text-[13.5px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Validation en cours</div>}
@@ -377,10 +317,10 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
             </div>
           </div>
         ) : fini ? (
-          <div className="k-fond-points min-h-0 flex-1 overflow-y-auto px-8 py-10 max-md:px-4 max-md:py-8">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 max-md:px-4">
             <div className="mx-auto flex max-w-[560px] flex-col items-center gap-4 text-center duration-500 animate-in fade-in-0 zoom-in-95">
-              <span className="grid h-[68px] w-[68px] place-items-center rounded-full bg-menthe text-sur-menthe"><Check className="h-10 w-10" strokeWidth={2.2} /></span>
-              <p className="m-0 text-[19px] text-encre">Toutes les étapes sont vérifiées</p>
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-menthe text-sur-menthe"><Check className="h-6 w-6" strokeWidth={2.2} /></span>
+              <p className="m-0 text-[20px] text-encre">Toutes les étapes sont vérifiées</p>
               <p className="m-0 text-[13.5px] leading-[1.55] text-ardoise">
                 {gardees.length} à valider{retirees.length ? ` · ${retirees.length} retirée${retirees.length > 1 ? "s" : ""}` : ""}
               </p>
@@ -396,12 +336,12 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
             </div>
           </div>
         ) : (
-        <div key={courant.k} className={`k-fond-points min-h-0 flex-1 overflow-y-auto px-8 pt-5 duration-300 ease-out animate-in fade-in-0 max-md:px-4 max-md:pt-4 ${sens}`}>
+        <div key={courant.k} className={`min-h-0 flex-1 overflow-y-auto px-6 pt-4 duration-300 ease-out animate-in fade-in-0 max-md:px-4 ${sens}`}>
           {!courant.on && <p className="m-0 mb-3 text-[13px] text-ambre">Étape retirée : elle ne partira pas.</p>}
           <div className="flex flex-col gap-2.5 text-[13.5px] text-ardoise">{c.haut || (c.titre && c.titre !== courant.court && <p className="m-0">{c.titre}</p>)}</div>
           {c.tableau && <div className="mt-4">{c.tableau}</div>}
           {cases.length > 0 && (
-            <div className="mt-4 grid border-t border-trait md:grid-cols-2 md:gap-x-12">
+            <div className="mt-2 grid md:grid-cols-2 md:gap-x-8">
               {cases.map((x, n) => <Case key={`${x.label}-${n}`} c={!x.large && simples % 2 === 1 && cases.slice(n + 1).every((y) => y.large) ? { ...x, large: true } : x} />)}
             </div>
           )}
@@ -413,38 +353,38 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
           <div className="h-6" />
         </div>
         )}
-        <div className="flex flex-none items-center gap-6 border-t border-trait bg-surface-pleine px-8 py-4 max-md:gap-5 max-md:px-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))]">
+        <div className="flex flex-none items-center gap-4 border-t border-trait px-6 py-3 max-md:px-4 max-md:pb-[calc(12px+env(safe-area-inset-bottom))]">
           {enEnvoi ? (
             <>
               {envoiFenetre.annulerDans > 0
-                ? <button type="button" onClick={envoiFenetre.onAnnuler} disabled={envoiFenetre.annulation} className="h-11 rounded-full border border-trait px-5 text-[14px] text-encre hover:bg-relief disabled:opacity-50" style={{ background: "transparent" }}>{envoiFenetre.annulation ? "Annulation…" : `Annuler · ${envoiFenetre.annulerDans} s`}</button>
+                ? <button type="button" onClick={envoiFenetre.onAnnuler} disabled={envoiFenetre.annulation} className="h-9 rounded-full border border-trait px-5 text-[14px] text-encre hover:bg-relief disabled:opacity-50" style={{ background: "transparent" }}>{envoiFenetre.annulation ? "Annulation…" : `Annuler · ${envoiFenetre.annulerDans} s`}</button>
                 : <span className="text-[13.5px] text-ardoise">Trop tard pour annuler : tout part.</span>}
               <span className="ml-auto flex items-center gap-2 text-[13.5px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Envoi en cours</span>
             </>
           ) : fini ? (
             <>
-              <button type="button" onClick={() => ouvrir(pas[pas.length - 1].k)} className="p-0 text-[14.5px] text-ardoise transition-colors hover:text-encre max-md:text-[13.5px]" style={{ background: "transparent" }}>← Revoir</button>
-              <button type="button" onClick={onFermer} className="p-0 text-[14.5px] text-ardoise transition-colors hover:text-encre max-md:text-[13.5px]" style={{ background: "transparent" }}>Fermer</button>
+              <button type="button" onClick={() => ouvrir(pas[pas.length - 1].k)} className="p-0 text-[13.5px] text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>← Revoir</button>
+              <button type="button" onClick={onFermer} className="p-0 text-[13.5px] text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>Fermer</button>
               {onValider && (
                 <button type="button" onClick={() => onValider({ depuisFenetre: true })} disabled={!validable || envoi}
-                  className="ml-auto h-11 rounded-full bg-menthe px-8 text-[14.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:h-10 max-md:px-6 max-md:text-[13.5px]">
+                  className="ml-auto h-9 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:h-10">
                   {envoi ? "Validation…" : `Valider · ${gardees.length} étape${gardees.length > 1 ? "s" : ""}`}
                 </button>
               )}
             </>
           ) : (
             <>
-              <button type="button" disabled={i === 0} onClick={() => setOuverte(pas[i - 1].k)} className="p-0 text-[14.5px] text-ardoise transition-colors hover:text-encre disabled:opacity-40 max-md:text-[13.5px]" style={{ background: "transparent" }}>← Précédente</button>
-              <button type="button" disabled={!c.retablir} onClick={() => c.retablir?.()} className="p-0 text-[14.5px] text-ardoise transition-colors hover:text-encre disabled:opacity-40 max-md:text-[13.5px]" style={{ background: "transparent" }}>Rétablir</button>
+              <button type="button" disabled={i === 0} onClick={() => setOuverte(pas[i - 1].k)} className="p-0 text-[13.5px] text-ardoise transition-colors hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>← Précédente</button>
+              <button type="button" disabled={!c.retablir} onClick={() => c.retablir?.()} className="p-0 text-[13.5px] text-ardoise transition-colors hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Rétablir</button>
               {/* Valider d'ici, à n'importe quelle étape (8 oct. 2026) : la fenêtre reste ouverte et suit l'envoi. */}
               {onValider && (
                 <button type="button" onClick={() => onValider({ depuisFenetre: true })} disabled={!validable || envoi}
-                  className="ml-auto h-11 rounded-full border border-menthe/60 px-7 text-[14.5px] text-menthe hover:bg-menthe/10 disabled:opacity-40 max-md:h-10 max-md:px-5 max-md:text-[13.5px]" style={{ background: "transparent" }}>
+                  className="ml-auto h-9 rounded-full border border-menthe/60 px-7 text-[13.5px] text-menthe hover:bg-menthe/10 disabled:opacity-40 max-md:h-10 max-md:px-5 max-md:text-[13.5px]" style={{ background: "transparent" }}>
                   {envoi ? "Validation…" : `Valider · ${gardees.length}`}
                 </button>
               )}
               <button type="button" onClick={() => (i < pas.length - 1 ? setOuverte(pas[i + 1].k) : setFini(true))}
-                className={`${onValider ? "" : "ml-auto "}h-11 rounded-full bg-encre px-8 text-[14.5px] text-fond hover:opacity-90 max-md:h-10 max-md:px-6 max-md:text-[13.5px]`}>{i < pas.length - 1 ? "Suivante →" : "Terminer"}</button>
+                className={`${onValider ? "" : "ml-auto "}h-9 rounded-full bg-encre px-5 text-[13.5px] text-fond hover:opacity-90 max-md:h-10`}>{i < pas.length - 1 ? "Suivante →" : "Terminer"}</button>
             </>
           )}
         </div>
@@ -457,7 +397,7 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
 /**
  * @param {{appel, agence, issue, coches: Set, setCoches, mail, setMail, relanceLe, setRelanceLe, ligneMonday, setLigneMonday, onLancer, envoi}} props
  */
-export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null }) {
+export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null, lancement = 0, onLancementRefuse = null }) {
   // Relances (8 oct. 2026) : « Agent prévenu » s'ajoute aux issues pour un bien retenu ou refusé.
   const ISS = issuesEnPlus ? { ...ISSUES, ...issuesEnPlus } : ISSUES;
   // Une étape retirée (19 oct. 2026, Jules) : elle part de cet appel, et le serveur ne la propose plus à cette
@@ -495,7 +435,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const [debut] = useState(() => performance.now());
   const [t, setT] = useState(() => (lenteur() ? 99 : 0));
   const ligne = pmo?.ligne || null;
-  const doute = ligne?.etat === "doute" && !ligneMonday;
+  const doute = ligne?.etat === "doute" && !ligneMonday && !edits?.sans_twenty;
 
   const segments = useMemo(() => {
     // Les cartes sont là d'emblée ; seuls les traits se dessinent, l'un après l'autre.
@@ -624,7 +564,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
           </>
         ),
         // La ligne au dessin de Monday ; sans aperçu (Monday muet), les cases d'avant.
-        ...(ligne?.apercu?.length ? { tableau: <TableauMonday colonnes={colonnesMonday()} />, cases: [], aide: "Ce qu'AK écrit sur la ligne Twenty CRM. Chaque case se corrige : ce que vous tapez part tel quel." } : { cases, aide: null }),
+        ...(ligne?.apercu?.length ? { tableau: <TableauMonday colonnes={colonnesMonday()} />, cases: [], aide: "Ce que l'assistant écrit sur la ligne Twenty CRM. Chaque case se corrige : ce que vous tapez part tel quel." } : { cases, aide: null }),
         retablir: mondayRetouche ? () => { setRelanceLe(null); setEdits?.((e) => { const n0 = { ...e }; delete n0.interlocuteur; delete n0.telephone; delete n0.email; delete n0.monday; return n0; }); } : null,
       };
     }
@@ -755,7 +695,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   if (pmo) {
     const detail = ligne?.etat === "trouvee" ? `${ligne.ligne.nom?.replace(/\u200b/g, "").trim() || "Contact sans nom"}, retrouvé par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `Contact choisi : ${choisie.nom}` : "C'est bien ce contact ? Choisissez") : ligne?.texte || "";
     // Un rappel d'un autre interlocuteur (13 oct. 2026) : « Contact modifié », ses cases remplacent celles de la ligne.
-    maintenant.push(etape(pmo, { label: ligne?.contact_modifie ? "Contact modifié" : "Contact Twenty CRM", detail, warn: doute || ligne?.etat === "indisponible" }));
+    maintenant.push(etape(pmo, { label: ligne?.contact_modifie ? "Contact modifié" : "Contact Twenty CRM", detail, warn: doute || ligne?.etat === "indisponible", ...(edits?.sans_twenty ? { on: false, warn: false, basculer: () => setEdits((e) => ({ ...e, sans_twenty: false })) } : {}) }));
   }
   if (par("ne_plus_appeler")) maintenant.push(etape(par("ne_plus_appeler"), { label: "Ne plus appeler", detail: "Ni relance ni mail" }));
   if (pm) maintenant.push(etape(pm, { label: "Email", detail: `${MAILS[mail?.modele || pm.modele] || pm.titre} · ${mail?.a ? `à ${mail.a}` : "adresse manquante : il ne part pas"}${pm.a_incertain && mail?.a === pm.a ? " · adresse à vérifier" : ""}${modifie ? " · modifié" : ""}`, warn: !mail?.a || (pm.a_incertain && mail?.a === pm.a) }));
@@ -780,10 +720,20 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
     ...datees.map((e) => ({ ...e, groupe: jourLong(dateDe(e)) })),
   ].map((e) => ({ ...e, court: COURT[e.q.type] || e.label }));
 
+  // « Valide », dit à l'assistant (9 nov. 2026) : le même chemin que le bouton, après que ses changements sont à l'écran.
+  const lancementVu = useRef(lancement);
+  useEffect(() => {
+    if (lancement === lancementVu.current) return;
+    lancementVu.current = lancement;
+    if (envoi) return;
+    if (doute) { onLancementRefuse?.("Twenty CRM a plusieurs contacts possibles : ouvrez « Contact Twenty CRM » et choisissez le bon, puis redites-moi."); return; }
+    if (!n) { onLancementRefuse?.("Aucune étape n'est active : dites-moi quoi faire."); return; }
+    onLancer({ vues: [...vues.current] });
+  }, [lancement]);
+  useEffect(() => { if (edits?.sms != null) setSms(edits.sms); }, [edits?.sms]);
   return (
     <div className="flex flex-col">
-      <div className="mb-1 flex items-center justify-between px-1">
-        <span className="text-[12px] tracking-[.14em] text-ardoise">ACTIONS PROPOSÉES</span>
+      <div className="mb-1 flex items-center justify-center px-1">
         <span className="flex min-w-0 items-center gap-2">
           <span className={`truncate text-[13px] ${issue === "pas_interesse" ? "text-ardoise" : "text-menthe"}`} title={passe || ISS[issue] || ""}>{passe || ISS[issue] || ""}</span>
           {/* AK a mal lu : on réécrit la phrase, et on peut réorienter les actions sur la même transcription. */}

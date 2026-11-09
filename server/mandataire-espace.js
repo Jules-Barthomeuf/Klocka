@@ -459,7 +459,7 @@ export function poserDemande({ id = null, ...champs }, user) {
 // négociation, compromis, financement ou stand-by, même dans le groupe « Clients en cours ».
 export const STATUTS_EN_RECHERCHE = ['Recherche'];
 const CLE_SYNC = 'mandataire:demandes-monday';
-const SIX_HEURES = 6 * 3600 * 1000;
+const RELECTURE_CLIENTS = 5 * 60 * 1000; // 5 min (6 h jusqu'au 8 nov. 2026) : le webhook de Twenty fait le gros, ceci rattrape.
 
 const arrondi = (n, pas = 50000) => Math.max(pas, Math.round(n / pas) * pas);
 
@@ -541,14 +541,27 @@ export async function synchroniserDemandesMonday({ user = null, clients: fournis
   return { ok: true, ...bilan };
 }
 
+let clientTwentyEnAttente = null;
+/**
+ * Un client changé dans Twenty (8 nov. 2026, Jules : « si on change dans Twenty les clients, ça change la page Clients du
+ * mandataire ») : le webhook relance l'import trois secondes plus tard (une rafale de modifications, un seul import).
+ */
+export function surClientTwenty(ev, { delai = 3000 } = {}) {
+  if (String(ev?.eventName || '').split('.')[0] !== 'clients') return false;
+  clearTimeout(clientTwentyEnAttente);
+  clientTwentyEnAttente = setTimeout(() => synchroniserDemandesMonday().catch((e) => console.warn(`[mandataire] import des clients Twenty : ${e?.message || e}`)), delai);
+  clientTwentyEnAttente.unref?.();
+  return true;
+}
+
 export function derniereSynchro() {
   try { return JSON.parse(Meta.get(CLE_SYNC) || 'null'); } catch { return null; }
 }
 
-/** L'import se refait de lui-même au plus toutes les six heures, à la lecture. */
+/** L'import se refait de lui-même au plus toutes les cinq minutes, à la lecture. */
 export async function synchroniserSiVieux() {
   const d = derniereSynchro();
-  if (d?.le && Date.now() - Date.parse(d.le) < SIX_HEURES) return d;
+  if (d?.le && Date.now() - Date.parse(d.le) < RELECTURE_CLIENTS) return d;
   try {
     const { clientsConfigure, clientsTwentyConfigure } = await import('./alx/clients.js');
     if (!clientsConfigure() && !clientsTwentyConfigure()) return d;

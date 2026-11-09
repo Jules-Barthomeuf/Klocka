@@ -97,6 +97,8 @@ export const MENU_ADMIN = [
   { cle: "Prospection", label: "Appels" },
   // Le Simulateur dans le menu de gauche (18 oct. 2026, Jules) : toujours là, même masqué dans d'anciennes préférences.
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
+  // Outils dans le menu (9 nov. 2026, Jules), à la place de la bascule Klocka | Outils en haut de la barre.
+  { cle: "KData", label: "Outils", fixe: true },
   // Un groupe est une seule entrée du menu (17 oct. 2026, Jules : « pas un truc déroulant ») : un clic ouvre sa
   // première page, et des onglets en tête de page passent de l'une à l'autre.
   // Relations quitte le menu (6 nov. 2026, Jules) : ses fiches s'ouvrent depuis le CRM (Agent immobilier, Clients) ;
@@ -165,7 +167,8 @@ const HORS_MENU_ADMIN = ["Semaine", "Personnalisation"];
 // Offres et le Dossier bancaire y reviennent le 26 oct. 2026 (Jules), puis les Présentations bancaires (chat à gauche, diapositives à droite).
 // Feedback en tête, les Présentations et Offres dessous (26 oct. 2026, Jules).
 // Tokimo y entre le 6 nov. 2026 (Jules).
-const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions", "AdminPresentations", "Offres", "AdminBanque", "Tokimo"];
+// L'Emailing y revient le 8 nov. 2026 (Jules), devenu un module entier.
+const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions", "AdminPresentations", "Offres", "AdminBanque", "Tokimo", "Emailing"];
 
 /**
  * Pure : le menu de l'équipe, ses groupes, et « Autre » (Feedback seulement).

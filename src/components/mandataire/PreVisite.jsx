@@ -156,14 +156,14 @@ export function CompteRendu({ cr, onEstimation = null }) {
   // Au dessin de la fiche du bien (3 nov. 2026, Jules) : le titre en 20 px et sa ligne en 13 px, l'encadré pervenche de
   // l'assistant (écarts, à confirmer, questions restées sans réponse), puis un tableau à deux colonnes égales, centrées.
   return (
-    <section className="mb-2 mt-3 overflow-hidden rounded-[18px] border border-trait bg-surface-pleine">
+    <section className="mb-2 mt-3 overflow-hidden rounded-[12px] border border-trait bg-surface-pleine">
       <div className="flex items-start justify-between gap-3 px-5 pt-5">
         <div className="min-w-0">
           <h2 className="m-0 truncate text-[20px] font-normal leading-[1.2] text-encre">Compte rendu de visite</h2>
           <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">Interne · {new Date(cr.le).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
         </div>
         {onEstimation && pr.vendeur !== false
-          ? <button type="button" onClick={onEstimation} className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full border border-menthe/50 px-4 text-[13.5px] text-menthe hover:bg-menthe/10" style={{ background: "transparent" }}>Passer à l'estimation</button>
+          ? <button type="button" onClick={onEstimation} className="inline-flex h-8 max-md:h-10 flex-none items-center gap-1.5 rounded-full border border-menthe/50 px-4 text-[13.5px] text-menthe hover:bg-menthe/10" style={{ background: "transparent" }}>Passer à l'estimation</button>
           : <span className="flex-none rounded-full bg-pervenche/15 px-2.5 py-1 text-[12px] text-pervenche">Visite faite</span>}
       </div>
       <div className="px-5 pb-5 pt-3">
@@ -242,8 +242,8 @@ function Sortie({ quoi, p, prep, onFermer, onPerdu }) {
       {quoi === "annuler" && <p className="m-0 mb-3 text-[13.5px] text-ardoise">Le bien passe en pause, avec une relance dans un mois.</p>}
       {quoi !== "decaler" && <textarea value={motif} onChange={(e) => setMotif(e.target.value)} rows={3} placeholder={quoi === "pas_vendeur" ? "Le motif (obligatoire)" : "Pourquoi (facultatif)"} className={champ} />}
       <div className="mt-4 flex justify-end gap-2">
-        <button type="button" onClick={onFermer} className="h-9 rounded-full px-4 text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
-        <button type="button" onClick={() => agir.mutate()} disabled={!pret || agir.isPending} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
+        <button type="button" onClick={onFermer} className="h-8 max-md:h-10 rounded-full px-4 text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+        <button type="button" onClick={() => agir.mutate()} disabled={!pret || agir.isPending} className="inline-flex h-8 max-md:h-10 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
           {agir.isPending && <Loader2 className="h-4 w-4 animate-spin" />}{quoi === "decaler" ? "Décaler" : quoi === "annuler" ? "Mettre en pause" : "Noter"}
         </button>
       </div>
@@ -301,7 +301,7 @@ export function PreparationDuBien({ bien, onDecaler = null }) {
   return (
     <div className="py-16 text-center">
       <p className="m-0 text-[14px] text-brume">La préparation n'est pas encore prête.</p>
-      <button type="button" onClick={() => refaire.mutate()} className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif" style={{ background: "transparent" }}><RefreshCw className="h-4 w-4" />Préparer maintenant</button>
+      <button type="button" onClick={() => refaire.mutate()} className="mt-3 inline-flex h-8 max-md:h-10 items-center gap-1.5 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif" style={{ background: "transparent" }}><RefreshCw className="h-4 w-4" />Préparer maintenant</button>
     </div>
   );
 }
@@ -351,7 +351,7 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
         {/* Le chat sous la préparation, à sa largeur, collé en bas de l'écran quand on défile (1er nov. 2026, Jules) :
             plus de bouton ni de panneau à droite, l'assistant est toujours là, avant la visite comme après. */}
         <div className="flex min-w-0 flex-col gap-4">
-        <main className="mx-auto w-full max-w-[1080px] rounded-[18px] border border-trait bg-rail px-7 pb-3 pt-6">
+        <main className="mx-auto w-full max-w-[1080px] rounded-[12px] border border-trait bg-rail px-7 pb-3 pt-6">
           <div className="flex items-end justify-between gap-3 pb-2">
             <div className="min-w-0">
               <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }} title={maj ? `Préparée par votre assistant · mise à jour ${maj}` : undefined}>Préparer la visite</h1>
@@ -378,12 +378,12 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
               <span className="text-[12.5px] text-ardoise">La fiche du bien</span>
               <button type="button" onClick={() => setFicheOuverte(false)} aria-label="Replier la fiche" title="Replier la fiche" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><PanelRightClose className="h-4 w-4" /></button>
             </div>
-            <div className="k-grid rounded-[18px] border border-trait"><FicheMandataire id={p.id} sansChat sansPreparation /></div>
+            <div className="k-grid rounded-[12px] border border-trait"><FicheMandataire id={p.id} sansChat sansPreparation /></div>
           </aside>
         )}
       </div>
       {p && !ficheOuverte && (
-        <button type="button" onClick={() => setFicheOuverte(true)} className="fixed right-20 top-20 z-20 inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux bg-surface-pleine px-3.5 text-[13px] text-craie hover:border-bord-vif">
+        <button type="button" onClick={() => setFicheOuverte(true)} className="fixed right-20 top-20 z-20 inline-flex h-8 max-md:h-10 items-center gap-1.5 rounded-full border border-bord-doux bg-surface-pleine px-3.5 text-[13px] text-craie hover:border-bord-vif">
           <PanelRightOpen className="h-4 w-4" />La fiche
         </button>
       )}

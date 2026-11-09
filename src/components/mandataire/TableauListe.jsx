@@ -10,6 +10,9 @@ import { toast } from "@/components/ui/avis";
 import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
 import { JL } from "@/design/jetons";
+import { CLASSES_STATUT } from "@/lib/couleur-statut";
+
+const COULEUR_FILE = { contacte: "ambre", a_recontacter: "ambre", rdv_pris: "bleu", pas_vendeur: "corail" };
 import { sourceLisible } from "@/lib/biens-mandataire";
 
 // Une liste ouverte : la grille, comme la Prospection de l'admin — une ligne
@@ -141,7 +144,7 @@ function PanneauCommerce({ p, onFermer }) {
   return createPortal(
     <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-fond/60 p-3 backdrop-blur-sm md:items-stretch md:justify-end md:p-0" onClick={onFermer}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }}>
-      <motion.div className="flex w-full flex-col overflow-hidden bg-surface-pleine md:h-full md:max-w-[480px] md:border-l md:border-trait max-md:max-h-[86dvh] max-md:max-w-[440px] max-md:rounded-[18px]" onClick={(e) => e.stopPropagation()}
+      <motion.div className="flex w-full flex-col overflow-hidden bg-fond md:h-full md:max-w-[480px] md:border-l md:border-trait max-md:max-h-[86dvh] max-md:max-w-[440px] max-md:rounded-[12px]" onClick={(e) => e.stopPropagation()}
         initial={{ x: large ? 28 : 0, scale: large ? 1 : 0.96 }} animate={{ x: 0, scale: 1 }} exit={{ x: large ? 28 : 0, scale: large ? 1 : 0.96 }} transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || p.cible?.enseigne, adresse: [p.adresse || p.cible?.adresse, p.ville].filter(Boolean).join(", "), ou: p.ou }} />
@@ -155,7 +158,7 @@ function PanneauCommerce({ p, onFermer }) {
 // La case vide a le trait des lignes du tableau (31 oct. 2026, Jules : « trop blanc »).
 const Case = ({ oui }) => (
   <span className="grid h-[18px] w-[18px] flex-none place-items-center rounded-[5px] border"
-    style={{ borderColor: oui ? "rgb(var(--k-menthe-rgb))" : "color-mix(in srgb, var(--k-bord-doux) 45%, transparent)", background: oui ? "rgb(var(--k-menthe-rgb))" : "transparent" }}>
+    style={{ borderColor: oui ? "rgb(var(--k-menthe-rgb))" : "var(--k-trait)", background: oui ? "rgb(var(--k-menthe-rgb))" : "transparent" }}>
     {oui && <Check className="h-3 w-3" style={{ color: "rgb(var(--k-sur-menthe-rgb))" }} />}
   </span>
 );
@@ -169,10 +172,10 @@ function Cellule({ p, col, onEnregistrer }) {
   const pastilles = valeur ? <Sources textes={col.sources?.(p)} p={p} /> : null;
   // Le texte et sa gélule se suivent et passent à la ligne ensemble : jamais
   // l'un par-dessus l'autre. Un numéro ne se coupe pas au milieu.
-  const texteClasse = `${col.cle === "telephone" || col.cle === "tel_commerce" ? "whitespace-nowrap" : "line-clamp-2"} min-w-0 text-[13.5px] leading-[1.5]`;
+  const texteClasse = `${col.cle === "telephone" || col.cle === "tel_commerce" ? "whitespace-nowrap" : "truncate"} min-w-0 text-[13.5px] leading-[1.5]`;
   if (!col.editable) {
     return (
-      <span className="flex flex-wrap items-center gap-y-1 text-craie" title={source ? `${valeur} · ${source}` : valeur || undefined}>
+      <span className="flex min-w-0 items-center justify-center text-craie" title={source ? `${valeur} · ${source}` : valeur || undefined}>
         <span className={texteClasse}>{valeur || <span className="text-bord-vif">—</span>}</span>
         {pastilles}
       </span>
@@ -187,7 +190,7 @@ function Cellule({ p, col, onEnregistrer }) {
   // Les pastilles suivent le texte, hors du bouton : leur clic consulte la
   // source sans ouvrir l'édition, et l'ensemble passe à la ligne proprement.
   return (
-    <span className="flex w-full flex-wrap items-center gap-y-1">
+    <span className="flex w-full min-w-0 items-center justify-center">
       <button type="button" onClick={() => setEdition(true)} className={`border-0 p-0 text-left text-craie hover:text-encre ${texteClasse}`}
         style={{ background: "transparent", ...(col.cle === "telephone" ? { fontVariantNumeric: "tabular-nums" } : {}) }}
         title={valeur ? `${valeur}${source ? ` · ${source}` : ""} (clic pour modifier)` : "Clic pour remplir"}>
@@ -222,7 +225,7 @@ function TitreTri({ cle, mot, tri, setTri }) {
   return (
     <button type="button" onClick={() => setTri(!actif ? { cle, sens: 1 } : tri.sens === 1 ? { cle, sens: -1 } : null)}
       title={actif ? (tri.sens === 1 ? "Trié : cliquer pour inverser" : "Trié à l'envers : cliquer pour revenir à l'ordre de la file") : "Cliquer pour trier"}
-      className="inline-flex items-center gap-1 whitespace-nowrap p-0 text-encre hover:text-menthe" style={{ background: "transparent" }}>
+      className="inline-flex items-center gap-1 whitespace-nowrap p-0 text-ardoise hover:text-encre" style={{ background: "transparent" }}>
       {mot}{actif && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}
     </button>
   );
@@ -257,7 +260,7 @@ export function FichePoint({ fiche: p, onFermer, centre = false }) {
       <div className={`pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-3 ${centre ? "" : "md:inset-y-0 md:left-auto md:right-0 md:block md:p-0"}`}>
       <motion.aside initial={{ opacity: 0, x: large ? 28 : 0, scale: large ? 1 : 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: large ? 28 : 0, scale: large ? 1 : 0.96 }}
         transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-        className={`pointer-events-auto flex flex-col overflow-hidden bg-surface-pleine shadow-[0_12px_40px_rgb(0_0_0/0.3)] ${centre ? "h-[90dvh] w-full max-w-[460px] rounded-[18px]" : "md:h-full md:w-[420px] md:border-l md:border-trait max-md:h-[90dvh] max-md:w-full max-md:max-w-[440px] max-md:rounded-[18px]"}`}>
+        className={`pointer-events-auto flex flex-col overflow-hidden border border-bord-doux bg-fond shadow-[0_12px_40px_rgb(0_0_0/0.3)] ${centre ? "h-[90dvh] w-full max-w-[460px] rounded-[18px]" : "md:h-full md:w-[420px] md:border-l md:border-trait max-md:h-[90dvh] max-md:w-full max-md:max-w-[440px] max-md:rounded-[18px]"}`}>
         {/* Le défilement dans un bloc intérieur (25 oct. 2026, Jules : « à droite la card a les coins carrés ») : la barre de
             défilement d'un bloc arrondi n'est pas coupée par ses coins ; ici le cadre arrondi la coupe. */}
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -464,18 +467,18 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
           Jules). Au téléphone, sous la barre du haut. */}
       <div className="sticky top-[var(--k-haut-mobile,0px)] z-30 bg-fond md:top-0">
       {onglets}
-      <div data-zone="listes" className={onglets ? "k-points relative rounded-t-[12px] bg-rail px-5 pb-3 pt-4 max-md:px-3" : "pb-3"}>
+      <div data-zone="listes" className="pb-3 pt-3">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
+        <div className="flex h-8 w-[320px] items-center gap-2 rounded-full bg-relief px-3.5 focus-within:ring-1 focus-within:ring-bord-doux max-md:h-10 max-md:w-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Commerce, propriétaire, numéro"
             className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
         {/* Au téléphone, la pilule défile sur une ligne. */}
-        <div className="flex gap-1 rounded-full bg-rail-actif p-1 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-0.5 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
           {FILTRES.map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setFiltre(k)}
-              className={`rounded-full px-3 py-1 text-[13.5px] max-md:flex-none max-md:whitespace-nowrap max-md:py-1.5 ${filtre === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
+              className={`h-7 rounded-full px-3 text-[13px] max-md:h-10 max-md:flex-none max-md:whitespace-nowrap ${filtre === k ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}
               style={filtre === k ? undefined : { background: "transparent" }}>{mot} <span className="tabular-nums text-brume">{compte(k)}</span></button>
           ))}
         </div>
@@ -507,13 +510,13 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
       </div>
       </div>
       </div>
-      <div className={onglets ? "k-points relative rounded-b-md bg-rail px-5 pb-5 max-md:px-3" : ""}>
+      <div>
 
       {coches.size > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] border border-trait bg-surface-pleine px-4 py-2.5">
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[12px] border border-trait bg-surface-pleine px-4 py-2.5">
           <span className="text-[13.5px] text-encre">{coches.size} commerce{coches.size > 1 ? "s" : ""} coché{coches.size > 1 ? "s" : ""}</span>
           <button type="button" onClick={() => setRetirer(true)} disabled={supprimer.isPending}
-            className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-alerte hover:border-alerte disabled:opacity-50" style={{ background: "transparent" }}>
+            className="inline-flex h-8 max-md:h-10 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-alerte hover:border-alerte disabled:opacity-50" style={{ background: "transparent" }}>
             {supprimer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Retirer de la liste
           </button>
           <button type="button" onClick={() => setCoches(new Set())} className="text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>
@@ -526,7 +529,7 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
           Seul le débord horizontal (colonnes sur un écran étroit) défile dans le cadre. */}
       {/* Au téléphone, plus de tableau (25 oct. 2026) : une ligne par commerce, le nom, la pastille du statut, la prochaine
           action ; un toucher ouvre la fiche au milieu de l'écran. */}
-      <ul className="m-0 mt-4 list-none overflow-hidden rounded-[14px] border border-trait bg-rail p-0 md:hidden">
+      <ul className="m-0 mt-4 list-none overflow-hidden rounded-[12px] border border-trait bg-rail p-0 md:hidden">
         {affichees.map((p) => (
           <li key={p.id} className="border-b border-trait last:border-b-0">
             <button type="button" onClick={() => setOuvert(p.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left" style={{ background: "transparent" }}>
@@ -543,23 +546,23 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
         {!lignes.length && <li className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : filtre === "a_appeler" ? "Plus personne à contacter dans cette liste." : "Rien ici."}</li>}
       </ul>
       {/* Le cadre a le trait des lignes, sans trait doublé à droite ni en bas (Jules, 31 oct. 2026). */}
-      <div className="mt-4 overflow-x-auto rounded-[14px] border border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail max-md:hidden">
+      <div className="mt-4 overflow-x-auto rounded-[12px] border border-trait bg-rail max-md:hidden">
         {/* Bordures séparées, pas fusionnées (25 oct. 2026, Jules : « on voit du texte passer derrière ») : fusionnées, les traits
             appartiennent au tableau et ne suivent pas les colonnes figées, le texte qui défile se voyait au travers ; séparées,
             chaque cellule porte les siens, peints sur son fond opaque. */}
         <table className="min-w-full border-separate border-spacing-0 text-[13.5px] [&_tr>*:last-child]:border-r-0 [&_tbody>tr:last-child>td]:border-b-0">
           <thead>
             <tr>
-              <th className="sticky left-0 z-30 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-0 py-3.5" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
+              <th className="sticky left-0 z-30 border-b border-r border-trait bg-rail px-0 h-[35px] py-0" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
                 <button type="button" onClick={() => setCoches(tout ? new Set() : new Set(lignes.map((p) => p.id)))} disabled={!lignes.length}
                   aria-label={tout ? "Tout décocher" : "Tout cocher"} title={tout ? "Tout décocher" : "Tout cocher"}
                   className="grid w-full place-items-center disabled:opacity-40" style={{ background: "transparent" }}>
                   <Case oui={tout} />
                 </button>
               </th>
-              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-3.5 pl-2 pr-4 text-left text-[13.5px] font-normal text-encre"><TitreTri cle="commerce" mot="Commerce" tri={tri} setTri={setTri} /></th>
+              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-trait bg-rail h-[35px] py-0 px-2.5 text-left text-[12.5px] font-normal text-ardoise"><TitreTri cle="commerce" mot="Commerce" tri={tri} setTri={setTri} /></th>
               {COLONNES_FILE.map((c) => (
-                <th key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-4 py-3.5 text-left text-[13.5px] font-normal text-encre" style={{ minWidth: c.largeur }}><TitreTri cle={c.cle} mot={c.titre} tri={tri} setTri={setTri} /></th>
+                <th key={c.cle} className="border-b border-r border-trait bg-rail px-2.5 h-[35px] py-0 text-center text-[12.5px] font-normal text-ardoise" style={{ minWidth: c.largeur }}><TitreTri cle={c.cle} mot={c.titre} tri={tri} setTri={setTri} /></th>
               ))}
             </tr>
           </thead>
@@ -577,31 +580,30 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
                 // modifier gardent leur geste.
                 <tr key={p.id} onClick={(e) => { if (!e.target.closest("a, button, input, select, textarea, label, [role=button]")) setOuvert(p.id); }}
                   className={`group cursor-pointer transition-colors ${coches.has(p.id) ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
-                  <td className="sticky left-0 z-10 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-0 py-4 align-middle" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
+                  <td className="sticky left-0 z-10 border-b border-r border-trait bg-rail px-0 h-[36px] py-0 align-middle" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
                     <button type="button" onClick={() => basculer(p.id)} aria-label={`Cocher ${p.commerce || p.cible?.enseigne || "la ligne"}`}
                       className="grid w-full place-items-center" style={{ background: "transparent" }}>
                       <Case oui={coches.has(p.id)} />
                     </button>
                   </td>
-                  <td className="sticky left-[44px] z-10 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-4 pl-2 pr-4 align-middle">
+                  <td className="sticky left-[44px] z-10 border-b border-r border-trait bg-rail h-[36px] overflow-hidden whitespace-nowrap py-0 px-2.5 align-middle">
                     <button type="button" onClick={() => setOuvert(p.id)} title="Ouvrir la fiche"
-                      className="block max-w-[260px] border-0 p-0 text-left" style={{ background: "transparent" }}>
-                      <span className="block truncate text-[13.5px] text-encre hover:text-menthe">{p.commerce || p.cible?.enseigne || "Commerce"}</span>
-                      <span className="block truncate text-[13.5px] text-ardoise">{p.ville || p.cible?.ville || ""}</span>
+                      className="block max-w-[340px] truncate border-0 p-0 text-left text-[13.5px]" style={{ background: "transparent" }}>
+                      <span className="text-encre hover:text-menthe">{p.commerce || p.cible?.enseigne || "Commerce"}</span>
+                      {(p.ville || p.cible?.ville) && <span className="text-ardoise"> · {p.ville || p.cible.ville}</span>}
                     </button>
                   </td>
                   {COLONNES_FILE.map((c) => (
-                    <td key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] px-4 py-4 align-middle" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
+                    <td key={c.cle} className={`relative h-[36px] overflow-hidden whitespace-nowrap border-b border-r border-trait px-2.5 py-0 text-center align-middle ${c.cle === "statut" ? CLASSES_STATUT[COULEUR_FILE[p.statut] || "gris"] : ""}`} style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
                       {c.cle === "telephone" ? (
                         // Le numéro se touche pour appeler (25 oct. 2026) ; à défaut, celui du commerce, dit comme tel.
                         tel ? <a href={`tel:${String(tel).replace(/[^\d+]/g, "")}`} className="whitespace-nowrap text-[13.5px] text-encre hover:text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{tel}</a>
                           : (p.telephone_commerce || p.cible?.telephone) ? <a href={`tel:${String(p.telephone_commerce || p.cible.telephone).replace(/[^\d+]/g, "")}`} className="whitespace-nowrap text-[13.5px] text-craie hover:text-encre" title="Le commerce, pas le propriétaire" style={{ fontVariantNumeric: "tabular-nums" }}>{p.telephone_commerce || p.cible.telephone} <span className="text-ardoise">(commerce)</span></a>
                           : <span className="text-[13.5px] text-brume">À trouver</span>
                       ) : c.cle === "statut" ? (
-                        <span className={`relative inline-flex h-8 items-center gap-2 rounded-full pl-3 pr-2 text-[13.5px] ${TEINTES_STATUT[TON_STATUT[p.statut] || "neutre"]}`}>
-                          <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: "var(--point)" }} />
-                          <span className="whitespace-nowrap">{libelles[p.statut] || p.statut}</span>
-                          <ChevronDown className="h-3.5 w-3.5 flex-none opacity-70" />
+                        // La case entière colorée, comme les Acquéreurs (8 nov. 2026, Jules) : un clic ouvre toujours le choix.
+                        <span className="block truncate">
+                          {libelles[p.statut] || p.statut}
                           <select aria-label={`Statut de ${p.commerce || p.nom}`} value={p.statut} onChange={(e) => { noter({ type: "statut", id: p.id, avant: p.statut, apres: e.target.value, mot: `statut de ${p.commerce || p.nom || "ce commerce"}` }); statut.mutate({ id: p.id, statut: e.target.value }); }}
                             className="absolute inset-0 cursor-pointer opacity-0 max-md:text-[16px]">
                             {/* Deux statuts en Prospection, Pas d'intérêt pour sortir, et le rendez-vous qui fait passer dans Biens. */}

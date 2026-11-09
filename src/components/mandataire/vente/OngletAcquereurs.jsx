@@ -54,10 +54,10 @@ export default function OngletAcquereurs({ marcheId, piste = null, onPiste = nul
 
   return (
     <section aria-label="Acquéreurs" className="relative">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-0.5">
         {FILTRES.map(([k, mot]) => (
           <button key={k} type="button" onClick={() => setFiltre(k)} aria-pressed={filtre === k}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] ${filtre === k ? "bg-pervenche/15 text-pervenche" : "border border-trait text-ardoise hover:text-encre"}`}
+            className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] max-md:h-10 ${filtre === k ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}
             style={filtre === k ? undefined : { background: "transparent" }}>
             {mot}<span className="tabular-nums opacity-70">{compte(k)}</span>
           </button>
@@ -66,16 +66,16 @@ export default function OngletAcquereurs({ marcheId, piste = null, onPiste = nul
       </div>
       {/* Plus d'« Ajouter un contact » (8 nov. 2026, Jules) : les contacts arrivent par les envois, l'assistant et les imports. */}
 
-      {/* Le tableau du CRM (7 nov. 2026, Jules : « le tableau des acquéreurs au style de Twenty ») : cadre arrondi au filet
-          d'accent de 3 px, traits continus, en-têtes de 35 px, lignes de 36 px, texte en 14 px ; le nom ouvre la fiche, le
+      {/* Le tableau du CRM (7 nov. 2026, Jules : « le tableau des acquéreurs au style de Twenty ») : cadre arrondi sans bande
+          de couleur (8 nov. 2026, Jules), traits continus, en-têtes de 35 px, lignes de 36 px, texte en 14 px ; le nom ouvre la fiche, le
           statut et la température en cases colorées entières (src/lib/couleur-statut.js). */}
-      <div className="mt-4 overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-rail">
-        <table className="w-full table-fixed border-collapse text-[14px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0" style={{ minWidth: 1080 }}>
+      <div className="mt-3 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+        <table className="w-full table-fixed border-collapse text-[13.5px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0" style={{ minWidth: 1080 }}>
           <colgroup>
             {COLONNES.map(([k, , largeur]) => <col key={k} style={largeur ? { width: largeur } : undefined} />)}
           </colgroup>
           <thead>
-            <tr className="text-encre">
+            <tr className="text-[12.5px] text-ardoise">
               {COLONNES.map(([k, mot]) => (
                 <th key={k} className={`h-[35px] overflow-hidden whitespace-nowrap border-b border-r border-trait px-2.5 font-normal ${k === "nom" ? "text-left" : "text-center"}`}>{mot}</th>
               ))}

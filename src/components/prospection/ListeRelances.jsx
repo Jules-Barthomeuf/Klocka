@@ -22,10 +22,10 @@ const tonDuMotif = (cle) => TONS_MOTIF[cle] || "bg-relief text-craie";
 export default function ListeRelances({ lignes, prises, moi, onOuvrir, ouverture = null, coches, setCoches }) {
   const basculer = (cle) => setCoches((s) => { const n = new Set(s); if (n.has(cle)) n.delete(cle); else n.add(cle); return n; });
   const toutes = lignes.length > 0 && lignes.every((x) => coches.has(x.cle));
-  const th = "border-b border-trait px-4 py-3.5 font-normal text-encre";
+  const th = "h-[35px] border-b border-trait px-2.5 text-center text-[12.5px] font-normal text-ardoise";
   return (
-    <div className="mt-4 overflow-x-auto rounded-[16px] border border-trait">
-      <table className="w-full min-w-[760px] border-collapse text-left text-[14px] max-md:min-w-0">
+    <div className="mt-3 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+      <table className="w-full min-w-[760px] border-collapse text-left text-[13.5px] max-md:min-w-0 md:[&_td:not(:last-child)]:border-r md:[&_td]:border-trait md:[&_th:not(:last-child)]:border-r md:[&_th]:border-trait">
         <thead className="max-md:hidden">
           <tr className="text-[12.5px] text-encre">
             <th className="w-[52px] border-b border-trait py-3.5 pl-5 pr-1">
@@ -47,16 +47,15 @@ export default function ListeRelances({ lignes, prises, moi, onOuvrir, ouverture
             return (
               <tr key={x.cle} onClick={ouvrir} title={autre ? `En cours : ${p.prenom}` : "Ouvrir le mode appel sur cet agent"}
                 className={`align-top transition-colors [&>td]:border-b [&>td]:border-trait [&:last-child>td]:border-b-0 ${autre ? "cursor-not-allowed opacity-45" : "cursor-pointer hover:bg-relief/30"} ${coches.has(x.cle) ? "bg-menthe/[0.05]" : ""} ${enOuverture ? "bg-menthe/[0.08]" : ""}`}>
-                <td className="py-4 pl-5 pr-1" onClick={(e) => e.stopPropagation()}>
+                <td className="py-4 pl-3 pr-1 md:h-[36px] md:py-0" onClick={(e) => e.stopPropagation()}>
                   <button type="button" onClick={() => basculer(x.cle)} aria-label={`Cocher ${x.nom || x.agence}`} className="grid place-items-center" style={{ background: "transparent" }}><Case oui={coches.has(x.cle)} /></button>
                 </td>
-                <td className="px-3 py-3 max-md:hidden" onClick={(e) => e.stopPropagation()}>
+                <td className="px-1.5 py-0 text-center max-md:hidden" onClick={(e) => e.stopPropagation()}>
                   {x.agence_id ? <CellulePour agence={{ id: x.agence_id, pour: x.pour || [] }} listeId={null} /> : <span className="text-[12.5px] text-brume">—</span>}
                 </td>
-                <td className="max-w-[320px] px-4 py-4">
-                  <span className="block truncate text-encre">{x.nom || x.agence}</span>
-                  {x.nom && x.agence && <span className="block truncate text-[13px] text-ardoise">{x.agence}</span>}
-                  {p && <span className={`mt-0.5 block text-[12.5px] ${autre ? "text-ardoise" : "text-menthe"}`}>{autre ? `En cours : ${p.prenom}` : "Ouverte par vous"}</span>}
+                <td className="max-w-[320px] px-2.5 py-3 md:h-[36px] md:py-0">
+                  <span className="block truncate text-encre">{x.nom || x.agence}{x.nom && x.agence && <span className="text-ardoise"> · {x.agence}</span>}</span>
+                  {p && <span className={`block text-[12.5px] md:hidden ${autre ? "text-ardoise" : "text-menthe"}`}>{autre ? `En cours : ${p.prenom}` : "Ouverte par vous"}</span>}
                   {/* Au téléphone : le motif, la ville et l'échéance sous le nom. */}
                   <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 md:hidden">
                     <span className={`rounded-full px-2 py-0.5 text-[12px] ${tonDuMotif(x.motif.cle)}`}>{x.motif.libelle}</span>
@@ -64,9 +63,9 @@ export default function ListeRelances({ lignes, prises, moi, onOuvrir, ouverture
                     <span className={`text-[12.5px] ${x.groupe === "retard" ? "text-ambre" : "text-ardoise"}`}>{x.groupe === "retard" ? `En retard de ${x.retard} j` : "Aujourd'hui"}</span>
                   </span>
                 </td>
-                <td className="px-4 py-4 max-md:hidden"><span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12.5px] ${tonDuMotif(x.motif.cle)}`}>{x.motif.libelle}</span></td>
-                <td className="truncate px-4 py-4 text-craie max-md:hidden">{x.ville || <span className="text-bord-vif">—</span>}</td>
-                <td className="whitespace-nowrap px-4 py-4 text-[13.5px] tabular-nums max-md:hidden" title={x.le ? jourCourt(x.le) : undefined}>
+                <td className={`whitespace-nowrap px-2.5 py-0 text-center max-md:hidden ${tonDuMotif(x.motif.cle)}`}>{x.motif.libelle}</td>
+                <td className="truncate px-2.5 py-0 text-center text-craie max-md:hidden">{x.ville || <span className="text-bord-vif">—</span>}</td>
+                <td className="whitespace-nowrap px-2.5 py-0 text-center tabular-nums max-md:hidden" title={x.le ? jourCourt(x.le) : undefined}>
                   {x.groupe === "retard" ? <span className="text-ambre">En retard de {x.retard} j</span> : <span className="text-craie">Aujourd'hui</span>}
                 </td>
               </tr>

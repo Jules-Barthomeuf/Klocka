@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
 import { ilYa } from "@/components/dashboard/ChatDashboard";
 import { Trace } from "@/components/haka/FicheOnglets";
+import { CLASSE_TABLE, CLASSE_TABLEAU, CLASSE_TD, CLASSE_TH, TitrePage, classeCase } from "@/components/mandataire/elements";
 import { createPageUrl } from "@/utils";
 
 // Administration › Automatismes (17 oct. 2026, spec de Jules, § 11) : tout ce que Haka fait
@@ -132,9 +133,8 @@ export default function Automatismes() {
       className={`rounded-full px-2 py-0.5 transition-colors ${filtre === cle ? "bg-menthe/15 text-encre" : "hover:text-encre"} ${cle === "erreurs" && n ? "text-alerte" : ""}`} style={filtre === cle ? undefined : { background: "transparent" }}>{n} {mot}</button>
   );
   return (
-    <div className="mx-auto max-w-[1200px] px-5 pb-16 pt-8 md:px-8">
-      <h1 className="m-0 text-[26px] font-normal tracking-[-0.02em] text-encre">Automatismes</h1>
-      <p className="m-0 mt-1 text-[14px] text-ardoise">Ce que l'Assistant KPartners fait seul : quoi, quand, avec quel résultat aujourd'hui.</p>
+    <div className="mx-auto max-w-[1500px] px-5 pb-16 pt-[22px] md:px-8">
+      <TitrePage titre="Automatismes" nombre={automatismes.length || null} className="md:!pr-[112px]" />
       {!automatismes.length ? (
         <div className="mt-16 text-center">
           <p className="m-0 text-[14.5px] text-craie">Aucun automatisme pour l'instant. Les compétences qui tournent seules apparaîtront ici.</p>
@@ -142,7 +142,7 @@ export default function Automatismes() {
         </div>
       ) : (
         <>
-          <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4">
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-8 gap-y-3">
             <p className="m-0 flex flex-wrap items-center gap-1 text-[14px] text-craie">Aujourd'hui :
               <Chiffre cle="executions" n={resume.executions} mot={`exécution${resume.executions > 1 ? "s" : ""}`} />·
               <Chiffre cle="a_valider" n={resume.a_valider} mot={`proposition${resume.a_valider > 1 ? "s" : ""} en attente`} />·
@@ -153,22 +153,22 @@ export default function Automatismes() {
               <span className={`text-[13px] tabular-nums ${plafond.part >= 100 ? "text-alerte" : plafond.part >= 80 ? "text-ambre" : "text-ardoise"}`}>{plafond.crees} / {plafond.max} dossiers créés aujourd'hui</span>
             </div>
           </div>
-          <div className="mt-6 overflow-x-auto rounded-[16px] border border-trait">
-            <table className="w-full min-w-[980px] border-collapse text-left text-[13.5px]">
-              <thead><tr className="border-b border-trait text-[11px] uppercase tracking-[.14em] text-brume">{["Automatisme", "Quand", "État", "Dernière exécution", "Aujourd'hui", "Prochaine", "Coût du jour", ""].map((t, i) => <th key={i} className="px-4 py-3 font-normal">{t}</th>)}</tr></thead>
+          <div className={`mt-3 ${CLASSE_TABLEAU}`}>
+            <table className={`${CLASSE_TABLE} min-w-[1080px]`}>
+              <thead><tr>{["Automatisme", "Quand", "État", "Dernière exécution", "Aujourd'hui", "Prochaine", "Coût du jour", ""].map((t, i) => <th key={i} className={CLASSE_TH}>{t}</th>)}</tr></thead>
               <tbody>
                 {vues.map((a) => {
-                  const [mot, teinte] = ETATS[a.etat] || ETATS.actif;
+                  const [mot] = ETATS[a.etat] || ETATS.actif;
                   return (
-                    <tr key={a.cle} onClick={() => setOuvert(a.cle)} className="cursor-pointer border-b border-trait transition-colors last:border-b-0 hover:bg-encre/[0.03]">
-                      <td className="px-4 py-3.5"><span className="flex items-center gap-2.5 text-[14.5px] text-encre"><span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-rail-actif text-craie"><Workflow className="h-3.5 w-3.5" /></span>{a.nom}</span></td>
-                      <td className="max-w-[260px] px-4 py-3.5 text-craie">{a.quand}</td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-craie"><span className={`mr-2 inline-block h-[7px] w-[7px] rounded-full align-middle ${teinte}`} />{mot}</td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-craie">{a.derniere ? <>{ilYa(a.derniere.le).replace(/^i/, "I")}<span className={TEINTE_RESULTAT[a.derniere.resultat] || "text-ardoise"}> · {a.derniere.resultat}</span></> : "—"}</td>
-                      <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-craie">{a.aujourdhui.executions} · {a.aujourdhui.a_valider} · <span className={a.aujourdhui.erreurs ? "text-alerte" : ""}>{a.aujourdhui.erreurs}</span></td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-craie">{a.planifie ? prochaineLisible(a.prochaine) : "—"}</td>
-                      <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-craie">{euros(a.cout_jour_eur)}</td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                    <tr key={a.cle} onClick={() => setOuvert(a.cle)} className="cursor-pointer transition-colors hover:bg-relief/60">
+                      <td className={CLASSE_TD}>{a.nom}</td>
+                      <td className={CLASSE_TD} title={a.quand}>{a.quand}</td>
+                      <td className={`${CLASSE_TD} ${classeCase(a.etat === "actif" ? "menthe" : a.etat === "en_pause" ? "ambre" : "gris")}`}>{mot}</td>
+                      <td className={CLASSE_TD}>{a.derniere ? <>{ilYa(a.derniere.le).replace(/^i/, "I")}<span className={TEINTE_RESULTAT[a.derniere.resultat] || "text-ardoise"}> · {a.derniere.resultat}</span></> : "—"}</td>
+                      <td className={`${CLASSE_TD} tabular-nums`}>{a.aujourdhui.executions} · {a.aujourdhui.a_valider} · <span className={a.aujourdhui.erreurs ? "text-alerte" : ""}>{a.aujourdhui.erreurs}</span></td>
+                      <td className={CLASSE_TD}>{a.planifie ? prochaineLisible(a.prochaine) : "—"}</td>
+                      <td className={`${CLASSE_TD} tabular-nums`}>{euros(a.cout_jour_eur)}</td>
+                      <td className={CLASSE_TD} onClick={(e) => e.stopPropagation()}>
                         {peutAgir && (
                           <span className="inline-flex gap-1.5">
                             {a.lancable && <button type="button" onClick={() => action.mutate({ cle: a.cle, quoi: "lancer" })} disabled={action.isPending} title="Lancer maintenant, hors horaire" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}><Zap className="h-3 w-3" />Lancer maintenant</button>}

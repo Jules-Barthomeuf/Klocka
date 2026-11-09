@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BordureEcoute from "@/components/BordureEcoute";
 import AdminSuggestions from "@/pages/AdminSuggestions";
+import { TitrePage } from "@/components/mandataire/elements";
 
 // Le Feedback des mandataires et des clients (30 oct. 2026, Jules : « la page feedback a changé ») : la même boîte que
 // la page de l'équipe (texte, capture, dictée) et ses remarques en lignes, avec leur état. L'état se lit ici et se
@@ -82,7 +83,7 @@ export default function Feedback() {
   return (
     <div className="min-h-screen bg-fond text-encre px-5 md:px-10 py-8 md:py-12">
       <div className="max-w-[1100px] mx-auto">
-        <h1 className="m-0 mb-8 max-md:mb-5 text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05]">Feedback</h1>
+        <TitrePage titre="Feedback" className="mb-4" />
 
         <BordureEcoute actif={ecoute} radius="20px">
         <BoiteSaisie

@@ -842,7 +842,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   if (releve.length && !def.simple) etape(`Je relève ${releve.length > 1 ? `${releve.slice(0, -1).join(', ')} et ${releve.at(-1)}` : releve[0]}${notes ? ', notes comprises' : ''}`);
   if (!def.simple && (!essai || ecrireEssai)) etape('Je cherche sa ligne dans Twenty CRM');
   // En essai, Monday n'est pas lu ni écrit, mais l'aperçu montre ce qui serait écrit sur une nouvelle ligne.
-  const monday = def.simple || estCommerces(a) ? null : essai && !ecrireEssai ? { etat: 'info', texte: "Essai : rien n'est écrit dans Monday. Voici ce qui le serait, sur une nouvelle ligne", apercu: (await import('./monday-agents.js')).apercuSansMonday(d) } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
+  const monday = def.simple || estCommerces(a) ? null : essai && !ecrireEssai ? { etat: 'info', texte: "Essai : rien n'est écrit dans Twenty CRM. Voici ce qui le serait, sur une nouvelle ligne", apercu: (await import('./monday-agents.js')).apercuSansMonday(d) } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
   if (monday && (!essai || ecrireEssai)) etape(monday.etat === 'trouvee' ? 'Je prépare les champs pour Twenty CRM : sa ligne est retrouvée' : monday.etat === 'doute' ? 'Plusieurs lignes possibles dans Twenty CRM : je vous demanderai la bonne' : monday.etat === 'nouvelle' ? 'Je prépare une nouvelle ligne Twenty CRM' : 'Je prépare les champs pour Twenty CRM');
   // « Contact modifié » : un rappel d'un autre interlocuteur, ses cases remplacent celles de la ligne.
   if (monday) actions.push({ id: 'monday', type: 'monday', titre: monday.contact_modifie ? 'Contact modifié' : 'Contact Twenty CRM', coche: true, toujours: true, ligne: monday });
@@ -959,7 +959,7 @@ export async function validerIssue(x) {
   return p;
 }
 
-async function validerUneFois({ appel_id, passe = null, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, monday_cases = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
+async function validerUneFois({ appel_id, sans_twenty = false, passe = null, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, monday_cases = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
   // « Ce qui s'est passé », réécrit par l'analyste : c'est sa phrase qui part dans Monday et le journal.
   const passeTapee = passe != null ? String(passe).trim() : null;
   const passeAvant = Records.get(APPEL, appel_id)?.passe ?? null;
@@ -1060,7 +1060,9 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
   // Monday : les appels aboutis seulement.
   let monday = null;
   let ecriture = null;
-  if (!def.simple && ag) {
+  // « Ne le mets pas sur Twenty », dit à l'assistant (9 nov. 2026, Jules) : la fiche de la plateforme suit, Twenty non.
+  if (sans_twenty) Records.update(APPEL, appel_id, { sans_twenty: true });
+  if (!def.simple && ag && !sans_twenty) {
     const emailUtilise = action('mail') ? R.normEmail(mail?.a ?? action('mail').a) : adresse;
     const dansLaListe = dif ? ['ok'].includes(diffusion?.etat) : issueTapee === 'pas_interesse' ? false : null;
     // La relance décochée (16 oct. 2026, Jules) : pas de relance dans Monday non plus, même si la fiche en garde une.
@@ -1141,6 +1143,19 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
 
   // La page Relances : l'agent joint est prévenu de ses biens jugés, et la ligne prise se libère.
   if (!essai) (await import('./relances.js')).apresAppel({ agent_id: appel.agent_id, agence_id: agenceId, issue: issueTapee, user, maintenantD });
+  // Le module Emailing : un appel abouti peut lancer une séquence depuis la boîte de celui qui a appelé.
+  if (!essai && def.groupe === 'abouti') {
+    try {
+      const J = await import('../emailing/journal.js');
+      const email = a?.emails?.[0] || mail?.a || null;
+      const c = email ? J.contactPour(email, { prenom: a?.prenom || '', nom: a?.nom_famille || '', entreprise: ag?.nom || '', ville: ag?.ville || '', type: 'mandataire', source: 'mode_appel', tags: ['Agent immobilier'], base_legale: 'interet_professionnel', suivi_par: moi || null }) : null;
+      if (c) {
+        J.emettre('appel_abouti', { email: c.email, contact_id: c.id, source: appel.id, cle: `appel:${appel.id}`, charge: { issue: issueTapee, par: moi || null, compte_rendu: String(Records.get(APPEL, appel.id)?.passe || '').slice(0, 1500) } });
+        if (['interesse', 'a_des_murs'].includes(issueTapee)) J.emettre('appel_interesse', { email: c.email, contact_id: c.id, source: appel.id, cle: `appel-interesse:${appel.id}` });
+        if (issueTapee === 'pas_interesse') J.emettre('desinteret', { email: c.email, contact_id: c.id, source: appel.id, cle: `appel-desinteret:${appel.id}` });
+      }
+    } catch (e) { console.warn(`[emailing] fait de l'appel : ${e?.message || e}`); }
+  }
   // Un commerce d'Off-market : la réponse revient sur sa ligne du mode Simple.
   if (estCommerces(ag) && ag.commerce_id && Records.get('CommerceSimple', ag.commerce_id)) Records.update('CommerceSimple', ag.commerce_id, { appel_prospection: { issue: issueTapee, titre: def.titre || issueTapee, le: maintenantD.toISOString(), par: moi } });
 
@@ -1326,6 +1341,8 @@ export async function annulerValidation(appelId, user, { maintenantD = new Date(
   Records.update(APPEL, appel.id, { etat: 'a_valider', recu: null, annule_le: maintenant(), annuler: null, validation_cle: null, annulations: (appel.annulations || 0) + 1 });
   const s = appel.session_id ? Records.get(SESSION, appel.session_id) : null;
   if (s) Records.update(SESSION, s.id, { appels: (s.appels || []).filter((x) => x.appel_id !== appel.id) });
+  // Le module Emailing : la séquence lancée par cet appel s'arrête avec lui.
+  { try { const J = await import('../emailing/journal.js'); const ag0 = (await import('./carnet.js')).agentDe(appel.agent_id); const em = ag0?.emails?.[0]; if (em) J.emettre('appel_annule', { email: em, source: appel.id }); } catch { /* l'annulation reste valable */ } }
   return { ok: true, fait, appel: { ...Records.get(APPEL, appel.id), agence: Records.get(AGENCE, appel.agence_id)?.nom || appel.agent } };
 }
 

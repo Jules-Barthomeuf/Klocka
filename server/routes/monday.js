@@ -186,7 +186,8 @@ export function monterMonday(app) {
     const S = await import('../crm/synchro.js');
     const L = await import('../layer-sources.js');
     const Mails = await import('../crm/mails.js');
-    ok(res, { deplacement: D.recevoirEvenement(req.body), synchro: S.depuisTwenty(req.body), layer: L.depuisTwenty(req.body), mail: Mails.depuisTwenty(req.body) });
+    const E = await import('../mandataire-espace.js');
+    ok(res, { deplacement: D.recevoirEvenement(req.body), synchro: S.depuisTwenty(req.body), layer: L.depuisTwenty(req.body), mail: Mails.depuisTwenty(req.body), clients: E.surClientTwenty(req.body) });
   }));
 
   // Monday : les webhooks des tableaux migrés (scripts/crm/synchro-monday.mjs), pour que Twenty suive ce que l'équipe

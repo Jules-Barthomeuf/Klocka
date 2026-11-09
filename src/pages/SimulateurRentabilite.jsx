@@ -6,6 +6,8 @@ import ExportExcelFullButton from "../components/simulator/ExportExcelFullButton
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
+import { TitrePage } from "@/components/mandataire/elements";
+import { vueDe } from "@/lib/vue";
 import { NeonButton } from "@/components/ui/neon-button";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -494,9 +496,9 @@ export default function SimulateurRentabilite() {
 
       {/* Le cadre du simulateur d'un dossier (19 oct. 2026, Jules : « comme dans le simulateur dans le dossier ») : une carte
           sur le fond, le rail à gauche derrière un filet, les onglets soulignés, un seul fond pour les cartes du dedans. */}
-      <div className={`mx-auto flex max-w-[1500px] flex-col px-5 pb-10 pt-9 md:px-8 md:pt-12 ${isEtape2 ? 'blur-md' : ''}`}>
-        <h1 className="k-entree m-0 mb-5 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Simulateur</h1>
-        <div data-zone="listes" className="k-entree k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail" style={{ "--k-delai": ".08s" }}>
+      <div className={`mx-auto flex max-w-[1500px] flex-col px-5 pb-10 md:px-8 ${vueDe(user) === "mandataire" ? "pt-[22px]" : "pt-9 md:pt-12"} ${isEtape2 ? 'blur-md' : ''}`}>
+        {vueDe(user) === "mandataire" ? <TitrePage titre="Simulateur" className="mb-3.5" /> : <h1 className="k-entree m-0 mb-5 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Simulateur</h1>}
+        <div data-zone="listes" className={`k-entree k-points relative overflow-hidden border ${vueDe(user) === "mandataire" ? "rounded-[12px] [&_table_:is(th,td)]:border-r [&_table_:is(th,td)]:border-trait [&_table_tr>*:last-child]:border-r-0" : "rounded-[16px]"} border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail`} style={{ "--k-delai": ".08s" }}>
         <div className="flex min-h-0">
           {/* Left control rail */}
           <aside className="k-glisse hidden w-[250px] flex-shrink-0 border-r border-trait md:block" style={{ "--k-delai": ".18s" }}>

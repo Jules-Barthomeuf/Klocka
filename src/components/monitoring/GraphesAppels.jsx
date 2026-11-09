@@ -43,9 +43,9 @@ const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 /** Le cadre d'un graphique : titre en petites capitales, une phrase qui dit quoi lire, le graphique. */
 export function Cadre({ titre, aide = null, droite = null, children, className = "" }) {
   return (
-    <section className={`rounded-[14px] border border-trait bg-surface p-4 ${className}`}>
+    <section className={`rounded-[12px] border border-trait bg-surface p-4 ${className}`}>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="m-0 text-[11px] font-normal uppercase tracking-[.16em] text-menthe">{titre}</h2>
+        <h2 className="m-0 text-[14px] font-normal text-encre">{titre}</h2>
         {droite}
       </div>
       {aide && <p className="m-0 -mt-1.5 mb-3 text-[12px] text-brume">{aide}</p>}
@@ -309,7 +309,7 @@ export function PetitsMultiples({ analystes, parJour, c, onChoisir }) {
         const data = parJour.map((j) => ({ jour: j.jour, n: j.par?.[a.email] || 0 }));
         return (
           <button key={a.email} type="button" onClick={() => onChoisir?.(a.prenom)} title="Voir les appels de cette personne"
-            className="rounded-[14px] border border-trait bg-surface p-3.5 text-left transition-colors hover:border-bord-vif">
+            className="rounded-[12px] border border-trait bg-surface p-3.5 text-left transition-colors hover:border-bord-vif">
             <p className="m-0 flex items-center justify-between text-[14px] text-encre">
               <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full" style={{ background: teinte[a.email] }} />{a.prenom}</span>
               <span className="text-[20px] font-light">{a.appels}</span>
@@ -375,9 +375,9 @@ export function FaitsParJour({ parJour, c, titre = "Faits tirés des appels, par
 /** La carte d'un chiffre (déplacée de Suivi > Appels le 15 oct. 2026 pour servir aussi à la page Intelligence). */
 export function Chiffre({ valeur, libelle, note = null }) {
   return (
-    <div className="rounded-md border border-trait bg-surface px-4 py-3.5">
-      <p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{libelle}</p>
-      <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{valeur}</p>
+    <div className="rounded-[12px] border border-trait bg-rail px-3.5 py-2.5">
+      <p className="m-0 text-[18px] font-medium tabular-nums text-encre">{valeur}</p>
+      <p className="m-0 text-[12.5px] text-ardoise">{libelle}</p>
       {note && <p className="m-0 mt-0.5 text-[12px] text-brume">{note}</p>}
     </div>
   );
@@ -387,9 +387,9 @@ export function Chiffre({ valeur, libelle, note = null }) {
 export function ChiffreCourbe({ valeur, libelle, note = null, serie = [], cle, c, format = (v) => v }) {
   const donnees = serie.map((d) => ({ jour: d.jour, v: d[cle] }));
   return (
-    <div className="rounded-md border border-trait bg-surface px-4 pb-2 pt-3.5">
-      <p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{libelle}</p>
-      <p className="m-0 mt-2 text-[24px] font-light text-encre">{valeur}</p>
+    <div className="rounded-[12px] border border-trait bg-rail px-3.5 pb-1.5 pt-2.5">
+      <p className="m-0 text-[18px] font-medium tabular-nums text-encre">{valeur}</p>
+      <p className="m-0 text-[12.5px] text-ardoise">{libelle}</p>
       {note && <p className="m-0 mt-0.5 text-[12px] text-brume">{note}</p>}
       <div className="mt-2 h-[44px]">
         <ResponsiveContainer>

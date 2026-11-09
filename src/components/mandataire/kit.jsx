@@ -138,7 +138,7 @@ export function PastilleTest({ x }) {
  * Le bouton des exemples (10 oct. 2026 ; sa phrase retirée le 31 oct.) : tant qu’il en reste dans la liste,
  * un clic les retire tous, de toutes les pages.
  */
-export function BandeauExemples({ liste = [] }) {
+export function BandeauExemples({ liste = [], className = "my-4 flex justify-end" }) {
   const queryClient = useQueryClient();
   const [enCours, setEnCours] = useState(false);
   if (!liste.some((x) => x?.exemple)) return null;
@@ -154,7 +154,7 @@ export function BandeauExemples({ liste = [] }) {
   };
   return (
     // Plus de phrase ni d'encadré (31 oct. 2026, Jules) : le bouton seul, tant qu'il reste des exemples.
-    <div className="my-4 flex justify-end">
+    <div className={className}>
       <button type="button" onClick={retirer} disabled={enCours} className="h-8 flex-none rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>{enCours ? "Retrait…" : "Retirer les exemples"}</button>
     </div>
   );

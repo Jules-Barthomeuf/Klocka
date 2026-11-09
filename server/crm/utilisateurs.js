@@ -26,8 +26,9 @@ export function objet({ superAdmin = false } = {}) {
     champ('statut', 'Statut', 'SELECT', { options: [opt('EN_COURS', 'En cours', 'green'), opt('EN_ATTENTE', 'En attente', 'orange')] }),
     champ('admin', 'Admin', 'BOOLEAN', { modifiable: superAdmin }),
     champ('mandataire', 'Mandataire', 'BOOLEAN', { modifiable: superAdmin }),
-    champ('etape', 'Étape', 'SELECT', { options: ETAPES.map((e, i) => opt(String(i), e, 'gray')) }),
-    champ('villes', 'Villes', 'TEXT'),
+    // L'étape d'un client et les villes d'un mandataire se corrigent aussi (8 nov. 2026, Jules : « tout modifiable »).
+    champ('etape', 'Étape', 'SELECT', { modifiable: true, options: ETAPES.map((e, i) => opt(String(i), e, 'gray')) }),
+    champ('villes', 'Villes', 'TEXT', { modifiable: true }),
     champ('createdAt', 'Créé le', 'DATE_TIME'),
   ];
   const colonnes = champs.map((c) => c.nom);
@@ -133,6 +134,14 @@ export async function changer(par, id, champ, saisie) {
     const oui = saisie === true || saisie === 'true';
     const r = fixerRoles(par, u.email, { admin: champ === 'admin' ? oui : avant.admin, mandataire: champ === 'mandataire' ? oui : avant.mandataire });
     if (!r.ok) throw erreur(r.code || 400, r.error);
+  } else if (champ === 'etape') {
+    if (estEquipe(u)) throw erreur(400, "L'équipe n'a pas d'étape de parcours.");
+    const n = Number(saisie);
+    if (!Number.isInteger(n) || n < 0 || n >= ETAPES.length) throw erreur(400, 'Étape inconnue.');
+    Records.update('User', id, { etape_actuelle: n });
+  } else if (champ === 'villes') {
+    if (!estMandataire(u)) throw erreur(400, "Ce compte n'est pas mandataire : il n'a pas de villes.");
+    await (await import('./mandataires.js')).changerVilles(bas(u.email), saisie, par);
   } else throw erreur(403, 'Ce champ ne se modifie pas ici.');
   return { fiche: fiche(id).fiche, liens: {} };
 }

@@ -1,11 +1,12 @@
 import React, { useRef, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, ChevronRight, FileUp, Loader2, Plus, Search, Send, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, FileUp, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
 import { BandeauExemples, Carte, Frise, PastilleExemple, PastilleTest, euros } from "@/components/mandataire/kit";
+import { BoutonOutil, BoutonPrincipal, CLASSE_OUTIL, Filtres, Recherche, Statut, TitrePage, TRANSPARENT } from "@/components/mandataire/elements";
 import { useAuthPeutEtre } from "@/lib/AuthContext";
 import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
@@ -122,13 +123,15 @@ function BoutonBienTest({ onCree }) {
   // Jules seul (31 oct. 2026, Jules).
   if (auth?.user?.role !== "admin" || String(auth?.user?.email || "").toLowerCase() !== "jules.b@klocka.immo") return null;
   return (
-    <button type="button" onClick={() => poser.mutate()} disabled={poser.isPending} className="inline-flex h-11 flex-none items-center gap-2 whitespace-nowrap rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+    <button type="button" onClick={() => poser.mutate()} disabled={poser.isPending} className={CLASSE_OUTIL} style={TRANSPARENT}>
       <Plus className="h-3.5 w-3.5" /> Bien test
     </button>
   );
 }
 
-const PAR_PAGE = 9;
+// Dix-huit biens à la fois (8 nov. 2026, Jules) : les cartes compactes en tiennent six rangées sur un écran.
+const PAR_PAGE = 18;
+const FILTRES_BIENS = { tous: () => true, avant: (b) => rangVisible(b.etape) <= 2, mandat: (b) => rangVisible(b.etape) === 3, vente: (b) => [4, 5].includes(rangVisible(b.etape)), fin: (b) => rangVisible(b.etape) === 6 };
 
 function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest, onImporte }) {
   const [recherche, setRecherche] = useState("");
@@ -154,72 +157,60 @@ function TousLesBiens({ biens, chargement, erreur, onOuvrir, onNouveau, onTest, 
   // « Estimation envoyée » (26 oct. 2026, Jules ; renommé le 27 avec la restitution) : les avis envoyés sans réponse
   // du propriétaire, ce que l'étape Prix d'accord montrait.
   const [enAttente, setEnAttente] = useState(false);
+  const [filtre, setFiltre] = useState("tous");
   const attente = useMemo(() => biens.filter(enAttenteDuProprietaire), [biens]);
   const liste = useMemo(() => {
     const t = recherche.trim().toLowerCase();
-    return (enAttente ? attente : biens).filter((b) => !t || `${b.titre} ${b.adresse || ""}`.toLowerCase().includes(t));
-  }, [biens, attente, enAttente, recherche]);
+    return (enAttente ? attente : biens).filter(FILTRES_BIENS[filtre]).filter((b) => !t || `${b.titre} ${b.adresse || ""}`.toLowerCase().includes(t));
+  }, [biens, attente, enAttente, recherche, filtre]);
   // Neuf biens à la fois (2 nov. 2026, Jules) : trois rangées de trois, puis Précédent / Suivant.
   const [page, setPage] = useState(0);
-  useEffect(() => setPage(0), [recherche, enAttente]);
+  useEffect(() => setPage(0), [recherche, enAttente, filtre]);
   const pages = Math.max(1, Math.ceil(liste.length / PAR_PAGE));
   const ici = Math.min(page, pages - 1);
   const vus = liste.slice(ici * PAR_PAGE, (ici + 1) * PAR_PAGE);
   return (
-    <div className="mx-auto w-full max-w-[1500px] px-5 py-6 md:px-8 md:py-7">
-      <header className="grid items-center gap-4 md:grid-cols-[1fr_auto_1fr] md:gap-6">
-        <label className="flex h-11 w-full max-w-[340px] items-center gap-2.5 rounded-full border border-trait px-[18px] text-ardoise max-md:order-2 max-md:max-w-none">
-          <Search className="h-4 w-4 flex-none" />
-          <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un bien…" aria-label="Rechercher un bien"
-            className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-        </label>
-        <h1 className="m-0 text-center text-[30px] font-medium tracking-[-0.01em] text-encre max-md:order-1 max-md:text-left max-md:text-[26px]">Vos biens</h1>
-        {/* Sur une ligne (31 oct. 2026, Jules) : « + » (Nouveau bien), Importer, Bien test. */}
-        <div className="flex flex-nowrap items-center gap-2.5 max-md:order-3 md:justify-end">
-          <button type="button" onClick={onNouveau} aria-label="Nouveau bien" title="Nouveau bien" className="grid h-11 w-11 flex-none place-items-center rounded-full bg-encre text-fond hover:opacity-90">
-            <Plus className="h-4 w-4" />
-          </button>
-          <button type="button" onClick={() => importer.mutate()} disabled={importer.isPending} className="inline-flex h-11 flex-none items-center gap-2 whitespace-nowrap rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
-            {importer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />} Importer
-          </button>
-          <BoutonBienTest onCree={onTest} />
-        </div>
-      </header>
-
-
-      {(!!attente.length || enAttente) && (
-        <div className="mt-5 flex justify-center max-md:justify-start">
+    <div className="mx-auto w-full max-w-[1500px] px-5 py-[22px] md:px-8">
+      <TitrePage titre="Mes biens" nombre={biens.length || null} actions={<>
+        <BoutonOutil onClick={() => importer.mutate()} disabled={importer.isPending}>{importer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />} Importer</BoutonOutil>
+        <BoutonBienTest onCree={onTest} />
+        <BoutonPrincipal onClick={onNouveau}><Plus className="h-4 w-4" /> Nouveau bien</BoutonPrincipal>
+      </>} />
+      <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
+        <Recherche value={recherche} onChange={setRecherche} placeholder="Rechercher un bien" className="w-full md:w-[320px]" />
+        <Filtres label="Filtrer les biens" valeur={filtre} onChange={setFiltre} options={[["tous", "Tous", biens.length], ["avant", "Visite et avis", biens.filter(FILTRES_BIENS.avant).length], ["mandat", "Mandat", biens.filter(FILTRES_BIENS.mandat).length], ["vente", "En vente", biens.filter(FILTRES_BIENS.vente).length], ["fin", "Vente", biens.filter(FILTRES_BIENS.fin).length]]} />
+        {(!!attente.length || enAttente) && (
           <button type="button" onClick={() => setEnAttente((v) => !v)} aria-pressed={enAttente}
-            className={`inline-flex h-9 items-center gap-2 rounded-full border px-4 text-[13.5px] transition-colors ${enAttente ? "border-ambre/60 bg-ambre/10 text-encre" : "border-trait text-craie hover:text-encre"}`}
-            style={enAttente ? undefined : { background: "transparent" }}>
-            <span className="h-1.5 w-1.5 rounded-full bg-ambre" />Estimation envoyée<span className="tabular-nums text-ardoise">{attente.length}</span>
+            className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px] transition-colors max-md:h-10 ${enAttente ? "bg-statut-ambre-fond text-statut-ambre" : "text-craie hover:bg-relief hover:text-encre"}`}
+            style={enAttente ? undefined : TRANSPARENT}>
+            Estimation envoyée<span className="tabular-nums text-ardoise">{attente.length}</span>
           </button>
-        </div>
-      )}
+        )}
+        <BandeauExemples liste={biens} className="md:ml-auto" />
+      </div>
       {/* L'attente seulement quand rien n'est encore là (2 nov. 2026, Jules : « les biens sont déjà en dessous »). */}
       {chargement && !biens.length && <Chargement taille="grand" />}
       {erreur && !chargement && <p className="m-0 mt-8 text-[13.5px] text-alerte">Les biens ne se chargent pas. Rechargez la page.</p>}
       {!chargement && !erreur && !biens.length && <p className="m-0 mt-16 text-center text-[14px] text-brume">Aucun bien encore : un propriétaire contacté en devient un, ou commencez par une estimation avec « Nouveau bien ».</p>}
       {!!biens.length && !liste.length && <p className="m-0 mt-10 text-center text-[13.5px] text-brume">Rien ne correspond.</p>}
 
-      <BandeauExemples liste={biens} />
       {!!liste.length && (
-        <div className="mt-[26px] grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-3.5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {vus.map((b) => <CarteBien key={b.cle} b={b} onOuvrir={() => onOuvrir(b)} onSupprimer={() => supprimer.mutate({ ids: b.ids, titre: b.titre })} />)}
         </div>
       )}
       {pages > 1 && (
         <nav className="mt-6 flex items-center justify-center gap-3 text-[13.5px]" aria-label="Pages des biens">
-          <button type="button" onClick={() => setPage(ici - 1)} disabled={ici === 0} className="inline-flex h-9 items-center rounded-full border border-trait px-4 text-craie hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Précédent</button>
+          <BoutonOutil onClick={() => setPage(ici - 1)} disabled={ici === 0}>Précédent</BoutonOutil>
           <span className="tabular-nums text-ardoise">{ici * PAR_PAGE + 1}-{Math.min((ici + 1) * PAR_PAGE, liste.length)} sur {liste.length}</span>
-          <button type="button" onClick={() => setPage(ici + 1)} disabled={ici >= pages - 1} className="inline-flex h-9 items-center rounded-full border border-trait px-4 text-craie hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Suivant</button>
+          <BoutonOutil onClick={() => setPage(ici + 1)} disabled={ici >= pages - 1}>Suivant</BoutonOutil>
         </nav>
       )}
     </div>
   );
 }
 
-/** La carte d'un bien, au dessin de celle d'un dossier : le statut et la date sur la grille de points, le bien, puis ses étapes en segments. */
+/** La carte d'un bien (8 nov. 2026, Jules) : compacte comme au CRM, le statut en case sur la ligne du titre, puis ses étapes en segments. */
 function CarteBien({ b, onOuvrir, onSupprimer = null }) {
   // Six étapes à l'écran (7 nov. 2026) : la Data room et la Commercialisation font la Mise en vente.
   const lesEtapes = etapesVisibles(b);
@@ -230,39 +221,37 @@ function CarteBien({ b, onOuvrir, onSupprimer = null }) {
   const fourchette = b.estimation?.rapport?.prix_bas ? `${euros(b.estimation.rapport.prix_bas)} – ${euros(b.estimation.rapport.prix_haut)}` : null;
   const lieu = [b.dossier?.carte?.ville, b.dossier?.carte?.surface_m2 ? `${b.dossier.carte.surface_m2} m²` : null, prix ? euros(prix) : fourchette].filter(Boolean).join(" · ") || b.adresse || "Adresse à compléter";
   return (
-    <article className="group relative flex cursor-pointer flex-col rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}
+    <article className="group relative flex cursor-pointer flex-col gap-2.5 rounded-[12px] border border-trait bg-rail px-3.5 py-3 transition-colors hover:border-bord-doux" onClick={onOuvrir}
       role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === "Enter") onOuvrir(); }}>
-      <div className="k-grid k-grid-toujours relative h-[112px] flex-none rounded-t-[17px] border-b border-trait">
-        <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: ecarte ? J["alerte"] : J["menthe"] }} />{b.statut || e.label}
-        </span>
-        <span className="absolute right-4 top-[18px] inline-flex items-center gap-2 text-[12px] tabular-nums text-brume">
-          <PointNouveau n={nonLus} />{b.modifie ? new Date(b.modifie).toLocaleDateString("fr-FR") : ""}
-        </span>
-        {/* Supprimer : la corbeille au survol, sous la date (toujours visible au téléphone). Les exemples ne se suppriment pas. */}
-        {onSupprimer && !b.exemple && (
-          <button type="button" onClick={(ev) => { ev.stopPropagation(); onSupprimer(); }} aria-label={`Supprimer ${b.titre}`} title="Supprimer ce bien"
-            className="absolute bottom-3 right-3 grid h-8 w-8 place-items-center rounded-full border border-trait bg-fond text-ardoise opacity-0 transition-opacity hover:text-alerte focus:opacity-100 group-hover:opacity-100 max-md:opacity-100">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-      <div className="flex flex-1 flex-col gap-3.5 px-5 pb-5 pt-[18px]">
-        <div className="flex min-w-0 flex-col gap-2">
-          <p className="m-0 flex min-w-0 items-center text-[17px] font-medium text-encre" title={b.titre}><span className="truncate">{b.titre}</span><PastilleExemple x={b} /><PastilleTest x={b} /></p>
-          <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
-            {/* Murs ou fonds, d'un coup d'œil (3 nov. 2026, Jules). */}
-            {b.type && <span className="flex-none rounded-full border border-trait px-2.5 py-[3px] text-[12px] text-craie">{b.type.mot}</span>}
-            {b.dossier?.transfere && <span className="flex-none rounded-full border border-menthe/40 px-2.5 py-[3px] text-[12px] text-menthe">Chez {b.dossier.analyste_nom || "Klocka"}</span>}
-            <span className="truncate text-[13px] text-ardoise">{lieu}</span>
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center justify-between gap-2.5">
+          <p className="m-0 flex min-w-0 items-center text-[15px] text-encre" title={b.titre}><span className="truncate">{b.titre}</span><PastilleExemple x={b} /><PastilleTest x={b} /></p>
+          <Statut couleur={ecarte ? "corail" : null} className="flex-none">{b.statut || e.label}</Statut>
+        </div>
+        <div className="mt-0.5 flex min-h-5 min-w-0 items-center justify-between gap-2.5">
+          {/* Murs ou fonds, d'un coup d'œil (3 nov. 2026, Jules). */}
+          <p className="m-0 flex min-w-0 items-center gap-2 text-[13.5px] text-ardoise">
+            <span className="truncate">{[b.type?.mot, lieu].filter(Boolean).join(" · ")}</span>
+            {b.dossier?.transfere && <Statut couleur="lavande" className="flex-none">Chez {b.dossier.analyste_nom || "Klocka"}</Statut>}
           </p>
+          <span className="inline-flex flex-none items-center gap-2 text-[12.5px] tabular-nums text-brume">
+            <PointNouveau n={nonLus} />
+            {/* Supprimer : la corbeille au survol, à côté de la date (toujours visible au téléphone). Les exemples ne se suppriment pas. */}
+            {onSupprimer && !b.exemple && (
+              <button type="button" onClick={(ev) => { ev.stopPropagation(); onSupprimer(); }} aria-label={`Supprimer ${b.titre}`} title="Supprimer ce bien"
+                className="grid h-6 w-6 place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-alerte focus:opacity-100 group-hover:opacity-100 max-md:h-9 max-md:w-9 max-md:opacity-100" style={TRANSPARENT}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {b.modifie ? new Date(b.modifie).toLocaleDateString("fr-FR") : ""}
+          </span>
         </div>
-        <div className="flex flex-col gap-1.5" aria-label={`Étape ${e.n} sur ${NB_ETAPES_VISIBLES} : ${e.label}`}>
-          <div className="flex justify-between text-[12px] text-ardoise"><span>Étapes</span><span className="tabular-nums">{e.n} / {NB_ETAPES_VISIBLES}</span></div>
-          <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${NB_ETAPES_VISIBLES}, minmax(0, 1fr))` }}>
-            {lesEtapes.map((x) => <span key={x.id} className={`h-1 rounded-full ${etapeFaite(b.faites, x) ? "bg-menthe" : x.n === e.n ? "bg-menthe/45" : "bg-encre/[0.12]"}`} />)}
-          </div>
+      </div>
+      <div className="flex items-center gap-3" aria-label={`Étape ${e.n} sur ${NB_ETAPES_VISIBLES} : ${e.label}`}>
+        <div className="grid flex-1 gap-1" style={{ gridTemplateColumns: `repeat(${NB_ETAPES_VISIBLES}, minmax(0, 1fr))` }}>
+          {lesEtapes.map((x) => <span key={x.id} className={`h-1 rounded-full ${etapeFaite(b.faites, x) ? "bg-menthe" : x.n === e.n ? "bg-menthe/45" : "bg-encre/[0.12]"}`} />)}
         </div>
+        <span className="text-[12.5px] tabular-nums text-ardoise">{e.n} / {NB_ETAPES_VISIBLES}</span>
       </div>
     </article>
   );
@@ -370,7 +359,7 @@ function BienOuvert({ bien, etape, onAller, onFermer, onCree, types, estimations
     </button>
   );
   const ongletsDeLaVente = (avecIa) => (
-    <div className="mx-auto mb-px flex items-end justify-center gap-6 self-end">
+    <div className="mb-px flex items-end gap-6 self-end">
       {avecIa && ongletIa}
       <Onglets items={[
       { cle: "dataroom", titre: "Data room" },
@@ -733,7 +722,7 @@ function EtapeChat({ espace, bien, objet, large, entete, onFermer, onCree, onSui
                 {/* Les trois documents de l'avis (27 oct. 2026, Jules) : Présenter, l'Avis de valeur, ses Sources. */}
                 {espace === "estimation" && (
                   <button type="button" onClick={() => setPresenter(true)}
-                    className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full bg-pervenche px-3.5 text-[13px] text-sur-pervenche">Présenter</button>
+                    className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full bg-pervenche px-3.5 text-[13.5px] text-sur-pervenche max-md:h-10">Présenter</button>
                 )}
                 {suivi && <DocumentTelephone enLigne serre libelle="Suivi"><SuiviBien proprietaireId={bien.proprietaire.id} /></DocumentTelephone>}
                 <DocumentTelephone enLigne serre libelle={espace === "estimation" ? "Avis de valeur" : "Voir le mandat"}>{document}</DocumentTelephone>
@@ -849,7 +838,7 @@ function EtapeEnVente({ bien, large, entete, onFermer, onglet, onOnglet, onglets
       cles={["m-vente-etat", "m-acquereurs", "m-dossier-vente", "m-marches", "m-teaser"]}
       placeholder="Demandez à l'Assistant KPartners : relance le vendeur, prépare un message, compare les offres…" proposition={conseil} finFil={conseil}
       barre={onglets} libelleTel="Voir la mise en vente" classeDroite={onglet === "dataroom" ? "k-dataroom-fond" : ""}
-      droite={<><BandeauVente marcheId={m.id} />
+      droite={<>{/* Les compteurs dans Acquéreurs seulement (8 nov. 2026, Jules). */}{onglet === "acquereurs" && <BandeauVente marcheId={m.id} />}
         {/* Changer d'onglet : le contenu entre en fondu en montant un peu, comme dans l'Analyse (7 nov. 2026, Jules). */}
         <motion.div key={onglet} className="pt-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>{contenu}</motion.div></>} />
   );

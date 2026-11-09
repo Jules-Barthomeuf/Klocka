@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
 import { Lettre, MARQUES } from "@/components/offres/EditeurLoi";
+import { Filtres, TitrePage } from "@/components/mandataire/elements";
 import { PagesAvis } from "@/components/mandataire/EditeurAvis";
 
 // Modèles (26 oct. 2026, Jules) : dans Administration, les modèles de documents de chaque marque, Klocka et
@@ -31,17 +32,13 @@ export default function AdminModeles() {
   const [document, setDocument] = useState("loi");
   const [marque, setMarque] = useState("klocka");
   return (
-    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden px-5 py-6 text-encre md:px-10 md:py-9">
-      <div className="mx-auto max-w-[1400px]">
-        <header className="k-entree flex flex-col items-center gap-2 text-center">
-          <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Modèles</h1>
-          <p className="m-0 max-w-[60ch] text-[14px] text-ardoise">Les documents de Klocka et de K Partners, remplis avec un exemple. Le texte est le même ; la marque change les couleurs, le logo et le pied de page.</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <Pilules libelle="Document" options={DOCUMENTS} valeur={document} onChoisir={setDocument} />
-            <Pilules libelle="Marque" options={MARQUES} valeur={marque} onChoisir={setMarque} />
-          </div>
-        </header>
-        <div key={`${document}-${marque}`} className="mt-8 animate-in fade-in duration-500">
+    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden px-5 py-[22px] text-encre md:px-8">
+      <div className="mx-auto max-w-[1500px]">
+        <TitrePage titre="Modèles" className="k-entree md:!pr-[112px]" actions={<>
+          <Filtres label="Document" options={DOCUMENTS} valeur={document} onChange={setDocument} />
+          <Filtres label="Marque" options={MARQUES} valeur={marque} onChange={setMarque} />
+        </>} />
+        <div key={`${document}-${marque}`} className="mt-3.5 animate-in fade-in duration-500">
           {document === "loi" ? <ModelesLoi marque={marque} /> : <ModeleAvis marque={marque} />}
         </div>
       </div>

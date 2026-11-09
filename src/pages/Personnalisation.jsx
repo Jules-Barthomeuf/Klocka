@@ -15,6 +15,7 @@ import AccesAdmins from "@/components/compte/AccesAdmins";
 import MesMails from "@/components/compte/MesMails";
 import { ListeVilles } from "@/components/mandataire/VillesMandataire";
 import { estApercuTelephone } from "@/components/ApercuTelephone";
+import { BoutonOutil, Filtres, TitrePage } from "@/components/mandataire/elements";
 import { createPageUrl } from "@/utils";
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
@@ -404,7 +405,14 @@ export default function Personnalisation() {
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
 
   return (
-    <div className={`mx-auto w-full px-5 py-8 md:px-6 md:py-10 ${large ? "max-w-[1100px]" : "max-w-[980px]"}`}>
+    // L'équipe et les mandataires (9 nov. 2026, Jules) : la largeur des autres pages, chaque bloc dans un cadre à 12 px, le fond de la page dedans.
+    <div className={`mx-auto w-full px-5 ${large ? "max-w-[1500px] py-[22px] md:px-8 [&_section]:!rounded-[12px] [&_section]:!border [&_section]:!border-trait [&_section]:!bg-transparent [&_section]:!bg-none [&_section.k-grid]:before:!hidden [&_section.k-grid]:after:!hidden md:[&_input:not([type=checkbox]):not([type=color]):not([type=range]):not([type=file])]:!h-8 md:[&_input]:!text-[13.5px]" : `py-8 md:px-6 md:py-10 ${large ? "max-w-[1100px]" : "max-w-[980px]"}`}`}>
+      {large ? (
+        <TitrePage titre="Paramètres" className="mb-3.5 md:!pr-[112px]" actions={<>
+          <span className={`text-[13px] ${etat === "erreur" ? "text-alerte" : "text-ardoise"}`}>{etatMot}</span>
+          <BoutonOutil onClick={reinitialiser}><RotateCcw className="h-3.5 w-3.5" />Réglages d'origine</BoutonOutil>
+        </>} />
+      ) : (
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Paramètres</h1>
@@ -417,8 +425,10 @@ export default function Personnalisation() {
           </button>
         </div>
       </header>
+      )}
 
       {/* Les sections en onglets (9 oct. 2026) : on va droit à la bonne, sans faire défiler toute la page. */}
+      {large ? <Filtres className="mb-3" label="Sections du compte" valeur={section} onChange={choisir} options={sections.map(([k, mot]) => [k, mot])} /> : (
       <nav className="mb-6 inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Sections du compte">
         {sections.map(([k, mot]) => (
           <button key={k} type="button" onClick={() => choisir(k)} aria-pressed={section === k}
@@ -426,6 +436,7 @@ export default function Personnalisation() {
             style={section === k ? undefined : { background: "transparent" }}>{mot}</button>
         ))}
       </nav>
+      )}
 
       <div key={section} className="duration-300 animate-in fade-in-0">
       {/* Qui vous êtes : photo, nom, mot de passe ; pour un mandataire, ses documents. */}

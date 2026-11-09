@@ -4,6 +4,7 @@ import { LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis 
 import { base44 } from "@/api/base44Client";
 import { Bulle, useCouleurs } from "@/components/monitoring/GraphesAppels";
 import Chargement from "@/components/ui/Chargement";
+import { Cases, Filtres, TitrePage } from "@/components/mandataire/elements";
 import { montant } from "../../server/montants.js";
 
 // Le tableau de bord (2 nov. 2026, Jules, sur sa seconde maquette « Vos statistiques », reprise telle quelle, à la
@@ -186,6 +187,52 @@ function ParMandataire({ mandataires, etapes, c }) {
   );
 }
 
+/** Le tableau de bord d'un mandataire (8 nov. 2026, Jules) : les mêmes chiffres, en cases, une courbe par carte, l'entonnoir en lignes. */
+function VueCompacte({ data, periode, setPeriode, periodes, c, chargement }) {
+  return (
+    <div className="min-h-screen text-encre">
+      <div className="mx-auto max-w-[1500px] px-5 py-[22px] md:px-8">
+        <TitrePage titre="Tableau de bord" actions={<Filtres label="Période" valeur={periode} onChange={setPeriode} options={periodes} />} />
+        {chargement || !data ? <Chargement taille="grand" /> : (
+          <>
+            <Cases className="mt-3.5" items={data.indicateurs.map((x) => { const l = lire(x); return [[l.valeur[0], l.valeur[1]].filter(Boolean).join(" ").replace(/^—$/, "Pas encore"), x.libelle]; })} />
+            <h2 className="m-0 mb-2 mt-5 text-[14px] font-normal text-encre">Cette semaine</h2>
+            <div className="grid gap-2.5 md:grid-cols-3">
+              {data.cette_semaine.map((s) => {
+                const d = s.n - s.avant;
+                return (
+                  <div key={s.cle} className="rounded-[12px] border border-trait bg-rail px-3.5 py-3">
+                    <div className="flex items-baseline justify-between gap-2 text-[14px]"><span className="truncate">{s.libelle}</span><span className="flex-none text-[18px] font-medium tabular-nums">{nb(s.n)} <span className="text-[12.5px] font-normal text-ardoise">{d ? `${signe(d)}${Math.abs(d)}` : "="}</span></span></div>
+                    <div className="mt-2 h-[44px]">
+                      <ResponsiveContainer>
+                        <LineChart data={s.jours.map((j, i) => ({ ...j, nom: JOURS[i] }))} margin={{ top: 4, right: 2, left: 2, bottom: 4 }}>
+                          <YAxis hide domain={[0, "dataMax"]} />
+                          <Line dataKey="n" type="linear" stroke={c.menthe} strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <h2 className="m-0 mb-1 mt-5 text-[14px] font-normal text-encre">De la prospection à la vente</h2>
+            {(() => {
+              const max = Math.max(1, ...data.entonnoir.map((e) => e.n));
+              return data.entonnoir.map((e) => (
+                <div key={e.cle} className="flex min-h-[42px] items-center gap-4 border-b border-trait text-[14px]">
+                  <span className="w-[140px] flex-none truncate max-md:w-[100px]">{e.libelle}</span>
+                  <span className="h-1.5 flex-1 rounded-full bg-relief"><span className="block h-1.5 rounded-full bg-menthe" style={{ width: `${e.n ? Math.max(4, Math.sqrt(e.n / max) * 100) : 0}%` }} /></span>
+                  <span className="w-[120px] flex-none text-right tabular-nums"><span className="mr-2 text-[12.5px] text-ardoise">{e.taux == null ? "" : `${e.taux} %`}</span>{nb(e.n)}</span>
+                </div>
+              ));
+            })()}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SuiviActivite({ pourMandataire = false }) {
   const [periode, setPeriode] = useState("annee");
   const c = useCouleurs();
@@ -199,6 +246,7 @@ export default function SuiviActivite({ pourMandataire = false }) {
   if (error) return <div className="p-8 text-[13.5px] text-alerte">{error.message || "Accès refusé."}</div>;
   const periodes = [["semaine", "Semaine"], ["mois", "Mois"], ["annee", "Année"]];
 
+  if (pourMandataire) return <VueCompacte data={data} periode={periode} setPeriode={setPeriode} periodes={periodes} c={c} chargement={isLoading} />;
   return (
     <div className="min-h-screen text-encre">
       <div className="mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">

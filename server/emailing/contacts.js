@@ -7,6 +7,7 @@ import { randomBytes } from 'crypto';
 import { Records } from '../db.js';
 import { E, listeDuNom, audience, dansSegment, envoyable, STATUTS_CONTACT } from './schema.js';
 import { NEWSLETTER, activitesDe, actif, score, scores } from './newsletters.js';
+import { poserOpposition } from './journal.js';
 
 const maintenant = () => new Date().toISOString();
 const normEmail = (e) => String(e || '').trim().toLowerCase();
@@ -260,6 +261,7 @@ export function enMasse(ids, { action, valeur = null } = {}) {
     else if (action === 'retirer_liste') Records.update(E.CONTACT, c.id, { listes: (c.listes || []).filter((x) => x !== valeur) });
     else if (action === 'desinscrire' && c.statut === 'abonne') {
       Records.update(E.CONTACT, c.id, { statut: 'desinscrit', statut_le: maintenant(), desinscription_source: 'equipe' });
+      poserOpposition(c.email, { motif: 'desinscription', source: 'equipe' });
       for (const i of Records.list(E.INSCRIPTION).filter((x) => x.contact_id === c.id && x.statut === 'en_cours')) Records.update(E.INSCRIPTION, i.id, { statut: 'sortie', raison: 'desinscription', sortie_le: maintenant() });
     } else if (action === 'supprimer') {
       for (const i of Records.list(E.INSCRIPTION).filter((x) => x.contact_id === c.id)) Records.delete(E.INSCRIPTION, i.id);

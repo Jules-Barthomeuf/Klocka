@@ -66,7 +66,7 @@ export function Tuile({ titre, valeur, evolution, note = null, serie, cle, actif
     <button type="button" onClick={onChoisir} aria-pressed={actif}
       className={`${className} min-w-0 px-5 pb-3 pt-4 text-left transition-colors ${actif ? "bg-surface-pleine" : "bg-fond hover:bg-surface"}`}>
       <div className={`text-[12.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{titre}</div>
-      <div className="mt-1 text-[30px] font-light tracking-[-0.02em] text-encre tabular-nums">{valeur}</div>
+      <div className="mt-1 text-[18px] font-medium tracking-[-0.02em] text-encre tabular-nums">{valeur}</div>
       <div className="mt-0.5 truncate text-[12px] tabular-nums">{note ?? <Evolution v={evolution} />}</div>
       <div className="mt-2 h-[38px]">
         <ResponsiveContainer>
@@ -191,7 +191,7 @@ export function VueEnsemble({ data, c }) {
   ];
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border border-trait bg-trait sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[12px] border border-trait bg-trait sm:grid-cols-3 lg:grid-cols-5">
         {tuiles.map((x, i) => <Tuile key={x.cle} className={i === tuiles.length - 1 ? "max-sm:col-span-2" : ""} {...x} serie={data.serie} actif={mesure === x.cle} onChoisir={() => setMesure(x.cle)} c={c} />)}
       </div>
       <GrandGraphique serie={data.serie} mesure={mesure} c={c} />
@@ -258,7 +258,7 @@ function SessionsDePersonne({ p, c }) {
   return (
     <div className="grid gap-4 py-4 md:grid-cols-[230px_minmax(0,1fr)]">
       <div className="flex max-h-[420px] flex-col overflow-y-auto">
-        <p className="m-0 mb-1.5 text-[11px] uppercase tracking-[.14em] text-brume">{total} session{total > 1 ? "s" : ""}</p>
+        <p className="m-0 mb-1.5 text-[12.5px] text-brume">{total} session{total > 1 ? "s" : ""}</p>
         {sessions.map((x, i) => (
           <button key={x.debut} type="button" onClick={() => setChoisie(i)} aria-pressed={i === choisie}
             className={`rounded-[10px] px-2.5 py-1.5 text-left text-[12.5px] transition-colors ${i === choisie ? "bg-surface-pleine text-encre" : "text-craie hover:bg-surface"}`} style={i === choisie ? undefined : { background: "transparent" }}>

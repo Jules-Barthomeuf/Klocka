@@ -707,11 +707,13 @@ export const prenomDe = (email) => {
 
 // Les photos de l'équipe, rangées dans public/equipe/<prénom>.jpg, quand le
 // compte n'en a pas déposé dans Compte.
+// Sans fichier ni photo de compte : celle des cartes de projets (9 nov. 2026, Jules : « personne n'a de tête »).
+const PHOTOS_EN_LIGNE = { 'maxime.p@klocka.immo': 'https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e92131b8c_Capturedecran2026-02-18a164304.png' };
 const DOSSIER_PHOTOS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'equipe');
 const photoDe = (u) => {
   if (u.picture) return u.picture;
   const fichier = `${prenomDe(u.email).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}.jpg`;
-  return fs.existsSync(path.join(DOSSIER_PHOTOS, fichier)) ? `/equipe/${fichier}` : null;
+  return fs.existsSync(path.join(DOSSIER_PHOTOS, fichier)) ? `/equipe/${fichier}` : PHOTOS_EN_LIGNE[normEmail(u.email)] || null;
 };
 
 // L'équipe de la prospection (6 oct. 2026) : les analystes, puis Alexis, qui

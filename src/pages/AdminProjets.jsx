@@ -50,6 +50,8 @@ import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
 
 import { travauxDuProjet, travauxParDefautListe } from "@/components/simulator/CalculFinancier";
+import { BoutonOutil, BoutonPrincipal, Filtres, Recherche, TitrePage } from "@/components/mandataire/elements";
+import { ETAPES_PROJET, statutLabels } from "@/components/projet/CarteProjet";
 import Chargement from "@/components/ui/Chargement";
 // Au téléphone (moins de 768 px), l'éditeur s'ouvre en plein écran.
 const REQUETE_TELEPHONE = "(max-width: 767px)";
@@ -146,6 +148,8 @@ export default function AdminProjets() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
+  // Les filtres par étape (8 nov. 2026, Jules).
+  const [etapeVue, setEtapeVue] = useState("tous");
   const [voirCarte, setVoirCarte] = useState(false);
   const [csvData, setCsvData] = useState("");
   const [showCsvImport, setShowCsvImport] = useState(false);
@@ -1850,56 +1854,32 @@ export default function AdminProjets() {
   // --- Rendu de la liste : filtres appliqués une seule fois, réutilisés par le
   // bandeau de chiffres et par la grille.
   // La page reçue est déjà filtrée par le serveur (recherche, statut, archivés).
-  const projetsVisibles = projects;
+  const projetsVisibles = etapeVue === "tous" ? projects : projects.filter((p) => (p.statut || "prospect") === etapeVue);
   const nbArchives = pageDeProjets?.nb_archives || 0;
   const aucunProjet = !pageDeProjets?.nb_projets;
 
   return (
-    <div className="relative min-h-screen px-5 py-7 text-encre md:px-10 md:py-9">
-      <div className="relative max-w-[1400px] mx-auto">
+    <div className="relative min-h-screen px-5 py-[22px] text-encre md:px-8">
+      <div className="relative max-w-[1500px] mx-auto">
         {/* En-tête */}
         {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin (9 oct. 2026). */}
-        <div className="mb-7 flex flex-wrap items-center justify-between gap-4 max-md:mb-5 md:pr-14">
-          <h1 className="m-0 text-[30px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Gestion des projets</h1>
-          <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-4 py-2 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">
-            <Plus className="w-4 h-4" strokeWidth={1.8} />
-            Nouveau projet
-          </button>
-        </div>
+        <TitrePage titre="Projets" nombre={projects.length || null} className="mb-3.5 md:!pr-[112px]" actions={<>
+          {/* La carte des projets (22 oct. 2026, Jules), avec la prospection, les clients et les deals. */}
+          <BoutonOutil onClick={() => setVoirCarte((v) => !v)} aria-pressed={voirCarte}><MapIcon className="w-3.5 h-3.5" />{voirCarte ? "Masquer la carte" : "Carte"}</BoutonOutil>
+          <BoutonOutil onClick={() => setShowArchived(!showArchived)}><Archive className="w-3.5 h-3.5" />{showArchived ? "Masquer les archivés" : "Archivés"} <span className="text-ardoise">{nbArchives}</span></BoutonOutil>
+          <BoutonPrincipal onClick={() => { resetForm(); setIsDialogOpen(true); }}><Plus className="w-4 h-4" strokeWidth={1.8} /> Nouveau projet</BoutonPrincipal>
+        </>} />
 
         {/* La recherche, et les archivés à droite. */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-[260px] max-w-[520px] flex-1 items-center gap-2.5 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 transition-colors focus-within:border-bord-doux max-md:max-w-none">
-            <Search className="w-4 h-4 text-ardoise flex-shrink-0" />
-            <input
-              placeholder="Rechercher un projet, une adresse, un client…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[14px] max-md:text-[16px]"
-            />
-            {searchTerm && (
-              <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" aria-label="Effacer" title="Effacer" style={{ background: "transparent" }}>
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          {/* La carte des projets (22 oct. 2026, Jules), avec la prospection, les clients et les deals. */}
-          <button onClick={() => setVoirCarte((v) => !v)} aria-pressed={voirCarte}
-            className={`ml-auto inline-flex items-center gap-1.5 text-[14px] transition-colors ${voirCarte ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
-            <MapIcon className="w-4 h-4" />{voirCarte ? "Masquer la carte" : "Carte"}
-          </button>
-          <button onClick={() => setShowArchived(!showArchived)}
-            className={`inline-flex items-center gap-1.5 text-[14px] transition-colors ${showArchived ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
-            <Archive className="w-4 h-4" />
-            {showArchived ? "Masquer les archivés" : "Archivés"} <span className="text-brume">{nbArchives}</span>
-          </button>
+        <div className="mb-3.5 flex flex-wrap items-center gap-2.5">
+          <Recherche value={searchTerm} onChange={setSearchTerm} placeholder="Rechercher un projet, une adresse, un client" className="w-full md:w-[380px]" />
+          <Filtres label="Filtrer les projets" valeur={etapeVue} onChange={setEtapeVue} options={[["tous", "Tous", projects.length], ...ETAPES_PROJET.map((e) => [e, statutLabels[e], projects.filter((p) => (p.statut || "prospect") === e).length])]} />
         </div>
 
         {voirCarte && <CarteKlocka focus="projets" hauteur={560} className="mb-6 k-entree" />}
 
         {/* Grille */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-md:gap-4 items-start">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
           {projetsVisibles.map((project, idx) => (
             <motion.div
               key={project.id}

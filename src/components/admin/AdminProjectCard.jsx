@@ -113,8 +113,9 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
       onOuvrir={() => onEdit(project)}
       onEtapeSuivante={etapeSuivante}
       avatar={avatarDe(project.admin_principal)}
-      sousLigne={project.client_email ? <p className="m-0 mt-0.5 truncate text-[13px] text-white/45">{project.client_email.split("@")[0]}</p> : null}
+      sousLigne={project.client_email ? <span> · {project.client_email.split("@")[0]}</span> : null}
       actions={actions}
+      compacte
       pied={pied}
     />
   );

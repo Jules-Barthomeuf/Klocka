@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Search, X, ArrowRight } from "lucide-react";
+import { X, ArrowRight } from "lucide-react";
 import { Avatar } from "@/components/mandataire/AvatarClient";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import MesAcquereurs from "@/components/mandataire/MesAcquereurs";
 import MesVendeurs from "@/components/mandataire/MesVendeurs";
 import { Onglets } from "@/components/ui/kit";
+import { Filtres, Recherche, Statut, TitrePage } from "@/components/mandataire/elements";
 import { J } from "@/design/jetons";
 import Chargement from "@/components/ui/Chargement";
 import { PastilleTest } from "@/components/mandataire/kit";
@@ -18,7 +19,7 @@ import { resumeVillesCotees } from "../../server/villes-cotees.js";
 
 // Les clients Klocka vus du mandataire (maquette « Clients Admin », 4 oct.
 // 2026, reprise pour le côté mandataire) : des cartes ou un tableau, une
-// recherche, des familles de commerce, et la fiche d'un client à droite.
+// recherche, et la fiche d'un client à droite.
 // Les clients restent anonymes : des initiales, jamais un nom, un mail ou
 // une société, ni le conseiller qui les suit.
 
@@ -42,16 +43,6 @@ function budget(d) {
   return kEuros(d.budget_max || d.budget_min) || "—";
 }
 
-// Les familles du filtre, lues dans le type de commerce demandé.
-const FAMILLES = [
-  ["Tous", null],
-  ["Commerce de bouche", /bouche|boulang|p[aâ]tiss|boucher|traiteur|restaura|caf[eé]|bar|cave|[eé]picerie|primeur|fromag/i],
-  ["Santé", /sant[eé]|pharma|m[eé]dic|optic|dentaire|kin[eé]|laborat|param[eé]d/i],
-  ["Services", /service|coiff|beaut|tabac|presse|pressing|agence|banque|assurance|esth[eé]t|institut/i],
-  ["Pieds d'immeuble", /immeuble|^commerce$|tout commerce|local/i],
-];
-const dansFamille = (d, re) => !re || re.test(d.type_commerce || "tout commerce");
-
 export default function MandataireClients() {
   const navigate = useNavigate();
   const { data, isLoading } = useQuery({ queryKey: ["mandataire-demandes"], queryFn: () => base44.request("GET", "/api/mandataire/demandes"),
@@ -63,15 +54,12 @@ export default function MandataireClients() {
   const [vue, setVue] = useState(() => { try { return localStorage.getItem("k-clients-vue") || "cartes"; } catch { return "cartes"; } });
   const changerVue = (v) => { setVue(v); try { localStorage.setItem("k-clients-vue", v); } catch { /* sans stockage */ } };
   const [recherche, setRecherche] = useState("");
-  const [famille, setFamille] = useState("Tous");
   const [ouverte, setOuverte] = useState(null);
   // Deux onglets (30 oct. 2026, Jules) : les clients de Klocka, et le fichier acquéreurs du mandataire.
   const [onglet, setOnglet] = useState("klocka");
 
   const q = recherche.trim().toLowerCase();
-  const re = FAMILLES.find(([f]) => f === famille)?.[1] || null;
   const lignes = demandes
-    .filter((d) => dansFamille(d, re))
     .filter((d) => !q || [nomDe(d), d.type_commerce, zonesDe(d)].filter(Boolean).join(" ").toLowerCase().includes(q));
   // Le compte ne dit que les clients réels (31 oct. 2026, Jules) : les clients test, visibles par l'équipe seule, n'y entrent pas.
   const reels = demandes.filter((d) => !d.test);
@@ -80,54 +68,28 @@ export default function MandataireClients() {
   const prospecter = (x) => navigate(`${createPageUrl("MandataireProspection")}?demande=${x.id}`);
 
   return (
-    <div className="mx-auto flex max-w-[1360px] flex-col gap-6 px-5 pb-16 pt-9 md:px-11 max-md:pt-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-baseline gap-3.5">
-          <h1 className="m-0 text-[34px] font-medium leading-[1.05] tracking-[-0.01em] text-encre max-md:text-[26px]">Clients</h1>
-          {demandes.length > 0 && (
-            <span className="text-[15px] text-ardoise">{reels.length} client{reels.length > 1 ? "s" : ""} · {aTravailler} à prospecter</span>
-          )}
-        </div>
-        {onglet === "klocka" && (
-        <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Affichage">
-          {[["cartes", "Cartes"], ["tableau", "Tableau"]].map(([cle, mot]) => (
-            <button key={cle} type="button" role="tab" aria-selected={vue === cle} onClick={() => changerVue(cle)}
-              className={`rounded-full px-4 py-[9px] text-[14px] ${vue === cle ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
-              style={vue === cle ? undefined : { background: "transparent" }}>{mot}</button>
-          ))}
-        </div>
-        )}
-      </header>
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-3.5 px-5 pb-16 pt-[22px] md:px-8">
+      <TitrePage titre="Clients" nombre={onglet === "klocka" && demandes.length > 0 ? `${reels.length} · ${aTravailler} à prospecter` : null}
+        actions={onglet === "klocka" ? <Filtres label="Affichage" valeur={vue} onChange={changerVue} options={[["cartes", "Cartes"], ["tableau", "Tableau"]]} /> : null} />
 
       <Onglets taille="page" valeur={onglet} onChange={setOnglet} items={[{ cle: "klocka", titre: "Clients Klocka" }, { cle: "acquereurs", titre: "Mes acquéreurs" }, { cle: "vendeurs", titre: "Mes vendeurs" }]} />
       {onglet === "vendeurs" ? <MesVendeurs /> : onglet === "acquereurs" ? <MesAcquereurs /> : (<>
 
-      <p className="m-0 -mt-3 text-[14px] text-ardoise">Les clients restent anonymes. Vous trouvez le bien, Klocka fait le lien avec eux.</p>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex h-12 min-w-[240px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:basis-full">
-          <Search className="h-4 w-4 flex-none text-ardoise" />
-          <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Ville, type de bien, profil…"
-            className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-        </div>
-        {FAMILLES.map(([f]) => (
-          <button key={f} type="button" onClick={() => setFamille(f)}
-            className={`h-12 rounded-full border px-[18px] text-[15px] transition-colors max-md:h-10 max-md:px-4 max-md:text-[14px] ${famille === f ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux hover:text-encre"}`}>
-            {f}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Recherche value={recherche} onChange={setRecherche} placeholder="Ville, type de bien, profil" className="w-full md:w-[320px]" />
       </div>
+      <p className="m-0 text-[13px] text-ardoise">Les clients restent anonymes. Vous trouvez le bien, Klocka fait le lien avec eux.</p>
 
       {isLoading && <Chargement taille="grand" />}
       {!isLoading && !demandes.length && (
         <p className="m-0 text-[14px] text-brume">Aucun client pour l'instant. Ils apparaissent ici dès que Klocka publie une recherche.</p>
       )}
       {!isLoading && demandes.length > 0 && !lignes.length && (
-        <p className="m-0 rounded-[18px] border border-dashed border-trait p-12 text-center text-[15px] text-brume">Aucun client ne correspond.</p>
+        <p className="m-0 rounded-[12px] border border-dashed border-trait p-12 text-center text-[15px] text-brume">Aucun client ne correspond.</p>
       )}
 
       {lignes.length > 0 && vue === "cartes" && (
-        <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {lignes.map((x) => <CarteClient key={x.id} d={x} onOuvrir={() => setOuverte(x.id)} />)}
         </div>
       )}
@@ -140,46 +102,22 @@ export default function MandataireClients() {
   );
 }
 
-function PastilleEtat({ d }) {
-  const n = aProspecter(d);
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: n > 0 ? J["menthe"] : J["brume"] }} />
-      {n > 0 ? "À prospecter" : (d.commerces_du_secteur ?? 0) > 0 ? "Tous dans votre liste" : "Rien dans votre secteur"}
-    </span>
-  );
-}
-
-/** Un client en carte : l'état et le type sur la grille de points, ses critères, ce que votre secteur a pour lui. */
+/** Un client en carte compacte (8 nov. 2026, Jules) : son nom et son type, ses critères, ce que votre secteur a pour lui. */
 function CarteClient({ d, onOuvrir }) {
   const n = aProspecter(d);
   return (
-    <article onClick={onOuvrir} className="flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux">
-      <div className="k-grid k-grid-toujours relative h-24 flex-none border-b border-trait">
-        <span className="absolute left-4 top-4"><PastilleEtat d={d} /></span>
-        <span className="absolute bottom-3.5 left-4 rounded-full border border-trait bg-fond px-2.5 py-1 text-[12px] text-craie">{typeDe(d)}</span>
+    <article onClick={onOuvrir} className="flex cursor-pointer flex-col gap-2 rounded-[12px] border border-trait bg-rail px-3.5 py-3 transition-colors hover:border-bord-doux">
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center text-[15px] text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
+          <Statut className="flex-none">{typeDe(d)}</Statut>
+        </div>
+        <p className="m-0 mt-0.5 truncate text-[13.5px] text-ardoise">{[budget(d), rendementDe(d)].filter(Boolean).join(" · ")}</p>
+        <p className="m-0 truncate text-[13.5px] text-ardoise">{zonesVues(d)}</p>
       </div>
-      <div className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-[18px]">
-        <div className="flex items-center gap-3">
-          <Avatar d={d} />
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="flex min-w-0 items-center text-[17px] font-medium text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
-            {!!quiEst(d) && <span className="truncate text-[13px] text-craie">{quiEst(d)}</span>}
-            {!!exclusionsDe(d).length && <span className="truncate text-[13px] text-ardoise">{exclusionsTexte(d)}</span>}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-x-3.5 gap-y-3">
-          <Critere mot="Budget" valeur={budget(d)} />
-          <Critere mot="Rendement min." valeur={rendementDe(d)} />
-          <Critere mot="Zones" valeur={zonesVues(d)} large />
-        </div>
-        <div className="mt-auto flex items-center justify-between gap-2.5 border-t border-trait pt-3.5 max-md:flex-wrap">
-          <span className="text-[14px]">
-            <span className="text-menthe tabular-nums">{chiffre(n)}</span>{" "}
-            <span className="text-ardoise">{n == null ? "commerces : calcul en cours" : n > 1 ? "commerces à prospecter" : n === 1 ? "commerce à prospecter" : "rien à prospecter pour l'instant"}</span>
-          </span>
-          <span className="flex-none text-[13px] text-ardoise">Voir les critères →</span>
-        </div>
+      <div className="flex items-center justify-between gap-2.5 text-[13px]">
+        <span className="min-w-0 truncate text-ardoise">{n !== 0 && <span className="tabular-nums text-encre">{chiffre(n)} </span>}{n == null ? "commerces : calcul en cours" : n > 1 ? "commerces à prospecter" : n === 1 ? "commerce à prospecter" : "rien à prospecter pour l'instant"}</span>
+        <span className="flex-none text-ardoise">Voir les critères</span>
       </div>
     </article>
   );
@@ -194,15 +132,18 @@ const Critere = ({ mot, valeur, large = false, doux = false }) => (
 
 const COLONNES = "grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_140px_100px_minmax(0,1.5fr)_110px]";
 
+// Les traits verticaux des tableaux (8 nov. 2026, Jules) : portés par chaque case de la grille.
+const CELLULES = "[&>*]:flex [&>*]:min-w-0 [&>*]:items-center [&>*]:border-r [&>*]:border-trait [&>*]:px-4 [&>*:last-child]:border-r-0";
+
 function TableauClients({ lignes, onOuvrir }) {
   return (
-    <div className="overflow-x-auto rounded-[18px] border border-trait bg-rail">
+    <div className="overflow-x-auto rounded-[12px] border border-trait bg-rail">
       <div className="min-w-[980px]">
-        <div className={`grid ${COLONNES} gap-[18px] border-b border-trait px-6 py-3.5 text-[12px] tracking-[0.12em] text-brume`}>
-          <span>CLIENT</span><span>TYPE DE BIEN</span><span>ZONES</span><span>BUDGET</span><span>RENDEMENT</span><span>EXCLUSIONS</span><span>À PROSPECTER</span>
+        <div className={`grid ${COLONNES} ${CELLULES} border-b border-trait text-[12.5px] text-ardoise [&>*]:h-[35px]`}>
+          <span>Client</span><span>Type de bien</span><span>Zones</span><span>Budget</span><span>Rendement</span><span>Exclusions</span><span>À prospecter</span>
         </div>
         {lignes.map((d) => (
-          <div key={d.id} onClick={() => onOuvrir(d.id)} className={`grid ${COLONNES} cursor-pointer items-center gap-[18px] border-b border-trait px-6 py-4 last:border-b-0 hover:bg-surface`}>
+          <div key={d.id} onClick={() => onOuvrir(d.id)} className={`grid ${COLONNES} ${CELLULES} cursor-pointer border-b border-trait last:border-b-0 hover:bg-surface [&>*]:min-h-11 [&>*]:py-1`}>
             <div className="flex min-w-0 items-center gap-3">
               <Avatar d={d} taille="h-[34px] w-[34px]" />
               <div className="flex min-w-0 flex-col gap-0.5">
@@ -242,7 +183,7 @@ function FicheClient({ d, onFermer, onProspecter }) {
     <div className="fixed inset-0 z-[80]">
       <div className="absolute inset-0 bg-fond/60 backdrop-blur-[2px]" onClick={onFermer} />
       <aside role="dialog" aria-modal="true" aria-label={nomDe(d)}
-        className="absolute inset-y-0 right-0 flex w-[520px] max-w-full flex-col overflow-y-auto border-l border-trait bg-surface-pleine animate-in slide-in-from-right duration-200">
+        className="absolute inset-y-0 right-0 flex w-[520px] max-w-full flex-col overflow-y-auto border-l border-trait bg-fond animate-in slide-in-from-right duration-200">
         <div className="flex items-start justify-between gap-4 border-b border-trait px-7 pb-5 pt-7 max-md:px-5 max-md:pt-5">
           <div className="flex min-w-0 items-center gap-3.5">
             <Avatar d={d} taille="h-12 w-12" />

@@ -5,7 +5,8 @@ import { ArrowLeft, Check, Loader2, PanelRightClose, PanelRightOpen } from "luci
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
-import { EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
+import { depuis } from "@/components/ui/liste-documents";
+import { CLASSE_TABLE, CLASSE_TABLEAU, CLASSE_TD, CLASSE_TH, Filtres, Recherche, TitrePage, classeCase } from "@/components/mandataire/elements";
 import { euros } from "@/components/mandataire/kit";
 import { DocumentMandat } from "@/components/mandataire/ApercuMandat";
 import { ApercuAvis } from "@/pages/MandataireEstimation";
@@ -32,10 +33,18 @@ const etatDe = (m) => (m.statut !== "demande_envoyee" ? ETATS[m.statut]
   : m.a_relire ? ["À relire par le mandataire", "text-ardoise"] : ETATS.demande_envoyee);
 const honoraires = (m) => (m.honoraires == null ? null : `honoraires ${m.honoraires}${Number(m.honoraires) <= 100 ? " %" : " €"}${m.honoraires_charge === "acquereur" ? " acquéreur" : ""}`);
 
+const COULEUR_ETAT = { "text-ambre": "ambre", "text-menthe": "menthe", "text-alerte": "corail" };
+const motDe = (m) => (etatDe(m) || [m.statut])[0] || "";
+const FILTRES_M = { tous: () => true, inscrire: (m) => /inscrire/i.test(motDe(m)), saisir: (m) => /saisir/i.test(motDe(m)) };
+
 export default function MandatsMandataires() {
   const [params, setParams] = useSearchParams();
   const { data, isLoading } = useQuery({ queryKey: ["k-mandats"], queryFn: () => base44.request("GET", API), refetchInterval: 30_000 });
   const mandats = data?.mandats || [];
+  const [q, setQ] = useState("");
+  const [filtre, setFiltre] = useState("tous");
+  const t = q.trim().toLowerCase();
+  const vus = mandats.filter(FILTRES_M[filtre]).filter((x) => !t || `${x.bien} ${x.vendeur || ""} ${x.mandataire_nom || ""}`.toLowerCase().includes(t));
   const ouvert = params.get("mandat");
   // La conversation se charge en même temps que la liste (une notification ouvre le mandat directement), et au survol
   // d'une ligne : elle est là au clic.
@@ -47,29 +56,35 @@ export default function MandatsMandataires() {
   if (ouvert && m) return <Mandat m={m} onFermer={() => ouvrir(null)} />;
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 py-8 md:px-6 max-md:py-6">
-      <header className="mb-8 flex flex-col items-center gap-2 text-center">
-        <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Mandats</h1>
-        <p className="m-0 max-w-[60ch] text-[14px] text-ardoise">Les mandats préparés par les mandataires. Saisissez-les sur MyNotary et envoyez-les en signature, joignez le mandat signé dans la conversation, puis inscrivez-le au registre.</p>
-      </header>
+    <div className="mx-auto w-full max-w-[1500px] px-5 py-[22px] md:px-8">
+      <TitrePage titre="Mandats" nombre={mandats.length || null} className="md:!pr-[112px]" />
+      <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
+        <Recherche value={q} onChange={setQ} placeholder="Rechercher un mandat" className="w-full md:w-[320px]" />
+        <Filtres label="Filtrer les mandats" valeur={filtre} onChange={setFiltre} options={[["tous", "Tous", mandats.length], ["inscrire", "À inscrire", mandats.filter(FILTRES_M.inscrire).length], ["saisir", "À saisir", mandats.filter(FILTRES_M.saisir).length]]} />
+      </div>
       {isLoading ? <Chargement taille="grand" /> : !mandats.length ? (
         <p className="py-16 text-center text-sm text-brume">Aucun mandat reçu : ils arrivent ici quand un mandataire envoie le sien.</p>
       ) : (
-        <div className="border-y border-trait">
-          <EnTeteListe droite="Où il en est" />
-          {mandats.map((x) => {
-            const [mot, teinte] = etatDe(x) || [x.statut, "text-ardoise"];
-            return (
-              <div key={x.id} onMouseEnter={() => precharger(x.id)} onFocus={() => precharger(x.id)}>
-              <LigneDocument onOuvrir={() => ouvrir(x.id)} modifie={x.activite}
-                titre={<span className="inline-flex items-center gap-2">{x.bien}<PointNouveau n={x.non_lus} /></span>}
-                detail={x.avant_mandat ? x.dernier?.texte || null : [x.vendeur, x.prix ? euros(x.prix) : null, honoraires(x), x.type, x.duree_mois ? `${x.duree_mois} mois` : null].filter(Boolean).join(" · ")}
-                vignette={<Vignette page bandeau="bg-ardoise" titre={x.bien} />}
-                auteur={<span className="block truncate text-[14px] text-craie">{x.mandataire_nom}</span>}
-                droite={<span className={`text-[14px] ${teinte}`}>{mot}{x.statut === "enregistre" && x.numero_registre ? `, n° ${x.numero_registre}` : ""}</span>} />
-              </div>
-            );
-          })}
+        <div className={`mt-3 ${CLASSE_TABLEAU}`}>
+          <table className={`${CLASSE_TABLE} min-w-[900px]`}>
+            <colgroup><col style={{ width: "32%" }} /><col style={{ width: "26%" }} /><col style={{ width: "11%" }} /><col style={{ width: "12%" }} /><col style={{ width: "19%" }} /></colgroup>
+            <thead><tr>{["Nom", "Détail", "Modifié", "Auteur", "Où il en est"].map((t) => <th key={t} className={CLASSE_TH}>{t}</th>)}</tr></thead>
+            <tbody>
+              {vus.map((x) => {
+                const [mot, teinte] = etatDe(x) || [x.statut, "text-ardoise"];
+                const detail = x.avant_mandat ? x.dernier?.texte || "" : [x.vendeur, x.prix ? euros(x.prix) : null, honoraires(x), x.type, x.duree_mois ? `${x.duree_mois} mois` : null].filter(Boolean).join(" · ");
+                return (
+                  <tr key={x.id} onMouseEnter={() => precharger(x.id)} onFocus={() => precharger(x.id)} onClick={() => ouvrir(x.id)} className="cursor-pointer hover:bg-relief/60">
+                    <td className={CLASSE_TD}><span className="inline-flex max-w-full items-center gap-2"><span className="truncate">{x.bien}</span><PointNouveau n={x.non_lus} /></span></td>
+                    <td className={CLASSE_TD} title={detail}>{detail}</td>
+                    <td className={CLASSE_TD}>{depuis(x.activite)}</td>
+                    <td className={CLASSE_TD}>{x.mandataire_nom}</td>
+                    <td className={`${CLASSE_TD} ${classeCase(COULEUR_ETAT[teinte] || "gris")}`}>{mot}{x.statut === "enregistre" && x.numero_registre ? `, n° ${x.numero_registre}` : ""}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

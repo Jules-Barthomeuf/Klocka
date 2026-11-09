@@ -9,6 +9,7 @@ import Incidents from "@/components/monitoring/Incidents";
 import QualiteEtRegles from "@/components/monitoring/QualiteEtRegles";
 import { useCouleurs } from "@/components/monitoring/GraphesAppels";
 import { TableauPersonnes, VueEnsemble } from "@/components/monitoring/UsagePlateforme";
+import { Filtres, TitrePage } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 
 // Centre de suivi : qui utilise la plateforme, combien de temps, et sur quoi.
@@ -66,22 +67,9 @@ export default function Monitoring() {
 
   return (
     <div className="min-h-screen text-encre">
-      <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 md:py-10">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
-          <div className="min-w-0 max-w-full">
-            <OngletsSuivi className="mb-3.5 overflow-x-auto" />
-            <h1 className="m-0 text-[34px] max-md:text-[24px] font-light tracking-[-.02em]">Usage de la plateforme</h1>
-            <p className="m-0 mt-1.5 max-w-[70ch] text-[13.5px] text-ardoise">Toute l'équipe, admins compris, les mandataires et les clients connectés. Un clic sur un chiffre le met dans le grand graphique.</p>
-          </div>
-          <div className="flex gap-1 rounded-full bg-rail-actif p-1">
-            {FENETRES.map((f) => (
-              <button key={f.jours} type="button" onClick={() => setJours(f.jours)} aria-pressed={jours === f.jours}
-                className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${jours === f.jours ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={jours === f.jours ? undefined : { background: "transparent" }}>
-                {f.libelle}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="mx-auto max-w-[1500px] px-5 py-[22px] md:px-8">
+        <OngletsSuivi className="mb-3 overflow-x-auto" />
+        <TitrePage titre="Usage de la plateforme" className="mb-3.5 md:!pr-[112px]" actions={<Filtres label="Période" valeur={jours} onChange={setJours} options={FENETRES.map((f) => [f.jours, f.libelle])} />} />
 
         {isLoading || !data ? (
           <Chargement taille="grand" />
@@ -103,7 +91,7 @@ export default function Monitoring() {
         {/* Historique complet des demandes à l'assistant */}
         <div className="border border-trait rounded-md p-4">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <h2 className="m-0 text-[11px] tracking-[.16em] uppercase text-menthe font-normal">
+            <h2 className="m-0 text-[14px] font-normal text-encre">
               Toutes les demandes à l'assistant
             </h2>
             <span className="text-[11px] text-brume">
@@ -189,7 +177,7 @@ export default function Monitoring() {
           {historique?.total > (historique?.requetes?.length || 0) && (
             <button
               onClick={() => setLimite((l) => l + 50)}
-              className="mt-4 w-full py-2 rounded-md border border-bord text-[12.5px] text-ardoise hover:text-encre hover:border-bord-vif transition-colors"
+              className="mt-4 w-full py-2 rounded-[12px] border border-bord text-[12.5px] text-ardoise hover:text-encre hover:border-bord-vif transition-colors"
             >
               Afficher 50 de plus
             </button>

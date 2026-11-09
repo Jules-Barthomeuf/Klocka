@@ -16,7 +16,8 @@ import { champCache, gql, lireMenu, lireRoles, niveauDe } from './acces.js';
 const MACHINE = /^(monday|deplacerVers$|linkTo|position$|searchVector$|createdBy$|updatedBy$|deletedAt$)/;
 // Ce que l'écran sait montrer, et ce qu'il sait modifier.
 const MONTRES = new Set(['TEXT', 'NUMBER', 'DATE', 'DATE_TIME', 'SELECT', 'MULTI_SELECT', 'BOOLEAN', 'EMAILS', 'PHONES', 'LINKS', 'CURRENCY', 'FULL_NAME', 'RICH_TEXT', 'RICH_TEXT_V2', 'RATING', 'ADDRESS']);
-const MODIFIABLES = new Set(['TEXT', 'NUMBER', 'DATE', 'DATE_TIME', 'SELECT', 'MULTI_SELECT', 'BOOLEAN', 'EMAILS', 'PHONES', 'LINKS', 'CURRENCY', 'FULL_NAME', 'RELATION']);
+// Les adresses aussi (8 nov. 2026, Jules : « on doit pouvoir tout modifier, partout »).
+const MODIFIABLES = new Set(['TEXT', 'NUMBER', 'DATE', 'DATE_TIME', 'SELECT', 'MULTI_SELECT', 'BOOLEAN', 'EMAILS', 'PHONES', 'LINKS', 'CURRENCY', 'FULL_NAME', 'RELATION', 'ADDRESS']);
 // Les relations vers les objets de Twenty lui-même (notes, tâches, fichiers, historique) : la fiche les montre à part.
 const CIBLES_SYSTEME = new Set(['attachment', 'noteTarget', 'taskTarget', 'timelineActivity', 'agentChatThreadTarget', 'favorite', 'messageParticipant', 'calendarEventParticipant']);
 // 50 par page, « Voir plus » pour la suite (6 nov. 2026, Jules) ; Twenty accepte 200 au plus.
@@ -43,7 +44,7 @@ export function valeurPourTwenty(type, saisie, actuelle = null) {
     case 'DATE': return t ? t.slice(0, 10) : null;
     case 'DATE_TIME': return t ? new Date(t).toISOString() : null;
     case 'SELECT': case 'RELATION': return t || null;
-    case 'MULTI_SELECT': return Array.isArray(saisie) ? saisie : t ? t.split(',').map((x) => x.trim()).filter(Boolean) : [];
+    case 'MULTI_SELECT': return Array.isArray(saisie) ? saisie : t ? t.split(/[,;]/).map((x) => x.trim()).filter(Boolean) : [];
     case 'EMAILS': return { primaryEmail: t, additionalEmails: actuelle?.additionalEmails || [] };
     case 'PHONES': {
       const chiffres = t.replace(/[^\d+]/g, '');
@@ -58,6 +59,15 @@ export function valeurPourTwenty(type, saisie, actuelle = null) {
       return { amountMicros: Math.round(n * 1e6), currencyCode: actuelle?.currencyCode || 'EUR' };
     }
     case 'FULL_NAME': { const [prenom, ...nom] = t.split(/\s+/); return { firstName: prenom || '', lastName: nom.join(' ') }; }
+    // Une adresse tapée « 12 rue Carnot, Lyon » : la rue, puis la ville après la dernière virgule ; le pays gardé.
+    case 'ADDRESS': {
+      if (!t) return { addressStreet1: '', addressStreet2: '', addressCity: '', addressPostcode: '', addressState: '', addressCountry: actuelle?.addressCountry || '', addressLat: null, addressLng: null };
+      const i = t.lastIndexOf(',');
+      const rue = i > 0 ? t.slice(0, i).trim() : '';
+      const ville = (i > 0 ? t.slice(i + 1) : t).trim();
+      const cp = (ville.match(/\b\d{5}\b/) || [])[0] || '';
+      return { addressStreet1: rue, addressStreet2: '', addressCity: ville.replace(/\b\d{5}\b/, '').trim(), addressPostcode: cp, addressState: actuelle?.addressState || '', addressCountry: actuelle?.addressCountry || 'France', addressLat: null, addressLng: null };
+    }
     default: return t;
   }
 }

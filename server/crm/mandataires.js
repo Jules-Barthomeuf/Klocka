@@ -76,21 +76,26 @@ export function differenceVilles(avant = [], texte = '') {
   return { ajouts: voulues.filter((v) => !deja.has(norm(v))), retraits: avant.filter((v) => !gardees.has(norm(v.nom))) };
 }
 
+/** Les villes d'un mandataire, tapées « Lyon, Villeurbanne » (ou séparées par « ; ») : ajoutées en lecture, retirées. */
+export async function changerVilles(email, saisie, par) {
+  const V = await import('../villes-secteur.js');
+  const s = V.secteurPour(email);
+  const avant = s ? (await V.villesDuSecteurMandataire(s)).map((v) => ({ ...v, cle: V.cleVille(v) })) : [];
+  const { ajouts, retraits } = differenceVilles(avant, saisie);
+  for (const v of retraits) await V.retirerVille(email, v.cle, par?.email || null);
+  for (const nom of ajouts) {
+    const r = await V.ajouterVille(email, { nom }, par?.email || null);
+    if (!r.ok) throw erreur(400, r.error);
+  }
+}
+
 export async function changer(par, id, champ, saisie) {
   const l = await uneLigne(id);
   if (champ === 'name') {
     const u = Records.findBy('User', 'email', l.email);
     if (u) Records.update('User', u.id, { full_name: String(saisie || '').trim() || null });
   } else if (champ === 'villes') {
-    const V = await import('../villes-secteur.js');
-    const s = V.secteurPour(l.email);
-    const avant = s ? (await V.villesDuSecteurMandataire(s)).map((v) => ({ ...v, cle: V.cleVille(v) })) : [];
-    const { ajouts, retraits } = differenceVilles(avant, saisie);
-    for (const v of retraits) await V.retirerVille(l.email, v.cle, par?.email || null);
-    for (const nom of ajouts) {
-      const r = await V.ajouterVille(l.email, { nom }, par?.email || null);
-      if (!r.ok) throw erreur(400, r.error);
-    }
+    await changerVilles(l.email, saisie, par);
   } else if (AVIS.some(([c]) => c === champ)) {
     const { poserFicheMandataire } = await import('../mandataire-espace.js');
     const r = poserFicheMandataire(l.email, { [champ]: String(saisie ?? '').trim() }, par);

@@ -220,7 +220,7 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
   );
 }
 
-const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[14px] border border-dashed p-4 text-left transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : plein ? "border-bord-doux bg-rail hover:border-bord-vif" : "border-bord bg-rail hover:border-bord-vif"}`;
+const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[12px] border p-4 text-left transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : plein ? "border-bord-doux bg-rail hover:border-bord-vif" : "border-bord bg-rail hover:border-bord-vif"}`;
 
 function Depot({ e, occupe, infos = null, onDeposer, onRetirer, onRetirerType, onContexte }) {
   const ref = useRef(null);

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import { ENTREES_MANDATAIRE } from "@/lib/menu";
+import { Filtres, TitrePage } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 
 // Le Suivi des mandataires (9 oct. 2026) : ce que chaque mandataire K Partners
@@ -12,7 +13,7 @@ import Chargement from "@/components/ui/Chargement";
 
 const PERIODES = [[7, "7 jours"], [30, "30 jours"], [90, "90 jours"]];
 const VUES = [["ensemble", "Vue d'ensemble"], ["mandataires", "Par mandataire"], ["journal", "Journal"]];
-const titreCase = "m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal";
+const titreCase = "m-0 mb-3 text-[14px] font-normal text-encre";
 const filtre = (actif) => `px-3 py-1.5 rounded-md text-[12.5px] border transition-colors ${actif ? "border-menthe text-menthe bg-menthe/[0.1]" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`;
 const quand = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 const jourCourt = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
@@ -28,8 +29,8 @@ function depuisQuand(iso) {
 
 function Chiffre({ valeur, libelle, note = null }) {
   return (
-    <div className="rounded-md border border-trait bg-surface px-4 py-3.5">
-      <p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{libelle}</p>
+    <div className="rounded-[12px] border border-trait bg-surface px-4 py-3.5">
+      <p className="m-0 text-[12.5px] text-ardoise">{libelle}</p>
       <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{valeur}</p>
       {note && <p className="m-0 mt-0.5 text-[12px] text-brume">{note}</p>}
     </div>
@@ -62,7 +63,7 @@ function CourbeVisites({ parJour }) {
   const pas = parJour.length > 31 ? 14 : 7;
   const aujourdhui = parJour.at(-1)?.jour;
   return (
-    <div className="flex flex-col rounded-md border border-trait p-4">
+    <div className="flex flex-col rounded-[12px] border border-trait p-4">
       <h2 className={titreCase}>Pages ouvertes par jour</h2>
       <p className="m-0 mb-4 min-h-[19px] text-[13px] text-craie">
         {jour ? <><span className="text-encre">{jourCourt(jour.jour)}</span> · {jour.visites} page{jour.visites > 1 ? "s" : ""}</> : <span className="text-brume">Survolez un jour pour le détail.</span>}
@@ -110,16 +111,11 @@ export default function SuiviMandataires() {
 
   return (
     <div className="min-h-screen text-encre">
-      <div className="mx-auto max-w-[1300px] px-4 py-8 md:px-8 md:py-10">
-        <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <OngletsSuivi className="mb-3.5" />
-            <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Mandataires</h1>
-          </div>
-          <div className="flex flex-wrap gap-1.5 md:pr-14">{PERIODES.map(([j, mot]) => <button key={j} type="button" onClick={() => setJours(j)} className={filtre(jours === j)}>{mot}</button>)}</div>
-        </div>
+      <div className="mx-auto max-w-[1500px] px-5 py-[22px] md:px-8">
+        <OngletsSuivi className="mb-3" />
+        <TitrePage titre="Mandataires" className="mb-3.5 md:!pr-[112px]" actions={<Filtres label="Période" valeur={jours} onChange={setJours} options={PERIODES.map(([j, mot]) => [j, mot])} />} />
 
-        <div className="mb-6 flex gap-5 border-b border-trait">
+        <div className="mb-3.5 flex gap-5 border-b border-trait">
           {VUES.map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setVue(k)} className={`-mb-px border-b-[1.5px] pb-2 text-[13.5px] transition-colors ${vue === k ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
           ))}
@@ -138,7 +134,7 @@ export default function SuiviMandataires() {
               </div>
               <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <CourbeVisites parJour={data.par_jour} />
-                <div className="rounded-md border border-trait p-4">
+                <div className="rounded-[12px] border border-trait p-4">
                   <h2 className={titreCase}>Pages les plus ouvertes</h2>
                   {data.pages.length ? (
                     <div className="flex flex-col gap-1.5">
@@ -155,7 +151,7 @@ export default function SuiviMandataires() {
               </div>
             </div>}
 
-            {vue === "mandataires" && <div className="mb-8 rounded-md border border-trait p-4 k-monte">
+            {vue === "mandataires" && <div className="mb-8 rounded-[12px] border border-trait p-4 k-monte">
               <h2 className={titreCase}>Par mandataire</h2>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1400px] border-collapse text-[13px]">
@@ -182,7 +178,7 @@ export default function SuiviMandataires() {
               <p className="m-0 mt-3 text-[12px] text-brume">Tout se compte sur la période, sauf « Propriétaires » (toutes ses fiches) et « RDV en cours » (l'état des fiches aujourd'hui). « Appels et suites » : appels sans réponse et changements de statut notés sur ses fiches. Un clic sur une personne ouvre son journal.</p>
             </div>}
 
-            {vue === "journal" && <div className="rounded-md border border-trait p-4 k-monte">
+            {vue === "journal" && <div className="rounded-[12px] border border-trait p-4 k-monte">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className={`${titreCase} mb-0`}>Journal</h2>
                 <div className="flex flex-wrap gap-1.5">
@@ -192,7 +188,7 @@ export default function SuiviMandataires() {
               </div>
               <div className="overflow-x-auto">
                 <div className="min-w-[760px]">
-                  <div className="grid grid-cols-[120px_130px_120px_minmax(0,1fr)] gap-3 border-b border-bord py-2 text-[11px] uppercase tracking-[.1em] text-brume">
+                  <div className="grid grid-cols-[120px_130px_120px_minmax(0,1fr)] gap-3 border-b border-bord py-2 text-[12.5px] text-brume">
                     <span>Quand</span><span>Qui</span><span>Quoi</span><span>Détail</span>
                   </div>
                   {journal.map((x, i) => (

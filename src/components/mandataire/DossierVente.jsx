@@ -115,7 +115,7 @@ export function DataRoom({ proprietaireId, dossierId }) {
 function MailDuDossier({ v, dossierId }) {
   if (v.mail_propose) {
     return (
-      <div className="mt-4 rounded-[20px] border border-bord-doux bg-barre p-4 max-md:p-3">
+      <div className="mt-4 rounded-[12px] border border-bord-doux bg-barre p-4 max-md:p-3">
         <p className="m-0 mb-2 text-[12px] uppercase tracking-[.12em] text-brume">{{ relance: "Relance au propriétaire", preference: "Notification au locataire, par le propriétaire" }[v.mail_propose.genre] || "Mail au propriétaire"}</p>
         <MailPropose key={v.mail_propose.le} dossierId={dossierId} mail={v.mail_propose} boite={v.boite} />
       </div>
@@ -259,7 +259,7 @@ export function Ranger({ fichiers, cases, occupe, onChoisir, onNouvelle, onAnnul
   const n = fichiers.length;
   const valider = () => nom.trim() && !occupe && onNouvelle(nom.trim());
   return (
-    <div className="mt-3 rounded-[14px] bg-rail p-4">
+    <div className="mt-3 rounded-[12px] bg-rail p-4">
       <div className="flex items-baseline justify-between gap-3">
         <p className="m-0 text-[15px] text-encre">{n > 1 ? `Où ranger ces ${n} documents ?` : `Où ranger ${fichiers[0].name} ?`}</p>
         <button type="button" aria-label="Annuler" onClick={onAnnuler} className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
@@ -514,7 +514,7 @@ export function MailPropose({ dossierId, mail, boite }) {
   return (
     <div className="text-left">
       <p className="m-0 text-[15px] leading-[1.55] text-encre">{mail.raison} Envoyer ?</p>
-      <div className="mt-3 rounded-[14px] border border-trait bg-surface px-4 py-3">
+      <div className="mt-3 rounded-[12px] border border-trait bg-surface px-4 py-3">
         {ouvert ? (
           <div className="flex flex-col gap-2">
             <input value={m.a} onChange={(e) => setM({ ...m, a: e.target.value })} placeholder="L'adresse du vendeur" aria-label="À" className={`${champ} w-full rounded-[10px]`} />

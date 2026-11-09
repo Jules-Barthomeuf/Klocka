@@ -54,7 +54,7 @@ export default function Incidents() {
     <section className="mt-10 border-t border-trait pt-7">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="mb-2 text-[11px] uppercase tracking-[.16em] text-ardoise">Incidents</div>
+          <div className="mb-2 text-[12.5px] text-ardoise">Incidents</div>
           <h2 className="m-0 text-[18px] font-normal text-encre">Quand le serveur est tombé</h2>
           <p className="mb-0 mt-2 max-w-[62ch] text-[12.5px] leading-[1.65] text-ardoise">
             Les exceptions, les rejets non traités et les démarrages. Une erreur « le serveur n'a pas répondu »
@@ -63,7 +63,7 @@ export default function Incidents() {
           </p>
         </div>
         {incidents.length > 0 && (
-          <button onClick={copier} className="inline-flex items-center gap-1.5 rounded-md border border-bord px-3 py-1.5 text-[12.5px] text-ardoise transition-colors hover:border-bord-vif hover:text-encre">
+          <button onClick={copier} className="inline-flex items-center gap-1.5 rounded-[12px] border border-bord px-3 py-1.5 text-[12.5px] text-ardoise transition-colors hover:border-bord-vif hover:text-encre">
             {copie ? <Check className="h-3 w-3 text-menthe" /> : <Copy className="h-3 w-3" />}
             {copie ? "Copié" : "Copier les dix derniers"}
           </button>
@@ -95,7 +95,7 @@ export default function Incidents() {
                     <span className="truncate text-[12.5px] text-craie max-md:col-span-2">{i.message}</span>
                   </button>
                   {ouvert && i.pile && (
-                    <pre className="mt-2 max-h-[280px] overflow-auto whitespace-pre-wrap rounded-md border border-trait bg-surface px-3 py-2 font-mono text-[11px] leading-[1.6] text-ardoise">{i.pile}</pre>
+                    <pre className="mt-2 max-h-[280px] overflow-auto whitespace-pre-wrap rounded-[12px] border border-trait bg-surface px-3 py-2 font-mono text-[11px] leading-[1.6] text-ardoise">{i.pile}</pre>
                   )}
                 </div>
               );

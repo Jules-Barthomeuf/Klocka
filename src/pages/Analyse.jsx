@@ -20,6 +20,7 @@ import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import PenseeIA from "@/components/PenseeIA";
 import Chargement from "@/components/ui/Chargement";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
+import { BoutonPrincipal, CLASSE_OUTIL, Recherche, Statut, TitrePage } from "@/components/mandataire/elements";
 import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
@@ -495,36 +496,27 @@ export default function Analyse() {
             {/* Le titre au centre, les onglets en pilule dessous, comme la Prospection. */}
             {/* Une seule ligne (30 oct. 2026, Jules) : les flèches et le titre à gauche, les gestes à droite. Plus d'absolu : avec
                 Mandats, Mémoire, les relances et Nouveau dossier, le groupe passait sur un titre centré. */}
-            <header className="k-entree relative mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 md:pr-14">
-              <div className="flex items-center gap-4">
-                <FlechesHistorique />
-                <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Dossiers</h1>
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <div className="k-entree mb-3.5 flex items-center gap-3">
+              <FlechesHistorique />
+              <TitrePage titre="Dossiers" nombre={pipeline?.total || null} className="min-w-0 flex-1 md:!pr-[112px]" actions={<>
                 <LienMandats />
                 <LienMemoire />
-                <span className={`text-[14px] max-md:text-[13px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>{aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente</span>
-                <button onClick={() => setCreationOuverte(true)}
-                  className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol">
-                  <Plus className="w-4 h-4" /> Nouveau dossier
-                </button>
-              </div>
-            </header>
+                <span className={`text-[13px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>{aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente</span>
+                <BoutonPrincipal onClick={() => setCreationOuverte(true)}><Plus className="w-4 h-4" /> Nouveau dossier</BoutonPrincipal>
+              </>} />
+            </div>
 
             {/* Recherche, et ce que fait la page toute seule. */}
-            <div className="k-entree flex flex-wrap items-center gap-x-5 gap-y-3 pb-2" style={{ "--k-delai": ".1s" }}>
-              <div className="flex h-12 min-w-[240px] max-w-[460px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:max-w-none max-md:basis-full">
-                <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
-                <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Adresse, agent, ville" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-              </div>
+            <div className="k-entree flex flex-wrap items-center gap-x-4 gap-y-3 pb-2" style={{ "--k-delai": ".1s" }}>
+              <Recherche value={recherche} onChange={setRecherche} placeholder="Adresse, agent, ville" className="w-full md:w-[320px]" />
               {/* La fiche en cours d'analyse : l'orbe d'AK et un reflet qui passe sur la phrase (19 oct. 2026). */}
               {analyserFiche.isPending ? (
-                <p key="analyse" className="k-entree m-0 inline-flex flex-1 items-center gap-2.5 text-[14px]" role="status">
+                <p key="analyse" className="k-entree m-0 inline-flex flex-1 items-center gap-2.5 text-[13px]" role="status">
                   <PenseeIA etat="working" taille={22} />
                   <span className="k-scintille">L'Assistant KPartners analyse la fiche…</span>
                 </p>
               ) : (
-                <p key="repos" className="k-entree m-0 flex-1 text-[14px] text-ardoise">Les fiches reçues par mail sont triées par l'Assistant KPartners. Glisse une fiche n'importe où pour l'ajouter.</p>
+                <p key="repos" className="k-entree m-0 flex-1 text-[13px] text-ardoise">Glisse une fiche n'importe où pour l'ajouter.</p>
               )}
             </div>
 
@@ -539,7 +531,7 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div className="k-serie k-serie-leve grid grid-cols-1 gap-2.5 pt-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="k-serie k-serie-leve grid grid-cols-1 gap-2 pt-3 sm:grid-cols-2 lg:grid-cols-3">
                 {tous.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
                 {!tous.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Aucun dossier ne correspond.</p>}
               </div>
@@ -639,19 +631,24 @@ export default function Analyse() {
 }
 
 /** La carte compacte d'un dossier dans les blocs de la liste : nom, étape de la frise, qui, ce qui attend. */
+const motVerdict = (v) => { const t = String(v).toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); };
+const couleurVerdict = (v) => (/no.?go|insuffisant/i.test(v) ? "corail" : /r[ée]serve/i.test(v) ? "ambre" : /^go/i.test(v) ? "menthe" : "gris");
+
 function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
   const n = etapeFrise(d);
   const verdict = d.lots?.[0]?.verdict;
   return (
-    <article className="relative cursor-pointer rounded-[14px] border border-trait k-carte-rail p-3.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
-      <p className="m-0 flex items-center gap-2 text-[15px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
-      <p className="m-0 mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ardoise">
-        <span className="inline-flex items-center gap-1.5 text-craie"><span className="h-1.5 w-1.5 rounded-full bg-menthe" />{ecarte ? (d.statut === "abandonne" ? "Abandonné" : "NO-GO") : FRISE[n - 1].label}</span>
+    <article className="relative cursor-pointer rounded-[12px] border border-trait k-carte-rail px-3.5 py-2.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+      <div className="flex min-w-0 items-center justify-between gap-2.5">
+        <p className="m-0 flex min-w-0 items-center gap-2 text-[14.5px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
+        {ecarte ? <Statut couleur="corail" className="flex-none">{d.statut === "abandonne" ? "Abandonné" : "No-go"}</Statut> : verdict && <Statut couleur={couleurVerdict(verdict)} className="flex-none">{motVerdict(verdict)}</Statut>}
+      </div>
+      <p className="m-0 mt-0.5 flex min-w-0 items-center gap-x-1.5 text-[13px] text-ardoise">
+        {!ecarte && <span className="flex-none">{FRISE[n - 1].label} ·</span>}
         <span className="truncate">{qui}</span>
-        {!ecarte && verdict && <span className="flex-none text-brume">{verdict}</span>}
-        {d.origine === "mandataire" && <span className="flex-none text-menthe">K Partners</span>}
+        {d.origine === "mandataire" && <Statut couleur="lavande" className="flex-none">K Partners</Statut>}
       </p>
-      {d.pourquoi && <p className="m-0 mt-1.5 flex items-center gap-1.5 text-[12.5px] text-ambre">{d.a_relancer && <Clock className="h-3 w-3" />}{d.pourquoi}</p>}
+      {d.pourquoi && <p className="m-0 mt-1 flex items-center gap-1.5 text-[12.5px] text-ambre">{d.a_relancer && <Clock className="h-3 w-3" />}{d.pourquoi}</p>}
       <span onClick={(e) => e.stopPropagation()}>{menu}</span>
     </article>
   );
@@ -661,7 +658,7 @@ function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
 function LienMemoire() {
   const { data } = useQuery({ queryKey: ["memoire-compte"], queryFn: () => base44.request("GET", "/api/memoire?limite=1"), staleTime: 60_000, retry: false });
   return (
-    <Link to="/Memoire" className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux px-4 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre max-md:h-9">
+    <Link to="/Memoire" className={CLASSE_OUTIL}>
       Mémoire{data?.total > 0 && <span className="tabular-nums text-ardoise">{data.total}</span>}
     </Link>
   );
@@ -672,7 +669,7 @@ function LienMandats() {
   const { data } = useQuery({ queryKey: ["k-mandats"], queryFn: () => base44.request("GET", "/api/mandataire/admin/mandats"), refetchInterval: 60_000 });
   const n = (data?.a_faire || 0);
   return (
-    <Link to="/Mandats" className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux px-4 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre max-md:text-[13px]">
+    <Link to="/Mandats" className={CLASSE_OUTIL}>
       Mandats{n > 0 && <span className="tabular-nums text-ambre">{n} à traiter</span>}<PointNouveau n={data?.non_lus || 0} />
     </Link>
   );

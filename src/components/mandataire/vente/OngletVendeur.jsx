@@ -23,7 +23,7 @@ const CHIFFRES = { contacts: "Contacts", qualifies: "Qualifiés", visites: "Visi
 function Section({ titre, children }) {
   return (
     <section className="mt-7">
-      <p className="m-0 mb-2 text-[11px] uppercase tracking-[.16em] text-brume">{titre}</p>
+      <p className="m-0 mb-2 text-[12.5px] text-brume">{titre}</p>
       {children}
     </section>
   );

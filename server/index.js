@@ -1543,6 +1543,8 @@ if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
       await (await import('./emailing/listes-monday.js')).tourMonday().catch((e) => console.warn('[emailing] listes Twenty CRM :', e?.message || e));
       const nl = await N.tourNewsletters();
       const c = await C.tourCampagnes();
+      // Le module (8 nov. 2026) : les faits, les parcours, puis la file des automatisations.
+      await (await import('./emailing/moteur.js')).tour();
       if (sorties || s?.envoyes || c?.envoyes || nl?.lances || nl?.alertes) console.log(`[emailing] ${nl?.lances || 0} mail(s) de newsletter lancé(s), ${nl?.alertes || 0} alerte(s), ${s?.envoyes || 0} email(s) de séquence, ${c?.envoyes || 0} de campagne, ${sorties} sortie(s) sur réponse`);
     } catch (e) {
       console.warn('[emailing]', e?.message || e);

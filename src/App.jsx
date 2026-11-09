@@ -37,6 +37,7 @@ const SimulateurPublic = lazy(() => import('@/pages/SimulateurPublic'));
 const ProjetPublic = lazy(() => import('@/pages/ProjetPublic'));
 const FeuilleDeRoute = lazy(() => import('@/pages/FeuilleDeRoute'));
 const QuizInvestisseur = lazy(() => import('@/pages/QuizInvestisseur'));
+const Formulaire = lazy(() => import('@/pages/Formulaire'));
 const NotreOffre = lazy(() => import('@/pages/NotreOffre'));
 const VisionRetraite = lazy(() => import('@/pages/VisionRetraite'));
 const OutilInvestisseur = lazy(() => import('@/pages/OutilInvestisseur'));
@@ -153,6 +154,8 @@ const PAGES_PUBLIQUES = {
   ProjetPublic: <ProjetPublic />,
   FeuilleDeRoute: <FeuilleDeRoute />,
   QuizInvestisseur: <QuizInvestisseur />,
+  // Les formulaires des lead magnets et des webinaires (8 nov. 2026, Jules).
+  Formulaire: <Formulaire />,
   // L'offre Klocka, publique (30 oct. 2026, Jules).
   NotreOffre: <NotreOffre />,
   VisionRetraite: <VisionRetraite />,

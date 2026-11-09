@@ -138,6 +138,8 @@ const ESPACES = {
   // La présentation vue du client (16 oct. 2026, Jules : « le même design que la partie admin ») : le même chat,
   // sur sa route à lui ; AK n'y touche qu'à la présentation ouverte à droite.
   presentation_client: { api: "/api/client/ak", client: true, modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Que voulez-vous changer ? « Raccourcissez le texte de la couverture », « mettez le titre plus simplement »…" },
+  // Après un appel de prospection (9 nov. 2026, Jules) : le même chat, branché par `repondre` sur l'assistant de cet appel ; rien ne se garde en conversation.
+  appel: { api: "/api/assistant", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, saisieTransparente: true, placeholder: "« Mail plus court », « relance lundi », « valide »" },
   prospection: { api: "/api/mandataire", qs: "?espace=prospection", modesAGauche: true, modeParDefaut: "libre", modes: MODES_PROSPECTION, commandes: COMMANDES_PROSPECTION, fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quelle zone prospectez-vous ? « Mâcon », « la rue Carnot », « les boulangeries indépendantes à Charnay »" },
 };
 
@@ -1068,7 +1070,7 @@ function MessageAvecPiece({ m }) {
 // `lueur` : une lumière fait lentement le tour du cadre de la saisie, pour qu'on la voie (la fiche d'un commerce, 25 oct. 2026, Jules).
 // Dans tous les chats depuis le 26 oct. 2026 (Jules : « dans le dashboard, dans admin, dans tous les chats ») : `lueur={false}` l'éteint.
 // `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
-export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null, finFil = null }) {
+export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null, finFil = null, repondre = null, annonce = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026) ; depuis le 1er nov. 2026 (Jules : « un
   // fil par bien »), l'Avis de valeur et le Mandat d'un bien aussi : un seul fil, seul le moteur qui répond change.
@@ -1178,12 +1180,14 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
   });
   // La conversation en cours : créée au premier échange, complétée ensuite.
   const [conversationId, setConversationId] = useState(null);
+  // `annonce` (9 nov. 2026) : une phrase que la page fait dire à l'assistant (« il manque… ») ; { id, contenu }.
+  useEffect(() => { if (annonce?.contenu) setFil((f) => [...f, { role: "assistant", contenu: annonce.contenu }]); }, [annonce?.id]);
   // Le titre enregistré (renommable) ; sans lui, le premier message en tient lieu.
   const [titreSauve, setTitreSauve] = useState(null);
   const [titreEdite, setTitreEdite] = useState(null);
   const sauvegarde = useRef(null);
   useEffect(() => {
-    if (!fil.some((m) => m.role === "user")) return undefined;
+    if (repondre || !fil.some((m) => m.role === "user")) return undefined;
     clearTimeout(sauvegarde.current);
     sauvegarde.current = setTimeout(() => {
       // Le mot d'ouverture d'une étape ne s'enregistre pas : il se repose à chaque arrivée, à jour.
@@ -1380,6 +1384,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
   const boite = useMutation({
     mutationFn: async ({ t, type, piece = null }) => {
       controleur.current = new AbortController();
+      if (repondre) return repondre({ texte: t, historique: historique(), signal: controleur.current.signal });
       // Une pièce jointe du mandataire : envoyée avec le message, lue par le
       // serveur — en flux, pour que la lecture et chaque étape s'affichent au
       // moment où elles se font, au lieu d'un point qui clignote sans rien dire.
@@ -1463,6 +1468,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     },
     onSettled: () => { setEnFlux(false); setTexteVif(); tourVif.current = -1; },
     onSuccess: (r) => {
+      if (repondre) { pousser({ role: "assistant", contenu: r.reponse }); onReponse?.(r); return; }
       rafraichir();
       // La mémoire des outils (ce qu'AK a lu ou fait) part avec le message : au tour suivant, il s'en souvient (13 oct. 2026).
       const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r), ...(r.memoire ? { memoire: r.memoire } : {}) };
@@ -1989,7 +1995,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
           // Écrire se voit (26 oct. 2026, Jules : « on clique, on a rien ») : un clic n'importe où dans le cadre (hors boutons)
           // met le curseur dans le champ, et le cadre s'éclaire tant qu'on écrit.
           onMouseDown={(e) => { if (!e.target.closest("button, a, input, select, textarea, [role=menu], [role=listbox]")) { e.preventDefault(); champRef.current?.focus(); } }}
-          className={`${aura ? "k-aura-filet relative " : ""}k-saisie-chat cursor-text rounded-[20px] border ${contour || "border-trait"} bg-barre px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${choixDossier && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
+          className={`${aura ? "k-aura-filet relative " : ""}k-saisie-chat cursor-text rounded-[20px] border ${contour || "border-trait"} ${E.saisieTransparente ? "bg-transparent" : "bg-barre"} px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${choixDossier && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
           style={glisse ? { boxShadow: `0 0 0 1px ${J["menthe"]}` } : undefined}
         >
           <textarea

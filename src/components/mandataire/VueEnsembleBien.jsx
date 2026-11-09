@@ -10,6 +10,7 @@ import { FichePoint } from "@/components/mandataire/TableauListe";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
 import { CompteRendu } from "@/components/mandataire/PreVisite";
 import { DocumentMandat } from "@/components/mandataire/ApercuMandat";
+import { BoutonPrincipal, Statut } from "@/components/mandataire/elements";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { useReglagesChatMandataire } from "@/components/mandataire/ReglagesChatMandataire";
 import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
@@ -189,16 +190,20 @@ function Vignette({ titre, etat, etatAccent = false, onClick, href, fond = "bg-w
  */
 function TitreModifiable({ titre, onChanger }) {
   const [edite, setEdite] = useState(null);
-  const classe = "m-0 w-full text-center text-[clamp(22px,2.1vw,30px)] font-normal tracking-[-0.02em] text-encre";
+  const classe = "m-0 min-w-0 text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre";
   if (!onChanger) return <h1 className={classe}>{titre}</h1>;
   const finir = () => { const t = (edite ?? "").trim(); setEdite(null); if (t !== titre) onChanger(t); };
+  // Sans cadre (8 nov. 2026, Jules) : le champ a la largeur du texte, ce qui suit le titre se pousse à mesure qu'on écrit.
   return edite != null ? (
-    <input autoFocus value={edite} onChange={(e) => setEdite(e.target.value)} onBlur={finir} aria-label="Nom du bien" maxLength={200}
-      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEdite(null); }}
-      className={`${classe} rounded-champ border-0 bg-transparent outline-none ring-1 ring-bord-vif`} />
+    <span className={`${classe} inline-grid max-w-full`}>
+      <span aria-hidden className="invisible col-start-1 row-start-1 overflow-hidden whitespace-pre">{edite}&nbsp;</span>
+      <input autoFocus size={1} value={edite} onChange={(e) => setEdite(e.target.value)} onBlur={finir} aria-label="Nom du bien" maxLength={200}
+        onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEdite(null); }}
+        className="col-start-1 row-start-1 w-full min-w-0 border-0 bg-transparent p-0 text-encre outline-none [font:inherit] [letter-spacing:inherit]" />
+    </span>
   ) : (
     <h1 className={classe}>
-      <button type="button" onClick={() => setEdite(titre)} title="Renommer le bien" className="cursor-text rounded-[8px] px-2 decoration-bord-vif decoration-dotted underline-offset-[6px] hover:underline" style={{ background: "transparent" }}>{titre}</button>
+      <button type="button" onClick={() => setEdite(titre)} title="Renommer le bien" className="cursor-text rounded-[8px] p-0 text-left decoration-bord-vif decoration-dotted underline-offset-[6px] hover:underline" style={{ background: "transparent" }}>{titre}</button>
     </h1>
   );
 }
@@ -398,17 +403,16 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
   return (
     <div>
       {/* L'adresse, et ses chiffres en une ligne. */}
-      <header className="border-b border-bord-vif pb-8 pt-2 text-center">
-        <TitreModifiable titre={p?.nom_bien || titre} onChanger={pid ? (t) => renommer.mutate(t) : null} />
+      <header className="border-b border-trait pb-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <TitreModifiable titre={p?.nom_bien || titre} onChanger={pid ? (t) => renommer.mutate(t) : null} />
+          {bien?.statut && <Statut>{bien.statut}</Statut>}
+          {pid && estLocation(p) && <Statut couleur="lavande">À louer</Statut>}
+        </div>
         {/* Plus de bascule Vente · Location (6 nov. 2026, Jules : « que ça détecte, pas qu'on ait à cocher ») : l'import, l'avis,
             le mandat et le chat posent la location d'eux-mêmes ; l'en-tête la dit seulement. */}
-        {pid && estLocation(p) && (
-          <div className="mt-3 flex justify-center">
-            <span className="inline-flex h-7 items-center rounded-full bg-pervenche/15 px-3 text-[12.5px] text-pervenche">À louer</span>
-          </div>
-        )}
         {chiffres.length > 0 && (
-          <p className="m-0 mt-2 text-[15px] text-craie">
+          <p className="m-0 mt-1 text-[13.5px] text-ardoise">
             {chiffres.map((x, i) => (
               <React.Fragment key={x.texte}>{i > 0 && " · "}<span className="whitespace-nowrap">{x.texte}{x.accent && <> <span className="text-ambre">{x.accent}</span></>}</span></React.Fragment>
             ))}
@@ -439,8 +443,8 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
       <div className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[340px_minmax(0,1fr)]">
         {/* Les étapes reliées, puis le chat de l'assistant juste dessous (7 nov. 2026, Jules : « mettre le chat de l'assistant
             sous la timeline ») : au téléphone, entre les étapes et les documents ; à l'ordinateur, dans la colonne de gauche. */}
-        <div className="self-start max-md:border-b max-md:border-bord-vif md:pr-10">
-        <ol className="relative m-0 list-none p-0 py-8">
+        <div className="self-start max-md:border-b max-md:border-trait md:pr-8">
+        <ol className="relative m-0 list-none p-0 py-4">
           <span aria-hidden className="absolute bottom-[54px] left-[9px] top-[44px] w-px bg-bord-vif" />
           {lesEtapes.map((x) => {
             const faite = etapeFaite(faites, x);
@@ -456,22 +460,21 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
                     {placer.isPending && placer.variables === x.id ? <Loader2 className="h-3 w-3 animate-spin" /> : faite ? <Check className="h-3 w-3" strokeWidth={2.6} /> : x.n}
                   </button>
                   <button type="button" onClick={() => (importEnCours ? !courante && placer.mutate(x.id) : onAller(x.id))} className="flex min-w-0 flex-1 items-center gap-3 text-left" style={{ background: "transparent" }}>
-                    <span className={`min-w-0 flex-1 truncate text-[15px] hover:text-menthe ${faite || courante ? "text-encre" : "text-craie"} ${courante ? "font-medium" : ""}`}>{x.label}</span>
-                    {faite && <span className="flex-none text-[12.5px] text-ardoise">Faite</span>}
-                    {courante && <span className="flex-none text-[12.5px] text-menthe">en cours</span>}
+                    <span className={`min-w-0 flex-1 truncate text-[14px] hover:text-menthe ${faite || courante ? "text-encre" : "text-craie"} ${courante ? "font-medium" : ""}`}>{x.label}</span>
+                    {faite && <Statut couleur="menthe" className="flex-none">Faite</Statut>}
+                    {courante && <Statut couleur="bleu" className="flex-none">En cours</Statut>}
                   </button>
                 </div>
                 {courante && (
                   <div className="ml-8 mt-3 flex flex-col gap-2">
                     {sesLignes.map((h, i) => (
-                      <div key={`${h.le}-${i}`} className="flex items-center justify-between gap-3 rounded-[10px] border border-trait bg-surface px-3 py-2.5">
+                      <div key={`${h.le}-${i}`} className="flex items-center justify-between gap-3 border-b border-trait py-1.5">
                         <span className="min-w-0 truncate text-[13.5px] text-encre">{h.texte}</span>
                         <span className="flex-none text-[12.5px] text-ardoise">{jourCourt(h.le)}</span>
                       </div>
                     ))}
                     {geste && (
-                      <button type="button" onClick={() => onAller(geste[1])}
-                        className="mt-1 inline-flex h-10 w-fit items-center rounded-full bg-menthe px-4 text-[14px] font-medium text-sur-menthe hover:bg-menthe-survol">{geste[0]}</button>
+                      <BoutonPrincipal onClick={() => onAller(geste[1])} className="mt-1 w-fit">{geste[0]}</BoutonPrincipal>
                     )}
                   </div>
                 )}
@@ -482,9 +485,9 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
         {ordi ? historiqueBloc(true) : chat}
         </div>
 
-        <div className="min-w-0 md:border-l md:border-bord-vif">
+        <div className="min-w-0 md:border-l md:border-trait">
           {/* Les documents du bien, en vignettes. */}
-          <section className="py-8 md:pl-10">
+          <section className="py-4 md:pl-8">
             <p className={intertitre}>Documents</p>
             <div className="flex gap-4 overflow-x-auto pb-2">
               {e && (
@@ -554,7 +557,7 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
       <section className="border-t border-bord-vif py-8">
         <p className={intertitre}>Historique</p>
         {!historique.length ? <p className="m-0 text-[13.5px] text-brume">Rien encore.</p> : (
-          <table className="w-full border-collapse text-left">
+          <table className="w-full border-collapse text-left [&_td:not(:last-child)]:border-r [&_td:not(:first-child)]:pl-3 [&_td]:border-trait [&_td]:pr-3 [&_th:not(:last-child)]:border-r [&_th:not(:first-child)]:pl-3 [&_th]:border-trait [&_th]:pr-3">
             <thead>
               <tr className="border-b border-trait text-[12.5px] text-ardoise">
                 <th className="w-[128px] py-2 font-normal">Date</th>

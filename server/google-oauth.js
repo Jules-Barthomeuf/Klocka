@@ -366,7 +366,7 @@ export async function accessTokenFor(account, entite = 'MailAccount') {
  * @param {string} email - the connected mailbox
  * @param {object} message - {to, cc, bcc, subject, text, html, replyTo}
  */
-export async function sendViaGmail(email, message) {
+export async function sendViaGmail(email, { threadId = null, ...message }) {
   const account = storedAccount(email);
   if (!account) throw new Error(`Compte Google non connecté : ${email}`);
 
@@ -382,7 +382,7 @@ export async function sendViaGmail(email, message) {
   const resp = await fetch(GMAIL_SEND_ENDPOINT, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ raw: mime.toString('base64url') }),
+    body: JSON.stringify({ raw: mime.toString('base64url'), ...(threadId ? { threadId } : {}) }),
   });
 
   const data = await resp.json().catch(() => ({}));

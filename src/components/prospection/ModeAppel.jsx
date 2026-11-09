@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, AudioLines, Check, ExternalLink, Loader2, Mic, Phone, PhoneOff, Square, X } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, Loader2, Mic, Phone, PhoneOff, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -11,12 +11,13 @@ import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare"
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
 import { ETIQUETTE } from "@/components/prospection/StyleAppel";
-import NoteApresAppel from "@/components/prospection/NoteApresAppel";
+import EcranApresAppel, { BoutonTranscription } from "@/components/prospection/EcranApresAppel";
 import { CalculatriceEnLigne } from "@/components/prospection/EcranEnLigne";
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
 import { clipAutour, morceauDeLaPhrase } from "@/lib/clip-objection";
+import { Statut } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
@@ -45,8 +46,8 @@ const duree = (debut, maintenant) => {
   return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
 };
 const pl = (n, mot, mots = `${mot}s`) => `${n} ${n > 1 ? mots : mot}`;
-const etiquette = "m-0 text-[12px] tracking-[.14em] text-ardoise";
-const bouton = "rounded-full border border-trait px-4 py-3 text-[15px] text-encre transition-colors hover:bg-relief disabled:opacity-50";
+const etiquette = "m-0 text-[12.5px] text-ardoise";
+const bouton = "h-8 rounded-full border border-trait px-3.5 text-[13.5px] text-encre transition-colors hover:bg-relief disabled:opacity-50 max-md:h-10";
 const nouvelleCle = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `v-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 const lireLocal = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
 const poserLocal = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* navigation privée */ } };
@@ -61,13 +62,13 @@ function ChoixScenario({ choisi, onJouer, relancesDabord = false, monday = true,
   const groupes = relancesDabord ? [...GROUPES_ESSAI.filter(([k]) => k === "relance"), ...GROUPES_ESSAI.filter(([k]) => k !== "relance")] : GROUPES_ESSAI;
   const sc = scenarioEssai(choisi);
   return (
-    <div className="flex flex-col gap-4 rounded-[20px] border border-dashed border-bord-vif p-5 max-md:p-4">
+    <div className="flex flex-col gap-4 rounded-[12px] border border-trait p-5 max-md:p-4">
       <div className="flex flex-col gap-1">
-        <span className="text-[11px] tracking-[.16em] text-brume">MODE ESSAI · CAS DE FIGURE</span>
+        <span className="text-[11px] tracking-[.16em] text-brume">Mode essai · cas de figure</span>
         <span className="text-[14px] leading-[1.5] text-craie">Choisissez un cas : l'appel se joue tout seul, AK le lit pour de vrai et propose ses actions. Aucun mail ne part, rien ne compte dans les statistiques.</span>
       </div>
       {setMonday && (
-        <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-trait px-4 py-3">
+        <label className="flex cursor-pointer items-start gap-3 rounded-[12px] border border-trait px-4 py-3">
           <input type="checkbox" checked={monday} onChange={(e) => setMonday(e.target.checked)} className="mt-1 h-4 w-4 accent-[rgb(var(--k-menthe-rgb))]" />
           <span className="flex flex-col gap-0.5">
             <span className="text-[14.5px] text-encre">Écrire pour de vrai dans Twenty CRM</span>
@@ -105,17 +106,17 @@ const jourCourt = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { da
 function PourquoiRelance({ a }) {
   const [histo, setHisto] = useState(false);
   const r = a.relance;
-  const etiq = "text-[11px] tracking-[.16em] text-brume";
+  const etiq = "text-[12.5px] text-ardoise";
   const bien = r.bien;
   const verdict = bien?.verdict === "retenu" ? "Retenu" : bien?.verdict === "refuse" ? "Refusé" : bien?.recue ? "En cours d'analyse" : null;
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2 rounded-[14px] border border-ambre/40 px-4 py-3.5">
+      <div className="flex flex-col gap-2 rounded-[12px] border border-ambre/40 px-4 py-3.5">
         <span className="text-[12.5px] text-ambre">{r.motif.libelle}</span>
         <span className="text-[17px] leading-[1.45] text-encre [text-wrap:pretty]">{r.phrase}</span>
       </div>
       <div className="flex flex-col gap-1">
-        <span className={etiq}>L'AGENT</span>
+        <span className={etiq}>L'agent</span>
         <span className="text-[15px] text-encre">{[r.agent, a.nom].filter(Boolean).join(" · ")}</span>
         <span className="flex flex-wrap gap-x-3 gap-y-1 text-[14px] text-craie">
           {a.lieu && <span>{a.lieu}</span>}
@@ -124,7 +125,7 @@ function PourquoiRelance({ a }) {
         </span>
       </div>
       <div className="flex flex-col gap-1">
-        <span className={etiq}>DERNIER ÉCHANGE</span>
+        <span className={etiq}>Dernier échange</span>
         {r.dernier ? (
           <>
             <span className="text-[12.5px] text-ardoise">{[jourCourt(r.dernier.le), r.dernier.par, r.dernier.monday ? "Twenty CRM" : null, r.dernier.issue].filter(Boolean).join(" · ")}</span>
@@ -134,7 +135,7 @@ function PourquoiRelance({ a }) {
       </div>
       {bien && (
         <div className="flex flex-col gap-1">
-          <span className={etiq}>LE BIEN EN COURS</span>
+          <span className={etiq}>Le bien en cours</span>
           <span className="text-[15px] text-encre">{bien.titre}{bien.adresse ? <span className="text-ardoise"> · {bien.adresse}</span> : null}</span>
           <span className="text-[13.5px] text-craie">
             {bien.recue ? `Fiche reçue${bien.recue_le ? ` le ${jourCourt(bien.recue_le)}` : ""}` : <span className="text-ambre">Fiche non reçue</span>}
@@ -189,9 +190,9 @@ export function PanneauTranscription({ direct, notes, fin, enDirect = false, rep
   const enCours = direct.some((x) => x.etat === "envoi");
   const rates = direct.filter((x) => x.etat === "echec").length;
   return (
-    <div className={`flex min-w-0 flex-col gap-3 ${nu ? "" : "rounded-[18px] border border-bord-doux bg-transparent p-6"}`}>
+    <div className={`flex min-w-0 flex-col gap-3 ${nu ? "" : "rounded-[12px] border border-bord-doux bg-transparent p-6"}`}>
       <div className="flex items-center justify-between gap-3">
-        <span className={ETIQUETTE}>{enDirect ? "TRANSCRIPTION EN DIRECT" : "TRANSCRIPTION"}</span>
+        <span className={ETIQUETTE}>{enDirect ? "Transcription en direct" : "Transcription"}</span>
         {replie ? <button type="button" onClick={() => setOuvert((x) => !x)} className="p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>{ouvert ? "Replier" : "Afficher"}</button>
           : enCours && <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />}
       </div>
@@ -211,27 +212,27 @@ export function PanneauTranscription({ direct, notes, fin, enDirect = false, rep
 function CarteAgence({ a, recherches, cahier }) {
   return (
     <div className="relative min-w-0">
-      <div className="relative flex flex-col gap-5 rounded-[28px] border border-trait bg-transparent p-7 max-md:p-5">
+      <div className="relative flex flex-col gap-5 rounded-[12px] border border-trait bg-transparent p-4">
         <div className="flex items-center justify-between gap-3">
-          <span className={`rounded-[7px] px-2.5 py-1 text-[13px] ${a.badge === "Jamais contactée" ? "bg-menthe/15 text-menthe" : "bg-ambre/15 text-ambre"}`}>{a.badge || a.statut?.libelle}</span>
+          <Statut couleur={a.badge === "Jamais contactée" ? "gris" : "ambre"}>{a.badge || a.statut?.libelle}</Statut>
           <span className="min-w-0 truncate text-[14px] text-ardoise">{a.lieu}</span>
         </div>
         <p className="m-0 break-words text-[32px] leading-[1.15] tracking-[-0.02em] text-encre [text-wrap:balance] max-md:text-[26px]">{a.nom}</p>
         {a.interlocuteurs?.[0] && <p className="m-0 text-[16px] text-craie">{a.interlocuteurs[0]}</p>}
-        {a.reseau && <p className="m-0 rounded-[14px] border border-ambre/40 px-3.5 py-2.5 text-[14px] leading-[1.45] text-ambre">{a.reseau}</p>}
+        {a.reseau && <p className="m-0 rounded-[12px] border border-ambre/40 px-3.5 py-2.5 text-[14px] leading-[1.45] text-ambre">{a.reseau}</p>}
         <div className="flex flex-col gap-1.5 border-t border-trait pt-4">
           {a.raison && <span className="text-[15px] leading-[1.5] text-ambre">{a.raison}</span>}
           {(a.historique?.length ? a.historique : ["Aucun appel"]).map((h) => <span key={h} className="text-[14px] text-ardoise">{h}</span>)}
         </div>
         {cahier?.length > 0 && (
           <div className="flex flex-col gap-1.5 border-t border-trait pt-4">
-            <span className={etiquette}>CAHIER DES CHARGES</span>
+            <span className={etiquette}>Cahier des charges</span>
             {cahier.map((q) => <span key={q} className="text-[15px] leading-[1.4] text-encre">{q}</span>)}
           </div>
         )}
         {recherches?.length > 0 && (
           <div className="flex flex-col gap-2 border-t border-trait pt-4">
-            <span className={etiquette}>RECHERCHES DE CLIENTS</span>
+            <span className={etiquette}>Recherches de clients</span>
             {recherches.map((q) => <span key={q} className="text-[15px] leading-[1.4] text-encre">{q}</span>)}
           </div>
         )}
@@ -243,45 +244,12 @@ function CarteAgence({ a, recherches, cahier }) {
 /** Les notes de l'appel, sous la transcription : ce que le micro capte mal. Elles l'emportent sur ce qu'AK a entendu. */
 function ZoneNotes({ valeur, onChange, nu = false }) {
   return (
-    <label className={`flex min-w-0 flex-col gap-2 ${nu ? "" : "rounded-[18px] border border-bord-doux bg-transparent p-6 max-md:p-5"}`}>
-      <span className={ETIQUETTE}>NOTES</span>
+    <label className={`flex min-w-0 flex-col gap-2 ${nu ? "" : "rounded-[12px] border border-bord-doux bg-transparent p-6 max-md:p-5"}`}>
+      <span className={ETIQUETTE}>Notes</span>
       <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={3}
         placeholder={nu ? "Email, numéro, nom, date : elles l'emportent sur la transcription" : "Email, numéro, nom, date : ce qui compte et que le micro capte mal. Les notes l'emportent sur la transcription."}
-        className={`w-full resize-y px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none max-md:text-[16px] ${nu ? "rounded-[14px] border border-bord-doux bg-transparent placeholder:text-brume focus:border-bord-vif" : "rounded-champ border border-bord-doux bg-transparent focus:border-bord-vif"}`} />
+        className={`w-full resize-y px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none max-md:text-[16px] ${nu ? "rounded-[12px] border border-bord-doux bg-transparent placeholder:text-brume focus:border-bord-vif" : "rounded-champ border border-bord-doux bg-transparent focus:border-bord-vif"}`} />
     </label>
-  );
-}
-
-/**
- * Les notes après l'appel, sur l'écran des actions (13 oct. 2026, Jules) :
- * toujours là, à taper ou à dicter ; changées, « Ré-analyser » relance la
- * lecture d'AK avec elles (un mail demandé dans les notes est proposé).
- */
-function NotesApres({ valeur, onChange, change, onReanalyser, occupe }) {
-  const base = useRef("");
-  const { supporte, ecoute, demarrer, arreter, finalisation } = useDictee({ onTexte: (t) => onChange([base.current, t].filter(Boolean).join(base.current ? " " : "")) });
-  const dicter = () => { if (ecoute) { arreter(); return; } base.current = String(valeur || "").trim(); demarrer(); };
-  return (
-    <div className={`flex flex-col rounded-[14px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
-      <span className="px-3.5 pt-3 text-[11px] tracking-[.16em] text-brume">NOTES</span>
-      <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={2} aria-label="Notes de l'appel"
-        placeholder="Une précision, « envoyer un mail », un email, une date : AK relit l'appel avec"
-        className="resize-y bg-transparent px-3.5 pt-1.5 text-[14.5px] leading-[1.5] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-      <div className="flex items-center justify-between gap-2 px-2 pb-2">
-        {supporte ? (
-          <button type="button" onClick={dicter} aria-label={ecoute ? "Arrêter la dictée" : "Dicter"} title={ecoute ? "Arrêter la dictée" : "Dicter les notes"}
-            className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${ecoute ? "bg-menthe text-sur-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={ecoute ? undefined : { background: "transparent" }}>
-            {ecoute ? <Square className="h-3 w-3" fill="currentColor" /> : finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
-          </button>
-        ) : <span />}
-        {change && (
-          <button type="button" onClick={onReanalyser} disabled={occupe || ecoute || finalisation}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
-            {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}Ré-analyser avec les notes
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -362,7 +330,7 @@ function ResumeAppel({ onAnalyser, onSansReponse, occupe }) {
   // gauche, Analyser en bas à droite ; dessous, « Pas de réponse ou répondeur » sur toute la largeur.
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className={`flex min-h-[200px] flex-1 flex-col rounded-[16px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
+      <div className={`flex min-h-[200px] flex-1 flex-col rounded-[12px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
         <textarea value={texte} onChange={(e) => setTexte(e.target.value)} aria-label="Ce qui s'est dit pendant l'appel" placeholder="Dites ou écrivez ce qui s'est dit"
           className="min-h-[140px] flex-1 resize-none bg-transparent px-4 pt-3.5 text-[14px] leading-[1.55] text-encre outline-none placeholder:text-brume" />
         <div className="flex items-center justify-between gap-2 px-3 pb-3">
@@ -378,7 +346,7 @@ function ResumeAppel({ onAnalyser, onSansReponse, occupe }) {
           </button>
         </div>
       </div>
-      <button type="button" onClick={onSansReponse} className="h-11 w-full rounded-full border border-bord-doux text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Pas de réponse ou répondeur</button>
+      <button type="button" onClick={onSansReponse} className="h-8 max-md:h-10 w-full rounded-full border border-bord-doux text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Pas de réponse ou répondeur</button>
     </div>
   );
 }
@@ -398,7 +366,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   const numero = choisi?.telephone || standard;
   const personne = choisi && !choisi.standard ? choisi : null;
   const histo = a.historique_detail || [];
-  const etiq = "text-[11px] tracking-[.16em] text-brume";
+  const etiq = "text-[12.5px] text-ardoise";
   const relance = !!a.relance || /relance|tentative/i.test(a.badge || "");
   // L'accroche (ou, en relance, ce qu'on s'est dit) : sous la fiche à l'ordinateur, sous le micro au téléphone.
   const suite = (
@@ -406,7 +374,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         {relances ? (
         // En relance : ce qui s'est dit aux appels d'avant, pour rappeler en sachant où on en est.
         <div className="flex flex-col gap-3">
-          <span className={etiq}>CE QU'ON S'EST DIT</span>
+          <span className={etiq}>Ce qu'on s'est dit</span>
           {histo.filter((h) => h.resume).map((h, k) => (
             <div key={k} className="flex flex-col gap-1">
               <span className="text-[12.5px] text-ardoise">{[h.quand, h.qui, h.quoi].filter(Boolean).join(" · ")}</span>
@@ -418,7 +386,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <span className={etiq}>L'ACCROCHE</span>
+          <span className={etiq}>L'accroche</span>
           <span className="text-[18px] leading-[1.5] text-craie [text-wrap:pretty]">Nos recherches clients actives sur {a.ville || "la ville"}, pour recevoir leurs biens avant la mise en ligne.</span>
           {recherches.length > 0 && (
             <ul className="m-0 mt-1 flex list-none flex-col gap-1.5 p-0">
@@ -429,7 +397,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
       )}
     </>
   );
-  const etiq2 = "m-0 text-[11px] tracking-[.14em] text-brume";
+  const etiq2 = "m-0 text-[12.5px] text-ardoise";
   // La fiche d'avant l'appel (maquette de Jules, 21 oct. 2026) : une carte ; en tête l'origine et l'état, le nom, la
   // personne et son numéro, à droite le micro, Appeler et Passer ; dessous trois colonnes : interlocuteurs et
   // historique, l'accroche et les recherches clients, « Déjà appelé ? ».
@@ -438,24 +406,19 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   // « Déjà appelé ? ». Après le raccrochage, la note de cinq secondes prend la place de l'en-tête.
   const enCours = !!enLigne;
   return (
-    <div className="overflow-hidden rounded-[24px] border border-bord-doux bg-transparent">
-      {enLigne?.apres ? (
-        <div className="px-7 py-6 max-md:px-5 max-md:py-5">
-          <NoteApresAppel key="note" onFin={enLigne.onNote} titre="Une précision avant que l'Assistant KPartners lise l'appel ?" />
-        </div>
-      ) : (
-      <div className="flex flex-wrap items-end justify-between gap-6 px-7 py-6 max-md:px-5 max-md:py-5">
-        <div className="flex min-w-0 flex-col gap-3">
+    <div className="overflow-hidden rounded-[12px] border border-trait bg-rail">
+      <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
+        <div className="flex min-w-0 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2.5 text-[12.5px] text-ardoise">
             {relances ? "Relances" : "Tableau prospection"}{a.ville ? ` · ${a.ville}` : ""}
             {enCours ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-2.5 py-0.5 text-[12px] text-craie">
-                <span className={`h-1.5 w-1.5 rounded-full bg-alerte ${enLigne.ecoute ? "animate-pulse" : ""}`} />{enLigne.ecoute ? "En ligne" : "En ligne, sans écoute"}
-              </span>
-            ) : <span className={`rounded-full px-2.5 py-0.5 text-[12px] ${relance ? "bg-ambre/15 text-ambre" : "bg-menthe/15 text-menthe"}`}>{a.badge || a.statut?.libelle}</span>}
-            {enLigne?.essai && <span className="rounded-full bg-ambre/15 px-2.5 py-0.5 text-[12px] text-ambre">Essai</span>}
+              <Statut couleur="corail" className="inline-flex items-center gap-1.5">
+                <span className={`h-1.5 w-1.5 rounded-full bg-statut-corail ${enLigne.ecoute ? "animate-pulse" : ""}`} />{enLigne.ecoute ? "En ligne" : "En ligne, sans écoute"}
+              </Statut>
+            ) : <Statut couleur={relance ? "ambre" : a.badge === "Jamais contactée" ? "gris" : "ambre"}>{a.badge || a.statut?.libelle}</Statut>}
+            {enLigne?.essai && <Statut couleur="ambre">Essai</Statut>}
           </span>
-          <p className="m-0 break-words text-[clamp(22px,2.1vw,30px)] font-normal leading-[1.15] tracking-[-0.02em] text-encre [text-wrap:balance]">{nomLisible(a.nom)}</p>
+          <p className="m-0 break-words text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">{nomLisible(a.nom)}</p>
           <p className="m-0 text-[13.5px] text-ardoise">
             {[personne?.nom || "Interlocuteur non connu", personne?.fonction].filter(Boolean).join(" · ")}
             {numero && <> · <span className="select-all tabular-nums text-encre">{numero}</span></>}
@@ -472,15 +435,15 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
             <div className="flex items-center gap-3">
               {/* Le micro, comme au rappel : en simple contour à la couleur choisie, il respire tant qu'on écoute. */}
               <span role="img" aria-label={enLigne.ecoute ? "Enregistrement en cours" : "Sans enregistrement"} title={enLigne.ecoute ? "L'appel est écouté" : "Sans enregistrement"}
-                className={`grid h-11 w-11 place-items-center rounded-full border ${enLigne.ecoute ? "k-anneau border-menthe text-menthe" : "border-bord-doux text-brume"}`}>
+                className={`grid h-8 max-md:h-11 w-8 max-md:w-11 place-items-center rounded-full border ${enLigne.ecoute ? "k-anneau border-menthe text-menthe" : "border-bord-doux text-brume"}`}>
                 <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />
               </span>
-              <button type="button" onClick={enLigne.onRaccrocher} className="inline-flex h-11 items-center gap-2 rounded-full bg-alerte px-5 text-[14.5px] text-fond transition-opacity hover:opacity-90">
+              <button type="button" onClick={enLigne.onRaccrocher} className="inline-flex h-8 max-md:h-10 items-center gap-2 rounded-full bg-alerte px-5 text-[13.5px] text-fond transition-opacity hover:opacity-90">
                 <PhoneOff className="h-4 w-4" strokeWidth={2} />Raccrocher
               </button>
               {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
               <button type="button" onClick={enLigne.onAnnuler} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
-                className="grid h-11 w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+                className="grid h-8 max-md:h-11 w-8 max-md:w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
             </div>
             {/* L'analyste sait que son écran est enregistré pendant l'appel (14 oct. 2026). */}
             {enLigne.ecranEnregistre && <span className="text-[12px] text-brume">Écran enregistré pendant l'appel</span>}
@@ -488,30 +451,29 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         ) : (
         <div className="flex flex-none items-center gap-3">
           <button type="button" onClick={onMicro} aria-label="Enregistrer l'appel" title="Enregistrer quand l'agent décroche"
-            className="grid h-11 w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
+            className="grid h-8 max-md:h-11 w-8 max-md:w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
             <Mic className="h-4 w-4" strokeWidth={1.8} />
           </button>
           {/* Appeler : composer sur son téléphone, l'écoute part (pas de lien tel:, 7 oct. 2026) ; en essai, l'appel se joue. */}
           <button type="button" onClick={onMicro} title={essai ? "Simuler l'appel" : "Composez le numéro sur votre téléphone : l'écoute démarre"}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14.5px] text-sur-menthe transition-colors hover:bg-menthe-survol">
+            className="inline-flex h-8 max-md:h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe transition-colors hover:bg-menthe-survol">
             <Phone className="h-4 w-4" strokeWidth={1.8} />Appeler
           </button>
           {onRetour
-            ? <button type="button" onClick={onRetour} className="h-11 rounded-full border border-bord-doux px-5 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
+            ? <button type="button" onClick={onRetour} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-5 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
             // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
-            : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-11 rounded-full border border-bord-doux px-5 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
+            : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-5 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
         </div>
         )}
       </div>
-      )}
 
       {/* Des filets en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css), la maquette les veut. */}
-      <div aria-hidden className="h-px bg-bord-doux" />
+      <div aria-hidden className="h-px bg-trait" />
       <div className="grid lg:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.8fr)_minmax(300px,1.25fr)]">
         {/* Les interlocuteurs et l'historique. */}
-        <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-6 max-lg:order-3 max-lg:border-t max-md:p-5 lg:border-r">
+        <div className="flex min-w-0 flex-col gap-4 border-trait p-4 max-lg:order-3 max-lg:border-t lg:border-r">
           <div className="flex flex-col gap-2">
-            <span className={etiq2}>INTERLOCUTEURS</span>
+            <span className={etiq2}>Interlocuteurs</span>
             {contacts.map((x) => {
               const actif = choisi?.id === x.id;
               return (
@@ -525,7 +487,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
             {!contacts.length && <span className="pt-1 text-[13.5px] leading-[1.5] text-brume">Personne de connu : demandez le responsable commerce.</span>}
           </div>
           <div className="flex flex-col gap-2">
-            <span className={etiq2}>HISTORIQUE</span>
+            <span className={etiq2}>Historique</span>
             {histo.map((h, k) => (
               <div key={k} className="flex gap-3 py-1.5">
                 <span className="mt-[8px] h-1.5 w-1.5 flex-none rounded-full bg-bord-vif" />
@@ -543,19 +505,19 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         </div>
 
         {/* L'accroche et les recherches clients (ou, en relance, ce qu'on s'est dit). */}
-        <div className="flex min-w-0 flex-col gap-5 border-bord-doux p-7 max-lg:order-1 max-md:p-5 lg:border-r">
+        <div className="flex min-w-0 flex-col gap-3 border-trait p-4 max-lg:order-1 lg:border-r">
           {enCours ? enLigne.milieu : a.relance ? <PourquoiRelance a={a} /> : relances ? suite : (
-            <div className="flex flex-col gap-5">
-              <span className={etiq2}>L'ACCROCHE</span>
-              <p className="m-0 text-[20px] leading-[1.45] tracking-[-0.01em] text-encre [text-wrap:pretty] max-md:text-[17px]">Nos recherches clients actives sur {a.ville || "la ville"}, pour recevoir leurs biens avant la mise en ligne.</p>
+            <div className="flex flex-col gap-3">
+              <span className={etiq2}>L'accroche</span>
+              <p className="m-0 text-[15px] leading-[1.5] text-encre [text-wrap:pretty]">Nos recherches clients actives sur {a.ville || "la ville"}, pour recevoir leurs biens avant la mise en ligne.</p>
               {recherches.length > 0 && (
                 <div className="flex flex-col">
                   {recherches.map((q) => {
                     const l = ligneRecherche(q);
                     return (
                       <React.Fragment key={q}>
-                        <div aria-hidden className="h-px bg-bord-doux" />
-                        <div className="flex items-baseline justify-between gap-6 py-3 text-[13.5px]">
+                        <div aria-hidden className="h-px bg-trait" />
+                        <div className="flex items-baseline justify-between gap-6 py-2 text-[13.5px]">
                           <span className="min-w-0 text-encre">{l.gauche}</span>
                           {l.droite && <span className="flex-none text-right tabular-nums text-encre">{l.droite}</span>}
                         </div>
@@ -570,8 +532,8 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         </div>
 
         {/* Déjà appelé ? */}
-        <div className="flex min-w-0 flex-col gap-4 p-6 max-lg:order-2 max-lg:border-t max-lg:border-bord-doux max-md:p-5">
-          {enCours ? enLigne.droite : <span className={etiq2}>DÉJÀ APPELÉ ?</span>}
+        <div className="flex min-w-0 flex-col gap-3 p-4 max-lg:order-2 max-lg:border-t max-lg:border-trait">
+          {enCours ? enLigne.droite : <span className={etiq2}>Déjà appelé ?</span>}
           {enCours ? null : !essai ? <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />
             : <span className="text-[13.5px] leading-[1.5] text-brume">En essai, l'appel se joue tout seul : touchez Appeler.</span>}
         </div>
@@ -607,9 +569,10 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const [note, setNote] = useState("");
   // Les notes tapées pendant l'appel (8 oct. 2026) : email, numéro, nom, date ; elles font foi sur la transcription.
   const [notesAppel, setNotesAppel] = useState("");
-  const [notesLues, setNotesLues] = useState(null);
-  // L'écran des actions s'ouvre sur les actions seules ; la transcription et les notes à la demande (9 oct. 2026).
+  // L'assistant d'après l'appel (9 nov. 2026) : « valide » lui fait lancer le bouton ; `annonce` lui fait dire pourquoi il ne peut pas.
+  const [annonce, setAnnonce] = useState(null);
   const [voirTranscription, setVoirTranscription] = useState(false);
+  const [lancement, setLancement] = useState(0);
   // La chaîne de raisonnement d'AK pendant la lecture, puis repliée à l'écran d'actions (8 oct. 2026).
   const chaine = useEtapesVives();
   const [etapesFinies, setEtapesFinies] = useState([]);
@@ -682,7 +645,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const motifEssai = session?.essai && a0 && !a0.relance ? (scJoue?.motif || (essaiSeul ? "point_mensuel" : null)) : null;
   const a = motifEssai ? { ...a0, relance: { motif: { cle: motifEssai, libelle: MOTIFS_ESSAI[motifEssai] }, phrase: `Essai : ${scJoue?.titre || "relance fictive"}.`, dernier: null, bien: null, historique: [] } } : a0;
   // Une nouvelle agence : les actions seules à nouveau.
-  useEffect(() => { setVoirTranscription(false); }, [a?.id]);
+  useEffect(() => { setAnnonce(null); setVoirTranscription(false); }, [a?.id]);
   const surUnBien = ["bien_retenu", "bien_refuse"].includes(a?.relance?.motif?.cle);
   const c = file.data?.chiffres;
   const recherches = file.data?.recherches || [];
@@ -714,7 +677,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     arreterTout();
     if (a && !rappel) setPassees((s) => new Set(s).add(a.id));
     setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({});
-    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setPasserOuvert(false); setNotesAppel(""); setNotesLues(null);
+    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setPasserOuvert(false); setNotesAppel(""); setAnnonce(null); setVoirTranscription(false);
     if (texte) dire(texte);
     queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
     queryClient.invalidateQueries({ queryKey: ["agent-ia-liste"] });
@@ -727,7 +690,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     if (!relances || !relance?.agence_id) return;
     arreterTout();
     setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({}); setFait(null);
-    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setNotesAppel(""); setNotesLues(null);
+    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setNotesAppel(""); setAnnonce(null); setVoirTranscription(false);
   }, [relance?.agence_id]);
   // Relances : la ligne reste à moi tant que je m'en sers (j'ai bougé dans la dernière minute, ou l'appel est en cours).
   const activite = useRef(Date.now());
@@ -913,17 +876,10 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     clearInterval(chrono.current);
     couperMicro(false);
     if (!notes) { setEcran("issue"); return; }
-    // La note vocale d'après l'appel, avant toute action (21 oct. 2026, Jules) : cinq secondes, facultatives.
-    setEcran("note");
-  };
-  // La note dite (ou rien) : elle rejoint les notes, qui font foi, puis Haka lit et propose.
-  const apresNote = (note) => {
-    const avec = note ? [notesAppel.trim(), `Note dite après l'appel : ${note}`].filter(Boolean).join("\n") : null;
-    if (avec) setNotesAppel(avec);
-    // Une courte transition (« Appel terminé ») avant la lecture ; sans note, la lecture faite pendant l'appel resert.
+    // Plus de note d'après l'appel (9 nov. 2026, Jules) : une courte transition (« Appel terminé »), et la lecture faite pendant l'appel resert.
     setEcran("raccroche");
     setTimeout(() => setEcran((e) => (e === "raccroche" ? "analyse" : e)), 1100);
-    noter.mutate({ issue: "auto", ...(avec ? { notes: avec } : {}) });
+    noter.mutate({ issue: "auto" });
   };
   // Message laissé (13 oct. 2026, Jules) : rien à lire, l'issue est posée et les actions proposées s'ouvrent.
   const messageLaisse = () => {
@@ -1010,7 +966,6 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAEnvoyer.trim() || null, monday_essai: session?.essai && mondayEssai ? "1" : null,
         // Le suivi de l'usage (9 oct. 2026) : la durée de l'appel et le mode d'où il part.
         duree_s: secondes > 0 ? String(secondes) : null, source: session?.essai ? "essai" : relances ? "relances" : "prospection" };
-      setNotesLues(notesAEnvoyer);
       let wavs = [];
       if (is === "auto" || remplace) {
         await morceauxPrets();
@@ -1065,6 +1020,13 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   };
   // AK s'est trompé d'issue : on la change, les actions se refont sur la même transcription.
   const changerIssue = (is) => { setEcran("analyse"); noter.mutate({ issue: is, remplace: appel.id }); };
+  // L'assistant a appris qu'il fallait relire : une autre issue, ou un fait nouveau qui rejoint les notes.
+  const refaireActions = ({ issue: is, precision }) => {
+    const avec = precision ? [notesAppel.trim(), `Précision après l'appel : ${precision}`].filter(Boolean).join("\n") : notesAppel;
+    if (precision) setNotesAppel(avec);
+    setEcran("analyse");
+    noter.mutate({ issue: is, remplace: appel.id, notes: avec });
+  };
 
   // --- Ce qui a été compris ----------------------------------------------------
   const compris = appel?.compris?.champs || {};
@@ -1077,11 +1039,12 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
 
   // --- Valider, une fois ; le reçu ; annuler dix secondes -----------------------
   const corpsValidation = () => ({
-    choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, relance2_le: relance2Le, monday_ligne: ligneMonday, note: note.trim(), cle,
+    choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, relance2_le: relance2Le, monday_ligne: ligneMonday, note: String(edits.note || note).trim(), cle,
     session_id: session?.id || null, issue, depuis_fenetre: depuisFenetre.current, etapes_vues: etapesVues.current,
     passe: edits.passe ?? null,
     // Les cases Monday corrigées à l'écran d'actions (16 oct. 2026) : elles partent telles quelles.
     monday_cases: edits.monday && Object.keys(edits.monday).length ? edits.monday : null,
+    sans_twenty: !!edits.sans_twenty,
     corrections: faits.filter((f) => MODIFIABLES.includes(f.cle) && edits[f.cle] != null && edits[f.cle].trim() !== f.valeur).map((f) => ({ cle: f.cle, libelle: f.libelle, valeur: edits[f.cle].trim() })),
   });
   // Valider depuis la fenêtre des actions (8 oct. 2026) : elle reste ouverte et suit l'envoi, puis « Tout préparé ».
@@ -1185,9 +1148,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             <React.Fragment key={l.id}>
               {i > 0 && <span aria-hidden className="w-1 flex-none" />}
               <button type="button" role="tab" aria-selected={actif} onClick={() => choisir(l.id)}
-                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
+                style={actif ? undefined : { background: "transparent" }} className={`flex h-7 max-w-[240px] flex-none items-center gap-1.5 rounded-[8px] px-3 text-left text-[13px] transition-colors max-md:h-10 ${actif ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}>
                 <span className="truncate">{l.ville}</span>
-                <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{l.agences_seules ?? l.agences}</span>
+                <span className="flex-none text-[13px] tabular-nums text-ardoise">{l.agences_seules ?? l.agences}</span>
               </button>
             </React.Fragment>
           );
@@ -1196,25 +1159,26 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
           <>
             {villes.length > 0 && <span aria-hidden className="w-1 flex-none" />}
             <button type="button" role="tab" aria-selected={onglet === ESSAI} onClick={() => choisir(ESSAI)}
-              className={`flex flex-none items-center gap-2 rounded-t-[10px] border border-b-0 border-dashed border-bord-vif px-4 text-[13px] transition-colors ${onglet === ESSAI ? "bg-rail pb-[11px] pt-2.5 text-encre" : "py-2 text-ardoise hover:bg-rail hover:text-encre"}`}
+              className={`flex h-7 flex-none items-center gap-1.5 rounded-[8px] px-3 text-[13px] transition-colors max-md:h-10 ${onglet === ESSAI ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}
               style={onglet === ESSAI ? undefined : { background: "transparent" }}>
               Essai
             </button>
           </>
         )}
         <span aria-hidden className="min-w-3 flex-1" />
+        {(ecran === "actions" || ecran === "analyse") && appel && <span className="ml-3 flex-none self-center pb-1"><BoutonTranscription actif={voirTranscription} onClick={() => setVoirTranscription((x) => !x)} /></span>}
         {entete && <span className="ml-3 flex-none self-center pb-1">{entete}</span>}
       </div>}
 
       {/* Tous les écrans, raisonnement et actions proposées compris, sur le fond des listes : la couleur de la barre choisie dans Compte, et ses points (9 oct. 2026). */}
-      <div data-zone="listes" className={`k-points relative flex flex-col gap-4 bg-rail px-5 pb-5 pt-4 max-md:px-3 ${relances ? "rounded-[12px]" : "rounded-b-md rounded-t-[12px]"}`}>
+      <div data-zone="listes" className="flex flex-col gap-3 pt-3">
         {(!relances && listes.isLoading) || ouvrir.isPending || (session && file.isLoading) ? <Chargement taille="grand" /> : null}
         {!relances && !listes.isLoading && !villes.length && onglet !== ESSAI && <p className="m-0 py-12 text-center text-[14px] text-brume">Aucune ville encore : lancez l'agent IA sur une ville, ou ouvrez l'onglet Essai.</p>}
         {relances && file.isError && <p className="m-0 py-12 text-center text-[14px] text-alerte">Cette relance n'a pas pu s'ouvrir : {file.error?.message || "erreur"}.</p>}
 
-        {horsLigne > 0 && <p className="m-0 flex items-center gap-2 rounded-[14px] border border-ambre/40 px-4 py-2.5 text-[14px] text-ambre"><Loader2 className="h-3.5 w-3.5 animate-spin" />{pl(horsLigne, "envoi gardé", "envois gardés")} dans le téléphone : ils partent au retour du réseau.</p>}
+        {horsLigne > 0 && <p className="m-0 flex items-center gap-2 rounded-[12px] border border-ambre/40 px-4 py-2.5 text-[14px] text-ambre"><Loader2 className="h-3.5 w-3.5 animate-spin" />{pl(horsLigne, "envoi gardé", "envois gardés")} dans le téléphone : ils partent au retour du réseau.</p>}
         {enCoursSansIssue && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-ambre/40 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-ambre/40 px-4 py-3">
             <span className="text-[15px] text-ambre">Dernier appel sans issue : {enCoursSansIssue.agence.nom}</span>
             <span className="flex gap-2">
               <button type="button" onClick={() => { setRappel({ ...enCoursSansIssue.agence }); setNotes(false); setEcran("issue"); }} className="rounded-full border border-ambre/40 px-3.5 py-1.5 text-[13px] text-ambre" style={{ background: "transparent" }}>Taper l'issue</button>
@@ -1227,17 +1191,16 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
           <>
 
             {session.essai && ecran === "fiche" && a && <ChoixScenario choisi={scenario} onJouer={(sc) => simuler(sc)} relancesDabord={essaiSeul} monday={mondayEssai} setMonday={setMondayEssai} />}
-            {session.essai && ecran !== "fiche" && scJoue && <p className="m-0 rounded-[14px] border border-dashed border-bord-vif px-4 py-2.5 text-[13.5px] leading-[1.5] text-ardoise"><span className="text-menthe">Essai · {scJoue.titre}.</span> Attendu : {scJoue.attendu}</p>}
             {session.essai && ecran === "fiche" && !a && (
               <div className="flex flex-col items-center gap-3 py-12 text-center">
                 <p className="m-0 text-[14px] text-craie">Les agences d'essai sont toutes appelées.</p>
-                <button type="button" onClick={() => choisir(ESSAI)} className="h-10 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">Recommencer l'essai</button>
+                <button type="button" onClick={() => choisir(ESSAI)} className="h-8 max-md:h-10 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol">Recommencer l'essai</button>
               </div>
             )}
             {message && <p className="m-0 flex items-start gap-2.5 px-1 text-[14px] text-ardoise"><span className="text-menthe">✓</span><span className="min-w-0 break-words">{message}</span></p>}
 
             {/* Chaque écran entre en fondu, avec une légère montée (8 oct. 2026) : la clé change, l'animation rejoue. */}
-            <div key={ecran === "note" ? "appel" : ecran} className="flex flex-col gap-4 duration-500 ease-out animate-in fade-in-0 slide-in-from-bottom-2">
+            <div key={ecran === "analyse" && appel ? "actions" : ecran} className="flex flex-col gap-4 duration-500 ease-out animate-in fade-in-0 slide-in-from-bottom-2">
             {/* La fiche et le panneau d'appel. */}
             {ecran === "fiche" && !a && !relances && !session.essai && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant.</p>}
             {ecran === "fiche" && a && (
@@ -1250,16 +1213,16 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             )}
 
             {/* Pendant l'appel et la note d'après (21 oct. 2026, Jules) : la fiche de la liste, à l'identique, en ligne. */}
-            {(ecran === "appel" || ecran === "note") && a && (
+            {ecran === "appel" && a && (
               <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai}
                 choisi={contactChoisi} onChoisir={setChoisi}
                 enLigne={{
-                  apres: ecran === "note", onNote: apresNote, ecoute: notes, essai: simule,
+                  ecoute: notes, essai: simule,
                   onRaccrocher: raccrocher, onAnnuler: annulerAppel,
                   ecranEnregistre: !simule && moi?.role === "admin",
                   gauche: (autresNumeros.length > 0 || a.site || (numeroAppel === a.telephone && a.telephone_source)) ? (
                     <div className="flex flex-col gap-2">
-                      <span className="m-0 text-[11px] tracking-[.14em] text-brume">{autresNumeros.length ? "AUTRES NUMÉROS" : "LE NUMÉRO"}</span>
+                      <span className="m-0 text-[11px] tracking-[.14em] text-brume">{autresNumeros.length ? "AUTRES NUMÉROS" : "Le numéro"}</span>
                       {/* D'où vient le numéro (12 oct. 2026) : un numéro d'annonce, ou d'une autre région, se voit. */}
                       {numeroAppel === a.telephone && a.telephone_source && <span className={`text-[12.5px] ${a.telephone_autre_region ? "text-ambre" : "text-ardoise"}`}>{a.telephone_autre_region ? `Numéro appelé d'une autre région · ${a.telephone_source}` : `Numéro appelé : ${a.telephone_source}`}</span>}
                       {autresNumeros.map((x) => (
@@ -1280,8 +1243,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                       {ecran === "appel" && (
                         <div className="grid grid-cols-2 gap-2.5 [&>button]:whitespace-nowrap">
                           {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
-                          <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-11 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
-                          <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-11 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
+                          <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
+                          <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-8 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
                         </div>
                       )}
                     </>
@@ -1293,7 +1256,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {ecran === "issue" && a && (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-stretch gap-5">
                 <CarteAgence a={a} recherches={[]} cahier={[]} />
-                <div className="flex flex-col gap-3 rounded-[28px] border border-trait bg-transparent p-6">
+                <div className="flex flex-col gap-3 rounded-[12px] border border-trait bg-transparent p-6">
                   <div className="flex items-baseline justify-between"><span className="text-[15px] text-encre">Appel terminé</span></div>
                   {notes ? <span className="text-[13px] text-menthe">✓ Notes enregistrées</span> : <span className="text-[13px] text-ardoise">Sans notes : l'issue suffit</span>}
                   {!rappel && <button type="button" onClick={rappeler} className="self-start p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>L'appel a coupé ? Rappeler</button>}
@@ -1301,19 +1264,19 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       {ISSUES_BIEN.map(([k, l, simple]) => (
                         <button key={k} type="button" disabled={noter.isPending} onClick={() => choisirIssue(k, simple)}
-                          className={k === "agent_prevenu" ? "col-span-2 h-[72px] rounded-full bg-menthe text-[18px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50" : bouton} style={k === "agent_prevenu" ? undefined : { background: "transparent" }}>{l}</button>
+                          className={k === "agent_prevenu" ? "col-span-2 h-8 max-md:h-[72px] rounded-full bg-menthe text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50" : bouton} style={k === "agent_prevenu" ? undefined : { background: "transparent" }}>{l}</button>
                       ))}
                     </div>
                   ) : (<>
-                  <span className={`${etiquette} mt-3`}>PERSONNE AU BOUT DU FIL</span>
+                  <span className={`${etiquette} mt-3`}>Personne au bout du fil</span>
                   <div className="grid grid-cols-2 gap-2">
                     {ISSUES_NON_ABOUTIES.map(([k, l, simple]) => <button key={k} type="button" disabled={noter.isPending} onClick={() => choisirIssue(k, simple)} className={bouton} style={{ background: "transparent" }}>{l}</button>)}
                   </div>
-                  <span className={`${etiquette} mt-3`}>ON S'EST PARLÉ</span>
-                  <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("pas_de_murs", false)} className="h-[72px] rounded-full bg-menthe text-[18px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">Pas de bien pour l'instant</button>
+                  <span className={`${etiquette} mt-3`}>On s'est parlé</span>
+                  <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("pas_de_murs", false)} className="h-8 max-md:h-[72px] rounded-full bg-menthe text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">Pas de bien pour l'instant</button>
                   <div className="grid grid-cols-2 gap-2">
-                    <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("a_des_murs", false)} className="h-14 rounded-full border border-menthe/60 text-[15px] text-menthe hover:bg-menthe/10 disabled:opacity-50" style={{ background: "transparent" }}>A un bien intéressant</button>
-                    <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("pas_interesse", false)} className="h-14 rounded-full border border-trait text-[15px] text-encre hover:bg-relief disabled:opacity-50" style={{ background: "transparent" }}>Pas intéressé</button>
+                    <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("a_des_murs", false)} className="h-8 max-md:h-14 rounded-full border border-menthe/60 text-[13.5px] text-menthe hover:bg-menthe/10 disabled:opacity-50" style={{ background: "transparent" }}>A un bien intéressant</button>
+                    <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("pas_interesse", false)} className="h-8 max-md:h-14 rounded-full border border-trait text-[13.5px] text-encre hover:bg-relief disabled:opacity-50" style={{ background: "transparent" }}>Pas intéressé</button>
                   </div>
                   </>)}
                   {noter.isPending && <p className="m-0 flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin" />Je note…</p>}
@@ -1322,7 +1285,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             )}
 
             {ecran === "raccroche" && a && (
-              <div className="flex flex-col items-center justify-center gap-5 rounded-[20px] border border-trait bg-transparent px-5 py-20 text-center duration-500 animate-in fade-in-0">
+              <div className="flex flex-col items-center justify-center gap-5 rounded-[12px] border border-trait bg-transparent px-5 py-20 text-center duration-500 animate-in fade-in-0">
                 <span className="grid h-[104px] w-[104px] place-items-center rounded-full bg-menthe text-sur-menthe duration-500 animate-in zoom-in-50"><Check className="h-10 w-10" strokeWidth={2.2} /></span>
                 <p className="m-0 text-[22px] text-encre duration-700 animate-in fade-in-0 slide-in-from-bottom-2">Appel terminé</p>
                 <p className="m-0 text-[14px] text-ardoise delay-300 duration-700 animate-in fade-in-0 fill-mode-both">{a.nom}</p>
@@ -1330,42 +1293,30 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             )}
             {/* AK lit l'appel : sa chaîne de raisonnement, étape par étape, au moment où il la fait. */}
             {/* L'écran de raisonnement (9 oct. 2026) : le raisonnement seul, au milieu, sur le fond des listes ; pas de transcription. */}
-            {ecran === "analyse" && a && (
+            {ecran === "analyse" && a && !appel && (
               <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant KPartners lit l'appel · ${a.nom}`} centre />
             )}
 
-            {/* Ce qui a été compris, et les actions proposées. */}
-            {/* On arrive sur les actions seules, au centre ; « Transcription » les fait glisser
-                vers la droite et la transcription s'écrit à gauche, les notes dessous (9 oct. 2026). */}
-            {ecran === "actions" && appel && (
-              <div className={`grid gap-y-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3 md:transition-[grid-template-columns,column-gap] md:duration-700 md:ease-[cubic-bezier(.22,1,.36,1)] max-md:grid-cols-1 ${voirTranscription ? "md:grid-cols-[1fr_1fr] md:gap-x-4" : "md:grid-cols-[0fr_1fr] md:gap-x-0"}`}>
-                <div className={`flex min-w-0 flex-col gap-4 overflow-hidden transition-opacity duration-500 max-md:order-last ${voirTranscription ? "opacity-100 delay-200" : "pointer-events-none opacity-0 max-md:hidden"}`} aria-hidden={!voirTranscription}>
-                {/* « Ce qu'AK a compris » retiré (7 oct. 2026) : il doublait la fenêtre de Contact Twenty CRM. */}
-                {voirTranscription && (<>
-                <ChaineRepliee etapes={etapesFinies} />
-                <PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} tape />
-                </>)}
-                </div>
-                <div className="mx-auto flex w-full min-w-0 max-w-[680px] flex-col gap-3">
-                  <button type="button" onClick={() => setVoirTranscription((x) => !x)} aria-pressed={voirTranscription}
-                    className={`inline-flex h-8 items-center gap-1.5 self-start rounded-full border px-3 text-[13px] transition-colors ${voirTranscription ? "border-menthe/60 text-menthe" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`} style={{ background: "transparent" }}>
-                    <AudioLines className="h-3.5 w-3.5" />Transcription
-                  </button>
-                  {/* Les notes, toujours là après l'appel, à taper ou à dicter (13 oct. 2026). */}
-                  <NotesApres valeur={notesAppel} onChange={setNotesAppel} change={String(notesAppel || "").trim() !== String(notesLues || "").trim()} onReanalyser={() => changerIssue("auto")} occupe={noter.isPending} />
+            {/* Après l'appel (9 nov. 2026, Jules) : le vrai chat à gauche, les actions à droite ; il reste ouvert pendant que les actions se refont. */}
+            {(ecran === "actions" || ecran === "analyse") && appel && a && (
+              <EcranApresAppel key={a.id} appel={appel} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
+                relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} edits={edits} setEdits={setEdits} voirTranscription={voirTranscription} enRelecture={ecran === "analyse"}
+                annonce={annonce} onRefaire={refaireActions} onLancer={() => setLancement((n) => n + 1)}
+                transcription={<div className="flex flex-col gap-4"><ChaineRepliee etapes={etapesFinies} /><PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} nu /></div>}>
+                {ecran === "analyse" ? <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant KPartners relit l'appel · ${a.nom}`} /> : (
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
-                    edits={edits} setEdits={setEdits} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}
+                    edits={edits} setEdits={setEdits} lancement={lancement} onLancementRefuse={(contenu) => setAnnonce({ id: Date.now(), contenu })} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}
                     onLancer={(o) => { depuisFenetre.current = !!o?.depuisFenetre; etapesVues.current = o?.vues || []; valider.mutate(); }} envoi={valider.isPending}
                     envoiFenetre={recu ? { recu: r, annulerDans, onAnnuler: () => annuler.mutate(), annulation: annuler.isPending, onBrouillon: () => ouvrirBrouillon(appel.id, r?.mail?.mailto), onChoisirLigne: (choix) => ligne.mutate({ id: appel.id, choix }) } : null}
                     onQuitterEnvoi={() => { depuisFenetre.current = false; setEcran("recu"); }} />
-                </div>
-              </div>
+                )}
+              </EcranApresAppel>
             )}
 
             {/* Le reçu : chaque coche est une relecture. Dix secondes pour annuler. */}
             {ecran === "recu" && r && (
-              <div className="flex w-full max-w-[620px] flex-col gap-3.5 self-center rounded-[20px] border border-trait bg-transparent p-7 max-md:p-5">
+              <div className="flex w-full max-w-[620px] flex-col gap-3.5 self-center rounded-[12px] border border-trait bg-transparent p-4">
                 <ul className="m-0 flex list-none flex-col gap-3.5 p-0">
                   <LigneRecu l={r.monday ? { ...r.monday, texte: r.monday.etat === "ok" ? `Twenty CRM : ${r.monday.texte}` : r.monday.texte } : null} lien={r.monday?.etat === "ok" ? r.monday.lien : null}>
                     {r.monday?.etat === "doute" && <ChoixLigne candidates={r.monday.candidates || []} occupe={ligne.isPending} onChoisir={(choix) => ligne.mutate({ id: appel.id, choix })} />}
@@ -1381,8 +1332,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   {annulerDans > 0 ? <button type="button" onClick={() => annuler.mutate()} disabled={annuler.isPending} className="rounded-full border border-trait px-[18px] py-2.5 text-[14px] text-encre hover:bg-surface disabled:opacity-50" style={{ background: "transparent" }}>{annuler.isPending ? "Annulation…" : `Annuler · ${annulerDans} s`}</button> : <span />}
                   {relances ? (
                     <span className="flex flex-wrap items-center justify-end gap-2">
-                      <button type="button" onClick={() => { clearInterval(compte.current); onRetour?.(); }} className="h-10 rounded-full border border-trait px-4 text-[14px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
-                      <button type="button" onClick={() => { clearInterval(compte.current); onSuivante?.(); }} className="h-10 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">Relance suivante</button>
+                      <button type="button" onClick={() => { clearInterval(compte.current); onRetour?.(); }} className="h-8 max-md:h-10 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
+                      <button type="button" onClick={() => { clearInterval(compte.current); onSuivante?.(); }} className="h-8 max-md:h-10 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol">Relance suivante</button>
                     </span>
                   ) : <button type="button" onClick={() => { clearInterval(compte.current); suivante(); }} className="p-0 text-[14px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Agence suivante →</button>}
                 </div>
@@ -1394,18 +1345,18 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
 
             {/* Relances : l'issue est notée (sans réponse, hors ligne) ; on enchaîne ou on revient à la liste. */}
             {ecran === "fait" && relances && (
-              <div className="flex w-full max-w-[620px] flex-col gap-5 self-center rounded-[20px] border border-trait bg-transparent p-7 max-md:p-5">
+              <div className="flex w-full max-w-[620px] flex-col gap-5 self-center rounded-[12px] border border-trait bg-transparent p-4">
                 <p className="m-0 flex items-start gap-3 text-[16px] leading-[1.45] text-encre"><span className="text-menthe">✓</span><span className="min-w-0 break-words">{fait}</span></p>
                 <div className="flex flex-wrap items-center justify-end gap-2 border-t border-trait pt-4">
-                  <button type="button" onClick={() => onRetour?.()} className="h-10 rounded-full border border-trait px-4 text-[14px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
-                  <button type="button" onClick={() => onSuivante?.()} className="h-10 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">Relance suivante</button>
+                  <button type="button" onClick={() => onRetour?.()} className="h-8 max-md:h-10 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
+                  <button type="button" onClick={() => onSuivante?.()} className="h-8 max-md:h-10 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol">Relance suivante</button>
                 </div>
               </div>
             )}
 
             {/* La fin de session. */}
             {ecran === "fin" && recap.data && (
-              <div className="flex flex-col gap-[18px] rounded-[20px] border border-trait bg-transparent p-7 max-md:p-5">
+              <div className="flex flex-col gap-[18px] rounded-[12px] border border-trait bg-transparent p-4">
                 <p className="m-0 text-[26px] text-encre">Session {recap.data.ville} · {duree(session.debut, horloge)}</p>
                 <p className="m-0 text-[16px] leading-[1.7] text-craie">
                   {pl(recap.data.appels, "appel")} · {recap.data.par_issue?.pas_de_reponse ?? 0} sans réponse · {recap.data.par_issue?.repondeur ?? 0} répondeur · {recap.data.pas_de_bien} pas de bien pour l'instant · {recap.data.a_un_bien} avec un bien · {recap.data.pas_interesses} pas intéressé{recap.data.pas_interesses > 1 ? "s" : ""}<br />
@@ -1418,7 +1369,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   </div>
                 )}
                 {(recap.data.echecs || []).map((x) => (
-                  <div key={`${x.appel_id}-${x.quoi}`} className="flex flex-col gap-2 rounded-[14px] border border-ambre/40 px-4 py-3">
+                  <div key={`${x.appel_id}-${x.quoi}`} className="flex flex-col gap-2 rounded-[12px] border border-ambre/40 px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <span className="min-w-0 break-words text-[15px] text-ambre">{x.texte}</span>
                       {x.quoi === "mail" && <button type="button" onClick={() => renvoyer.mutate(x.appel_id)} disabled={renvoyer.isPending} className="rounded-full border border-ambre/40 px-3.5 py-1.5 text-[13px] text-ambre disabled:opacity-50" style={{ background: "transparent" }}>Renvoyer</button>}

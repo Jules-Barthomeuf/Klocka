@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Search } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
 import Pages from "@/components/ui/Pages";
+import { CLASSE_TABLE, CLASSE_TABLEAU, CLASSE_TD, CLASSE_TH, Recherche, TitrePage } from "@/components/mandataire/elements";
 import { kEuros as montant } from "@/lib/clients-commerces";
 
 // La Mémoire Klocka (30 oct. 2026, Jules : « les fiches des biens qu'on supprime normalement ; tous ces biens vont
@@ -31,20 +32,14 @@ export default function MemoireKlocka() {
   const affiches = biens.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
 
   return (
-    <div className="mx-auto w-full max-w-[1240px] px-4 py-8 md:px-6 max-md:py-6">
-      <header className="mb-6 flex flex-col items-center gap-2 text-center">
-        <Link to="/Dossiers" className="inline-flex items-center gap-1.5 text-[13px] text-ardoise hover:text-encre"><ArrowLeft className="h-3.5 w-3.5" />Tous les dossiers</Link>
-        <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Mémoire</h1>
-        <p className="m-0 max-w-[64ch] text-[14px] text-ardoise">Les fiches des biens vus : celles des dossiers supprimés ou abandonnés, et celles que le lecteur retrouve dans les boîtes. Elles nourrissent les comparables, les fiches des agents et Twenty CRM.</p>
-      </header>
+    <div className="mx-auto w-full max-w-[1500px] px-5 py-[22px] md:px-8">
+      <Link to="/Dossiers" className="inline-flex items-center gap-1.5 text-[13.5px] text-ardoise hover:text-encre"><ArrowLeft className="h-3.5 w-3.5" />Tous les dossiers</Link>
+      <TitrePage titre="Mémoire" nombre={data?.total || null} className="mb-2 mt-2 md:!pr-[112px]" />
 
       <Boites />
 
-      <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
-        <div className="flex h-11 min-w-[240px] max-w-[460px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:max-w-none max-md:basis-full">
-          <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
-          <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Adresse, ville, agent, agence, locataire" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-        </div>
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+        <Recherche value={recherche} onChange={setRecherche} placeholder="Adresse, ville, agent, agence, locataire" className="w-full md:w-[360px]" />
         {data && (
           <p className="m-0 text-[13.5px] text-ardoise">
             <span className="text-encre tabular-nums">{data.total}</span> bien{data.total > 1 ? "s" : ""} · <span className="tabular-nums">{data.en_memoire}</span> en mémoire · <span className="tabular-nums">{data.en_dossier}</span> en dossier · <span className="tabular-nums">{data.agents}</span> agent{data.agents > 1 ? "s" : ""}
@@ -55,30 +50,31 @@ export default function MemoireKlocka() {
       {isLoading ? <Chargement taille="grand" /> : !biens.length ? (
         <p className="py-16 text-center text-sm text-brume">{q ? "Rien ne correspond." : "Rien encore : la Mémoire se remplit quand un dossier est supprimé ou abandonné, et dès qu'une boîte est autorisée."}</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-[14px] border border-bord-doux bg-rail">
-          <table className="w-full min-w-[980px] border-collapse text-[13.5px]">
+        <div className={`mt-3 ${CLASSE_TABLEAU}`}>
+          <table className={`${CLASSE_TABLE} min-w-[1200px]`}>
+            <colgroup>{[84, 180, 130, 96, 80, 56, 190, 150, 130, 84, 110, 72].map((l, i) => <col key={i} style={{ width: l }} />)}</colgroup>
             <thead>
-              <tr className="text-left text-encre">
+              <tr>
                 {["Reçue", "Adresse", "Ville", "Loyer / an", "Prix", "m²", "Locataire", "Agent", "Agence", "Boîte", "Origine", ""].map((t, i) => (
-                  <th key={i} className="border-b border-trait px-3 py-2.5 font-normal">{t}</th>
+                  <th key={i} className={CLASSE_TH}>{t}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {affiches.map((b) => (
                 <tr key={b.id} className="border-b border-trait last:border-b-0 hover:bg-relief">
-                  <td className="px-3 py-2 tabular-nums text-ardoise">{dateCourte(b.recu_le)}</td>
-                  <td className="px-3 py-2 text-encre">{b.adresse?.rue || <span className="text-brume">adresse inconnue</span>}</td>
-                  <td className="px-3 py-2 text-craie">{[b.code_postal, b.ville].filter(Boolean).join(" ")}</td>
-                  <td className="px-3 py-2 tabular-nums text-craie">{euros(b.loyer_annuel)}</td>
-                  <td className="px-3 py-2 tabular-nums text-craie">{kEuros(b.prix)}</td>
-                  <td className="px-3 py-2 tabular-nums text-craie">{b.surface_m2 || ""}</td>
-                  <td className="px-3 py-2 text-craie">{[b.locataire_nom, b.locataire_activite].filter(Boolean).join(" · ")}</td>
-                  <td className="px-3 py-2 text-craie" title={b.agent_email || ""}>{b.agent?.nom || b.agent_email || ""}</td>
-                  <td className="px-3 py-2 text-craie">{b.agent?.agence || ""}</td>
-                  <td className="px-3 py-2 text-ardoise">{(b.compte || "").split("@")[0]}</td>
-                  <td className="px-3 py-2 text-ardoise">{b.statut === "dossier" ? "dossier en cours" : ORIGINES[b.origine] || b.origine}</td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap">
+                  <td className={CLASSE_TD}>{dateCourte(b.recu_le)}</td>
+                  <td className={CLASSE_TD}>{b.adresse?.rue || <span className="text-brume">adresse inconnue</span>}</td>
+                  <td className={CLASSE_TD}>{[b.code_postal, b.ville].filter(Boolean).join(" ")}</td>
+                  <td className={CLASSE_TD}>{euros(b.loyer_annuel)}</td>
+                  <td className={CLASSE_TD}>{kEuros(b.prix)}</td>
+                  <td className={CLASSE_TD}>{b.surface_m2 || ""}</td>
+                  <td className={CLASSE_TD}>{[b.locataire_nom, b.locataire_activite].filter(Boolean).join(" · ")}</td>
+                  <td className={CLASSE_TD} title={b.agent_email || ""}>{b.agent?.nom || b.agent_email || ""}</td>
+                  <td className={CLASSE_TD}>{b.agent?.agence || ""}</td>
+                  <td className={CLASSE_TD}>{(b.compte || "").split("@")[0]}</td>
+                  <td className={CLASSE_TD}>{b.statut === "dossier" ? "dossier en cours" : ORIGINES[b.origine] || b.origine}</td>
+                  <td className={CLASSE_TD}>
                     {b.fiche?.url && <a href={b.fiche.url} target="_blank" rel="noreferrer" className="text-[13px] text-menthe hover:text-menthe-survol">Fiche</a>}
                     {b.deal_id && b.statut === "dossier" && <Link to={`/Dossiers?dossier=${encodeURIComponent(b.deal_id)}`} className="ml-3 text-[13px] text-menthe hover:text-menthe-survol">Dossier</Link>}
                   </td>
@@ -106,7 +102,7 @@ function Boites() {
   const boites = e.boites || [];
   const enCours = boites.some((b) => b.en_cours);
   return (
-    <section className="rounded-[14px] border border-bord-doux bg-rail px-5 py-4">
+    <section className="rounded-[12px] border border-bord-doux bg-rail px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="m-0 text-[15px] font-normal text-encre">Les boîtes</h2>
         <p className="m-0 text-[13px] text-ardoise">

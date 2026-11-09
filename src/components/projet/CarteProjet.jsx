@@ -1,6 +1,7 @@
 import React from "react";
 import { titreSansAdresse } from "@/lib/titre-projet";
 import { rendementGlobalNetDuProjet } from "@/components/simulator/CalculFinancier";
+import { Statut } from "@/components/mandataire/elements";
 import { nombreForce } from "./EditionEnPlace";
 
 // La carte d'un projet, la même en admin et chez le client (maquette du 28
@@ -95,7 +96,7 @@ export const ETAPES_PROJET = ["prospect", "analyse", "negociation", "financement
  * @param {React.ReactNode} actions    les boutons qui apparaissent au survol de la photo
  * @param {React.ReactNode} pied       ce qui se pose sous les chiffres (clients possibles, rapport)
  */
-export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null, avatar = null, sousLigne = null, actions = null, pied = null }) {
+export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null, avatar = null, sousLigne = null, actions = null, pied = null, compacte = false }) {
   const { prixRevient, rendement, surface } = chiffresDuProjet(project);
   // Une photo dont l'hébergeur a disparu affichait son texte de remplacement
   // en travers de la carte : on retombe alors sur la trame.
@@ -103,6 +104,29 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
   const photo = photoKo ? null : project.photos?.[0];
   const rang = Math.max(0, ETAPES_PROJET.indexOf(project.statut || "prospect"));
   const derniere = rang >= ETAPES_PROJET.length - 1;
+
+  // La carte de la page Projets de l'équipe (8 nov. 2026, Jules) : sans la zone photo, le statut en case, mêmes chiffres.
+  if (compacte) return (
+    <div onClick={(e) => { if (onOuvrir && !e.target.closest("button, a, input, select, textarea, label")) onOuvrir(); }}
+      className={`group relative flex flex-col rounded-[12px] border border-trait bg-rail px-3.5 py-3 transition-colors hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
+      <div className="flex min-w-0 items-center justify-between gap-2.5">
+        <h2 className="m-0 truncate text-[15px] font-normal text-encre">{titreSansAdresse(project.titre, project.adresse_complete)}</h2>
+        <Statut className="flex-none">{statutLabels[project.statut] || "Prospect"}</Statut>
+      </div>
+      <div className="mb-2.5 mt-0.5 min-h-5 truncate text-[13.5px] text-ardoise">{project.adresse_complete}{sousLigne}</div>
+      <div className="flex gap-1" aria-hidden>
+        {ETAPES_PROJET.map((e, i) => <span key={e} className={`h-1 flex-1 rounded-full ${i <= rang ? "bg-menthe" : "bg-encre/[0.12]"}`} />)}
+      </div>
+      <div className="mt-2.5 flex items-center gap-6 text-[13.5px] tabular-nums text-encre">
+        <span>{formatPrix(prixRevient)} <span className="text-[12.5px] text-ardoise">revient</span></span>
+        {rendement > 0 && <span className="text-statut-menthe">{Number(rendement).toFixed(1).replace(".", ",")} % <span className="text-[12.5px] text-ardoise">net</span></span>}
+        {surface > 0 && <span>{Math.round(surface)} m²</span>}
+        {avatar && <img src={avatar} alt="Conseiller" className="ml-auto h-5 w-5 rounded-full object-cover" />}
+      </div>
+      {pied}
+      {actions && <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-rail opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-md:hidden">{actions}</div>}
+    </div>
+  );
 
   return (
     // Plus de boutons « Ouvrir le projet » ni « Étape suivante » sous la carte (19 oct. 2026, Jules) : la carte entière

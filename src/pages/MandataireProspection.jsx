@@ -182,7 +182,7 @@ export default function MandataireProspection() {
                 </section>
               )}
       {secteur && (
-        <div className="relative mx-auto mt-6 h-[360px] max-w-[880px] overflow-hidden rounded-[16px] border border-bord max-md:mt-8 max-md:h-[260px]">
+        <div className="relative mx-auto mt-6 h-[360px] max-w-[880px] overflow-hidden rounded-[12px] border border-bord max-md:mt-8 max-md:h-[260px]">
           {/* La zone du secteur, rien d'autre : ni nom, ni point de ville. */}
           <CarteGoogleSecteurs
             secteurs={[{ ...secteur, teinte: JL["menthe"] }]}
@@ -314,7 +314,8 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
               const Tag = edite ? "div" : "button";
               return (
             <Tag {...(edite ? {} : { type: "button", onClick: () => (actif ? setEnEdition(x.id) : setChoisie(x.id)) })} role="tab" aria-selected={actif} title={actif ? "Cliquer pour renommer" : x.nom}
-              className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
+              style={actif ? undefined : { background: "transparent" }}
+              className={`flex h-7 max-w-[240px] flex-none items-center gap-1.5 rounded-[8px] px-3 text-left text-[13px] transition-colors max-md:h-10 ${actif ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}>
               {(x.suggeree || x.agent) && <Sparkles className={`h-3 w-3 flex-none ${actif ? "text-menthe" : "text-brume"}`} aria-label="Liste de votre agent IA" />}
               {edite ? (
                 <input autoFocus defaultValue={x.nom} aria-label="Nom de la liste" onFocus={(e) => e.target.select()}
@@ -323,7 +324,7 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
                   size={Math.max(4, x.nom.length)}
                   className="min-w-0 rounded-[4px] border-0 bg-transparent px-1 -mx-1 text-[13px] text-encre outline outline-1 outline-menthe/60 max-md:text-[16px]" />
               ) : <span className="truncate">{x.nom}</span>}
-              <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{x.total}</span>
+              <span className="flex-none text-[13px] tabular-nums text-ardoise">{x.total}</span>
               {actif && (
                 <span role="button" tabIndex={0} aria-label={`Supprimer la liste ${x.nom}`} title={`Supprimer la liste ${x.nom}`}
                   onClick={(e) => { e.stopPropagation(); setASupprimer(x); }}

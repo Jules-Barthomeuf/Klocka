@@ -242,7 +242,7 @@ export default function ProspecterClients({ bascule = null }) {
       </div>
 
         {/* À gauche : le secteur, et ce que les types cochés y posent. */}
-        <div className="relative h-[62vh] min-h-[460px] w-full min-w-0 overflow-hidden rounded-bloc border border-trait max-md:h-[380px] max-md:min-h-0">
+        <div className="relative h-[48vh] min-h-[400px] w-full min-w-0 overflow-hidden rounded-[12px] border border-trait max-md:h-[380px] max-md:min-h-0">
           {bureauxEnDev ? (
             <div className="grid h-full place-items-center bg-rail px-6 text-center">
               <div>
@@ -271,7 +271,7 @@ export default function ProspecterClients({ bascule = null }) {
               onProspecter={() => { geste.current = client.id; if (prospecte === client.id) points.refetch(); else qc.invalidateQueries({ queryKey: ["m-prospecter", "points", client.id] }); setProspecte(client.id); setVusIci((v) => ({ ...v, [client.id]: new Date().toISOString() })); ouvrir(null); }} />
           )}
           {/* Au téléphone, une fiche ouverte prend presque tout l'écran, et la page descend jusqu'à elle (31 oct. 2026, Jules). */}
-          <div ref={boiteFiche} className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-surface-pleine max-lg:min-h-[320px] ${ouvert ? "max-md:h-[86dvh] max-md:flex-none" : ""}`}>
+          <div ref={boiteFiche} className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-bord-doux bg-fond max-lg:min-h-[320px] ${ouvert ? "max-md:h-[86dvh] max-md:flex-none" : ""}`}>
             {/* Fermer la fiche, ou changer de point, se fait en fondu (24 oct. 2026). */}
             <AnimatePresence mode="wait" initial={false}>
             {ouvert ? (
@@ -321,7 +321,7 @@ function PointOuFiche({ id, onFermer, point, mode = "murs" }) {
   return <FicheMandataire id={point?.fiche?.id || null} commerceId={id} onFermer={onFermer} mode={mode} />;
 }
 
-const TRAIT = "border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)]";
+const TRAIT = "border-trait";
 const GESTE = "inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[13.5px] text-craie hover:text-encre disabled:opacity-50";
 const GESTE_PLEIN = "inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3 text-[13.5px] text-sur-menthe hover:bg-menthe-survol";
 
@@ -352,9 +352,9 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
     // Au dessin du tableau d'une liste (30 oct. 2026, Jules) : la zone à points, la barre (recherche en pilule, chiffres,
     // gestes), puis le tableau à traits continus, les deux premières colonnes fixes, tout en 13,5 px. La raison de vendre
     // prend la couleur des notes de l'IA de l'Analyse (`lu-ia`).
-    <section data-zone="murs" className="k-points relative rounded-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+    <section data-zone="murs" className="mt-3">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
+        <div className="flex h-8 w-[320px] items-center gap-2 rounded-full bg-relief px-3.5 focus-within:ring-1 focus-within:ring-bord-doux max-md:h-10 max-md:w-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
           <input value={filtres.texte} onChange={(e) => setFiltres((f) => ({ ...f, texte: e.target.value }))} placeholder={bureaux ? "Occupant, rue, propriétaire" : "Enseigne, activité, rue, propriétaire"}
             className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
@@ -374,61 +374,60 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
         )}
       </div>
       {/* Le cadre a le trait des lignes, sans trait doublé en bas (Jules, 31 oct. 2026, comme le tableau d'une liste). */}
-      <div className={`mt-4 overflow-x-auto rounded-[14px] border ${TRAIT} bg-rail`}>
+      <div className={`mt-4 overflow-x-auto rounded-[12px] border ${TRAIT} bg-rail`}>
         <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px] [&_tr>*:last-child]:border-r-0 [&_tbody>tr:last-child>td]:border-b-0">
           <thead>
             <tr>
-              <th className={`sticky left-0 z-30 border-b border-r ${TRAIT} bg-rail px-0 py-3.5`} style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
+              <th className={`sticky left-0 z-30 border-b border-r ${TRAIT} bg-rail px-0 h-[35px] py-0`} style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
                 <span className="grid place-items-center"><Case bord={TRAIT} oui={tousCoches} disabled={!libres.length} label="Cocher toute la page" onBasculer={() => setCoches((s) => { const n = new Set(s); for (const c of libres) { if (tousCoches) n.delete(c.id); else n.add(c.id); } return n; })} /></span>
               </th>
               {colonnes.map(([cle, mot], i) => (
-                <th key={cle} className={`border-b ${i < colonnes.length - 1 ? "border-r" : ""} ${TRAIT} bg-rail py-3.5 text-[13.5px] font-normal text-encre ${i === 0 ? "sticky left-[44px] z-30 min-w-[220px] pl-2 pr-4 max-md:min-w-[140px]" : "px-4"}`}>
-                  <button type="button" onClick={() => setTri((t) => (t.cle === cle ? { cle, sens: -t.sens } : { cle, sens: 1 }))} className="inline-flex items-center gap-1 whitespace-nowrap p-0 text-encre hover:text-menthe" style={{ background: "transparent" }}>{mot}{tri.cle === cle && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}</button>
+                <th key={cle} className={`border-b border-r ${TRAIT} bg-rail h-[35px] py-0 text-[12.5px] font-normal text-ardoise ${i === 0 ? "sticky left-[44px] z-30 min-w-[220px] px-2.5 max-md:min-w-[140px]" : "px-2.5 text-center"}`}>
+                  <button type="button" onClick={() => setTri((t) => (t.cle === cle ? { cle, sens: -t.sens } : { cle, sens: 1 }))} className="inline-flex items-center gap-1 whitespace-nowrap p-0 text-ardoise hover:text-encre" style={{ background: "transparent" }}>{mot}{tri.cle === cle && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}</button>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {vue.map((c) => {
-              const cellule = `border-b border-r ${TRAIT} px-4 py-4 align-middle`;
+              const cellule = `h-[36px] overflow-hidden whitespace-nowrap border-b border-r ${TRAIT} px-2.5 py-0 text-center align-middle text-craie`;
               return (
                 <tr key={c.id} onClick={() => onOuvrir(c.id)} className={`group cursor-pointer transition-colors ${ouvert === c.id ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
-                  <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail px-0 py-4 align-middle`} style={{ width: 44, minWidth: 44, maxWidth: 44 }} onClick={(e) => e.stopPropagation()}>
+                  <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail px-0 h-[36px] py-0 align-middle`} style={{ width: 44, minWidth: 44, maxWidth: 44 }} onClick={(e) => e.stopPropagation()}>
                     <span className="grid place-items-center"><Case bord={TRAIT} oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></span>
                   </td>
-                  <td className={`sticky left-[44px] z-10 border-b border-r ${TRAIT} bg-rail py-4 pl-2 pr-4 align-middle`}>
-                    <span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: bureaux ? PERVENCHE : fonds || (!c.drapeaux.length && c.fonds?.length) ? JL.ambre : LIENS[c.lien]?.couleur || JL.brume }} />
-                      <span className="min-w-0"><span className="block max-w-[240px] truncate text-encre group-hover:text-menthe">{c.titre}</span><span className="block max-w-[240px] truncate text-ardoise">{bureaux ? (c.noms || []).join(", ") : c.activite}</span></span></span>
+                  <td className={`sticky left-[44px] z-10 border-b border-r ${TRAIT} bg-rail h-[36px] overflow-hidden whitespace-nowrap py-0 px-2.5 align-middle`}>
+                                          <span className="block max-w-[340px] truncate"><span className="text-encre group-hover:text-menthe">{c.titre}</span>{(bureaux ? c.noms?.length : c.activite) && <span className="text-ardoise"> · {bureaux ? c.noms.join(", ") : c.activite}</span>}</span>
                   </td>
-                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate text-encre">{c.adresse}</span><span className="block truncate text-ardoise">{c.ville}</span></td>
+                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate">{c.adresse}<span className="text-ardoise"> · {c.ville}</span></span></td>
                   {bureaux ? (<>
-                  <td className={`${cellule} whitespace-nowrap tabular-nums text-encre`}>{c.occupants || 1}</td>
+                  <td className={`${cellule} tabular-nums`}>{c.occupants || 1}</td>
                   <td className={`${cellule} min-w-[200px]`}>{c.bureaux?.length
-                    ? <span className="line-clamp-2 leading-[1.5] text-lu-ia">{c.bureaux.slice(0, 2).map((d) => BUREAUX_COURTS[d] || d).join(" · ")}{c.bureaux.length > 2 ? ` · +${c.bureaux.length - 2}` : ""}</span>
+                    ? <span className="block truncate text-lu-ia">{c.bureaux.slice(0, 2).map((d) => BUREAUX_COURTS[d] || d).join(" · ")}{c.bureaux.length > 2 ? ` · +${c.bureaux.length - 2}` : ""}</span>
                     : <span className="text-brume">—</span>}</td>
-                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate text-encre">{c.proprietaire || <span className="text-brume">À trouver</span>}</span></td>
+                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate">{c.proprietaire || <span className="text-brume">À trouver</span>}</span></td>
                   </>) : (<>
-                  <td className={`${cellule} max-w-[220px]`}><span className="block truncate text-encre">{c.exploitant || c.nom || c.titre}</span></td>
+                  <td className={`${cellule} max-w-[220px]`}><span className="block truncate">{c.exploitant || c.nom || c.titre}</span></td>
                   {fonds ? (<>
                   <td className={`${cellule} min-w-[200px]`}>{c.fonds?.length
-                    ? <span className="line-clamp-2 leading-[1.5] text-lu-ia">{c.fonds.slice(0, 2).map((d) => FONDS_COURTS[d] || d).join(" · ")}{c.fonds.length > 2 ? ` · +${c.fonds.length - 2}` : ""}</span>
+                    ? <span className="block truncate text-lu-ia">{c.fonds.slice(0, 2).map((d) => FONDS_COURTS[d] || d).join(" · ")}{c.fonds.length > 2 ? ` · +${c.fonds.length - 2}` : ""}</span>
                     : <span className="text-brume">—</span>}</td>
-                  <td className={`${cellule} whitespace-nowrap tabular-nums text-encre`}>{c.ca ? montant(c.ca) : <span className="text-brume">—</span>}</td>
-                  <td className={`${cellule} whitespace-nowrap tabular-nums ${Number(c.resultat) > 0 ? "text-encre" : "text-ardoise"}`}>{c.resultat ? montant(c.resultat) : <span className="text-brume">—</span>}</td>
+                  <td className={`${cellule} tabular-nums`}>{c.ca ? montant(c.ca) : <span className="text-brume">—</span>}</td>
+                  <td className={`${cellule} tabular-nums ${Number(c.resultat) > 0 ? "text-encre" : "text-ardoise"}`}>{c.resultat ? montant(c.resultat) : <span className="text-brume">—</span>}</td>
                   </>) : (<>
-                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate text-encre">{c.proprietaire || <span className="text-brume">À trouver</span>}</span></td>
-                  <td className={`${cellule} whitespace-nowrap text-encre`}>{(LIENS[c.lien]?.mot || "").replace(" (probable)", "") || <span className="text-brume">—</span>}</td>
+                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate">{c.proprietaire || <span className="text-brume">À trouver</span>}</span></td>
+                  <td className={`${cellule}`}>{(LIENS[c.lien]?.mot || "").replace(" (probable)", "") || <span className="text-brume">—</span>}</td>
                   {/* Murs et fonds ensemble : un commerce sans raison de vendre ses murs montre sa raison de céder le fonds. */}
                   <td className={`${cellule} min-w-[200px]`}>{c.drapeaux.length
-                    ? <span className="line-clamp-2 leading-[1.5] text-lu-ia">{c.drapeaux.slice(0, 2).map((d) => DRAPEAUX_COURTS[d] || d).join(" · ")}{c.drapeaux.length > 2 ? ` · +${c.drapeaux.length - 2}` : ""}</span>
-                    : c.fonds?.length ? <span className="line-clamp-2 leading-[1.5] text-ambre">Fonds : {FONDS_COURTS[c.fonds[0]] || c.fonds[0]}</span>
+                    ? <span className="block truncate text-lu-ia">{c.drapeaux.slice(0, 2).map((d) => DRAPEAUX_COURTS[d] || d).join(" · ")}{c.drapeaux.length > 2 ? ` · +${c.drapeaux.length - 2}` : ""}</span>
+                    : c.fonds?.length ? <span className="block truncate text-ambre">Fonds : {FONDS_COURTS[c.fonds[0]] || c.fonds[0]}</span>
                     : <span className="text-brume">—</span>}</td>
-                  <td className={`${cellule} whitespace-nowrap tabular-nums`}>{c.prix?.moyenne
+                  <td className={`${cellule} tabular-nums`}>{c.prix?.moyenne
                     ? <span className={c.dans_budget === false ? "text-brume" : "text-encre"} title={c.prix.au_rendement ? `Le prix qui lui donne ${String(c.prix.au_rendement).replace(".", ",")} % (prix estimé : ${euros(c.prix_estime?.moyenne)})` : `Prix indicatif, entre ${euros(c.prix.basse)} et ${euros(c.prix.haute)}`}>{euros(c.prix.moyenne)}{c.dans_budget === false ? " · hors budget" : ""}</span>
                     : <span className="text-ambre" title="Aucune estimation pour ce local encore : à vérifier avec le propriétaire">Prix à vérifier</span>}</td>
                   </>)}
                   </>)}
-                  <td className={`border-b ${TRAIT} whitespace-nowrap px-4 py-4 align-middle`}>{c.reponse ? <span className="text-menthe">{REPONSES[c.reponse]?.split(",")[0] || "Appelé"}</span> : c.liste ? <span className="text-ardoise">Liste « {c.liste.nom} »</span> : <span className="text-brume">—</span>}</td>
+                  <td className={`border-b border-r ${TRAIT} h-[36px] whitespace-nowrap px-2.5 py-0 text-center align-middle`}>{c.reponse ? <span className="text-menthe">{REPONSES[c.reponse]?.split(",")[0] || "Appelé"}</span> : c.liste ? <span className="text-ardoise">Liste « {c.liste.nom} »</span> : <span className="text-brume">—</span>}</td>
                 </tr>
               );
             })}
@@ -444,10 +443,10 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
 /** Fonds · Murs · Bureaux (3 nov. 2026, Jules), la pilule des types d'actif, hors du menu Filtrer. */
 function SelecteurActif({ actif, onChange }) {
   return (
-    <div className="flex h-10 items-center gap-0.5 rounded-full border border-bord-doux bg-rail p-1" role="tablist" aria-label="Fonds, murs ou bureaux">
+    <div className="flex h-8 max-md:h-10 items-center gap-0.5 rounded-full border border-bord-doux bg-rail p-0.5" role="tablist" aria-label="Fonds, murs ou bureaux">
       {[["fonds", "Fonds"], ["murs", "Murs"], ["bureaux", "Bureaux"]].map(([k, mot]) => (
         <button key={k} type="button" role="tab" aria-selected={actif === k} onClick={() => onChange(k)}
-          className={`h-8 rounded-full px-4 text-[14px] transition-colors ${actif === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+          className={`h-full rounded-full px-3.5 text-[13.5px] transition-colors ${actif === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
           style={actif === k ? undefined : { background: "transparent" }}>{mot}</button>
       ))}
     </div>
@@ -461,7 +460,7 @@ function SelecteurActif({ actif, onChange }) {
 function BasculeMode({ clients, onChange }) {
   return (
     <button type="button" role="switch" aria-checked={clients} onClick={() => onChange(!clients)}
-      className="inline-flex h-10 items-center gap-3 rounded-full border border-bord-doux bg-rail px-4 text-[14px] hover:border-bord-vif">
+      className="inline-flex h-8 max-md:h-10 items-center gap-3 rounded-full border border-bord-doux bg-rail px-4 text-[13.5px] hover:border-bord-vif">
       <span className={`transition-colors duration-300 ${clients ? "text-ardoise" : "text-encre"}`}>Libre</span>
       <span aria-hidden className={`relative h-[20px] w-[36px] flex-none rounded-full transition-colors duration-300 ${clients ? "bg-menthe" : "bg-relief"}`}>
         <span className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-fond shadow-sm transition-all duration-300 ease-out ${clients ? "left-[18px]" : "left-[2px]"}`} />
@@ -536,7 +535,7 @@ function SelecteurClient({ selecteur, vue, seule = false }) {
  */
 function CarteTous({ n, villes = [], charge = false, selecteur = null, replie = false, onReplier = null, seule = false }) {
   return (
-    <div className="relative z-20 flex-none rounded-[18px] border border-bord-doux bg-rail">
+    <div className="relative z-20 flex-none rounded-[12px] border border-bord-doux bg-rail">
       <div className={`flex items-center gap-3 px-4 py-3 transition-colors duration-500 ${replie ? "" : "border-b border-trait"}`}>
         <SelecteurClient selecteur={selecteur} seule={seule} vue="tous" />
         {onReplier && (
@@ -569,7 +568,7 @@ function CarteClient({ client, selecteur, onProspecter, actif, replie = false, o
     ...exclusionsDe(client).map((f) => ({ mot: `Pas de ${f.mot}`, ton: "bg-ambre/15 text-ambre" })),
   ].filter(Boolean);
   return (
-    <div className="relative z-20 flex-none rounded-[18px] border border-bord-doux bg-rail">
+    <div className="relative z-20 flex-none rounded-[12px] border border-bord-doux bg-rail">
       <div className={`flex items-center gap-3 px-4 py-3 transition-colors duration-500 ${replie ? "" : "border-b border-trait"}`}>
         <SelecteurClient selecteur={selecteur} vue="client" />
         {onReplier && (
@@ -599,12 +598,12 @@ function CarteClient({ client, selecteur, onProspecter, actif, replie = false, o
         {/* Déjà prospecté : ses murs sont déjà sur la carte ; le bouton les remet à jour. Sinon, « Prospecter ». */}
         {prospecteLe && actif ? (
           <button type="button" onClick={onProspecter} disabled={charge}
-            className="inline-flex h-10 flex-none items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre disabled:opacity-60" style={{ background: "transparent" }}>
+            className="inline-flex h-8 max-md:h-10 flex-none items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre disabled:opacity-60" style={{ background: "transparent" }}>
             <RefreshCw className={`h-4 w-4 ${charge ? "animate-spin" : ""}`} /> Mettre à jour
           </button>
         ) : (
           <button type="button" onClick={onProspecter} disabled={actif}
-            className="inline-flex h-10 flex-none items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
+            className="inline-flex h-8 max-md:h-10 flex-none items-center gap-2 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
             <Radar className="h-4 w-4" /> {actif ? "Sur la carte" : prospecteLe ? "Voir ses murs" : "Prospecter"}
           </button>
         )}

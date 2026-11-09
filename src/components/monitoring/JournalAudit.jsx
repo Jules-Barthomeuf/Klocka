@@ -96,7 +96,7 @@ export default function JournalAudit() {
                 <button
                   key={`${p.email}-${p.role}`}
                   onClick={() => p.email && setPersonne(p.email)}
-                  className="px-3 py-2 border border-bord rounded-md text-left hover:border-bord-vif transition-colors max-md:max-w-full max-md:break-all"
+                  className="px-3 py-2 border border-bord rounded-[12px] text-left hover:border-bord-vif transition-colors max-md:max-w-full max-md:break-all"
                 >
                   <div className="text-[12.5px] text-encre">{p.email || "non connecté"}</div>
                   <div className="text-[11px] text-ardoise mt-0.5">

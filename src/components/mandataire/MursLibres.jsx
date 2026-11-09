@@ -109,7 +109,7 @@ export function MenuFiltresLibres({ filtres, setFiltres, points, entete = null, 
   );
 }
 
-const TRAIT = "border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)]";
+const TRAIT = "border-trait";
 const GESTE = "inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[13.5px] text-craie hover:text-encre disabled:opacity-50";
 const GESTE_PLEIN = "inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3 text-[13.5px] text-sur-menthe hover:bg-menthe-survol";
 const PAR_PAGE = 50;
@@ -132,9 +132,9 @@ export function TableauLibres({ points, total, filtres, setFiltres, ouvert, onOu
   const tousCoches = libres.length > 0 && libres.every((p) => coches.has(p.id));
   const colonnes = [["titre", "Local"], ["dernier", "Dernière activité"], ["mois_vide", "Vide depuis"], ["proprietaire", "Propriétaire des murs"], ["appel", "Liste"]];
   return (
-    <section data-zone="libres" className="k-points relative rounded-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+    <section data-zone="libres" className="mt-3">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
+        <div className="flex h-8 w-[320px] items-center gap-2 rounded-full bg-relief px-3.5 focus-within:ring-1 focus-within:ring-bord-doux max-md:h-10 max-md:w-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
           <input value={filtres.texte} onChange={(e) => setFiltres((f) => ({ ...f, texte: e.target.value }))} placeholder="Rue, ancienne activité, propriétaire"
             className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
@@ -151,36 +151,35 @@ export function TableauLibres({ points, total, filtres, setFiltres, ouvert, onOu
           </span>
         )}
       </div>
-      <div className={`mt-4 overflow-x-auto rounded-[14px] border ${TRAIT} bg-rail`}>
+      <div className={`mt-4 overflow-x-auto rounded-[12px] border ${TRAIT} bg-rail`}>
         <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px] [&_tr>*:last-child]:border-r-0 [&_tbody>tr:last-child>td]:border-b-0">
           <thead>
             <tr>
-              <th className={`sticky left-0 z-30 border-b border-r ${TRAIT} bg-rail px-0 py-3.5`} style={{ width: 44, minWidth: 44 }}>
+              <th className={`sticky left-0 z-30 border-b border-r ${TRAIT} bg-rail px-0 h-[35px] py-0`} style={{ width: 44, minWidth: 44 }}>
                 <span className="grid place-items-center"><Case bord={TRAIT} oui={tousCoches} disabled={!libres.length} label="Cocher toute la page" onBasculer={() => setCoches((s) => { const n = new Set(s); for (const p of libres) { if (tousCoches) n.delete(p.id); else n.add(p.id); } return n; })} /></span>
               </th>
               {colonnes.map(([cle, mot], i) => (
-                <th key={cle} className={`border-b ${i < colonnes.length - 1 ? "border-r" : ""} ${TRAIT} bg-rail py-3.5 text-[13.5px] font-normal text-encre ${i === 0 ? "sticky left-[44px] z-30 min-w-[220px] pl-2 pr-4 max-md:min-w-[140px]" : "px-4"}`}>
-                  <button type="button" onClick={() => setTri((t) => (t.cle === cle ? { cle, sens: -t.sens } : { cle, sens: 1 }))} className="inline-flex items-center gap-1 whitespace-nowrap p-0 text-encre hover:text-menthe" style={{ background: "transparent" }}>{mot}{tri.cle === cle && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}</button>
+                <th key={cle} className={`border-b border-r ${TRAIT} bg-rail h-[35px] py-0 text-[12.5px] font-normal text-ardoise ${i === 0 ? "sticky left-[44px] z-30 min-w-[220px] px-2.5 max-md:min-w-[140px]" : "px-2.5 text-center"}`}>
+                  <button type="button" onClick={() => setTri((t) => (t.cle === cle ? { cle, sens: -t.sens } : { cle, sens: 1 }))} className="inline-flex items-center gap-1 whitespace-nowrap p-0 text-ardoise hover:text-encre" style={{ background: "transparent" }}>{mot}{tri.cle === cle && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}</button>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {vue.map((p) => {
-              const cellule = `border-b border-r ${TRAIT} px-4 py-4 align-middle`;
+              const cellule = `h-[36px] overflow-hidden whitespace-nowrap border-b border-r ${TRAIT} px-2.5 py-0 text-center align-middle text-craie`;
               return (
                 <tr key={p.id} onClick={() => onOuvrir(p.id)} className={`group cursor-pointer transition-colors ${ouvert === p.id ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
-                  <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail px-0 py-4 align-middle`} style={{ width: 44, minWidth: 44 }} onClick={(e) => e.stopPropagation()}>
+                  <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail px-0 h-[36px] py-0 align-middle`} style={{ width: 44, minWidth: 44 }} onClick={(e) => e.stopPropagation()}>
                     <span className="grid place-items-center"><Case bord={TRAIT} oui={coches.has(p.id)} onBasculer={() => { if (p.liste) return; setCoches((s) => { const n = new Set(s); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; }); }} label={p.liste ? `Déjà dans la liste « ${p.liste.nom} »` : "Choisir pour une liste"} className={p.liste ? "opacity-35" : ""} /></span>
                   </td>
-                  <td className={`sticky left-[44px] z-10 border-b border-r ${TRAIT} bg-rail py-4 pl-2 pr-4 align-middle`}>
-                    <span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: couleurLibre(p) }} />
-                      <span className="min-w-0"><span className="block max-w-[240px] truncate text-encre group-hover:text-menthe">{p.titre}</span><span className="block max-w-[240px] truncate text-ardoise">{p.ville}{p.source === "terrain" ? " · terrain" : ""}</span></span></span>
+                  <td className={`sticky left-[44px] z-10 border-b border-r ${TRAIT} bg-rail h-[36px] overflow-hidden whitespace-nowrap py-0 px-2.5 align-middle`}>
+                                          <span className="block max-w-[340px] truncate"><span className="text-encre group-hover:text-menthe">{p.titre}</span><span className="text-ardoise"> · {p.ville}{p.source === "terrain" ? " · terrain" : ""}</span></span>
                   </td>
-                  <td className={`${cellule} max-w-[260px]`}><span className="block truncate text-encre">{p.dernier || <span className="text-brume">—</span>}</span><span className="block truncate text-ardoise">{p.activite}</span></td>
-                  <td className={`${cellule} whitespace-nowrap tabular-nums text-encre`}>{duree(p.mois_vide)}</td>
-                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate text-encre">{p.proprietaire || <span className="text-brume">{p.lien === "prive" ? "Particulier, non publié" : p.lien === "inconnu" ? "Introuvable" : "En recherche"}</span>}</span></td>
-                  <td className={`border-b ${TRAIT} whitespace-nowrap px-4 py-4 align-middle`}>{p.liste ? <span className="text-ardoise">« {p.liste.nom} »</span> : <span className="text-brume">—</span>}</td>
+                  <td className={`${cellule} max-w-[260px]`}><span className="block truncate">{p.dernier || <span className="text-brume">—</span>}<span className="text-ardoise"> · {p.activite}</span></span></td>
+                  <td className={`${cellule} tabular-nums`}>{duree(p.mois_vide)}</td>
+                  <td className={`${cellule} max-w-[240px]`}><span className="block truncate">{p.proprietaire || <span className="text-brume">{p.lien === "prive" ? "Particulier, non publié" : p.lien === "inconnu" ? "Introuvable" : "En recherche"}</span>}</span></td>
+                  <td className={`border-b border-r ${TRAIT} h-[36px] whitespace-nowrap px-2.5 py-0 text-center align-middle`}>{p.liste ? <span className="text-ardoise">« {p.liste.nom} »</span> : <span className="text-brume">—</span>}</td>
                 </tr>
               );
             })}
@@ -251,7 +250,7 @@ export function FicheLibre({ id, point, onFermer }) {
         </div>
       )}
       {l && !l.fiche && !l.repris && (
-        <div className="sticky bottom-0 mt-auto border-t border-trait bg-rail px-5 py-3">
+        <div className="sticky bottom-0 mt-auto border-t border-trait bg-fond px-5 py-3">
           <button type="button" onClick={() => setVersListe(true)} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
             <ListPlus className="h-4 w-4" />Ajouter à une liste
           </button>

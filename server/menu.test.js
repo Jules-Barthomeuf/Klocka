@@ -28,7 +28,7 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
 test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration ; Autre : Offres, Dossier bancaire, Feedback (26 oct.)", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
-  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Assistant', 'Projets', 'Dossiers', 'Appels', 'Simulateur', 'Twenty CRM']);
+  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Assistant', 'Projets', 'Dossiers', 'Appels', 'Simulateur', 'Outils', 'Twenty CRM']);
   // Le CRM (27 oct. 2026), toujours là ; dans Klocka depuis le 5 nov. 2026 (page /CRM), plus une entrée externe.
   assert.ok(principal.find((x) => x.cle === 'CRM') && !principal.find((x) => x.cle === 'CRM').externe);
   assert.ok(menuAdmin(['CRM']).principal.some((x) => x.cle === 'CRM'));
@@ -41,12 +41,12 @@ test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administratio
   for (const hors of ['AdminMandataires', 'AdminUtilisateurs', 'AdminClients', 'AdminAccesCrm']) assert.ok(![...principal, ...autre].some((x) => x.cle === hors || x.entrees?.some((e) => e.cle === hors)), hors);
   assert.deepEqual(menuAdmin([], { email: 'Jules.B@klocka.immo' }).principal.find((x) => x.groupe === 'Administration').entrees.map((e) => e.label), ['Modèles', 'Suivi']);
     for (const hors of ['Semaine', 'Monitoring', 'Personnalisation', 'Dashboard', 'Agents']) assert.ok(!cles.includes(hors), hors);
-  assert.deepEqual(cles, ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque', 'Tokimo'], 'Feedback en tête ; Offres, les Présentations bancaires et le Dossier bancaire reviennent (26 oct.) ; Tokimo (6 nov.) ; Emailing, Lead magnets… restent hors du menu');
+  assert.deepEqual(cles, ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque', 'Tokimo', 'Emailing'], 'Feedback en tête ; Offres, les Présentations bancaires et le Dossier bancaire reviennent (26 oct.) ; Tokimo (6 nov.) ; Emailing de retour (8 nov.) ; Lead magnets… restent hors du menu');
   // Une page masquée disparaît ; un groupe vidé aussi.
   const m = menuAdmin(['Cerveau', 'Automatismes', 'AdminModeles', 'Monitoring', 'Offres']);
   assert.ok(!m.principal.some((x) => x.groupe === 'Administration'));
   // Autre ignore les masques (26 oct.) : d'anciens réglages de Paramètres cachaient Feedback, Offres et Présentations.
-  assert.deepEqual(menuAdmin(['AdminSuggestions', 'Offres', 'AdminPresentations', 'AdminBanque']).autre.map((e) => e.cle), ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque', 'Tokimo']);
+  assert.deepEqual(menuAdmin(['AdminSuggestions', 'Offres', 'AdminPresentations', 'AdminBanque']).autre.map((e) => e.cle), ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque', 'Tokimo', 'Emailing']);
 });
 
 test('un groupe est une entrée ; une page sait son groupe', async () => {

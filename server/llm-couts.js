@@ -312,6 +312,7 @@ const ACTIONS = [
   { cle: 'ak', libelle: 'Demander quelque chose à AK', unite: 'par demande', parAppel: false, operations: ['ak'], ou: 'Google Chat, en mentionnant AK' },
   { cle: 'ak_epreuve', libelle: 'Éprouver AK', unite: 'par essai', parAppel: false, operations: ['ak-epreuve', 'ak-essai'], ou: 'npm run ak:epreuves' },
   { cle: 'appel_prospection', libelle: 'Analyser un appel de prospection', unite: 'par appel', parAppel: false, operations: ['appel de prospection', 'POST /api/prospection/agents/:id/appel'], ou: 'Prospection, après un appel à un agent' },
+  { cle: 'assistant_appel', libelle: "Parler à l'assistant après un appel", unite: 'par demande', parAppel: false, operations: ['assistant appel'], ou: 'Prospection et Rappel, à gauche des actions proposées' },
   { cle: 'mandataire', libelle: "Demander quelque chose à l'assistant (mandataire)", unite: 'par demande', parAppel: false, operations: ['mandataire'], ou: 'Dashboard de l’espace mandataire' },
   { cle: 'mail', libelle: 'Rédiger un mail', unite: 'par mail', parAppel: false, operations: ['mail du dossier', 'mails', 'rédaction'], ou: 'Étape Mail, décision Oui/Non, relance' },
   { cle: 'boite', libelle: 'Trier ce qu’on colle dans la boîte', unite: 'par dépôt', parAppel: false, operations: ['boîte', 'boîte : tri'], ou: 'Chat du tableau de bord' },

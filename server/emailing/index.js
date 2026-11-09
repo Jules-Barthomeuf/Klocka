@@ -11,6 +11,7 @@ import { MAILS_PLATEFORME, sequenceWebinaire } from './modeles.js';
 import { E as ENT, cleEnvoi, listeDuNom, audience, envoyable, HEURE_PAR_DEFAUT } from './schema.js';
 import { expedier, jourParis, aParis } from './envoi.js';
 import { lienSimulateur, signalerReponses } from './newsletters.js';
+import { poserOpposition } from './journal.js';
 import { APP_URL_PROD } from '../contexte.js';
 
 const CONTACT = ENT.CONTACT;
@@ -191,6 +192,7 @@ export function desinscrire(jeton, source = null) {
   const src = /^newsletter:[\w-]+:[\w-]+$/.test(source || '') ? (() => { const [, nid, mid] = source.split(':'); const camp = Records.list(ENT.CAMPAGNE).find((x) => x.origine?.newsletter_id === nid && x.origine?.mail_id === mid); return camp ? `campagne:${camp.id}` : null; })() : source;
   if (c.statut === 'abonne') Records.update(CONTACT, c.id, { statut: 'desinscrit', statut_le: maintenant(), desinscription_source: /^(campagne|sequence):[\w-]+$/.test(src || '') ? src : null });
   sortirDesSequences(c.id, 'desinscription');
+  poserOpposition(c.email, { motif: 'desinscription', source: src || 'lien' });
   return { ok: true, email: c.email };
 }
 
@@ -473,7 +475,8 @@ export async function envoyerPlateforme(cle, { a, vars = {}, repondreA = null, t
   const contact = Records.list(CONTACT).find((c) => c.email === email);
   if (contact && ['bounce', 'plainte'].includes(contact.statut)) return { ok: false, bloque: true, error: `${email} est en ${contact.statut} : l'adresse n'est plus servie.` };
   if (!resendConfigure() && envoyer === envoyerResend) return { ok: false, error: 'Resend non configuré.' };
-  const r = await expedier({ a: email, objet: m.objet, html: m.html, texte: m.texte, repondreA, etiquettes: [['plateforme', cle]] }, { testeur: testeur || repondreA, envoyer });
+  const de = (process.env.EMAILING_FROM_PLATEFORME || '').trim() || null;
+  const r = await expedier({ a: email, objet: m.objet, html: m.html, texte: m.texte, repondreA, de, etiquettes: [['plateforme', cle]] }, { testeur: testeur || repondreA, envoyer });
   Records.create(ENVOI, { type: 'plateforme', cle, cle_envoi: `plateforme:${cle}:${email}:${maintenant()}`, email, objet: m.objet, statut: statutEnvoi(r), redirige_vers: r.redirige || null, resend_id: r.id || null, erreur: r.ok ? null : r.error, le: maintenant() });
   return r;
 }

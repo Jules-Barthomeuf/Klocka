@@ -6,10 +6,10 @@ import React from "react";
 export default function BasculeModeAppel({ actif, onChange }) {
   return (
     <button type="button" role="switch" aria-checked={actif} onClick={() => onChange(!actif)}
-      className="inline-flex h-9 items-center gap-3 rounded-full border border-trait px-4 text-[14px] text-encre hover:border-bord-vif" style={{ background: "transparent" }}>
+      className="inline-flex h-8 items-center gap-2.5 rounded-full border border-bord-doux px-3.5 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre max-md:h-10" style={{ background: "transparent" }}>
       Mode appel
-      <span aria-hidden className={`relative h-[20px] w-[36px] flex-none rounded-full transition-colors duration-300 ${actif ? "bg-menthe" : "bg-relief"}`}>
-        <span className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-fond shadow-sm transition-all duration-300 ease-out ${actif ? "left-[18px]" : "left-[2px]"}`} />
+      <span aria-hidden className={`relative h-[18px] w-[32px] flex-none rounded-full transition-colors duration-300 ${actif ? "bg-menthe" : "bg-relief"}`}>
+        <span className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-fond shadow-sm transition-all duration-300 ease-out ${actif ? "left-[16px]" : "left-[2px]"}`} />
       </span>
     </button>
   );

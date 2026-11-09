@@ -13,6 +13,7 @@ import { banniereDe, sansSignature, htmlAvecBanniere, CID } from './signatures.j
 import nodemailer from 'nodemailer';
 import { Records } from './db.js';
 import { listGoogleAccounts, sendViaGmail } from './google-oauth.js';
+import { peutEcrire } from './emailing/journal.js';
 
 const DEFAULT_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const DEFAULT_PORT = Number(process.env.SMTP_PORT || 465);
@@ -262,6 +263,7 @@ export async function sendEmail({
   intention,
   attachments = [],
   projet_id = null,
+  threadId = null,
 } = {}) {
   const toList = normalizeRecipients(to);
   const ccList = normalizeRecipients(cc);
@@ -294,6 +296,16 @@ export async function sendEmail({
   if (!toList.length) {
     logEmail({ ...base, statut: 'erreur', error: 'Aucun destinataire' });
     return { success: false, error: 'Aucun destinataire' };
+  }
+
+  // Le garde-fou de l'emailing (8 nov. 2026) : une personne qui ne veut plus de nos mails n'en reçoit pas, quel que soit
+  // l'écran qui écrit. Un humain peut encore répondre individuellement à qui s'est seulement désinscrit d'une newsletter.
+  for (const a of [...toList, ...ccList, ...bccList]) {
+    const droit = peutEcrire(a, { nature: /^prospection/.test(intention || '') ? 'prospection' : 'individuel' });
+    if (!droit.ok) {
+      logEmail({ ...base, statut: 'erreur', error: droit.error });
+      return { success: false, error: droit.error, oppose: true };
+    }
   }
 
   // A sender was explicitly requested but doesn't exist: never silently fall
@@ -333,11 +345,11 @@ export async function sendEmail({
 
   try {
     let messageId;
-    let threadId = null;
+    let filGmail = null;
     // Retrouvé dans les envoyés : Gmail le confirme ; un serveur SMTP ne dit rien de tel.
     let dansLesEnvoyes = false;
     if (account.provider === 'google') {
-      ({ messageId, threadId, dansLesEnvoyes } = await sendViaGmail(account.email, message));
+      ({ messageId, threadId: filGmail, dansLesEnvoyes } = await sendViaGmail(account.email, { ...message, threadId }));
     } else {
       const info = await transporterFor(account).sendMail({
         from: `${account.name} <${account.email}>`,
@@ -348,8 +360,8 @@ export async function sendEmail({
     console.log(`[email] ${account.email} → ${base.to} | ${subject} | ${messageId}`);
     // Le fil Gmail : la réponse de l'agent s'y inscrit, et c'est par lui
     // qu'elle retrouve son dossier plutôt que par son expéditeur.
-    logEmail({ ...base, statut: 'envoye', message_id: messageId || null, thread_id: threadId || null });
-    return { success: true, messageId, from: base.from, dans_les_envoyes: !!dansLesEnvoyes, expediteur: account.email };
+    logEmail({ ...base, statut: 'envoye', message_id: messageId || null, thread_id: filGmail || null });
+    return { success: true, messageId, threadId: filGmail, from: base.from, dans_les_envoyes: !!dansLesEnvoyes, expediteur: account.email };
   } catch (e) {
     const error = String(e?.message || e);
     console.error(`[email:erreur] ${account.email} → ${base.to} | ${error}`);

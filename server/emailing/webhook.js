@@ -7,6 +7,7 @@
 import crypto from 'crypto';
 import { Records } from '../db.js';
 import { E } from './schema.js';
+import { depuisResend } from './journal.js';
 
 const TOLERANCE_S = 5 * 60;
 const maintenant = () => new Date().toISOString();
@@ -68,6 +69,8 @@ export function traiter(evenement, { svixId = null } = {}) {
     if (type === 'plainte') patch.plainte_le = le;
     if (Object.keys(patch).length) Records.update(E.ENVOI, envoi.id, patch);
   }
+  // Le journal du module : le fait du contact, et l'opposition partout pour un rebond ou une plainte.
+  depuisResend(type, { email: destinataire || envoi?.email, resend_id: d.email_id || null, le, lien: d.click?.link || null, svix: svixId });
   if (type === 'bounce' || type === 'supprime') rendreNonEnvoyable(destinataire || envoi?.email, 'bounce');
   if (type === 'plainte') rendreNonEnvoyable(destinataire || envoi?.email, 'plainte');
   return { ok: true };

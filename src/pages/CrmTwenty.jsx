@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleUser, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleUser, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Phone, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
@@ -91,6 +91,8 @@ function brut(c, v) {
     case "DATE": return String(v).slice(0, 10);
     case "DATE_TIME": { const d = new Date(v); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
     case "MULTI_SELECT": return Array.isArray(v) ? v : [];
+    // Une adresse se corrige en « rue, code postal ville » (8 nov. 2026) : le serveur la redécoupe.
+    case "ADDRESS": return [v.addressStreet1, [v.addressPostcode, v.addressCity].filter(Boolean).join(" ")].filter(Boolean).join(", ");
     default: return typeof v === "object" ? "" : String(v);
   }
 }
@@ -116,7 +118,7 @@ function Flottant({ ancre, onFermer, largeur = 280, children }) {
   }, [ancre, onFermer]);
   if (!pos) return null;
   return createPortal(
-    <div ref={boite} style={{ ...pos, width: largeur }} className="fixed z-[90] max-h-[60vh] overflow-y-auto rounded-[14px] border border-trait bg-surface-pleine p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.28)]">{children}</div>,
+    <div ref={boite} data-crm-dehors="" style={{ ...pos, width: largeur }} className="fixed z-[90] max-h-[60vh] overflow-y-auto rounded-[14px] border border-trait bg-surface-pleine p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.28)]">{children}</div>,
     document.body,
   );
 }
@@ -242,8 +244,24 @@ function Corrigeable({ c, valeur, liens, onEnregistrer, onMail, className = "", 
   );
 }
 
-const lienValeur = (vu, lien) => (lien?.onClick ? <button type="button" onClick={lien.onClick} className="max-w-full truncate text-left text-encre hover:text-menthe hover:underline" style={{ background: "transparent" }}>{vu}</button>
-  : lien ? <a {...lien} onClick={(e) => e.stopPropagation()} className="truncate text-encre hover:text-menthe hover:underline">{vu}</a> : vu);
+
+/**
+ * Un mail, un téléphone, un lien dans une case (8 nov. 2026, Jules : « on doit pouvoir modifier les adresses mail, les
+ * numéros, vraiment tout ») : le texte s'ouvre en saisie au clic, comme toute case ; la petite icône à côté écrit le mail,
+ * appelle ou ouvre le lien.
+ */
+function ValeurAction({ vu, lien, type }) {
+  const Icone = type === "EMAILS" ? Send : type === "PHONES" ? Phone : ExternalLink;
+  const mot = type === "EMAILS" ? "Écrire un mail" : type === "PHONES" ? "Appeler" : "Ouvrir le lien";
+  return (
+    <span className="flex min-w-0 max-w-full items-center gap-1.5">
+      <span className="min-w-0 truncate text-encre">{vu}</span>
+      {lien?.onClick
+        ? <button type="button" onClick={lien.onClick} aria-label={mot} title={mot} className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-menthe" style={{ background: "transparent" }}><Icone className="h-3.5 w-3.5" /></button>
+        : lien ? <a {...lien} onClick={(e) => e.stopPropagation()} aria-label={mot} title={mot} className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-menthe"><Icone className="h-3.5 w-3.5" /></a> : null}
+    </span>
+  );
+}
 
 /** La fenêtre d'envoi d'un mail, en bas à droite, comme dans Twenty : À, Objet, le texte, les Modèles, Envoyer. */
 function EnvoiMail({ envoi, onFermer }) {
@@ -264,7 +282,7 @@ function EnvoiMail({ envoi, onFermer }) {
   });
   const brouillon = objet.trim() || corps.trim();
   return createPortal(
-    <div className="fixed bottom-4 right-4 z-[85] flex w-[440px] max-w-[calc(100vw-32px)] flex-col rounded-[16px] border border-trait bg-surface-pleine shadow-[0_18px_40px_rgb(0_0_0/0.3)] max-md:inset-x-2 max-md:bottom-2 max-md:w-auto">
+    <div data-crm-dehors="" className="fixed bottom-4 right-4 z-[85] flex w-[440px] max-w-[calc(100vw-32px)] flex-col rounded-[16px] border border-trait bg-surface-pleine shadow-[0_18px_40px_rgb(0_0_0/0.3)] max-md:inset-x-2 max-md:bottom-2 max-md:w-auto">
       <div className="flex items-center justify-between gap-3 border-b border-trait px-4 py-3">
         <p className="m-0 truncate text-[15px] text-encre">{nom ? `E-mail à ${nom}` : "Nouvel e-mail"}</p>
         <button type="button" onClick={() => { if (!brouillon || window.confirm("Jeter ce brouillon ?")) onFermer(); }} aria-label="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
@@ -377,8 +395,16 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
   const boiteSaisie = "mb-3 rounded-[12px] border border-trait bg-surface px-3 py-2 focus-within:border-bord-doux";
   // Au téléphone, la fiche passe par-dessus tout l'écran, barre de Klocka comprise : elle sort de la page (portail).
   const telephone = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+  // Un clic ailleurs ferme la fiche (8 nov. 2026, Jules : « on doit pouvoir cliquer ailleurs pour le fermer ») ; pas un clic
+  // dans une petite fenêtre de saisie ou d'envoi, posées hors de la fiche (portails marqués data-crm-dehors).
+  const cadre = useRef(null);
+  useEffect(() => {
+    const dehors = (e) => { if (cadre.current && !cadre.current.contains(e.target) && !e.target.closest?.("[data-crm-dehors], [role=\"alertdialog\"], [role=\"dialog\"], [role=\"menu\"]")) onFermer(); };
+    document.addEventListener("pointerdown", dehors);
+    return () => document.removeEventListener("pointerdown", dehors);
+  }, [onFermer]);
   const panneau = (
-    <motion.aside initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 28 }} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+    <motion.aside ref={cadre} initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 28 }} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
       className="flex flex-col overflow-hidden bg-surface-pleine shadow-[0_12px_40px_rgb(0_0_0/0.3)] max-md:fixed max-md:inset-0 max-md:z-[80] max-md:pt-[env(safe-area-inset-top)] md:absolute md:inset-y-0 md:right-0 md:z-20 md:w-[460px] md:border-l md:border-trait">
       <div className="flex items-start justify-between gap-3 px-5 pt-5">
         <div className="min-w-0">
@@ -416,7 +442,7 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
                         <span className="line-clamp-4 min-w-0 whitespace-pre-line break-words">
                           {c.type === "RELATION" && objets.some((o) => o.singulier === c.cible)
                             ? <button type="button" onClick={(e) => { e.stopPropagation(); onOuvrir(c.cible, f[c.nom]); }} className="text-encre underline decoration-trait underline-offset-2 hover:text-menthe" style={{ background: "transparent" }}>{vu}</button>
-                            : lienValeur(vu, lien)}
+                            : (c.type === "EMAILS" || c.type === "PHONES" || c.type === "LINKS") ? <ValeurAction vu={vu} lien={lien} type={c.type} /> : vu}
                         </span>
                       ) : <span className="text-brume">{c.modifiable ? "À compléter" : "Vide"}</span>)}
                     </Corrigeable>
@@ -828,6 +854,42 @@ function Case({ cochee, onChange, label }) {
   );
 }
 
+/** Un groupe du tableau, comme ceux de Monday : ses fiches lues à part (50, puis « Voir plus »), son nom dans la couleur
+ *  d'accent, un chevron qui le replie, un filet à gauche. Un groupe vide n'est pas dessiné. */
+function GroupeCrm({ objet, vue, q, tri, filtres, libelle, ferme, onBasculer, rendre }) {
+  const liste = useInfiniteQuery({
+    queryKey: ["crm-page", objet.singulier, vue?.id, q, tri?.champ, tri?.sens, JSON.stringify(filtres)],
+    initialPageParam: null,
+    queryFn: ({ pageParam }) => req("GET", `${API}/${objet.singulier}?${new URLSearchParams({ q, ...(tri ? { tri: tri.champ, sens: tri.sens } : {}), filtres: JSON.stringify(filtres), ...(pageParam ? { apres: pageParam } : {}) })}`),
+    getNextPageParam: (d) => d.suite || undefined,
+    staleTime: 30_000,
+    placeholderData: (avant) => avant,
+  });
+  const fiches = liste.data?.pages.flatMap((p) => p.fiches) || [];
+  const liens = useMemo(() => {
+    const out = {};
+    for (const p of liste.data?.pages || []) for (const [k, v] of Object.entries(p.liens || {})) out[k] = { ...(out[k] || {}), ...v };
+    return out;
+  }, [liste.data]);
+  if (liste.isLoading || liste.isError || !fiches.length) return null;
+  const total = liste.data.pages[0]?.total ?? fiches.length;
+  return (
+    <section className="mt-6 first:mt-4">
+      <button type="button" onClick={onBasculer} className="mb-2.5 inline-flex items-center gap-2 text-[19px] text-menthe" style={{ background: "transparent" }}>
+        {ferme ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronDown className="h-[18px] w-[18px]" />}{libelle}<span className="text-[13px] tabular-nums text-ardoise">{total}</span>
+      </button>
+      {!ferme && <div className="overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{rendre(fiches, liens)}</div>}
+      {!ferme && liste.hasNextPage && (
+        <div className="flex justify-center pt-3">
+          <button type="button" onClick={() => liste.fetchNextPage()} disabled={liste.isFetchingNextPage} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+            {liste.isFetchingNextPage && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Voir plus
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /** Le logo d'un espace : celui de K Partners pour KPartners (Jules, 5 nov. 2026), l'initiale sinon. */
 function LogoEspace({ nom, ferme = false, petit = false }) {
   const taille = petit ? "h-6 w-6 rounded-[6px]" : "h-7 w-7 rounded-[7px]";
@@ -1058,8 +1120,8 @@ export default function CrmTwenty() {
     return [restent[0], spoc, ...restent.slice(1).filter((c) => c !== spoc)];
   })();
   const choisirGroupe = (nom) => { setGrouper(false); const n = { ...groupes, [objet.singulier]: nom }; setGroupes(n); ecrireLocal("crm-groupes", n); };
-  const lignesGroupees = !champGroupe ? [{ cle: "tout", libelle: null, fiches }]
-    : [...champGroupe.options.map((o) => ({ cle: o.valeur, libelle: o.libelle, fiches: fiches.filter((f) => f[champGroupe.nom] === o.valeur) })), { cle: "__sans", libelle: "Sans groupe", fiches: fiches.filter((f) => !f[champGroupe.nom]) }].filter((g) => g.fiches.length);
+  const groupesDuTableau = !champGroupe ? []
+    : [...champGroupe.options.map((o) => ({ cle: o.valeur, libelle: o.libelle, filtre: { champ: champGroupe.nom, op: "est", valeur: o.valeur } })), { cle: "__sans", libelle: "Sans groupe", filtre: { champ: champGroupe.nom, op: "vide" } }];
   const outil = "inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[14px] text-craie hover:bg-relief hover:text-encre";
 
   /** Le tableau d'un groupe : cases à traits pleins, comme Monday ; la première colonne ouvre la fiche. */
@@ -1079,7 +1141,7 @@ export default function CrmTwenty() {
   };
   const toutesReglees = colonnes.length > 0 && colonnes.every((c, i) => largeurDe(c, i));
   const largeurMini = 37 + colonnes.reduce((s, c, i) => s + (largeurDe(c, i) || 140), 0);
-  const tableau = (lignes) => (
+  const tableau = (lignes, liensT = liens) => (
     <table className="w-full table-fixed border-collapse text-[14px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0" style={{ minWidth: Math.max(720, largeurMini) }}>
       <colgroup>
         <col style={{ width: 37 }} />
@@ -1111,19 +1173,20 @@ export default function CrmTwenty() {
                 <td key={c.nom} className={`h-[36px] overflow-hidden border-b border-r border-trait p-0 ${i === 0 ? "text-encre" : c.type === "SELECT" && f[c.nom] ? couleurCase(c, f[c.nom]) : "text-craie"} ${NUMERIQUES.includes(c.type) ? "tabular-nums" : ""}`}>
                   {i === 0 ? (
                     <button type="button" onPointerDown={() => { if (!objet.local) queryClient.prefetchQuery({ queryKey: ["crm-fiche", objet.singulier, f.id], queryFn: () => req("GET", `${API}/${objet.singulier}/${f.id}`), staleTime: 30_000 }); }} onClick={() => ouvrirLigne(objet.singulier, f.id)} className={`block w-full truncate px-4 py-1.5 text-encre hover:text-menthe ${CLASSES_ALIGNEMENT[reglageDe(c).align || "gauche"].split(" ")[1]}`} style={{ background: "transparent" }}>
-                      {affiche(c, f[c.nom], liens) || <span className="text-brume">Sans nom</span>}
+                      {affiche(c, f[c.nom], liensT) || <span className="text-brume">Sans nom</span>}
                     </button>
                   ) : (
-                    <Corrigeable c={c} valeur={f[c.nom]} liens={liens} onEnregistrer={(champ, valeur) => changerCase.mutate({ id: f.id, champ, valeur })} onMail={(a) => setEnvoi({ a, objet: objet.singulier, id: f.id, nom: nomDeFiche(f) })}
+                    <Corrigeable c={c} valeur={f[c.nom]} liens={liensT} onEnregistrer={(champ, valeur) => changerCase.mutate({ id: f.id, champ, valeur })} onMail={(a) => setEnvoi({ a, objet: objet.singulier, id: f.id, nom: nomDeFiche(f) })}
                       className={`flex min-h-[36px] items-center truncate px-2.5 py-1 ${CLASSES_ALIGNEMENT[reglageDe(c).align || alignementDefaut(i)]}`}>
                       {(vu, lien) => (c.personnes && vu
                         // Un champ Personnes (SPOC) : les têtes des gens (photo de Twenty CRM, sinon initiales), comme dans Monday.
-                        ? <span className="flex -space-x-1.5" title={vu}>{vu.split(",").map((n) => n.trim()).filter(Boolean).slice(0, 3).map((n) => <Tete key={n} nom={n} className="border-2 border-crm-tableau" />)}</span>
+                        ? <span className="flex -space-x-1.5" title={vu}>{vu.split(",").map((n) => n.trim()).filter(Boolean).map((n) => <Tete key={n} nom={n} className="border-2 border-crm-tableau" />)}</span>
                         : c.type === "RELATION" && vu && objets.some((o) => o.singulier === c.cible)
                           ? <button type="button" onClick={(e) => { e.stopPropagation(); ouvrir(c.cible, f[c.nom]); }} className="max-w-full truncate text-encre underline decoration-trait underline-offset-2 hover:text-menthe" style={{ background: "transparent" }}>{vu}</button>
                           : c.type === "SELECT" && vu ? <span className="truncate">{vu}</span>
-                          : (c.type === "EMAILS" || c.type === "PHONES" || c.type === "LINKS") && vu ? <span className="truncate text-encre">{lienValeur(vu, lien)}</span>
-                          : lienValeur(vu, lien))}
+                          : (c.type === "EMAILS" || c.type === "PHONES" || c.type === "LINKS") && vu ? <ValeurAction vu={vu} lien={lien} type={c.type} />
+                          // Un texte long ne montre que son début (8 nov. 2026, Jules) : la première ligne, coupée ; le clic ouvre le détail.
+                          : vu ? <span className="block min-w-0 truncate">{String(vu).split("\n")[0]}</span> : vu)}
                     </Corrigeable>
                   )}
                 </td>
@@ -1219,7 +1282,7 @@ export default function CrmTwenty() {
                 {objet.singulier === "tableau-de-bord" && (
                   <div className="px-10 pb-10 pt-[18px] max-md:px-4">
                     <h1 className="m-0 text-[25px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">Tableau de bord</h1>
-                    <p className="m-0 mt-1 text-[13px] text-ardoise">Les clients de Twenty, à leur localisation. Un clic ouvre sa fiche.</p>
+                    <p className="m-0 mt-1 text-[13px] text-ardoise">Clients, projets, prospection et deals. Un clic ouvre la fiche.</p>
                     <CarteClientsTwenty hauteur="calc(100dvh - 240px)" className="mt-4 min-h-[460px]"
                       onClient={(p) => (p.klocka ? setKlocka({ type: "client", id: p.klocka, singulier: "clients", twenty: p.id }) : aller({ t: "clients", v: null, f: p.id, ft: null }))} />
                   </div>
@@ -1349,21 +1412,13 @@ export default function CrmTwenty() {
                 {liste.isLoading ? <Chargement /> : liste.isError ? <p className="py-16 text-center text-[14px] text-ardoise">{liste.error?.message || "Twenty ne répond pas."}</p>
                   : !fiches.length ? <p className="py-16 text-center text-[14px] text-brume">{q || tousFiltres.length ? "Rien ne correspond." : "Aucune fiche."}</p>
                   : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => ouvrirLigne(objet.singulier, id)} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />
-                  : lignesGroupees.map((g) => {
-                    const ferme = groupesFermes.includes(g.cle);
-                    return (
-                      <section key={g.cle} className="mt-6 first:mt-4">
-                        {/* Un groupe, comme ceux de Monday : son nom dans la couleur d'accent, un chevron qui le replie, un filet à gauche. */}
-                        {g.libelle && (
-                          <button type="button" onClick={() => setGroupesFermes((t) => (ferme ? t.filter((x) => x !== g.cle) : [...t, g.cle]))} className="mb-2.5 inline-flex items-center gap-2 text-[19px] text-menthe" style={{ background: "transparent" }}>
-                            {ferme ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronDown className="h-[18px] w-[18px]" />}{g.libelle}<span className="text-[13px] tabular-nums text-ardoise">{lignesGroupees.length === 1 && total != null ? total : g.fiches.length}</span>
-                          </button>
-                        )}
-                        {!ferme && <div className="overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{tableau(g.fiches)}</div>}
-                      </section>
-                    );
-                  })}
-                {!kanban && liste.hasNextPage && (
+                  : !champGroupe ? <div className="mt-4 overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{tableau(fiches)}</div>
+                  // Groupé : chaque groupe lit ses fiches à part, 50 par 50, avec son « Voir plus » (8 nov. 2026, Jules).
+                  : groupesDuTableau.map((g) => (
+                    <GroupeCrm key={g.cle} objet={objet} vue={vue} q={q} tri={triVu} filtres={[...tousFiltres, g.filtre]} libelle={g.libelle}
+                      ferme={groupesFermes.includes(g.cle)} onBasculer={() => setGroupesFermes((t) => (t.includes(g.cle) ? t.filter((x) => x !== g.cle) : [...t, g.cle]))} rendre={tableau} />
+                  ))}
+                {!kanban && !champGroupe && liste.hasNextPage && (
                   <div className="flex justify-center pt-5">
                     <button type="button" onClick={() => liste.fetchNextPage()} disabled={liste.isFetchingNextPage} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
                       {liste.isFetchingNextPage && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Voir plus

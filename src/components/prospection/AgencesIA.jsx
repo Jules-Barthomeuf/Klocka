@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/avis";
 import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import FicheContact from "@/components/prospection/FicheContact";
+import { classeCase } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 
 // L'agent IA de la prospection des agents immobiliers, et ses listes. On
@@ -275,9 +276,9 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
         {relances && (
           <>
             <button type="button" role="tab" aria-selected={surRelances} onClick={() => onOuvrir(RELANCES)}
-              className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${surRelances ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-encre/[0.06] py-2 text-ardoise hover:bg-encre/[0.1] hover:text-encre"}`}>
+              style={surRelances ? undefined : { background: "transparent" }} className={`flex h-7 max-w-[240px] flex-none items-center gap-1.5 rounded-[8px] px-3 text-left text-[13px] transition-colors max-md:h-10 ${surRelances ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}>
               <span className="truncate">Relances dues</span>
-              <span className={`flex-none text-[11.5px] tabular-nums ${surRelances ? "text-menthe" : relances.n ? "text-ambre" : "text-brume"}`}>{relances.n}</span>
+              <span className={`flex-none text-[13px] tabular-nums ${relances.n ? "text-ambre" : "text-ardoise"}`}>{relances.n}</span>
             </button>
             <span aria-hidden className="w-1 flex-none" />
           </>
@@ -288,9 +289,9 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
             <React.Fragment key={l.id}>
               {i > 0 && <span aria-hidden className="w-1 flex-none" />}
               <button type="button" role="tab" aria-selected={actif} onClick={() => onOuvrir(l.id)}
-                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-encre/[0.06] py-2 text-ardoise hover:bg-encre/[0.1] hover:text-encre"}`}>
+                style={actif ? undefined : { background: "transparent" }} className={`flex h-7 max-w-[240px] flex-none items-center gap-1.5 rounded-[8px] px-3 text-left text-[13px] transition-colors max-md:h-10 ${actif ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}>
                 <span className="truncate">{l.ville}</span>
-                <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{l.agences}</span>
+                <span className="flex-none text-[13px] tabular-nums text-ardoise">{l.agences}</span>
                 {l.etat === "en_cours" && <span className="h-1.5 w-1.5 flex-none animate-pulse rounded-full bg-menthe" />}
                 {actif && l.etat !== "en_cours" && (
                   <span role="button" tabIndex={0} aria-label={`Supprimer la liste ${l.ville}`} title={`Supprimer la liste ${l.ville}`}
@@ -308,7 +309,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
       </div>
         {onBasculer && <span className="ml-3 flex-none self-center pb-1"><BasculeModeAppel actif={false} onChange={onBasculer} /></span>}
       </div>
-      <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+      <div data-zone="listes" className="pt-3">
         {active && <div key={active} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">{surRelances ? relances.contenu : <TableauAgences id={active} onAppeler={onAppeler} />}</div>}
       </div>
     </div>
@@ -394,15 +395,6 @@ function TableauAgences({ id, onAppeler }) {
     mutationFn: () => base44.request("POST", `${API}/listes/${id}/monday`),
     onSuccess: (r) => { toast.success(`Twenty CRM : ${r.connues} agence${r.connues > 1 ? "s" : ""} déjà en contact sur ${r.total}`); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
     onError: (e) => toast.error(e?.message || "Twenty CRM n'a pas répondu"),
-  });
-  // Compléter les cases vides du tableau : Maps, l'annuaire, puis Equimmox, en fond.
-  const completer = useMutation({
-    mutationFn: () => base44.request("POST", `${API}/listes/${id}/completer`),
-    onSuccess: (r) => {
-      toast.success(r.deja ? "L'agent travaille déjà sur cette liste" : "Je complète les colonnes vides", { description: r.deja ? undefined : "Google Maps, l'annuaire, puis les annonces Equimmox. Rien de rempli n'est remplacé." });
-      for (const k of [["agent-ia-liste", id], ["agent-ia-listes"]]) queryClient.invalidateQueries({ queryKey: k });
-    },
-    onError: (e) => toast.error(e?.message || "Impossible"),
   });
   // Supprimer des lignes cochées : masquées, pas effacées, et elles ne reviennent pas.
   const retirer = useMutation({
@@ -492,15 +484,15 @@ function TableauAgences({ id, onAppeler }) {
       {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Twenty CRM » les montre  ; l'interrupteur du mode appel est sur la ligne des villes. */}
       {chiffresOuverts && <div className="duration-300 ease-out animate-in fade-in-0 slide-in-from-top-2"><BarreVille ville={data.ville} chiffres={data.chiffres} /></div>}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
+        <div className="flex h-8 w-[320px] items-center gap-2 rounded-full bg-relief px-3.5 focus-within:ring-1 focus-within:ring-bord-doux max-md:h-10 max-md:w-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Agence, gérant, agent, numéro"
             className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
-        <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Agences ou mandataires">
+        <div className="flex gap-0.5" role="tablist" aria-label="Agences ou mandataires">
           {[["agences", "Agences"], ["mandataires", "Mandataires"], ["tous", "Tous"]].map(([cle, mot]) => (
             <button key={cle} type="button" role="tab" aria-selected={genre === cle} onClick={() => changerGenre(cle)}
-              className={`rounded-full px-4 py-[7px] text-[13.5px] ${genre === cle ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`} style={genre === cle ? undefined : { background: "transparent" }}>
+              className={`h-7 rounded-full px-3 text-[13px] max-md:h-10 ${genre === cle ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`} style={genre === cle ? undefined : { background: "transparent" }}>
               {mot}{cle === "mandataires" && data.chiffres?.mandataires ? <span className="ml-1.5 tabular-nums text-ardoise">{data.chiffres.mandataires}</span> : null}
             </button>
           ))}
@@ -508,12 +500,8 @@ function TableauAgences({ id, onAppeler }) {
         {/* « Trier par » : une pilule, les choix dans un menu (12 oct. 2026). */}
         <TrierPar valeur={filtre} onChange={setFiltre} />
         <span className="ml-auto text-[13px] text-ardoise max-md:ml-0">
-          {data.etat === "en_cours" ? <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{data.etape || "L'agent cherche"}</span> : `${lignes.length} ${genre === "mandataires" ? "mandataire" : genre === "agences" ? "agence" : "ligne"}${lignes.length > 1 ? "s" : ""}${data.deja_monday ? ` · ${data.deja_monday} déjà en contact` : ""}${data.fini_le ? ` · mise à jour ${ilYa(data.fini_le)}` : ""}`}
+          {data.etat === "en_cours" && <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{data.etape || "L'agent cherche"}</span>}
         </span>
-        <button type="button" onClick={() => completer.mutate()} disabled={completer.isPending || data.etat === "en_cours"} title="Remplir les cases vides (adresse, site, Maps, téléphone, gérants, agents) sans toucher au reste"
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
-          {completer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}Compléter les colonnes vides
-        </button>
         <button type="button" onClick={() => verifier.mutate()} disabled={verifier.isPending || data.etat === "en_cours"} title="Revérifier dans Twenty CRM qui est déjà en contact"
           className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
           {verifier.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}Vérifier dans Twenty CRM
@@ -575,17 +563,18 @@ function TableauAgences({ id, onAppeler }) {
         </div>
       )}
       {filtre === "supprimees" ? <Supprimees listeId={id} /> : (<>
-      <div className="mt-4 overflow-x-auto rounded-[16px] border border-trait">
-        <table className="w-full min-w-[1200px] border-collapse text-left text-[14px]">
+      <div className="mt-3 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+        <table className="w-full min-w-[1240px] table-fixed border-collapse text-left text-[13.5px] [&_tbody_td:not(:last-child)]:border-r [&_tbody_td]:border-trait [&_th:not(:last-child)]:border-r [&_th]:border-trait">
+          <colgroup><col style={{ width: 44 }} /><col style={{ width: 110 }} /><col /><col style={{ width: "19%" }} /><col style={{ width: "13%" }} /><col style={{ width: 56 }} /><col style={{ width: 130 }} /><col style={{ width: "13%" }} /><col style={{ width: 160 }} /></colgroup>
           <thead>
-            <tr className="text-[12.5px] text-encre">
-              <th className="w-[52px] border-b border-trait py-3.5 pl-5 pr-1">
+            <tr>
+              <th className="h-[35px] border-b border-trait">
                 <button type="button" onClick={() => setCoches(lignes.every((a) => coches.has(a.id)) ? new Set() : new Set(lignes.map((a) => a.id)))} disabled={!lignes.length}
-                  aria-label="Tout cocher" title="Tout cocher" className="grid place-items-center disabled:opacity-40" style={{ background: "transparent" }}>
+                  aria-label="Tout cocher" title="Tout cocher" className="grid w-full place-items-center disabled:opacity-40" style={{ background: "transparent" }}>
                   <Case oui={lignes.length > 0 && lignes.every((a) => coches.has(a.id))} />
                 </button>
               </th>
-              {["Associé à", "Nom", "Adresse", "Site", "Maps", "Téléphone", genre === "mandataires" ? "SIREN" : genre === "tous" ? "Gérants / SIREN" : "Gérants"].map((t) => <th key={t} className="border-b border-trait px-4 py-3.5 font-normal text-encre">{t}</th>)}
+              {["Associé à", "Nom", "Adresse", "Site", "Maps", "Téléphone", genre === "mandataires" ? "SIREN" : genre === "tous" ? "Gérants / SIREN" : "Gérants", "Statut"].map((t) => <th key={t} className={`h-[35px] overflow-hidden whitespace-nowrap border-b border-trait px-2.5 text-center text-[12.5px] font-normal text-ardoise ${t === "Nom" ? "!text-left" : ""}`}>{t}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -595,39 +584,25 @@ function TableauAgences({ id, onAppeler }) {
               const ouvert = ouverte === a.id;
               return (
                 <React.Fragment key={a.id}>
-                  <tr onClick={() => setOuverte(ouvert ? null : a.id)} className={`cursor-pointer align-top transition-colors [&>td]:border-b [&>td]:border-trait ${a.statut?.etat === "morte" ? "opacity-45" : ""} ${coches.has(a.id) ? "bg-menthe/[0.05]" : ouvert ? "bg-relief/50" : "hover:bg-relief/30"}`}>
-                    <td className="py-4 pl-5 pr-1" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => basculer(a.id)} aria-label={`Cocher ${nomPropre(a)}`} className="grid place-items-center" style={{ background: "transparent" }}><Case oui={coches.has(a.id)} /></button>
+                  <tr onClick={() => setOuverte(ouvert ? null : a.id)} className={`cursor-pointer align-middle transition-colors [&>td]:border-b [&>td]:border-trait ${a.statut?.etat === "morte" ? "opacity-45" : ""} ${coches.has(a.id) ? "bg-menthe/[0.05]" : ouvert ? "bg-relief/50" : "hover:bg-relief/30"}`}>
+                    <td className="h-[36px] py-0" onClick={(e) => e.stopPropagation()}>
+                      <button type="button" onClick={() => basculer(a.id)} aria-label={`Cocher ${nomPropre(a)}`} className="grid w-full place-items-center" style={{ background: "transparent" }}><Case oui={coches.has(a.id)} /></button>
                     </td>
-                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}><CellulePour agence={a} listeId={id} /></td>
-                    <td className="max-w-[260px] px-4 py-4">
-                      <p className="m-0 text-encre">{nomPropre(a)}{(a.agents || []).length > 1 && <span className="ml-1.5 text-[12.5px] text-ardoise">· {a.agents.length} agents</span>}</p>
-                      {estMandataire(a) && (
-                        <p className="m-0 mt-1 flex flex-wrap gap-1">
-                          <span className="rounded-[6px] bg-bleu/15 px-1.5 py-px text-[11.5px] text-bleu">{a.reseau_nom ? `Mandataire ${a.reseau_nom}` : "Mandataire en nom propre"}</span>
-                          {(a.annonces_commerce || 0) > 0 && <span className="rounded-[6px] bg-menthe/15 px-1.5 py-px text-[11.5px] text-menthe">Publie du commerce · {a.annonces_commerce}</span>}
-                          {(a.annonces || 0) > 0 && !(a.annonces_commerce > 0) && <span className="rounded-[6px] bg-relief px-1.5 py-px text-[11.5px] text-craie">{a.annonces} annonce{a.annonces > 1 ? "s" : ""}</span>}
-                        </p>
-                      )}
-                      {/* Qui est dessus en ce moment (13 oct. 2026) : pour ne pas se croiser. */}
-                      {a.en_appel_par && <p className="m-0 mt-1"><span className="inline-flex items-center gap-1 rounded-[6px] bg-menthe/15 px-1.5 py-px text-[11.5px] text-menthe"><Lock className="h-3 w-3" />{a.en_appel_par === moiEmail ? "Vous l'appelez" : `En appel · ${prenomDe(a.en_appel_par)}`}</span></p>}
-                      {/* Sous le nom, une seule chose : déjà en contact, ou rien (6 oct. 2026). */}
-                      {contactDe(a) ? <p className="m-0 mt-1"><span className="rounded-[6px] bg-relief px-1.5 py-px text-[11.5px] text-craie">Contact de {contactDe(a)}</span></p>
-                        : dejaEnContact(a) && <p className="m-0 mt-1"><span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span></p>}
-                    </td>
-                    <td className="max-w-[220px] px-4 py-4 text-craie">{a.adresse || <span className="text-bord-vif">—</span>}</td>
-                    <td className="max-w-[180px] truncate px-4 py-4">
+                    <td className="h-[36px] overflow-hidden px-1.5 py-0" onClick={(e) => e.stopPropagation()}><span className="flex justify-center"><CellulePour agence={a} listeId={id} /></span></td>
+                    <td className="h-[36px] truncate px-2.5 py-0"><span className="text-encre">{nomPropre(a)}</span>{(a.agents || []).length > 1 && <span className="text-ardoise"> · {a.agents.length} agents</span>}{estMandataire(a) && <span className="text-ardoise"> · {a.reseau_nom ? `Mandataire ${a.reseau_nom}` : "Mandataire en nom propre"}</span>}{(a.annonces_commerce || 0) > 0 && <span className="text-ardoise"> · publie du commerce, {a.annonces_commerce}</span>}</td>
+                    <td className="h-[36px] truncate px-2.5 py-0 text-center text-craie" title={a.adresse || undefined}>{a.adresse || <span className="text-bord-vif">—</span>}</td>
+                    <td className="h-[36px] truncate px-2.5 py-0 text-center">
                       {a.fiche_url ? <a onClick={(e) => e.stopPropagation()} href={a.fiche_url} target="_blank" rel="noreferrer" title="La fiche du conseiller : son numéro y est" className="text-bleu hover:underline">Fiche {a.reseau_nom || "réseau"} ↗</a>
                         : domaine ? <a onClick={(e) => e.stopPropagation()} href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className="text-bleu hover:underline">{domaine}</a> : <span className="text-bord-vif">—</span>}
                     </td>
-                    <td className="px-4 py-4">
-                      {a.maps_url ? <a onClick={(e) => e.stopPropagation()} href={a.maps_url} target="_blank" rel="noreferrer" aria-label="Fiche Google Maps" title="Fiche Google Maps" className="text-craie hover:text-encre"><MapPin className="h-4 w-4" /></a> : <span className="text-bord-vif">—</span>}
+                    <td className="h-[36px] truncate px-2.5 py-0 text-center">
+                      {a.maps_url ? <a onClick={(e) => e.stopPropagation()} href={a.maps_url} target="_blank" rel="noreferrer" aria-label="Fiche Google Maps" title="Fiche Google Maps" className="inline-flex text-craie hover:text-encre"><MapPin className="h-4 w-4" /></a> : <span className="text-bord-vif">—</span>}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-4 tabular-nums text-encre" title={a.telephone_source ? `Numéro : ${SOURCES_TEL[a.telephone_source] || a.telephone_source}` : undefined}>
+                    <td className="h-[36px] truncate px-2.5 py-0 text-center tabular-nums text-craie" title={a.telephone_source ? `Numéro : ${SOURCES_TEL[a.telephone_source] || a.telephone_source}` : undefined}>
                       {tel || <span className="text-bord-vif">—</span>}
-                      {estMandataire(a) && a.telephone_source && <span className="block text-[11.5px] text-brume">{SOURCES_TEL[a.telephone_source] || a.telephone_source}</span>}
                     </td>
-                    <td className="px-4 py-4 text-craie">{estMandataire(a) ? (a.siren ? <span className="tabular-nums">SIREN {a.siren}{a.creation ? <span className="block text-[11.5px] text-brume">depuis {String(a.creation).slice(0, 4)}</span> : null}</span> : <span className="text-bord-vif">—</span>) : (a.gerants || []).length ? a.gerants.map((g) => g.nom).join(", ") : <span className="text-bord-vif">—</span>}</td>
+                    <td className="h-[36px] truncate px-2.5 py-0 text-center text-craie">{estMandataire(a) ? (a.siren ? <span className="tabular-nums">SIREN {a.siren}</span> : <span className="text-bord-vif">—</span>) : (a.gerants || []).length ? a.gerants.map((g) => g.nom).join(", ") : <span className="text-bord-vif">—</span>}</td>
+                    {(() => { const [mot, couleur] = a.en_appel_par ? [a.en_appel_par === moiEmail ? "Vous l'appelez" : `En appel · ${prenomDe(a.en_appel_par)}`, "menthe"] : contactDe(a) ? [`Contact de ${contactDe(a)}`, "bleu"] : dejaEnContact(a) ? ["Déjà en contact", "ambre"] : ["Jamais contactée", "gris"]; return <td className={`h-[36px] truncate px-2.5 py-0 text-center ${classeCase(couleur)}`}>{mot}</td>; })()}
                   </tr>
                   {ouvert && (
                     <tr className="[&>td]:border-b [&>td]:border-trait">
@@ -700,7 +675,7 @@ function TableauAgences({ id, onAppeler }) {
               );
             })}
             {!lignes.length && (
-              <tr><td colSpan={8} className="px-6 py-10 text-center text-[13.5px] text-brume">{data.etat === "en_cours" ? "L'agent cherche : les agences arrivent ici." : "Aucune agence ne correspond."}</td></tr>
+              <tr><td colSpan={9} className="px-6 py-10 text-center text-[13.5px] text-brume">{data.etat === "en_cours" ? "L'agent cherche : les agences arrivent ici." : "Aucune agence ne correspond."}</td></tr>
             )}
           </tbody>
         </table>
@@ -834,6 +809,8 @@ export function CellulePour({ agence, listeId }) {
   });
   const autres = equipe.filter((m) => !pour.includes(m.email));
   const moi = data?.moi ? membre(data.moi) : null;
+  // Personne d'associé, mais quelqu'un de l'équipe a déjà ce contact (9 nov. 2026, Jules) : sa tête ; un clic l'associe pour de bon.
+  const enContact = !pour.length && agence.statut?.proprietaire ? membre(agence.statut.proprietaire) : null;
   return (
     <div className="relative flex min-w-[96px] items-center">
       {/* Les photos se chevauchent un peu ; un clic sur l'une retire la personne. */}
@@ -848,7 +825,13 @@ export function CellulePour({ agence, listeId }) {
           );
         })}
       </div>
-      {!pour.length && (
+      {enContact && (
+        <button type="button" onClick={() => changer.mutate({ email: enContact.email })} disabled={changer.isPending} title={`Contact de ${enContact.nom} · cliquer pour l'associer`} aria-label={`Associer ${enContact.nom}`}
+          className="rounded-full" style={{ background: "transparent" }}>
+          <Avatar membre={enContact} />
+        </button>
+      )}
+      {!pour.length && !enContact && (
         <button type="button" onClick={() => changer.mutate({})} disabled={changer.isPending} title="M'associer à cette ligne" aria-label="M'associer à cette ligne"
           className="rounded-full opacity-45 transition-opacity hover:opacity-100" style={{ background: "transparent" }}>
           {moi ? <Avatar membre={moi} pointille /> : <span className="grid h-8 w-8 place-items-center rounded-full border border-dashed border-bord-vif text-[11px] text-brume">Moi</span>}

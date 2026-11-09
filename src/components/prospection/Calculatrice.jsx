@@ -98,7 +98,7 @@ export default function Calculatrice({ textes }) {
       {/* L'en-tête se tient pour déplacer la fenêtre. */}
       <div onPointerDown={saisir} onPointerMove={glisser} onPointerUp={lacher} onPointerCancel={lacher} title="Glisser pour déplacer"
         className="-mx-5 -mt-5 flex cursor-grab touch-none select-none items-center justify-between px-5 pb-1 pt-5 active:cursor-grabbing">
-        <span className="text-[11px] tracking-[.16em] text-brume">CALCULATRICE</span>
+        <span className="text-[11px] tracking-[.16em] text-brume">Calculatrice</span>
         <button type="button" onClick={() => setFermee(true)} aria-label="Fermer la calculatrice" title="Fermer : elle revient au prochain chiffre entendu"
           className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
       </div>

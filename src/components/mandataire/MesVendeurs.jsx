@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import Loader from "@/components/ui/Loader";
+import { Statut } from "@/components/mandataire/elements";
 import { ETAPES_BIEN, etapesVisibles, rangValide, rangVisible } from "@/lib/biens-mandataire";
 
 // Les propriétaires vendeurs du mandataire (4 nov. 2026, Jules : « un onglet Mes vendeurs ») : chaque propriétaire d'un
@@ -31,37 +32,37 @@ export default function MesVendeurs() {
   const lignes = t ? tous.filter((v) => [v.nom, v.telephone, v.email, v.bien].filter(Boolean).join(" ").toLowerCase().includes(t)) : tous;
   if (isLoading) return <Loader titre="Vos vendeurs" />;
   return (
-    <section data-zone="vendeurs" className="relative rounded-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+    <section data-zone="vendeurs">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
+        <div className="flex h-8 w-[320px] items-center gap-2 rounded-full bg-relief px-3.5 focus-within:ring-1 focus-within:ring-bord-doux max-md:h-10 max-md:w-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nom, bien, téléphone…"
             className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
         <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0"><span className="tabular-nums text-menthe">{lignes.length}</span> vendeur{lignes.length > 1 ? "s" : ""}</span>
       </div>
-      <div className="mt-4 overflow-x-auto rounded-[14px] border border-bord-doux bg-rail">
-        <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px]">
+      <div className="mt-4 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+        <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px] [&_tr>*:last-child]:border-r-0">
           <thead>
             <tr>
               {["Vendeur", "Contact", "Bien", "Étape"].map((h, i, l) => (
-                <th key={h} className={`border-b ${i < l.length - 1 ? "border-r" : ""} ${TRAIT} bg-rail px-4 py-3.5 font-normal text-encre ${i === 0 ? "sticky left-0 z-20 min-w-[200px]" : ""}`}>{h}</th>
+                <th key={h} className={`border-b border-r ${TRAIT} bg-rail h-[35px] px-3 py-0 text-[12.5px] font-normal text-ardoise ${i === 0 ? "sticky left-0 z-20 min-w-[200px]" : ""}`}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {lignes.map((v) => (
               <tr key={v.id} className="transition-colors hover:bg-relief/30">
-                <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail px-4 py-4 align-middle`}><span className="block max-w-[260px] truncate text-encre">{v.nom}</span></td>
-                <td className={`border-b border-r ${TRAIT} px-4 py-4 align-middle`}>
+                <td className={`sticky left-0 z-10 border-b border-r ${TRAIT} bg-rail h-11 px-3 py-1 align-middle`}><span className="block max-w-[260px] truncate text-encre">{v.nom}</span></td>
+                <td className={`border-b border-r ${TRAIT} h-11 px-3 py-1 align-middle`}>
                   {v.telephone ? <a href={`tel:${String(v.telephone).replace(/[^\d+]/g, "")}`} className="block whitespace-nowrap text-encre hover:text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{v.telephone}</a> : null}
                   {v.email ? <a href={`mailto:${v.email}`} className="block max-w-[240px] truncate text-ardoise hover:text-encre">{v.email}</a> : null}
                   {!v.telephone && !v.email && <span className="text-brume">—</span>}
                 </td>
-                <td className={`border-b border-r ${TRAIT} max-w-[300px] px-4 py-4 align-middle`}>
+                <td className={`border-b border-r ${TRAIT} max-w-[300px] h-11 px-3 py-1 align-middle`}>
                   <Link to={`/MandataireBiens?bien=proprietaire:${v.id}&etape=ensemble`} className="block truncate text-encre hover:text-menthe">{v.bien}</Link>
                 </td>
-                <td className={`border-b ${TRAIT} whitespace-nowrap px-4 py-4 align-middle text-ardoise`}>{v.etape}</td>
+                <td className={`border-b border-r ${TRAIT} whitespace-nowrap h-11 px-3 py-1 align-middle`}>{v.etape && <Statut>{v.etape}</Statut>}</td>
               </tr>
             ))}
           </tbody>

@@ -5,6 +5,7 @@
 
 import fs from 'fs';
 import { ok, wrap, currentUser, upload } from '../contexte.js';
+import { monterModuleEmailing } from './emailing-module.js';
 
 const E = () => import('../emailing/index.js');
 const K = () => import('../emailing/contacts.js');
@@ -17,6 +18,7 @@ const A = () => import('../emailing/assets.js');
 
 /** Monte les routes « emailing » sur l'application. */
 export function monterEmailing(app) {
+  monterModuleEmailing(app);
   const admin = (req, res) => {
     const user = currentUser(req);
     if (user?.role !== 'admin') { res.status(403).json({ error: 'Réservé à l\'équipe.' }); return null; }

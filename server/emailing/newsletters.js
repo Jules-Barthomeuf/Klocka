@@ -28,6 +28,7 @@ import { aParis } from './envoi.js';
 import { designNewsletter } from './modeles.js';
 import { policesPropres } from '../../src/lib/email-design.js';
 import { APP_URL_PROD } from '../contexte.js';
+import { emettre } from './journal.js';
 
 export const NEWSLETTER = 'EmailingNewsletter';
 export const ACTIVITE = 'EmailingActivite';
@@ -387,6 +388,8 @@ export async function noterActivite({ k, type, valeurs = null, source = null, qu
   if (!['simulateur', 'clic_call', 'call_pris', 'lead_magnet', 'quiz', 'vision', 'outil'].includes(type)) return { ok: false, error: 'Type inconnu.' };
   const src = SOURCE.test(String(source || '')) ? String(source) : null;
   if (type === 'call_pris') return marquerCallPris(c, { via: 'simulateur', source: src, quand });
+  // Le journal du module : les scores et les automatisations lisent ces faits. Le simulateur compte une fois par session.
+  if (['simulateur', 'quiz', 'vision', 'clic_call'].includes(type)) emettre(type, { email: c.email, contact_id: c.id, source: src, le: quand.toISOString(), cle: type === 'simulateur' ? `simulateur:${c.id}:${quand.toISOString().slice(0, 13)}` : null });
   const propres = valeursPropres(type, valeurs);
   remplirFiche(c, type, propres);
   if (type === 'simulateur' || type === 'vision' || type === 'outil') {
@@ -406,6 +409,7 @@ export async function marquerCallPris(c, { via = 'calendly', source = null, quan
   if (c.call_pris_le) return { ok: true, deja: true };
   Records.update(E.CONTACT, c.id, { call_pris_le: quand.toISOString(), call_pris_via: via, tags: [...new Set([...(c.tags || []), TAG_CALL])] });
   Records.create(ACTIVITE, { contact_id: c.id, type: 'call_pris', source, via, le: quand.toISOString() });
+  emettre('call_pris', { email: c.email, contact_id: c.id, source: via, le: quand.toISOString(), cle: `call:${c.id}` });
   for (const i of Records.list(E.INSCRIPTION).filter((x) => x.contact_id === c.id && x.statut === 'en_cours')) Records.update(E.INSCRIPTION, i.id, { statut: 'sortie', raison: 'call', sortie_le: quand.toISOString() });
   const nl = Records.list(NEWSLETTER).find((n) => (n.listes || []).some((l) => (c.listes || []).includes(l)));
   try {

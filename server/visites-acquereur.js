@@ -519,12 +519,13 @@ export async function executerOutilVisite(name, input = {}, user, { llm = null, 
     // Le bon signé de la personne, le plus récent (8 nov. 2026, Jules : « il dit à l'assistant : envoie le bon de visite »).
     const a = nz(input.acquereur), q = nz(input.bien);
     const mots = (t) => nz(t).replace(/\([^)]*\)/g, ' ').split(/[^a-z0-9]+/).filter((m) => m.length > 2 && !['les', 'des', 'mme', 'test'].includes(m));
-    const signees = Records.list(VISITE).filter((v) => v.mandataire_email === emailDe(user) && v.bon?.signe_le)
+    const parPersonne = Records.list(VISITE).filter((v) => v.mandataire_email === emailDe(user) && v.bon?.signe_le)
       .filter((v) => !a || mots(input.acquereur).every((m) => mots(nomAcquereur(v)).includes(m)) || mots(nomAcquereur(v)).every((m) => mots(input.acquereur).includes(m)))
-      .filter((v) => !q || mots(input.bien).some((m) => nz(`${v.bien?.titre} ${v.bien?.adresse}`).includes(m)))
-      .filter((v) => !fiche || !v.bien?.proprietaire_id || v.bien.proprietaire_id === fiche.id || input.bien)
       .sort((x, y) => String(y.bon.signe_le).localeCompare(String(x.bon.signe_le)));
-    const v = signees[0];
+    // Le bien ne fait que départager plusieurs bons signés, jamais en écarter un (8 nov. 2026, Jules) : l'assistant le nomme
+    // « Pressing du Port » quand la visite garde « Local commercial d'environ 60 m² ».
+    const duBien = parPersonne.filter((v) => (fiche && v.bien?.proprietaire_id === fiche.id) || (q && mots(input.bien).some((m) => nz(`${v.bien?.titre} ${v.bien?.adresse}`).includes(m))));
+    const v = duBien[0] || parPersonne[0];
     if (!v) return { ok: false, error: input.acquereur ? `Pas de bon de visite signé pour « ${input.acquereur} » : il se signe dans sa fiche (onglet Acquéreurs, son nom, « Bon de visite »).` : "Aucun bon de visite signé pour l'instant." };
     // Le lien du bon : celui de la signature à distance, ou un nouveau, qui montre le bon signé et sa signature.
     const lien = v.lien_bon?.jeton ? { ...v.lien_bon } : { jeton: crypto.randomBytes(24).toString('base64url'), cree_le: maintenant() };

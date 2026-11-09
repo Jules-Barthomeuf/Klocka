@@ -12,7 +12,7 @@ import Chargement from "@/components/ui/Chargement";
 // - les règles contrôlées chaque nuit : le dernier rapport (celui qui part par
 //   mail vers 7 h), et de quoi le relancer tout de suite.
 
-const titreCase = "m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal";
+const titreCase = "m-0 mb-3 text-[14px] font-normal text-encre";
 const semaineCourte = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 
 function QualiteAK() {
@@ -105,7 +105,7 @@ export default function QualiteEtRegles() {
   return (
     // Les règles de la nuit retirées de l'écran, leur contrôle et leur mail coupés (16 oct. 2026, Jules).
     <div className="mb-8">
-      <div className="rounded-md border border-trait p-4">
+      <div className="rounded-[12px] border border-trait p-4">
         <h2 className={titreCase}>Qualité d'AK · appels validés sans correction</h2>
         <QualiteAK />
       </div>

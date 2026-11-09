@@ -26,6 +26,9 @@ test("le bon signé passe le contact en Visite, puis « envoie le bon de visite 
   assert.equal(r.ok, true);
   assert.equal(r.brouillon.destinataire, 'sophie@exemple.fr');
   assert.match(r.brouillon.corps, /SignerBon\?jeton=/);
+  // Le bien nommé autrement que le titre de la visite n'écarte pas le bon.
+  const autre = await V.executerOutilVisite('envoyer_bon_visite', { acquereur: 'Sophie Martin', bien: 'Boulangerie du Port' }, MOI, { fiche: { id: 'une-autre-fiche' } });
+  assert.equal(autre.ok, true, 'le bon est retrouvé par la personne');
   // Le lien montre le bon signé et sa signature.
   const jeton = Records.get('VisiteAcquereur', v.id).lien_bon.jeton;
   const page = await V.bonParJeton(jeton);

@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/avis";
 import { FriseFaits, FenetreSource, TYPES, TEINTES, SOURCES, quand } from "@/components/layer/FriseFaits";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { BarresHorizontales, Chiffre, ChiffreCourbe, Croissance, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import { TitrePage } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 
 // L'Intelligence (le Layer ; spec MVP du 14 oct. 2026, refonte du 15 oct.) : ce
@@ -38,13 +39,12 @@ export default function Intelligence() {
   const nombre = { a_valider: e?.a_valider || 0, faits: (tous.data?.faits || []).filter((f) => f.statut !== "rejete").length, syntheses: syntheses.data?.syntheses?.length || 0 };
   return (
     <div className="min-h-screen text-encre">
-      <div className="mx-auto max-w-[1300px] px-4 py-8 md:px-8 md:py-10">
-        <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Intelligence</h1>
-        <p className="m-0 mt-1.5 max-w-[760px] text-[13.5px] text-ardoise">Ce qui a été dit, décidé ou promis, tiré des comptes rendus, des réunions, des appels et des débriefs. Un fait ne répond aux questions d'AK qu'une fois validé.</p>
+      <div className="mx-auto max-w-[1500px] px-5 py-[22px] md:px-8">
+        <TitrePage titre="Intelligence" className="md:!pr-[112px]" />
 
         {t && (
-          <div className="mt-7 flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="mt-3.5 flex flex-col gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
               <ChiffreCourbe c={c} libelle="Faits validés · 7 jours" valeur={t.kpis.valides_semaine} note="par jour sur 30 jours" serie={t.serie} cle="valides" />
               <ChiffreCourbe c={c} libelle="Validés sans correction" valeur={pct(t.kpis.part_sans_correction)} note="sur 7 jours" serie={t.serie} cle="part_sans_correction" format={(v) => `${v} %`} />
               <ChiffreCourbe c={c} libelle="Engagements échus" valeur={t.kpis.engagements_echus} note="aujourd'hui, en stock" serie={t.serie} cle="echus" />
@@ -208,7 +208,7 @@ function AValider({ peutValider }) {
         <section key={source.id}>
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
             <div className="min-w-0">
-              <span className="text-[11px] uppercase tracking-[.14em] text-brume">{SOURCES[source.type] || source.type} · {quand(source.date)}{source.auteur ? ` · ${String(source.auteur).split("@")[0]}` : ""}</span>
+              <span className="text-[12.5px] text-brume">{SOURCES[source.type] || source.type} · {quand(source.date)}{source.auteur ? ` · ${String(source.auteur).split("@")[0]}` : ""}</span>
               <h2 className="m-0 mt-0.5 truncate text-[16px] font-medium text-encre">{source.titre || "Sans titre"}</h2>
             </div>
             {peutValider && faits.length > 1 && (
@@ -257,7 +257,7 @@ function CarteFait({ f, peutValider }) {
             </div>
           ) : (
             <p className="m-0 text-[14.5px] leading-[1.5] text-encre">
-              <span className={`mr-2 text-[11px] uppercase tracking-[.12em] ${TEINTES[f.type] || "text-craie"}`}>{TYPES[f.type] || f.type}</span>
+              <span className={`mr-2 text-[12.5px] ${TEINTES[f.type] || "text-craie"}`}>{TYPES[f.type] || f.type}</span>
               {f.resume}
               {f.echeance && <span className="text-ambre"> · pour le {quand(f.echeance)}</span>}
             </p>
@@ -399,7 +399,7 @@ function Sources({ peutValider }) {
   const champ = "w-full rounded-[10px] border border-bord-doux bg-surface px-3 py-2 text-[14px] text-encre outline-none focus:border-menthe max-md:text-[16px]";
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-[14px] bg-rail px-5 py-4">
+      <section className="rounded-[12px] bg-rail px-5 py-4">
         <h2 className="m-0 text-[16px] font-medium text-encre">Ajouter un compte rendu</h2>
         <p className="m-0 mt-1 text-[13px] text-ardoise">Collez-le, ou déposez le fichier (texte, PDF, Word). AK en tire les faits ; ils attendent la validation.</p>
         <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_170px]">
@@ -464,7 +464,7 @@ function Banc({ peutEditer }) {
   const c = d.comparaison;
   const pc = (v) => (v == null ? "—" : `${Math.round(v * 100)} %`);
   return (
-    <section className="rounded-[14px] border border-trait bg-surface p-4">
+    <section className="rounded-[12px] border border-trait bg-surface p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="m-0 text-[11px] font-normal uppercase tracking-[.16em] text-menthe">Banc d'évaluation · {d.banc.length} question{d.banc.length > 1 ? "s" : ""}</h2>
         {peutEditer && (
@@ -485,7 +485,7 @@ function Banc({ peutEditer }) {
           </div>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-[13px]">
-              <thead><tr className="border-b border-bord text-left text-[11px] uppercase tracking-[.1em] text-brume"><th className="py-2 pr-3 font-normal">Question</th><th className="px-2 py-2 text-right font-normal">Rappel</th><th className="px-2 py-2 text-right font-normal">Avant</th><th className="px-2 py-2 text-right font-normal">Citation</th></tr></thead>
+              <thead><tr className="border-b border-bord text-left text-[12.5px] text-brume"><th className="py-2 pr-3 font-normal">Question</th><th className="px-2 py-2 text-right font-normal">Rappel</th><th className="px-2 py-2 text-right font-normal">Avant</th><th className="px-2 py-2 text-right font-normal">Citation</th></tr></thead>
               <tbody>
                 {c.questions.map((x) => (
                   <tr key={x.id} className="border-b border-trait">

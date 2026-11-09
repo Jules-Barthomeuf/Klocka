@@ -21,6 +21,7 @@ const ETAPES = [
   { ecran: "appel", zone: [49, 0, 51, 58], titre: "La transcription en direct", texte: "Ce qui se dit s'écrit ici, quelques secondes après chaque phrase." },
   { ecran: "appel", zone: [49, 60, 51, 40], titre: "Les notes", texte: "Un email exact, un numéro, l'orthographe d'un nom ? Écrivez-le dans les notes : c'est rapide, et l'assistant s'en sert en priorité." },
   { ecran: "actions", zone: [44, 0, 56, 100], titre: "Les actions proposées par votre assistant", texte: "Il a lu l'appel et prépare tout : la fiche Twenty CRM, l'email, la liste de diffusion, la relance. Tout est déjà coché." },
+  { ecran: "actions", zone: [0, 0, 43, 100], titre: "Parlez à votre assistant", texte: "Écrivez-lui ou parlez-lui : « mail plus court », « relance lundi », « son mail c'est… ». Ce que vous demandez change à droite. Il répond aussi sur l'appel ; le bouton Transcription, en haut, montre le texte entier." },
   { ecran: "actions", zone: [86, 10, 14, 52], titre: "Vérifiez sans quitter la page", texte: "Cliquez sur l'œil d'une action pour voir son détail (ce qui sera écrit dans Twenty CRM, l'email complet, la date) et le corriger en quelques secondes." },
   { ecran: "detail", zone: [11.5, 36.5, 38, 10], titre: "Un champ faux ? Corrigez-le", texte: "Voici ce qui s'ouvre : exactement ce qui sera écrit dans Twenty CRM. Une adresse mal entendue, un nom mal écrit : cliquez sur la case et corrigez-la, en deux secondes." },
   { ecran: "actions", zone: [44, 82, 56, 18], titre: "Valider", texte: "Un seul clic : tout part en même temps." },
@@ -97,13 +98,13 @@ function Appel() {
       <span />
       <div className="flex flex-col gap-3">
         <div className="flex h-[58%] flex-col gap-3 rounded-[20px] border border-trait p-6">
-          <span className={etq}>TRANSCRIPTION EN DIRECT</span>
+          <span className={etq}>Transcription en direct</span>
           <span className="text-[15px] leading-[1.55] text-encre">Bonjour, Sophie Martin, responsable commerce.</span>
           <span className="text-[15px] leading-[1.55] text-encre">Pour l'instant je n'ai rien en murs commerciaux, mais j'aurai peut-être un local dans un mois.</span>
           <span className="text-[15px] leading-[1.55] text-encre">Rappelez-moi jeudi prochain si vous voulez.</span>
         </div>
         <div className="flex flex-1 flex-col gap-2 rounded-[20px] border border-trait p-5">
-          <span className={etq}>NOTES</span>
+          <span className={etq}>Notes</span>
           <span className="rounded-champ border border-trait px-3 py-2.5 text-[15px] text-encre">s.martin@riviera-commerce.fr</span>
         </div>
       </div>
@@ -122,14 +123,14 @@ function Actions() {
   return (
     <div className="grid h-full grid-cols-[42fr_2fr_56fr]">
       <div className="flex flex-col gap-3 rounded-[20px] border border-trait p-6">
-        <span className={etq}>TRANSCRIPTION</span>
-        <span className="text-[14.5px] leading-[1.55] text-craie">Bonjour, Sophie Martin, responsable commerce. Pour l'instant je n'ai rien en murs commerciaux, mais j'aurai peut-être un local dans un mois. Rappelez-moi jeudi prochain…</span>
-        <span className={`${etq} mt-3`}>NOTES</span>
-        <span className="text-[14.5px] text-craie">s.martin@riviera-commerce.fr</span>
+        <span className="text-center text-[20px] text-encre">Assistant</span>
+        <span className="text-[14.5px] leading-[1.55] text-craie">Dites-moi si je dois ajouter quelque chose ou s'il y a un cas particulier.</span>
+        <span className="max-w-[85%] self-end rounded-[18px] rounded-br-[6px] bg-rail px-4 py-2.5 text-[14.5px] text-encre">Rappelle-la lundi 7 décembre</span>
+        <span className="text-[14.5px] leading-[1.55] text-craie">C'est noté, la relance est déplacée au lundi 7 décembre.</span>
       </div>
       <span />
       <div className="flex flex-col">
-        <span className="mb-3 flex items-center justify-between px-1"><span className={etq}>ACTIONS PROPOSÉES</span><span className="text-[13px] text-menthe">Pas de bien pour l'instant</span></span>
+        <span className="mb-3 flex items-center justify-between px-1"><span className="text-[20px] text-encre">Actions proposées</span><span className="text-[13px] text-menthe">Pas de bien pour l'instant</span></span>
         <div className="rounded-[18px] border border-trait px-[18px] pb-1.5 pt-3.5">
           <span className="text-[12px] tracking-[.14em] text-menthe">MAINTENANT</span>
           {ligne("Contact Twenty CRM", "Sophie Martin, retrouvée par téléphone")}

@@ -9,19 +9,19 @@ import { Panneau } from "@/components/mandataire/Visites";
 import { euros } from "@/components/mandataire/kit";
 
 // Le tableau des acquéreurs d'un bien en vente (7 nov. 2026, Jules : « fais comme dans un tableau Monday »). Un groupe
-// par étape (contact, qualifié, visite, offre, signé, écarté), sa couleur en filet à gauche et en titre ; une ligne par
+// par étape (contact, qualifié, visite, offre, signé, écarté), sa couleur dans son titre seul (8 nov. 2026, Jules) ; une ligne par
 // personne, chaque cellule corrigée sur place ; le statut en case pleine colorée, changé d'un clic ; la visite et son bon
 // (à signer sur place ou à distance par un lien) ; l'offre ; la prochaine action. En location : des candidats.
 // Le serveur : server/acquereurs-du-bien.js. Le chat remplit les mêmes lignes (noter_acquereur).
 
 // La couleur de chaque groupe, écrite en entier pour Tailwind : une couleur, un sens (jetons « statuts »).
 const TEINTES = {
-  contact: { case: "bg-statut-gris-fond text-statut-gris", filet: "bg-statut-gris", titre: "text-statut-gris" },
-  qualifie: { case: "bg-statut-bleu-fond text-statut-bleu", filet: "bg-statut-bleu", titre: "text-statut-bleu" },
-  visite: { case: "bg-statut-lavande-fond text-statut-lavande", filet: "bg-statut-lavande", titre: "text-statut-lavande" },
-  offre: { case: "bg-statut-ambre-fond text-statut-ambre", filet: "bg-statut-ambre", titre: "text-statut-ambre" },
-  signe: { case: "bg-statut-menthe-fond text-statut-menthe", filet: "bg-statut-menthe", titre: "text-statut-menthe" },
-  ecarte: { case: "bg-statut-corail-fond text-statut-corail", filet: "bg-statut-corail", titre: "text-statut-corail" },
+  contact: { case: "bg-statut-gris-fond text-statut-gris", titre: "text-statut-gris" },
+  qualifie: { case: "bg-statut-bleu-fond text-statut-bleu", titre: "text-statut-bleu" },
+  visite: { case: "bg-statut-lavande-fond text-statut-lavande", titre: "text-statut-lavande" },
+  offre: { case: "bg-statut-ambre-fond text-statut-ambre", titre: "text-statut-ambre" },
+  signe: { case: "bg-statut-menthe-fond text-statut-menthe", titre: "text-statut-menthe" },
+  ecarte: { case: "bg-statut-corail-fond text-statut-corail", titre: "text-statut-corail" },
 };
 const BON = { signe: ["text-statut-menthe", "Bon signé"], a_signer: ["text-statut-ambre", "Bon à signer"], manquant: ["text-alerte", "Sans bon"] };
 // Les largeurs en pixels, les mêmes pour chaque groupe : les colonnes s'alignent d'un groupe à l'autre, comme Monday.
@@ -186,7 +186,6 @@ function Ligne({ l, statuts, sources, teinte, garder, retirer, planifier }) {
   return (
     <tr className="group">
       <td className={`${cellule} relative pl-4 text-encre`}>
-        <span className={`absolute inset-y-0 left-0 w-1 ${teinte.filet}`} />
         <div className="flex h-full items-center gap-2">
           <Texte valeur={l.nom} onGarder={g("nom")} placeholder="Nom" />
           <button type="button" onClick={() => { if (window.confirm(`Retirer « ${l.nom} » du tableau ? Le contact reste dans votre carnet.`)) retirer.mutate(l.id); }} aria-label={`Retirer ${l.nom}`}
@@ -232,7 +231,6 @@ function Groupe({ s, lignes, statuts, sources, ajouter, ...actions }) {
               {lignes.map((l) => <Ligne key={l.id} l={l} statuts={statuts} sources={sources} teinte={teinte} {...actions} />)}
               <tr>
                 <td className={`${cellule} relative pl-4`} colSpan={COLONNES.length}>
-                  <span className={`absolute inset-y-0 left-0 w-1 opacity-40 ${teinte.filet}`} />
                   <div className="flex h-full items-center gap-2">
                     <Plus className="h-3.5 w-3.5 flex-none text-brume" />
                     <input value={nom} onChange={(e) => setNom(e.target.value)} onKeyDown={(e) => e.key === "Enter" && valider()} onBlur={valider}

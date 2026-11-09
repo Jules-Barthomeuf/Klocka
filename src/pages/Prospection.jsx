@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import CarteKlocka from "@/components/carte/CarteKlocka";
 import { createPortal } from "react-dom";
 import FicheContact from "@/components/prospection/FicheContact";
 import { Link } from "react-router-dom";
@@ -15,6 +14,7 @@ import { FileRelances, ModeAppelUnique } from "@/components/prospection/FileRela
 import SuiviAppels from "@/pages/SuiviAppels";
 import VisiteModeAppel, { CLE_VISITE } from "@/components/prospection/VisiteModeAppel";
 import AvatarAK from "@/components/AvatarAK";
+import { Filtres, TitrePage } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
@@ -967,7 +967,8 @@ export default function Prospection() {
   // Listes (le « + » cherche une ville et crée sa liste), Suivi.
   // « Carte » (22 oct. 2026, Jules) : où on a prospecté, avec les projets, les clients et les deals.
   // « Aujourd'hui » retiré (24 oct. 2026, Jules) : on arrive sur Listes ; les relances dues y sont dans leur intercalaire.
-  const PARTIES = [["listes", "Listes"], ["carte", "Carte"], ["suivi", "Suivi"]];
+  // La carte quitte la Prospection (9 nov. 2026, Jules) : elle est dans le tableau de bord du CRM.
+  const PARTIES = [["listes", "Listes"], ["suivi", "Suivi"]];
   // La visite du mode appel (9 oct. 2026) : d'elle-même la première fois, puis à la demande.
   const [visite, setVisite] = useState(() => { try { return !localStorage.getItem(CLE_VISITE); } catch { return false; } });
   // « ?partie=listes&liste=<id> » (le lien « Voir la liste » d'Off-market, 11 oct. 2026) l'emporte sur la dernière partie ouverte.
@@ -1010,22 +1011,10 @@ export default function Prospection() {
   ], [jour.data]);
   if (jour.isError && /403|réservé/i.test(jour.error?.message || "")) return <p className="p-8 text-[14px] text-ardoise">Cette page est réservée à l'équipe.</p>;
   return (
-    <div className="mx-auto w-full max-w-[1500px] px-4 py-8 md:px-6 max-md:py-6">
-      {/* Le titre au centre, les onglets centrés dessous (6 oct. 2026). */}
-      <header className="mb-8 flex flex-col items-center gap-6 text-center">
-        <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Prospection</h1>
+    <div className="mx-auto w-full max-w-[1500px] px-5 py-[22px] md:px-8">
+      <header className="mb-3.5 flex flex-col gap-3">
+        <TitrePage titre="Prospection" className="relative md:!pr-[112px]" actions={<div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2"><Filtres label="Parties de la prospection" valeur={partie} onChange={choisirPartie} options={PARTIES.map(([k, mot]) => [k, mot])} /></div>} />
         {visite && <VisiteModeAppel onFermer={() => setVisite(false)} />}
-        {/* Les onglets en pilule, comme ceux de la page projet. */}
-        <nav className="inline-flex max-w-full gap-1 self-center overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties de la prospection">
-          {PARTIES.map(([k, mot]) => (
-            <button key={k} type="button" onClick={() => choisirPartie(k)} aria-pressed={partie === k}
-              className={`inline-flex h-9 flex-none items-center gap-2 rounded-full border-0 px-4 text-[14px] transition-colors ${partie === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}
-              style={partie === k ? undefined : { background: "transparent" }}>
-              {mot}
-            </button>
-          ))}
-        </nav>
-        <button type="button" onClick={() => setVisite(true)} className="-mt-3 p-0 text-[12.5px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Visite du mode appel</button>
         {partie === "prospecter" && <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
           {onglets.map(([cle, mot, n]) => (
             <button key={cle} type="button" onClick={() => setOnglet(cle)}
@@ -1048,7 +1037,6 @@ export default function Prospection() {
       <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0">
 
       {partie === "suivi" && <SuiviAppels dansProspection />}
-      {partie === "carte" && <CarteKlocka focus="prospection" hauteur="calc(100vh - 220px)" className="min-h-[520px]" />}
       {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onBasculer={basculer}
         relances={{ n: relancesDues.data?.lignes?.length || 0, contenu: <FileRelances integre onOuvrir={(c) => { setCourante(c); basculer(true); }} /> }} />}
       </div>

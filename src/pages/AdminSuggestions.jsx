@@ -11,6 +11,7 @@ import { useDictee } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BordureEcoute from "@/components/BordureEcoute";
+import { TitrePage } from "@/components/mandataire/elements";
 import { J } from "@/design/jetons";
 
 // Le feedback : un chat, une capture d'écran si on veut, rien d'autre. Chaque
@@ -46,6 +47,7 @@ const quand = (iso) => {
 // on le colle, il corrige la cause. L'échange se déplie en dessous.
 function PromptCorrection({ r }) {
   const [copie, setCopie] = useState(false);
+  const [voirPrompt, setVoirPrompt] = useState(false);
   const [echange, setEchange] = useState(false);
   const copier = async () => {
     try { await navigator.clipboard.writeText(r.prompt_correction); setCopie(true); setTimeout(() => setCopie(false), 1800); }
@@ -62,7 +64,9 @@ function PromptCorrection({ r }) {
           {copie ? <Check className="w-3 h-3 text-menthe" /> : <Copy className="w-3 h-3" />}{copie ? "Copié" : "Copier"}
         </button>
       </div>
-      <p className="m-0 mt-2 text-[12.5px] leading-[1.6] text-craie whitespace-pre-wrap max-h-[240px] overflow-y-auto">{r.prompt_correction}</p>
+      {voirPrompt
+        ? <p className="m-0 mt-2 text-[12.5px] leading-[1.6] text-craie whitespace-pre-wrap max-h-[240px] overflow-y-auto">{r.prompt_correction}</p>
+        : <button type="button" onClick={() => setVoirPrompt(true)} className="mt-1.5 p-0 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Voir le prompt</button>}
       {r.echange?.reponse && (
         <>
           <button onClick={() => setEchange((o) => !o)} className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] text-brume hover:text-craie">
@@ -165,7 +169,7 @@ export default function AdminSuggestions() {
   return (
     <div className="min-h-screen bg-fond text-encre px-5 md:px-10 py-8 md:py-12">
       <div className="max-w-[1100px] mx-auto">
-        <h1 className="m-0 mb-8 max-md:mb-5 text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05]">Feedback</h1>
+        <TitrePage titre="Feedback" className="mb-3.5 md:!pr-[112px]" />
 
         <BordureEcoute actif={ecoute} radius="20px">
         <BoiteSaisie

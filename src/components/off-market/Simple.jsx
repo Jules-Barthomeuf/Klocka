@@ -629,7 +629,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         {/* La bascule de la page (Pour mes clients / Tous les commerces), en tête de la même ligne (24 oct. 2026). */}
         {bascule}
         <div className="relative">
-          <button type="button" onClick={() => setMenuVille((m) => !m)} aria-expanded={menuVille} className="inline-flex h-10 min-w-[240px] items-center justify-between gap-2 rounded-full border border-bord-doux bg-rail px-3.5 text-[14px] text-encre hover:border-menthe max-md:min-w-0">
+          <button type="button" onClick={() => setMenuVille((m) => !m)} aria-expanded={menuVille} className="inline-flex h-8 max-md:h-10 min-w-[240px] items-center justify-between gap-2 rounded-full border border-bord-doux bg-rail px-3.5 text-[13.5px] text-encre hover:border-menthe max-md:min-w-0">
             <span className="truncate">{territoire ? territoire.nom : "Choisir une ville"}</span>
             <span className="flex items-center gap-2 text-[12.5px] text-ardoise">{compte ? pl(compte.total, "commerce") : null}<ChevronDown className="h-4 w-4" /></span>
           </button>
@@ -642,17 +642,17 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         </div>
         <form onSubmit={chercherAdresse} className="relative h-10 w-[420px] max-w-full">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brume" />
-          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Une adresse précise : 63 rue de la République, Antibes" className={`${champ} !h-10 w-full !rounded-full !border-bord-doux !bg-rail !text-[14px] focus:!border-menthe pl-9 pr-24`} />
+          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Une adresse précise : 63 rue de la République, Antibes" className={`${champ} !h-8 max-md:h-10 w-full !rounded-full !border-bord-doux !bg-rail !text-[13.5px] focus:!border-menthe pl-9 pr-24`} />
           <button type="submit" disabled={!adresse.trim() || enCours} className="absolute right-1 top-1 inline-flex h-8 items-center rounded-full bg-encre px-3 text-[12.5px] text-fond disabled:opacity-50">{enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Chercher"}</button>
         </form>
         <MenuFiltres filtres={filtres} setFiltres={setFiltres} commerces={dansZone} tous={commerces} zones={compte?.zones || []} activites={activites} visibles={visibles.length}
           scoreZone={zone.actif ? { masquer: masquerFaibles, seuil: seuilFaible, points: zone.points, choisir: (k) => { setMasquerFaibles(k != null); if (k != null) setSeuilFaible(k); } } : null} />
         <span className="flex-1 max-md:hidden" />
-        {compte && (compte.a_faire > 0 || compte.en_cours > 0) && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Propriétaires : {compte.faits} sur {compte.total}</span>}
+        {compte && (compte.a_faire > 0 || compte.en_cours > 0) && <span className="inline-flex h-8 max-md:h-10 max-md:hidden items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[13.5px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Propriétaires : {compte.faits} sur {compte.total}</span>}
         {/* Côté mandataire, plus de « Propriétaires lus pour n sur n » ni de « +n vus sur Google Maps » (25 oct. 2026, Jules). */}
-        {espace !== "mandataire" && compte && !compte.a_faire && !compte.en_cours && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-ardoise">Propriétaires lus pour {compte.faits} sur {compte.total}</span>}
-        {compte?.google?.etat === "en_cours" && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre" title="Chaque famille de commerce est cherchée sur Google Maps dans la ville"><Loader2 className="h-3.5 w-3.5 animate-spin text-bleu" />Google Maps</span>}
-        {espace !== "mandataire" && compte?.google?.etat === "fini" && compte.depuis_google > 0 && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-ardoise" title={`${compte.google.lieux} vitrines vues sur Google Maps, ${compte.google.enrichis} rapprochées du registre`}>+{compte.depuis_google} vus sur Google Maps</span>}
+        {espace !== "mandataire" && compte && !compte.a_faire && !compte.en_cours && <span className="inline-flex h-8 max-md:h-10 max-md:hidden items-center rounded-full border border-bord-doux bg-rail px-4 text-[13.5px] text-ardoise">Propriétaires lus pour {compte.faits} sur {compte.total}</span>}
+        {compte?.google?.etat === "en_cours" && <span className="inline-flex h-8 max-md:h-10 max-md:hidden items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[13.5px] text-encre" title="Chaque famille de commerce est cherchée sur Google Maps dans la ville"><Loader2 className="h-3.5 w-3.5 animate-spin text-bleu" />Google Maps</span>}
+        {espace !== "mandataire" && compte?.google?.etat === "fini" && compte.depuis_google > 0 && <span className="inline-flex h-8 max-md:h-10 max-md:hidden items-center rounded-full border border-bord-doux bg-rail px-4 text-[13.5px] text-ardoise" title={`${compte.google.lieux} vitrines vues sur Google Maps, ${compte.google.enrichis} rapprochées du registre`}>+{compte.depuis_google} vus sur Google Maps</span>}
         {menu}
       </div>
 
@@ -663,7 +663,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
             {q.isLoading && <div className="absolute inset-0 z-10 grid place-items-center rounded-bloc bg-fond/60"><p className="m-0 inline-flex items-center gap-2 text-[14px] text-encre"><Loader2 className="h-4 w-4 animate-spin text-menthe" />Les commerces {deVille(territoire.nom)}</p></div>}
             <CarteOffMarket villeId={territoire.id} locaux={surCarte} centre={territoire.centre} ouvertId={ouvert} onOuvrir={(c) => setOuvert(c.id)} outils={false} dessinPoint={dessin} legende={legende} bulle={(c) => `${c.enseigne || c.nom} · ${c.activite || ""} · ${LIENS[c.lien]?.mot || "en cours"}`} className="h-[62vh] min-h-[460px] max-md:h-[380px] max-md:min-h-0" />
           </div>
-          <div className="flex h-[62vh] min-h-[460px] min-w-0 flex-col rounded-bloc border border-trait bg-surface max-md:h-auto">
+          <div className="flex h-[62vh] min-h-[460px] min-w-0 flex-col rounded-[12px] border border-trait bg-fond max-md:h-auto">
             {ouvert ? <Fiche id={ouvert} onFermer={fermerFiche} onMaj={() => qc.invalidateQueries({ queryKey: ["off-market", "simple", "etat"] })}
               zone={zone} client={client} rangAJuger={file.enCours && file.courant?.id === ouvert ? file.libelle : null}
               onJuge={file.enCours && file.courant?.id === ouvert ? file.suivant : null} onPasser={file.enCours && file.courant?.id === ouvert ? file.suivant : null} /> : (<>
@@ -719,7 +719,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         </div>
 
         {/* Le tableau de tous les commerces, sous la carte, comme PropStream. */}
-        <section className="overflow-hidden rounded-bloc border border-trait bg-surface">
+        <section className="overflow-hidden rounded-[12px] border border-trait bg-rail">
           <div className="flex flex-wrap items-center gap-2 border-b border-trait px-4 py-3">
             <h3 className="m-0 mr-2 text-[16px] font-normal text-encre">{pl(tries.length, "commerce")}{tries.length !== dansZone.length ? <span className="text-ardoise"> sur {dansZone.length}</span> : null}{filtres.emplacement !== "partout" && <span className="text-ardoise"> {compte?.zones?.length ? "dans les zones commerçantes" : "au centre-ville"}</span>}</h3>
             <div className="relative w-[280px] max-w-full">
@@ -735,12 +735,12 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
             <button type="button" onClick={() => setPage((p) => Math.min(pages - 1, p + 1))} disabled={page >= pages - 1} aria-label="Page suivante" className={`${bouton} px-2.5`}><ChevronDown className="h-4 w-4 -rotate-90" /></button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1080px] border-collapse text-left">
+            <table className="w-full min-w-[1080px] table-fixed border-collapse text-left text-[13.5px] [&_tr>*:last-child]:border-r-0">
               <thead>
                 <tr>
-                  <th className="w-10 border-b border-trait py-2.5 pl-4 pr-0">{(() => { const libres = tries.slice(page * PAR_PAGE, (page + 1) * PAR_PAGE).filter((c) => !c.liste); const tous = libres.length > 0 && libres.every((c) => coches.has(c.id)); return <Case oui={tous} disabled={!libres.length} label="Cocher toute la page" onBasculer={() => setCoches((x) => { const n = new Set(x); for (const c of libres) { if (tous) n.delete(c.id); else n.add(c.id); } return n; })} />; })()}</th>
+                  <th className="h-[35px] w-11 border-b border-r border-trait px-0 text-center">{(() => { const libres = tries.slice(page * PAR_PAGE, (page + 1) * PAR_PAGE).filter((c) => !c.liste); const tous = libres.length > 0 && libres.every((c) => coches.has(c.id)); return <Case oui={tous} disabled={!libres.length} label="Cocher toute la page" onBasculer={() => setCoches((x) => { const n = new Set(x); for (const c of libres) { if (tous) n.delete(c.id); else n.add(c.id); } return n; })} />; })()}</th>
                   {[["commerce", "Commerce"], ["adresse", "Adresse"], ["nom", "Exploitant"], ["proprietaire", "Propriétaire des murs"], ["lien", "Lien"], ["signaux", "Raison de vendre"], ["prix", "Prix estimé"], ["appel", "Appel"]].map(([cle, mot]) => (
-                    <th key={cle} className="border-b border-trait px-4 py-2.5 text-[12px] font-normal text-ardoise">
+                    <th key={cle} className="h-[35px] overflow-hidden whitespace-nowrap border-b border-r border-trait px-2.5 text-[12.5px] font-normal text-ardoise">
                       <button type="button" onClick={() => setTri((t) => (t.cle === cle ? { cle, sens: -t.sens } : { cle, sens: 1 }))} className="inline-flex items-center gap-1 p-0 text-ardoise hover:text-encre" style={{ background: "transparent" }}>{mot}{tri.cle === cle && <ChevronDown className={`h-3 w-3 ${tri.sens < 0 ? "rotate-180" : ""}`} />}</button>
                     </th>
                   ))}
@@ -749,13 +749,13 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
               <tbody>
                 {tries.slice(page * PAR_PAGE, (page + 1) * PAR_PAGE).map((c) => (
                   <tr key={c.id} onClick={() => ouvrir(c.id)} className={`cursor-pointer border-b border-trait last:border-b-0 ${ouvert === c.id ? "bg-menthe/10" : "hover:bg-relief/40"}`}>
-                    <td className="w-10 py-2.5 pl-4 pr-0" onClick={(e) => e.stopPropagation()}><Case oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></td>
-                    <td className="px-4 py-2.5"><span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: LIENS[c.lien]?.couleur || JL.brume, opacity: c.lien ? 1 : 0.5 }} /><span className="min-w-0"><span className="block max-w-[240px] truncate text-[14px] text-encre">{c.enseigne || c.nom}</span><span className="block max-w-[240px] truncate text-[12px] text-ardoise">{c.activite}</span></span></span></td>
-                    <td className="max-w-[220px] truncate px-4 py-2.5 text-[13px] text-craie">{c.adresse}</td>
-                    <td className="max-w-[200px] truncate px-4 py-2.5 text-[13px] text-craie">{c.nom}</td>
-                    <td className={`max-w-[220px] truncate px-4 py-2.5 text-[13px] ${c.proprietaire ? "text-encre" : "text-brume"}`}>{c.proprietaire || (c.lien ? "Inconnu" : "En cours")}</td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-[13px] text-craie">{c.lien ? (LIENS[c.lien]?.mot || "").replace(" (probable)", "") : "…"}</td>
-                    <td className="px-4 py-2.5"><span className="flex flex-wrap gap-1">{c.drapeaux.slice(0, 2).map((d) => <span key={d} className="whitespace-nowrap rounded-full bg-relief px-2 py-0.5 text-[11.5px] text-craie">{DRAPEAUX_COURTS[d] || d}</span>)}{c.drapeaux.length > 2 && <span className="text-[11.5px] text-brume">+{c.drapeaux.length - 2}</span>}</span></td>
+                    <td className="h-[36px] w-11 border-r border-trait px-0 py-0 text-center" onClick={(e) => e.stopPropagation()}><Case oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></td>
+                    <td className="h-[36px] truncate border-r border-trait px-2.5 py-0"><span className="flex min-w-0 items-center gap-2.5"><span className="min-w-0"><span className="block max-w-[240px] truncate text-[14px] text-encre">{c.enseigne || c.nom}</span><span className="block max-w-[240px] truncate text-[12px] text-ardoise">{c.activite}</span></span></span></td>
+                    <td className="h-[36px] truncate border-r border-trait px-2.5 py-0 text-center text-[13.5px] text-craie">{c.adresse}</td>
+                    <td className="h-[36px] truncate border-r border-trait px-2.5 py-0 text-center text-[13.5px] text-craie">{c.nom}</td>
+                    <td className={`h-[36px] truncate border-r border-trait px-2.5 py-0 text-center text-[13.5px] ${c.proprietaire ? "text-encre" : "text-brume"}`}>{c.proprietaire || (c.lien ? "Inconnu" : "En cours")}</td>
+                    <td className="h-[36px] truncate border-r border-trait px-2.5 py-0 text-center text-[13.5px] text-craie">{c.lien ? (LIENS[c.lien]?.mot || "").replace(" (probable)", "") : "…"}</td>
+                    <td className="h-[36px] overflow-hidden border-r border-trait px-2.5 py-0"><span className="flex justify-center gap-1 overflow-hidden">{c.drapeaux.slice(0, 2).map((d) => <span key={d} className="whitespace-nowrap rounded-full bg-relief px-2 py-0.5 text-[11.5px] text-craie">{DRAPEAUX_COURTS[d] || d}</span>)}{c.drapeaux.length > 2 && <span className="text-[11.5px] text-brume">+{c.drapeaux.length - 2}</span>}</span></td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-[12.5px] tabular-nums">{c.prix ? <span className="text-encre" title={`Entre ${euros(c.prix.basse)} et ${euros(c.prix.haute)}`}>{euros(c.prix.moyenne)}</span> : <span className="text-brume">—</span>}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-[12.5px]">{c.reponse ? <span className="text-menthe">{REPONSES[c.reponse]?.split(",")[0] || "Appelé"}</span> : c.appel_prospection ? <span className="text-menthe">{c.appel_prospection}</span> : c.liste ? <button type="button" onClick={(e) => { e.stopPropagation(); ouvrirListe(c.liste.id); }} className="p-0 text-bleu underline-offset-4 hover:underline" style={{ background: "transparent" }}>Liste « {c.liste.nom} »</button> : <span className="text-brume">À appeler</span>}</td>
                   </tr>

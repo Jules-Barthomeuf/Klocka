@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { Cases } from "@/components/mandataire/elements";
 
 // Le bandeau de la Mise en vente (7 nov. 2026, Jules) : sous les onglets, visible de chacun, les compteurs de la vente
 // (contacts, qualifiés, visites, offres, jours en ligne). Les six temps (Préparer … Offre acceptée) retirés le même jour.
@@ -30,15 +31,9 @@ export default function BandeauVente({ marcheId }) {
   const chiffres = COMPTEURS.filter(([k]) => typeof c[k] === "number");
   if (!chiffres.length) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 py-2" aria-label="Où en est la vente">
-      {/* Les six temps de la vente (Préparer … Offre acceptée) retirés le 7 nov. 2026 (Jules) : les compteurs seuls. */}
-      {chiffres.length > 0 && (
-        <p className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-ardoise">
-          {chiffres.map(([k, un, plusieurs]) => (
-            <span key={k} className="whitespace-nowrap"><span className="tabular-nums text-encre">{c[k]}</span> {c[k] > 1 ? plusieurs : un}</span>
-          ))}
-        </p>
-      )}
+    // Les six temps de la vente retirés le 7 nov. 2026 (Jules) ; les compteurs en cases le 8 nov.
+    <div className="py-2" aria-label="Où en est la vente">
+      <Cases items={chiffres.map(([k, un, plusieurs]) => [c[k], c[k] > 1 ? plusieurs : un])} />
     </div>
   );
 }

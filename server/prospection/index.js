@@ -100,6 +100,8 @@ export async function rattacherFiches(liste, { maintenant = new Date() } = {}) {
     // La préanalyse n'est pas finie : on attend le tour suivant pour prévenir.
     if (!f.verdict && f.etape === 'recue') continue;
     const annulees = annulerRelances(a.id, 'fiche reçue');
+    // Le module Emailing : la fiche arrivée fait sortir l'agent de sa séquence et compte dans ses résultats.
+    if (f.agent_email) (await import('../emailing/journal.js')).emettre('fiche_recue', { email: f.agent_email, source: f.deal_id, le: f.le || undefined, cle: `fiche:${f.deal_id}` });
     const attendait = a.prochaine && /fiche/.test(a.prochaine.quoi || '');
     C.majAgent(a.id, { fiches_ids: [...(a.fiches_ids || []), f.deal_id], statut: 'envoie_des_fiches', derniere_fiche_le: f.le, ...(attendait ? { prochaine: null } : {}) });
     C.journal(a.id, { type: 'fiche', texte: `Fiche reçue : ${f.titre}${annulees ? ' (relances arrêtées)' : ''}`, lien: `/Analyse?deal_id=${f.deal_id}`, le: f.le || maintenant.toISOString() });

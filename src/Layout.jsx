@@ -127,7 +127,7 @@ function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label
       data-actif={ici ? "1" : undefined}
       title={ferme ? `${label} : accès réservé` : replie ? label : undefined}
       aria-label={ferme ? `${label}, accès réservé` : label}
-      className={`relative flex items-center rounded-[10px] transition-colors ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-2.5 px-3 py-[7px]"} ${ici ? "bg-rail-actif text-encre" : "text-ardoise hover:bg-rail-actif hover:text-encre"}`}
+      className={`relative flex items-center rounded-[10px] transition-colors ${replie ? "mx-auto h-9 w-9 justify-center" : "h-9 gap-2.5 px-3"} ${ici ? "bg-rail-actif text-encre" : "text-ardoise hover:bg-rail-actif hover:text-encre"}`}
     >
       <Icone className="h-[17px] w-[17px] flex-none" strokeWidth={1.7} />
       {!replie && <span className={`flex-1 truncate text-[15px] ${ferme ? "opacity-60" : ""}`}>{label}</span>}
@@ -537,6 +537,7 @@ function LayoutContent({ children, currentPageName }) {
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: BookUser, actif: isActivePage("AdminClients") },
     // Le CRM (Twenty), dans Klocka depuis le 5 nov. 2026 : la page /CRM, plus d'onglet dehors.
+    KData: { to: createPageUrl("KData"), icon: Wrench, actif: enKData },
     CRM: { to: createPageUrl("CrmTwenty"), icon: Globe, actif: isActivePage("CrmTwenty") },
     AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
     Automatismes: { to: createPageUrl("Automatismes"), icon: Workflow, actif: isActivePage("Automatismes") },
@@ -604,7 +605,7 @@ function LayoutContent({ children, currentPageName }) {
       <div className="flex h-full flex-col">
         {/* La marque, et le repli. */}
         <div className={`k-barre-marque flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
-          {currentPageName === "CrmTwenty" ? (
+          {["CrmTwenty", "Emailing"].includes(currentPageName) ? (
             // Sur la page du CRM, la marque laisse la place au logo « crm_ », posé par la page au-dessus de la barre (5 nov. 2026).
             <span aria-hidden="true" className="h-6" />
           ) : vue === "mandataire" ? (
@@ -632,45 +633,8 @@ function LayoutContent({ children, currentPageName }) {
           )}
         </div>
 
-        {/* Klocka | K-Data : deux espaces, un compte. Choisir K-Data quitte
-            cette barre pour la barre du haut de K-Data. Un client n'a pas
-            K-Data : la vue client ne le propose pas. */}
-        {/* Barre repliée (18 oct. 2026, Jules : « garde toujours Outils et Klocka ») : le même choix, en deux icônes l'une sur l'autre. */}
-        {isAdmin && !showClientView && replie && (
-          <div className="mx-auto mt-2 flex flex-col gap-0.5 rounded-[12px] bg-rail-actif p-1">
-            {[["klocka", "Klocka", null], ["kdata", "Outils", Wrench]].map(([k, mot, Icone]) => {
-              const actif = k === "kdata" ? enKData : !enKData;
-              return (
-                <button key={k} type="button" onClick={() => navigate(k === "kdata" ? createPageUrl("KData") : createPageUrl("Dashboard"))} aria-pressed={actif} aria-label={mot} title={mot}
-                  className={`grid h-8 w-8 place-items-center rounded-[9px] transition-colors ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
-                  style={actif ? undefined : { background: "transparent" }}>
-                  {Icone ? <Icone className="h-4 w-4" strokeWidth={1.7} /> : <MarqueKlocka className="h-4 w-4" titre="Klocka" />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {isAdmin && !showClientView && !replie && (
-          <div className="mx-3 mt-1 grid grid-cols-2 rounded-[12px] bg-rail-actif p-1">
-            {/* K-Data s'appelle Outils depuis le 16 oct. 2026 (Jules). */}
-            {[["klocka", "Klocka"], ["kdata", "Outils"]].map(([k, mot]) => {
-              const actif = k === "kdata" ? enKData : !enKData;
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => { if (isMobile) closeMobile(); navigate(k === "kdata" ? createPageUrl("KData") : createPageUrl("Dashboard")); }}
-                  aria-pressed={actif}
-                  className={`rounded-[9px] py-1 text-[14px] transition-colors ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
-                  style={actif ? undefined : { background: "transparent" }}
-                >
-                  {mot}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
+        {/* Plus de bascule Klocka | Outils (9 nov. 2026, Jules) : Outils est une entrée du menu. Avec elle, les lignes de la
+            barre gardaient deux hauteurs, repliée et ouverte, et la souris tombait sur une autre page à l'ouverture. */}
         {/* « Nouveau chat » retiré de la barre le 17 oct. 2026 (Jules). */}
 
         {/* Les pages. */}
@@ -706,7 +670,7 @@ function LayoutContent({ children, currentPageName }) {
                 onClick={() => setAutreOpen((v) => !v)}
                 aria-expanded={autreOpen}
                 aria-label="Autre" title="Autre"
-                className={`flex items-center rounded-[10px] text-ardoise transition-colors hover:text-encre ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-1.5 px-3 py-[6px] text-[15px]"}`}
+                className={`flex items-center rounded-[10px] text-ardoise transition-colors hover:text-encre ${replie ? "mx-auto h-9 w-9 justify-center" : "h-9 gap-1.5 px-3 text-[15px]"}`}
                 style={{ background: "transparent" }}
               >
                 {!replie && <span>Autre</span>}
@@ -737,7 +701,7 @@ function LayoutContent({ children, currentPageName }) {
               return (
                 <button type="button" onClick={() => { choisirApercu(suivante); setApercu(suivante); }}
                   aria-label={`Vue ${vues[i][1]} : passer à la vue ${vues[(i + 1) % vues.length][1]}`} title={`Vue ${vues[i][1]} · cliquer pour passer à ${vues[(i + 1) % vues.length][1]}`}
-                  className={`relative flex w-full items-center rounded-[10px] text-ardoise transition-colors hover:bg-rail-actif hover:text-encre ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-2.5 px-3 py-[7px]"}`} style={{ background: "transparent" }}>
+                  className={`relative flex w-full items-center rounded-[10px] text-ardoise transition-colors hover:bg-rail-actif hover:text-encre ${replie ? "mx-auto h-9 w-9 justify-center" : "h-9 gap-2.5 px-3"}`} style={{ background: "transparent" }}>
                   <Eye className="h-[17px] w-[17px] flex-none" strokeWidth={1.7} />
                   {!replie && <><span className="flex-1 truncate text-left text-[15px]">Vue</span><span className="text-[12.5px] text-brume">{vues[i][1]}</span></>}
                 </button>
@@ -752,9 +716,10 @@ function LayoutContent({ children, currentPageName }) {
           </div>
         )}
         {/* Le compte. */}
-        <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : "flex items-center gap-2 px-3 py-3"}`}>
+        <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : `flex items-center gap-2 py-3 ${isMobile ? "px-3" : "px-4"}`}`}>
           {/* « Assistant Klocka · Discuter » retiré du bas de la barre le 17 oct. 2026 (Jules). */}
-          {!replie && <span className="min-w-0 flex-1" />}
+          {/* Au bureau, la déconnexion reste sous la souris quand la barre s'ouvre (9 nov. 2026, Jules) ; à droite au téléphone. */}
+          {isMobile && <span className="min-w-0 flex-1" />}
           <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Connexion')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
               <LogOut className="h-4 w-4" strokeWidth={1.7} />
             </button>
@@ -871,13 +836,13 @@ function LayoutContent({ children, currentPageName }) {
         <div key={`${location.pathname}|${vue}`} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
           {/* Les pages d'un groupe du menu (Relations, Administration) : leurs onglets en tête, pour passer de l'une à l'autre. */}
           {((vue === "admin" && !showClientView) || vue === "mandataire") && !hideNavbar && groupeDe(currentPageName, vue) && (
-            <nav aria-label={groupeDe(currentPageName, vue).groupe} className="flex justify-center px-4 pt-6 max-md:pt-4">
-              <div className="inline-flex gap-1 rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl">
+            <nav aria-label={groupeDe(currentPageName, vue).groupe} className="flex justify-center px-4 pt-4 max-md:pt-4">
+              <div className="inline-flex gap-0.5">
                 {groupeDe(currentPageName, vue).entrees.filter((x) => x.cle === currentPageName || !masquesDe(user?.email).includes(x.cle)).map((x) => {
                   const ici = currentPageName === x.cle || DETAILS[x.cle]?.actif;
                   return (
                     <Link key={x.cle} to={DETAILS[x.cle]?.to || createPageUrl(x.cle)} aria-current={ici ? "page" : undefined}
-                      className={`inline-flex h-9 items-center rounded-full px-4 text-[14px] transition-colors ${ici ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}>
+                      className={`inline-flex h-7 items-center rounded-full px-3 text-[13px] transition-colors max-md:h-10 ${ici ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}>
                       {x.label}
                     </Link>
                   );

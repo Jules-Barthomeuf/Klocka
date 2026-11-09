@@ -17,7 +17,7 @@ const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "n
 const mailto = (m) => `mailto:${encodeURIComponent(m?.a || "")}?subject=${encodeURIComponent(m?.objet || "")}&body=${encodeURIComponent(m?.corps || "")}`;
 
 function Titre({ children, n = null }) {
-  return <p className="m-0 mb-2 text-[11px] uppercase tracking-[.16em] text-brume">{children}{n != null ? <span className="tabular-nums"> · {n}</span> : null}</p>;
+  return <p className="m-0 mb-2 text-[12.5px] text-brume">{children}{n != null ? <span className="tabular-nums"> · {n}</span> : null}</p>;
 }
 
 /** Le teaser à gauche : la lecture par défaut ; « Modifier » ouvre l'éditeur du teaser, ou l'onglet du teaser (`onModifier`). */

@@ -6,8 +6,8 @@ import { FOND, MOT, Th, teinteDe, useFermerAuClicAilleurs } from "@/components/p
 import { Depliant } from "@/components/haka/ReglagesDemande";
 
 // Les colonnes et les traits du tableau de l'Analyse (AnalysePieces.jsx), sans la colonne Source : Critère, Valeur, Notes.
-const COLONNES_FICHE = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)]";
-const CELLULES_FICHE = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-bord-doux lg:[&>*]:px-3.5";
+const COLONNES_FICHE = "grid-cols-[150px_minmax(0,1fr)_160px]";
+const CELLULES_FICHE = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-trait lg:[&>*]:px-2.5";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -460,11 +460,11 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
         </div>
       )}
       <div className="flex flex-col items-center gap-1 px-2 pb-4 text-center lg:hidden">
-        <p className="m-0 text-[20px] leading-[1.2] tracking-[-0.01em] text-encre">{titre}</p>
+        <p className="m-0 text-[14px] text-encre">{titre}</p>
       </div>
-      <div className="relative overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux lg:bg-rail">
-        <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-bord-doux py-3 text-[13.5px] text-craie max-lg:hidden lg:border-t-0 lg:[&>*]:py-3.5`}>
-          <span className="text-[15px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">{titre}</span><span>Valeur</span><span>Notes</span>
+      <div className="relative overflow-hidden lg:rounded-[12px] lg:border lg:border-trait lg:bg-rail">
+        <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-3 text-[12.5px] text-ardoise max-lg:hidden lg:border-t-0 lg:[&>*]:py-2`}>
+          <span className="text-[13.5px] text-encre">{titre}</span><span>Valeur</span><span>Notes</span>
         </div>
         <div className="k-cascade">
           {lignes.map(({ id, element, c, st, decision, marche: cleMarche }) => {
@@ -474,21 +474,21 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
             const aide = [c?.critere ? `${c.critere}${c.groupe ? ` · ${c.groupe}` : ""}` : null, etat].filter(Boolean).join("\n");
             return (
               <React.Fragment key={id}>
-                <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-bord-doux py-3.5 transition-colors hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-3.5`}>
+                <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-2.5 transition-colors hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-[7px]`}>
                   {/* Un clic sur la case fait tourner le statut : OK, À vérifier, Bloquant (18 oct. 2026, Jules). */}
                   <button type="button" disabled={!modifiable || enChangement} title={aide || undefined}
                     onClick={() => modifiable && onVerifier(cleLigne(c), st === "ok" ? "a_verifier" : "ok")}
-                    className={`m-0 flex select-none items-start justify-between gap-2 text-left text-[14.5px] text-craie transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${FOND_ETAT[st] || ""}`}
+                    className={`m-0 flex select-none items-start justify-between gap-2 text-left text-[13.5px] leading-[1.4] text-encre transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${FOND_ETAT[st] || ""}`}
                     style={FOND_ETAT[st] ? undefined : { background: "transparent" }}>
                     <span>{element}</span>
                     {enChangement && <Loader2 className="mt-1 h-3.5 w-3.5 flex-none animate-spin" aria-label="Changement en cours" />}
                   </button>
-                  <div className="min-w-0 break-words text-[14.5px] [&_*]:whitespace-normal">{valeur(id)}</div>
+                  <div className="min-w-0 break-words text-[13.5px] leading-[1.4] [&_*]:whitespace-normal">{valeur(id)}</div>
                   <div className="min-w-0">
                     {/* Vérifiée (couleur du design), la ligne perd ses notes calculées, comme l'Analyse (5 nov. 2026, Jules) ; une
                         note écrite à la main reste. */}
                     <NotesLigne
-                      textes={st === "ok" ? [] : [...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]}
+                      textes={st === "ok" ? [] : [...(lot.notes?.[id]?.textes || []), ...(cleMarche && marche?.[cleMarche]?.jugement ? notesMarche(marche?.[cleMarche], marche) : [])]}
                       manuelle={lot.notes_manuelles?.[id] || null}
                       onNoter={onNoter ? (texte) => onNoter(id, texte) : null}
                       enCours={enNote === id}
@@ -497,7 +497,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                 </div>
                 {cleMarche && marche?.[cleMarche] && (
                   <Depliant ouvert={source === cleMarche}>
-                    <div className="border-t border-bord-doux bg-fond/40"><SourceMarche marche={marche[cleMarche]} /></div>
+                    <div className="border-t border-trait bg-fond/40"><SourceMarche marche={marche[cleMarche]} /></div>
                   </Depliant>
                 )}
               </React.Fragment>
@@ -957,7 +957,7 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = 
       <div className="space-y-3">
         <div className={`grid grid-cols-1 gap-4 ${empile ? "" : "lg:grid-cols-2"}`}>
           <figure className="m-0">
-            <div className="relative h-[300px] rounded-[14px] overflow-hidden border border-trait bg-surface">
+            <div className={`relative ${empile ? "h-[180px] rounded-[8px]" : "h-[300px] rounded-[14px]"} overflow-hidden border border-trait bg-surface`}>
               {!CLE_MAPS ? (
                 <p className="absolute inset-0 flex items-center justify-center m-0 px-6 text-center text-[12.5px] text-ardoise">Street View indisponible : renseignez <code className="text-craie mx-1">VITE_GOOGLE_MAPS_API_KEY</code>.</p>
               ) : localisable ? <StreetViewRue project={lieu} /> : (
@@ -966,8 +966,8 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = 
             </div>
           </figure>
           <figure className="m-0">
-            <div className="[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]">
-              <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} hauteur="h-[300px]" />
+            <div className={empile ? "[&_iframe]:!h-[180px] [&_iframe]:!rounded-[8px]" : "[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]"}>
+              <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} hauteur={empile ? "h-[180px]" : "h-[300px]"} />
             </div>
           </figure>
         </div>

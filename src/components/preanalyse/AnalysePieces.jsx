@@ -4,8 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
-import { ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw, X } from "lucide-react";
-import MiniaturePiece from "@/components/preanalyse/MiniaturePiece";
+import { ChevronLeft, ChevronRight, FileText, Loader2, Plus, RefreshCw, X } from "lucide-react";
+import { Filtres } from "@/components/mandataire/elements";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
 import { SourceSeule, Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
@@ -90,7 +90,7 @@ export function ValeurModifiable({ valeur, vide = "Non trouvé", onEnregistrer, 
   return (
     <div className={`min-w-0 ${bande ? "relative pr-5" : ""}`}>
       <TexteEnPlace valeur={valeur || ""} placeholder={vide} onEnregistrer={(t) => { if (t) onEnregistrer(t); }}
-        className="whitespace-pre-line text-[14.5px] leading-[1.5] text-encre placeholder:text-encre max-md:text-[16px]" />
+        className="whitespace-pre-line text-[13.5px] leading-[1.4] text-encre placeholder:text-brume max-md:text-[16px]" />
       {apres}
       {bande}
     </div>
@@ -134,7 +134,7 @@ export function CaseNom({ libelle, etat, par, valeur, onChoix, occupe = false })
   return (
     <button type="button" disabled={!tourne || occupe} title={mot || undefined} aria-pressed={tourne ? ok : undefined}
       onClick={(e) => { e.stopPropagation(); if (tourne) onChoix(SUIVANT[etat]); }}
-      className={`m-0 select-none text-left text-[14.5px] transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${!tourne ? "text-craie" : ok ? "bg-menthe/15 text-craie hover:bg-menthe/25" : "bg-lu-ia/25 text-craie hover:bg-lu-ia/35"}`}
+      className={`m-0 select-none text-left text-[13.5px] leading-[1.4] text-encre transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${!tourne ? "" : ok ? "bg-menthe/15 hover:bg-menthe/25" : "bg-lu-ia/25 hover:bg-lu-ia/35"}`}
       style={tourne ? undefined : { background: "transparent" }}>
       {libelle}
     </button>
@@ -160,42 +160,39 @@ export const ETAT = {
   non_lu: ["Pas encore lue", "text-encre", false],
 };
 // La colonne Notes, en dernier (29 oct. 2026, Jules : « une nouvelle colonne dans les tableaux », pas un onglet).
-export const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.2fr)_minmax(0,1.2fr)]";
+export const COLONNES = "grid-cols-[170px_minmax(0,1fr)_150px_190px]";
 // Des traits verticaux entre les colonnes (29 oct. 2026, Jules) ; au téléphone, une colonne, sans trait.
 // Le remplissage est dans les cellules, pas dans la ligne : les traits courent d'une ligne à l'autre sans coupure.
 // Des traits un peu plus marqués que le filet courant (29 oct. 2026, Jules) : `bord-doux`.
-export const CELLULES = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-bord-doux lg:[&>*]:px-3.5";
+export const CELLULES = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-trait lg:[&>*]:px-2.5";
+// Le dessin des tableaux de l'application (9 nov. 2026, Jules) : cadre à 12 px, en-tête de 35 px, lignes de 36 px au moins (le texte passe à la ligne).
+export const CADRE_GRILLE = "relative overflow-hidden lg:rounded-[12px] lg:border lg:border-trait lg:bg-rail";
+export const ENTETE_GRILLE = "border-t border-trait py-3 text-[12.5px] text-ardoise max-lg:hidden lg:border-t-0 lg:[&>*]:py-2";
+export const LIGNE_GRILLE = "border-t border-trait py-2.5 transition-colors hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-[7px]";
 // La source se nomme par sa pièce, pas par son fichier (« Bail p. 4 », pas « doc0165…pdf »).
 const TYPE_COURT = { bail: "Bail", avenants: "Avenant", quittances: "Quittance", pv_ag: "PV d'AG", rcp: "Règlement", diagnostics: "Diagnostic", taxe_fonciere: "Taxe foncière", kbis: "Kbis" };
 
-/**
- * Les sources d'une case (29 oct. 2026, Jules) : la vraie vignette de chaque pièce, toujours à la même taille, et le
- * nom de celle de devant à sa droite avec la page (« Bail commercial · page 4 »). Plusieurs sources s'empilent l'une
- * derrière l'autre ; survoler une vignette la met devant et montre son nom. Un clic ouvre la page et son passage.
- */
-const VIGNETTE = 40;
-const DECALAGE = 12;
-function SourcesEmpilees({ sources, retenue, onOuvrir }) {
-  const depart = Math.max(0, sources.findIndex((s) => s.document_id === retenue));
-  const [devant, setDevant] = useState(depart);
-  useEffect(() => { setDevant(depart); }, [depart, sources.length]);
-  if (!sources.length) return <div />;
-  const s = sources[Math.min(devant, sources.length - 1)];
-  const titre = s.document_titre || TYPE_COURT[s.type] || "Pièce";
+/** Une source sur une ligne (9 nov. 2026, Jules) : une petite icône, le nom de la pièce et sa page ; un clic ouvre le passage. */
+export function LigneSource({ titre, page, alerte = false, onClick }) {
   return (
-    <div className="flex min-w-0 items-center gap-3" onMouseLeave={() => setDevant(depart)}>
-      <div className="relative flex-none" style={{ width: VIGNETTE + DECALAGE * (sources.length - 1), height: Math.round(VIGNETTE * 1.3) + 4 * (sources.length - 1) }}>
-        {sources.map((x, i) => (
-          <button key={x.document_id} type="button" onMouseEnter={() => setDevant(i)} onFocus={() => setDevant(i)}
-            onClick={(ev) => { ev.stopPropagation(); onOuvrir(x); }} aria-label={`Ouvrir ${x.document_titre || "la pièce"}${x.page ? `, page ${x.page}` : ""}`}
-            className="absolute top-0 transition-transform duration-150 hover:-translate-y-0.5" style={{ left: i * DECALAGE, top: i * 4, zIndex: i === devant ? 10 : sources.length - i, background: "transparent" }}>
-            <MiniaturePiece url={x.document_url} largeur={VIGNETTE} className={x.verifiee === false ? "ring-1 ring-ambre" : ""} />
-          </button>
-        ))}
-      </div>
-      <button type="button" onClick={(ev) => { ev.stopPropagation(); onOuvrir(s); }} className="min-w-0 text-left text-[13px] leading-[1.35] text-encre hover:opacity-80" style={{ background: "transparent" }}>
-        <span className="line-clamp-2">{titre}{s.page ? <span className="text-craie"> · page {s.page}</span> : null}</span>
-      </button>
+    <button type="button" onClick={(ev) => { ev.stopPropagation(); onClick(); }} title={`${titre}${page ? ` · page ${page}` : ""}`} aria-label={`Ouvrir ${titre}${page ? `, page ${page}` : ""}`}
+      className="flex w-full min-w-0 items-center gap-1.5 text-left text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+      <FileText className={`h-3.5 w-3.5 flex-none ${alerte ? "text-ambre" : ""}`} strokeWidth={1.7} />
+      <span className="min-w-0 truncate">{titre}{page ? ` · p. ${page}` : ""}</span>
+    </button>
+  );
+}
+
+function Sources({ sources, retenue, onOuvrir }) {
+  const [tout, setTout] = useState(false);
+  if (!sources.length) return <div />;
+  const ordre = [...sources].sort((a, b) => (b.document_id === retenue) - (a.document_id === retenue));
+  const titre = (x) => x.document_titre || TYPE_COURT[x.type] || "Pièce";
+  const vues = tout ? ordre : ordre.slice(0, 1);
+  return (
+    <div className="min-w-0 space-y-1">
+      {vues.map((x) => <LigneSource key={x.document_id} titre={titre(x)} page={x.page} alerte={x.verifiee === false} onClick={() => onOuvrir(x)} />)}
+      {ordre.length > 1 && <button type="button" onClick={(ev) => { ev.stopPropagation(); setTout((v) => !v); }} className="text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>{tout ? "Moins" : `+ ${ordre.length - 1}`}</button>}
     </div>
   );
 }
@@ -236,7 +233,7 @@ export function AjouterPiece({ dealId, type }) {
     <>
       <input ref={ref} type="file" multiple className="hidden" onChange={(ev) => { importer([...ev.target.files]); ev.target.value = ""; }} />
       <button type="button" onClick={() => ref.current?.click()} disabled={occupe}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe shadow-[0_8px_24px_rgb(0_0_0/0.18)] hover:bg-menthe-survol disabled:opacity-60">
+        className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60 max-md:h-10">
         {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Ajouter une pièce
       </button>
     </>
@@ -249,6 +246,7 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
   const geste = useGeste(dealId);
   const [ouverte, setOuverte] = useState(null);
   const notes = useNotesTableaux(dealId);
+  const [filtre, setFiltre] = useState("tous");
 
   if (apercu) return <p className="m-0 py-8 text-[13.5px] text-brume">Les grilles se lisent sur un vrai dossier.</p>;
   if (isLoading) return <Chargement titre="Les grilles" etats={["Les pièces rangées", "Les valeurs relevées", "Les écarts"]} />;
@@ -260,40 +258,47 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
 
 
 
+  // Tous, Lu par l'IA, OK (9 nov. 2026, Jules) : voir d'un coup ce qu'il reste à vérifier.
+  const estOk = (l) => l.statut === "verifie" || l.statut === "corrige";
+  const remplies = grilles.flatMap((g) => g.lignes).filter((l) => l.valeur);
+  const garde = (l) => filtre === "tous" || (filtre === "ok" ? estOk(l) : l.statut === "ia");
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
+      {remplies.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Filtres label="Filtrer les lignes" valeur={filtre} onChange={setFiltre} options={[["tous", "Tous", grilles.flatMap((g) => g.lignes).length], ["ia", "Lu par l'IA", remplies.filter((l) => l.statut === "ia").length], ["ok", "OK", remplies.filter(estOk).length]]} />
+          <span className="text-[12.5px] text-ardoise">Un clic sur le libellé le passe à OK</span>
+        </div>
+      )}
       {grilles.map((g) => (
         <React.Fragment key={g.id}>
         <section>
-          {/* Le nom de la grille dans la case vide en haut à gauche du tableau (29 oct. 2026, Jules) ; au téléphone, où
-              la ligne d'en-tête n'existe pas, il reste au-dessus. */}
-          <div className="flex flex-col items-center gap-1 px-2 pb-4 text-center lg:hidden">
-            <p className="m-0 text-[20px] leading-[1.2] tracking-[-0.01em] text-encre">{g.titre}</p>
-          </div>
-          {/* Tout le tableau a ses lignes (29 oct. 2026, Jules) : le cadre ferme à droite et en bas. Sans pièce, le
-              tableau est flouté, seule la case de son nom reste nette, et le message est posé dessus (Jules, même jour). */}
-          <div className="relative overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux lg:bg-rail">
-          <div className={`grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3 lg:border-t-0 text-[13.5px] text-craie max-lg:hidden lg:[&>*]:py-3.5 ${g.pieces.length ? "" : "[&>*:not(:first-child)]:blur-[3px]"}`}>
-            <span className="text-[15px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">{g.titre}</span><span>Valeur</span><span>Source</span><span>Notes</span>
-          </div>
           {!g.pieces.length && (
-            <div className="absolute inset-x-0 bottom-0 top-0 z-10 grid place-items-center lg:top-[46px]">
+            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[13px] text-ardoise">Pas encore de pièce dans la Data room</span>
               <AjouterPiece dealId={dealId} type={g.id} />
             </div>
           )}
-          <div className={g.pieces.length ? "" : "pointer-events-none select-none blur-[3px]"} aria-hidden={g.pieces.length ? undefined : true}>
-          {g.lignes.map((l) => {
+          {/* Au téléphone, où la ligne d'en-tête n'existe pas, le nom reste au-dessus. */}
+          <p className="m-0 px-2 pb-3 text-[14px] text-encre lg:hidden">{g.titre}</p>
+          <div className={CADRE_GRILLE}>
+          <div className={`grid ${COLONNES} ${CELLULES} ${ENTETE_GRILLE}`}>
+            <span className="text-[13.5px] text-encre">{g.titre}</span><span>Valeur</span><span>Source</span><span>Notes</span>
+          </div>
+          <div className={g.pieces.length ? "" : "pointer-events-none select-none"} aria-hidden={g.pieces.length ? undefined : true}>
+          {g.lignes.filter(garde).map((l) => {
             const choisie = ouverte?.case?.grille === g.id && ouverte?.case?.id === l.id;
             return (
               <div key={l.id}
-                className={`group/ligne grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3.5 transition-colors lg:[&>*]:py-3.5 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 ${choisie ? "bg-menthe/[0.06]" : ""}`}>
+                className={`group/ligne grid ${COLONNES} ${CELLULES} ${LIGNE_GRILLE} ${choisie ? "bg-menthe/[0.06]" : ""}`}>
                 {/* Le libellé ouvre la source ; la valeur se modifie ; l'état se choisit (29 oct. 2026, Jules). */}
                 <CaseNom libelle={l.libelle} etat={l.statut} par={l.par} valeur={l.valeur} occupe={geste.isPending}
                   onChoix={(id) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: corpsDuChoix(id, l.valeur, l.valeur_main) })} />
                 <ValeurModifiable valeur={l.valeur} occupe={geste.isPending}
                   vide={l.statut === "manquant" ? "Pas encore de pièce" : l.statut === "lecture" ? "En cours de lecture" : l.statut === "non_lu" ? "Pièce pas encore lue" : "Non trouvé dans les pièces"}
                   onEnregistrer={(t) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: corpsDeLaSaisie(t) })} />
-                <SourcesEmpilees sources={l.sources.slice(0, 3)} retenue={l.retenue}
+                <Sources sources={l.sources.slice(0, 3)} retenue={l.retenue}
                   onOuvrir={(s) => setOuverte({ seul: true, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation })} />
                 <div className="min-w-0"><NoteCellule dealId={dealId} tableau={`pieces-${g.id}`} ligne={l.id} note={notes[`pieces-${g.id}.${l.id}`]} noteIA={noteIA(l)} /></div>
               </div>

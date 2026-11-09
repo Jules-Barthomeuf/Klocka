@@ -604,8 +604,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
               {/* Le projet à droite du titre, à toutes les étapes (30 oct. 2026, Jules) : « Rentrer le projet » tant qu'il
                   n'existe pas, puis « Projet ↗ » et sa mise à jour depuis le dossier. */}
-              {/* Sur la Pré-analyse, il passe à droite des modes Fiche / Tableau (5 nov. 2026, Jules). */}
-              {!apercu && !(vue === "preanalyse" && dossier?.lots?.length) && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
+              {!apercu && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
               {aRelancer && (
                 <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
                   <Clock className="w-3 h-3" /> À relancer
@@ -640,7 +639,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* À côté du chat (écran scindé), la colonne de droite ne se met à côté qu'à partir de 1700 px ; avant, elle passe dessous. */}
       <div>
       <div>
-      <div className={dossier && !pleineLargeur ? `grid items-start gap-8 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)_340px]"}` : ""}>
+      <div className={dossier && !pleineLargeur ? `grid items-start gap-3 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_300px]" : "lg:grid-cols-[minmax(0,1fr)_300px]"}` : ""}>
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
       {/* La Data Room : une zone de dépôt par type de pièce, rien d'autre (29 oct. 2026, Jules). */}
@@ -705,8 +704,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         {/* La décision une seule fois, sous le dernier onglet, Simulateur (29 oct. 2026, Jules) : elle s'affichait sous tous. */}
         {montre("analyse") && grilleAnalyse === "simulateur" && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
         {dossier && vue === "video" && (
-          <div className="mx-auto max-w-[900px] space-y-4 pt-6">
-            <p className="m-0 text-center text-[20px] leading-[1.2] tracking-[-0.01em] text-encre">Vidéo</p>
+          <div className="space-y-2.5 pt-4">
+            <p className="m-0 text-[14px] text-encre">Vidéo</p>
             <VideoFilmee dealId={dossier.deal_id} apercu={apercu} />
           </div>
         )}
@@ -1038,7 +1037,6 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
       {dossier.lots.map((lot) => (
         <CarteLot
           key={lot.index}
-          apresModes={!apercu && lot.index === dossier.lots[0].index ? <BoutonProjet dossier={dossier} onRefresh={onRefresh} /> : null}
           sansSimulateur
           lot={lot}
           dossier={dossier}
@@ -1278,32 +1276,28 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
 
   return (
     <>
-      <TitreEtape
-        n={4}
-        titre="Présentation"
-        description="Le dossier de présentation bancaire du bien, généré depuis les données du deal : le bien, le bail, l'opération, le plan de financement, le marché et les points forts. Modifiable ensuite dans Google Slides."
-      />
-
-      <div className="bg-surface border border-trait rounded-md p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-encre text-sm font-medium mb-1">Présentation bancaire</p>
-            <p className="text-ardoise text-xs">
+      <p className="m-0 mb-2.5 pt-4 text-[14px] text-encre">Dossier bancaire</p>
+      {/* Tout tient sur une ligne (9 nov. 2026, Jules). */}
+      <div className="space-y-3 rounded-[12px] border border-trait bg-rail px-3.5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="m-0 text-[14.5px] text-encre">Présentation bancaire</p>
+            <p className="m-0 text-[13px] text-ardoise">
               {pres?.genere_le
                 ? `Dernière génération le ${new Date(pres.genere_le).toLocaleDateString("fr-FR")} à ${new Date(pres.genere_le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`
-                : "Un clic : le PPTX est construit puis converti en Google Slides, prêt à retoucher."}
+                : "Construite depuis le dossier, modifiable ensuite dans Google Slides."}
             </p>
           </div>
           <Button
             onClick={() => generer.mutate()}
             disabled={generer.isPending || apercu}
-            className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
+            className="h-8 rounded-full bg-menthe px-3.5 text-[13.5px] font-normal text-sur-menthe hover:bg-menthe-survol max-md:h-10"
             title={apercu ? "Indisponible en mode aperçu" : undefined}
           >
             {generer.isPending ? (
               <><PenseeIA etat="composing" taille={20} clair className="mr-2" /> Génération…</>
             ) : (
-              <><Briefcase className="w-4 h-4 mr-2" /> {pres ? "Regénérer" : "Générer la présentation"}</>
+              pres ? "Regénérer" : "Générer la présentation"
             )}
           </Button>
         </div>

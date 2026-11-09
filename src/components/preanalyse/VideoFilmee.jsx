@@ -55,12 +55,12 @@ export default function VideoFilmee({ dealId, apercu = false }) {
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ouvrir(); } }}
         onDragOver={(e) => { e.preventDefault(); setSurvol(true); }} onDragLeave={() => setSurvol(false)}
         onDrop={(e) => { e.preventDefault(); setSurvol(false); choisir(e.dataTransfer.files); }}
-        className={`grid min-h-[320px] cursor-pointer place-items-center rounded-[14px] border border-dashed px-6 py-12 text-center transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : "border-bord hover:border-bord-doux"}`}>
+        className={`grid h-[220px] cursor-pointer place-items-center rounded-[12px] border bg-rail px-6 text-center transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : "border-trait hover:border-bord-doux"}`}>
         {champ}
-        <div className="flex flex-col items-center gap-3">
-          {envoyer.isPending ? <Loader2 className="h-7 w-7 animate-spin text-menthe" /> : <Film className="h-7 w-7 text-craie" strokeWidth={1.5} />}
-          <p className="m-0 text-[15px] text-encre">{envoyer.isPending ? "Envoi de la vidéo…" : "Importer la vidéo filmée"}</p>
-          <p className="m-0 text-[12.5px] text-brume">{envoyer.isPending ? "Gardez la page ouverte le temps de l'envoi." : "Cliquez ou glissez la vidéo · MP4 ou MOV, 500 Mo au plus"}</p>
+        <div className="flex flex-col items-center gap-2">
+          {envoyer.isPending ? <Loader2 className="h-4 w-4 animate-spin text-menthe" /> : <Film className="h-4 w-4 text-craie" strokeWidth={1.7} />}
+          <p className="m-0 text-[14px] text-encre">{envoyer.isPending ? "Envoi de la vidéo…" : "Importer la vidéo filmée"}</p>
+          <p className="m-0 text-[13px] text-ardoise">{envoyer.isPending ? "Gardez la page ouverte le temps de l'envoi." : "Cliquez ou glissez la vidéo · MP4 ou MOV, 500 Mo au plus"}</p>
         </div>
       </section>
     );

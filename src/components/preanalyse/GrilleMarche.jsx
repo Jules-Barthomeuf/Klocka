@@ -5,7 +5,8 @@ import { Check, Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { createPageUrl } from "@/utils";
-import { CaseNom, CELLULES, corpsDeLaSaisie, corpsDuChoix, useAnalysePieces, useGeste } from "@/components/preanalyse/AnalysePieces";
+import { Cases } from "@/components/mandataire/elements";
+import { CADRE_GRILLE, CaseNom, CELLULES, corpsDeLaSaisie, ENTETE_GRILLE, LIGNE_GRILLE, corpsDuChoix, useAnalysePieces, useGeste } from "@/components/preanalyse/AnalysePieces";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import JournalDetail from "@/components/preanalyse/JournalDetail";
 import { OngletEquimmox, OngletFigaro, OngletSecteur } from "@/components/preanalyse/JournalSources";
@@ -18,7 +19,7 @@ import { OngletBodacc, OngletDvf } from "@/components/preanalyse/JournalPublique
 // source ouvre à droite sa vue détaillée (les baux Equimmox, les ventes DVF, les annonces BODACC…).
 
 // Pas de colonne Notes dans Marché (30 oct. 2026, Jules) : on corrige le chiffre dans la case, la source dit d'où il vient.
-const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.2fr)]";
+const COLONNES_MARCHE = "grid-cols-[190px_minmax(0,1fr)_240px]";
 const fmt = (n, d = 0) => (n == null || !Number.isFinite(Number(n)) ? null : Number(n).toLocaleString("fr-FR", { maximumFractionDigits: d }));
 const carte = (analyse, cle) => analyse?.cartes?.find((c) => c.cle === cle && c.valeur && c.valeur !== "—") || null;
 const niveau = (x) => (x ? [["rue", x.rue], ["quartier", x.quartier], ["ville", x.ville]].find(([, v]) => v && (v.basse != null || v.haute != null)) || null : null);
@@ -128,6 +129,20 @@ export function prixDemande(lot, pieces = null) {
   };
 }
 
+/** Pure : les quatre chiffres en tête de l'onglet, lus dans les lignes des tableaux ; « — » tant qu'une valeur manque. */
+export function chiffresDuMarche(tableaux) {
+  const val = (id) => tableaux.flatMap((t) => t.lignes).find((l) => l.id === id)?.sources.find((x) => x.valeur)?.valeur || null;
+  const ecart = val("reversion");
+  const m = ecart?.match(/^(.*?) · (.*)$/);
+  const prix = val("prix_fai");
+  return [
+    [m?.[2] || ecart || "—", m ? `écart au marché, ${m[1].replace(/ du marché$/, "").replace(/^Au-dessus$/, "au-dessus").replace(/^Sous le$/, "en dessous").toLowerCase()}` : "écart au marché"],
+    [val("loyer_place") || "—", "loyer en place"],
+    [prix?.split(" · ").at(-1) || "—", "prix demandé"],
+    [val("ventes_reelles") || "—", "ventes réelles autour"],
+  ];
+}
+
 export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu = false, onChercher = null, enCours = false }) {
   const dealId = dossier?.deal_id;
   const { data } = useAnalysePieces(dealId, { enabled: !apercu });
@@ -153,17 +168,19 @@ export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu 
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
+      {/* Quatre chiffres en tête (9 nov. 2026, Jules) : on lit l'écart au marché d'un coup d'œil. */}
+      <Cases items={chiffresDuMarche(tableaux)} />
       {tableaux.map((t) => (
         <section key={t.titre}>
           {/* Le nom du tableau dans la case vide en haut à gauche (29 oct. 2026, Jules) ; au téléphone, au-dessus. */}
-          <div className={`flex flex-col items-center gap-1 px-2 pb-4 text-center lg:flex-row lg:justify-end lg:pb-3 ${t.vacance && !apercu ? "" : "lg:hidden"}`}>
-            <p className="m-0 text-[20px] leading-[1.2] tracking-[-0.01em] text-encre lg:hidden">{t.titre}</p>
+          <div className={`flex flex-col items-center gap-1 px-2 pb-3 text-center lg:flex-row lg:justify-end lg:pb-2.5 ${t.vacance && !apercu ? "" : "lg:hidden"}`}>
+            <p className="m-0 text-[14px] text-encre lg:hidden">{t.titre}</p>
             {t.vacance && !apercu && <MesurerVacance dealId={dealId} dejaMesuree={!!lot?.vacance} le={lot?.vacance?.le} enFond={!!lot?.vacance_en_cours && Date.now() - Date.parse(lot.vacance_en_cours) < 15 * 60000} onFait={onRefresh} />}
           </div>
-          <div className="overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux lg:bg-rail">
-            <div className={`grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3 lg:border-t-0 text-[13.5px] text-craie max-lg:hidden lg:[&>*]:py-3.5`}>
-              <span className="text-[15px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">{t.titre}</span><span>Valeur</span><span>Source</span>
+          <div className={CADRE_GRILLE}>
+            <div className={`grid ${COLONNES_MARCHE} ${CELLULES} ${ENTETE_GRILLE}`}>
+              <span className="text-[13.5px] text-encre">{t.titre}</span><span>Valeur</span><span>Source</span>
             </div>
             {t.lignes.map((l) => {
               const humain = cases[l.id] || null;
@@ -175,7 +192,7 @@ export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu 
               const statut = tranchee ? "verifie" : valeur ? "ia" : "introuvable";
               const chemin = `cases/marche/${l.id}`;
               return (
-                <div key={l.id} className={`group/ligne grid ${COLONNES} ${CELLULES} border-t border-bord-doux py-3.5 transition-colors lg:[&>*]:py-3.5 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
+                <div key={l.id} className={`group/ligne grid ${COLONNES_MARCHE} ${CELLULES} ${LIGNE_GRILLE}`}>
                   <CaseNom libelle={l.libelle} etat={statut} par={humain?.par} valeur={valeur} occupe={geste.isPending}
                     onChoix={(id) => geste.mutate({ chemin, corps: corpsDuChoix(id, valeur, humain?.valeur_main || null) })} />
                   {/* Une ligne par source, la valeur seule à gauche, la source à droite (30 oct. 2026, Jules) ; décochée,
@@ -184,14 +201,14 @@ export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu 
                     {l.sources.map((src) => {
                       const off = exclues.has(src.nom);
                       return (
-                        <div key={src.nom} className={`grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-baseline ${off ? "opacity-40" : ""}`}>
-                          <div className="min-w-0 lg:px-3.5">
-                            {src.valeur ? <span className={`text-[14.5px] text-encre ${off ? "line-through" : ""}`}>{src.valeur}</span>
+                        <div key={src.nom} className={`grid grid-cols-[minmax(0,1fr)_239px] items-baseline ${off ? "opacity-40" : ""}`}>
+                          <div className="min-w-0 lg:px-2.5">
+                            {src.valeur ? <span className={`text-[13.5px] text-encre ${off ? "line-through" : ""}`}>{src.valeur}</span>
                               : src.cle && onChercher && !apercu ? (
                                 <button type="button" disabled={enCours} onClick={() => onChercher([src.cle])} className="text-[13px] text-menthe hover:underline disabled:opacity-50" style={{ background: "transparent" }}>{enCours ? "Recherche en cours…" : "Demander"}</button>
-                              ) : <span className="text-[14.5px] text-brume">{src.vide || (l.id.startsWith("vacance") ? "Pas encore mesurée" : "—")}</span>}
+                              ) : <span className="text-[13.5px] text-brume">{src.vide || (l.id.startsWith("vacance") ? "Pas encore mesurée" : "—")}</span>}
                           </div>
-                          <div className="flex min-w-0 items-center gap-2 lg:px-3.5">
+                          <div className="flex min-w-0 items-center gap-2 lg:px-2.5">
                             {l.sources.length > 1 && !apercu && (
                               <button type="button" role="checkbox" aria-checked={!off} aria-label={`${off ? "Recocher" : "Décocher"} ${src.nom}`}
                                 onClick={() => geste.mutate({ chemin, corps: { action: "exclure", source: src.nom } })}
@@ -200,20 +217,20 @@ export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu 
                               </button>
                             )}
                             <button type="button" onClick={() => setPanneau(src.vue)} title={src.detail || undefined}
-                              className="min-w-0 truncate text-left text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>{src.nom}</button>
+                              className="min-w-0 truncate text-left text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{src.nom}</button>
                           </div>
                         </div>
                       );
                     })}
                     {/* Ma valeur : la source de l'analyste, toujours la dernière ; l'écrire la retient (la ligne passe en vert). */}
                     {!apercu && (
-                      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-baseline">
-                        <div className="min-w-0 lg:px-3.5">
+                      <div className="grid grid-cols-[minmax(0,1fr)_239px] items-baseline">
+                        <div className="min-w-0 lg:px-2.5">
                           <TexteEnPlace valeur={maValeur || ""} placeholder="Écrire une valeur"
                             onEnregistrer={(t2) => { if (t2) geste.mutate({ chemin, corps: corpsDeLaSaisie(t2) }); }}
-                            className="text-[14.5px] text-encre placeholder:text-transparent focus:placeholder:text-brume group-hover/ligne:placeholder:text-brume max-md:text-[16px] max-md:placeholder:text-brume" />
+                            className="text-[13.5px] text-encre placeholder:text-transparent focus:placeholder:text-brume group-hover/ligne:placeholder:text-brume max-md:text-[16px] max-md:placeholder:text-brume" />
                         </div>
-                        <div className="min-w-0 lg:px-3.5">
+                        <div className="min-w-0 lg:px-2.5">
                           <span className={`text-[13px] ${maValeur ? "text-craie" : "text-brume opacity-0 group-hover/ligne:opacity-100 max-md:opacity-100"}`}>Ma valeur</span>
                         </div>
                       </div>

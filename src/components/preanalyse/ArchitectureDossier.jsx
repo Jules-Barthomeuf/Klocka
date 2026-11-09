@@ -44,8 +44,8 @@ function useLettres(dealId) {
   return useQuery({ queryKey: ["offres"], queryFn: () => base44.request("GET", "/api/offres"), enabled: !!dealId, select: (d) => (d.offres || []).filter((o) => o.deal_id === dealId) });
 }
 
-const bloc = "k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail p-4";
-const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume";
+const bloc = "relative overflow-hidden rounded-[12px] border border-trait bg-rail p-3.5";
+const titreBloc = "m-0 mb-2 text-[12.5px] text-ardoise";
 
 /** La colonne de droite : la Data Room en liste à cocher (17 oct. 2026), et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
 export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = null, onRefresh = null }) {

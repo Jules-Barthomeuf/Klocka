@@ -33,7 +33,7 @@ export default function NoteCellule({ dealId, tableau, ligne, note = null, lectu
   const ia = !note?.texte && !note?.ia_retiree && noteIA ? noteIA : null;
   const texte = note?.texte || ia || "";
   const enregistrer = (t) => noter.mutate(t ? { texte: t } : ia ? { texte: "", ia_retiree: true } : { texte: "" });
-  const style = "text-[13.5px] font-normal leading-[1.55] text-lu-ia";
+  const style = "text-[12.5px] font-normal leading-[1.4] text-lu-ia";
   if (edition && modifiable) {
     return <TexteEnPlace valeur={texte} autoFocus onQuitter={() => setEdition(false)} onEnregistrer={enregistrer} className={`${style} max-md:text-[16px]`} />;
   }

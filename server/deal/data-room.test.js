@@ -403,3 +403,62 @@ test("le transfert d'un mail : noms proposés, Drive, lecture, à la suite ; un 
   assert.deepEqual(panne.drive, { ok: false, erreur: 'quota' });
   assert.equal((await D.rangerEtAnalyser('DR20', [])).nommees, 0);
 });
+
+test("un projet créé reprend tout : la dernière version du simulateur, les cases de l'Analyse et les pièces (9 nov. 2026)", async () => {
+  const P = await import('./projet.js');
+  const { enregistrerSimulateur } = await import('./index.js');
+  Records.create('Deal', { deal_id: 'DR70', nom: 'Vannes',
+    documents_espace: ['b', 'q', 'f'].map((id) => ({ id: `${id}40`, nom: `${id}.pdf`, url: `/uploads/${id}40.pdf`, mime: 'application/pdf' })),
+    lots: [{ lot: { surface_m2: { absent: false, valeur: 80 }, prix_fai: { absent: false, valeur: 400000 }, loyer_annuel_ht_hc: { absent: false, valeur: 30000 } }, simulateur: { prixBienFAI: 400000, prixBienNegocie: 400000, loyerInitialHTHC: 30000, surface: 80 } }] });
+  for (const id of ['b', 'q', 'f']) fs.writeFileSync(path.join(uploadDir, `${id}40.pdf`), 'x');
+  A.rangerPiece('DR70', 'b40', 'bail', null, { lire: false });
+  A.rangerPiece('DR70', 'q40', 'quittances', null, { lire: false });
+  A.rangerPiece('DR70', 'f40', 'fiche', null, { lire: false });
+  await A.lirePiece('DR70', 'b40', { uploadDir, lire: async () => JSON.stringify({ criteres: { echeance: { valeur: 'du 01/01/2020 au 31/12/2028' }, loyer_signature: { valeur: '2 000 € HT par mois' }, depot: { valeur: '6 000 € soit 3 mois du loyer de signature' }, type_bail: { valeur: '6 ans ferme' }, indexation: { valeur: 'ILC T1 2020' } } }) });
+  await A.lirePiece('DR70', 'q40', { uploadDir, lire: async () => JSON.stringify({ criteres: { loyer_hc_ht: { valeur: '2 500 € par mois' }, provision: { valeur: '300 €' } } }) });
+
+  const travaux = Array(25).fill(0); travaux[2] = 15000;
+  const vacances = Array(25).fill(0); vacances[4] = 3;
+  await enregistrerSimulateur('DR70', 0, { prixBienFAI: 400000, prixBienNegocie: 380000, loyerInitialHTHC: 33333, surface: 80, dureeCredit: 15, tauxInteret: 3.2, apport: 90000, pretInFine: true, sansCredit: false, indexation: 1.5, anneeRevente: 12, gestionLocative: 700, renegociationActive: true, anneeRenegociation: 7, nouveauTauxRenegociation: 2.1, iraRenegociation: 4, revalorisationActive: false, anneeRevalorisation: null, travauxBailleur: travaux, vacancesLocatives: vacances, saisis: ['loyerInitialHTHC', 'dureeCredit'] }, null);
+
+  const r = P.creerProjetDepuisDeal('DR70', 0, null, { analyse: A.lireAnalyse('DR70') });
+  assert.notEqual(r.ok, false);
+  const p = Records.get('Project', Records.findBy('Deal', 'deal_id', 'DR70').projet_id);
+  assert.equal(p.sim_prix_bien_negocie, 380000);
+  assert.equal(p.sim_loyer_initial_ht, 33333, 'tapé à la main : ni les quittances ni le bail ne le remplacent');
+  assert.equal(p.loyer_annuel_ht, 33333);
+  assert.deepEqual([p.sim_duree_credit, p.sim_taux_interet, p.sim_apport, p.sim_pret_in_fine, p.sim_indexation_loyers, p.sim_annee_revente, p.sim_gestion_locative], [15, 3.2, 90000, true, 1.5, 12, 700]);
+  assert.deepEqual([p.sim_annee_renegociation, p.sim_taux_renegocie, p.sim_ira_mois], [7, 2.1, 4]);
+  assert.equal(p.sim_annee_revalorisation, null);
+  assert.equal(p.sim_commission_agent_active, true, 'comme le simulateur du dossier');
+  assert.deepEqual([p.sim_travaux_annee3, p.sim_travaux_montant3, p.sim_travaux_montant10], [3, 15000, undefined], 'les travaux joués, pas ceux par défaut');
+  assert.equal(p.sim_vacances_locatives[4], 3);
+
+  assert.equal(p.bail_loyer_initial, 24000);
+  assert.equal(p.bail_depot_garantie, 6000, 'un montant, pas multiplié par les « mois » de la phrase');
+  assert.equal(p.bail_duree_ferme_ans, 6);
+  assert.equal(p.provision_charges, 300);
+  assert.equal(p.bail_date_debut, '2020-01-01');
+  assert.equal(p.bail_date_echeance, '2028-12-31');
+  assert.equal(p.locataire_depuis, '2020-01-01');
+  assert.equal(p.loyer_m2_an, Math.round(33333 / 80));
+  assert.equal(p.bail_admin_fields.find((c) => c.label === "Mode d'indexation").value, 'ILC T1 2020');
+
+  assert.deepEqual(p.fichiers_projet.map((f) => f.url).sort(), ['/uploads/b40.pdf', '/uploads/q40.pdf'], "pas la fiche de l'agent");
+  assert.deepEqual(p.docs_checklist, { bail: true, quittances: true });
+});
+
+test("un projet créé sans simulateur retouché : l'apport est celui de l'écran, les travaux ceux par défaut, la saisie de l'Analyse passe", async () => {
+  const P = await import('./projet.js');
+  Records.create('Deal', { deal_id: 'DR71', nom: 'Brest', documents_espace: [{ id: 'q41', nom: 'q.pdf', url: '/uploads/q41.pdf', mime: 'application/pdf' }],
+    lots: [{ lot: {}, simulateur: { prixBienFAI: 200000, prixBienNegocie: 200000, loyerInitialHTHC: 12000, surface: 50, tauxDroitsEnregistrement: 8, tauxFeesKlocka: 8, feesKlockaType: 'pourcentage', tauxIncentiveKlocka: 20, tauxCommissionAgent: 5, commissionAgentInclusFAI: true, fraisDossierBancaire: 1000, coutCreationSociete: 1000, fraisCourtage: 0 } }] });
+  fs.writeFileSync(path.join(uploadDir, 'q41.pdf'), 'x');
+  A.rangerPiece('DR71', 'q41', 'quittances', null, { lire: false });
+  await A.lirePiece('DR71', 'q41', { uploadDir, lire: async () => JSON.stringify({ criteres: { loyer_hc_ht: { valeur: '1 500 € par mois' } } }) });
+  P.creerProjetDepuisDeal('DR71', 0, null, { analyse: A.lireAnalyse('DR71') });
+  const p = Records.get('Project', Records.findBy('Deal', 'deal_id', 'DR71').projet_id);
+  assert.equal(p.sim_loyer_initial_ht, 18000, "pas tapé : l'Analyse passe, comme à l'écran");
+  assert.equal(p.sim_travaux_montant10, 10000);
+  const droits = (200000 - 10000) * 0.08;
+  assert.equal(p.sim_apport, Math.round((200000 + droits + 16000 + 2000) * 0.15), '15 % du prix de revient');
+});

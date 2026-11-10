@@ -3,6 +3,7 @@
 import { currentUser, ok, wrap } from '../contexte.js';
 import { lancerAnalyses, listerAnalyses, ranger, supprimerAnalyse, listerDossiers } from '../kdata.js';
 import { QUESTIONS, NOTES } from '../kdata-questions.js';
+import { Records } from '../db.js';
 
 export function monterKData(app) {
   const admin = (req, res) => {
@@ -47,5 +48,15 @@ export function monterKData(app) {
     const r = supprimerAnalyse(req.params.id);
     if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
+  }));
+
+  // Les lectures Data-B déjà gardées dans cette base, en un fichier (9 nov. 2026, Jules : apprendre la valeur
+  // locative K-Data sur toutes les lectures de production). Lecture seule, rien n'est demandé à Data-B :
+  // `node scripts/kdata-valeur-locative-test.mjs --lectures=fichier.json` les ajoute à celles de la base locale.
+  app.get('/api/kdata/lectures-datab', wrap((req, res) => {
+    if (!admin(req, res)) return;
+    const lectures = Records.list('DataBRecherche').map((r) => ({ adresse: r.adresse, le: r.le, resultat: r.resultat }));
+    res.setHeader('Content-Disposition', `attachment; filename="lectures-datab-${new Date().toISOString().slice(0, 10)}.json"`);
+    res.json({ lectures, n: lectures.length });
   }));
 }

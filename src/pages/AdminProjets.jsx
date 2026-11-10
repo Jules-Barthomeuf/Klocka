@@ -42,7 +42,6 @@ import ProjetContent from "../components/projet/ProjetContent";
 import { COULEURS_DOC_PROJET } from "../components/projet/EditionEnPlace";
 import { BarreEditeur, GroupePanneau, ModesEditeur, PanneauEditeur, ReglagesDesign } from "@/components/editeur/Editeur";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
-import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import FicheSource from "@/components/presentations/FicheSource";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 
@@ -112,9 +111,9 @@ export default function AdminProjets() {
   const zoneApercu = useRef(null);
   const dernierEnvoye = useRef(null);
   const avantAK = useRef(null);
+  const formDataVif = useRef(null);
   const [largeurChat, setLargeurChat] = useState(() => { try { return Number(localStorage.getItem("klocka.projets.largeur-chat")) || 420; } catch { return 420; } });
   const [tireChat, setTireChat] = useState(false);
-  const [majAK, setMajAK] = useState(false);
   const ecranLarge = useEcranLarge();
   const telephone = useTelephone();
   // Éditeur ouvert au téléphone : la page derrière ne défile plus.
@@ -339,6 +338,7 @@ export default function AdminProjets() {
   // Ce qu'on change à la main dans les champs s'enregistre (21 oct. 2026, Jules : « quand on modifie une information,
   // ça ne s'enregistre pas ») : l'envoi automatique ne partait qu'après un événement de saisie, que les menus, les
   // interrupteurs, les cases et les dates n'émettent pas. Les formulaires reçoivent ces deux setters, qui le disent.
+  formDataVif.current = formData;
   const setFormDataSaisi = useCallback((u) => { setFormData(u); setModifieDepuis(true); }, []);
   const setTravauxListSaisi = useCallback((u) => { setTravauxList(u); setModifieDepuis(true); }, []);
 
@@ -1151,10 +1151,10 @@ export default function AdminProjets() {
     let donnees;
     try { donnees = construireDonnees(formData); } catch { return undefined; }
     if (dernierEnvoye.current?.id !== id) { dernierEnvoye.current = { id, valeurs: JSON.parse(JSON.stringify(donnees)) }; return undefined; }
-    if (!modifieDepuis || travailAK.enCours || !formData.titre) return undefined;
+    if (!modifieDepuis || !formData.titre) return undefined;
     const t = setTimeout(() => { envoyerRef.current?.(); }, 900);
     return () => clearTimeout(t);
-  }, [formData, travauxList, modifieDepuis, isDialogOpen, editingProject?.id, travailAK.enCours]);
+  }, [formData, travauxList, modifieDepuis, isDialogOpen, editingProject?.id]);
 
   // Le bouton Enregistrer : ce qui attend part tout de suite, puis une version de la fiche entière se pose.
   const enregistrerVersion = async () => {
@@ -1196,11 +1196,11 @@ export default function AdminProjets() {
     }
   };
 
-  // Pendant qu'AK travaille, ses étapes à la place de la page ; le projet tel qu'il
-  // l'a trouvé est gardé, pour qu'Annuler (⌘Z) revienne sur tout son geste.
+  // Pendant qu'AK travaille, la page reste libre : on continue de remplir, l'enregistrement n'envoie que ce qu'on change
+  // (9 nov. 2026, Jules). Le projet tel qu'il l'a trouvé est gardé, pour qu'Annuler (⌘Z) revienne sur son geste, et lui seul.
   useEffect(() => {
-    if (travailAK.enCours) { setMajAK(true); if (!avantAK.current) avantAK.current = formData; return undefined; }
-    const t = setTimeout(() => { setMajAK(false); avantAK.current = null; }, 900);
+    if (travailAK.enCours) { if (!avantAK.current) avantAK.current = formData; return undefined; }
+    const t = setTimeout(() => { avantAK.current = null; }, 900);
     return () => clearTimeout(t);
   }, [travailAK.enCours]);
 
@@ -1216,8 +1216,10 @@ export default function AdminProjets() {
       const { projet, sources } = await base44.request("GET", `/api/projets/${id}/sources`);
       if (!projet) return;
       const maj = Object.fromEntries([...racines].map((k) => [k, projet[k] ?? null]));
-      // L'état d'avant, avec la valeur d'origine de chaque champ touché : le formulaire ne les porte pas tous.
-      const avant = { ...Object.fromEntries([...racines].map((k) => [k, editingProject?.[k] ?? null])), ...(avantAK.current || formData) };
+      // L'état d'avant : ce qu'on a saisi entre-temps reste, seuls les champs touchés par AK reprennent leur valeur d'origine
+      // (le formulaire ne les porte pas tous).
+      const origine = avantAK.current || formDataVif.current;
+      const avant = { ...formDataVif.current, ...Object.fromEntries([...racines].map((k) => [k, k in origine ? origine[k] : editingProject?.[k] ?? null])) };
       setHistorique((h) => [...h.slice(-29), avant]);
       setRefaits([]);
       setFormData((f) => ({ ...f, ...maj }));
@@ -1230,7 +1232,7 @@ export default function AdminProjets() {
     } catch (e) {
       toast.error("Le projet n'a pas pu être relu après AK", { description: e?.message || "" });
     }
-  }, [editingProject, formData, queryClient]);
+  }, [editingProject, queryClient]);
 
   // Le mode Sources : d'où vient chaque chiffre, relu après chaque enregistrement.
   useEffect(() => {
@@ -1410,6 +1412,7 @@ export default function AdminProjets() {
     const FLECHE = "inline-flex items-center justify-center w-9 h-9 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-30 disabled:cursor-not-allowed";
     const statutAuto = !editingProject ? null
       : modifieDepuis ? "Enregistrement…"
+        : travailAK.enCours ? "L'assistant travaille, la page reste libre"
         : enregistreLe ? `Enregistré automatiquement à ${enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
           : "Enregistré automatiquement";
     const ICONE = "grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30";
@@ -1456,7 +1459,7 @@ export default function AdminProjets() {
       <Onglets taille="page" className={className} items={[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => ({ cle: o.value, titre: o.label }))}
         valeur={ongletPage === "images" ? null : ongletPage} onChange={changerOnglet} />
     );
-    const pageAvecOnglets = !majAK && ongletPage !== "images" && ongletPage !== "simulateur" && !!projetAffiche;
+    const pageAvecOnglets = ongletPage !== "images" && !!projetAffiche;
     const barreProjet = (
       <div className="pb-2">
         {/* Le retour reste ici : la barre du chat n'apparaît qu'une fois la conversation lancée. */}
@@ -1464,7 +1467,7 @@ export default function AdminProjets() {
           <ArrowLeft className="h-3.5 w-3.5" /> Tous les projets
         </button>
         {/* Sur la page du projet, les onglets passent sous « Simulateur complet » (30 oct. 2026, Jules) ; ailleurs
-            (simulateur, photos), ils restent ici. */}
+            (photos), ils restent ici. */}
         {!pageAvecOnglets && ongletsProjet("mt-5")}
       </div>
     );
@@ -1478,7 +1481,7 @@ export default function AdminProjets() {
       const el = typeof document !== "undefined" ? zoneApercu.current?.querySelector(`[data-champ="${CSS.escape(cible)}"]`) : null;
       return el ? Math.round(parseFloat(getComputedStyle(el).fontSize) * 0.75 * 2) / 2 : null;
     };
-    const peutMettreEnForme = vueProjet === "edition" && elementChoisi && !champsOuverts && !majAK && !telephone;
+    const peutMettreEnForme = vueProjet === "edition" && elementChoisi && !champsOuverts && !telephone;
     const panneauElement = peutMettreEnForme && formeOuverte ? (
       <PanneauEditeur key={elementChoisi.cible} titre={elementChoisi.texte || "Élément"}
         sousTitre={elementChoisi.genre === "texte" ? "Texte de la page" : "Valeur de la page"} onFermer={() => setFormeOuverte(false)}>
@@ -1587,32 +1590,8 @@ export default function AdminProjets() {
         <div ref={zoneApercu} onPointerDownCapture={noterDesigne} className="relative min-h-0 min-w-0 flex-1">
         <div className="h-full min-h-0 overflow-y-auto max-lg:overflow-visible" onScroll={() => survolSource && setSurvolSource(null)}>
           {scindeProjet && <div className="px-8 pt-5">{barreProjet}</div>}
-          {majAK ? (
-            <MiseAJourDocument surtitre="Mise à jour du projet" titre={titreTravailAK(travailAK.etapes)} etapes={travailAK.etapes || []} enCours={travailAK.enCours} />
-          ) : ongletPage === "images" ? (
+          {ongletPage === "images" ? (
             <GaleriePhotos photos={formData.photos || []} />
-          ) : ongletPage === "simulateur" ? (
-            <div className={scindeProjet ? "px-8 pb-8" : "max-w-[1100px] mx-auto px-4 md:px-6 pb-8"}>
-              {/* La barre d'onglets de la page reste accessible au-dessus des chiffres (en écran scindé, l'en-tête l'a déjà). */}
-              <div className={`flex flex-wrap gap-2 pt-6 pb-6 overflow-x-auto ${scindeProjet ? "hidden" : ""}`}>
-                {[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => (
-                  <button key={o.value} onClick={() => { setOngletPage(o.value); const f = FORM_PAR_ONGLET[o.value]; if (f) setActiveTab(f); }}
-                    className={`rounded-full border px-4 py-2 text-[13.5px] whitespace-nowrap transition-colors
-                      ${ongletPage === o.value ? "border-encre bg-encre text-fond" : "border-trait bg-surface-pleine text-craie hover:border-bord-vif hover:text-encre"}`}>
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-              {/* Les paramètres à gauche, le résultat à droite : tout se règle ici. */}
-              <div className="grid items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]" onInput={() => setModifieDepuis(true)}>
-                {!champsOuverts && (
-                  <div className="k-sobre rounded-[16px] border border-trait bg-rail p-4 xl:sticky xl:top-4 xl:max-h-[calc(100vh-220px)] xl:overflow-y-auto">
-                    <ProjectFormSimulateurTab formData={formData} setFormData={setFormDataSaisi} travauxList={travauxList} setTravauxList={setTravauxListSaisi} />
-                  </div>
-                )}
-                <ProjectSimulatorPreview formData={formData} travauxList={travauxList} />
-              </div>
-            </div>
           ) : projetAffiche ? (
             <div className={scindeProjet ? "px-8 pt-6" : ""}>
             <ProjetContent
@@ -1630,6 +1609,17 @@ export default function AdminProjets() {
               elementChoisi={elementChoisi?.cible || null}
               onElement={setElementChoisi}
               ongletsSupplementaires={[{ value: "simulateur", label: "Simulateur" }]}
+              panneauSimulateur={
+                // Les paramètres à gauche, le résultat à droite, à la même hauteur (9 nov. 2026, Jules).
+                <div className="grid items-start gap-6 rounded-[16px] border border-trait bg-fond p-4 xl:grid-cols-[380px_minmax(0,1fr)]" onInput={() => setModifieDepuis(true)}>
+                  {!champsOuverts && (
+                    <div className="[&>div]:mt-0 xl:h-[78vh] xl:overflow-y-auto">
+                      <ProjectFormSimulateurTab formData={formData} setFormData={setFormDataSaisi} travauxList={travauxList} setTravauxList={setTravauxListSaisi} />
+                    </div>
+                  )}
+                  <ProjectSimulatorPreview formData={formData} travauxList={travauxList} />
+                </div>
+              }
               onPhotos={() => { setPhotosBrouillon([...(formData.photos || [])]); setPhotosOuvertes(true); }}
               editeurDocuments={!champsOuverts && vueProjet === "edition" && (
                 <div className="k-sobre mb-6 rounded-[16px] border border-trait bg-rail p-4" onInput={() => setModifieDepuis(true)}>
@@ -1957,11 +1947,4 @@ export default function AdminProjets() {
       </div>
     </div>
   );
-}
-
-/** Pure : le titre de l'écran d'attente, d'après les étapes d'AK (comme Présentations). */
-function titreTravailAK(etapes = []) {
-  if (etapes.some((e) => /^Retouche du projet/i.test(e))) return "Le projet se met à jour";
-  if (etapes.some((e) => /Equimmox|Data-B|chiffres de la commune|INSEE|Figaro|DVF|loyer|prix/i.test(e))) return "L'Assistant KPartners rassemble les chiffres";
-  return "L'Assistant KPartners lit votre demande";
 }

@@ -9,11 +9,13 @@ import { prixFai as prixFaiDuLot } from './prix.js';
 import { Records } from '../db.js';
 import { changerStatut } from './lifecycle.js';
 import { lotOuVide } from './index.js';
-import { patchDepuisExtractions } from './donnees-projet.js';
+import { patchDepuisExtractions, dpeDepuis } from './donnees-projet.js';
 import { trouverVille, trouverSecteur } from '../../src/data/villes.js';
-import { TRAVAUX_PAR_DEFAUT } from '../../src/components/simulator/CalculFinancier.js';
+import { TRAVAUX_PAR_DEFAUT, calculerTableauAnnuel, parametresDuProjet } from '../../src/components/simulator/CalculFinancier.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
+// « Activité non renseignée » occupe la case sans rien dire : l'Analyse passe devant.
+const motVide = (v) => /non renseign|[àa] qualifier/i.test(String(v || ''));
 
 // lot.simulateur (camelCase, aem.js:parametresSimulateur) → champs sim_* du Project.
 function mapperSimulateur(sim) {
@@ -72,6 +74,62 @@ function chargesConnues(simDuLot = {}, desPieces = {}) {
 
 // Les travaux bailleur par défaut (10 000 € en années 10 et 20) : ceux du simulateur, posés à la naissance du projet.
 const travauxParDefautDuProjet = () => Object.fromEntries(TRAVAUX_PAR_DEFAUT.flatMap(([annee, montant]) => [[`sim_travaux_annee${annee}`, annee], [`sim_travaux_montant${annee}`, montant]]));
+
+// Le simulateur du dossier tel qu'on l'a laissé (9 nov. 2026, Jules : « tu prends la dernière version qu'on a mis ») :
+// crédit, apport, charges, revente, travaux, vacance. Seule la création s'en sert ; une fois le projet né, ses réglages
+// se font dans le projet (mettreAJourProjetDepuisDeal).
+const REGLAGES_DU_SIMULATEUR = [
+  ['dureeCredit', 'sim_duree_credit'], ['tauxInteret', 'sim_taux_interet'], ['tauxAssuranceCredit', 'sim_taux_assurance'],
+  ['pretInFine', 'sim_pret_in_fine'], ['sansCredit', 'sim_sans_credit'], ['indexation', 'sim_indexation_loyers'],
+  ['anneeRevente', 'sim_annee_revente'], ['tauxCommissionAgentRevente', 'sim_commission_agent_revente'],
+  ['rendementBrutAcheteur', 'sim_rendement_capital'], ['comptabilite', 'sim_comptabilite'], ['assurancePNE', 'sim_assurance_pne'],
+  ['gestionLocative', 'sim_gestion_locative'], ['chargesDiverses', 'sim_charges_diverses'], ['tauxTVA', 'sim_taux_tva'],
+  ['commissionAgentType', 'sim_commission_agent_type'], ['vacancesLocatives', 'sim_vacances_locatives'],
+];
+// Les chiffres que l'Analyse donne aussi : comme à l'écran, elle passe devant, sauf ce qu'on a tapé à la main. Un loyer ou
+// une surface à zéro veut dire « pas renseigné ».
+const FAITS_DU_SIMULATEUR = [
+  ['loyerInitialHTHC', ['sim_loyer_initial_ht', 'loyer_annuel_ht'], true], ['surface', ['sim_surface', 'surface_m2'], true],
+  ['taxeFonciere', ['sim_taxe_fonciere']], ['chargesCopropriete', ['sim_charges_copropriete']], ['loyerSoumisTVA', ['sim_loyer_soumis_tva']],
+  ['chargesCoproRefacturables', ['sim_charges_refacturable']], ['taxeFonciereRefacturable', ['sim_taxe_refacturable']],
+];
+export function simulateurDuDossier(sim = {}) {
+  const sortie = { sim_commission_agent_active: true }; // Honoraires toujours comptés dans le simulateur du dossier.
+  for (const [cle, champ] of REGLAGES_DU_SIMULATEUR) if (sim[cle] != null) sortie[champ] = sim[cle];
+  if (sim.revalorisationActive != null) {
+    const oui = sim.revalorisationActive && Number(sim.anneeRevalorisation) > 0;
+    Object.assign(sortie, { sim_annee_revalorisation: oui ? sim.anneeRevalorisation : null, sim_loyer_revalorise: oui ? sim.loyerRevalorise || 0 : 0 });
+  }
+  if (sim.renegociationActive != null) {
+    const oui = sim.renegociationActive && Number(sim.anneeRenegociation) > 0;
+    Object.assign(sortie, { sim_annee_renegociation: oui ? sim.anneeRenegociation : null, sim_taux_renegocie: oui ? sim.nouveauTauxRenegociation || 0 : 0, sim_ira_mois: oui ? sim.iraRenegociation || 0 : 0 });
+  }
+  const saisis = new Set(sim.saisis || []);
+  for (const [cle, champs, positif] of FAITS_DU_SIMULATEUR) {
+    if (!saisis.has(cle) || sim[cle] == null || (positif && !(Number(sim[cle]) > 0))) continue;
+    for (const champ of champs) sortie[champ] = sim[cle];
+  }
+  return sortie;
+}
+
+// Les travaux joués dans le simulateur du dossier, rangés par année comme dans le formulaire du projet (20 ans). Tous à
+// zéro, le montant 1 à 0 dit « retirés » : sans lui, travauxDuProjet reprendrait ceux par défaut.
+export function travauxDuDossier(sim = {}) {
+  if (!Array.isArray(sim.travauxBailleur)) return travauxParDefautDuProjet();
+  const sortie = { sim_travaux_montant1: 0 };
+  sim.travauxBailleur.slice(0, 20).forEach((montant, i) => { if (Number(montant) > 0) Object.assign(sortie, { [`sim_travaux_annee${i + 1}`]: i + 1, [`sim_travaux_montant${i + 1}`]: Number(montant) }); });
+  return sortie;
+}
+
+// L'apport enregistré, sinon celui que l'écran montre : 15 % du prix de revient, pas du prix FAI.
+function apportDuSimulateur(champs, sim = {}) {
+  if (Number(sim.apport) > 0) return Number(sim.apport);
+  try {
+    const revient = calculerTableauAnnuel({ ...parametresDuProjet(champs), apport: 0 }).prixRevient;
+    if (revient > 0) return Math.round(revient * 0.15);
+  } catch { /* l'apport de départ reste */ }
+  return champs.sim_apport;
+}
 
 // Données de marché : reprise de la base DonneeMarche si une entrée existe
 // pour la ville (alimentée par les refus précédents ou saisie à la main).
@@ -361,12 +419,15 @@ const CASES_DU_PROJET = [
   ['kbis', 'denomination', 'nom_locataire'],
   ['kbis', 'activite', 'activite_locataire'],
 ];
+const premierNombre = (texte) => {
+  const m = String(texte || '').replace(/(\d)[\s\u00a0\u202f.](?=\d{3}\b)/g, '$1').match(/\d+(?:,\d+)?/);
+  const n = m ? Number(m[0].replace(',', '.')) : null;
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
 export function loyerAnnuel(texte) {
   const t = String(texte || '').toLowerCase();
-  const m = t.replace(/(\d)[\s\u00a0\u202f.](?=\d{3}\b)/g, '$1').match(/\d+(?:,\d+)?/);
-  if (!m) return null;
-  const n = Number(m[0].replace(',', '.'));
-  if (!Number.isFinite(n) || n <= 0) return null;
+  const n = premierNombre(t);
+  if (n == null) return null;
   return Math.round(/mois|mensuel/.test(t) ? n * 12 : /trimestr/.test(t) ? n * 4 : n);
 }
 
@@ -405,6 +466,94 @@ function champsDeLAnalyse(analyse, { tranchees = false } = {}) {
     if (nom) patch.nom_locataire = nom;
   }
   return patch;
+}
+
+// Le reste de ce que l'Analyse a lu, là où le projet l'attend (9 nov. 2026, Jules : « vraiment tout doit se mettre sinon on
+// est obligé de ressaisir à la main ») : bail, copropriété, diagnostics, Kbis. Ni le vendeur ni le bailleur : la page
+// du projet est lue par les clients.
+const LIGNES_DU_BAIL = [
+  ['bail', 'type_bail', 'Type de bail'], ['bail', 'echeance', 'Echéance du bail'], ['bail', 'parties', 'Les parties'],
+  ['bail', 'destination', 'Destination'], ['bail', 'loyer_signature', 'Loyer de signature'], ['quittances', 'loyer_hc_ht', 'Loyer relevé sur quittances'],
+  ['bail', 'cession', 'Droit de cession'], ['bail', 'indexation', "Mode d'indexation"], ['bail', 'depot', 'Dépôt de garantie'],
+  ['bail', 'pas_de_porte', 'Pas-de-porte'], ['bail', 'charges', 'Charges et taxes refacturées'], ['bail', 'taxes', 'Taxes refacturées'],
+];
+const DIAGNOSTICS_NOTES = ['dtg', 'amiante', 'erp', 'termites', 'plomb', 'electricite'];
+const KBIS_NOTES = ['immatriculation', 'capital', 'dirigeant', 'procedure'];
+export function champsCompletsDeLAnalyse(analyse, deal = null) {
+  const lue = (grille, critere) => {
+    const l = analyse?.grilles?.find((g) => g.id === grille)?.lignes.find((x) => x.id === critere);
+    if (!l?.valeur || l.statut === 'introuvable') return null;
+    return { libelle: l.libelle, texte: [...new Set(String(l.valeur).split('\n').map((x) => x.trim()).filter(Boolean))].join('\n'), donnees: l.statut === 'corrige' ? {} : (l.sources || []).find((x) => x.document_id === l.retenue)?.donnees || {} };
+  };
+  const note = (grille) => (id) => { const l = lue(grille, id); return l ? { titre: l.libelle, contenu: l.texte } : null; };
+  const sortie = {};
+
+  const bail = LIGNES_DU_BAIL.map(([g, c, label]) => { const l = lue(g, c); return l ? { label, value: l.texte } : null; }).filter(Boolean);
+  if (bail.length) sortie.bail_admin_fields = bail;
+  const signature = lue('bail', 'loyer_signature');
+  if (signature) sortie.bail_loyer_initial = Number(signature.donnees.annuel_ht) || loyerAnnuel(signature.texte);
+  const depot = lue('bail', 'depot');
+  if (depot) sortie.bail_depot_garantie = Number(depot.donnees.montant) || premierNombre(depot.texte);
+  const ferme = lue('bail', 'type_bail')?.texte.match(/(\d{1,2})\s*ans?\s+ferme/i);
+  if (ferme) sortie.bail_duree_ferme_ans = Number(ferme[1]);
+  const provision = lue('quittances', 'provision');
+  if (provision) sortie.provision_charges = Number(provision.donnees.montant) || premierNombre(provision.texte);
+
+  const autorisees = lue('rcp', 'activites_autorisees') || lue('bail', 'destination');
+  if (autorisees) sortie.activites_autorisees = autorisees.texte;
+  const interdites = lue('rcp', 'activites_interdites');
+  if (interdites) sortie.activites_interdites = interdites.texte;
+  // La case de la page attend un pourcentage ; des tantièmes seuls restent dans l'analyse de la copropriété.
+  const quotePart = lue('rcp', 'quote_part')?.texte.match(/(\d+(?:[.,]\d+)?)\s*%/);
+  if (quotePart) sortie.quote_part_lot = Number(quotePart[1].replace(',', '.'));
+
+  // Les résolutions lues, assemblée par assemblée ; celles qu'on a cachées dans l'Analyse restent cachées.
+  const issues = (ag, issue) => ag.resolutions.filter((r) => r.issue === issue && !r.cachee).map((r) => r.nom).filter(Boolean).join('\n');
+  const assemblees = (analyse?.assemblees || []).filter((ag) => ag.annee && ag.resolutions?.length)
+    .map((ag) => ({ annee: ag.annee, synthese: '', resolutions_votees: issues(ag, 'adoptee'), resolutions_refusees: issues(ag, 'rejetee') }));
+  if (assemblees.length) sortie.assemblees_generales = assemblees;
+  const votees = assemblees.map((a) => a.resolutions_votees).filter(Boolean).join('\n') || lue('pv_ag', 'travaux_votes')?.texte;
+  if (votees) sortie.resolutions_votees = votees;
+  const refusees = assemblees.map((a) => a.resolutions_refusees).filter(Boolean).join('\n') || lue('pv_ag', 'resolutions_non_votees')?.texte;
+  if (refusees) sortie.resolutions_refusees = refusees;
+
+  const dpe = lue('diagnostics', 'dpe');
+  if (dpe) {
+    const { note: lettre, consommation } = dpeDepuis(dpe.texte);
+    if (lettre) sortie.dpe_note = lettre;
+    if (consommation) sortie.dpe_consommation = consommation;
+  }
+  const diagnostics = [dpe && { titre: 'DPE', contenu: dpe.texte }, ...DIAGNOSTICS_NOTES.map(note('diagnostics'))].filter(Boolean);
+  if (diagnostics.length) sortie.notes_diagnostique = diagnostics;
+  const kbis = KBIS_NOTES.map(note('kbis')).filter(Boolean);
+  if (kbis.length) sortie.notes_locataire = kbis;
+
+  // La surface dite en toutes lettres : la case de l'onglet Bien si elle dit un chiffre, sinon la première pièce lue.
+  const etat = deal?.analyse_pieces || {};
+  const lues = Object.values(etat.docs || {}).filter((d) => ['bail', 'diagnostics'].includes(d?.type)).map((d) => d.valeurs?.bien_surface?.valeur);
+  const detail = [etat.cases?.['bien.surface']?.valeur, ...lues].find((t) => /\d/.test(String(t || '')));
+  if (detail) sortie.surface_detail = String(detail).trim();
+
+  // Le loyer du marché seulement s'il a été vérifié : sinon la page suit Equimmox et « Relancer l'analyse du loyer ».
+  const marche = [analyse?.cases_marche?.loyer_marche, analyse?.cases_marche?.loyer_moyen].find((c) => c?.statut === 'verifie' && premierNombre(c.valeur));
+  if (marche) sortie.marche_loyer_autour = premierNombre(marche.valeur);
+  return Object.fromEntries(Object.entries(sortie).filter(([, v]) => v != null && v !== ''));
+}
+
+// Les pièces de la Data Room, rangées par l'Analyse, dans l'onglet Documents du projet, et les cases cochées avec.
+// Ni la fiche de l'agent ni les pièces sans type : l'onglet est montré aux clients.
+const PIECES_DU_PROJET = ['bail', 'avenants', 'quittances', 'pv_ag', 'rcp', 'diagnostics', 'taxe_fonciere', 'kbis'];
+const CASES_DOCUMENTS = ['bail', 'pv_ag', 'diagnostics', 'quittances', 'rcp'];
+export function piecesDuProjet(analyse) {
+  const fichiers_projet = [];
+  const docs_checklist = {};
+  for (const e of analyse?.emplacements || []) {
+    if (!PIECES_DU_PROJET.includes(e.id)) continue;
+    const pieces = (e.documents || []).filter((d) => d.url);
+    fichiers_projet.push(...pieces.map((d) => ({ nom: d.titre || d.nom || e.titre, url: d.url })));
+    if (pieces.length && CASES_DOCUMENTS.includes(e.id)) docs_checklist[e.id] = true;
+  }
+  return { fichiers_projet, docs_checklist };
 }
 
 // « SARL TARTANPION » s'écrit « Sarl tartanpion » (30 oct. 2026, Jules : une majuscule pour commencer, le reste en
@@ -642,9 +791,18 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null, 
   const lot = lotOuVide(deal, lotIndex);
   const { adresseComplete, champs } = donneesDuLot(lot);
   // Remplir au maximum (30 oct. 2026, Jules) : ce que les pièces ont lu (Kbis, bail) complète le lot, sans l'écraser.
-  for (const [k, v] of Object.entries(champsDeLAnalyse(analyse))) if (!champs[k]) champs[k] = v;
-  Object.assign(champs, chargesConnues(lot.simulateur, analyse?.simulateur?.valeurs), travauxParDefautDuProjet());
+  for (const [k, v] of Object.entries(champsDeLAnalyse(analyse))) if (!champs[k] || motVide(champs[k])) champs[k] = v;
+  Object.assign(champs, chargesConnues(lot.simulateur, analyse?.simulateur?.valeurs), travauxDuDossier(lot.simulateur));
   Object.assign(champs, simulateurDeLAnalyse(champs, analyse), ville || {});
+  Object.assign(champs, simulateurDuDossier(lot.simulateur));
+  champs.sim_apport = apportDuSimulateur(champs, lot.simulateur);
+  for (const [k, v] of Object.entries(champsCompletsDeLAnalyse(analyse, deal))) if (!champs[k] || (Array.isArray(champs[k]) && !champs[k].length)) champs[k] = v;
+  if (!champs.locataire_depuis && champs.bail_date_debut) champs.locataire_depuis = champs.bail_date_debut;
+  if (!champs.bail_date_echeance && /^\d{4}-\d{2}-\d{2}/.test(String(champs.echeance_bail || ''))) champs.bail_date_echeance = champs.echeance_bail;
+  // Les cases de la page projet qui redisent un chiffre du simulateur.
+  if (Number(champs.sim_taxe_fonciere) > 0) champs.taxe_fonciere_an = champs.sim_taxe_fonciere;
+  if (Number(champs.sim_charges_copropriete) > 0) champs.charges_copropriete = champs.sim_charges_copropriete;
+  if (Number(champs.sim_loyer_initial_ht) > 0 && Number(champs.sim_surface) > 0) champs.loyer_m2_an = Math.round(champs.sim_loyer_initial_ht / champs.sim_surface);
   if (vente?.annee) Object.assign(champs, { derniere_vente_annee: vente.annee, detenu_depuis: String(vente.annee), ...(vente.prix ? { derniere_vente_prix: vente.prix } : {}) });
   const profil = profilDuKbis(analyse);
   if (profil && !champs.profil_locataire) champs.profil_locataire = profil;
@@ -662,7 +820,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null, 
     // Un projet issu d'un deal de test est marqué pour être repérable (et
     // supprimé avec le deal).
     // Le nom du local, sans l'adresse (30 oct. 2026) : il vient du lot, sinon du Kbis lu dans l'Analyse.
-    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom) || brut.nom, adresseComplete, val(lot.lot.locataire_activite) || brut.activite)}`,
+    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom) || brut.nom, adresseComplete, [val(lot.lot.locataire_activite), brut.activite].find((a) => a && !motVide(a)) || null)}`,
     statut: 'analyse',
     archived: false,
     admin_principal: user?.email || adminEmails[0] || null,
@@ -680,13 +838,16 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null, 
     photos: [imageVille, ...photosDeLaDataRoom(deal).map((p) => p.url)].filter(Boolean),
     photos_data_room: photosDeLaDataRoom(deal).map((p) => p.id),
     documents: [],
-    fichiers_projet: [],
-    docs_checklist: {},
+    ...piecesDuProjet(analyse),
   };
 
   // L'extraction des documents complète la fiche : bail, copropriété,
   // diagnostics, TVA. Il ne réécrit jamais ce que la préanalyse a déjà posé.
   const { patch, remplis } = patchDepuisExtractions(deal, projet);
+  // L'ancienne lecture ne contredit ni ce qu'on a tapé dans le simulateur, ni l'Analyse.
+  if ((lot.simulateur?.saisis || []).includes('loyerSoumisTVA') || typeof analyse?.simulateur?.valeurs?.loyerSoumisTVA === 'boolean') delete patch.sim_loyer_soumis_tva;
+  // Un diagnostic lu deux fois (ancienne lecture et Analyse) n'a qu'une note, celle de l'Analyse.
+  if (patch.notes_diagnostique) patch.notes_diagnostique = patch.notes_diagnostique.filter((n, i, t) => t.findIndex((x) => x.titre.toLowerCase() === n.titre.toLowerCase()) === i);
   Object.assign(projet, patch);
   // Le premier message du chat : ce qui a été mis, puis ce qu'il reste à vérifier.
   projet.questions_ouverture = questionsDuProjet({ ...projet, ...pointsDeLAnalyse(analyse) }, { aVerifier: aVerifierDansLAnalyse(analyse) });

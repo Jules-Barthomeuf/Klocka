@@ -1056,7 +1056,7 @@ export default function Prospection() {
       )}
       {/* Hors de la page (portail) : au téléphone elle couvre la barre du haut, au bureau le bouton de rappel. */}
       {fiche && createPortal(
-        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[45] w-full max-w-[640px] overflow-y-auto border-l border-relief bg-fond p-5 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
+        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[45] w-full max-w-[640px] overflow-y-auto border-l border-relief bg-rail p-5 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
           <FicheContact key={`${fiche.type}:${fiche.id}`} depart={fiche} onFermer={() => setFiche(null)} />
         </div>, document.body)}
       {carte && <CarteAppel key={carte.nom + (carte.resume || "")} carte={carte} onFermer={() => setCarte(null)} />}

@@ -15,6 +15,7 @@ import SimScenarios from "../components/simulator/layout/SimScenarios";
 import SimParametresAvances from "../components/simulator/layout/SimParametresAvances";
 
 import { travauxParDefaut } from "@/components/simulator/CalculFinancier";
+import { Onglets } from "@/components/ui/kit";
 import RendezVousFondateur, { useVisiteSimulateur } from "@/components/simulator/RendezVousFondateur";
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
@@ -380,7 +381,16 @@ export default function SimulateurPublic() {
     { id: "avance", label: "Paramètres avancés" },
   ];
 
-  if (!loaded) return <div className="min-h-screen bg-fond flex items-center justify-center"><div className="w-8 h-8 border-4 border-menthe/30 border-t-menthe rounded-full animate-spin" /></div>;
+  // « cadre=projet » : l'aperçu de l'onglet Simulateur d'un projet, sur le fond de la page, ses blocs au registre des
+  // autres onglets (9 nov. 2026, Jules). Le lien public et ceux des dossiers ne changent pas.
+  const enProjet = new URLSearchParams(window.location.search).get("cadre") === "projet";
+  useEffect(() => {
+    if (!enProjet) return;
+    document.documentElement.style.background = "transparent";
+    document.body.style.background = "transparent";
+  }, [enProjet]);
+
+  if (!loaded) return <div className={`min-h-screen ${enProjet ? "" : "bg-fond"} flex items-center justify-center`}><div className="w-8 h-8 border-4 border-menthe/30 border-t-menthe rounded-full animate-spin" /></div>;
 
   // « vue=graphique » : le seul graphique des bâtons, pour une page qui l'embarque.
   if (new URLSearchParams(window.location.search).get("vue") === "graphique") {
@@ -408,19 +418,22 @@ export default function SimulateurPublic() {
   );
 
   return (
-    <div className="bg-fond min-h-screen relative w-full max-w-full overflow-x-hidden">
-      <div className="flex flex-col min-h-screen">
+    <div className={`${enProjet ? "k-sim-projet k-sobre font-projet" : "bg-fond min-h-screen"} relative w-full max-w-full overflow-x-hidden`}>
+      <div className={`flex flex-col ${enProjet ? "" : "min-h-screen"}`}>
         <div className="flex flex-1 min-h-0">
           {/* Left control rail */}
           <aside className="hidden md:block w-[260px] flex-shrink-0">
             {rail}
           </aside>
-          <SimReglagesMobile>{rail}</SimReglagesMobile>
+          {!enProjet && <SimReglagesMobile>{rail}</SimReglagesMobile>}
 
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between gap-3 border-b border-trait px-4 h-11 sticky top-0 bg-fond z-10 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+            <div className={`flex items-center justify-between gap-3 ${enProjet ? "pb-3" : "border-b border-trait px-4 h-11 sticky top-0 bg-fond z-10"} max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden`}>
+              {enProjet ? (
+                <Onglets taille="page" className="min-w-0" items={tabs.map((t) => ({ cle: t.id, titre: t.label }))} valeur={activeTab} onChange={(id) => { setActiveTab(id); if (id !== "scenarios") setScenarioNegoPct(0); }} />
+              ) : (
               <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-surface border border-trait min-w-0 overflow-x-auto max-md:flex-shrink-0">
                 {tabs.map((t) => {
                   const active = activeTab === t.id;
@@ -438,6 +451,7 @@ export default function SimulateurPublic() {
                   );
                 })}
               </div>
+              )}
               <div className="flex items-center gap-2">
                 <RendezVousFondateur visite={visite} qui={qui} />
                 {/* Au téléphone, ni Excel ni Partager (14 oct. 2026, Jules) : le rendez-vous reste. */}
@@ -451,7 +465,7 @@ export default function SimulateurPublic() {
               </div>
             </div>
 
-            <div key={activeTab} className="p-4 max-md:pb-24 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+            <div key={activeTab} className={`k-sim-corps ${enProjet ? "pt-2" : "p-4 max-md:pb-24"} space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out`}>
               {negoActive && (
                 <div className="flex items-center gap-2 text-xs text-menthe bg-menthe/10 border border-menthe/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.

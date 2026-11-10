@@ -228,7 +228,7 @@ export default function Cloche({ className = "", mandataire = false, sansBoutonT
                     </motion.div>
                   ))}
                   {/* Mes notifications, sous ce qui attend (19 oct. 2026, Jules) : chacune se lit ou s'efface d'un clic. */}
-                  <NotificationsVolet onOuvrir={(lien) => { setOuvert(false); navigate(lien); }} />
+                  <NotificationsVolet mandataire={mandataire} onOuvrir={(lien) => { setOuvert(false); navigate(lien); }} />
                 </div>
               </motion.div>
             </>

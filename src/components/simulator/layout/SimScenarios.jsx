@@ -143,7 +143,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
         <p className="text-[11px] uppercase tracking-[0.18em] mb-3 text-ardoise">
           Scénario sélectionné · {selected.niveau === "custom" ? "Prix personnalisé" : `Négociation -${selected.niveau}%`}
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="k-sim-lignes grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCell label="Prix négocié" value={formatCurrency(selected.data.prixNegocie)} highlight />
           <StatCell label="Prix de revient" value={formatCurrency(selected.data.prixRevient)} />
           <StatCell label="Apport estimé" value={formatCurrency(selected.data.apport)} />

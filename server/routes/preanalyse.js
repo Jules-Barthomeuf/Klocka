@@ -192,6 +192,17 @@ export function monterPreanalyse(app) {
     ok(res, r);
   }));
 
+  // Le verdict sur le prix des murs (10 nov. 2026, Jules) : ventes réelles autour, capitalisation, contrôle du loyer.
+  // « ?taux=6.25 » : le taux de marché donné pour ce calcul, à la place des taux validés de la ville.
+  app.get('/api/preanalyse/dossiers/:dealId/lots/:index/verdict-prix', wrap(async (req, res) => {
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!deal) return res.status(404).json({ error: 'Dossier introuvable' });
+    const { verdictPrixDossier } = await import('../deal/verdict-prix.js');
+    const r = await verdictPrixDossier(deal, Number(req.params.index) || 0, { taux: Number(String(req.query.taux || '').replace(',', '.')) || null, user: currentUser(req) });
+    if (!r.ok) return res.status(404).json(r);
+    ok(res, r);
+  }));
+
   // Le prix et le loyer de marché saisis à la main (18 oct. 2026, Jules) : ils l'emportent sur la lecture.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/marche-manuel', wrap(async (req, res) => {
     const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);

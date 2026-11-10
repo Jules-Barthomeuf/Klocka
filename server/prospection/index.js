@@ -21,6 +21,7 @@ import * as R from './regles.js';
 import * as C from './carnet.js';
 import { reglages, villesDuJour } from './reglages.js';
 import { direEnPrive } from './messages.js';
+import { sourceActive } from '../socle/registre-sources.js';
 
 export { reglages, villesDuJour };
 export { enregistrer as enregistrerReglages } from './reglages.js';
@@ -166,7 +167,15 @@ export async function chercherSurEquimmox(villes) {
   for (const ville of villes) {
     const r = await exporterAnnoncesVente(ville);
     if (!r.ok) { parVille.push({ ville, erreur: r.error }); continue; }
-    const candidats = r.buffer ? agentsDesAnnonces(lireXlsx(r.buffer), { classes: reglages().classes, ville: r.ville }) : [];
+    const lignes = r.buffer ? lireXlsx(r.buffer) : [];
+    const candidats = agentsDesAnnonces(lignes, { classes: reglages().classes, ville: r.ville });
+    // Le même fichier porte le loyer des murs vendus loués : gardé pour le loyer de marché (server/loyers-reels.js).
+    if (lignes.length && sourceActive('murs_occupes')) {
+      try {
+        const { referencesDeLExport, garderLoyersReels } = await import('../loyers-reels.js');
+        await garderLoyersReels(referencesDeLExport(lignes, { ville: r.ville }));
+      } catch (e) { console.warn(`[prospection] loyers réels de ${r.ville} : ${e?.message || e}`); }
+    }
     const res = C.integrer(candidats);
     crees += res.crees.length;
     completes += res.completes;

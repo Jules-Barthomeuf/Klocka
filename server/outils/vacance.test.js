@@ -280,3 +280,13 @@ test('vacance : une demande de suppression retire le signal et l\'empêche de re
   const apres = rechercher({ lon: '-0.244462', lat: '44.914668', rayon_m: '500', commune: '33243', categories: 'commerce' });
   assert.equal(apres.features.length, 1, 'la boulangerie est désormais un commerce');
 });
+
+test('vacance : une commune tombée faute de code postal repart quand la recherche l\'apporte', async () => {
+  utiliserSources({ bodacc: async () => [], sirene: async () => [] });
+  db.prepare("INSERT INTO vacance_zone (code_commune, etat, erreur) VALUES ('99001', 'erreur', 'Code postal inconnu : le BODACC s''interroge par code postal.')").run();
+  const q = { lon: '4.8357', lat: '45.7622', rayon_m: '300', commune: '99001' };
+  assert.equal(rechercher(q).statut, 502, 'sans code postal, l\'erreur reste');
+  const r = rechercher({ ...q, cp: '69002' });
+  assert.equal(r.statut, 202);
+  assert.equal(zone('99001').code_postal, '69002');
+});

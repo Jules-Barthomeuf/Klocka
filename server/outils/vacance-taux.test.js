@@ -76,6 +76,23 @@ test('OpenStreetMap ne se rattache que par l\'adresse ; un local vide qu\'il sig
   assert.equal(T.lireOsm({ type: 'node', lat: 1, lon: 2, tags: { shop: 'vacant', 'addr:housenumber': '12', 'addr:street': 'Rue Thiers' } }).vacant, true);
 });
 
+test('le repli sur l\'API principale d\'OpenStreetMap lit la carte comme Overpass : étiquettes, centre des bâtiments, rayon', () => {
+  const els = [
+    { type: 'node', id: 1, lat: 44.9150, lon: -0.2430, tags: { shop: 'bakery', name: 'Paul', 'addr:housenumber': '3', 'addr:street': 'Rue Thiers' } },
+    { type: 'node', id: 2, lat: 44.9151, lon: -0.2431, tags: { amenity: 'bench' } },
+    { type: 'node', id: 3, lat: 44.9152, lon: -0.2432 },
+    { type: 'node', id: 4, lat: 44.9154, lon: -0.2432 },
+    { type: 'way', id: 10, nodes: [3, 4], tags: { 'disused:shop': 'clothes', 'addr:housenumber': '5', 'addr:street': 'Rue Thiers' } },
+    { type: 'node', id: 5, lat: 44.9400, lon: -0.2430, tags: { shop: 'florist', name: 'Loin' } },
+    { type: 'node', id: 1, lat: 44.9150, lon: -0.2430, tags: { shop: 'bakery', name: 'Paul' } },
+  ];
+  const r = T.lireCarteOsm(els, ZONE.lat, ZONE.lon, ZONE.rayon_m);
+  assert.deepEqual(r.map((o) => o.nom || o.type), ['Paul', 'clothes'], 'un banc ne compte pas, un commerce à 2,8 km non plus, un carré relu une fois');
+  assert.equal(r[1].vacant, true);
+  assert.equal(r[1].adresse, '5 Rue Thiers');
+  assert.ok(Math.abs(r[1].lat - 44.9153) < 1e-9, 'un bâtiment porte le centre de ses nœuds');
+});
+
 // --- Par rue et par tronçon (16 oct. 2026) ----------------------------------------------------
 
 test('la voie d\'un nom de rue seul est celle du registre, sans article ni abréviation', () => {

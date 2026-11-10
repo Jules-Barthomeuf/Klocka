@@ -343,6 +343,20 @@ button.k-verre:hover { background: rgb(var(--k-surface-pleine-rgb)); }
 .k-carte::after {
     background-image: linear-gradient(to top right, rgb(var(--k-carte-grille-rgb) / .9), rgb(var(--k-carte-grille-rgb) / .4), rgb(var(--k-carte-grille-rgb) / .1));
 }
+/* L'aperçu de l'onglet Simulateur d'un projet (9 nov. 2026, Jules) : le dessin du formulaire d'à côté, sur le noir du bloc
+   (cadres fins sans fond, titre à 16 px, lignes libellé / valeur). Seul cadre=projet porte .k-sim-projet : le simulateur public et ceux des dossiers ne bougent pas. */
+.k-sim-projet .k-sim-corps > .border.border-trait,
+.k-sim-projet .k-sim-corps > * > .rounded-md.border.border-trait { border-radius: 16px; background-color: transparent; }
+.k-sim-projet .border.border-trait > .border-b.border-trait:first-child { display: flex; align-items: center; min-height: 46px; padding-block: 0; padding-inline: 16px; }
+.k-sim-projet .k-sim-corps p.text-sm.font-medium { font-size: 16px; }
+.k-sim-projet :is(th, td):is(.bg-surface, .bg-relief) { background-color: rgb(var(--k-fond-rgb)); }
+.k-sim-projet .k-sim-lignes { display: block; }
+.k-sim-projet .k-sim-lignes > * { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; margin: 0 !important; padding: 6px 16px; border: 0 !important; border-bottom: 1px solid var(--k-trait) !important; font-size: 13.5px; }
+.k-sim-projet .k-sim-lignes > *:last-child { border-bottom: 0 !important; }
+.k-sim-projet .k-sim-lignes p { margin: 0; font-size: 13.5px; font-weight: 400; letter-spacing: 0; }
+.k-sim-projet .k-sim-lignes > * > :first-child, .k-sim-projet .k-sim-lignes > * > :first-child p { color: rgb(var(--k-craie-rgb)); }
+.k-sim-projet .rounded-md.border.p-4:has(> .k-sim-lignes) { padding: 0; }
+.k-sim-projet .rounded-md.border.p-4:has(> .k-sim-lignes) > p { display: flex; align-items: center; min-height: 46px; margin: 0; padding-inline: 16px; border-bottom: 1px solid var(--k-trait); font-size: 16px; font-weight: 500; color: rgb(var(--k-encre-rgb)); }
 
 /* En clair, pas de dégradé de fond : ni les halos décoratifs (classe k-halo,
    et ceux de l'accueil), ni les fonds en dégradé Tailwind. Ce qui reste,
@@ -713,6 +727,8 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 /* Le plan Google Maps (13 oct. 2026) : affiché tel quel, en clair, quel que soit le thème. */
 .k-carte-rues.k-carte-google .leaflet-container { background: #f8f9fa !important; }
 .k-carte-rues.k-carte-google .leaflet-tile-pane { filter: none !important; }
+/* Le plan Google sombre de K-Vacance (10 nov. 2026) : déjà sombre, fond du conteneur assorti. */
+.k-carte-rues.k-carte-google.k-carte-sombre .leaflet-container { background: rgb(var(--k-fond-rgb)) !important; }
 
 
 /* ALX, le registre de la maquette : Figtree pour le texte, Montserrat en

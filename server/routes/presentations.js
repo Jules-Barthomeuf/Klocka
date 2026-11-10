@@ -38,7 +38,7 @@ export function monterPresentations(app) {
   }));
   app.get('/api/tuiles-google/:z/:x/:y', wrap(async (req, res) => {
     if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
-    const r = await (await import('../tuiles-google.js')).tuile(req.params.z, req.params.x, String(req.params.y).replace(/\.png$/, ''));
+    const r = await (await import('../tuiles-google.js')).tuile(req.params.z, req.params.x, String(req.params.y).replace(/\.png$/, ''), req.query.theme);
     if (!r.ok) return res.status(r.statut || 502).end();
     res.set('Content-Type', r.type);
     res.set('Cache-Control', r.cache.replace(/\bpublic\b/, 'private'));

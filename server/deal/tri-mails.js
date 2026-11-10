@@ -205,7 +205,10 @@ export function referentielTri() {
     attendus: agentsAttendus(),
     ignores: new Set(EXPEDITEURS_IGNORES),
     apprises: reglesApprises(),
-    exemples: exemplesRecents(), commandes };
+    exemples: exemplesRecents(), commandes,
+    // Les mandataires qui transfèrent un bien (9 nov. 2026) : à part des `internes`, dont on déduit les domaines de
+    // l'équipe (un mandataire écrit souvent depuis l'adresse de son agence).
+    mandataires: new Set(Records.filter('User', { role: 'mandataire' }).map((u) => String(u.email || '').toLowerCase()).filter(Boolean)) };
 }
 
 /**
@@ -237,6 +240,7 @@ export function trierMail(mail, ref) {
   const interne = ref.internes.has(email) || (!!domaine && ref.domaines.has(domaine));
   // Haka (17 oct. 2026) : sur une boîte commune (sourcing@), un mail de l'équipe est une demande à Haka, pièce ou pas.
   if (interne && ref.commandes?.has(String(mail.compte || '').toLowerCase())) return { garder: true, interne: true, commande: true, raison: 'demande à l\'Assistant KPartners' };
+  if (ref.mandataires?.has(email) && ref.commandes?.has(String(mail.compte || '').toLowerCase())) return { garder: true, interne: true, commande: true, raison: 'bien transféré par un mandataire' };
   if (interne) {
     const utiles = (mail.pieces_jointes || []).filter((p) => PIECES_UTILES.test(p.nom || '') && !PIECES_INUTILES.test(p.nom || ''));
     if (!utiles.length) return { garder: false, raison: 'échange interne, sans pièce' };

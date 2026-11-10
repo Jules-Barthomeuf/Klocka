@@ -16,7 +16,6 @@ import {
   Wrench,
   Workflow,
   LayoutTemplate,
-  LayoutGrid,
   Magnet,
   Building2,
   Calculator,
@@ -38,10 +37,11 @@ import {
   ChevronLeft,
   ChevronDown,
   Globe,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, Bell, LibraryBig, ChartColumn, FileSpreadsheet } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, Bell, LibraryBig, ChartColumn, FileSpreadsheet } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
-import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
+import { PAGES_KDATA } from "@/lib/kdata-modules";
+import CadreOutils from "@/components/kdata/CadreOutils";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, definirEspace, themeEffectif } from "@/lib/personnalisation";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, masquesDe, menuAdmin, menuMandataire, repartir } from "@/lib/menu";
@@ -152,21 +152,6 @@ function BasculeKData({ enKData, onChanger }) {
   );
 }
 
-function BasculeTheme({ clair, onBasculer }) {
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onBasculer}
-      className="text-brume hover:text-encre hover:bg-transparent h-8 w-8 flex-shrink-0"
-      title={clair ? "Passer en mode sombre" : "Passer en mode clair"}
-      aria-label={clair ? "Passer en mode sombre" : "Passer en mode clair"}
-    >
-      {clair ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-    </Button>
-  );
-}
-
 // Onglet Double Check masqué du menu. La page /AdminBrouillons reste en place et
 // accessible par son URL : passez ce drapeau à true pour la remontrer.
 const AFFICHER_DOUBLE_CHECK = false;
@@ -184,132 +169,6 @@ function Wordmark({ collapsed = false }) {
   );
 }
 
-function MenuApps({ isActivePage }) {
-  const [ouvert, setOuvert] = useState(false);
-  const minuterie = useRef(null);
-  // Au doigt, le toucher passe par le focus avant le clic : sans cette date,
-  // le clic refermait aussitôt le menu qu'il venait d'ouvrir.
-  const ouvertA = useRef(0);
-  const ouvrir = () => { clearTimeout(minuterie.current); setOuvert((o) => { if (!o) ouvertA.current = Date.now(); return true; }); };
-  const fermer = () => { minuterie.current = setTimeout(() => setOuvert(false), 180); };
-  useEffect(() => () => clearTimeout(minuterie.current), []);
-
-  // Le nom de l'application ouverte reste affiché : sans lui, la barre ne dirait
-  // plus où l'on se trouve.
-  const actif = MODULES_KDATA.find((m) => isActivePage(m.pageName));
-
-  return (
-    <div className="relative min-w-0 max-w-full" onMouseEnter={ouvrir} onMouseLeave={fermer} onFocus={ouvrir} onBlur={fermer}>
-      <button
-        type="button"
-        onClick={() => { if (Date.now() - ouvertA.current < 400) return; if (ouvert) fermer(); else ouvrir(); }}
-        aria-expanded={ouvert}
-        className={`flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition-colors max-md:min-h-[36px] ${ouvert || actif ? "bg-encre/[0.07] text-encre" : "text-ardoise hover:text-encre"}`}
-      >
-        <LayoutGrid className="h-3.5 w-3.5 flex-none" />
-        <span className="flex-none">Apps</span>
-        {/* À 360 px, le nom de l'application se coupe plutôt que de pousser la barre. */}
-        {actif && <span className="min-w-0 truncate text-menthe-texte">· {actif.nom}</span>}
-      </button>
-
-      {ouvert && (
-        <div className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-1/2 top-[calc(100%+8px)] z-50 w-[560px] max-w-[92vw] -translate-x-1/2 overflow-hidden max-md:fixed max-md:inset-x-3 max-md:top-[calc(3.5rem+env(safe-area-inset-top)+8px)] max-md:max-h-[calc(100dvh-5rem-env(safe-area-inset-top))] max-md:w-auto max-md:max-w-none max-md:translate-x-0 max-md:overflow-y-auto rounded-[18px] border border-trait bg-surface-pleine p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
-          <Link
-            to={createPageUrl("KData")}
-            onClick={() => setOuvert(false)}
-            className="mb-1 flex items-center gap-3 rounded-[12px] px-3 py-2.5 hover:bg-relief"
-          >
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] border border-trait bg-relief">
-              <LayoutGrid className="h-4 w-4 text-menthe" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-encre">Outils</span>
-              <span className="block truncate text-[11.5px] text-ardoise">Le tableau de bord des outils.</span>
-            </span>
-          </Link>
-          <div className="grid grid-cols-2 gap-1 max-sm:grid-cols-1">
-            {MODULES_KDATA.map((m) => {
-              const Icone = m.icone;
-              const contenu = (
-                <>
-                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] border border-trait bg-relief">
-                    <Icone className={`h-4 w-4 ${m.chemin ? "text-encre" : "text-brume"}`} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className={`block text-[13px] font-medium ${m.chemin ? "text-encre" : "text-brume"}`}>{m.nom}</span>
-                    <span className="block truncate text-[11.5px] text-ardoise">{m.chemin ? m.phrase : m.etat}</span>
-                  </span>
-                </>
-              );
-              const habit = "flex items-center gap-3 rounded-[12px] px-3 py-2.5";
-              return m.chemin ? (
-                <Link key={m.cle} to={m.chemin} onClick={() => setOuvert(false)}
-                  className={`${habit} ${isActivePage(m.pageName) ? "bg-encre/[0.07]" : "hover:bg-relief"}`}>
-                  {contenu}
-                </Link>
-              ) : (
-                <span key={m.cle} className={`${habit} cursor-default`}>{contenu}</span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// La barre du haut de K-Data : le logo ramène à Klocka, le menu ouvre les
-// six applications. Elle remplace la barre latérale entière — K-Data n'a pas
-// de sidebar, il a sa propre barre, pour se sentir comme un autre onglet de
-// l'application plutôt que comme une page de plus dans Klocka.
-function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
-  return (
-    <div
-      className="fixed top-0 left-0 right-0 z-50 flex items-center gap-1 border-b border-trait px-3 md:px-5"
-      style={{
-        // La hauteur compte l'encoche : sans elle, le padding mangeait la barre.
-        height: "calc(3.5rem + env(safe-area-inset-top))",
-        paddingTop: "env(safe-area-inset-top)",
-        background: "rgb(var(--k-fond-halo-rgb) / 0.42)",
-        backdropFilter: "blur(16px) saturate(1.15)",
-        WebkitBackdropFilter: "blur(16px) saturate(1.15)",
-      }}
-    >
-      <Link to={createPageUrl("Dashboard")} className="flex flex-shrink-0 items-center pr-3" title="Revenir à Klocka">
-        <img src="/logo-klocka.svg" alt="Klocka" className="h-9 w-9 rounded-[7px]" draggable={false} />
-      </Link>
-      <div className="mr-2 h-5 w-px flex-shrink-0 bg-encre/[0.1]" />
-
-      <nav className="flex min-w-0 flex-1 items-center justify-center">
-        <MenuApps isActivePage={isActivePage} />
-      </nav>
-
-      <div className="ml-2 flex flex-shrink-0 items-center gap-2">
-        <Link
-          to={createPageUrl("KData")}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-brume transition-colors hover:bg-encre/[0.06] hover:text-encre"
-          title="Tableau de bord des outils"
-        >
-          <Home className="h-4 w-4" />
-        </Link>
-        <BasculeTheme clair={clair} onBasculer={onBasculerTheme} />
-        <div className="hidden h-7 w-7 items-center justify-center rounded-full border border-menthe/40 md:flex" title={user?.full_name || user?.email}>
-          <span className="text-[11px] text-menthe tracking-[0.06em]">{(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => base44.auth.logout(window.location.origin + '/Connexion')}
-          className="h-8 w-8 text-brume hover:bg-transparent hover:text-encre"
-          title="Déconnexion"
-        >
-          <LogOut className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 // Pages that are "child" pages (show back button on mobile)
 const CHILD_PAGES = ['ProjetDetail', 'MonCompte', 'Questionnaire', 'Vision', 'SimulateurRentabilite', 'Comparateur', 'Ressources'];
 
@@ -319,7 +178,7 @@ function LayoutContent({ children, currentPageName }) {
   const user = useUser();
   // Ce que la personne a réglé dans Personnalisation : thème, halo, barre
   // latérale, entrées du menu.
-  const { prefs, changer } = usePersonnalisation();
+  const { prefs } = usePersonnalisation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   // La barre latérale est toujours repliée en rail d'icônes, sur toutes les pages (31 oct. 2026, Jules : « toujours
   // fermée, dès qu'on passe la souris dessus ça s'ouvre »). Plus de réglage ni de bouton pour la déplier.
@@ -453,7 +312,6 @@ function LayoutContent({ children, currentPageName }) {
   // barre latérale et dans la barre du haut de K-Data ; elle écrit la
   // préférence, qui suit le compte.
   const clair = themeEffectif(prefs) === CLAIR;
-  const basculer = () => changer({ mode: clair ? "sombre" : "clair" });
   const fondHalo = !hideNavbar
     && !clair
     && prefs.halo
@@ -511,7 +369,13 @@ function LayoutContent({ children, currentPageName }) {
     window.addEventListener("klocka:mode-telephone", ouvrir);
     return () => window.removeEventListener("klocka:mode-telephone", ouvrir);
   }, []);
-  const modoKData = enKData && vueAdmin && !hideNavbar;
+  // Les Outils gardent la barre de navigation de Klocka (10 nov. 2026, Jules : K-Vacance le matin, tous les outils
+  // l'après-midi, planche « Outils dans le cadre du CRM ») : plus de barre du haut à part. Dans la fenêtre d'un dossier,
+  // un outil reste seul, sans barre.
+  const modoKData = enKData && vueAdmin && !hideNavbar && enCadre;
+  // Le cadre de /CRM autour de toutes les pages Outils, K-Vacance comprise (10 nov. 2026, Jules : « toutes les pages »
+  // comme le tableau de bord).
+  const cadreOutils = enKData && vueAdmin && !hideNavbar && !enCadre;
 
 
   // Ce que chaque entrée du menu dessine : son lien, son icône, sa pastille.
@@ -605,7 +469,7 @@ function LayoutContent({ children, currentPageName }) {
       <div className="flex h-full flex-col">
         {/* La marque, et le repli. */}
         <div className={`k-barre-marque flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
-          {["CrmTwenty", "Emailing"].includes(currentPageName) ? (
+          {["CrmTwenty", "Emailing"].includes(currentPageName) || cadreOutils ? (
             // Sur la page du CRM, la marque laisse la place au logo « crm_ », posé par la page au-dessus de la barre (5 nov. 2026).
             <span aria-hidden="true" className="h-6" />
           ) : vue === "mandataire" ? (
@@ -732,7 +596,7 @@ function LayoutContent({ children, currentPageName }) {
   // main s'en écarte, et le chat (index.css, .k-chat-hauteur) cale sa barre
   // juste au-dessus. Au bureau, rien ne les lit.
   const ongletsMobile = !hideNavbar && showClientView;
-  const assistantVisible = vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName);
+  const assistantVisible = vueAdmin && !hideNavbar && !enKData && !["Dashboard", "Analyse"].includes(currentPageName);
   // Avec la barre du bas (client, mandataire), plus de barre du haut au téléphone (24 oct. 2026, Jules) : il ne reste que l'encoche.
   // Le mandataire garde une bande de 3 rem sous l'encoche, sans barre : le logo kp à gauche, la cloche à droite (25 oct. 2026, Jules).
   const hautMobile = hideNavbar || (modoKData && enCadre) ? "0px" : ongletsMobile ? (vue === "mandataire" ? "calc(3rem + env(safe-area-inset-top))" : "env(safe-area-inset-top)") : "calc(3.5rem + env(safe-area-inset-top))";
@@ -753,12 +617,7 @@ function LayoutContent({ children, currentPageName }) {
       {fondHalo && <FondHalo />}
       {apercuTelephone && <ApercuTelephone departInitial={typeof apercuTelephone === "string" ? apercuTelephone : null} onFermer={() => setApercuTelephone(false)} />}
 
-      {modoKData ? (
-        /* K-Data n'a pas de barre latérale : sa barre du haut, seule, sur
-           bureau comme sur mobile — c'est elle qui fait sentir qu'on a
-           changé de côté de l'application. Dans un cadre, rien du tout. */
-        !enCadre && <BarreKData user={user} isActivePage={isActivePage} clair={clair} onBasculerTheme={basculer} />
-      ) : (
+      {modoKData ? null : (
         <>
           {/* La barre latérale de bureau ; repliée, un rail d'icônes. */}
           {!hideNavbar && (
@@ -853,7 +712,7 @@ function LayoutContent({ children, currentPageName }) {
           {/* L'espace K Partners : chaque écran entre d'un fondu et d'une légère montée (1er nov. 2026, Jules). */}
           {vue === "mandataire"
             ? <div key={location.pathname} className="k-entree-page">{pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}</div>
-            : pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}
+            : pagesFermees.includes(currentPageName) ? <AccesReserve /> : cadreOutils ? <CadreOutils page={currentPageName}>{children}</CadreOutils> : children}
         </div>
       </main>
 
@@ -864,7 +723,7 @@ function LayoutContent({ children, currentPageName }) {
           K-Data répond à une question de marché, pas à un dossier client. */}
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}
       {/* La pilule flottante se tait sur le dashboard : le chat y est déjà. */}
-      {vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
+      {vueAdmin && !hideNavbar && !enKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
       {/* Dès l'arrivée, sur n'importe quelle page de l'équipe (16 oct. 2026, Jules) : l'annonce d'AK, une fois ; puis « Quoi de neuf », une fois par jour. */}
       {/* « Quoi de neuf » n'est plus une fenêtre (18 oct. 2026, Jules) : les nouveautés arrivent dans le mail « Ma journée ». */}
       {/* Les messages d'AK, en bas à gauche (16 oct. 2026, Jules) : la fiche pré-analysée, et la discussion. */}

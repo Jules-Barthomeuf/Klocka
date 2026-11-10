@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Search, Loader2, ChevronLeft, FileText, Pencil, Download, RotateCcw, Printer, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import CarteLoyers, { COULEURS_NIVEAU } from "@/components/kdata/CarteLoyers";
 import { BoutonMecanique } from "@/components/kdata/Mecanique";
+import { createPageUrl } from "@/utils";
+import { BoutonOutil, BoutonPrincipal, CLASSE_CARTE, CLASSE_TABLE, CLASSE_TABLEAU, CLASSE_TD, CLASSE_TH, TitrePage } from "@/components/mandataire/elements";
 
 // Valeur locative : la fourchette de loyer au m² d'une adresse.
 //
@@ -18,6 +20,9 @@ import { BoutonMecanique } from "@/components/kdata/Mecanique";
 // Une recherche neuve pilote Equimmox à trois rayons, quatre minutes : elle
 // part en tâche de fond et la page demande où elle en est toutes les trois
 // secondes. Le panneau dit après si la donnée venait de la base.
+//
+// 10 nov. 2026 (Jules, planche Outils) : la page dans le cadre des Outils, au dessin des autres outils : titre de
+// 24 px, formulaire sur une ligne, dernières recherches en tableau, panneau de la carte au rayon 12 sur `bg-rail`.
 
 const CARTE = "rounded-[18px] border border-trait bg-surface";
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
@@ -27,12 +32,8 @@ const NIVEAUX = [["rue", "Rue"], ["quartier", "Quartier"], ["ville", "Ville"]];
 
 // La mécanique : dans quel ordre Valeur locative interroge quoi.
 const ETAPES_MECANIQUE = [
+  // Equimmox seul (10 nov. 2026, Jules) : la recherche, puis ses résultats.
   { source: "Equimmox, analyse de loyer, à trois rayons", quoi: "Des baux réellement signés : la rue à 200 m, le quartier à 500 m, la ville à 1 km, chacun en fourchette basse et haute. Le résultat se garde trente jours par adresse : le rouvrir ne relance rien." },
-  { source: "Les loyers des dossiers Klocka", quoi: "Les loyers lus dans les baux (poids 3), saisis ou annoncés par les fiches d'agents (poids 1,5), cherchés en cercles : le tronçon, la rue, le quartier (500 m), la commune. Avec Equimmox dans la même liste (poids 1), ils donnent la fourchette par quartiles. Assez de loyers proches et concordants : la valeur Klocka est retenue ; sinon Equimmox, et Klocka sert de contrôle." },
-  { source: "Data-B, en parallèle", quoi: "Interrogé pour comparer, jamais affiché : l'écart à la valeur retenue est gardé avec la recherche, le temps de vérifier qu'on peut s'en passer." },
-  { source: "Géoplateforme, contours IRIS", quoi: "Le découpage en quartiers statistiques pour colorer la carte." },
-  { source: "OpenStreetMap", quoi: "La densité de commerces d'un IRIS qu'on n'a pas lu : un des deux signaux de l'indice de position." },
-  { source: "INSEE Filosofi", quoi: "Le niveau de vie des habitants d'un IRIS qu'on n'a pas lu : le second signal. L'indice classe, il ne chiffre pas — aucun euro n'est inventé." },
 ];
 
 // Les quatre classes de la carte, du plus cher au moins cher.
@@ -57,8 +58,8 @@ function ValeurRetenue({ r }) {
   if (!v) return null;
   return (
     <div className="border-b border-trait px-4 py-3">
-      <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">Valeur retenue</p>
-      <p className="m-0 mt-1 text-[22px] font-semibold tabular-nums text-encre">{euros(v.bas)} à {euros(v.haut)}</p>
+      <p className="m-0 text-[12.5px] text-ardoise">Valeur retenue</p>
+      <p className="m-0 mt-1 text-[22px] font-medium tabular-nums text-encre">{euros(v.bas)} à {euros(v.haut)}</p>
       <p className="m-0 mt-0.5 text-[12px] text-ardoise">
         médiane {euros(v.central)} · {v.source === "klocka" ? `loyers Klocka${c?.libelle ? `, ${c.libelle.toLowerCase()}` : ""}` : "Equimmox"} · confiance {v.confiance}
       </p>
@@ -89,16 +90,16 @@ function ValeurRetenue({ r }) {
 function Niveau({ titre, valeur }) {
   return (
     <div className="border-b border-trait px-4 py-3 last:border-b-0">
-      <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">{titre}</p>
-      <p className="m-0 mt-0.5 truncate text-[14px] font-medium text-encre">{valeur?.nom || "—"}</p>
+      <p className="m-0 text-[12.5px] text-ardoise">{titre}</p>
+      <p className="m-0 mt-0.5 truncate text-[14px] font-medium text-encre">{valeur?.nom || "-"}</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <div className="rounded-[10px] border border-trait bg-surface px-3 py-2">
-          <p className="m-0 text-[10.5px] uppercase tracking-[.08em] text-brume">Estimation basse</p>
-          <p className="m-0 mt-0.5 text-[17px] font-semibold tabular-nums text-encre">{euros(valeur?.basse)}</p>
+        <div className="rounded-[12px] border border-trait bg-fond px-3.5 py-2.5">
+          <p className="m-0 text-[18px] font-medium tabular-nums text-encre">{euros(valeur?.basse)}</p>
+          <p className="m-0 text-[12.5px] text-ardoise">Estimation basse</p>
         </div>
-        <div className="rounded-[10px] border border-trait bg-surface px-3 py-2">
-          <p className="m-0 text-[10.5px] uppercase tracking-[.08em] text-brume">Estimation haute</p>
-          <p className="m-0 mt-0.5 text-[17px] font-semibold tabular-nums text-menthe-texte">{euros(valeur?.haute)}</p>
+        <div className="rounded-[12px] border border-trait bg-fond px-3.5 py-2.5">
+          <p className="m-0 text-[18px] font-medium tabular-nums text-menthe-texte">{euros(valeur?.haute)}</p>
+          <p className="m-0 text-[12.5px] text-ardoise">Estimation haute</p>
         </div>
       </div>
     </div>
@@ -107,9 +108,7 @@ function Niveau({ titre, valeur }) {
 
 function Action({ icone: Icone, children, onClick }) {
   return (
-    <button onClick={onClick} className="flex items-center gap-1.5 rounded-full border border-bord px-3 py-1.5 text-[11px] uppercase tracking-[.1em] text-ardoise hover:border-bord-doux hover:text-encre">
-      <Icone className="h-3.5 w-3.5" />{children}
-    </button>
+    <BoutonOutil onClick={onClick}><Icone className="h-3.5 w-3.5" />{children}</BoutonOutil>
   );
 }
 
@@ -119,9 +118,7 @@ function Rapport({ r, point, onFermer }) {
     <div className="k-impression mx-auto max-w-[760px] px-4 pb-20 pt-8">
       <div className="k-sans-impression mb-6 flex items-center justify-between max-md:flex-wrap max-md:gap-3">
         <button onClick={onFermer} className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre"><ChevronLeft className="h-4 w-4" />Revenir à la carte</button>
-        <button onClick={() => window.print()} className="inline-flex h-9 items-center gap-2 rounded-full border border-menthe/40 bg-menthe/10 px-4 text-[12px] font-medium uppercase tracking-[.08em] text-menthe-texte hover:bg-menthe/20">
-          <Printer className="h-3.5 w-3.5" />Imprimer / PDF
-        </button>
+        <BoutonPrincipal onClick={() => window.print()}><Printer className="h-3.5 w-3.5" />Imprimer / PDF</BoutonPrincipal>
       </div>
       <div className={`${CARTE} p-7 max-md:p-4`}>
         <section className="border-b border-trait pb-6 text-center">
@@ -243,14 +240,15 @@ export default function ValeurLocative() {
     const parClasse = Object.fromEntries(CLASSES.map(([cle]) => [cle, secteurs.filter((x) => x.niveau === cle).sort((a, b) => (b.ici ? 1 : 0) - (a.ici ? 1 : 0) || a.nom_iris.localeCompare(b.nom_iris))]));
     const nLus = secteurs.filter((x) => x.origine === "quartier").length;
     return (
-      <div className="relative h-[calc(100dvh-56px)] overflow-hidden max-md:h-[calc(100dvh-var(--k-haut-mobile,56px))]">
+      <div className="relative min-h-0 w-full flex-1 overflow-hidden max-md:h-[calc(100dvh-var(--k-haut-mobile,3.5rem)-var(--k-bas-mobile,0px))] max-md:flex-none">
         <CarteLoyers point={vue.point} secteurs={vue.secteurs || []} onSecteur={setSecteurOuvert} onErreur={(m) => toast.error(m)} />
 
-        <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[55%] max-md:w-auto max-md:max-w-none rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
+        <div className={`${CLASSE_CARTE} absolute left-6 top-6 z-[500] flex max-h-[calc(100%-3rem)] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[55%] max-md:w-auto max-md:max-w-none`}>
           <div className="border-b border-trait px-4 pb-3 pt-4">
-            <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.16em] text-menthe-texte">Estimation du loyer annuel</p>
-            <p className="m-0 mt-1 text-[12px] leading-[1.5] text-ardoise">Montant HT / HC au m² selon la rue, le quartier et la ville</p>
-            <p className="m-0 mt-2 truncate text-[13px] font-medium text-encre" title={vue.point?.label || r.adresse}>{vue.point?.label || r.adresse}</p>
+            <Link to={createPageUrl("KData")} className="text-[13px] text-ardoise hover:text-encre">← Outils</Link>
+            <h1 className="m-0 mt-1 text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">Valeur locative</h1>
+            <p className="m-0 mt-2 truncate text-[14px] text-encre" title={vue.point?.label || r.adresse}>{vue.point?.label || r.adresse}</p>
+            <p className="m-0 mt-0.5 text-[12.5px] leading-[1.5] text-ardoise">Loyer annuel HT HC au m², selon la rue, le quartier et la ville</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               <Action icone={FileText} onClick={() => setRapport(true)}>Créer un rapport</Action>
               <Action icone={Pencil} onClick={() => { choisie.current = ""; setAdresse(vue.point?.label || r.adresse || ""); setVue(null); }}>Modifier</Action>
@@ -262,8 +260,13 @@ export default function ValeurLocative() {
           <div className="min-h-0 flex-1 overflow-y-auto">
             <ValeurRetenue r={r} />
             {NIVEAUX.map(([cle, titre]) => <Niveau key={cle} titre={titre} valeur={r[cle]} />)}
+          {secteurs.length === 0 ? (
+            <p className="m-0 border-t border-trait px-4 py-3 text-[10.5px] leading-[1.5] text-brume">
+              {r.erreurs?.length ? `${r.erreurs.join(" ; ")}. ` : ""}{r.du_cache ? "Donnée reprise de la base." : "Baux constatés chez Equimmox."}
+            </p>
+          ) : (
           <div className="border-t border-trait px-4 py-3">
-            <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">Découpage par niveau de valeur locative</p>
+            <p className="m-0 mb-2 text-[12.5px] text-ardoise">Découpage par niveau de valeur locative</p>
             {secteurs.some((x) => x.niveau) ? CLASSES.map(([cle, libelle, chip]) => (
               <div key={cle} className="mb-2">
                 <p className="m-0 flex items-center gap-2 text-[12px] font-medium text-encre">
@@ -282,11 +285,12 @@ export default function ValeurLocative() {
               {r.du_cache ? " Donnée reprise de la base." : r.constate ? " Baux constatés chez Equimmox." : " Loyer déduit des ventes, faute de lecture Equimmox."}
             </p>
           </div>
+          )}
           </div>
         </div>
 
         {secteurOuvert && (
-          <div className="absolute bottom-4 left-1/2 z-[500] w-[320px] max-w-[calc(100vw-2rem)] -translate-x-1/2 max-md:bottom-[calc(env(safe-area-inset-bottom)+64px)] rounded-[14px] border border-bord bg-fond/80 px-4 py-3 backdrop-blur-xl">
+          <div className={`${CLASSE_CARTE} absolute bottom-6 left-1/2 z-[500] w-[320px] max-w-[calc(100vw-2rem)] -translate-x-1/2 px-4 py-3 max-md:bottom-[calc(env(safe-area-inset-bottom)+64px)]`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="m-0 truncate text-[13px] font-medium text-encre">{secteurOuvert.nom_iris}</p>
@@ -310,57 +314,66 @@ export default function ValeurLocative() {
   const occupe = chercher.isPending || rouvrir.isPending || !!attente;
   const JALONS = { adresse: "l'adresse", dvf: "les ventes DVF", rue: "la rue chez Equimmox, 200 m", quartier: "le quartier chez Equimmox, 500 m", ville: "la ville chez Equimmox, 1 km" };
   return (
-    <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
-      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Outils</p>
-      <h1 className="mt-2 mb-6 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">Valeur locative</h1>
+    <div className="mx-auto w-full max-w-[1500px] px-5 pb-16 pt-[22px] md:px-8">
+      <Link to={createPageUrl("KData")} className="text-[13px] text-ardoise hover:text-encre">← Outils</Link>
+      <TitrePage titre="Valeur locative" nombre={recherches.length || null} className="mt-1" />
+      <p className="m-0 mt-1 text-[13.5px] text-ardoise">La fourchette de loyer au m² d&apos;une adresse : la rue, le quartier, la ville.</p>
 
-      <div className={`${CARTE} p-5`}>
-        <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-encre">Adresse</label>
-        <div className="relative">
-          <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
-            <Search className="h-4 w-4 flex-shrink-0 text-brume" />
-            <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="Allées Charles de Fitte, 31300 Toulouse"
-              onKeyDown={(ev) => { if (ev.key === "Enter" && adresse.trim().length >= 5) chercher.mutate(adresse); }}
-              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+      <div className={`${CLASSE_CARTE} mt-5 px-4 py-3.5`}>
+        <div className="flex flex-wrap items-end gap-2.5">
+          <div className="relative min-w-[260px] flex-1">
+            <label className="mb-1.5 block text-[12.5px] text-ardoise" htmlFor="vl-adresse">Adresse</label>
+            <div className="flex h-9 items-center gap-2 rounded-[10px] border border-bord-doux bg-fond px-3 focus-within:border-menthe max-md:h-10">
+              <Search className="h-4 w-4 flex-shrink-0 text-brume" />
+              <input id="vl-adresse" value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="Allées Charles de Fitte, 31300 Toulouse"
+                onKeyDown={(ev) => { if (ev.key === "Enter" && adresse.trim().length >= 5) chercher.mutate(adresse); }}
+                className="w-full border-0 bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+            </div>
+            {suggestions.length > 0 && (
+              <ul className="absolute left-0 right-0 top-[66px] z-20 m-0 list-none overflow-hidden rounded-[12px] border border-trait bg-rail p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+                {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13.5px] text-craie hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>{s}</button></li>)}
+              </ul>
+            )}
           </div>
-          {suggestions.length > 0 && (
-            <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-fond p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
-              {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13px] text-craie hover:bg-relief hover:text-encre">{s}</button></li>)}
-            </ul>
-          )}
+          <BoutonPrincipal onClick={() => chercher.mutate(adresse)} disabled={occupe || adresse.trim().length < 5} className="h-9">
+            {chercher.isPending || attente ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Rechercher
+          </BoutonPrincipal>
         </div>
-        <p className="mt-3 mb-0 text-[11.5px] leading-[1.6] text-brume">
+        <p className="m-0 mt-2.5 text-[12.5px] leading-[1.6] text-brume">
           Une recherche neuve pilote Equimmox à trois rayons et prend quatre minutes environ. Une même adresse dans les trente jours, ou une recherche de la liste ci-dessous, revient tout de suite.
         </p>
-        {attente && (
-          <p className="mt-3 mb-0 flex items-center gap-2 text-[12.5px] text-menthe-texte">
-            <Loader2 className="h-4 w-4 animate-spin" />Lecture en cours : {JALONS[attente.jalon] || attente.jalon}…
-          </p>
-        )}
-        <button onClick={() => chercher.mutate(adresse)} disabled={occupe || adresse.trim().length < 5}
-          className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-6 text-[12.5px] font-medium uppercase tracking-[.12em] text-sur-menthe disabled:opacity-50">
-          {chercher.isPending || attente ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Rechercher
-        </button>
       </div>
 
-      <h2 className="mt-10 mb-3 text-[17px] font-medium text-encre">Dernières recherches</h2>
-      {!recherches.length ? <p className="m-0 text-[13px] text-brume">Aucune pour l&apos;instant.</p> : (
-        <ul className="m-0 list-none p-0">
-          {recherches.map((x) => (
-            <li key={x.id}>
-              <button onClick={() => rouvrir.mutate(x.id)} disabled={occupe} className="flex w-full items-center gap-4 border-b border-trait py-3 text-left hover:bg-surface disabled:opacity-60">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-medium text-encre">{x.adresse}</span>
-                  <span className="block text-[11.5px] text-brume">{quand(x.le)}{x.par ? ` · ${x.par}` : ""}{x.quartier?.nom ? ` · ${x.quartier.nom}` : ""}</span>
-                </span>
-                <span className="flex-shrink-0 text-[13px] tabular-nums text-menthe-texte">
-                  {x.rue ? `${euros(x.rue.basse)} à ${euros(x.rue.haute)}` : x.quartier ? `${euros(x.quartier.basse)} à ${euros(x.quartier.haute)}` : ""}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+      {attente && (
+        <div className={`${CLASSE_CARTE} mt-3 flex items-center gap-3 px-4 py-3 text-[13.5px]`}>
+          <Loader2 className="h-4 w-4 flex-none animate-spin text-menthe" />
+          <span className="text-encre">Lecture en cours : {JALONS[attente.jalon] || attente.jalon}</span>
+          <span className="ml-auto text-[12.5px] text-ardoise">Vous pouvez quitter la page</span>
+        </div>
       )}
+
+      <section className="mt-7">
+        <h2 className="m-0 mb-2.5 text-[15px] font-medium text-encre">Dernières recherches</h2>
+        {!recherches.length ? <p className="m-0 text-[13.5px] text-brume">Aucune pour l&apos;instant.</p> : (
+          <div className={CLASSE_TABLEAU}>
+            <table className={`${CLASSE_TABLE} min-w-[720px]`}>
+              <colgroup><col /><col className="w-[220px]" /><col className="w-[160px]" /><col className="w-[120px]" /><col className="w-[110px]" /></colgroup>
+              <thead><tr><th className={CLASSE_TH}>Adresse</th><th className={CLASSE_TH}>Quartier</th><th className={CLASSE_TH}>Rue, au m²</th><th className={CLASSE_TH}>Par</th><th className={CLASSE_TH}>Date</th></tr></thead>
+              <tbody>
+                {recherches.map((x) => (
+                  <tr key={x.id} onClick={() => !occupe && rouvrir.mutate(x.id)} className={occupe ? "opacity-60" : "cursor-pointer hover:bg-relief"}>
+                    <td className={CLASSE_TD} title={x.adresse}>{x.adresse}</td>
+                    <td className={CLASSE_TD} title={x.quartier?.nom || ""}>{x.quartier?.nom || ""}</td>
+                    <td className={`${CLASSE_TD} tabular-nums`}>{x.rue ? `${euros(x.rue.basse)} à ${euros(x.rue.haute)}` : x.quartier ? `${euros(x.quartier.basse)} à ${euros(x.quartier.haute)}` : ""}</td>
+                    <td className={CLASSE_TD} title={x.par || ""}>{String(x.par || "").split("@")[0]}</td>
+                    <td className={`${CLASSE_TD} tabular-nums`}>{quand(x.le)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

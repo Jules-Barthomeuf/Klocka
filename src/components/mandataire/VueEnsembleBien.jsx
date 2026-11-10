@@ -371,7 +371,8 @@ export default function VueEnsembleBien({ bien, onAller, sansImport = false }) {
 
   // Le chat de l'assistant et l'historique changent de place avec l'écran (7 nov. 2026, Jules) : au téléphone, le chat
   // sous les étapes et l'historique en bas ; à l'ordinateur, l'historique sous les étapes et le chat sous les documents.
-  const chat = pid && !enImport ? (
+  // Pendant l'import, un seul chat, celui de gauche : celui-ci n'apparaît qu'à « Import terminé » (9 nov. 2026, Jules).
+  const chat = pid && !importEnCours ? (
     <section aria-label="L'assistant" className="py-8">
       <div className="h-[460px] max-md:h-[60dvh]">
         <ChatDashboard lueur dansLeFil espace="mandataire" proprietaireId={pid} reglages={outilsChat.reglages} onReponse={relireTout} onConversation={() => {}}

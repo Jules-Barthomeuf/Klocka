@@ -1,0 +1,11 @@
+ville;annonces;commerces;avec_loyer;recentes;couverts;couverts_pct;ecart_median;a15;a25;dans_la_moyenne;vu_plus30;vu_moins30;vu_plus50;vu_moins50;plafond_export
+Paris;5387;620;100;94;90;96;24,4;30;53;56;53;63;62;89;true
+Marseille;1077;400;69;69;50;72;28;22;42;44;52;58;62;90;true
+Lyon;1345;331;31;29;23;79;24,5;35;52;43;43;57;70;83;true
+Toulouse;922;267;46;46;33;72;34,3;24;45;42;39;67;61;85;false
+Nice;652;333;55;55;43;78;35,6;28;40;40;33;70;58;84;false
+Nantes;868;268;19;19;14;74;38,1;29;36;50;36;79;57;79;false
+Montpellier;843;276;48;45;42;93;28,3;31;48;57;36;71;57;86;false
+Strasbourg;321;96;15;15;7;47;82,9;0;0;0;43;57;43;57;false
+Bordeaux;1099;398;68;65;55;85;50,5;22;33;33;42;64;47;87;true
+Lille;426;112;15;15;12;80;72,4;8;17;17;42;67;50;67;false

@@ -176,9 +176,21 @@ const OUTILS = {
     nom: 'Valeur locative',
     lien: (a) => (a.ref?.id ? `/valeurlocative?id=${encodeURIComponent(a.ref.id)}` : `/valeurlocative?adresse=${encodeURIComponent(a.libelle || a.adresse)}`),
     async lancer(adresse, point, user) {
-      const { rechercher } = await import('./kvaleurlocative.js');
-      const r = await rechercher(point.label, { user });
+      const { rechercher, etat } = await import('./kvaleurlocative.js');
+      let r = await rechercher(point.label, { user });
       if (!r.ok) throw new Error(r.error);
+      // Lecture neuve : elle tourne en tâche de fond, on attend son résultat (10 nov. 2026 : elle passait pour
+      // terminée sans chiffre ni lien).
+      if (r.en_cours) {
+        const cle = r.cle;
+        const debut = Date.now();
+        while (r.en_cours) {
+          if (Date.now() - debut > ATTENTE_MAX_MS) throw new Error('la lecture Equimmox a dépassé vingt-cinq minutes');
+          await dors(3000);
+          r = await etat(cle);
+          if (!r.ok) throw new Error(r.error);
+        }
+      }
       return { ref: { type: 'valeurlocative', id: r.id }, resume: resumerValeurLocative(r), libelle: r.point?.label || point.label };
     },
   },

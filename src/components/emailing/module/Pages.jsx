@@ -75,7 +75,7 @@ function FicheContact({ id, onFermer }) {
   const { data: f } = useQuery({ queryKey: ["em-fiche", id], queryFn: () => req("GET", `/m/contacts/${id}`) });
   const c = f?.contact;
   return (
-    <aside className="fixed inset-y-0 right-0 z-40 w-[460px] max-w-full overflow-y-auto border-l border-trait bg-surface-pleine p-5 shadow-2xl">
+    <aside className="fixed inset-y-0 right-0 z-40 w-[460px] max-w-full overflow-y-auto border-l border-trait bg-rail p-5 shadow-2xl">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0"><p className="m-0 text-[16px] text-encre">{c ? ([c.prenom, c.nom].filter(Boolean).join(" ") || c.email) : ""}</p><p className="m-0 break-all text-[13px] text-ardoise">{c?.email}</p></div>
         <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>

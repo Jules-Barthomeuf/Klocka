@@ -115,6 +115,106 @@ test('plusieurs dossiers possibles : une question à Nora seule, puis les pièce
   assert.ok(notif(m));
 });
 
+// Un mandataire transfère (9 nov. 2026, Jules) : le bien entre dans ses Biens ; admin et mandataire à la fois : on demande.
+const M = await import('../transfert-mandataire.js');
+const lecture = { adresse: '12 rue Mercière', ville: 'Lyon', type_bien: 'murs_commerce', prix: 450000, loyer_annuel: 30000, proprietaire: 'SCI Mercière' };
+const leo = Records.create('User', { email: 'leo@agence-kp.fr', role: 'mandataire', full_name: 'Léo Mandataire' });
+const ines = Records.create('User', { email: 'ines@klocka.immo', role: 'admin', aussi_mandataire: true, full_name: 'Inès Double' });
+const parEmail = (email) => Records.list('ProprietaireMandataire').filter((p) => p.mandataire_email === email && !p.fusionne_dans);
+
+test('un mandataire transfère : le bien est dans ses Biens, en import, avec ses pièces, sans question', async () => {
+  M._brancherLecteur(async () => lecture);
+  const m = transfert({ de: 'Léo <leo@agence-kp.fr>', de_email: leo.email, objet: 'TR: Murs Mercière', texte: "rentre ce dossier dans ma plateforme\n\n---------- Forwarded message ---------\nDe : Paul <paul@cabinet.fr>\nObjet : Murs Mercière\n\nCi-joint.", pieces_jointes: [piece('fiche-merciere.pdf'), piece('bail-merciere.pdf')] });
+  const dealsAvant = Records.list('Deal').length;
+  X.surTransfert(m, { lancer: false, uploadDir: dir });
+  await T.tourner();
+  const [p] = parEmail(leo.email);
+  assert.ok(p, 'le bien est créé');
+  assert.equal(p.adresse, '12 rue Mercière');
+  assert.equal(p.ville, 'Lyon');
+  assert.equal(p.nom, 'SCI Mercière');
+  assert.equal(p.biens.repris.prix, 450000);
+  assert.ok(p.biens.import && !p.biens.import.fini, "l'import reste à finir avec l'assistant");
+  assert.deepEqual(p.biens.pieces.map((x) => x.nom).sort(), ['bail-merciere.pdf', 'fiche-merciere.pdf']);
+  assert.equal(Records.get('MailRecu', m.id).proprietaire_id, p.id);
+  assert.equal(Records.list('Deal').length, dealsAvant, 'aucun dossier côté équipe');
+  assert.equal(Records.list('HakaProposition').filter((x) => x.charge?.mail_id === m.id).length, 0, 'pas de question');
+  const log = notif(m);
+  assert.equal(log.pour, leo.email);
+  assert.equal(log.lien, `/MandataireBiens?bien=proprietaire:${p.id}`);
+  assert.match(log.texte, /^C'est fait : « 12 rue Mercière, Lyon » est dans vos biens, avec 2 pièces\./);
+});
+
+test('la même adresse transférée à nouveau complète le bien, sans doublon', async () => {
+  M._brancherLecteur(async () => lecture);
+  const m = transfert({ de_email: leo.email, objet: 'TR: Taxe foncière Mercière', pieces_jointes: [piece('taxe-merciere.pdf')] });
+  X.surTransfert(m, { lancer: false, uploadDir: dir });
+  await T.tourner();
+  const vivants = parEmail(leo.email).filter((p) => !p.retire_le);
+  assert.equal(vivants.length, 1);
+  assert.ok(vivants[0].biens.pieces.some((x) => x.nom === 'taxe-merciere.pdf'));
+  assert.match(notif(m).texte, /déjà dans vos biens/);
+});
+
+test('admin et mandataire à la fois : la question, puis le côté choisi', async () => {
+  M._brancherLecteur(async () => ({ ...lecture, adresse: '3 place Bellecour' }));
+  const cotes = async (objet, nom) => {
+    const m = transfert({ de_email: ines.email, objet, texte: 'rentre ce dossier dans ma plateforme', pieces_jointes: [piece(nom)] });
+    X.surTransfert(m, { lancer: false, uploadDir: dir });
+    await T.tourner();
+    return { m, p: Records.list('HakaProposition').find((x) => x.type === 'transfert_cote' && x.charge?.mail_id === m.id) };
+  };
+  const a = await cotes('TR: Bellecour', 'fiche-bellecour.pdf');
+  assert.equal(a.p.pour, ines.email);
+  assert.deepEqual(a.p.choix.map((c) => c.cle), ['mandataire', 'admin']);
+  assert.equal(Records.list('Notification').find((x) => x.cle === `haka:${a.p.id}`).genre, 'question_cote');
+  assert.equal(parEmail(ines.email).length, 0, 'rien avant la réponse');
+  assert.equal((await F.valider(a.p.id, ines, { choix: 'mandataire' })).ok, true);
+  await T.tourner();
+  assert.equal(parEmail(ines.email)[0].adresse, '3 place Bellecour');
+  assert.ok(notif(a.m));
+
+  const b = await cotes('TR: Nouveau local Vaise', 'bail-vaise.pdf');
+  const avant = parEmail(ines.email).length;
+  assert.equal((await F.valider(b.p.id, ines, { choix: 'admin' })).ok, true);
+  await T.tourner();
+  assert.equal(parEmail(ines.email).length, avant, 'pas de bien côté mandataire');
+  assert.ok(Records.list('Deal').find((d) => d.source_mail?.mail_recu_id === b.m.id), 'le dossier côté équipe');
+});
+
+test('le côté : la question seulement pour qui a les deux, et seulement quand il y a de quoi importer', () => {
+  const lu = { transfert: true };
+  assert.equal(X.coteDuTransfert({ role: 'admin' }, { intention: 'fiche' }, lu), 'admin');
+  assert.equal(X.coteDuTransfert({ role: 'mandataire' }, { intention: 'demande' }, { transfert: false }), 'mandataire');
+  const double = { role: 'admin', aussi_mandataire: true };
+  assert.equal(X.coteDuTransfert(double, { intention: 'fiche' }, lu), null);
+  assert.equal(X.coteDuTransfert(double, { intention: 'documents', dossier: 'deal-macon' }, lu), null);
+  assert.equal(X.coteDuTransfert(double, { intention: 'memoire' }, lu), 'admin');
+  assert.equal(X.coteDuTransfert(double, { intention: 'demande' }, { transfert: false }), 'admin');
+  assert.equal(X.expediteurDuTransfert('inconnu@ailleurs.fr'), null);
+  assert.equal(X.expediteurDuTransfert('LEO@agence-kp.fr').id, leo.id);
+});
+
+test('un mail à plusieurs biens, ou sans rien : rien de créé, et on le dit', async () => {
+  const avant = parEmail(leo.email).length;
+  M._brancherLecteur(async () => ({ plusieurs_biens: true }));
+  const r1 = await M.bienDepuisTransfert(transfert({ de_email: leo.email }), { user: leo, lu: {}, uploadDir: dir, fichiers: [] });
+  assert.match(M.compteRenduBien(r1).texte, /un par un/);
+  M._brancherLecteur(async () => ({}));
+  const r2 = await M.bienDepuisTransfert(transfert({ de_email: leo.email }), { user: leo, lu: {}, uploadDir: dir, fichiers: [] });
+  assert.equal(r2.fait, 'rien');
+  assert.equal(parEmail(leo.email).length, avant);
+});
+
+test('le tri : un mandataire entre sur sourcing@ comme une commande, pas ailleurs', async () => {
+  const { trierMail, referentielTri } = await import('../deal/tri-mails.js');
+  const ref = referentielTri();
+  const mail = { de_email: leo.email, compte: 'sourcing@klocka.immo', objet: 'Bonjour', extrait: '', pieces_jointes: [] };
+  assert.equal(trierMail(mail, ref).commande, true);
+  assert.equal(ref.internes.has(leo.email), false, "il ne définit pas le domaine de l'équipe");
+  assert.ok(!trierMail({ ...mail, compte: 'nora@klocka.immo' }, ref).commande);
+});
+
 test('le compte rendu dit ce qui a été fait, et seulement ça', () => {
   assert.deepEqual(X.compteRendu({ fait: 'fiche', deal_id: 'd1', nom: 'Tabac · Lille', verdict: 'GO' }, { objet: 'TR: fiche' }), { titre: 'Votre transfert · Tabac · Lille', texte: "C'est fait : le dossier « Tabac · Lille » est créé à votre nom et pré-analysé (verdict : GO).", lien: '/Dossiers?deal_id=d1' });
   assert.match(X.compteRendu({ fait: 'documents', deal_id: 'd1', nom: 'X', deposes: [], deja: ['bail.pdf'] }).texte, /étaient déjà dans la Data Room/);

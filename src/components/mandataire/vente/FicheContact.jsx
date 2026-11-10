@@ -143,7 +143,7 @@ export default function FicheContact({ contact: c, marcheId, proprietaireId = nu
       {/* Au centre de l'écran, comme la fiche d'un commerce sur la carte du terrain. */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3">
         <motion.aside initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-          className="pointer-events-auto flex h-[90dvh] w-full max-w-[460px] flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-fond shadow-[0_12px_40px_rgb(0_0_0/0.3)]">
+          className="pointer-events-auto flex h-[90dvh] w-full max-w-[460px] flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-rail shadow-[0_12px_40px_rgb(0_0_0/0.3)]">
           {/* L'en-tête : le nom en 20 px, le type, la source et le budget en 13 px, le statut, la croix. */}
           <div className={`flex justify-between gap-3 px-5 ${enConv ? "items-center pb-2 pt-4" : "items-start pt-5"}`}>
             <div className="min-w-0">
@@ -250,7 +250,7 @@ export default function FicheContact({ contact: c, marcheId, proprietaireId = nu
           </div>
 
           {/* L'assistant, collé en bas (8 nov. 2026, Jules : « la fiche et en dessous l'assistant, pour lui parler directement »). */}
-          <div className={enConv ? "flex min-h-0 flex-1 flex-col px-5 pt-1" : discussion ? "hidden" : "flex-none border-t border-trait bg-fond px-5 pb-4 pt-4"}>
+          <div className={enConv ? "flex min-h-0 flex-1 flex-col px-5 pt-1" : discussion ? "hidden" : "flex-none border-t border-trait bg-rail px-5 pb-4 pt-4"}>
             <ChatDashboard espace="mandataire" proprietaireId={proprietaireId} marcheId={marcheId} compact sansSkills epure lueur libelleAccueil="Assistant KPartners" menusVersLeHaut
               placeholderAccueil={`Parler à l'assistant de ${c.nom || "ce contact"}…`} onConversation={surConversation} sansBarreHaut={enConv}
               onReponse={() => { qc.invalidateQueries({ queryKey: cle }); qc.invalidateQueries({ queryKey: ["m-vente-etat", marcheId] }); }} />

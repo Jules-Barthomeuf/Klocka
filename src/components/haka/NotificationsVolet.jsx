@@ -9,11 +9,12 @@ import { ilYa } from "@/components/dashboard/ChatDashboard";
 // part d'un clic sur la croix ; « Tout effacer » vide la liste. Une notification d'équipe ne part que de la
 // liste de la personne qui l'efface. Mêmes lignes que le reste du volet.
 
-export default function NotificationsVolet({ onOuvrir }) {
+export default function NotificationsVolet({ onOuvrir, mandataire = false }) {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["notifications"], queryFn: () => base44.request("GET", "/api/notifications"), refetchInterval: 30_000, staleTime: 15_000 });
   // Une question de Haka est déjà dans « Ce qui t'attend » : elle ne se répète pas ici.
-  const liste = (data?.notifications || []).filter((n) => n.genre !== "question_haka");
+  // « Côté mandataire ou côté admin ? » se montre aussi dans la vue mandataire, qui n'a pas « Ce qui t'attend ».
+  const liste = (data?.notifications || []).filter((n) => n.genre !== "question_haka" && (mandataire || n.genre !== "question_cote"));
   const retirer = (ids) => qc.setQueryData(["notifications"], (d) => (d ? { ...d, notifications: d.notifications.filter((n) => !ids.includes(n.id)) } : d));
   const supprimer = (n) => { retirer([n.id]); base44.request("DELETE", `/api/notifications/${n.id}`).catch(() => qc.invalidateQueries({ queryKey: ["notifications"] })); };
   const toutEffacer = () => { retirer(liste.map((n) => n.id)); base44.request("POST", "/api/notifications/effacer").catch(() => qc.invalidateQueries({ queryKey: ["notifications"] })); };

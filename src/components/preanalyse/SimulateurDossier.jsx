@@ -83,6 +83,9 @@ const avecAnalyse = (parametres = {}, depuisAnalyse = null) => {
   return venus.length ? { ...parametres, ...Object.fromEntries(venus) } : parametres;
 };
 
+const vacancesDe = (parametres) => (Array.isArray(parametres?.vacancesLocatives) ? parametres.vacancesLocatives : Array(25).fill(0));
+const travauxDe = (parametres) => (Array.isArray(parametres?.travauxBailleur) ? parametres.travauxBailleur : travauxParDefaut());
+
 const LIBELLES_ANALYSE = {
   loyerInitialHTHC: "loyer", loyerSoumisTVA: "TVA", chargesCoproRefacturables: "charges refacturées",
   taxeFonciereRefacturable: "taxe foncière refacturée", taxeFonciere: "taxe foncière", surface: "surface",
@@ -109,9 +112,9 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
   const [etat, setEtat] = useState(() => etatInitial(parametres));
   // Les champs tapés à la main : l'analyse ne les remplace plus.
   const saisis = useRef(new Set(duLot?.saisis || []));
-  // Tableaux annuels : hors CHAMPS car ils ne viennent jamais du dossier.
-  const [vacancesLocatives, setVacancesLocatives] = useState(() => Array(25).fill(0));
-  const [travauxBailleur, setTravauxBailleur] = useState(travauxParDefaut);
+  // Tableaux annuels : hors CHAMPS, l'analyse ne les donne pas. Enregistrés sur le lot, le projet créé les reprend.
+  const [vacancesLocatives, setVacancesLocatives] = useState(() => vacancesDe(parametres));
+  const [travauxBailleur, setTravauxBailleur] = useState(() => travauxDe(parametres));
   // Un apport enregistré est repris tel quel ; sinon il suit les 15 %.
   const [apport, setApport] = useState(() => (parametres?.apport != null ? parametres.apport : 0));
   const [ongletActif, setOngletActif] = useState("graphiques");
@@ -121,14 +124,14 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
   const apportTouche = useRef(parametres?.apport != null);
 
   // Le dossier change (autre lot, réanalyse) : on repart de ses chiffres. Pas quand le changement vient de notre
-  // propre enregistrement : les travaux et la vacance, qui ne s'enregistrent pas, resteraient sinon remis à zéro.
+  // propre enregistrement : ce qu'on est en train de taper serait remis à l'état d'avant.
   const signature = JSON.stringify(parametres || {});
   const vientDeMoi = useRef(false);
   useEffect(() => {
     if (vientDeMoi.current) { vientDeMoi.current = false; return; }
     setEtat(etatInitial(parametres));
-    setVacancesLocatives(Array(25).fill(0));
-    setTravauxBailleur(travauxParDefaut());
+    setVacancesLocatives(vacancesDe(parametres));
+    setTravauxBailleur(travauxDe(parametres));
     setNegoPct(0);
     apportTouche.current = parametres?.apport != null;
     if (parametres?.apport != null) setApport(parametres.apport);
@@ -144,7 +147,7 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
   });
   // Seulement après une retouche à la main : ouvrir l'onglet n'écrit rien (l'apport qui suit les 15 % non plus).
   const retouche = useRef(false);
-  const aEnvoyer = JSON.stringify({ ...etat, apport });
+  const aEnvoyer = JSON.stringify({ ...etat, apport, travauxBailleur, vacancesLocatives });
   useEffect(() => {
     if (!dealId || !retouche.current) return undefined;
     const t = setTimeout(() => { retouche.current = false; enregistrer.mutate({ ...JSON.parse(aEnvoyer), saisis: [...saisis.current] }); }, 1000);
@@ -207,8 +210,8 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
     anneeRenegociation: etat.anneeRenegociation, setAnneeRenegociation: (v) => maj("anneeRenegociation", v),
     nouveauTauxRenegociation: etat.nouveauTauxRenegociation, setNouveauTauxRenegociation: (v) => maj("nouveauTauxRenegociation", v),
     iraRenegociation: etat.iraRenegociation, setIraRenegociation: (v) => maj("iraRenegociation", v),
-    vacancesLocatives, setVacancesLocatives,
-    travauxBailleur, setTravauxBailleur,
+    vacancesLocatives, setVacancesLocatives: (v) => { retouche.current = true; setVacancesLocatives(v); },
+    travauxBailleur, setTravauxBailleur: (v) => { retouche.current = true; setTravauxBailleur(v); },
   };
 
   // Données manquantes : on ne bloque pas, on signale ce qui est à poser à la main.

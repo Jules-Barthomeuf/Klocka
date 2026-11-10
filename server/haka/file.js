@@ -35,13 +35,14 @@ export const TYPES = {
   preanalyser_fiche: { libelle: 'Fiche reçue : pré-analyser ?', externe: false },
   mail_ambiant: { libelle: 'Mail reçu : je fais le geste ?', externe: true },
   transfert_dossier: { libelle: 'Transfert : pour quel dossier ?', externe: false },
+  transfert_cote: { libelle: 'Transfert : côté mandataire ou côté admin ?', externe: false },
 };
 
 /**
  * Dépose une proposition dans la file et prévient la personne. Une proposition
  * de même clé déjà en attente n'est pas doublée (elle est rendue).
  */
-export async function proposer({ type, titre, resume = null, charge = {}, sources = [], pour = null, dossier = null, competence = null, version = null, tache_id = null, etape = null, cout_usd = 0, cle = null, actions = ['valider', 'modifier', 'rejeter'], choix = null, source_migration = null }) {
+export async function proposer({ type, titre, resume = null, charge = {}, sources = [], pour = null, dossier = null, competence = null, version = null, tache_id = null, etape = null, cout_usd = 0, cle = null, actions = ['valider', 'modifier', 'rejeter'], choix = null, source_migration = null, genre = null }) {
   if (cle) {
     const deja = Records.list(ENTITE).find((p) => p.cle === cle && p.etat === 'proposee');
     if (deja) return deja;
@@ -57,8 +58,9 @@ export async function proposer({ type, titre, resume = null, charge = {}, source
   try {
     const { notifier } = await import('../notifications.js');
     // `question_haka` : la carte se montre, mais la cloche ne la redit pas sous « Notifications » : la question y est déjà,
-    // dans « Ce qui t'attend » (22 oct. 2026).
-    notifier({ pour: p.pour, titre: `Assistant KPartners : ${p.titre}`, texte: p.resume, lien: `/AValider?id=${p.id}`, action: 'Décider', genre: p.pour ? 'question_haka' : 'haka', cle: `haka:${p.id}` });
+    // dans « Ce qui t'attend » (22 oct. 2026). `question_cote` (9 nov. 2026) : pareil côté équipe, mais la cloche de la
+    // vue mandataire, qui n'a pas « Ce qui t'attend », la montre sous ses notifications.
+    notifier({ pour: p.pour, titre: `Assistant KPartners : ${p.titre}`, texte: p.resume, lien: `/AValider?id=${p.id}`, action: 'Décider', genre: genre || (p.pour ? 'question_haka' : 'haka'), cle: `haka:${p.id}` });
   } catch (e) {
     console.warn(`[haka] notification non posée : ${e?.message || e}`);
   }

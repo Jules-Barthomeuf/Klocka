@@ -405,7 +405,7 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
   }, [onFermer]);
   const panneau = (
     <motion.aside ref={cadre} initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 28 }} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-      className="flex flex-col overflow-hidden bg-surface-pleine shadow-[0_12px_40px_rgb(0_0_0/0.3)] max-md:fixed max-md:inset-0 max-md:z-[80] max-md:pt-[env(safe-area-inset-top)] md:absolute md:inset-y-0 md:right-0 md:z-20 md:w-[460px] md:border-l md:border-trait">
+      className="flex flex-col overflow-hidden bg-rail shadow-[0_12px_40px_rgb(0_0_0/0.3)] max-md:fixed max-md:inset-0 max-md:z-[80] max-md:pt-[env(safe-area-inset-top)] md:absolute md:inset-y-0 md:right-0 md:z-20 md:w-[460px] md:border-l md:border-trait">
       <div className="flex items-start justify-between gap-3 px-5 pt-5">
         <div className="min-w-0">
           {f && champNom?.modifiable ? (
@@ -1120,8 +1120,9 @@ export default function CrmTwenty() {
     return [restent[0], spoc, ...restent.slice(1).filter((c) => c !== spoc)];
   })();
   const choisirGroupe = (nom) => { setGrouper(false); const n = { ...groupes, [objet.singulier]: nom }; setGroupes(n); ecrireLocal("crm-groupes", n); };
+  // Plus de bloc « Sans groupe » (9 nov. 2026, Jules) : une fiche sans groupe se voit par Grouper > Aucun groupe.
   const groupesDuTableau = !champGroupe ? []
-    : [...champGroupe.options.map((o) => ({ cle: o.valeur, libelle: o.libelle, filtre: { champ: champGroupe.nom, op: "est", valeur: o.valeur } })), { cle: "__sans", libelle: "Sans groupe", filtre: { champ: champGroupe.nom, op: "vide" } }];
+    : champGroupe.options.map((o) => ({ cle: o.valeur, libelle: o.libelle, filtre: { champ: champGroupe.nom, op: "est", valeur: o.valeur } }));
   const outil = "inline-flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-[14px] text-craie hover:bg-relief hover:text-encre";
 
   /** Le tableau d'un groupe : cases à traits pleins, comme Monday ; la première colonne ouvre la fiche. */

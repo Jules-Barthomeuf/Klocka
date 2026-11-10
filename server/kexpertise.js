@@ -124,7 +124,8 @@ const etape = (id, cle, etat, detail = null) => {
 /** Ce que l'écran lit d'une expertise : jamais la page HTML gardée à part. */
 export function listerExpertises() {
   return Records.list(ENTITE)
-    .map(({ id, adresse, activite, etat, progression, cree_le, fini_le, par, libelle }) => ({ id, adresse, activite, etat, progression, cree_le, fini_le, par, libelle }))
+    // L'indice d'emplacement sur 100 tient dans la liste (10 nov. 2026, planche Outils : une colonne du tableau).
+    .map(({ id, adresse, activite, etat, progression, cree_le, fini_le, par, libelle, resultat }) => ({ id, adresse, activite, etat, progression, cree_le, fini_le, par, libelle, indice: resultat?.emplacement?.flux?.indice ?? null }))
     .sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')));
 }
 

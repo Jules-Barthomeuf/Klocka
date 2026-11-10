@@ -656,7 +656,7 @@ function TableauAgences({ id, onAppeler }) {
                               Fiche
                             </button>
                             {fiche?.id === a.id && createPortal(
-                              <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[45] w-full max-w-[640px] overflow-y-auto border-l border-relief bg-fond p-5 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]" onClick={(e) => e.stopPropagation()}>
+                              <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[45] w-full max-w-[640px] overflow-y-auto border-l border-relief bg-rail p-5 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]" onClick={(e) => e.stopPropagation()}>
                                 <FicheContact key={`agence:${a.id}`} depart={fiche} onFermer={() => setFiche(null)} />
                               </div>, document.body)}
                             {!a.carnet_id && (

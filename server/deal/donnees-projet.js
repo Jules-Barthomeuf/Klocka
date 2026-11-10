@@ -82,7 +82,7 @@ function ouiNon(constat) {
   return null;
 }
 
-function dpeDepuis(constat) {
+export function dpeDepuis(constat) {
   const t = String(constat || '');
   const note = t.match(/\b(?:classe|note|étiquette)?\s*([A-G])\b(?![a-z])/i);
   const conso = t.match(/(\d[\d\s.,]*)\s*kwh/i);

@@ -64,7 +64,7 @@ export default function ProjectSimulatorPreview({ formData, travauxList, vue = n
       commissionAgentActive: !!formData.sim_commission_agent_active,
     };
 
-    return `/SimulateurPublic?data=${encodeURIComponent(JSON.stringify(params))}${vue ? `&vue=${vue}` : ""}`;
+    return `/SimulateurPublic?data=${encodeURIComponent(JSON.stringify(params))}${vue ? `&vue=${vue}` : "&cadre=projet"}`;
   }, [formData, travauxList, vue]);
 
   // Une vue seule (le graphique) se pose sans en-tête, à la hauteur demandée.
@@ -77,19 +77,6 @@ export default function ProjectSimulatorPreview({ formData, travauxList, vue = n
   }
 
   return (
-    <div className="mt-6 rounded-md border border-trait bg-surface overflow-hidden">
-      <div className="px-4 py-3 border-b border-trait flex items-center justify-between">
-        <div>
-          <h3 className="text-encre text-sm font-medium">Preview simulateur client</h3>
-          <p className="text-encre/35 text-xs">Aperçu complet basé sur les données du formulaire.</p>
-        </div>
-      </div>
-      <iframe
-        key={previewUrl}
-        src={previewUrl}
-        title="Preview simulateur client"
-        className="w-full h-[72vh] bg-fond"
-      />
-    </div>
+    <iframe key={previewUrl} src={previewUrl} title="Preview simulateur client" className="block h-[78vh] w-full border-0" style={{ background: "transparent" }} />
   );
 }

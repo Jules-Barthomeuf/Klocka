@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
-import {
-  Search, Plus, FolderPlus, Folder, ChevronRight, Eye, EyeOff, Trash2, X, PieChart, Store, Loader2,
-} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Search, Plus, Eye, EyeOff, Trash2, X, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
+import { createPageUrl } from "@/utils";
 import CarteGoogleZones, { TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
 import FicheSociete from "@/components/kzoning/FicheSociete";
 import { BoutonMecanique } from "@/components/kdata/Mecanique";
+import { BoutonPrincipal, BoutonOutil, CLASSE_CARTE, Filtres, Recherche, TRANSPARENT } from "@/components/mandataire/elements";
 
 // K-Zoning : on pose une zone sur la carte, on lit ce qu'il y a dedans.
 //
@@ -19,9 +19,17 @@ import { BoutonMecanique } from "@/components/kdata/Mecanique";
 // être lue — la population d'un côté, la concurrence de l'autre.
 //
 // La carte est blanche (classe k-carte-zoning) : le module se lit comme un
-// plan, et les seules couleurs y sont les zones et les commerces. Les panneaux
-// restent en verre sombre, comme partout ailleurs dans Klocka — deux systèmes
-// visuels dans une même application se paient à chaque écran suivant.
+// plan, et les seules couleurs y sont les zones et les commerces.
+//
+// 10 nov. 2026, Jules : planche Outils. La page est une page de Klocka (barre
+// de navigation à gauche, plus de barre du haut) : la carte la remplit, les
+// panneaux s'y posent en cartes (rayon 12, filet, fond `rail`, sans flou), avec
+// les éléments du CRM (boutons et recherche de 32 px, filtres de 28 px, lignes).
+// En haut à droite, la cloche de Layout : le panneau de droite commence dessous.
+
+// Les panneaux posés sur la carte (10 nov. 2026, Jules : planche Outils).
+const PANNEAU = `${CLASSE_CARTE} absolute flex flex-col gap-3 overflow-hidden p-4`;
+const TITRE_GROUPE = "m-0 text-[12px] uppercase tracking-[.04em] text-brume";
 
 const CENTRE_FRANCE = [46.6, 2.4];
 const ZOOM_FRANCE = 6;
@@ -30,7 +38,7 @@ const RAYON_DEFAUT = 300;
 // La mécanique : dans quel ordre K-Zoning interroge quoi.
 const ETAPES_MECANIQUE = [
   { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée : latitude, longitude, commune." },
-  { source: "OpenStreetMap (Overpass)", quoi: "Les commerces et les équipements de la zone — devanture, nom, métier, local vacant compris. Une même zone n'est réinterrogée qu'une fois par demi-journée." },
+  { source: "OpenStreetMap (Overpass)", quoi: "Les commerces et les équipements de la zone : devanture, nom, métier, local vacant compris. Une même zone n'est réinterrogée qu'une fois par demi-journée." },
   { source: "INSEE Filosofi", quoi: "Population, ménages, revenus et logement, par carreaux de 200 m dont le centre tombe dans la zone." },
   { source: "Annuaire des entreprises", quoi: "La société derrière une devanture cliquée, par SIRET ou par proximité." },
   { source: "Google Maps", quoi: "Le fond de carte et ses trois habillages." },
@@ -42,19 +50,21 @@ const km = (m) => (m >= 1000 ? `${(m / 1000).toFixed(2).replace(".", ",")} km` :
 /** Le fond de carte : les types de Google, puisque la carte est la sienne. */
 function SelecteurFond({ type, setType, cacheMobile = false }) {
   // Au téléphone, la fiche d'une zone s'ouvre en bas : le sélecteur lui cède la place.
+  // 10 nov. 2026, Jules : planche Outils. Une pilule de boutons ronds en bas au centre, sur `rail`.
   return (
-    <div className={`absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 rounded-full ${cacheMobile ? "max-md:hidden" : ""} max-md:bottom-[calc(env(safe-area-inset-bottom)+12px)] max-md:left-3 max-md:translate-x-0 border border-bord bg-fond/80 p-1 backdrop-blur-xl`}>
-      <div className="flex items-center gap-0.5">
-        {TYPES_CARTE.map((t) => (
-          <button
-            key={t.cle}
-            onClick={() => setType(t.cle)}
-            className={`rounded-full px-3 py-1.5 text-[11.5px] transition-colors ${t.cle === type ? "bg-encre/[0.09] text-encre" : "text-ardoise hover:text-encre"}`}
-          >
-            {t.nom}
-          </button>
-        ))}
-      </div>
+    <div role="group" aria-label="Fond de carte" className={`absolute bottom-6 left-1/2 z-[500] flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-trait bg-rail p-[3px] ${cacheMobile ? "max-md:hidden" : ""} max-md:bottom-[calc(env(safe-area-inset-bottom)+12px)] max-md:left-3 max-md:translate-x-0`}>
+      {TYPES_CARTE.map((t) => (
+        <button
+          key={t.cle}
+          type="button"
+          onClick={() => setType(t.cle)}
+          aria-pressed={t.cle === type}
+          className={`rounded-full px-3 py-1 text-[13px] transition-colors max-md:h-9 ${t.cle === type ? "bg-rail-actif text-encre" : "text-ardoise hover:text-encre"}`}
+          style={t.cle === type ? undefined : TRANSPARENT}
+        >
+          {t.nom}
+        </button>
+      ))}
     </div>
   );
 }
@@ -89,31 +99,35 @@ function ChercheAdresse({ onChoisi }) {
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3">
-        <Search className="h-4 w-4 flex-shrink-0 text-brume" />
+      {/* 10 nov. 2026, Jules : planche Outils. La recherche ronde du CRM (32 px, `relief`). */}
+      <label className="flex h-8 items-center gap-2 rounded-full bg-relief px-3.5 text-ardoise focus-within:ring-1 focus-within:ring-bord-doux max-md:h-10">
+        <Search className="h-3.5 w-3.5 flex-none" />
         <input
           value={texte}
           onChange={(e) => setTexte(e.target.value)}
           onFocus={() => setOuvert(true)}
-          placeholder="Rechercher un point de départ, une adresse ou un lieu"
-          className="h-10 w-full bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
+          placeholder="Une adresse ou un lieu"
+          aria-label="Rechercher une adresse ou un lieu"
+          className="min-w-0 flex-1 border-0 bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
         />
         {texte && (
-          <button onClick={() => { setTexte(""); setSuggestions([]); }} className="text-brume hover:text-encre max-md:-mr-2 max-md:p-2" aria-label="Effacer">
+          <button type="button" onClick={() => { setTexte(""); setSuggestions([]); }} className="text-brume hover:text-encre max-md:-mr-2 max-md:p-2" style={TRANSPARENT} aria-label="Effacer">
             <X className="h-3.5 w-3.5" />
           </button>
         )}
-      </div>
+      </label>
       {ouvert && suggestions.length > 0 && (
-        <ul className="absolute left-0 right-0 top-[46px] z-[500] m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgba(0,0,0,0.45)]">
+        <ul className="absolute left-0 right-0 top-[38px] z-[500] m-0 list-none overflow-hidden rounded-[14px] border border-trait bg-rail p-0 shadow-[0_18px_40px_rgb(0_0_0/0.18)] max-md:top-[46px]">
           {suggestions.map((s, i) => (
             <li key={i}>
               <button
+                type="button"
                 onClick={() => { onChoisi(s); setTexte(s.libelle); setOuvert(false); }}
-                className="block w-full px-3 py-2 text-left text-[13px] text-craie hover:bg-relief hover:text-encre"
+                className="block w-full px-3.5 py-2 text-left text-[13.5px] text-craie hover:bg-relief hover:text-encre"
+                style={TRANSPARENT}
               >
                 {s.libelle}
-                {s.contexte && <span className="ml-2 text-[11px] text-brume">{s.contexte}</span>}
+                {s.contexte && <span className="ml-2 text-[12.5px] text-brume">{s.contexte}</span>}
               </button>
             </li>
           ))}
@@ -124,51 +138,51 @@ function ChercheAdresse({ onChoisi }) {
 }
 
 /** Le rayon, une fois le point choisi : on le règle et la zone se dessine. */
-function ReglageRayon({ point, rayon_m, setRayon, onCreer, onAnnuler, enCours }) {
+// 10 nov. 2026, Jules : planche Outils. Une carte bordée : l'adresse, « Rayon » et sa valeur, le curseur, puis
+// « Créer la zone » (principal) et « Zone de chalandise » (outil) ; la croix annule le point.
+function ReglageRayon({ point, rayon_m, setRayon, onCreer, onAnnuler, onChalandise, enCours }) {
   return (
-    <div className="mt-2 rounded-[10px] border border-menthe/30 bg-menthe/[0.06] p-3">
-      <p className="m-0 truncate text-[12.5px] text-encre">{point.libelle}</p>
-      <div className="mt-3 flex items-baseline justify-between">
-        <span className="alx-mont text-[11px] uppercase tracking-[.14em] text-brume">Rayon</span>
-        <span className="text-[15px] tabular-nums text-menthe-texte">{km(rayon_m)}</span>
+    <div className="flex flex-none flex-col gap-2.5 rounded-[12px] border border-trait p-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 truncate text-[13.5px] text-encre" title={point.libelle}>{point.libelle}</span>
+        <button type="button" onClick={onAnnuler} aria-label="Annuler" title="Annuler" className="-m-1 flex-none p-1 text-brume hover:text-encre" style={TRANSPARENT}>
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
-      <input
-        type="range" min={50} max={5000} step={50} value={rayon_m}
-        onChange={(e) => setRayon(Number(e.target.value))}
-        className="mt-2 w-full accent-menthe"
-        aria-label="Rayon de la zone"
-      />
-      <div className="mt-3 flex gap-2">
-        <button
-          onClick={onCreer}
-          disabled={enCours}
-          className="flex h-9 flex-1 items-center justify-center gap-2 rounded-full text-[12px] font-medium uppercase tracking-[.12em] text-sur-menthe disabled:opacity-60"
-          style={{ background: J["menthe"] }}
-        >
+      <label className="flex flex-col gap-1.5 text-[12.5px] text-ardoise">
+        <span className="flex justify-between">Rayon <span className="tabular-nums text-encre">{km(rayon_m)}</span></span>
+        <input
+          type="range" min={50} max={5000} step={50} value={rayon_m}
+          onChange={(e) => setRayon(Number(e.target.value))}
+          className="w-full accent-menthe"
+          aria-label="Rayon de la zone"
+        />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <BoutonPrincipal onClick={onCreer} disabled={enCours}>
           {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
           Créer la zone
-        </button>
-        <button onClick={onAnnuler} className="h-9 rounded-full border border-bord px-4 text-[12px] uppercase tracking-[.12em] text-ardoise hover:text-encre">
-          Annuler
-        </button>
+        </BoutonPrincipal>
+        <BoutonOutil onClick={onChalandise}>Zone de chalandise</BoutonOutil>
       </div>
     </div>
   );
 }
 
-/** Une zone dans la liste de gauche. */
+/** Une zone dans la liste de gauche : une ligne, son état à droite (10 nov. 2026, Jules : planche Outils). */
 function LigneZone({ zone, actif, visible, onOuvrir, onBasculerVisible, onSupprimer }) {
   return (
-    <div className={`group flex items-center gap-2 border-l-2 px-3 py-2.5 transition-colors ${actif ? "border-menthe bg-relief" : "border-transparent hover:bg-surface"}`}>
-      <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: J["vert"] }} />
-      <button onClick={onOuvrir} className="min-w-0 flex-1 text-left">
-        <p className="alx-mont m-0 truncate text-[12px] font-medium uppercase tracking-[.08em] text-encre">{zone.nom}</p>
-        <p className="m-0 mt-0.5 text-[11px] text-brume">Rayon de {km(zone.rayon_m)}</p>
+    <div className={`group flex min-h-[42px] items-center gap-2 border-b border-trait py-1 ${actif ? "bg-relief" : "hover:bg-relief"}`}>
+      <button type="button" onClick={onOuvrir} className="min-w-0 flex-1 text-left" style={TRANSPARENT}>
+        <span className="block truncate text-[14px] text-encre">{zone.nom}</span>
+        <span className="block text-[12.5px] text-ardoise">Rayon de {km(zone.rayon_m)}</span>
       </button>
-      <button onClick={onBasculerVisible} className="flex-shrink-0 text-brume hover:text-encre max-md:p-2" title={visible ? "Masquer sur la carte" : "Montrer sur la carte"}>
+      {actif ? <span className="flex-none text-[12.5px] text-menthe-texte">Ouverte</span>
+        : !visible ? <span className="flex-none text-[12.5px] text-brume">Masquée</span> : null}
+      <button type="button" onClick={onBasculerVisible} className="flex-none p-1 text-brume hover:text-encre max-md:p-2" style={TRANSPARENT} title={visible ? "Masquer sur la carte" : "Montrer sur la carte"} aria-label={visible ? "Masquer sur la carte" : "Montrer sur la carte"}>
         {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
       </button>
-      <button onClick={onSupprimer} className="flex-shrink-0 text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 focus-visible:opacity-100 max-md:p-2 max-md:opacity-100" title="Supprimer la zone">
+      <button type="button" onClick={onSupprimer} className="flex-none p-1 text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 focus-visible:opacity-100 max-md:p-2 max-md:opacity-100" style={TRANSPARENT} title="Supprimer la zone" aria-label="Supprimer la zone">
         <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -185,13 +199,16 @@ const fmt = (n) => (n == null ? "—" : Math.round(n).toLocaleString("fr-FR"));
 const pct = (n) => (n == null ? "—" : `${String(n).replace(".", ",")} %`);
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 
-/** Un chiffre-clé : la valeur, son libellé, une précision. */
+/**
+ * Un chiffre-clé : la valeur, son libellé, une précision. 10 nov. 2026, Jules : planche Outils. Le dessin des
+ * `Cases` (18 px, libellé dessous), avec la précision en plus, que `Cases` ne porte pas.
+ */
 function Cle({ valeur, label, detail = null }) {
   return (
-    <div className="rounded-[12px] border border-trait bg-surface px-3.5 py-3">
-      <p className="m-0 text-[20px] font-medium tabular-nums text-encre">{valeur}</p>
-      <p className="alx-mont m-0 mt-1 text-[10.5px] uppercase tracking-[.12em] text-brume">{label}</p>
-      {detail && <p className="m-0 mt-1 text-[11.5px] text-ardoise">{detail}</p>}
+    <div className="min-w-0 rounded-[12px] border border-trait bg-rail px-3.5 py-2.5">
+      <p className="m-0 truncate text-[18px] font-medium tabular-nums text-encre">{valeur}</p>
+      <p className="m-0 truncate text-[12.5px] text-ardoise">{label}</p>
+      {detail && <p className="m-0 mt-0.5 text-[12.5px] text-brume">{detail}</p>}
     </div>
   );
 }
@@ -203,15 +220,15 @@ function Barres({ titre, parts }) {
   const max = Math.max(...lignes.map(([, v]) => v), 1);
   return (
     <div className="mt-5">
-      <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">{titre}</p>
+      <p className={`${TITRE_GROUPE} mb-2`}>{titre}</p>
       <div className="space-y-1.5">
         {lignes.map(([k, v]) => (
           <div key={k} className="flex items-center gap-2">
-            <span className="w-24 flex-shrink-0 text-[11.5px] text-ardoise">{k}</span>
+            <span className="w-24 flex-shrink-0 text-[12.5px] text-ardoise">{k}</span>
             <span className="h-2 flex-1 overflow-hidden rounded-full bg-relief">
               <span className="block h-full rounded-full" style={{ width: `${(v / max) * 100}%`, background: J["menthe"] }} />
             </span>
-            <span className="w-12 flex-shrink-0 text-right text-[11.5px] tabular-nums text-encre">{pct(v)}</span>
+            <span className="w-12 flex-shrink-0 text-right text-[12.5px] tabular-nums text-encre">{pct(v)}</span>
           </div>
         ))}
       </div>
@@ -223,11 +240,11 @@ function Barres({ titre, parts }) {
 function Comptes({ lignes, vide }) {
   if (!lignes?.length) return <p className="mt-3 mb-0 text-[12.5px] text-brume">{vide}</p>;
   return (
-    <ul className="m-0 mt-3 list-none space-y-px p-0">
+    <ul className="m-0 mt-3 list-none p-0">
       {lignes.map((l) => (
-        <li key={l.nom} className="flex items-baseline justify-between border-b border-trait py-2">
-          <span className="text-[13px] text-craie">{l.nom}</span>
-          <span className="text-[13px] tabular-nums text-encre">{l.nombre}</span>
+        <li key={l.nom} className="flex min-h-[42px] items-center justify-between gap-3.5 border-b border-trait py-1 text-[14px]">
+          <span className="min-w-0 truncate text-craie">{l.nom}</span>
+          <span className="flex-none tabular-nums text-encre">{l.nombre}</span>
         </li>
       ))}
     </ul>
@@ -235,7 +252,7 @@ function Comptes({ lignes, vide }) {
 }
 
 function Source({ children }) {
-  return <p className="mt-5 mb-0 text-[11px] leading-[1.6] text-brume">{children}</p>;
+  return <p className="mt-5 mb-0 text-[12.5px] leading-[1.6] text-brume">{children}</p>;
 }
 
 const SOURCE_INSEE = "Source : INSEE, Filosofi, carreaux de 200 m. Les carreaux dont le centre tombe dans la zone sont additionnés.";
@@ -384,24 +401,25 @@ function PanneauInformations({ zone }) {
   const isLoading = insee.isLoading;
   const error = insee.error;
   const lecture = insee.data ? { ...insee.data, ...(equipements.data || {}), equipements_en_attente: equipements.isLoading, equipements_echec: equipements.error?.message || null } : null;
+  // 10 nov. 2026, Jules : planche Outils. Les thèmes en petits onglets sur une rangée, soulignée d'un filet ;
+  // le rayon est déjà dit en tête du panneau.
   return (
     <>
-      <div className="flex flex-wrap gap-1.5 border-b border-trait px-4 pb-3 pt-3">
+      <div role="group" aria-label="Thème" className="flex flex-wrap gap-1 border-b border-trait pb-2.5">
         {ONGLETS_INFOS.map((o) => (
           <button
             key={o}
+            type="button"
             onClick={() => setOnglet(o)}
-            className={`rounded-full px-3 py-1.5 text-[11.5px] transition-colors ${o === onglet ? "bg-encre/[0.07] text-encre" : "text-ardoise hover:text-encre"}`}
+            aria-pressed={o === onglet}
+            className={`rounded-[6px] px-2 py-0.5 text-[13px] transition-colors max-md:py-1.5 ${o === onglet ? "bg-relief text-encre" : "text-ardoise hover:text-encre"}`}
+            style={o === onglet ? undefined : TRANSPARENT}
           >
             {o}
           </button>
         ))}
       </div>
-      <div className="px-4 py-4">
-        <div className="flex items-baseline justify-between">
-          <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe-texte">{onglet}</p>
-          <span className="text-[11px] text-brume">rayon de {km(zone.rayon_m)}</span>
-        </div>
+      <div className="pb-1">
         {isLoading && (
           <p className="mt-4 mb-0 flex items-center gap-2 text-[12.5px] text-brume">
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> L&apos;INSEE répond…
@@ -410,15 +428,15 @@ function PanneauInformations({ zone }) {
         {error && <p className="mt-4 mb-0 text-[12.5px] text-alerte">{error.message || "La lecture n'a pas abouti."}</p>}
         {lecture && (
           <>
-            {lecture.insee_erreur && <p className="mt-3 mb-0 text-[12px] text-alerte">{lecture.insee_erreur}</p>}
-            {(lecture.equipements_erreur || lecture.equipements_echec) && <p className="mt-3 mb-0 text-[12px] text-alerte">{lecture.equipements_erreur || lecture.equipements_echec}</p>}
+            {lecture.insee_erreur && <p className="mt-3 mb-0 text-[12.5px] text-alerte">{lecture.insee_erreur}</p>}
+            {(lecture.equipements_erreur || lecture.equipements_echec) && <p className="mt-3 mb-0 text-[12.5px] text-alerte">{lecture.equipements_erreur || lecture.equipements_echec}</p>}
             {lecture.equipements_en_attente && (
-              <p className="mt-3 mb-0 flex items-center gap-2 text-[11.5px] text-brume">
+              <p className="mt-3 mb-0 flex items-center gap-2 text-[12.5px] text-brume">
                 <Loader2 className="h-3 w-3 animate-spin" /> OpenStreetMap relève les commerces et les transports…
               </p>
             )}
             {lecture.insee && lecture.insee.carreaux === 0 && (
-              <p className="mt-3 mb-0 text-[12px] text-ardoise">Aucun carreau INSEE habité dans la zone : personne n&apos;y réside, ou le rayon est trop petit.</p>
+              <p className="mt-3 mb-0 text-[12.5px] text-ardoise">Aucun carreau INSEE habité dans la zone : personne n&apos;y réside, ou le rayon est trop petit.</p>
             )}
             <ContenuOnglet onglet={onglet} zone={zone} lecture={lecture} />
           </>
@@ -470,29 +488,31 @@ function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuve
 
   const basculer = (nom) => setChoisis((c) => (c.includes(nom) ? c.filter((x) => x !== nom) : [...c, nom]));
 
+  // 10 nov. 2026, Jules : planche Outils. Le relevé en lignes ; le choix des métiers en lignes à rond coché, la
+  // recherche ronde au-dessus, « Valider ma sélection » en bouton principal collé au bas du panneau.
   if (releve) {
     return (
-      <div className="px-4 py-4">
-        <div className="flex items-center justify-between">
-          <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe-texte">
+      <div className="pb-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="m-0 text-[15px] font-medium text-encre">
             {releve.commerces.length} commerce{releve.commerces.length > 1 ? "s" : ""}
           </p>
-          <button onClick={() => { setReleve(null); onCommerces?.([]); }} className="text-[11.5px] text-ardoise hover:text-encre">Changer de métier</button>
+          <BoutonOutil onClick={() => { setReleve(null); onCommerces?.([]); }}>Changer de métier</BoutonOutil>
         </div>
-        <p className="mt-1 mb-0 text-[11px] text-brume">
+        <p className="mt-1 mb-0 text-[12.5px] text-ardoise">
           {choisis.length ? choisis.join(", ") : "Tous les commerces"} · rayon de {km(zone.rayon_m)}
         </p>
-        <ul className="mt-4 m-0 list-none space-y-px p-0">
+        <ul className="mt-3 m-0 list-none p-0">
           {releve.commerces.map((c) => (
             <li key={c.id}>
-              <button onClick={() => setCommerceOuvert(c)} className="flex w-full items-baseline gap-3 border-b border-trait py-2.5 text-left hover:bg-surface">
+              <button type="button" onClick={() => setCommerceOuvert(c)} className="flex min-h-[42px] w-full items-center gap-3.5 border-b border-trait py-1 text-left hover:bg-relief" style={TRANSPARENT}>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13.5px] text-encre">
+                  <span className="block truncate text-[14px] text-encre">
                     {c.nom || (c.vacant ? "Local vacant" : "Sans nom")}
                   </span>
-                  {c.adresse && <span className="block truncate text-[11px] text-brume">{c.adresse}</span>}
+                  {c.adresse && <span className="block truncate text-[12.5px] text-ardoise">{c.adresse}</span>}
                 </span>
-                <span className="flex-shrink-0 text-[11px] tabular-nums text-ardoise">{c.distance_m} m</span>
+                <span className="flex-none text-[12.5px] tabular-nums text-ardoise">{c.distance_m} m</span>
               </button>
             </li>
           ))}
@@ -501,52 +521,32 @@ function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuve
     );
   }
 
+  const ligneMetier = (actif) => `flex min-h-[40px] w-full items-center gap-2.5 border-b border-trait py-1 text-left transition-colors hover:bg-relief ${actif ? "bg-relief" : ""}`;
+  const rond = (actif) => `h-3.5 w-3.5 flex-none rounded-full border ${actif ? "border-menthe bg-menthe" : "border-bord-vif"}`;
   return (
     <>
-      <div className="border-b border-trait px-4 pb-3 pt-3">
-        <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3">
-          <Search className="h-4 w-4 flex-shrink-0 text-brume" />
-          <input
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-            placeholder="Chercher un métier"
-            className="h-9 w-full bg-transparent text-[13px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
-          />
-        </div>
-      </div>
-      <div className="max-h-[calc(100vh-280px)] overflow-y-auto px-4 py-2">
-        <button
-          onClick={() => setChoisis([])}
-          className={`mb-1 flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-left transition-colors ${choisis.length === 0 ? "border-menthe/40 bg-menthe/[0.08]" : "border-trait hover:bg-surface"}`}
-        >
-          <span className={`h-3.5 w-3.5 flex-shrink-0 rounded-full border ${choisis.length === 0 ? "border-menthe bg-menthe" : "border-bord-vif"}`} />
-          <span className="text-[13px] text-encre">Tous les commerces</span>
+      <Recherche value={recherche} onChange={setRecherche} placeholder="Chercher un métier" className="w-full flex-none" />
+      <div className="mt-2">
+        <button type="button" onClick={() => setChoisis([])} className={ligneMetier(choisis.length === 0)} style={choisis.length === 0 ? undefined : TRANSPARENT}>
+          <span className={rond(choisis.length === 0)} />
+          <span className="text-[14px] text-encre">Tous les commerces</span>
         </button>
         {filtres.map((m) => {
           const actif = choisis.includes(m.nom);
           return (
-            <button
-              key={m.nom}
-              onClick={() => basculer(m.nom)}
-              className={`mb-1 flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-left transition-colors ${actif ? "border-menthe/40 bg-menthe/[0.08]" : "border-trait hover:bg-surface"}`}
-            >
-              <span className={`h-3.5 w-3.5 flex-shrink-0 rounded-full border ${actif ? "border-menthe bg-menthe" : "border-bord-vif"}`} />
-              <span className="min-w-0 flex-1 truncate text-[13px] text-encre">{m.nom}</span>
-              <span className="flex-shrink-0 text-[11px] text-brume">{m.categorie}</span>
+            <button key={m.nom} type="button" onClick={() => basculer(m.nom)} className={ligneMetier(actif)} style={actif ? undefined : TRANSPARENT}>
+              <span className={rond(actif)} />
+              <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{m.nom}</span>
+              <span className="flex-none text-[12.5px] text-brume">{m.categorie}</span>
             </button>
           );
         })}
       </div>
-      <div className="border-t border-trait p-3">
-        <button
-          onClick={() => relever.mutate()}
-          disabled={relever.isPending}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-full text-[12px] font-medium uppercase tracking-[.12em] text-sur-menthe disabled:opacity-60"
-          style={{ background: J["menthe"] }}
-        >
-          {relever.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+      <div className="sticky bottom-0 -mx-4 mt-2 border-t border-trait bg-rail px-4 pt-3">
+        <BoutonPrincipal onClick={() => relever.mutate()} disabled={relever.isPending} className="w-full">
+          {relever.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
           Valider ma sélection
-        </button>
+        </BoutonPrincipal>
       </div>
     </>
   );
@@ -565,38 +565,41 @@ function PanneauChalandise({ point, onFermer }) {
   const r = q.data?.resultat;
   const nombre = (n) => (n == null ? "—" : Math.round(n).toLocaleString("fr-FR"));
   return (
-    <div className="absolute right-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/85 backdrop-blur max-md:left-3 max-md:right-3 max-md:w-auto">
-      <div className="flex items-start justify-between gap-3 border-b border-trait px-4 py-3">
+    // 10 nov. 2026, Jules : planche Outils. Une carte posée à droite, sous la cloche, comme la zone ouverte.
+    <div className={`${PANNEAU} right-6 top-6 z-[510] max-h-[calc(100%-48px)] w-[380px] max-w-[calc(100vw-2rem)] max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[calc(100%-24px)] max-md:w-auto`}>
+      <div className="flex flex-none items-start justify-between gap-2.5">
         <div className="min-w-0">
-          <p className="m-0 text-[13.5px] text-encre">Zone de chalandise</p>
-          <p className="m-0 truncate text-[12px] text-ardoise">{point.libelle}</p>
+          <span className="block truncate text-[12.5px] text-ardoise">{point.libelle}</span>
+          <h2 className="m-0 mt-0.5 text-[18px] font-medium text-encre">Zone de chalandise</h2>
         </div>
-        <button type="button" onClick={onFermer} className="text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Fermer</button>
-      </div>
-      <div className="flex items-center gap-2 px-4 py-3">
-        <input value={activite} onChange={(e) => setActivite(e.target.value)} placeholder="Activité (ex. Boulangerie), facultatif"
-          className="h-8 min-w-0 flex-1 rounded-full border border-bord bg-surface px-3 text-[12.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-        <button type="button" onClick={() => q.mutate()} disabled={q.isPending} className="h-8 flex-none rounded-full bg-menthe px-3.5 text-[12.5px] text-sur-menthe disabled:opacity-60">
-          {q.isPending ? "Lecture…" : "Lire"}
+        <button type="button" onClick={onFermer} aria-label="Fermer la zone de chalandise" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={TRANSPARENT}>
+          <X className="h-4 w-4" />
         </button>
       </div>
+      <div className="flex flex-none items-center gap-2">
+        <input value={activite} onChange={(e) => setActivite(e.target.value)} placeholder="Activité (ex. Boulangerie), facultatif" aria-label="Activité, facultatif"
+          className="h-8 min-w-0 flex-1 rounded-full border-0 bg-relief px-3.5 text-[14px] text-encre outline-none placeholder:text-brume focus:ring-1 focus:ring-bord-doux max-md:h-10 max-md:text-[16px]" />
+        <BoutonPrincipal onClick={() => q.mutate()} disabled={q.isPending}>
+          {q.isPending ? "Lecture…" : "Lire"}
+        </BoutonPrincipal>
+      </div>
       {r && (
-        <div className="min-h-0 flex-1 overflow-y-auto border-t border-trait px-4 py-3 text-[13px]">
-          <p className="m-0 text-[22px] font-semibold tabular-nums text-encre">{r.flux?.indice ?? "—"} <span className="text-[13px] font-normal text-ardoise">/ 100, indice de flux</span></p>
-          <p className="m-0 text-[11.5px] text-brume">{r.flux?.nature} ; {r.flux?.sur}</p>
+        <div className="-mx-4 min-h-0 flex-1 overflow-y-auto border-t border-trait px-4 pt-3 text-[13.5px]">
+          <p className="m-0 text-[18px] font-medium tabular-nums text-encre">{r.flux?.indice ?? "—"} <span className="text-[13.5px] font-normal text-ardoise">/ 100, indice de flux</span></p>
+          <p className="m-0 text-[12.5px] text-brume">{r.flux?.nature} ; {r.flux?.sur}</p>
           {(r.zones || []).map((z) => (
             <div key={z.cle} className="mt-3 border-t border-trait pt-2">
-              <p className="m-0 text-[12px] uppercase tracking-[.08em] text-ardoise">{z.marche}</p>
-              <p className="m-0 text-encre">{nombre(z.habitants)} habitants · {nombre(z.menages)} ménages · niveau de vie {nombre(z.niveau_de_vie_moyen)} €</p>
-              <p className="m-0 text-[12px] text-ardoise">moins de 18 ans {z.part_moins_18 ?? "—"} % · 65 ans et plus {z.part_65_plus ?? "—"} % · CSP+ {z.csp_plus_part ?? "—"} %</p>
+              <p className={TITRE_GROUPE}>{z.marche}</p>
+              <p className="m-0 mt-0.5 text-encre">{nombre(z.habitants)} habitants · {nombre(z.menages)} ménages · niveau de vie {nombre(z.niveau_de_vie_moyen)} €</p>
+              <p className="m-0 text-[12.5px] text-ardoise">moins de 18 ans {z.part_moins_18 ?? "—"} % · 65 ans et plus {z.part_65_plus ?? "—"} % · CSP+ {z.csp_plus_part ?? "—"} %</p>
             </div>
           ))}
           <div className="mt-3 border-t border-trait pt-2">
             <p className="m-0 text-encre">{nombre(r.commerces_zone_primaire)} commerces à 5 minutes{r.concurrence ? `, dont ${r.concurrence.nombre} « ${r.activite} »` : ""}</p>
-            {r.gares?.[0] && <p className="m-0 text-[12px] text-ardoise">Gare : {r.gares[0].nom}, {r.gares[0].distance_m} m{r.gares[0].voyageurs ? `, ${nombre(r.gares[0].voyageurs)} voyageurs en ${r.gares[0].annee}` : ""}</p>}
-            <p className="m-0 text-[12px] text-ardoise">{(r.arrets || []).filter((a) => a.distance_m <= 300).length} arrêts à moins de 300 m</p>
+            {r.gares?.[0] && <p className="m-0 text-[12.5px] text-ardoise">Gare : {r.gares[0].nom}, {r.gares[0].distance_m} m{r.gares[0].voyageurs ? `, ${nombre(r.gares[0].voyageurs)} voyageurs en ${r.gares[0].annee}` : ""}</p>}
+            <p className="m-0 text-[12.5px] text-ardoise">{(r.arrets || []).filter((a) => a.distance_m <= 300).length} arrêts à moins de 300 m</p>
           </div>
-          <p className="m-0 mt-3 text-[11px] text-brume">Sources : {(r.sources || []).join(", ")}{r.du_cache ? " · déjà lue" : ""}</p>
+          <p className="m-0 mt-3 text-[12.5px] text-brume">Sources : {(r.sources || []).join(", ")}{r.du_cache ? " · déjà lue" : ""}</p>
         </div>
       )}
     </div>
@@ -690,8 +693,20 @@ export default function KZoning() {
     : null;
   const centreOuvert = zoneOuverte ? [Number(zoneOuverte.centre_lat), Number(zoneOuverte.centre_lon)] : null;
 
+  const basculerVisible = (z) => setMasquees((s) => { const n = new Set(s); n.has(z.id) ? n.delete(z.id) : n.add(z.id); return n; });
+  const ligne = (z) => (
+    <LigneZone
+      key={z.id} zone={z} actif={zoneOuverte?.id === z.id} visible={!masquees.has(z.id)}
+      onOuvrir={() => { setZoneOuverte(z); setMode("infos"); }}
+      onBasculerVisible={() => basculerVisible(z)}
+      onSupprimer={() => supprimer.mutate(z.id)}
+    />
+  );
+
+  // 10 nov. 2026, Jules : planche Outils. Plus de barre du haut des Outils : la carte prend toute la hauteur
+  // (sur téléphone, moins la barre du haut et la marge du bas de Layout).
   return (
-    <div className="relative h-[calc(100vh-3.5rem)] w-full overflow-hidden max-md:h-[calc(100dvh-var(--k-haut-mobile,3.5rem))]">
+    <div className="relative min-h-0 w-full flex-1 overflow-hidden max-md:flex-none max-md:h-[calc(100dvh-var(--k-haut-mobile,3.5rem)-var(--k-bas-mobile,0px))]">
       {/* La carte : Google, comme demandé — le cercle d'une zone y porte un
           bord noir et un vert nourri, pour se voir d'un coup d'œil. */}
       <div className="absolute inset-0">
@@ -708,145 +723,101 @@ export default function KZoning() {
       </div>
       <SelecteurFond type={typeCarte} setType={setTypeCarte} cacheMobile={!!zoneOuverte} />
       {chalandise && point && <PanneauChalandise key={point.libelle} point={point} onFermer={() => setChalandise(false)} />}
-      <BoutonMecanique etapes={ETAPES_MECANIQUE} className={zoneOuverte ? "max-md:hidden" : ""} />
+      <BoutonMecanique etapes={ETAPES_MECANIQUE} position="bottom-6 right-6" className={zoneOuverte ? "max-md:hidden" : ""} />
 
       {/* La fiche d'une société : plein écran, par-dessus la carte. */}
       {commerceOuvert && (
         <FicheSociete commerce={commerceOuvert} metier={commerceOuvert.metier || null} onFermer={() => setCommerceOuvert(null)} />
       )}
 
-      {/* Le panneau de gauche : chercher, créer, retrouver. Au téléphone, il
-          prend le haut de l'écran et s'efface quand une zone est ouverte. */}
-      <div className={`absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[55%] max-md:w-auto max-md:max-w-none ${zoneOuverte ? "max-md:hidden" : ""}`}>
-        <div className="flex-shrink-0 p-3">
-          <ChercheAdresse key={rechercheNeuve} onChoisi={(s) => { setPoint(s); setRayon(RAYON_DEFAUT); }} />
-          {point && (
-            <button type="button" onClick={() => setChalandise(true)} className="mt-2 inline-flex h-8 items-center rounded-full border border-bord px-3 text-[12px] text-craie hover:text-encre" style={{ background: "transparent" }}>
-              Zone de chalandise de cette adresse
-            </button>
-          )}
-          {point && (
-            <ReglageRayon
-              point={point} rayon_m={rayon} setRayon={setRayon}
-              onCreer={() => creer.mutate()} onAnnuler={() => setPoint(null)} enCours={creer.isPending}
-            />
-          )}
+      {/* Le panneau de gauche (10 nov. 2026, Jules : planche Outils) : le retour aux Outils, le titre et son
+          compte, la recherche, le rayon, puis les zones en lignes par dossier. Au téléphone, il prend le haut de
+          l'écran et s'efface quand une zone est ouverte. */}
+      <section aria-label="Les zones" className={`${PANNEAU} bottom-6 left-6 top-6 z-[500] w-[340px] max-w-[calc(100vw-2rem)] max-md:bottom-auto max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[55%] max-md:w-auto max-md:max-w-none ${zoneOuverte ? "max-md:hidden" : ""}`}>
+        <div className="flex-none">
+          <Link to={createPageUrl("KData")} className="text-[13px] text-ardoise no-underline hover:text-encre">← Outils</Link>
+          <h1 className="m-0 mt-1 truncate text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">
+            K-Zoning<span className="ml-2 text-[14px] tabular-nums tracking-normal text-ardoise">{zones.length}</span>
+          </h1>
         </div>
+        <div className="flex-none">
+          <ChercheAdresse key={rechercheNeuve} onChoisi={(s) => { setPoint(s); setRayon(RAYON_DEFAUT); }} />
+        </div>
+        {point && (
+          <ReglageRayon
+            point={point} rayon_m={rayon} setRayon={setRayon}
+            onCreer={() => creer.mutate()} onAnnuler={() => setPoint(null)} onChalandise={() => setChalandise(true)} enCours={creer.isPending}
+          />
+        )}
 
-        <div className="flex flex-shrink-0 items-center gap-2 border-t border-trait px-3 py-2.5">
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-bord bg-surface px-3">
-            <Search className="h-3.5 w-3.5 flex-shrink-0 text-brume" />
-            <input
-              value={filtreZone}
-              onChange={(e) => setFiltreZone(e.target.value)}
-              placeholder="Chercher une zone"
-              className="h-8 w-full bg-transparent text-[12.5px] text-encre outline-none placeholder:text-brume max-md:h-9 max-md:text-[16px]"
-            />
-          </div>
+        <div className="flex flex-none items-center justify-between gap-2">
+          <h2 className="m-0 text-[15px] font-medium text-encre">Les zones</h2>
           <button
+            type="button"
             onClick={() => {
               const nom = window.prompt("Nom du dossier");
               if (nom?.trim()) nouveauDossier.mutate(nom.trim());
             }}
-            className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-full border border-bord px-3 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre max-md:h-9"
-            title="Créer un dossier" aria-label="Créer un dossier"
+            className="inline-flex h-7 items-center rounded-full px-2.5 text-[13px] text-craie hover:bg-relief hover:text-encre max-md:h-10"
+            style={TRANSPARENT}
+            title="Créer un dossier"
           >
-            <FolderPlus className="h-3.5 w-3.5" />
+            + Dossier
           </button>
         </div>
+        {zones.length > 0 && (
+          <Recherche value={filtreZone} onChange={setFiltreZone} placeholder="Chercher une zone" className="w-full flex-none" />
+        )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+        <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4">
           {cherchees ? (
-            cherchees.length ? cherchees.map((z) => (
-              <LigneZone
-                key={z.id} zone={z} actif={zoneOuverte?.id === z.id} visible={!masquees.has(z.id)}
-                onOuvrir={() => { setZoneOuverte(z); setMode("infos"); }}
-                onBasculerVisible={() => setMasquees((s) => { const n = new Set(s); n.has(z.id) ? n.delete(z.id) : n.add(z.id); return n; })}
-                onSupprimer={() => supprimer.mutate(z.id)}
-              />
-            )) : <p className="m-0 px-3 py-6 text-center text-[12.5px] text-brume">Aucune zone de ce nom.</p>
+            cherchees.length ? cherchees.map(ligne) : <p className="m-0 py-6 text-center text-[12.5px] text-brume">Aucune zone de ce nom.</p>
           ) : (
             <>
               {dossiers.map((d) => (
-                <div key={d.id} className="border-b border-trait">
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-brume" />
-                    <Folder className="h-3.5 w-3.5 flex-shrink-0 text-ardoise" />
-                    <span className="min-w-0 flex-1 truncate text-[12.5px] text-encre">{d.nom}</span>
-                    <span className="flex-shrink-0 text-[11px] tabular-nums text-brume">({d.zones})</span>
-                  </div>
-                  {zones.filter((z) => z.dossier_id === d.id).map((z) => (
-                    <LigneZone
-                      key={z.id} zone={z} actif={zoneOuverte?.id === z.id} visible={!masquees.has(z.id)}
-                      onOuvrir={() => { setZoneOuverte(z); setMode("infos"); }}
-                      onBasculerVisible={() => setMasquees((s) => { const n = new Set(s); n.has(z.id) ? n.delete(z.id) : n.add(z.id); return n; })}
-                      onSupprimer={() => supprimer.mutate(z.id)}
-                    />
-                  ))}
+                <div key={d.id}>
+                  <p className={`${TITRE_GROUPE} truncate pb-0.5 pt-2.5 first:pt-1`}>{d.nom} · {d.zones}</p>
+                  {zones.filter((z) => z.dossier_id === d.id).map(ligne)}
                 </div>
               ))}
-              <p className="alx-mont m-0 px-3 pb-1 pt-3 text-[11px] uppercase tracking-[.16em] text-brume">Zones sans dossier</p>
-              {sansDossier.length ? sansDossier.map((z) => (
-                <LigneZone
-                  key={z.id} zone={z} actif={zoneOuverte?.id === z.id} visible={!masquees.has(z.id)}
-                  onOuvrir={() => { setZoneOuverte(z); setMode("infos"); }}
-                  onBasculerVisible={() => setMasquees((s) => { const n = new Set(s); n.has(z.id) ? n.delete(z.id) : n.add(z.id); return n; })}
-                  onSupprimer={() => supprimer.mutate(z.id)}
-                />
-              )) : (
-                <p className="m-0 px-3 py-6 text-center text-[12.5px] leading-[1.6] text-brume">
+              <p className={`${TITRE_GROUPE} pb-0.5 pt-2.5`}>Sans dossier · {sansDossier.length}</p>
+              {sansDossier.length ? sansDossier.map(ligne) : (
+                <p className="m-0 py-6 text-center text-[12.5px] leading-[1.6] text-brume">
                   Cherchez une adresse, réglez le rayon : votre première zone se pose en deux gestes.
                 </p>
               )}
             </>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Le panneau de droite : ce qu'on lit dans la zone ouverte. Au
-          téléphone, une feuille posée en bas, la carte reste visible dessus. */}
+      {/* Le panneau de droite (10 nov. 2026, Jules : planche Outils) : la zone ouverte, sous la cloche de Layout.
+          Informations et Concurrence en deux filtres ronds, plus de rail d'icônes. Au téléphone, une feuille posée
+          en bas, la carte reste visible dessus. */}
       {zoneOuverte && (
-        <div className="absolute right-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[420px] max-w-[calc(100vw-2rem)] max-md:bottom-[calc(env(safe-area-inset-bottom)+12px)] max-md:left-3 max-md:right-3 max-md:top-auto max-md:max-h-[62%] max-md:w-auto max-md:max-w-none">
-          {/* Le rail des modes, à gauche du panneau */}
-          <div className="mr-2 flex flex-shrink-0 flex-col gap-2">
-            {[
-              { cle: "infos", icone: PieChart, titre: "Informations dans la zone" },
-              { cle: "concurrence", icone: Store, titre: "Concurrence dans la zone" },
-            ].map(({ cle, icone: Icone, titre }) => (
-              <button
-                key={cle}
-                onClick={() => setMode(cle)}
-                title={titre}
-                className={`flex h-10 w-10 items-center justify-center rounded-[12px] border transition-colors ${
-                  mode === cle
-                    ? "border-menthe bg-menthe text-sur-menthe"
-                    : "border-bord bg-surface-pleine text-craie hover:border-menthe/40 hover:text-encre"
-                }`}
-              >
-                <Icone className="h-[18px] w-[18px]" />
-              </button>
-            ))}
-          </div>
-
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
-            <div className="flex flex-shrink-0 items-start gap-3 border-b border-trait p-4">
-              <div className="min-w-0 flex-1">
-                <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe-texte">
-                  {mode === "infos" ? "Informations dans la zone" : "Concurrence dans la zone"}
-                </p>
-                <h2 className="mt-1 mb-0 truncate text-[17px] font-medium text-encre">{zoneOuverte.nom}</h2>
-              </div>
-              <button onClick={() => setZoneOuverte(null)} className="flex-shrink-0 text-brume hover:text-encre max-md:-m-2 max-md:p-2" aria-label="Fermer">
-                <X className="h-4 w-4" />
-              </button>
+        <section aria-label="La zone ouverte" className={`${PANNEAU} bottom-6 right-6 top-6 z-[500] w-[420px] max-w-[calc(100vw-2rem)] max-md:bottom-[calc(env(safe-area-inset-bottom)+12px)] max-md:left-3 max-md:right-3 max-md:top-auto max-md:max-h-[62%] max-md:w-auto max-md:max-w-none`}>
+          <div className="flex flex-none items-start justify-between gap-2.5">
+            <div className="min-w-0">
+              <span className="block text-[12.5px] text-ardoise">Rayon de {km(zoneOuverte.rayon_m)}</span>
+              <h2 className="m-0 mt-0.5 truncate text-[18px] font-medium text-encre">{zoneOuverte.nom}</h2>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {mode === "infos"
-                ? <PanneauInformations zone={zoneOuverte} />
-                : <PanneauConcurrence zone={zoneOuverte} onCommerces={setCommerces} commerceOuvert={commerceOuvert} setCommerceOuvert={setCommerceOuvert} />}
-            </div>
+            <button type="button" onClick={() => setZoneOuverte(null)} aria-label="Fermer la zone" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre max-md:h-10 max-md:w-10" style={TRANSPARENT}>
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        </div>
+          <Filtres
+            label="Vue de la zone"
+            className="flex-none"
+            options={[["infos", "Informations"], ["concurrence", "Concurrence"]]}
+            valeur={mode}
+            onChange={setMode}
+          />
+          <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4">
+            {mode === "infos"
+              ? <PanneauInformations zone={zoneOuverte} />
+              : <PanneauConcurrence zone={zoneOuverte} onCommerces={setCommerces} commerceOuvert={commerceOuvert} setCommerceOuvert={setCommerceOuvert} />}
+          </div>
+        </section>
       )}
     </div>
   );

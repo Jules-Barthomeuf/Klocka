@@ -104,7 +104,7 @@ export function TiroirAgent({ id, onFermer, onCrm = null }) {
   return createPortal(
     <div className="fixed inset-0 z-[80]">
       <div className="absolute inset-0 bg-fond/60 backdrop-blur-[2px]" onClick={onFermer} />
-      <aside role="dialog" aria-modal="true" aria-label="Fiche de l'agent" className="absolute inset-y-0 right-0 flex w-[640px] max-w-full flex-col overflow-y-auto border-l border-trait bg-surface-pleine px-7 pb-10 pt-5 animate-in slide-in-from-right duration-200 max-md:px-5">
+      <aside role="dialog" aria-modal="true" aria-label="Fiche de l'agent" className="absolute inset-y-0 right-0 flex w-[640px] max-w-full flex-col overflow-y-auto border-l border-trait bg-rail px-7 pb-10 pt-5 animate-in slide-in-from-right duration-200 max-md:px-5">
         {onCrm && <button type="button" onClick={onCrm} className="mb-3 self-start p-0 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Sa ligne dans Twenty CRM →</button>}
         <FicheContact depart={{ type: "agent", id }} onFermer={onFermer} />
         <div className="mt-8 flex items-baseline justify-between gap-3">

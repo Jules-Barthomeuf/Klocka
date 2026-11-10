@@ -22,8 +22,9 @@ const C = await import('./capture.js');
 const R = await import('./reponses.js');
 const { poserPlafond } = await import('./expediteurs.js');
 
-// Un mardi à 10 h à Paris.
-const MARDI = new Date('2026-11-10T09:00:00Z');
+// Un mardi à 10 h à Paris, dans l'avenir : le moteur date ses mails à l'heure réelle, un mardi passé les laissait
+// derrière (le 10 nov. 2026 à 9 h UTC, deux tests ont commencé d'échouer).
+const MARDI = new Date('2030-11-12T09:00:00Z');
 const plus = (d, min) => new Date(d.getTime() + min * 60000);
 const resend = () => { const m = []; const f = async (x) => { m.push(x); return { ok: true, id: `r${m.length}` }; }; f.partis = m; return f; };
 const gmail = () => { const m = []; const f = async (x) => { m.push(x); return { success: true, messageId: `g${m.length}`, threadId: 'fil1' }; }; f.partis = m; return f; };
@@ -69,7 +70,7 @@ test('condition : la branche suit ce que le contact a fait depuis son entrée', 
   J.emettre('webinaire_present', { email: c1.email, contact_id: c1.id });
   J.emettre('webinaire_present', { email: c2.email, contact_id: c2.id });
   M.traiterEvenements({ quand: MARDI });
-  J.emettre('simulateur', { email: c1.email, contact_id: c1.id, le: plus(new Date(), 1).toISOString() });
+  J.emettre('simulateur', { email: c1.email, contact_id: c1.id, le: plus(MARDI, 1).toISOString() });
   await M.avancerParcours({ quand: MARDI });
   const e = resend();
   await M.tourFile({ quand: MARDI, envoyerParResend: e, envoyerParGmail: gmail() });

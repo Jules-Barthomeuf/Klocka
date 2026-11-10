@@ -174,15 +174,23 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
   // Les loyers des dossiers Klocka, en cercles autour de l'adresse, avec Equimmox dans la même liste.
   surJalon('klocka');
   let comparables = null;
+  let loyers_reels = null;
   try {
     // Les poids du registre (Paramètres › Sources) ; une source coupée n'entre pas dans la liste.
     const poids = Object.fromEntries(['klocka_bail', 'klocka_fiche', 'equimmox'].map((k) => [k, poidsSource(k)]).filter(([, v]) => v != null));
     poids.klocka_saisi = poids.klocka_fiche;
     const refs = (await referencesAutour(adresse)).filter((r) => sourceActive(r.origine === 'reel' ? 'klocka_bail' : 'klocka_fiche'));
     comparables = valeurParComparables(adresse, refs, equimmoxEnComparables(equimmox), { poids });
+    // Le loyer de marché par les loyers réels (10 nov. 2026) : murs occupés en vente et loyers Klocka, moyenne
+    // simple à 1 km ; calculé à côté, rien d'affiché ne change tant que la source reste coupée.
+    if (sourceActive('murs_occupes')) {
+      const { loyerDeMarche, loyersReelsGardes } = await import('./loyers-reels.js');
+      const klocka = refs.filter((r) => r.point).map((r) => ({ ...r, source: r.origine === 'reel' ? 'klocka_bail' : 'klocka_fiche' }));
+      loyers_reels = loyerDeMarche(adresse, [...(await loyersReelsGardes()), ...klocka]);
+    }
   } catch (e) { erreurs.push(`Loyers Klocka : ${e?.message || e}`); }
 
-  const resultat = { ...composer(adresse, equimmox, null, null), comparables, valeur: comparables?.valeur ? { ...comparables.valeur, source: comparables.affichee, niveau: comparables.niveau, confiance: comparables.confiance } : null, erreurs, le: new Date().toISOString(), par: user?.email || null };
+  const resultat = { ...composer(adresse, equimmox, null, null), comparables, loyers_reels, valeur: comparables?.valeur ? { ...comparables.valeur, source: comparables.affichee, niveau: comparables.niveau, confiance: comparables.confiance } : null, erreurs, le: new Date().toISOString(), par: user?.email || null };
   if (!resultat.rue && !resultat.quartier && !resultat.ville && !resultat.valeur) {
     return { ok: false, error: `Aucune valeur locative lisible ici : ${erreurs.join(' ; ') || 'aucune source n\'a répondu'}.` };
   }

@@ -35,6 +35,7 @@ import JournalAnalyste from "@/components/preanalyse/JournalAnalyste";
 import AdresseDuBien from "@/components/preanalyse/AdresseDuBien";
 import JournalQuestion from "@/components/preanalyse/JournalQuestion";
 import { adresseDe } from "@/components/preanalyse/marche-reel";
+import VerdictPrix from "@/components/preanalyse/VerdictPrix";
 import TracabiliteMarche from "@/components/preanalyse/TracabiliteMarche";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
@@ -682,6 +683,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                     onglets de leur source, à l'intérieur du journal — elles
                     s'empilaient ici sur toute la hauteur de la page. */}
                 <AdresseDuBien dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} onDataRoom={() => setGrilleAnalyse("data_room")} />
+                {/* Le verdict sur le prix des murs, en tête (10 nov. 2026, Jules). */}
+                {!apercu && dossier?.deal_id && <VerdictPrix dealId={dossier.deal_id} />}
                 <JournalAnalyste dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
               </div>
             )}

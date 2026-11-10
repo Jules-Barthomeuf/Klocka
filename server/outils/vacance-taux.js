@@ -307,25 +307,84 @@ export function lireOsm(el) {
   return { nom: t.name || null, type, vacant, adresse, lat, lon };
 }
 
+/** Pure : ce qu'Overpass aurait retenu (mêmes étiquettes que sa requête). */
+const RE_AMENITES = new RegExp(`^(${AMENITES})$`);
+export const retenuOsm = (t = {}) => !!t.shop || RE_AMENITES.test(t.amenity || '') || !!t['disused:shop'] || !!t['was:shop'] || t.vacant === 'yes';
+
+/**
+ * Pure : les éléments bruts de l'API principale d'OpenStreetMap (/api/0.6/map.json) lus comme Overpass les rend
+ * (10 nov. 2026 : les serveurs Overpass coupaient ou ne répondaient plus, et le taux ne se calculait pas). Les
+ * mêmes données, la même carte : un nœud porte son point, une voie (un bâtiment-commerce) le centre de ses
+ * nœuds ; seuls restent les éléments aux étiquettes de la requête Overpass, dans le rayon. Les relations sont
+ * laissées : quelques galeries, qui n'ont pas d'adresse de local.
+ */
+export function lireCarteOsm(elements, lat, lon, rayon) {
+  const noeuds = new Map();
+  for (const e of elements || []) if (e.type === 'node') noeuds.set(e.id, e);
+  const vus = new Set(); const out = [];
+  for (const e of elements || []) {
+    if ((e.type !== 'node' && e.type !== 'way') || !retenuOsm(e.tags) || vus.has(`${e.type}${e.id}`)) continue;
+    vus.add(`${e.type}${e.id}`);
+    let el = e;
+    if (e.type === 'way') {
+      const pts = (e.nodes || []).map((id) => noeuds.get(id)).filter((n) => Number.isFinite(n?.lat));
+      if (!pts.length) continue;
+      el = { ...e, center: { lat: pts.reduce((s, n) => s + n.lat, 0) / pts.length, lon: pts.reduce((s, n) => s + n.lon, 0) / pts.length } };
+    }
+    const o = lireOsm(el);
+    if (o && distanceM(lat, lon, o.lat, o.lon) <= rayon) out.push(o);
+  }
+  return out;
+}
+
+const UA_OSM = { 'user-agent': 'Klocka/1.0 (sourcing@klocka.immo)' };
+
+/** Le repli : l'API principale, par carrés d'environ 900 m (elle refuse au-delà de 50 000 nœuds). */
+async function viaApiPrincipale(lat, lon, rayon) {
+  const dLat = rayon / 111320; const dLon = rayon / (111320 * Math.cos((lat * Math.PI) / 180));
+  const pas = 0.008;
+  const nLat = Math.ceil((2 * dLat) / pas); const nLon = Math.ceil((2 * dLon) / (pas * 1.4));
+  if (nLat * nLon > 16) throw new Error(`zone trop grande pour l'API principale (${nLat * nLon} carrés)`);
+  const elements = [];
+  for (let i = 0; i < nLat; i += 1) {
+    for (let j = 0; j < nLon; j += 1) {
+      const s = lat - dLat + (i * 2 * dLat) / nLat; const w = lon - dLon + (j * 2 * dLon) / nLon;
+      const bbox = [w, s, w + (2 * dLon) / nLon, s + (2 * dLat) / nLat].map((x) => x.toFixed(6)).join(',');
+      const r = await fetch(`https://api.openstreetmap.org/api/0.6/map.json?bbox=${bbox}`, { headers: UA_OSM, signal: AbortSignal.timeout(45000) });
+      if (!r.ok) throw new Error(`api.openstreetmap.org a répondu ${r.status}`);
+      elements.push(...((await r.json()).elements || []));
+    }
+  }
+  return lireCarteOsm(elements, lat, lon, rayon);
+}
+
 export async function osmAutour(lat, lon, rayon) {
   const cle = `${lat.toFixed(4)}|${lon.toFixed(4)}|${rayon}`;
   const c = db.prepare('SELECT * FROM vacance_osm WHERE cle = ?').get(cle);
   if (c && Date.now() - Date.parse(c.lu_le) < 7 * 86400000) return JSON.parse(c.donnees);
   const a = `(around:${Math.round(rayon)},${lat},${lon})`;
   const q = `[out:json][timeout:25];(nwr["shop"]${a};nwr["amenity"~"^(${AMENITES})$"]${a};nwr["disused:shop"]${a};nwr["was:shop"]${a};nwr["vacant"="yes"]${a};);out center tags;`;
-  let derniere = null;
-  for (const url of SERVEURS_OSM) {
-    try {
-      const r = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: q }), headers: { 'user-agent': 'Klocka/1.0 (sourcing@klocka.immo)' }, signal: AbortSignal.timeout(40000) });
-      if (!r.ok) { derniere = `${new URL(url).host} a répondu ${r.status}`; continue; }
-      const liste = ((await r.json()).elements || []).map(lireOsm).filter(Boolean);
-      db.prepare('INSERT INTO vacance_osm (cle, donnees, lu_le) VALUES (?, ?, ?) ON CONFLICT(cle) DO UPDATE SET donnees = excluded.donnees, lu_le = excluded.lu_le').run(cle, JSON.stringify(liste), new Date().toISOString());
-      return liste;
-    } catch (e) { derniere = `${new URL(url).host} : ${e?.message || e}`; }
-  }
+  const garder = (liste) => {
+    db.prepare('INSERT INTO vacance_osm (cle, donnees, lu_le) VALUES (?, ?, ?) ON CONFLICT(cle) DO UPDATE SET donnees = excluded.donnees, lu_le = excluded.lu_le').run(cle, JSON.stringify(liste), new Date().toISOString());
+    return liste;
+  };
+  // Les serveurs Overpass ensemble, le premier qui répond l'emporte (10 nov. 2026 : l'un après l'autre, trois
+  // pannes faisaient deux minutes d'attente avant l'erreur).
+  const pannes = [];
+  try {
+    const liste = await Promise.any(SERVEURS_OSM.map(async (url) => {
+      try {
+        const r = await fetch(url, { method: 'POST', body: new URLSearchParams({ data: q }), headers: UA_OSM, signal: AbortSignal.timeout(20000) });
+        if (!r.ok) throw new Error(`a répondu ${r.status}`);
+        return ((await r.json()).elements || []).map(lireOsm).filter(Boolean);
+      } catch (e) { pannes.push(`${new URL(url).host} : ${e?.message || e}`); throw e; }
+    }));
+    return garder(liste);
+  } catch { /* tous en panne : l'API principale */ }
+  try { return garder(await viaApiPrincipale(lat, lon, rayon)); } catch (e) { pannes.push(`api.openstreetmap.org : ${e?.message || e}`); }
   // Tous en panne : une lecture plus ancienne vaut mieux que rien, elle est dite.
   if (c) return JSON.parse(c.donnees);
-  throw new Error(`OpenStreetMap ne répond pas (${derniere}).`);
+  throw new Error(`OpenStreetMap ne répond pas (${pannes.join(' ; ')}).`);
 }
 
 // Google Maps (Places, recherche autour) : les lieux à 25 m du local, gardés un mois par local.

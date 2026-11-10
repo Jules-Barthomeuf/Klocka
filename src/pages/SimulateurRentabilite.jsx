@@ -170,6 +170,8 @@ export default function SimulateurRentabilite() {
         setIraRenegociation(selectedProject.sim_ira_mois || 0);
       } else { setRenegociationActive(false); }
       setPretInFine(selectedProject.sim_pret_in_fine ?? false);
+      setSansCredit(!!selectedProject.sim_sans_credit);
+      setVacancesLocatives(Array.isArray(selectedProject.sim_vacances_locatives) ? selectedProject.sim_vacances_locatives : Array(25).fill(0));
       setCoutCreationSociete(selectedProject.sim_cout_creation_societe || 1000);
       setFraisDossierBancaire(selectedProject.sim_frais_dossier_bancaire || 1000);
       setFraisCourtage(selectedProject.sim_frais_courtage || 0);

@@ -619,6 +619,11 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, adresse: { type: 'string' }, rayon: { type: 'number', description: 'en mètres, 800 par défaut' } } },
   },
   {
+    name: 'verdict_prix',
+    description: "Le prix des murs est-il sur ou sous-évalué ? (« il est surévalué ? », « le prix est bon ? », « c'est cher pour Lyon ? »). Croise les ventes réelles autour (DVF : même rue, puis 300 m et 500 m, surface comparable, trois dernières années) et la capitalisation (loyer ÷ taux de marché de la ville, ajusté par la grille), puis contrôle le loyer face au marché. Rend le verdict, l'écart, la confiance et ses raisons. Avec le deal_id d'un dossier ; sinon l'adresse, le prix, la surface et le loyer. Dis toujours la confiance et ce qui manque ; ne recalcule rien à la main.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, adresse: { type: 'string' }, prix: { type: 'number', description: 'prix demandé, € FAI' }, surface: { type: 'number', description: 'm²' }, loyer: { type: 'number', description: 'loyer annuel HT HC, €' }, taux: { type: 'number', description: 'taux de marché en %, seulement si la personne le donne' } } },
+  },
+  {
     name: 'generer_prez_bancaire',
     description: "Génère la préz bancaire (projet de financement, PPTX) d'un projet de la plateforme et la dépose sur le Drive partagé en Google Slides. Nécessite l'identifiant rendu par chercher_projet. Tâche de fond : AK donnera le lien dans le chat quand c'est prêt.",
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
@@ -977,6 +982,21 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     if (!r.ok) return r;
     const v = r.resultat || {};
     return { ok: true, adresse, source: 'DVF (Demandes de valeurs foncières)', prix_m2: v.prix_m2 || null, ventes: (v.ventes || []).slice(0, 10).map((x) => ({ date: x.date, adresse: x.adresse, surface: x.surface, prix: x.prix, prix_m2: x.prix_m2, distance_m: x.distance_m })), note: 'Des ventes signées, publiques. Cite DVF.' };
+  }
+  if (name === 'verdict_prix') {
+    const { verdictPrixDossier, verdictPrixAdresse } = await import('../deal/verdict-prix.js');
+    let r;
+    if (input.deal_id) {
+      const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
+      if (!deal) return { ok: false, error: 'Dossier introuvable.' };
+      r = await verdictPrixDossier(deal, 0, { taux: input.taux, user });
+    } else {
+      const { adresseAvecRue } = await import('../adresse-ban.js');
+      if (!adresseAvecRue(String(input.adresse || ''))) return { ok: false, error: "Il me faut l'adresse avec la rue, ou le dossier." };
+      r = await verdictPrixAdresse({ adresse: input.adresse, prix: input.prix, surface: input.surface, loyer: input.loyer, taux: input.taux, user });
+    }
+    if (!r.ok) return r;
+    return { ...r, comparaison: r.comparaison ? { ...r.comparaison, ventes: r.comparaison.ventes.slice(0, 6) } : null, source: 'DVF (actes des notaires) et taux validés de la ville' };
   }
   if (name === 'renommer_projet') {
     const { renommerProjet } = await import('../projet-edition.js');
@@ -1672,6 +1692,7 @@ LA BOÎTE MAIL, LE DRIVE, L'AGENDA
 
 LE MARCHÉ, DATA-B ET K-DATA
 - Les données de marché viennent de Data-B et d'Equimmox. « Fais-moi X sur Data-B », une valeur locative, des cessions de fonds, une étude d'implantation, le propriétaire des murs : data_b, avec le projet_id ou le deal_id quand on parle d'un bien de la plateforme (le résultat y est rangé), sinon l'adresse.
+- « Il est surévalué ? », « le prix est bon ? », « c'est cher ? » sur des murs : verdict_prix (deal_id du dossier, sinon adresse, prix, surface, loyer). Donne le verdict, l'écart, la confiance et ce qui manque, tels que l'outil les rend.
 - « Le prix du marché », « à combien se vendent les murs », « ça se loue combien ici ? », sans nommer Data-B : prix_murs_equimmox ou loyers_equimmox. Sur un dossier, passe son deal_id (l'adresse est lue dedans) : NE CRÉE JAMAIS un projet juste pour lire le marché. Sinon l'adresse. « Va chercher sur DVF », les ventes signées : ventes_dvf, avec le deal_id ou l'adresse. Sans rue (« à Toulouse ») : demande la rue en une ligne. Si Data-B ne répond pas, dis-le simplement, sans code d'erreur, et passe à Equimmox.
 - Un titre de projet faussé (il reprend des points forts ou une phrase) : renommer_projet avec le projet_id et un titre court.
 - Les Outils (ex-K-Data) ne sont pas encore au point : ils ne partent que si la personne les nomme. « Fais l'analyse K-Data » ou « lance les Outils » : demande d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms ; ne lance rien tant que la personne n'a pas choisi, sauf si ses préférences disent que tu peux lancer les Outils sans demander (alors K-Zoning, K-Expertise et Estimation). Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.

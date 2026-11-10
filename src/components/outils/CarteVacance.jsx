@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Circle, CircleMarker, Marker, Polyline, Popup, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
+import { CLAIR, themeEffectif } from "@/lib/personnalisation";
 import { useFondDeCarte } from "@/lib/tuiles";
 import { JL } from "@/design/jetons";
 import { adresseLisible, estRecent, motCategorie, motType } from "@/lib/vacance-signaux";
@@ -50,6 +52,18 @@ function Cadrage({ point, rayonM, cadre = null }) {
 }
 
 /** Centre la carte sur un local choisi depuis la liste. */
+// La carte suit la taille de son cadre (10 nov. 2026) : la colonne des tableaux qui s'ouvre à droite la rétrécit de moitié,
+// et Leaflet, sans ce rappel, garde l'ancienne largeur et décentre tout.
+function SuivreTaille() {
+  const map = useMap();
+  useEffect(() => {
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(map.getContainer());
+    return () => ro.disconnect();
+  }, [map]);
+  return null;
+}
+
 function AllerVers({ cible }) {
   const map = useMap();
   useEffect(() => {
@@ -267,14 +281,18 @@ export default function CarteVacance({ point, rayonM, locaux = [], choisi, onCho
   // `rue` : { locaux, troncons, tronconChoisi, onTroncon, choisi, onChoisir, cadre } : une rue entière, mesurée (16 oct. 2026).
   const enRue = !!rue;
   // Le plan Google Maps en clair (13 oct. 2026, Jules), l'IGN en repli s'il ne répond pas.
-  // Toujours en clair (14 oct. 2026, Jules : « la carte Google Maps, pas l'autre design en sombre ») : le repli aussi.
-  const { fond, surErreur, raison } = useFondDeCarte({ google: true });
+  // Le plan suit le thème (10 nov. 2026, Jules : « mode sombre plan sombre, mode clair ça va changer ») : Google sombre en
+  // sombre, et le repli IGN passe sous le filtre sombre de `.k-carte-rues`. Remplace « toujours en clair » du 14 oct.
+  const { prefs } = usePersonnalisation();
+  const sombre = themeEffectif(prefs) !== CLAIR;
+  const { fond, surErreur, raison } = useFondDeCarte({ google: true, sombre });
   return (
-    <div className={`k-carte-rues k-vacance k-carte-claire absolute inset-0 ${fond.google ? "k-carte-google" : ""}`}>
+    <div className={`k-carte-rues k-vacance absolute inset-0 ${sombre ? "k-carte-sombre" : "k-carte-claire"} ${fond.google ? "k-carte-google" : ""}`}>
       <MapContainer center={FRANCE.centre} zoom={FRANCE.zoom} zoomControl className="h-full w-full" attributionControl={false} preferCanvas>
         <TileLayer key={fond.cle} url={fond.url} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />
         <Cadrage point={point} rayonM={rayonM} cadre={rue?.cadre || null} />
         <AllerVers cible={cible} />
+        <SuivreTaille />
         {point && (
           <>
             {!enRue && <Circle center={[point.lat, point.lon]} radius={rayonM} pathOptions={{ color: JL.menthe, weight: 1.5, fillColor: JL.menthe, fillOpacity: 0.1 }} interactive={false} />}

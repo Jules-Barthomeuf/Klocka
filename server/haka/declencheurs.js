@@ -15,7 +15,7 @@ import './competences/fiche-recue.js';
 import './competences/relances-matin.js';
 import { verdictAmbiant } from './ambiant.js';
 import { BOITES_COMMUNES, TRANSFERT } from './drapeaux.js';
-import { surTransfert } from './competences/transfert.js';
+import { surTransfert, expediteurDuTransfert } from './competences/transfert.js';
 import { membreDeLEquipe, signalerExterieur } from './competences/demande-equipe.js';
 import { porteUneFiche } from '../deal/fiches-auto.js';
 import { enPause, ignorer } from './automatismes.js';
@@ -80,7 +80,7 @@ export async function surReleve({ uploadDir = null } = {}) {
   // Les boîtes communes (sourcing@) : une demande de l'équipe devient une tâche ; un extérieur va dans le Commun.
   for (const mail of contexte.mails.filter((m) => BOITES_COMMUNES.has(String(m.compte || '').toLowerCase()) && !m.haka_tache_id && !m.haka_vu && Date.parse(m.date || 0) >= Date.parse(depuis))) {
     try {
-      if (mail.commande && membreDeLEquipe(mail.de_email) && TRANSFERT) {
+      if (mail.commande && expediteurDuTransfert(mail.de_email) && TRANSFERT) {
         surTransfert(mail, { uploadDir });
         bilan.transferts = (bilan.transferts || 0) + 1;
       } else if (mail.commande && membreDeLEquipe(mail.de_email)) {

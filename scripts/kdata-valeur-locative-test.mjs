@@ -21,8 +21,9 @@ const CSV = args.csv || path.join(ici, '..', 'docs', 'plans', 'kdata-valeur-loca
 const VILLES = args.villes ? new Set(String(args.villes).split(',').map((v) => v.trim().toLowerCase())) : null;
 // `--cible=ville` : le coefficient se mesure par rapport à la ville (ce que Data-B fait, analyse du 9 nov. 2026) ; `quartier` : l'ancienne lecture.
 const CIBLE = args.cible === 'quartier' ? 'quartier' : 'ville';
-// `--modele=voisins` (k plus proches voisins, défaut) ou `lineaire`.
-const MODELE = args.modele === 'lineaire' ? 'lineaire' : 'voisins';
+// `--modele=voisins` (k plus proches voisins sur les six mesures retenues, défaut ; `--toutes=1` : les 27), `arbres` (boostés), `mixte` ou `lineaire`.
+const MODELE = ['lineaire', 'arbres', 'mixte'].includes(args.modele) ? args.modele : 'voisins';
+const ARBRES = { arbres: Number(args.arbres) || 300, profondeur: Number(args.profondeur) || 4, pas: Number(args.pas) || 0.05, minFeuille: Number(args.minFeuille) || 8 };
 const KV = Number(args.k) || 15;
 const PONDERER = args.ponderer !== '0';
 const MEME_COMMUNE = args.memeCommune === '1';
@@ -31,6 +32,9 @@ const PLIS = args.plis === undefined ? 5 : Number(args.plis) || 0;
 
 const { Records } = await import('../server/db.js');
 const K = await import('../server/outils-kd/valeur-locative-kdata.js');
+const V = await import('../server/outils-kd/voirie-bdtopo.js');
+// `--voirie=0` : sans la voirie BD TOPO ; sinon chaque commune est téléchargée une fois puis lue sur disque.
+const VOIRIE = args.voirie !== '0';
 
 const centre = (n) => (n && n.basse && n.haute ? (n.basse + n.haute) / 2 : null);
 const cp = (a) => String(a || '').match(/\b(\d{5})\b/)?.[1] || null;
@@ -42,7 +46,13 @@ let g = GRAINE >>> 0 || 7;
 const alea = () => { g ^= g << 13; g >>>= 0; g ^= g >>> 17; g ^= g << 5; g >>>= 0; return g / 4294967296; };
 
 // 1. Les lectures Data-B, une par rue (toutes les adresses d'une rue portent la même valeur).
-const lectures = Records.list('DataBRecherche').map((r) => ({ adresse: r.adresse, cp: cp(r.adresse), ...(r.resultat || {}) }))
+// `--lectures=fichier.json` : les lectures de production (GET /api/kdata/lectures-datab), ajoutées à celles d'ici.
+const brutes = [...Records.list('DataBRecherche')];
+if (args.lectures) {
+  const vues = new Set(brutes.map((r) => String(r.adresse).toLowerCase()));
+  for (const r of JSON.parse(fs.readFileSync(args.lectures, 'utf8')).lectures || []) if (!vues.has(String(r.adresse).toLowerCase())) { vues.add(String(r.adresse).toLowerCase()); brutes.push(r); }
+}
+const lectures = brutes.map((r) => ({ adresse: r.adresse, cp: cp(r.adresse), ...(r.resultat || {}) }))
   .filter((r) => r.rue && r.quartier && r.ville && centre(r.rue) && centre(r.quartier) && centre(r.ville));
 const parRue = new Map();
 for (const r of lectures) {
@@ -54,7 +64,13 @@ for (const r of lectures) {
   parRue.get(cle).adresses.push(r.adresse);
 }
 
-// 2. Les caractéristiques de chaque rue dans SIRENE.
+// 2. La voirie des communes (BD TOPO), puis les caractéristiques de chaque rue.
+if (VOIRIE) {
+  const communes = [...new Set([...parRue.values()].map((r) => r.commune))];
+  for (const c of communes) {
+    try { const v = await V.chargerVoirie(c); process.stderr.write(`voirie ${c} : ${v.length} voies\n`); } catch (e) { process.stderr.write(`voirie ${c} : ${e.message}\n`); }
+  }
+}
 const rues = [];
 let sansSirene = 0;
 for (const r of parRue.values()) {
@@ -67,7 +83,9 @@ for (const r of parRue.values()) {
 const melange = [...rues];
 for (let i = melange.length - 1; i > 0; i -= 1) { const j = Math.floor(alea() * (i + 1)); [melange[i], melange[j]] = [melange[j], melange[i]]; }
 const exemplesDe = (liste) => liste.map((r) => ({ valeurs: r.carac.valeurs, cible: r.cible, commune: r.commune }));
-const apprendreSur = (liste) => (MODELE === 'voisins' ? K.apprendreVoisins(exemplesDe(liste), { k: KV, ponderer: PONDERER, memeCommune: MEME_COMMUNE }) : K.apprendre(exemplesDe(liste), { lambda: LAMBDA }));
+const apprendreSur = (liste) => (MODELE === 'mixte' ? K.apprendreMixte(exemplesDe(liste), { arbres: ARBRES, voisins: { k: KV, ponderer: PONDERER } })
+  : MODELE === 'arbres' ? K.apprendreArbres(exemplesDe(liste), ARBRES)
+  : MODELE === 'voisins' ? K.apprendreVoisins(exemplesDe(liste), { k: KV, ponderer: PONDERER, memeCommune: MEME_COMMUNE, poidsFixes: args.toutes === '1' ? null : K.POIDS_VOISINS }) : K.apprendre(exemplesDe(liste), { lambda: LAMBDA }));
 // Les jeux : en validation croisée, chaque pli est le test d'un modèle appris sur les autres ; sinon un partage 80/20.
 const jeux = [];
 if (PLIS >= 2) {
@@ -86,10 +104,15 @@ const modele = jeux[jeux.length - 1].modele;
 const app = PLIS >= 2 ? melange : jeux[0].liste;
 const test = PLIS >= 2 ? melange : jeux[1].liste;
 
+// `--classes=1` : la prédiction ramenée à la classe de Data-B la plus proche (les coefficients vus en apprentissage).
+const CLASSES = args.classes === '1';
+const classesDe = (liste) => { const n = new Map(); for (const r of liste) { const c = Math.round(Math.exp(r.cible) * 100) / 100; n.set(c, (n.get(c) || 0) + 1); } return [...n].filter(([, x]) => x >= liste.length * 0.02).map(([c]) => c); };
 const lignes = [];
 for (const { nom: jeu, liste, modele: mod } of jeux) {
+  const cl = CLASSES ? classesDe(melange.filter((x) => !liste.includes(x) || jeu === 'apprentissage')) : null;
   for (const r of liste) {
-    const k = K.coefficient(mod, r.carac.valeurs, { commune: r.commune });
+    let k = K.coefficient(mod, r.carac.valeurs, { commune: r.commune });
+    if (cl?.length) k = cl.reduce((b, c) => (Math.abs(Math.log(c / k)) < Math.abs(Math.log(b / k)) ? c : b), cl[0]);
     const dataB = centre(r.rue);
     const kdata = Math.round(r.base * k);
     const sansModele = Math.round(r.base);
@@ -99,6 +122,7 @@ for (const { nom: jeu, liste, modele: mod } of jeux) {
       kdata_centre: kdata, kdata_basse: K.fourchette(kdata).basse, kdata_haute: K.fourchette(kdata).haute,
       ecart_pct: pct(kdata, dataB), ecart_sans_modele_pct: pct(sansModele, dataB), coefficient: k, coefficient_datab: dataB / r.base,
       vitrines: r.carac.brut.vitrines, actifs: r.carac.brut.actifs, fermees_3_ans: r.carac.brut.fermees_3_ans, numeros: r.carac.brut.numeros, vitrines_250m: r.carac.brut.vitrines_250m, vitrines_600m: r.carac.brut.vitrines_600m, distance_coeur_m: r.carac.brut.distance_coeur_m,
+      voie_bdtopo: r.carac.brut.voirie || '', importance: r.carac.brut.importance, longueur_m: r.carac.brut.longueur_m, part_pieton: r.carac.brut.part_pieton,
     });
   }
 }
@@ -112,8 +136,10 @@ const resume = (liste) => {
 };
 
 console.log(`Lectures Data-B : ${lectures.length} · rues distinctes : ${parRue.size} · retrouvées dans SIRENE : ${rues.length} · sans SIRENE : ${sansSirene}`);
-console.log(PLIS >= 2 ? `Validation croisée en ${PLIS} plis : les ${test.length} rues prédites hors apprentissage · graine ${GRAINE} · coefficient rapporté à la ${CIBLE} · modèle ${MODELE}${MODELE === 'voisins' ? ` (k=${KV}${PONDERER ? ', pondéré' : ''}${MEME_COMMUNE ? ', même ville' : ''})` : ''}\n` : `Apprentissage : ${app.length} rues · test : ${test.length} rues · λ = ${LAMBDA} · graine ${GRAINE} · coefficient rapporté à la ${CIBLE} · modèle ${MODELE}\n`);
-if (modele.type === 'voisins') console.log(`Modèle par voisins : k = ${modele.k}, ${modele.n} rues gardées · poids des mesures dans la distance : ` + modele.noms.map((n, i) => `${n}=${(Math.round(modele.poids[i] * 100) / 100).toLocaleString('fr-FR')}`).join(' '));
+console.log(PLIS >= 2 ? `Validation croisée en ${PLIS} plis : les ${test.length} rues prédites hors apprentissage · graine ${GRAINE} · coefficient rapporté à la ${CIBLE} · modèle ${MODELE}${MODELE === 'arbres' ? ` (${ARBRES.arbres} arbres, profondeur ${ARBRES.profondeur})` : ''}${MODELE === 'voisins' ? ` (k=${KV}${PONDERER ? ', pondéré' : ''}${MEME_COMMUNE ? ', même ville' : ''})` : ''}\n` : `Apprentissage : ${app.length} rues · test : ${test.length} rues · λ = ${LAMBDA} · graine ${GRAINE} · coefficient rapporté à la ${CIBLE} · modèle ${MODELE}\n`);
+if (modele.type === 'mixte') console.log(`Mixte : moyenne géométrique des arbres boostés et des voisins, appris sur ${modele.n} rues`);
+else if (modele.type === 'arbres') console.log(`Arbres boostés : ${modele.arbres} arbres de profondeur ${modele.profondeur}, pas ${modele.pas}, appris sur ${modele.n} rues`);
+else if (modele.type === 'voisins') console.log(`Modèle par voisins : k = ${modele.k}, ${modele.n} rues gardées · poids des mesures dans la distance : ` + modele.noms.map((n, i) => `${n}=${(Math.round(modele.poids[i] * 100) / 100).toLocaleString('fr-FR')}`).join(' '));
 else {
   console.log('Poids appris (caractéristiques centrées-réduites) :');
   console.log('  ' + modele.noms.map((n, i) => `${n}=${(Math.round(modele.poids[i + 1] * 1000) / 1000).toLocaleString('fr-FR')}`).join('  '));

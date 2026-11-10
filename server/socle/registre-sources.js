@@ -17,6 +17,9 @@ export const SOURCES = [
   { cle: 'klocka_bail', nom: 'Baux des dossiers Klocka', famille: 'interne', poids: 3, licence: 'Interne', rythme: 'à chaque analyse' },
   { cle: 'klocka_fiche', nom: "Fiches d'agents et saisies Klocka", famille: 'interne', poids: 1.5, licence: 'Interne', rythme: 'à chaque fiche' },
   { cle: 'equimmox', nom: 'Equimmox', famille: 'payante', payant: true, poids: 1, licence: 'Abonnement', rythme: 'à la demande' },
+  // Coupée par défaut (10 nov. 2026) : les conditions d'Equimmox réservent ses données à un usage privé ; à ouvrir
+  // quand le contrat d'abonnement l'aura permis (server/loyers-reels.js).
+  { cle: 'murs_occupes', nom: 'Loyers des murs occupés en vente (export Equimmox)', famille: 'payante', payant: true, poids: null, licence: 'Abonnement Equimmox, usage à vérifier', rythme: 'chaque nuit, avec la prospection', actif_defaut: false },
   { cle: 'data_b', nom: 'Data-B', famille: 'payante', payant: true, poids: 1, licence: 'Abonnement', rythme: 'à la demande' },
   { cle: 'annonces', nom: 'Annonces collectées', famille: 'collecte', poids: 1, licence: 'Faits seulement, usage interne', rythme: 'quotidien (lot 3)' },
   { cle: 'google_places', nom: 'Google Places', famille: 'payante', payant: true, poids: null, licence: 'Conditions Google', rythme: 'à la demande' },
@@ -50,7 +53,7 @@ export function avecReglages(source, reglages = {}) {
   const r = reglages[source.cle] || {};
   return {
     ...source,
-    actif: r.actif === undefined ? true : !!r.actif,
+    actif: r.actif === undefined ? source.actif_defaut !== false : !!r.actif,
     poids: r.poids === undefined || r.poids === null ? source.poids : Number(r.poids),
     regle_par: r.par || null,
     regle_le: r.le || null,

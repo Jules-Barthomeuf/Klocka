@@ -10,9 +10,9 @@ const nomSeul = (chemin) => String(chemin).split('/').pop();
 
 /**
  * Les fiches d'un ZIP, en mémoire. Rend [{ nom, mime, buffer }], dans l'ordre du zip ; vide si le zip ne s'ouvre
- * pas ou ne contient aucune fiche.
+ * pas ou ne contient aucune fiche. `garder` : ce qu'on retient d'après le nom du fichier.
  */
-export async function fichesDuZip(buffer) {
+export async function fichesDuZip(buffer, garder = estUneFiche) {
   let zip;
   try {
     const JSZip = (await import('jszip')).default;
@@ -23,7 +23,7 @@ export async function fichesDuZip(buffer) {
   const entrees = Object.values(zip.files)
     // Ni dossier, ni métadonnées macOS (__MACOSX, ._fichier), ni fichier caché.
     .filter((f) => !f.dir && !/(^|\/)(__MACOSX\/|\._)/.test(f.name) && !/(^|\/)\./.test(nomSeul(f.name)))
-    .filter((f) => estUneFiche(nomSeul(f.name)));
+    .filter((f) => garder(nomSeul(f.name)));
   const fiches = [];
   for (const f of entrees) {
     const contenu = await f.async('nodebuffer').catch(() => null);

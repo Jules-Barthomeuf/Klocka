@@ -29,7 +29,7 @@ export default function SimKpiRow({ calculs, anneeRevente, formatCurrency }) {
       </div>
       {/* Deux colonnes sur téléphone, trois sur tablette, cinq au bureau :
           des tuiles tronquées (« REND… 22… ») ne disent plus rien. */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 [&>div]:border-t [&>div]:border-l [&>div:nth-child(-n+2)]:border-t-0 sm:[&>div:nth-child(-n+3)]:border-t-0 lg:[&>div]:border-t-0 [&>div:nth-child(2n+1)]:border-l-0 sm:[&>div:nth-child(2n+1)]:border-l sm:[&>div:nth-child(3n+1)]:border-l-0 lg:[&>div:nth-child(3n+1)]:border-l lg:[&>div:first-child]:border-l-0">
+      <div className="k-sim-lignes grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 [&>div]:border-t [&>div]:border-l [&>div:nth-child(-n+2)]:border-t-0 sm:[&>div:nth-child(-n+3)]:border-t-0 lg:[&>div]:border-t-0 [&>div:nth-child(2n+1)]:border-l-0 sm:[&>div:nth-child(2n+1)]:border-l sm:[&>div:nth-child(3n+1)]:border-l-0 lg:[&>div:nth-child(3n+1)]:border-l lg:[&>div:first-child]:border-l-0">
         {cards.map((c, i) =>
         <Kpi key={i} label={c.label} valeur={c.valeur} format={c.format} accent={c.accent} />
         )}

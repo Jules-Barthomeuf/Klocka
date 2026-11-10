@@ -366,7 +366,10 @@ export function rechercher(q, { par = null } = {}) {
   if (!code) return { ok: false, statut: 400, error: 'Commune inconnue : choisissez l\'adresse dans les propositions.' };
   let z = zone(code);
   if (!z || (z.etat === 'erreur' && !z.chargee_le)) {
-    if (z?.etat === 'erreur' && !q.relancer) return { ok: false, statut: 502, error: z.erreur || 'Le chargement de la commune a échoué.', zone: z };
+    // Une commune tombée faute de code postal repart dès qu'une recherche l'apporte (10 nov. 2026) : sans cela, une première
+    // adresse incomplète la bloquait pour de bon, « Réessayer » compris.
+    const cpApporte = !!q.cp && !z?.code_postal;
+    if (z?.etat === 'erreur' && !q.relancer && !cpApporte) return { ok: false, statut: 502, error: z.erreur || 'Le chargement de la commune a échoué.', zone: z };
     z = demanderZone({ code_commune: code, code_postal: q.cp, nom: q.nom }, { par });
   }
   // Un chargement que rien ne fait tourner : le serveur a redémarré pendant qu'il se faisait.

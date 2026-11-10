@@ -50,7 +50,7 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
           <h2 className={`${TITRE} flex-none`}>{voirTranscription ? "Transcription" : "Assistant"}</h2>
           <div className={voirTranscription ? "hidden" : "min-h-0 flex-1"}>
             <ChatDashboard espace="appel" repondre={repondre} annonce={annonce} ouverture={OUVERTURE} onConversation={() => {}} onReponse={appliquer}
-              sansSkills epure lueur={false} sansBarreHaut menusVersLeHaut placeholderFil="Dites-moi ce que vous voulez" />
+              sansSkills epure lueur sansBarreHaut menusVersLeHaut placeholderFil="Dites-moi ce que vous voulez" />
           </div>
           {voirTranscription && <div className="min-h-0 flex-1 overflow-y-auto pt-5">{transcription}</div>}
         </div>

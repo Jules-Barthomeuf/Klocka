@@ -9,28 +9,48 @@
 
 const SESSION_URL = 'https://tile.googleapis.com/v1/createSession';
 const TUILE_URL = 'https://tile.googleapis.com/v1/2dtiles';
-let session = null; // { jeton, fin_ms }
-let enCours = null;
+// Une session par thème (10 nov. 2026, Jules : « mode sombre plan sombre, mode clair plan clair ») : le plan sombre est
+// le même « roadmap » avec un style posé à la création de la session.
+const sessions = {}; // thème -> { jeton, fin_ms }
+const enCours = {};
+const STYLE_SOMBRE = [
+  { stylers: [{ saturation: -80 }] },
+  { elementType: 'geometry', stylers: [{ color: '#1b1c1b' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#9a9c99' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#121312' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a3c3a' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#202220' }] },
+  { featureType: 'poi', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1e2620' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c2e2c' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#161716' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a3c3a' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#262826' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f1416' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#5d6466' }] },
+];
+const leTheme = (t) => (t === 'sombre' ? 'sombre' : 'clair');
 
 const cle = () => (process.env.GOOGLE_MAPS_SERVEUR || '').trim();
 export const tuilesGoogleDisponibles = () => !!cle();
 
-async function jeton() {
+async function jeton(theme = 'clair') {
+  const session = sessions[theme];
   if (session && Date.now() < session.fin_ms - 3600000) return session.jeton;
-  if (!enCours) {
-    enCours = (async () => {
+  if (!enCours[theme]) {
+    enCours[theme] = (async () => {
       const r = await fetch(`${SESSION_URL}?key=${encodeURIComponent(cle())}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mapType: 'roadmap', language: 'fr-FR', region: 'FR' }),
+        body: JSON.stringify({ mapType: 'roadmap', language: 'fr-FR', region: 'FR', ...(theme === 'sombre' ? { styles: STYLE_SOMBRE } : {}) }),
         signal: AbortSignal.timeout(15000),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.session) throw new Error(`Google Map Tiles : ${r.status} ${j?.error?.message || ''}`.trim());
-      session = { jeton: j.session, fin_ms: Number(j.expiry) * 1000 || Date.now() + 86400000 };
-      return session.jeton;
-    })().finally(() => { enCours = null; });
+      sessions[theme] = { jeton: j.session, fin_ms: Number(j.expiry) * 1000 || Date.now() + 86400000 };
+      return sessions[theme].jeton;
+    })().finally(() => { enCours[theme] = null; });
   }
-  return enCours;
+  return enCours[theme];
 }
 
 /**
@@ -57,23 +77,24 @@ export async function etatTuiles() {
 }
 
 /** Une tuile : { ok, contenu, type, cache } ou { ok: false, statut }. Une panne passagère se réessaie une fois. */
-export async function tuile(z, x, y) {
-  try { return await tuileUneFois(z, x, y); } catch {
-    try { return await tuileUneFois(z, x, y); } catch (e2) {
+export async function tuile(z, x, y, theme = 'clair') {
+  const t = leTheme(theme);
+  try { return await tuileUneFois(z, x, y, t); } catch {
+    try { return await tuileUneFois(z, x, y, t); } catch (e2) {
       console.warn('[tuiles-google]', e2?.message || e2);
       return { ok: false, statut: 502 };
     }
   }
 }
 
-async function tuileUneFois(z, x, y) {
+async function tuileUneFois(z, x, y, theme = 'clair') {
   if (!cle()) return { ok: false, statut: 503 };
   const [zi, xi, yi] = [z, x, y].map((v) => Number.parseInt(v, 10));
   if (![zi, xi, yi].every(Number.isInteger) || zi < 0 || zi > 22 || xi < 0 || yi < 0 || xi >= 2 ** zi || yi >= 2 ** zi) return { ok: false, statut: 400 };
-  const lire = async () => fetch(`${TUILE_URL}/${zi}/${xi}/${yi}?session=${encodeURIComponent(await jeton())}&key=${encodeURIComponent(cle())}`, { signal: AbortSignal.timeout(10000) });
+  const lire = async () => fetch(`${TUILE_URL}/${zi}/${xi}/${yi}?session=${encodeURIComponent(await jeton(theme))}&key=${encodeURIComponent(cle())}`, { signal: AbortSignal.timeout(10000) });
   let r = await lire();
   // Une session refusée (expirée plus tôt que prévu) : on la refait une fois.
-  if (r.status === 401 || r.status === 403) { session = null; r = await lire(); }
+  if (r.status === 401 || r.status === 403) { sessions[theme] = null; r = await lire(); }
   if (!r.ok) return { ok: false, statut: r.status };
   return { ok: true, contenu: Buffer.from(await r.arrayBuffer()), type: r.headers.get('content-type') || 'image/png', cache: r.headers.get('cache-control') || 'private, max-age=86400' };
 }

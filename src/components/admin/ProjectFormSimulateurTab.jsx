@@ -2,8 +2,6 @@ import React, { useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FField, FInput } from "./FormField";
-import { J } from "@/design/jetons";
 
 // Calcule les honoraires agent depuis le prix net vendeur
 function calcHonorairesAgent(prixNetVendeur, mode, montant, tva) {
@@ -17,38 +15,65 @@ function calcHonorairesAgent(prixNetVendeur, mode, montant, tva) {
 
 const fmtEur = (v) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
 
-// Titre de section aligné sur le style "IMMO OS"
-function SectionTitle({ children, accent = undefined }) {
+// Le formulaire et l'aperçu du simulateur ont le même dessin (9 nov. 2026, Jules) : un cadre fin par partie, titre à 16 px,
+// une ligne de 36 px par donnée, le libellé à gauche et la valeur à droite.
+const LIGNE = "flex min-h-[36px] items-center justify-between gap-3 border-b border-trait px-4 py-1.5 text-[13.5px] transition-colors max-md:min-h-[40px]";
+
+function Bloc({ titre, children }) {
   return (
-    <div className="flex items-center gap-3 pt-2">
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || J["menthe"] }} />
-      <h3 className="text-[15px] font-semibold text-encre tracking-tight">{children}</h3>
-      <div className="flex-1 h-px bg-encre/[0.06]" />
+    <section className="overflow-hidden rounded-[16px] border border-trait">
+      <h3 className="flex h-[46px] items-center border-b border-trait px-4 text-[16px] font-medium text-encre">{titre}</h3>
+      <div className="[&>*:last-child]:border-b-0">{children}</div>
+    </section>
+  );
+}
+
+function SousTitre({ children }) {
+  return <p className="flex min-h-[30px] items-center border-b border-trait px-4 py-1 text-[12.5px] text-ardoise">{children}</p>;
+}
+
+function Ligne({ label, children, largeur = "w-[110px]", attachee = false }) {
+  return (
+    <label className={`${LIGNE} cursor-text focus-within:bg-encre/[0.04] ${attachee ? "border-b-0" : ""}`}>
+      <span className="min-w-0 text-craie">{label}</span>
+      <span className={`flex-shrink-0 ${largeur}`}>{children}</span>
+    </label>
+  );
+}
+
+function Calcule({ label, children }) {
+  return (
+    <div className={LIGNE}>
+      <span className="min-w-0 text-ardoise">{label}</span>
+      <span className="flex-shrink-0 tabular-nums text-encre">{children}</span>
     </div>
   );
 }
 
-// Toggle stylé "IMMO OS"
-function ToggleRow({ checked, onCheckedChange, title, description = undefined }) {
+function Saisie({ className = "", ...props }) {
+  return <input {...props} className={`w-full border-none bg-transparent text-right text-[13.5px] tabular-nums text-encre outline-none placeholder:text-brume max-md:text-[16px] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`} />;
+}
+
+// « sous » : l'interrupteur appartient à la ligne du dessus (Refacturable locataire sous ses charges).
+function ToggleRow({ checked, onCheckedChange, title, description = undefined, sous = false }) {
   return (
-    <div className="flex items-center gap-3 bg-surface border border-trait rounded-[12px] px-[18px] py-3.5">
+    <label className={`${LIGNE} cursor-pointer ${sous ? "!min-h-0 pt-0" : ""}`}>
+      <span className="min-w-0">
+        <span className={`block ${sous ? "text-[12.5px] text-ardoise" : "text-craie"}`}>{title}</span>
+        {description && <span className="mt-0.5 block text-[12.5px] leading-snug text-ardoise">{description}</span>}
+      </span>
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
-      <div>
-        <Label className="text-encre text-[13.5px] font-medium cursor-pointer">{title}</Label>
-        {description && <p className="text-ardoise text-[12.5px] mt-0.5 leading-snug">{description}</p>}
-      </div>
-    </div>
+    </label>
   );
 }
 
-// Select stylé "IMMO OS"
 function FSelect({ label, value, onValueChange, children }) {
   return (
-    <div className="bg-surface border border-trait rounded-[12px] px-[18px] py-3 transition-all focus-within:border-bord-vif">
-      {label && <div className="text-[12.5px] text-ardoise font-semibold mb-1.5">{label}</div>}
+    <div className={LIGNE}>
+      <span className="min-w-0 text-craie">{label}</span>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="bg-transparent border-none h-auto p-0 text-[15px] text-encre focus:ring-0"><SelectValue /></SelectTrigger>
-        <SelectContent className="bg-surface text-encre border-trait">{children}</SelectContent>
+        <SelectTrigger className="h-auto w-[205px] flex-shrink-0 gap-1.5 border-none bg-transparent p-0 text-right text-[13.5px] text-encre focus:ring-0 [&>span]:ml-auto [&>span]:line-clamp-2"><SelectValue /></SelectTrigger>
+        <SelectContent className="border-trait bg-surface text-encre">{children}</SelectContent>
       </Select>
     </div>
   );
@@ -97,10 +122,8 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
   };
 
   return (
-    <div className="space-y-6 mt-6">
-      <SectionTitle>1. Acquisition</SectionTitle>
-
-      {/* Mode prix net vendeur */}
+    <div className="mt-6 space-y-3">
+      <Bloc titre="1. Acquisition">
       <ToggleRow
         checked={modeNetVendeur}
         onCheckedChange={handleNetVendeurToggle}
@@ -109,119 +132,94 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
       />
 
       {modeNetVendeur ? (
-        <div className="space-y-4 p-4 bg-encre/[0.02] rounded-[12px] border border-trait">
-          <div className="grid md:grid-cols-2 gap-4">
-            <FField label="Prix net vendeur (€)">
-              <FInput type="number" value={formData.sim_prix_net_vendeur || ''} onChange={(e) => handleNetVendeurChange("sim_prix_net_vendeur", parseFloat(e.target.value) || 0)} />
-            </FField>
-            <FField label="Surface pondérée (m²)">
-              <FInput type="number" value={formData.sim_surface || ''} onChange={(e) => setFormData({...formData, sim_surface: parseFloat(e.target.value) || 0})} />
-            </FField>
-          </div>
+        <>
+            <Ligne label="Prix net vendeur (€)">
+              <Saisie type="number" value={formData.sim_prix_net_vendeur || ''} onChange={(e) => handleNetVendeurChange("sim_prix_net_vendeur", parseFloat(e.target.value) || 0)} />
+            </Ligne>
+            <Ligne label="Surface pondérée (m²)">
+              <Saisie type="number" value={formData.sim_surface || ''} onChange={(e) => setFormData({...formData, sim_surface: parseFloat(e.target.value) || 0})} />
+            </Ligne>
 
-          {/* Honoraires agent */}
-          <div className="pt-2">
-            <p className="text-[12.5px] text-ardoise mb-3 uppercase tracking-[0.14em] font-semibold">Honoraires agent immobilier</p>
-            <div className="grid md:grid-cols-3 gap-3">
+            <SousTitre>Honoraires agent immobilier</SousTitre>
               <FSelect label="Mode de calcul" value={formData.sim_honoraires_agent_mode || "pct_ttc"} onValueChange={(v) => handleNetVendeurChange("sim_honoraires_agent_mode", v)}>
                 <SelectItem value="pct_ttc">% du prix net vendeur — TTC</SelectItem>
                 <SelectItem value="pct_ht">% du prix net vendeur — HT (+20% TVA)</SelectItem>
                 <SelectItem value="fixe_ttc">Montant fixe TTC (€)</SelectItem>
                 <SelectItem value="fixe_ht">Montant fixe HT (€) (+20% TVA)</SelectItem>
               </FSelect>
-              <FField label={(formData.sim_honoraires_agent_mode || "pct_ttc").startsWith("pct") ? "Taux (%)" : "Montant HT (€)"}>
-                <FInput type="number" step="0.1" value={formData.sim_honoraires_agent_montant || ''} onChange={(e) => handleNetVendeurChange("sim_honoraires_agent_montant", parseFloat(e.target.value) || 0)} />
-              </FField>
-              <div className="bg-surface border border-trait rounded-[12px] px-[18px] py-3">
-                <div className="text-[12.5px] text-ardoise font-semibold mb-1.5">Honoraires TTC calculés</div>
-                <span className="text-encre font-semibold text-[15px]">
-                  {honorairesAgent > 0 ? fmtEur(honorairesAgent) : "—"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Récap Prix FAI calculé */}
-          <div className="pt-3 border-t border-trait flex items-center justify-between">
-            <span className="text-ardoise text-[12.5px]">Prix FAI calculé (net vendeur + honoraires) :</span>
-            <span className="text-encre font-semibold text-[15px]">
-              {prixFAI > 0 ? fmtEur(prixFAI) : "—"}
-            </span>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <FField label="Prix du bien affiché FAI (€)">
-              <FInput type="number" value={formData.sim_prix_bien_fai || ''} onChange={(e) => setFormData({...formData, sim_prix_bien_fai: parseFloat(e.target.value) || 0})} />
-            </FField>
-            <FField label="Prix du bien négocié FAI (€)">
-              <FInput type="number" value={formData.sim_prix_bien_negocie || ''} onChange={(e) => setFormData({...formData, sim_prix_bien_negocie: parseFloat(e.target.value) || 0})} />
-            </FField>
-          </div>
-        </div>
+              <Ligne label={(formData.sim_honoraires_agent_mode || "pct_ttc").startsWith("pct") ? "Taux (%)" : "Montant HT (€)"}>
+                <Saisie type="number" step="0.1" value={formData.sim_honoraires_agent_montant || ''} onChange={(e) => handleNetVendeurChange("sim_honoraires_agent_montant", parseFloat(e.target.value) || 0)} />
+              </Ligne>
+              <Calcule label="Honoraires TTC calculés">{honorairesAgent > 0 ? fmtEur(honorairesAgent) : "—"}</Calcule>
+              <Calcule label="Prix FAI calculé (net vendeur + honoraires)">{prixFAI > 0 ? fmtEur(prixFAI) : "—"}</Calcule>
+            <Ligne label="Prix du bien affiché FAI (€)">
+              <Saisie type="number" value={formData.sim_prix_bien_fai || ''} onChange={(e) => setFormData({...formData, sim_prix_bien_fai: parseFloat(e.target.value) || 0})} />
+            </Ligne>
+            <Ligne label="Prix du bien négocié FAI (€)">
+              <Saisie type="number" value={formData.sim_prix_bien_negocie || ''} onChange={(e) => setFormData({...formData, sim_prix_bien_negocie: parseFloat(e.target.value) || 0})} />
+            </Ligne>
+        </>
       ) : (
-        <div className="grid md:grid-cols-2 gap-4">
-          <FField label="Prix du bien affiché FAI (€)">
-            <FInput type="number" value={formData.sim_prix_bien_fai || ''} onChange={(e) => setFormData({...formData, sim_prix_bien_fai: parseFloat(e.target.value) || 0})} />
-          </FField>
-          <FField label="Surface pondérée (m²)">
-            <FInput type="number" value={formData.sim_surface || ''} onChange={(e) => setFormData({...formData, sim_surface: parseFloat(e.target.value) || 0})} />
-          </FField>
-          <FField label="Prix du bien négocié FAI (€)">
-            <FInput type="number" value={formData.sim_prix_bien_negocie || ''} onChange={(e) => setFormData({...formData, sim_prix_bien_negocie: parseFloat(e.target.value) || 0})} />
-          </FField>
-        </div>
+        <>
+          <Ligne label="Prix du bien affiché FAI (€)">
+            <Saisie type="number" value={formData.sim_prix_bien_fai || ''} onChange={(e) => setFormData({...formData, sim_prix_bien_fai: parseFloat(e.target.value) || 0})} />
+          </Ligne>
+          <Ligne label="Surface pondérée (m²)">
+            <Saisie type="number" value={formData.sim_surface || ''} onChange={(e) => setFormData({...formData, sim_surface: parseFloat(e.target.value) || 0})} />
+          </Ligne>
+          <Ligne label="Prix du bien négocié FAI (€)">
+            <Saisie type="number" value={formData.sim_prix_bien_negocie || ''} onChange={(e) => setFormData({...formData, sim_prix_bien_negocie: parseFloat(e.target.value) || 0})} />
+          </Ligne>
+        </>
       )}
+      </Bloc>
 
-      <SectionTitle>2. Location</SectionTitle>
-      <div className="grid md:grid-cols-2 gap-4">
-        <FField label="Loyer annuel initial HC HT (€)">
-          <FInput type="number" value={formData.sim_loyer_initial_ht || ''} onChange={(e) => setFormData({...formData, sim_loyer_initial_ht: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Indexation annuelle des loyers (%)">
-          <FInput type="number" step="0.1" value={formData.sim_indexation_loyers || ''} onChange={(e) => setFormData({...formData, sim_indexation_loyers: parseFloat(e.target.value) || 0})} />
-        </FField>
-        {/* Chaque montant à gauche, son interrupteur « refacturable » à droite, sur la même ligne (30 oct. 2026, Jules :
+      <Bloc titre="2. Location">
+        <Ligne label="Loyer annuel initial HC HT (€)">
+          <Saisie type="number" value={formData.sim_loyer_initial_ht || ''} onChange={(e) => setFormData({...formData, sim_loyer_initial_ht: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Indexation annuelle des loyers (%)">
+          <Saisie type="number" step="0.1" value={formData.sim_indexation_loyers || ''} onChange={(e) => setFormData({...formData, sim_indexation_loyers: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        {/* Chaque montant avec son interrupteur « refacturable », sans trait entre les deux (30 oct. 2026, Jules :
             « refacturable locataire » n'était pas en face des charges ou de la taxe). */}
-        <FField label="Charges de copropriété (€)">
-          <FInput type="number" value={formData.sim_charges_copropriete || ''} onChange={(e) => setFormData({...formData, sim_charges_copropriete: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <ToggleRow checked={formData.sim_charges_refacturable} onCheckedChange={(checked) => setFormData({...formData, sim_charges_refacturable: checked})} title="Refacturable locataire" />
-        <FField label="Taxe foncière (€)">
-          <FInput type="number" value={formData.sim_taxe_fonciere || ''} onChange={(e) => setFormData({...formData, sim_taxe_fonciere: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <ToggleRow checked={formData.sim_taxe_refacturable} onCheckedChange={(checked) => setFormData({...formData, sim_taxe_refacturable: checked})} title="Refacturable locataire" />
+        <Ligne attachee label="Charges de copropriété (€)">
+          <Saisie type="number" value={formData.sim_charges_copropriete || ''} onChange={(e) => setFormData({...formData, sim_charges_copropriete: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <ToggleRow checked={formData.sim_charges_refacturable} onCheckedChange={(checked) => setFormData({...formData, sim_charges_refacturable: checked})} title="Refacturable locataire" sous />
+        <Ligne attachee label="Taxe foncière (€)">
+          <Saisie type="number" value={formData.sim_taxe_fonciere || ''} onChange={(e) => setFormData({...formData, sim_taxe_fonciere: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <ToggleRow checked={formData.sim_taxe_refacturable} onCheckedChange={(checked) => setFormData({...formData, sim_taxe_refacturable: checked})} title="Refacturable locataire" sous />
         <ToggleRow checked={formData.sim_loyer_soumis_tva} onCheckedChange={(checked) => setFormData({...formData, sim_loyer_soumis_tva: checked})} title="Loyer initial assujetti à TVA" />
-      </div>
+      </Bloc>
 
-      <SectionTitle>3. Revalorisation du loyer</SectionTitle>
-      <div className="grid md:grid-cols-2 gap-4">
-        <FField label="Année de revalorisation / déplafonnement">
-          <FInput type="number" value={formData.sim_annee_revalorisation || ''} onChange={(e) => setFormData({...formData, sim_annee_revalorisation: parseInt(e.target.value) || null})} />
-        </FField>
-        <FField label="Loyer annuel revalorisé / déplafonné HC HT (€)">
-          <FInput type="number" value={formData.sim_loyer_revalorise || ''} onChange={(e) => setFormData({...formData, sim_loyer_revalorise: parseFloat(e.target.value) || 0})} />
-        </FField>
+      <Bloc titre="3. Revalorisation du loyer">
+        <Ligne label="Année de revalorisation / déplafonnement">
+          <Saisie type="number" value={formData.sim_annee_revalorisation || ''} onChange={(e) => setFormData({...formData, sim_annee_revalorisation: parseInt(e.target.value) || null})} />
+        </Ligne>
+        <Ligne label="Loyer annuel revalorisé / déplafonné HC HT (€)">
+          <Saisie type="number" value={formData.sim_loyer_revalorise || ''} onChange={(e) => setFormData({...formData, sim_loyer_revalorise: parseFloat(e.target.value) || 0})} />
+        </Ligne>
         <ToggleRow checked={formData.sim_loyer_revalorise_tva || false} onCheckedChange={(checked) => setFormData({...formData, sim_loyer_revalorise_tva: checked})} title="Loyer revalorisé / déplafonné assujetti à TVA" />
-        <FField label="Vacance locative prévisionnelle (mois/an)">
-          <FInput type="number" value={formData.sim_vacance_locative || ''} onChange={(e) => setFormData({...formData, sim_vacance_locative: parseFloat(e.target.value) || 0})} />
-        </FField>
-      </div>
+        <Ligne label="Vacance locative prévisionnelle (mois/an)">
+          <Saisie type="number" value={formData.sim_vacance_locative || ''} onChange={(e) => setFormData({...formData, sim_vacance_locative: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+      </Bloc>
 
-      <SectionTitle>4. Financement</SectionTitle>
-      <div className="grid md:grid-cols-2 gap-4">
-        <FField label="Apport / Fonds propres (€)">
-          <FInput type="number" value={formData.sim_apport || ''} onChange={(e) => setFormData({...formData, sim_apport: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Durée du crédit bancaire initial (années)">
-          <FInput type="number" value={formData.sim_duree_credit || ''} onChange={(e) => setFormData({...formData, sim_duree_credit: parseInt(e.target.value) || 20})} />
-        </FField>
-        <FField label="Taux d'intérêt (%)">
-          <FInput type="number" step="0.01" value={formData.sim_taux_interet || ''} onChange={(e) => setFormData({...formData, sim_taux_interet: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Taux de l'assurance crédit (%)">
-          <FInput type="number" step="0.01" value={formData.sim_taux_assurance || ''} onChange={(e) => setFormData({...formData, sim_taux_assurance: parseFloat(e.target.value) || 0})} />
-        </FField>
-      </div>
+      <Bloc titre="4. Financement">
+        <Ligne label="Apport / Fonds propres (€)">
+          <Saisie type="number" value={formData.sim_apport || ''} onChange={(e) => setFormData({...formData, sim_apport: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Durée du crédit bancaire initial (années)">
+          <Saisie type="number" value={formData.sim_duree_credit || ''} onChange={(e) => setFormData({...formData, sim_duree_credit: parseInt(e.target.value) || 20})} />
+        </Ligne>
+        <Ligne label="Taux d'intérêt (%)">
+          <Saisie type="number" step="0.01" value={formData.sim_taux_interet || ''} onChange={(e) => setFormData({...formData, sim_taux_interet: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Taux de l'assurance crédit (%)">
+          <Saisie type="number" step="0.01" value={formData.sim_taux_assurance || ''} onChange={(e) => setFormData({...formData, sim_taux_assurance: parseFloat(e.target.value) || 0})} />
+        </Ligne>
       {/* Prêt in fine */}
       <ToggleRow
         checked={formData.sim_pret_in_fine ?? false}
@@ -230,52 +228,50 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
         description="Remboursement des intérêts uniquement chaque mois — le capital est remboursé en totalité la dernière année"
       />
 
-      <p className="text-[12.5px] text-ardoise mt-2">Paramètres avancés (renégociation)</p>
-      <div className="grid md:grid-cols-2 gap-4">
-        <FField label="Année de renégociation du crédit">
-          <FInput type="number" value={formData.sim_annee_renegociation || ''} onChange={(e) => setFormData({...formData, sim_annee_renegociation: e.target.value})} placeholder="Laisser vide si pas de renégociation" />
-        </FField>
-        <FField label="Taux d'intérêt renégocié (%)">
-          <FInput type="number" step="0.01" value={formData.sim_taux_renegocie || ''} onChange={(e) => setFormData({...formData, sim_taux_renegocie: e.target.value})} />
-        </FField>
-        <FField label="Indemnité de remboursement anticipé (mois)">
-          <FInput type="number" value={formData.sim_ira_mois || 0} onChange={(e) => setFormData({...formData, sim_ira_mois: e.target.value})} />
-        </FField>
-      </div>
+      <SousTitre>Paramètres avancés (renégociation)</SousTitre>
+        <Ligne label="Année de renégociation du crédit">
+          <Saisie type="number" value={formData.sim_annee_renegociation || ''} onChange={(e) => setFormData({...formData, sim_annee_renegociation: e.target.value})} placeholder="Aucune" />
+        </Ligne>
+        <Ligne label="Taux d'intérêt renégocié (%)">
+          <Saisie type="number" step="0.01" value={formData.sim_taux_renegocie || ''} onChange={(e) => setFormData({...formData, sim_taux_renegocie: e.target.value})} />
+        </Ligne>
+        <Ligne label="Indemnité de remboursement anticipé (mois)">
+          <Saisie type="number" value={formData.sim_ira_mois || 0} onChange={(e) => setFormData({...formData, sim_ira_mois: e.target.value})} />
+        </Ligne>
+      </Bloc>
 
-      <SectionTitle>5. Charges diverses</SectionTitle>
-      <div className="grid md:grid-cols-2 gap-4">
-        <FField label="Frais de création de société (€)">
-          <FInput type="number" value={formData.sim_cout_creation_societe || ''} onChange={(e) => setFormData({...formData, sim_cout_creation_societe: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Frais de dossier bancaire (€)">
-          <FInput type="number" value={formData.sim_frais_dossier_bancaire || ''} onChange={(e) => setFormData({...formData, sim_frais_dossier_bancaire: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Frais de courtage (€)">
-          <FInput type="number" value={formData.sim_frais_courtage || ''} onChange={(e) => setFormData({...formData, sim_frais_courtage: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Comptabilité annuelle (€/an)">
-          <FInput type="number" value={formData.sim_comptabilite || ''} onChange={(e) => setFormData({...formData, sim_comptabilite: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Assurance PNE (€/an)">
-          <FInput type="number" value={formData.sim_assurance_pne || ''} onChange={(e) => setFormData({...formData, sim_assurance_pne: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Gestion locative TTC (%)">
-          <FInput type="number" step="0.1" value={formData.sim_gestion_locative || ''} onChange={(e) => setFormData({...formData, sim_gestion_locative: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Charges diverses (€/an)">
-          <FInput type="number" value={formData.sim_charges_diverses || ''} onChange={(e) => setFormData({...formData, sim_charges_diverses: parseFloat(e.target.value) || 0})} />
-        </FField>
-      </div>
+      <Bloc titre="5. Charges diverses">
+        <Ligne label="Frais de création de société (€)">
+          <Saisie type="number" value={formData.sim_cout_creation_societe || ''} onChange={(e) => setFormData({...formData, sim_cout_creation_societe: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Frais de dossier bancaire (€)">
+          <Saisie type="number" value={formData.sim_frais_dossier_bancaire || ''} onChange={(e) => setFormData({...formData, sim_frais_dossier_bancaire: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Frais de courtage (€)">
+          <Saisie type="number" value={formData.sim_frais_courtage || ''} onChange={(e) => setFormData({...formData, sim_frais_courtage: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Comptabilité annuelle (€/an)">
+          <Saisie type="number" value={formData.sim_comptabilite || ''} onChange={(e) => setFormData({...formData, sim_comptabilite: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Assurance PNE (€/an)">
+          <Saisie type="number" value={formData.sim_assurance_pne || ''} onChange={(e) => setFormData({...formData, sim_assurance_pne: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Gestion locative TTC (%)">
+          <Saisie type="number" step="0.1" value={formData.sim_gestion_locative || ''} onChange={(e) => setFormData({...formData, sim_gestion_locative: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Charges diverses (€/an)">
+          <Saisie type="number" value={formData.sim_charges_diverses || ''} onChange={(e) => setFormData({...formData, sim_charges_diverses: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+      </Bloc>
 
-      <SectionTitle>6. Travaux à la charge du bailleur</SectionTitle>
-      <p className="text-[12.5px] text-ardoise -mt-2">Saisissez le montant des travaux pour chaque année (laisser vide si aucun travaux)</p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <Bloc titre="6. Travaux à la charge du bailleur">
+      <SousTitre>Saisissez le montant des travaux pour chaque année (laisser vide si aucun travaux)</SousTitre>
+      <div className="grid grid-cols-2 [&>*:nth-child(odd)]:border-r [&>*:nth-last-child(-n+2)]:border-b-0">
         {Array.from({ length: 20 }, (_, i) => i + 1).map((annee) => {
           const entry = travauxList.find(t => parseInt(t.annee) === annee);
           return (
-            <FField key={annee} label={`Année ${annee}`}>
-              <FInput
+            <Ligne key={annee} largeur="w-[72px]" label={`Année ${annee}`}>
+              <Saisie
                 type="number"
                 value={entry?.montant || ""}
                 onChange={(e) => {
@@ -289,29 +285,28 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
                 }}
                 placeholder="0 €"
               />
-            </FField>
+            </Ligne>
           );
         })}
       </div>
+      </Bloc>
 
-      <SectionTitle>7. Revente</SectionTitle>
-      <div className="grid md:grid-cols-2 gap-4">
-        <FField label="Année de revente">
-          <FInput type="number" value={formData.sim_annee_revente || ''} onChange={(e) => setFormData({...formData, sim_annee_revente: parseInt(e.target.value) || 20})} />
-        </FField>
-        <FField label="Honoraire agent pour la revente TTC (%)">
-          <FInput type="number" step="0.1" value={formData.sim_commission_agent_revente || ''} onChange={(e) => setFormData({...formData, sim_commission_agent_revente: parseFloat(e.target.value) || 0})} />
-        </FField>
-        <FField label="Rendement brut à la revente pour l'acquéreur (%)">
-          <FInput type="number" step="0.1" value={formData.sim_rendement_capital || ''} onChange={(e) => setFormData({...formData, sim_rendement_capital: parseFloat(e.target.value) || 0})} />
-        </FField>
-      </div>
+      <Bloc titre="7. Revente">
+        <Ligne label="Année de revente">
+          <Saisie type="number" value={formData.sim_annee_revente || ''} onChange={(e) => setFormData({...formData, sim_annee_revente: parseInt(e.target.value) || 20})} />
+        </Ligne>
+        <Ligne label="Honoraire agent pour la revente TTC (%)">
+          <Saisie type="number" step="0.1" value={formData.sim_commission_agent_revente || ''} onChange={(e) => setFormData({...formData, sim_commission_agent_revente: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+        <Ligne label="Rendement brut à la revente pour l'acquéreur (%)">
+          <Saisie type="number" step="0.1" value={formData.sim_rendement_capital || ''} onChange={(e) => setFormData({...formData, sim_rendement_capital: parseFloat(e.target.value) || 0})} />
+        </Ligne>
+      </Bloc>
 
-      <SectionTitle accent={J["menthe"]}>8. Paramètres Administrateur</SectionTitle>
-      <div className="space-y-4 p-4 bg-menthe/10 rounded-[12px] border border-menthe/30">
+      <Bloc titre="8. Paramètres Administrateur">
         <ToggleRow checked={formData.sim_commission_agent_active ?? false} onCheckedChange={(checked) => setFormData({...formData, sim_commission_agent_active: checked})} title="Honoraires à la charge de l'acquéreur TTC" />
         {formData.sim_commission_agent_active && (
-          <div className="space-y-4">
+          <>
             <ToggleRow
               checked={formData.sim_commission_agent_inclus_fai ?? true}
               onCheckedChange={(checked) => setFormData({...formData, sim_commission_agent_inclus_fai: checked})}
@@ -320,20 +315,18 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
                 ? "Les honoraires sont déjà compris dans le prix négocié FAI (déduits pour le calcul des droits d'enregistrement)"
                 : "Les honoraires s'ajoutent en sus du prix négocié FAI (ajoutés au prix de revient total)"}
             />
-            <div className="grid md:grid-cols-2 gap-4">
               <FSelect label="Type honoraires charge acquéreur TTC" value={formData.sim_commission_agent_type || "pourcentage"} onValueChange={(value) => setFormData({...formData, sim_commission_agent_type: value})}>
                 <SelectItem value="pourcentage">Pourcentage (%)</SelectItem>
                 <SelectItem value="fixe">Montant fixe (€)</SelectItem>
               </FSelect>
-              <FField label={`Honoraires charge acquéreur TTC ${formData.sim_commission_agent_type === "fixe" ? "(€)" : "(%)"}`}>
-                <FInput type="number" step="0.1" value={formData.sim_commission_agent || ''} onChange={(e) => setFormData({...formData, sim_commission_agent: parseFloat(e.target.value) || 0})} />
-              </FField>
-            </div>
-          </div>
+              <Ligne label={`Honoraires charge acquéreur TTC ${formData.sim_commission_agent_type === "fixe" ? "(€)" : "(%)"}`}>
+                <Saisie type="number" step="0.1" value={formData.sim_commission_agent || ''} onChange={(e) => setFormData({...formData, sim_commission_agent: parseFloat(e.target.value) || 0})} />
+              </Ligne>
+          </>
         )}
-        <FField label="Droits d'enregistrement (%)">
-          <FInput type="number" step="0.1" value={formData.sim_droits_enregistrement || ''} onChange={(e) => setFormData({...formData, sim_droits_enregistrement: parseFloat(e.target.value) || 0})} />
-        </FField>
+        <Ligne label="Droits d'enregistrement (%)">
+          <Saisie type="number" step="0.1" value={formData.sim_droits_enregistrement || ''} onChange={(e) => setFormData({...formData, sim_droits_enregistrement: parseFloat(e.target.value) || 0})} />
+        </Ligne>
         <ToggleRow
           checked={formData.sim_no_fees_klocka ?? false}
           onCheckedChange={(checked) => setFormData({...formData, sim_no_fees_klocka: checked, ...(checked ? { sim_fees_klocka: 0, sim_incentive_klocka: 0 } : {})})}
@@ -344,14 +337,14 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
             <SelectItem value="pourcentage">Pourcentage (%)</SelectItem>
             <SelectItem value="fixe">Montant fixe (€)</SelectItem>
           </FSelect>
-          <FField label={`Fees Klocka TTC ${formData.sim_fees_klocka_type === "fixe" ? "(€)" : "(%)"}`}>
-            <FInput type="number" step="0.1" value={formData.sim_fees_klocka || ''} onChange={(e) => setFormData({...formData, sim_fees_klocka: parseFloat(e.target.value) || 0})} />
-          </FField>
-          <FField label="Incentive Klocka TTC (%)">
-            <FInput type="number" step="0.1" value={formData.sim_incentive_klocka || ''} onChange={(e) => setFormData({...formData, sim_incentive_klocka: parseFloat(e.target.value) || 0})} />
-          </FField>
+          <Ligne label={`Fees Klocka TTC ${formData.sim_fees_klocka_type === "fixe" ? "(€)" : "(%)"}`}>
+            <Saisie type="number" step="0.1" value={formData.sim_fees_klocka || ''} onChange={(e) => setFormData({...formData, sim_fees_klocka: parseFloat(e.target.value) || 0})} />
+          </Ligne>
+          <Ligne label="Incentive Klocka TTC (%)">
+            <Saisie type="number" step="0.1" value={formData.sim_incentive_klocka || ''} onChange={(e) => setFormData({...formData, sim_incentive_klocka: parseFloat(e.target.value) || 0})} />
+          </Ligne>
         </>)}
-      </div>
+      </Bloc>
     </div>
   );
 }

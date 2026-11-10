@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, X, ChevronDown, Loader2, SlidersHorizontal, PanelRightClose, PanelRightOpen, RotateCcw } from "lucide-react";
+import { Search, X, ChevronDown, Loader2, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import CarteVacance from "@/components/outils/CarteVacance";
-import PanneauTaux from "@/components/outils/PanneauTaux";
+import ColonneZone from "@/components/outils/ColonneZone";
 import PanneauRue, { nomDeRue } from "@/components/outils/PanneauRue";
 import { CATEGORIES, TYPES_SIGNAL, CLES_CATEGORIES, CLES_TYPES, RAYON, motType, motCategorie, adresseLisible } from "@/lib/vacance-signaux";
 
@@ -99,7 +99,6 @@ export default function Vacance() {
   const [choisi, setChoisi] = useState(null);
   const [survol, setSurvol] = useState(null);
   const [cible, setCible] = useState(null);
-  const [listeOuverte, setListeOuverte] = useState(true);
   const sondage = useRef(null);
   const arreterSondage = () => { if (sondage.current) { clearTimeout(sondage.current); sondage.current = null; } };
   useEffect(() => () => arreterSondage(), []);
@@ -219,7 +218,7 @@ export default function Vacance() {
     arreterSondage(); clearTimeout(sondageTaux.current);
     setErreur(null); setChoisi(null); setChargement(false); setProgression(null); setResultats(null); setParametresLances(null);
     setTaux(null); setTauxErreur(null); setTauxAttente(false);
-    setRue(null); setRueErreur(null); setRueAttente(true); setTronconChoisi(null); setLocalRue(null); setRueVoie(voie); setPortee("rue"); setListeOuverte(true);
+    setRue(null); setRueErreur(null); setRueAttente(true); setTronconChoisi(null); setLocalRue(null); setRueVoie(voie); setPortee("rue");
     mesurerRue(adresse.citycode, voie);
     setSp({ q: adresse.label, lon: String(adresse.lon), lat: String(adresse.lat), commune: adresse.citycode || "", cp: adresse.postcode || "", ville: adresse.city || "", portee: "rue", rue: voie }, { replace: true });
   }, [adresse, setSp, mesurerRue]);
@@ -240,7 +239,7 @@ export default function Vacance() {
     const p = parametres();
     arreterSondage();
     setErreur(null); setChoisi(null); setChargement(true); setProgression(null);
-    setTaux(null); setTauxErreur(null); setTauxAttente(true); setListeOuverte(true);
+    setTaux(null); setTauxErreur(null); setTauxAttente(true);
     mesurerTaux(p);
     setParametresLances(empreinte(p));
     setSp({
@@ -271,8 +270,6 @@ export default function Vacance() {
   }, [rue, tronconChoisi]);
   const panneauRue = portee === "rue" && !!(rue || rueAttente || rueErreur);
   const panneauZone = portee === "zone" && !!resultats;
-  // Le point choisi : sa ligne passe en tête du tableau (14 oct. 2026, Jules), le reste garde son ordre.
-  const lignesTableau = useMemo(() => (choisi ? [...locaux.filter((l) => l.cle === choisi.cle), ...locaux.filter((l) => l.cle !== choisi.cle)] : locaux), [locaux, choisi?.cle]);
 
   const sousTitre = !adresse
     ? "Saisissez une adresse et lancez une recherche pour afficher les signaux."
@@ -283,7 +280,7 @@ export default function Vacance() {
         : null;
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="flex min-h-[100dvh] flex-col md:min-h-0 md:flex-1">
       {/* L'en-tête : les onglets des outils, le titre, la barre de recherche. */}
       <div className="flex-none border-b border-trait px-5 pt-4 md:px-8">
         {/* Le titre seul (14 oct. 2026, Jules) : ni onglet « Vacance », ni compte des signaux. */}
@@ -460,9 +457,10 @@ export default function Vacance() {
         </div>
       )}
 
-      {/* La carte et le panneau du taux ; dessous, le tableau des points (14 oct. 2026). */}
-      <div className="relative flex h-[62vh] min-h-[420px] flex-none">
-        <div className="relative min-w-0 flex-1">
+      {/* La carte à gauche sur toute la hauteur, les chiffres et les tableaux à droite (10 nov. 2026, Jules, version 5 de la
+          planche) : la carte ne sort jamais de l'écran ; au téléphone, elle prend la moitié du haut. */}
+      <div className="flex min-h-0 flex-1 max-md:flex-col">
+        <div className="relative min-h-[420px] min-w-0 flex-1 max-md:h-[50vh] max-md:flex-none">
           <CarteVacance
             point={adresse ? { lat: adresse.lat, lon: adresse.lon, label: adresse.label } : null}
             rayonM={rayon}
@@ -474,65 +472,16 @@ export default function Vacance() {
             cible={portee === "rue" ? localRue : cible}
             rue={portee === "rue" && rue?.locaux ? { locaux: rue.locaux, troncons: rue.troncons, tronconChoisi, onTroncon: setTronconChoisi, choisi: localRue, onChoisir: setLocalRue, cadre: cadreRue } : null}
           />
-          {(panneauZone || panneauRue) && !listeOuverte && (
-            <button type="button" onClick={() => setListeOuverte(true)} aria-label="Ouvrir la liste" title="Ouvrir la liste" className="absolute right-3 top-3 z-[400] grid h-9 w-9 place-items-center rounded-full border border-bord bg-surface-pleine text-ardoise hover:text-encre">
-              <PanelRightOpen className="h-4 w-4" strokeWidth={1.7} />
-            </button>
-          )}
         </div>
 
-        {(panneauZone || panneauRue) && listeOuverte && (
-          <aside className="flex w-[360px] flex-none flex-col border-l border-trait bg-rail max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:z-[450] max-md:h-[46%] max-md:w-auto max-md:border-l-0 max-md:border-t">
-            {/* Le panneau : le taux de vacance seul (14 oct. 2026 : le compte des signaux retiré). */}
-            <div className="flex flex-none justify-end px-2 pt-2">
-              <button type="button" onClick={() => setListeOuverte(false)} aria-label="Replier le panneau" title="Replier le panneau" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-                <PanelRightClose className="h-4 w-4" strokeWidth={1.7} />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {panneauRue
-                ? <PanneauRue rue={rue} attente={rueAttente} erreur={rueErreur} tronconChoisi={tronconChoisi} onTroncon={setTronconChoisi} onLocal={setLocalRue} localChoisi={localRue} />
-                : <PanneauTaux taux={taux} attente={tauxAttente} erreur={tauxErreur} onRue={adresse ? lancerRue : null} />}
-            </div>
+        {(panneauZone || panneauRue) && (
+          <aside className="min-w-0 overflow-y-auto border-l border-trait md:w-1/2 md:max-w-[720px] max-md:border-l-0 max-md:border-t">
+            {panneauRue
+              ? <PanneauRue rue={rue} attente={rueAttente} erreur={rueErreur} tronconChoisi={tronconChoisi} onTroncon={setTronconChoisi} onLocal={setLocalRue} localChoisi={localRue} />
+              : <ColonneZone taux={taux} tauxAttente={tauxAttente} tauxErreur={tauxErreur} adresse={adresse} locaux={locaux} choisi={choisi} survol={survol} onSurvol={setSurvol} onOuvrir={ouvrir} onLocal={(l) => setCible({ ...l, cle: `taux-${l.cle}` })} onRue={lancerRue} />}
           </aside>
         )}
       </div>
-
-      {/* Le tableau : une ligne par point de la carte, dans le même ordre ; un clic montre le point. */}
-      {resultats && locaux.length > 0 && (
-        <div className="flex-none border-t border-trait px-5 py-4 md:px-8">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] border-collapse text-left text-[13.5px]">
-              <thead>
-                <tr className="text-[11px] uppercase tracking-[.12em] text-brume">
-                  {["Établissement", "Adresse", "Signal", "Date", "Type de bien", "Distance", "Signaux"].map((h) => <th key={h} className="border-b border-trait px-2 py-2 font-normal">{h}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {lignesTableau.map((l) => {
-                  const actif = choisi?.cle === l.cle;
-                  return (
-                    <tr key={l.cle} id={`point-${l.cle}`} onClick={() => ouvrir(l)} onMouseEnter={() => setSurvol(l.cle)} onMouseLeave={() => setSurvol(null)}
-                      className={`cursor-pointer border-b border-trait transition-colors ${actif ? "bg-rail-actif" : survol === l.cle ? "bg-relief/40" : "hover:bg-relief/30"}`}>
-                      <td className="max-w-[240px] truncate px-2 py-2 text-encre">{l.enseigne || l.denomination || "Établissement"}</td>
-                      <td className="max-w-[260px] truncate px-2 py-2 text-craie">{adresseLisible(l.adresse) || "—"}</td>
-                      <td className="px-2 py-2 text-craie">{motType(l.signal_principal.type)}</td>
-                      <td className="whitespace-nowrap px-2 py-2 tabular-nums text-ardoise">{date(l.signal_principal.date)}</td>
-                      <td className="px-2 py-2 text-ardoise">{motCategorie(l.categorie_bien)}</td>
-                      <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-ardoise">{metres(l.distance_m)}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-ardoise">{l.signaux.length}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {/* Un signal n'est pas une certitude (contrôle du 19 oct. 2026, voir docs/validation/k-vacance.md). */}
-            <p className="m-0 mt-3 text-[11.5px] leading-[1.55] text-brume">
-              Fiabilité mesurée : une radiation est suivie d'une fermeture au registre dans 91 % des cas ; une liquidation ou un redressement de plus de six mois n'a libéré le local que dans 44 % des cas (30 à 59 %, 41 commerces contrôlés sur Google Maps). Un signal dit où regarder, pas ce qui va se libérer.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

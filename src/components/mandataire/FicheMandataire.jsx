@@ -649,7 +649,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
       {/* Le chat de Haka (24 oct. 2026, Jules), en bas de la fiche, collé au bas du panneau pendant que la fiche défile
           (25 oct. 2026) ; un message envoyé ouvre la vue Conversation, où il prend toute la place. */}
       {f && !apercu && !sansChat && (
-        <div className={enConv ? "flex min-h-0 flex-1 flex-col px-5 pt-1" : discussion ? "hidden" : `sticky bottom-0 z-10 mt-auto border-t border-trait bg-fond px-5 pb-4 pt-4 ${dansLaPage ? "max-md:bottom-[var(--k-bas-mobile,0px)]" : ""}`}>
+        <div className={enConv ? "flex min-h-0 flex-1 flex-col px-5 pt-1" : discussion ? "hidden" : `sticky bottom-0 z-10 mt-auto border-t border-trait bg-rail px-5 pb-4 pt-4 ${dansLaPage ? "max-md:bottom-[var(--k-bas-mobile,0px)]" : ""}`}>
           {chatPret ? <ChatFiche id={fid} onReponse={rafraichir} onConversation={surConversation} onReprise={surReprise} plein={enConv} />
             : <button type="button" onClick={() => setChatPret(true)} className="flex h-12 w-full items-center rounded-full border border-bord-doux bg-surface px-5 text-left text-[14px] text-brume">Parler à l&apos;assistant…</button>}
         </div>
@@ -657,7 +657,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
       {/* Pas encore de fiche : un seul geste, ajouter le commerce à sa liste (25 oct. 2026, Jules). Collé en bas du panneau,
           pleine largeur ; la fiche défile au-dessus. Le chevron choisit une autre liste ou en crée une. */}
       {f?.apercu && (
-        <div className="sticky bottom-0 mt-auto flex gap-2 border-t border-trait bg-fond px-5 py-3">
+        <div className="sticky bottom-0 mt-auto flex gap-2 border-t border-trait bg-rail px-5 py-3">
           <button type="button" onClick={() => (derniere ? ajouter.mutate({ liste_id: derniere.id }) : null)} disabled={ajouter.isPending || !derniere}
             className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
             {ajouter.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}

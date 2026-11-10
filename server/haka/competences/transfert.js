@@ -19,6 +19,9 @@
 //   5. repondre    une notification au collègue seul : ce qui a été fait, avec le lien du dossier. Plus de mail
 //                  depuis sourcing@ (2 nov. 2026, Jules : « je ne veux pas qu'il réponde à l'analyste par mail »).
 //
+// Un mandataire transfère aussi (9 nov. 2026, Jules) : le bien entre dans ses Biens (server/transfert-mandataire.js). Qui
+// est à la fois admin et mandataire répond d'abord, dans sa cloche : côté mandataire ou côté admin ?
+//
 // Drapeau : HAKA_TRANSFERT (avec HAKA_FILE). Allumé, Haka ne lit plus les boîtes personnelles pour les fiches et les
 // mails (le transfert remplace la veille de Haka) ; les autres passes de la veille ne changent pas.
 
@@ -31,6 +34,7 @@ import { sourceMail } from '../sources.js';
 import { membreDeLEquipe } from './demande-equipe.js';
 import { notifier } from '../../notifications.js';
 import { piecesFiche } from '../../deal/fiches-auto.js';
+import { estMandataire } from '../../mandataire-espace.js';
 
 export const COMPETENCE = 'transfert';
 export const VERSION = '1';
@@ -138,6 +142,24 @@ export function comprendre(lu, { pieces = [], fiches = [], vises = [] } = {}) {
   if (fiches.length && !vises.length) return { intention: 'fiche' };
   if (!vises.length) return { intention: 'nouveau' };
   return { intention: 'documents', candidats: vises.slice(0, 4), ou_fiche: fiches.length > 0 };
+}
+
+/** Qui peut transférer : un compte de l'équipe ou un mandataire. */
+export function expediteurDuTransfert(email) {
+  const e = norm(email);
+  if (!e) return null;
+  return Records.list('User').find((u) => norm(u.email) === e && (u.role === 'admin' || estMandataire(u))) || null;
+}
+
+/**
+ * Pure : le côté où entre le transfert, ou null quand il faut le demander. Une question sans rien à importer et
+ * « seulement en Mémoire » restent à l'équipe ; tout le reste se demande, même quand un dossier d'équipe semble évident :
+ * l'agent d'origine peut avoir un dossier ouvert côté admin et un bien côté mandataire.
+ */
+export function coteDuTransfert(u, c, lu) {
+  if (!estMandataire(u)) return 'admin';
+  if (u.role !== 'admin') return 'mandataire';
+  return c.intention === 'memoire' || (c.intention === 'demande' && !lu.transfert) ? 'admin' : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +307,15 @@ async function nouveauDossier(mail, { membre, lu, uploadDir }) {
   return { ...r, fait: 'nouveau', preanalyse: r.deposes.length > 0 && !SIMULER };
 }
 
+/** Les pièces du transfert en mémoire, celles des ZIP comprises. */
+async function fichiersDuMail(mail) {
+  const { fichesDuZip, zipsDuMail } = await import('../../deal/zip-fiches.js');
+  const fichiers = [];
+  for (const p of piecesUtiles(mail)) fichiers.push({ nom: p.nom, mime: p.mime || null, buffer: await telecharger(mail.compte, mail.gmail_message_id, p.piece_id) });
+  for (const z of zipsDuMail(mail)) fichiers.push(...(await fichesDuZip(await telecharger(mail.compte, mail.gmail_message_id, z.piece_id), (nom) => UTILES.test(nom) && !PARASITES.test(nom))));
+  return fichiers;
+}
+
 /** Pure : ce qui a suivi le dépôt, en une phrase : le Drive, puis la lecture. */
 function suiteDataRoom(r) {
   const drive = r.drive?.ok ? (r.drive.test ? '' : ' Rangées dans le Drive.') : r.drive ? ` Le Drive n'a pas répondu (${r.drive.erreur}) : « Ranger dans le Drive » dans la Data Room.` : '';
@@ -321,7 +352,7 @@ taches.enregistrer(COMPETENCE, {
       async run({ charge }) {
         const mail = Records.get('MailRecu', charge.mail_id);
         if (!mail) throw new Error('Mail introuvable');
-        const membre = membreDeLEquipe(mail.de_email);
+        const membre = expediteurDuTransfert(mail.de_email);
         if (!membre) return { fin: true, ignore: 'expéditeur hors équipe' };
         const lu = lireTransfert({ texte: mail.texte, objet: mail.objet });
         const pieces = piecesUtiles(mail);
@@ -329,7 +360,46 @@ taches.enregistrer(COMPETENCE, {
         const vises = dossiersVises(lu, Records.list('Deal'), { collegue: membre.email });
         const c = comprendre(lu, { pieces, fiches, vises });
         Records.update('MailRecu', mail.id, { haka_transfert: { intention: c.intention, origine: lu.origine?.email || null, le: new Date().toISOString() } });
-        return { ...c, lu, pour: norm(membre.email), pieces: pieces.map((p) => p.nom) };
+        return { ...c, cote: coteDuTransfert(membre, c, lu), lu, pour: norm(membre.email), pieces: pieces.map((p) => p.nom) };
+      },
+    },
+    {
+      // Admin et mandataire à la fois : côté mandataire ou côté admin ? La question part dans sa cloche, dans les deux vues.
+      nom: 'demander_cote',
+      async run({ tache, resultats, charge }) {
+        const c = resultats.comprendre;
+        if (c.cote) return { sauter: ['choisir_cote'] };
+        const mail = Records.get('MailRecu', charge.mail_id);
+        const p = await file.proposer({
+          type: 'transfert_cote', titre: `Votre transfert « ${String(c.lu.objet_origine || mail.objet || '').slice(0, 60)} » : côté mandataire ou côté admin ?`,
+          resume: c.pieces.length ? `${c.pieces.length} pièce${c.pieces.length > 1 ? 's' : ''} : ${c.pieces.slice(0, 4).join(', ')}.` : null,
+          charge: { mail_id: mail.id }, sources: [sourceMail(mail)], pour: c.pour, competence: COMPETENCE, version: VERSION, tache_id: tache.id, etape: 'choisir_cote',
+          cle: `transfert-cote:${mail.id}`, actions: ['choisir'], genre: 'question_cote',
+          choix: [{ cle: 'mandataire', libelle: 'Côté mandataire' }, { cle: 'admin', libelle: 'Côté admin' }],
+        });
+        return { attendre: 'validation', proposition_id: p.id };
+      },
+    },
+    {
+      nom: 'choisir_cote', externe: true,
+      async run({ charge }) {
+        if (!['mandataire', 'admin'].includes(charge.choix)) throw new Error('Choisissez un côté.');
+        return { choix: charge.choix, enFond: true };
+      },
+    },
+    {
+      // Côté mandataire, le bien entre dans ses Biens et la tâche s'arrête là ; côté admin, le transfert continue comme avant.
+      nom: 'cote_mandataire',
+      async run({ resultats, charge }) {
+        const c = resultats.comprendre;
+        if ((c.cote || resultats.choisir_cote?.choix) !== 'mandataire') return {};
+        const mail = Records.get('MailRecu', charge.mail_id);
+        const user = expediteurDuTransfert(mail.de_email);
+        const M = await import('../../transfert-mandataire.js');
+        const r = await M.bienDepuisTransfert(mail, { user, lu: c.lu, uploadDir: charge.uploadDir || CHEMIN_UPLOADS, fichiers: await fichiersDuMail(mail) });
+        const n = M.compteRenduBien(r, { objet: mail.objet });
+        notifier({ pour: norm(user.email), titre: n.titre, texte: n.texte, lien: n.lien, action: n.lien ? 'Ouvrir le bien' : null, cle: `haka-transfert:${mail.id}` });
+        return { fin: true, ...r };
       },
     },
     {

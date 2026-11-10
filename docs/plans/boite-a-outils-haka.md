@@ -246,3 +246,39 @@ Jules : « reproduire chaque partie de Data-B, point par point ; un tableau comp
 
 Commandes : `node scripts/kdata-valeur-locative-test.mjs` (5 plis, voisins k=15 ; `--plis=0 --part=0.8` pour un partage, `--modele=lineaire`, `--k=`, `--memeCommune=1`, `--villes=Nice,Cannes`, `--csv=`).
 
+### La voirie de la rue : BD TOPO de l'IGN (9 nov. 2026, suite)
+
+OpenStreetMap (Overpass) était saturé sur tous les miroirs ; la BD TOPO de l'IGN (WFS public de la Géoplateforme, celui des IRIS) donne mieux pour chaque tronçon : importance 1 à 6, nature, accès des voitures, largeur, sens, nom de voie de la BAN. `server/outils-kd/voirie-bdtopo.js` télécharge une commune une fois, agrège par nom de voie et garde le résultat dans `DATA_DIR/bdtopo-voirie/<insee>.json` (33 communes, 99 % des rues Data-B retrouvées). Le signal est réel : rue de plus d'un kilomètre 0,84 × la ville, rue piétonne 1,28, importance 3 : 1,29 (une classe de Data-B).
+
+| Version (5 plis, 1 522 rues) | Écart médian | À 15 % | À 25 % |
+| --- | --- | --- | --- |
+| Voisins, 18 mesures SIRENE | 12,3 % | 57 % | 69 % |
+| Voisins, 27 mesures (SIRENE + voirie) | 12,4 % | 57 % | 71 % |
+| Arbres boostés, 27 mesures | 14,7 % | 51 % | 74 % |
+| Arbres + voisins (moyenne) | 13,8 % | 54 % | 74 % |
+| Ramené à la classe Data-B la plus proche | 13,5 % | 55 % | 70 % |
+| **Voisins, 6 mesures retenues** | **11,7 %** | **60 %** | **72 %** |
+
+Les six mesures, choisies pas à pas en validation croisée (`POIDS_VOISINS`) : établissements actifs, part banques et agences, numéros occupés, vitrines à 600 m, longueur de la rue (IGN), vitrines par 100 m de rue (IGN). Stable sur trois tirages des plis (11,7 à 11,9 %, contre 12,7 à 12,9 % avec les 27). Points faibles : Lyon 2e (44 %, 16 rues, rues de prestige de la Presqu'île), Mandelieu et Vénissieux (23 %).
+
+Lectures de production : `GET /api/kdata/lectures-datab` (équipe seule, lecture seule, rien n'est demandé à Data-B) rend toutes les lectures gardées dans la base de Render ; `--lectures=fichier.json` les ajoute à l'apprentissage. Piste suivante : les coefficients de localisation à la parcelle de la RVLLP (section ci-dessous), qui sont par construction un multiplicateur de rue.
+
+### La valeur de ville : les paramètres fiscaux des locaux professionnels (9 nov. 2026)
+
+La source : la DGFiP publie par département (impots.gouv.fr/revision-des-valeurs-locatives) la sectorisation à la section cadastrale, la grille tarifaire annuelle (€/m² par catégorie et secteur, d'après les loyers déclarés par les occupants, surface pondérée) et les coefficients de localisation. Couverture nationale, aucun abonnement. Module `server/outils-kd/rvllp.js` (MAG1 = boutiques), test `npm run kdata:valeur-ville`, tableau `docs/plans/kdata-valeur-ville-resultats.csv`. **Rien n'est branché en production.**
+
+**Valeur de ville K-Data = le tarif MAG1 du meilleur secteur de la commune, brut, aucun réglage appris sur Data-B.** Essayés en plus, en laissant chaque ville de côté (55 villes) : médiane et 3e quartile des secteurs, loyers d'habitation (Carte des loyers 2025), prix DVF, ventes DVF par habitant, population : rien n'améliore le tarif seul (17 % d'écart médian). Sans le tarif, ces sources plafonnent à 19,4 % ; sans rien, 36,7 %.
+
+| Mesure | n | Écart médian | À 15 % | À 25 % |
+| --- | --- | --- | --- | --- |
+| Ville K-Data contre ville Data-B | 56 | 17,4 % | 45 % | 64 % |
+| Idem, villes lues au moins 5 fois | 28 | 20 % | 43 % | 57 % |
+| Rue : ville Data-B × coefficient | 1 522 | 12,9 % | 55 % | 70 % |
+| Rue : ville K-Data × coefficient | 1 522 | 28,4 % | 30 % | 44 % |
+| Tarif DGFiP au point contre baux Equimmox (40 adresses lues des deux côtés) | 40 | 16,3 % | 45 % | 68 % |
+| Rue Data-B contre baux Equimmox (mêmes adresses) | 40 | 78,5 % | 10 % | 28 % |
+
+Lecture : le seuil « très proches sur n'importe quelle ville » n'est pas atteint (Nice +47 %, Toulouse +47 %, Lille +119 %, Angers +70 %, Antibes -30 %). Mais Data-B et les baux ne mesurent pas la même chose : rapport médian aux baux Equimmox 1,8 pour Data-B, 0,9 pour la DGFiP. Le tarif fiscal est du côté des loyers en place ; Jules a choisi Data-B pour l'avis le 1er nov. parce que les baux sous-évaluaient. **À trancher avec Jules : quelle cible pour la valeur locative de marché.** Limites : 40 adresses pour l'arbitrage, baux lus dans un rayon de 200 à 1 000 m ; les coefficients de localisation ne sont pas utilisés dans ces mesures (il faut la parcelle) ; le coefficient de rue reste appris sur Data-B, contrat à relire.
+
+Le tarif relatif du secteur n'apporte rien au coefficient de rue (14,6 % contre 14,7 %).
+

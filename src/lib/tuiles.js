@@ -76,8 +76,12 @@ const ERREURS_AVANT_BASCULE = 6;
  *
  * @returns {{fond: object, surErreur: Function, replis: number}}
  */
-export function useFondDeCarte({ google = false } = {}) {
-  const liste = useMemo(() => (google ? [FOND_GOOGLE, ...FONDS] : FONDS), [google]);
+export function useFondDeCarte({ google = false, sombre = false } = {}) {
+  // `sombre` : le plan Google sombre, d'une session à style sombre côté serveur (10 nov. 2026, K-Vacance).
+  const liste = useMemo(() => {
+    const g = sombre ? { ...FOND_GOOGLE, cle: "google-sombre", url: `${FOND_GOOGLE.url}?theme=sombre`, sombre: true } : FOND_GOOGLE;
+    return google ? [g, ...FONDS] : FONDS;
+  }, [google, sombre]);
   const [rang, setRang] = useState(0);
   const [erreurs, setErreurs] = useState(0);
   // Le serveur dit d'emblée si Google répond (14 oct. 2026) : sinon on passe au fond suivant tout de suite, avec la raison.

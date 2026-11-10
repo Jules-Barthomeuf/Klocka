@@ -12,6 +12,7 @@
 // langage : du SQL et une régression linéaire régularisée.
 
 import db from '../db.js';
+import { voirieGardee } from './voirie-bdtopo.js';
 
 // Lire une rue sans balayer toute la commune : un index, créé une fois si la table est là.
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_entrepot_sirene_voie ON entrepot_sirene(commune, type_voie, voie)'); } catch { /* base en lecture seule ou table absente */ }
@@ -156,7 +157,38 @@ function referenceCommune(commune) {
   return refCommune.get(commune);
 }
 
-export const NOMS_CARACTERISTIQUES = ['log_vitrines', 'log_tous', 'densite', 'part_bouche', 'part_prime', 'part_restau', 'taux_fermetures', 'log_numeros', 'rel_commune', 'type_place', 'type_grand_axe', 'type_petit', 'log_dens_250', 'log_dens_600', 'rel_coeur', 'log_dist_coeur', 'part_vitrines', 'sans_geo'];
+// ── La voirie de la rue (BD TOPO, voirie-bdtopo.js), si la commune est déjà sur disque ─────────────────────────
+const voiriesIndexees = new Map();
+function voirieIndexee(commune) {
+  if (!voiriesIndexees.has(commune)) {
+    const voies = voirieGardee(commune);
+    if (!voies) return null;
+    const liste = voies.map((v) => ({ ...v, d: decomposerRue(v.nom) }));
+    const parMot = new Map();
+    liste.forEach((v, i) => { for (const m of v.d.mots) { if (!parMot.has(m)) parMot.set(m, []); parMot.get(m).push(i); } });
+    voiriesIndexees.set(commune, { liste, parMot });
+  }
+  return voiriesIndexees.get(commune);
+}
+
+/** La voie BD TOPO d'une rue (même rapprochement de noms que SIRENE), ou null. */
+export function voirieRue(commune, rue) {
+  const idx = voirieIndexee(commune);
+  if (!idx) return null;
+  const a = decomposerRue(rue);
+  let meilleure = null;
+  const vus = new Set();
+  for (const m of a.mots) for (const i of idx.parMot.get(m) || []) {
+    if (vus.has(i)) continue;
+    vus.add(i);
+    const s = ressemblanceD(a, idx.liste[i].d);
+    if (s > (meilleure?.score || 0)) meilleure = { ...idx.liste[i], score: s };
+  }
+  return meilleure && meilleure.score >= 0.5 ? meilleure : null;
+}
+
+export const NOMS_CARACTERISTIQUES = ['log_vitrines', 'log_tous', 'densite', 'part_bouche', 'part_prime', 'part_restau', 'taux_fermetures', 'log_numeros', 'rel_commune', 'type_place', 'type_grand_axe', 'type_petit', 'log_dens_250', 'log_dens_600', 'rel_coeur', 'log_dist_coeur', 'part_vitrines', 'sans_geo',
+  'voie_imp_min', 'voie_imp_moy', 'voie_log_longueur', 'voie_pieton', 'voie_2ch', 'voie_sens_unique', 'voie_largeur', 'vitrines_100m', 'sans_voirie'];
 
 /**
  * Les caractéristiques d'une rue, lues dans le stock SIRENE. Rend null si la rue n'y est pas.
@@ -182,8 +214,9 @@ export function caracteristiquesRue(commune, rue) {
   const d250 = cx != null ? densite(carte.cases, cx, cy, 250) : 0;
   const d600 = cx != null ? densite(carte.cases, cx, cy, 600) : 0;
   const distCoeur = cx != null && carte.coeur ? Math.hypot(cx - carte.coeur.x, cy - carte.coeur.y) : 5000;
+  const vo = voirieRue(commune, rue);
   const brut = {
-    voie: `${v.type_voie} ${v.voie}`.trim(), score: v.score, actifs: actifs.length, vitrines: vitrines.length, fermees_3_ans: fermees3.length, numeros,
+    voie: `${v.type_voie} ${v.voie}`.trim(), voirie: vo ? vo.nom : null, importance: vo ? vo.imp_min : null, longueur_m: vo ? vo.longueur : null, part_pieton: vo ? vo.part_pieton : null, score: v.score, actifs: actifs.length, vitrines: vitrines.length, fermees_3_ans: fermees3.length, numeros,
     part_bouche: part(PREFIXES_BOUCHE), part_prime: part(PREFIXES_PRIME), part_restau: part(PREFIXES_RESTAU),
     vitrines_250m: d250, vitrines_600m: d600, distance_coeur_m: Math.round(distCoeur), densite_max_commune: carte.maxDens,
   };
@@ -206,6 +239,16 @@ export function caracteristiquesRue(commune, rue) {
     Math.log1p(distCoeur),
     actifs.length ? vitrines.length / actifs.length : 0,
     cx == null ? 1 : 0,
+    // Sans voirie connue : les valeurs médianes d'une rue de desserte, et le drapeau le dit.
+    vo ? vo.imp_min : 5,
+    vo ? vo.imp_moy : 5,
+    Math.log1p(vo ? vo.longueur : 300),
+    vo ? vo.part_pieton : 0,
+    vo ? vo.part_2ch : 0,
+    vo ? vo.part_sens_unique : 0.5,
+    vo?.largeur || 5,
+    (vitrines.length * 100) / Math.max(vo ? vo.longueur : 300, 50),
+    vo ? 0 : 1,
   ];
   return { valeurs, brut };
 }
@@ -262,8 +305,18 @@ export function apprendre(exemples, { lambda = 1 } = {}) {
  * bas, cœur de ville au milieu, axes commerçants de périphérie en haut). On garde les exemples d'apprentissage,
  * centrés-réduits comme la régression, et on prédit par la médiane pondérée des k plus proches.
  */
-export function apprendreVoisins(exemples, { k = 15, ponderer = true, memeCommune = false } = {}) {
+// Les poids retenus par sélection pas à pas en validation croisée (9 nov. 2026, 1 522 rues) : six mesures sur 27,
+// les autres diluaient la distance. 12,1 % → 11,8 % d'écart médian, 58 % → 60 % des rues à 15 % près.
+export const POIDS_VOISINS = { log_tous: 1, part_prime: 2, log_numeros: 1, log_dens_600: 1, voie_log_longueur: 2, vitrines_100m: 2 };
+
+export function apprendreVoisins(exemples, { k = 15, ponderer = true, memeCommune = false, poidsFixes = POIDS_VOISINS } = {}) {
   const lin = apprendre(exemples, { lambda: 1 });
+  if (poidsFixes) {
+    // Distance euclidienne pondérée : le poids s'applique au carré de l'écart, d'où la racine sur chaque coordonnée.
+    const poids = NOMS_CARACTERISTIQUES.map((n) => Math.sqrt(poidsFixes[n] || 0));
+    const points = exemples.map((ex) => ({ z: ex.valeurs.map((v, j) => ((v - lin.moy[j]) / lin.ect[j]) * poids[j]), cible: ex.cible, commune: ex.commune || null }));
+    return { type: 'voisins', k, moy: lin.moy, ect: lin.ect, poids, memeCommune, points, noms: NOMS_CARACTERISTIQUES, n: exemples.length };
+  }
   // Les mesures qui comptent pèsent plus dans la distance : le poids de la régression (en valeur absolue) sert
   // d'échelle, avec un plancher pour qu'aucune mesure ne disparaisse.
   const poids = ponderer ? lin.poids.slice(1).map((w) => Math.max(0.15, Math.abs(w))) : lin.poids.slice(1).map(() => 1);
@@ -286,9 +339,74 @@ export function coefficientVoisins(modele, valeurs, { commune = null } = {}) {
   return Math.min(2.2, Math.max(0.5, Math.exp(cible)));
 }
 
+// ── Les arbres boostés (9 nov. 2026) : les classes de Data-B sont des seuils (rue de plus d'un kilomètre, rue
+// piétonne, axe d'importance 3), que des arbres trouvent seuls là où la distance des voisins se dilue. Perte en
+// valeur absolue (chaque feuille prend la médiane des résidus) : on vise l'écart médian, pas la moyenne.
+
+const medianeDe = (xs) => { if (!xs.length) return 0; const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+
+/** Pure : un arbre de régression (partage par moindres carrés sur les résidus, feuilles à la médiane). */
+function arbre(X, r, indices, profondeur, minFeuille) {
+  if (profondeur === 0 || indices.length < 2 * minFeuille) return { v: medianeDe(indices.map((i) => r[i])) };
+  let meilleur = null;
+  const p = X[0].length;
+  for (let j = 0; j < p; j += 1) {
+    const ordre = [...indices].sort((a, b) => X[a][j] - X[b][j]);
+    let sg = 0; let sg2 = 0; let st = 0; let st2 = 0;
+    for (const i of ordre) { st += r[i]; st2 += r[i] * r[i]; }
+    for (let k = 0; k < ordre.length - 1; k += 1) {
+      const i = ordre[k];
+      sg += r[i]; sg2 += r[i] * r[i];
+      const ng = k + 1; const nd = ordre.length - ng;
+      if (ng < minFeuille || nd < minFeuille || X[i][j] === X[ordre[k + 1]][j]) continue;
+      const sd = st - sg; const sd2 = st2 - sg2;
+      const perte = (sg2 - (sg * sg) / ng) + (sd2 - (sd * sd) / nd);
+      if (!meilleur || perte < meilleur.perte) meilleur = { perte, j, seuil: (X[i][j] + X[ordre[k + 1]][j]) / 2 };
+    }
+  }
+  if (!meilleur) return { v: medianeDe(indices.map((i) => r[i])) };
+  const g = indices.filter((i) => X[i][meilleur.j] <= meilleur.seuil);
+  const d = indices.filter((i) => X[i][meilleur.j] > meilleur.seuil);
+  return { j: meilleur.j, s: meilleur.seuil, g: arbre(X, r, g, profondeur - 1, minFeuille), d: arbre(X, r, d, profondeur - 1, minFeuille) };
+}
+const predireArbre = (a, x) => (a.v !== undefined ? a.v : predireArbre(x[a.j] <= a.s ? a.g : a.d, x));
+
+/**
+ * Pure : apprend le coefficient de rue par arbres boostés. `exemples` : [{ valeurs, cible }], cible = ln(rue ÷ ville).
+ * Tirage reproductible des sous-échantillons (graine fixe).
+ */
+export function apprendreArbres(exemples, { arbres = 300, profondeur = 4, pas = 0.05, minFeuille = 8, part = 0.8, graine = 11 } = {}) {
+  const X = exemples.map((e) => e.valeurs);
+  const y = exemples.map((e) => e.cible);
+  const base = medianeDe(y);
+  const F = y.map(() => base);
+  let g = graine >>> 0 || 11;
+  const alea = () => { g ^= g << 13; g >>>= 0; g ^= g >>> 17; g ^= g << 5; g >>>= 0; return g / 4294967296; };
+  const foret = [];
+  for (let t = 0; t < arbres; t += 1) {
+    const r = y.map((v, i) => v - F[i]);
+    const indices = X.map((_, i) => i).filter(() => alea() < part);
+    const a = arbre(X, r, indices, profondeur, minFeuille);
+    foret.push(a);
+    for (let i = 0; i < X.length; i += 1) F[i] += pas * predireArbre(a, X[i]);
+  }
+  return { type: 'arbres', base, pas, foret, noms: NOMS_CARACTERISTIQUES, n: exemples.length, arbres, profondeur };
+}
+
+/** Pure : les deux modèles ensemble ; ils se trompent sur des rues différentes, leur moyenne géométrique corrige. */
+export function apprendreMixte(exemples, { arbres = {}, voisins = {} } = {}) {
+  return { type: 'mixte', modeles: [apprendreArbres(exemples, arbres), apprendreVoisins(exemples, voisins)], n: exemples.length, noms: NOMS_CARACTERISTIQUES };
+}
+
 /** Pure : le coefficient prédit (rue ÷ quartier) pour des caractéristiques. */
 export function coefficient(modele, valeurs, options = {}) {
+  if (modele.type === 'mixte') return Math.exp(modele.modeles.reduce((s, m) => s + Math.log(coefficient(m, valeurs, options)), 0) / modele.modeles.length);
   if (modele.type === 'voisins') return coefficientVoisins(modele, valeurs, options);
+  if (modele.type === 'arbres') {
+    let s = modele.base;
+    for (const a of modele.foret) s += modele.pas * predireArbre(a, valeurs);
+    return Math.min(2.2, Math.max(0.5, Math.exp(s)));
+  }
   let s = modele.poids[0];
   for (let j = 0; j < valeurs.length; j += 1) s += modele.poids[j + 1] * ((valeurs[j] - modele.moy[j]) / modele.ect[j]);
   // Borné à ce que Data-B montre (0,5 à 2,2 fois le quartier) : pas d'extrapolation folle.

@@ -160,7 +160,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, ongletsSous = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, ongletsSous = null, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -723,6 +723,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <ChampsPersonnalises zone="documents_projet" project={project} />
             </motion.div>
           </TabsContent>
+
+          {/* Le Simulateur de l'éditeur, dans la page comme les autres onglets (9 nov. 2026, Jules). */}
+          {ongletActif === "simulateur" && panneauSimulateur && (
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
+              <TabHeader title="Simulateur" />
+              {panneauSimulateur}
+            </motion.div>
+          )}
         </Tabs>
 
         </div>

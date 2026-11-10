@@ -57,7 +57,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
         <p className="text-encre text-sm font-medium">Synthèse à la revente</p>
         <p className="text-menthe text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-trait">
+      <div className="k-sim-lignes grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-trait">
         {items.map((it, i) => (
           <Item key={i} label={it.label} value={it.value} accent={it.accent} info={it.info} />
         ))}

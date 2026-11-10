@@ -332,7 +332,9 @@ export function appliquerPrefs(brut) {
 
   // L'accent : la famille menthe, recalculée pour le thème en cours. La
   // menthe elle-même reste aux valeurs de la feuille de style.
-  const fam = p.accent === "menthe" ? null : famille(p.accent, theme);
+  // En clair, la menthe aussi est recalculée : tous les accents y restent pastel, comme la pervenche (10 nov. 2026,
+  // Jules), et la feuille de style garde l'ancienne menthe foncée pour le premier affichage.
+  const fam = p.accent === "menthe" && !clair ? null : famille(p.accent, theme);
   for (const nom of ["menthe", "menthe-clair", "menthe-survol", "menthe-fonce", "menthe-texte", "sur-menthe", "menthe-pale", "sur-menthe-pale", "ecrire"]) {
     poser(`--k-${nom}-rgb`, fam ? triplet(fam[nom]) : null);
   }

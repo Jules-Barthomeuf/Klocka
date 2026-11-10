@@ -70,8 +70,9 @@ export function useNonLuesMandataire(enabled = true) {
 export const ouvrirCloche = () => window.dispatchEvent(new CustomEvent("klocka:ouvrir-cloche"));
 
 // `sansBoutonTelephone` : au téléphone, la cloche n'a plus de bouton (1er nov. 2026, Jules) ; le nombre va sur le
-// hamburger et la ligne « Notifications » du menu l'ouvre.
-export default function Cloche({ className = "", mandataire = false, sansBoutonTelephone = false }) {
+// hamburger et la ligne « Notifications » du menu l'ouvre. `sansBouton` : plus d'icône du tout (10 nov. 2026, Jules) ;
+// le volet s'ouvre encore par `ouvrirCloche`.
+export default function Cloche({ className = "", mandataire = false, sansBoutonTelephone = false, sansBouton = false }) {
   const [ouvert, setOuvert] = useState(false);
   useEffect(() => {
     const ouvrir = () => setOuvert(true);
@@ -159,7 +160,7 @@ export default function Cloche({ className = "", mandataire = false, sansBoutonT
     <div className={`${ouvert ? "z-[56]" : "z-40"} ${className}`}>
       <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-haspopup="dialog"
         aria-label={n ? `Ce qui t'attend : ${n}` : "Ce qui t'attend"} title="Ce qui t'attend"
-        className={`relative grid h-[38px] w-[38px] place-items-center rounded-full border border-trait bg-surface-pleine text-ardoise transition-colors duration-300 hover:border-bord-doux hover:text-encre ${sansBoutonTelephone ? "max-md:hidden" : ""}`}>
+        className={`relative grid h-[38px] w-[38px] place-items-center rounded-full border border-trait bg-surface-pleine text-ardoise transition-colors duration-300 hover:border-bord-doux hover:text-encre ${sansBouton ? "hidden" : sansBoutonTelephone ? "max-md:hidden" : ""}`}>
         <motion.span className="grid place-items-center" animate={{ rotate: ouvert ? [0, -14, 10, -6, 0] : 0 }} transition={{ duration: 0.5 }}><Bell className="h-4 w-4" strokeWidth={1.7} /></motion.span>
         <AnimatePresence initial={false}>
           {n > 0 && (

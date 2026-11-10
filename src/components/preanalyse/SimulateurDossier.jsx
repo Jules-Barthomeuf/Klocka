@@ -240,31 +240,31 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
     />
   );
 
-  // Un seul fond (17 oct. 2026, Jules) : les cartes du simulateur laissent voir celui du panneau, sans à-plats plus clairs.
+  // Le dessin du simulateur partout (10 nov. 2026, Jules) : deux cartes, les réglages à gauche, le contenu à droite,
+  // comme la page Simulateur ; fond de la barre en clair, transparent en sombre (remplace le fond unique du 17 oct.).
   return (
-    <div data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail">
-      {venusDeLAnalyse.length > 0 && (
-        <div className="px-4 py-2 border-b border-trait text-[11px] text-ardoise">
-          Rempli depuis l'analyse : {venusDeLAnalyse.map(([cle, source]) => `${LIBELLES_ANALYSE[cle] || cle} (${source.toLowerCase()})`).join(", ")}.
-        </div>
-      )}
-      {manquants.length > 0 && (
-        <div className="px-4 py-2 border-b border-trait flex items-start gap-2 text-[11px] text-menthe/80">
-          <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-          <span>
-            Absent du dossier : {manquants.join(", ")}. Les hypothèses sont à poser à la main dans les
-            curseurs — la simulation reste exploitable pour dégrossir.
-          </span>
-        </div>
-      )}
-
-      <div className="flex">
+    <div data-zone="listes" className="k-sim k-points flex min-h-0 items-start gap-4 [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail">
         {/* Rail d'hypothèses : colonne à gauche sur grand écran */}
         {!compact && (
-          <aside className="hidden lg:block w-[250px] flex-shrink-0 border-r border-trait">{rail}</aside>
+          <aside className="sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent lg:block">{rail}</aside>
         )}
 
-        <div className="flex-1 w-0 min-w-0">
+        <div className="relative flex-1 w-0 min-w-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent">
+            {venusDeLAnalyse.length > 0 && (
+              <div className="px-4 py-2 border-b border-trait text-[11px] text-ardoise">
+                Rempli depuis l'analyse : {venusDeLAnalyse.map(([cle, source]) => `${LIBELLES_ANALYSE[cle] || cle} (${source.toLowerCase()})`).join(", ")}.
+              </div>
+            )}
+            {manquants.length > 0 && (
+              <div className="px-4 py-2 border-b border-trait flex items-start gap-2 text-[11px] text-menthe/80">
+                <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                <span>
+                  Absent du dossier : {manquants.join(", ")}. Les hypothèses sont à poser à la main dans les
+                  curseurs — la simulation reste exploitable pour dégrossir.
+                </span>
+              </div>
+            )}
+
           {/* Onglets + actions */}
           {/* Au téléphone, les onglets puis les actions, sur deux rangées. */}
           <div className="flex items-center justify-between border-b border-trait px-3 h-10 gap-2 max-md:h-auto max-md:flex-col max-md:items-stretch max-md:gap-0 max-md:pb-2">
@@ -273,20 +273,21 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
                 <button
                   key={o.id}
                   onClick={() => { setOngletActif(o.id); if (o.id !== "scenarios") setNegoPct(0); }}
-                  className={`text-xs h-full flex items-center border-b-2 whitespace-nowrap transition-colors ${
+                  className={`text-sm font-medium h-full flex items-center border-b-2 whitespace-nowrap transition-colors ${
                     ongletActif === o.id
-                      ? "border-menthe text-encre"
+                      ? "k-sim-onglet-actif border-menthe text-encre"
                       : "border-transparent text-ardoise hover:text-craie"
                   }`}
+                  style={{ background: "transparent" }}
                 >
-                  {o.label}
+                  <span className="k-sim-onglet">{o.label}</span>
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 max-md:flex-wrap">
               <button
                 onClick={() => setRailOuvert((o) => !o)}
-                className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 max-md:h-8 rounded-full border border-bord text-craie hover:text-encre text-[11px]`}
+                className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 max-md:h-8 rounded-full border border-bord text-craie hover:text-encre text-sm font-medium`}
               >
                 <SlidersHorizontal className="w-3 h-3" /> Simulateur
               </button>
@@ -302,7 +303,7 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
           {/* Rail replié sur petit écran */}
           {railOuvert && <div className={`${compact ? "" : "lg:hidden "}border-b border-trait`}>{rail}</div>}
 
-          <div className="p-3 space-y-3 max-w-full overflow-hidden">
+          <div className="p-4 space-y-4 max-w-full overflow-hidden">
             {negoActive && (
               <div className="text-xs text-menthe bg-menthe/10 border border-menthe/25 rounded-lg px-3 py-2">
                 Négociation -{negoPct} % appliquée : les chiffres ci-dessus et le tableau reflètent ce scénario.
@@ -359,7 +360,6 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
             </p>
           </div>
         </div>
-      </div>
     </div>
   );
 }

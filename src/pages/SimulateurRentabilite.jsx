@@ -504,15 +504,15 @@ export default function SimulateurRentabilite() {
         <h1 className="k-balayage m-0 mb-6 text-center text-[34px] font-normal leading-[1.05] tracking-[-0.02em] max-md:mb-4 max-md:text-[26px]" style={{ animationDuration: "20s" }}>Simulateur</h1>
         {/* Deux cartes posées sur le fond (10 nov. 2026, Jules, maquette) : les réglages à gauche, à la hauteur de leur
             contenu, et le contenu à droite. */}
-        <div data-zone="listes" className={`k-entree k-points flex min-h-0 items-start gap-4 ${vueDe(user) === "mandataire" ? "[&_table_:is(th,td)]:border-r [&_table_:is(th,td)]:border-trait [&_table_tr>*:last-child]:border-r-0" : ""} [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail`} style={{ "--k-delai": ".08s" }}>
-          <aside className="k-glisse sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden rounded-[16px] border border-trait bg-rail md:block" style={{ "--k-delai": ".18s" }}>
+        <div data-zone="listes" className={`k-sim k-entree k-points flex min-h-0 items-start gap-4 ${vueDe(user) === "mandataire" ? "[&_table_:is(th,td)]:border-r [&_table_:is(th,td)]:border-trait [&_table_tr>*:last-child]:border-r-0" : ""} [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail`} style={{ "--k-delai": ".08s" }}>
+          <aside className="k-glisse sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent md:block" style={{ "--k-delai": ".18s" }}>
             {rail}
           </aside>
           <SimReglagesMobile>{rail}</SimReglagesMobile>
 
-          <main className="relative flex-1 w-0 min-w-0 overflow-hidden rounded-[16px] border border-trait bg-rail">
+          <main className="relative flex-1 w-0 min-w-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between gap-3 border-b border-trait px-3 h-10 sticky top-0 max-md:static z-10 max-md:h-auto max-md:py-1 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center justify-between gap-3 border-b border-trait px-3 h-10 relative z-10 max-md:h-auto max-md:py-1 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
               <div className="flex items-center gap-2 min-w-0">
               {/* Venu d'un projet (« Simulateur complet ») : la flèche y ramène.
                   L'historique d'abord, pour retrouver la page telle qu'on l'a
@@ -521,7 +521,7 @@ export default function SimulateurRentabilite() {
                 <button
                   onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate(`${createPageUrl("ProjetDetail")}?id=${projetDOrigine}`))}
                   aria-label="Revenir au projet"
-                  className="flex flex-shrink-0 items-center gap-1 px-3 h-8 rounded-full border border-trait text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors"
+                  className="flex flex-shrink-0 items-center gap-1 px-3 h-8 rounded-full border border-trait text-craie hover:text-encre hover:border-encre/[0.25] text-sm font-medium transition-colors"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" /> Projet
                 </button>
@@ -533,10 +533,10 @@ export default function SimulateurRentabilite() {
                     <button
                       key={t.id}
                       onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                      className={`flex h-full items-center whitespace-nowrap border-b-2 text-xs transition-colors ${active ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-craie"}`}
+                      className={`flex h-full items-center whitespace-nowrap border-b-2 text-sm font-medium transition-colors ${active ? "k-sim-onglet-actif border-menthe text-encre" : "border-transparent text-ardoise hover:text-craie"}`}
                       style={{ background: "transparent" }}
                     >
-                      {t.label}
+                      <span className="k-sim-onglet">{t.label}</span>
                     </button>
                   );
                 })}
@@ -546,12 +546,12 @@ export default function SimulateurRentabilite() {
               <div className="flex items-center gap-2 max-md:hidden">
                 <ExportExcelFullButton params={{ surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false }} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                 {isAdmin && (
-                  <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors">
+                  <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-sm font-medium transition-colors">
                     {linkCopied ? <Check className="w-3.5 h-3.5 text-menthe-clair" /> : <Link2 className="w-3.5 h-3.5" />}
                     {linkCopied ? 'Copié' : 'Partager'}
                   </button>
                 )}
-                <button onClick={handleReset} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors">
+                <button onClick={handleReset} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-sm font-medium transition-colors">
                   <RefreshCw className="w-3.5 h-3.5" /> Reset
                 </button>
               </div>

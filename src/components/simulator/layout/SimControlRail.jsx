@@ -120,7 +120,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
       {afficherScenario ? (
       <div className="px-3 pt-3 pb-3 border-b border-trait">
         <Select value={selectedProjectId || "default"} onValueChange={onSelectProject}>
-          <SelectTrigger aria-label="Projet" className="bg-fond text-encre border-trait h-9 text-[13px] rounded-[10px]">
+          <SelectTrigger aria-label="Projet" className="bg-transparent text-encre border-trait h-9 text-[13px] rounded-[10px]">
             <SelectValue placeholder="Mode par défaut" />
           </SelectTrigger>
           <SelectContent className="bg-fond text-encre border-encre/[0.1]">
@@ -144,7 +144,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         {/* Champs principaux - non repliable */}
         <div className="mt-3 rounded-[10px] border border-menthe/40 bg-menthe/[0.06] p-2.5">
-          <p className="text-[13.5px] text-menthe font-medium pb-1">Champs principaux</p>
+          <p className="text-[13.5px] text-menthe font-medium pb-1"><span className="k-sim-etiquette">Champs principaux</span></p>
           {horsCredit(acquisitionMainItems).map((it) => (
             <SimSlider
               key={it.key}
@@ -172,7 +172,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
               className="overflow-hidden"
             >
               <div className="mt-3 rounded-[10px] border border-menthe/40 bg-menthe/[0.06] p-2.5">
-                <p className="text-[13.5px] text-menthe font-medium pb-1">Champs revente</p>
+                <p className="text-[13.5px] text-menthe font-medium pb-1"><span className="k-sim-etiquette">Champs revente</span></p>
                 {reventeMainItems.map((it) => (
                   <SimSlider
                     key={it.key}

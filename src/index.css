@@ -669,6 +669,29 @@ body[data-editeur-projet] .assistant-flottant {
 }
 @keyframes k-reflet { from { background-position: 100% 0; } to { background-position: 0% 0; } }
 @media (prefers-reduced-motion: reduce) { .k-reflet { animation: none; background-position: 0% 0; } }
+/* Nuances du Budget total du simulateur : la part d'accent mêlée de blanc, moins en mode clair où le blanc se perd. */
+.k-sim-budget { --k-sim-blanc-1: 50%; --k-sim-blanc-2: 75%; --k-sim-blanc-3: 90%; --k-sim-chiffre-noir: 0%; }
+/* Le simulateur en mode clair, à la manière du CRM (10 nov. 2026, Jules) : l'accent devient un fond plein, son texte
+   de contraste dessus (`sur-menthe`, calculé pour chaque accent), au lieu d'un texte ou d'un trait d'accent qui
+   disparaît sur fond clair. En sombre, rien ne change. */
+.k-sim .k-sim-onglet { transition: background-color .2s, color .2s; }
+:root[data-theme="clair"] .k-sim .k-sim-onglet-actif { border-bottom-color: transparent; }
+:root[data-theme="clair"] .k-sim .k-sim-onglet-actif .k-sim-onglet,
+:root[data-theme="clair"] .k-sim .k-sim-etiquette { background: rgb(var(--k-menthe-rgb)); color: rgb(var(--k-sur-menthe-rgb)); border-radius: 9999px; padding: 3px 10px; }
+:root[data-theme="clair"] .k-sim .k-sim-etiquette { display: inline-block; }
+.k-sim .k-sim-surligne { box-shadow: inset 0 0 0 999px rgb(var(--k-menthe-rgb) / 0.14); }
+:root[data-theme="clair"] .k-sim .k-sim-surligne { box-shadow: inset 0 0 0 999px rgb(var(--k-menthe-rgb)); }
+:root[data-theme="clair"] .k-sim .k-sim-surligne,
+:root[data-theme="clair"] .k-sim .k-sim-surligne * { color: rgb(var(--k-sur-menthe-rgb)) !important; }
+/* Plus aucune teinte pâle de l'accent en mode clair (« on ne doit plus voir le pervenche de base », 10 nov. 2026,
+   Jules) : un choix (scénario, ligne, pastille) prend l'accent plein, un cadre prend son trait plein et le fond de la
+   carte. */
+:root[data-theme="clair"] .k-sim :is(.bg-menthe\/10, .bg-menthe\/15) { background: rgb(var(--k-menthe-rgb)); }
+:root[data-theme="clair"] .k-sim :is(.bg-menthe\/10, .bg-menthe\/15),
+:root[data-theme="clair"] .k-sim :is(.bg-menthe\/10, .bg-menthe\/15) * { color: rgb(var(--k-sur-menthe-rgb)) !important; }
+:root[data-theme="clair"] .k-sim .bg-menthe\/\[0\.06\] { background: transparent; }
+:root[data-theme="clair"] .k-sim :is(.border-menthe\/25, .border-menthe\/40, .border-menthe\/50) { border-color: rgb(var(--k-menthe-rgb)); }
+:root[data-theme="clair"] .k-sim-budget { --k-sim-blanc-1: 30%; --k-sim-blanc-2: 50%; --k-sim-blanc-3: 65%; --k-sim-chiffre-noir: 35%; }
 @keyframes k-monte { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes k-blanchit { from { color: rgb(var(--k-encre-rgb) / 0.4); } to { color: rgb(var(--k-encre-rgb)); } }
 @keyframes k-coche { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
@@ -1302,9 +1325,10 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 .k-cascade > *:nth-child(n+12) { animation-delay: 275ms; }
 @media (prefers-reduced-motion: reduce) { .k-cascade > * { animation: none; } }
 
-/* Les cartes de la page Dossiers (18 oct. 2026, Jules) : la couleur de la barre de navigation, avec l'opacité réglée dans Personnalisation. */
+/* Les cartes de la page Dossiers (18 oct. 2026, Jules) : la couleur de la barre de navigation, avec l'opacité réglée
+   dans Personnalisation. Depuis le 10 nov. 2026 (Jules : « mets le fond transparent »), sans fond : le trait seul. */
 .k-carte-rail {
-  background-color: rgb(var(--k-rail-rgb) / var(--k-carte-opacite, 1));
+  background-color: transparent;
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }

@@ -9,7 +9,8 @@ import { J } from "@/design/jetons";
 // Les courbes du simulateur à la couleur système, l'accent du compte, comme ses curseurs (10 nov. 2026, Jules).
 const ACCENT = "rgb(var(--k-menthe-rgb))";
 // Les bâtons : capital remboursé en violet foncé (le jeton violet assombri), cash-flow à l'accent (10 nov. 2026, Jules).
-const ACCENT_CLAIR = `color-mix(in srgb, ${J.violet} 62%, black)`;
+// Capital remboursé : l'accent assombri, proche des bâtons de cash-flow, jamais le noir ni trop clair (10 nov. 2026, Jules).
+const ACCENT_CLAIR = "color-mix(in srgb, rgb(var(--k-menthe-rgb)) 55%, black)";
 
 const fmtK = (v) => `${Math.round(v / 1000)}`;
 
@@ -89,8 +90,9 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
   }, [calculs, anneeRevente, metric, formatCurrency]);
 
   const axisTick = { fill: J["ardoise"], fontSize: 10 };
-  const axisLine = { stroke: "#ffffff", strokeOpacity: 0.15 };
-  const tooltipStyle = { background: J["fond"], border: "1px solid #333", borderRadius: 6, fontSize: 11 };
+  // Traits et textes aux jetons, pour qu'ils se voient aussi en mode clair (10 nov. 2026, Jules).
+  const axisLine = { stroke: J.encre, strokeOpacity: 0.15 };
+  const tooltipStyle = { background: J["fond"], border: `1px solid ${J["bord"]}`, borderRadius: 6, fontSize: 11 };
 
   const RichesseTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) return null;
@@ -115,17 +117,17 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
           <p className="text-encre text-sm font-medium">{config.title}</p>
           <p className="text-ardoise text-xs mt-0.5">{config.subtitle}</p>
         </div>
-        <p className="text-menthe text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
+        <p className="k-sim-etiquette text-menthe text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
       </div>
       <div className="h-[26rem] max-md:h-[20rem]">
         <ResponsiveContainer width="100%" height="100%">
           {config.kind === "grouped" ? (
             <BarChart key={`bars-${config.data.length}`} data={config.data} margin={marges} barGap={4} barCategoryGap="20%">
-              <CartesianGrid stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
+              <CartesianGrid stroke={J.encre} strokeOpacity={0.08} strokeDasharray="3 3" />
               <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: telephone ? "Année · en milliers d'euros" : "Année", position: "bottom", offset: telephone ? 12 : 18, fill: J["ardoise"], fontSize: 11 }} />
               <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} width={telephone ? 36 : 60} label={telephone ? undefined : { value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
-              <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} content={<RichesseTooltip />} />
-              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: telephone ? 11 : 12, color: "#e5e7eb", paddingBottom: telephone ? 8 : 12 }} formatter={(v) => <span className="text-encre">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
+              <Tooltip cursor={{ fill: J.encre, fillOpacity: 0.04 }} content={<RichesseTooltip />} />
+              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: telephone ? 11 : 12, color: J.craie, paddingBottom: telephone ? 8 : 12 }} formatter={(v) => <span className="text-encre">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
               <Bar name="capital" dataKey="capital" fill={ACCENT_CLAIR} radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
               <Bar name="cashflow" dataKey="cashflow" fill={ACCENT} radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
             </BarChart>
@@ -137,10 +139,10 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
                   <stop offset="100%" stopColor={config.color} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
+              <CartesianGrid stroke={J.encre} strokeOpacity={0.08} strokeDasharray="3 3" />
               <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: telephone ? "Année · en milliers d'euros" : "Année", position: "bottom", offset: telephone ? 12 : 18, fill: J["ardoise"], fontSize: 11 }} />
               <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} width={telephone ? 36 : 60} label={telephone ? undefined : { value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
-              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "#fff" }} formatter={(v) => [formatCurrency(v), ""]} />
+              <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: J.encre }} formatter={(v) => [formatCurrency(v), ""]} />
               <Area type="monotone" dataKey="value" stroke={config.color} strokeWidth={2} fill="url(#simHeroFill)" />
               {config.markers?.recupApport && (
                 <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill={ACCENT} stroke={J["surface-pleine"]} strokeWidth={2} isFront />

@@ -65,24 +65,24 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
       <div className="h-72 px-2 pt-6 pb-4 border-t border-trait">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 8 }}>
-            <CartesianGrid horizontal={false} stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
+            <CartesianGrid horizontal={false} stroke={J.encre} strokeOpacity={0.08} strokeDasharray="3 3" />
             <XAxis
               type="number"
               tick={{ fill: J["ardoise"], fontSize: 10 }}
-              axisLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
-              tickLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
+              axisLine={{ stroke: J.encre, strokeOpacity: 0.15 }}
+              tickLine={{ stroke: J.encre, strokeOpacity: 0.15 }}
               tickFormatter={(v) => `${Math.round(v / 1000)}k`}
             />
-            <ReferenceLine x={0} stroke="#ffffff" strokeOpacity={0.25} />
+            <ReferenceLine x={0} stroke={J.encre} strokeOpacity={0.25} />
             <YAxis
               type="category"
               dataKey="label"
               width={90}
-              tick={{ fill: "#cbd5e1", fontSize: 10 }}
-              axisLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
+              tick={{ fill: J.craie, fontSize: 10 }}
+              axisLine={{ stroke: J.encre, strokeOpacity: 0.15 }}
               tickLine={false}
             />
-            <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} contentStyle={{ background: J["fond"], border: "1px solid #333", borderRadius: 6, fontSize: 11 }} formatter={(v) => [formatCurrency(Math.abs(v)), ""]} />
+            <Tooltip cursor={{ fill: J.encre, fillOpacity: 0.04 }} contentStyle={{ background: J["fond"], border: `1px solid ${J["bord"]}`, borderRadius: 6, fontSize: 11 }} formatter={(v) => [formatCurrency(Math.abs(v)), ""]} />
             <Bar dataKey="value" radius={[0, 3, 3, 0]} barSize={22}>
               {barData.map((d, i) => <Cell key={i} fill={d.fill} />)}
             </Bar>

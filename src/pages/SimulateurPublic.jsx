@@ -15,7 +15,6 @@ import SimScenarios from "../components/simulator/layout/SimScenarios";
 import SimParametresAvances from "../components/simulator/layout/SimParametresAvances";
 
 import { travauxParDefaut } from "@/components/simulator/CalculFinancier";
-import { Onglets } from "@/components/ui/kit";
 import RendezVousFondateur, { useVisiteSimulateur } from "@/components/simulator/RendezVousFondateur";
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
@@ -417,47 +416,34 @@ export default function SimulateurPublic() {
     />
   );
 
+  // Le dessin du simulateur partout (10 nov. 2026, Jules : « mets le design de simulateur partout ») : deux cartes,
+  // les réglages à gauche, le contenu à droite, comme la page Simulateur ; fond de la barre en clair, transparent en
+  // sombre ; l'onglet ouvert souligné (en clair, en pilule pleine, `.k-sim`).
+  const ongletClasse = (active) => `flex h-full items-center whitespace-nowrap border-b-2 text-sm font-medium transition-colors ${active ? "k-sim-onglet-actif border-menthe text-encre" : "border-transparent text-ardoise hover:text-craie"}`;
   return (
-    <div className={`${enProjet ? "k-sim-projet k-sobre font-projet" : "bg-fond min-h-screen"} relative w-full max-w-full overflow-x-hidden`}>
-      <div className={`flex flex-col ${enProjet ? "" : "min-h-screen"}`}>
-        <div className="flex flex-1 min-h-0">
-          {/* Left control rail */}
-          <aside className="hidden md:block w-[260px] flex-shrink-0">
+    <div className={`${enProjet ? "k-sobre" : "bg-fond min-h-screen p-4 max-md:p-0"} relative w-full max-w-full overflow-x-hidden`}>
+      <div data-zone="listes" className={`k-sim k-points flex min-h-0 items-start gap-4 [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail`}>
+          <aside className="sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent md:block">
             {rail}
           </aside>
           {!enProjet && <SimReglagesMobile>{rail}</SimReglagesMobile>}
 
-          {/* Main area */}
-          <main className="flex-1 w-0 min-w-0 overflow-hidden">
-            {/* Tab bar + actions */}
-            <div className={`flex items-center justify-between gap-3 ${enProjet ? "pb-3" : "border-b border-trait px-4 h-11 sticky top-0 bg-fond z-10"} max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden`}>
-              {enProjet ? (
-                <Onglets taille="page" className="min-w-0" items={tabs.map((t) => ({ cle: t.id, titre: t.label }))} valeur={activeTab} onChange={(id) => { setActiveTab(id); if (id !== "scenarios") setScenarioNegoPct(0); }} />
-              ) : (
-              <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-surface border border-trait min-w-0 overflow-x-auto max-md:flex-shrink-0">
-                {tabs.map((t) => {
-                  const active = activeTab === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                      className={`relative px-3 h-7 rounded-full text-xs whitespace-nowrap transition-colors duration-200 ${active ? "text-encre" : "text-ardoise hover:text-craie"}`}
-                    >
-                      {/* Pastille sans layoutId : l'animation partagée de framer-motion
-                          bloquait la sortie de page (écran noir en quittant le simulateur). */}
-                      <span className={`absolute inset-0 rounded-full border transition-all duration-200 ${active ? "bg-menthe/15 border-menthe/40 opacity-100" : "bg-transparent border-transparent opacity-0"}`} />
-                      <span className="relative">{t.label}</span>
-                    </button>
-                  );
-                })}
+          <main className="relative flex-1 w-0 min-w-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent max-md:rounded-none max-md:border-0">
+            <div className="relative z-10 flex h-10 items-center justify-between gap-3 border-b border-trait px-3 max-md:h-auto max-md:overflow-x-auto max-md:py-1 max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+              <div className="flex h-10 min-w-0 flex-shrink-0 items-center gap-4 overflow-x-auto max-md:h-9 max-md:flex-shrink">
+                {tabs.map((t) => (
+                  <button key={t.id} onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
+                    className={ongletClasse(activeTab === t.id)} style={{ background: "transparent" }}>
+                    <span className="k-sim-onglet">{t.label}</span>
+                  </button>
+                ))}
               </div>
-              )}
               <div className="flex items-center gap-2">
                 <RendezVousFondateur visite={visite} qui={qui} />
                 {/* Au téléphone, ni Excel ni Partager (14 oct. 2026, Jules) : le rendez-vous reste. */}
                 <span className="contents max-md:hidden">
                 <ExportExcelFullButton params={exportParams} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
-                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors">
+                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-sm font-medium transition-colors">
                   {linkCopied ? <Check className="w-3.5 h-3.5 text-menthe-clair" /> : <Link2 className="w-3.5 h-3.5" />}
                   {linkCopied ? 'Copié' : 'Partager'}
                 </button>
@@ -465,7 +451,7 @@ export default function SimulateurPublic() {
               </div>
             </div>
 
-            <div key={activeTab} className={`k-sim-corps ${enProjet ? "pt-2" : "p-4 max-md:pb-24"} space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out`}>
+            <div key={activeTab} className={`k-sim-corps p-4 ${enProjet ? "" : "max-md:pb-24"} space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out`}>
               {negoActive && (
                 <div className="flex items-center gap-2 text-xs text-menthe bg-menthe/10 border border-menthe/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.
@@ -505,7 +491,6 @@ export default function SimulateurPublic() {
               <p className="text-center text-encre/20 text-xs pt-4">Simulation générée par Klocka</p>
             </div>
           </main>
-        </div>
       </div>
     </div>
   );

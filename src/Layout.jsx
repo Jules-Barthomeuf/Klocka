@@ -242,7 +242,8 @@ function LayoutContent({ children, currentPageName }) {
   // « Il me rappelle » (8 oct. 2026) : sur chaque page de l'équipe qui prospecte (Prospection ouverte).
   const rappelOuvert = vueAdmin && !pagesFermees.includes("Prospection");
   // Le bouton « Rappel » n'a rien à faire sur la page Analyse (16 oct. 2026, Jules) ; un rappel en cours y reste visible.
-  const boutonRappel = rappelOuvert && currentPageName !== "Analyse";
+  // Plus d'icône Rappel nulle part (10 nov. 2026, Jules) ; l'écran d'appel et le bandeau « Rappel à terminer » restent.
+  const boutonRappel = false;
   // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un
   // rappel dû n'existe que si l'on retourne au tableau de bord.
   const { data: attend } = useQuery({
@@ -736,12 +737,12 @@ function LayoutContent({ children, currentPageName }) {
       {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), et l'icône Rappel, seule, dans la marge du coin, pour ne jamais couvrir le bouton d'un en-tête. */}
       {vueAdmin && !hideNavbar && !modoKData && (
         <>
-          <div id="k-haut-droite" className={`k-flottant-haut fixed ${boutonRappel ? "right-[120px]" : "right-[68px]"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
+          <div id="k-haut-droite" className={`k-flottant-haut fixed right-4 top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
           {/* L'agent testeur (10 oct. 2026), à gauche du rappel : un clic, et l'IA audite la page ouverte dans un bac à sable. */}
           {testeurVisible && <div className={`k-flottant-haut fixed ${boutonRappel ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
           {boutonRappel && <div className="k-flottant-haut fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
           {/* La cloche (17 oct. 2026, Jules) : entre les boîtes connectées et le mode appel, sur toutes les pages de l'équipe. */}
-          <Cloche className={`k-flottant-haut fixed ${boutonRappel ? "right-[68px]" : "right-4"} top-4 max-md:hidden`} />
+          <Cloche sansBouton className={`k-flottant-haut fixed ${boutonRappel ? "right-[68px]" : "right-4"} top-4 max-md:hidden`} />
           {/* Une fiche commerciale arrivée : « je la rentre ? Oui / Non », en fenêtre, d'elle-même (20 oct. 2026, Jules). */}
           <PopupFicheRecue />
         </>
@@ -749,7 +750,7 @@ function LayoutContent({ children, currentPageName }) {
       {/* La cloche du mandataire, en haut à droite comme chez l'équipe, au téléphone aussi (25 oct. 2026, Jules). */}
       {/* Au téléphone, plus de bouton cloche (1er nov. 2026, Jules) : le nombre en gros sur le hamburger, « Notifications » en
           tête du menu. */}
-      {vue === "mandataire" && !hideNavbar && <Cloche mandataire sansBoutonTelephone className="k-flottant-haut fixed right-4 top-4" />}
+      {vue === "mandataire" && !hideNavbar && <Cloche mandataire sansBouton className="k-flottant-haut fixed right-4 top-4" />}
       {/* Au téléphone, le hamburger à droite de la cloche ouvre le menu (27 oct. 2026, Jules : plus d'onglets en bas). */}
       {vue === "mandataire" && !hideNavbar && (
         <button type="button" onClick={() => setIsMobileMenuOpen((o) => !o)} aria-label={isMobileMenuOpen ? "Fermer le menu" : nonLues ? `Ouvrir le menu, ${nonLues} notification${nonLues > 1 ? "s" : ""}` : "Ouvrir le menu"} aria-expanded={isMobileMenuOpen}

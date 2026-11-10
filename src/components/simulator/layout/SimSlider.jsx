@@ -79,7 +79,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
         className="sim-slider-input w-full mt-1.5 max-md:mt-3"
-        style={{ background: alerte ? `linear-gradient(to right, #e8746a ${pct}%, #3a1f1c ${pct}%)` : `linear-gradient(to right, rgb(var(--k-menthe-rgb)) ${pct}%, rgb(var(--k-encre-rgb) / 0.14) ${pct}%)` }}
+        style={{ background: alerte ? `linear-gradient(to right, rgb(var(--k-alerte-rgb)) ${pct}%, rgb(var(--k-alerte-rgb) / 0.18) ${pct}%)` : `linear-gradient(to right, rgb(var(--k-menthe-rgb)) ${pct}%, rgb(var(--k-encre-rgb) / 0.14) ${pct}%)` }}
       />
       {alerte && <p className="m-0 mt-1 text-[11px] text-alerte">{alerte}</p>}
       <style>{sliderStyle}</style>

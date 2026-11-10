@@ -103,7 +103,7 @@ export default function SimParametresAvances({ values, advanced, calculs, format
           <Input type="number" min="0" max="12" placeholder="mois" value={vacMois} onChange={(e) => setVacMois(e.target.value)} className="bg-fond text-encre border-trait h-8 text-xs max-md:text-[16px] w-24 rounded-md" />
           <button
             onClick={() => { if (vacMois) { const n = [...advanced.vacancesLocatives]; n[vacYear - 1] = Number(vacMois); advanced.setVacancesLocatives(n); setVacMois(""); } }}
-            className="w-8 h-8 max-md:w-10 max-md:h-10 rounded-md bg-menthe text-black flex items-center justify-center"
+            className="w-8 h-8 max-md:w-10 max-md:h-10 rounded-md bg-menthe text-sur-menthe flex items-center justify-center"
           ><Plus className="w-4 h-4" /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">
@@ -126,7 +126,7 @@ export default function SimParametresAvances({ values, advanced, calculs, format
           <Input type="number" placeholder="€" value={travauxMontant} onChange={(e) => setTravauxMontant(e.target.value)} className="bg-fond text-encre border-trait h-8 text-xs max-md:text-[16px] w-28 rounded-md" />
           <button
             onClick={() => { if (travauxMontant) { const n = [...advanced.travauxBailleur]; n[travauxYear - 1] = Number(travauxMontant); advanced.setTravauxBailleur(n); setTravauxMontant(""); } }}
-            className="w-8 h-8 max-md:w-10 max-md:h-10 rounded-md bg-menthe text-black flex items-center justify-center"
+            className="w-8 h-8 max-md:w-10 max-md:h-10 rounded-md bg-menthe text-sur-menthe flex items-center justify-center"
           ><Plus className="w-4 h-4" /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">

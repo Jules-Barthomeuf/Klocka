@@ -174,23 +174,25 @@
     "opaques. Les teintes vivent ici, lues par src/lib/personnalisation.js qui",
     "dérive la famille d'un accent (clair, survol, foncé, texte posé dessus)",
     "pour le thème en cours. « sombre » est la teinte sur fond noir, « clair »",
-    "la même descendue d'un cran pour se lire sur du blanc."
+    "la teinte du thème clair : depuis le 10 nov. 2026 (Jules), la même, pastel, comme",
+    "la pervenche : un fond plein avec un texte foncé dessus, le texte d'accent",
+    "posé sur le blanc étant assombri à part (menthe-texte)."
   ],
   "accents": {
     "menthe": {
       "nom": "Menthe",
       "sombre": "#96c0b8",
-      "clair": "#3f7466"
+      "clair": "#96c0b8"
     },
     "sauge": {
       "nom": "Sauge",
       "sombre": "#a9c5a0",
-      "clair": "#4f7a45"
+      "clair": "#a9c5a0"
     },
     "bleu": {
       "nom": "Bleu",
       "sombre": "#8fb6e8",
-      "clair": "#2d60b2"
+      "clair": "#8fb6e8"
     },
     "pervenche": {
       "nom": "Pervenche",
@@ -200,22 +202,22 @@
     "ambre": {
       "nom": "Ambre",
       "sombre": "#e0a45e",
-      "clair": "#a6641a"
+      "clair": "#e0a45e"
     },
     "corail": {
       "nom": "Corail",
       "sombre": "#e8877a",
-      "clair": "#b8412f"
+      "clair": "#e8877a"
     },
     "violet": {
       "nom": "Violet",
       "sombre": "#c39be0",
-      "clair": "#7a3fb0"
+      "clair": "#c39be0"
     },
     "graphite": {
       "nom": "Graphite",
       "sombre": "#c7cdc9",
-      "clair": "#3a413f"
+      "clair": "#c7cdc9"
     },
     "rose": {
       "nom": "Rose",

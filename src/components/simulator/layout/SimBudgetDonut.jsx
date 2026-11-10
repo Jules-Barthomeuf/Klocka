@@ -4,20 +4,24 @@
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { J } from "@/design/jetons";
 
 const RADIAN = Math.PI / 180;
 // Une seule teinte, la couleur système (l'accent du compte), déclinée en transparence (10 nov. 2026, Jules).
 const ACCENT = (a) => `rgb(var(--k-menthe-rgb) / ${a})`;
-// Les nuances claires mêlent du blanc : elles restent lisibles sur fond sombre (les chiffres prennent la couleur de la part).
-const CLAIR = (blanc) => `color-mix(in srgb, rgb(var(--k-menthe-rgb)) ${100 - blanc}%, white)`;
+// Les nuances claires mêlent du blanc : lisibles sur fond sombre (les chiffres prennent la couleur de la part). En mode
+// clair, le blanc se perdait sur le fond (« on ne voit plus frais divers », 10 nov. 2026, Jules) : les parts y restent
+// plus près de l'accent et les chiffres s'assombrissent (`.k-sim-budget`, src/index.css).
+const CLAIR = (n) => `color-mix(in srgb, rgb(var(--k-menthe-rgb)), white var(--k-sim-blanc-${n}))`;
+const CHIFFRE = (c) => `color-mix(in srgb, ${c}, black var(--k-sim-chiffre-noir))`;
 
 export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrency }) {
   const items = useMemo(() => [
   { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: ACCENT(1) },
-  { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: CLAIR(50) },
+  { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: CLAIR(1) },
   { name: "Honoraires Klocka TTC", value: Math.round(calculs.feesKlocka || 0), color: ACCENT(0.55) },
-  { name: "Incentive Klocka", value: Math.round(calculs.incentiveKlocka || 0), color: CLAIR(75) },
-  { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: CLAIR(90) }].
+  { name: "Incentive Klocka", value: Math.round(calculs.incentiveKlocka || 0), color: CLAIR(2) },
+  { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: CLAIR(3) }].
   filter((d) => d.value > 0), [calculs, prixBienNegocie]);
 
   const total = calculs.prixRevient || items.reduce((s, d) => s + d.value, 0);
@@ -30,14 +34,14 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
     const brut = percent * 100;
     const pct = brut < 10 ? brut.toFixed(1) : brut.toFixed(0);
     return (
-      <text x={x} y={y} fill={items[index]?.color || "#888"} textAnchor="middle" dominantBaseline="middle" fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <text x={x} y={y} fill={CHIFFRE(items[index]?.color || J.ardoise)} textAnchor="middle" dominantBaseline="middle" fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
         {pct}%
       </text>);
 
   };
 
   return (
-    <div className="border border-trait rounded-lg">
+    <div className="k-sim-budget border border-trait rounded-lg">
       <div className="px-5 py-3 border-b border-trait">
         <p className="text-encre text-sm font-medium">Budget total</p>
       </div>

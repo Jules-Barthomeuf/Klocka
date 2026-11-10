@@ -383,7 +383,7 @@ export function lireDepots(dealId) {
     return TYPE[t] ? t : 'autre';
   };
   const docs = (brut.documents_espace || []).map((d) => ({ id: d.id, nom: d.nom, url: d.url, mime: d.mime || null, taille: d.taille || 0, ajoute_le: d.ajoute_le || null, ajoute_par: d.ajoute_par || null, type: typeDe(d), contexte: etat[d.id]?.contexte || null, nom_propose: etat[d.id]?.nom_propose || null, drive_url: d.drive_range_le ? d.drive_url || null : null, drive_range_le: d.drive_range_le || null, lecture: etat[d.id]?.extraction?.statut || null }));
-  const zone = (t, perso = false) => ({ id: t.id, titre: t.titre, attendus: t.attendus || 0, perso, documents: docs.filter((d) => d.type === t.id) });
+  const zone = (t, perso = false) => ({ id: t.id, titre: t.titre, attendus: t.attendus || 0, perso, lue: !!grilleDe(t.grille), documents: docs.filter((d) => d.type === t.id) });
   const sansType = zone({ id: 'autre', titre: 'Sans type' });
   const lisibles = new Set(TYPES.filter((t) => grilleDe(t.grille)).map((t) => t.id));
   const aLireDocs = docs.filter((d) => lisibles.has(d.type));
@@ -421,8 +421,6 @@ export async function lirePiece(dealId, docId, { uploadDir, user, seulement = nu
   const brut = dealDe(dealId);
   const etatDoc = brut?.analyse_pieces?.docs?.[docId];
   if (!etatDoc) return { ok: false, error: 'Pièce non rangée' };
-  // Une pièce jamais lue : c'est elle qui peut contredire une ligne vérifiée (pas la relecture d'une pièce connue).
-  const premiere = !seulement && !Object.keys(etatDoc.valeurs || {}).length;
   const type = etatDoc.type;
   const grille = grilleDe(TYPE[type]?.grille);
   if (!grille) return { ok: false, error: "Cet emplacement ne se lit pas" };
@@ -458,19 +456,8 @@ export async function lirePiece(dealId, docId, { uploadDir, user, seulement = nu
       if (!d || d.type !== type) return false;
       d.valeurs = seulement ? { ...(d.valeurs || {}), ...valeurs } : valeurs;
       d.extraction = { statut: 'fait', le: new Date().toISOString(), par: user?.email || null };
-      // Une pièce nouvelle qui contredit une ligne vérifiée la repasse à vérifier (30 oct. 2026, Jules) : la valeur saisie
-      // et la note restent de côté. Sur une grille empilée (quittances, PV), toute pièce nouvelle ajoute à la ligne.
-      if (premiere) {
-        const gid = TYPE[type]?.grille;
-        for (const [crit, v] of Object.entries(valeurs)) {
-          if (!v?.valeur) continue;
-          const cle = `${gid}.${crit}`;
-          const h = etat.cases[cle];
-          if (!h || !['verifie', 'corrige'].includes(h.statut)) continue;
-          if (!EMPILEES.has(gid) && norm(h.valeur) === norm(v.valeur)) continue;
-          etat.cases[cle] = { note: h.note || null, source: h.source || null, valeur_main: h.statut === 'corrige' ? h.valeur : h.valeur_main || null, par: h.par, le: h.le, contredite_par: docId };
-        }
-      }
+      // Une ligne vérifiée ou corrigée à la main reste telle quelle (10 nov. 2026, Jules : « sans toucher aux autres
+      // lignes ») ; la pièce qui dit autre chose se signale dans la case (`relue`). Avant, elle la repassait à vérifier.
     });
     import('./projet.js').then((m) => m.projetSuitLeDossier(dealId, user)).catch(() => {});
     return { ok: true, valeurs };
@@ -584,8 +571,10 @@ function lireGrille(gid, brut, docs, ctx) {
         return v?.valeur ? { document_id: d.id, document_nom: d.nom, document_titre: d.titre, document_url: d.url, mime: d.mime, type: d.type, valeur: v.valeur, page: v.page, citation: v.citation, verifiee: v.verifiee ?? null, donnees: v.donnees || {} } : null;
       })
       .filter(Boolean);
-    // Par défaut, la pièce la plus récente (30 oct. 2026, Jules) : un avenant reçu après le bail donne le chiffre affiché.
-    const retenue = (humain?.source && sources.find((s) => s.document_id === humain.source)) || sources.at(-1) || null;
+    // Une pièce lue après coup ne change pas une ligne qu'une autre pièce remplit déjà (10 nov. 2026, Jules : « analyser
+    // ce document sans toucher aux autres lignes ») : elle remplit les lignes vides, et là où elle dit autre chose la
+    // case demande un choix. Avant, la plus récente l'emportait (30 oct.).
+    const retenue = (humain?.source && sources.find((s) => s.document_id === humain.source)) || sources[0] || null;
     const differentes = new Set(sources.map((s) => norm(s.valeur))).size > 1;
     let statut;
     let valeur = null;
@@ -598,7 +587,9 @@ function lireGrille(gid, brut, docs, ctx) {
     else if (pieces.every((d) => !d.extraction)) statut = 'non_lu';
     else statut = 'introuvable';
     // Une valeur vérifiée que la relecture contredit : on le dit, on ne la remplace pas.
-    const relue = humain?.statut === 'verifie' && retenue && humain.valeur && norm(retenue.valeur) !== norm(humain.valeur) ? retenue.valeur : null;
+    // Une ligne corrigée ou vérifiée à la main ne bouge pas ; une pièce qui dit autre chose se signale.
+    const autre = (EMPILEES.has(gid) ? [retenue].filter(Boolean) : sources).find((s) => humain?.valeur && norm(s.valeur) !== norm(humain.valeur));
+    const relue = ['verifie', 'corrige'].includes(humain?.statut) && autre ? autre.valeur : null;
     // La règle juge la valeur lue par l'IA. C'est la note de l'IA : ni le vert ni une valeur modifiée ne l'effacent,
     // seule la personne la retire dans la case Notes (30 oct. 2026, Jules).
     let alerte = null;

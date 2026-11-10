@@ -1,15 +1,17 @@
-/* eslint-disable no-restricted-syntax -- palette de données.
-   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
-   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
-   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { J } from "@/design/jetons";
 
-export default function SimDataTable({ calculs, anneeRevente, formatCurrency, dureeCredit }) {
+// Le tableau annuel détaillé au dessin des tableaux de l'application (10 nov. 2026, Jules : « redesign le tableau
+// annuel du bas ») : cadre `trait` à 12 px, en-tête de 35 px, lignes de 36 px en 13,5 px, plus de bandes colorées.
+// Une partie se déplie d'un clic, son total sur sa ligne ; l'année de revente se marque d'une colonne teintée ; le
+// capital remboursé et le cash-flow portent la pastille de leur couleur dans le graphique.
+const VIOLET_FONCE = `color-mix(in srgb, ${J.violet} 62%, black)`;
+const ACCENT = "rgb(var(--k-menthe-rgb))";
+
+export default function SimDataTable({ calculs, anneeRevente, formatCurrency }) {
   // An 1 jusqu'à cinq ans après la fin du crédit : 25 ans pour un prêt de 20.
   const rows = calculs.tableauAnnuel.slice(1, (calculs.horizonAffichage || 25) + 1);
-  const years = rows.map((r) => r.annee);
 
   const fmtCur = (v) => formatCurrency(v || 0);
   const fmtAbs = (v) => formatCurrency(Math.abs(v || 0));
@@ -18,11 +20,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
 
   const sections = [
     {
-      title: "LOYERS",
-      color: "#C6A45C",
-      colorBg: "rgba(198,164,92,0.07)",
-      colorBgHover: "rgba(198,164,92,0.12)",
-      headerBg: "#2b2415",
+      title: "Loyers",
       summaryKey: "loyersNets",
       rows: [
         { label: "Loyers bruts HT HC", get: (r) => fmtCur(r.loyerBrutAnnuel) },
@@ -30,32 +28,24 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
         { label: "Coût vacance", get: (r) => fmtAbs(r.coutVacance) },
         { label: "Charges copropriété", get: (r) => fmtAbs(r.chargesCopro) },
         { label: "Taxe foncière", get: (r) => fmtAbs(r.taxeFonciere) },
-        { label: "Loyers nets", get: (r) => fmtCur(r.loyersNets) },
+        { label: "Loyers nets", get: (r) => fmtCur(r.loyersNets), fort: true },
         { label: "Rendement locatif net", get: (r) => fmtPct(r.rendementLocatifNet) },
       ],
     },
     {
-      title: "CRÉDIT BANCAIRE",
-      color: "#7BA7C9",
-      colorBg: "rgba(123,167,201,0.07)",
-      colorBgHover: "rgba(123,167,201,0.12)",
-      headerBg: "#1c2b38",
+      title: "Crédit bancaire",
       summaryKey: "echeanceAnnuelle",
       rows: [
         { label: "Intérêts", get: (r) => fmtAbs(r.interetsAnnuels) },
-        { label: "Capital remboursé", get: (r) => fmtAbs(r.capitalRembourse) },
-        { label: "Échéance annuelle", get: (r) => fmtCur(r.echeanceAnnuelle) },
+        { label: "Capital remboursé", get: (r) => fmtAbs(r.capitalRembourse), pastille: VIOLET_FONCE },
+        { label: "Échéance annuelle", get: (r) => fmtCur(r.echeanceAnnuelle), fort: true },
         { label: "Capital restant dû", get: (r) => fmtCur(r.capitalRestantDu) },
         { label: "IRA", get: (r) => dashZero(r.ira) },
         { label: "Assurance crédit", get: (r) => fmtAbs(r.assuranceCredit) },
       ],
     },
     {
-      title: "CHARGES D'EXPLOITATION",
-      color: "#A594C9",
-      colorBg: "rgba(165,148,201,0.07)",
-      colorBgHover: "rgba(165,148,201,0.12)",
-      headerBg: "#262133",
+      title: "Charges d'exploitation",
       summaryFn: (r) => (r.gestionLocativeCost || 0) + (r.travauxBailleurCost || 0) + (r.comptabiliteCost || 0) + (r.assurancePNECost || 0) + (r.chargesDiversesCost || 0),
       rows: [
         { label: "Gestion locative", get: (r) => fmtAbs(r.gestionLocativeCost) },
@@ -67,24 +57,16 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
       ],
     },
     {
-      title: "FISCALITÉ",
-      color: "#C98F8F",
-      colorBg: "rgba(201,143,143,0.07)",
-      colorBgHover: "rgba(201,143,143,0.12)",
-      headerBg: "#33201f",
+      title: "Fiscalité",
       summaryKey: "impot",
       rows: [
         { label: "Amortissement", get: (r) => fmtAbs(r.amortissement) },
         { label: "Bénéfice imposable", get: (r) => fmtCur(r.beneficeImposable) },
-        { label: "Impôt IS", get: (r) => fmtAbs(r.impot) },
+        { label: "Impôt IS", get: (r) => fmtAbs(r.impot), fort: true },
       ],
     },
     {
       title: "TVA",
-      color: "#B8926A",
-      colorBg: "rgba(184,146,106,0.07)",
-      colorBgHover: "rgba(184,146,106,0.12)",
-      headerBg: "#2e2419",
       summaryKey: "tresorerieTVACashFlow",
       rows: [
         { label: "TVA collectée", get: (r) => dashZero(r.tvaCollectee, fmtCur) },
@@ -94,88 +76,85 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
       ],
     },
     {
-      title: "CASH-FLOW & PATRIMOINE",
-      color: "#6FBFA8",
-      colorBg: "rgba(111,191,168,0.07)",
-      colorBgHover: "rgba(111,191,168,0.12)",
-      headerBg: "#183029",
+      title: "Cash-flow et patrimoine",
       summaryKey: "cashFlowAnnuel",
       rows: [
-        { label: "Cash-flow / an", get: (r) => fmtCur(r.cashFlowAnnuel) },
+        { label: "Cash-flow / an", get: (r) => fmtCur(r.cashFlowAnnuel), pastille: ACCENT, fort: true },
         { label: "Cash-flow / mois", get: (r) => fmtCur(r.cashFlowMensuel) },
-        { label: "Capital remb. cumulé", get: (r) => fmtCur(r.capitalRembourseCumule) },
+        { label: "Capital remb. cumulé", get: (r) => fmtCur(r.capitalRembourseCumule), pastille: VIOLET_FONCE },
       ],
     },
   ];
 
-  const getSummary = (sec, r) => {
-    if (sec.summaryFn) return sec.summaryFn(r);
-    if (sec.summaryKey) return r[sec.summaryKey];
-    return null;
-  };
+  const getSummary = (sec, r) => (sec.summaryFn ? sec.summaryFn(r) : sec.summaryKey ? r[sec.summaryKey] : null);
 
-  const [openSections, setOpenSections] = useState(() =>
-    Object.fromEntries(sections.map((s) => [s.title, false]))
-  );
-  const toggle = (title) => setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }));
+  // Le cash-flow ouvert d'office : c'est la ligne qu'on vient lire.
+  const [ouvertes, setOuvertes] = useState(() => new Set(["Cash-flow et patrimoine"]));
+  const toutOuvert = ouvertes.size === sections.length;
+  const basculer = (t) => setOuvertes((s) => { const n = new Set(s); if (n.has(t)) n.delete(t); else n.add(t); return n; });
+
+  const negatif = (v) => typeof v === "string" && v.trim().startsWith("-");
+  const revente = (r) => anneeRevente && r.annee === Number(anneeRevente);
+  const colRevente = "bg-menthe/[0.06]";
+  const premiere = "sticky left-0 z-10 bg-rail border-r border-trait";
+  const Pastille = ({ c }) => <span className="inline-block h-2 w-2 flex-none rounded-full" style={{ background: c }} />;
 
   return (
-    <div className="border border-trait rounded-md overflow-hidden">
-      <div className="px-4 py-3 border-b border-trait">
-        <p className="text-encre text-sm font-medium">Tableau annuel détaillé</p>
+    <div className="overflow-hidden rounded-[12px] border border-trait bg-rail">
+      <div className="flex h-[35px] items-center justify-between gap-3 border-b border-trait px-4">
+        <p className="m-0 text-[12.5px] text-encre">Tableau annuel détaillé</p>
+        <button type="button" onClick={() => setOuvertes(toutOuvert ? new Set() : new Set(sections.map((s) => s.title)))}
+          className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+          {toutOuvert ? "Tout replier" : "Tout déplier"}
+        </button>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-[13.5px] [&_tbody_tr:last-child]:border-b-0">
           <thead>
-            <tr className="border-b border-trait">
-              <th className="sticky left-0 z-10 bg-surface px-3 py-2 text-left text-[11px] uppercase tracking-[0.14em] text-brume font-medium whitespace-nowrap">Ligne</th>
-              {years.map((y) => (
-                <th key={y} className="px-2 py-2 text-right text-[11px] uppercase tracking-[0.14em] text-brume font-medium whitespace-nowrap">An {y}</th>
+            <tr className="h-[35px] border-b border-trait">
+              <th className={`${premiere} px-4 text-left text-[12.5px] font-normal text-ardoise whitespace-nowrap`}>Ligne</th>
+              {rows.map((r) => (
+                <th key={r.annee} className={`px-3 text-right text-[12.5px] font-normal whitespace-nowrap ${revente(r) ? `${colRevente} text-encre` : "text-ardoise"}`}>
+                  An {r.annee}{revente(r) ? " · revente" : ""}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {sections.map((sec) => (
-              <React.Fragment key={sec.title}>
-                <tr
-                  className="cursor-pointer transition-colors"
-                  style={{ backgroundColor: sec.colorBg }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = sec.colorBgHover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = sec.colorBg)}
-                  onClick={() => toggle(sec.title)}
-                >
-                  <td
-                    className="sticky left-0 z-10 px-3 py-2 text-[11px] uppercase tracking-[0.18em] max-md:tracking-[0.08em] font-semibold border-b border-trait whitespace-nowrap max-md:whitespace-normal max-md:min-w-[124px] max-md:max-w-[140px]"
-                    style={{ backgroundColor: sec.headerBg, color: sec.color }}
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      <ChevronDown className={`w-3 h-3 transition-transform ${openSections[sec.title] ? "" : "-rotate-90"}`} />
-                      {sec.title}
-                    </span>
-                  </td>
-                  {rows.map((r) => {
-                    const sum = getSummary(sec, r);
-                    const val = sum != null ? fmtCur(sum) : "";
-                    const isNeg = typeof val === "string" && val.trim().startsWith("-");
-                    return (
-                      <td key={r.annee} className="px-2 py-2 text-right tabular-nums text-xs font-semibold whitespace-nowrap border-b border-trait" style={{ color: isNeg ? J["alerte"] : sec.color }}>{val}</td>
-                    );
-                  })}
-                </tr>
-                {openSections[sec.title] && sec.rows.map((row, ri) => (
-                  <tr key={row.label} className={`border-b border-encre/[0.03] last:border-0 hover:bg-encre/[0.04] transition-colors ${ri % 2 === 0 ? "bg-encre/[0.02]" : "bg-transparent"}`}>
-                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-ardoise whitespace-nowrap max-md:whitespace-normal max-md:min-w-[124px] max-md:max-w-[140px] ${ri % 2 === 0 ? "bg-relief" : "bg-surface"}`}>{row.label}</td>
+            {sections.map((sec) => {
+              const ouverte = ouvertes.has(sec.title);
+              return (
+                <React.Fragment key={sec.title}>
+                  <tr onClick={() => basculer(sec.title)} className="group h-9 cursor-pointer border-b border-trait hover:bg-encre/[0.03]">
+                    <td className={`${premiere} px-4 whitespace-nowrap max-md:min-w-[140px] max-md:whitespace-normal`}>
+                      <span className="inline-flex items-center gap-2 font-medium text-encre">
+                        <ChevronRight className={`h-3.5 w-3.5 flex-none text-ardoise transition-transform ${ouverte ? "rotate-90" : ""}`} />
+                        {sec.title}
+                      </span>
+                    </td>
                     {rows.map((r) => {
-                      const val = row.get(r);
-                      const isNeg = typeof val === "string" && val.trim().startsWith("-");
-                      return (
-                        <td key={r.annee} className={`px-2 py-1.5 text-right tabular-nums text-xs whitespace-nowrap ${isNeg ? "text-alerte" : "text-encre"}`}>{val}</td>
-                      );
+                      const sum = getSummary(sec, r);
+                      const v = sum != null ? fmtCur(sum) : "";
+                      return <td key={r.annee} className={`px-3 text-right font-medium tabular-nums whitespace-nowrap ${revente(r) ? colRevente : ""} ${negatif(v) ? "text-alerte" : "text-encre"}`}>{v}</td>;
                     })}
                   </tr>
-                ))}
-              </React.Fragment>
-            ))}
+                  {ouverte && sec.rows.map((row) => (
+                    <tr key={row.label} className="h-9 border-b border-trait hover:bg-encre/[0.03]">
+                      <td className={`${premiere} py-2 pl-[38px] pr-4 whitespace-nowrap max-md:min-w-[140px] max-md:whitespace-normal`}>
+                        <span className={`inline-flex items-center gap-2 ${row.fort ? "text-encre" : "text-ardoise"}`}>
+                          {row.label}
+                          {row.pastille && <Pastille c={row.pastille} />}
+                        </span>
+                      </td>
+                      {rows.map((r) => {
+                        const v = row.get(r);
+                        return <td key={r.annee} className={`px-3 text-right tabular-nums whitespace-nowrap ${revente(r) ? colRevente : ""} ${negatif(v) ? "text-alerte" : row.fort ? "text-encre" : "text-craie"}`}>{v}</td>;
+                      })}
+                    </tr>
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

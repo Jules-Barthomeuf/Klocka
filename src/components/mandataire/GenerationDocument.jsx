@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, FileText, Loader2, X } from "lucide-react";
+import { useNomAssistant } from "@/lib/nom-assistant";
 
 // La génération d'un document au premier message (mandat, avis de valeur) :
 // à droite du chat, les étapes se cochent une à une pendant quelques
@@ -108,7 +109,10 @@ function lignesPour(surtitre = "") {
  * les deux secondes. Calme : le titre dit qu'AK travaille, les diapositives
  * sur quoi, la ligne où il en est. Les animations sont en CSS (index.css).
  */
-export function MiseAJourDocument({ surtitre, titre = "L'Assistant KPartners lit votre demande", lignes = null }) {
+export function MiseAJourDocument({ surtitre, titre: titreDonne = null, lignes = null }) {
+  // Le titre par défaut nomme l'assistant de la vue : Klocka pour l'équipe, KPartners pour le mandataire (10 nov. 2026, Jules).
+  const nom = useNomAssistant();
+  const titre = titreDonne || `L'${nom} lit votre demande`;
   const etats = (lignes && lignes.length === 3 ? lignes : lignesPour(surtitre));
   const ligne = "h-[7px] rounded-full bg-bord-doux";
   return (

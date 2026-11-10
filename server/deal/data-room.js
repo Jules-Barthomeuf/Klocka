@@ -240,6 +240,21 @@ export function lancerAnalyse(dealId, { uploadDir, user } = {}) {
 }
 
 /**
+ * Analyser une seule pièce (10 nov. 2026, Jules : « on importe un fichier dans la data room, on peut analyser ce
+ * document sans toucher aux autres lignes ») : elle seule part à la lecture, sur la grille de sa zone. Ce qu'elle lit
+ * remplit les lignes vides ; une ligne déjà remplie ou décidée à la main ne change pas (lireGrille, analyse-pieces.js).
+ */
+export function analyserUnePiece(dealId, docId, { uploadDir, user, lire } = {}) {
+  const r = piecesRangees(dealId, user);
+  if (!r) return { ok: false, error: 'Dossier introuvable' };
+  const p = r.pieces.find((x) => x.id === docId);
+  if (!p) return { ok: false, error: 'Pièce introuvable' };
+  if (!grilleDe(TYPES.find((t) => t.id === p.zone)?.grille)) return { ok: false, error: `« ${p.zone_titre} » ne se lit pas : rangez la pièce dans l'emplacement de son type.` };
+  enfiler(dealId, docId, { uploadDir, user, ...(lire ? { lire } : {}) });
+  return { ok: true, onglet: ongletDuType(p.zone) };
+}
+
+/**
  * Le transfert d'un mail (2 nov. 2026, Jules : « l'IA va chercher ses documents, les met dans la Data Room, les range
  * dans le Drive et lance l'analyse ») : pour les pièces `ids` qui viennent d'arriver, les trois gestes de la Data Room
  * à la suite, sans relecture des noms (le transfert est la décision). Le Drive qui échoue n'empêche pas l'analyse.

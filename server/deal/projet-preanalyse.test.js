@@ -61,3 +61,23 @@ test("le type de bail de la Pré-analyse mène l'analyse du bail ; ce que les pi
   const seul = casesDuProjet({}, { lot: { bail_type: lu('Bail commercial 3/6/9') }, sansSources: true });
   assert.equal(seul.analyse.find((x) => x.id === 'type_bail').texte, 'Bail commercial 3/6/9');
 });
+
+test("un champ corrigé dans la Pré-analyse passe dans le projet, devant le projet ; le titre porte le nom du locataire", async () => {
+  const saisi = (valeur) => ({ absent: false, valeur, saisi_a_la_main: true });
+  dossier('PA5', { locataire_nom: lu('Artilect'), locataire_activite: lu('Coworking'), bail_echeance: lu('31/12/2030') });
+  const { project } = P.creerProjetDepuisDeal('PA5', 0, { email: 'nora@klocka.immo' });
+  Records.update('Project', project.id, { echeance_bail: '2029-06-30', titre: 'Murs commerciaux', champs_a_la_main: ['echeance_bail'] });
+  const deal = Records.findBy('Deal', 'deal_id', 'PA5');
+  Records.update('Deal', deal.id, { lots: [{ ...deal.lots[0], lot: { ...deal.lots[0].lot, locataire_nom: saisi('Le Fournil'), bail_echeance: saisi('30/09/2033') } }] });
+  await P.mettreAJourProjetDepuisDeal('PA5', null, { forcer: ['locataire_nom', 'bail_echeance'] });
+  const p = Records.get('Project', project.id);
+  assert.equal(p.nom_locataire, 'Le Fournil');
+  assert.equal(p.echeance_bail, '2033-09-30', "la Pré-analyse qu'on vient de changer passe devant le projet, en date lisible");
+  assert.equal(p.bail_date_echeance, '2033-09-30');
+  assert.equal(p.champs_a_la_main.includes('echeance_bail'), false);
+  assert.match(p.titre, /Le Fournil/);
+  // Un titre écrit à la main ne bouge plus.
+  Records.update('Project', project.id, { titre: 'Boulangerie du port', champs_a_la_main: ['titre'] });
+  await P.mettreAJourProjetDepuisDeal('PA5', null, { forcer: ['locataire_nom'] });
+  assert.equal(Records.get('Project', project.id).titre, 'Boulangerie du port');
+});

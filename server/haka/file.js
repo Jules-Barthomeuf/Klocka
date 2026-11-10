@@ -60,7 +60,9 @@ export async function proposer({ type, titre, resume = null, charge = {}, source
     // `question_haka` : la carte se montre, mais la cloche ne la redit pas sous « Notifications » : la question y est déjà,
     // dans « Ce qui t'attend » (22 oct. 2026). `question_cote` (9 nov. 2026) : pareil côté équipe, mais la cloche de la
     // vue mandataire, qui n'a pas « Ce qui t'attend », la montre sous ses notifications.
-    notifier({ pour: p.pour, titre: `Assistant KPartners : ${p.titre}`, texte: p.resume, lien: `/AValider?id=${p.id}`, action: 'Décider', genre: genre || (p.pour ? 'question_haka' : 'haka'), cle: `haka:${p.id}` });
+    // Le nom de l'assistant suit celui qui reçoit (10 nov. 2026, Jules) : KPartners pour un mandataire, Klocka pour l'équipe.
+    const role = p.pour ? Records.list('User').find((u) => norm(u.email) === p.pour)?.role : null;
+    notifier({ pour: p.pour, titre: `${role === 'mandataire' ? 'Assistant KPartners' : 'Assistant Klocka'} : ${p.titre}`, texte: p.resume, lien: `/AValider?id=${p.id}`, action: 'Décider', genre: genre || (p.pour ? 'question_haka' : 'haka'), cle: `haka:${p.id}` });
   } catch (e) {
     console.warn(`[haka] notification non posée : ${e?.message || e}`);
   }
@@ -129,7 +131,7 @@ export async function rejeter(id, user, motif) {
   if (!peutDecider(user, p)) return { ok: false, statut: 403, error: "Cette proposition n'est pas à vous." };
   if (p.etat !== 'proposee') return { ok: false, statut: 409, error: `Déjà décidée (${p.etat}).` };
   const m = String(motif || '').trim();
-  if (!m) return { ok: false, statut: 400, error: 'Dites pourquoi : le motif aide Assistant KPartners à faire mieux.' };
+  if (!m) return { ok: false, statut: 400, error: 'Dites pourquoi : le motif aide l\'Assistant Klocka à faire mieux.' };
   Records.update(ENTITE, p.id, { etat: 'rejetee', motif_rejet: m.slice(0, 500), decidee_par: norm(user.email), decidee_le: maintenant() });
   if (p.tache_id) { try { await taches.surRejet(p.tache_id, p, user); } catch (e) { console.warn(`[haka] surRejet : ${e?.message || e}`); } taches.annuler(p.tache_id, m); }
   if (p.dossier) {

@@ -129,6 +129,7 @@ export function renommerProjet(projetId, titre, user) {
   if (!p) return { ok: false, error: 'Projet introuvable.' };
   const t = String(titre || '').replace(/[\n\r]+/g, ' ').trim().slice(0, 120);
   if (!t) return { ok: false, error: 'Donne un titre.' };
-  Records.update('Project', p.id, { titre: t }, user?.email);
+  // Un titre donné à la main ne suit plus le nom du locataire (10 nov. 2026, projet.js).
+  Records.update('Project', p.id, { titre: t, champs_a_la_main: [...new Set([...(p.champs_a_la_main || []), 'titre'])] }, user?.email);
   return { ok: true, titre: t };
 }

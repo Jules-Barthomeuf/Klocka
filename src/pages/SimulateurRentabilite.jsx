@@ -499,17 +499,18 @@ export default function SimulateurRentabilite() {
       {/* Le cadre du simulateur d'un dossier (19 oct. 2026, Jules : « comme dans le simulateur dans le dossier ») : une carte
           sur le fond, le rail à gauche derrière un filet, les onglets soulignés, un seul fond pour les cartes du dedans. */}
       <div className={`mx-auto flex max-w-[1500px] flex-col px-5 pb-10 md:px-8 ${vueDe(user) === "mandataire" ? "pt-[22px]" : "pt-9 md:pt-12"} ${isEtape2 ? 'blur-md' : ''}`}>
-        {vueDe(user) === "mandataire" ? <TitrePage titre="Simulateur" className="mb-3.5" /> : <h1 className="k-entree m-0 mb-5 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Simulateur</h1>}
-        <div data-zone="listes" className={`k-entree k-points relative overflow-hidden border ${vueDe(user) === "mandataire" ? "rounded-[12px] [&_table_:is(th,td)]:border-r [&_table_:is(th,td)]:border-trait [&_table_tr>*:last-child]:border-r-0" : "rounded-[16px]"} border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail`} style={{ "--k-delai": ".08s" }}>
-        <div className="flex min-h-0">
-          {/* Left control rail */}
-          <aside className="k-glisse hidden w-[250px] flex-shrink-0 border-r border-trait md:block" style={{ "--k-delai": ".18s" }}>
+        {/* Le titre au milieu, balayé comme le titre de la page Assistant, deux fois plus lentement (10 nov. 2026, Jules :
+            « beaucoup trop rapide » sur un mot court) : 8 s de traversée, 12 s de pause. */}
+        <h1 className="k-balayage m-0 mb-6 text-center text-[34px] font-normal leading-[1.05] tracking-[-0.02em] max-md:mb-4 max-md:text-[26px]" style={{ animationDuration: "20s" }}>Simulateur</h1>
+        {/* Deux cartes posées sur le fond (10 nov. 2026, Jules, maquette) : les réglages à gauche, à la hauteur de leur
+            contenu, et le contenu à droite. */}
+        <div data-zone="listes" className={`k-entree k-points flex min-h-0 items-start gap-4 ${vueDe(user) === "mandataire" ? "[&_table_:is(th,td)]:border-r [&_table_:is(th,td)]:border-trait [&_table_tr>*:last-child]:border-r-0" : ""} [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail`} style={{ "--k-delai": ".08s" }}>
+          <aside className="k-glisse sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden rounded-[16px] border border-trait bg-rail md:block" style={{ "--k-delai": ".18s" }}>
             {rail}
           </aside>
           <SimReglagesMobile>{rail}</SimReglagesMobile>
 
-          {/* Main area */}
-          <main className="flex-1 w-0 min-w-0 overflow-hidden">
+          <main className="relative flex-1 w-0 min-w-0 overflow-hidden rounded-[16px] border border-trait bg-rail">
             {/* Tab bar + actions */}
             <div className="flex items-center justify-between gap-3 border-b border-trait px-3 h-10 sticky top-0 max-md:static z-10 max-md:h-auto max-md:py-1 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
               <div className="flex items-center gap-2 min-w-0">
@@ -595,7 +596,6 @@ export default function SimulateurRentabilite() {
               <p className="text-[11px] text-brume italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
             </div>
           </main>
-        </div>
         </div>
       </div>
     </div>

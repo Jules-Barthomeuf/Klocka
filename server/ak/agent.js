@@ -399,8 +399,8 @@ const OUTILS_AK = [
   },
   {
     name: 'ajouter_document',
-    description: "Dépose une pièce jointe (bail, PV d'AG, RCP, diagnostics, quittances…) sur un dossier existant : lecture, classement, synthèse des points à vérifier. Chercher le dossier d'abord.",
-    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' } }, required: ['deal_id', 'chemin'] },
+    description: "Dépose une pièce jointe (bail, PV d'AG, RCP, diagnostics, quittances…) dans la Data Room d'un dossier existant, à l'emplacement de son type, et lance sa lecture : elle remplit les lignes vides de son tableau, les autres ne bougent pas. Chercher le dossier d'abord.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, type: { type: 'string', enum: ['bail', 'avenants', 'quittances', 'pv_ag', 'rcp', 'diagnostics', 'taxe_fonciere', 'kbis', 'fiche', 'photos'], description: "l'emplacement, si tu sais ce qu'est la pièce (son contenu ou ce que dit le message) ; sinon il se déduit du nom" } }, required: ['deal_id', 'chemin'] },
   },
   {
     name: 'creer_client_monday',
@@ -453,15 +453,15 @@ const OUTILS_AK = [
   },
   {
     name: 'corriger_tableau',
-    description: "Corrige une case des tableaux d'analyse d'un dossier (Bail, Quittances, PV d'AG, RCP, Diagnostics), comme la correction à la main de l'écran : « sous Conditions financières : loyer de signature, mets 16 464 € », « le loyer n'est pas assujetti à TVA ». C'est la SEULE voie qui change ce que la ligne affiche : modifier_dossier change les chiffres de la fiche et du simulateur, pas ces tableaux. valeur vide : revenir à la valeur lue. Rend la ligne telle qu'elle s'affiche après : la dire, sans demander à la personne de vérifier.",
+    description: "Corrige une case des tableaux d'analyse d'un dossier (Bail, Quittances, PV d'AG, RCP, Diagnostics, Kbis, Taxe foncière), comme la correction à la main de l'écran : « sous Conditions financières : loyer de signature, mets 16 464 € », « le loyer n'est pas assujetti à TVA ». C'est la SEULE voie qui change ce que la ligne affiche : modifier_dossier change les chiffres de la fiche et du simulateur, pas ces tableaux. valeur vide : revenir à la valeur lue. Rend la ligne telle qu'elle s'affiche après : la dire, sans demander à la personne de vérifier.",
     input_schema: {
       type: 'object',
       properties: {
         deal_id: { type: 'string' },
-        tableau: { type: 'string', enum: ['bail', 'quittances', 'pv_ag', 'rcp', 'diagnostics'] },
+        tableau: { type: 'string', enum: ['bail', 'quittances', 'pv_ag', 'rcp', 'diagnostics', 'kbis', 'taxe_fonciere'] },
         ligne: { type: 'string', description: "l'id ou le libellé de la ligne, ex. « loyer_signature » ou « Conditions financières : loyer de signature », « tva »" },
         valeur: { type: 'string', description: "le texte à afficher, au format de la ligne : « 16 464 € / an », « NON »" },
-        statut: { type: 'string', enum: ['ok', 'a_verifier', 'no_go'], description: 'facultatif : le statut décidé' },
+        statut: { type: 'string', enum: ['ok'], description: "facultatif : « ok » seulement si la personne dit que c'est vérifié ; sinon la valeur est posée comme modifiée à la main" },
       },
       required: ['deal_id', 'tableau', 'ligne'],
     },
@@ -516,6 +516,11 @@ const OUTILS_AK = [
     name: 'ajouter_photos_projet',
     description: "« Mets cette photo sur le projet X », « ajoute ces photos au Devred » : les images jointes au message vont dans les images du projet (chercher_projet d'abord pour l'identifiant).",
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
+  },
+  {
+    name: 'chercher_photos_projet',
+    description: "« Va chercher des photos », « d'autres photos pour Toulouse » : cherche des photos et les ajoute aux images du projet, sans rien retirer. ville : des photos de la ville, libres de droits (Wikipédia) ; autres à vrai : les suivantes, différentes de celles déjà proposées. devanture : le bien vu de la rue (Street View, trois angles), seulement si on parle du bien, de la façade ou de la rue. Rend combien sont entrées : la personne retire celles qu'elle ne veut pas dans l'onglet Images du projet.",
+    input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, quoi: { type: 'string', enum: ['ville', 'devanture'] }, autres: { type: 'boolean', description: "vrai pour « d'autres photos »" } }, required: ['projet_id', 'quoi'] },
   },
   {
     name: 'outils_kdata',
@@ -686,7 +691,7 @@ const OUTILS_AK = [
   },
   {
     name: 'noter_appel',
-    description: "Ce qu'un agent a dit, raconté à l'Assistant KPartners : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et l'écran de l'appel s'ouvre sur les actions à cocher (fiche agent, Twenty CRM, relance, Intelligence) ; rien ne part sans validation. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; aucun : l'écran s'ouvre sur l'identification.",
+    description: "Ce qu'un agent a dit, raconté à l'Assistant Klocka : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et l'écran de l'appel s'ouvre sur les actions à cocher (fiche agent, Twenty CRM, relance, Intelligence) ; rien ne part sans validation. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; aucun : l'écran s'ouvre sur l'identification.",
     input_schema: {
       type: 'object',
       properties: {
@@ -889,17 +894,25 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   if (name === 'analyser_fiche' || name === 'ajouter_document') {
     const chemin = String(input.chemin || '');
     if (!chemin.startsWith(CHEMIN_UPLOADS) || !fs.existsSync(chemin)) return { ok: false, error: 'Pièce jointe introuvable : elle doit venir du message.' };
-    const fichier = { buffer: fs.readFileSync(chemin), filename: path.basename(chemin).replace(/^ak-\d+-/, ''), mimetype: /\.pdf$/i.test(chemin) ? 'application/pdf' : undefined, url: `/uploads/${path.basename(chemin)}` };
+    const fichier = { buffer: fs.readFileSync(chemin), filename: path.basename(chemin).replace(/^ak-\d+-/, ''), mimetype: /\.pdf$/i.test(chemin) ? 'application/pdf' : undefined, url: `/uploads/${path.relative(CHEMIN_UPLOADS, chemin).split(path.sep).join('/')}` };
     if (name === 'analyser_fiche') {
       const { analyserFiche } = await import('../deal/index.js');
       const d = await analyserFiche({ buffer: fichier.buffer, filename: fichier.filename, mimetype: fichier.mimetype, sourceUrl: fichier.url }, { user });
       const lot = d.lots?.[0];
       return { ok: true, cree: true, deal_id: d.deal_id, titre: nommer(d.deal_id) || lot?.synthese?.titre || fichier.filename, verdict: lot?.synthese?.verdict || null, agent: d.agent_fiche?.phrase || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
     }
-    const { deposerDocument } = await import('../deal/deposer-document.js');
-    const r = await deposerDocument(input.deal_id, fichier, { user });
-    if (!r.ok) return r;
-    return { ok: true, type: r.type || null, statut: r.deal?.statut || null, lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
+    // La pièce va dans la Data Room du dossier, à l'emplacement de son type, et elle seule se lit (10 nov. 2026, Jules :
+    // une pièce donnée dans le chat n'arrivait jamais dans les onglets Bail, Diagnostics…). Les autres lignes ne bougent pas.
+    const { ajouterDocument } = await import('../deal/espace.js');
+    const A = await import('../deal/analyse-pieces.js');
+    const doc = ajouterDocument(input.deal_id, { nom: fichier.filename, url: fichier.url, mime: fichier.mimetype || null, taille: fichier.buffer.length }, user);
+    if (!doc.ok) return doc;
+    const type = (input.type && A.typeExiste(input.deal_id, input.type) ? input.type : null) || A.suggestion(doc.document);
+    if (!type) return { ok: true, range: false, document: doc.document.nom, note: "La pièce est dans la Data Room, sans emplacement, donc pas lue : dis-le, et propose de la ranger dans l'emplacement de son type (Data Room), où un clic sur « Analyser » la lit.", lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
+    A.rangerPiece(input.deal_id, doc.document.id, type, user, { lire: false });
+    const lue = !!A.grilleDe(A.TYPES.find((t) => t.id === type)?.grille);
+    if (lue) A.enfiler(input.deal_id, doc.document.id, { uploadDir: CHEMIN_UPLOADS, user });
+    return { ok: true, range: type, lecture: lue ? 'lancée : les lignes vides de son tableau se remplissent dans une minute, les autres ne bougent pas' : 'cet emplacement ne se lit pas', onglet: A.ongletDuType(type), lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
   }
   if (name === 'boite_recue') { const mails = await boiteRecue(null, { limite: input.limite || 10, non_rattaches: !input.tous }); return { mails, nombre: mails.length, boite: COMPTE }; }
   if (name === 'lire_mail') return lireMail(input.id);
@@ -955,7 +968,7 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const r = await RP.raconter(input.recit, user);
     if (!r.ok) return r;
     if (id) { const i = await RP.identifier(r.rappel.id, { agent_id: id }, user); if (!i.ok) return i; }
-    return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que l'Assistant KPartners a compris et les actions à cocher (fiche agent, Twenty CRM, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
+    return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que l'Assistant Klocka a compris et les actions à cocher (fiche agent, Twenty CRM, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
   }
   if (name === 'ajouter_prospect') {
     const P = await import('../prospection/index.js');
@@ -1439,6 +1452,30 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const images = photosDuMessage(message);
     if (!images.length) return { ok: false, error: "Aucune photo dans le message : joins-la au même message que la demande." };
     return { ok: true, photos_ajoutees: ajouterPhotos(input.projet_id, images), lien: lien(`/Projet?id=${input.projet_id}`) };
+  }
+  if (name === 'chercher_photos_projet') {
+    // Des photos cherchées à la demande (10 nov. 2026, Jules : « va chercher d'autres photos pour Toulouse ») ; jamais
+    // d'office à la création du projet (décision du 19 oct.).
+    const projet = Records.get('Project', input.projet_id);
+    if (!projet) return { ok: false, error: 'Projet introuvable.' };
+    const adresse = String(projet.adresse_complete || projet.adresse || '').trim();
+    const ville = String(projet.ville || adresse.split(',').pop() || '').replace(/\b\d{5}\b/g, '').trim();
+    if (input.quoi === 'devanture') {
+      if (!adresse) return { ok: false, error: "Le projet n'a pas d'adresse : Street View ne sait pas où regarder." };
+      const { photosDuBien } = await import('../deal/photos-auto.js');
+      const r = await photosDuBien({ adresse, lat: projet.latitude ?? undefined, lon: projet.longitude ?? undefined }, CHEMIN_UPLOADS);
+      const rue = r.raisons.some((x) => /Street View/.test(x)) ? [] : r.photos.slice(0, 3);
+      if (!rue.length) return { ok: false, error: `Pas de vue de la rue : ${r.raisons.join(' ; ') || 'Street View ne répond pas'}.` };
+      return { ok: true, photos_ajoutees: ajouterPhotos(projet.id, rue), source: 'Street View', lien: lien(`/Projet?id=${projet.id}`) };
+    }
+    if (!ville) return { ok: false, error: "Le projet n'a pas de ville." };
+    const page = input.autres ? (Number(projet.photos_ville_page) || 0) + 1 : 0;
+    const { photosDeLaVille } = await import('../photo-commerce.js');
+    const photos = (await photosDeLaVille(ville, { n: 4, page })).map((p) => p.url).filter(Boolean);
+    Records.update('Project', projet.id, { photos_ville_page: page });
+    if (!photos.length) return { ok: false, error: `Aucune photo trouvée pour ${ville}.` };
+    const ajoutees = ajouterPhotos(projet.id, photos);
+    return { ok: true, ville, photos_ajoutees: ajoutees, deja_la: photos.length - ajoutees, source: 'Wikipédia (photos libres)', note: ajoutees ? null : "Toutes étaient déjà dans le projet : propose d'en chercher d'autres.", lien: lien(`/Projet?id=${projet.id}`) };
   }
   if (name === 'outils_kdata') return { outils: decrireOutilsKdata() };
   if (name === 'lancer_kdata') {

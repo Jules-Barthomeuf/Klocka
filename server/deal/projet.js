@@ -354,6 +354,15 @@ export async function completerAvantProjet(dealId, lotIndex = 0) {
  * Ce que le projet prend du lot : l'adresse, la commune, le bien, le bail, le simulateur, le marché. Commun à la
  * création du projet et à sa mise à jour depuis le dossier (30 oct. 2026, Jules).
  */
+/** Pure : « 31/12/2030 » ou « 2030-12-31 » en « 2030-12-31 » ; sinon null. */
+export function dateIsoDe(v) {
+  const t = String(v || '').trim();
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+}
+
 function donneesDuLot(lot) {
   const adresse = val(lot.lot.adresse) || {};
   const commune = lot.enrichissement?.commune;
@@ -384,7 +393,8 @@ function donneesDuLot(lot) {
     // « activité fausse depuis la préanalyse »), qui devinait parfois d'après le nom.
     activite_locataire: [val(lot.lot.locataire_activite), lot.enrichissement?.activite?.libelle].find((a) => a && !motVide(a)) || '',
     type_bail: val(lot.lot.bail_type) || '',
-    echeance_bail: val(lot.lot.bail_echeance) || '',
+    // En AAAA-MM-JJ, comme ce que l'écran du projet enregistre : « 31/12/2030 » ne s'y lisait pas (10 nov. 2026).
+    echeance_bail: dateIsoDe(val(lot.lot.bail_echeance)) || val(lot.lot.bail_echeance) || '',
     statut_bail: val(lot.lot.occupe) === false ? 'vacant' : 'en_cours',
     bien_champ1: val(lot.lot.type_actif) || 'Local commercial',
     bien_champ2: val(lot.lot.surface_m2) ? `${val(lot.lot.surface_m2)} m²` : '',
@@ -723,7 +733,21 @@ export function questionsDuProjet(projet, { aVerifier = [] } = {}) {
  * gardait ses chiffres de départ). Les chiffres du lot et les cases tranchées de l'Analyse remplacent ceux du projet ;
  * une valeur vide du dossier n'efface jamais celle du projet. Les photos, textes et réglages du projet ne bougent pas.
  */
-export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides = true } = {}) {
+// Ce qu'un champ de la Pré-analyse donne dans le projet : corrigé à la main dans la Pré-analyse, il l'emporte sur ce que
+// les pièces y ont lu (10 nov. 2026, Jules : « si on change un champ de la préanalyse, ça change le projet aussi »).
+const PREANALYSE_VERS_PROJET = {
+  locataire_nom: ['nom_locataire'],
+  locataire_activite: ['activite_locataire'],
+  bail_type: ['type_bail'],
+  bail_echeance: ['echeance_bail', 'bail_date_echeance'],
+  surface_m2: ['surface_m2', 'bien_champ2'],
+  loyer_annuel_ht_hc: ['loyer_annuel_ht', 'sim_loyer_initial_ht'],
+  prix_fai: ['prix_acquisition'],
+  adresse: ['adresse_complete'],
+  occupe: ['statut_bail'],
+};
+
+export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides = true, forcer = [] } = {}) {
   const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return { ok: false, error: 'Dossier introuvable' };
   const projet = deal.projet_id ? Records.get('Project', deal.projet_id) : null;
@@ -751,8 +775,34 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
   }
   const { patch: pieces } = patchDepuisExtractions(deal, { ...projet, ...patch });
   Object.assign(patch, pieces);
-  // Une case modifiée à la main dans le projet ne bouge plus (10 nov. 2026, Jules) : le dossier ne l'écrase jamais.
-  for (const k of projet.champs_a_la_main || []) delete patch[k];
+  // La Pré-analyse corrigée à la main passe devant les pièces ; un champ qu'on vient d'y changer passe aussi devant le
+  // projet, et le projet le reprend comme sien (10 nov. 2026, Jules).
+  const valeursPreanalyse = { ...champs, sim_loyer_initial_ht: champs.loyer_annuel_ht, bail_date_echeance: champs.echeance_bail };
+  const forces = new Set();
+  for (const [champLot, cles] of Object.entries(PREANALYSE_VERS_PROJET)) {
+    if (!lot.lot?.[champLot]?.saisi_a_la_main) continue;
+    for (const k of cles) {
+      if (!(k in valeursPreanalyse)) continue;
+      patch[k] = valeursPreanalyse[k];
+      if (forcer.includes(champLot)) forces.add(k);
+    }
+  }
+  if (patch.type_bail && lot.lot?.bail_type?.saisi_a_la_main) {
+    const lignes = (projet.bail_admin_fields || []).filter((l) => l.label !== 'Type de bail');
+    patch.bail_admin_fields = [{ label: 'Type de bail', value: patch.type_bail }, ...lignes];
+  }
+  // Une case modifiée à la main dans le projet ne bouge plus (10 nov. 2026, Jules) : le dossier ne l'écrase jamais, sauf
+  // le champ qu'on vient de corriger dans la Pré-analyse.
+  const aLaMain = (projet.champs_a_la_main || []).filter((k) => !forces.has(k));
+  for (const k of aLaMain) delete patch[k];
+  if (forces.size) patch.champs_a_la_main = aLaMain;
+  // Le titre porte le nom du locataire (10 nov. 2026, Jules) : il suit le nom et l'activité, sauf titre écrit à la main.
+  const nom = patch.nom_locataire ?? projet.nom_locataire;
+  const activite = patch.activite_locataire ?? projet.activite_locataire;
+  if (nom && !aLaMain.includes('titre') && (nom !== projet.nom_locataire || activite !== projet.activite_locataire || !String(projet.titre || '').includes(nomDuLocal(nom, null)))) {
+    const t = titreProjet(nom, patch.adresse_complete || projet.adresse_complete, activite);
+    if (titrePropre(t)) patch.titre = `${deal.test ? '[TEST] ' : ''}${t}`;
+  }
   // Une image déposée dans la Data Room s'ajoute aux photos du projet, une fois : retirée du projet, elle n'y revient pas.
   const vues = new Set(projet.photos_data_room || []);
   const nouvelles = photosDeLaDataRoom(deal).filter((p) => !vues.has(p.id));
@@ -769,10 +819,10 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
  * veux que ça mette à jour le projet aussi ») : à chaque pièce importée ou lue, et à chaque information du bien posée.
  * Sans projet, rien ; une erreur ne bloque jamais le geste qui l'a lancé.
  */
-export function projetSuitLeDossier(dealId, user = null) {
+export function projetSuitLeDossier(dealId, user = null, { forcer = [] } = {}) {
   const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal?.projet_id) return Promise.resolve(null);
-  return mettreAJourProjetDepuisDeal(dealId, user, { completerVides: true })
+  return mettreAJourProjetDepuisDeal(dealId, user, { completerVides: true, forcer })
     .catch((e) => { console.warn(`[projet] mise à jour depuis le dossier ${dealId} : ${e?.message || e}`); return null; });
 }
 

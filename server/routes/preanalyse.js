@@ -117,9 +117,17 @@ export function monterPreanalyse(app) {
   app.post('/api/preanalyse/dossiers/:dealId/verdict', wrap((req, res) => {
     const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+    const signe = { par: currentUser(req)?.email || null, le: new Date().toISOString() };
+    // Le texte sous le verdict, libre (10 nov. 2026, Jules) : il s'enregistre seul, sans toucher au choix.
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'texte')) {
+      const t = String(req.body.texte || '').trim().slice(0, 4000);
+      const verdict_texte = t ? { texte: t, ...signe } : null;
+      Records.update('Deal', brut.id, { verdict_texte });
+      return ok(res, { ok: true, verdict_texte });
+    }
     const valeur = req.body?.verdict ?? null;
     if (valeur !== null && !['GO', 'GO SOUS RÉSERVE', 'INSUFFISANT', 'NO-GO'].includes(valeur)) return res.status(400).json({ error: 'Verdict inconnu' });
-    const verdict_choisi = valeur ? { valeur, par: currentUser(req)?.email || null, le: new Date().toISOString() } : null;
+    const verdict_choisi = valeur ? { valeur, ...signe } : null;
     Records.update('Deal', brut.id, { verdict_choisi });
     ok(res, { ok: true, verdict_choisi });
   }));

@@ -157,6 +157,16 @@ export function Bloc({ id, titre, className = "", children }) {
   );
 }
 
+/** Pure : une date en AAAA-MM-JJ, depuis « 30/09/2033 », « 2033-09-30 » ou un horodatage ; sinon vide. */
+export function dateIso(v) {
+  const t = String(v || "").trim();
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return "";
+}
+
 export function ValeurEditable({ champ, children, type = "number", titre = null }) {
   const edition = React.useContext(EditionContext);
   const [ouvert, setOuvert] = useState(false);
@@ -194,7 +204,7 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
 
   const valider = () => {
     setOuvert(false);
-    edition.onChamp(champ, brouillon, true); // true : enregistrer
+    edition.onChamp(champ, type === "date" ? dateIso(brouillon) : brouillon, true); // true : enregistrer
   };
 
   // Le texte s'édite en entier, à sa place et sans cadre (10 nov. 2026, Jules : « on doit voir tout le texte sans bords
@@ -205,6 +215,15 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
       if (e.key === "Escape") setOuvert(false);
     };
     const classe = "m-0 -mx-0.5 rounded-[3px] border-0 bg-menthe/[0.18] px-0.5 py-0 text-encre outline-none text-inherit font-inherit [line-height:inherit] max-md:text-[16px]";
+    // Une date se choisit au calendrier (10 nov. 2026, Jules : « on doit pouvoir mettre l'échéance qu'on veut ») : tapée en
+    // texte, « 30/09/2033 » ne se lisait pas et la case retombait à « — ».
+    if (type === "date") {
+      return (
+        <input autoFocus type="date" value={dateIso(brouillon)} onChange={(e) => setBrouillon(e.target.value)}
+          onBlur={() => { if (dateIso(brouillon)) valider(); else setOuvert(false); }} onKeyDown={touches}
+          className={`${classe} [color-scheme:light_dark]`} />
+      );
+    }
     if (type === "number") {
       return (
         <input autoFocus type="text" inputMode="decimal" value={brouillon} size={Math.max(3, brouillon.length + 1)}

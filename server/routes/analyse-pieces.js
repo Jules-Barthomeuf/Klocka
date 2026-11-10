@@ -61,6 +61,14 @@ export function monterAnalysePieces(app) {
     ok(res, r);
   }));
 
+  // Analyser une seule pièce de la Data Room (10 nov. 2026, Jules) : les autres gardent leur analyse.
+  app.post(`${base}/documents/:docId/analyser`, wrap(async (req, res) => {
+    const { analyserUnePiece } = await import('../deal/data-room.js');
+    const r = analyserUnePiece(req.params.dealId, req.params.docId, { uploadDir: UPLOAD_DIR, user: currentUser(req) });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // Un type de document nommé par l'analyste (le « + » de la Data Room), et son retrait quand il est vide.
   app.post(`${base}/types`, wrap((req, res) => {
     const r = A.creerType(req.params.dealId, req.body?.titre, currentUser(req));

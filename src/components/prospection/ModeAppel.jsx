@@ -945,7 +945,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       const f = new FormData();
       f.append("audio", clip, "objection.wav");
       return base44.request("POST", `${API}/appels/${ap.id}/objection`, { body: f, isForm: true });
-    }).then((r) => { if (r?.objection && !r.deja) toast("Objection envoyée à l'équipe", { description: `« ${phrase.slice(0, 90)} » : quinze secondes à écouter sur la page Assistant KPartners.` }); }).catch(() => {});
+    }).then((r) => { if (r?.objection && !r.deja) toast("Objection envoyée à l'équipe", { description: `« ${phrase.slice(0, 90)} » : quinze secondes à écouter sur la page Assistant Klocka.` }); }).catch(() => {});
   };
   // La part de parole : l'audio entier part après coup, sans rien attendre ; jamais sur un appel simulé ni sans transcription gardée.
   const envoyerParole = (id) => {
@@ -1294,7 +1294,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {/* AK lit l'appel : sa chaîne de raisonnement, étape par étape, au moment où il la fait. */}
             {/* L'écran de raisonnement (9 oct. 2026) : le raisonnement seul, au milieu, sur le fond des listes ; pas de transcription. */}
             {ecran === "analyse" && a && !appel && (
-              <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant KPartners lit l'appel · ${a.nom}`} centre />
+              <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant Klocka lit l'appel · ${a.nom}`} centre />
             )}
 
             {/* Après l'appel (9 nov. 2026, Jules) : le vrai chat à gauche, les actions à droite ; il reste ouvert pendant que les actions se refont. */}
@@ -1303,7 +1303,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} edits={edits} setEdits={setEdits} voirTranscription={voirTranscription} enRelecture={ecran === "analyse"}
                 annonce={annonce} onRefaire={refaireActions} onLancer={() => setLancement((n) => n + 1)}
                 transcription={<div className="flex flex-col gap-4"><ChaineRepliee etapes={etapesFinies} /><PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} nu /></div>}>
-                {ecran === "analyse" ? <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant KPartners relit l'appel · ${a.nom}`} /> : (
+                {ecran === "analyse" ? <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant Klocka relit l'appel · ${a.nom}`} /> : (
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
                     edits={edits} setEdits={setEdits} lancement={lancement} onLancementRefuse={(contenu) => setAnnonce({ id: Date.now(), contenu })} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}

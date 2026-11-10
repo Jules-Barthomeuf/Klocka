@@ -25,6 +25,8 @@ export default function DepotsDossier({ dossier, apercu = false, onRefresh = nul
     queryKey: ["depots", dealId],
     queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/analyse-pieces/depots`),
     enabled: !!dealId && !apercu,
+    // Tant qu'une pièce se lit, la Data Room se met à jour seule.
+    refetchInterval: (q) => (q.state.data?.emplacements?.some((e) => e.documents.some((d) => ["en_attente", "en_cours"].includes(d.lecture))) ? 3000 : false),
   });
   const [enCours, setEnCours] = useState(null);
   const [aRetirer, setARetirer] = useState(null);
@@ -64,7 +66,8 @@ export default function DepotsDossier({ dossier, apercu = false, onRefresh = nul
           onDeposer={(fichiers) => fichiers.length && deposer.mutate({ type: e.id, fichiers })}
           onRetirer={setARetirer}
           onRetirerType={() => geste.mutate({ chemin: url(`types/${e.id}/retirer`), corps: {}, message: "Type retiré" })}
-          onContexte={(id, contexte) => geste.mutate({ chemin: url(`documents/${id}/contexte`), corps: { contexte } })} />
+          onContexte={(id, contexte) => geste.mutate({ chemin: url(`documents/${id}/contexte`), corps: { contexte } })}
+          onAnalyser={(d) => geste.mutate({ chemin: url(`documents/${d.id}/analyser`), corps: {}, message: "Lecture lancée : seules les lignes vides se remplissent" })} />
       ))}
       <NouveauType occupe={enCours === "nouveau"} onImporter={(titre, contexte, fichiers) => deposer.mutateAsync({ titre, contexte, fichiers })} />
       <AlertDialog open={!!aRetirer} onOpenChange={(o) => { if (!o) setARetirer(null); }}>
@@ -222,7 +225,19 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
 
 const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[12px] border p-4 text-left transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : plein ? "border-bord-doux bg-rail hover:border-bord-vif" : "border-bord bg-rail hover:border-bord-vif"}`;
 
-function Depot({ e, occupe, infos = null, onDeposer, onRetirer, onRetirerType, onContexte }) {
+// L'état de lecture d'une pièce, sous son nom, dans une zone qui se lit (10 nov. 2026, Jules : « analyser ce document
+// sans toucher aux autres lignes ») : « Analyser » lit cette pièce seule.
+function LecturePiece({ d, onAnalyser }) {
+  if (["en_attente", "en_cours"].includes(d.lecture)) return <span className="inline-flex items-center gap-1 text-[12px] text-ardoise"><Loader2 className="h-3 w-3 animate-spin" /> Lecture…</span>;
+  if (d.lecture === "fait") return <span className="inline-flex items-center gap-1 text-[12px] text-menthe"><Check className="h-3 w-3" /> Analysée</span>;
+  return (
+    <button type="button" onClick={(ev) => { arreter(ev); onAnalyser(d); }} className="text-[12px] text-menthe hover:underline" style={{ background: "transparent" }}>
+      {d.lecture === "erreur" ? "Lecture en échec · Réessayer" : "Analyser"}
+    </button>
+  );
+}
+
+function Depot({ e, occupe, infos = null, onDeposer, onRetirer, onRetirerType, onContexte, onAnalyser }) {
   const ref = useRef(null);
   const [survol, setSurvol] = useState(false);
   const n = e.documents.length;
@@ -254,6 +269,7 @@ function Depot({ e, occupe, infos = null, onDeposer, onRetirer, onRetirerType, o
                 <div className="flex items-center gap-2">
                   {/* Le même nom que le Drive et la colonne Source (29 oct. 2026, Jules) : le nom proposé, puis validé. */}
                   <span className="min-w-0 flex-1 truncate text-craie" title={d.nom_propose && d.nom_propose !== d.nom ? `Fichier importé : ${d.nom}` : d.nom}>{d.nom_propose || d.nom}</span>
+                  {e.lue && <LecturePiece d={d} onAnalyser={onAnalyser} />}
                   <span className="flex-none text-[12px] text-brume">{taille(d.taille)}</span>
                   <button type="button" onClick={(ev) => { arreter(ev); onRetirer(d); }} className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-encre group-hover:opacity-100 focus:opacity-100 max-md:opacity-100" style={{ background: "transparent" }} aria-label={`Retirer ${d.nom}`} title="Retirer"><X className="h-3 w-3" /></button>
                 </div>

@@ -6,7 +6,34 @@ import { FOND, MOT, Th, teinteDe, useFermerAuClicAilleurs } from "@/components/p
 import { Depliant } from "@/components/haka/ReglagesDemande";
 
 // Les colonnes et les traits du tableau de l'Analyse (AnalysePieces.jsx), sans la colonne Source : Critère, Valeur, Notes.
-const COLONNES_FICHE = "grid-cols-[150px_minmax(0,1fr)_160px]";
+// Critère et Notes se règlent à la souris, gardés sur le poste (10 nov. 2026, Jules) ; Notes plus large par défaut.
+const COLONNES_FICHE = "grid-cols-[var(--k-col-critere,170px)_minmax(0,1fr)_var(--k-col-notes,340px)]";
+const CLE_COLONNES = "klocka:colonnes-preanalyse";
+const COLONNES_DEFAUT = { critere: 170, notes: 340 };
+function lireColonnes() {
+  try { return { ...COLONNES_DEFAUT, ...JSON.parse(localStorage.getItem(CLE_COLONNES) || "{}") }; } catch { return COLONNES_DEFAUT; }
+}
+/** Les largeurs des colonnes, et la poignée qui les tire. */
+function useColonnes() {
+  const [l, setL] = useState(lireColonnes);
+  const tirer = (cle, sens) => (e) => {
+    e.preventDefault();
+    const x0 = e.clientX;
+    const depart = l[cle];
+    let fin = depart;
+    const bouger = (ev) => { fin = Math.min(700, Math.max(110, depart + sens * (ev.clientX - x0))); setL((v) => ({ ...v, [cle]: fin })); };
+    const lacher = () => {
+      window.removeEventListener("pointermove", bouger); window.removeEventListener("pointerup", lacher);
+      try { localStorage.setItem(CLE_COLONNES, JSON.stringify({ ...lireColonnes(), [cle]: fin })); } catch { /* sans mémoire */ }
+    };
+    window.addEventListener("pointermove", bouger); window.addEventListener("pointerup", lacher);
+  };
+  return { style: { "--k-col-critere": `${l.critere}px`, "--k-col-notes": `${l.notes}px` }, tirer };
+}
+const Poignee = ({ onPointerDown, cote }) => (
+  <span role="separator" aria-orientation="vertical" title="Tirer pour ajuster la colonne" onPointerDown={onPointerDown}
+    className={`absolute inset-y-0 ${cote}-0 z-10 w-2 cursor-col-resize ${cote === "right" ? "translate-x-1/2" : "-translate-x-1/2"} hover:bg-menthe/30`} />
+);
 const CELLULES_FICHE = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-trait lg:[&>*]:px-2.5";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -43,10 +70,11 @@ import { J } from "@/design/jetons";
 // Les clés sont les valeurs du moteur de règles (invariant serveur) ; seuls
 // les libellés affichés changent — un langage de comité, pas de jargon GO/NO-GO.
 export const VERDICTS = {
-  "GO": { libelle: "Conforme", classe: "bg-menthe/15 text-menthe-clair border-menthe/30", bord: "border-menthe/40" },
-  "GO SOUS RÉSERVE": { libelle: "Conforme sous réserve", classe: "bg-menthe/15 text-menthe border-menthe/30", bord: "border-menthe/30" },
-  "INSUFFISANT": { libelle: "Dossier incomplet", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30", bord: "border-sky-500/30" },
-  "NO-GO": { libelle: "Non conforme", classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
+  // Aux jetons (10 nov. 2026, Jules : « les couleurs ne vont pas en mode clair ») : les -300 de Tailwind se lisaient mal sur fond clair.
+  "GO": { libelle: "Conforme", classe: "bg-menthe/15 text-menthe border-menthe/40", bord: "border-menthe/40", statut: "menthe" },
+  "GO SOUS RÉSERVE": { libelle: "Conforme sous réserve", classe: "bg-ambre/15 text-ambre border-ambre/40", bord: "border-ambre/40", statut: "ambre" },
+  "INSUFFISANT": { libelle: "Dossier incomplet", classe: "bg-ardoise/15 text-craie border-ardoise/40", bord: "border-ardoise/40", statut: "gris" },
+  "NO-GO": { libelle: "Non conforme", classe: "bg-alerte/15 text-alerte border-alerte/40", bord: "border-alerte/40", statut: "corail" },
 };
 
 export const libelleVerdict = (v) => VERDICTS[v]?.libelle || v;
@@ -84,7 +112,6 @@ const LIGNES_BIEN = [
   { id: "emplacement", element: "Adresse et emplacement", champs: ["emplacement"] },
   // Ce que « Corriger la fiche » portait seul, désormais modifiable dans le tableau (18 oct. 2026, Jules) : sans critère, la ligne est une information.
   { id: "surface", element: "Surface", info: true },
-  { id: "type_actif", element: "Type d'actif", info: true },
   { id: "bail", element: "Bail", info: true },
 ];
 
@@ -290,7 +317,7 @@ function notesMarche(m, marche) {
   return notes;
 }
 
-function TableauBien({ lot, dealId = null, verdictChoisi = "", onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
+function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = "", onSaisieDirecte = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
   // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
   const { data: marche, isLoading: marcheEnLecture } = useQuery({
     queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2), texteBrut("adresse", lot.lot?.adresse)],
@@ -318,6 +345,9 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", onSaisie, enCours
   const signature = SIGNATURES[ctx.signature] || (ctx.signature ? String(ctx.signature).replace(/_/g, " ") : null);
 
   const champ = (c) => <ChampFiche champ={c} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
+  const [enDirect, setEnDirect] = useState(false);
+  const direct = onSaisieDirecte ? (saisie) => { setEnDirect(true); Promise.resolve(onSaisieDirecte(saisie)).finally(() => setEnDirect(false)); } : onSaisie;
+  const colonnes = useColonnes();
   const valeur = (id) => {
     switch (id) {
       case "prix":
@@ -356,9 +386,15 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", onSaisie, enCours
           </div>
         );
       case "occupe": return champ("occupe");
-      case "nom_locataire": return champ("locataire_nom");
-      case "activite": return champ("locataire_activite");
-      case "enseigne": return <span className={`text-[13.5px] ${signature ? "text-encre" : "text-brume"}`}>{signature || "À qualifier"}</span>;
+      // Le nom et l'activité s'enregistrent tout de suite (10 nov. 2026, Jules : « ne s'enregistrent pas » dans le brouillon).
+      case "nom_locataire": return <ChampFiche champ="locataire_nom" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
+      case "activite": return <ChampFiche champ="locataire_activite" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
+      // Qualité de l'enseigne écrite à la main (10 nov. 2026, Jules) ; sans saisie, la signature calculée s'y lit.
+      case "enseigne": {
+        const saisie = lot.lot?.qualite_enseigne;
+        const vu = saisie && !saisie.absent ? lot : { ...lot, lot: { ...lot.lot, qualite_enseigne: signature ? { valeur: signature, absent: false } : { absent: true } } };
+        return <ChampFiche champ="qualite_enseigne" lot={vu} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
+      }
       case "emplacement":
         // L'adresse sous l'emplacement (17 oct. 2026, Jules) : la changer déplace Street View et le plan, et l'emplacement repasse à vérifier.
         return (
@@ -368,7 +404,6 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", onSaisie, enCours
           </div>
         );
       case "surface": return champ("surface_m2");
-      case "type_actif": return champ("type_actif");
       case "bail":
         return (
           <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -433,9 +468,9 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", onSaisie, enCours
       <div className="flex flex-col items-center gap-1 px-2 pb-4 text-center lg:hidden">
         <p className="m-0 text-[14px] text-encre">{titre}</p>
       </div>
-      <div className="relative overflow-hidden lg:rounded-[12px] lg:border lg:border-trait lg:bg-rail">
+      <div className="relative overflow-hidden lg:rounded-[12px] lg:border lg:border-trait lg:bg-rail" style={colonnes.style}>
         <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-3 text-[12.5px] text-ardoise max-lg:hidden lg:border-t-0 lg:[&>*]:py-2`}>
-          <span className="text-[13.5px] text-encre">{titre}</span><span>Valeur</span><span>Notes</span>
+          <span className="relative text-[13.5px] text-encre">{titre}<Poignee cote="right" onPointerDown={colonnes.tirer("critere", 1)} /></span><span>Valeur</span><span className="relative">Notes<Poignee cote="left" onPointerDown={colonnes.tirer("notes", -1)} /></span>
         </div>
         <div className="k-cascade">
           {lignes.map(({ id, element, c, st, decision, marche: cleMarche }) => {
@@ -474,7 +509,7 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", onSaisie, enCours
               </React.Fragment>
             );
           })}
-          {dealId && <LigneVerdict dealId={dealId} initial={verdictChoisi} apercu={apercu} />}
+          {dealId && <LigneVerdict dealId={dealId} initial={verdictChoisi} texteInitial={verdictTexte} apercu={apercu} />}
         </div>
       </div>
     </section>
@@ -485,27 +520,37 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", onSaisie, enCours
  * Le verdict de l'équipe, en dernière ligne du tableau (10 nov. 2026, Jules : « une ligne avec les choix, en couleur ») :
  * les quatre choix côte à côte, le retenu dans sa couleur ; un second clic le retire.
  */
-function LigneVerdict({ dealId, initial = "", apercu = false }) {
+function LigneVerdict({ dealId, initial = "", texteInitial = "", apercu = false }) {
+  const queryClient = useQueryClient();
   const [choisi, setChoisi] = useState(initial || "");
   useEffect(() => { setChoisi(initial || ""); }, [initial]);
+  const envoyer = (corps) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/verdict`, { body: corps });
   const choisir = (v) => {
     const avant = choisi;
     const suivant = v === choisi ? "" : v;
     setChoisi(suivant);
-    base44.request("POST", `/api/preanalyse/dossiers/${dealId}/verdict`, { body: { verdict: suivant || null } })
+    envoyer({ verdict: suivant || null })
+      // La carte du dossier dans la liste porte le verdict choisi : elle se relit.
+      .then(() => queryClient.invalidateQueries({ queryKey: ["preanalyse-pipeline"] }))
       .catch((e) => { setChoisi(avant); toast.error(e?.message || "Verdict non enregistré"); });
   };
   return (
     <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-2.5 max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-[7px]`}>
       <span className="text-[13.5px] leading-[1.4] text-encre">Verdict</span>
-      <div role="group" aria-label="Verdict du dossier" className="col-span-2 flex flex-wrap gap-1.5 max-lg:col-span-1">
-        {Object.entries(VERDICTS).map(([cle, v]) => (
-          <button key={cle} type="button" disabled={apercu} aria-pressed={choisi === cle} onClick={() => choisir(cle)}
-            className={`rounded-full border px-3 py-0.5 text-[12.5px] transition-colors disabled:cursor-default ${choisi === cle ? v.classe : "border-trait text-ardoise hover:text-encre"}`}
-            style={choisi === cle ? undefined : { background: "transparent" }}>
-            {v.libelle}
-          </button>
-        ))}
+      <div className="col-span-2 min-w-0 max-lg:col-span-1">
+        <div role="group" aria-label="Verdict du dossier" className="flex flex-wrap gap-1.5">
+          {Object.entries(VERDICTS).map(([cle, v]) => (
+            <button key={cle} type="button" disabled={apercu} aria-pressed={choisi === cle} onClick={() => choisir(cle)}
+              className={`rounded-full border px-3 py-0.5 text-[12.5px] transition-colors disabled:cursor-default ${choisi === cle ? v.classe : "border-trait text-ardoise hover:text-encre"}`}
+              style={choisi === cle ? undefined : { background: "transparent" }}>
+              {v.libelle}
+            </button>
+          ))}
+        </div>
+        {/* Un texte libre sous le verdict (10 nov. 2026, Jules : « mettre du texte à notre convenance dessous »). */}
+        <TexteEnPlace valeur={texteInitial || ""} disabled={apercu} placeholder="+ Ajouter un commentaire sur le verdict"
+          onEnregistrer={(t) => envoyer({ texte: t }).catch((e) => toast.error(e?.message || "Texte non enregistré"))}
+          classeCase="mt-2" className="whitespace-pre-line text-[13.5px] leading-[1.5] text-craie placeholder:text-brume max-md:text-[16px]" />
       </div>
     </div>
   );
@@ -1180,6 +1225,10 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                 titre="Fiche du bien"
                 dealId={dossier?.deal_id || null}
                 verdictChoisi={dossier?.verdict_choisi?.valeur || ""}
+                verdictTexte={dossier?.verdict_texte?.texte || ""}
+                onSaisieDirecte={apercu || !dossier?.deal_id ? null : (saisie) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot.index ?? 0}`, { body: saisie })
+                  .then(() => { toast.success("Enregistré"); onRefresh?.(); })
+                  .catch((e) => toast.error(e?.message || "Non enregistré"))}
                 onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
                 enNote={noter.isPending ? noter.variables?.ligne : null}
               />

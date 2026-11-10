@@ -6,15 +6,15 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-7 personnes, 3 423 pages ouvertes, 0 demandes à l'assistant, 56 actions exécutées.
+7 personnes, 3 481 pages ouvertes, 0 demandes à l'assistant, 56 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 173 | 0 | 54 | 10/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 214 | 0 | 54 | 10/11/2026 |
+| admin.stress@test.local (équipe) | 138 | 0 | 0 | 10/11/2026 |
 | test.mandataire@kpartners.fr | 122 | 0 | 0 | 09/11/2026 |
-| admin.stress@test.local (équipe) | 115 | 0 | 0 | 10/11/2026 |
-| admin@klocka.local (équipe) | 8 | 0 | 0 | 26/10/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
+| admin@klocka.local (équipe) | 2 | 0 | 0 | 26/10/2026 |
 | sourcing@klocka.immo | 0 | 0 | 1 | — |
 | jules.b@klocka.immo (AK dans l'application) | 0 | 0 | 1 | — |
 
@@ -22,23 +22,23 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **MandataireBiens** — 1 010 (30 %)
-- **Analyse** — 412 (12 %)
+- **MandataireBiens** — 1 010 (29 %)
+- **Analyse** — 416 (12 %)
 - **Dashboard** — 336 (10 %)
 - **MandataireProspection** — 245 (7 %)
-- **CrmTwenty** — 212 (6 %)
-- **Personnalisation** — 162 (5 %)
+- **CrmTwenty** — 214 (6 %)
+- **Personnalisation** — 164 (5 %)
 - **Prospection** — 141 (4 %)
-- **AdminProjets** — 116 (3 %)
+- **AdminProjets** — 118 (3 %)
 - **Outils** — 71 (2 %)
 - **MandatsMandataires** — 66 (2 %)
 - **Cerveau** — 60 (2 %)
 - **AdminPresentations** — 60 (2 %)
-- Le reste, sous 1 % : AdminUtilisateurs, Monitoring, KVacance, MandataireClients, MandataireTableauDeBord, Offres, MesPresentations, SimulateurRentabilite, AdminClients, Home, SuiviAppels, KData, Emailing, MandataireDocuments, SuiviActivite, OffMarket, AdminModeles, Semaine, Agents, Relances, public, MandataireDossier, ProjetDetail, SuiviAudience, Tokimo, SimulateurPublic, AdminMandataires, Automatismes, AdminSuggestions, Validations, AdminAccesCrm, tokimo, MesProjets, AdminEquipe, MandataireProjets, KZoning, DepotVendeur, MandataireOffMarket, KExpertise, SuiviMandataires, AdminBanque, MandataireEstimation, SuiviReunion, CoutsIA, KTransactions, SignerBon, klocka.immo, MemoireKlocka, Feedback, NotreOffre, KProspective, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, SuiviTesteur, AdminValidations, FichesCommerciales
+- Le reste, sous 1 % : KVacance, AdminUtilisateurs, Monitoring, KData, MandataireClients, MandataireTableauDeBord, SimulateurRentabilite, Offres, MesPresentations, Home, AdminClients, SuiviAppels, Emailing, MandataireDocuments, AdminModeles, SuiviActivite, Semaine, KTransactions, Agents, Relances, public, KZoning, MandataireDossier, ProjetDetail, KProspective, SuiviAudience, Tokimo, KExpertise, KEstimation, KFoncier, SimulateurPublic, AdminMandataires, Automatismes, AdminSuggestions, Validations, OffMarket, AdminAccesCrm, tokimo, MesProjets, MandataireProjets, ValeurLocative, DepotVendeur, MandataireOffMarket, SuiviMandataires, AdminEquipe, AdminBanque, MandataireEstimation, SuiviReunion, CoutsIA, SignerBon, klocka.immo, MemoireKlocka, Feedback, NotreOffre, SuiviChat, Ressources, Haka, SuiviHaka, SuiviTesteur, AdminValidations, FichesCommerciales
 
 ## Ce que l'IA coûte
 
-32,89 € sur la période, 1 308 appels, 6 186 k jetons. 17 % part en tâche de fond, sans que personne clique. 71 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+32,88 € sur la période, 1 307 appels, 6 186 k jetons. 17 % part en tâche de fond, sans que personne clique. 71 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -63,7 +63,7 @@ Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /a
 
 Ce qui attend une décision de Jules. Ne les reproposez pas comme des idées neuves : ils sont mesurés, ils attendent un arbitrage.
 
-- **Postgres et un worker séparé pour l'Assistant KPartners** (une décision) — la veille et les tâches de l'Assistant KPartners hors du processus web. Un seul processus Render porte le web, la veille et les tâches de l'Assistant KPartners ; chaque push le redémarre une minute (le disque /var/data est attaché à ce seul service). Le jour où le volume l'exige : Postgres et un worker à part, la file « À valider » reste la même. `Quand haka_taches dépasse ~200 tâches par jour, ou qu'un redémarrage interrompt des pas externes chaque semaine`
+- **Postgres et un worker séparé pour l'Assistant Klocka** (une décision) — la veille et les tâches de l'Assistant Klocka hors du processus web. Un seul processus Render porte le web, la veille et les tâches de l'Assistant Klocka ; chaque push le redémarre une minute (le disque /var/data est attaché à ce seul service). Le jour où le volume l'exige : Postgres et un worker à part, la file « À valider » reste la même. `Quand haka_taches dépasse ~200 tâches par jour, ou qu'un redémarrage interrompt des pas externes chaque semaine`
 - **Le traitement différé** (une décision) — moitié prix sur tout. L'API propose un mode différé à moitié prix, cache compris. La contrepartie est un délai qui peut aller jusqu'à vingt-quatre heures au lieu d'une minute. La lecture des pièces tourne déjà en tâche de fond et vous prévient quand elle est finie : c'est le profil qui s'y prête. Le choix vous revient, il change un délai. `Concerne la lecture des pièces et la veille, jamais le chat`
 
 Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf plutôt que ses images · ne pas relire une pièce inchangée · le prix annoncé avant de relire · un mail écarté n'est plus rejugé · la veille toutes les quinze minutes · des réponses courtes, une réflexion moyenne · sonnet partout, le chat compris.
@@ -81,7 +81,7 @@ Pour qui : Jules 55 · Sourcing 1.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **MandataireBiens** : 30 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **MandataireBiens** : 29 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « demander quelque chose à l'assistant (mandataire) » à 0,03 € par demande : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
 - 17 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

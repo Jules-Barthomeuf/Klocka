@@ -6,14 +6,17 @@ import { Depliant } from "@/components/haka/ReglagesDemande";
 import { AnimatePresence, motion } from "framer-motion";
 import SimSlider from "./SimSlider";
 
+// Les sections du rail en lignes, au nom en minuscules et au « + » (10 nov. 2026, Jules, maquette du simulateur).
+const NOM_SECTION = { ACQUISITION: "Acquisition", LOCATION: "Location", FINANCEMENT: "Financement", "FRAIS & CHARGES": "Frais et charges", REVENTE: "Revente" };
 function SectionHeader({ title, open, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ardoise font-medium pt-3 pb-1 max-md:pt-4 max-md:pb-2 hover:text-craie transition-colors"
+      className="-mx-3 flex w-[calc(100%+1.5rem)] items-center justify-between border-t border-trait px-3 py-2.5 text-[13.5px] text-craie transition-colors hover:text-encre max-md:py-3.5"
+      style={{ background: "transparent" }}
     >
-      <span>{title}</span>
-      <ChevronDown className={`w-3 h-3 transition-transform ${open ? "" : "-rotate-90"}`} />
+      <span>{NOM_SECTION[title] || title}</span>
+      <span className="text-[15px] leading-none text-ardoise" aria-hidden="true">{open ? "−" : "+"}</span>
     </button>
   );
 }
@@ -112,21 +115,12 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
   ];
 
   return (
-    <div className="flex flex-col h-full bg-surface border-r border-trait">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 h-11 border-b border-trait flex-shrink-0">
-        <div className="w-5 h-5 rounded bg-menthe/15 flex items-center justify-center">
-          <div className="w-2 h-2 rounded-sm bg-menthe" />
-        </div>
-        <span className="text-encre text-sm font-medium">{titre}</span>
-      </div>
-
+    <div className="flex flex-col h-full">
       {/* Scenario select */}
       {afficherScenario ? (
-      <div className="px-3 pt-3 pb-2 border-b border-trait">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-brume font-medium mb-1.5">Projet</p>
+      <div className="px-3 pt-3 pb-3 border-b border-trait">
         <Select value={selectedProjectId || "default"} onValueChange={onSelectProject}>
-          <SelectTrigger className="bg-fond text-encre border-trait h-8 text-xs rounded-md">
+          <SelectTrigger aria-label="Projet" className="bg-fond text-encre border-trait h-9 text-[13px] rounded-[10px]">
             <SelectValue placeholder="Mode par défaut" />
           </SelectTrigger>
           <SelectContent className="bg-fond text-encre border-encre/[0.1]">
@@ -136,9 +130,6 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
             ))}
           </SelectContent>
         </Select>
-        {calculs && (
-          <p className="text-[11px] text-brume mt-1.5 tabular-nums">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
-        )}
       </div>
       ) : (
         calculs && (
@@ -152,8 +143,8 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
       {/* Sliders */}
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         {/* Champs principaux - non repliable */}
-        <div className="mt-3 rounded-lg border border-menthe/40 bg-menthe/[0.06] p-2.5">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-menthe font-semibold pb-1">Champs principaux</p>
+        <div className="mt-3 rounded-[10px] border border-menthe/40 bg-menthe/[0.06] p-2.5">
+          <p className="text-[13.5px] text-menthe font-medium pb-1">Champs principaux</p>
           {horsCredit(acquisitionMainItems).map((it) => (
             <SimSlider
               key={it.key}
@@ -180,8 +171,8 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <div className="mt-3 rounded-lg border border-menthe/40 bg-menthe/[0.06] p-2.5">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-menthe font-semibold pb-1">Champs revente</p>
+              <div className="mt-3 rounded-[10px] border border-menthe/40 bg-menthe/[0.06] p-2.5">
+                <p className="text-[13.5px] text-menthe font-medium pb-1">Champs revente</p>
                 {reventeMainItems.map((it) => (
                   <SimSlider
                     key={it.key}

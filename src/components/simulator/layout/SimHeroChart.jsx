@@ -8,8 +8,8 @@ import { J } from "@/design/jetons";
 
 // Les courbes du simulateur à la couleur système, l'accent du compte, comme ses curseurs (10 nov. 2026, Jules).
 const ACCENT = "rgb(var(--k-menthe-rgb))";
-// Les bâtons aussi : capital en accent clair, cash-flow en plein.
-const ACCENT_CLAIR = "rgb(var(--k-menthe-rgb) / 0.4)";
+// Les bâtons : capital remboursé en violet foncé (le jeton violet assombri), cash-flow à l'accent (10 nov. 2026, Jules).
+const ACCENT_CLAIR = `color-mix(in srgb, ${J.violet} 62%, black)`;
 
 const fmtK = (v) => `${Math.round(v / 1000)}`;
 
@@ -99,7 +99,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
     return (
       <div style={{ ...tooltipStyle, padding: "10px 12px", maxWidth: 260 }}>
         <p className="text-encre text-xs font-medium mb-1">Année {label}</p>
-        <p className="text-menthe/70 text-[11px]">Capital remboursé : {formatCurrency(capital)}</p>
+        <p className="text-[11px]" style={{ color: ACCENT_CLAIR }}>Capital remboursé : {formatCurrency(capital)}</p>
         <p className="text-menthe text-[11px] mb-2">Cash-flow annuel : {formatCurrency(cashflow)}</p>
         <p className="text-ardoise text-[11px] leading-snug border-t border-encre/10 pt-2">
           La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.

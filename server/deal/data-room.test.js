@@ -302,7 +302,7 @@ test("passer une ligne en vert ou modifier sa valeur ne retire pas l'alerte de l
   assert.deepEqual(ligne().alerte, avant);
 });
 
-test("une pièce reçue après coup : l'onglet de la pièce, la plus récente retenue, une ligne verte contredite à revérifier", async () => {
+test("une pièce reçue après coup : l'onglet de la pièce ; une ligne verte qu'elle contredit ne bouge pas, la différence se dit", async () => {
   dossier('DR17', [{ id: 'b', nom: 'bail.pdf' }, { id: 'av', nom: 'avenant.pdf' }]);
   A.rangerPiece('DR17', 'b', 'bail', null, { lire: false });
   await A.lirePiece('DR17', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { depot: { valeur: '3 000 €' } } }) });
@@ -313,9 +313,49 @@ test("une pièce reçue après coup : l'onglet de la pièce, la plus récente re
   const r = D.lancerAnalyse('DR17', { uploadDir });
   assert.equal(r.onglet, 'bail');
   await A.lirePiece('DR17', 'av', { uploadDir, lire: async () => JSON.stringify({ criteres: { depot: { valeur: '4 500 €' } } }) });
-  assert.equal(ligne().statut, 'ia', 'la ligne verte contredite revient à vérifier');
-  assert.equal(ligne().valeur, '4 500 €', "l'avenant, plus récent, est retenu");
+  assert.equal(ligne().statut, 'verifie', 'la ligne verte reste verte (10 nov. 2026)');
+  assert.equal(ligne().valeur, '3 000 €');
+  assert.equal(ligne().relue, '4 500 €', "l'avenant qui dit autre chose se signale");
   assert.equal(A.ongletDuType('pv_ag'), 'copropriete');
+});
+
+test("analyser une seule pièce : elle remplit les lignes vides, les lignes déjà remplies ou corrigées ne bougent pas", async () => {
+  dossier('DR30', [{ id: 'amiante', nom: 'Diagnostic amiante.pdf' }, { id: 'dpe', nom: 'DPE.pdf' }, { id: 'f', nom: 'Fiche.pdf' }]);
+  A.rangerPiece('DR30', 'amiante', 'diagnostics', null, { lire: false });
+  await A.lirePiece('DR30', 'amiante', { uploadDir, lire: async () => JSON.stringify({ criteres: { amiante: { valeur: 'Absence' }, plomb: { valeur: 'NON' } } }) });
+  A.deciderCase('DR30', 'diagnostics', 'plomb', { action: 'corriger', valeur: 'NON (rapport 2019)' }, null);
+  A.rangerPiece('DR30', 'dpe', 'diagnostics', null, { lire: false });
+  A.rangerPiece('DR30', 'f', 'fiche', null, { lire: false });
+  assert.equal(D.analyserUnePiece('DR30', 'f', { uploadDir }).ok, false, 'la fiche ne se lit pas');
+  const lues = [];
+  const lire = async ({ nom }) => { lues.push(nom); return JSON.stringify({ criteres: { dpe: { valeur: 'D' }, amiante: { valeur: 'Présence en toiture' }, plomb: { valeur: 'OUI' } } }); };
+  const r = D.analyserUnePiece('DR30', 'dpe', { uploadDir, lire });
+  assert.equal(r.ok, true);
+  assert.equal(r.onglet, 'diagnostics');
+  const etat = () => Records.findBy('Deal', 'deal_id', 'DR30').analyse_pieces.docs;
+  for (let i = 0; i < 100 && etat().dpe.extraction?.statut !== 'fait'; i += 1) await new Promise((ok) => setTimeout(ok, 10));
+  assert.deepEqual(lues, ['DPE.pdf'], "seule cette pièce est lue");
+  assert.equal(etat().amiante.extraction.statut, 'fait');
+  const lignes = A.lireAnalyse('DR30').grilles.find((g) => g.id === 'diagnostics').lignes;
+  const l = (id) => lignes.find((x) => x.id === id);
+  assert.equal(l('dpe').valeur, 'D', 'la ligne vide se remplit');
+  assert.equal(l('amiante').valeur, 'Absence', 'la ligne déjà remplie ne bouge pas');
+  assert.equal(l('amiante').a_choisir, true, 'la différence demande un choix');
+  assert.equal(l('plomb').valeur, 'NON (rapport 2019)', 'la ligne corrigée à la main ne bouge pas');
+  assert.equal(l('plomb').statut, 'corrige');
+});
+
+test("l'assistant corrige une case : elle s'écrit dans le tableau affiché (corriger_tableau)", async () => {
+  dossier('DR31', [{ id: 'dpe', nom: 'DPE.pdf' }]);
+  const { corrigerCase } = await import('./grilles.js');
+  const r = await corrigerCase({ deal_id: 'DR31', tableau: 'diagnostics', ligne: 'DPE', valeur: '62 kWhEP/m².an, 1 kg éqCO2/m².an' }, { user: { email: 'jules@klocka.immo' } });
+  assert.equal(r.ok, true);
+  assert.equal(r.affiche.valeur, '62 kWhEP/m².an, 1 kg éqCO2/m².an');
+  const ligne = A.lireAnalyse('DR31').grilles.find((g) => g.id === 'diagnostics').lignes.find((x) => x.id === 'dpe');
+  assert.equal(ligne.valeur, '62 kWhEP/m².an, 1 kg éqCO2/m².an');
+  assert.equal(ligne.statut, 'corrige');
+  assert.equal((await corrigerCase({ deal_id: 'DR31', tableau: 'kbis', ligne: 'Dirigeant', valeur: 'M. Durand, gérant' })).ok, true, 'Kbis aussi');
+  assert.equal((await corrigerCase({ deal_id: 'DR31', tableau: 'diagnostics', ligne: 'dpe', valeur: '' })).note, 'La ligne revient à la valeur lue dans les pièces.');
 });
 
 test("rentrer le projet après l'Analyse : le Kbis nomme le local dans le titre, les pièces remplissent, le reste devient des questions", async () => {

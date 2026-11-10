@@ -6,7 +6,7 @@ import ChiffreDoux from "@/components/ui/ChiffreDoux";
 function Kpi({ label, valeur, format, accent = "text-encre" }) {
   return (
     <div className="px-4 py-3 min-w-0 border-trait transition-colors duration-300 hover:bg-encre/[0.03]">
-      <p className="text-[11px] uppercase tracking-[0.12em] font-medium leading-snug text-ardoise">{label}</p>
+      <p className="text-[12.5px] leading-snug text-ardoise">{label}</p>
       <p className={`text-lg font-medium tabular-nums mt-1 ${accent} whitespace-nowrap`}><ChiffreDoux valeur={valeur} format={format} /></p>
     </div>);
 

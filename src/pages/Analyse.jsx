@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
+import { VERDICTS } from "@/components/preanalyse/DealResultat";
 import { PoigneeEditeur, useLargeurChat } from "@/components/editeur/Editeur";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { Conversation, Resume } from "@/components/conversations/EspaceConversations";
@@ -166,6 +167,8 @@ export default function Analyse() {
   const recharger = () => {
     if (dealId) ouvrirDossier.mutate(dealId);
     rafraichirListes();
+    // Les tableaux et la Data Room aussi (10 nov. 2026, Jules) : une case écrite par le chat restait cachée derrière le cache.
+    if (dealId) for (const k of ["analyse-pieces", "depots", "bien-analyse", "versions-dossier"]) queryClient.invalidateQueries({ queryKey: [k, dealId] });
   };
 
   // Le brouillon de la fiche (19 oct. 2026, Jules) : chaque champ modifié s'y ajoute et s'affiche tout de suite ;
@@ -196,7 +199,7 @@ export default function Analyse() {
         return { ...d, lots, ...(r?.nom ? { nom: r.nom, titre: r.nom } : {}) };
       });
       const relance = r?.lot?.marche_relance && Date.now() - Date.parse(r.lot.marche_relance.le) < 60000;
-      toast.success(`Verdict recalculé : ${r?.lot?.evaluation?.verdict || "—"}`, { id: "recalcul", description: relance ? "Nouvelle adresse : la lecture de marché (valeur locative, loyers, ventes…) se refait, quelques minutes." : undefined });
+      toast.success("Préanalyse recalculée", { id: "recalcul", description: relance ? "Nouvelle adresse : la lecture de marché (valeur locative, loyers, ventes…) se refait, quelques minutes." : undefined });
     },
     onError: (e) => toast.error(e?.message || "Recalcul impossible", { id: "recalcul", description: undefined }),
   });
@@ -513,7 +516,7 @@ export default function Analyse() {
               {analyserFiche.isPending ? (
                 <p key="analyse" className="k-entree m-0 inline-flex flex-1 items-center gap-2.5 text-[13px]" role="status">
                   <PenseeIA etat="working" taille={22} />
-                  <span className="k-scintille">L'Assistant KPartners analyse la fiche…</span>
+                  <span className="k-scintille">L'Assistant Klocka analyse la fiche…</span>
                 </p>
               ) : (
                 <p key="repos" className="k-entree m-0 flex-1 text-[13px] text-ardoise">Glisse une fiche n'importe où pour l'ajouter.</p>
@@ -631,17 +634,16 @@ export default function Analyse() {
 }
 
 /** La carte compacte d'un dossier dans les blocs de la liste : nom, étape de la frise, qui, ce qui attend. */
-const motVerdict = (v) => { const t = String(v).toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); };
-const couleurVerdict = (v) => (/no.?go|insuffisant/i.test(v) ? "corail" : /r[ée]serve/i.test(v) ? "ambre" : /^go/i.test(v) ? "menthe" : "gris");
 
 function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
   const n = etapeFrise(d);
-  const verdict = d.lots?.[0]?.verdict;
+  // Le verdict choisi par l'équipe, seul (10 nov. 2026, Jules : « je ne veux plus voir insuffisant ») ; sans choix, rien.
+  const verdict = d.verdict_choisi ? VERDICTS[d.verdict_choisi] : null;
   return (
     <article className="relative cursor-pointer rounded-[12px] border border-trait k-carte-rail px-3.5 py-2.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
       <div className="flex min-w-0 items-center justify-between gap-2.5">
         <p className="m-0 flex min-w-0 items-center gap-2 text-[14.5px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
-        {ecarte ? <Statut couleur="corail" className="flex-none">{d.statut === "abandonne" ? "Abandonné" : "No-go"}</Statut> : verdict && <Statut couleur={couleurVerdict(verdict)} className="flex-none">{motVerdict(verdict)}</Statut>}
+        {ecarte ? <Statut couleur="corail" className="flex-none">{d.statut === "abandonne" ? "Abandonné" : "Écarté"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none">{verdict.libelle}</Statut>}
       </div>
       <p className="m-0 mt-0.5 flex min-w-0 items-center gap-x-1.5 text-[13px] text-ardoise">
         {!ecarte && <span className="flex-none">{FRISE[n - 1].label} ·</span>}

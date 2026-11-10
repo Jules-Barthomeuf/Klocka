@@ -21,8 +21,8 @@ import { useUser } from "@/components/providers/UserProvider";
 // Le tableau de bord (la carte des clients de Twenty) et les fiches de Klocka d'un agent ou d'un client (6 nov. 2026).
 const CarteClientsTwenty = lazy(() => import("@/components/crm/CarteClientsTwenty"));
 const TiroirAgent = lazy(() => import("@/pages/Agents").then((m) => ({ default: m.TiroirAgent })));
-// Inviter, en haut à droite d'Utilisateurs, comme sur l'ancienne page (10 nov. 2026, Jules).
-const InviterClient = lazy(() => import("@/components/admin/InviterClient"));
+// Inviter et Familles, en haut à droite d'Utilisateurs et de Clients, comme sur l'ancienne page (10 nov. 2026, Jules).
+const ActionsComptes = lazy(() => import("@/components/crm/ActionsComptes"));
 const FicheClient = lazy(() => import("@/pages/AdminClients").then((m) => ({ default: m.FicheClient })));
 const AppelClient = lazy(() => import("@/components/clients/AppelClient"));
 // Les tableaux de Twenty dont une ligne ouvre la fiche de Klocka (Relations), quand elle en a une.
@@ -1301,13 +1301,8 @@ export default function CrmTwenty() {
                 <h1 className="m-0 truncate text-[25px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">{objet.nom}</h1>
                 {total != null && <span className="text-[13px] tabular-nums text-ardoise">{total}</span>}
                 {objet.niveau === "lecture" && <span className="rounded-full bg-relief px-2.5 py-1 text-[12px] text-ardoise">En lecture</span>}
-                {equipe && objet.singulier === "utilisateurs" && (
-                  // Le formulaire ouvert prend toute la ligne, sous le titre.
-                  <div className="ml-auto has-[>div]:ml-0 has-[>div]:basis-full has-[>div]:pb-3">
-                    <Suspense fallback={null}>
-                      <InviterClient compact onCree={() => queryClient.invalidateQueries({ queryKey: ["crm-page", "utilisateurs"] })} />
-                    </Suspense>
-                  </div>
+                {equipe && (objet.singulier === "utilisateurs" || objet.singulier === "clients") && (
+                  <Suspense fallback={null}><ActionsComptes singulier={objet.singulier} /></Suspense>
                 )}
               </div>
               <div className="mx-10 flex items-end gap-1 overflow-x-auto border-b border-trait max-md:mx-4">

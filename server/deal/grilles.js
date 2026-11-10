@@ -431,17 +431,23 @@ export function trouverCritere(grilleId, ligne) {
 export async function corrigerCase({ deal_id, tableau, ligne, valeur = '', statut = null }, { user = null } = {}) {
   const deal = Records.findBy('Deal', 'deal_id', deal_id);
   if (!deal) return { ok: false, error: 'Dossier introuvable : cherche-le pour avoir son deal_id.' };
-  if (!GRILLES[tableau]) return { ok: false, error: `Tableau inconnu : ${tableau}. Tableaux : ${Object.keys(GRILLES).join(', ')}.` };
-  const c = trouverCritere(tableau, ligne);
-  if (!c) return { ok: false, error: `Ligne introuvable dans ${GRILLES[tableau].titre}. Lignes : ${GRILLES[tableau].criteres.map((x) => `${x.id} (${x.libelle})`).join(' ; ')}.` };
-  const r = corrigerValeur(deal_id, tableau, c.id, valeur, user);
+  // Les tableaux affichés sont ceux de l'analyse pièce par pièce (10 nov. 2026, Jules : « mets ça dans la valeur » ne
+  // se voyait pas) : l'outil écrivait dans les anciennes grilles, que plus aucun écran ne lit. Même geste que l'écran.
+  const A = await import('./analyse-pieces.js');
+  const g = A.grilleDe(tableau);
+  if (!g) return { ok: false, error: `Tableau inconnu : ${tableau}. Tableaux : ${A.GRILLES_LUES.map((x) => x.id).join(', ')}.` };
+  const t = sansAccents(ligne);
+  const c = (GRILLES[tableau] ? trouverCritere(tableau, ligne) : null)
+    || g.criteres.find((x) => x.id === ligne || sansAccents(x.libelle) === t || (t && sansAccents(x.libelle).includes(t)));
+  if (!c) return { ok: false, error: `Ligne introuvable dans ${g.titre}. Lignes : ${g.criteres.map((x) => `${x.id} (${x.libelle})`).join(' ; ')}.` };
+  const v = String(valeur || '').trim();
+  const geste = !v ? { action: 'reinitialiser' } : statut === 'ok' ? { action: 'verifier', valeur: v, main: true } : { action: 'corriger', valeur: v };
+  const r = A.deciderCase(deal_id, tableau, c.id, geste, user);
   if (!r.ok) return r;
-  if (statut) deciderStatut(deal_id, tableau, c.id, statut, user);
-  const lue = await lireGrilleFormatee(deal_id, tableau, { user, cacheSeul: true }).catch(() => null);
-  const affichee = lue?.lignes?.find((l) => l.id === c.id) || null;
+  const affichee = A.lireAnalyse(deal_id)?.grilles.find((x) => x.id === tableau)?.lignes.find((l) => l.id === c.id) || null;
   return {
-    ok: true, deal_id, tableau: GRILLES[tableau].titre, ligne: c.libelle,
-    affiche: affichee ? { valeur: affichee.valeur, statut: affichee.statut, valeur_lue: affichee.valeur_lue } : { valeur: String(valeur || '').trim() || null },
-    note: String(valeur || '').trim() ? 'La ligne affiche maintenant cette valeur à l\'écran.' : 'La ligne revient à la valeur lue dans les pièces.',
+    ok: true, deal_id, tableau: g.titre, ligne: c.libelle,
+    affiche: affichee ? { valeur: affichee.valeur, statut: affichee.statut } : { valeur: v || null },
+    note: v ? 'La ligne affiche maintenant cette valeur à l\'écran.' : 'La ligne revient à la valeur lue dans les pièces.',
   };
 }

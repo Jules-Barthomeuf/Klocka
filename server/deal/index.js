@@ -248,6 +248,8 @@ const CHAMPS_SAISISSABLES = {
   type_actif: { libelle: "Type d'actif", type: 'texte' },
   locataire_nom: { libelle: 'Locataire', type: 'texte' },
   locataire_activite: { libelle: 'Activité', type: 'texte' },
+  // La qualité de l'enseigne s'écrit à la main (10 nov. 2026, Jules) ; sans elle, la signature calculée s'affiche.
+  qualite_enseigne: { libelle: "Qualité de l'enseigne", type: 'texte' },
   bail_type: { libelle: 'Type de bail', type: 'texte' },
   bail_echeance: { libelle: 'Échéance du bail', type: 'texte' },
   adresse: { libelle: 'Adresse', type: 'adresse' },
@@ -387,7 +389,8 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   }
   // Une case de la Pré-analyse corrigée passe aussi dans le projet (10 nov. 2026, Jules : « synchronisé avec le projet ») ;
   // une case modifiée à la main dans le projet n'en bouge pas.
-  if (indexLot === 0 && dossier.projet_id) await (await import('./projet.js')).projetSuitLeDossier(dealId);
+  // Les champs corrigés ici passent dans le projet avec cette valeur, même là où une pièce ou le projet disait autre chose (10 nov. 2026, Jules).
+  if (indexLot === 0 && dossier.projet_id) await (await import('./projet.js')).projetSuitLeDossier(dealId, null, { forcer: Object.keys(saisie) });
 
   return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot }, ...(nouveauNom ? { nom: nouveauNom } : {}) };
 }
@@ -434,6 +437,8 @@ export function listerDossiers(limit = 50) {
     dernier_suivi: (d.suivi || [])[d.suivi?.length - 1] || null,
     // L'image de la carte : celle du projet né du dossier, sinon une photo du mandataire.
     photo: photoDe(d),
+    // Le verdict choisi par l'équipe, seul montré sur la carte (10 nov. 2026, Jules : plus le verdict calculé).
+    verdict_choisi: d.verdict_choisi?.valeur || null,
     lots: (d.lots || []).map((l) => ({
       index: l.index,
       intitule: l.intitule,

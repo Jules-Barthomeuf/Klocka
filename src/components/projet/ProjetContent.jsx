@@ -453,11 +453,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <ValeurEditable champ="titre" type="text">{titreSansAdresse(project.titre, project.adresse_complete)}</ValeurEditable>
             </h1>
             {/* L'adresse, modifiable sur place dans l'éditeur (la carte et le secteur en partent). */}
-            {modeEdition && onChamp && (
+            {modeEdition && onChamp ? (
               <p className="m-0 mt-2 text-[15px] text-white/80">
                 <ValeurEditable champ="adresse_complete" type="text" titre="Adresse du bien">{project.adresse_complete || "Ajouter l'adresse du bien"}</ValeurEditable>
               </p>
-            )}
+            ) : project.adresse_complete ? (
+              // En présentation aussi, sous le titre (10 nov. 2026, Jules : « on doit bien voir l'adresse dessous »).
+              <p className="m-0 mt-2 text-[15px] text-white/80">{project.adresse_complete}</p>
+            ) : null}
           </div>
           <Bloc id="hero-chiffres" titre="Prix de revient et rendement">
           <div className="flex gap-12 max-md:gap-8" style={{ fontVariantNumeric: "tabular-nums" }}>

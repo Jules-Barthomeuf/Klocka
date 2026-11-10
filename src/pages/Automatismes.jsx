@@ -89,7 +89,7 @@ function FichesRecues() {
   return (
     <section className="mt-10">
       <p className="m-0 text-[17px] text-encre">Mails reçus avec une pièce, ces trois derniers jours</p>
-      <p className="m-0 mt-1 text-[13px] text-ardoise">Ce que l'Assistant KPartners en a fait : une fiche proposée vous a envoyé une notification ; sinon, la raison.</p>
+      <p className="m-0 mt-1 text-[13px] text-ardoise">Ce que l'Assistant Klocka en a fait : une fiche proposée vous a envoyé une notification ; sinon, la raison.</p>
       {q.isLoading ? <p className="m-0 py-6 text-[13.5px] text-brume">Lecture…</p> : !mails.length ? <p className="m-0 py-6 text-[13.5px] text-brume">Aucun mail avec une pièce ces trois derniers jours.</p> : (
         <div className="mt-3 flex flex-col">
           {mails.map((m) => {

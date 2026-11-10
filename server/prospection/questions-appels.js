@@ -94,9 +94,9 @@ export function chronologie(appel, { agence = null } = {}) {
   const qui = [appel.agent, agence].filter(Boolean).join(', ');
   l.push({ quoi: `Appel${qui ? ` à ${qui}` : ''}`, detail: `${heureFr(appel.le)}${Number(appel.duree_s) ? `, ${duree(Number(appel.duree_s) * 1000)}` : ''}${appel.enregistre ? ', enregistré' : ''}` });
   const issue = R.ISSUES?.[appel.issue] || appel.issue;
-  if (appel.mesure_ak?.propose_par_ak) l.push({ quoi: appel.mesure_ak.issue ? 'L\'Assistant KPartners avait compris une autre issue ; tu l\'as changée' : 'L\'Assistant KPartners a compris l\'issue', detail: issue });
-  else if (issue) l.push({ quoi: 'Issue', detail: `${issue}${appel.issue_deduite ? ' (comprise par l\'Assistant KPartners)' : ''}` });
-  if (appel.resume) l.push({ quoi: 'Ce que l\'Assistant KPartners a retenu', detail: court(appel.resume, 220) });
+  if (appel.mesure_ak?.propose_par_ak) l.push({ quoi: appel.mesure_ak.issue ? 'L\'Assistant Klocka avait compris une autre issue ; tu l\'as changée' : 'L\'Assistant Klocka a compris l\'issue', detail: issue });
+  else if (issue) l.push({ quoi: 'Issue', detail: `${issue}${appel.issue_deduite ? ' (comprise par l\'Assistant Klocka)' : ''}` });
+  if (appel.resume) l.push({ quoi: 'Ce que l\'Assistant Klocka a retenu', detail: court(appel.resume, 220) });
   const t = appel.temps || {};
   if (Number.isFinite(t.pret_ms)) l.push({ quoi: 'Actions proposées par AK', detail: `prêtes ${duree(t.pret_ms)} après le raccrochage${(appel.propositions || []).length ? `, ${(appel.propositions || []).length} propositions` : ''}` });
   for (const c of appel.corrections || []) l.push({ quoi: `Tu as corrigé : ${c.champ || 'un champ'}`, detail: `${court(c.avant, 90) || '(vide)'} → ${court(c.apres, 90) || '(vide)'}` });
@@ -207,7 +207,7 @@ export function consigne(appel, motifs, { agence = null } = {}) {
     if (m === 'sans_appel') return `- validé sans appel : ${Number(appel.duree_s) ? `${appel.duree_s} s` : 'pas de durée'}, ni enregistrement ni notes`;
     return `- validation longue : ${duree(appel.temps?.valide_ms || 0)} après le raccrochage (le seuil est 2 minutes)`;
   }).join('\n');
-  return `Tu es AK, l'assistant de l'équipe Klocka (achat de murs commerciaux). Tu surveilles le journal des appels de prospection pour améliorer le module d'appel : tu veux comprendre ce qui n'a pas marché, pas juger.
+  return `Tu es l'Assistant Klocka, l'assistant de l'équipe Klocka (achat de murs commerciaux). Tu surveilles le journal des appels de prospection pour améliorer le module d'appel : tu veux comprendre ce qui n'a pas marché, pas juger.
 Un appel de ${appel.par || 'l\'analyste'}${appel.agent || agence ? ` à ${[appel.agent, agence].filter(Boolean).join(', ')}` : ''} pose question.
 Ce qu'on constate :
 ${faits}
@@ -436,7 +436,7 @@ export async function annoncer() {
   for (const q of Records.list(ENTITE).filter((x) => x.etat === 'ouverte' && x.annonce !== cleAnnonce(x))) {
     const cle = cleAnnonce(q);
     const quoi = `${q.agence || q.agent || 'Un appel'} : ${q.motifs.map((m) => MOTIFS[m].toLowerCase()).join(', ')}`;
-    notifier({ pour: q.par, titre: 'L\'Assistant KPartners a une question sur un de tes appels', texte: `${quoi}. L'écran enregistré t'attend sur le Dashboard.`, lien: '/Dashboard', cle: `question-appel:${q.id}:${cle}` });
+    notifier({ pour: q.par, titre: 'L\'Assistant Klocka a une question sur un de tes appels', texte: `${quoi}. L'écran enregistré t'attend sur le Dashboard.`, lien: '/Dashboard', cle: `question-appel:${q.id}:${cle}` });
     Records.update(ENTITE, q.id, { annonce: cle });
     n += 1;
   }

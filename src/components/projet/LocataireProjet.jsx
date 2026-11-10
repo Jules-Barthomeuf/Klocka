@@ -1,6 +1,6 @@
 import React from "react";
 import { nf, InfoDot } from "./SecteurChiffres";
-import { useEdition, estMasque, ValeurEditable, ValeurForcee, forcee, Bloc } from "./EditionEnPlace";
+import { useEdition, estMasque, ValeurEditable, ValeurForcee, forcee, Bloc, dateIso } from "./EditionEnPlace";
 import { Carte, TitreCarte } from "./Cartes";
 import { dureeDepuis, dureeJusque, dateLongue, moisEntre } from "./durees";
 import { friseDuProjet, arriveeDuLocataire } from "@/lib/frise-bail";
@@ -60,7 +60,7 @@ export function partRestante(project, maintenant = new Date(), friseLue = null) 
 /** « Juin 2021 » : le mois et l'année, sans le jour. */
 const moisAnnee = (iso) => {
   if (!iso) return null;
-  const d = new Date(iso);
+  const d = new Date(dateIso(iso) || iso);
   if (Number.isNaN(d.getTime())) return null;
   const t = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   return t.charAt(0).toUpperCase() + t.slice(1);

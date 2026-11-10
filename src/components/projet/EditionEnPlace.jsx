@@ -197,21 +197,27 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
     edition.onChamp(champ, brouillon, true); // true : enregistrer
   };
 
+  // Le texte s'édite en entier, à sa place et sans cadre (10 nov. 2026, Jules : « on doit voir tout le texte sans bords
+  // autour ») : il passe à la ligne au lieu de défiler, la case grandit avec lui ; seul le fond dit qu'on écrit.
   if (ouvert) {
+    const touches = (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); }
+      if (e.key === "Escape") setOuvert(false);
+    };
+    const classe = "m-0 -mx-0.5 rounded-[3px] border-0 bg-menthe/[0.18] px-0.5 py-0 text-encre outline-none text-inherit font-inherit [line-height:inherit] max-md:text-[16px]";
+    if (type === "number") {
+      return (
+        <input autoFocus type="text" inputMode="decimal" value={brouillon} size={Math.max(3, brouillon.length + 1)}
+          onChange={(e) => setBrouillon(e.target.value)} onBlur={() => setOuvert(false)} onKeyDown={touches}
+          className={classe} style={{ fontVariantNumeric: "tabular-nums" }} />
+      );
+    }
+    const ajuster = (el) => { if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; } };
     return (
-      <input
-        autoFocus
-        type={type}
-        value={brouillon}
-        onChange={(e) => setBrouillon(e.target.value)}
-        onBlur={() => setOuvert(false)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); valider(); }
-          if (e.key === "Escape") setOuvert(false);
-        }}
-        className="bg-surface-pleine border border-menthe text-encre rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit max-md:text-[16px]"
-        style={{ fontVariantNumeric: "tabular-nums" }}
-      />
+      <textarea autoFocus rows={1} value={brouillon} ref={ajuster}
+        onChange={(e) => { setBrouillon(e.target.value); ajuster(e.target); }} onBlur={() => setOuvert(false)} onKeyDown={touches}
+        onFocus={(e) => e.target.setSelectionRange(e.target.value.length, e.target.value.length)}
+        className={`${classe} block w-full resize-none overflow-hidden`} />
     );
   }
 

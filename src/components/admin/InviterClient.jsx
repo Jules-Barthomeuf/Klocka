@@ -29,7 +29,7 @@ function inviter(body) {
  *   compte existe : la page peut l'ouvrir pour poser projets et étape sans
  *   attendre que la personne se connecte.
  */
-export default function InviterClient({ onCree } = {}) {
+export default function InviterClient({ onCree, compact = false } = {}) {
   const queryClient = useQueryClient();
   const [ouvert, setOuvert] = useState(false);
   const [nom, setNom] = useState("");
@@ -66,7 +66,7 @@ export default function InviterClient({ onCree } = {}) {
     return (
       <button
         onClick={() => setOuvert(true)}
-        className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol"
+        className={`inline-flex items-center gap-2 rounded-full bg-menthe text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol ${compact ? "h-8 px-4" : "h-11 px-5"}`}
       >
         <UserPlus className="h-4 w-4" /> Inviter
       </button>

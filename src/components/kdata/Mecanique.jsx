@@ -43,8 +43,9 @@ function Contenu({ etapes, note }) {
 }
 
 /** Un bloc repliable, dans le flux de la page. Pour un écran de résultat classique. */
-export function MecaniqueEnLigne({ etapes, note, titre = "D'où viennent ces informations", className = "" }) {
-  const [ouvert, setOuvert] = useState(false);
+// `ouvertDepart` : déplié d'emblée, quand un bouton « D'où viennent les chiffres » vient de l'ouvrir (10 nov. 2026).
+export function MecaniqueEnLigne({ etapes, note, titre = "D'où viennent ces informations", className = "", ouvertDepart = false }) {
+  const [ouvert, setOuvert] = useState(ouvertDepart);
   return (
     <div className={`${CARTE} p-4 ${className}`}>
       <button type="button" onClick={() => setOuvert((o) => !o)} className="flex w-full items-center justify-between gap-2 text-left">

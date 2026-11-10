@@ -205,11 +205,14 @@ async function lireEquimmox(adresse, { forcer = false, user = null, surJalon = (
 export function listerRecherches(limite = 40) {
   const vues = new Set();
   const liste = [];
+  // 10 nov. 2026, Jules : écran d'arrivée. La colonne « Lue » dit « Jules · date » : le prénom de qui a cherché.
+  const prenoms = new Map(Records.list('User').map((u) => [String(u.email || '').toLowerCase(), String(u.full_name || '').trim().split(/\s+/)[0]]));
+  const prenomDe = (email) => (email ? prenoms.get(String(email).toLowerCase()) || String(email).split('@')[0] : null);
   const ajouter = (x, origine) => {
     const cle = normaliser(x.adresse);
     if (vues.has(cle) || liste.length >= limite) return;
     vues.add(cle);
-    liste.push({ id: x.id, adresse: x.adresse, le: x.le, par: x.par, rue: x.rue ?? x.resultat?.rue ?? null, quartier: x.quartier ?? x.resultat?.quartier ?? null, ville: x.ville ?? x.resultat?.ville ?? null, origine });
+    liste.push({ id: x.id, adresse: x.adresse, le: x.le, par: x.par, par_nom: prenomDe(x.par), rue: x.rue ?? x.resultat?.rue ?? null, quartier: x.quartier ?? x.resultat?.quartier ?? null, ville: x.ville ?? x.resultat?.ville ?? null, origine });
   };
   for (const x of Records.list(ENTITE).sort((a, b) => String(b.le).localeCompare(String(a.le)))) ajouter(x, 'equimmox');
   for (const x of listerValeursLocatives(limite)) ajouter(x, 'valeur-locative');

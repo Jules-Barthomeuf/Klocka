@@ -54,6 +54,8 @@ import { ETAPES_PROJET, statutLabels } from "@/components/projet/CarteProjet";
 import Chargement from "@/components/ui/Chargement";
 // Au téléphone (moins de 768 px), l'éditeur s'ouvre en plein écran.
 const REQUETE_TELEPHONE = "(max-width: 767px)";
+// Les réglages de la page, qui ne viennent pas du dossier : les toucher ne fige aucune case.
+const PAS_A_LA_MAIN = new Set(["champs_masques", "champs_personnalises", "champs_a_la_main", "cases_forcees", "valeurs_forcees"]);
 function useTelephone() {
   const [oui, setOui] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(REQUETE_TELEPHONE).matches);
   useEffect(() => {
@@ -1005,6 +1007,12 @@ export default function AdminProjets() {
       const surface = parseFloat(suivant.sim_surface) || parseFloat(suivant.surface_m2) || 0;
       const parM2 = parseFloat(valeur) || 0;
       if (surface > 0 && parM2 > 0) suivant = { ...suivant, sim_loyer_initial_ht: Math.round(parM2 * surface) };
+    }
+    // Une case modifiée à la main ne suit plus le dossier (10 nov. 2026, Jules) : la Pré-analyse et l'Analyse ne l'écrasent pas.
+    if (!PAS_A_LA_MAIN.has(racine)) {
+      const touchees = [racine, ...(racine === "echeance_bail" || racine === "bail_date_echeance" ? ["echeance_bail", "bail_date_echeance"] : []), ...(racine === "loyer_m2_an" ? ["sim_loyer_initial_ht"] : [])];
+      const deja = suivant.champs_a_la_main ?? editingProject?.champs_a_la_main ?? [];
+      suivant = { ...suivant, champs_a_la_main: [...new Set([...deja, ...touchees])] };
     }
     setFormData(suivant);
     try {

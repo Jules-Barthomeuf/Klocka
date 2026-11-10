@@ -125,7 +125,12 @@ const etape = (id, cle, etat, detail = null) => {
 export function listerExpertises() {
   return Records.list(ENTITE)
     // L'indice d'emplacement sur 100 tient dans la liste (10 nov. 2026, planche Outils : une colonne du tableau).
-    .map(({ id, adresse, activite, etat, progression, cree_le, fini_le, par, libelle, resultat }) => ({ id, adresse, activite, etat, progression, cree_le, fini_le, par, libelle, indice: resultat?.emplacement?.flux?.indice ?? null }))
+    // L'étape du moment d'une étude qui tourne (10 nov. 2026, Jules : écran d'arrivée) : « 62 % · Les zones de chalandise ».
+    .map(({ id, adresse, activite, etat, progression, cree_le, fini_le, par, libelle, resultat, etapes }) => ({
+      id, adresse, activite, etat, progression, cree_le, fini_le, par, libelle,
+      indice: resultat?.emplacement?.flux?.indice ?? null,
+      etape: etat === 'en_cours' ? ((etapes || []).find((s) => s.etat === 'en_cours') || (etapes || []).find((s) => s.etat === 'a_faire'))?.nom || null : null,
+    }))
     .sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')));
 }
 

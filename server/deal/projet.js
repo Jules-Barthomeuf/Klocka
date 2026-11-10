@@ -380,7 +380,10 @@ function donneesDuLot(lot) {
     rendement_locatif: val(lot.lot.rendement_annonce) ?? 0,
     loyer_annuel_ht: val(lot.lot.loyer_annuel_ht_hc) ?? 0,
     nom_locataire: val(lot.lot.locataire_nom) || '',
-    activite_locataire: lot.enrichissement?.activite?.libelle || val(lot.lot.locataire_activite) || '',
+    // L'activité dite dans la Pré-analyse passe devant la catégorie déduite par l'enrichissement (10 nov. 2026, Jules :
+    // « activité fausse depuis la préanalyse »), qui devinait parfois d'après le nom.
+    activite_locataire: [val(lot.lot.locataire_activite), lot.enrichissement?.activite?.libelle].find((a) => a && !motVide(a)) || '',
+    type_bail: val(lot.lot.bail_type) || '',
     echeance_bail: val(lot.lot.bail_echeance) || '',
     statut_bail: val(lot.lot.occupe) === false ? 'vacant' : 'en_cours',
     bien_champ1: val(lot.lot.type_actif) || 'Local commercial',
@@ -748,6 +751,8 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
   }
   const { patch: pieces } = patchDepuisExtractions(deal, { ...projet, ...patch });
   Object.assign(patch, pieces);
+  // Une case modifiée à la main dans le projet ne bouge plus (10 nov. 2026, Jules) : le dossier ne l'écrase jamais.
+  for (const k of projet.champs_a_la_main || []) delete patch[k];
   // Une image déposée dans la Data Room s'ajoute aux photos du projet, une fois : retirée du projet, elle n'y revient pas.
   const vues = new Set(projet.photos_data_room || []);
   const nouvelles = photosDeLaDataRoom(deal).filter((p) => !vues.has(p.id));
@@ -797,6 +802,11 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null, 
   Object.assign(champs, simulateurDuDossier(lot.simulateur));
   champs.sim_apport = apportDuSimulateur(champs, lot.simulateur);
   for (const [k, v] of Object.entries(champsCompletsDeLAnalyse(analyse, deal))) if (!champs[k] || (Array.isArray(champs[k]) && !champs[k].length)) champs[k] = v;
+  // Le type de bail de la Pré-analyse tient aussi la ligne « Type de bail » du bail (10 nov. 2026).
+  if (champs.type_bail) {
+    const lignes = (champs.bail_admin_fields || []).filter((l) => l.label !== 'Type de bail');
+    champs.bail_admin_fields = [{ label: 'Type de bail', value: champs.type_bail }, ...lignes];
+  }
   if (!champs.locataire_depuis && champs.bail_date_debut) champs.locataire_depuis = champs.bail_date_debut;
   if (!champs.bail_date_echeance && /^\d{4}-\d{2}-\d{2}/.test(String(champs.echeance_bail || ''))) champs.bail_date_echeance = champs.echeance_bail;
   // Les cases de la page projet qui redisent un chiffre du simulateur.

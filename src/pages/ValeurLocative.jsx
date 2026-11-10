@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
-import { Search, Loader2, ChevronLeft, FileText, Pencil, Download, RotateCcw, Printer, X } from "lucide-react";
+import { Loader2, ChevronLeft, FileText, Pencil, Download, RotateCcw, Printer, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import CarteLoyers, { COULEURS_NIVEAU } from "@/components/kdata/CarteLoyers";
-import { BoutonMecanique } from "@/components/kdata/Mecanique";
+import { BoutonMecanique, MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 import { createPageUrl } from "@/utils";
-import { BoutonOutil, BoutonPrincipal, CLASSE_CARTE, CLASSE_TABLE, CLASSE_TABLEAU, CLASSE_TD, CLASSE_TH, TitrePage } from "@/components/mandataire/elements";
+import { BoutonOutil, BoutonPrincipal, CLASSE_CARTE, CLASSE_TABLEAU } from "@/components/mandataire/elements";
 
 // Valeur locative : la fourchette de loyer au m² d'une adresse.
 //
@@ -147,6 +147,9 @@ export default function ValeurLocative() {
   const user = useUser();
   const qc = useQueryClient();
   const [adresse, setAdresse] = useState("");
+  // 10 nov. 2026, Jules : écran d'arrivée. La surface part avec la recherche ; le serveur ne s'en sert pas encore.
+  const [surface, setSurface] = useState("");
+  const [mecanique, setMecanique] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const choisie = useRef("");
   const [vue, setVue] = useState(null);
@@ -193,7 +196,7 @@ export default function ValeurLocative() {
     }, 3000);
   };
   const chercher = useMutation({
-    mutationFn: (texte) => base44.request("POST", "/api/kvaleurlocative", { body: { adresse: texte } }),
+    mutationFn: (texte) => base44.request("POST", "/api/kvaleurlocative", { body: { adresse: texte, surface: Number.parseFloat(String(surface).replace(",", ".")) > 0 ? Number.parseFloat(String(surface).replace(",", ".")) : null } }),
     onSuccess: (r) => { if (r.en_cours) suivre(r); else poser(r); },
     onError: (err) => toast.error(err?.message || "Recherche impossible"),
   });
@@ -311,62 +314,133 @@ export default function ValeurLocative() {
   }
 
   // ── L'accueil : une adresse, et les dernières recherches ─────────────────
+  // 10 nov. 2026, Jules : écran d'arrivée. Planche validée : titre et bouton de la mécanique, deux cartes égales
+  // (le formulaire, le dessin des trois rayons), puis les dernières recherches en tableau sans traits verticaux ;
+  // la recherche en cours y tient la première ligne.
   const occupe = chercher.isPending || rouvrir.isPending || !!attente;
-  const JALONS = { adresse: "l'adresse", dvf: "les ventes DVF", rue: "la rue chez Equimmox, 200 m", quartier: "le quartier chez Equimmox, 500 m", ville: "la ville chez Equimmox, 1 km" };
+  const peutChercher = !occupe && adresse.trim().length >= 5;
+  const lancer = () => { if (peutChercher) chercher.mutate(adresse); };
+  const total = recherches.length + (attente ? 1 : 0);
+  // La part lue : un tiers par rayon, la moitié du tiers en cours.
+  const RAYONS_ORDRE = ["rue", "quartier", "ville"];
+  const rang = RAYONS_ORDRE.indexOf(attente?.jalon);
+  const part = attente ? Math.round(((rang < 0 ? 0 : rang) + 0.5) / 3 * 100) : 0;
+  const nombre = (n) => Math.round(n).toLocaleString("fr-FR");
+  const fourchette = (v) => (v && (v.basse != null || v.haute != null) ? `${nombre(v.basse ?? v.haute)} à ${nombre(v.haute ?? v.basse)} €` : "");
+  const TH = "h-[38px] whitespace-nowrap border-b border-trait px-4 text-left text-[12.5px] font-normal text-ardoise";
+  const TD = "h-[62px] overflow-hidden text-ellipsis whitespace-nowrap border-b border-trait px-4 align-middle text-[13.5px] tabular-nums text-craie";
+  const ECHELLES_DESSIN = [["La rue", "Les baux à 200 m"], ["Le quartier", "Les baux à 500 m"], ["La ville", "Les baux à 1 km"]];
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 pb-16 pt-[22px] md:px-8">
-      <Link to={createPageUrl("KData")} className="text-[13px] text-ardoise hover:text-encre">← Outils</Link>
-      <TitrePage titre="Valeur locative" nombre={recherches.length || null} className="mt-1" />
-      <p className="m-0 mt-1 text-[13.5px] text-ardoise">La fourchette de loyer au m² d&apos;une adresse : la rue, le quartier, la ville.</p>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <h1 className="m-0 text-[20px] font-medium leading-[1.3] text-encre">
+            Valeur locative{total > 0 && <span className="ml-2 text-[13.5px] font-normal tabular-nums text-ardoise">{total}</span>}
+          </h1>
+          <p className="m-0 mt-1 text-[13.5px] text-ardoise">La fourchette de loyer au m² d&apos;une adresse : la rue, le quartier, la ville.</p>
+        </div>
+        <BoutonOutil onClick={() => setMecanique((o) => !o)} aria-expanded={mecanique} className="rounded-[8px]">D&apos;où viennent les chiffres</BoutonOutil>
+      </div>
+      {mecanique && <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="D'où viennent les chiffres" className="mt-4" ouvertDepart />}
 
-      <div className={`${CLASSE_CARTE} mt-5 px-4 py-3.5`}>
-        <div className="flex flex-wrap items-end gap-2.5">
-          <div className="relative min-w-[260px] flex-1">
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className={`${CLASSE_CARTE} p-5`}>
+          <div className="relative">
             <label className="mb-1.5 block text-[12.5px] text-ardoise" htmlFor="vl-adresse">Adresse</label>
-            <div className="flex h-9 items-center gap-2 rounded-[10px] border border-bord-doux bg-fond px-3 focus-within:border-menthe max-md:h-10">
-              <Search className="h-4 w-4 flex-shrink-0 text-brume" />
-              <input id="vl-adresse" value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="Allées Charles de Fitte, 31300 Toulouse"
-                onKeyDown={(ev) => { if (ev.key === "Enter" && adresse.trim().length >= 5) chercher.mutate(adresse); }}
-                className="w-full border-0 bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-            </div>
+            <input id="vl-adresse" value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="Allées Charles de Fitte, 31300 Toulouse"
+              onKeyDown={(ev) => { if (ev.key === "Enter") lancer(); }}
+              className="h-10 w-full rounded-[8px] border border-bord-doux bg-fond px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]" />
             {suggestions.length > 0 && (
               <ul className="absolute left-0 right-0 top-[66px] z-20 m-0 list-none overflow-hidden rounded-[12px] border border-trait bg-rail p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
                 {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13.5px] text-craie hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>{s}</button></li>)}
               </ul>
             )}
           </div>
-          <BoutonPrincipal onClick={() => chercher.mutate(adresse)} disabled={occupe || adresse.trim().length < 5} className="h-9">
-            {chercher.isPending || attente ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Rechercher
+          <label className="mb-1.5 mt-4 block text-[12.5px] text-ardoise" htmlFor="vl-surface">Surface, facultatif</label>
+          <div className="flex h-10 w-[180px] items-center gap-1.5 rounded-[8px] border border-bord-doux bg-fond px-3 focus-within:border-menthe">
+            <input id="vl-surface" value={surface} onChange={(ev) => setSurface(ev.target.value.replace(/[^\d.,]/g, ""))} inputMode="decimal" placeholder="70"
+              onKeyDown={(ev) => { if (ev.key === "Enter") lancer(); }}
+              className="w-full min-w-0 border-0 bg-transparent text-[14px] tabular-nums text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+            <span className="flex-none text-[14px] text-brume">m²</span>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="border-l-2 border-bord-doux pl-3">
+              <p className="m-0 text-[14px] font-medium text-encre">Tout de suite</p>
+              <p className="m-0 mt-0.5 text-[12.5px] text-ardoise">Une adresse déjà lue dans les trente jours.</p>
+            </div>
+            <div className="border-l-2 border-bord-doux pl-3">
+              <p className="m-0 text-[14px] font-medium text-encre">Environ quatre minutes</p>
+              <p className="m-0 mt-0.5 text-[12.5px] text-ardoise">Une recherche neuve. Vous pouvez quitter la page.</p>
+            </div>
+          </div>
+          <BoutonPrincipal onClick={lancer} disabled={!peutChercher} className="mt-4 h-10 rounded-[8px] px-4">
+            {chercher.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Rechercher
           </BoutonPrincipal>
         </div>
-        <p className="m-0 mt-2.5 text-[12.5px] leading-[1.6] text-brume">
-          Une recherche neuve pilote Equimmox à trois rayons et prend quatre minutes environ. Une même adresse dans les trente jours, ou une recherche de la liste ci-dessous, revient tout de suite.
-        </p>
+
+        <div className={`${CLASSE_CARTE} flex items-center gap-7 p-5 max-sm:flex-col max-sm:items-start`}>
+          {/* Les trois rayons, en cercles : 1 km, 500 m, 200 m, et l'adresse au centre. */}
+          <div aria-hidden="true" className="relative flex h-[260px] w-[260px] flex-none items-center justify-center rounded-full border border-bord-doux">
+            <span className="absolute top-3 text-[11px] text-ardoise">1 km</span>
+            <div className="relative flex h-[130px] w-[130px] items-center justify-center rounded-full border border-bord-vif bg-fond">
+              <span className="absolute top-3 text-[11px] text-craie">500 m</span>
+              <span className="absolute bottom-3 text-[11px] text-craie">200 m</span>
+              <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full border border-menthe/50 bg-relief">
+                <span className="h-1.5 w-1.5 rounded-full bg-encre" />
+              </div>
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            {ECHELLES_DESSIN.map(([titre, detail]) => (
+              <div key={titre} className="mb-3 last:mb-0">
+                <p className="m-0 text-[14px] font-medium text-encre">{titre}</p>
+                <p className="m-0 mt-0.5 text-[12.5px] text-ardoise">{detail}</p>
+              </div>
+            ))}
+            <p className="m-0 mt-4 border-t border-trait pt-4 text-[12.5px] leading-[1.6] text-ardoise">
+              Pour chaque échelle, une fourchette basse et haute au m² par an. Source : Equimmox.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {attente && (
-        <div className={`${CLASSE_CARTE} mt-3 flex items-center gap-3 px-4 py-3 text-[13.5px]`}>
-          <Loader2 className="h-4 w-4 flex-none animate-spin text-menthe" />
-          <span className="text-encre">Lecture en cours : {JALONS[attente.jalon] || attente.jalon}</span>
-          <span className="ml-auto text-[12.5px] text-ardoise">Vous pouvez quitter la page</span>
-        </div>
-      )}
-
-      <section className="mt-7">
-        <h2 className="m-0 mb-2.5 text-[15px] font-medium text-encre">Dernières recherches</h2>
-        {!recherches.length ? <p className="m-0 text-[13.5px] text-brume">Aucune pour l&apos;instant.</p> : (
+      <section className="mt-8">
+        <h2 className="m-0 mb-2.5 text-[15px] font-medium text-encre">
+          Dernières recherches{total > 0 && <span className="ml-2 text-[12.5px] font-normal tabular-nums text-ardoise">{total}</span>}
+        </h2>
+        {!total ? <p className="m-0 text-[13.5px] text-brume">Aucune pour l&apos;instant.</p> : (
           <div className={CLASSE_TABLEAU}>
-            <table className={`${CLASSE_TABLE} min-w-[720px]`}>
-              <colgroup><col /><col className="w-[220px]" /><col className="w-[160px]" /><col className="w-[120px]" /><col className="w-[110px]" /></colgroup>
-              <thead><tr><th className={CLASSE_TH}>Adresse</th><th className={CLASSE_TH}>Quartier</th><th className={CLASSE_TH}>Rue, au m²</th><th className={CLASSE_TH}>Par</th><th className={CLASSE_TH}>Date</th></tr></thead>
+            <table className="w-full min-w-[860px] table-fixed border-collapse [&_tbody_tr:last-child_td]:border-b-0">
+              <colgroup><col /><col className="w-[15%]" /><col className="w-[15%]" /><col className="w-[15%]" /><col className="w-[170px]" /></colgroup>
+              <thead><tr><th className={TH}>Adresse</th><th className={TH}>La rue</th><th className={TH}>Le quartier</th><th className={TH}>La ville</th><th className={`${TH} text-right`}>Lue</th></tr></thead>
               <tbody>
+                {attente && (
+                  <tr>
+                    <td className={TD}>
+                      <p className="m-0 truncate text-[14px] text-encre" title={attente.point?.label || ""}>{attente.point?.label || adresse}</p>
+                      <p className="m-0 mt-0.5 truncate text-[12.5px] text-ardoise">{attente.point?.ville || ""}</p>
+                    </td>
+                    <td colSpan={3} className={TD}>
+                      <div className="flex items-center gap-3">
+                        <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-relief" role="progressbar" aria-valuenow={part} aria-valuemin={0} aria-valuemax={100}>
+                          <div className="h-full rounded-full bg-bleu transition-[width] duration-700" style={{ width: `${part}%` }} />
+                        </div>
+                        <span className="flex-none text-[12.5px] text-bleu">Recherche en cours</span>
+                      </div>
+                    </td>
+                    <td className={`${TD} text-right text-[12.5px] text-ardoise`}>{String(user.full_name || user.email || "").trim().split(/[\s@]+/)[0]} · à l&apos;instant</td>
+                  </tr>
+                )}
                 {recherches.map((x) => (
                   <tr key={x.id} onClick={() => !occupe && rouvrir.mutate(x.id)} className={occupe ? "opacity-60" : "cursor-pointer hover:bg-relief"}>
-                    <td className={CLASSE_TD} title={x.adresse}>{x.adresse}</td>
-                    <td className={CLASSE_TD} title={x.quartier?.nom || ""}>{x.quartier?.nom || ""}</td>
-                    <td className={`${CLASSE_TD} tabular-nums`}>{x.rue ? `${euros(x.rue.basse)} à ${euros(x.rue.haute)}` : x.quartier ? `${euros(x.quartier.basse)} à ${euros(x.quartier.haute)}` : ""}</td>
-                    <td className={CLASSE_TD} title={x.par || ""}>{String(x.par || "").split("@")[0]}</td>
-                    <td className={`${CLASSE_TD} tabular-nums`}>{quand(x.le)}</td>
+                    <td className={TD}>
+                      <p className="m-0 truncate text-[14px] text-encre" title={x.adresse}>{x.adresse}</p>
+                      <p className="m-0 mt-0.5 truncate text-[12.5px] text-ardoise">{x.quartier?.nom || x.rue?.nom || ""}</p>
+                    </td>
+                    <td className={TD}>{fourchette(x.rue)}</td>
+                    <td className={TD}>{fourchette(x.quartier)}</td>
+                    <td className={TD}>{fourchette(x.ville)}</td>
+                    <td className={`${TD} text-right text-[12.5px] text-ardoise`} title={x.par || ""}>{[x.par_nom || String(x.par || "").split("@")[0], quand(x.le)].filter(Boolean).join(" · ")}</td>
                   </tr>
                 ))}
               </tbody>

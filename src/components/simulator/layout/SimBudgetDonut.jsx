@@ -4,17 +4,20 @@
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { J } from "@/design/jetons";
 
 const RADIAN = Math.PI / 180;
+// Une seule teinte, la couleur système (l'accent du compte), déclinée en transparence (10 nov. 2026, Jules).
+const ACCENT = (a) => `rgb(var(--k-menthe-rgb) / ${a})`;
+// Les nuances claires mêlent du blanc : elles restent lisibles sur fond sombre (les chiffres prennent la couleur de la part).
+const CLAIR = (blanc) => `color-mix(in srgb, rgb(var(--k-menthe-rgb)) ${100 - blanc}%, white)`;
 
 export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrency }) {
   const items = useMemo(() => [
-  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: J["menthe"] },
-  { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: "#C6A45C" },
-  { name: "Honoraires Klocka TTC", value: Math.round(calculs.feesKlocka || 0), color: "#A594C9" },
-  { name: "Incentive Klocka", value: Math.round(calculs.incentiveKlocka || 0), color: J["ambre"] },
-  { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: "#E76F51" }].
+  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: ACCENT(1) },
+  { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: CLAIR(50) },
+  { name: "Honoraires Klocka TTC", value: Math.round(calculs.feesKlocka || 0), color: ACCENT(0.55) },
+  { name: "Incentive Klocka", value: Math.round(calculs.incentiveKlocka || 0), color: CLAIR(75) },
+  { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: CLAIR(90) }].
   filter((d) => d.value > 0), [calculs, prixBienNegocie]);
 
   const total = calculs.prixRevient || items.reduce((s, d) => s + d.value, 0);

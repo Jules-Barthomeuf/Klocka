@@ -1,10 +1,8 @@
-import { VERDICTS, VuesLieu } from "@/components/preanalyse/DealResultat";
-import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
+import { VuesLieu } from "@/components/preanalyse/DealResultat";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Archive, Check, MoreHorizontal, Trash2 } from "lucide-react";
-import { Filtres } from "@/components/mandataire/elements";
 import { base44 } from "@/api/base44Client";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
@@ -48,33 +46,12 @@ function useLettres(dealId) {
 const bloc = "relative overflow-hidden rounded-[12px] border border-trait bg-rail p-3.5";
 const titreBloc = "m-0 mb-2 text-[12.5px] text-ardoise";
 
-/** La colonne de droite : la Data Room en liste à cocher (17 oct. 2026), et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
-/** Le verdict de l'équipe, sous les clients intéressés (9 nov. 2026, Jules) : on choisit, un second clic retire le choix. */
-function BlocVerdict({ dossier }) {
-  const [choisi, setChoisi] = useState(dossier.verdict_choisi?.valeur || "");
-  const choisir = (v) => {
-    const avant = choisi;
-    const suivant = v === choisi ? "" : v;
-    setChoisi(suivant);
-    base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/verdict`, { body: { verdict: suivant || null } })
-      .catch((e) => { setChoisi(avant); toast.error(e?.message || "Verdict non enregistré"); });
-  };
-  return (
-    <section className={bloc}>
-      <p className={titreBloc}>Verdict</p>
-      <Filtres label="Verdict du dossier" valeur={choisi} onChange={choisir} options={Object.entries(VERDICTS).map(([k, v]) => [k, v.libelle])} />
-    </section>
-  );
-}
-
+/**
+ * La colonne de droite : la Data Room en liste à cocher (17 oct. 2026), et le fil d'un dossier de mandataire. Documents et
+ * livrables retirés le 17 oct. 2026 (Jules) ; le Verdict passé en dernière ligne du tableau et les Clients intéressés
+ * retirés le 10 nov. 2026 (Jules).
+ */
 export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = null, onRefresh = null }) {
-  // Pré-analyse : à qui ce bien pourrait correspondre, d'après les investisseurs de Monday (revenu le 18 oct. 2026, Jules).
-  const correspondances = useQuery({
-    queryKey: ["dossier-clients", dossier?.deal_id],
-    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dossier.deal_id}/clients`),
-    enabled: !!dossier?.deal_id && !apercu && vue === "preanalyse",
-    staleTime: 5 * 60 * 1000,
-  });
   const { pieces, autres } = checklistDataRoom(dossier?.documents_espace || []);
   // Maj + glisser un fichier sur la Data Room ouvre la roue de conversion (18 oct. 2026, Jules) ; le centre le range tel quel.
   const ajouter = dossier?.deal_id && !apercu ? async (f) => {
@@ -95,14 +72,6 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
           <VuesLieu lot={dossier.lots[0]} enr={dossier.lots[0].enrichissement} coteACote empile dealId={dossier?.deal_id} />
         </section>
       )}
-      {vue === "preanalyse" && dossier?.deal_id && !apercu && (
-        <section className={bloc}>
-          <p className={titreBloc}>Clients intéressés</p>
-          <p className="m-0 text-[12.5px] text-brume">Budget, apport et zone de recherche, d'après Twenty CRM</p>
-          <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
-        </section>
-      )}
-      {vue === "preanalyse" && dossier?.deal_id && !apercu && <BlocVerdict dossier={dossier} />}
       {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Seulement à l'étape Data Room (18 oct. 2026, Jules). */}
       {vue === "documents" && (
       <ZoneConversion onAjouter={ajouter}>

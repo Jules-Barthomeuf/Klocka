@@ -2,17 +2,17 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
-import { Search, Play, Loader2, ChevronDown, Trash2, Check, X, Clock, Phone, Mail, Globe, ExternalLink, SlidersHorizontal } from "lucide-react";
+import { Plus, Loader2, Trash2, Check, X, Clock, Phone, Mail, Globe, ExternalLink, SlidersHorizontal } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { createPageUrl } from "@/utils";
 import CarteCommerces, { familleDe } from "@/components/kdata/CarteCommerces";
+import { chargerGoogleMaps } from "@/components/kzoning/CarteGoogleZones";
 import { effectif } from "@/components/kzoning/FicheSociete";
-import { BoutonMecanique } from "@/components/kdata/Mecanique";
+import { BoutonMecanique, MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 import {
-  BoutonPrincipal, BoutonOutil, Filtres, Statut, TitrePage,
-  CLASSE_CARTE, CLASSE_TABLEAU, CLASSE_TABLE, CLASSE_TH, CLASSE_TD,
+  BoutonPrincipal, BoutonOutil, Filtres, Statut, TitrePage, CLASSE_CARTE,
 } from "@/components/mandataire/elements";
 
 // K-Prospective : les commerces d'une zone qui répondent à des critères.
@@ -28,6 +28,12 @@ import {
 // boutons de 32 px, liste dans un cadre au rayon 12 sur `bg-rail`, carte au
 // rayon 12, et la fiche d'un commerce en panneau de droite comme celles du
 // CRM, sur le fond de la barre latérale.
+//
+// 10 nov. 2026, Jules : écran d'arrivée. Dans le cadre des Outils (plus de
+// lien « Outils »), titre de 20 px et son compteur. À gauche le formulaire
+// empilé dans un cadre de 340 px, à droite l'aperçu de la zone, qui se dessine
+// pendant qu'on règle l'adresse et le rayon. Dessous, les prospections
+// réalisées en cartes, quatre par ligne, à la place du tableau.
 
 const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const RAYONS = [250, 500, 1000, 2000];
@@ -46,7 +52,7 @@ const ETAPES_MECANIQUE = [
   { source: "Vos critères", quoi: "Appliqués à ce qu'on sait vraiment. La solvabilité chiffrée, le prix d'acquisition et l'échéance d'un bail n'ont pas de source ouverte : ces options sont grisées plutôt que devinées." },
 ];
 
-const CHAMP = "h-10 w-full rounded-[10px] border border-trait bg-relief px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-bord-doux max-md:text-[16px]";
+const CHAMP = "h-10 w-full rounded-[8px] border border-trait bg-fond px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-bord-doux max-md:text-[16px]";
 const ETIQUETTE = "mb-1.5 block text-[12.5px] text-ardoise";
 
 /** L'en-tête des écrans : le lien vers les Outils (l'équipe seule), le titre de 24 px, une ligne grise. */
@@ -350,10 +356,120 @@ function Resultats({ prospection: p, groupes, admin, onRetour, onSupprimer }) {
 
 // ── La page ────────────────────────────────────────────────────────────────
 
-function EtatProspection({ x }) {
-  if (x.etat === "terminee") return <span className="tabular-nums">{x.nb_retenus} / {x.nb_commerces}</span>;
-  if (x.etat === "echec") return <Statut couleur="corail">Échec</Statut>;
-  return <Statut couleur="bleu">En cours · {x.progression || 0} %</Statut>;
+// 10 nov. 2026, Jules : écran d'arrivée. L'aperçu de la zone. Google sert de
+// fond, figé (ni glisser ni zoomer) : le cercle pointillé, son étiquette et le
+// point du centre sont dessinés par-dessus, au centre exact, à l'échelle du
+// zoom choisi. Google ne trace pas de cercle pointillé, d'où ce calque.
+const GRILLE = {
+  backgroundImage: "linear-gradient(var(--k-trait) 1px, transparent 1px), linear-gradient(90deg, var(--k-trait) 1px, transparent 1px)",
+  backgroundSize: "48px 48px",
+};
+// Mètres par pixel au zoom z (projection de Google, tuiles de 256 px).
+const metresParPixel = (lat, z) => (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** z;
+
+function ApercuZone({ point, rayon, commune }) {
+  const conteneur = useRef(null);
+  const carte = useRef(null);
+  const [prete, setPrete] = useState(false);
+  const [hauteur, setHauteur] = useState(420);
+
+  useEffect(() => {
+    const el = conteneur.current?.parentElement;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(() => setHauteur(el.clientHeight || 420));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // La carte se charge au premier point choisi, jamais avant.
+  useEffect(() => {
+    if (!point || carte.current) return undefined;
+    let vivant = true;
+    chargerGoogleMaps().then(() => {
+      if (!vivant || !conteneur.current || carte.current) return;
+      carte.current = new window.google.maps.Map(conteneur.current, {
+        center: { lat: point.lat, lng: point.lon }, zoom: 15, mapTypeId: "roadmap",
+        disableDefaultUI: true, clickableIcons: false, gestureHandling: "none", keyboardShortcuts: false,
+      });
+      setPrete(true);
+    }).catch(() => { /* sans clé : la grille seule */ });
+    return () => { vivant = false; };
+  }, [point]);
+
+  // Le zoom qui fait tenir le cercle dans environ 60 % de la hauteur.
+  const zoom = point ? Math.max(10, Math.min(18, Math.floor(Math.log2((156543.03392 * Math.cos((point.lat * Math.PI) / 180) * hauteur * 0.6) / (2 * (commune ? 2500 : rayon)))))) : 15;
+  const diametre = point && !commune ? (2 * rayon) / metresParPixel(point.lat, zoom) : 0;
+
+  useEffect(() => {
+    if (!prete || !point || !carte.current) return;
+    carte.current.setCenter({ lat: point.lat, lng: point.lon });
+    carte.current.setZoom(zoom);
+  }, [prete, point, zoom]);
+
+  return (
+    <>
+      <div className="absolute inset-0" style={GRILLE} />
+      <div ref={conteneur} className={`absolute inset-0 transition-opacity ${point && prete ? "opacity-100" : "opacity-0"}`} />
+      {point && (
+        <div className="pointer-events-none absolute left-1/2 top-1/2">
+          {diametre > 0 && (
+            <div className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-encre/70 bg-encre/[0.06]" style={{ width: diametre, height: diametre }}>
+              <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-[calc(100%+4px)] whitespace-nowrap rounded-[6px] bg-fond/90 px-2 py-0.5 text-[12px] tabular-nums text-encre">{metres(rayon)}</span>
+            </div>
+          )}
+          <span className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-fond bg-encre" />
+        </div>
+      )}
+      <p className="absolute inset-x-3 bottom-3 m-0 rounded-[8px] bg-fond/90 px-3 py-2 text-[12.5px] text-craie">
+        La zone se dessine ici pendant que vous réglez l&apos;adresse et le rayon. Au lancement : les devantures, la société derrière, les murs.
+      </p>
+    </>
+  );
+}
+
+// 10 nov. 2026, Jules : écran d'arrivée. Une prospection réalisée, en carte compacte.
+function CarteProspection({ x, onOuvrir }) {
+  const etat = x.etat === "terminee"
+    ? <span className="text-[14px] font-medium tabular-nums text-encre">{x.nb_retenus} retenu{x.nb_retenus > 1 ? "s" : ""} sur {x.nb_commerces}</span>
+    : x.etat === "echec" ? <Statut couleur="corail">Échec</Statut>
+      : <Statut couleur="bleu">En cours, {x.progression || 0} %</Statut>;
+  return (
+    <button type="button" onClick={onOuvrir} title={x.par ? `Par ${x.par}` : undefined}
+      className={`${CLASSE_CARTE} flex min-w-0 flex-col gap-1 px-3.5 py-3 text-left transition-colors hover:border-bord-doux`}>
+      <span className="truncate text-[14px] font-medium text-encre">{x.libelle || x.adresse}</span>
+      <span className="truncate text-[13px] text-ardoise">{x.activite || "Tous les commerces"} · {x.zone === "commune" ? "commune entière" : metres(x.rayon_m)}</span>
+      <span className="mt-1.5 flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate">{etat}</span>
+        <span className="flex-none text-[12.5px] tabular-nums text-ardoise">{quand(x.fini_le || x.cree_le)}</span>
+      </span>
+    </button>
+  );
+}
+
+// 10 nov. 2026, Jules : écran d'arrivée. Le volet des critères s'ouvre en
+// panneau sous le bouton « Ajouter un groupe de critères », par-dessus l'aperçu.
+function VoletCriteres({ groupes, choix, onChoix, onFermer }) {
+  const cadre = useRef(null);
+  useEffect(() => {
+    const k = (e) => { if (e.key === "Escape") onFermer(); };
+    const dehors = (e) => { if (cadre.current && !cadre.current.contains(e.target) && !e.target.closest?.("[data-ouvre-criteres]")) onFermer(); };
+    window.addEventListener("keydown", k);
+    document.addEventListener("pointerdown", dehors);
+    return () => { window.removeEventListener("keydown", k); document.removeEventListener("pointerdown", dehors); };
+  }, [onFermer]);
+  return (
+    <div ref={cadre} role="dialog" aria-label="Critères"
+      className="absolute left-0 top-[calc(100%+6px)] z-30 w-[760px] max-w-[calc(100vw-32px)] rounded-[12px] border border-trait bg-surface-pleine p-4 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="text-[14px] font-medium text-encre">Recherche multi-critères</span>
+        <button type="button" onClick={onFermer} aria-label="Fermer les critères" style={{ background: "transparent" }} className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre"><X className="h-4 w-4" /></button>
+      </div>
+      <div className="max-h-[60vh] overflow-y-auto">
+        <Criteres groupes={groupes} choix={choix} onChoix={onChoix} />
+      </div>
+      <p className="m-0 mt-3 text-[12.5px] leading-[1.6] text-brume">Une option barrée n&apos;a pas de source ouverte : elle n&apos;est pas proposée plutôt que devinée.</p>
+    </div>
+  );
 }
 
 export default function KProspective() {
@@ -364,10 +480,14 @@ export default function KProspective() {
   const [rayon, setRayon] = useState(500);
   // Autour d'une adresse, ou une commune entière (lot 9, 18 oct. 2026 ; boîte à outils allumée côté serveur).
   const [zone, setZone] = useState("adresse");
+  // Chaque suggestion de la BAN garde ses coordonnées : l'aperçu de la zone s'y centre.
   const [suggestions, setSuggestions] = useState([]);
   const choisie = useRef("");
+  const [point, setPoint] = useState(null);
   const [criteres, setCriteres] = useState({});
   const [voletOuvert, setVoletOuvert] = useState(false);
+  const fermerVolet = useCallback(() => setVoletOuvert(false), []);
+  const [mecanique, setMecanique] = useState(false);
   const [ouverte, setOuverte] = useState(null);
 
   // L'équipe, et les mandataires depuis l'onglet K Prospective de leur Prospection.
@@ -394,7 +514,9 @@ export default function KProspective() {
       try {
         const r = await fetch(`https://data.geopf.fr/geocodage/search/?autocomplete=1&limit=5&q=${encodeURIComponent(q)}`);
         const f = r.ok ? (await r.json()).features || [] : [];
-        setSuggestions(f.map((x) => x.properties?.label).filter(Boolean));
+        setSuggestions(f.filter((x) => x.properties?.label).map((x) => ({
+          label: x.properties.label, lon: x.geometry?.coordinates?.[0], lat: x.geometry?.coordinates?.[1],
+        })));
       } catch { /* BAN injoignable */ }
     }, 250);
     return () => clearTimeout(t);
@@ -434,89 +556,79 @@ export default function KProspective() {
     return <Resultats prospection={p} groupes={groupes} admin={admin} onRetour={() => setOuverte(null)} onSupprimer={() => { if (window.confirm("Supprimer cette prospection ?")) supprimer.mutate(p.id); }} />;
   }
 
+  // 10 nov. 2026, Jules : écran d'arrivée.
   const nbCriteres = Object.values(criteres).reduce((n, v) => n + (v?.length || 0), 0);
+  const commune = zone === "commune";
   return (
-    <div className="relative min-h-screen px-5 py-[22px] text-encre md:px-8">
-      <div className="relative mx-auto max-w-[1500px]">
-        <EnTete admin={admin} titre="K-Prospective"
-          sousTitre="Les commerces d'une zone qui répondent à vos critères : la devanture, la société derrière, les murs." />
+    <div className="relative px-10 pb-12 pt-6 text-encre max-md:px-4 max-md:pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 text-[20px] font-medium text-encre">K-Prospective{prospections.length ? <span className="ml-2 text-[14px] font-normal tabular-nums text-ardoise">{prospections.length}</span> : null}</h1>
+        <button type="button" onClick={() => setMecanique((o) => !o)} aria-expanded={mecanique} className="inline-flex h-8 items-center rounded-[8px] border border-bord-doux px-3 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>D&apos;où viennent les chiffres</button>
+      </div>
+      <p className="m-0 mt-1 text-[13.5px] text-ardoise">Les commerces d&apos;une zone qui répondent à vos critères.</p>
+      {mecanique && <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="La mécanique : d'où viennent ces chiffres" className="mt-4" ouvertDepart />}
 
-        <div className={`${CLASSE_CARTE} max-w-[1100px] p-5 max-md:p-4`}>
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-            <div>
-              <label htmlFor="kp-activite" className={ETIQUETTE}>Type de commerce</label>
-              <input id="kp-activite" list="metiers-prospective" value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant… ou vide pour tous"
-                className={CHAMP} />
-              <datalist id="metiers-prospective">{metiers.map((m) => <option key={m} value={m} />)}</datalist>
-            </div>
-            <div>
-              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                <label htmlFor="kp-adresse" className="block text-[12.5px] text-ardoise">{zone === "commune" ? "Commune" : "Adresse"}</label>
-                <Filtres label="Zone" options={[["adresse", "Autour d'une adresse"], ["commune", "Commune entière"]]} valeur={zone} onChange={setZone} className="-my-1" />
-              </div>
-              <div className="relative">
-                <div className="flex h-10 items-center gap-2 rounded-[10px] border border-trait bg-relief px-3 focus-within:border-bord-doux">
-                  <Search className="h-4 w-4 flex-shrink-0 text-brume" />
-                  <input id="kp-adresse" value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder={zone === "commune" ? "Cannes" : "49 rue Dabray, 06000 Nice"}
-                    className="h-full w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-                </div>
-                {suggestions.length > 0 && (
-                  <ul className="absolute left-0 right-0 top-[44px] z-20 m-0 list-none overflow-hidden rounded-[14px] border border-trait bg-surface-pleine p-1 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
-                    {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} style={{ background: "transparent" }} className="block w-full rounded-[10px] px-3 py-2 text-left text-[13.5px] text-craie hover:!bg-relief hover:text-encre max-md:py-3">{s}</button></li>)}
-                  </ul>
-                )}
-              </div>
-            </div>
-            <div className={zone === "commune" ? "invisible" : ""}>
-              <p className={`${ETIQUETTE} m-0`}>Rayon</p>
-              <div className="flex h-10 items-center">
-                <Filtres label="Rayon" options={RAYONS.map((r) => [r, metres(r)])} valeur={rayon} onChange={setRayon} />
-              </div>
-            </div>
+      <div className="mt-5 grid gap-3.5 lg:grid-cols-[340px_minmax(0,1fr)]">
+        <div className={`${CLASSE_CARTE} flex flex-col p-[18px]`}>
+          <label htmlFor="kp-adresse" className={ETIQUETTE}>{commune ? "Commune" : "Adresse"}</label>
+          <div className="relative">
+            <input id="kp-adresse" value={adresse} autoComplete="off"
+              onChange={(ev) => { setAdresse(ev.target.value); if (ev.target.value !== choisie.current) setPoint(null); }}
+              placeholder={commune ? "Cannes" : "49 rue Dabray, 06000 Nice"} className={CHAMP} />
+            {suggestions.length > 0 && (
+              <ul className="absolute left-0 right-0 top-[44px] z-20 m-0 list-none overflow-hidden rounded-[12px] border border-trait bg-surface-pleine p-1 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+                {suggestions.map((s) => (
+                  <li key={s.label}>
+                    <button type="button" onClick={() => { choisie.current = s.label; setAdresse(s.label); setPoint(Number.isFinite(s.lat) && Number.isFinite(s.lon) ? { lat: s.lat, lon: s.lon, label: s.label } : null); setSuggestions([]); }}
+                      style={{ background: "transparent" }} className="block w-full rounded-[8px] px-3 py-2 text-left text-[13.5px] text-craie hover:!bg-relief hover:text-encre max-md:py-3">{s.label}</button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <button type="button" onClick={() => setVoletOuvert((v) => !v)} aria-expanded={voletOuvert} style={{ background: "transparent" }}
-            className="mt-5 flex w-full items-center justify-between rounded-[12px] border border-trait px-4 py-2.5 text-left hover:border-bord-doux">
-            <span className="flex items-center gap-2 text-[14px] text-encre"><SlidersHorizontal className="h-4 w-4 text-ardoise" />Recherche multi-critères{nbCriteres ? <Statut couleur="menthe">{nbCriteres}</Statut> : null}</span>
-            <ChevronDown className={`h-4 w-4 text-ardoise transition-transform ${voletOuvert ? "rotate-180" : ""}`} />
-          </button>
-          {voletOuvert && (
-            <div className="mt-3">
-              <Criteres groupes={groupes} choix={criteres} onChoix={(cle, v) => setCriteres((c) => ({ ...c, [cle]: v }))} />
-              <p className="m-0 mt-3 text-[12.5px] leading-[1.6] text-brume">Dans un groupe, une option suffit ; entre les groupes, il faut tout. Une option barrée n&apos;a pas de source ouverte : elle n&apos;est pas proposée plutôt que devinée.</p>
-            </div>
+          <label htmlFor="kp-activite" className={`${ETIQUETTE} mt-4`}>Type de commerce</label>
+          <input id="kp-activite" list="metiers-prospective" value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant… ou vide pour tous"
+            className={CHAMP} />
+          <datalist id="metiers-prospective">{metiers.map((m) => <option key={m} value={m} />)}</datalist>
+
+          <p className={`${ETIQUETTE} mt-4`}>Zone</p>
+          <Filtres label="Zone" options={[["adresse", "Autour de l'adresse"], ["commune", "Commune entière"]]} valeur={zone} onChange={setZone} className="-ml-1" />
+
+          {!commune && (
+            <>
+              <p className={`${ETIQUETTE} mt-4`}>Rayon</p>
+              <Filtres label="Rayon" options={RAYONS.map((r) => [r, metres(r)])} valeur={rayon} onChange={setRayon} className="-ml-1" />
+            </>
           )}
 
-          <p className="mt-4 mb-0 text-[12.5px] leading-[1.6] text-brume">Les devantures viennent d&apos;OpenStreetMap, les sociétés de l&apos;annuaire des entreprises, les murs du fichier des personnes morales. Aucun crédit dépensé.</p>
-          <BoutonPrincipal className="mt-4" onClick={() => lancer.mutate()} disabled={lancer.isPending || adresse.trim().length < 5}>
-            {lancer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}Lancer la prospection
+          <p className={`${ETIQUETTE} mt-4`}>Critères · {nbCriteres}</p>
+          <div className="relative">
+            <button type="button" data-ouvre-criteres onClick={() => setVoletOuvert((v) => !v)} aria-expanded={voletOuvert} style={{ background: "transparent" }}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-[8px] border border-dashed border-bord-doux text-[13.5px] text-craie hover:border-bord-vif hover:text-encre">
+              <Plus className="h-4 w-4" />Ajouter un groupe de critères
+            </button>
+            {voletOuvert && <VoletCriteres groupes={groupes} choix={criteres} onChoix={(cle, v) => setCriteres((c) => ({ ...c, [cle]: v }))} onFermer={fermerVolet} />}
+          </div>
+          <p className="m-0 mt-2 text-[12.5px] leading-[1.5] text-ardoise">Dans un groupe, une option suffit ; entre les groupes, il faut tout.</p>
+
+          <BoutonPrincipal className="mt-5 w-full !h-10 !rounded-[8px]" onClick={() => lancer.mutate()} disabled={lancer.isPending || adresse.trim().length < 5}>
+            {lancer.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Lancer la prospection
           </BoutonPrincipal>
+          <p className="m-0 mt-3 text-[12.5px] text-ardoise">Aucun crédit dépensé.</p>
         </div>
 
-        <h2 className="mt-8 mb-2.5 text-[15px] font-medium text-encre">Prospections réalisées</h2>
-        {!prospections.length ? <p className="m-0 text-[13.5px] text-brume">Aucune pour l&apos;instant.</p> : (
-          <div className={CLASSE_TABLEAU}>
-            <table className={`${CLASSE_TABLE} min-w-[720px]`}>
-              <colgroup><col /><col className="w-[200px]" /><col className="w-[90px]" /><col className="w-[140px]" /><col className="w-[190px]" /></colgroup>
-              <thead><tr>
-                <th className={CLASSE_TH}>Adresse</th><th className={CLASSE_TH}>Activité</th><th className={CLASSE_TH}>Rayon</th>
-                <th className={CLASSE_TH}>Retenus</th><th className={CLASSE_TH}>Date</th>
-              </tr></thead>
-              <tbody>
-                {prospections.map((x) => (
-                  <tr key={x.id} onClick={() => setOuverte(x.id)} className="cursor-pointer hover:bg-relief">
-                    <td className={CLASSE_TD} title={x.libelle || x.adresse}>{x.libelle || x.adresse}</td>
-                    <td className={CLASSE_TD} title={x.activite || ""}>{x.activite || "Tous"}</td>
-                    <td className={`${CLASSE_TD} tabular-nums`}>{metres(x.rayon_m)}</td>
-                    <td className={CLASSE_TD}><EtatProspection x={x} /></td>
-                    <td className={`${CLASSE_TD} tabular-nums`}>{x.etat === "en_cours" ? "-" : quand(x.fini_le || x.cree_le)}{x.par ? ` · ${x.par}` : ""}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="relative min-h-[420px] overflow-hidden rounded-[12px] border border-trait bg-rail max-lg:h-[360px]">
+          <ApercuZone point={point} rayon={rayon} commune={commune} />
+        </div>
       </div>
+
+      <h2 className="mt-8 mb-3 text-[15px] font-medium text-encre">Prospections réalisées{prospections.length ? <span className="ml-2 text-[13px] font-normal tabular-nums text-ardoise">{prospections.length}</span> : null}</h2>
+      {!prospections.length ? <p className="m-0 text-[13.5px] text-ardoise">Aucune pour l&apos;instant.</p> : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {prospections.map((x) => <CarteProspection key={x.id} x={x} onOuvrir={() => setOuverte(x.id)} />)}
+        </div>
+      )}
     </div>
   );
 }

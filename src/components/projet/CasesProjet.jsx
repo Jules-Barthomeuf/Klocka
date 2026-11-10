@@ -601,7 +601,9 @@ const TYPES_BAIL = /bail commercial|bail d[ée]rogatoire|bail professionnel|bail
 export function chapeauDeClause(id, texte, casesBail) {
   if (id === "type_bail") {
     const m = TYPES_BAIL.exec(String(texte || ""));
-    return m ? m[0].charAt(0).toUpperCase() + m[0].slice(1).toLowerCase() : null;
+    if (m) return m[0].charAt(0).toUpperCase() + m[0].slice(1).toLowerCase();
+    // « 3/6/9 », tel qu'on l'écrit dans la Pré-analyse.
+    return /\b3\s*[/-]\s*6\s*[/-]\s*9\b/.test(String(texte || "")) ? "Bail commercial 3-6-9" : null;
   }
   const cle = CASE_DE_CLAUSE[id];
   if (!cle) return null;

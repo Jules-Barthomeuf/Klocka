@@ -279,8 +279,10 @@ export async function analyser(texte, { annees = ANNEES_DEFAUT, rayon = 500, use
 
   const existante = Records.list(RECHERCHE).find((x) => x.adresse === adresse.label);
   const le = new Date().toISOString();
-  if (existante) Records.update(RECHERCHE, existante.id, { le, par: user?.email || existante.par });
-  else Records.create(RECHERCHE, { adresse: adresse.label, point, le, par: user?.email || null }, user?.email);
+  // Le résumé de la dernière lecture, pour le tableau des analyses récentes (10 nov. 2026, planche Outils).
+  const resume = { annees, prix_m2_murs: murs?.erreur ? null : murs?.prix_m2?.median ?? null, cessions: marche ? marche.n : null };
+  if (existante) Records.update(RECHERCHE, existante.id, { le, par: user?.email || existante.par, ...resume });
+  else Records.create(RECHERCHE, { adresse: adresse.label, point, le, par: user?.email || null, ...resume }, user?.email);
 
   return {
     ok: true,
@@ -306,5 +308,5 @@ export function listerRecherches(limite = 30) {
     .sort((a, b) => String(b.le).localeCompare(String(a.le)))
     .filter((x) => !vues.has(x.adresse) && vues.add(x.adresse))
     .slice(0, limite)
-    .map(({ id, adresse, point, le, par }) => ({ id, adresse, point, le, par }));
+    .map(({ id, adresse, point, le, par, annees, prix_m2_murs, cessions }) => ({ id, adresse, point, le, par, annees: annees ?? null, prix_m2_murs: prix_m2_murs ?? null, cessions: cessions ?? null }));
 }

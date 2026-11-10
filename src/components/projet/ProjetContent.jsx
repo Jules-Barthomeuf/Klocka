@@ -701,20 +701,26 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {modeEdition && editeurDocuments}
 
               {project.fichiers_projet && project.fichiers_projet.length > 0 ? (
+                // Au dessin des autres onglets (10 nov. 2026, Jules) : une carte titrée, comme le PV d'AG ou les résolutions,
+                // et des lignes à filets dedans, au texte des autres cartes.
                 <Bloc id="documents-liste" titre="Documents">
-                <Carte className="overflow-hidden">
-                  {project.fichiers_projet.map((fichier, idx) => (
-                    <a key={idx} href={fichier.url} target="_blank" rel="noopener noreferrer"
-                      className={`flex items-center justify-between gap-4 px-7 py-4 max-md:px-5 group hover:bg-relief transition-colors ${idx > 0 ? "border-t border-trait" : ""}`}>
-                      <div className="flex items-center gap-4 min-w-0">
-                        <FileText className="w-4 h-4 text-menthe flex-shrink-0" />
-                        <span className="text-[15px] text-encre truncate group-hover:text-menthe-clair transition-colors">{fichier.nom}</span>
-                      </div>
-                      <span className="flex items-center gap-2 text-[12.5px] text-ardoise group-hover:text-menthe-clair transition-colors flex-shrink-0">
-                        Télécharger <Download className="w-3.5 h-3.5" />
-                      </span>
-                    </a>
-                  ))}
+                <Carte className="mb-5 p-7 max-md:p-5">
+                  <SectionLabel>Documents</SectionLabel>
+                  <ul className="m-0 list-none border-b border-trait p-0">
+                    {project.fichiers_projet.map((fichier, idx) => (
+                      <li key={idx} className="border-t border-trait">
+                        <a href={fichier.url} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between gap-4 py-3.5">
+                          <span className="flex min-w-0 items-center gap-3">
+                            <FileText className="h-4 w-4 flex-shrink-0 text-ardoise" />
+                            <span className="truncate text-[15px] text-craie transition-colors group-hover:text-encre">{fichier.nom}</span>
+                          </span>
+                          <span className="flex flex-shrink-0 items-center gap-1.5 text-[13.5px] text-ardoise transition-colors group-hover:text-encre">
+                            Télécharger <Download className="h-3.5 w-3.5" />
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 </Carte>
                 </Bloc>
               ) : (

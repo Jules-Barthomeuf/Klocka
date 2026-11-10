@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "react-router-dom";
-import { Loader2, ChevronLeft, Trash2, Printer, AlertTriangle } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { Loader2, ChevronLeft, Trash2, Printer, AlertTriangle, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { createPageUrl } from "@/utils";
-import { BoutonOutil, BoutonPrincipal, CLASSE_CARTE, CLASSE_TABLE, CLASSE_TABLEAU, CLASSE_TD, CLASSE_TH, classeCase, Filtres, TitrePage, TRANSPARENT } from "@/components/mandataire/elements";
-import { couleurStatut } from "@/lib/couleur-statut";
+import { BoutonOutil, BoutonPrincipal, CLASSE_CARTE, Filtres, Statut, TRANSPARENT } from "@/components/mandataire/elements";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { Etoiles } from "@/components/alx/alx-commun";
@@ -13,9 +11,9 @@ import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 
 // K-Expertise : l'étude d'implantation d'une adresse.
 //
-// Deux écrans (10 nov. 2026, Jules : planche Outils) : le formulaire sur une
-// ligne, l'étude en cours sur une ligne et le tableau des expertises, puis le
-// rapport. Une étude prend plusieurs minutes la première fois, le registre
+// Deux écrans (10 nov. 2026, Jules : écran d'arrivée) : l'arrivée (le
+// formulaire sur une ligne, une carte par étude en cours, les rapports en
+// grille, les chapitres à droite), puis le rapport. Une étude prend plusieurs minutes la première fois, le registre
 // d'une grande ville se lit page par page : la ligne en cours le dit. Le rapport,
 // dans le verre de Klocka : les mêmes panneaux translucides que le panneau
 // l'habit des six cartes du tableau de bord K-Data — bg-surface, filet trait,
@@ -474,33 +472,62 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
   );
 }
 
-// ── L'expertise en cours : une ligne ───────────────────────────────────────
+// ── L'écran d'arrivée ──────────────────────────────────────────────────────
 
-// Plus d'écran plein pendant l'étude (10 nov. 2026, Jules : planche Outils) :
-// une ligne sous le formulaire, la barre qui avance et l'étape du moment. La
-// liste reste lisible derrière, et l'étude continue si l'on quitte la page.
-function EnCours({ expertise: e }) {
-  const etape = (e?.etapes || []).find((s) => s.etat === "en_cours") || (e?.etapes || []).find((s) => s.etat === "a_faire");
-  const avance = e?.progression || 0;
+// L'écran d'arrivée (10 nov. 2026, Jules : écran d'arrivée) : le titre au style du cadre des Outils, le lancement
+// sur une ligne, une carte par étude qui tourne, puis les rapports en grille de trois. À droite, ce que contient
+// le rapport, chapitre par chapitre. Le rapport imprimé, lui, ne change pas.
+
+const CHAPITRES = [
+  ["Le quartier", "Revenus, CSP, population, entreprises."],
+  ["L'emplacement", "PLU, transports."],
+  ["Les flux", "Indice sur 100, générateurs de flux."],
+  ["La rue", "Commerces et ancienneté."],
+  ["Le tronçon", "Côté pair et côté impair."],
+  ["Les zones de chalandise", "Résidents, ménages et revenus à 5, 10 et 15 minutes à pied."],
+];
+
+// « jules@klocka.immo » devient « Jules ».
+const PAR = (email) => {
+  const n = email ? String(email).split("@")[0] : "";
+  return n ? n.charAt(0).toUpperCase() + n.slice(1) : "";
+};
+const minuscule = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : "");
+const CHAMP = "h-10 w-full rounded-[8px] border border-bord-doux bg-fond px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]";
+
+/** Une étude qui tourne : l'adresse, la barre, le pourcentage et l'étape du moment. */
+function EnCours({ expertise: x }) {
+  const avance = x.progression || 0;
   return (
-    <div className={`${CLASSE_CARTE} flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3`}>
-      <span className="min-w-0 truncate text-[14px] text-encre">{e?.libelle || e?.adresse}{e?.activite && <span className="text-ardoise"> · {e.activite}</span>}</span>
-      <span className="h-1.5 min-w-[120px] flex-[1_1_200px] overflow-hidden rounded-full bg-relief">
+    <div className={`${CLASSE_CARTE} flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3`}>
+      <span className="min-w-0 truncate text-[14px] font-medium text-encre">
+        {x.libelle || x.adresse}{x.activite && <span className="font-normal text-ardoise"> · {minuscule(x.activite)}</span>}
+      </span>
+      <span className="h-1 min-w-[120px] flex-[1_1_200px] overflow-hidden rounded-full bg-relief">
         <span className="block h-full rounded-full bg-menthe transition-[width] duration-700" style={{ width: `${Math.max(4, avance)}%` }} />
       </span>
-      <span className="inline-flex items-center gap-1.5 text-[13px] tabular-nums text-craie">
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />{avance} %{etape ? ` · ${etape.nom}` : ""}
-      </span>
-      <span className="text-[12.5px] text-ardoise">Vous pouvez quitter la page</span>
+      <span className="text-[12.5px] tabular-nums text-craie">{avance} %{x.etape ? ` · ${x.etape}` : ""}</span>
     </div>
   );
 }
 
-// ── La page ────────────────────────────────────────────────────────────────
-
-const ETAT_LIBELLE = (x) => (x.etat === "en_cours" ? `En cours, ${x.progression || 0} %` : x.etat === "echec" ? "Échouée" : "Terminée");
-const PAR = (email) => (email ? String(email).split("@")[0] : "—");
-const CHAMP = "h-9 w-full rounded-[10px] border border-bord-doux bg-fond px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:h-10 max-md:text-[16px]";
+/** Un rapport : l'icône et l'état en tête, l'adresse, puis l'indice en grand. Échoué : « À relancer ». */
+function CarteRapport({ expertise: x, onClick }) {
+  const echec = x.etat === "echec";
+  return (
+    <button type="button" onClick={onClick}
+      className={`${CLASSE_CARTE} !bg-rail flex min-h-[195px] w-full flex-col p-4 text-left transition-colors hover:border-bord-doux`}>
+      <span className="flex w-full items-center justify-between gap-2">
+        <FileText className="h-4 w-4 text-ardoise" />
+        <Statut>{echec ? "Échouée" : "Terminée"}</Statut>
+      </span>
+      <span className="mt-4 block w-full truncate text-[14px] font-medium text-encre" title={x.libelle || x.adresse}>{x.libelle || x.adresse}</span>
+      <span className="mt-0.5 block w-full truncate text-[12.5px] text-ardoise">{x.activite}</span>
+      <span className="mt-auto block pt-6 text-[20px] font-medium tabular-nums text-encre">{echec ? "À relancer" : x.indice != null ? `${x.indice} / 100` : "Sans indice"}</span>
+      <span className="mt-0.5 block text-[12.5px] text-ardoise">{[echec ? null : "Indice d'emplacement", PAR(x.par), quand(x.fini_le || x.cree_le)].filter(Boolean).join(" · ")}</span>
+    </button>
+  );
+}
 
 export default function KExpertise() {
   const user = useUser();
@@ -511,9 +538,16 @@ export default function KExpertise() {
   // L'adresse retenue dans la liste : le champ la contient, on ne repropose rien.
   const choisie = useRef("");
   const [ouverte, setOuverte] = useState(null);
-  const [filtre, setFiltre] = useState("toutes");
+  const [filtre, setFiltre] = useState("tous");
+  const [mecanique, setMecanique] = useState(false);
 
-  const { data } = useQuery({ queryKey: ["kexpertise"], queryFn: () => base44.request("GET", "/api/kexpertise"), enabled: user?.role === "admin" });
+  // La liste se relit tant qu'une étude tourne : les cartes « En cours » avancent seules.
+  const { data } = useQuery({
+    queryKey: ["kexpertise"],
+    queryFn: () => base44.request("GET", "/api/kexpertise"),
+    enabled: user?.role === "admin",
+    refetchInterval: (q) => ((q.state.data?.expertises || []).some((x) => x.etat === "en_cours") ? 2500 : false),
+  });
   const expertises = data?.expertises || [];
 
   // L'expertise ouverte se relit toutes les deux secondes tant qu'elle avance.
@@ -541,8 +575,9 @@ export default function KExpertise() {
     return () => clearTimeout(t);
   }, [adresse]);
 
+  // Lancer prend l'adresse et l'activité en paramètre : le formulaire, ou une carte échouée qu'on relance telle quelle.
   const lancer = useMutation({
-    mutationFn: () => base44.request("POST", "/api/kexpertise", { body: { adresse, activite } }),
+    mutationFn: (v) => base44.request("POST", "/api/kexpertise", { body: v }),
     onSuccess: (r) => { setOuverte(r.id); setSuggestions([]); qc.invalidateQueries({ queryKey: ["kexpertise"] }); },
     onError: (err) => toast.error(err?.message || "Lancement impossible"),
   });
@@ -553,10 +588,10 @@ export default function KExpertise() {
 
   const dejaEnBase = useMemo(() => expertises.find((x) => x.etat === "terminee" && x.adresse.trim().toLowerCase() === adresse.trim().toLowerCase()), [expertises, adresse]);
 
-  // Les filtres de la liste : toutes, les miennes, celles qui tournent encore.
-  const nbEnCours = expertises.filter((x) => x.etat === "en_cours").length;
-  const visibles = filtre === "miennes" ? expertises.filter((x) => x.par && x.par === user?.email)
-    : filtre === "en_cours" ? expertises.filter((x) => x.etat === "en_cours") : expertises;
+  // Les études qui tournent ont leurs cartes ; la grille ne garde que les rapports, tous ou les miens.
+  const enCours = expertises.filter((x) => x.etat === "en_cours");
+  const rapports = expertises.filter((x) => x.etat !== "en_cours");
+  const visibles = filtre === "miens" ? rapports.filter((x) => x.par && x.par === user?.email) : rapports;
 
   // Ouverte depuis la file de K-Data : « ?id=… » désigne l'expertise à lire.
   const { search } = useLocation();
@@ -576,83 +611,92 @@ export default function KExpertise() {
     return <div className="min-h-screen py-[22px]"><Rapport expertise={e} user={user} onRetour={() => setOuverte(null)} onSupprimer={() => { if (window.confirm("Supprimer cette expertise ?")) supprimer.mutate(e.id); }} /></div>;
   }
 
-  const lancerSiPret = (ev) => { ev.preventDefault(); if (!lancer.isPending && adresse.trim().length >= 5) lancer.mutate(); };
+  const lancerSiPret = (ev) => { ev.preventDefault(); if (!lancer.isPending && adresse.trim().length >= 5) lancer.mutate({ adresse, activite }); };
+  const relancer = (x) => { if (!lancer.isPending) lancer.mutate({ adresse: x.adresse, activite: x.activite }); };
 
-  // La page au dessin des pages de Klocka (10 nov. 2026, Jules : planche Outils) : le lien vers les Outils, le titre
-  // de 24 px et son compteur, le lancement sur une ligne, l'étude en cours sur une ligne, puis le tableau.
   return (
-    <div className="min-h-screen px-5 py-[22px] text-encre md:px-8">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
-        <div className="flex flex-col gap-1.5">
-          <Link to={createPageUrl("KData")} className="self-start text-[13px] text-ardoise no-underline hover:text-encre">← Outils</Link>
-          <TitrePage titre="K-Expertise" nombre={expertises.length || null} className="md:!pr-[112px]" />
-          <p className="m-0 text-[13.5px] text-ardoise">L&apos;étude d&apos;implantation d&apos;une adresse : quartier, emplacement, flux, rue, tronçon, zones de chalandise.</p>
-        </div>
+    <div className="px-10 pb-12 pt-6 text-encre max-md:px-4 max-md:pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 text-[20px] font-medium text-encre">K-Expertise{expertises.length ? <span className="ml-2 text-[14px] font-normal tabular-nums text-ardoise">{expertises.length}</span> : null}</h1>
+        <button type="button" onClick={() => setMecanique((o) => !o)} aria-expanded={mecanique} style={TRANSPARENT}
+          className="inline-flex h-8 items-center rounded-[8px] border border-bord-doux px-3 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre">D&apos;où viennent les chiffres</button>
+      </div>
+      <p className="m-0 mt-1 text-[13.5px] text-ardoise">L&apos;étude d&apos;implantation d&apos;une adresse, rendue en un rapport.</p>
+      {mecanique && <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="La mécanique : d'où viennent ces chiffres" className="mt-4" ouvertDepart />}
 
-        {/* Le lancement tient sur une ligne. */}
-        <form onSubmit={lancerSiPret} className={`${CLASSE_CARTE} px-4 py-3.5`}>
-          <div className="flex flex-wrap items-end gap-2.5">
-            <label className="flex min-w-0 flex-[1_1_220px] flex-col gap-1.5 text-[12.5px] text-ardoise">Type de commerce
-              <input value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant… ou vide pour tous" className={CHAMP} />
-            </label>
-            <div className="relative flex min-w-0 flex-[2_1_320px] flex-col gap-1.5">
-              <label htmlFor="kexpertise-adresse" className="text-[12.5px] text-ardoise">Adresse précise</label>
-              <input id="kexpertise-adresse" value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="48 rue Basfroi, 75011 Paris" autoComplete="off" className={CHAMP} />
-              {suggestions.length > 0 && (
-                <ul className="absolute left-0 right-0 top-full z-20 m-0 mt-1 list-none overflow-hidden rounded-[14px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
-                  {suggestions.map((s) => <li key={s}><button type="button" style={TRANSPARENT} onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13.5px] text-craie hover:!bg-relief hover:text-encre">{s}</button></li>)}
-                </ul>
-              )}
+      <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="flex min-w-0 flex-col">
+          {/* Le lancement tient sur une ligne. */}
+          <form onSubmit={lancerSiPret} className={`${CLASSE_CARTE} p-4`}>
+            <div className="flex flex-wrap items-end gap-2.5">
+              <label className="flex min-w-0 flex-[1_1_220px] flex-col gap-1.5 text-[12.5px] text-ardoise">Type de commerce
+                <input value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant… ou vide pour tous" className={CHAMP} />
+              </label>
+              <div className="relative flex min-w-0 flex-[1.7_1_320px] flex-col gap-1.5">
+                <label htmlFor="kexpertise-adresse" className="text-[12.5px] text-ardoise">Adresse précise</label>
+                <input id="kexpertise-adresse" value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="48 rue Basfroi, 75011 Paris" autoComplete="off" className={CHAMP} />
+                {suggestions.length > 0 && (
+                  <ul className="absolute left-0 right-0 top-full z-20 m-0 mt-1 list-none overflow-hidden rounded-[12px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+                    {suggestions.map((s) => <li key={s}><button type="button" style={TRANSPARENT} onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13.5px] text-craie hover:!bg-relief hover:text-encre">{s}</button></li>)}
+                  </ul>
+                )}
+              </div>
+              <BoutonPrincipal type="submit" disabled={lancer.isPending || adresse.trim().length < 5} className="!h-10 !rounded-[8px] !px-4">
+                {lancer.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Lancer l&apos;expertise
+              </BoutonPrincipal>
             </div>
-            <BoutonPrincipal type="submit" disabled={lancer.isPending || adresse.trim().length < 5} className="h-9">
-              {lancer.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Lancer l&apos;expertise
-            </BoutonPrincipal>
-          </div>
-          <p className="m-0 mt-2.5 text-[12.5px] leading-[1.55] text-brume">
+          </form>
+          <p className="m-0 mt-2 text-[12.5px] text-ardoise">
             {dejaEnBase ? "Cette adresse a déjà une expertise terminée : la relancer reprend l'étude en base si elle a moins de trente jours."
-              : "Une expertise lit des sources ouvertes : Sirene, OpenStreetMap, IGN, INSEE. Les flux sont estimés, pas comptés. Une même adresse et une même activité, dans les trente jours, reprennent l'étude en base."}
+              : "Une même adresse et une même activité, dans les trente jours, reprennent l'étude en base."}
           </p>
-        </form>
 
-        {/* En cours : une ligne. L'échec : une ligne aussi, avec son message. */}
-        {ouverte && e?.etat === "en_cours" && <EnCours expertise={e} />}
-        {ouverte && e?.etat === "echec" && (
-          <div className={`${CLASSE_CARTE} flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3`}>
-            <AlertTriangle className="h-4 w-4 flex-none text-alerte" />
-            <span className="min-w-0 flex-1 text-[14px] text-alerte">{e.erreur || "L'expertise n'a pas abouti."}</span>
-            <span className="text-[13px] text-ardoise">{e.libelle || e.adresse}</span>
-            <BoutonOutil onClick={() => setOuverte(null)}>Fermer</BoutonOutil>
-          </div>
-        )}
-
-        <section aria-labelledby="t-expertises" className="flex flex-col gap-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            <h2 id="t-expertises" className="m-0 text-[15px] font-medium text-encre">Expertises réalisées</h2>
-            <Filtres label="Filtres des expertises" valeur={filtre} onChange={setFiltre}
-              options={[["toutes", "Toutes", expertises.length || null], ["miennes", "Les miennes"], ["en_cours", "En cours", nbEnCours || null]]} />
-          </div>
-          {!visibles.length ? <p className="m-0 text-[13.5px] text-brume">{expertises.length ? "Aucune dans ce filtre." : "Aucune pour l'instant."}</p> : (
-            <div className={CLASSE_TABLEAU}>
-              <table className={`${CLASSE_TABLE} min-w-[720px]`}>
-                <colgroup><col /><col className="w-[200px]" /><col className="w-[110px]" /><col className="w-[150px]" /><col className="w-[140px]" /><col className="w-[110px]" /></colgroup>
-                <thead><tr><th className={CLASSE_TH}>Adresse</th><th className={CLASSE_TH}>Activité</th><th className={CLASSE_TH}>Emplacement</th><th className={CLASSE_TH}>État</th><th className={CLASSE_TH}>Par</th><th className={CLASSE_TH}>Date</th></tr></thead>
-                <tbody>
-                  {visibles.map((x) => (
-                    <tr key={x.id} onClick={() => setOuverte(x.id)} className="cursor-pointer hover:bg-relief">
-                      <td className={CLASSE_TD} title={x.libelle || x.adresse}>{x.libelle || x.adresse}</td>
-                      <td className={CLASSE_TD}>{x.activite}</td>
-                      <td className={`${CLASSE_TD} tabular-nums`}>{x.indice != null ? `${x.indice} / 100` : ""}</td>
-                      <td className={`${CLASSE_TD} ${classeCase(couleurStatut(ETAT_LIBELLE(x)))}`}>{ETAT_LIBELLE(x)}</td>
-                      <td className={CLASSE_TD} title={x.par || ""}>{PAR(x.par)}</td>
-                      <td className={`${CLASSE_TD} tabular-nums`}>{quand(x.fini_le || x.cree_le)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* L'échec d'une étude qu'on vient de lancer : une ligne, avec son message. */}
+          {ouverte && e?.etat === "echec" && (
+            <div className={`${CLASSE_CARTE} mt-4 flex flex-wrap items-center gap-x-3.5 gap-y-2 px-4 py-3`}>
+              <AlertTriangle className="h-4 w-4 flex-none text-alerte" />
+              <span className="min-w-0 flex-1 text-[14px] text-alerte">{e.erreur || "L'expertise n'a pas abouti."}</span>
+              <span className="text-[13px] text-ardoise">{e.libelle || e.adresse}</span>
+              <BoutonOutil onClick={() => setOuverte(null)}>Fermer</BoutonOutil>
             </div>
           )}
-          {visibles.length > 0 && <p className="m-0 text-[12.5px] text-brume">Une ligne ouvre le rapport, qui s&apos;imprime en PDF.</p>}
-        </section>
+
+          {enCours.length > 0 && (
+            <section aria-labelledby="t-en-cours" className="mt-6 flex flex-col gap-2.5">
+              <h2 id="t-en-cours" className="m-0 text-[15px] font-medium text-encre">En cours<span className="ml-2 text-[13px] font-normal tabular-nums text-ardoise">{enCours.length}</span></h2>
+              {enCours.map((x) => <EnCours key={x.id} expertise={x} />)}
+            </section>
+          )}
+
+          <section aria-labelledby="t-rapports" className="mt-6 flex flex-col gap-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <h2 id="t-rapports" className="m-0 text-[15px] font-medium text-encre">Rapports{rapports.length ? <span className="ml-2 text-[13px] font-normal tabular-nums text-ardoise">{rapports.length}</span> : null}</h2>
+              <Filtres label="Filtres des rapports" valeur={filtre} onChange={setFiltre} options={[["tous", "Tous"], ["miens", "Les miens"]]} />
+            </div>
+            {!visibles.length ? <p className="m-0 text-[13.5px] text-brume">{rapports.length ? "Aucun dans ce filtre." : "Aucun rapport pour l'instant."}</p> : (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {visibles.map((x) => <CarteRapport key={x.id} expertise={x} onClick={() => (x.etat === "echec" ? relancer(x) : setOuverte(x.id))} />)}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Ce que contient le rapport, chapitre par chapitre. */}
+        <aside aria-labelledby="t-chapitres" className="min-w-0">
+          <h2 id="t-chapitres" className="m-0 mb-3 text-[14px] font-medium text-encre">Le rapport, chapitre par chapitre</h2>
+          <ol className="m-0 list-none border-t border-trait p-0">
+            {CHAPITRES.map(([titre, detail], i) => (
+              <li key={titre} className="flex gap-4 border-b border-trait py-2.5">
+                <span className="w-3 flex-none text-[12.5px] tabular-nums text-menthe-texte">{i + 1}</span>
+                <span className="min-w-0">
+                  <span className="block text-[14px] text-encre">{titre}</span>
+                  <span className="block text-[12.5px] leading-[1.45] text-ardoise">{detail}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="m-0 mt-3 text-[12.5px] leading-[1.55] text-ardoise">Sources : Sirene, OpenStreetMap, IGN, INSEE. Le rapport s&apos;imprime tel quel en PDF.</p>
+        </aside>
       </div>
     </div>
   );

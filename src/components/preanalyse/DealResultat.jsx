@@ -77,6 +77,8 @@ const LIGNES_BIEN = [
   { id: "loyer", element: "Loyer annuel HT HC", champs: ["loyer_annuel_ht_hc"] },
   { id: "loyer_marche", element: "Loyer marché", marche: "loyer" },
   { id: "occupe", element: "Occupé", champs: ["occupe"] },
+  // Le nom du locataire a sa ligne, au-dessus de l'activité (10 nov. 2026, Jules) : le projet le reprend.
+  { id: "nom_locataire", element: "Nom du locataire", info: true },
   { id: "activite", element: "Activité", champs: ["categorie_activite", "activite_exclue"] },
   { id: "enseigne", element: "Qualité de l'enseigne", champs: ["signature", "locataire_nom"] },
   { id: "emplacement", element: "Adresse et emplacement", champs: ["emplacement"] },
@@ -288,7 +290,7 @@ function notesMarche(m, marche) {
   return notes;
 }
 
-function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
+function TableauBien({ lot, dealId = null, verdictChoisi = "", onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
   // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
   const { data: marche, isLoading: marcheEnLecture } = useQuery({
     queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2), texteBrut("adresse", lot.lot?.adresse)],
@@ -354,14 +356,9 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
           </div>
         );
       case "occupe": return champ("occupe");
+      case "nom_locataire": return champ("locataire_nom");
       case "activite": return champ("locataire_activite");
-      case "enseigne":
-        return (
-          <span className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            {champ("locataire_nom")}
-            {signature && <span className="text-[12.5px] text-ardoise">{signature}</span>}
-          </span>
-        );
+      case "enseigne": return <span className={`text-[13.5px] ${signature ? "text-encre" : "text-brume"}`}>{signature || "À qualifier"}</span>;
       case "emplacement":
         // L'adresse sous l'emplacement (17 oct. 2026, Jules) : la changer déplace Street View et le plan, et l'emplacement repasse à vérifier.
         return (
@@ -477,9 +474,40 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
               </React.Fragment>
             );
           })}
+          {dealId && <LigneVerdict dealId={dealId} initial={verdictChoisi} apercu={apercu} />}
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Le verdict de l'équipe, en dernière ligne du tableau (10 nov. 2026, Jules : « une ligne avec les choix, en couleur ») :
+ * les quatre choix côte à côte, le retenu dans sa couleur ; un second clic le retire.
+ */
+function LigneVerdict({ dealId, initial = "", apercu = false }) {
+  const [choisi, setChoisi] = useState(initial || "");
+  useEffect(() => { setChoisi(initial || ""); }, [initial]);
+  const choisir = (v) => {
+    const avant = choisi;
+    const suivant = v === choisi ? "" : v;
+    setChoisi(suivant);
+    base44.request("POST", `/api/preanalyse/dossiers/${dealId}/verdict`, { body: { verdict: suivant || null } })
+      .catch((e) => { setChoisi(avant); toast.error(e?.message || "Verdict non enregistré"); });
+  };
+  return (
+    <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-2.5 max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-[7px]`}>
+      <span className="text-[13.5px] leading-[1.4] text-encre">Verdict</span>
+      <div role="group" aria-label="Verdict du dossier" className="col-span-2 flex flex-wrap gap-1.5 max-lg:col-span-1">
+        {Object.entries(VERDICTS).map(([cle, v]) => (
+          <button key={cle} type="button" disabled={apercu} aria-pressed={choisi === cle} onClick={() => choisir(cle)}
+            className={`rounded-full border px-3 py-0.5 text-[12.5px] transition-colors disabled:cursor-default ${choisi === cle ? v.classe : "border-trait text-ardoise hover:text-encre"}`}
+            style={choisi === cle ? undefined : { background: "transparent" }}>
+            {v.libelle}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1151,6 +1179,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                 onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })}
                 titre="Fiche du bien"
                 dealId={dossier?.deal_id || null}
+                verdictChoisi={dossier?.verdict_choisi?.valeur || ""}
                 onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
                 enNote={noter.isPending ? noter.variables?.ligne : null}
               />

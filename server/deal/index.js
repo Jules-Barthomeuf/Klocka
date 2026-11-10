@@ -385,6 +385,9 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
     const { lancerRechercheMarche } = await import('../alex.js');
     lancerRechercheMarche(dealId, indexLot, { forcer: true, automatique: true });
   }
+  // Une case de la Pré-analyse corrigée passe aussi dans le projet (10 nov. 2026, Jules : « synchronisé avec le projet ») ;
+  // une case modifiée à la main dans le projet n'en bouge pas.
+  if (indexLot === 0 && dossier.projet_id) await (await import('./projet.js')).projetSuitLeDossier(dealId);
 
   return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot }, ...(nouveauNom ? { nom: nouveauNom } : {}) };
 }

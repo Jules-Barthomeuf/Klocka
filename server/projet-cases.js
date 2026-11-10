@@ -369,6 +369,16 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
     cas('taxe_refacturee', 'Taxes refacturées', ouiNon(taxeFonciereCourte(v('taxe_fonciere'), v('charges')), 'Refacturée', 'Non refacturée'), v('taxe_fonciere') || v('charges'), ['taxe_fonciere', 'charges']),
   ];
   const analyse = ANALYSE_BAIL.filter(([id]) => v(id)).map(([id, titre]) => ({ id, titre, texte: phraseSimple(v(id)), source: source(id) }));
+  // Le type de bail de la Pré-analyse passe devant celui lu dans les pièces, qui reste dessous en détail (10 nov. 2026,
+  // Jules : « reprend pas le type de bail mis dans la préanalyse »).
+  const typeBail = texte(projet.type_bail) || (lot?.bail_type?.absent === false ? texte(lot.bail_type.valeur) : '');
+  if (typeBail) {
+    const i = analyse.findIndex((x) => x.id === 'type_bail');
+    const lu = i >= 0 ? analyse[i].texte : '';
+    const t = !lu || lu.toLowerCase().includes(typeBail.toLowerCase()) ? (lu || typeBail) : `${typeBail}\n\n${lu}`;
+    if (i >= 0) analyse[i] = { ...analyse[i], texte: t };
+    else analyse.unshift({ id: 'type_bail', titre: 'Type de bail', texte: t, source: null });
+  }
 
   // --- Copropriété : les PV d'AG ----------------------------------------------
   const copropriete = [

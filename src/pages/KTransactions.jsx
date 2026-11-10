@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
-import { Search, Play, Loader2, ExternalLink, X } from "lucide-react";
+import { Loader2, ExternalLink, MapPin, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
@@ -10,7 +10,7 @@ import { createPageUrl } from "@/utils";
 import CartePoints from "@/components/kdata/CartePoints";
 import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 import {
-  BoutonPrincipal, Filtres, Statut, Cases, Ligne, TitrePage,
+  BoutonPrincipal, Filtres, Statut, Cases, TitrePage,
   CLASSE_CARTE, CLASSE_TABLEAU, CLASSE_TABLE, CLASSE_TH, CLASSE_TD,
 } from "@/components/mandataire/elements";
 
@@ -76,7 +76,7 @@ function EstCeBeaucoup({ phrase, detail }) {
   return <p className="m-0 text-[13px] leading-[1.5] text-ardoise" title={detail}>Est-ce beaucoup ? {phrase}</p>;
 }
 
-function Resultat({ r, onRetour, onAnnees, enCours, recherches, onRelancer }) {
+function Resultat({ r, onRetour, onAnnees, enCours, recherches, onRelancer, moi = null }) {
   const murs = r.murs;
   const fonds = r.fonds;
   const [choisie, setChoisie] = useState(null);
@@ -315,22 +315,49 @@ function Resultat({ r, onRetour, onAnnees, enCours, recherches, onRelancer }) {
           {r.du_cache ? " Cessions reprises du cache." : ""}
         </p>
 
-        <AnalysesRecentes recherches={recherches} onRelancer={onRelancer} className="mt-8" />
+        <MarchesLus recherches={recherches} onRelancer={onRelancer} moi={moi} className="mt-8" />
       </div>
     </div>
   );
 }
 
-function AnalysesRecentes({ recherches, onRelancer, className = "" }) {
+// 10 nov. 2026, Jules : écran d'arrivée. Les marchés déjà lus en cartes de
+// trois colonnes : l'adresse, une ligne grise (profondeur, auteur, date), puis
+// le prix médian des murs et le nombre de fonds cédés. Un clic relance
+// l'analyse avec la même adresse et la même profondeur. Les anciennes lectures
+// n'ont ni profondeur ni chiffres : un tiret, et la ligne grise s'en passe.
+function MarchesLus({ recherches, onRelancer, className = "", moi = null }) {
+  const [filtre, setFiltre] = useState("tous");
+  const lignes = filtre === "miens" ? recherches.filter((x) => x.par && x.par === moi) : recherches;
   return (
-    <section aria-labelledby="kt-recentes" className={className}>
-      <h2 id="kt-recentes" className="m-0 mb-1.5 text-[15px] font-medium text-encre">Analyses récentes</h2>
-      {!recherches.length ? <p className="m-0 text-[13.5px] text-brume">Aucune pour l&apos;instant.</p> : (
-        <div>
-          {recherches.map((x) => (
-            <Ligne key={x.id} titre={x.adresse} onClick={() => onRelancer(x.adresse)}
-              droite={<span className="text-[13px] tabular-nums text-ardoise">{quand(x.le)}{x.par ? ` · ${x.par}` : ""}</span>} />
-          ))}
+    <section aria-labelledby="kt-lus" className={className}>
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+        <h2 id="kt-lus" className="m-0 text-[15px] font-medium text-encre">Marchés déjà lus<span className="ml-2 text-[13px] font-normal tabular-nums text-ardoise">{recherches.length}</span></h2>
+        <Filtres label="Marchés à afficher" valeur={filtre} onChange={setFiltre} options={[["tous", "Tous"], ["miens", "Les miens"]]} />
+      </div>
+      {!lignes.length ? <p className="m-0 text-[13.5px] text-brume">Aucun pour l&apos;instant.</p> : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {lignes.map((x) => {
+            const ligne = [x.annees ? `${x.annees} ans` : "", String(x.par || "").split("@")[0], quand(x.le)].filter(Boolean).join(" · ");
+            return (
+              <button key={x.id} type="button" onClick={() => onRelancer(x.adresse, x.annees)}
+                className={`${CLASSE_CARTE} flex min-w-0 flex-col px-4 py-3.5 text-left hover:border-bord-doux`}>
+                <span className="truncate text-[14px] font-medium text-encre" title={x.adresse}>{x.adresse}</span>
+                {ligne && <span className="mt-0.5 truncate text-[12.5px] text-ardoise">{ligne}</span>}
+                <span className="my-3 block border-t border-trait" />
+                <span className="grid grid-cols-2 gap-3">
+                  <span className="min-w-0">
+                    <span className="block truncate text-[18px] font-medium tabular-nums text-encre">{x.prix_m2_murs ? `${euros(x.prix_m2_murs)}/m²` : "-"}</span>
+                    <span className="block truncate text-[12.5px] text-ardoise">Murs, prix médian</span>
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[18px] font-medium tabular-nums text-encre">{x.cessions ?? "-"}</span>
+                    <span className="block truncate text-[12.5px] text-ardoise">Fonds cédés</span>
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </section>
@@ -345,6 +372,7 @@ export default function KTransactions() {
   const [suggestions, setSuggestions] = useState([]);
   const choisie = useRef("");
   const [vue, setVue] = useState(null);
+  const [mecanique, setMecanique] = useState(false);
 
   const { data } = useQuery({ queryKey: ["ktransactions"], queryFn: () => base44.request("GET", "/api/ktransactions"), enabled: user?.role === "admin" });
   const recherches = data?.recherches || [];
@@ -388,53 +416,58 @@ export default function KTransactions() {
     analyser.mutate(a);
   }, [search]);
 
-  const relancer = (a) => {
+  const relancer = (a, n = null) => {
     if (analyser.isPending) return;
-    choisie.current = a; setAdresse(a); analyser.mutate(a);
+    choisie.current = a; setAdresse(a);
+    if (n) { setAnnees(n); analyser.mutate({ texte: a, annees: n }); } else analyser.mutate(a);
   };
 
   if (!user || user.role !== "admin") return null;
   if (vue) return (
     <Resultat r={vue} onRetour={() => setVue(null)} enCours={analyser.isPending}
       onAnnees={(x) => { setAnnees(x); analyser.mutate({ texte: adresse.trim() || vue.point.label, annees: x }); }}
-      recherches={recherches} onRelancer={relancer} />
+      recherches={recherches} onRelancer={relancer} moi={user?.email} />
   );
 
+  const lancer = () => { if (!analyser.isPending && adresse.trim().length >= 5) analyser.mutate(adresse); };
+
+  // 10 nov. 2026, Jules : écran d'arrivée. Une barre ronde centrée de 720 px
+  // (épingle, adresse, « Analyser le marché » dedans), la profondeur dessous,
+  // une ligne grise sur les sources, puis les marchés déjà lus en cartes.
   return (
-    <div className="relative min-h-screen px-5 py-[22px] text-encre md:px-8">
-      <div className="relative mx-auto max-w-[1500px]">
-        <EnTete titre="K-Transactions"
-          sousTitre="Ce que les murs et les fonds se sont vraiment vendus autour d'une adresse : prix au m² des locaux, prix de cession des fonds de commerce, et les comparables de la rue." />
-
-        <div className={`${CLASSE_CARTE} max-w-[760px] p-5 max-md:p-4`}>
-          <label htmlFor="kt-adresse" className="mb-1.5 block text-[12.5px] text-ardoise">Adresse</label>
-          <div className="relative">
-            <div className="flex h-10 items-center gap-2 rounded-[10px] border border-trait bg-relief px-3 focus-within:border-bord-doux">
-              <Search className="h-4 w-4 flex-shrink-0 text-brume" />
-              <input id="kt-adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="49 rue Dabray, 06000 Nice"
-                onKeyDown={(e) => { if (e.key === "Enter" && adresse.trim().length >= 5) analyser.mutate(adresse); }}
-                className="h-full w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-            </div>
-            {suggestions.length > 0 && (
-              <ul className="absolute left-0 right-0 top-[44px] z-20 m-0 list-none overflow-hidden rounded-[14px] border border-trait bg-surface-pleine p-1 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
-                {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} style={{ background: "transparent" }} className="block w-full rounded-[10px] px-3 py-2 text-left text-[13.5px] text-craie hover:!bg-relief hover:text-encre">{s}</button></li>)}
-              </ul>
-            )}
-          </div>
-
-          <p className="mb-1.5 mt-4 text-[12.5px] text-ardoise">Profondeur d&apos;historique</p>
-          <Filtres label="Profondeur d'historique" options={OPTIONS_ANNEES} valeur={annees} onChange={setAnnees} />
-
-          <p className="mb-0 mt-4 text-[12.5px] leading-[1.6] text-brume">
-            Les murs viennent de DVF, les fonds du BODACC. Sources ouvertes, aucun crédit dépensé.
-          </p>
-          <BoutonPrincipal className="mt-4" onClick={() => analyser.mutate(adresse)} disabled={analyser.isPending || adresse.trim().length < 5}>
-            {analyser.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}Analyser le marché
-          </BoutonPrincipal>
-        </div>
-
-        <AnalysesRecentes recherches={recherches} onRelancer={relancer} className="mt-8 max-w-[760px]" />
+    <div className="relative px-10 pb-12 pt-6 text-encre max-md:px-4 max-md:pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 text-[20px] font-medium text-encre">K-Transactions{recherches.length ? <span className="ml-2 text-[14px] font-normal tabular-nums text-ardoise">{recherches.length}</span> : null}</h1>
+        <button type="button" onClick={() => setMecanique((o) => !o)} aria-expanded={mecanique} className="inline-flex h-8 items-center rounded-[8px] border border-bord-doux px-3 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>D&apos;où viennent les chiffres</button>
       </div>
+      <p className="m-0 mt-1 text-[13.5px] text-ardoise">Ce que les murs et les fonds se sont vraiment vendus autour d&apos;une adresse.</p>
+      {mecanique && <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="La mécanique : d'où viennent ces chiffres" className="mt-4" ouvertDepart />}
+
+      <div className="relative mx-auto mt-14 w-full max-w-[720px] max-md:mt-8">
+        <div className="flex items-center gap-2 rounded-full border border-bord-doux bg-rail py-1.5 pl-5 pr-1.5 focus-within:border-bord-vif">
+          <MapPin className="h-4 w-4 flex-none text-ardoise" aria-hidden="true" />
+          <label htmlFor="kt-adresse" className="sr-only">Adresse</label>
+          <input id="kt-adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="49 rue Dabray, 06000 Nice"
+            onKeyDown={(e) => { if (e.key === "Enter") lancer(); }}
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+          <button type="button" onClick={lancer} disabled={analyser.isPending || adresse.trim().length < 5}
+            className="inline-flex h-10 flex-none items-center gap-2 rounded-full bg-menthe px-[18px] text-[14px] font-medium text-sur-menthe disabled:opacity-50">
+            {analyser.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Analyser le marché
+          </button>
+        </div>
+        {suggestions.length > 0 && (
+          <ul className="absolute left-0 right-0 top-[60px] z-20 m-0 list-none overflow-hidden rounded-[12px] border border-trait bg-rail p-1 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+            {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} style={{ background: "transparent" }} className="block w-full rounded-[8px] px-3 py-2 text-left text-[13.5px] text-craie hover:!bg-relief hover:text-encre">{s}</button></li>)}
+          </ul>
+        )}
+      </div>
+      <div className="mt-3.5 flex flex-wrap items-center justify-center gap-2">
+        <span className="text-[12.5px] text-ardoise">Remonter sur</span>
+        <Filtres label="Profondeur d'historique" options={OPTIONS_ANNEES} valeur={annees} onChange={setAnnees} />
+      </div>
+      <p className="m-0 mt-3 text-center text-[12.5px] text-ardoise">Les murs vendus par DVF, les fonds cédés par le BODACC. Sources ouvertes, aucun crédit dépensé.</p>
+
+      <MarchesLus recherches={recherches} onRelancer={relancer} moi={user?.email} className="mt-12 max-md:mt-8" />
     </div>
   );
 }

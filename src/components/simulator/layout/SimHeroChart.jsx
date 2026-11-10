@@ -6,8 +6,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ResponsiveContainer, ReferenceDot } from "recharts";
 import { J } from "@/design/jetons";
 
-// Les courbes du simulateur en pervenche, comme ses curseurs (8 nov. 2026, Jules).
-const PERVENCHE = "rgb(var(--k-pervenche-rgb))";
+// Les courbes du simulateur à la couleur système, l'accent du compte, comme ses curseurs (10 nov. 2026, Jules).
+const ACCENT = "rgb(var(--k-menthe-rgb))";
+// Les bâtons aussi : capital en accent clair, cash-flow en plein.
+const ACCENT_CLAIR = "rgb(var(--k-menthe-rgb) / 0.4)";
 
 const fmtK = (v) => `${Math.round(v / 1000)}`;
 
@@ -41,7 +43,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Cash-flow annuel",
         subtitle: `Projection sur ${horizon} ans`,
         bigValue: formatCurrency(calculs.indicateurs.cashFlowMoyenAn),
-        color: PERVENCHE,
+        color: ACCENT,
         data: rows.map((r) => ({ annee: `${r.annee}`, value: Math.round(r.cashFlowAnnuel) })),
       };
     }
@@ -66,7 +68,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Patrimoine net",
         subtitle: `Valeur à la revente année ${anneeRevente}`,
         bigValue: formatCurrency(calculs.revente.prixVenteNet),
-        color: PERVENCHE,
+        color: ACCENT,
         data,
         markers: { recupApport, doubleApport },
       };
@@ -97,8 +99,8 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
     return (
       <div style={{ ...tooltipStyle, padding: "10px 12px", maxWidth: 260 }}>
         <p className="text-encre text-xs font-medium mb-1">Année {label}</p>
-        <p className="text-[#7FE0D3] text-[11px]">Capital remboursé : {formatCurrency(capital)}</p>
-        <p className="text-[#1F6E64] text-[11px] mb-2" style={{ color: "#4FD1A5" }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
+        <p className="text-menthe/70 text-[11px]">Capital remboursé : {formatCurrency(capital)}</p>
+        <p className="text-menthe text-[11px] mb-2">Cash-flow annuel : {formatCurrency(cashflow)}</p>
         <p className="text-ardoise text-[11px] leading-snug border-t border-encre/10 pt-2">
           La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.
         </p>
@@ -113,7 +115,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
           <p className="text-encre text-sm font-medium">{config.title}</p>
           <p className="text-ardoise text-xs mt-0.5">{config.subtitle}</p>
         </div>
-        <p className="text-pervenche text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
+        <p className="text-menthe text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
       </div>
       <div className="h-[26rem] max-md:h-[20rem]">
         <ResponsiveContainer width="100%" height="100%">
@@ -124,8 +126,8 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} width={telephone ? 36 : 60} label={telephone ? undefined : { value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
               <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} content={<RichesseTooltip />} />
               <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: telephone ? 11 : 12, color: "#e5e7eb", paddingBottom: telephone ? 8 : 12 }} formatter={(v) => <span className="text-encre">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
-              <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
-              <Bar name="cashflow" dataKey="cashflow" fill="#1F6E64" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
+              <Bar name="capital" dataKey="capital" fill={ACCENT_CLAIR} radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
+              <Bar name="cashflow" dataKey="cashflow" fill={ACCENT} radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
             </BarChart>
           ) : (
             <AreaChart data={config.data} margin={marges}>
@@ -141,7 +143,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "#fff" }} formatter={(v) => [formatCurrency(v), ""]} />
               <Area type="monotone" dataKey="value" stroke={config.color} strokeWidth={2} fill="url(#simHeroFill)" />
               {config.markers?.recupApport && (
-                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill={PERVENCHE} stroke={J["surface-pleine"]} strokeWidth={2} isFront />
+                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill={ACCENT} stroke={J["surface-pleine"]} strokeWidth={2} isFront />
               )}
               {config.markers?.doubleApport && (
                 <ReferenceDot x={config.markers.doubleApport.annee} y={config.markers.doubleApport.value} r={6} fill="#a8894f" stroke={J["surface-pleine"]} strokeWidth={2} isFront />
@@ -154,7 +156,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
           {config.markers.recupApport && (
             <div className="flex items-center gap-2 border border-trait rounded-md px-3 py-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-pervenche flex-shrink-0" />
+              <span className="w-2.5 h-2.5 rounded-full bg-menthe flex-shrink-0" />
               <div>
                 <p className="text-encre text-xs font-medium">Récupération de l'apport</p>
                 <p className="text-ardoise text-[11px]">Année {config.markers.recupApport.annee} – Vous récupérez vos {formatCurrency(config.markers.recupApport.montant)}</p>

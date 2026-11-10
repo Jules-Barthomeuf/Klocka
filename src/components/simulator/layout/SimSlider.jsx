@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-// Les curseurs et leur ligne en pervenche (8 nov. 2026, Jules), par les jetons.
+// Les curseurs et leur ligne à la couleur système, l'accent du compte (10 nov. 2026, Jules).
 const sliderStyle = `
 .sim-slider-input{
   -webkit-appearance:none; appearance:none;
@@ -9,13 +9,13 @@ const sliderStyle = `
 .sim-slider-input::-webkit-slider-thumb{
   -webkit-appearance:none; appearance:none;
   width:14px; height:14px; border-radius:50%;
-  background:rgb(var(--k-pervenche-rgb)); border:2px solid rgb(var(--k-fond-rgb));
+  background:rgb(var(--k-menthe-rgb)); border:2px solid rgb(var(--k-fond-rgb));
   cursor:pointer; margin-top:0;
-  box-shadow:0 0 0 1px rgb(var(--k-pervenche-rgb));
+  box-shadow:0 0 0 1px rgb(var(--k-menthe-rgb));
 }
 .sim-slider-input::-moz-range-thumb{
   width:14px; height:14px; border-radius:50%;
-  background:rgb(var(--k-pervenche-rgb)); border:2px solid rgb(var(--k-fond-rgb)); cursor:pointer;
+  background:rgb(var(--k-menthe-rgb)); border:2px solid rgb(var(--k-fond-rgb)); cursor:pointer;
 }
 .sim-slider-input:disabled{ opacity:0.4; cursor:not-allowed; }
 @media (max-width: 767px){
@@ -79,7 +79,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
         className="sim-slider-input w-full mt-1.5 max-md:mt-3"
-        style={{ background: alerte ? `linear-gradient(to right, #e8746a ${pct}%, #3a1f1c ${pct}%)` : `linear-gradient(to right, rgb(var(--k-pervenche-rgb)) ${pct}%, rgb(var(--k-encre-rgb) / 0.14) ${pct}%)` }}
+        style={{ background: alerte ? `linear-gradient(to right, #e8746a ${pct}%, #3a1f1c ${pct}%)` : `linear-gradient(to right, rgb(var(--k-menthe-rgb)) ${pct}%, rgb(var(--k-encre-rgb) / 0.14) ${pct}%)` }}
       />
       {alerte && <p className="m-0 mt-1 text-[11px] text-alerte">{alerte}</p>}
       <style>{sliderStyle}</style>

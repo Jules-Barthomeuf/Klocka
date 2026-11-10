@@ -126,8 +126,6 @@ export default function LocataireProjet({ project, friseLue = null }) {
   const exploite = visible("loc.nom") || visible("loc.profil");
   if (!bail.length && !anneau && !exploite) return null;
 
-  const pastilles = pastillesProfil(project.profil_locataire);
-
   return (
     <div className={`grid gap-5 ${anneau ? "md:grid-cols-[300px_minmax(0,1fr)]" : ""}`}>
       {anneau && (
@@ -162,15 +160,10 @@ export default function LocataireProjet({ project, friseLue = null }) {
               </div>
             )}
             {visible("loc.profil") && (
-              <div className={`flex flex-wrap gap-2 ${visible("loc.nom") ? "mt-5" : ""}`}>
-                {/* Le profil se modifie d'un bloc : les pastilles se séparent par des virgules. */}
-                <ValeurEditable champ="profil_locataire" type="text">
-                  <span className="flex flex-wrap gap-2">
-                    {pastilles.length ? pastilles.map((p) => (
-                      <span key={p} className="text-[13px] px-3.5 py-1.5 rounded-full bg-relief text-craie">{p}</span>
-                    )) : <span className="text-[13px] px-3.5 py-1.5 rounded-full bg-relief text-brume">Profil —</span>}
-                  </span>
-                </ValeurEditable>
+              // Le profil en texte suivi, plus en pastilles (10 nov. 2026, Jules : « enlève le truc de bulles ») : une phrase
+              // coupée à chaque virgule faisait des bulles illisibles.
+              <div className={`text-[14px] leading-[1.55] ${project.profil_locataire ? "text-craie" : "text-brume"} ${visible("loc.nom") ? "mt-5" : ""}`}>
+                <ValeurEditable champ="profil_locataire" type="text">{String(project.profil_locataire || "").trim() || "Profil —"}</ValeurEditable>
               </div>
             )}
           </Carte>

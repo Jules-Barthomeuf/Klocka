@@ -7,15 +7,20 @@
 //   PATCH  /rest/{pluriel}/{id}                                            → { data: { updateSingulier } }
 //   DELETE /rest/{pluriel}/{id}?soft_delete=true
 //   POST   /rest/metadata/objects, /rest/metadata/fields                    (le schéma)
-// Jeton en en-tête Bearer, jamais dans l'adresse. Plafond : 100 requêtes par minute ; on en garde une marge.
+// Jeton en en-tête Bearer, jamais dans l'adresse. Plafonds de l'instance : 100 requêtes par seconde
+// (API_RATE_LIMITING_SHORT_LIMIT) et 6 000 par minute (API_RATE_LIMITING_LONG_LIMIT, relevé de 100 sur twenty-server-fra
+// le 11 nov. 2026 : à 100 par minute, chaque appel attendait 700 ms et une page du CRM plusieurs secondes).
 // Une intégration absente n'est jamais bloquante : sans jeton, chaque fonction le dit et rend la main.
 
-const URL_ = () => String(process.env.TWENTY_URL || '').trim().replace(/\/+$/, '');
+// Les appels passent par le réseau privé de Render quand TWENTY_URL_INTERNE est posée (http://twenty-server-fra:3000 sur
+// klocka-fra, 11 nov. 2026) ; TWENTY_URL reste l'adresse publique, celle des liens ouverts dans le navigateur.
+export const urlTwentyApi = () => String(process.env.TWENTY_URL_INTERNE || process.env.TWENTY_URL || '').trim().replace(/\/+$/, '');
+const URL_ = urlTwentyApi;
 const CLE = () => String(process.env.TWENTY_API_KEY || '').trim();
 export const twentyConfigure = () => !!(URL_() && CLE());
 
 export const LOT_MAX = 60;
-const ESPACEMENT_MS = 700;
+const ESPACEMENT_MS = 15;
 let dernier = 0;
 
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -8,9 +8,7 @@
 // Prudence : un envoi de permissions renvoie à Twenty la liste complète du rôle, la ligne changée comprise, jamais
 // une ligne seule (rien ne garantit qu'un envoi partiel garde les autres).
 
-import { objetsTwenty, twentyConfigure } from '../twenty.js';
-
-const URL_ = () => String(process.env.TWENTY_URL || '').replace(/\/+$/, '');
+import { objetsTwenty, twentyConfigure, urlTwentyApi as URL_ } from '../twenty.js';
 
 export async function gql(query, variables) {
   const r = await fetch(`${URL_()}/metadata`, { method: 'POST', headers: { Authorization: `Bearer ${process.env.TWENTY_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query, variables }) });

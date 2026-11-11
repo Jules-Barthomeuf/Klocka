@@ -5,7 +5,7 @@
 //   2. un objet « Déplacements », le journal de ce qui a été déplacé ;
 //   3. un webhook « <tableau>.updated » vers Klocka (POST /api/crm/webhook, signé par CRM_DEPLACER_SECRET), qui fait le
 //      déplacement (server/crm/deplacer.js).
-//   node scripts/crm/deplacer-twenty.mjs [adresse de Klocka, https://klocka-unus.onrender.com par défaut]
+//   node scripts/crm/deplacer-twenty.mjs [adresse de Klocka, https://app.klocka.immo par défaut]
 // Rejouable. Le secret est tiré au premier passage et écrit dans .env ; il doit aussi être sur Render.
 import 'dotenv/config';
 import fs from 'node:fs';
@@ -18,7 +18,7 @@ if (!twentyConfigure()) {
   console.error('TWENTY_URL / TWENTY_API_KEY manquants dans .env');
   process.exit(1);
 }
-const KLOCKA = (process.argv[2] || 'https://klocka-unus.onrender.com').replace(/\/+$/, '');
+const KLOCKA = (process.argv[2] || 'https://app.klocka.immo').replace(/\/+$/, '');
 
 let secret = String(process.env.CRM_DEPLACER_SECRET || '');
 if (secret.length < 24) {

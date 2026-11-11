@@ -12,8 +12,9 @@ const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
  * @param lat,lon  coordonnées de repli (ex. centre de la commune)
  * @param zoom     défaut 15 (17 si adresse précise)
  * @param hauteur  classe CSS de hauteur, défaut h-72
+ * @param sansLien  sans la petite phrase « Ouvrir dans Google Maps » sous la carte (11 nov. 2026, Jules)
  */
-export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, hauteur = "h-72" }) {
+export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, hauteur = "h-72", sansLien = false }) {
   const query = adresse || (lat != null && lon != null ? `${lat},${lon}` : null);
   if (!query) {
     return (
@@ -59,14 +60,16 @@ export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, haute
         referrerPolicy="no-referrer-when-downgrade"
         allowFullScreen
       />
-      <a
-        href={lienExterne}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-ardoise hover:text-encre text-[11px] flex items-center gap-1 transition-colors"
-      >
-        Ouvrir dans Google Maps <ExternalLink className="w-3 h-3" />
-      </a>
+      {!sansLien && (
+        <a
+          href={lienExterne}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-ardoise hover:text-encre text-[11px] flex items-center gap-1 transition-colors"
+        >
+          Ouvrir dans Google Maps <ExternalLink className="w-3 h-3" />
+        </a>
+      )}
     </div>
   );
 }

@@ -28,13 +28,16 @@ test("l'activité, le nom et le type de bail du projet sont ceux de la Pré-anal
   assert.deepEqual(projet.bail_admin_fields[0], { label: 'Type de bail', value: '3/6/9' });
 });
 
-test("sans activité dans la Pré-analyse, la catégorie de l'enrichissement sert, jamais « à qualifier »", () => {
+test("sans activité écrite dans la Pré-analyse, le projet n'en invente pas (10 nov. 2026)", () => {
   dossier('PA2', {}, { activite: { libelle: 'Activité à qualifier' } });
   const r = P.creerProjetDepuisDeal('PA2', 0, { email: 'nora@klocka.immo' });
   assert.equal(Records.get('Project', r.project.id).activite_locataire || '', '');
-  dossier('PA3', {}, { activite: { libelle: 'Restauration' } });
+  dossier('PA3', { locataire_nom: lu('restaurant libanais') }, { activite: { libelle: 'Restauration assise' } });
   const r3 = P.creerProjetDepuisDeal('PA3', 0, { email: 'nora@klocka.immo' });
-  assert.equal(Records.get('Project', r3.project.id).activite_locataire, 'Restauration');
+  const p3 = Records.get('Project', r3.project.id);
+  assert.equal(p3.activite_locataire || '', '', 'la catégorie devinée ne passe pas');
+  assert.equal(p3.nom_locataire, 'restaurant libanais', 'le nom tel quel');
+  assert.equal(p3.titre, 'restaurant libanais');
 });
 
 test('la Pré-analyse corrigée passe dans le projet, sauf les cases modifiées à la main', async () => {
@@ -80,4 +83,31 @@ test("un champ corrigé dans la Pré-analyse passe dans le projet, devant le pro
   Records.update('Project', project.id, { titre: 'Boulangerie du port', champs_a_la_main: ['titre'] });
   await P.mettreAJourProjetDepuisDeal('PA5', null, { forcer: ['locataire_nom'] });
   assert.equal(Records.get('Project', project.id).titre, 'Boulangerie du port');
+});
+
+test("un projet qui portait la catégorie devinée la perd, et son titre redevient le nom écrit", async () => {
+  dossier('PA6', { locataire_nom: { absent: false, valeur: 'restaurant libanais', saisi_a_la_main: true } }, { activite: { libelle: 'Restauration assise' } });
+  const { project } = P.creerProjetDepuisDeal('PA6', 0, { email: 'nora@klocka.immo' });
+  Records.update('Project', project.id, { activite_locataire: 'Restauration assise', titre: 'Restauration assise restaurant libanais' });
+  await P.mettreAJourProjetDepuisDeal('PA6', null);
+  const p = Records.get('Project', project.id);
+  assert.equal(p.activite_locataire, '');
+  assert.equal(p.titre, 'restaurant libanais');
+});
+
+test("le bail écrit librement passe dans le projet : type et période ferme, et plus de dates quand il n'en dit pas", async () => {
+  const saisi = (valeur) => ({ absent: false, valeur, saisi_a_la_main: true });
+  dossier('PA7', { bail_type: lu('3/6/9'), bail_echeance: lu('31/12/2030') });
+  const { project } = P.creerProjetDepuisDeal('PA7', 0, { email: 'nora@klocka.immo' });
+  assert.equal(Records.get('Project', project.id).echeance_bail, '2030-12-31');
+  const deal = Records.findBy('Deal', 'deal_id', 'PA7');
+  const bail_lu = { texte: '12 ans ferme', type_bail: 'Bail de 12 ans ferme', duree_ans: 12, duree_ferme_ans: 12, date_debut: null, date_echeance: null };
+  Records.update('Deal', deal.id, { lots: [{ ...deal.lots[0], lot: { ...deal.lots[0].lot, bail_texte: saisi('12 ans ferme'), bail_lu, bail_type: saisi('Bail de 12 ans ferme'), bail_echeance: { valeur: null, absent: true, saisi_a_la_main: true } } }] });
+  await P.mettreAJourProjetDepuisDeal('PA7', null, { forcer: ['bail_texte'] });
+  const p = Records.get('Project', project.id);
+  assert.equal(p.type_bail, 'Bail de 12 ans ferme');
+  assert.equal(p.bail_duree_ferme_ans, 12);
+  assert.equal(p.echeance_bail || '', '', "l'ancienne échéance ne reste pas");
+  assert.equal(p.bail_date_echeance || '', '');
+  assert.deepEqual(p.bail_admin_fields[0], { label: 'Type de bail', value: 'Bail de 12 ans ferme' });
 });

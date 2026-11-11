@@ -1,144 +1,65 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X, Upload, FileText } from "lucide-react";
+import { toast } from "@/components/ui/avis";
+import { useAjoutFichier } from "@/components/ui/ajout-fichier";
+import { FileText, Loader2, Upload, X } from "lucide-react";
 
-const DOC_CHECKLIST = [
-  { key: "bail", label: "Bail" },
-  { key: "pv_ag", label: "PV d'AG" },
-  { key: "diagnostics", label: "Diagnostics" },
-  { key: "quittances", label: "Quittances" },
-  { key: "rcp", label: "RCP" },
-];
+// L'onglet Documents d'un projet, en édition (11 nov. 2026, Jules : « juste un truc d'upload ; on choisit depuis le
+// Google Drive ou depuis l'ordi ») : une zone de dépôt au dessin de la Data Room, qui ouvre le petit menu commun
+// Ordinateur / Google Drive (ui/ajout-fichier) ; on peut aussi y glisser un fichier. Plus d'ajout par URL, plus de
+// liste à cocher, plus de phrases d'explication. `avecListe` : la liste des fichiers, quand la page ne la montre pas déjà.
 
-export default function ProjectFormDocumentsTab({ formData, setFormData }) {
-  const [newFileName, setNewFileName] = useState("");
-  const [newFileUrl, setNewFileUrl] = useState("");
-
+export default function ProjectFormDocumentsTab({ formData, setFormData, avecListe = true }) {
   const fichiers = formData.fichiers_projet || [];
+  const choix = useRef(null);
+  const [envoi, setEnvoi] = useState(0);
+  const [survol, setSurvol] = useState(false);
 
-  const addFileByUrl = () => {
-    if (!newFileUrl.trim()) return;
-    const nom = newFileName.trim() || `Fichier ${fichiers.length + 1}`;
-    setFormData({
-      ...formData,
-      fichiers_projet: [...fichiers, { nom, url: newFileUrl.trim() }]
-    });
-    setNewFileName("");
-    setNewFileUrl("");
+  const ajouter = async (liste) => {
+    const tous = [...(liste || [])];
+    if (!tous.length) return;
+    setEnvoi((n) => n + tous.length);
+    const ajoutes = [];
+    for (const file of tous) {
+      try {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        ajoutes.push({ nom: file.name, url: file_url });
+      } catch (e) {
+        toast.error(e?.message || `« ${file.name} » n'a pas pu être ajouté`);
+      } finally {
+        setEnvoi((n) => n - 1);
+      }
+    }
+    if (ajoutes.length) setFormData((f) => ({ ...f, fichiers_projet: [...(f.fichiers_projet || []), ...ajoutes] }));
   };
-
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setFormData({
-      ...formData,
-      fichiers_projet: [...fichiers, { nom: file.name, url: file_url }]
-    });
-  };
-
-  const removeFile = (idx) => {
-    setFormData({
-      ...formData,
-      fichiers_projet: fichiers.filter((_, i) => i !== idx)
-    });
-  };
+  const ajout = useAjoutFichier({ onOrdinateur: () => choix.current?.click(), onFichiers: ajouter });
+  const retirer = (idx) => setFormData((f) => ({ ...f, fichiers_projet: (f.fichiers_projet || []).filter((_, i) => i !== idx) }));
 
   return (
-    <div className="space-y-6 mt-0">
-      <h3 className="text-lg text-encre">Documents du projet</h3>
-      <p className="text-sm text-ardoise">Ces fichiers seront téléchargeables par le client dans l'onglet "Documents" du projet.</p>
-
-      {/* Checklist documents importés */}
-      <div className="p-4 rounded-bloc bg-surface border border-encre/[0.12]">
-        <Label className="text-encre mb-3 block text-xs uppercase tracking-wider">Documents importés</Label>
-        <div className="flex flex-wrap gap-4">
-          {DOC_CHECKLIST.map(({ key, label }) => {
-            const checklist = formData.docs_checklist || {};
-            return (
-              <label key={key} className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={!!checklist[key]}
-                  onCheckedChange={(checked) => {
-                    setFormData({
-                      ...formData,
-                      docs_checklist: { ...checklist, [key]: !!checked }
-                    });
-                  }}
-                  className="border-encre/20 data-[state=checked]:bg-menthe data-[state=checked]:border-menthe rounded-full"
-                />
-                <span className="text-encre text-sm">{label}</span>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Upload direct */}
-      <div className="p-4 rounded-bloc bg-surface border border-encre/[0.12]">
-        <Label className="text-encre mb-3 block">Upload depuis votre ordinateur</Label>
-        <label className="cursor-pointer">
-          <input type="file" className="hidden" onChange={handleUpload} />
-          <Button type="button" className="w-full bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre" asChild>
-            <span><Upload className="w-4 h-4 mr-2" />Choisir un fichier</span>
-          </Button>
-        </label>
-      </div>
-
-      {/* URL manuelle */}
-      <div className="p-4 rounded-bloc bg-surface border border-encre/[0.12]">
-        <Label className="text-encre mb-3 block">Ajouter via URL</Label>
-        <div className="space-y-2">
-          <Input
-            value={newFileName}
-            onChange={(e) => setNewFileName(e.target.value)}
-            placeholder="Nom du fichier (ex: Bail commercial)"
-            className="bg-fond text-encre border-trait"
-          />
-          <div className="flex gap-2">
-            <Input
-              value={newFileUrl}
-              onChange={(e) => setNewFileUrl(e.target.value)}
-              placeholder="https://..."
-              className="flex-1 bg-fond text-encre border-trait"
-            />
-            <Button onClick={addFileByUrl} className="bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1]">
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Liste des fichiers */}
-      {fichiers.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-encre">Fichiers ajoutés ({fichiers.length})</Label>
+    <div className="mb-5 space-y-4">
+      <input ref={choix} type="file" multiple className="hidden" onChange={(e) => { ajouter(e.target.files); e.target.value = ""; }} />
+      {ajout.rendu}
+      <button type="button" onClick={ajout.ouvrir}
+        onDragOver={(e) => { e.preventDefault(); setSurvol(true); }} onDragLeave={() => setSurvol(false)}
+        onDrop={(e) => { e.preventDefault(); setSurvol(false); ajouter(e.dataTransfer.files); }}
+        className={`flex min-h-[120px] w-full flex-col items-center justify-center gap-2 rounded-[12px] border px-4 py-6 text-center transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : "border-trait bg-rail hover:border-bord-vif"}`}>
+        {envoi > 0 ? <Loader2 className="h-5 w-5 animate-spin text-ardoise" /> : <Upload className="h-5 w-5 text-ardoise" />}
+        <span className="text-[14px] text-encre">{envoi > 0 ? "Ajout en cours…" : "Choisir un fichier"}</span>
+        <span className="text-[12.5px] text-brume">Depuis l'ordinateur ou Google Drive, ou glissez-le ici</span>
+      </button>
+      {avecListe && fichiers.length > 0 && (
+        <ul className="m-0 list-none border-b border-trait p-0">
           {fichiers.map((f, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-3 bg-encre/[0.02] rounded-lg border border-trait">
-              <FileText className="w-5 h-5 text-ardoise flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-encre text-sm truncate">{f.nom}</p>
-                <p className="text-ardoise text-xs truncate">{f.url}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeFile(idx)}
-                className="text-red-500 hover:bg-red-500/10 flex-shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+            <li key={idx} className="flex items-center gap-3 border-t border-trait py-3">
+              <FileText className="h-4 w-4 flex-shrink-0 text-ardoise" />
+              <span className="min-w-0 flex-1 truncate text-[15px] text-craie">{f.nom}</span>
+              <button type="button" onClick={() => retirer(idx)} aria-label={`Retirer ${f.nom}`} title="Retirer"
+                className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
           ))}
-        </div>
-      )}
-
-      {fichiers.length === 0 && (
-        <p className="text-ardoise text-sm text-center py-4">Aucun document ajouté. Uploadez un fichier ou ajoutez une URL ci-dessus.</p>
+        </ul>
       )}
     </div>
   );

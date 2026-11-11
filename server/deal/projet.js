@@ -219,7 +219,11 @@ export function titrePropre(t) {
   return !!v && v.length <= 60 && !/[\n\r]/.test(v) && !/points?\s*forts|anciennet|notori[ée]t|diversif|[àa]\s+l.attention|\bcpf\b/i.test(v);
 }
 
+// Le titre est le nom du locataire tel qu'il est écrit, rien d'autre (10 nov. 2026, Jules : « restaurant libanais »
+// devenait « Restauration assise restaurant libanais ») : ni l'activité devant, ni la forme juridique retirée.
 export function titreProjet(locataire, adresse, activite = null) {
+  const exact = String(locataire || '').replace(/\s+/g, ' ').trim();
+  if (titrePropre(exact)) return exact;
   const nom = nomDuLocal(locataire, activite);
   if (titrePropre(nom)) return nom;
   // Nom vide : « Murs commerciaux », comme avant. Nom pollué (un paragraphe de points forts) : on l'écarte et on
@@ -391,8 +395,12 @@ function donneesDuLot(lot) {
     nom_locataire: val(lot.lot.locataire_nom) || '',
     // L'activité dite dans la Pré-analyse passe devant la catégorie déduite par l'enrichissement (10 nov. 2026, Jules :
     // « activité fausse depuis la préanalyse »), qui devinait parfois d'après le nom.
-    activite_locataire: [val(lot.lot.locataire_activite), lot.enrichissement?.activite?.libelle].find((a) => a && !motVide(a)) || '',
+    // Seulement ce qui est écrit dans la Pré-analyse (10 nov. 2026, Jules : « s'il n'y a rien de marqué, il n'y a rien ;
+    // je préfère que ça ne marque rien plutôt que ça invente ») : plus la catégorie devinée par l'enrichissement.
+    activite_locataire: [val(lot.lot.locataire_activite)].find((a) => a && !motVide(a)) || '',
     type_bail: val(lot.lot.bail_type) || '',
+    // Le bail écrit librement, lu par l'IA (11 nov. 2026) : début et période ferme s'il les dit, rien sinon.
+    ...(lot.lot.bail_lu ? { bail_date_debut: lot.lot.bail_lu.date_debut || '', bail_duree_ferme_ans: lot.lot.bail_lu.duree_ferme_ans ?? null } : {}),
     // En AAAA-MM-JJ, comme ce que l'écran du projet enregistre : « 31/12/2030 » ne s'y lisait pas (10 nov. 2026).
     echeance_bail: dateIsoDe(val(lot.lot.bail_echeance)) || val(lot.lot.bail_echeance) || '',
     statut_bail: val(lot.lot.occupe) === false ? 'vacant' : 'en_cours',
@@ -745,6 +753,8 @@ const PREANALYSE_VERS_PROJET = {
   prix_fai: ['prix_acquisition'],
   adresse: ['adresse_complete'],
   occupe: ['statut_bail'],
+  // Le bail libre : le type, l'échéance, le début et la période ferme qu'en tire l'IA, vides s'il ne les dit pas.
+  bail_texte: ['type_bail', 'echeance_bail', 'bail_date_echeance', 'bail_date_debut', 'bail_duree_ferme_ans'],
 };
 
 export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides = true, forcer = [] } = {}) {
@@ -777,7 +787,7 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
   Object.assign(patch, pieces);
   // La Pré-analyse corrigée à la main passe devant les pièces ; un champ qu'on vient d'y changer passe aussi devant le
   // projet, et le projet le reprend comme sien (10 nov. 2026, Jules).
-  const valeursPreanalyse = { ...champs, sim_loyer_initial_ht: champs.loyer_annuel_ht, bail_date_echeance: champs.echeance_bail };
+  const valeursPreanalyse = { ...champs, sim_loyer_initial_ht: champs.loyer_annuel_ht, bail_date_echeance: champs.echeance_bail, bail_date_debut: champs.bail_date_debut ?? '', bail_duree_ferme_ans: champs.bail_duree_ferme_ans ?? null };
   const forces = new Set();
   for (const [champLot, cles] of Object.entries(PREANALYSE_VERS_PROJET)) {
     if (!lot.lot?.[champLot]?.saisi_a_la_main) continue;
@@ -787,7 +797,7 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
       if (forcer.includes(champLot)) forces.add(k);
     }
   }
-  if (patch.type_bail && lot.lot?.bail_type?.saisi_a_la_main) {
+  if (patch.type_bail && (lot.lot?.bail_type?.saisi_a_la_main || lot.lot?.bail_texte?.saisi_a_la_main)) {
     const lignes = (projet.bail_admin_fields || []).filter((l) => l.label !== 'Type de bail');
     patch.bail_admin_fields = [{ label: 'Type de bail', value: patch.type_bail }, ...lignes];
   }
@@ -796,10 +806,14 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
   const aLaMain = (projet.champs_a_la_main || []).filter((k) => !forces.has(k));
   for (const k of aLaMain) delete patch[k];
   if (forces.size) patch.champs_a_la_main = aLaMain;
+  // Une activité qui n'était que la catégorie devinée (« Restauration assise »), rien d'écrit dans la Pré-analyse : elle
+  // s'efface (10 nov. 2026, Jules : « je préfère que ça ne marque rien plutôt que ça invente »).
+  const devinee = lot.enrichissement?.activite?.libelle;
+  if (!val(lot.lot?.locataire_activite) && devinee && projet.activite_locataire === devinee && !aLaMain.includes('activite_locataire')) patch.activite_locataire = '';
   // Le titre porte le nom du locataire (10 nov. 2026, Jules) : il suit le nom et l'activité, sauf titre écrit à la main.
   const nom = patch.nom_locataire ?? projet.nom_locataire;
   const activite = patch.activite_locataire ?? projet.activite_locataire;
-  if (nom && !aLaMain.includes('titre') && (nom !== projet.nom_locataire || activite !== projet.activite_locataire || !String(projet.titre || '').includes(nomDuLocal(nom, null)))) {
+  if (nom && !aLaMain.includes('titre') && (nom !== projet.nom_locataire || activite !== projet.activite_locataire || String(projet.titre || '').replace(/^\[TEST\] /, '') !== titreProjet(nom, null))) {
     const t = titreProjet(nom, patch.adresse_complete || projet.adresse_complete, activite);
     if (titrePropre(t)) patch.titre = `${deal.test ? '[TEST] ' : ''}${t}`;
   }
@@ -868,7 +882,9 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null, 
   if (profil && !champs.profil_locataire) champs.profil_locataire = profil;
   // Le titre garde l'écriture de l'enseigne ; seules les cases de la page passent en minuscules.
   const brut = { nom: champs.nom_locataire, activite: champs.activite_locataire };
-  for (const k of ['nom_locataire', 'activite_locataire']) if (champs[k]) champs[k] = casse(champs[k]);
+  // Ce qui est écrit dans la Pré-analyse passe tel quel (10 nov. 2026, Jules : « exactement le nom qui est dans la case »).
+  const ecrit = { nom_locataire: val(lot.lot.locataire_nom), activite_locataire: val(lot.lot.locataire_activite) };
+  for (const k of ['nom_locataire', 'activite_locataire']) if (champs[k] && champs[k] !== ecrit[k]) champs[k] = casse(champs[k]);
   if (champs.profil_locataire) champs.profil_locataire = casseProfil(champs.profil_locataire);
 
   // Tous les admins voient le projet, comme dans l'éditeur AdminProjets.

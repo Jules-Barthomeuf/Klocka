@@ -1,4 +1,3 @@
-import { VuesLieu } from "@/components/preanalyse/DealResultat";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -66,12 +65,7 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
       {/* Haka (17 oct. 2026) : ce qu'il propose pour ce dossier, en tête. */}
       {dossier?.deal_id && !apercu && <PanneauAValiderDossier dealId={dossier.deal_id} />}
       {/* Pré-analyse : Street View et le plan, l'un sous l'autre (18 oct. 2026, Jules). */}
-      {vue === "preanalyse" && dossier?.lots?.[0] && !apercu && (
-        <section className={bloc}>
-          <p className={titreBloc}>Emplacement</p>
-          <VuesLieu lot={dossier.lots[0]} enr={dossier.lots[0].enrichissement} coteACote empile dealId={dossier?.deal_id} />
-        </section>
-      )}
+      {/* L'emplacement est en tête du tableau de la Pré-analyse depuis le 11 nov. 2026 (Jules) : plus dans cette colonne. */}
       {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Seulement à l'étape Data Room (18 oct. 2026, Jules). */}
       {vue === "documents" && (
       <ZoneConversion onAjouter={ajouter}>

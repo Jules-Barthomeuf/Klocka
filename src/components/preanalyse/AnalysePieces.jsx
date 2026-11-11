@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
-import { ChevronLeft, ChevronRight, FileText, Loader2, Plus, RefreshCw, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Loader2, Plus, RefreshCw, Redo2, Undo2, X } from "lucide-react";
 import { Filtres } from "@/components/mandataire/elements";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
@@ -70,11 +70,11 @@ export function FlechesVersions({ dealId }) {
   const rond = "grid h-8 w-8 place-items-center rounded-full border border-trait text-ardoise transition-colors hover:border-bord-doux hover:text-encre disabled:pointer-events-none disabled:opacity-35";
   return (
     <div className="flex flex-none items-center gap-1.5">
-      <button type="button" onClick={() => changer("annuler")} disabled={!n.annuler || geste.isPending} aria-label="Version précédente" title="Version précédente (⌘Z)" className={rond} style={{ background: "transparent" }}>
-        <ChevronLeft className="h-4 w-4" />
+      <button type="button" onClick={() => changer("annuler")} disabled={!n.annuler || geste.isPending} aria-label="Annuler" title="Annuler (⌘Z)" className={rond} style={{ background: "transparent" }}>
+        <Undo2 className="h-4 w-4" />
       </button>
-      <button type="button" onClick={() => changer("retablir")} disabled={!n.retablir || geste.isPending} aria-label="Version suivante" title="Version suivante (⇧⌘Z)" className={rond} style={{ background: "transparent" }}>
-        <ChevronRight className="h-4 w-4" />
+      <button type="button" onClick={() => changer("retablir")} disabled={!n.retablir || geste.isPending} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className={rond} style={{ background: "transparent" }}>
+        <Redo2 className="h-4 w-4" />
       </button>
     </div>
   );

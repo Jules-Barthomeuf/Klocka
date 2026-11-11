@@ -45,7 +45,7 @@ test('un prix FAI ordinaire ne fait aucune note', () => {
 
 test('le motif de la grille, le champ absent et la lecture peu sûre deviennent des notes', () => {
   const n = notesDuLot({ ...glacier, lot: { ...glacier.lot, occupe: { valeur: true, citation: 'semble loué', confiance: 'basse' } } });
-  assert.deepEqual(n.emplacement.textes, ['Emplacement non qualifié : à valider visuellement avant décision.']);
+  assert.equal(n.emplacement, undefined, "l'emplacement à qualifier ne s'écrit plus en note (11 nov. 2026)");
   assert.deepEqual(n.enseigne.textes, ['Locataire absent de la fiche : à demander à l\'agent.']);
   assert.match(n.occupe.textes[0], /confiance basse \(« semble loué »\)/);
   assert.equal(n.occupe.a_verifier, true);

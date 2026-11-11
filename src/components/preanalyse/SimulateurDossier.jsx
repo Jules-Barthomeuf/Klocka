@@ -107,7 +107,9 @@ const formatCurrency = (value) =>
 // panneau dépliable au lieu d'occuper une colonne de gauche.
 // dealId + lotIndex : les chiffres s'enregistrent sur le lot, on y revient
 // plus tard et le projet créé depuis le deal en hérite.
-export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = null, compact = false, dealId = null, lotIndex = 0, onEnregistre = undefined }) {
+// `onChange` : un autre endroit garde les chiffres (le projet, 11 nov. 2026, Jules : « tous les simulateurs pareils ») ; il
+// reçoit les mêmes chiffres, une seconde après la dernière retouche, à la place de l'enregistrement sur le lot.
+export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = null, compact = false, dealId = null, lotIndex = 0, onEnregistre = undefined, onChange = null }) {
   const parametres = useMemo(() => avecAnalyse(duLot, depuisAnalyse), [duLot, depuisAnalyse]);
   const [etat, setEtat] = useState(() => etatInitial(parametres));
   // Les champs tapés à la main : l'analyse ne les remplace plus.
@@ -149,8 +151,12 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
   const retouche = useRef(false);
   const aEnvoyer = JSON.stringify({ ...etat, apport, travauxBailleur, vacancesLocatives });
   useEffect(() => {
-    if (!dealId || !retouche.current) return undefined;
-    const t = setTimeout(() => { retouche.current = false; enregistrer.mutate({ ...JSON.parse(aEnvoyer), saisis: [...saisis.current] }); }, 1000);
+    if ((!dealId && !onChange) || !retouche.current) return undefined;
+    const t = setTimeout(() => {
+      retouche.current = false;
+      const corps = { ...JSON.parse(aEnvoyer), saisis: [...saisis.current] };
+      if (onChange) { vientDeMoi.current = true; onChange(corps); } else enregistrer.mutate(corps);
+    }, 1000);
     return () => clearTimeout(t);
   }, [aEnvoyer, dealId]);
 

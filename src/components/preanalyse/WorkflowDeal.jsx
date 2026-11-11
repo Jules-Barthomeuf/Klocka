@@ -279,7 +279,8 @@ function TitreDossier({ dossier, apercu, onRefresh }) {
       title={apercu ? undefined : "Cliquer pour renommer"}
       onClick={apercu ? undefined : () => { setValeur(affiche); setEdition(true); }}
     >
-      {affiche}
+      {/* Le balayage du titre de la page Assistant (11 nov. 2026, Jules). */}
+      <span className="k-balayage">{affiche}</span>
     </h1>
   );
 }
@@ -589,23 +590,25 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         <>
           {/* À l'étape Offre, la lettre seule : ni le nom du dossier, ni le choix du mode (28 oct. 2026, Jules). */}
           {/* Une seule ligne (29 oct. 2026, Jules) : « Tous les dossiers » à gauche, le nom au milieu, les gestes à droite. */}
-          {!enCarte && vue !== "offre" && <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 md:pr-[112px] max-md:grid-cols-[1fr_auto] max-md:gap-3">
-            <div className="flex min-w-0 items-center gap-1">
+          {/* Le titre et ses petites icônes au centre (11 nov. 2026, Jules) ; la colonne de gauche, vide, équilibre celle des gestes. */}
+          {!enCarte && vue !== "offre" && <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:pr-[112px] max-md:grid-cols-[1fr_auto] max-md:gap-3">
+            <div className="max-md:hidden" aria-hidden />
+            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2.5 text-center max-md:col-span-2 max-md:row-start-2 max-md:justify-start">
               {/* Le bouton du panneau du chat, à gauche de la maison (2 nov. 2026, Jules). */}
-              {avantRetour}
-              {onRetour && (
-                // Une petite maison à la place de « ← Tous les dossiers » (30 oct. 2026, Jules).
-                <button type="button" onClick={onRetour} aria-label="Tous les dossiers" title="Tous les dossiers"
-                  className="grid h-9 w-9 place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}>
-                  <Home className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <div className="flex min-w-0 flex-wrap items-center gap-2.5 text-left max-md:col-span-2 max-md:row-start-2">
+              <span className="flex items-center gap-1">
+                {avantRetour}
+                {onRetour && (
+                  // Une petite maison à la place de « ← Tous les dossiers » (30 oct. 2026, Jules).
+                  <button type="button" onClick={onRetour} aria-label="Tous les dossiers" title="Tous les dossiers"
+                    className="grid h-9 w-9 place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}>
+                    <Home className="h-4 w-4" />
+                  </button>
+                )}
+              </span>
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
-              {/* Le projet à droite du titre, à toutes les étapes (30 oct. 2026, Jules) : « Rentrer le projet » tant qu'il
-                  n'existe pas, puis « Projet ↗ » et sa mise à jour depuis le dossier. */}
-              {!apercu && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
+              {/* Le projet à droite du titre (30 oct. 2026, Jules) ; à la Pré-analyse, à droite des modes Fiche / Tableau
+                  (11 nov. 2026, Jules). */}
+              {!apercu && vue !== "preanalyse" && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
               {aRelancer && (
                 <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
                   <Clock className="w-3 h-3" /> À relancer
@@ -616,8 +619,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             <div className="k-actions-dossier flex flex-none flex-wrap items-center justify-end gap-2">
             {/* La Data Room : ses deux gestes à gauche du « ⋯ » (29 oct. 2026, Jules). */}
             {(vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room")) && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={(onglet) => { allerA("analyse"); if (onglet || grilleAnalyse === "data_room") setGrilleAnalyse(onglet || "bail"); }} />}
-            {/* Retour et Avant des versions, à gauche de Mode IA (29 oct. 2026, Jules). */}
-            {!apercu && <FlechesVersions dealId={dossier.deal_id} />}
+            {/* Annuler / rétablir : sur la ligne des onglets de l'Analyse, plus dans l'en-tête (11 nov. 2026, Jules). */}
             {/* Sur l'onglet Data Room, ni Mode IA / Normal ni « ⋯ » (29 oct. 2026, Jules), comme à l'étape Data Room. */}
             {!dataRoomOuverte && actionsBarre}
             {/* Plus de « ⋯ » à droite (30 oct. 2026, Jules) : abandonner et supprimer restent dans le « ⋯ » de la liste. */}
@@ -640,7 +642,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* À côté du chat (écran scindé), la colonne de droite ne se met à côté qu'à partir de 1700 px ; avant, elle passe dessous. */}
       <div>
       <div>
-      <div className={dossier && !pleineLargeur ? `grid items-start gap-4 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_400px]" : "lg:grid-cols-[minmax(0,1fr)_400px]"}` : ""}>
+      {/* La Pré-analyse en pleine largeur (11 nov. 2026, Jules) : la colonne de droite (À valider, fil) passe dessous. */}
+      <div className={dossier && !pleineLargeur ? `grid items-start gap-4 ${vue === "preanalyse" ? "lg:pr-14" : etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_400px]" : "lg:grid-cols-[minmax(0,1fr)_400px]"}` : ""}>
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
       {/* La Data Room : une zone de dépôt par type de pièce, rien d'autre (29 oct. 2026, Jules). */}
@@ -665,12 +668,15 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         {montre("analyse") && (
           <div id="tables-analyse" className="space-y-5 pt-6">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
+            <div className="flex items-center justify-between gap-3">
             <Onglets
               items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-menthe/15 px-1.5 text-[11px] tabular-nums text-menthe">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData]}
               valeur={grilleAnalyse}
               onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))}
               taille="page"
             />
+            {!apercu && <FlechesVersions dealId={dossier.deal_id} />}
+            </div>
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
             {/* Changer d'onglet : le contenu entre en fondu en montant un peu (18 oct. 2026). */}
             <motion.div key={grilleAnalyse} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="space-y-5">
@@ -1040,6 +1046,7 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
       {dossier.lots.map((lot) => (
         <CarteLot
           key={lot.index}
+          apresModes={!apercu && (lot.index ?? 0) === 0 ? <BoutonProjet dossier={dossier} onRefresh={onRefresh} /> : null}
           sansSimulateur
           lot={lot}
           dossier={dossier}
@@ -1494,22 +1501,14 @@ function BoutonProjet({ dossier, onRefresh }) {
     },
     onError: (e) => toast.error(e?.message || "Création du projet impossible"),
   });
-  const maj = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/projet/maj`),
-    onSuccess: () => toast.success("Projet mis à jour depuis le dossier"),
-    onError: (e) => toast.error(e?.message || "Mise à jour impossible"),
-  });
   if (dossier.projet_id) {
     return (
+      // Plus de flèche de mise à jour (11 nov. 2026, Jules) : le projet suit le dossier tout seul.
       <span className="inline-flex flex-none items-center gap-1">
         <Link to={`/Projets?id=${dossier.projet_id}`} className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif">
-          Projet <ExternalLink className="h-3.5 w-3.5 text-ardoise" />
+          {/* Plus de flèche dans la pilule (11 nov. 2026, Jules) : le mot suffit. */}
+          Projet
         </Link>
-        <button type="button" disabled={maj.isPending} title="Mettre à jour le projet depuis le dossier" aria-label="Mettre à jour le projet depuis le dossier"
-          onClick={() => { if (window.confirm("Mettre à jour le projet depuis le dossier ? Les chiffres du dossier et les cases OK de l'Analyse remplacent ceux du projet ; les photos et les textes restent.")) maj.mutate(); }}
-          className="grid h-10 w-10 place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
-          {maj.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-        </button>
       </span>
     );
   }

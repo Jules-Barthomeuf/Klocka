@@ -703,12 +703,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               />
               {modeEdition && editeurDocuments}
 
-              {project.fichiers_projet && project.fichiers_projet.length > 0 ? (
+              {/* En édition, la liste est celle de l'éditeur (avec le retrait) : elle ne se montre pas deux fois. */}
+              {modeEdition && editeurDocuments ? null : project.fichiers_projet && project.fichiers_projet.length > 0 ? (
                 // Au dessin des autres onglets (10 nov. 2026, Jules) : une carte titrée, comme le PV d'AG ou les résolutions,
                 // et des lignes à filets dedans, au texte des autres cartes.
                 <Bloc id="documents-liste" titre="Documents">
                 <Carte className="mb-5 p-7 max-md:p-5">
-                  <SectionLabel>Documents</SectionLabel>
                   <ul className="m-0 list-none border-b border-trait p-0">
                     {project.fichiers_projet.map((fichier, idx) => (
                       <li key={idx} className="border-t border-trait">

@@ -1,17 +1,17 @@
 # État de la plateforme
 
-Écrit le 10/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 11/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-7 personnes, 3 481 pages ouvertes, 0 demandes à l'assistant, 56 actions exécutées.
+7 personnes, 3 579 pages ouvertes, 0 demandes à l'assistant, 56 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 214 | 0 | 54 | 10/11/2026 |
-| admin.stress@test.local (équipe) | 138 | 0 | 0 | 10/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 277 | 0 | 54 | 11/11/2026 |
+| admin.stress@test.local (équipe) | 173 | 0 | 0 | 11/11/2026 |
 | test.mandataire@kpartners.fr | 122 | 0 | 0 | 09/11/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
 | admin@klocka.local (équipe) | 2 | 0 | 0 | 26/10/2026 |
@@ -22,23 +22,23 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **MandataireBiens** — 1 010 (29 %)
-- **Analyse** — 416 (12 %)
-- **Dashboard** — 336 (10 %)
-- **MandataireProspection** — 245 (7 %)
-- **CrmTwenty** — 214 (6 %)
-- **Personnalisation** — 164 (5 %)
-- **Prospection** — 141 (4 %)
-- **AdminProjets** — 118 (3 %)
+- **MandataireBiens** — 1 011 (28 %)
+- **Analyse** — 483 (13 %)
+- **Dashboard** — 339 (9 %)
+- **MandataireProspection** — 244 (7 %)
+- **CrmTwenty** — 215 (6 %)
+- **Personnalisation** — 169 (5 %)
+- **Prospection** — 139 (4 %)
+- **AdminProjets** — 126 (4 %)
 - **Outils** — 71 (2 %)
 - **MandatsMandataires** — 66 (2 %)
 - **Cerveau** — 60 (2 %)
 - **AdminPresentations** — 60 (2 %)
-- Le reste, sous 1 % : KVacance, AdminUtilisateurs, Monitoring, KData, MandataireClients, MandataireTableauDeBord, SimulateurRentabilite, Offres, MesPresentations, Home, AdminClients, SuiviAppels, Emailing, MandataireDocuments, AdminModeles, SuiviActivite, Semaine, KTransactions, Agents, Relances, public, KZoning, MandataireDossier, ProjetDetail, KProspective, SuiviAudience, Tokimo, KExpertise, KEstimation, KFoncier, SimulateurPublic, AdminMandataires, Automatismes, AdminSuggestions, Validations, OffMarket, AdminAccesCrm, tokimo, MesProjets, MandataireProjets, ValeurLocative, DepotVendeur, MandataireOffMarket, SuiviMandataires, AdminEquipe, AdminBanque, MandataireEstimation, SuiviReunion, CoutsIA, SignerBon, klocka.immo, MemoireKlocka, Feedback, NotreOffre, SuiviChat, Ressources, Haka, SuiviHaka, SuiviTesteur, AdminValidations, FichesCommerciales
+- Le reste, sous 1 % : SimulateurRentabilite, KVacance, AdminUtilisateurs, Monitoring, KData, MandataireClients, MandataireTableauDeBord, Offres, MesPresentations, Home, AdminClients, SuiviAppels, Emailing, MandataireDocuments, AdminModeles, SuiviActivite, Semaine, KTransactions, Agents, ProjetDetail, public, Relances, KZoning, MandataireDossier, KProspective, SuiviAudience, SimulateurPublic, Tokimo, KExpertise, KEstimation, KFoncier, AdminMandataires, Automatismes, AdminSuggestions, Validations, AdminAccesCrm, tokimo, MesProjets, MandataireProjets, ValeurLocative, DepotVendeur, MandataireOffMarket, OffMarket, SuiviMandataires, AdminEquipe, AdminBanque, MandataireEstimation, SuiviReunion, CoutsIA, SignerBon, klocka.immo, MemoireKlocka, Feedback, NotreOffre, SuiviChat, Ressources, Haka, SuiviHaka, SuiviTesteur, AdminValidations, FichesCommerciales
 
 ## Ce que l'IA coûte
 
-32,88 € sur la période, 1 307 appels, 6 186 k jetons. 17 % part en tâche de fond, sans que personne clique. 71 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+32,78 € sur la période, 1 316 appels, 6 138 k jetons. 17 % part en tâche de fond, sans que personne clique. 72 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -46,13 +46,13 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 | Trier ce qu’on colle dans la boîte | 0,20 € par dépôt | 47 | 9,50 € | 38 s |
 | Non attribué (fond) | 0,01 € par appel | 148 | 4,95 € | — |
 | Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
-| Faire le récap du matin | 0,14 € par récap | 5 | 0,71 € | 30 s |
+| Faire le récap du matin | 0,14 € par récap | 4 | 0,58 € | 29 s |
 | Extraire un document déposé | 0,02 € par document | 7 | 0,28 € | 20 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
+| Analyser une fiche commerciale | 0,0090 € par fiche | 13 | 0,12 € | 11 s |
 | Parler à l'assistant après un appel | 0,0075 € par demande | 14 | 0,11 € | 2 s |
 | Trouver les zones commerçantes d'une ville | 0,0079 € par ville | 12 | 0,09 € | 7 s |
-| Analyser une fiche commerciale | 0,0089 € par fiche | 8 | 0,08 € | 6 s |
 | Lire une fiche pour la Mémoire (fond) | 0,01 € par fiche | 4 | 0,07 € | 8 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
@@ -81,7 +81,7 @@ Pour qui : Jules 55 · Sourcing 1.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **MandataireBiens** : 29 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **MandataireBiens** : 28 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « demander quelque chose à l'assistant (mandataire) » à 0,03 € par demande : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
 - 17 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

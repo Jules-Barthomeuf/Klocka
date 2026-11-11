@@ -62,6 +62,8 @@ export function notesDuLot(lot) {
       if (c && typeof c === 'object' && !c.absent && c.confiance === 'basse') ajouter(ligne, `Lu avec une confiance basse${c.citation ? ` (« ${c.citation} »)` : ''} : à vérifier sur la fiche.`, true);
     }
     for (const c of grille.filter((x) => champs.includes(x.champ) && x.ok === false)) {
+      // L'emplacement à qualifier ne s'écrit plus en note (11 nov. 2026, Jules) : la règle garde sa réserve sur le verdict.
+      if (c.champ === 'emplacement' && /non qualifi/i.test(c.motif || '')) continue;
       if (c.motif) ajouter(ligne, c.motif, true);
       else if (c.valeur == null || c.valeur === '') ajouter(ligne, `${c.critere} absent de la fiche : à demander à l'agent.`, true);
       else if (c.attendu) ajouter(ligne, `${c.critere} : ${c.valeur}, attendu ${c.attendu}.`);

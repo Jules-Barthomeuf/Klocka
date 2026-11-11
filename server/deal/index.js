@@ -252,6 +252,8 @@ const CHAMPS_SAISISSABLES = {
   qualite_enseigne: { libelle: "Qualité de l'enseigne", type: 'texte' },
   bail_type: { libelle: 'Type de bail', type: 'texte' },
   bail_echeance: { libelle: 'Échéance du bail', type: 'texte' },
+  // Le bail en texte libre (11 nov. 2026, Jules) : « 12 ans ferme », « 3/6/9 signé en 2019 »… lu par l'IA (bail-libre.js).
+  bail_texte: { libelle: 'Bail', type: 'long' },
   adresse: { libelle: 'Adresse', type: 'adresse' },
 };
 
@@ -276,6 +278,7 @@ function lireValeur(champ, brut) {
     case 'decimal': { const t = String(brut).replace(/[^\d.,-]/g, '').replace(',', '.'); const n = Number(t); if (!/\d/.test(t) || !isFinite(n) || n <= 0) return { erreur: `${def.libelle} invalide` }; return { valeur: Math.round(n * 100) / 100 }; }
     case 'booleen': return { valeur: brut === true || /^(oui|true|1|yes)$/i.test(String(brut)) };
     case 'adresse': return { valeur: lireAdresse(brut) };
+    case 'long': return { valeur: String(brut).replace(/\s+/g, ' ').trim().slice(0, 1000) };
     default: return { valeur: String(brut).trim().slice(0, 300) };
   }
 }
@@ -308,6 +311,21 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
     };
     // Un loyer posé à la main garde son origine ; un bail lu (matrice) la passe à « reel ».
     if (champ === 'loyer_annuel_ht_hc') lot = { ...lot, origine_loyer: lu.vide ? null : 'saisi' };
+  }
+
+  // Le bail écrit librement : l'IA le lit, et le type et l'échéance du lot suivent ce qu'elle en tire ; une date que le
+  // texte ne donne pas reste vide (11 nov. 2026, Jules). Vidé, le bail redevient celui de la fiche.
+  if (Object.prototype.hasOwnProperty.call(saisie, 'bail_texte')) {
+    const { lireBailLibre } = await import('./bail-libre.js');
+    const lu = await lireBailLibre(saisie.bail_texte);
+    const main = (valeur) => (valeur ? { valeur, absent: false, confiance: 1, citation: 'Lu dans le bail saisi à la main.', saisi_a_la_main: true } : { valeur: null, absent: true, confiance: null, citation: null, saisi_a_la_main: true });
+    if (lu) {
+      const [a, m, j] = lu.date_echeance ? lu.date_echeance.split('-') : [];
+      lot = { ...lot, bail_lu: lu, bail_type: main(lu.type_bail), bail_echeance: main(lu.date_echeance ? `${j}/${m}/${a}` : null) };
+    } else {
+      const { bail_lu: _ancien, ...reste } = lot;
+      lot = reste;
+    }
   }
 
   // Une adresse corrigée périme tout ce qui a été lu à l'ancienne : on le

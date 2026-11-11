@@ -98,21 +98,22 @@ const cleLigne = (l) => `${l.groupe}|${l.champ}`;
 // Les sept lignes du tableau du bien, et les critères qui jugent chacune.
 // Une ligne prend le critère le plus sévère parmi les siens : c'est lui qui
 // décide, et c'est lui que l'analyste doit lire.
+// Dans l'ordre du travail (11 nov. 2026, Jules, après avis) : le bien d'abord, puis ses chiffres face au marché, puis le
+// verdict, sans intercalaires (même jour : « enlève les lignes Le bien »). Prix marché et Loyer marché vivent dans la
+// ligne de leur chiffre ; l'adresse est dans la carte Emplacement.
 const LIGNES_BIEN = [
-  { id: "prix", element: "Prix FAI", champs: ["prix_fourchette"] },
-  { id: "prix_marche", element: "Prix marché", marche: "prix" },
-  { id: "rendement", element: "Rendement annoncé / réel", champs: ["rendement_net_moyen", "rendement_aem", "rendement_fai"] },
-  { id: "loyer", element: "Loyer annuel HT HC", champs: ["loyer_annuel_ht_hc"] },
-  { id: "loyer_marche", element: "Loyer marché", marche: "loyer" },
-  { id: "occupe", element: "Occupé", champs: ["occupe"] },
+  { id: "emplacement", element: "Adresse et emplacement", champs: ["emplacement"] },
+  // Ce que « Corriger la fiche » portait seul, désormais modifiable dans le tableau (18 oct. 2026, Jules) : sans critère, la ligne est une information.
+  { id: "surface", element: "Surface", info: true },
+  // Plus de ligne Occupé (11 nov. 2026, Jules) : le verdict calculé la juge toujours, d'après la fiche.
   // Le nom du locataire a sa ligne, au-dessus de l'activité (10 nov. 2026, Jules) : le projet le reprend.
   { id: "nom_locataire", element: "Nom du locataire", info: true },
   { id: "activite", element: "Activité", champs: ["categorie_activite", "activite_exclue"] },
   { id: "enseigne", element: "Qualité de l'enseigne", champs: ["signature", "locataire_nom"] },
-  { id: "emplacement", element: "Adresse et emplacement", champs: ["emplacement"] },
-  // Ce que « Corriger la fiche » portait seul, désormais modifiable dans le tableau (18 oct. 2026, Jules) : sans critère, la ligne est une information.
-  { id: "surface", element: "Surface", info: true },
   { id: "bail", element: "Bail", info: true },
+  { id: "prix", element: "Prix FAI", champs: ["prix_fourchette"], avecMarche: "prix" },
+  { id: "loyer", element: "Loyer annuel HT HC", champs: ["loyer_annuel_ht_hc"], avecMarche: "loyer" },
+  // Plus de ligne Rendement (11 nov. 2026, Jules) : le simulateur, juste dessous, le donne ; le verdict le juge toujours.
 ];
 
 const SIGNATURES = {
@@ -173,9 +174,9 @@ function MarcheSaisi({ dealId, index = 0, cle, marche, suffixe = "", apercu = fa
   }
   return (
     <span className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[12px]" onClick={(e) => e.stopPropagation()}>
-      <button type="button" onClick={() => setEdition(marche?.median != null ? String(Math.round(marche.median)) : "")} className="group inline-flex items-baseline gap-1.5 text-brume hover:text-encre" style={{ background: "transparent" }}>
-        {marche?.manuel ? <>marché saisi <span className="text-encre">{eurosM2(marche.median, suffixe)}</span></> : "Mettre mon chiffre"}
-        <Pencil className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100" />
+      {/* Plus de « Mettre mon chiffre » écrit (11 nov. 2026, Jules) : le crayon seul, le mot au survol. */}
+      <button type="button" onClick={() => setEdition(marche?.median != null ? String(Math.round(marche.median)) : "")} title="Mettre mon chiffre" aria-label="Mettre mon chiffre" className="group inline-flex items-baseline gap-1.5 text-brume hover:text-encre" style={{ background: "transparent" }}>
+        {marche?.manuel ? <>marché saisi <span className="text-encre">{eurosM2(marche.median, suffixe)}</span></> : <span className="opacity-0 transition-opacity group-hover/val:opacity-100 max-md:opacity-100">Mettre mon chiffre</span>}
       </button>
       {marche?.manuel && <button type="button" onClick={() => poser.mutate(null)} disabled={poser.isPending} className="text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>Revenir à la lecture</button>}
     </span>
@@ -295,7 +296,7 @@ function NotesLigne({ textes, manuelle = null, onNoter = null, enCours = false }
 
   return (
     <div className="group">
-      <TexteEnPlace valeur={affiches.join("\n")} disabled={enCours} placeholder="— ajouter une note"
+      <TexteEnPlace valeur={affiches.join("\n")} disabled={enCours} placeholder="—"
         onEnregistrer={(t) => onNoter(t)}
         className="whitespace-pre-line text-[12.5px] leading-[1.5] text-craie placeholder:text-brume max-md:text-[16px]" />
       {manuelle && (
@@ -317,7 +318,7 @@ function notesMarche(m, marche) {
   return notes;
 }
 
-function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = "", onSaisieDirecte = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
+function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "", verdictTexte = "", onSaisieDirecte = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
   // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
   const { data: marche, isLoading: marcheEnLecture } = useQuery({
     queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2), texteBrut("adresse", lot.lot?.adresse)],
@@ -341,12 +342,12 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = ""
   // La fiche ne l'écrit pas toujours : le loyer sur le prix FAI en tient lieu.
   const annonce = valChamp(lot.lot?.rendement_annonce) ?? (fai && loyerFiche ? (loyerFiche / fai) * 100 : null);
   const reel = ctx.rendement_net_moyen ?? lot.evaluation?.aem?.rendement_aem ?? null;
-  const emplacement = EMPLACEMENTS.find((e) => e.code === enr.emplacement)?.libelle || "à qualifier";
   const signature = SIGNATURES[ctx.signature] || (ctx.signature ? String(ctx.signature).replace(/_/g, " ") : null);
 
-  const champ = (c) => <ChampFiche champ={c} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
-  const [enDirect, setEnDirect] = useState(false);
-  const direct = onSaisieDirecte ? (saisie) => { setEnDirect(true); Promise.resolve(onSaisieDirecte(saisie)).finally(() => setEnDirect(false)); } : onSaisie;
+  const champ = (c) => <ChampFiche champ={c} lot={lot} onSaisie={direct} enCours={enCours} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />;
+  // Toute case du tableau s'enregistre tout de suite (11 nov. 2026, Jules) : plus de brouillon ni de barre « OK ».
+  const enDirect = false;
+  const direct = onSaisieDirecte || onSaisie;
   const colonnes = useColonnes();
   const valeur = (id) => {
     switch (id) {
@@ -361,13 +362,10 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = ""
                 <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[11.5px] text-brume">net vendeur {champ("prix_fai")} + {champ("montant_honoraires")} d'honoraires</span>
               </>
             ) : champ("prix_fai")}
-          </div>
-        );
-      case "prix_marche":
-        return (
-          <div>
-            <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche={marche?.prix?.manuel ? "le marché saisi" : "ventes autour"} chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} manque={marche?.manque} adresseComparaison={marche?.adresse} />
-            <MarcheSaisi dealId={dealId} index={lot.index ?? 0} cle="prix_m2" marche={marche?.prix} apercu={apercu} />
+            <div className="mt-1.5">
+              <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche={marche?.prix?.manuel ? "le marché saisi" : "ventes autour"} chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} manque={marche?.manque} adresseComparaison={marche?.adresse} />
+              <MarcheSaisi dealId={dealId} index={lot.index ?? 0} cle="prix_m2" marche={marche?.prix} apercu={apercu} />
+            </div>
           </div>
         );
       case "rendement":
@@ -377,39 +375,53 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = ""
             <span className="text-encre" title="Rendement net moyen du simulateur, sur toute la durée du projet">{pourcent(reel) || "—"} <span className="text-[11px] text-brume">réel</span></span>
           </span>
         );
-      case "loyer": return champ("loyer_annuel_ht_hc");
-      case "loyer_marche":
+      case "loyer":
         return (
           <div>
+            {champ("loyer_annuel_ht_hc")}
+            <div className="mt-1.5">
             <FaceAuMarche bien={marche?.bien?.loyer_m2} marche={marche?.loyer} suffixe="/an" libelleBien="le bien" libelleMarche={marche?.loyer?.manuel ? "le marché saisi" : "le marché"} chargement={marcheEnLecture} sourceOuverte={source === "loyer"} onSource={() => setSource(source === "loyer" ? null : "loyer")} manque={marche?.manque} adresseComparaison={marche?.adresse} />
             <MarcheSaisi dealId={dealId} index={lot.index ?? 0} cle="loyer_m2" marche={marche?.loyer} suffixe="/an" apercu={apercu} />
+            </div>
           </div>
         );
       case "occupe": return champ("occupe");
       // Le nom et l'activité s'enregistrent tout de suite (10 nov. 2026, Jules : « ne s'enregistrent pas » dans le brouillon).
-      case "nom_locataire": return <ChampFiche champ="locataire_nom" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
-      case "activite": return <ChampFiche champ="locataire_activite" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
+      case "nom_locataire": return <ChampFiche champ="locataire_nom" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />;
+      case "activite": return <ChampFiche champ="locataire_activite" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />;
       // Qualité de l'enseigne écrite à la main (10 nov. 2026, Jules) ; sans saisie, la signature calculée s'y lit.
       case "enseigne": {
         const saisie = lot.lot?.qualite_enseigne;
         const vu = saisie && !saisie.absent ? lot : { ...lot, lot: { ...lot.lot, qualite_enseigne: signature ? { valeur: signature, absent: false } : { absent: true } } };
-        return <ChampFiche champ="qualite_enseigne" lot={vu} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
+        return <ChampFiche champ="qualite_enseigne" lot={vu} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />;
       }
+      // L'adresse sous l'emplacement (17 oct. 2026, Jules) : la changer déplace Street View et le plan, et l'emplacement repasse à vérifier.
+      // Enregistrée tout de suite, comme le nom et l'activité (11 nov. 2026).
       case "emplacement":
-        // L'adresse sous l'emplacement (17 oct. 2026, Jules) : la changer déplace Street View et le plan, et l'emplacement repasse à vérifier.
         return (
           <div>
-            <div>{champ("adresse")}</div>
-            <span className={`mt-1 block text-[12.5px] ${enr.emplacement && enr.emplacement !== "a_qualifier" ? "text-craie" : "text-brume"}`}>Emplacement {emplacement}</span>
+            <ChampFiche champ="adresse" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />
+            {/* Plus de « Emplacement à qualifier » (11 nov. 2026, Jules) : la ligne seulement quand il est qualifié. */}
+            {EMPLACEMENTS.find((e) => e.code === enr.emplacement) && <span className="mt-1 block text-[12.5px] text-craie">Emplacement {EMPLACEMENTS.find((e) => e.code === enr.emplacement).libelle}</span>}
           </div>
         );
       case "surface": return champ("surface_m2");
-      case "bail":
+      // Le bail en texte libre (11 nov. 2026, Jules : « 12 ans ferme ») : l'IA le lit et le projet prend ce qu'elle en tire.
+      // Tant que rien n'est écrit, la case montre ce que la fiche disait (type, échéance).
+      case "bail": {
+        const ecrit = lot.lot?.bail_texte;
+        const fiche = [valChamp(lot.lot?.bail_type), valChamp(lot.lot?.bail_echeance) ? `échéance ${valChamp(lot.lot?.bail_echeance)}` : null].filter(Boolean).join(", ");
+        const vu = ecrit && !ecrit.absent ? lot : { ...lot, lot: { ...lot.lot, bail_texte: fiche ? { valeur: fiche, absent: false } : { absent: true } } };
+        const lu = ecrit && !ecrit.absent ? lot.lot?.bail_lu : null;
+        const jour = (iso) => (iso ? iso.split("-").reverse().join("/") : null);
+        const compris = lu ? [lu.duree_ferme_ans ? `${String(lu.duree_ferme_ans).replace(".", ",")} ans ferme` : null, lu.date_debut ? `début ${jour(lu.date_debut)}` : null, lu.date_echeance ? `échéance ${jour(lu.date_echeance)}` : null].filter(Boolean) : [];
         return (
-          <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            {champ("bail_type")}<span className="text-[12px] text-brume">échéance</span>{champ("bail_echeance")}
-          </span>
+          <div>
+            <ChampFiche champ="bail_texte" lot={vu} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />
+            {lu && <span className="mt-1 block text-[12.5px] text-brume">Pour le projet : {lu.type_bail}{compris.length ? ` · ${compris.join(" · ")}` : " · sans date"}</span>}
+          </div>
         );
+      }
       default: return null;
     }
   };
@@ -428,17 +440,10 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = ""
     if (m.approche || m.kdata_en_cours) return "a_verifier";
     return m.jugement.sens === "haut" ? "a_verifier" : "ok";
   };
+  // Une ligne et son marché ne font qu'un (11 nov. 2026) : elle prend l'état le plus réservé des deux, un clic les règle ensemble.
+  const RANG = { no_go: 0, warning: 1, a_verifier: 1, ok: 2 };
+  const plusReserve = (a, b) => ([a, b].filter((x) => x in RANG).sort((x, y) => RANG[x] - RANG[y])[0] || a);
   const lignes = LIGNES_BIEN.map((l) => {
-    if (l.marche) {
-      // Une clé stable (pas de vrai critère de grille derrière) pour que le
-      // statut se pose à la main comme les autres lignes : cliquer sur la
-      // case Statut doit pouvoir passer Prix marché ou Loyer marché en OK,
-      // à vérifier ou no go.
-      const c = { groupe: "Marché", champ: l.id };
-      const decision = decisionDe(c);
-      const calcule = marcheEnLecture ? "vide" : statutMarche(marche?.[l.marche]);
-      return { ...l, c, decision, st: decision?.statut || calcule, attenduMarche: "dans le marché, à 15 % près" };
-    }
     if (l.info) return { ...l, c: null, decision: null, st: "info" };
     const c = critereDe(grille, l.champs);
     const decision = decisionDe(c);
@@ -449,7 +454,13 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = ""
     // valeur lue sans assurance) la fait passer à vérifier, même si la grille passe.
     const reserve = approche || lot.notes?.[l.id]?.a_verifier;
     const calcule = statutDe(c);
-    return { ...l, c, decision, st: decision?.statut || (reserve && calcule === "ok" ? "a_verifier" : calcule) };
+    const st = decision?.statut || (reserve && calcule === "ok" ? "a_verifier" : calcule);
+    if (!l.avecMarche) return { ...l, c, decision, st };
+    // Une clé stable pour le marché (pas de vrai critère de grille derrière), comme avant la fusion.
+    const cMarche = { groupe: "Marché", champ: `${l.avecMarche}_marche` };
+    const decisionMarche = decisionDe(cMarche);
+    const stMarche = decisionMarche?.statut || (marcheEnLecture ? "vide" : statutMarche(marche?.[l.avecMarche]));
+    return { ...l, c, cMarche, decision, st: plusReserve(st, stMarche) };
   });
   // Le tableau de l'Analyse (5 nov. 2026, Jules : « adapte le tableau pour le mettre comme le module d'Analyse ») : le
   // cadre fermé, des traits entre les colonnes, le nom du tableau dans la case du haut à gauche, et l'état porté par la
@@ -468,12 +479,14 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = ""
       <div className="flex flex-col items-center gap-1 px-2 pb-4 text-center lg:hidden">
         <p className="m-0 text-[14px] text-encre">{titre}</p>
       </div>
-      <div className="relative overflow-hidden lg:rounded-[12px] lg:border lg:border-trait lg:bg-rail" style={colonnes.style}>
+      {/* L'emplacement à part, au-dessus du tableau (11 nov. 2026, Jules : « pas dans le tableau, séparé ») : sa propre carte. */}
+      {emplacement && <div className="mb-4 rounded-[12px] border border-trait bg-rail">{emplacement}</div>}
+      <div className="k-tableau-fond relative overflow-hidden lg:rounded-[12px] lg:border lg:border-trait" style={colonnes.style}>
         <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-3 text-[12.5px] text-ardoise max-lg:hidden lg:border-t-0 lg:[&>*]:py-2`}>
           <span className="relative text-[13.5px] text-encre">{titre}<Poignee cote="right" onPointerDown={colonnes.tirer("critere", 1)} /></span><span>Valeur</span><span className="relative">Notes<Poignee cote="left" onPointerDown={colonnes.tirer("notes", -1)} /></span>
         </div>
         <div className="k-cascade">
-          {lignes.map(({ id, element, c, st, decision, marche: cleMarche }) => {
+          {lignes.map(({ id, element, c, cMarche, st, decision, avecMarche: cleMarche }) => {
             const modifiable = !!(c && onVerifier) && st !== "vide" && st !== "info";
             const enChangement = c && enVerification === cleLigne(c);
             const etat = !modifiable ? null : st === "ok" ? `Vérifié${decision?.par ? ` par ${decision.par.split("@")[0]}` : ""} · cliquer pour revenir à « lu par l'IA »` : "Lu par l'IA · cliquer quand c'est vérifié";
@@ -483,18 +496,19 @@ function TableauBien({ lot, dealId = null, verdictChoisi = "", verdictTexte = ""
                 <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-2.5 transition-colors hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-[7px]`}>
                   {/* Un clic sur la case fait tourner le statut : OK, À vérifier, Bloquant (18 oct. 2026, Jules). */}
                   <button type="button" disabled={!modifiable || enChangement} title={aide || undefined}
-                    onClick={() => modifiable && onVerifier(cleLigne(c), st === "ok" ? "a_verifier" : "ok")}
+                    onClick={() => { if (!modifiable) return; const suivant = st === "ok" ? "a_verifier" : "ok"; onVerifier(cleLigne(c), suivant); if (cMarche) onVerifier(cleLigne(cMarche), suivant); }}
                     className={`m-0 flex select-none items-start justify-between gap-2 text-left text-[13.5px] leading-[1.4] text-encre transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${FOND_ETAT[st] || ""}`}
                     style={FOND_ETAT[st] ? undefined : { background: "transparent" }}>
                     <span>{element}</span>
                     {enChangement && <Loader2 className="mt-1 h-3.5 w-3.5 flex-none animate-spin" aria-label="Changement en cours" />}
                   </button>
-                  <div className="min-w-0 break-words text-[13.5px] leading-[1.4] [&_*]:whitespace-normal">{valeur(id)}</div>
+                  {/* Pas de crayon : le texte se clique pour le modifier (11 nov. 2026, Jules). Le repère group/val sert au mot du marché. */}
+                  <div className="group/val relative min-w-0 break-words text-[13.5px] leading-[1.4] [&_*]:whitespace-normal">{valeur(id)}</div>
                   <div className="min-w-0">
                     {/* Vérifiée (couleur du design), la ligne perd ses notes calculées, comme l'Analyse (5 nov. 2026, Jules) ; une
                         note écrite à la main reste. */}
                     <NotesLigne
-                      textes={st === "ok" ? [] : [...(lot.notes?.[id]?.textes || []), ...(cleMarche && marche?.[cleMarche]?.jugement ? notesMarche(marche?.[cleMarche], marche) : [])]}
+                      textes={st === "ok" ? [] : [...(lot.notes?.[id]?.textes || []), ...(cleMarche ? lot.notes?.[`${id}_marche`]?.textes || [] : []), ...(cleMarche && marche?.[cleMarche]?.jugement ? notesMarche(marche?.[cleMarche], marche) : [])]}
                       manuelle={lot.notes_manuelles?.[id] || null}
                       onNoter={onNoter ? (texte) => onNoter(id, texte) : null}
                       enCours={enNote === id}
@@ -961,6 +975,19 @@ export function JournalSuivi({ suivi }) {
 
 // Situer le bien de deux façons : le plan et la vue piéton, qui réutilisent les vues de la
 // page projet, alimentées par l'adresse du lot (ou le centre de la commune).
+/**
+ * L'emplacement, carte séparée au-dessus du tableau de la Pré-analyse (11 nov. 2026, Jules) : seulement Street View et le
+ * plan, côte à côte (l'un sous l'autre au téléphone). L'adresse et l'emplacement qualifié sont la première ligne du tableau.
+ */
+export function CarteEmplacement({ lot, dealId = null, apercu = false }) {
+  if (!lot || apercu) return null;
+  return (
+    <div className="p-2 lg:p-4">
+      <VuesLieu lot={lot} enr={lot.enrichissement || {}} coteACote dealId={dealId} />
+    </div>
+  );
+}
+
 export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = false }) {
   const [vue, setVue] = useState("carte");
   const a = lot.lot?.adresse?.valeur;
@@ -1014,7 +1041,7 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = 
           </figure>
           <figure className="m-0">
             <div className={empile ? "[&_iframe]:!h-[280px] [&_iframe]:!rounded-[10px]" : "[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]"}>
-              <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} hauteur={empile ? "h-[280px]" : "h-[300px]"} />
+              <CarteGoogle sansLien adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} hauteur={empile ? "h-[280px]" : "h-[300px]"} />
             </div>
           </figure>
         </div>
@@ -1105,14 +1132,31 @@ const texteBrut = (champ, c) => {
   return v == null ? "" : String(v);
 };
 
-export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sansNote = false, aGauche = false, teinte = null, taille = null }) {
+export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sansNote = false, aGauche = false, teinte = null, taille = null, crayonADroite = false }) {
   const c = lot?.lot?.[champ];
   const absent = !c || c.absent;
   const [edition, setEdition] = useState(null);
   const [choix, setChoix] = useState(null);
   useEffect(() => { if (!enCours) setChoix(null); }, [enCours]);
   const modifiable = !apercu && !!onSaisie;
-  const valider = (v) => { onSaisie?.({ [champ]: v }); setEdition(null); };
+  // On écrit, la case montre tout de suite la nouvelle valeur, un petit spinner à droite dit qu'elle se synchronise
+  // (11 nov. 2026, Jules : « on modifie, hop, et on voit la bonne valeur ; le spinner, c'est la synchro avec le projet »).
+  const [optimiste, setOptimiste] = useState(null);
+  const [sync, setSync] = useState(false);
+  const brute = texteBrut(champ, c);
+  useEffect(() => { setOptimiste(null); }, [brute]);
+  const valider = (v) => {
+    setEdition(null);
+    if (v === (brute ?? "")) return;
+    setOptimiste(v);
+    const r = onSaisie?.({ [champ]: v });
+    if (r && typeof r.then === "function") {
+      setSync(true);
+      r.then((ok) => { if (ok === false) setOptimiste(null); }).catch(() => setOptimiste(null)).finally(() => setSync(false));
+      // Si la relecture du dossier tarde, la valeur écrite reste affichée jusqu'à elle.
+    } else setOptimiste(null);
+  };
+  const spinner = sync ? <Loader2 aria-label="Synchronisation" className={crayonADroite ? "absolute right-2.5 top-[9px] h-3.5 w-3.5 animate-spin text-ardoise" : "h-3 w-3 flex-none animate-spin text-ardoise"} /> : null;
 
   if (BOOLEENS.has(champ)) {
     const actuel = absent ? null : c.valeur === true;
@@ -1134,33 +1178,34 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sans
   }
 
   if (edition !== null) {
+    // Sans OK ni Annuler : Entrée ou un clic ailleurs enregistre, Échap annule.
     return (
-      <span className="inline-flex flex-wrap items-center gap-2 justify-end">
-        <input
-          autoFocus
-          value={edition}
-          onChange={(e) => setEdition(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") valider(edition.trim()); if (e.key === "Escape") setEdition(null); }}
-          placeholder={champ === "adresse" ? "12 rue Exemple, 69002 Lyon" : ""}
-          className="min-w-[220px] max-md:min-w-0 max-md:w-full bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[13.5px] max-md:text-[16px] font-light tabular-nums text-encre py-0.5 placeholder:text-bord-vif"
-        />
-        <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
-        <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
-      </span>
+      <input
+        autoFocus
+        value={edition}
+        onChange={(e) => setEdition(e.target.value)}
+        onFocus={(e) => e.target.select()}
+        onBlur={() => valider(edition.trim())}
+        onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setEdition(null); } }}
+        placeholder={champ === "adresse" ? "12 rue Exemple, 69002 Lyon" : ""}
+        className={`w-full min-w-0 rounded-[3px] border-0 bg-menthe/[0.12] px-1 -mx-1 py-0 outline-none tabular-nums text-encre placeholder:text-brume max-md:text-[16px] ${taille || "text-[13.5px]"}`}
+      />
     );
   }
 
   return (
     <button
       onClick={() => modifiable && setEdition(texteBrut(champ, c))}
-      disabled={!modifiable || enCours}
+      disabled={!modifiable || (enCours && !crayonADroite)}
       aria-label={modifiable ? "Modifier" : c?.citation || undefined} title={modifiable ? "Modifier" : c?.citation || undefined}
-      className={`group inline-flex min-w-0 items-baseline gap-2 tabular-nums disabled:cursor-default ${aGauche ? `text-left font-normal ${taille || "text-[15px]"}` : `text-right font-light ${taille || "text-[13.5px]"}`} ${absent ? "text-brume" : teinte || "text-encre"}`}
+      className={`group inline-flex min-w-0 items-baseline gap-2 tabular-nums disabled:cursor-default ${aGauche ? `text-left font-normal ${taille || "text-[15px]"}` : `text-right font-light ${taille || "text-[13.5px]"}`} ${absent && optimiste === null ? "text-brume" : teinte || "text-encre"}`}
     >
-      <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
+      <span className="truncate">{optimiste !== null ? (optimiste || "non renseigné") : absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
       {!sansNote && !absent && c.confiance === "basse" && <span className="text-[11px] text-ambre font-normal">confiance basse</span>}
       {c?.en_attente ? <span className="text-[11px] text-menthe font-normal">modifié</span> : !sansNote && !absent && c.saisi_a_la_main && <span className="text-[11px] text-ambre font-normal">saisi à la main</span>}
-      {modifiable && <Pencil className="w-3 h-3 text-brume opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity flex-none" />}
+      {/* Dans le tableau, pas de crayon : on clique le texte (11 nov. 2026, Jules). */}
+      {modifiable && !crayonADroite && !sync && <Pencil className="w-3 h-3 text-brume opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity flex-none" />}
+      {spinner}
     </button>
   );
 }
@@ -1199,6 +1244,10 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
   // déplie en bas : on y descend pour vérifier, pas pour lire.
 
   const enr = lot.enrichissement;
+  // Enregistrer tout de suite, hors du brouillon : le nom, l'activité, l'enseigne, l'adresse de la carte Emplacement.
+  const enregistrerTout = apercu || !dossier?.deal_id ? null : (saisie) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot.index ?? 0}`, { body: saisie })
+    .then(() => { onRefresh?.(); return true; })
+    .catch((e) => { toast.error(e?.message || "Non enregistré"); return false; });
 
   return (
     <div className="text-encre">
@@ -1209,15 +1258,15 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             <BandeauRecalcul actif={enCours} />
             {/* Mode Fiche ou Tableau, en haut à gauche, à la place du bouton « Fiche commerciale » (5 nov. 2026, Jules). */}
             {/* « Rentrer le projet » à droite des deux modes (5 nov. 2026, Jules). */}
-            {(boutonFicheSource(dossier) || apresModes) && (
-              <div className="flex flex-wrap items-center gap-3 pb-4">
-                {boutonFicheSource(dossier) && <BasculeFiche tableau={modeFiche === "tableau"} onChange={(oui) => setModeFiche(oui ? "tableau" : "fiche")} />}
-                {apresModes}
-              </div>
-            )}
-            {modeFiche === "fiche" && boutonFicheSource(dossier) ? <FicheSource dossier={dossier} /> : (
+            {/* La bascule toujours là, la pilule Projet à sa droite (11 nov. 2026, Jules). */}
+            <div className="flex flex-wrap items-center gap-3 pb-4">
+              <BasculeFiche tableau={modeFiche === "tableau"} onChange={(oui) => setModeFiche(oui ? "tableau" : "fiche")} />
+              {apresModes}
+            </div>
+            {modeFiche === "fiche" ? (boutonFicheSource(dossier) ? <FicheSource dossier={dossier} /> : <p className="m-0 rounded-[12px] border border-trait bg-rail px-5 py-8 text-center text-[13.5px] text-ardoise">Ce dossier n'a pas de fiche commerciale : il a été créé sans pièce.</p>) : (
               <TableauBien
                 lot={lotVu}
+                emplacement={<CarteEmplacement lot={lotVu} dealId={dossier?.deal_id || null} apercu={apercu} />}
                 onSaisie={onSaisie}
                 enCours={enCours}
                 apercu={apercu}
@@ -1226,9 +1275,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                 dealId={dossier?.deal_id || null}
                 verdictChoisi={dossier?.verdict_choisi?.valeur || ""}
                 verdictTexte={dossier?.verdict_texte?.texte || ""}
-                onSaisieDirecte={apercu || !dossier?.deal_id ? null : (saisie) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot.index ?? 0}`, { body: saisie })
-                  .then(() => { toast.success("Enregistré"); onRefresh?.(); })
-                  .catch((e) => toast.error(e?.message || "Non enregistré"))}
+                onSaisieDirecte={enregistrerTout}
                 onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
                 enNote={noter.isPending ? noter.variables?.ligne : null}
               />
@@ -1269,11 +1316,11 @@ function BasculeFiche({ tableau, onChange }) {
   return (
     <button type="button" role="switch" aria-checked={tableau} onClick={() => onChange(!tableau)}
       className="inline-flex h-10 w-fit items-center gap-3 rounded-full border border-bord-doux bg-rail px-4 text-[14px] hover:border-bord-vif">
-      <span className={`transition-colors duration-300 ${tableau ? "text-ardoise" : "text-encre"}`}>Mode Fiche</span>
+      <span className={`transition-colors duration-300 ${tableau ? "text-ardoise" : "text-encre"}`}>Fiche</span>
       <span aria-hidden className={`relative h-[20px] w-[36px] flex-none rounded-full transition-colors duration-300 ${tableau ? "bg-menthe" : "bg-relief"}`}>
         <span className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-fond shadow-sm transition-all duration-300 ease-out ${tableau ? "left-[18px]" : "left-[2px]"}`} />
       </span>
-      <span className={`transition-colors duration-300 ${tableau ? "text-encre" : "text-ardoise"}`}>Mode Tableau</span>
+      <span className={`transition-colors duration-300 ${tableau ? "text-encre" : "text-ardoise"}`}>Tableau</span>
     </button>
   );
 }

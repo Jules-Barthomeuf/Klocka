@@ -17,8 +17,9 @@ test("le nom du local : l'activité puis l'enseigne, sans forme juridique", () =
   assert.equal(nomDuLocal(null, null), '');
 });
 
-test("le titre : le nom du local seul, l'adresse est écrite en dessous", () => {
-  assert.equal(titreProjet('Chez Truc', '12 rue de la Paix, 75002 Paris', 'Pizzeria'), 'Pizzeria Chez Truc');
+test("le titre : le nom du locataire tel qu'il est écrit, rien d'autre (10 nov. 2026)", () => {
+  assert.equal(titreProjet('Chez Truc', '12 rue de la Paix, 75002 Paris', 'Pizzeria'), 'Chez Truc');
+  assert.equal(titreProjet('restaurant libanais', null, 'Restauration assise'), 'restaurant libanais');
   assert.equal(titreProjet(null, '12 rue de la Paix, 75002 Paris'), 'Murs commerciaux');
-  assert.equal(titreProjet('SAS Patounes', null), 'Patounes');
+  assert.equal(titreProjet('SAS Patounes', null), 'SAS Patounes');
 });

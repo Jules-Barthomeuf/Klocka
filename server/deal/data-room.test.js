@@ -368,7 +368,7 @@ test("rentrer le projet après l'Analyse : le Kbis nomme le local dans le titre,
   const r = P.creerProjetDepuisDeal('DR18', 0, null, { analyse: A.lireAnalyse('DR18') });
   assert.notEqual(r.ok, false);
   const projet = Records.get('Project', Records.findBy('Deal', 'deal_id', 'DR18').projet_id);
-  assert.equal(projet.titre, 'Restaurant Le Perroquet Bleu', "le nom seul, l'adresse est écrite en dessous (30 oct. 2026)");
+  assert.equal(projet.titre, 'SARL Le Perroquet Bleu', "le nom tel qu'il est écrit, sans l'activité devant (10 nov. 2026)");
   assert.equal(projet.echeance_bail, '2034-12-31', 'en date, pour la frise et la durée restante');
   assert.equal(projet.loyer_annuel_ht, 24000);
   assert.match(projet.questions_ouverture, /surface du local, en m² : manquant/);

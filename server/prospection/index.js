@@ -16,7 +16,7 @@
 //   le vendredi      le récapitulatif de la semaine.
 // Rien ne part vers l'extérieur sans un clic (mails.js).
 
-import { Records, Meta } from '../db.js';
+import db, { Records, Meta } from '../db.js';
 import * as R from './regles.js';
 import * as C from './carnet.js';
 import { reglages, villesDuJour } from './reglages.js';
@@ -65,9 +65,19 @@ async function estInterneDe() {
   return (email) => { const e = String(email || '').toLowerCase(); return ref.internes.has(e) || ref.domaines.has(e.split('@')[1] || ''); };
 }
 
+// Les fiches reçues, gardées tant que rien n'a bougé (11 nov. 2026, Jules : « Appels charge un peu longtemps ») : la
+// liste relit tous les dossiers (8 Mo de JSON) et la page Appels la demandait deux fois par ouverture, 0,4 à 0,8 s
+// chaque fois. L'empreinte (nombre et dernière écriture des dossiers, mails, projets et comptes) se lit sur l'index
+// sans rien désérialiser : un dossier ou un mail qui change, et la liste se refait.
+let fichesGardees = null;
+const empreinteFiches = () => JSON.stringify(db.prepare("SELECT entity, count(*) n, max(updated_date) m FROM records WHERE entity IN ('Deal', 'MailRecu', 'Project', 'User') GROUP BY entity").all());
 export async function fiches() {
+  const empreinte = empreinteFiches();
+  if (fichesGardees?.empreinte === empreinte) return fichesGardees.liste;
   const { listerFiches } = await import('../deal/fiches-stats.js');
-  return listerFiches({ deals: Records.list('Deal'), mails: Records.list('MailRecu'), projets: Records.list('Project') }, { estInterne: await estInterneDe() });
+  const liste = listerFiches({ deals: Records.list('Deal'), mails: Records.list('MailRecu'), projets: Records.list('Project') }, { estInterne: await estInterneDe() });
+  fichesGardees = { empreinte, liste };
+  return liste;
 }
 
 /**

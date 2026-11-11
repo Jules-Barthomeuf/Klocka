@@ -14,7 +14,7 @@ import { execSync } from 'node:child_process';
 process.env.CRM = 'monday';
 const M = await import('../../server/monday.js');
 const go = process.argv.includes('--go');
-const SERVICE = 'srv-da1d45ojo6nc738dmc0g';
+const SERVICE = 'srv-dbq19gou01pc739i1h20';
 const RENDER = (process.env.RENDER_API_KEY || '').trim();
 if (!M.mondayConfigure() || !RENDER) {
   console.error('MONDAY_TOKEN / RENDER_API_KEY manquants');

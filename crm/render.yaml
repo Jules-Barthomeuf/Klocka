@@ -1,7 +1,8 @@
 # Twenty, le CRM de Klocka (27 oct. 2026), sur Render, à côté du service Klocka et sans toucher à sa mémoire.
-# Région Virginie, comme le service Klocka (srv-da1d45ojo6nc738dmc0g). Créés le 27 oct. 2026 par l'API Render, sur ce modèle :
-#   twenty-server srv-dbgebr2vcj2c73efk45g (https://twenty-server-3rvp.onrender.com), twenty-worker srv-dbgebs59fdbs73e1iamg,
-#   twenty-db dpg-dbgeb6t9fdbs73e1hk3g-a (basic_1gb), twenty-redis red-dbgeb73l550s73b6useg (starter).
+# Région Francfort, comme le service Klocka (klocka-fra, srv-dbq19gou01pc739i1h20), depuis le déménagement du 11 nov. 2026
+# (avant : Virginie, créés le 27 oct.). Recréés par l'API Render sur ce modèle :
+#   twenty-server-fra srv-dbq1a3oae00c73d0v18g (https://twenty-server-fra.onrender.com), twenty-worker-fra srv-dbq1a5ajnfac73eptg9g,
+#   twenty-db-fra dpg-dbq19bijnfac73epqjp0-a (basic_1gb), twenty-redis-fra red-dbq19cbbc2fs73ckrfrg (starter).
 # ENCRYPTION_KEY : tirée à la main (TWENTY_ENCRYPTION_KEY du .env), la même sur le serveur et le worker. Déploiement
 # automatique coupé : une montée de version change le tag ici et sur les deux services, puis se déploie à la main.
 # Repris du docker-compose officiel (packages/twenty-docker) : un serveur, un worker (yarn worker:prod), Postgres 16,
@@ -26,7 +27,7 @@ services:
     runtime: image
     image:
       url: docker.io/twentycrm/twenty:v2.51.0
-    region: virginia
+    region: frankfurt
     plan: 1c-2g
     healthCheckPath: /healthz
     disk:
@@ -54,7 +55,7 @@ services:
     runtime: image
     image:
       url: docker.io/twentycrm/twenty:v2.51.0
-    region: virginia
+    region: frankfurt
     plan: 1c-2g
     dockerCommand: yarn worker:prod
     envVars:
@@ -76,13 +77,13 @@ services:
 
   - type: keyvalue
     name: twenty-redis
-    region: virginia
+    region: frankfurt
     plan: starter
     maxmemoryPolicy: noeviction
     ipAllowList: []
 
 databases:
   - name: twenty-db
-    region: virginia
+    region: frankfurt
     plan: basic_1gb
     postgresMajorVersion: "16"

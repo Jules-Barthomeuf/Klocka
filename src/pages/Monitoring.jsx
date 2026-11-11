@@ -3,7 +3,6 @@ import OngletsSuivi from "@/components/OngletsSuivi";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import SauvegardeBase from "@/components/monitoring/SauvegardeBase";
-import JournalAudit from "@/components/monitoring/JournalAudit";
 import Incidents from "@/components/monitoring/Incidents";
 import { useCouleurs } from "@/components/monitoring/GraphesAppels";
 import { TableauPersonnes, VueEnsemble } from "@/components/monitoring/UsagePlateforme";
@@ -18,7 +17,8 @@ import Chargement from "@/components/ui/Chargement";
 // par page. Les colonnes IA et Actions, les outils de l'assistant et ce que
 // coûte l'IA sont partis de cet écran (la page Coûts IA garde les coûts).
 // Le 11 nov. 2026 (Jules), la qualité d'AK et l'historique des demandes à
-// l'assistant en partent aussi ; les demandes restent gardées en base.
+// l'assistant en partent aussi, puis la Traçabilité (« Qui a fait quoi ») ;
+// les demandes et le journal d'audit restent gardés en base.
 
 const FENETRES = [
   { jours: 1, libelle: "1 jour" },
@@ -65,8 +65,6 @@ export default function Monitoring() {
             </p>
           </div>
         )}
-
-        <JournalAudit />
 
         <Incidents />
 

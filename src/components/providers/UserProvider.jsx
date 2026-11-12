@@ -1,10 +1,19 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { allerAuBonDomaine, apercuInitial } from '@/lib/vue';
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 
 const UserContext = createContext(null);
 
 export function UserProvider({ children }) {
   const { data: user, isLoading } = useCurrentUser();
+  // Le bon domaine dès la connexion, quelle que soit la page (12 nov. 2026) : un mandataire sur app.kpartners.immo.
+  useEffect(() => {
+    if (!user) return;
+    // apercuInitial retire aussi le « ?vue= » laissé par un passage.
+    const apercu = apercuInitial();
+    allerAuBonDomaine(user, user.role === 'admin' ? apercu : user.role === 'mandataire' ? 'mandataire' : 'client', (...a) => base44.request(...a));
+  }, [user]);
 
   if (isLoading) {
     return (

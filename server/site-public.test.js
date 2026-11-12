@@ -65,3 +65,9 @@ test('app.klocka.immo garde sa racine et montre le site sous /klocka.immo/', asy
     assert.equal(await (await appel('/klocka.immo/Dashboard', 'app.klocka.immo')).text(), 'plateforme');
   } finally { s.close(); }
 });
+
+test('le site K Partners répond sur kpartners.immo et www, jamais sur les domaines de l’application', async () => {
+  const { estHoteSiteKpartners } = await import('./site-public.js');
+  for (const h of ['kpartners.immo', 'www.kpartners.immo', 'WWW.KPARTNERS.IMMO']) assert.equal(estHoteSiteKpartners(h), true, h);
+  for (const h of ['app.kpartners.immo', 'app.klocka.immo', 'klocka.immo', 'kpartners.localhost']) assert.equal(estHoteSiteKpartners(h), false, h);
+});

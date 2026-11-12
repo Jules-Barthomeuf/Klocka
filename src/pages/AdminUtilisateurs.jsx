@@ -12,6 +12,7 @@ const AdminMandataires = lazy(() => import("@/pages/AdminMandataires"));
 import CourbesClients from "@/components/admin/CourbesClients";
 import CaseRole, { rolesDuCompte } from "@/components/admin/CaseRole";
 import AccesAdmins from "@/components/compte/AccesAdmins";
+import PagesCrm from "@/components/compte/PagesCrm";
 import { useUser } from "@/components/providers/UserProvider";
 import { DialogueAssignerProjets } from "@/components/admin/AssignationProjets";
 import { Badge } from "@/components/ui/badge";
@@ -831,6 +832,8 @@ export default function AdminUtilisateurs() {
                 <tr className="bg-relief/40">
                 <td colSpan={10} className={`${CELLULE} p-0`}>
                 <div className="sticky left-0 max-w-[calc(100vw-2.5rem)] space-y-6 px-5 pb-6 pt-5 md:pl-12">
+                  {/* Les pages du CRM qu'il voit (11 nov. 2026, Jules) : l'équipe et les mandataires, réglé par Jules seul. */}
+                  {!client && moi?.gere_les_acces && <PagesCrm email={user.email} />}
                   {/* Profil investisseur */}
                   <div>
                     <div className="mb-3 text-[11px] uppercase tracking-[.16em] text-brume">Profil investisseur</div>
@@ -934,6 +937,7 @@ export default function AdminUtilisateurs() {
           <AccesAdmins />
         </section>
       )}
+
       </>}
       </div>
 

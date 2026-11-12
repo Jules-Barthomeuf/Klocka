@@ -90,6 +90,14 @@ export function monterMonday(app) {
     if (u?.role !== 'admin') { res.status(403).json({ error: 'Réservé aux administrateurs.' }); return null; }
     return u;
   };
+  // Les pages du CRM de chacun (11 nov. 2026) : Jules seul, comme les accès de l'équipe.
+  const jules = async (req, res) => {
+    const u = currentUser(req);
+    if (!(await import('../acces-pages.js')).estSuperAdmin(u)) { res.status(403).json({ error: 'Seul Jules gère les accès.' }); return null; }
+    return u;
+  };
+  app.get('/api/admin/crm/pages', wrap(async (req, res) => { if (await jules(req, res)) ok(res, await (await ecran()).pagesDeChacun()); }));
+  app.post('/api/admin/crm/pages', wrap(async (req, res) => { if (await jules(req, res)) ok(res, await (await ecran()).poserPagesCachees(req.body?.email, req.body?.cachees)); }));
   app.get('/api/admin/crm/acces', wrap(async (req, res) => {
     if (!adminCrm(req, res)) return;
     const r = await (await import('../crm/acces.js')).lireAcces();

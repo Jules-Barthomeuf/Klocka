@@ -270,10 +270,17 @@ export async function evenementsSociete(siren, { mois = 36 } = {}) {
     order_by: 'dateparution desc',
     limit: '50',
   });
-  return (d.results || []).map((a) => ({
-    date: a.dateparution,
-    type: TYPE_DE(a),
-    detail: [a.commercant, a.typeavis].filter(Boolean).join(' · ').slice(0, 200),
-    source: 'BODACC',
-  }));
+  return (d.results || []).map((a) => {
+    // Le jugement d'une procédure collective : sa nature (ouverture d'un redressement, liquidation, plan…) et sa date.
+    let j = null;
+    try { j = a.jugement ? (typeof a.jugement === 'string' ? JSON.parse(a.jugement) : a.jugement) : null; } catch { j = null; }
+    return {
+      date: a.dateparution,
+      type: TYPE_DE(a),
+      detail: [a.commercant, j?.nature || a.typeavis].filter(Boolean).join(' · ').slice(0, 200),
+      jugement: j?.nature ? { nature: j.nature, date: j.date || null } : null,
+      famille: a.familleavis || null,
+      source: 'BODACC',
+    };
+  });
 }

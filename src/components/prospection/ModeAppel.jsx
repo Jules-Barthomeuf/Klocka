@@ -241,6 +241,32 @@ function CarteAgence({ a, recherches, cahier }) {
   );
 }
 
+/** « Ensuite » (11 nov. 2026, Jules : « sous l'écran du mode appel, les autres qu'on va prospecter ensuite ») : les
+ *  agences qui suivent dans la file, dans son ordre, sous le prochain appel et pendant l'appel. Une ligne : le nom,
+ *  l'interlocuteur, la raison ou l'état, le lieu. Dix, puis « n autres ». */
+function Ensuite({ agences }) {
+  const [tout, setTout] = useState(false);
+  if (!agences.length) return null;
+  const vues = tout ? agences : agences.slice(0, 10);
+  return (
+    <section aria-label="Ensuite" className="mt-2">
+      <p className="m-0 mb-1.5 px-1 text-[13px] text-ardoise">Ensuite <span className="tabular-nums">{agences.length}</span></p>
+      <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-trait p-0">
+        {vues.map((x) => (
+          <li key={x.id} className="flex min-h-[44px] items-center gap-4 border-t border-trait px-4 py-2 first:border-t-0 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-0.5">
+            <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{x.nom}{x.interlocuteurs?.[0] && <span className="text-ardoise"> · {x.interlocuteurs[0]}</span>}</span>
+            <span className={`max-w-[40%] flex-none truncate text-[13px] max-md:max-w-full ${x.raison ? "text-ambre" : "text-ardoise"}`}>{x.raison || x.badge || x.statut?.libelle || ""}</span>
+            {x.lieu && <span className="w-[140px] flex-none truncate text-right text-[13px] text-ardoise max-md:hidden">{x.lieu}</span>}
+          </li>
+        ))}
+      </ul>
+      {!tout && agences.length > 10 && (
+        <button type="button" onClick={() => setTout(true)} className="mt-1.5 px-1 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Voir les {agences.length - 10} autres</button>
+      )}
+    </section>
+  );
+}
+
 /** Les notes de l'appel, sous la transcription : ce que le micro capte mal. Elles l'emportent sur ce qu'AK a entendu. */
 function ZoneNotes({ valeur, onChange, nu = false }) {
   return (
@@ -1251,6 +1277,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   ),
                 }} />
             )}
+
+            {/* Les agences qui suivent, sous le prochain appel et sous l'appel en cours (11 nov. 2026). */}
+            {(ecran === "fiche" || ecran === "appel") && a && !relances && <Ensuite agences={agences.filter((x) => x.id !== a.id)} />}
 
             {/* Au raccrochage : l'issue, tapée par l'analyste. */}
             {ecran === "issue" && a && (

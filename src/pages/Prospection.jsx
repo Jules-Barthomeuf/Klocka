@@ -10,9 +10,8 @@ import { useDictee, versWav } from "@/lib/dictee";
 import { OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
 import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
-import { FileRelances, ModeAppelUnique } from "@/components/prospection/FileRelances";
+import { ModeAppelUnique } from "@/components/prospection/FileRelances";
 import SuiviAppels from "@/pages/SuiviAppels";
-import VisiteModeAppel, { CLE_VISITE } from "@/components/prospection/VisiteModeAppel";
 import AvatarAK from "@/components/AvatarAK";
 import { Filtres, TitrePage } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
@@ -969,15 +968,11 @@ export default function Prospection() {
   // « Aujourd'hui » retiré (24 oct. 2026, Jules) : on arrive sur Listes ; les relances dues y sont dans leur intercalaire.
   // La carte quitte la Prospection (9 nov. 2026, Jules) : elle est dans le tableau de bord du CRM.
   const PARTIES = [["listes", "Listes"], ["suivi", "Suivi"]];
-  // La visite du mode appel (9 oct. 2026) : d'elle-même la première fois, puis à la demande.
-  const [visite, setVisite] = useState(() => { try { return !localStorage.getItem(CLE_VISITE); } catch { return false; } });
   // « ?partie=listes&liste=<id> » (le lien « Voir la liste » d'Off-market, 11 oct. 2026) l'emporte sur la dernière partie ouverte.
   const depuisAdresse = new URLSearchParams(window.location.search);
   const [partie, setPartie] = useState(() => { const u = ({ agent: "listes", relances: "listes", journee: "listes" })[depuisAdresse.get("partie")] || depuisAdresse.get("partie"); if (PARTIES.some(([k]) => k === u)) return u; try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "listes"; } catch { return "listes"; } });
   // La relance prise dans la file : le Mode appel s'ouvre dessus.
   const [courante, setCourante] = useState(null);
-  // Le nombre de relances dues, pour l'intercalaire « Relances dues » des listes.
-  const relancesDues = useQuery({ queryKey: ["relances"], queryFn: () => base44.request("GET", "/api/prospection/relances"), refetchInterval: 60_000, retry: false });
   // Le Mode appel n'est plus un onglet : « Démarrer les appels » l'ouvre à la place de la page, « Retour » la rend.
   // `?appel=1` (la pilule « Appel » du coin, 19 oct. 2026) : la page s'ouvre en mode appel.
   const [enAppel, setEnAppel] = useState(() => new URLSearchParams(window.location.search).get("appel") === "1");
@@ -991,7 +986,6 @@ export default function Prospection() {
   const basculeAppel = <BasculeModeAppel actif onChange={basculer} />;
   const choisirPartie = (k) => { setCourante(null); setEnAppel(false); setPartie(k); };
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
-  const [listeOuverte, setListeOuverte] = useState(() => depuisAdresse.get("liste") || null);
   const [appel, setAppel] = useState(null);
   // La fiche d'un agent ou d'une agence (16 oct. 2026) : depuis À appeler, la grille, ou l'adresse (?agent=… ou ?agence=…, liens de l'Intelligence).
   const [fiche, setFiche] = useState(() => { const u = new URLSearchParams(window.location.search); return u.get("agent") ? { type: "agent", id: u.get("agent") } : u.get("agence") ? { type: "agence", id: u.get("agence") } : null; });
@@ -1014,7 +1008,6 @@ export default function Prospection() {
     <div className="mx-auto w-full max-w-[1500px] px-5 py-[22px] md:px-8">
       <header className="mb-3.5 flex flex-col gap-3">
         <TitrePage titre="Prospection" className="relative md:!pr-[112px]" actions={<div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2"><Filtres label="Parties de la prospection" valeur={partie} onChange={choisirPartie} options={PARTIES.map(([k, mot]) => [k, mot])} /></div>} />
-        {visite && <VisiteModeAppel onFermer={() => setVisite(false)} />}
         {partie === "prospecter" && <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
           {onglets.map(([cle, mot, n]) => (
             <button key={cle} type="button" onClick={() => setOnglet(cle)}
@@ -1037,8 +1030,7 @@ export default function Prospection() {
       <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0">
 
       {partie === "suivi" && <SuiviAppels dansProspection />}
-      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onBasculer={basculer}
-        relances={{ n: relancesDues.data?.lignes?.length || 0, contenu: <FileRelances integre onOuvrir={(c) => { setCourante(c); basculer(true); }} /> }} />}
+      {partie === "listes" && <OngletListesAgences onAppeler={(id) => prendre.mutate({ id })} onBasculer={basculer} />}
       </div>
       </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}

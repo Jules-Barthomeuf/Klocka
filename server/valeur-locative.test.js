@@ -88,3 +88,14 @@ test('champsValeurLocative : la rue Data-B remplit l\'offre de marché du projet
   });
   assert.deepEqual(champsValeurLocative({ ville: { basse: 1, haute: 2 } }), {});
 });
+
+test("adresseTapee : l'adresse telle qu'écrite quand la BAN ne répond pas", async () => {
+  const { adresseTapee } = await import('./valeur-locative.js');
+  const a = adresseTapee('12 rue de la République, 69002 Lyon');
+  assert.equal(a.rue, 'rue de la République');
+  assert.equal(a.ville, 'Lyon');
+  assert.equal(a.code_postal, '69002');
+  assert.equal(a.lat, null);
+  assert.equal(adresseTapee('9 bis Rue Gazan 06130 Grasse').rue, 'Rue Gazan');
+  assert.equal(adresseTapee('ab'), null);
+});

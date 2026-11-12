@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, CircleUser, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Phone, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Phone, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
@@ -18,20 +18,21 @@ import { useUser } from "@/components/providers/UserProvider";
 // Des pages de Klocka dans le CRM (6 nov. 2026, Jules : « mets la page utilisateurs dans le CRM en gardant celle
 // actuelle aussi », puis « fais pareil pour Mandataires ») : en bas de l'espace Klocka, pour l'équipe seule, et pas des
 // tableaux de Twenty. Les comptes restent dans Klocka : ce sont les pages d'Administration, ouvertes ici.
-// Le tableau de bord (la carte des clients de Twenty) et les fiches de Klocka d'un agent ou d'un client (6 nov. 2026).
-const CarteClientsTwenty = lazy(() => import("@/components/crm/CarteClientsTwenty"));
+// Les fiches de Klocka d'un agent ou d'un client (6 nov. 2026). Plus de tableau de bord (11 nov. 2026, Jules) : le CRM
+// ouvre sur la première page de la personne, et chacun ne voit que les pages que Jules lui laisse (server/crm/ecran.js).
 const TiroirAgent = lazy(() => import("@/pages/Agents").then((m) => ({ default: m.TiroirAgent })));
 // Inviter et Familles, en haut à droite d'Utilisateurs et de Clients, comme sur l'ancienne page (10 nov. 2026, Jules).
 const ActionsComptes = lazy(() => import("@/components/crm/ActionsComptes"));
+// Les pages du CRM d'une personne de l'équipe ou d'un mandataire, dans sa fiche (11 nov. 2026, Jules : « cliquer sur un
+// utilisateur et sélectionner quelle page il peut voir ») ; Jules seul.
+const PagesCrm = lazy(() => import("@/components/compte/PagesCrm"));
 const FicheClient = lazy(() => import("@/pages/AdminClients").then((m) => ({ default: m.FicheClient })));
 const AppelClient = lazy(() => import("@/components/clients/AppelClient"));
 // Les tableaux de Twenty dont une ligne ouvre la fiche de Klocka (Relations), quand elle en a une.
 const AVEC_FICHE_KLOCKA = new Set(["agentImmobilier", "clients"]);
-const pageKlocka = (singulier, nom) => ({ singulier, nom, local: true, champs: [], vues: [], niveau: "local" });
-// Utilisateurs n'est plus une page ouverte ici (6 nov. 2026, Jules : « la même structure que Clients ») : c'est un
-// tableau que le serveur ajoute à l'espace Klocka (server/crm/utilisateurs.js), lu comme ceux de Twenty.
-// Mandataires aussi, le même jour (« un tableau, chaque champ une colonne », server/crm/mandataires.js).
-const PAGES_KLOCKA = [pageKlocka("tableau-de-bord", "Tableau de bord")];
+// Les colonnes que le tableau ne montre pas, quelles que soient ses vues dans Twenty (11 nov. 2026, Jules : « cache la
+// colonne entreprise dans clients ») ; le champ reste dans la fiche.
+const COLONNES_CACHEES = { clients: ["entreprise"] };
 
 // Twenty CRM dans Klocka (5 nov. 2026, Jules : « recrée Twenty et mets-le dans notre plateforme », puis « finis tout
 // pour que ce soit le plus proche de ce qu'on a sur Twenty »). Twenty reste la base ; la page la lit et l'écrit par le
@@ -389,6 +390,8 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
     onError: (e) => toast.error(e?.message || "Dépôt refusé"),
   });
   const f = data?.fiche;
+  const moi = useUser();
+  const reglePages = moi?.gere_les_acces && f?.email && ((objet.singulier === "utilisateurs" && f.type !== "CLIENT") || objet.singulier === "mandataires");
   const champNom = objet.champs.find((c) => c.nom === objet.principal);
   const nom = f ? affiche(champNom || SANS_NOM, f[objet.principal]) : "";
   const ouvertes = data?.taches?.filter((t) => t.statut !== "DONE").length || 0;
@@ -452,6 +455,7 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
                 </div>
               ))}
             </dl>
+            {reglePages && <div className="mt-6"><Suspense fallback={null}><PagesCrm email={f.email} /></Suspense></div>}
             {(data.liees || []).map((l) => (
               <div key={l.nom} className="mt-6">
                 <div className="mb-2 flex items-center justify-between gap-3">
@@ -908,7 +912,11 @@ export default function CrmTwenty() {
   const moi = useUser();
   // Un admin garde les pages de Klocka dans la vue mandataire, où l'espace Klocka lui reste ouvert (6 nov. 2026).
   const equipe = moi?.role === "admin";
-  const objets = useMemo(() => [...(barre.data?.dossiers || []).filter((d) => !d.ferme).flatMap((d) => d.objets.filter((o) => !o.ferme)), ...(equipe ? PAGES_KLOCKA : [])], [barre.data, equipe]);
+  // Dans l'ordre que la personne a choisi en glissant les pages : le CRM ouvre sur la première de son panneau.
+  const objets = useMemo(() => (barre.data?.dossiers || []).filter((d) => !d.ferme).flatMap((d) => {
+    const rang = new Map((barre.data.ordre?.[d.nom || "Autres"] || []).map((x, i) => [x, i]));
+    return d.objets.filter((o) => !o.ferme).map((o, i) => [o, rang.has(o.singulier) ? rang.get(o.singulier) : rang.size + i]).sort((x, y) => x[1] - y[1]).map(([o]) => o);
+  }), [barre.data]);
   const objet = objets.find((o) => o.singulier === params.get("t")) || objets[0] || null;
   const vue = objet?.vues.find((v) => v.id === params.get("v")) || objet?.vues[0] || null;
   const ficheId = params.get("f");
@@ -985,13 +993,11 @@ export default function CrmTwenty() {
     ordrePages.mutate({ espace: esp.nom, pages });
   };
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
-  const [personne, setPersonne] = useState(false);
   const [grouper, setGrouper] = useState(false);
   const [groupesFermes, setGroupesFermes] = useState([]);
   const [groupes, setGroupes] = useState(() => lireLocal("crm-groupes", {}));
   const [reglagesColonnes, setReglagesColonnes] = useState(() => lireLocal("crm-colonnes", {}));
   const boutonEspace = useRef(null);
-  const boutonPersonne = useRef(null);
   const boutonGrouper = useRef(null);
   const boutonNouveau = useRef(null);
   const [menuNouveau, setMenuNouveau] = useState(false);
@@ -1045,7 +1051,7 @@ export default function CrmTwenty() {
     return out;
   }, [liste.data]);
   const total = liste.data?.pages[0]?.total;
-  const colonnesVue = (vue?.colonnes || []).map((n) => objet.champs.find((c) => c.nom === n)).filter(Boolean);
+  const colonnesVue = (vue?.colonnes || []).filter((n) => !COLONNES_CACHEES[objet.singulier]?.includes(n)).map((n) => objet.champs.find((c) => c.nom === n)).filter(Boolean);
   const plein = objet?.niveau === "plein";
   const relire = () => queryClient.invalidateQueries({ queryKey: ["crm-page", objet?.singulier] });
   const ajouter = useMutation({
@@ -1090,13 +1096,6 @@ export default function CrmTwenty() {
   for (const d of espaces) {
     const rang = new Map((barre.data.ordre?.[d.nom] || []).map((s, i) => [s, i]));
     if (rang.size) d.objets = d.objets.map((o, i) => [o, rang.has(o.singulier) ? rang.get(o.singulier) : rang.size + i]).sort((x, y) => x[1] - y[1]).map(([o]) => o);
-  }
-  // Le tableau de bord en tête de l'espace Klocka (créé s'il manque), pour l'équipe seule ; après l'ordre choisi, qui
-  // ne range que les tableaux.
-  if (equipe) {
-    const klocka = espaces.find((d) => d.nom === "Klocka");
-    if (klocka) klocka.objets = [...PAGES_KLOCKA, ...klocka.objets];
-    else espaces.unshift({ nom: "Klocka", objets: PAGES_KLOCKA });
   }
   const espaceDeLaPage = espaces.find((d) => !d.ferme && d.objets.some((o) => o.singulier === objet?.singulier && !o.ferme));
   const espace = (espaceChoisi && espaces.find((d) => d.nom === espaceChoisi && !d.ferme && d.objets.some((o) => o.singulier === objet?.singulier))) || espaceDeLaPage || espaces.find((d) => !d.ferme) || null;
@@ -1279,20 +1278,6 @@ export default function CrmTwenty() {
         )}
 
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-          {objet?.local && (
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <Suspense fallback={<Chargement />}>
-                {objet.singulier === "tableau-de-bord" && (
-                  <div className="px-10 pb-10 pt-[18px] max-md:px-4">
-                    <h1 className="m-0 text-[25px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">Tableau de bord</h1>
-                    <p className="m-0 mt-1 text-[13px] text-ardoise">Clients, projets, prospection et deals. Un clic ouvre la fiche.</p>
-                    <CarteClientsTwenty hauteur="calc(100dvh - 240px)" className="mt-4 min-h-[460px]"
-                      onClient={(p) => (p.klocka ? setKlocka({ type: "client", id: p.klocka, singulier: "clients", twenty: p.id }) : aller({ t: "clients", v: null, f: p.id, ft: null }))} />
-                  </div>
-                )}
-              </Suspense>
-            </div>
-          )}
           {objet && !objet.local && (
             <>
               {/* Le titre de la page, puis ses vues en onglets soulignés (le … de la vue ouverte, + pour une nouvelle vue). */}
@@ -1343,19 +1328,6 @@ export default function CrmTwenty() {
                     {recherche && <button type="button" onClick={() => setRecherche("")} aria-label="Effacer" className="text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>}
                   </span>
                 ) : <button type="button" onClick={() => setRechercheOuverte(true)} className={outil} style={{ background: "transparent" }}><Search className="h-4 w-4" />Rechercher</button>}
-                {champPersonne && (
-                  <button ref={boutonPersonne} type="button" onClick={() => setPersonne(true)} className={outil} style={{ background: "transparent" }}><CircleUser className="h-4 w-4" />Personne</button>
-                )}
-                {personne && (
-                  <Flottant ancre={boutonPersonne.current} onFermer={() => setPersonne(false)} largeur={260}>
-                    <p className="m-0 px-2.5 pb-1 pt-1 text-[12.5px] text-ardoise">{champPersonne.libelle}</p>
-                    {spoc.map((p) => (
-                      <button key={p.valeur} type="button" onClick={() => { setPersonne(false); setFiltres((t) => [...t.filter((x) => x.champ !== champPersonne.nom), { champ: champPersonne.nom, op: "contient", valeur: p.valeur }]); }} className={`${ligneMenu} flex items-center gap-2.5`} style={{ background: "transparent" }}>
-                        <Tete nom={p.valeur} className="flex-none" /><span className="truncate">{p.nom}</span>
-                      </button>
-                    ))}
-                  </Flottant>
-                )}
                 <button ref={boutonFiltre} type="button" onClick={() => setAjoutFiltre(true)} className={outil} style={{ background: "transparent" }}><ListFilter className="h-4 w-4" />Filtre<ChevronDown className="h-3.5 w-3.5" /></button>
                 {ajoutFiltre && <Flottant ancre={boutonFiltre.current} onFermer={() => setAjoutFiltre(false)} largeur={300}><EditeurFiltre champs={objet.champs} onValider={(f) => { setAjoutFiltre(false); setFiltres((t) => [...t, f]); }} /></Flottant>}
                 {!kanban && champsGroupe.length > 0 && <button ref={boutonGrouper} type="button" onClick={() => setGrouper(true)} className={outil} style={{ background: "transparent" }}><Rows3 className="h-4 w-4" />{champGroupe ? `Groupé par ${champGroupe.libelle}` : "Grouper par"}</button>}

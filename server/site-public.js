@@ -59,3 +59,30 @@ export function siteMiddleware(distSite) {
   });
   return routeur;
 }
+
+// Le site public de K Partners (kpartners.immo), servi ici le 12 nov. 2026 (Jules : « l'héberger ici ») : la page de
+// public/kpartners (rendue dans dist/kpartners par Vite), à la racine du domaine. Toute autre adresse appartient à
+// l'espace mandataire et y est renvoyée (app.kpartners.immo, ou app.klocka.immo tant que K Partners n'a pas le sien).
+// En local : http://www.kpartners.localhost:3001.
+export const HOTES_SITE_KPARTNERS = new Set(
+  (process.env.SITE_KPARTNERS_HOTES || 'kpartners.immo,www.kpartners.immo,www.kpartners.localhost')
+    .split(',').map((h) => h.trim().toLowerCase()).filter(Boolean)
+);
+export const estHoteSiteKpartners = (hote) => HOTES_SITE_KPARTNERS.has(String(hote || '').toLowerCase());
+
+export function siteKpartnersMiddleware(distSite) {
+  const index = path.join(distSite, 'index.html');
+  const statique = express.static(distSite, { index: false, setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=86400') });
+  return (req, res, next) => {
+    if (!estHoteSiteKpartners(req.hostname)) return next();
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+    if ((req.method === 'GET' || req.method === 'HEAD') && (req.path === '/' || req.path === '/index.html') && fs.existsSync(index)) {
+      res.setHeader('Cache-Control', 'no-cache');
+      return res.sendFile(index);
+    }
+    statique(req, res, () => {
+      const app = (process.env.URL_KPARTNERS || PLATEFORME).replace(/\/+$/, '');
+      res.redirect(302, app + req.originalUrl);
+    });
+  };
+}

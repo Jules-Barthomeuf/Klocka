@@ -31,11 +31,8 @@ import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFonds from "@/components/preanalyse/TransactionsFonds";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
-import JournalAnalyste from "@/components/preanalyse/JournalAnalyste";
-import AdresseDuBien from "@/components/preanalyse/AdresseDuBien";
 import JournalQuestion from "@/components/preanalyse/JournalQuestion";
 import { adresseDe } from "@/components/preanalyse/marche-reel";
-import VerdictPrix from "@/components/preanalyse/VerdictPrix";
 import TracabiliteMarche from "@/components/preanalyse/TracabiliteMarche";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
@@ -67,13 +64,15 @@ const GRILLES_ANALYSE = [
   { id: "quittances", titre: "Quittances", grilles: null, parPiece: true },
   { id: "copropriete", titre: "Copropriété", grilles: null, parPiece: true },
   { id: "diagnostics", titre: "Diagnostics", grilles: null, parPiece: true },
-  // Ce que disent les services extérieurs sur le loyer : le secteur pour la
-  // fourchette de la rue, Equimmox pour les baux comparables autour.
+  // Ce que les pièces ne disent pas (11 nov. 2026, Jules : « un seul onglet Marché ») : locataire, loyer, prix,
+  // emplacement, ville, lancés seuls à la création du dossier (analyse/ControlesHorsDocuments.jsx).
   { id: "marche", titre: "Marché", grilles: null },
   { id: "simulateur", titre: "Simulateur", grilles: null },
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
+import MarcheAffine from "@/components/outils/MarcheAffine";
+import { useOutilsDossier, pastilleMarche, lireVu } from "@/components/analyse/ControlesHorsDocuments";
 import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
 import { ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
 import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
@@ -240,7 +239,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
  * Le nom du dossier, modifiable d'un clic : Entrée enregistre, Échap annule,
  * cliquer ailleurs enregistre aussi. Un nom vide n'est pas accepté.
  */
-function TitreDossier({ dossier, apercu, onRefresh }) {
+function TitreDossier({ dossier, apercu, onRefresh, compact = false }) {
   const affiche = dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom";
   const [edition, setEdition] = useState(false);
   const [valeur, setValeur] = useState(affiche);
@@ -249,33 +248,41 @@ function TitreDossier({ dossier, apercu, onRefresh }) {
     onSuccess: () => { setEdition(false); onRefresh?.(); },
     onError: (e) => toast.error(e?.message || "Renommage impossible"),
   });
-  const classe = "m-0 text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre";
+  // `compact` : dans la bande du haut du dossier, en 17 px.
+  const classe = `m-0 font-normal leading-[1.2] tracking-[-0.01em] text-encre ${compact ? "text-[17px]" : "text-[24px]"}`;
   const valider = () => {
     const nom = valeur.replace(/\s+/g, " ").trim();
     if (!nom || nom === affiche) { setEdition(false); setValeur(affiche); return; }
     renommer.mutate(nom);
   };
   if (edition) {
+    // Renommer sans que rien ne bouge (12 nov. 2026, Jules : « ça reste au milieu, même taille, on modifie juste les
+    // lettres ») : ni trait, ni fond, ni texte sélectionné ; le champ prend la largeur exacte du texte, grâce au double
+    // invisible posé dans la même case de la grille.
     return (
-      <input
-        autoFocus
-        value={valeur}
-        disabled={renommer.isPending}
-        onChange={(e) => setValeur(e.target.value)}
-        onFocus={(e) => e.target.select()}
-        onBlur={valider}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-          if (e.key === "Escape") { setValeur(affiche); setEdition(false); }
-        }}
-        aria-label="Nom du dossier"
-        className={`${classe} w-[min(900px,80vw)] max-md:w-full bg-transparent border-0 border-b border-menthe/60 outline-none p-0`}
-      />
+      <span className={`${classe} inline-grid max-w-full`}>
+        <span aria-hidden="true" className="invisible col-start-1 row-start-1 whitespace-pre">{valeur || " "}</span>
+        <input
+          autoFocus
+          size={1}
+          value={valeur}
+          disabled={renommer.isPending}
+          onChange={(e) => setValeur(e.target.value)}
+          onFocus={(e) => { const n = e.target.value.length; e.target.setSelectionRange(n, n); }}
+          onBlur={valider}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") { setValeur(affiche); setEdition(false); }
+          }}
+          aria-label="Nom du dossier"
+          className="col-start-1 row-start-1 w-full min-w-0 border-0 bg-transparent p-0 text-center outline-none [font:inherit] [letter-spacing:inherit] [color:inherit]"
+        />
+      </span>
     );
   }
   return (
     <h1
-      className={`${classe} truncate ${apercu ? "" : "cursor-text rounded-md hover:bg-encre/[0.04] -mx-1.5 px-1.5"}`}
+      className={`${classe} truncate ${apercu ? "" : "cursor-text"}`}
       title={apercu ? undefined : "Cliquer pour renommer"}
       onClick={apercu ? undefined : () => { setValeur(affiche); setEdition(true); }}
     >
@@ -389,6 +396,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // Seuls les onglets des pièces comptent leurs cases à voir (29 oct. 2026) : Marché et Simulateur ne lisent plus
   // le compte de l'ancienne Synthèse, que plus rien n'affiche.
   const reste = (id) => (GRILLES_ANALYSE.find((g) => g.id === id)?.parPiece ? analysePieces.data?.a_voir?.[id] || 0 : 0);
+  // La pastille de l'onglet Marché : un signal, un résultat arrivé depuis la dernière visite, ou des outils qui tournent.
+  const outilsDossier = useOutilsDossier(apercu ? null : dossier?.deal_id, 0);
+  const pastille = pastilleMarche(outilsDossier.data, dossier?.deal_id ? lireVu(dossier.deal_id) : null);
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   // L'onglet ouvert remonte au chat de gauche : « ce loyer » parle de ce qu'on regarde (2 nov. 2026).
   useEffect(() => { onGrille?.(grilleAnalyse); }, [grilleAnalyse, onGrille]);
@@ -421,6 +431,11 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
     const rang = memes.length > 1 ? ` · ${memes.indexOf(a) + 1}` : "";
     return { cle: `kdata:${a.id}`, titre: `${a.nom_outil}${rang}` };
   });
+  // Le titre d'une partie : la pastille du Marché, ou le nombre de cases à voir d'une pièce.
+  const titreOnglet = (g) => (g.id === "marche" && pastille && grilleAnalyse !== "marche"
+    ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className={`h-2 w-2 rounded-full ${pastille === "alerte" ? "bg-alerte" : pastille === "en_cours" ? "animate-pulse bg-brume" : "bg-menthe"}`} aria-label={pastille === "alerte" ? "Un signal est sorti" : pastille === "en_cours" ? "En cours" : "Nouveau résultat"} /></span>
+    : reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-menthe/15 px-1.5 text-[11px] tabular-nums text-menthe">{reste(g.id)}</span></span> : g.titre);
+  const choisirOnglet = (cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle));
   const [deblocageEnCours, setDeblocageEnCours] = useState(false);
   // Documents cochés dans l'étape Analyse, soumis au chat.
   const [documentsCoches, setDocumentsCoches] = useState([]);
@@ -531,6 +546,40 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
     dossier?.statut === "documents_demandes" &&
     dossier.relance_prevue_le &&
     new Date(dossier.relance_prevue_le) <= new Date();
+  // À l'Analyse, dès 1024 px, le titre du dossier et ses petites icônes montent en tête du panneau des parties
+  // (12 nov. 2026, Jules) ; l'en-tête centré ne reste que pour les autres étapes et le téléphone.
+  const enPanneau = !!dossier && !enCarte && vue === "analyse";
+  // La bande du haut de la page (Analyse.jsx, écran scindé) : le titre et les gestes y montent ; sans elle, ils restent ici.
+  const [bande, setBande] = useState(null);
+  useEffect(() => {
+    const g = document.getElementById("bande-dossier-gauche");
+    const t = document.getElementById("bande-dossier-titre");
+    const d = document.getElementById("bande-dossier-droite");
+    setBande(g && t && d && !enCarte ? { g, t, d } : null);
+  }, [dossier?.deal_id, enCarte]);
+  const iconesTitre = dossier && (
+      <span className="flex items-center gap-1">
+        {avantRetour}
+        {onRetour && (
+          <button type="button" onClick={onRetour} aria-label="Tous les dossiers" title="Tous les dossiers"
+            className="grid h-9 w-9 place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}>
+            <Home className="h-4 w-4" />
+          </button>
+        )}
+      </span>
+  );
+  const titreSeul = dossier && (
+    <>
+      <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} compact={!!bande} />
+      {aRelancer && (
+        <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
+          <Clock className="w-3 h-3" /> À relancer
+        </Badge>
+      )}
+    </>
+  );
+  const boutonProjet = dossier && !apercu && vue !== "preanalyse" && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />;
+  const blocTitre = dossier && <>{iconesTitre}{titreSeul}{boutonProjet}</>;
 
   return (
     // À l'étape Offre, l'Éditeur prend toute la hauteur : pas d'espace au-dessus de lui.
@@ -591,29 +640,20 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           {/* À l'étape Offre, la lettre seule : ni le nom du dossier, ni le choix du mode (28 oct. 2026, Jules). */}
           {/* Une seule ligne (29 oct. 2026, Jules) : « Tous les dossiers » à gauche, le nom au milieu, les gestes à droite. */}
           {/* Le titre et ses petites icônes au centre (11 nov. 2026, Jules) ; la colonne de gauche, vide, équilibre celle des gestes. */}
-          {!enCarte && vue !== "offre" && <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:pr-[112px] max-md:grid-cols-[1fr_auto] max-md:gap-3">
+          {bande && createPortal(iconesTitre, bande.g)}
+          {bande && createPortal(<span className="flex min-w-0 items-center gap-1.5">{titreSeul}</span>, bande.t)}
+          {bande && createPortal(<>
+            {(vue === "documents" || (vue === "analyse" && grilleAnalyse === "data_room")) && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={(onglet) => { allerA("analyse"); if (onglet || grilleAnalyse === "data_room") setGrilleAnalyse(onglet || "bail"); }} />}
+            {!dataRoomOuverte && actionsBarre}
+            {/* Projet : à droite du nom de la partie à l'Analyse (12 nov. 2026, Jules) ; ici aux autres étapes. */}
+            {vue !== "analyse" && boutonProjet}
+            {vue === "analyse" && !apercu && <FlechesVersions dealId={dossier.deal_id} />}
+          </>, bande.d)}
+          {!enCarte && !bande && vue !== "offre" && <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:pr-[112px] max-md:grid-cols-[1fr_auto] max-md:gap-3 ${enPanneau ? "lg:hidden" : ""}`}>
             <div className="max-md:hidden" aria-hidden />
             <div className="flex min-w-0 flex-wrap items-center justify-center gap-2.5 text-center max-md:col-span-2 max-md:row-start-2 max-md:justify-start">
-              {/* Le bouton du panneau du chat, à gauche de la maison (2 nov. 2026, Jules). */}
-              <span className="flex items-center gap-1">
-                {avantRetour}
-                {onRetour && (
-                  // Une petite maison à la place de « ← Tous les dossiers » (30 oct. 2026, Jules).
-                  <button type="button" onClick={onRetour} aria-label="Tous les dossiers" title="Tous les dossiers"
-                    className="grid h-9 w-9 place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}>
-                    <Home className="h-4 w-4" />
-                  </button>
-                )}
-              </span>
-              <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
-              {/* Le projet à droite du titre (30 oct. 2026, Jules) ; à la Pré-analyse, à droite des modes Fiche / Tableau
-                  (11 nov. 2026, Jules). */}
-              {!apercu && vue !== "preanalyse" && <BoutonProjet dossier={dossier} onRefresh={onRefresh} />}
-              {aRelancer && (
-                <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
-                  <Clock className="w-3 h-3" /> À relancer
-                </Badge>
-              )}
+              {/* Le bouton du panneau du chat, à gauche de la maison (2 nov. 2026, Jules) ; le projet à droite du titre (30 oct.). */}
+              {blocTitre}
             </div>
             {/* k-actions-dossier : en mode IA, le « … » se range sous la cloche (index.css), même taille, même colonne. */}
             <div className="k-actions-dossier flex flex-none flex-wrap items-center justify-end gap-2">
@@ -636,11 +676,12 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           <MenuEtapes etape={etape} debloquee={debloquee} dossier={null} deblocageEnCours={deblocageEnCours} onEtape={setEtape} onPasser={passerVersEtape} abandonne={false} apercu={apercu} onAbandonner={() => {}} />
         </div>
       )}
-      {dossier && vue !== "offre" && <div className="mb-6" />}
+      {dossier && vue !== "offre" && <div className={`mb-6 ${enPanneau ? "lg:hidden" : ""}`} />}
 
       {/* Le simulateur prend toute la largeur (17 oct. 2026, Jules) : la colonne de droite s'efface. */}
       {/* À côté du chat (écran scindé), la colonne de droite ne se met à côté qu'à partir de 1700 px ; avant, elle passe dessous. */}
-      <div>
+      {/* À l'Analyse, l'en-tête est caché : aucun écart au-dessus du panneau, qui part du haut (12 nov. 2026, Jules). */}
+      <div className={enPanneau ? "lg:!mt-0" : undefined}>
       <div>
       {/* La Pré-analyse en pleine largeur (11 nov. 2026, Jules) : la colonne de droite (À valider, fil) passe dessous. */}
       <div className={dossier && !pleineLargeur ? `grid items-start gap-4 ${vue === "preanalyse" ? "lg:pr-14" : etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_400px]" : "lg:grid-cols-[minmax(0,1fr)_400px]"}` : ""}>
@@ -666,16 +707,49 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           />
         )}
         {montre("analyse") && (
-          <div id="tables-analyse" className="space-y-5 pt-6">
-            {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
-            <div className="flex items-center justify-between gap-3">
-            <Onglets
-              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-menthe/15 px-1.5 text-[11px] tabular-nums text-menthe">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData]}
-              valeur={grilleAnalyse}
-              onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))}
-              taille="page"
-            />
-            {!apercu && <FlechesVersions dealId={dossier.deal_id} />}
+          <div id="tables-analyse" className="pt-6 lg:pt-0">
+            {/* Les parties du dossier dans un panneau à gauche (12 nov. 2026, Jules, planche « Analyse ») : Les pièces, puis
+                Hors pièces, puis les analyses K rangées dans l'affaire. Sous 1024 px, les onglets d'avant. */}
+            <div className="mb-5 lg:hidden">
+              <Onglets items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: titreOnglet(g) })), ...ongletsKData]} valeur={grilleAnalyse} onChange={choisirOnglet} taille="page" />
+            </div>
+            {/* lg:pr-14 : la colonne des étapes, posée à droite de l'écran, ne recouvre pas les tableaux. */}
+            {/* Un trait sépare le panneau du contenu, sur toute la hauteur (12 nov. 2026, Jules). */}
+            <div className="flex items-stretch gap-8 lg:pr-14">
+            <div className="hidden w-[232px] flex-none border-r border-trait pr-4 lg:block">
+            <nav aria-label="Parties du dossier" className="sticky top-0 flex flex-col pt-7">
+              {!bande && <div className="mb-5 flex flex-wrap items-center gap-1.5">{blocTitre}</div>}
+              {[["Les pièces", GRILLES_ANALYSE.filter((g) => g.id === "data_room" || g.parPiece)], ["Hors pièces", GRILLES_ANALYSE.filter((g) => g.id !== "data_room" && !g.parPiece)], ["Analyses K", ongletsKData]].filter(([, l]) => l.length).map(([groupe, liste], i) => (
+                <React.Fragment key={groupe}>
+                  {/* Les menus seuls, sans « LES PIÈCES » ni « HORS PIÈCES » (12 nov. 2026, Jules) : un écart entre les groupes. */}
+                  {i > 0 && <span aria-hidden="true" className="block h-4" />}
+                  {liste.map((g) => {
+                    const cle = g.cle || g.id;
+                    const ici = grilleAnalyse === cle;
+                    return (
+                      <button key={cle} type="button" onClick={() => choisirOnglet(cle)} aria-current={ici ? "page" : undefined}
+                        className={`flex h-9 w-full items-center rounded-[8px] px-2.5 text-left text-[14px] transition-colors ${ici ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`} style={ici ? undefined : { background: "transparent" }}>
+                        <span className="min-w-0 flex-1 truncate">{g.id ? titreOnglet(g) : g.titre}</span>
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </nav>
+            </div>
+            <div className="min-h-[100dvh] min-w-0 flex-1 space-y-5 pt-7">
+            <div className="flex min-h-9 items-center justify-between gap-3">
+              <h2 className="m-0 text-[20px] font-normal text-encre max-lg:hidden">{GRILLES_ANALYSE.find((g) => g.id === grilleAnalyse)?.titre}</h2>
+              {/* Aligné sur le bord droit des tableaux (12 nov. 2026, Jules) : sans k-actions-dossier, qui décale de 16 px. */}
+              <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
+                {/* L'en-tête centré caché, ses gestes viennent ici : ceux de la Data Room, Mode IA / Normal, les versions. */}
+                {!bande && <span className="hidden items-center gap-2 lg:flex">
+                  {grilleAnalyse === "data_room" && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={(onglet) => setGrilleAnalyse(onglet || "bail")} />}
+                  {!dataRoomOuverte && actionsBarre}
+                </span>}
+                {!apercu && !bande && <FlechesVersions dealId={dossier.deal_id} />}
+                {bande && boutonProjet}
+              </span>
             </div>
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
             {/* Changer d'onglet : le contenu entre en fondu en montant un peu (18 oct. 2026). */}
@@ -683,17 +757,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {GRILLES_ANALYSE.find((g) => g.id === grilleAnalyse)?.parPiece && <GrillesPieces dossier={dossier} onglet={grilleAnalyse} apercu={apercu} />}
             {/* La section Vendeur est retirée de l'Analyse (30 oct. 2026, Jules). */}
             {grilleAnalyse === "data_room" && <DepotsDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />}
-            {grilleAnalyse === "marche" && (
-              <div className="flex flex-col gap-4">
-                {/* Les quatre lectures de marché vivent maintenant dans les
-                    onglets de leur source, à l'intérieur du journal — elles
-                    s'empilaient ici sur toute la hauteur de la page. */}
-                <AdresseDuBien dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} onDataRoom={() => setGrilleAnalyse("data_room")} />
-                {/* Le verdict sur le prix des murs, en tête (10 nov. 2026, Jules). */}
-                {!apercu && dossier?.deal_id && <VerdictPrix dealId={dossier.deal_id} />}
-                <JournalAnalyste dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
-              </div>
-            )}
+            {/* L'ancien Marché (adresse, verdict de prix, journal des lectures) cède la place aux outils (11 nov. 2026). */}
+            {grilleAnalyse === "marche" && dossier?.deal_id && <MarcheAffine dealId={dossier.deal_id} index={0} apercu={apercu} />}
             {/* L'onglet Historique retiré (29 oct. 2026, Jules). */}
             {grilleAnalyse === "simulateur" && (
               // Toujours là (29 oct. 2026, Jules) : les chiffres du dossier s'il en a, sinon vide ; ce qu'on tape s'enregistre seul.
@@ -708,6 +773,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} dealId={dossier?.deal_id || null} />
               </div>
             )}
+            </div>
+            </div>
           </div>
         )}
         {/* La décision une seule fois, sous le dernier onglet, Simulateur (29 oct. 2026, Jules) : elle s'affichait sous tous. */}
@@ -1506,8 +1573,8 @@ function BoutonProjet({ dossier, onRefresh }) {
       // Plus de flèche de mise à jour (11 nov. 2026, Jules) : le projet suit le dossier tout seul.
       <span className="inline-flex flex-none items-center gap-1">
         <Link to={`/Projets?id=${dossier.projet_id}`} className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif">
-          {/* Plus de flèche dans la pilule (11 nov. 2026, Jules) : le mot suffit. */}
-          Projet
+          {/* « Voir le projet », pas « Projet » seul (12 nov. 2026, Jules) : le geste dit ce qu'il fait. */}
+          Voir le projet
         </Link>
       </span>
     );
@@ -1515,7 +1582,7 @@ function BoutonProjet({ dossier, onRefresh }) {
   return (
     // Le dessin de l'interrupteur Mode Fiche / Mode Tableau (5 nov. 2026, Jules : « comme dans les modes »).
     <button type="button" onClick={() => creer.mutate()} disabled={creer.isPending} className="inline-flex h-10 flex-none items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif disabled:opacity-60">
-      {creer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4 text-ardoise" />} Rentrer le projet
+      {creer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4 text-ardoise" />} Créer le projet
     </button>
   );
 }

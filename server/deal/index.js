@@ -150,6 +150,17 @@ export async function analyserFiche(entree, ctx = {}) {
   // apparaît au prochain rafraîchissement du dossier.
   // Sans clic (veille des boîtes, Haka), pas de recherche web : le point de marché attend un geste (18 oct. 2026).
   if (!ctx.automatique) completerContexteMarche(dossier);
+  // Les cinq outils de l'onglet Marché (11 nov. 2026, Jules : « lancement automatique à la création du dossier, en
+  // arrière-plan ») : locataire, loyer, prix, emplacement, ville, chacun seul. Pas pendant les tests (NODE_TEST_CONTEXT).
+  if (!process.env.NODE_TEST_CONTEXT && lots.length) {
+    import('../outils/lancements.js')
+      .then(async (O) => {
+        const deal = Records.findBy('Deal', 'deal_id', dossier.deal_id);
+        const e = await O.entreesDuLot(deal, 0);
+        if (e.adresse || e.locataire) O.lancerOutils(e, { dealId: dossier.deal_id, index: 0, user: ctx.user || null });
+      })
+      .catch((e) => console.warn('[outils] lancement à la création :', e?.message || e));
+  }
   // La Mémoire Klocka (30 oct. 2026) : chaque fiche entrée y a sa ligne « dossier » (le taux de biens retenus, et le
   // lecteur de nuit sait qu'elle est déjà connue). Sans attente, jamais bloquant.
   import('../memoire/drapeaux.js')

@@ -27,6 +27,8 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_entrepot_sirene_commune ON entrepot_sirene(commune);
   CREATE INDEX IF NOT EXISTS idx_entrepot_sirene_siren ON entrepot_sirene(siren);
+  -- Le local d'une adresse (outil Locataire, 12 nov. 2026) : sans lui, Lyon 2e se lisait en 8 s.
+  CREATE INDEX IF NOT EXISTS idx_entrepot_sirene_commune_numero ON entrepot_sirene(commune, numero);
 `);
 // Le nom et la catégorie juridique de l'entreprise : du fichier des unités légales, en seconde passe.
 // L'effectif et le complément d'adresse (3 nov. 2026) : les bureaux vides (server/bureaux-vides.js) écartent le consultant

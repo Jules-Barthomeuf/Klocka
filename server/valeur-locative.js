@@ -23,13 +23,13 @@
 
 import { Records } from './db.js';
 import { resoudreAdresse } from './adresse-ban.js';
-import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
+import { analyseLoyerRayons, equimmoxConfigure } from './equimmox.js';
 import { valeurLocative as valeurLocativeDataB, dataBConfigure } from './data-b.js';
 import { referencesKlocka } from './loyers-klocka.js';
 import { referencesMemoire } from './memoire/comparables.js';
 import { actualiserReferences, indicesIlc } from './ilc.js';
 import { sourceActive, poidsSource } from './socle/registre-sources.js';
-import { valeurParComparables, ecartDataB } from './valeur-locative-comparables.js';
+import { valeurParComparables, ecartDataB, distanceM } from './valeur-locative-comparables.js';
 
 // --- Les loyers Klocka autour d'une adresse (18 oct. 2026) -----------------------------------
 // Les références du même département, géocodées une fois et gardées (AdresseResolue) : une
@@ -49,6 +49,20 @@ async function pointDe(ligne) {
   return point;
 }
 
+/**
+ * Pure : les loyers Klocka sans le local lui-même (12 nov. 2026, KFC Lyon : son propre loyer, 528 €/m², revenait comme
+ * comparable quand Equimmox ne répondait pas). Un loyer à moins de 15 m de l'adresse, ou à la même adresse écrite,
+ * est celui du dossier qu'on juge : il ne peut pas servir de marché.
+ */
+export function sansLuiMeme(refs, adresse) {
+  const cle = cleDe(adresse?.label);
+  return (refs || []).filter((r) => {
+    const d = distanceM(r.point, adresse);
+    if (d != null && d <= 15) return false;
+    return !(cle && cleDe(r.adresse?.ligne) === cle);
+  });
+}
+
 export async function referencesAutour(adresse) {
   const dep = String(adresse.code_postal || '').slice(0, 2);
   // La Mémoire Klocka (30 oct. 2026) : chaque fiche vue compte comme une fiche (klocka_fiche), vieillie par sa date.
@@ -60,7 +74,7 @@ export async function referencesAutour(adresse) {
     if (r.point?.code_postal && !r.adresse.code_postal) r.adresse.code_postal = r.point.code_postal;
   }
   // Chaque loyer Klocka ramené au dernier ILC publié, depuis la date de son dossier (Equimmox, lui, est actuel).
-  return actualiserReferences(refs, await indicesIlc());
+  return actualiserReferences(sansLuiMeme(refs, adresse), await indicesIlc());
 }
 
 /** Pure : les lectures Equimmox par rayon, en références de la liste commune. */
@@ -69,6 +83,17 @@ export function equimmoxEnComparables(equimmox = {}) {
   return Object.entries(equimmox)
     .filter(([, e]) => e && (e.moyenne != null || e.bas != null))
     .map(([rayon, e]) => ({ loyer_m2: e.moyenne ?? Math.round(((e.bas ?? e.haut) + (e.haut ?? e.bas)) / 2), bas: e.bas ?? null, haut: e.haut ?? null, niveau: niveau[rayon] || 'quartier', libelle: `Equimmox, baux à ${Number(rayon) >= 1000 ? `${Number(rayon) / 1000} km` : `${rayon} m`}`, le: e.le || null }));
+}
+
+/** Pure : l'adresse telle qu'écrite (« 12 rue de la République, 69002 Lyon »), sans point, quand la BAN ne répond pas. */
+export function adresseTapee(texte) {
+  const t = String(texte || '').replace(/\s+/g, ' ').trim();
+  if (t.length < 4) return null;
+  const cp = t.match(/\b(\d{5})\b/)?.[1] || '';
+  const [tete, ...reste] = t.split(',');
+  const ville = (reste.join(',') || (cp ? t.slice(t.indexOf(cp) + 5) : '')).replace(/\b\d{5}\b/, '').trim();
+  const voie = reste.length || !cp ? tete : tete.slice(0, tete.indexOf(cp));
+  return { label: t, numero: (tete.match(/^\s*(\d+(?:\s*(?:bis|ter))?)/i)?.[1] || '').trim(), rue: voie.replace(/^\s*\d+\s*(?:bis|ter)?\s*/i, '').trim(), ville, code_postal: cp, code_insee: '', lat: null, lon: null, tapee: true };
 }
 
 const ENTITE = 'ValeurLocativeRecherche';
@@ -87,6 +112,47 @@ export const ECHELLES = [
 ];
 
 const cleDe = (label) => String(label || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+/**
+ * La lecture qui fait foi pour une adresse (12 nov. 2026, Jules : « une seule règle pour le Marché et la préanalyse ») :
+ * la plus récente de la version en cours, de moins de trente jours. Le Marché, la préanalyse et le cache de la lecture
+ * passent tous par ici. `avecEquimmox` : seulement une lecture qui a des chiffres d'Equimmox.
+ */
+export function derniereLecture(cle, { avecEquimmox = false, maintenant = Date.now(), jours = CACHE_JOURS } = {}) {
+  return Records.filter(ENTITE, { cle: cleDe(cle) })
+    .filter((x) => x.version === VERSION && maintenant - Date.parse(x.le) < jours * 86400000 && (!avecEquimmox || x.resultat?.constate))
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0] || null;
+}
+
+/**
+ * La dernière lecture Equimmox connue d'une adresse, jusqu'à un an : ce que le Loyer montre, daté, quand Equimmox ne
+ * répond pas et qu'aucune lecture de moins de trente jours n'existe (12 nov. 2026, « fiable à 100 % »).
+ */
+export async function derniereLectureConnue(texte, { jours = 365 } = {}) {
+  const directe = derniereLecture(texte, { avecEquimmox: true, jours });
+  if (directe) return directe;
+  const ban = await resoudreAdresse(texte).catch(() => null);
+  return ban?.label ? derniereLecture(ban.label, { avecEquimmox: true, jours }) : null;
+}
+
+const OU = { rue: 'dans la rue', quartier: 'dans le quartier', ville: 'dans la ville' };
+
+/**
+ * Pure : le loyer de marché auquel on compare (12 nov. 2026, Jules) : l'échelle la plus proche lue (la rue à 200 m,
+ * sinon le quartier à 500 m, sinon la ville à 1 km), et sa moyenne Equimmox, leur calcul sur les baux ; le milieu de
+ * la fourchette seulement quand Equimmox ne donne pas de moyenne. Le Marché et la préanalyse jugent sur ce chiffre.
+ */
+export function loyerDeReference(resultat) {
+  for (const echelle of ['rue', 'quartier', 'ville']) {
+    const n = resultat?.[echelle];
+    if (!n) continue;
+    const milieu = n.basse != null && n.haute != null ? Math.round((n.basse + n.haute) / 2) : n.basse ?? n.haute ?? null;
+    const m2 = n.moyenne > 0 ? n.moyenne : milieu;
+    if (!(m2 > 0)) continue;
+    return { echelle, ou: OU[echelle], niveau: n, m2, reference: n.moyenne > 0 ? 'moyenne' : 'milieu', bas: n.basse ?? null, haut: n.haute ?? null };
+  }
+  return null;
+}
 
 /**
  * Compose le résultat à partir des lectures. Pure : testée sans réseau.
@@ -108,6 +174,7 @@ export function composer(adresse, equimmox = {}, _dvf = null, dataB = null) {
         haute: eq.haut ?? eq.moyenne ?? null,
         rayon: eq.rayon || (rayon >= 1000 ? `${rayon / 1000} km` : `${rayon} m`),
         source: 'Equimmox',
+        capture: eq.capture || null,
         du_cache: !!eq.du_cache,
       };
     } else {
@@ -135,17 +202,18 @@ export function composer(adresse, equimmox = {}, _dvf = null, dataB = null) {
  * @param {{forcer?: boolean, user?: object, surJalon?: Function}} opts
  * @returns {Promise<{ok: true, id, resultat: object, du_cache?: boolean} | {ok: false, error: string}>}
  */
-export async function valeurLocative(texte, { forcer = false, user = null, surJalon = () => {} } = {}) {
+export async function valeurLocative(texte, { forcer = false, user = null, surJalon = () => {}, attenteReessai = 10000 } = {}) {
   let adresse;
+  // La Géoplateforme en panne n'arrête plus la lecture (12 nov. 2026, Jules : « pourquoi tu as besoin de
+  // Géoplateforme ? ») : Equimmox se tape avec l'adresse telle qu'écrite ; seuls les loyers Klocka autour, qui
+  // demandent un point, manquent.
   try { adresse = await resoudreAdresse(texte); }
-  catch (e) { return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null }; }
+  catch (e) { adresse = adresseTapee(texte); if (!adresse) return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null }; }
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texte || '').slice(0, 80)} ».` };
 
   const cle = cleDe(adresse.label);
   if (!forcer) {
-    const recent = Records.filter(ENTITE, { cle })
-      .filter((x) => x.version === VERSION && Date.now() - Date.parse(x.le) < CACHE_JOURS * 86400000)
-      .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+    const recent = derniereLecture(cle);
     if (recent) return { ok: true, id: recent.id, resultat: { ...recent.resultat, du_cache: true }, du_cache: true };
   }
 
@@ -156,16 +224,27 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
     ? valeurLocativeDataB(adresse.label, { forcer, user }).then((d) => (d.ok ? d.resultat : null)).catch(() => null)
     : Promise.resolve(null);
 
-  // Puis Equimmox, rayon par rayon : chaque lecture est gardée à part, une
-  // panne sur l'un ne perd pas les autres.
+  // Puis Equimmox : les trois rayons dans une seule session (12 nov. 2026, « rapide »), chaque lecture gardée à part.
+  // Un rayon qui échoue est repris une fois, dans une session neuve, dix secondes plus tard ; si Equimmox n'a proposé
+  // aucune adresse, la rue est tapée sans son numéro (« fiable à 100 % », Jules).
   const equimmox = {};
   if (equimmoxConfigure() && sourceActive('equimmox')) {
-    for (const { cle: echelle, rayon } of ECHELLES) {
-      surJalon(echelle);
-      try {
-        const r = await analyseLoyer(adresse.label, { rayon, forcer, user });
-        if (r.ok) equimmox[rayon] = r.resultat; else erreurs.push(`Equimmox ${rayon} m : ${r.error}`);
-      } catch (e) { erreurs.push(`Equimmox ${rayon} m : ${e?.message || e}`); }
+    const ban = adresse.tapee ? null : adresse;
+    const echelleDe = Object.fromEntries(ECHELLES.map((e) => [e.rayon, e.cle]));
+    const lire = (rayons, o = {}) => analyseLoyerRayons(adresse.label, rayons, { forcer, user, ban, surRayon: (r) => surJalon(echelleDe[r]), ...o })
+      .catch((e) => Object.fromEntries(rayons.map((r) => [r, { ok: false, error: e?.message || String(e) }])));
+    const rayons = ECHELLES.map((e) => e.rayon);
+    let lus = await lire(rayons);
+    const manquants = rayons.filter((r) => !lus[r]?.ok);
+    if (manquants.length) {
+      const sansNumero = manquants.some((r) => /aucune adresse/i.test(lus[r]?.error || ''));
+      await new Promise((ok) => setTimeout(ok, attenteReessai));
+      const reprise = await lire(manquants, { sansNumero });
+      lus = { ...lus, ...Object.fromEntries(manquants.map((r) => [r, reprise[r]?.ok ? { ...reprise[r], reessai: true } : { ok: false, error: `deux essais ; ${lus[r]?.error || 'pas de réponse'}${reprise[r]?.error && reprise[r].error !== lus[r]?.error ? ` puis ${reprise[r].error}` : ''}` }])) };
+    }
+    for (const r of rayons) {
+      if (lus[r]?.ok) equimmox[r] = lus[r].resultat;
+      else erreurs.push(`Equimmox ${r} m : ${lus[r]?.error || "pas de réponse"}`);
     }
   } else {
     erreurs.push(sourceActive('equimmox') ? "Equimmox n'est pas configuré." : 'Equimmox est coupé (Paramètres › Sources).');
@@ -179,7 +258,7 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
     // Les poids du registre (Paramètres › Sources) ; une source coupée n'entre pas dans la liste.
     const poids = Object.fromEntries(['klocka_bail', 'klocka_fiche', 'equimmox'].map((k) => [k, poidsSource(k)]).filter(([, v]) => v != null));
     poids.klocka_saisi = poids.klocka_fiche;
-    const refs = (await referencesAutour(adresse)).filter((r) => sourceActive(r.origine === 'reel' ? 'klocka_bail' : 'klocka_fiche'));
+    const refs = (adresse.lat == null ? [] : await referencesAutour(adresse)).filter((r) => sourceActive(r.origine === 'reel' ? 'klocka_bail' : 'klocka_fiche'));
     comparables = valeurParComparables(adresse, refs, equimmoxEnComparables(equimmox), { poids });
     // Le loyer de marché par les loyers réels (10 nov. 2026) : murs occupés en vente et loyers Klocka, moyenne
     // simple à 1 km ; calculé à côté, rien d'affiché ne change tant que la source reste coupée.
@@ -191,6 +270,12 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
   } catch (e) { erreurs.push(`Loyers Klocka : ${e?.message || e}`); }
 
   const resultat = { ...composer(adresse, equimmox, null, null), comparables, loyers_reels, valeur: comparables?.valeur ? { ...comparables.valeur, source: comparables.affichee, niveau: comparables.niveau, confiance: comparables.confiance } : null, erreurs, le: new Date().toISOString(), par: user?.email || null };
+  // Equimmox en panne sur les trois rayons (12 nov. 2026, KFC Lyon : la Géoplateforme tombée, son autocomplétion muette) :
+  // la lecture d'avant, qui avait ses chiffres, n'est pas remplacée par une lecture sans eux.
+  if (!resultat.constate && erreurs.some((x) => x.startsWith('Equimmox'))) {
+    const avant = derniereLecture(cle, { avecEquimmox: true });
+    if (avant) return { ok: true, id: avant.id, resultat: { ...avant.resultat, du_cache: true, erreurs_relecture: erreurs }, du_cache: true };
+  }
   if (!resultat.rue && !resultat.quartier && !resultat.ville && !resultat.valeur) {
     return { ok: false, error: `Aucune valeur locative lisible ici : ${erreurs.join(' ; ') || 'aucune source n\'a répondu'}.` };
   }

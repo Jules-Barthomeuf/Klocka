@@ -200,6 +200,35 @@ export function monterPreanalyse(app) {
     ok(res, r);
   }));
 
+  // L'onglet Marché (11 nov. 2026, Jules) : les cinq outils du dossier, le dernier lancement de chacun et s'il est à
+  // relancer ; POST lance tous les outils, ou ceux de `outils` (« Relancer cet outil »). Chaque lancement est gardé.
+  app.get('/api/preanalyse/dossiers/:dealId/lots/:index/outils', wrap(async (req, res) => {
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!deal) return res.status(404).json({ error: 'Dossier introuvable' });
+    const { etatDuDossier } = await import('../outils/lancements.js');
+    ok(res, await etatDuDossier(deal, Number(req.params.index) || 0));
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/outils', wrap(async (req, res) => {
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!deal) return res.status(404).json({ error: 'Dossier introuvable' });
+    const index = Number(req.params.index) || 0;
+    const O = await import('../outils/lancements.js');
+    const entrees = await O.entreesDuLot(deal, index);
+    if (!entrees.adresse && !entrees.locataire) return res.status(400).json({ error: "Ni adresse ni locataire dans le dossier : rien à lancer." });
+    const lancements = O.lancerOutils(entrees, { outils: Array.isArray(req.body?.outils) ? req.body.outils : null, dealId: deal.deal_id, index, user: currentUser(req) });
+    ok(res, { ok: true, lancements: lancements.map((l) => l.id) });
+  }));
+
+  // Le SIREN du locataire, confirmé d'un clic (12 nov. 2026, Jules) : { siren } ou { siren: null } pour le retirer.
+  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/locataire-siren', wrap(async (req, res) => {
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!deal) return res.status(404).json({ error: 'Dossier introuvable' });
+    const { fixerSirenLocataire } = await import('../outils/lancements.js');
+    const r = await fixerSirenLocataire(deal, Number(req.params.index) || 0, req.body?.siren ?? null, currentUser(req));
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, { ok: true, siren: r.siren });
+  }));
+
   // Le verdict sur le prix des murs (10 nov. 2026, Jules) : ventes réelles autour, capitalisation, contrôle du loyer.
   // « ?taux=6.25 » : le taux de marché donné pour ce calcul, à la place des taux validés de la ville.
   app.get('/api/preanalyse/dossiers/:dealId/lots/:index/verdict-prix', wrap(async (req, res) => {

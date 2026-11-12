@@ -29,7 +29,7 @@ const CACHE = 'CacheSocieteKZoning';
 // Les catégories juridiques de l'INSEE sont un code à quatre chiffres. Aucune
 // table publique interrogeable n'a répondu (trois essais), on garde donc les
 // formes que l'équipe rencontre, et le code brut pour les autres.
-const FORMES = {
+export const FORMES = {
   1000: 'Entrepreneur individuel',
   5202: 'SNC', 5306: 'Société en commandite simple', 5385: 'Société en commandite par actions',
   5410: 'SARL', 5415: 'SARL', 5426: 'SARL', 5442: 'SARL', 5451: 'SARL', 5454: 'SARL', 5498: 'SARL', 5499: 'SARL',

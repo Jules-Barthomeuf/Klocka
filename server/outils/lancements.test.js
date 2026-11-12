@@ -1,0 +1,147 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Records } from '../db.js';
+import { jugerEffort, jugerLoyer, statutVerdictPrix, statutDesPoints, conclusionDe, empreinte, entreesChangees, aRelancer, entreesDe, lancerOutil, reconnaitreLocataire, pointVacance, lireProcedures, consigneNote, deuxPhrases, sirenDuTexte, candidatsLocataire, dernierLancement, rattacher, OUTILS, ENTITE } from './lancements.js';
+
+test('le poids du loyer dans le chiffre d\'affaires : 10 % confortable, 15 % tendu', () => {
+  assert.deepEqual(jugerEffort(30000, 400000), { taux: 7.5, statut: 'ok' });
+  assert.equal(jugerEffort(50000, 400000).statut, 'a_voir');
+  assert.equal(jugerEffort(80000, 400000).statut, 'alerte');
+  assert.equal(jugerEffort(null, 400000), null);
+});
+
+test('un loyer au-dessus du marché alerte, en dessous il laisse de la marge', () => {
+  assert.equal(jugerLoyer(300, 250).statut, 'alerte');
+  assert.match(jugerLoyer(200, 250).mot, /marge à la hausse/);
+  assert.equal(jugerLoyer(255, 250).mot, 'dans le marché');
+  assert.equal(jugerLoyer(null, 250), null);
+});
+
+test('un prix surévalué alerte, légèrement surévalué est à voir', () => {
+  assert.equal(statutVerdictPrix('haut', 'surévalué'), 'alerte');
+  assert.equal(statutVerdictPrix('haut', 'légèrement surévalué'), 'a_voir');
+  assert.equal(statutVerdictPrix('juste', 'dans le marché'), 'ok');
+  assert.equal(statutVerdictPrix(null), 'vide');
+});
+
+test('le statut d\'un outil est le pire de ses points lus, et sa conclusion tient en une phrase', () => {
+  const pts = [{ statut: 'ok', resultat: 'a' }, { statut: 'a_voir', resultat: 'Rendement 6 %' }, { statut: 'vide', resultat: 'rien' }];
+  assert.equal(statutDesPoints(pts), 'a_voir');
+  assert.deepEqual(conclusionDe('prix', pts), { statut: 'a_voir', conclusion: 'Rendement 6 %' });
+  assert.deepEqual(conclusionDe('locataire', [{ statut: 'ok', resultat: 'x' }], 'DEVRED · 3 bilans'), { statut: 'ok', conclusion: 'Solide · DEVRED · 3 bilans' });
+  assert.equal(conclusionDe('ville', [{ statut: 'vide', resultat: 'Commune introuvable.' }]).statut, 'vide');
+});
+
+test('cinq outils, chacun avec les entrées dont il dépend', () => {
+  assert.deepEqual(OUTILS.map((o) => o.cle), ['locataire', 'loyer', 'prix', 'emplacement', 'ville']);
+  const e = { adresse: '1 rue A, Lyon', loyer: 20000, surface: 80, prix: 300000, locataire: 'X', ville: 'Lyon' };
+  assert.equal(empreinte('emplacement', e), empreinte('emplacement', { ...e, loyer: 99999 }));
+  assert.notEqual(empreinte('loyer', e), empreinte('loyer', { ...e, loyer: 99999 }));
+  assert.deepEqual(entreesChangees('prix', e, { ...e, loyer: 22000, prix: 310000 }), ['le prix', 'le loyer']);
+});
+
+test('à relancer : une entrée du dossier a changé, ou le bail ne donne pas le loyer de la fiche (Loyer et Prix seulement)', () => {
+  const l = { outil: 'loyer', statut: 'fini', entrees: { adresse: '1 rue A', loyer: 20000, surface: 80 } };
+  assert.equal(aRelancer(l, { adresse: '1 rue A', loyer: 20000, surface: 80 }), null);
+  assert.match(aRelancer(l, { adresse: '1 rue A', loyer: 24000, surface: 80 }), /le loyer a changé/);
+  assert.match(aRelancer(l, { adresse: '1 rue A', loyer: 20000, surface: 80 }, { ecartLoyer: 'les pièces ne donnent pas le même loyer' }), /pièces/);
+  const ville = { outil: 'ville', statut: 'fini', entrees: { ville: 'Lyon' } };
+  assert.equal(aRelancer(ville, { ville: 'Lyon', loyer: 1 }, { ecartLoyer: 'écart' }), null);
+  assert.equal(aRelancer({ ...l, statut: 'en_cours' }, {}), null);
+});
+
+test('les entrées viennent du lot, sans rien deviner', () => {
+  const deal = { lots: [{ lot: { adresse: { valeur: { rue: '12 rue de la République', code_postal: '69002', ville: 'Lyon' }, absent: false }, locataire_nom: { valeur: 'Café Pinson', absent: false }, occupe: { valeur: false, absent: false }, loyer_annuel_ht_hc: { valeur: 10000, absent: false } } }] };
+  const e = entreesDe(deal, 0, { adresseDuLot: (x) => `${x.lot.adresse.valeur.rue}, ${x.lot.adresse.valeur.ville}`, prixFaiDuLot: () => null });
+  assert.equal(e.ville, 'Lyon');
+  assert.equal(e.locataire, 'Café Pinson');
+  assert.equal(e.loyer, null);
+});
+
+test('chaque lancement est gardé : relancer en crée un nouveau, le dossier montre le dernier, un lancement libre se rattache', async () => {
+  const dealId = `d-outils-${Date.now()}`;
+  Records.create('Deal', { deal_id: dealId, lots: [] });
+  const moteur = async () => ({ points: [{ cle: 'x', libelle: 'X', statut: 'ok', resultat: 'bien' }] });
+  const a = lancerOutil('loyer', { adresse: '1 rue A', loyer: 1, surface: 1 }, { dealId, moteur }).lancement;
+  await new Promise((ok) => setTimeout(ok, 20));
+  const b = lancerOutil('loyer', { adresse: '1 rue A', loyer: 2, surface: 1 }, { dealId, moteur }).lancement;
+  await new Promise((ok) => setTimeout(ok, 20));
+  assert.notEqual(a.id, b.id);
+  assert.equal(Records.get(ENTITE, a.id).statut, 'fini');
+  assert.equal(dernierLancement(dealId, 0, 'loyer').id, b.id);
+  assert.equal(Records.get(ENTITE, b.id).resultat.conclusion, 'Dans le marché');
+  const libre = lancerOutil('prix', { adresse: '2 rue B' }, { moteur }).lancement;
+  await new Promise((ok) => setTimeout(ok, 20));
+  const r = rattacher(libre.id, dealId);
+  assert.equal(r.ok, true);
+  assert.equal(dernierLancement(dealId, 0, 'prix').rattache_de, libre.id);
+  assert.equal(rattacher(libre.id, 'pas-de-dossier').ok, false);
+});
+
+test('le locataire se reconnaît parmi les établissements ouverts du local, par enseigne ou dénomination', () => {
+  const ex = [
+    { siren: '1', nom: 'EXKI', denomination: 'EXKI FRANCE', actif: false },
+    { siren: '2', nom: 'KFC', enseigne: 'KFC', denomination: 'SAS RESTO REPUBLIQUE', actif: true },
+    { siren: '3', nom: 'CAFE PINSON', denomination: 'PINSON SARL', actif: true },
+  ];
+  assert.equal(reconnaitreLocataire('KFC', ex).siren, '2');
+  assert.equal(reconnaitreLocataire('Café Pinson', ex).siren, '3');
+  assert.equal(reconnaitreLocataire('Exki', ex), null);
+  assert.equal(reconnaitreLocataire('Pi', ex), null);
+});
+
+test('la vacance vient de l\'outil Vacance : le taux de la rue, « à voir » sous son seuil, vide s\'il ne répond pas', () => {
+  const r = (taux) => ({ ok: true, statut: 200, taux });
+  assert.equal(pointVacance(r({ taux: 6.3, vacants: 2, tranches: 32, incertains: 1, locaux: 33, fiable: true })).statut, 'ok');
+  assert.match(pointVacance(r({ taux: 6.3, vacants: 2, tranches: 32, incertains: 1, locaux: 33, fiable: true })).resultat, /6,3 % sur la rue \(2 vides sur 32 locaux, 1 incertain\)/);
+  assert.equal(pointVacance(r({ taux: 25, vacants: 5, tranches: 20, incertains: 0, locaux: 20, fiable: true })).statut, 'alerte');
+  assert.equal(pointVacance(r({ taux: 20, vacants: 1, tranches: 5, incertains: 0, locaux: 5, fiable: false })).statut, 'a_voir');
+  assert.equal(pointVacance({ ok: true, statut: 202, etat: 'chargement' }).statut, 'vide');
+  assert.equal(pointVacance({ ok: false, error: 'OpenStreetMap ne répond pas.' }).resultat, 'OpenStreetMap ne répond pas.');
+});
+
+test('les procédures collectives se lisent par leur dernier jugement', () => {
+  const pc = (date, nature) => ({ type: 'procédure collective', date, jugement: { nature, date } });
+  assert.deepEqual(lireProcedures([]), { statut: 'ok', texte: 'Aucune procédure collective en 5 ans' });
+  const liq = lireProcedures([pc('2024-08-28', "Jugement d'ouverture d'une procédure de redressement judiciaire"), pc('2025-07-16', 'Jugement de conversion en liquidation judiciaire')]);
+  assert.equal(liq.statut, 'alerte');
+  assert.equal(liq.texte, 'Liquidation judiciaire prononcée le 16/07/2025 (2 avis en 5 ans)');
+  assert.equal(lireProcedures([pc('2025-01-10', 'Jugement arrêtant le plan de redressement')]).statut, 'a_voir');
+  assert.match(lireProcedures([pc('2025-01-10', "Jugement d'ouverture d'une procédure de sauvegarde")]).texte, /^Procédure de sauvegarde ouverte le 10\/01\/2025$/);
+  assert.equal(lireProcedures([{ type: 'cession', date: '2025-01-01' }]).statut, 'ok');
+  assert.equal(lireProcedures([{ type: 'procédure collective', famille: 'modification', date: '2025-07-25' }]).statut, 'ok');
+  assert.equal(lireProcedures([pc('2021-12-22', "Dépôt de l'état des créances")]).statut, 'a_voir');
+  assert.match(lireProcedures([pc('2021-12-22', "Dépôt de l'état des créances"), pc('2021-03-01', 'Jugement arrêtant le plan de redressement')]).texte, /^Sous plan de redressement arrêté le 01\/03\/2021/);
+});
+
+test('le locataire reconnu au local est le plus récent des exploitants à ce nom', () => {
+  const ex = [{ siren: 'vieux', enseigne: 'BARBERSHOP', actif: true, ouvert: '2014-03-01' }, { siren: 'neuf', enseigne: 'BARBERSHOP', actif: true, ouvert: '2016-05-01' }];
+  assert.equal(reconnaitreLocataire('Barbershop', ex).siren, 'neuf');
+});
+
+test("la note de l'IA ne part que des points lus, avec les avis BODACC et la question de l'outil", () => {
+  const c = consigneNote('locataire', { locataire: 'KFC', loyer: 95000 }, { points: [
+    { cle: 'societe', libelle: 'Société', statut: 'ok', resultat: 'PKF LYON REPUBLIQUE · SAS' },
+    { cle: 'procedures', libelle: 'Procédures collectives', statut: 'alerte', resultat: 'Liquidation judiciaire prononcée le 16/07/2025', detail: { evenements: [{ date: '2025-07-27', jugement: { nature: 'Jugement de conversion en liquidation judiciaire' } }] } },
+  ] });
+  assert.match(c, /Que vaut sa signature/);
+  assert.match(c, /locataire : KFC · loyer : 95000/);
+  assert.match(c, /2025-07-27 Jugement de conversion en liquidation judiciaire/);
+  assert.match(c, /n'invente aucun fait/);
+  assert.match(c, /^Nous sommes le /);
+});
+
+test("la note de l'IA tient en deux phrases au plus", () => {
+  assert.equal(deuxPhrases('Une. Deux ! Trois ? Quatre.'), 'Une. Deux !');
+  assert.equal(deuxPhrases('Sans point final'), 'Sans point final');
+  assert.equal(deuxPhrases('Loyer de 95 000 €. Rendement de 5,76 % brut. Reste.'), 'Loyer de 95 000 €. Rendement de 5,76 % brut.');
+});
+
+test('le SIREN se lit dans un Kbis, et les exploitants possibles se rangent du plus récent au plus ancien', () => {
+  assert.equal(sirenDuTexte('RCS Lyon 981 167 141, immatriculée le 03/02/2023'), '981167141');
+  assert.equal(sirenDuTexte('981167141'), '981167141');
+  assert.equal(sirenDuTexte('Pas de numéro'), null);
+  assert.equal(sirenDuTexte('12345678901234'), null);
+  const ex = [{ siren: 'a', enseigne: 'KFC', actif: true, ouvert: '2019-01-01' }, { siren: 'b', enseigne: 'KFC', actif: true, ouvert: '2024-01-01' }, { siren: 'c', enseigne: 'KFC', actif: false, ouvert: '2010-01-01' }];
+  assert.deepEqual(candidatsLocataire('KFC', ex).map((x) => x.siren), ['b', 'a']);
+});

@@ -56,9 +56,24 @@ export async function propositionsBan(q, limite = 8) {
  * sommet de la pile. Voir adresse.js : le type de voie tranche, et un code
  * postal erroné ne doit pas emporter la réponse vers une autre voie.
  */
+// Les adresses déjà résolues, gardées douze heures en mémoire (12 nov. 2026) : la Géoplateforme met parfois trois
+// minutes à répondre, et une même adresse se résout plusieurs fois par lecture (Loyer, Prix, préanalyse, Equimmox).
+const RESOLUES = new Map();
+const GARDE_MS = 12 * 3600 * 1000;
+
 export async function resoudreAdresse(texte) {
   const q = String(texte || '').trim();
   if (q.length < 4) return null;
+  const garde = RESOLUES.get(q.toLowerCase());
+  if (garde && Date.now() - garde.le < GARDE_MS) return garde.adresse;
+  const adresse = await resoudreAdresseBan(q);
+  // Seule une réponse est gardée : une panne (exception) se réessaie à l'appel suivant.
+  if (RESOLUES.size > 2000) RESOLUES.clear();
+  RESOLUES.set(q.toLowerCase(), { le: Date.now(), adresse });
+  return adresse;
+}
+
+async function resoudreAdresseBan(q) {
 
   let classees = classer(q, await propositionsBan(q));
   let meilleur = classees.find((x) => (x.score ?? 0) >= SEUIL_BAN) || null;

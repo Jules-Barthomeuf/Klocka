@@ -45,7 +45,7 @@ import CadreOutils from "@/components/kdata/CadreOutils";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, definirEspace, themeEffectif } from "@/lib/personnalisation";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, masquesDe, menuAdmin, menuMandataire, repartir } from "@/lib/menu";
-import { apercuAdmin, choisirApercu } from "@/lib/vue";
+import { allerAuBonDomaine, apercuInitial, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -208,7 +208,7 @@ function LayoutContent({ children, currentPageName }) {
     return () => document.documentElement.style.removeProperty("--k-barre-largeur");
   }, [largeurBarre]);
   // La vue choisie par un admin : la sienne, celle d'un client, celle d'un mandataire.
-  const [apercu, setApercu] = useState(apercuAdmin);
+  const [apercu, setApercu] = useState(apercuInitial);
   const [autreOpen, setAutreOpen] = useState(false);
   const isChildPage = CHILD_PAGES.includes(currentPageName);
 
@@ -222,6 +222,10 @@ function LayoutContent({ children, currentPageName }) {
   // Les pages que Jules n'a pas ouvertes à ce compte (acces-pages.js côté serveur).
   const pagesFermees = isAdmin ? user?.pages_fermees || [] : [];
   const vue = isAdmin ? apercu : user?.role === "mandataire" ? "mandataire" : "client";
+  // Le bon domaine pour la vue (12 nov. 2026, Jules) : un mandataire, ou un admin en vue mandataire, sur
+  // app.kpartners.immo ; le reste sur app.klocka.immo. Le passage garde la connexion et la page (server/domaines.js).
+  // Tant que le domaine K Partners n'est pas branché, `domaines.kpartners` est vide et rien ne bouge.
+  useEffect(() => { allerAuBonDomaine(user, vue, (...a) => base44.request(...a)); }, [user, vue]);
   // Les notifications non lues du mandataire : sur le hamburger au téléphone (1er nov. 2026, Jules).
   const nonLues = useNonLuesMandataire(vue === "mandataire");
   // La couleur d'accent suit l'espace : K Partners (pervenche) côté mandataire.
@@ -402,7 +406,7 @@ function LayoutContent({ children, currentPageName }) {
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: BookUser, actif: isActivePage("AdminClients") },
     // Le CRM (Twenty), dans Klocka depuis le 5 nov. 2026 : la page /CRM, plus d'onglet dehors.
-    KData: { to: createPageUrl("KData"), icon: Wrench, actif: enKData },
+    KData: { to: createPageUrl("Outils"), icon: Wrench, actif: enKData },
     CRM: { to: createPageUrl("CrmTwenty"), icon: Globe, actif: isActivePage("CrmTwenty") },
     AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
     Automatismes: { to: createPageUrl("Automatismes"), icon: Workflow, actif: isActivePage("Automatismes") },

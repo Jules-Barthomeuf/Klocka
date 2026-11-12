@@ -18,6 +18,9 @@ import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { useUser } from "@/components/providers/UserProvider";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
+import FondHalo from "@/components/projet/FondHalo";
+import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
+import { CLAIR, themeEffectif } from "@/lib/personnalisation";
 import PenseeIA from "@/components/PenseeIA";
 import Chargement from "@/components/ui/Chargement";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
@@ -316,7 +319,9 @@ export default function Analyse() {
     setVueDossier(v);
     if (!v || ouverture.current !== dealId) return;
     ouverture.current = null;
-    setChatReduit(v === "preanalyse");
+    // On arrive sur un dossier sans l'assistant, à toutes les étapes (12 nov. 2026, Jules : « on ne le voit pas
+    // directement ; on peut l'ouvrir mais on n'est pas obligé ») : il reste replié jusqu'au clic sur son icône.
+    setChatReduit(true);
   };
   const modeIA = true;
   const reduit = chatReduit && vueDossier !== "offre";
@@ -338,6 +343,10 @@ export default function Analyse() {
     // Pendant une conversation, le chat pose ce panneau juste au-dessus de la saisie (18 oct. 2026, Jules) : le fil remonte, la barre du haut ne bouge pas.
     panneau: <PanneauSources sources={sourcesChat} onChange={setSourcesChat} />,
   }), [sourcesChat, sourcesOuvert]);
+  // Le fond du cadre du dossier : celui que chacun a choisi, comme sur les autres pages (Layout) : le halo seulement
+  // s'il l'a gardé, en sombre ; sinon la couleur de fond choisie, noir pur, anthracite… (12 nov. 2026, Jules).
+  const { prefs } = usePersonnalisation();
+  const avecHalo = !!prefs?.halo && themeEffectif(prefs) !== CLAIR;
   const glisse = useRef(false);
   const scinde = ecranLarge && !!dealId && !vueConversation && modeIA;
   // La largeur du chat, celle de l'Éditeur (components/editeur) : la ligne se tire, un double-clic la remet.
@@ -350,9 +359,9 @@ export default function Analyse() {
     const fin = setTimeout(() => { glisse.current = false; }, 900);
     // Sans « k-sobre » : le fond « Halo » reste, le même que sur Projets (18 oct. 2026, Jules).
     // Sans « k-sans-barre » : la barre de navigation reste à gauche du chat, repliée en rail (18 oct. 2026, Jules).
-    document.documentElement.classList.add("k-sans-defilement", "k-sans-ak");
+    document.documentElement.classList.add("k-sans-defilement", "k-sans-ak", "k-cadre-dossier");
     window.scrollTo(0, 0);
-    return () => { clearTimeout(fin); document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak"); };
+    return () => { clearTimeout(fin); document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak", "k-cadre-dossier"); };
   }, [scinde]);
 
   // Le dossier s'affiche ici avec sa propre ligne de titre (le retour y est).
@@ -438,9 +447,24 @@ export default function Analyse() {
 
   if (scinde) {
     return (
-      <div className={`k-page-presentation k-dossier-ia relative grid h-[100dvh] overflow-hidden text-encre ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${reduit ? 0 : largeurChat}px minmax(0,1fr)`, transition: tire ? undefined : "grid-template-columns 520ms cubic-bezier(0.22, 1, 0.36, 1)" }}>
+      // Le cadre des Outils autour du dossier (12 nov. 2026, Jules : « la navbar remonte jusqu'en haut comme dans les
+      // Outils ; à la place de la recherche, le titre du dossier, Projet et les deux icônes ; en haut à droite, retour
+      // arrière et avant »). La bande du haut, de la couleur de la barre, ne fait qu'un bloc avec elle (k-cadre-dossier) ;
+      // WorkflowDeal y pose son titre et ses gestes (#bande-dossier-titre, #bande-dossier-droite). Le fond de chacun,
+      // halo compris, reste dans le cadre.
+      <div className="flex h-[100dvh] flex-col overflow-hidden bg-rail text-encre">
+      <header className="relative flex h-12 flex-none items-center justify-center px-4">
+        {/* Les deux icônes (assistant, tous les dossiers) au-dessus du panneau des parties : le bord gauche du dossier. */}
+        <div id="bande-dossier-gauche" className="absolute flex items-center gap-1" style={{ left: (reduit ? 0 : largeurChat) + 32, transition: tire ? undefined : "left 520ms cubic-bezier(0.22, 1, 0.36, 1)" }} />
+        <div id="bande-dossier-titre" className="flex min-w-0 items-center gap-1.5" />
+        {/* Les flèches au bord droit des tableaux (12 nov. 2026, Jules) : la marge du dossier (32 px) et celle de la colonne des étapes (56 px). */}
+        <div id="bande-dossier-droite" className="absolute right-[88px] flex items-center gap-2" />
+      </header>
+      <div className={`k-page-presentation k-dossier-ia k-crm-contenu relative grid min-h-0 flex-1 overflow-hidden rounded-tl-[16px] ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${reduit ? 0 : largeurChat}px minmax(0,1fr)`, transition: tire ? undefined : "grid-template-columns 520ms cubic-bezier(0.22, 1, 0.36, 1)", transform: "translateZ(0)" }}>
+        {/* `transform` : le halo, posé en `fixed` par FondHalo, se cale sur ce cadre et non sur l'écran. */}
+        {avecHalo ? <FondHalo /> : <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-fond" />}
         {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
-        <motion.div className="k-colonne-chat relative flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden"
+        <motion.div className="k-colonne-chat relative z-10 flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
           initial={glisse.current ? { opacity: 0, x: -40 } : { opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: glisse.current ? 0.45 : 0, ease: [0.22, 1, 0.36, 1] }}>
           {/* Ouvrir le chat (2 nov. 2026, Jules : « pas du haut en bas, juste que ça apparaisse de droite à gauche, plus
@@ -466,13 +490,14 @@ export default function Analyse() {
           </motion.div>
         </motion.div>
         {/* Le dossier comme en mode normal, à droite, séparé du chat par une fine ligne : plus de carte posée sur la page (18 oct. 2026, Jules). */}
-        <motion.div className={`h-[100dvh] min-h-0 min-w-0 ${enEditeur ? "overflow-hidden" : "overflow-y-auto px-8 py-8"}`}
+        <motion.div className={`relative z-10 h-full min-h-0 min-w-0 ${enEditeur ? "overflow-hidden" : `overflow-y-auto px-8 py-8 ${vueDossier === "analyse" ? "lg:pt-0" : ""}`}`}
           initial={glisse.current ? { x: -largeurChat } : { opacity: 0 }} animate={{ x: 0, opacity: 1 }}
           transition={{ duration: glisse.current ? 0.7 : 0.5, ease: [0.65, 0, 0.35, 1] }}>
           {contenuDossier}
         </motion.div>
         {/* La ligne entre le chat et le dossier, celle de l'Éditeur : on la tire pour régler la largeur. */}
         {!reduit && <PoigneeEditeur {...poignee} />}
+      </div>
       </div>
     );
   }
@@ -482,7 +507,8 @@ export default function Analyse() {
       {/* Plus de lumière propre dans le coin : le fond « Halo » commun suffit (18 oct. 2026). */}
       <div
         key={`${dealId || (nouveau ? "nouveau" : "accueil")}-${modeIA ? "ia" : "normal"}`}
-        className="px-5 py-6 md:px-10 md:py-9 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
+        // À l'Analyse d'un dossier, le panneau des parties part du haut de l'écran (12 nov. 2026, Jules).
+        className={`px-5 py-6 md:px-10 md:py-9 ${enWorkflow && vueDossier === "analyse" ? "lg:!pt-0" : ""} animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out`}
       >
         {enWorkflow ? (
           contenuDossier

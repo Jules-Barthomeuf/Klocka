@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { avecAlias, parTranche, rangerPages, barrePour, choixSpoc, champMontre, depuisFiltreDeVue, filtreTwenty, ligneHistorique, membresDe, nomDe, rechercheTwenty, roleDe, sansCaches, structurePour, texteCase, valeurPourTwenty, versFiltreDeVue } from './ecran.js';
+import { CACHEES_PAR_DEFAUT, cacheesDe, sansPagesCachees, avecAlias, parTranche, rangerPages, barrePour, choixSpoc, champMontre, depuisFiltreDeVue, filtreTwenty, ligneHistorique, membresDe, nomDe, rechercheTwenty, roleDe, sansCaches, structurePour, texteCase, valeurPourTwenty, versFiltreDeVue } from './ecran.js';
 
 const objets = [
   { id: 'o1', nameSingular: 'agentImmobilier', namePlural: 'agentImmobilierListe', labelSingular: 'Agent immobilier', labelPlural: 'Agents', fields: [
@@ -193,4 +193,12 @@ test('un tableau de Klocka arrive par 50, « Voir plus » reprend au rang suivan
   assert.equal(a.fiches.length, 50); assert.equal(a.suite, '50'); assert.equal(a.total, 120);
   const c = parTranche(r, '100');
   assert.equal(c.fiches.length, 20); assert.equal(c.fiches[0].id, '100'); assert.equal(c.suite, null);
+});
+
+test('les pages du CRM de chacun : la liste du compte, sinon celles cachées à tous ; un espace vidé disparaît', () => {
+  assert.deepEqual(cacheesDe({}), CACHEES_PAR_DEFAUT);
+  assert.deepEqual(cacheesDe({ crm_pages_cachees: [] }), []);
+  assert.ok(CACHEES_PAR_DEFAUT.includes('task') && CACHEES_PAR_DEFAUT.includes('transactions2025'));
+  const barre = [{ nom: 'Klocka', objets: [{ singulier: 'clients' }, { singulier: 'task' }] }, { nom: 'Autres', objets: [{ singulier: 'compte' }] }];
+  assert.deepEqual(sansPagesCachees(barre, new Set(['task', 'compte'])), [{ nom: 'Klocka', objets: [{ singulier: 'clients' }] }]);
 });

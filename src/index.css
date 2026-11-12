@@ -993,6 +993,15 @@ html.k-cadre-crm .k-barre-laterale::before { border-radius: 0 !important; }
    case de l'espace (Jules, même jour). */
 /* Ni cloche ni mode appel en haut à droite de la page du CRM (Jules, même jour) : la bande du haut reste libre. */
 html.k-cadre-crm .k-flottant-haut { display: none !important; }
+/* Le dossier dans le cadre des Outils (12 nov. 2026, Jules) : la barre et la bande du haut soudées comme au CRM, mais
+   le fond reste celui que chacun a choisi (pas de blanc forcé en clair, contrairement à k-cadre-crm). */
+html.k-cadre-dossier .k-barre-laterale { border-color: transparent !important; border-radius: 0 !important; }
+html.k-cadre-dossier .k-barre-laterale::before { border-radius: 0 !important; }
+html.k-cadre-dossier .k-flottant-haut { display: none !important; }
+/* Un filet `trait`, celui du bord des tableaux, sépare la barre et la bande du haut de la page du dossier, en clair comme
+   en sombre : il court en haut, tourne avec le coin arrondi et descend le long de la barre (12 nov. 2026, Jules). */
+html.k-cadre-dossier .k-crm-contenu { border-top: 1px solid var(--k-trait); border-left: 1px solid var(--k-trait); }
+@media (max-width: 767px) { html.k-cadre-dossier .k-crm-contenu { border-left: 0; } }
 /* Le tableau du CRM : sur le fond de la barre en sombre, blanc en clair, et des gris plus légers en clair (5 nov. 2026). */
 html.k-cadre-crm { --k-crm-tableau: rgb(var(--k-rail-rgb)); }
 /* En clair, un filet `trait` sépare le blanc de la page du bleuté de la barre et de la bande du haut (5 nov. 2026). */

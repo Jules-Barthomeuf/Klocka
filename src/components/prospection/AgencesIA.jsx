@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDictee } from "@/lib/dictee";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, PhoneForwarded, Plus, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, Check, ChevronRight, Loader2, Mail, MapPin, Phone, PhoneForwarded, Plus, Search, Send, Trash2, UserPlus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
@@ -211,152 +211,21 @@ export function OngletAgentIA({ onOuvrirListe }) {
   );
 }
 
-/** L'onglet Listes : une liste par ville, en classeur ; la ville ouverte en tableau. */
-export const RELANCES = "relances";
-
-/** Le « + » en tête des listes : une ville à chercher, l'agent IA en crée la liste (17 oct. 2026, Jules). */
-function AjoutVille({ onCree }) {
-  const queryClient = useQueryClient();
-  const [ouvert, setOuvert] = useState(false);
-  const [ville, setVille] = useState("");
-  const lancer = useMutation({
-    mutationFn: (v) => base44.request("POST", `${API}/lancer`, { body: { ville: v } }),
-    onSuccess: (r) => {
-      toast.success(r.deja ? `${r.liste.ville} se cherche déjà` : `L'agent cherche à ${r.liste.ville}`, { description: "Les agences arrivent dans la liste au fil de l'eau." });
-      setVille(""); setOuvert(false);
-      queryClient.invalidateQueries({ queryKey: ["agent-ia-listes"] });
-      onCree?.(r.liste.id);
-    },
-    onError: (e) => toast.error(e?.message || "Lancement impossible"),
-  });
-  return (
-    <>
-      <button type="button" onClick={() => setOuvert((v) => !v)} aria-expanded={ouvert} aria-label="Ajouter une ville" title="Ajouter une ville"
-        className={`grid h-9 w-9 flex-none place-items-center self-end rounded-t-[10px] text-[16px] transition-colors ${ouvert ? "bg-rail text-encre" : "bg-transparent text-ardoise hover:text-encre"}`}>
-        <Plus className={`h-4 w-4 transition-transform duration-300 ${ouvert ? "rotate-45" : ""}`} />
-      </button>
-      {ouvert && (
-        <form onSubmit={(e) => { e.preventDefault(); if (ville.trim()) lancer.mutate(ville.trim()); }}
-          className="ml-2 flex h-9 w-[300px] max-w-[70vw] flex-none items-center gap-2 self-end rounded-full duration-300 ease-out animate-in fade-in-0 slide-in-from-left-3 border border-trait bg-surface pl-3.5 pr-1 focus-within:border-bord-doux">
-          <MapPin className="h-3.5 w-3.5 flex-none text-ardoise" />
-          <input autoFocus value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Une ville : Nice, Lille…" aria-label="Ville à chercher"
-            className="min-w-0 flex-1 border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-          <button type="submit" disabled={!ville.trim() || lancer.isPending} aria-label="Chercher"
-            className="grid h-7 w-7 flex-none place-items-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-            {lancer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-          </button>
-        </form>
-      )}
-    </>
-  );
-}
-
-export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, relances = null }) {
+// Plus d'onglets (11 nov. 2026, Jules : « j'aime pas toute la partie du haut ») : ni villes, ni Relances dues, ni « + ».
+// Toutes les listes en un seul tableau, la ville en colonne ; une ville nouvelle se cherche depuis la recherche du
+// tableau. Les relances dues passent par le Mode appel.
+export function OngletListesAgences({ onAppeler, onBasculer }) {
   const { data, isLoading } = useListes();
-  const supprimer = useSupprimerListe();
   const listes = data?.listes || [];
-  const surRelances = !!relances && ouverte === RELANCES;
-  const active = surRelances ? RELANCES : ouverte && listes.some((l) => l.id === ouverte) ? ouverte : listes[0]?.id || null;
   if (isLoading) return <Chargement />;
-  if (!listes.length && !relances) return <div className="pb-16"><div className="flex items-end"><span aria-hidden className="w-3 flex-none" /><AjoutVille onCree={onOuvrir} /><span aria-hidden className="flex-1" />{onBasculer && <span className="ml-3 flex-none self-center pb-1"><BasculeModeAppel actif={false} onChange={onBasculer} /></span>}</div><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : le « + » en haut à gauche cherche une ville.</p></div>;
-  // Le classeur des listes du mandataire : les intercalaires en haut, l'ouvert
-  // raccordé à la page à points (rail-actif), le tableau sur le rail.
   return (
     <div className="w-full pb-16">
-      {supprimer.fenetre}
-      {/* Le Mode appel reste à droite, hors de la rangée qui défile : beaucoup de villes ne le cachent plus (19 oct. 2026, Jules). */}
-      <div className="flex items-end">
-      {/* Toutes les listes toujours visibles (21 oct. 2026, Jules) : la rangée passe à la ligne au lieu de défiler, et les listes au repos sont plus claires que celle qu'on consulte, qui garde la teinte sombre du classeur. */}
-      <div role="tablist" aria-label="Les listes par ville" className="flex min-w-0 flex-1 flex-wrap items-end gap-y-1">
-        {/* Le premier onglet se tient au-delà de l'arrondi du classeur. */}
-        <span aria-hidden className="w-3 flex-none" />
-        <AjoutVille onCree={onOuvrir} />
-        <span aria-hidden className="w-1 flex-none" />
-        {/* Les relances dues, première liste de toutes (17 oct. 2026, Jules : « inclus relances dues dans les listes »). */}
-        {relances && (
-          <>
-            <button type="button" role="tab" aria-selected={surRelances} onClick={() => onOuvrir(RELANCES)}
-              style={surRelances ? undefined : { background: "transparent" }} className={`flex h-7 max-w-[240px] flex-none items-center gap-1.5 rounded-[8px] px-3 text-left text-[13px] transition-colors max-md:h-10 ${surRelances ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}>
-              <span className="truncate">Relances dues</span>
-              <span className={`flex-none text-[13px] tabular-nums ${relances.n ? "text-ambre" : "text-ardoise"}`}>{relances.n}</span>
-            </button>
-            <span aria-hidden className="w-1 flex-none" />
-          </>
-        )}
-        {listes.map((l, i) => {
-          const actif = active === l.id;
-          return (
-            <React.Fragment key={l.id}>
-              {i > 0 && <span aria-hidden className="w-1 flex-none" />}
-              <button type="button" role="tab" aria-selected={actif} onClick={() => onOuvrir(l.id)}
-                style={actif ? undefined : { background: "transparent" }} className={`flex h-7 max-w-[240px] flex-none items-center gap-1.5 rounded-[8px] px-3 text-left text-[13px] transition-colors max-md:h-10 ${actif ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}>
-                <span className="truncate">{l.ville}</span>
-                <span className="flex-none text-[13px] tabular-nums text-ardoise">{l.agences}</span>
-                {l.etat === "en_cours" && <span className="h-1.5 w-1.5 flex-none animate-pulse rounded-full bg-menthe" />}
-                {actif && l.etat !== "en_cours" && (
-                  <span role="button" tabIndex={0} aria-label={`Supprimer la liste ${l.ville}`} title={`Supprimer la liste ${l.ville}`}
-                    onClick={(e) => { e.stopPropagation(); supprimer.demander(l); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); supprimer.demander(l); } }}
-                    className="-mr-1.5 grid h-5 w-5 flex-none place-items-center rounded-full text-brume transition-colors hover:bg-relief hover:text-alerte max-md:-my-1.5 max-md:h-8 max-md:w-8">
-                    <X className="h-3.5 w-3.5" />
-                  </span>
-                )}
-              </button>
-            </React.Fragment>
-          );
-        })}
-        <span aria-hidden className="min-w-3 flex-1" />
-      </div>
-        {onBasculer && <span className="ml-3 flex-none self-center pb-1"><BasculeModeAppel actif={false} onChange={onBasculer} /></span>}
-      </div>
-      <div data-zone="listes" className="pt-3">
-        {active && <div key={active} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">{surRelances ? relances.contenu : <TableauAgences id={active} onAppeler={onAppeler} />}</div>}
-      </div>
+      <TableauAgences listes={listes} onAppeler={onAppeler} bascule={onBasculer && <BasculeModeAppel actif={false} onChange={onBasculer} />} />
     </div>
   );
 }
 
-const CHOIX_LISTE = [
-  ["toutes", "Tout", "La liste dans son ordre fixe"],
-  ["inconnues", "À appeler", "Jamais appelées, et qu'aucun collègue ne tient"],
-  ["connues", "Agences connues", "Déjà en contact (Twenty CRM, carnet, appel)"],
-  ["appelees", "Appelées", "La plus récemment appelée en tête"],
-  ["relance", "Relance due", null],
-  ["telephone", "Avec un numéro", null],
-  ["agents", "Avec des agents", null],
-  ["supprimees", "Supprimées", null],
-];
-
-/** La pilule « Trier par » et son menu déroulant. */
-function TrierPar({ valeur, onChange }) {
-  const [ouvert, setOuvert] = useState(false);
-  const choix = CHOIX_LISTE.find(([k]) => k === valeur) || CHOIX_LISTE[0];
-  return (
-    <div className="relative">
-      <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-haspopup="listbox"
-        className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-vif px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>
-        <span className="text-ardoise">Trier par</span><span className="text-encre">{choix[1]}</span><ChevronDown className={`h-4 w-4 transition-transform ${ouvert ? "rotate-180" : ""}`} />
-      </button>
-      {ouvert && (<>
-        <div className="fixed inset-0 z-30" onClick={() => setOuvert(false)} aria-hidden />
-        <div role="listbox" className="absolute left-0 top-12 z-40 w-[290px] rounded-bloc border border-bord-doux bg-surface-pleine p-1.5 shadow-xl">
-          {CHOIX_LISTE.map(([k, mot, aide], i) => (
-            <React.Fragment key={k}>
-              {i === 4 && <div className="my-1 border-t border-trait" />}
-              <button type="button" role="option" aria-selected={valeur === k} onClick={() => { onChange(k); setOuvert(false); }}
-                className={`flex w-full items-start gap-2 rounded-champ px-3 py-2 text-left hover:bg-relief ${valeur === k ? "text-encre" : "text-craie"}`} style={{ background: "transparent" }}>
-                <Check className={`mt-0.5 h-3.5 w-3.5 flex-none ${valeur === k ? "text-menthe" : "opacity-0"}`} />
-                <span className="min-w-0"><span className="block text-[13.5px]">{mot}</span>{aide && <span className="block text-[12px] text-brume">{aide}</span>}</span>
-              </button>
-            </React.Fragment>
-          ))}
-        </div>
-      </>)}
-    </div>
-  );
-}
-
-function TableauAgences({ id, onAppeler }) {
+function TableauAgences({ listes, onAppeler, bascule = null }) {
   // L'agent d'un collègue (le premier qui l'a joint) : absent de ma file, signalé ici.
   const { data: equipeDonnees } = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", `${API}/equipe`), staleTime: 5 * 60_000 });
   const moiEmail = equipeDonnees?.moi || null;
@@ -369,33 +238,42 @@ function TableauAgences({ id, onAppeler }) {
   };
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
-  const [filtre, setFiltre] = useState("toutes");
-  // Agences, mandataires, ou tous (23 oct. 2026) : gardé d'une visite à l'autre.
-  const [genre, setGenre] = useState(() => { try { return localStorage.getItem("prospection.genre") || "tous"; } catch { return "tous"; } });
-  const changerGenre = (g) => { setGenre(g); try { localStorage.setItem("prospection.genre", g); } catch { /* sans stockage */ } };
-  const [chiffresOuverts, setChiffresOuverts] = useState(false);
-  const annuaires = useQuery({ queryKey: ["agent-ia-annuaires"], queryFn: () => base44.request("GET", `${API}/annuaires`), enabled: genre === "mandataires", staleTime: 10 * 60_000 });
-  const { data, isLoading } = useQuery({
-    queryKey: ["agent-ia-liste", id],
-    queryFn: () => base44.request("GET", `${API}/listes/${id}`),
-    // Relue toutes les trente secondes : on voit qui appelle quoi sans recharger (13 oct. 2026).
+  // Chaque liste relue toutes les trente secondes : on voit qui appelle quoi sans recharger (13 oct. 2026).
+  const lues = useQueries({ queries: listes.map((l) => ({
+    queryKey: ["agent-ia-liste", l.id],
+    queryFn: () => base44.request("GET", `${API}/listes/${l.id}`),
     refetchInterval: (x) => (x.state.data?.etat === "en_cours" ? 5000 : 30000),
+  })) });
+  const isLoading = lues.some((x) => x.isLoading);
+  const data = useMemo(() => {
+    const vues = new Set();
+    const lignes = [];
+    lues.forEach((x, i) => {
+      for (const a of x.data?.lignes || []) if (!vues.has(a.id)) { vues.add(a.id); lignes.push({ ...a, ville: listes[i].ville, liste_id: listes[i].id }); }
+    });
+    return { lignes, enCours: lues.find((x) => x.data?.etat === "en_cours")?.data || null };
+  }, [lues, listes]);
+  const relire = () => queryClient.invalidateQueries({ queryKey: ["agent-ia-liste"] });
+  // Une ville sans liste se cherche depuis la recherche (11 nov. 2026) : l'agent y trouve les agences.
+  const lancer = useMutation({
+    mutationFn: (v) => base44.request("POST", `${API}/lancer`, { body: { ville: v } }),
+    onSuccess: (r) => {
+      toast.success(r.deja ? `${r.liste.ville} se cherche déjà` : `L'agent cherche à ${r.liste.ville}`, { description: "Les agences arrivent dans le tableau au fil de l'eau." });
+      setQ("");
+      queryClient.invalidateQueries({ queryKey: ["agent-ia-listes"] });
+    },
+    onError: (e) => toast.error(e?.message || "Lancement impossible"),
   });
   const carnet = useMutation({
     mutationFn: ({ agence, agent }) => base44.request("POST", `${API}/agences/${agence}/carnet`, { body: { agent: agent ?? null } }),
     onSuccess: (r) => {
       toast.success(r.crees ? `Au carnet : ${r.crees} agent${r.crees > 1 ? "s" : ""}` : "Déjà au carnet : fiche complétée");
-      for (const k of [["agent-ia-liste", id], ["agent-ia-listes"], ["prospection-grille"]]) queryClient.invalidateQueries({ queryKey: k });
+      for (const k of [["agent-ia-liste"], ["agent-ia-listes"], ["prospection-grille"]]) queryClient.invalidateQueries({ queryKey: k });
     },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const [coches, setCoches] = useState(() => new Set());
   const [ouverte, setOuverte] = useState(null);
-  const verifier = useMutation({
-    mutationFn: () => base44.request("POST", `${API}/listes/${id}/monday`),
-    onSuccess: (r) => { toast.success(`Twenty CRM : ${r.connues} agence${r.connues > 1 ? "s" : ""} déjà en contact sur ${r.total}`); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
-    onError: (e) => toast.error(e?.message || "Twenty CRM n'a pas répondu"),
-  });
   // Supprimer des lignes cochées : masquées, pas effacées, et elles ne reviennent pas.
   const retirer = useMutation({
     mutationFn: ({ ids, motif }) => base44.request("POST", `${API}/agences/retirer`, { body: { ids, motif } }),
@@ -403,7 +281,7 @@ function TableauAgences({ id, onAppeler }) {
       toast.success(`${r.retirees} ligne${r.retirees > 1 ? "s" : ""} supprimée${r.retirees > 1 ? "s" : ""}`, { description: r.metier ? `Retenu : « ${r.metier} ». ${r.aussi ? `${r.aussi} autre${r.aussi > 1 ? "s" : ""} ligne${r.aussi > 1 ? "s" : ""} du même métier retirée${r.aussi > 1 ? "s" : ""}, et les prochaines aussi.` : "Les prochaines de ce métier seront retirées d'elles-mêmes."}` : undefined });
       setCoches(new Set());
       setPourquoi(false);
-      for (const k of [["agent-ia-liste", id], ["agent-ia-listes"]]) queryClient.invalidateQueries({ queryKey: k });
+      for (const k of [["agent-ia-liste"], ["agent-ia-listes"]]) queryClient.invalidateQueries({ queryKey: k });
     },
     onError: (e) => toast.error(e?.message || "Suppression impossible"),
   });
@@ -417,7 +295,7 @@ function TableauAgences({ id, onAppeler }) {
     onSuccess: (r) => {
       toast.success(`${r.crees} contact${r.crees > 1 ? "s" : ""} dans Twenty CRM`, { description: r.doublons ? `${r.doublons} déjà au tableau, ou sans numéro ni mail.` : "Tableau « Prospection Agent Immo »." });
       setCoches(new Set());
-      queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] });
+      relire();
     },
     onError: (e) => toast.error(e?.message || "Twenty CRM n'a pas répondu"),
   });
@@ -430,31 +308,20 @@ function TableauAgences({ id, onAppeler }) {
         description: [r.deja ? `${r.deja} déjà en relance` : null, r.refusees?.length ? `${r.refusees.length} refusée${r.refusees.length > 1 ? "s" : ""} (morte, hors cible ou « Ne plus appeler »)` : null].filter(Boolean).join(" · ") || undefined,
       });
       setCoches(new Set());
-      for (const k of [["agent-ia-liste", id], ["relances"]]) queryClient.invalidateQueries({ queryKey: k });
+      for (const k of [["agent-ia-liste"], ["relances"]]) queryClient.invalidateQueries({ queryKey: k });
     },
     onError: (e) => toast.error(e?.message || "Envoi impossible"),
   });
   // Appeler : l'agence (ou l'agent) entre au carnet si besoin, puis le panneau d'appel s'ouvre.
-  // Coller une page d'annuaire de réseau (23 oct. 2026, Jules) : la recherche se fait sur le site du réseau, à la main.
-  const [collage, setCollage] = useState(null); // { reseau, texte }
-  const coller = useMutation({
-    mutationFn: () => base44.request("POST", `${API}/listes/${id}/mandataires/coller`, { body: collage }),
-    onSuccess: (r) => {
-      toast.success(`${r.lus} conseiller${r.lus > 1 ? "s" : ""} lu${r.lus > 1 ? "s" : ""} : ${r.nouveaux} nouveau${r.nouveaux > 1 ? "x" : ""}, ${r.completes} complété${r.completes > 1 ? "s" : ""}`, { description: `${r.avec_numero} avec un numéro.${r.sans_numero.length ? ` Sans numéro : ${r.sans_numero.slice(0, 5).join(", ")}${r.sans_numero.length > 5 ? "…" : ""} (cliquez « Afficher le numéro » sur la page avant de copier).` : ""}` });
-      setCollage(null);
-      queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] });
-    },
-    onError: (e) => toast.error(e?.message || "Rien n'a été ajouté"),
-  });
   // Le numéro d'un mandataire par Apollo (23 oct. 2026) : payant, au clic, en dernier recours.
   const apollo = useMutation({
     mutationFn: (mid) => base44.request("POST", `${API}/mandataires/${mid}/apollo`),
-    onSuccess: (r) => { if (r.trouve) toast.success(r.telephone ? `Numéro trouvé : ${r.telephone}` : "Apollo a trouvé un mail, pas de numéro"); else toast.info("Apollo ne le connaît pas"); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
+    onSuccess: (r) => { if (r.trouve) toast.success(r.telephone ? `Numéro trouvé : ${r.telephone}` : "Apollo a trouvé un mail, pas de numéro"); else toast.info("Apollo ne le connaît pas"); relire(); },
     onError: (e) => toast.error(e?.message || "Apollo n'a pas répondu"),
   });
   const appeler = useMutation({
     mutationFn: ({ agence, agent }) => base44.request("POST", `${API}/agences/${agence}/appeler`, { body: { agent: agent ?? null } }),
-    onSuccess: (r) => { onAppeler?.(r.agent_id); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
+    onSuccess: (r) => { onAppeler?.(r.agent_id); relire(); },
     onError: (e) => toast.error(e?.message || "Appel impossible"),
   });
   // « À appeler » (13 oct. 2026, Jules) : jamais appelée (même sans réponse), ni en relance, ni tenue ou en appel chez un collègue.
@@ -467,50 +334,36 @@ function TableauAgences({ id, onAppeler }) {
     const mots = sansAccents(q).split(/[\s,;]+/).filter(Boolean);
     const t = mots.length > 0;
     const base = (data?.lignes || []).filter((a) => !a.fermee)
-      .filter((a) => genre === "tous" || (genre === "mandataires" ? estMandataire(a) : !estMandataire(a)))
-      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "inconnues" ? aAppeler(a) : filtre === "connues" ? ["contact", "relance"].includes(a.statut?.etat) : filtre === "appelees" ? a.statut?.appelee : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
       .filter((a) => {
         if (!t) return true;
-        const texte = sansAccents([a.nom, a.raison_sociale, a.reseau_nom, a.adresse, a.telephone, String(a.telephone || "").replace(/\D/g, ""), a.email, a.siren, ...(a.gerants || []).map((g) => g.nom), ...(a.agents || []).flatMap((x) => [x.nom, x.email, String(x.telephone || "").replace(/\D/g, "")])].filter(Boolean).join(" "));
+        const texte = sansAccents([a.ville, a.nom, a.raison_sociale, a.reseau_nom, a.adresse, a.telephone, String(a.telephone || "").replace(/\D/g, ""), a.email, a.siren, ...(a.gerants || []).map((g) => g.nom), ...(a.agents || []).flatMap((x) => [x.nom, x.email, String(x.telephone || "").replace(/\D/g, "")])].filter(Boolean).join(" "));
         return mots.every((m) => texte.includes(m.replace(/\D/g, "").length >= 6 && /^[\d\s.+-]+$/.test(m) ? m.replace(/\D/g, "") : m));
       });
-    // « Appelées » : la plus récemment appelée en tête. Ailleurs, l'ordre fixe de la liste.
-    return filtre === "appelees" ? [...base].sort((x, y) => String(y.statut?.quand || "").localeCompare(String(x.statut?.quand || ""))) : base;
-  }, [data, q, filtre, genre, moiEmail]);
-  if (isLoading || !data) return <Chargement />;
+    return base;
+  }, [data, q]);
+  if (isLoading) return <Chargement />;
+  // Une recherche qui ressemble à une ville sans liste, et qu'aucune agence ne porte dans son nom : la chercher.
+  const plat = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const villeACherche = q.trim().length >= 3 && /^[\p{L}\s'-]+$/u.test(q.trim()) && !listes.some((l) => plat(l.ville) === plat(q))
+    && !lignes.some((a) => plat(a.nom).includes(plat(q))) ? q.trim() : null;
 
   return (
     <div>
-      {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Twenty CRM » les montre  ; l'interrupteur du mode appel est sur la ligne des villes. */}
-      {chiffresOuverts && <div className="duration-300 ease-out animate-in fade-in-0 slide-in-from-top-2"><BarreVille ville={data.ville} chiffres={data.chiffres} /></div>}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-8 w-[320px] items-center gap-2 rounded-full bg-relief px-3.5 focus-within:ring-1 focus-within:ring-bord-doux max-md:h-10 max-md:w-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Agence, gérant, agent, numéro"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ville, agence, gérant, numéro"
             className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
-        <div className="flex gap-0.5" role="tablist" aria-label="Agences ou mandataires">
-          {[["agences", "Agences"], ["mandataires", "Mandataires"], ["tous", "Tous"]].map(([cle, mot]) => (
-            <button key={cle} type="button" role="tab" aria-selected={genre === cle} onClick={() => changerGenre(cle)}
-              className={`h-7 rounded-full px-3 text-[13px] max-md:h-10 ${genre === cle ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`} style={genre === cle ? undefined : { background: "transparent" }}>
-              {mot}{cle === "mandataires" && data.chiffres?.mandataires ? <span className="ml-1.5 tabular-nums text-ardoise">{data.chiffres.mandataires}</span> : null}
-            </button>
-          ))}
-        </div>
-        {/* « Trier par » : une pilule, les choix dans un menu (12 oct. 2026). */}
-        <TrierPar valeur={filtre} onChange={setFiltre} />
-        <span className="ml-auto text-[13px] text-ardoise max-md:ml-0">
-          {data.etat === "en_cours" && <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{data.etape || "L'agent cherche"}</span>}
-        </span>
-        <button type="button" onClick={() => verifier.mutate()} disabled={verifier.isPending || data.etat === "en_cours"} title="Revérifier dans Twenty CRM qui est déjà en contact"
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
-          {verifier.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}Vérifier dans Twenty CRM
-        </button>
-        <button type="button" onClick={() => setChiffresOuverts((v) => !v)} aria-expanded={chiffresOuverts} aria-label="Les chiffres de la ville" title="Les chiffres de la ville"
-          className={`grid h-8 w-8 place-items-center rounded-full border border-trait hover:text-encre ${chiffresOuverts ? "bg-rail-actif text-encre" : "text-craie"}`} style={chiffresOuverts ? undefined : { background: "transparent" }}>
-          <Plus className={`h-3.5 w-3.5 transition-transform ${chiffresOuverts ? "rotate-45" : ""}`} />
-        </button>
+        {data.enCours && <span className="inline-flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin" />{data.enCours.etape || `L'agent cherche à ${data.enCours.ville}`}</span>}
+        {bascule && <span className="ml-auto flex-none max-md:ml-0">{bascule}</span>}
       </div>
+      {villeACherche && (
+        <button type="button" onClick={() => lancer.mutate(villeACherche)} disabled={lancer.isPending}
+          className="mt-3 inline-flex h-8 items-center gap-2 rounded-full border border-trait px-3.5 text-[13px] text-encre hover:border-menthe disabled:opacity-50" style={{ background: "transparent" }}>
+          {lancer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}Chercher les agences de {villeACherche}
+        </button>
+      )}
 
       {coches.size > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] border border-trait bg-surface-pleine px-4 py-2.5">
@@ -534,38 +387,10 @@ function TableauAgences({ id, onAppeler }) {
           <button type="button" onClick={() => setCoches(new Set())} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>
         </div>
       )}
-      {/* Les annuaires des réseaux (23 oct. 2026) : vérifiés sur le serveur avant toute lecture ; dit en une ligne. */}
-      {genre === "mandataires" && annuaires.data?.annuaires && (
-        <p className="m-0 mt-3 text-[12.5px] text-ardoise">
-          Annuaires des réseaux : {annuaires.data.annuaires.map((x) => `${x.nom} ${x.categorie === "autorise" ? (x.lecteur ? "lu" : "autorisé") : x.categorie === "interdit" ? "interdit" : x.categorie === "douteux" ? "à trancher" : x.categorie === "injoignable" ? "injoignable" : "à vérifier"}`).join(" · ")}.
-          <span className="text-brume"> Les numéros viennent pour l'instant des annonces et du registre.</span>
-          <button type="button" onClick={() => setCollage((c) => (c ? null : { reseau: "iad", texte: "" }))} className="ml-2 text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>Coller des liens de fiches</button>
-        </p>
-      )}
-      {genre === "mandataires" && collage && (
-        <div className="mt-3 rounded-[16px] border border-trait bg-rail p-4 duration-300 animate-in fade-in-0 slide-in-from-top-1">
-          <p className="m-0 text-[14px] text-encre">Collez les liens des fiches des conseillers ({data.ville}), un par ligne, ou la page de résultats du réseau.</p>
-          <p className="m-0 mt-1 text-[12.5px] text-ardoise">Chacun entre comme mandataire du réseau, avec sa fiche à un clic (le numéro s'y affiche) ; ceux déjà dans la liste sont complétés, pas doublés. Klocka n'ouvre jamais les fiches lui-même.</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {(annuaires.data?.annuaires || []).map((x) => (
-              <button key={x.reseau} type="button" aria-pressed={collage.reseau === x.reseau} onClick={() => setCollage((c) => ({ ...c, reseau: x.reseau }))}
-                className={`h-8 rounded-full border px-3.5 text-[13px] ${collage.reseau === x.reseau ? "border-menthe/60 bg-menthe/10 text-encre" : "border-trait text-craie hover:border-bord-vif"}`} style={collage.reseau === x.reseau ? undefined : { background: "transparent" }}>{x.nom}</button>
-            ))}
-          </div>
-          <textarea value={collage.texte} onChange={(e) => setCollage((c) => ({ ...c, texte: e.target.value }))} rows={7} placeholder={"https://www.iadfrance.fr/conseiller-immobilier/claire.bourgeois\nhttps://www.iadfrance.fr/conseiller-immobilier/alix.verna\n…"}
-            className="mt-3 w-full resize-y rounded-[12px] border border-trait bg-surface px-3.5 py-2.5 text-[13.5px] text-encre outline-none focus:border-bord-vif max-md:text-[16px]" />
-          <div className="mt-2 flex items-center justify-end gap-2">
-            <button type="button" onClick={() => setCollage(null)} className="h-9 px-3 text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
-            <button type="button" onClick={() => coller.mutate()} disabled={coller.isPending || collage.texte.trim().length < 10} className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-              {coller.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Ajouter à la liste
-            </button>
-          </div>
-        </div>
-      )}
-      {filtre === "supprimees" ? <Supprimees listeId={id} /> : (<>
+      <>
       <div className="mt-3 overflow-x-auto rounded-[12px] border border-trait bg-rail">
         <table className="w-full min-w-[1240px] table-fixed border-collapse text-left text-[13.5px] [&_tbody_td:not(:last-child)]:border-r [&_tbody_td]:border-trait [&_th:not(:last-child)]:border-r [&_th]:border-trait">
-          <colgroup><col style={{ width: 44 }} /><col style={{ width: 110 }} /><col /><col style={{ width: "19%" }} /><col style={{ width: "13%" }} /><col style={{ width: 56 }} /><col style={{ width: 130 }} /><col style={{ width: "13%" }} /><col style={{ width: 160 }} /></colgroup>
+          <colgroup><col style={{ width: 44 }} /><col style={{ width: 110 }} /><col /><col style={{ width: 110 }} /><col style={{ width: "17%" }} /><col style={{ width: "13%" }} /><col style={{ width: 130 }} /><col style={{ width: "13%" }} /><col style={{ width: 160 }} /></colgroup>
           <thead>
             <tr>
               <th className="h-[35px] border-b border-trait">
@@ -574,7 +399,7 @@ function TableauAgences({ id, onAppeler }) {
                   <Case oui={lignes.length > 0 && lignes.every((a) => coches.has(a.id))} />
                 </button>
               </th>
-              {["Associé à", "Nom", "Adresse", "Site", "Maps", "Téléphone", genre === "mandataires" ? "SIREN" : genre === "tous" ? "Gérants / SIREN" : "Gérants", "Statut"].map((t) => <th key={t} className={`h-[35px] overflow-hidden whitespace-nowrap border-b border-trait px-2.5 text-center text-[12.5px] font-normal text-ardoise ${t === "Nom" ? "!text-left" : ""}`}>{t}</th>)}
+              {["Associé à", "Nom", "Ville", "Adresse", "Site", "Téléphone", "Gérants / SIREN", "Statut"].map((t) => <th key={t} className={`h-[35px] overflow-hidden whitespace-nowrap border-b border-trait px-2.5 text-center text-[12.5px] font-normal text-ardoise ${t === "Nom" ? "!text-left" : ""}`}>{t}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -588,15 +413,13 @@ function TableauAgences({ id, onAppeler }) {
                     <td className="h-[36px] py-0" onClick={(e) => e.stopPropagation()}>
                       <button type="button" onClick={() => basculer(a.id)} aria-label={`Cocher ${nomPropre(a)}`} className="grid w-full place-items-center" style={{ background: "transparent" }}><Case oui={coches.has(a.id)} /></button>
                     </td>
-                    <td className="h-[36px] overflow-hidden px-1.5 py-0" onClick={(e) => e.stopPropagation()}><span className="flex justify-center"><CellulePour agence={a} listeId={id} /></span></td>
+                    <td className="h-[36px] overflow-hidden px-1.5 py-0" onClick={(e) => e.stopPropagation()}><span className="flex justify-center"><CellulePour agence={a} listeId={a.liste_id} /></span></td>
                     <td className="h-[36px] truncate px-2.5 py-0"><span className="text-encre">{nomPropre(a)}</span>{(a.agents || []).length > 1 && <span className="text-ardoise"> · {a.agents.length} agents</span>}{estMandataire(a) && <span className="text-ardoise"> · {a.reseau_nom ? `Mandataire ${a.reseau_nom}` : "Mandataire en nom propre"}</span>}{(a.annonces_commerce || 0) > 0 && <span className="text-ardoise"> · publie du commerce, {a.annonces_commerce}</span>}</td>
+                    <td className="h-[36px] truncate px-2.5 py-0 text-center text-craie">{a.ville}</td>
                     <td className="h-[36px] truncate px-2.5 py-0 text-center text-craie" title={a.adresse || undefined}>{a.adresse || <span className="text-bord-vif">—</span>}</td>
                     <td className="h-[36px] truncate px-2.5 py-0 text-center">
                       {a.fiche_url ? <a onClick={(e) => e.stopPropagation()} href={a.fiche_url} target="_blank" rel="noreferrer" title="La fiche du conseiller : son numéro y est" className="text-bleu hover:underline">Fiche {a.reseau_nom || "réseau"} ↗</a>
                         : domaine ? <a onClick={(e) => e.stopPropagation()} href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className="text-bleu hover:underline">{domaine}</a> : <span className="text-bord-vif">—</span>}
-                    </td>
-                    <td className="h-[36px] truncate px-2.5 py-0 text-center">
-                      {a.maps_url ? <a onClick={(e) => e.stopPropagation()} href={a.maps_url} target="_blank" rel="noreferrer" aria-label="Fiche Google Maps" title="Fiche Google Maps" className="inline-flex text-craie hover:text-encre"><MapPin className="h-4 w-4" /></a> : <span className="text-bord-vif">—</span>}
                     </td>
                     <td className="h-[36px] truncate px-2.5 py-0 text-center tabular-nums text-craie" title={a.telephone_source ? `Numéro : ${SOURCES_TEL[a.telephone_source] || a.telephone_source}` : undefined}>
                       {tel || <span className="text-bord-vif">—</span>}
@@ -627,7 +450,7 @@ function TableauAgences({ id, onAppeler }) {
                             ) : estMandataire(a) ? (
                               <div>
                                 <p className="m-0 text-[13px] text-craie">{[a.reseau_nom ? `Mandataire ${a.reseau_nom}` : "Mandataire en nom propre", a.telephone_source ? `numéro de ${SOURCES_TEL[a.telephone_source] || a.telephone_source}` : "pas encore de numéro", `trouvé par ${(a.sources || []).join(", ")}`].join(" · ")}.</p>
-                                {!a.telephone && <NumeroAuClavier mandataire={a} onFait={() => queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] })} />}
+                                {!a.telephone && <NumeroAuClavier mandataire={a} onFait={() => relire()} />}
                                 {!a.telephone && !a.apollo_le && (
                                   <button type="button" onClick={() => apollo.mutate(a.id)} disabled={apollo.isPending} title="Une recherche Apollo coûte des crédits : seulement quand ni l'annonce ni le registre n'ont donné de numéro"
                                     className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
@@ -675,7 +498,7 @@ function TableauAgences({ id, onAppeler }) {
               );
             })}
             {!lignes.length && (
-              <tr><td colSpan={9} className="px-6 py-10 text-center text-[13.5px] text-brume">{data.etat === "en_cours" ? "L'agent cherche : les agences arrivent ici." : "Aucune agence ne correspond."}</td></tr>
+              <tr><td colSpan={9} className="px-6 py-10 text-center text-[13.5px] text-brume">{data.enCours ? "L'agent cherche : les agences arrivent ici." : "Aucune agence ne correspond."}</td></tr>
             )}
           </tbody>
         </table>
@@ -683,9 +506,9 @@ function TableauAgences({ id, onAppeler }) {
       <p className="m-0 mt-3 flex items-center gap-1.5 text-[12.5px] text-brume">
         <ArrowRight className="h-3 w-3" />Une ligne s'ouvre au clic : ses agents, « Appeler », « Email », « Au carnet ». Les cases cochées vont au carnet ou dans Twenty CRM.
       </p>
-      </>)}
+      </>
       {pourquoi && <FenetrePourquoi n={coches.size} enCours={retirer.isPending} onFermer={() => setPourquoi(false)} onValider={(motif) => retirer.mutate({ ids: [...coches], motif })} />}
-      {mail && <FenetreMail {...mail} lignes={data.lignes} onFermer={() => setMail(null)} onEnvoye={() => queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] })} />}
+      {mail && <FenetreMail {...mail} lignes={data.lignes} onFermer={() => setMail(null)} onEnvoye={() => relire()} />}
     </div>
   );
 }
@@ -696,38 +519,6 @@ export function Case({ oui }) {
     <span className={`grid h-[18px] w-[18px] place-items-center rounded-[5px] border transition-colors ${oui ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif hover:border-menthe"}`}>
       {oui && <Check className="h-3 w-3" strokeWidth={3} />}
     </span>
-  );
-}
-
-/** Le tableau de bord de la ville : les agences, la part faite, les intéressées, les relances. */
-function BarreVille({ ville, chiffres }) {
-  if (!chiffres) return null;
-  const pc = chiffres.fait_pourcent ?? 0;
-  const bloc = "rounded-[16px] border border-trait bg-surface px-4 py-3";
-  return (
-    <div className="mb-5">
-      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-        <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.agences}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">agence{chiffres.agences > 1 ? "s" : ""} à {ville}</p></div>
-        <div className={bloc}>
-          <p className="m-0 text-[24px] leading-none text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{pc} %</p>
-          <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">fait</p>
-          <div className="mt-2 h-[5px] overflow-hidden rounded-full bg-encre/[0.10]"><div className="h-full rounded-full bg-menthe transition-[width] duration-500" style={{ width: `${pc}%` }} /></div>
-        </div>
-        <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.interessees}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">intéressée{chiffres.interessees > 1 ? "s" : ""}</p></div>
-        <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.a_rappeler}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">à rappeler</p></div>
-      </div>
-      {/* Ce qui n'est pas compté comme agence, dit pour qu'on sache d'où vient le reste des lignes. */}
-      {(chiffres.mandataires > 0 || chiffres.societes > 0 || chiffres.annonceurs > 0 || chiffres.mortes > 0) && (
-        <p className="m-0 mt-2 text-[12.5px] text-brume">
-          À part : {[
-            chiffres.mandataires ? `${chiffres.mandataires} mandataire${chiffres.mandataires > 1 ? "s" : ""}${chiffres.mandataires_commerce ? `, dont ${chiffres.mandataires_commerce} qui publie${chiffres.mandataires_commerce > 1 ? "nt" : ""} du commerce` : ""}` : null,
-            chiffres.societes ? `${chiffres.societes} société${chiffres.societes > 1 ? "s" : ""} sans vitrine (ni fiche Google, ni annonce)` : null,
-            chiffres.annonceurs ? `${chiffres.annonceurs} nom${chiffres.annonceurs > 1 ? "s" : ""} d'annonces` : null,
-            chiffres.mortes ? `${chiffres.mortes} morte${chiffres.mortes > 1 ? "s" : ""}` : null,
-          ].filter(Boolean).join(" · ")}.
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -761,39 +552,6 @@ function FenetrePourquoi({ n, onValider, onFermer, enCours }) {
   );
 }
 
-/** Les lignes supprimées, avec leur motif : le contexte qu'on garde, et « Remettre ». */
-function Supprimees({ listeId }) {
-  const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["agent-ia-retirees", listeId], queryFn: () => base44.request("GET", `${API}/listes/${listeId}/retirees`) });
-  const remettre = useMutation({
-    mutationFn: (agence) => base44.request("POST", `${API}/agences/${agence}/remettre`),
-    onSuccess: () => { for (const k of [["agent-ia-retirees", listeId], ["agent-ia-liste", listeId]]) queryClient.invalidateQueries({ queryKey: k }); },
-  });
-  if (isLoading) return <Chargement />;
-  const lignes = data?.retirees || [];
-  return (
-    <div className="mt-4">
-      {(data?.regles || []).length > 0 && <p className="m-0 mb-3 text-[13px] text-craie">Retenu de vos suppressions : {data.regles.map((r) => r.libelle).join(", ")}. Ces métiers sortent des listes d'eux-mêmes.</p>}
-      {!lignes.length && <p className="py-10 text-center text-[14px] text-brume">Aucune ligne supprimée dans cette liste.</p>}
-      <ul className="m-0 list-none border-y border-trait p-0">
-        {lignes.map((x) => (
-          <li key={x.id} className="flex items-center justify-between gap-4 border-t border-trait px-2 py-3.5 first:border-t-0">
-            <span className="min-w-0">
-              <span className="block truncate text-[15px] text-encre">{x.nom}</span>
-              <span className="block text-[12.5px] text-ardoise">{[x.motif || "sans motif", x.par === "automatique" ? "retirée automatiquement" : x.par ? `par ${String(x.par).split("@")[0].split(".")[0]}` : null].filter(Boolean).join(" · ")}</span>
-            </span>
-            <button type="button" onClick={() => remettre.mutate(x.id)} className="h-9 flex-none rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>Remettre</button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/**
- * Qui tient la ligne : un clic dans la case y met celui qui clique, « + » y
- * ajoute quelqu'un de l'équipe, un clic sur un prénom l'enlève (6 oct. 2026).
- */
 export function CellulePour({ agence, listeId }) {
   const queryClient = useQueryClient();
   const [menu, setMenu] = useState(false);

@@ -145,6 +145,48 @@ async function appeler(params) {
 }
 
 /**
+ * Les établissements ouverts d'un code postal dont l'enseigne, le nom d'usage ou la dénomination porte ce nom : le
+ * locataire d'un dossier quand ni la BAN ni l'annuaire des entreprises ne répondent.
+ */
+export async function etablissementsParNom(nom, codePostal) {
+  // Les civilités ôtées : un bail écrit « Monsieur Adrien Rochedy », le registre « ADRIEN ROCHEDY ».
+  const n = String(nom || '').replace(/["\\]/g, ' ').replace(/^\s*(monsieur|madame|mademoiselle|mme|mlle|m\.)\s+/i, '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (n.length < 2 || !/^\d{5}$/.test(String(codePostal || ''))) return [];
+  // Une entreprise individuelle n'a pas de dénomination : elle se cherche par prénom et nom, dans les deux ordres.
+  const mots = n.split(' ');
+  const personne = mots.length >= 2
+    // Le nom de naissance ou le nom d'usage (« ABBACI » pour une CHABBAT, Lyon 8e).
+    ? [[mots[0], mots.slice(1).join(' ')], [mots[mots.length - 1], mots.slice(0, -1).join(' ')]]
+      .map(([prenom, nomP]) => ` OR (prenom1UniteLegale:"${prenom}" AND (nomUniteLegale:"${nomP}" OR nomUsageUniteLegale:"${nomP}"))`).join('')
+    : '';
+  const q = `codePostalEtablissement:${codePostal} AND periode(etatAdministratifEtablissement:A) AND (periode(enseigne1Etablissement:"${n}") OR periode(denominationUsuelleEtablissement:"${n}") OR denominationUniteLegale:"${n}"${personne})`;
+  const d = await appeler({ q, nombre: '20' });
+  return (d.etablissements || []).map((e) => ({ ...lireEtablissement(e), siren: String(e.siret).slice(0, 9) })).filter((e) => e.siret);
+}
+
+/** L'unité légale d'un SIREN (identité, forme, état, création), quand l'annuaire des entreprises ne répond pas. */
+export async function uniteLegale(siren) {
+  if (!sireneConfigure()) throw new Error(MESSAGE_SANS_CLE);
+  const r = await fetch(`${RACINE}/siren/${encodeURIComponent(siren)}`, {
+    headers: { 'X-INSEE-Api-Key-Integration': cle(), accept: 'application/json', 'user-agent': UA },
+    signal: AbortSignal.timeout(DELAI_MS),
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`L'API Sirene a répondu ${r.status}`);
+  const u = (await r.json()).uniteLegale || {};
+  const p = (u.periodesUniteLegale || []).find((x) => !x.dateFin) || (u.periodesUniteLegale || [])[0] || {};
+  return {
+    siren: u.siren,
+    nom: p.denominationUniteLegale || [u.prenom1UniteLegale, p.nomUsageUniteLegale || p.nomUniteLegale].filter(Boolean).join(' ') || null,
+    forme_code: p.categorieJuridiqueUniteLegale || null,
+    active: p.etatAdministratifUniteLegale !== 'C',
+    annee_creation: (u.dateCreationUniteLegale || '').slice(0, 4),
+    categorie: u.categorieEntreprise || null,
+    effectif_societe: u.trancheEffectifsUniteLegale || null,
+  };
+}
+
+/**
  * Le morceau de requête qui cible des codes d'activité par préfixe. Le
  * registre écrit « 47.71Z », avec le point après la division, et son joker
  * ne l'ignore pas : « 4771* » ne rend rien, « 47.71* » rend la sous-classe.

@@ -175,6 +175,13 @@ export function monterAssistant(app) {
     consignerVisite({ page: req.body?.page, url: req.body?.url, user: currentUser(req) });
     ok(res, { consigne: true });
   }));
+  // Le temps de chargement d'une page, mesuré par le navigateur (server/temps-chargement.js, 11 nov. 2026).
+  app.post('/api/journal/chargement', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connexion requise.' });
+    (await import('../temps-chargement.js')).consignerChargement({ page: req.body?.page, ms: req.body?.ms, premier: req.body?.premier, user });
+    ok(res, { consigne: true });
+  }));
 
   // Centre de suivi : réservé aux administrateurs, il expose l'usage de chacun.
   app.get('/api/monitoring', wrap(async (req, res) => {
@@ -189,6 +196,11 @@ export function monterAssistant(app) {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
     const jours = Math.min(Math.max(Number(req.query.jours) || 30, 1), 365);
     ok(res, (await import('../usage-sessions.js')).usage({ jours }));
+  }));
+  app.get('/api/monitoring/chargements', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+    const jours = Math.min(Math.max(Number(req.query.jours) || 30, 1), 365);
+    ok(res, (await import('../temps-chargement.js')).chargements({ jours }));
   }));
   app.get('/api/monitoring/usage/sessions', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });

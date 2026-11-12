@@ -278,7 +278,23 @@ export function barrePour(ouverts, tous, { mandataire = false, admin = false } =
 
 const TOUT_VOIR = { canReadAllObjectRecords: true, canUpdateAllObjectRecords: true, objectPermissions: [], fieldPermissions: [] };
 
-async function contexte(qui) {
+// Les pages du CRM que chacun voit (11 nov. 2026, Jules : « Paul, il voit ça, ça, ça ; Maxime, il voit ça, ça, ça ») :
+// une liste de pages cachées par compte, posée par Jules dans Utilisateurs. Une page cachée disparaît de la barre et
+// ne s'ouvre plus, même par son adresse ; ses données restent dans Twenty. Sans liste, les pages qu'on ne garde pas
+// pour personne (le même jour : Tâches et Notes vivent dans les fiches, les trois autres ne servent plus).
+export const CACHEES_PAR_DEFAUT = ['task', 'note', 'transactions2025', 'prospectionAgentImmo', 'prospectsWebinaire'];
+const norme = (e) => String(e || '').trim().toLowerCase();
+export const cacheesDe = (compte) => (Array.isArray(compte?.crm_pages_cachees) ? compte.crm_pages_cachees : CACHEES_PAR_DEFAUT);
+async function cacheesPour(qui) {
+  const email = norme(typeof qui === 'string' ? qui : qui?.email);
+  return new Set(cacheesDe((await import('../db.js')).Records.findBy('User', 'email', email)));
+}
+/** Pure : la barre sans les pages cachées ; un espace vidé disparaît. */
+export const sansPagesCachees = (barreVue, cachees) => barreVue
+  .map((d) => ({ ...d, objets: d.objets.filter((o) => !cachees.has(o.singulier)) }))
+  .filter((d) => d.objets.length);
+
+async function contexte(qui, { toutes = false } = {}) {
   if (!twentyConfigure()) throw erreur(503, "Twenty CRM n'est pas branché ici.");
   const email = typeof qui === 'string' ? qui : qui?.email;
   const mandataire = typeof qui === 'object' && !!qui?.mandataire;
@@ -289,10 +305,12 @@ async function contexte(qui) {
   if (!role) throw erreur(403, mandataire ? `Le rôle « ${ROLE_MANDATAIRE} » manque dans Twenty.` : "Vous n'avez pas encore d'accès à Twenty CRM : demandez-le à Jules.");
   const membreId = membresDe(s.roles).length ? (s.roles.flatMap((r) => r.workspaceMembers || []).find((m) => String(m.userEmail || '').toLowerCase() === String(email || '').toLowerCase())?.id || null) : null;
   const ouverts = structurePour(role, s);
-  const barreVue = barrePour(ouverts, structurePour(TOUT_VOIR, s).map((d) => ({ nom: d.nom, objets: d.objets.map((o) => ({ singulier: o.singulier, nom: o.nom })) })), { mandataire, admin: admin && role.label !== ROLE_MANDATAIRE });
+  const complete = barrePour(ouverts, structurePour(TOUT_VOIR, s).map((d) => ({ nom: d.nom, objets: d.objets.map((o) => ({ singulier: o.singulier, nom: o.nom })) })), { mandataire, admin: admin && role.label !== ROLE_MANDATAIRE });
+  const cachees = toutes ? new Set() : await cacheesPour(qui);
+  const barreVue = sansPagesCachees(complete, cachees);
   // Ce qui s'ouvre : les pages ouvertes des espaces ouverts seulement.
   const dossiers = barreVue.filter((d) => !d.ferme).map((d) => ({ nom: d.nom, objets: d.objets.filter((o) => !o.ferme) }));
-  return { s, role, membreId, dossiers, barreVue };
+  return { s, role, membreId, dossiers, barreVue, cachees };
 }
 
 const objetDe = (dossiers, singulier) => {
@@ -326,22 +344,25 @@ async function nomsLies(o, fiches, dossiers, membresVus = null) {
 export const membresDe = (roles) => [...new Map((roles || []).flatMap((r) => r.workspaceMembers || []).map((m) => [m.id, { id: m.id, nom: [m.name?.firstName, m.name?.lastName].filter(Boolean).join(' ') || m.userEmail }])).values()];
 
 export async function barre(email) {
-  const { role, barreVue, s } = await contexte(email);
+  const { role, barreVue, s, cachees } = await contexte(email);
   const membres = avecAlias(membresDe(s.roles), s.roles, equipe());
   // Les comptes de Klocka (6 nov. 2026) : un tableau de plus dans l'espace Klocka, pour l'équipe (un admin les garde dans la vue mandataire).
   const klocka = equipeKlocka(email) && barreVue.find((d) => d.nom === 'Klocka' && !d.ferme);
-  if (klocka) klocka.objets = [...klocka.objets, (await import('./utilisateurs.js')).objet({ superAdmin: await superAdmin(email) }), (await import('./mandataires.js')).objet()];
+  if (klocka) klocka.objets = [...klocka.objets, ...(await tableauxKlocka(email)).filter((o) => !cachees.has(o.singulier))];
   return { role: role.label, dossiers: barreVue, membres, spoc: choixSpoc(spocLu(), equipe(), s.roles), ordre: await ordreLu(email) };
 }
 
-// Les tableaux Utilisateurs et Mandataires (server/crm/utilisateurs.js, mandataires.js) : l'équipe seule. Un admin les
+// Les tableaux Prospection, Utilisateurs et Mandataires (server/crm/prospection.js, utilisateurs.js, mandataires.js) : l'équipe seule. Un admin les
 // garde dans la vue mandataire, où l'espace Klocka lui reste ouvert (6 nov. 2026, Jules : « je ne les vois plus »).
 const equipeKlocka = (qui) => typeof qui === 'object' && !!qui?.admin;
 const compteDe = async (qui) => (await import('../db.js')).Records.findBy('User', 'email', String(qui?.email || '').toLowerCase());
 const superAdmin = async (qui) => (await import('../acces-pages.js')).estSuperAdmin(await compteDe(qui));
-const TABLEAUX_KLOCKA = { utilisateurs: () => import('./utilisateurs.js'), mandataires: () => import('./mandataires.js') };
+// La Prospection (11 nov. 2026, Jules : « qui on a appelé, en tableau ») : les agences des listes, server/crm/prospection.js.
+const TABLEAUX_KLOCKA = { utilisateurs: () => import('./utilisateurs.js'), mandataires: () => import('./mandataires.js'), prospection: () => import('./prospection.js') };
+const tableauxKlocka = async (qui) => [(await import('./prospection.js')).objet(), (await import('./utilisateurs.js')).objet({ superAdmin: await superAdmin(qui) }), (await import('./mandataires.js')).objet()];
 const U = async (qui, singulier) => {
   if (!equipeKlocka(qui)) throw erreur(403, "Réservé à l'équipe Klocka.");
+  if ((await cacheesPour(qui)).has(singulier)) throw erreur(404, 'Tableau introuvable.');
   return TABLEAUX_KLOCKA[singulier]();
 };
 
@@ -853,4 +874,34 @@ export async function exporter(email, singulier, { q: texte = '', tri = null, se
   const liens = await nomsLies({ ...o, champs: cols }, lignes, dossiers, membresDe(s.roles)).catch(() => ({}));
   const csv = [cols.map((c) => csvCase(c.libelle)).join(';'), ...lignes.map((f) => cols.map((c) => csvCase(texteCase(c, f[c.nom], liens))).join(';'))].join('\r\n');
   return { nom: `${o.nom} ${new Date().toISOString().slice(0, 10)}.csv`, csv: `\uFEFF${csv}`, lignes: lignes.length };
+}
+
+// Les pages du CRM de chacun, pour l'écran de Jules (Utilisateurs > Admins et Mandataires) : pour chaque personne de
+// l'équipe et chaque mandataire, les pages que son rôle de Twenty lui ouvre et celles qu'il a cachées.
+export async function pagesDeChacun() {
+  const { Records } = await import('../db.js');
+  const comptes = Records.list('User').filter((u) => u.role === 'admin' || u.role === 'mandataire' || u.aussi_mandataire);
+  const personnes = [];
+  for (const u of comptes) {
+    const qui = { email: norme(u.email), admin: u.role === 'admin', mandataire: u.role === 'mandataire' };
+    const p = { email: qui.email, nom: u.full_name || u.email, equipe: qui.admin, cachees: cacheesDe(u), pages: [] };
+    try {
+      const { barreVue } = await contexte(qui, { toutes: true });
+      p.pages = barreVue.flatMap((d) => d.objets.filter((o) => !o.ferme).map((o) => ({ singulier: o.singulier, nom: o.nom, espace: d.nom || 'Autres' })));
+      if (qui.admin && barreVue.some((d) => d.nom === 'Klocka' && !d.ferme)) p.pages.push(...(await tableauxKlocka(qui)).map((o) => ({ singulier: o.singulier, nom: o.nom, espace: 'Klocka' })));
+      p.pages = p.pages.filter((o, i, t) => t.findIndex((x) => x.singulier === o.singulier) === i);
+    } catch (e) { p.sans_acces = e.message; }
+    personnes.push(p);
+  }
+  return { personnes: personnes.sort((a, b) => Number(b.equipe) - Number(a.equipe) || Number(!!a.sans_acces) - Number(!!b.sans_acces) || a.nom.localeCompare(b.nom)) };
+}
+
+/** Les pages du CRM cachées à une personne. Jules seul (vérifié par la route). */
+export async function poserPagesCachees(email, cachees) {
+  const { Records } = await import('../db.js');
+  const u = Records.list('User').find((x) => norme(x.email) === norme(email));
+  if (!u) throw erreur(404, 'Compte introuvable.');
+  const liste = [...new Set((Array.isArray(cachees) ? cachees : []).map(String).filter((x) => /^[A-Za-z0-9_-]{1,80}$/.test(x)))];
+  Records.update('User', u.id, { crm_pages_cachees: liste });
+  return { email: norme(u.email), cachees: liste };
 }

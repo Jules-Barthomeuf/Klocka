@@ -23,7 +23,7 @@ const scriptInitial = ({ theme }) => {
     const brut = localStorage.getItem('klocka-personnalisation');
     const p = brut ? JSON.parse(brut) : {};
     localStorage.setItem('klocka-personnalisation', JSON.stringify({ ...p, theme }));
-    for (const k of ['klocka.visite-mode-appel.v1', 'klocka.visite-off-market.v1']) localStorage.setItem(k, '1');
+    for (const k of ['klocka.visite-off-market.v1']) localStorage.setItem(k, '1');
   } catch { /* navigation privée */ }
 };
 

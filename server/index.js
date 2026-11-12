@@ -14,7 +14,7 @@ import compression from 'compression';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { siteMiddleware } from './site-public.js';
+import { siteMiddleware, siteKpartnersMiddleware } from './site-public.js';
 
 import { Records, Meta, infoStockage } from './db.js';
 import { derniersIncidents, noterIncident } from './incidents.js';
@@ -96,6 +96,7 @@ import { monterKData } from './routes/kdata.js';
 import { monterOutils } from './routes/outils.js';
 import { monterReunions } from './routes/reunions.js';
 import { suivreMemoire, resumerEtRepartir } from './memoire-routes.js';
+import { noterRoute } from './temps-chargement.js';
 // Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
 import {
   UPLOAD_DIR,
@@ -226,6 +227,7 @@ app.use((req, res, next) => {
 // Le site public : sous /klocka.immo/ partout, et à la racine de klocka.immo, dont les autres adresses
 // partent vers la plateforme (site-public.js).
 app.use(siteMiddleware(path.join(__dirname, '..', 'dist', 'klocka.immo')));
+app.use(siteKpartnersMiddleware(path.join(__dirname, '..', 'dist', 'kpartners')));
 // Le webhook de Resend se vérifie sur le corps brut : on le garde, pour lui seul.
 app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook') || req.url.startsWith('/api/emailing/calendly') || req.url.startsWith('/api/whatsapp/webhook')) req.corpsBrut = buf.toString('utf8'); } }));
 
@@ -267,6 +269,8 @@ app.use('/api', (req, res, next) => {
   const debut = Date.now();
   res.on('finish', () => {
     const ms = Date.now() - debut;
+    // Chaque lecture, pour Suivi > Usage : les routes les plus lentes depuis le démarrage (server/temps-chargement.js).
+    noterRoute(`${req.baseUrl}${req.route?.path || req.path}`, ms);
     if (ms < 1500) return;
     let role = null;
     try { role = currentUser(req)?.role || null; } catch { /* sans session */ }
@@ -310,14 +314,45 @@ app.get('/api/apps/public/prod/public-settings/by-id/:appId', (req, res) => {
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
-app.get('/api/auth/me', wrap((req, res) => {
+app.get('/api/auth/me', wrap(async (req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
   // Chaque ouverture de l'application repousse l'échéance de la session.
   if (!AUTH_DESACTIVEE) prolongerSession(req, res);
   // Dans une famille, chacun voit le dossier du titulaire sous son propre nom.
   // Les pages fermées par Jules, et s'il est celui qui gère les accès.
-  ok(res, { ...sansSecret(vueDuCompte(user)), pages_fermees: pagesFermees(user), gere_les_acces: estSuperAdmin(user) });
+  ok(res, { ...sansSecret(vueDuCompte(user)), pages_fermees: pagesFermees(user), gere_les_acces: estSuperAdmin(user), domaines: await domainesDe(req) });
+}));
+
+// Les deux domaines (12 nov. 2026, Jules) : app.klocka.immo et app.kpartners.immo (server/domaines.js). `domaines` dit
+// sur lequel on est et l'adresse de chacun ; le passage emmène la personne, connectée, sur l'autre.
+async function domainesDe(req) {
+  const D = await import('./domaines.js');
+  // L'origine du navigateur d'abord : derrière le proxy de Vite (en local), l'hôte reçu est celui du serveur.
+  let vu = null;
+  try { vu = new URL(req.get('origin') || req.get('referer') || ''); } catch { /* pas d'origine */ }
+  const hote = vu?.host || req.get('x-forwarded-host') || req.get('host') || '';
+  const proto = vu ? vu.protocol.replace(':', '') : (req.get('x-forwarded-proto') || req.protocol || 'https').split(',')[0];
+  return { ici: D.espaceDeHote(hote), ...D.adressesDesEspaces(hote, proto) };
+}
+app.post('/api/auth/passage', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  const D = await import('./domaines.js');
+  const vers = req.body?.vers === 'kpartners' ? 'kpartners' : 'klocka';
+  const base = (await domainesDe(req))[vers];
+  if (!base) return res.status(409).json({ error: "Ce domaine n'est pas encore branché." });
+  const suite = D.suiteSure(req.body?.suite);
+  ok(res, { url: `${base}/api/auth/passage/${D.creerPassage(user.email)}?suite=${encodeURIComponent(suite)}` });
+}));
+// Ouvert sans connexion, délibérément : c'est le jeton, d'usage unique et de soixante secondes, qui fait foi.
+app.get('/api/auth/passage/:jeton', wrap(async (req, res) => {
+  const D = await import('./domaines.js');
+  const email = D.consommerPassage(req.params.jeton);
+  const suite = D.suiteSure(req.query.suite);
+  if (!email || !Records.findBy('User', 'email', email)) return res.redirect(302, '/');
+  createSession(res, email);
+  res.redirect(302, suite);
 }));
 
 // Les accès des admins, page par page : Jules seul.

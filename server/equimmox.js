@@ -17,7 +17,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { Records, DATA_DIR } from './db.js';
+import { Records, DATA_DIR, CHEMIN_UPLOADS } from './db.js';
 import { resoudreAdresse } from './adresse-ban.js';
 import { poserChemin } from './chromium.js';
 import { ErreurSource } from './marche/erreurs.js';
@@ -52,6 +52,23 @@ function lireLigne(lignes, motif) {
   if (!l) return null;
   const m = l.match(/:\s*([\d\s.,]+)\s*€/);
   return m ? nombre(m[1]) : null;
+}
+
+/**
+ * Pure : la fourchette des baux lue dans le texte de la page d'Analyse de loyer (12 nov. 2026, tests de fiabilité).
+ * Rend { bas, moyenne, haut } ou { erreur } : la page doit dire « Baux existants » (pas les offres), donner au moins un
+ * chiffre, et un bas au-dessus du haut, ou un chiffre hors de 10 à 5 000 €/m²/an, est une lecture fausse, pas un loyer.
+ * La moyenne peut dépasser le haut : quelques baux très chers la tirent (KFC Lyon, 200 m, 11 nov. 2026).
+ */
+export function lireFourchetteLoyer(lignes) {
+  if (!lignes.some((l) => /^Baux existants$/i.test(String(l).trim()))) return { erreur: "Equimmox n'a pas rendu la fourchette des baux existants (la page affiche les offres)." };
+  const bas = lireLigne(lignes, /^Bas\s*:/i);
+  const moyenne = lireLigne(lignes, /^Moyenne\s*:/i);
+  const haut = lireLigne(lignes, /^Haut\s*:/i);
+  if (bas == null && moyenne == null && haut == null) return { erreur: "Equimmox n'a rendu aucune fourchette pour cette adresse." };
+  if ([bas, moyenne, haut].some((v) => v != null && !(v >= 10 && v <= 5000))) return { erreur: `Equimmox : chiffres illisibles (bas ${bas}, moyenne ${moyenne}, haut ${haut} €/m²/an).` };
+  if (bas != null && haut != null && bas > haut) return { erreur: `Equimmox : le bas (${bas}) dépasse le haut (${haut}), la page a été mal lue.` };
+  return { bas, moyenne, haut };
 }
 
 // Un navigateur ailleurs : chez un hébergeur qui ne peut pas faire tourner
@@ -113,6 +130,16 @@ async function aller(p, url, timeout = 60000) {
   return r;
 }
 
+// Un clic de souris au centre de l'élément (12 nov. 2026) : le clic de Playwright attend ensuite des « navigations
+// prévues » que Bubble annonce sans jamais les faire, et tombait en délai dépassé alors que le clic avait pris.
+async function clicSouris(p, el, timeout = 10000) {
+  await el.waitFor({ state: 'visible', timeout });
+  await el.scrollIntoViewIfNeeded({ timeout }).catch(() => {});
+  const b = await el.boundingBox();
+  if (!b) throw new Error('Equimmox : un bouton attendu est introuvable à l\'écran.');
+  await p.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+}
+
 const texteDe = async (p) => (await p.evaluate(() => document.body.innerText)).split('\n').map((l) => l.trim()).filter(Boolean);
 const cliquerTexte = async (p, motif, delai = 2000) => {
   const el = p.locator(`text=${motif}`).first();
@@ -169,16 +196,28 @@ async function ouvrirAnalyse(ctx, menu) {
 }
 
 /**
+ * Pure : ce qu'on tape dans le champ d'Equimmox. « 12 Rue de la République, Lyon » ; sans numéro, au second essai,
+ * « Rue de la République, Lyon » (12 nov. 2026 : une adresse que leur liste ne propose pas sort souvent par sa rue).
+ */
+export function saisieAdresse(texteAdresse, ban, { sansNumero = false } = {}) {
+  if (ban) return `${ban.numero && !sansNumero ? ban.numero + ' ' : ''}${ban.rue}, ${ban.ville}`.trim();
+  const t = String(texteAdresse || '').replace(/\b\d{5}\b\s*/g, '').replace(/\s+/g, ' ').trim();
+  return sansNumero ? t.replace(/^\d+\s*(?:bis|ter)?\s*,?\s*/i, '') : t;
+}
+
+/**
  * L'adresse, tapée comme l'équipe la tape : « 9 Rue Gazan, Grasse ». Un code
  * postal dans la saisie laisse leur autocomplétion muette. La Base Adresse
  * Nationale la remet dans ce format ; à défaut, on tape tel quel. Rend l'adresse BAN (ou null).
  */
-async function saisirAdresse(p, texteAdresse) {
-  const ban = await resoudreAdresse(texteAdresse).catch(() => null);
-  const saisie = ban ? `${ban.numero ? ban.numero + ' ' : ''}${ban.rue}, ${ban.ville}`.trim() : texteAdresse.replace(/\b\d{5}\b\s*/g, '');
+async function saisirAdresse(p, texteAdresse, { sansNumero = false, ban: connue = null } = {}) {
+  // L'adresse déjà résolue par l'appelant évite un second passage par la Géoplateforme, lente certains jours.
+  const ban = connue?.rue && connue?.ville ? connue : await resoudreAdresse(texteAdresse).catch(() => null);
+  const saisie = saisieAdresse(texteAdresse, ban, { sansNumero });
   const champ = p.locator('#address-search');
   await champ.waitFor({ state: 'visible', timeout: 15000 });
-  await champ.click();
+  // Un calque invisible de Bubble retient parfois le clic (12 nov. 2026) : le champ prend alors le focus directement.
+  await champ.click({ timeout: 8000 }).catch(() => champ.focus());
   await champ.fill('');
   await champ.type(saisie, { delay: 60 });
   // La suggestion est un « .result-name » ; on lui laisse jusqu'à dix
@@ -189,8 +228,8 @@ async function saisirAdresse(p, texteAdresse) {
   const motif = new RegExp(motRue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
   let suggestion = p.locator('.result-name').filter({ hasText: motif }).first();
   if (!(await suggestion.isVisible().catch(() => false))) suggestion = p.locator('.result-name').first();
-  if (!(await suggestion.isVisible().catch(() => false))) throw new Error(`Equimmox ne propose aucune adresse pour « ${saisie} ».`);
-  await suggestion.click({ force: true, timeout: 10000 });
+  if (!(await suggestion.isVisible().catch(() => false))) { await capture(p, 'adresse'); throw new Error(`Equimmox ne propose aucune adresse pour « ${saisie} ».`); }
+  await clicSouris(p, suggestion);
   await p.waitForTimeout(3000);
   return ban;
 }
@@ -232,7 +271,7 @@ const boutonLibelle = (p, libelle) => p.locator('button').filter({ has: p.locato
 async function choisirBaux(p) {
   const baux = boutonLibelle(p, 'Baux').first();
   if (!(await baux.isVisible().catch(() => false))) throw new Error('Equimmox : le choix « Baux » est introuvable.');
-  await baux.click({ timeout: 10000 });
+  await clicSouris(p, baux);
   await p.waitForTimeout(1500);
 }
 
@@ -241,6 +280,9 @@ async function choisirBaux(p) {
 const PUCES = ['Bureaux', 'Bureau', 'Commerce', 'Commerces', "Locaux d'activités", "Local d'activités", 'Industriel (logistique...)', 'Hôtels', 'Hôtel'];
 const estCommerce = (l) => /^Commerces?$/.test(l);
 
+// Le temps de chaque étape, au diagnostic seulement (EQUIMMOX_TEXTE).
+let t0Etapes = Date.now();
+const etape = (nom) => { if (process.env.EQUIMMOX_TEXTE) console.log(`[equimmox] ${String(Math.round((Date.now() - t0Etapes) / 100) / 10).padStart(5)} s  ${nom}`); };
 const capture = async (p, nom) => { if (process.env.EQUIMMOX_TEXTE) await p.screenshot({ path: `${process.env.EQUIMMOX_TEXTE}.${nom}.png` }).catch(() => {}); };
 
 /** Les puces posées dans le champ Classe d'actif (sa rangée seule, pas la liste ouverte dessous). */
@@ -297,96 +339,146 @@ async function choisirCommerces(p) {
   }
 }
 
-async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES, forcer = false, user = null } = {}) {
-  if (!equimmoxConfigure()) return { ok: false, error: 'Equimmox n\'est pas configuré : EQUIMMOX_EMAIL et EQUIMMOX_MOT_DE_PASSE manquent dans .env.' };
-  const texteAdresse = String(adresse || '').trim();
-  if (texteAdresse.length < 4) return { ok: false, error: 'Adresse trop courte.' };
-  const s = Number(surface) > 0 ? Math.round(Number(surface)) : null;
-  // Le rayon : l'un des crans du curseur d'Equimmox. Hors 500 m, il sert à
-  // lire la rue (200 m) ou la ville (1 km), les trois échelles que la
-  // valeur locative présente.
+async function analyseLoyerSeule(adresse, { rayon = RAYON_METRES, ...opts } = {}) {
   const r = Number(rayon) > 0 ? Math.round(Number(rayon)) : RAYON_METRES;
-  const cle = cleCache(texteAdresse, s, r);
-  if (!forcer) {
-    const recent = Records.filter('EquimmoxRecherche', { cle })
-      .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000 && memeTolerance(r.resultat, s))
-      .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
-    if (recent) return { ok: true, resultat: { ...recent.resultat, du_cache: true } };
-  }
+  return (await analyseLoyerPlusieurs(adresse, [r], opts))[r];
+}
 
-  // Le lancement du navigateur fait partie de la recherche : s'il échoue, la
-  // page reçoit une phrase, pas une trace de Playwright.
-  let ctx = null;
+/**
+ * Les fourchettes de plusieurs rayons, dans une seule session (12 nov. 2026, Jules : « que le chargement soit rapide ») :
+ * une connexion, une adresse tapée, puis pour chaque rayon le curseur, « Lancer », la lecture. Trois sessions
+ * prenaient près de quatre minutes. Un rayon qui échoue arrête la session (la page n'est plus sûre) : les suivants
+ * sont rendus en échec, et l'appelant les reprend dans une session neuve.
+ * @returns {Promise<Object<number, {ok: true, resultat} | {ok: false, error, capture?}>>}
+ */
+export function analyseLoyerRayons(adresse, rayons, opts = {}) {
+  return enFile(() => analyseLoyerPlusieurs(adresse, rayons, opts));
+}
+
+/** Pure : le rayon lu (« + 200m », « 1km ») est-il celui demandé ? */
+export function rayonConforme(libelle, metres) {
+  const m = metresDe(libelle);
+  return m != null && m === metres;
+}
+
+async function photographier(p, nom) {
   try {
-    const p = await ouvrirAnalyse(ctx = await nouveauContexte(), 'Analyse de loyer');
-    const ban = await saisirAdresse(p, texteAdresse);
+    const dossier = path.join(CHEMIN_UPLOADS, 'equimmox');
+    fs.mkdirSync(dossier, { recursive: true });
+    // La liste des classes d'actif reste ouverte sur la carte : Échap la referme avant la photo.
+    await p.keyboard.press('Escape').catch(() => {});
+    await p.waitForTimeout(300);
+    await p.screenshot({ path: path.join(dossier, nom) });
+    return `/uploads/equimmox/${nom}`;
+  } catch { return null; }
+}
 
-    // Le rayon : le curseur n'existe qu'une fois l'adresse choisie.
-    const curseur = p.locator('input[type="range"]').first();
-    await curseur.waitFor({ state: 'visible', timeout: 15000 }).catch(() => { throw new Error('Equimmox : l\'adresse n\'a pas été reconnue (pas de curseur de rayon).'); });
-    const rayonLu = await reglerRayon(p, curseur, r);
-    if (!rayonLu) throw new Error(`Equimmox : impossible de régler le rayon à ${r} m.`);
+async function analyseLoyerPlusieurs(adresse, rayons, { surface = null, forcer = false, user = null, sansNumero = false, ban: banConnue = null, surRayon = () => {} } = {}) {
+  const sortie = {};
+  const liste = [...new Set((rayons || []).map((r) => (Number(r) > 0 ? Math.round(Number(r)) : RAYON_METRES)))];
+  if (!equimmoxConfigure()) { for (const r of liste) sortie[r] = { ok: false, error: "Equimmox n'est pas configuré : EQUIMMOX_EMAIL et EQUIMMOX_MOT_DE_PASSE manquent dans .env." }; return sortie; }
+  const texteAdresse = String(adresse || '').trim();
+  if (texteAdresse.length < 4) { for (const r of liste) sortie[r] = { ok: false, error: 'Adresse trop courte.' }; return sortie; }
+  const s = Number(surface) > 0 ? Math.round(Number(surface)) : null;
 
-    // La surface : ±20 % autour de celle du local.
-    await reglerSurface(p, s);
+  // Le cache d'abord : seuls les rayons sans lecture récente ouvrent le navigateur.
+  const aLire = [];
+  for (const r of liste) {
+    const cle = cleCache(texteAdresse, s, r);
+    const recent = forcer ? null : Records.filter('EquimmoxRecherche', { cle })
+      .filter((x) => Date.now() - Date.parse(x.le) < CACHE_JOURS * 86400000 && memeTolerance(x.resultat, s))
+      .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+    if (recent) sortie[r] = { ok: true, resultat: { ...recent.resultat, du_cache: true } };
+    else aLire.push(r);
+  }
+  if (!aLire.length) return sortie;
 
-    // Les baux signés, pas les offres (6 oct. 2026, demande de Jules) : la page
-    // s'ouvre sur « Offres », les annonces en cours.
-    await choisirBaux(p);
-    // La classe d'actif : « Commerces », seule. La page s'ouvre sur « Bureaux »,
-    // et le clic sur « Commerce » d'avant ne prenait pas : la moyenne lue
-    // était celle des bureaux.
-    await choisirCommerces(p);
-    await capture(p, 'avant-lancer');
-
-    await p.locator('button, div, a').filter({ hasText: /^Lancer$/ }).first().click({ force: true, timeout: 10000 });
-    // Les chiffres arrivent quand « Bas : » apparaît.
-    await p.locator('text=/^Bas\\s*:/').first().waitFor({ state: 'visible', timeout: 45000 }).catch(() => {});
-    await p.waitForTimeout(1500);
-    const lignes = await texteDe(p);
-    // Pour vérifier ce que la page affiche : EQUIMMOX_TEXTE=chemin y écrit le
-    // texte lu, et des captures du réglage des filtres à côté.
-    if (process.env.EQUIMMOX_TEXTE) { try { fs.writeFileSync(process.env.EQUIMMOX_TEXTE, lignes.join('\n')); } catch { /* diagnostic seulement */ } }
-    // La fourchette doit être celle des baux : la page le dit en tête.
-    if (!lignes.some((l) => /^Baux existants$/i.test(l))) {
-      throw new Error('Equimmox n\'a pas rendu la fourchette des baux existants (la page affiche les offres).');
+  let ctx = null;
+  let p = null;
+  let enCours = null;
+  try {
+    t0Etapes = Date.now();
+    p = await ouvrirAnalyse(ctx = await nouveauContexte(), 'Analyse de loyer');
+    etape('page ouverte');
+    const ban = await saisirAdresse(p, texteAdresse, { sansNumero, ban: banConnue });
+    etape('adresse choisie');
+    for (const [i, r] of aLire.entries()) {
+      enCours = r;
+      surRayon(r);
+      // Après une lecture, les filtres se rouvrent par « Modifier filtres » ; le curseur revient avec eux.
+      if (i > 0) {
+        if (!(await cliquerTexte(p, 'Modifier filtres', 2000))) throw new Error('Equimmox : « Modifier filtres » est introuvable après la première lecture.');
+        await capture(p, `filtres-${r}`);
+      }
+      const curseur = p.locator('input[type="range"]').first();
+      await curseur.waitFor({ state: 'visible', timeout: 15000 }).catch(() => { throw new Error('Equimmox : l\'adresse n\'a pas été reconnue (pas de curseur de rayon).'); });
+      etape(`${r} m : filtres`);
+      const rayonLu = await reglerRayon(p, curseur, r);
+      etape(`${r} m : rayon réglé`);
+      if (!rayonLu) throw new Error(`Equimmox : impossible de régler le rayon à ${r} m.`);
+      if (!rayonConforme(rayonLu, r)) throw new Error(`Equimmox : le curseur s'est arrêté à ${rayonLu}, pas à ${r} m.`);
+      // La surface : ±20 % autour de celle du local.
+      await reglerSurface(p, s);
+      // Les baux signés, pas les offres (6 oct. 2026, demande de Jules) : la page s'ouvre sur « Offres ».
+      await choisirBaux(p);
+      etape(`${r} m : baux`);
+      // La classe d'actif : « Commerces », seule. La page s'ouvre sur « Bureaux ».
+      await choisirCommerces(p);
+      etape(`${r} m : commerces`);
+      await capture(p, `avant-lancer-${r}`);
+      // Les chiffres de la lecture d'avant restent affichés pendant qu'Equimmox recalcule (12 nov. 2026, KFC Lyon : ceux
+      // de 200 m encore là au lancement de 500 m). On attend qu'ils s'effacent, puis que les nouveaux arrivent ; s'ils ne
+      // s'effacent pas, la page n'a pas relancé : un échec, jamais une lecture d'un autre rayon.
+      const ligneBas = p.locator('text=/^Bas\\s*:/').first();
+      const ancien = await ligneBas.isVisible().catch(() => false);
+      await clicSouris(p, p.locator('button, div, a').filter({ hasText: /^Lancer$/ }).first());
+      if (ancien) await ligneBas.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => { throw new Error("Equimmox n'a pas relancé le calcul : les chiffres d'avant sont restés affichés."); });
+      // Les chiffres arrivent quand « Bas : » apparaît.
+      await ligneBas.waitFor({ state: 'visible', timeout: 45000 }).catch(() => {});
+      etape(`${r} m : chiffres affichés`);
+      await p.waitForTimeout(1500);
+      const lignes = await texteDe(p);
+      // Pour vérifier ce que la page affiche : EQUIMMOX_TEXTE=chemin y écrit le texte lu.
+      if (process.env.EQUIMMOX_TEXTE) { try { fs.writeFileSync(`${process.env.EQUIMMOX_TEXTE}.${r}.txt`, lignes.join('\n')); } catch { /* diagnostic seulement */ } }
+      // La fourchette doit être celle des baux, et tenir debout (lireFourchetteLoyer).
+      const fourchette = lireFourchetteLoyer(lignes);
+      if (fourchette.erreur) throw new Error(fourchette.erreur);
+      const { bas, moyenne, haut } = fourchette;
+      const delai = lignes.find((l) => /^\d+\s*jours$/i.test(l));
+      // La page Equimmox telle qu'elle a été lue (12 nov. 2026, Jules : « pouvoir aller voir dans Equimmox ») : la page
+      // de Bubble n'a pas d'adresse à elle, la capture en tient lieu dans les preuves du Loyer.
+      const capturePage = await photographier(p, `loyer-${Date.now()}-${r}.png`);
+      const resultat = {
+        source: 'Equimmox · Analyse de loyer',
+        unite: '€ / m² / an',
+        adresse: ban?.label || texteAdresse,
+        surface: s,
+        surface_min: s ? Math.round(s * (1 - ECART_SURFACE)) : null,
+        surface_max: s ? Math.round(s * (1 + ECART_SURFACE)) : null,
+        rayon: rayonLu.replace(/^\+\s*/, ''),
+        classe: 'Commerces',
+        // Des baux signés, pas des annonces : « Baux » est choisi avant Lancer.
+        base: 'baux',
+        bas, moyenne, haut,
+        delai_jours: delai ? nombre(delai) : null,
+        capture: capturePage,
+        // La rue tapée sans son numéro, au second essai : le cercle part du milieu de la rue.
+        ...(sansNumero ? { saisie_sans_numero: true } : {}),
+        le: new Date().toISOString(),
+        par: user?.email || null,
+      };
+      Records.create('EquimmoxRecherche', { cle: cleCache(texteAdresse, s, r), adresse: texteAdresse, surface: s, rayon_m: r, resultat, le: resultat.le, par: resultat.par });
+      console.log(`[equimmox] analyse de loyer lue pour « ${texteAdresse} » à ${r} m${s ? ` (${s} m²)` : ''}${user?.email ? ` (${user.email})` : ''}`);
+      sortie[r] = { ok: true, resultat };
     }
-    const bas = lireLigne(lignes, /^Bas\s*:/i);
-    const moyenne = lireLigne(lignes, /^Moyenne\s*:/i);
-    const haut = lireLigne(lignes, /^Haut\s*:/i);
-    if (bas == null && moyenne == null && haut == null) throw new Error('Equimmox n\'a rendu aucune fourchette pour cette adresse.');
-    const delai = lignes.find((l) => /^\d+\s*jours$/i.test(l));
-
-
-    const resultat = {
-      source: 'Equimmox · Analyse de loyer',
-      unite: '€ / m² / an',
-      adresse: ban?.label || texteAdresse,
-      surface: s,
-      surface_min: s ? Math.round(s * (1 - ECART_SURFACE)) : null,
-      surface_max: s ? Math.round(s * (1 + ECART_SURFACE)) : null,
-      rayon: rayonLu.replace(/^\+\s*/, ''),
-      classe: 'Commerces',
-      // Des baux signés, pas des annonces : « Baux » est choisi avant Lancer.
-      base: 'baux',
-      bas, moyenne, haut,
-      delai_jours: delai ? nombre(delai) : null,
-      le: new Date().toISOString(),
-      par: user?.email || null,
-    };
     await ctx.storageState({ path: SESSION }).catch(() => {});
-    Records.create('EquimmoxRecherche', { cle, adresse: texteAdresse, surface: s, rayon_m: r, resultat, le: resultat.le, par: resultat.par });
-    console.log(`[equimmox] analyse de loyer lue pour « ${texteAdresse} »${s ? ` (${s} m²)` : ''}${user?.email ? ` (${user.email})` : ''}`);
-    return { ok: true, resultat };
   } catch (e) {
-    // Le statut et la classe survivent au passage par `{ok:false}` : c'est
-    // d'eux que dépend le réessai, plus loin, dans marche/connecteur.js.
-    return {
-      ok: false,
-      error: e?.message || 'Equimmox n\'a pas répondu.',
-      statut: e?.statut ?? null,
-      classe: e?.classe ?? null,
-    };
+    // La page au moment de l'échec, pour voir où ça a coincé (12 nov. 2026).
+    const vue = p ? await photographier(p, `echec-${Date.now()}.png`) : null;
+    // Le statut et la classe survivent au passage par `{ok:false}` : c'est d'eux que dépend le réessai, plus loin.
+    // La première ligne seule : le journal d'appels de Playwright ne dit rien à qui lit la fiche.
+    const echec = { ok: false, error: String(e?.message || 'Equimmox n\'a pas répondu.').split('\n')[0], statut: e?.statut ?? null, classe: e?.classe ?? null, capture: vue };
+    for (const r of aLire) if (!sortie[r]) sortie[r] = r === enCours || enCours == null ? echec : { ...echec, error: `Non lu : la session s'est arrêtée au rayon de ${enCours} m (${echec.error})` };
   } finally {
     if (ctx) await ctx.close().catch(() => {});
     // Le navigateur ne survit pas à la recherche : le garder ouvert immobilisait
@@ -398,6 +490,7 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
       await n.close().catch(() => {});
     }
   }
+  return sortie;
 }
 
 // ---------------------------------------------------------------------------
@@ -572,6 +665,16 @@ const metresDe = (libelle) => {
 // le plus proche de ce qui est demandé : Equimmox n'a pas de cran à 250 m ni
 // à 1,5 km, et refuser aurait perdu la lecture. Le libellé rendu est celui du
 // cran réellement retenu, pour que l'écran dise le vrai rayon.
+// Les crans déjà lus (12 nov. 2026, « que le chargement soit rapide ») : valeur du curseur → libellé. Le premier
+// réglage parcourt le curseur une fois ; les suivants se posent directement sur le bon cran, puis vérifient le libellé.
+const CRANS = new Map();
+
+/** Le libellé du rayon (« +200m ») : seul le texte voisin du curseur est lu, pas toute la page. */
+const libelleRayon = (p) => p.evaluate(() => {
+  const motif = /^\+?\s*\d+([.,]\d+)?\s*(m|km)$/i;
+  return [...document.querySelectorAll('div, span')].filter((e) => e.childElementCount === 0).map((e) => e.textContent.trim()).find((t) => motif.test(t)) || null;
+});
+
 async function reglerRayon(p, curseur, metres) {
   const poser = (v) => curseur.evaluate((el, val) => {
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -579,18 +682,27 @@ async function reglerRayon(p, curseur, metres) {
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }, String(v));
+  // Le cran connu : on s'y pose, et le libellé le confirme.
+  const connu = [...CRANS.entries()].find(([, m]) => m === metres);
+  if (connu) {
+    await poser(connu[0]);
+    await p.waitForTimeout(400);
+    const libelle = await libelleRayon(p);
+    if (metresDe(libelle) === metres) return libelle;
+    CRANS.clear();
+  }
   const min = Number(await curseur.getAttribute('min')) || 1;
   const max = Number(await curseur.getAttribute('max')) || 9;
   const crans = [];
   for (let v = min; v <= max; v++) {
     await poser(v);
-    await p.waitForTimeout(400);
-    const libelle = (await texteDe(p)).find((l) => /^\+?\s*\d+([.,]\d+)?\s*(m|km)$/i.test(l));
+    await p.waitForTimeout(300);
+    const libelle = await libelleRayon(p);
     const m = metresDe(libelle);
-    if (m != null) crans.push({ v, metres: m, libelle });
-    if (m === metres) { return libelle; }
+    if (m != null) { crans.push({ v, metres: m, libelle }); CRANS.set(v, m); }
   }
   if (!crans.length) return null;
+  // Tous les crans lus une fois (trois secondes) : les rayons suivants s'y posent directement.
   const proche = crans.reduce((a, b) => (Math.abs(b.metres - metres) < Math.abs(a.metres - metres) ? b : a));
   await poser(proche.v);
   await p.waitForTimeout(400);

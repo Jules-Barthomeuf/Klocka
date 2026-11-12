@@ -131,35 +131,22 @@ async function adresseProche(point) {
  */
 async function loyerDeLaRue(adresse) {
   const { resoudreAdresse } = await import('../adresse-ban.js');
+  const { derniereLecture, loyerDeReference } = await import('../valeur-locative.js');
   const point = await resoudreAdresse(adresse).catch(() => null);
   const cle = String(point?.label || adresse).toLowerCase().replace(/\s+/g, ' ').trim();
-  const lue = Records.filter('ValeurLocativeRecherche', { cle })
-    .filter((x) => Date.now() - Date.parse(x.le) < 30 * 86400000)
-    .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
-  if (lue?.resultat) {
-    const r = lue.resultat;
-    const niveau = r.rue || r.quartier || r.ville;
-    if (niveau) {
-      const constate = niveau.source === 'Equimmox';
-      const ou = niveau === r.rue ? 'dans la rue' : niveau === r.quartier ? 'dans le quartier' : 'dans la ville';
-      return {
-        bas: niveau.basse, median: niveau.moyenne ?? Math.round((niveau.basse + niveau.haute) / 2), haut: niveau.haute,
-        source: constate
-          ? `Equimmox, loyers constatés ${ou} (${niveau.rayon})`
-          : niveau.source === 'Data-B'
-            ? `Data-B, loyer estimé ${ou}${niveau.nom ? ` (${niveau.nom})` : ''} : Equimmox n'a rien constaté`
-            : `Déduit des ventes DVF (${niveau.rayon}) : ni Equimmox ni Data-B n'ont répondu`,
-        constate,
-        second_regard: r.dvf
-          ? {
-              bas: r.dvf.basse, median: r.dvf.moyenne, haut: r.dvf.haute,
-              // Le taux arrive en fourchette : { bas, moyen, haut }.
-              source: `DVF à ${r.dvf.rayon}, prix des murs × ${String(r.dvf.taux?.moyen ?? r.dvf.taux ?? '').replace('.', ',')} % de rendement`,
-            }
-          : null,
-        kdata: { id: lue.id, le: lue.le },
-      };
-    }
+  // La même lecture et la même référence que l'onglet Marché (12 nov. 2026, Jules : « +88 % d'un côté, +74 % de
+  // l'autre ») : la plus récente, l'échelle la plus proche, la moyenne Equimmox.
+  const lue = derniereLecture(cle);
+  const ref = lue ? loyerDeReference(lue.resultat) : null;
+  if (ref) {
+    const constate = ref.niveau.source === 'Equimmox';
+    return {
+      bas: ref.bas, median: ref.m2, haut: ref.haut, reference: ref.reference, echelle: ref.echelle,
+      source: constate ? `Equimmox, moyenne des loyers constatés ${ref.ou} (${ref.niveau.rayon})` : `Loyer estimé ${ref.ou}`,
+      constate,
+      second_regard: null,
+      kdata: { id: lue.id, le: lue.le, cle },
+    };
   }
 
   // Pas encore lue : la valeur locative part en tâche de fond. Une lecture
@@ -211,10 +198,18 @@ async function comparerAuMarcheLu(deal, index = 0, { forcer = false } = {}) {
   const surface = Number(val(entree.lot?.surface_m2)) || null;
   const fai = prixFaiDuLot(entree.lot);
   const loyer = Number(val(entree.lot?.loyer_annuel_ht_hc)) || null;
-  // La version entre dans la clé : une comparaison faite avant K-Data se refait.
-  const cle = JSON.stringify([3, adresse, surface, fai, loyer]);
+  // La version entre dans la clé : une comparaison faite avant K-Data se refait ; la 4 (12 nov. 2026), avant la référence
+  // commune au Marché.
+  const cle = JSON.stringify([4, adresse, surface, fai, loyer]);
   const garde = entree.comparaison_marche;
-  if (!forcer && garde?.cle === cle && Date.now() - Date.parse(garde.le) < JOURS_GARDE * 86400000) return { ok: true, ...garde };
+  // Une lecture Equimmox plus récente que celle de la comparaison gardée la refait : la préanalyse suit le Marché.
+  const lectureNeuve = async () => {
+    const c = garde?.loyer?.kdata?.cle;
+    if (!c) return false;
+    const { derniereLecture } = await import('../valeur-locative.js');
+    return (derniereLecture(c)?.id || null) !== garde.loyer.kdata.id;
+  };
+  if (!forcer && garde?.cle === cle && Date.now() - Date.parse(garde.le) < JOURS_GARDE * 86400000 && !(await lectureNeuve())) return { ok: true, ...garde };
 
   const bien = {
     surface,

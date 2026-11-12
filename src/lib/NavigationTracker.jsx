@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { base44 } from '@/api/base44Client';
 import { pagesConfig } from '@/pages.config';
+import { queryClientInstance } from '@/lib/query-client';
 
 const PAGE_TITLES = {
     Dashboard: "Tableau de Bord",
@@ -59,6 +60,31 @@ export const erreursRecentes = (minutes = 10) => ERREURS.filter((e) => Date.now(
 // Plus de mesure d'audience (6 nov. 2026, Jules : « Audience, complètement, supprime tout ») : rien ne part plus vers
 // /api/visites.
 
+// Le temps de chargement d'une page (11 nov. 2026, Jules : « mesurer le temps de chargement au fur et à mesure ») :
+// de l'ouverture (le début du chargement du site pour la première page) jusqu'à ce que plus aucune donnée ne soit en
+// route depuis 400 ms, une page qui ne demande rien comptant pour son seul affichage. Une page quittée avant, ou
+// cachée pendant, ne compte pas. Envoyé au serveur (server/temps-chargement.js), lu dans Suivi > Usage.
+let premiere = true;
+function chronometrer(page) {
+    const premier = premiere;
+    const debut = premier ? 0 : performance.now();
+    let calmeDepuis = null;
+    let finie = false;
+    const minuteur = setInterval(() => {
+        const t = performance.now();
+        if (document.visibilityState !== 'visible' || t - debut > 60_000) return arreter();
+        if (queryClientInstance.isFetching() > 0) { calmeDepuis = null; return undefined; }
+        calmeDepuis ??= t;
+        if (t - calmeDepuis < 400) return undefined;
+        arreter();
+        premiere = false;
+        base44.request('POST', '/api/journal/chargement', { body: { page, ms: Math.round(calmeDepuis - debut), premier } }).catch(() => {});
+        return undefined;
+    }, 50);
+    function arreter() { if (!finie) { finie = true; clearInterval(minuteur); } }
+    return arreter;
+}
+
 export default function NavigationTracker() {
     const location = useLocation();
     const { isAuthenticated, user } = useAuth();
@@ -102,6 +128,13 @@ export default function NavigationTracker() {
             });
         }
     }, [location, isAuthenticated, Pages, mainPageKey]);
+
+    // Le temps de chargement de la page ouverte (un changement d'adresse sans changer de page ne compte pas).
+    useEffect(() => {
+        const pageName = location.pathname === '/' || location.pathname === '' ? mainPageKey : pageDeChemin(location.pathname) || null;
+        if (!isAuthenticated || !pageName) return undefined;
+        return chronometrer(pageName);
+    }, [location.pathname, isAuthenticated, mainPageKey]);
 
     return null;
 }

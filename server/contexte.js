@@ -67,6 +67,8 @@ const CHAMPS_PROTEGES = [
   'est_compte_shadow', 'compte_maitre_email', 'comptes_lies',
   // Les pages qu'un admin peut ouvrir : Jules seul les pose (acces-pages.js).
   'pages_bloquees', 'pages_ouvertes', 'acces_modifies_le', 'acces_modifies_par',
+  // Les pages du CRM que chacun voit (server/crm/ecran.js) : Jules seul les pose.
+  'crm_pages_cachees',
 ];
 
 export function retirerChampsProteges(patch) {

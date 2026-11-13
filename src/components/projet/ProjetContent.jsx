@@ -409,7 +409,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           {!modeEdition && !isPublic && !vueMaps ? (
             <button
               onClick={() => navigate(createPageUrl(isAdmin && !showAsClient ? "AdminProjets" : "MesProjets"))}
-              className="k-verre inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[13px]"
+              className="k-verre-photo inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[13px]"
             >
               <ChevronLeft className="h-3.5 w-3.5" /> Projets
             </button>
@@ -418,15 +418,15 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               passent à la ligne, calées à droite. */}
           <div className="flex gap-2 items-center max-md:flex-wrap max-md:justify-end max-md:min-w-0">
             {modeEdition && onPhotos && (
-              <button onClick={onPhotos} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">Photos</button>
+              <button onClick={onPhotos} className="k-verre-photo inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">Photos</button>
             )}
             {mapUrl && (
-              <button onClick={() => basculerVue("maps")} aria-pressed={vueMaps} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">
+              <button onClick={() => basculerVue("maps")} aria-pressed={vueMaps} className="k-verre-photo inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">
                 {vueMaps ? "Fermer la carte" : "Vue Maps"}
               </button>
             )}
             {mapsKey && rueDisponible && (
-              <button onClick={() => basculerVue("street")} aria-pressed={streetView} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">
+              <button onClick={() => basculerVue("street")} aria-pressed={streetView} className="k-verre-photo inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">
                 {streetView ? "Fermer Street View" : "Street View"}
               </button>
             )}
@@ -435,7 +435,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <button
                 onClick={() => setIndexPhoto((i) => (i + 1) % photosVivantes.length)}
                 aria-label="Photo suivante"
-                className="k-verre inline-flex h-8 items-center gap-1 rounded-full px-3.5 text-[13px]"
+                className="k-verre-photo inline-flex h-8 items-center gap-1 rounded-full px-3.5 text-[13px]"
                 style={{ fontVariantNumeric: "tabular-nums" }}
               >
                 {(indexPhoto % photosVivantes.length) + 1} / {photosVivantes.length}

@@ -191,7 +191,7 @@ export function OngletAgentIA({ onOuvrirListe }) {
               ))}
             </div>
           </section>
-          <aside className="rounded-[18px] border border-trait bg-surface-pleine lg:sticky lg:top-6">
+          <aside className="k-verre lg:sticky lg:top-6">
             <p className="m-0 border-b border-trait px-5 py-3.5 text-[13.5px] text-craie">Journal de l'agent{enCours.length ? <span className="text-brume"> · {enCours.map((l) => l.ville).join(", ")}</span> : null}</p>
             <ol className="m-0 max-h-[520px] list-none overflow-y-auto p-0">
               {listes.flatMap((l) => l.journal.map((e) => ({ ...e, ville: l.ville }))).sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, 40).map((e, i) => (
@@ -366,7 +366,7 @@ function TableauAgences({ listes, onAppeler, bascule = null }) {
       )}
 
       {coches.size > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] border border-trait bg-surface-pleine px-4 py-2.5">
+        <div className="mt-4 flex flex-wrap items-center gap-3 k-verre px-4 py-2.5">
           <span className="text-[13.5px] text-encre">{coches.size} agence{coches.size > 1 ? "s" : ""} cochée{coches.size > 1 ? "s" : ""}</span>
           <button type="button" onClick={async () => { for (const x of coches) { const a = (data.lignes || []).find((l) => l.id === x); if (a && !a.carnet_id) await carnet.mutateAsync({ agence: x }).catch(() => {}); } setCoches(new Set()); }} disabled={carnet.isPending}
             className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-encre hover:border-menthe" style={{ background: "transparent" }}>
@@ -388,7 +388,7 @@ function TableauAgences({ listes, onAppeler, bascule = null }) {
         </div>
       )}
       <>
-      <div className="mt-3 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+      <div className="mt-3 overflow-x-auto k-verre">
         <table className="w-full min-w-[1240px] table-fixed border-collapse text-left text-[13.5px] [&_tbody_td:not(:last-child)]:border-r [&_tbody_td]:border-trait [&_th:not(:last-child)]:border-r [&_th]:border-trait">
           <colgroup><col style={{ width: 44 }} /><col style={{ width: 110 }} /><col /><col style={{ width: 110 }} /><col style={{ width: "17%" }} /><col style={{ width: "13%" }} /><col style={{ width: 130 }} /><col style={{ width: "13%" }} /><col style={{ width: 160 }} /></colgroup>
           <thead>

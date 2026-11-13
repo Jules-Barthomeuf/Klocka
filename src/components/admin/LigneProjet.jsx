@@ -62,7 +62,7 @@ export default function LigneProjet({ project, clients = null, chargement = fals
 
   return (
     <div
-      className="rounded-[18px] border border-trait bg-surface-pleine transition-colors hover:border-bord-doux"
+      className="k-verre transition-colors hover:border-bord-doux"
       onMouseEnter={() => setSurvol(true)}
       onMouseLeave={() => setSurvol(false)}
     >

@@ -135,7 +135,7 @@ export default function RetoursAnalystes({ jours = 30 }) {
             <p className="m-0 mt-0.5 text-[12px] text-brume">{m.repondues} réponse{m.repondues > 1 ? "s" : ""} sur {m.questions}</p>
           </button>
         ))}
-        <div className="rounded-[12px] border border-trait bg-surface px-4 py-3.5">
+        <div className="k-verre px-4 py-3.5">
           <p className="m-0 text-[12.5px] text-ardoise">Réponses</p>
           <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{taux ? `${Math.round((faites / taux) * 100)} %` : "—"}</p>
           <p className="m-0 mt-0.5 text-[12px] text-brume">{faites} sur {taux} questions</p>

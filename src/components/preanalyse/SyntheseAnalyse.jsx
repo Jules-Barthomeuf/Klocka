@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/avis";
 // Rien n'y est calculé : le serveur rassemble ce que les autres onglets ont trouvé (synthese-analyse.js).
 // L'analyste tranche : la valeur retenue d'un croisement, Accepter / Négocier / Écarter, puis Valider.
 
-const cadre = "k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail";
+const cadre = "k-points relative overflow-hidden k-verre";
 const titreBloc = "m-0 text-[11px] uppercase tracking-[.16em] text-brume";
 const MOTS = { accepter: "Accepté", negocier: "À négocier", ecarter: "Écarté" };
 

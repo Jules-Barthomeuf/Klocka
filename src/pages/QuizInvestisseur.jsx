@@ -9,7 +9,7 @@ import { PROFILS, QUESTIONS, profilDuQuiz } from "@/lib/outils-investisseur";
 // patrimonial). Avec le jeton du lien (k), le profil se range dans la fiche du
 // contact (champ type_investisseur) ; sans jeton, rien n'est noté.
 
-const CARTE = "rounded-[18px] border border-trait bg-surface";
+const CARTE = "k-verre";
 
 export default function QuizInvestisseur() {
   const [reponses, setReponses] = useState([]);

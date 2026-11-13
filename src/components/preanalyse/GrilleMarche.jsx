@@ -317,7 +317,7 @@ function PanneauSource({ vue, lot, analyse, onChoisir, onFermer }) {
           <p className="m-0 text-[20px] leading-[1.2]">Vacance locative</p>
           <p className="m-0 text-craie">{v.adresse}</p>
           {[["Autour", v.zone, v.zone?.rayon_m ? `${v.zone.rayon_m} m` : null], ["Sur la rue", v.sur_la_rue, v.rue]].map(([t, z, ou]) => (
-            <div key={t} className="rounded-[14px] border border-bord-doux bg-rail px-4 py-3">
+            <div key={t} className="k-verre px-4 py-3">
               <p className="m-0 text-craie">{t}{ou ? ` · ${ou}` : ""}</p>
               {z ? <p className="m-0 mt-1">{fmt(z.taux, 1) ?? "—"} % · {z.vacants} vides, {z.occupes} occupés, {z.incertains} incertains sur {z.locaux} locaux{z.fiable ? "" : " (trop peu pour un taux sûr)"}</p> : <p className="m-0 mt-1 text-craie">Pas de mesure.</p>}
             </div>

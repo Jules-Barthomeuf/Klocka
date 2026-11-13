@@ -22,10 +22,10 @@ export default function ApercuProjetPlateforme({ projetId }) {
   const suivante = ETAPES_PROJET[rang + 1] || null;
 
   return (
-    <div className="k-entree grid gap-6 rounded-[18px] border border-trait bg-surface p-5 md:grid-cols-[minmax(0,400px)_minmax(0,1fr)] md:p-6">
+    <div className="k-entree grid gap-6 k-verre p-5 md:grid-cols-[minmax(0,400px)_minmax(0,1fr)] md:p-6">
       <div className="min-w-0">
         {projet ? <CarteProjet project={projet} onOuvrir={ouvrir} />
-          : <div className={`h-[380px] rounded-[18px] border border-trait bg-surface-pleine ${isLoading ? "animate-pulse" : ""}`} aria-hidden />}
+          : <div className={`h-[380px] k-verre ${isLoading ? "animate-pulse" : ""}`} aria-hidden />}
       </div>
       <div className="flex min-w-0 flex-col justify-center gap-5">
         <div>

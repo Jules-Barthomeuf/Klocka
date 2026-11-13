@@ -191,7 +191,7 @@ function Annonce({ canal, valeur, mentions, onGarder, publieLe = null, photo = n
   const complet = [texte, mentions].filter(Boolean).join("\n\n");
   const message = canal.cle === "mail" || canal.cle === "whatsapp";
   return (
-    <section className="overflow-hidden rounded-[16px] border border-bord-doux bg-rail">
+    <section className="overflow-hidden k-verre">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-bord-doux px-4 py-3">
         <div className="min-w-0">
           <p className="m-0 text-[15px] text-encre">{canal.nom}</p>

@@ -61,7 +61,7 @@ export function Cases({ items, className = "", colonnes = null }) {
   return (
     <div className={`grid grid-cols-2 gap-2.5 md:[grid-template-columns:repeat(var(--cases),minmax(0,1fr))] ${className}`} style={{ "--cases": colonnes || items.length }}>
       {items.map(([valeur, mot]) => (
-        <div key={mot} className="min-w-0 rounded-[12px] border border-trait bg-rail px-3.5 py-2.5">
+        <div key={mot} className="min-w-0 k-verre px-3.5 py-2.5">
           <div className="truncate text-[18px] font-medium tabular-nums text-encre">{valeur}</div>
           <div className="truncate text-[12.5px] text-ardoise">{mot}</div>
         </div>
@@ -80,8 +80,8 @@ export function Ligne({ titre, detail = null, droite = null, onClick = null }) {
   );
 }
 
-export const CLASSE_CARTE = "rounded-[12px] border border-trait bg-rail";
-export const CLASSE_TABLEAU = "overflow-x-auto rounded-[12px] border border-trait bg-rail";
+export const CLASSE_CARTE = "k-verre";
+export const CLASSE_TABLEAU = "overflow-x-auto k-verre";
 // Le dessin des Acquéreurs d'un bien (8 nov. 2026, Jules) : une ligne de 36 px, des traits verticaux, le statut sur toute la case.
 export const CLASSE_TABLE = "w-full table-fixed border-collapse text-[13.5px] [&_tbody_tr:last-child_td]:border-b-0 [&_tr>*:last-child]:border-r-0";
 export const CLASSE_TH = "h-[35px] overflow-hidden whitespace-nowrap border-b border-r border-trait px-2.5 text-center text-[12.5px] font-normal text-ardoise first:text-left";

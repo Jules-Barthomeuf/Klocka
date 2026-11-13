@@ -169,7 +169,7 @@ export function Champ({ label, value, onChange, placeholder = "", type = "text",
 
 /** Une carte sombre, le conteneur de base de toutes les sections ALX. */
 export function Carte({ children, className = "", id = undefined }) {
-  return <section id={id} className={`bg-surface border border-trait rounded-[18px] p-[26px] max-md:p-4 ${className}`}>{children}</section>;
+  return <section id={id} className={`k-verre p-[26px] max-md:p-4 ${className}`}>{children}</section>;
 }
 
 /** Un chiffre-clé, dans une grille de statistiques. */

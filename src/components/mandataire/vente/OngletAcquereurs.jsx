@@ -69,7 +69,7 @@ export default function OngletAcquereurs({ marcheId, piste = null, onPiste = nul
       {/* Le tableau du CRM (7 nov. 2026, Jules : « le tableau des acquéreurs au style de Twenty ») : cadre arrondi sans bande
           de couleur (8 nov. 2026, Jules), traits continus, en-têtes de 35 px, lignes de 36 px, texte en 14 px ; le nom ouvre la fiche, le
           statut et la température en cases colorées entières (src/lib/couleur-statut.js). */}
-      <div className="mt-3 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+      <div className="mt-3 overflow-x-auto k-verre">
         <table className="w-full table-fixed border-collapse text-[13.5px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0" style={{ minWidth: 1080 }}>
           <colgroup>
             {COLONNES.map(([k, , largeur]) => <col key={k} style={largeur ? { width: largeur } : undefined} />)}

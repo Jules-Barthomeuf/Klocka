@@ -84,7 +84,11 @@ const vide = (cle, libelle, raison, source = null) => point(cle, libelle, 'vide'
 /** Ce que les outils lisent d'un lot : l'adresse, le locataire, les chiffres. Pure. */
 export async function entreesDuLot(deal, index = 0) {
   const { adresseDuLot, prixFaiDuLot } = await import('../deal/comparaison-marche.js');
-  const e = entreesDe(deal, index, { adresseDuLot, prixFaiDuLot });
+  const lu = entreesDe(deal, index, { adresseDuLot, prixFaiDuLot });
+  // Une fiche Google simulée posée sur le lot (12 nov. 2026, Jules : « simule les avis pour le KFC à Lyon ») : elle ne sert
+  // que si Google ne répond pas, et se dit simulée partout. Hors des entrées dont dépend l'outil : rien n'est « à relancer ».
+  const simule = deal?.lots?.[index]?.avis_simules;
+  const e = simule ? { ...lu, avis_simules: simule } : lu;
   // Le SIREN du preneur, s'il est connu : confirmé par l'analyste, sinon lu sur le Kbis de la Data Room. Avec lui, l'outil
   // Locataire ne devine plus la société d'après un nom et une adresse (12 nov. 2026, Jules : « fiable tout le temps »).
   const fixe = deal?.lots?.[index]?.locataire_siren;
@@ -142,7 +146,7 @@ export function candidatsLocataire(nom, exploitants, sansForme = (x) => x) {
 
 // Les réponses des sources gardées un jour : une source qui tombe rend sa dernière réponse, datée, plutôt qu'une ligne vide.
 const CACHE_SOURCES = 'CacheOutilLocataire';
-async function gardeUnJour(cle, fn) {
+export async function gardeUnJour(cle, fn) {
   const garde = Records.findBy(CACHE_SOURCES, 'cle', cle);
   if (garde && Date.now() - Date.parse(garde.le) < 86400000) return { valeur: garde.valeur, le: garde.le };
   try {
@@ -217,9 +221,10 @@ async function societeDuLocataire(e) {
       } else local = null;
     }
     siren = local?.trouve?.siren || null;
-    // Sans la BAN (panne, réseau), le registre de l'INSEE par nom et code postal, au même numéro de préférence.
+    // Sans la BAN (panne, réseau), le registre de l'INSEE par nom et code postal, au même numéro de préférence. Le code
+    // postal vient de l'adresse écrite, sinon de l'adresse reconnue par la BAN (« 3 Av. de la Gare, Firminy » n'en a pas).
     if (!siren && e.adresse) {
-      const cp = String(e.adresse).match(/\b\d{5}\b/)?.[0];
+      const cp = String(e.adresse).match(/\b\d{5}\b/)?.[0] || String(local?.adresse || '').match(/\b\d{5}\b/)?.[0];
       const num = String(e.adresse).match(/^\s*(\d+)/)?.[1];
       const { etablissementsParNom } = await import('../insee-sirene.js');
       const es = cp ? await reessayer(() => etablissementsParNom(e.locataire, cp)).catch(() => []) : [];
@@ -244,8 +249,52 @@ async function societeDuLocataire(e) {
   return { s: null, local, autres, raison: injoignable ? "L'annuaire des entreprises est injoignable." : r.error || 'Aucune société ne correspond.' };
 }
 
+const SOURCE_COMPTES = 'Comptes déposés (INPI, data.economie.gouv.fr)';
+
+/**
+ * Pure : la ligne « Poids du loyer » d'après les comptes déposés (12 nov. 2026, Jules : elle revient en troisième mesure
+ * du Locataire, lue seulement quand des comptes existent). Le dernier exercice de moins de trois ans ; un chiffre
+ * d'affaires nul ou absent est confidentiel ; une perte se dit. `ei` : une entreprise individuelle ne publie pas.
+ */
+export function pointComptes(comptes, loyer, { annee = new Date().getFullYear(), ei = false } = {}) {
+  const L = 'Poids du loyer';
+  if (ei) return point('comptes', L, 'vide', 'Entreprise individuelle : pas de comptes publiés.', SOURCE_COMPTES);
+  const tous = (comptes || []).filter((c) => Number(c.exercice) > 0).sort((a, b) => Number(b.exercice) - Number(a.exercice));
+  const recents = tous.filter((c) => Number(c.exercice) >= annee - 3);
+  if (!recents.length) return point('comptes', L, 'vide', tous.length ? `Derniers comptes publiés en ${tous[0].exercice}, trop anciens pour juger.` : 'Comptes non publiés.', SOURCE_COMPTES);
+  const c = recents.find((x) => x.chiffre_affaires > 0) || recents[0];
+  const res = Number.isFinite(c.resultat_net) ? c.resultat_net : null;
+  const detail = { exercice: Number(c.exercice), chiffre_affaires: c.chiffre_affaires > 0 ? c.chiffre_affaires : null, resultat_net: res, loyer: loyer || null };
+  const resultat = res == null ? '' : res < 0 ? `, perte de ${euros(-res)}` : `, résultat ${euros(res)}`;
+  if (c.chiffre_affaires > 0 && loyer > 0) {
+    const j = jugerEffort(loyer, c.chiffre_affaires);
+    const taux = j.taux < 0.1 ? 'moins de 0,1 %' : pct(j.taux, 1);
+    return point('comptes', L, j.statut, `${taux} du chiffre d'affaires · CA ${euros(c.chiffre_affaires)} en ${c.exercice}${resultat}`, SOURCE_COMPTES, { ...detail, taux: j.taux });
+  }
+  if (c.chiffre_affaires > 0) return point('comptes', L, 'vide', `CA ${euros(c.chiffre_affaires)} en ${c.exercice}${resultat} ; loyer manquant dans le dossier`, SOURCE_COMPTES, detail);
+  // Comptes déposés, chiffre d'affaires confidentiel : seul le résultat se lit ; une perte est à voir.
+  return point('comptes', L, res != null && res < 0 ? 'a_voir' : 'vide', `Chiffre d'affaires confidentiel en ${c.exercice}${resultat}`, SOURCE_COMPTES, detail);
+}
+
+/**
+ * Pure : la ligne « Avis clients » d'après une fiche Google (Places API) ou une fiche simulée posée sur le lot (`simule`),
+ * tant que Google n'est pas branché. La note, le nombre d'avis et le nom de la fiche ; plus les derniers avis (12 nov.
+ * 2026, Jules : « enlève les derniers avis »).
+ */
+export function pointAvis(p, { simule = false } = {}) {
+  const note = Number(p.rating ?? p.note) || null;
+  const n = Number(p.userRatingCount ?? p.nombre) || 0;
+  const nom = p.displayName?.text || p.nom || null;
+  const ferme = p.businessStatus ? p.businessStatus !== 'OPERATIONAL' : p.ouvert === false;
+  const statut = ferme ? 'alerte' : !note ? 'a_voir' : note >= 4 && n >= 20 ? 'ok' : note < 3.5 ? 'alerte' : 'a_voir';
+  return point('avis', 'Avis clients', statut,
+    ferme ? `Fiche « ${nom} » marquée fermée` : `${note ? String(note).replace('.', ',') : '—'} sur 5, ${n.toLocaleString('fr-FR')} avis (« ${nom} »)${simule ? ' · simulé' : ''}`,
+    simule ? 'Simulation : Google Maps pas encore branché' : 'Google Maps',
+    { note, nombre: n, nom, ferme, simule }, { lien: simule ? null : p.googleMapsUri || null });
+}
+
 async function outilLocataire(e) {
-  const P = [['societe', 'Société'], ['procedures', 'Procédures collectives'], ['comptes', 'Comptes et poids du loyer'], ['avis', 'Avis clients']];
+  const P = [['societe', 'Société'], ['procedures', 'Procédures collectives'], ['comptes', 'Poids du loyer'], ['avis', 'Avis clients']];
   if (!e.locataire) return { points: P.map(([k, l]) => vide(k, l, 'Pas de nom de locataire dans le dossier.')) };
   const points = [];
   // L'avis Google ne dépend pas de la société : il part en même temps.
@@ -256,13 +305,29 @@ async function outilLocataire(e) {
       ? point('societe', 'Société', 'a_voir', `Aucun établissement au nom de « ${e.locataire} » à cette adresse ; le registre y donne ${local.exploitants.filter((x) => x.actif).map((x) => x.nom).slice(0, 3).join(', ') || 'seulement des établissements fermés'}. ${raison}`, local.source)
       : vide('societe', 'Société', `${raison} Nom cherché : « ${e.locataire} ».`, 'Annuaire des entreprises'));
     points.push(vide('procedures', 'Procédures collectives', 'Société non trouvée.'));
+    points.push(vide('comptes', 'Poids du loyer', 'Société non trouvée.'));
   } else {
     const age = s.annee_creation ? new Date().getFullYear() - Number(s.annee_creation) : null;
     const ici = local?.trouve;
-    points.push(point('societe', 'Société', s.active ? (age != null && age < 2 ? 'a_voir' : 'ok') : 'alerte',
+    // Trouvée par le nom seul (ni au local, ni au même numéro, ni fixée) : l'annuaire rend sa meilleure réponse à un
+    // nom, qui peut être une autre société. On le dit, et la ligne reste à voir jusqu'à « C'est la bonne société ».
+    const parLeNomSeul = !ici && !local?.fixe;
+    // L'enseigne du local, si elle dit autre chose que la société ; une marque nationale portée par une société qui n'en
+    // porte pas le nom fait un franchisé (KFC à Lyon : PKF LYON REPUBLIQUE).
+    const enseigne = ici?.enseigne && ici.enseigne !== s.nom && !/code|interne|^\W*\d/i.test(ici.enseigne) ? ici.enseigne : null;
+    let franchise = false;
+    if (enseigne) {
+      const { marqueDuNom } = await import('./rue.js');
+      const { indexDesMarques } = await import('../enseignes-autour.js');
+      const m = marqueDuNom(enseigne, indexDesMarques());
+      franchise = !!m && !String(s.nom || '').toLowerCase().includes(String(m.n).toLowerCase());
+    }
+    points.push(point('societe', 'Société', !s.active ? 'alerte' : parLeNomSeul || (age != null && age < 2) ? 'a_voir' : 'ok',
       [s.nom, s.forme, s.active ? (age != null ? `créée en ${s.annee_creation} (${age} an${age > 1 ? 's' : ''})` : 'active') : 'fermée',
-        ici ? `exploite le local${ici.ouvert ? ` depuis ${ici.ouvert.slice(0, 4)}` : ''}${ici.enseigne && ici.enseigne !== s.nom && !/code|interne|^\W*\d/i.test(ici.enseigne) ? ` sous l'enseigne ${ici.enseigne}` : ''}` : null].filter(Boolean).join(' · '),
-      [...new Set([ici ? local.source : null, s.source].filter(Boolean))].join(' et '), { siren: s.siren, activite: s.activite_code, etablissements_ouverts: s.etablissements_ouverts, categorie: s.categorie, effectif: s.effectif_societe, confirme: !!local?.fixe, origine: local?.source || null, autres },
+        ici ? `exploite le local${ici.ouvert ? ` depuis ${ici.ouvert.slice(0, 4)}` : ''}${enseigne ? ` sous l'enseigne ${enseigne}` : ''}` : null,
+        parLeNomSeul ? 'trouvée par le nom seul, pas au local : à confirmer' : null].filter(Boolean).join(' · '),
+      [...new Set([ici ? local.source : null, s.source].filter(Boolean))].join(' et '),
+      { siren: s.siren, nom: s.nom, forme: s.forme || null, active: !!s.active, enseigne, franchise, activite: s.activite_code, etablissements_ouverts: s.etablissements_ouverts, categorie: s.categorie, effectif: s.effectif_societe, confirme: !!local?.fixe, origine: local?.source || null, depuis: ici?.ouvert || null, annee_creation: s.annee_creation || null, nom_seul: parLeNomSeul, autres },
       { lien: `https://annuaire-entreprises.data.gouv.fr/entreprise/${s.siren}` }));
     const { evenementsSociete } = await import('../bodacc.js');
     const lu = await gardeUnJour(`bodacc:${s.siren}`, () => evenementsSociete(s.siren, { mois: 60 })).catch(() => null);
@@ -272,16 +337,25 @@ async function outilLocataire(e) {
       const pr = lireProcedures(ev);
       points.push(point('procedures', 'Procédures collectives', pr.statut, pr.texte, lu.perime ? `BODACC, lu le ${jourFr(lu.le)}` : 'BODACC', { evenements: ev.slice(0, 12) }, { lien: `https://www.bodacc.fr/pages/annonces-commerciales/?q.registre=registre:${s.siren}` }));
     }
-    // Plus de ligne « Comptes et poids du loyer » (12 nov. 2026, Jules) : un petit commerce sur dix publie des comptes
-    // récents, les entreprises individuelles jamais ; ce qui en reste se lit dans la note de l'IA.
+    // Le poids du loyer revient (12 nov. 2026, Jules, refonte du bloc Locataire) : lu quand des comptes existent. L'annuaire
+    // rend les comptes avec la fiche ; par l'INSEE, ils se lisent à part et se gardent un jour.
+    const ei = String(s.forme_code || '') === '1000' || /entrepreneur individuel/i.test(s.forme || '');
+    let comptes = s.comptes || [];
+    if (!comptes.length && !ei) {
+      const { comptesDe } = await import('../kzoning-societe.js');
+      comptes = (await gardeUnJour(`comptes:${s.siren}`, () => comptesDe(s.siren)).catch(() => null))?.valeur || [];
+    }
+    points.push(pointComptes(comptes, e.loyer, { ei }));
   }
   points.push(await avis);
   return { points, resume: s?.nom || null };
 }
 
 async function avisGoogle(e) {
+  // Tant que Google ne répond pas, une fiche simulée posée sur le lot la remplace, dite simulée (12 nov. 2026, Jules).
+  const sinon = (raison) => (e.avis_simules ? pointAvis(e.avis_simules, { simule: true }) : vide('avis', 'Avis clients', raison, 'Google Maps'));
   const k = (process.env.GOOGLE_MAPS_SERVEUR || '').trim();
-  if (!k) return vide('avis', 'Avis clients', "Google Maps n'est pas configuré sur ce serveur.", 'Google Maps');
+  if (!k) return sinon("Google Maps n'est pas configuré sur ce serveur.");
   try {
     const r = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
@@ -289,16 +363,12 @@ async function avisGoogle(e) {
       body: JSON.stringify({ textQuery: [e.locataire, e.adresse].filter(Boolean).join(', '), languageCode: 'fr', maxResultCount: 1 }),
       signal: AbortSignal.timeout(10000),
     });
-    if (!r.ok) return vide('avis', 'Avis clients', `Google Maps a répondu ${r.status}.`, 'Google Maps');
+    if (!r.ok) return sinon(`Google Maps a répondu ${r.status}.`);
     const p = ((await r.json()).places || [])[0];
-    if (!p) return vide('avis', 'Avis clients', 'Pas de fiche Google à ce nom et cette adresse.', 'Google Maps');
-    const note = Number(p.rating) || null;
-    const n = Number(p.userRatingCount) || 0;
-    const ferme = p.businessStatus && p.businessStatus !== 'OPERATIONAL';
-    const statut = ferme ? 'alerte' : !note ? 'a_voir' : note >= 4 && n >= 20 ? 'ok' : note < 3.5 ? 'alerte' : 'a_voir';
-    return point('avis', 'Avis clients', statut, ferme ? `Fiche « ${p.displayName?.text} » marquée fermée` : `${note ? String(note).replace('.', ',') : '—'} sur 5, ${n} avis (« ${p.displayName?.text} »)`, 'Google Maps', null, { lien: p.googleMapsUri || null });
+    if (!p) return sinon('Pas de fiche Google à ce nom et cette adresse.');
+    return pointAvis(p);
   } catch (err) {
-    return vide('avis', 'Avis clients', `Google Maps n'a pas répondu (${err?.message || err}).`, 'Google Maps');
+    return sinon(`Google Maps n'a pas répondu (${err?.message || err}).`);
   }
 }
 
@@ -310,8 +380,17 @@ function loyerDeMarche(adresse) {
   if (loyersEnVol.has(adresse)) return loyersEnVol.get(adresse);
   const p = (async () => {
     const { valeurLocative, loyerDeReference } = await import('../valeur-locative.js');
-    const v = await valeurLocative(adresse).catch((err) => ({ ok: false, error: err?.message || String(err) }));
-    const ref = v.ok ? loyerDeReference(v.resultat) : null;
+    const lire = (o) => valeurLocative(adresse, o).catch((err) => ({ ok: false, error: err?.message || String(err) }));
+    let v = await lire();
+    let ref = v.ok ? loyerDeReference(v.resultat) : null;
+    // La page Equimmox photographiée, à chaque fois (12 nov. 2026, Jules : « une image exacte de ce que l'IA a fait ; il
+    // faut à chaque fois que ce soit le cas ») : une lecture gardée d'avant les captures se relit une fois ; si Equimmox
+    // ne répond pas, la lecture gardée reste, sans image.
+    if (ref && !ref.niveau?.capture) {
+      const neuve = await lire({ forcer: true });
+      const refNeuve = neuve.ok ? loyerDeReference(neuve.resultat) : null;
+      if (refNeuve?.niveau?.capture) { v = neuve; ref = refNeuve; }
+    }
     return { v, ref, niveau: ref?.niveau || null, m2: ref?.m2 ?? null };
   })().finally(() => setTimeout(() => loyersEnVol.delete(adresse), 60000).unref?.());
   loyersEnVol.set(adresse, p);
@@ -369,9 +448,14 @@ async function outilPrix(e) {
   else if (!c) points.push(vide('verdict_prix', 'Prix au m² face aux ventes', r.dvf_erreur || 'Moins de 5 ventes de locaux comparables autour.', 'DVF'));
   else {
     const mot = c.ecart != null ? (c.ecart > 0 ? `${c.ecart} % au-dessus` : c.ecart < 0 ? `${-c.ecart} % en dessous` : 'au niveau') : null;
-    points.push(point('verdict_prix', 'Prix au m² face aux ventes', statutVerdictPrix(r.verdict?.sens, r.verdict?.mot),
+    const statut = statutVerdictPrix(r.verdict?.sens, r.verdict?.mot);
+    // « Voir source » ouvre l'image des ventes exactes que le calcul a comparées (12 nov. 2026, Jules : « un screenshot
+    // de ce que l'IA a vu ; juste une image, ça suffit ») : DVF est un fichier, pas une page (releve-dvf.js).
+    const { ecrireReleveDvf } = await import('./releve-dvf.js');
+    const releve = ecrireReleveDvf({ adresse: r.adresse, comparaison: c, surface: e.surface, statut, le: r.le });
+    points.push(point('verdict_prix', 'Prix au m² face aux ventes', statut,
       `${euros(r.bien.prix_m2)}/m² ${mot ? `${mot} de la médiane des ventes (${euros(c.prix_m2.median)}/m², ${c.n} ventes, ${c.cercle})` : `face à ${c.n} ventes`}${r.verdict ? ` · ${r.verdict.mot}, confiance ${r.verdict.confiance}` : ''}`,
-      'DVF (actes des notaires)', { comparaison: c, verdict: r.verdict, manque: r.manque }, { lien: r.lien_dvf || null }));
+      'DVF (actes des notaires)', { comparaison: c, verdict: r.verdict, manque: r.manque }, { lien: releve }));
   }
   const cap = r.capitalisation;
   if (!r.bien.rendement) points.push(vide('rendement', 'Rendement face au taux de la ville', 'Prix ou loyer manquant dans le dossier.'));
@@ -436,24 +520,48 @@ async function outilEmplacement(e) {
   };
 }
 
+/** Pure : la commune en chiffres (surface en km², densité) d'après l'API Géo. */
+export function communeLisible(c) {
+  if (!c) return null;
+  const km2 = c.surface ? Math.round(c.surface / 100) : null;
+  return { code: c.code, nom: c.nom, population: c.population ?? null, surface_km2: km2, densite_km2: km2 && c.population ? Math.round(c.population / km2) : null, departement: c.departement?.nom || c.departement || null, region: c.region?.nom || c.region || null };
+}
+
+/** Pure : le code de la commune entière pour un arrondissement municipal (Paris, Lyon, Marseille), sinon le code tel quel. */
+export function codeCommuneDe(codeInsee) {
+  const c = String(codeInsee || '');
+  if (/^751\d\d$/.test(c)) return '75056';
+  if (/^6938\d$/.test(c)) return '69123';
+  if (/^132\d\d$/.test(c)) return '13055';
+  return c || null;
+}
+
 async function outilVille(e) {
   const P = [['population', 'Population'], ['revenu', 'Revenu médian'], ['chomage', 'Chômage']];
   if (!e.ville) return { points: P.map(([k, l]) => vide(k, l, 'Pas de ville dans le dossier.')) };
-  const { communeParNom, chiffresSources } = await import('../chiffres-commune.js');
-  const c = await communeParNom(e.ville).catch(() => null);
-  if (!c) return { points: P.map(([k, l]) => vide(k, l, `Commune « ${e.ville} » introuvable.`, 'API Géo')) };
+  const { communeParNom, communeParCode, chiffresSources } = await import('../chiffres-commune.js');
+  // L'API Géo hoquette (12 nov. 2026 : « Lyon » introuvable un matin) : deux essais, puis le code INSEE de l'adresse par
+  // la BAN, ramené à la commune entière pour un arrondissement.
+  let c = await reessayer(() => communeParNom(e.ville).then((x) => { if (!x) throw new Error('API Géo muette'); return x; }), 1).catch(() => null);
+  if (!c && e.adresse) {
+    const { resoudreAdresse } = await import('../adresse-ban.js');
+    const a = await resoudreAdresse(e.adresse).catch(() => null);
+    if (a?.code_insee) c = await reessayer(() => communeParCode(codeCommuneDe(a.code_insee)), 1).catch(() => null);
+  }
+  if (!c) return { points: P.map(([k, l]) => vide(k, l, `L'API Géo n'a pas rendu la commune « ${e.ville} » : relancez dans quelques minutes.`, 'API Géo')) };
   const s = await chiffresSources(c).catch(() => ({ manquants: [] }));
   const rev = s.revenu_median_uc;
   const montant = Number(rev?.valeur_euros_an);
   const ch = s.chomage_zone_emploi;
   const tx = Number(String(ch?.taux_pct ?? '').replace(',', '.'));
+  // Les lectures entières restent dans les points (commune, revenu, chômage, logement) : l'écran s'en sert sans relire.
   return {
     commune: c.code,
     points: [
-      point('population', 'Population', c.population >= 20000 ? 'ok' : 'a_voir', `${c.population.toLocaleString('fr-FR')} habitants à ${c.nom}`, 'API Géo (INSEE)', { code: c.code, departement: c.departement?.nom || null }),
-      montant > 0 ? point('revenu', 'Revenu médian', montant >= 21000 ? 'ok' : 'a_voir', `${euros(montant)} par an et par unité de consommation (${rev.annee})`, 'INSEE')
+      point('population', 'Population', c.population >= 20000 ? 'ok' : 'a_voir', `${c.population.toLocaleString('fr-FR')} habitants à ${c.nom}`, 'API Géo (INSEE)', { ...communeLisible(c), logement: s.logement || null, manquants: s.manquants || [] }),
+      montant > 0 ? point('revenu', 'Revenu médian', montant >= 21000 ? 'ok' : 'a_voir', `${euros(montant)} par an et par unité de consommation (${rev.annee})`, 'INSEE', { revenu: rev })
         : vide('revenu', 'Revenu médian', (s.manquants || []).find((m) => m.startsWith('revenu')) || 'Non publié.', 'INSEE'),
-      tx > 0 ? point('chomage', 'Chômage', tx <= 8 ? 'ok' : tx <= 11 ? 'a_voir' : 'alerte', `${pct(tx, 1)} dans la zone d'emploi${ch?.zone_emploi ? ` de ${ch.zone_emploi}` : ''} (${ch.periode})`, 'INSEE')
+      tx > 0 ? point('chomage', 'Chômage', tx <= 8 ? 'ok' : tx <= 11 ? 'a_voir' : 'alerte', `${pct(tx, 1)} dans la zone d'emploi${ch?.zone_emploi ? ` de ${ch.zone_emploi}` : ''} (${ch.periode})`, 'INSEE', { chomage: ch })
         : vide('chomage', 'Chômage', (s.manquants || []).find((m) => m.startsWith('chômage')) || 'Non publié.', 'INSEE'),
     ],
   };
@@ -486,6 +594,8 @@ export async function fixerSirenLocataire(deal, index, siren, user = null) {
 
 // La colonne « Note de l'IA » de chaque tableau (12 nov. 2026, Jules : « ce qu'elle pense concrètement du locataire, et
 // nous après on peut checker ») : deux phrases au plus, écrites d'après les seuls points lus ; plus de liste « À vérifier ».
+// Débranchée le soir même (Jules : « supprime complètement le truc note de l'IA ») : plus d'appel au modèle après un
+// lancement ; la consigne et `noterParIA` restent, pour la rebrancher d'un mot si besoin.
 const MODELE_NOTE = 'claude-haiku-4-5';
 const SCHEMA_NOTE = {
   type: 'object',
@@ -519,7 +629,7 @@ ${lignes || '- rien'}
 Écris en deux phrases courtes (40 mots en tout au plus) ce que tu en penses concrètement, pour un investisseur qui achète ces murs. Appuie-toi seulement sur ces lignes, n'invente aucun fait ni chiffre. Une ligne « vide » veut dire que la source n'a pas répondu : n'en tire aucune conclusion, ne la cite pas. Français simple, pas de tiret cadratin, pas de liste.`;
 }
 
-async function noterParIA(outil, entrees, resultat, { par = null } = {}) {
+export async function noterParIA(outil, entrees, resultat, { par = null } = {}) {
   // Rien de lu : pas d'appel au modèle, la note le dit.
   if (!(resultat.points || []).some((p) => p.statut !== 'vide')) return { avis: "Aucune source n'a répondu : rien à commenter pour l'instant.", le: new Date().toISOString(), modele: null };
   const { invokeLLM } = await import('../llm.js');
@@ -544,14 +654,12 @@ export function lancerOutil(outil, entrees, { dealId = null, index = 0, user = n
     if (deja) return { ok: true, lancement: deja, deja: true };
   }
   if (outil === 'ville' && entrees.ville) {
+    // Un lancement sans rien de lu (API Géo muette ce jour-là) ne se partage pas : on relit.
     const recent = Records.filter(ENTITE, { outil: 'ville', statut: 'fini' })
-      .filter((l) => String(l.entrees?.ville || '').toLowerCase() === String(entrees.ville).toLowerCase() && Date.now() - Date.parse(l.fini_le) < VILLE_JOURS * 86400000)
+      .filter((l) => l.resultat?.statut && l.resultat.statut !== 'vide' && String(l.entrees?.ville || '').toLowerCase() === String(entrees.ville).toLowerCase() && Date.now() - Date.parse(l.fini_le) < VILLE_JOURS * 86400000)
       .sort((a, b) => String(b.fini_le).localeCompare(String(a.fini_le)))[0];
     if (recent) {
       const copie = Records.create(ENTITE, { ...nettoyer(recent), deal_id: dealId, index, par: user?.email || null, partage_de: recent.id, lance_le: new Date().toISOString() }, user?.email);
-      // Une copie d'un lancement sans note (fait avant la note de l'IA) prend la sienne.
-      if (!copie.resultat?.note_ia && copie.resultat && !process.env.NODE_TEST_CONTEXT) noterParIA(outil, entrees, copie.resultat, { par: user?.email || null })
-        .then((note) => Records.update(ENTITE, copie.id, { resultat: { ...copie.resultat, note_ia: note } })).catch(() => {});
       return { ok: true, lancement: copie };
     }
   }
@@ -562,10 +670,6 @@ export function lancerOutil(outil, entrees, { dealId = null, index = 0, user = n
       const c = conclusionDe(outil, r.points, r.resume);
       const resultat = { statut: r.statut || c.statut, conclusion: r.conclusion || c.conclusion, points: r.points, rue_id: r.rue_id || null, rue: r.rue || null, commune: r.commune || null };
       Records.update(ENTITE, rec.id, { statut: 'fini', fini_le: new Date().toISOString(), resultat });
-      // La note de l'IA s'écrit ensuite : le tableau s'affiche sans l'attendre.
-      if (!moteur && !process.env.NODE_TEST_CONTEXT) noterParIA(outil, entrees, resultat, { par: user?.email || null })
-        .then((note) => Records.update(ENTITE, rec.id, { resultat: { ...resultat, note_ia: note } }))
-        .catch((err) => Records.update(ENTITE, rec.id, { resultat: { ...resultat, note_ia: { erreur: err?.message || String(err), le: new Date().toISOString() } } }));
     })
     .catch((err) => {
       console.warn(`[outils] ${outil} : ${err?.message || err}`);

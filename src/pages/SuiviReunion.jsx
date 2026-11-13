@@ -34,7 +34,7 @@ function Transcription({ id }) {
   const r = q.data?.reunion;
   const copier = async () => { try { await navigator.clipboard.writeText(r.texte); toast.success("Transcription copiée"); } catch { toast.error("La copie a échoué."); } };
   return (
-    <div className="mx-2 mb-4 rounded-[14px] border border-trait bg-rail px-5 py-4">
+    <div className="mx-2 mb-4 k-verre px-5 py-4">
       {q.isLoading ? <Chargement />
         : q.error ? <p className="m-0 text-[13.5px] text-alerte">{q.error.message || "La transcription ne se charge pas."}</p> : (
           <>
@@ -239,7 +239,7 @@ export default function SuiviReunion() {
 
         <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
           {/* À gauche : le micro, les réglages de la réunion, les gestes. */}
-          <section className="flex flex-col gap-4 rounded-[14px] border border-trait bg-rail p-5">
+          <section className="flex flex-col gap-4 k-verre p-5">
             <div className="flex flex-col items-center py-2">
               {enregistre ? (
                 <MicroEcoute taille={170} label="Réunion en cours d'enregistrement"><span className="sr-only">Enregistrement</span></MicroEcoute>

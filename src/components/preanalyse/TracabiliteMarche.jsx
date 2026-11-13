@@ -146,7 +146,7 @@ export default function TracabiliteMarche({ dossier, lotIndex = 0 }) {
 
   const sources = passage.sources_utilisees || [];
   return (
-    <section className="border border-bord-doux rounded-[16px] bg-surface px-5 py-4 flex flex-col gap-3.5">
+    <section className="k-verre px-5 py-4 flex flex-col gap-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h3 className="m-0 text-[15px] font-semibold text-encre">D'où viennent ces chiffres</h3>
         <p className="m-0 text-[12.5px] text-brume">

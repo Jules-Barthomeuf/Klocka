@@ -24,7 +24,7 @@ import Chargement from "@/components/ui/Chargement";
 
 const champ = "w-full min-w-0 rounded-lg border border-bord-doux bg-fond px-3 py-2 text-[13.5px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60 max-md:text-[16px]";
 const etiquette = "m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise";
-const carte = "rounded-[16px] border border-trait bg-surface";
+const carte = "k-verre";
 const jourFr = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "");
 const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
 const duree = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;

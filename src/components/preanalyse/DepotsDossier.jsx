@@ -223,7 +223,7 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
   );
 }
 
-const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[12px] border p-4 text-left transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : plein ? "border-bord-doux bg-rail hover:border-bord-vif" : "border-bord bg-rail hover:border-bord-vif"}`;
+const cadre = (survol, plein) => `flex min-h-[150px] flex-col rounded-[16px] border p-4 text-left shadow-lg backdrop-blur-xl transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : "border-bord-doux bg-[var(--k-surface)] hover:border-bord-vif"}`;
 
 // L'état de lecture d'une pièce, sous son nom, dans une zone qui se lit (10 nov. 2026, Jules : « analyser ce document
 // sans toucher aux autres lignes ») : « Analyser » lit cette pièce seule.

@@ -112,7 +112,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency }) 
   const signe = (sec, v) => (sec.title !== "Cash-flow et patrimoine" ? null : String(v).trim().startsWith("-") ? "text-alerte" : /\d/.test(String(v)) && !/^0\b/.test(String(v).trim()) ? "text-vert" : null);
 
   return (
-    <div className="overflow-hidden rounded-[12px] border border-trait bg-rail">
+    <div className="overflow-hidden k-verre">
       <div className="flex h-[35px] items-center justify-between gap-3 border-b border-trait px-4">
         <p className="m-0 text-[12.5px] text-encre">Tableau annuel détaillé</p>
         <button type="button" onClick={() => setOuvertes(toutOuvert ? new Set() : new Set(sections.map((s) => s.title)))}

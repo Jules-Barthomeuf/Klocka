@@ -15,9 +15,12 @@
 
 import { Records } from './db.js';
 
+// Les mêmes miroirs que l'outil Vacance (vacance-taux.js) : le troisième a répondu quand les deux premiers
+// dépassaient leur délai (banc du 12 nov. 2026).
 const MIROIRS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
 ];
 const UA = 'Klocka/1.0 (sourcing@klocka.immo)';
 const DELAI_MS = 90000;

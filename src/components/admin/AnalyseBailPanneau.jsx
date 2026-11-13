@@ -26,7 +26,7 @@ export default function AnalyseBailPanneau({ formData, setFormData, projetId = n
           const lu = lues.get(id) || "";
           const texte = corrections[id] ?? "";
           return (
-            <li key={id} className="rounded-[12px] border border-trait bg-surface p-3.5">
+            <li key={id} className="k-verre p-3.5">
               <div className="mb-2 flex items-baseline gap-2.5">
                 <span className="alx-mont text-[12px] tabular-nums text-menthe">{i + 1}.</span>
                 <span className="text-[11px] uppercase tracking-[.16em] text-ardoise">{titre}</span>

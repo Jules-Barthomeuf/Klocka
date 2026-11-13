@@ -74,7 +74,7 @@ export default function InviterClient({ onCree, compact = false } = {}) {
   }
 
   return (
-    <div className="w-full rounded-[16px] border border-trait bg-rail p-5">
+    <div className="w-full k-verre p-5">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <p className="m-0 text-[16px] text-encre">Inviter</p>

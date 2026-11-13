@@ -5,7 +5,7 @@ import React from "react";
 // à quoi on compare, et juge lui-même. Le même bloc sert à K-Transactions et à
 // K-Vacance.
 
-const CARTE = "rounded-[18px] border border-trait bg-surface";
+const CARTE = "k-verre";
 
 export default function Repere({ titre, phrase, detail, reserve, className = "mb-3", children }) {
   return (

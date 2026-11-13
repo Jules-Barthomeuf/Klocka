@@ -242,7 +242,7 @@ export function FicheLibre({ id, point, onFermer }) {
           </Ligne>
           <Ligne mot="Valeur locative">{vl ? <>{euros(vl.basse)} à {euros(vl.haute)} HT HC par m² et par an<span className="block text-[12.5px] text-ardoise">Dans la {vl.ou === "rue" ? "rue" : vl.ou === "quartier" ? "le quartier" : "ville"}, selon {vl.source}</span></> : <span className="text-brume">Pas encore lue pour cette adresse</span>}</Ligne>
           <Ligne mot="Emplacement">{p.centre === true ? "Dans une zone commerçante" : p.centre === false ? "Hors des zones commerçantes" : "—"}</Ligne>
-          <div className="mt-3 rounded-[12px] border border-bord-doux bg-surface px-4 py-3">
+          <div className="mt-3 k-verre px-4 py-3">
             <div className="flex items-center justify-between gap-2"><span className="text-[12px] text-brume">L'accroche</span>
               <button type="button" onClick={copier} className="inline-flex items-center gap-1 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Copy className="h-3.5 w-3.5" />Copier</button></div>
             <p className="m-0 mt-1.5 text-[14px] leading-[1.55] text-encre">{l.accroche}</p>

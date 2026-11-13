@@ -29,7 +29,7 @@ const Bloc = ({ titre, source, children }) => (
 
 const Tuile = ({ mot, valeur, sous = null, accent = false }) => (
   // Au téléphone, une ligne : le mot à gauche, la valeur à droite.
-  <div className="rounded-[14px] border border-bord-doux bg-rail px-4 py-3 max-md:flex max-md:items-baseline max-md:justify-between max-md:gap-3 max-md:py-2.5">
+  <div className="k-verre px-4 py-3 max-md:flex max-md:items-baseline max-md:justify-between max-md:gap-3 max-md:py-2.5">
     <p className="m-0 text-[12.5px] text-ardoise">{mot}{sous && <span className="block md:hidden">{sous}</span>}</p>
     <p className={`m-0 mt-1 text-[20px] tabular-nums max-md:mt-0 max-md:text-right max-md:text-[16px] ${accent ? "text-pervenche" : ""}`}>{valeur}</p>
     {sous && <p className="m-0 text-[12.5px] text-ardoise max-md:hidden">{sous}</p>}

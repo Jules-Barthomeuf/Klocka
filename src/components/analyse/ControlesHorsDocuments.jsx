@@ -23,8 +23,7 @@ export function useOutilsDossier(dealId, index = 0) {
     // un lancement, une note qui s'écrit ou une relance le rafraîchissent.
     staleTime: 5 * 60000,
     gcTime: 30 * 60000,
-    // Relu aussi tant qu'une note de l'IA s'écrit (quelques secondes après la fin d'un outil).
-    refetchInterval: (q) => (q.state.data?.en_cours || (q.state.data?.outils || []).some((o) => o.lancement?.statut === "fini" && !o.lancement.resultat?.note_ia && Date.now() - Date.parse(o.lancement.fini_le) < 3 * 60000) ? 3000 : false),
+    refetchInterval: (q) => (q.state.data?.en_cours ? 3000 : false),
   });
 }
 

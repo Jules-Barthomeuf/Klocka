@@ -41,7 +41,7 @@ export default function MesVendeurs() {
         </div>
         <span className="ml-auto text-[13.5px] text-ardoise max-md:ml-0"><span className="tabular-nums text-menthe">{lignes.length}</span> vendeur{lignes.length > 1 ? "s" : ""}</span>
       </div>
-      <div className="mt-4 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+      <div className="mt-4 overflow-x-auto k-verre">
         <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px] [&_tr>*:last-child]:border-r-0">
           <thead>
             <tr>

@@ -137,7 +137,7 @@ export default function OngletVendeur({ marcheId }) {
           </div>
         )}
         {mail && (
-          <div className="mt-3 rounded-[12px] border border-bord-doux bg-surface/40 px-4 py-3">
+          <div className="mt-3 k-verre px-4 py-3">
             <p className="m-0 text-[12.5px] text-ardoise">Objet</p>
             <p className="m-0 text-[14px] text-encre">{mail.objet}</p>
             <p className="m-0 mt-3 whitespace-pre-wrap text-[14px] leading-[1.6] text-craie">{mail.corps}</p>

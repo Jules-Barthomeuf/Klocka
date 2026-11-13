@@ -60,7 +60,7 @@ export default function ObjectionsAResoudre({ className = "" }) {
   const liste = data?.objections || [];
   if (!liste.length) return null;
   return (
-    <section className={`rounded-[18px] border border-trait bg-rail px-5 pb-2 pt-4 ${className}`}>
+    <section className={`k-verre px-5 pb-2 pt-4 ${className}`}>
       <p className="m-0 mb-2 text-[11px] tracking-[.16em] text-brume">OBJECTIONS À RÉSOUDRE · {liste.length}</p>
       {liste.slice(0, 5).map((o) => <Objection key={o.id} o={o} />)}
       {liste.length > 5 && <p className="m-0 pb-3 text-[12.5px] text-brume">Et {liste.length - 5} autre{liste.length - 5 > 1 ? "s" : ""}, à mesure que celles-ci se résolvent.</p>}

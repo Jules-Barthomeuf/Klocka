@@ -298,7 +298,7 @@ export function ResultatsProspective({ jeton, onRetour }) {
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[440px_minmax(0,1fr)]">
-        <div className="flex min-h-0 flex-col rounded-[16px] border border-trait bg-surface-pleine lg:h-[640px]">
+        <div className="flex min-h-0 flex-col k-verre lg:h-[640px]">
           <div className="flex items-center gap-3 border-b border-trait px-4 py-3">
             <button type="button" onClick={() => setCoches(tout ? new Map() : new Map(lignes.map((l) => [l.siret, l])))} disabled={!lignes.length}
               className="inline-flex items-center gap-2 text-[13px] text-craie hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>

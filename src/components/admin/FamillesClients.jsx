@@ -289,7 +289,7 @@ export default function FamillesClients({ users = [] }) {
 
   return (
     <div>
-      <div className="mb-8 rounded-[16px] border border-trait bg-rail p-6 max-md:p-4">
+      <div className="mb-8 k-verre p-6 max-md:p-4">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <p className="m-0 text-[20px] text-encre">Nouvelle famille</p>
           <div className="flex gap-1 rounded-full bg-rail-actif p-1">
@@ -311,7 +311,7 @@ export default function FamillesClients({ users = [] }) {
       ) : familles.length === 0 ? (
         <p className="py-10 text-center text-[13.5px] text-brume">Aucune famille encore : invitez-en une, ou rattachez des comptes existants.</p>
       ) : (
-        <div className="overflow-hidden rounded-[16px] border border-trait bg-rail [&>*:first-child]:border-t-0">
+        <div className="overflow-hidden k-verre [&>*:first-child]:border-t-0">
           {familles.map((f) => <LigneFamille key={f.titulaire_id} famille={f} users={users} onFait={rafraichir} />)}
         </div>
       )}

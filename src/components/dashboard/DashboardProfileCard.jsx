@@ -43,7 +43,7 @@ export default function DashboardProfileCard({ user }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="rounded-[18px] bg-surface-pleine border border-trait overflow-hidden h-full"
+      className="k-verre overflow-hidden h-full"
     >
       <div
         className="p-5 cursor-pointer hover:bg-encre/[0.01] transition-colors h-full flex flex-col"

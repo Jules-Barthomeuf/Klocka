@@ -61,7 +61,7 @@ function CarrouselDeals() {
   const rond = "grid h-11 w-11 place-items-center rounded-full border border-bord-doux bg-black/80 text-encre backdrop-blur transition-colors hover:border-menthe hover:text-menthe";
   return (
     <div className="mt-14">
-      <div className="relative overflow-hidden rounded-[18px] border border-trait bg-surface" onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
+      <div className="relative overflow-hidden k-verre" onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
         <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${i * 100}%)` }}>
           {DEALS.map((d) => <img key={d.ville} src={d.image} alt={`Deal sourcé à ${d.ville}`} className="block w-full flex-none" draggable={false} />)}
         </div>
@@ -147,7 +147,7 @@ export default function NotreOffre() {
         <Chapeau>De l'acculturation à la gestion locative, nous sommes à vos côtés à chaque étape de votre investissement.</Chapeau>
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {ETAPES.map(({ Icone, titre, texte }, i) => (
-            <div key={titre} className="flex flex-col items-center rounded-[18px] border border-trait bg-surface px-5 py-7 text-center">
+            <div key={titre} className="flex flex-col items-center k-verre px-5 py-7 text-center">
               <span className="grid h-14 w-14 place-items-center rounded-[14px] bg-menthe/10 text-menthe"><Icone className="h-6 w-6" strokeWidth={1.6} /></span>
               <p className="m-0 mt-5 text-[12.5px] font-semibold text-menthe">Étape {i + 1}</p>
               <p className="m-0 mt-2 text-[14px] font-bold uppercase leading-[1.35] text-encre">{titre}</p>
@@ -186,11 +186,11 @@ export default function NotreOffre() {
             </div>
           </div>
           <div className="mx-auto mt-10 max-w-[900px] space-y-4">
-            <p className="m-0 flex gap-3 rounded-[14px] border border-trait bg-surface px-5 py-4 text-[14px] leading-[1.6] text-ardoise">
+            <p className="m-0 flex gap-3 k-verre px-5 py-4 text-[14px] leading-[1.6] text-ardoise">
               <Info className="mt-1 h-4 w-4 flex-none text-menthe" />
               <span>En immobilier commercial, les loyers étant majoritairement assujettis à la TVA, celle-ci sur nos honoraires est <strong className="font-semibold text-encre">intégralement récupérable</strong> : ils reviennent ainsi à <strong className="font-semibold text-menthe">6,66 % HT</strong>, aussi bien sur l'accompagnement clé en main que sur la gestion locative.</span>
             </p>
-            <p className="m-0 flex gap-3 rounded-[14px] border border-trait bg-surface px-5 py-4 text-[14px] leading-[1.6] text-ardoise">
+            <p className="m-0 flex gap-3 k-verre px-5 py-4 text-[14px] leading-[1.6] text-ardoise">
               <Info className="mt-1 h-4 w-4 flex-none text-jaune" />
               <span><strong className="font-semibold text-encre">À savoir :</strong> les 1 500 € versés au lancement ne sont pas des frais en plus : ils sont intégrés aux 8 % et déduits du solde dû à la signature. Ils sécurisent le temps déjà investi si le projet ne va pas à son terme.</span>
             </p>
@@ -206,7 +206,7 @@ export default function NotreOffre() {
         <div className="mt-14 grid items-center gap-5 lg:grid-cols-[1fr_auto_1fr_auto_1.1fr]">
           {[[Store, "Identification d'une opportunité au prix de", "300 K€"], [FilePen, "Négociation de 10 K€ soit un prix de vente de", "290 K€"]].map(([Icone, texte, prix], i) => (
             <React.Fragment key={prix}>
-              <div className="flex flex-col items-center rounded-[18px] border border-trait bg-surface px-6 py-8 text-center">
+              <div className="flex flex-col items-center k-verre px-6 py-8 text-center">
                 <span className="grid h-16 w-16 place-items-center rounded-full bg-menthe/10 text-menthe"><Icone className="h-6 w-6" strokeWidth={1.6} /></span>
                 <p className="m-0 mt-5 text-[14px] leading-[1.55] text-craie">{texte}</p>
                 <p className="m-0 mt-1 text-[24px] font-black text-encre">{prix} <span className="text-[12px] font-normal text-brume">FAI</span></p>

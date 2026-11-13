@@ -24,7 +24,7 @@ export default function ListeRelances({ lignes, prises, moi, onOuvrir, ouverture
   const toutes = lignes.length > 0 && lignes.every((x) => coches.has(x.cle));
   const th = "h-[35px] border-b border-trait px-2.5 text-center text-[12.5px] font-normal text-ardoise";
   return (
-    <div className="mt-3 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+    <div className="mt-3 overflow-x-auto k-verre">
       <table className="w-full min-w-[760px] border-collapse text-left text-[13.5px] max-md:min-w-0 md:[&_td:not(:last-child)]:border-r md:[&_td]:border-trait md:[&_th:not(:last-child)]:border-r md:[&_th]:border-trait">
         <thead className="max-md:hidden">
           <tr className="text-[12.5px] text-encre">

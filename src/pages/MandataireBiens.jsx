@@ -221,7 +221,7 @@ function CarteBien({ b, onOuvrir, onSupprimer = null }) {
   const fourchette = b.estimation?.rapport?.prix_bas ? `${euros(b.estimation.rapport.prix_bas)} – ${euros(b.estimation.rapport.prix_haut)}` : null;
   const lieu = [b.dossier?.carte?.ville, b.dossier?.carte?.surface_m2 ? `${b.dossier.carte.surface_m2} m²` : null, prix ? euros(prix) : fourchette].filter(Boolean).join(" · ") || b.adresse || "Adresse à compléter";
   return (
-    <article className="group relative flex cursor-pointer flex-col gap-2.5 rounded-[12px] border border-trait bg-rail px-3.5 py-3 transition-colors hover:border-bord-doux" onClick={onOuvrir}
+    <article className="group relative flex cursor-pointer flex-col gap-2.5 k-verre px-3.5 py-3 transition-colors hover:border-bord-doux" onClick={onOuvrir}
       role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === "Enter") onOuvrir(); }}>
       <div className="min-w-0">
         <div className="flex min-w-0 items-center justify-between gap-2.5">
@@ -432,7 +432,7 @@ function TempsMandat({ mandat, large, compact = false, geste = null }) {
     : "Le mandat est bien envoyé. L'équipe le remplit au plus vite et vous le renverra dans cette conversation. Relisez-le et dites-lui si c'est bon.";
   // Pendant l'échange, sous la barre du chat : la phrase et les temps sur une ligne, pour laisser la place au fil.
   return (
-    <div className={`flex-none rounded-[12px] border border-bord-doux bg-surface/40 text-left ${compact ? "mt-2 px-3.5 py-2.5" : "mt-3 px-4 py-3.5"}`}>
+    <div className={`flex-none k-verre text-left ${compact ? "mt-2 px-3.5 py-2.5" : "mt-3 px-4 py-3.5"}`}>
       <p className={`m-0 leading-[1.5] text-encre ${compact ? "text-[13px]" : "text-[14px]"}`}>{phrase}</p>
       <ol className={`m-0 flex list-none p-0 ${compact ? "mt-2 flex-wrap gap-x-4 gap-y-1" : "mt-3 flex-col gap-1.5"}`}>
         {TEMPS_MANDAT.map(([mot, qui], i) => {
@@ -1128,7 +1128,7 @@ function EtatAvis({ bien, className = "mb-3" }) {
   // plus (27 oct. 2026) : « Envoyer » est dans la barre de l'avis, à droite de Télécharger.
   if (!teinte) return null;
   return (
-    <div className={`rounded-[14px] border border-bord-doux bg-rail px-4 py-2.5 ${className}`}>
+    <div className={`k-verre px-4 py-2.5 ${className}`}>
       <div className="flex min-w-0 items-center gap-2">
         <p className="m-0 flex min-w-0 flex-1 items-center gap-2 text-[13.5px] text-encre"><span className={`h-1.5 w-1.5 flex-none rounded-full ${teinte}`} /><span className="min-w-0 truncate" title={texte}>{texte}</span></p>
         {resti?.a_revoir && (

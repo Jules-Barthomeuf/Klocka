@@ -28,7 +28,7 @@ export default function ActionsComptes({ singulier }) {
       </button>
       <InviterClient compact onCree={relire} />
       {familles && (
-        <div className="w-full rounded-[16px] border border-trait bg-rail p-5">
+        <div className="w-full k-verre p-5">
           <FamillesClients users={users} />
         </div>
       )}

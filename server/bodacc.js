@@ -277,7 +277,8 @@ export async function evenementsSociete(siren, { mois = 36 } = {}) {
     return {
       date: a.dateparution,
       type: TYPE_DE(a),
-      detail: [a.commercant, j?.nature || a.typeavis].filter(Boolean).join(' · ').slice(0, 200),
+      // « annonce » est le type de tous les avis ordinaires : seuls un rectificatif ou une annulation méritent d'être dits.
+      detail: [a.commercant, j?.nature || (a.typeavis && a.typeavis !== 'annonce' ? a.typeavis : null)].filter(Boolean).join(' · ').slice(0, 200),
       jugement: j?.nature ? { nature: j.nature, date: j.date || null } : null,
       famille: a.familleavis || null,
       source: 'BODACC',

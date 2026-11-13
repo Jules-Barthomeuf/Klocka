@@ -220,7 +220,7 @@ function Criteres({ carte, familles }) {
   });
 
   return (
-    <section className="rounded-[18px] border border-trait bg-surface p-[26px] max-md:p-4">
+    <section className="k-verre p-[26px] max-md:p-4">
       <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
         <Champ label="Budget mini" value={f.prix_min} onChange={change("prix_min")} placeholder="200 000" />
         <Champ label="Budget maxi" value={f.prix_max} onChange={change("prix_max")} placeholder="300 000" />
@@ -403,7 +403,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
                 <button
                   key={v.id}
                   onClick={() => onOuvrirVille(v.id)}
-                  className="overflow-hidden rounded-[14px] border border-trait bg-surface text-left transition-colors hover:border-menthe/30"
+                  className="overflow-hidden k-verre text-left transition-colors hover:border-menthe/30"
                 >
                   <Barres cibles={v.cibles} />
                   <div className="flex items-baseline justify-between gap-2 px-4 pb-1 pt-3.5">
@@ -420,7 +420,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
         </section>
       )}
 
-      <section className="overflow-hidden rounded-[18px] border border-trait bg-surface">
+      <section className="overflow-hidden k-verre">
         <div className="flex flex-wrap items-center justify-between gap-3 px-[26px] pt-[24px] max-md:px-4 max-md:pt-5">
           <div>
             <Etiquette>Où aller chercher</Etiquette>
@@ -465,7 +465,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
         )}
       </section>
 
-      <section className="rounded-[18px] border border-trait bg-surface p-[26px] max-md:p-4">
+      <section className="k-verre p-[26px] max-md:p-4">
         <div className="flex flex-wrap items-baseline justify-end gap-3">
           {societeFiltre && (
             <button onClick={() => setSocieteFiltre(null)} className="text-[12.5px] text-menthe hover:underline">
@@ -522,7 +522,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
 
                     {/* Pourquoi celui-ci : le calcul, pas une impression. */}
                     {ouvert && (
-                      <div className="mb-3 rounded-[12px] border border-trait bg-surface px-4 py-3.5">
+                      <div className="mb-3 k-verre px-4 py-3.5">
                         <Etiquette className="mb-2">Pourquoi il correspond</Etiquette>
                         <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-[12.5px] leading-[1.6] text-craie">
                           <li>

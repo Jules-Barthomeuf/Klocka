@@ -73,7 +73,7 @@ export default function MandataireDocuments() {
         : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {vus.map((d) => (
-              <div key={d.id} className="group relative flex min-w-0 flex-col overflow-hidden rounded-[16px] border border-trait bg-rail hover:border-bord-doux">
+              <div key={d.id} className="group relative flex min-w-0 flex-col overflow-hidden k-verre hover:border-bord-doux">
                 <button type="button" onClick={() => naviguer(d.lien)} className="flex min-w-0 flex-1 flex-col text-left" style={{ background: "transparent" }}>
                   <Apercu d={d} />
                   <span className="flex min-w-0 flex-1 flex-col gap-1 px-4 pb-4 pt-3">

@@ -181,7 +181,7 @@ function ValeurTwenty({ col }) {
 function TableauMonday({ colonnes }) {
   const cols = [...colonnes].sort((a, b) => ORDRE_MONDAY.indexOf(a.titre) - ORDRE_MONDAY.indexOf(b.titre));
   return (
-    <dl className="m-0 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+    <dl className="m-0 overflow-hidden k-verre">
       {cols.map((c) => (
         <div key={c.titre} className="grid grid-cols-2 items-stretch border-t border-trait text-center first:border-t-0">
           <dt className="flex items-center justify-center px-4 py-3 text-[13px] text-ardoise">{c.titre}</dt>

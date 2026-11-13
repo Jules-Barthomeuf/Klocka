@@ -34,6 +34,7 @@
     "layer:eval": "node server/layer-evaluation.js",
     "layer:monday": "node --import dotenv/config server/layer-sources.js",
     "locataire:banc": "node scripts/locataire-banc.mjs",
+    "marche:banc": "node scripts/marche-banc.mjs",
     "test:parcours": "node --test server/parcours-v1.test.js",
     "test:haka": "node server/haka/test-haka.js"
   },

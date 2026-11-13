@@ -33,7 +33,7 @@ function Bandeau({ fiche, onAller }) {
   const champs = new Map(fiche.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
   if (!items.length) return <p className="m-0 mb-5 text-[12.5px] text-vert">Aucune alerte : les pièces concordent sur tous les champs de la fiche.</p>;
   return (
-    <div className="mb-6 rounded-xl border border-bord bg-surface px-5 py-4">
+    <div className="mb-6 k-verre px-5 py-4">
       <div className="flex flex-wrap gap-x-6 gap-y-3">
         {items.map(([statut, ids, mot]) => (
           <div key={statut} className="min-w-0">

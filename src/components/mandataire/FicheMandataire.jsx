@@ -581,7 +581,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
                 l'ordre de la maquette du fonds : l'exploitant, son dirigeant, ses chiffres, le bail, la licence, le contact, puis
                 les murs. Le mode Fonds ne change que la remarque de l'assistant et deux libellés. Deux colonnes égales, un trait
                 entre les rangées (25 oct. 2026). Le téléphone et le mail se corrigent même sans fiche : elle naît alors. */}
-            <dl className="m-0 mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+            <dl className="m-0 mt-3 overflow-hidden k-verre">
               {bureau && (<>
                 {/* Un bureau : l'immeuble et ses occupants à la place de l'exploitant et du fonds (3 nov. 2026, Jules). */}
                 <Rangee mot="Immeuble" valeur={bureau.adresse || ""} affiche={bureau.adresse || <span className="text-brume">Adresse inconnue</span>} />
@@ -614,7 +614,7 @@ export default function FicheMandataire({ id, commerceId = null, onFermer = null
             </dl>
             {/* Les parties libres que Haka ajoute à la fiche (26 oct. 2026, Jules : « rajouter une partie et tout ») : un titre, un texte. */}
             {(f.sections || []).map((x) => (
-              <div key={x.titre} className="mt-3 rounded-[12px] border border-bord-doux bg-surface/40 px-4 py-3">
+              <div key={x.titre} className="mt-3 k-verre px-4 py-3">
                 <p className="m-0 text-[13px] text-ardoise">{x.titre}</p>
                 {x.texte && <p className="m-0 mt-1 whitespace-pre-line text-[14px] leading-[1.5] text-encre">{x.texte}</p>}
               </div>

@@ -25,7 +25,7 @@ function NouvelleCompetence({ onCree, onFermer }) {
   const avecHaka = useMutation({ mutationFn: () => base44.request("POST", "/api/haka/competences/depuis-exemple", { body: { nom, texte } }), onSuccess: fin, onError: (e) => toast.error(e?.message || "Impossible") });
   const occupe = vide.isPending || avecHaka.isPending;
   return (
-    <div className="rounded-[16px] border border-trait bg-rail p-5">
+    <div className="k-verre p-5">
       <p className="m-0 text-[15px] text-encre">Nouvelle compétence</p>
       <p className="m-0 mt-1 text-[13px] text-ardoise">Donnez-lui un nom. Puis décrivez votre méthode, ou collez un livrable de référence (une ancienne fiche deal bien faite) : Assistant Klocka propose un brouillon complet, en-tête et recette. Rien n'est publié.</p>
       <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom, par exemple « Refus courtois »" className="mt-4 h-10 w-full rounded-[10px] border border-trait bg-surface px-3 text-[14px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />

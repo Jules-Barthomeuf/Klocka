@@ -17,7 +17,7 @@ const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven"];
 const nb = (n) => (n ?? 0).toLocaleString("fr-FR");
 const signe = (d) => (d > 0 ? "+" : d < 0 ? "−" : "");
 const dateLongue = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-const carte = "rounded-[16px] border border-trait bg-surface";
+const carte = "k-verre";
 const titreCarte = "m-0 text-[15px] font-medium text-encre";
 
 /** Un montant coupé en chiffre et unité, pour écrire l'unité en petit : 126 000 → ["126", "k€"]. */
@@ -201,7 +201,7 @@ function VueCompacte({ data, periode, setPeriode, periodes, c, chargement }) {
               {data.cette_semaine.map((s) => {
                 const d = s.n - s.avant;
                 return (
-                  <div key={s.cle} className="rounded-[12px] border border-trait bg-rail px-3.5 py-3">
+                  <div key={s.cle} className="k-verre px-3.5 py-3">
                     <div className="flex items-baseline justify-between gap-2 text-[14px]"><span className="truncate">{s.libelle}</span><span className="flex-none text-[18px] font-medium tabular-nums">{nb(s.n)} <span className="text-[12.5px] font-normal text-ardoise">{d ? `${signe(d)}${Math.abs(d)}` : "="}</span></span></div>
                     <div className="mt-2 h-[44px]">
                       <ResponsiveContainer>

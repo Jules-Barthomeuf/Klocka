@@ -220,7 +220,7 @@ function TempsKlocka({ m }) {
     : n === 2 ? "Envoyez-le en signature sur MyNotary, joignez ici le PDF signé, puis cochez « En signature »."
     : "Saisissez le mandat sur MyNotary et joignez ici le PDF rempli. Quand le mandataire l'a relu, cochez « Mandat à relire ».";
   return (
-    <div className="flex-none rounded-[12px] border border-bord-doux bg-surface/40 px-4 py-3.5 text-left">
+    <div className="flex-none k-verre px-4 py-3.5 text-left">
       <p className="m-0 text-[14px] leading-[1.5] text-encre">{phrase}</p>
       <p className="m-0 mt-1 text-[12.5px] text-ardoise">{[m.vendeur, m.vendeur_contact, m.prix ? euros(m.prix) : null, honoraires(m)].filter(Boolean).join(" · ")}</p>
       <ol className="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">

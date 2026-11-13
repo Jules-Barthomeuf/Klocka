@@ -14,7 +14,7 @@ function Case({ cle, titre, lu, detailLu, forcee, onChange }) {
   const valeur = forcee?.valeur ?? "";
   const detail = forcee?.detail ?? "";
   return (
-    <div className="rounded-[12px] border border-trait bg-surface p-3.5">
+    <div className="k-verre p-3.5">
       <FField label={titre} className="!border-0 !bg-transparent !p-0">
         <FInput
           value={valeur}

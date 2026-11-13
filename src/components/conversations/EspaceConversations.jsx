@@ -373,7 +373,7 @@ export function Conversation({ c, cote, bord = true }) {
           </div>
         )}
         {piece && (
-          <div className="rounded-[12px] border border-trait bg-surface px-3 py-2">
+          <div className="k-verre px-3 py-2">
             <p className="m-0 flex items-center gap-2 text-[12.5px] text-encre">
               <Paperclip className="h-3.5 w-3.5 flex-none text-ardoise" /><span className="min-w-0 flex-1 truncate">{piece.name}</span>
               <button type="button" onClick={() => { setPiece(null); setRangement(null); }} aria-label="Retirer le fichier" title="Retirer le fichier" className="text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
@@ -683,7 +683,7 @@ export function FicheDossier({ c, cote, etroit = false, estimations = [], onSupp
           {c.statut === "no_go" && <MotDeKlocka texte={`No-go : ${c.commentaire || ""}`} teinte="alerte" />}
           {c.statut === "go" && <MotDeKlocka texte={`Go : le bien part vers les investisseurs.${c.commentaire ? ` ${c.commentaire}` : ""}`} teinte="menthe" />}
           {!!infos.length && (
-            <dl className="m-0 grid gap-x-8 gap-y-4 rounded-[18px] border border-trait bg-rail px-5 py-[18px] sm:grid-cols-2">
+            <dl className="m-0 grid gap-x-8 gap-y-4 k-verre px-5 py-[18px] sm:grid-cols-2">
               {infos.map(([k, v]) => (
                 <div key={k} className="min-w-0">
                   <dt className="text-[12px] text-brume">{k}</dt>
@@ -728,7 +728,7 @@ function EnteteDossier({ c, cote, children }) {
   const lieu = [k.ville, k.surface_m2 ? `${k.surface_m2} m²` : null].filter(Boolean).join(" · ") || c.adresse || "Adresse à compléter";
   const chiffre = (v) => (v ? euros(v) : <span className="text-brume">À compléter</span>);
   return (
-    <article className="flex flex-col overflow-hidden rounded-[18px] border border-trait bg-rail">
+    <article className="flex flex-col overflow-hidden k-verre">
       <div className="k-grid k-grid-toujours relative h-[112px] flex-none border-b border-trait">
         <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: teinteStatut(c.statut) }} />{STATUTS[cote][c.statut] || c.statut}
@@ -838,7 +838,7 @@ function Estimation({ c, estimations, gestes }) {
   const e = c.estimation;
   const mots = { brouillon: "En questions", prete: "Avis prêt", envoye: "Envoyé au propriétaire", validation: "En validation" };
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-[18px] border border-trait bg-rail px-5 py-[18px]">
+    <div className="flex min-w-0 flex-col gap-2 k-verre px-5 py-[18px]">
       <p className="m-0 text-[12px] text-brume">Estimation</p>
       {e ? (
         <>
@@ -872,7 +872,7 @@ function Mandat({ c }) {
   const m = c.mandat;
   const mots = { demande_envoyee: "Demandé", pret: "Prêt à signer", signe: "Signé", enregistre: "Inscrit au registre" };
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-[18px] border border-trait bg-rail px-5 py-[18px]">
+    <div className="flex min-w-0 flex-col gap-2 k-verre px-5 py-[18px]">
       <p className="m-0 text-[12px] text-brume">Mandat</p>
       {m ? (
         <>

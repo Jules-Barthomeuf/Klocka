@@ -18,7 +18,7 @@ const EQUIPE = [
   { prenom: "Paul", email: "paul.dz@klocka.immo", photo: "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/db402bc1f_Capturedecran2026-06-24a122246.png" },
 ];
 
-const fieldWrap = "bg-surface border border-trait rounded-[14px] p-4";
+const fieldWrap = "k-verre p-4";
 const flabel = "text-[11px] tracking-[.16em] uppercase text-ardoise mb-2.5";
 
 const initiales = (prenom = "", email = "") => {

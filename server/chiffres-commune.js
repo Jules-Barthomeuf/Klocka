@@ -13,6 +13,12 @@ export async function communeParNom(nom) {
   return r.ok ? (await r.json())[0] || null : null;
 }
 
+/** La commune d'après son code INSEE, même forme que communeParNom. */
+export async function communeParCode(code) {
+  const r = await fetch(`https://geo.api.gouv.fr/communes/${encodeURIComponent(code)}?fields=nom,code,population,surface,departement,region`, { signal: AbortSignal.timeout(10000) });
+  return r.ok ? await r.json() : null;
+}
+
 /** Les trois chiffres sourcés d'une commune déjà identifiée ({ code, nom }). */
 export async function chiffresSources(c, { user = null } = {}) {
   const [revenu, chomage, figaro] = await Promise.allSettled([revenuMedianUC(c.code), chomageZoneEmploi(c.code), prixResidentiel(c.nom, { user, commune: { code: c.code, nom: c.nom } })]);

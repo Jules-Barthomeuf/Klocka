@@ -27,7 +27,7 @@ export default function LocataireCases({ formData, setFormData }) {
         const c = CHAMPS[cle];
         const cache = masques.includes(cle);
         return (
-          <div key={cle} className={`relative rounded-[12px] border border-trait bg-surface p-3.5 ${cache ? "opacity-50" : ""}`}>
+          <div key={cle} className={`relative k-verre p-3.5 ${cache ? "opacity-50" : ""}`}>
             {cache ? (
               <button type="button" onClick={() => montrer(cle)} className="absolute right-3 top-2.5 text-[11px] text-menthe hover:underline" style={{ background: "transparent" }}>
                 Remettre

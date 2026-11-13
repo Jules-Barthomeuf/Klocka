@@ -16,7 +16,7 @@ import { toast } from "@/components/ui/avis";
 // Un lead porte un nom, des revenus et une adresse e-mail : cette page est
 // réservée à l'équipe, et la route qui la sert l'est aussi.
 
-const CARTE = "rounded-[18px] border border-trait bg-surface";
+const CARTE = "k-verre";
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
 const jourCourt = (j) => (j ? new Date(`${j}T12:00:00`).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) : "");

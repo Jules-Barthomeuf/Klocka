@@ -11,7 +11,7 @@ import { kEuros } from "@/lib/clients-commerces";
 // affichées. Avec le jeton du lien (k), l'objectif de revenu et l'horizon se
 // rangent dans la fiche du contact ; sans jeton, rien n'est noté.
 
-const CARTE = "rounded-[18px] border border-trait bg-surface";
+const CARTE = "k-verre";
 const HORIZONS = [10, 15, 20, 25, 30];
 const euros = (n) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 const ans = (n) => `${n} an${n > 1 ? "s" : ""}`;

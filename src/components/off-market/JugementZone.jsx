@@ -54,7 +54,7 @@ export function BlocZone({ id, zone, onJuge, rangAJuger = null, onPasser = null 
   const pret = verdict && !ecoute && !finalisation && !juger.isPending && (verdict === "a_revoir" || texte.trim().length >= 3);
   const j = z?.jugement_zone;
   return (
-    <div className="mt-3 rounded-[12px] border border-bord-doux bg-surface/40 px-4 py-3">
+    <div className="mt-3 k-verre px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="text-[14px] text-encre">Zone : {z?.score_zone != null ? <span className="tabular-nums">{z.score_zone}/100</span> : <span className="text-brume">non calculée</span>}</span>
         <span className="text-[11.5px] text-brume">{rangAJuger ? `À juger · ${rangAJuger}` : zone.modele ? `version ${zone.modele.version}${zone.modele.type === "regles" ? " (règles)" : ""}` : null}</span>

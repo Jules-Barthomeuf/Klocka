@@ -86,7 +86,7 @@ export default function SuiviBien({ proprietaireId }) {
 
         {/* Le prix en deux tuiles : l'avis et l'accord. « Il pensait à » est retiré le 7 nov. 2026 (Jules). En location,
             l'avis est un loyer annuel : la tuile le dit, pour ne pas le lire comme un prix. */}
-        <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+        <div className="mt-4 grid grid-cols-2 overflow-hidden k-verre">
           <Tuile mot={b.location ? "Loyer de l'avis" : "Avis"}>{b.valeur ? `${euros(b.valeur)}${b.location ? " /an" : ""}` : <span className="text-brume">-</span>}</Tuile>
           <Tuile mot={b.location ? "Loyer d'accord" : "Accord"} accent={!!b.prix_accord}>{b.prix_accord ? `${euros(b.prix_accord)}${b.location ? " /an" : ""}` : <span className="text-[14px] text-brume">Pas encore</span>}</Tuile>
         </div>

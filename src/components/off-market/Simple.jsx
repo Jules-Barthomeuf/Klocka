@@ -368,7 +368,7 @@ export function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJ
         {pourquoi && <p className="m-0 mb-2 truncate text-[13.5px] text-menthe" title={pourquoi}>{pourquoi}</p>}
         <FacadeLocal adresse={c.adresse} ville={c.ville} lat={c.lat} lon={c.lon} nom={c.enseigne || c.nom} placeId={c.place_id} />
         <BlocZone id={id} zone={zone} rangAJuger={rangAJuger} onJuge={onJuge} onPasser={onPasser} />
-        <div className="mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+        <div className="mt-3 overflow-hidden k-verre">
           <Ligne titre="Propriétaire des murs" {...ligne("proprietaire")}
             valeur={pr ? `${pr.nom}${pr.forme ? ` · ${pr.forme}` : ""}` : c.proprietaire_declare ? `${c.proprietaire_declare.nom} (déclaré)` : enCours ? "Recherche en cours…" : "Inconnu, à demander lors de l'appel"}
             ton={pr || c.proprietaire_declare ? "text-encre" : "text-brume"}
@@ -465,7 +465,7 @@ function ClientProspection({ clients, client, nPour, ville, n, charge, onChoisir
   const rendement = client.rendement_min ? `${String(client.rendement_min).replace(".", ",")} %` : "—";
   const zones = (client.zones || []).join(", ") || <VillesCotees />;
   return (
-    <div className="relative overflow-hidden rounded-[14px] border border-bord-doux bg-rail">
+    <div className="relative overflow-hidden k-verre">
       <div className="flex items-center gap-3 border-b border-trait px-4 py-3">
         <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe/15 text-[13px] font-medium text-menthe">{String(client.reference || "?").replace(/^Client /, "").slice(0, 4)}</span>
         <button type="button" onClick={() => setListe((l) => !l)} aria-expanded={liste} className="min-w-0 flex-1 text-left" style={{ background: "transparent" }}>
@@ -719,7 +719,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         </div>
 
         {/* Le tableau de tous les commerces, sous la carte, comme PropStream. */}
-        <section className="overflow-hidden rounded-[12px] border border-trait bg-rail">
+        <section className="overflow-hidden k-verre">
           <div className="flex flex-wrap items-center gap-2 border-b border-trait px-4 py-3">
             <h3 className="m-0 mr-2 text-[16px] font-normal text-encre">{pl(tries.length, "commerce")}{tries.length !== dansZone.length ? <span className="text-ardoise"> sur {dansZone.length}</span> : null}{filtres.emplacement !== "partout" && <span className="text-ardoise"> {compte?.zones?.length ? "dans les zones commerçantes" : "au centre-ville"}</span>}</h3>
             <div className="relative w-[280px] max-w-full">

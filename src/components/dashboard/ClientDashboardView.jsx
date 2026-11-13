@@ -168,7 +168,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="bg-surface-pleine border border-trait rounded-[18px] p-8 max-md:p-5 min-h-[240px] flex flex-col"
+      className="k-verre p-8 max-md:p-5 min-h-[240px] flex flex-col"
     >
       <div className="flex items-center gap-2.5 mb-3">
         <Search className="w-4 h-4 text-menthe" />
@@ -245,7 +245,7 @@ export default function ClientDashboardView({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05, duration: 0.4 }}
-          className="mb-5 rounded-[18px] border border-trait bg-surface-pleine p-7 max-md:p-5"
+          className="mb-5 k-verre p-7 max-md:p-5"
         >
           <StepProgressBar etapes={etapes} userEtape={userEtape} />
         </motion.div>

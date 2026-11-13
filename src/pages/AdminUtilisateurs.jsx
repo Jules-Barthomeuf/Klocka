@@ -646,7 +646,7 @@ export default function AdminUtilisateurs() {
 
       {/* Section En attente d'activation : le même tableau que les utilisateurs (6 nov. 2026, Jules). */}
       {pendingUsers.length > 0 && (
-        <div className="overflow-hidden rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-rail">
+        <div className="overflow-hidden k-verre border-l-[3px] border-l-menthe">
           <button
             onClick={() => setPendingCollapsed(prev => !prev)}
             className="group flex w-full items-center gap-2.5 px-4 py-3 text-left"
@@ -715,7 +715,7 @@ export default function AdminUtilisateurs() {
       {/* Les utilisateurs en tableau, sur le modèle du CRM (6 nov. 2026, Jules : « un tableau avec des colonnes et des
           cases cochées ou pas ») : cases à traits pleins, une colonne par rôle ; le nom ouvre le détail, en dessous. Au
           téléphone, le tableau défile dans son cadre. */}
-      <div className="max-w-full overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-rail">
+      <div className="max-w-full overflow-x-auto k-verre border-l-[3px] border-l-menthe">
         <table className={`${TABLEAU} min-w-[1120px]`}>
           <thead>
             <tr className="text-encre">

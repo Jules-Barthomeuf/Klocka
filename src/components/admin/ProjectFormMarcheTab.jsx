@@ -35,7 +35,7 @@ function Notes({ formData, setFormData }) {
         </button>
       </div>
       {liste.map((note, idx) => (
-        <div key={idx} className="rounded-[12px] border border-trait bg-surface p-3.5 space-y-2.5">
+        <div key={idx} className="k-verre p-3.5 space-y-2.5">
           <div className="flex items-center gap-2.5">
             <FField className="flex-1 !border-0 !bg-transparent !p-0">
               <FInput

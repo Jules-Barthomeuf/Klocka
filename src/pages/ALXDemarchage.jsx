@@ -117,7 +117,7 @@ function PopupEnrichissement({ travail, onFini }) {
 function CarteCommerce({ m, onOuvrir }) {
   const Icone = iconeDe(m.categorie_activite);
   return (
-    <button type="button" onClick={onOuvrir} className="group flex min-w-0 flex-col items-start gap-2.5 rounded-[16px] border border-trait bg-surface p-4 text-left transition-colors hover:border-menthe/50">
+    <button type="button" onClick={onOuvrir} className="group flex min-w-0 flex-col items-start gap-2.5 k-verre p-4 text-left transition-colors hover:border-menthe/50">
       <span className="grid h-10 w-10 place-items-center rounded-full border border-trait text-ardoise group-hover:border-menthe/50 group-hover:text-menthe"><Icone className="h-[18px] w-[18px]" /></span>
       <div className="w-full min-w-0">
         <p className="m-0 truncate text-[13.5px] font-medium text-encre">{joliNom(m.enseigne) || "Local commercial"}</p>
@@ -457,7 +457,7 @@ export default function ALXDemarchage() {
         {!villeId && (villes.data?.villes || []).length > 0 && <p className="m-0 py-10 text-center text-[13.5px] text-ardoise">Choisis une ville pour voir ses sociétés.</p>}
 
         {p?.etat === "en_cours" && (
-          <section className="alx-entree mb-5 rounded-[18px] border border-trait bg-surface p-6">
+          <section className="alx-entree mb-5 k-verre p-6">
             <p className={etiq}>L'assistant y travaille <Points /></p>
             <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.07]"><div className="h-full rounded-full bg-menthe transition-[width] duration-700" style={{ width: `${p.rues_total ? Math.round((p.rues_faites / p.rues_total) * 100) : 5}%` }} /></div>
             <p className="m-0 mt-3 text-[13.5px] text-encre">{p.phase === "rues" ? "Il lit les rues commerçantes." : `${p.rues_faites} rues sur ${p.rues_total}${p.rue_en_cours ? `, il est ${p.rue_en_cours}` : ""}.`}</p>

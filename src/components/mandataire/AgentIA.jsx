@@ -86,7 +86,7 @@ export default function AgentIA() {
       </div>
 
       {/* Sa journée, en quatre chiffres. */}
-      <div className="mt-6 grid grid-cols-2 overflow-hidden rounded-[18px] border border-trait bg-surface-pleine md:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 overflow-hidden k-verre md:grid-cols-4">
         {[["Commerces lus", j.lus], ["Propriétaires identifiés", j.proprietaires], ["Numéros trouvés", j.numeros], ["Prêts à appeler", j.trouvailles]].map(([mot, n], i) => (
           <div key={mot} className={`px-6 py-5 max-md:px-4 max-md:py-4 ${i ? "md:border-l" : ""} ${i % 2 ? "max-md:border-l" : ""} ${i > 1 ? "max-md:border-t" : ""} border-trait`}>
             <p className={`m-0 text-[28px] font-light leading-none tabular-nums ${i === 3 ? "text-menthe" : "text-encre"}`}>{n || 0}</p>
@@ -118,7 +118,7 @@ export default function AgentIA() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.listes.map((l) => (
               <button key={l.id} type="button" onClick={() => ouvrirListe(l.id)}
-                className="flex items-center gap-4 rounded-[18px] border border-trait bg-surface-pleine px-5 py-4 text-left transition-colors hover:border-menthe">
+                className="flex items-center gap-4 k-verre px-5 py-4 text-left transition-colors hover:border-menthe">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[15.5px] text-encre">{l.nom}</span>
                   <span className="mt-0.5 block text-[13px] text-ardoise">{l.total} commerce{l.total > 1 ? "s" : ""} · <span className="text-menthe">{l.a_appeler} à appeler</span></span>
@@ -205,7 +205,7 @@ export default function AgentIA() {
         </section>
 
         {/* Ce qu'il a fait, en phrases. */}
-        <aside className="rounded-[18px] border border-trait bg-surface-pleine lg:sticky lg:top-6">
+        <aside className="k-verre lg:sticky lg:top-6">
           <p className="m-0 border-b border-trait px-5 py-3.5 text-[13.5px] text-craie">Journal de l'agent</p>
           <ol className="m-0 max-h-[560px] list-none overflow-y-auto p-0 max-md:max-h-[50dvh]">
             {!data.journal.length && <li className="px-5 py-5 text-[13px] text-brume">Rien encore : le premier tour démarre dans quelques minutes.</li>}
@@ -247,7 +247,7 @@ function Exploitants({ onOuvrirListe }) {
   const ajoutes = (e?.communes || []).reduce((n, c) => n + (c.ajoutes || 0), 0);
   React.useEffect(() => { if (ajoutes) for (const k of [["m-listes"], ["m-agent"]]) queryClient.invalidateQueries({ queryKey: k }); }, [ajoutes, queryClient]);
   return (
-    <section className="mt-8 rounded-[18px] border border-trait bg-surface-pleine px-6 py-5 max-md:px-4">
+    <section className="mt-8 k-verre px-6 py-5 max-md:px-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 max-w-[68ch]">
           <p className="m-0 flex items-center gap-2 text-[15px] text-encre"><Building2 className="h-4 w-4 text-menthe" />Propriétaires exploitants</p>

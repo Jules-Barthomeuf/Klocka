@@ -102,7 +102,7 @@ function Boites() {
   const boites = e.boites || [];
   const enCours = boites.some((b) => b.en_cours);
   return (
-    <section className="rounded-[12px] border border-bord-doux bg-rail px-5 py-4">
+    <section className="k-verre px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="m-0 text-[15px] font-normal text-encre">Les boîtes</h2>
         <p className="m-0 text-[13px] text-ardoise">

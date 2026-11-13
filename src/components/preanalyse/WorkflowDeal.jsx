@@ -715,9 +715,13 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             </div>
             {/* lg:pr-14 : la colonne des étapes, posée à droite de l'écran, ne recouvre pas les tableaux. */}
             {/* Un trait sépare le panneau du contenu, sur toute la hauteur (12 nov. 2026, Jules). */}
-            <div className="flex items-stretch gap-8 lg:pr-14">
+            {/* Le panneau ne remonte plus en bas de page (12 nov. 2026, Jules : « il faut que ça reste stable ») : collant, il
+                ne sort pas de cette rangée ; elle descend donc jusqu'au bout du défilement, par-dessus les 32 px du bas de
+                la page (py-8 d'Analyse.jsx), rendus au contenu. Pas sous le Simulateur : sa décision suit. */}
+            <div className={`flex items-stretch gap-8 lg:pr-14 ${grilleAnalyse !== "simulateur" ? "lg:-mb-8" : ""}`}>
             <div className="hidden w-[232px] flex-none border-r border-trait pr-4 lg:block">
-            <nav aria-label="Parties du dossier" className="sticky top-0 flex flex-col pt-7">
+            {/* Dans l'écran scindé, le panneau prend la hauteur visible : « Voir le projet » se pose en bas (12 nov. 2026, Jules). */}
+            <nav aria-label="Parties du dossier" className={`sticky top-0 flex flex-col pt-7 ${bande ? "h-[calc(100dvh-48px)] pb-6" : ""}`}>
               {!bande && <div className="mb-5 flex flex-wrap items-center gap-1.5">{blocTitre}</div>}
               {[["Les pièces", GRILLES_ANALYSE.filter((g) => g.id === "data_room" || g.parPiece)], ["Hors pièces", GRILLES_ANALYSE.filter((g) => g.id !== "data_room" && !g.parPiece)], ["Analyses K", ongletsKData]].filter(([, l]) => l.length).map(([groupe, liste], i) => (
                 <React.Fragment key={groupe}>
@@ -735,11 +739,14 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                   })}
                 </React.Fragment>
               ))}
+              {bande && boutonProjet && <div className="mt-auto pt-6">{boutonProjet}</div>}
             </nav>
             </div>
-            <div className="min-h-[100dvh] min-w-0 flex-1 space-y-5 pt-7">
-            <div className="flex min-h-9 items-center justify-between gap-3">
-              <h2 className="m-0 text-[20px] font-normal text-encre max-lg:hidden">{GRILLES_ANALYSE.find((g) => g.id === grilleAnalyse)?.titre}</h2>
+            <div className={`min-h-[100dvh] min-w-0 flex-1 space-y-5 pt-7 ${grilleAnalyse !== "simulateur" ? "lg:pb-8" : ""}`}>
+            {/* Le Marché n'a pas de titre : ses blocs portent chacun le leur, à la même taille (12 nov. 2026, Jules). Dans
+                l'écran scindé, la ligne resterait vide : elle disparaît, le premier bloc monte. */}
+            <div className={`flex min-h-9 items-center justify-between gap-3 ${grilleAnalyse === "marche" && bande ? "lg:hidden" : ""}`}>
+              {grilleAnalyse !== "marche" && <h2 className="m-0 text-[20px] font-normal text-encre max-lg:hidden">{GRILLES_ANALYSE.find((g) => g.id === grilleAnalyse)?.titre}</h2>}
               {/* Aligné sur le bord droit des tableaux (12 nov. 2026, Jules) : sans k-actions-dossier, qui décale de 16 px. */}
               <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
                 {/* L'en-tête centré caché, ses gestes viennent ici : ceux de la Data Room, Mode IA / Normal, les versions. */}
@@ -748,7 +755,6 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                   {!dataRoomOuverte && actionsBarre}
                 </span>}
                 {!apercu && !bande && <FlechesVersions dealId={dossier.deal_id} />}
-                {bande && boutonProjet}
               </span>
             </div>
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
@@ -930,7 +936,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 
   if (dossier && !apercu && etapeFranchie) {
     return (
-      <div className="bg-surface border border-trait rounded-2xl px-6 py-5">
+      <div className="k-verre px-6 py-5">
         <div className="flex items-center gap-[18px] max-md:flex-wrap">
           <span className="w-10 h-10 rounded-full bg-relief border border-bord-vif text-encre flex items-center justify-center flex-shrink-0">
             {dossier.source_mail ? <Mail className="w-4 h-4" /> : <Check className="w-4 h-4" strokeWidth={2.2} />}
@@ -958,7 +964,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
         description="À écrire pendant l'appel, depuis le chat en haut de page. Le brouillon apparaît ici, prêt à relire et à envoyer depuis votre Gmail — ou passez si vous avez déjà la fiche."
       />
       {!brouillon ? (
-        <div className="bg-surface border border-trait rounded-xl px-6 py-10 text-center">
+        <div className="k-verre px-6 py-10 text-center">
           <p className="m-0 text-[13.5px] text-ardoise">
             Rédigez le mail dans le chat en haut de page — un gabarit pour partir vite, puis générez.
           </p>
@@ -971,7 +977,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
           </Button>
         </div>
       ) : (
-        <div className="bg-surface border border-trait rounded-xl overflow-hidden">
+        <div className="k-verre overflow-hidden">
           {/* Expéditeur : la ligne d'identité du message */}
           {comptes.length > 0 ? (
             <div className="flex items-center gap-3 px-5 py-3 border-b border-relief">
@@ -1204,7 +1210,7 @@ function DepotFiche({ onFichier, onTexte, onArreter = null, enCours = false, ape
         onChange={(e) => { choisir(e.target.files?.[0]); e.target.value = ""; }}
         className="hidden"
       />
-      <div className="flex flex-col rounded-xl border border-trait bg-surface p-4">
+      <div className="flex flex-col k-verre p-4">
         <Textarea
           value={texte}
           onChange={(e) => setTexte(e.target.value)}
@@ -1355,7 +1361,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
     <>
       <p className="m-0 mb-2.5 pt-4 text-[14px] text-encre">Dossier bancaire</p>
       {/* Tout tient sur une ligne (9 nov. 2026, Jules). */}
-      <div className="space-y-3 rounded-[12px] border border-trait bg-rail px-3.5 py-3">
+      <div className="space-y-3 k-verre px-3.5 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="m-0 text-[14.5px] text-encre">Présentation bancaire</p>
@@ -1690,7 +1696,7 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
   const enCours = etat?.etat === "en_cours" || lancer.isPending;
 
   return (
-    <div className="bg-surface border border-trait rounded-xl px-6 py-8">
+    <div className="k-verre px-6 py-8">
       <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Pas de teaser, mais {nb} pièce{nb > 1 ? "s" : ""} dans le dossier</p>
       <p className="m-0 mt-2 text-[15px] leading-[1.65] text-craie max-w-[720px]">
         La fiche se compose depuis les documents — adresse, surface, locataire, bail, loyer, charges — puis passe dans la pré-analyse habituelle : mêmes critères, même verdict. Le prix de vente, absent des pièces, restera à renseigner.

@@ -595,7 +595,7 @@ function CarteBloc({ b, i, actif, survole, onActif, onChange, onDupliquer, onSup
 
 function ChoixBloc({ onChoisir }) {
   return (
-    <div className="flex flex-wrap gap-1.5 rounded-[12px] border border-trait bg-surface-pleine p-2">
+    <div className="flex flex-wrap gap-1.5 k-verre p-2">
       {TYPES_BLOCS.map(([t, mot]) => (
         <button key={t} type="button" onClick={() => onChoisir(t)} className="rounded-full border border-trait px-3 py-1 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre max-md:py-2">{mot}</button>
       ))}

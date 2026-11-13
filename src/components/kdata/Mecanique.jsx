@@ -16,7 +16,7 @@ import { Waypoints, ChevronDown, ChevronRight, X } from "lucide-react";
 // repère « Crédit » — une requête qui peut coûter, à distinguer de celles qui
 // ne coûtent jamais rien.
 
-const CARTE = "rounded-[18px] border border-trait bg-surface";
+const CARTE = "k-verre";
 
 function Etape({ n, source, quoi, credit }) {
   return (

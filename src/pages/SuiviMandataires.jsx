@@ -29,7 +29,7 @@ function depuisQuand(iso) {
 
 function Chiffre({ valeur, libelle, note = null }) {
   return (
-    <div className="rounded-[12px] border border-trait bg-surface px-4 py-3.5">
+    <div className="k-verre px-4 py-3.5">
       <p className="m-0 text-[12.5px] text-ardoise">{libelle}</p>
       <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{valeur}</p>
       {note && <p className="m-0 mt-0.5 text-[12px] text-brume">{note}</p>}

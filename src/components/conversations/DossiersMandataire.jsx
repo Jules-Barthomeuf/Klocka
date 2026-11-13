@@ -207,7 +207,7 @@ function CarteDossier({ c, nonLus, onOuvrir }) {
   const lieu = [k.ville, k.surface_m2 ? `${k.surface_m2} m²` : null, (k.prix || c.prix) ? euros(k.prix || c.prix) : null].filter(Boolean).join(" · ") || c.adresse || "Adresse à compléter";
   const geste = "flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06]";
   return (
-    <article className="relative flex cursor-pointer flex-col rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+    <article className="relative flex cursor-pointer flex-col k-verre transition-colors hover:border-bord-doux" onClick={onOuvrir}>
       <div className="k-grid k-grid-toujours relative h-[112px] flex-none rounded-t-[17px] border-b border-trait">
         <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: etat.teinte }} />{etat.mot}

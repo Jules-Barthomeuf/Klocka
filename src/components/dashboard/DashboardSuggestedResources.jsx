@@ -88,7 +88,7 @@ export default function DashboardSuggestedResources({ user }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.25 }}
-      className="rounded-[18px] bg-surface-pleine border border-trait p-6 max-md:p-5"
+      className="k-verre p-6 max-md:p-5"
     >
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">

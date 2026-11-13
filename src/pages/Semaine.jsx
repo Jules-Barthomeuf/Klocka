@@ -9,7 +9,7 @@ import Chargement from "@/components/ui/Chargement";
 // ici, le jour dit ; on n'en écrit plus depuis un jour des Présences (6 nov.
 // 2026). Aucun mail (server/equipe-semaine.js).
 
-const bloc = "rounded-[14px] border border-trait bg-rail px-6 py-5 max-md:px-4";
+const bloc = "k-verre px-6 py-5 max-md:px-4";
 const titreBloc = "m-0 text-[22px] font-normal tracking-[-0.01em] text-encre";
 const TEINTES = { ecole: "bg-menthe/60", conges: "bg-ambre/60", autre: "bg-bord-vif" };
 const jourLong = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });

@@ -62,6 +62,7 @@ import PenseeIA from "@/components/PenseeIA";
 const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 import { J } from "@/design/jetons";
+import { VERRE, VERRE_LG } from "@/lib/verre";
 
 // Bibliothèque partagée du workflow d'analyse : verdicts, statuts, carte d'un
 // lot, dialogue de mail d'intention, journal de suivi. Consommée par
@@ -480,8 +481,8 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
         <p className="m-0 text-[14px] text-encre">{titre}</p>
       </div>
       {/* L'emplacement à part, au-dessus du tableau (11 nov. 2026, Jules : « pas dans le tableau, séparé ») : sa propre carte. */}
-      {emplacement && <div className="mb-4 rounded-[12px] border border-trait bg-rail">{emplacement}</div>}
-      <div className="k-tableau-fond relative overflow-hidden lg:rounded-[12px] lg:border lg:border-trait" style={colonnes.style}>
+      {emplacement && <div className={`mb-4 overflow-hidden ${VERRE}`}>{emplacement}</div>}
+      <div className={`relative overflow-hidden ${VERRE_LG}`} style={colonnes.style}>
         <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-3 text-[12.5px] text-ardoise max-lg:hidden lg:border-t-0 lg:[&>*]:py-2`}>
           <span className="relative text-[13.5px] text-encre">{titre}<Poignee cote="right" onPointerDown={colonnes.tirer("critere", 1)} /></span><span>Valeur</span><span className="relative">Notes<Poignee cote="left" onPointerDown={colonnes.tirer("notes", -1)} /></span>
         </div>
@@ -1263,7 +1264,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               <BasculeFiche tableau={modeFiche === "tableau"} onChange={(oui) => setModeFiche(oui ? "tableau" : "fiche")} />
               {apresModes}
             </div>
-            {modeFiche === "fiche" ? (boutonFicheSource(dossier) ? <FicheSource dossier={dossier} /> : <p className="m-0 rounded-[12px] border border-trait bg-rail px-5 py-8 text-center text-[13.5px] text-ardoise">Ce dossier n'a pas de fiche commerciale : il a été créé sans pièce.</p>) : (
+            {modeFiche === "fiche" ? (boutonFicheSource(dossier) ? <FicheSource dossier={dossier} /> : <p className={`m-0 ${VERRE} px-5 py-8 text-center text-[13.5px] text-ardoise`}>Ce dossier n'a pas de fiche commerciale : il a été créé sans pièce.</p>) : (
               <TableauBien
                 lot={lotVu}
                 emplacement={<CarteEmplacement lot={lotVu} dealId={dossier?.deal_id || null} apercu={apercu} />}

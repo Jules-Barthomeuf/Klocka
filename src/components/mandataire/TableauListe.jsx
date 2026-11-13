@@ -513,7 +513,7 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
       <div>
 
       {coches.size > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[12px] border border-trait bg-surface-pleine px-4 py-2.5">
+        <div className="mt-4 flex flex-wrap items-center gap-3 k-verre px-4 py-2.5">
           <span className="text-[13.5px] text-encre">{coches.size} commerce{coches.size > 1 ? "s" : ""} coché{coches.size > 1 ? "s" : ""}</span>
           <button type="button" onClick={() => setRetirer(true)} disabled={supprimer.isPending}
             className="inline-flex h-8 max-md:h-10 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-alerte hover:border-alerte disabled:opacity-50" style={{ background: "transparent" }}>
@@ -529,7 +529,7 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
           Seul le débord horizontal (colonnes sur un écran étroit) défile dans le cadre. */}
       {/* Au téléphone, plus de tableau (25 oct. 2026) : une ligne par commerce, le nom, la pastille du statut, la prochaine
           action ; un toucher ouvre la fiche au milieu de l'écran. */}
-      <ul className="m-0 mt-4 list-none overflow-hidden rounded-[12px] border border-trait bg-rail p-0 md:hidden">
+      <ul className="m-0 mt-4 list-none overflow-hidden k-verre p-0 md:hidden">
         {affichees.map((p) => (
           <li key={p.id} className="border-b border-trait last:border-b-0">
             <button type="button" onClick={() => setOuvert(p.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left" style={{ background: "transparent" }}>
@@ -546,7 +546,7 @@ export default function TableauListe({ onglets = null, fiches, libelles, listeId
         {!lignes.length && <li className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : filtre === "a_appeler" ? "Plus personne à contacter dans cette liste." : "Rien ici."}</li>}
       </ul>
       {/* Le cadre a le trait des lignes, sans trait doublé à droite ni en bas (Jules, 31 oct. 2026). */}
-      <div className="mt-4 overflow-x-auto rounded-[12px] border border-trait bg-rail max-md:hidden">
+      <div className="mt-4 overflow-x-auto k-verre max-md:hidden">
         {/* Bordures séparées, pas fusionnées (25 oct. 2026, Jules : « on voit du texte passer derrière ») : fusionnées, les traits
             appartiennent au tableau et ne suivent pas les colonnes figées, le texte qui défile se voyait au travers ; séparées,
             chaque cellule porte les siens, peints sur son fond opaque. */}

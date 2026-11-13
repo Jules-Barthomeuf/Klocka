@@ -106,7 +106,7 @@ export default function MandataireClients() {
 function CarteClient({ d, onOuvrir }) {
   const n = aProspecter(d);
   return (
-    <article onClick={onOuvrir} className="flex cursor-pointer flex-col gap-2 rounded-[12px] border border-trait bg-rail px-3.5 py-3 transition-colors hover:border-bord-doux">
+    <article onClick={onOuvrir} className="flex cursor-pointer flex-col gap-2 k-verre px-3.5 py-3 transition-colors hover:border-bord-doux">
       <div className="min-w-0">
         <div className="flex min-w-0 items-center justify-between gap-2">
           <span className="flex min-w-0 items-center text-[15px] text-encre"><span className="truncate">{nomDe(d)}</span><PastilleTest x={d} /></span>
@@ -137,7 +137,7 @@ const CELLULES = "[&>*]:flex [&>*]:min-w-0 [&>*]:items-center [&>*]:border-r [&>
 
 function TableauClients({ lignes, onOuvrir }) {
   return (
-    <div className="overflow-x-auto rounded-[12px] border border-trait bg-rail">
+    <div className="overflow-x-auto k-verre">
       <div className="min-w-[980px]">
         <div className={`grid ${COLONNES} ${CELLULES} border-b border-trait text-[12.5px] text-ardoise [&>*]:h-[35px]`}>
           <span>Client</span><span>Type de bien</span><span>Zones</span><span>Budget</span><span>Rendement</span><span>Exclusions</span><span>À prospecter</span>
@@ -231,7 +231,7 @@ function FicheClient({ d, onFermer, onProspecter }) {
 
         <div className="flex flex-col gap-2.5 px-7 pb-7 pt-1 max-md:px-5">
           <p className="m-0 text-[12px] tracking-[0.14em] text-ardoise">DANS VOTRE SECTEUR</p>
-          <div className="grid grid-cols-3 overflow-hidden rounded-[12px] border border-trait bg-surface">
+          <div className="grid grid-cols-3 overflow-hidden k-verre">
             <Compte n={d.commerces_du_secteur ?? 0} mot="correspondent" />
             <Compte n={d.dans_ma_liste ?? 0} mot="dans votre liste" />
             <Compte n={chiffre(aProspecter(d))} mot="à prospecter" accent />

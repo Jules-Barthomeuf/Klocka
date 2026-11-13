@@ -30,7 +30,7 @@ export default function Sources({ peutRegler = false }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex items-center justify-between gap-4 rounded-[16px] border border-trait bg-rail px-5 py-4">
+      <section className="flex items-center justify-between gap-4 k-verre px-5 py-4">
         <div>
           <p className="m-0 text-[15px] text-encre">Boîte à outils de l'Assistant Klocka</p>
           <p className="m-0 mt-1 text-[13px] text-ardoise">Allumée, le socle tourne : identifiant de local, imports de la nuit sur les Alpes-Maritimes. Éteinte, les outils restent tels qu'avant.</p>
@@ -42,7 +42,7 @@ export default function Sources({ peutRegler = false }) {
         const liste = sources.filter((s) => s.famille === famille);
         if (!liste.length) return null;
         return (
-          <section key={famille} className="rounded-[16px] border border-trait bg-rail">
+          <section key={famille} className="k-verre">
             <p className="m-0 px-5 pt-4 pb-2 text-[13px] text-ardoise">{titre}</p>
             {liste.map((s) => (
               <div key={s.cle} className="grid grid-cols-[minmax(0,1fr)_110px_44px] items-center gap-4 border-t border-trait px-5 py-3 max-md:grid-cols-[minmax(0,1fr)_44px]">
@@ -66,7 +66,7 @@ export default function Sources({ peutRegler = false }) {
         );
       })}
 
-      <section className="rounded-[16px] border border-trait bg-rail">
+      <section className="k-verre">
         <p className="m-0 px-5 pt-4 pb-2 text-[13px] text-ardoise">Entrepôt de données (Alpes-Maritimes)</p>
         {entrepot.map((j) => (
           <div key={j.cle} className="flex items-baseline justify-between gap-4 border-t border-trait px-5 py-3">

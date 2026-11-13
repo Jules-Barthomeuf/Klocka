@@ -40,7 +40,7 @@ export default function VerdictPrix({ dealId, index = 0 }) {
     retry: false,
   });
 
-  const cadre = "rounded-[12px] border border-trait bg-rail p-3.5";
+  const cadre = "k-verre p-3.5";
   if (q.isLoading) return <div className={cadre}><Chargement taille="petit" titre="Le prix face au marché" etats={["Je lis les ventes DVF autour", "Je capitalise le loyer", "Je compare au prix demandé"]} /></div>;
   if (q.isError) return <div className={cadre}><p className="m-0 text-[13.5px] text-ardoise">Le prix face au marché : {q.error?.message || "lecture impossible"}.</p></div>;
   const r = q.data || {};

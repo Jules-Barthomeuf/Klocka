@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { VERRE_LG } from "@/lib/verre";
 
 // La fiche commerciale telle qu'elle est arrivée : le texte lu, et le
 // document lui-même quand il a été déposé.
@@ -32,7 +33,7 @@ export default function FicheSource({ dossier }) {
   const courant = vue === "texte" ? null : originaux[Math.min(Number(vue) || 0, Math.max(0, originaux.length - 1))] || null;
   const ongletsVisibles = originaux.length > 1 || (originaux.length > 0 && texteDe(src));
   return (
-    <div className="flex min-h-[70vh] flex-col overflow-hidden lg:rounded-[14px] lg:border lg:border-bord-doux lg:bg-rail">
+    <div className={`flex min-h-[70vh] flex-col overflow-hidden ${VERRE_LG}`}>
       <div className="flex items-center justify-between gap-4 border-b border-bord-doux px-5 py-3.5 max-md:px-3">
         <p className="m-0 min-w-0 truncate text-[15px] text-encre">{courant?.nom || nom}{src.pages && !courant ? <span className="text-brume"> · {src.pages} page{src.pages > 1 ? "s" : ""}</span> : null}</p>
         {courant?.url && courant.present !== false && (

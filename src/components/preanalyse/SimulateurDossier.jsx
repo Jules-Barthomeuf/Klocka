@@ -12,6 +12,7 @@ import SimReventeSynthese from "@/components/simulator/layout/SimReventeSynthese
 import SimDataTable from "@/components/simulator/layout/SimDataTable";
 import SimScenarios from "@/components/simulator/layout/SimScenarios";
 import SimParametresAvances from "@/components/simulator/layout/SimParametresAvances";
+import { VERRE } from "@/lib/verre";
 
 // Le simulateur complet, embarqué dans la préanalyse et pré-rempli avec le
 // dossier. Il remplace l'ancien calcul AEM figé : un dossier incomplet reste
@@ -249,13 +250,13 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
   // Le dessin du simulateur partout (10 nov. 2026, Jules) : deux cartes, les réglages à gauche, le contenu à droite,
   // comme la page Simulateur ; fond de la barre en clair, transparent en sombre (remplace le fond unique du 17 oct.).
   return (
-    <div data-zone="listes" className="k-sim k-points flex min-h-0 items-start gap-4 [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail">
+    <div data-zone="listes" className="k-sim k-sim-verre k-points flex min-h-0 items-start gap-4 [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail">
         {/* Rail d'hypothèses : colonne à gauche sur grand écran */}
         {!compact && (
-          <aside className="sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent lg:block">{rail}</aside>
+          <aside className={`sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden ${VERRE} lg:block`}>{rail}</aside>
         )}
 
-        <div className="relative flex-1 w-0 min-w-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent">
+        <div className={`relative flex-1 w-0 min-w-0 overflow-hidden ${VERRE}`}>
             {venusDeLAnalyse.length > 0 && (
               <div className="px-4 py-2 border-b border-trait text-[11px] text-ardoise">
                 Rempli depuis l'analyse : {venusDeLAnalyse.map(([cle, source]) => `${LIBELLES_ANALYSE[cle] || cle} (${source.toLowerCase()})`).join(", ")}.

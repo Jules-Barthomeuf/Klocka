@@ -50,7 +50,7 @@ export default function MesAcquereurs() {
           <FileUp className="h-3.5 w-3.5" /> Importer un fichier
         </button>
       </div>
-      <div className="mt-4 overflow-x-auto rounded-[12px] border border-trait bg-rail">
+      <div className="mt-4 overflow-x-auto k-verre">
         <table className="min-w-full border-separate border-spacing-0 text-left text-[13.5px] [&_tr>*:last-child]:border-r-0">
           <thead>
             <tr>

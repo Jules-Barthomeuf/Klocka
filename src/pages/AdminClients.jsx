@@ -54,7 +54,7 @@ const Critere = ({ mot, valeur, large = false }) => (
 
 function CarteClient({ d, onOuvrir }) {
   return (
-    <article onClick={onOuvrir} className="flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux">
+    <article onClick={onOuvrir} className="flex cursor-pointer flex-col overflow-hidden k-verre transition-colors hover:border-bord-doux">
       <div className="k-grid k-grid-toujours relative h-24 flex-none border-b border-trait">
         <span className="absolute left-4 top-4"><PastilleReseau d={d} /></span>
         {quand(d.entre_le) && <span className="absolute right-4 top-[18px] text-[12px] text-brume">Depuis le {quand(d.entre_le)}</span>}
@@ -86,7 +86,7 @@ const COLONNES = "grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1.3fr)_120
 
 function TableauClients({ lignes, onOuvrir }) {
   return (
-    <div className="overflow-x-auto rounded-[18px] border border-trait bg-rail">
+    <div className="overflow-x-auto k-verre">
       <div className="min-w-[1000px]">
         <div className={`grid ${COLONNES} gap-[18px] border-b border-trait px-6 py-3.5 text-[12px] tracking-[0.12em] text-brume`}>
           <span>CLIENT</span><span>TYPE DE BIEN</span><span>ZONES</span><span>BUDGET</span><span>APPELS</span><span>PROCHAINE ÉTAPE</span><span>RÉSEAU</span>

@@ -19,13 +19,13 @@ export default function DatesBailPanneau({ formData, setFormData }) {
     <div>
       <div className="mb-3 text-[11px] uppercase tracking-[.16em] text-ardoise">Les dates du bail</div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-[12px] border border-trait bg-surface p-3.5">
+        <div className="k-verre p-3.5">
           <FField label="Prise d'effet" className="!border-0 !bg-transparent !p-0">
             <FInput type="date" value={formData.bail_date_debut || ""} onChange={ecrire("bail_date_debut")} className="[color-scheme:dark]" />
           </FField>
           <div className="mt-1.5 text-[11px] text-brume">le départ de la frise et des échéances triennales</div>
         </div>
-        <div className="rounded-[12px] border border-trait bg-surface p-3.5">
+        <div className="k-verre p-3.5">
           <FField label="Échéance" className="!border-0 !bg-transparent !p-0">
             <FInput type="date" value={fin} onChange={(e) => setFormData({ ...formData, echeance_bail: e.target.value, bail_date_echeance: e.target.value })} className="[color-scheme:dark]" />
           </FField>
@@ -33,7 +33,7 @@ export default function DatesBailPanneau({ formData, setFormData }) {
         </div>
       </div>
       {/* La période ferme (14 oct. 2026) : « 10 ans dont 6 ans ferme ». Pas de sortie triennale avant sa fin. */}
-      <div className="mt-3 rounded-[12px] border border-trait bg-surface p-3.5">
+      <div className="mt-3 k-verre p-3.5">
         <FField label="Période ferme (années)" className="!border-0 !bg-transparent !p-0">
           <FInput type="number" min="0" step="1" value={formData.bail_duree_ferme_ans ?? ""} placeholder="Aucune"
             onChange={(e) => setFormData({ ...formData, bail_duree_ferme_ans: e.target.value === "" ? null : Number(e.target.value) })} />

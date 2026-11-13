@@ -90,7 +90,7 @@ export default function AdminAccesCrm() {
         {error && <p className="mt-10 text-center text-[14px] text-brume">{error.message}</p>}
         {data && (
           <>
-            <section className="mt-8 rounded-[18px] border border-trait bg-rail p-5">
+            <section className="mt-8 k-verre p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <p className="m-0 text-[12px] tracking-[0.14em] text-ardoise">QUI A QUEL RÔLE</p>
                 <a href={data.reglages_membres} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-menthe hover:underline">
@@ -110,7 +110,7 @@ export default function AdminAccesCrm() {
               )}
             </section>
 
-            <div className="mt-6 overflow-x-auto rounded-[18px] border border-trait bg-rail">
+            <div className="mt-6 overflow-x-auto k-verre">
               <table className="w-full min-w-[860px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-trait text-[12px] tracking-[0.08em] text-brume">

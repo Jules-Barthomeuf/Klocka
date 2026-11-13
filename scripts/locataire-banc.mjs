@@ -33,8 +33,8 @@ for (const [i, r] of tirage.entries()) {
   const pts = Object.fromEntries((l.resultat?.points || []).map((p) => [p.cle, p]));
   const trouve = pts.societe?.detail?.siren || null;
   const c = pts.comptes;
-  // Sans comptes utilisables, l'outil ne montre pas de ligne (12 nov. 2026).
-  const comptes = !trouve ? 'sans société' : !c ? 'pas de ligne' : /non publié en/.test(c.resultat) ? 'CA confidentiel' : 'CA publié';
+  // La ligne « Poids du loyer » (12 nov. 2026) : un taux quand le chiffre d'affaires est publié, « confidentiel » sinon.
+  const comptes = !trouve ? 'sans société' : c?.detail?.taux != null ? 'CA publié' : c?.detail?.exercice ? 'CA confidentiel' : 'pas de comptes';
   const ligne = { nom, adresse: adresse(r), ei: r.categorie_juridique === '1000', attendu: r.siren, trouve, juste: trouve === r.siren, procedures: pts.procedures?.resultat || '—', comptes, s: Math.round((Date.now() - t0) / 1000) };
   lignes.push(ligne);
   console.log(`${ligne.juste ? 'ok ' : 'NON'} ${String(ligne.s).padStart(2)} s  ${ligne.ei ? 'EI ' : '   '} ${nom.slice(0, 34).padEnd(34)} ${comptes.padEnd(15)} ${ligne.procedures.slice(0, 60)}${ligne.juste ? '' : `  (trouvé ${trouve || 'rien'}, attendu ${r.siren} ; ${pts.societe?.resultat?.slice(0, 80) || ''})`}`);
@@ -43,6 +43,6 @@ for (const [i, r] of tirage.entries()) {
 const pct = (k) => `${Math.round((k / lignes.length) * 100)} %`;
 const compte = (f) => lignes.filter(f).length;
 console.log(`\n${lignes.length} commerces · bonne société ${pct(compte((x) => x.juste))} · dont ${compte((x) => x.ei)} entreprises individuelles`);
-for (const k of ['CA publié', 'CA confidentiel', 'pas de ligne', 'sans société']) console.log(`  comptes ${k.padEnd(16)} ${String(compte((x) => x.comptes === k)).padStart(3)}  ${pct(compte((x) => x.comptes === k))}`);
+for (const k of ['CA publié', 'CA confidentiel', 'pas de comptes', 'sans société']) console.log(`  comptes ${k.padEnd(16)} ${String(compte((x) => x.comptes === k)).padStart(3)}  ${pct(compte((x) => x.comptes === k))}`);
 console.log(`  une procédure collective en 5 ans : ${compte((x) => x.trouve && !/^Aucune|^—|non trouvée/.test(x.procedures))}`);
 process.exit(0);

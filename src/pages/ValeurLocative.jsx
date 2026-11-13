@@ -24,7 +24,7 @@ import { BoutonOutil, BoutonPrincipal, CLASSE_CARTE, CLASSE_TABLEAU } from "@/co
 // 10 nov. 2026 (Jules, planche Outils) : la page dans le cadre des Outils, au dessin des autres outils : titre de
 // 24 px, formulaire sur une ligne, dernières recherches en tableau, panneau de la carte au rayon 12 sur `bg-rail`.
 
-const CARTE = "rounded-[18px] border border-trait bg-surface";
+const CARTE = "k-verre";
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
 

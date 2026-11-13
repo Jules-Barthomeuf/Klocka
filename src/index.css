@@ -306,18 +306,47 @@ body::after {
 /* Le verre des maquettes, posé sur une photo : la surface du thème à 90 %,
    floutée, avec l'encre du thème. Hors de .k-sur-photo, pour qu'en clair le
    texte reste sombre sur le verre blanc. */
-.k-verre {
+.k-verre-photo {
     background: rgb(var(--k-surface-pleine-rgb) / .9);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     color: rgb(var(--k-encre-rgb));
 }
-button.k-verre:hover { background: rgb(var(--k-surface-pleine-rgb)); }
+button.k-verre-photo:hover { background: rgb(var(--k-surface-pleine-rgb)); }
 
 /* Le motif des cartes à grille (GridPatternCard) : un carré de 30 px, ses
    traits à 15 %, un point à chaque intersection. Blanc en sombre, gris
    bleuté en clair ; le thème clair passe par data-theme, pas par .dark. */
 :root[data-theme="clair"] .bg-grid-pattern { background-image: theme("backgroundImage.grid-pattern-light"); }
+
+/* Le verre, la carte de toute la plateforme (12 nov. 2026, Jules : « le style des
+   cards du Marché, partout ») : la surface du thème floutée, un bord doux, une
+   ombre, rayon 16. Le fond s'écrit par sa variable pour que les règles qui vident
+   `.bg-surface` dans un parent ne l'effacent pas. Une carte posée dans une autre
+   garde son bord et son fond, sans seconde ombre ni second flou, au rayon 12. */
+@layer components {
+.k-verre {
+    border-radius: 16px;
+    border: 1px solid var(--k-bord-doux);
+    background-color: var(--k-surface);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+}
+.k-verre .k-verre { border-radius: 12px; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+:root[data-theme="clair"] .k-verre { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 8px 24px rgb(16 20 24 / .07); }
+:root[data-theme="clair"] .k-verre .k-verre { box-shadow: none; }
+
+/* Le simulateur tout en verre (13 nov. 2026, Jules : « dans le simulateur, je veux que tout soit en glassmorphism ») :
+   dans le simulateur d'un dossier (SimulateurDossier, classe k-sim-verre), chaque carte (indicateurs, budget,
+   graphiques, revente, scénarios, paramètres avancés) prend le verre posé dans un verre : la surface du thème, le bord
+   doux, rayon 12, sans seconde ombre ni second flou. Les boutons bordés (listes déroulantes) ne sont pas des cartes. */
+.k-sim-verre :is(.border.border-trait.rounded-md, .border.border-trait.rounded-lg):not(button) {
+    border-color: var(--k-bord-doux);
+    border-radius: 12px;
+    background-color: var(--k-surface) !important;
+}
 
 /* Les cartes de la page projet, au registre de l'onglet Marché : le fond d'un
    onglet au repos, 16 px d'arrondi, une ombre douce, et le même motif de

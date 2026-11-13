@@ -436,7 +436,7 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
         {isError && <p className="m-0 mt-4 text-[13.5px] text-alerte">{error?.message || "Cette fiche ne se charge pas."}</p>}
         {f && onglet === "fiche" && (
           <>
-            <dl className="m-0 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+            <dl className="m-0 overflow-hidden k-verre">
               {objet.champs.filter((c) => c.nom !== objet.principal).map((c) => (
                 <div key={c.nom} className="grid grid-cols-2 items-stretch border-t border-trait text-center first:border-t-0">
                   <dt className="flex items-center justify-center px-4 py-3 text-[13px] text-ardoise">{c.libelle}</dt>
@@ -1353,7 +1353,7 @@ export default function CrmTwenty() {
 
               {/* Le bandeau des lignes cochées, comme dans Twenty. */}
               {choisies.length > 0 && (
-                <div className="mx-10 mb-2 flex flex-wrap items-center gap-2 rounded-[12px] border border-bord-doux bg-surface px-3 py-2 max-md:mx-4">
+                <div className="mx-10 mb-2 flex flex-wrap items-center gap-2 k-verre px-3 py-2 max-md:mx-4">
                   <span className="px-1 text-[13.5px] text-encre">{choisies.length} sélectionnée{choisies.length > 1 ? "s" : ""}</span>
                   {plein && objet.deplacer.length > 0 && (
                     <button ref={boutonDeplacer} type="button" onClick={() => setDeplacer(true)} disabled={enLot.isPending} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>Déplacer vers<ChevronDown className="h-3.5 w-3.5" /></button>

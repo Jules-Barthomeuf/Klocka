@@ -40,7 +40,7 @@ function Question({ q, suivantes }) {
       <div className="min-w-0">
         {q.ecran?.present ? (
           <>
-            <EcranRejoue key={q.id} url={`/api/questions-appels/${q.id}/ecran`} className="overflow-hidden rounded-[12px] border border-trait bg-surface-pleine p-2" />
+            <EcranRejoue key={q.id} url={`/api/questions-appels/${q.id}/ecran`} className="overflow-hidden k-verre p-2" />
             <p className="m-0 mt-1.5 text-[12px] text-brume">Ton écran pendant l'appel, rejoué. Gardé jusqu'au {jour(q.ecran.jusqu_au)}.</p>
           </>
         ) : (
@@ -100,7 +100,7 @@ export default function QuestionsDAK({ className = "" }) {
   if (!liste.length) return null;
   const q = liste[0];
   return (
-    <section className={`rounded-[18px] border border-trait bg-rail px-5 pb-5 pt-4 ${className}`}>
+    <section className={`k-verre px-5 pb-5 pt-4 ${className}`}>
       <p className="m-0 mb-3 text-[11px] tracking-[.16em] text-brume">AK A UNE QUESTION SUR TON APPEL DU {jour(q.le_appel).toUpperCase()}{q.agence ? ` · ${q.agence.toUpperCase()}` : ""}</p>
       <Question key={q.id} q={q} suivantes={liste.length - 1} />
     </section>

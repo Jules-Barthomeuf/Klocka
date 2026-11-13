@@ -167,7 +167,7 @@ export default function FicheContact({ contact: c, marcheId, proprietaireId = nu
 
             {/* Le bon de visite (8 nov. 2026, Jules : « on clique sur le nom, puis Bon de visite ; en grand écran, il signe »). */}
             {c.visite && (
-              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-[12px] border border-bord-doux bg-surface/40 px-4 py-3">
+              <div className="mt-3 flex flex-wrap items-center gap-3 k-verre px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="m-0 text-[14px] text-encre first-letter:uppercase">{quandVisite}</p>
                   <p className={`m-0 mt-0.5 text-[12.5px] ${c.visite.bon === "signe" ? "text-menthe" : c.visite.bon === "manquant" ? "text-alerte" : "text-ambre"}`}>
@@ -181,7 +181,7 @@ export default function FicheContact({ contact: c, marcheId, proprietaireId = nu
             )}
 
             {/* Les lignes, au dessin de la fiche d'un commerce. */}
-            <dl className="m-0 mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+            <dl className="m-0 mt-3 overflow-hidden k-verre">
               <Ligne mot="Téléphone" valeur={c.telephone} onGarder={(v) => garder.mutate({ telephone: v })}
                 enfant={tel ? <a href={`tel:${tel}`} className="text-encre hover:text-pervenche">{c.telephone}</a> : null} />
               <Ligne mot="Mail" valeur={c.email} onGarder={(v) => garder.mutate({ email: v })} />
@@ -199,7 +199,7 @@ export default function FicheContact({ contact: c, marcheId, proprietaireId = nu
             </dl>
 
             <Section titre="Documents signés">
-              <dl className="m-0 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+              <dl className="m-0 overflow-hidden k-verre">
                 {DOCUMENTS.map(([k, mot]) => {
                   const etat = docs[k] || "a_faire";
                   const [motEtat, teinte] = ETATS_DOC[etat] || ETATS_DOC.a_faire;

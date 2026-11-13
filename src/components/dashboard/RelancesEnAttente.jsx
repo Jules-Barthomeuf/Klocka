@@ -48,7 +48,7 @@ export function ListeRelances({ compact = false }) {
                   href={r.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex gap-3 border border-trait rounded-xl bg-surface px-4 py-3 hover:border-bord-doux transition-colors"
+                  className="group flex gap-3 k-verre px-4 py-3 hover:border-bord-doux transition-colors"
                 >
                   <div className="w-[2px] flex-none self-stretch rounded" style={{ background: teinte }} />
                   <div className="min-w-0 flex-1">

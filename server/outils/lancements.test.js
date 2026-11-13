@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Records } from '../db.js';
-import { jugerEffort, jugerLoyer, statutVerdictPrix, statutDesPoints, conclusionDe, empreinte, entreesChangees, aRelancer, entreesDe, lancerOutil, reconnaitreLocataire, pointVacance, lireProcedures, consigneNote, deuxPhrases, sirenDuTexte, candidatsLocataire, dernierLancement, rattacher, OUTILS, ENTITE } from './lancements.js';
+import { jugerEffort, jugerLoyer, statutVerdictPrix, statutDesPoints, conclusionDe, empreinte, entreesChangees, aRelancer, entreesDe, lancerOutil, reconnaitreLocataire, pointVacance, lireProcedures, consigneNote, deuxPhrases, sirenDuTexte, candidatsLocataire, codeCommuneDe, communeLisible, pointComptes, pointAvis, dernierLancement, rattacher, OUTILS, ENTITE } from './lancements.js';
 
 test('le poids du loyer dans le chiffre d\'affaires : 10 % confortable, 15 % tendu', () => {
   assert.deepEqual(jugerEffort(30000, 400000), { taux: 7.5, statut: 'ok' });
@@ -135,6 +135,53 @@ test("la note de l'IA tient en deux phrases au plus", () => {
   assert.equal(deuxPhrases('Une. Deux ! Trois ? Quatre.'), 'Une. Deux !');
   assert.equal(deuxPhrases('Sans point final'), 'Sans point final');
   assert.equal(deuxPhrases('Loyer de 95 000 €. Rendement de 5,76 % brut. Reste.'), 'Loyer de 95 000 €. Rendement de 5,76 % brut.');
+});
+
+test('le poids du loyer : le dernier exercice de moins de trois ans, un chiffre d\'affaires confidentiel, une perte à voir', () => {
+  // Les montants s'écrivent avec l'espace fine insécable du français : on la lit comme une espace.
+  const sp = (t) => String(t).replace(/[\u00a0\u202f]/g, ' ');
+  const ok = pointComptes([{ exercice: '2025', chiffre_affaires: 1420000, resultat_net: 61000 }, { exercice: '2024', chiffre_affaires: 1300000 }], 95000, { annee: 2026 });
+  assert.equal(ok.statut, 'ok');
+  assert.equal(ok.detail.taux, 6.7);
+  assert.equal(sp(ok.resultat), "6,7 % du chiffre d'affaires · CA 1 420 000 € en 2025, résultat 61 000 €");
+  assert.equal(pointComptes([{ exercice: '2025', chiffre_affaires: 400000 }], 80000, { annee: 2026 }).statut, 'alerte');
+  const confidentiel = pointComptes([{ exercice: '2025', chiffre_affaires: 0, resultat_net: -214000 }], 95000, { annee: 2026 });
+  assert.equal(confidentiel.statut, 'a_voir');
+  assert.equal(sp(confidentiel.resultat), "Chiffre d'affaires confidentiel en 2025, perte de 214 000 €");
+  assert.equal(pointComptes([{ exercice: '2019', chiffre_affaires: 500000 }], 20000, { annee: 2026 }).resultat, 'Derniers comptes publiés en 2019, trop anciens pour juger.');
+  assert.equal(pointComptes([], 20000).resultat, 'Comptes non publiés.');
+  assert.equal(pointComptes([{ exercice: '2025', chiffre_affaires: 900000 }], 20000, { ei: true }).statut, 'vide');
+  assert.match(pointComptes([{ exercice: '2025', chiffre_affaires: 3e9 }], 50000, { annee: 2026 }).resultat, /^moins de 0,1 %/);
+  assert.match(pointComptes([{ exercice: '2025', chiffre_affaires: 600000 }], null, { annee: 2026 }).resultat, /loyer manquant/);
+});
+
+test('les avis clients : la fiche Google, ou une fiche simulée qui se dit simulée', () => {
+  const g = pointAvis({ displayName: { text: 'KFC' }, rating: 4.3, userRatingCount: 1284, businessStatus: 'OPERATIONAL', googleMapsUri: 'https://maps.google.com/?cid=1' });
+  assert.equal(g.statut, 'ok');
+  assert.equal(g.source, 'Google Maps');
+  assert.equal(g.lien, 'https://maps.google.com/?cid=1');
+  assert.deepEqual(g.detail, { note: 4.3, nombre: 1284, nom: 'KFC', ferme: false, simule: false });
+  const s = pointAvis({ note: 4.3, nombre: 1284, nom: 'KFC Lyon République' }, { simule: true });
+  assert.equal(s.detail.simule, true);
+  assert.match(s.resultat, / · simulé$/);
+  assert.match(s.source, /^Simulation/);
+  assert.equal(s.lien, null);
+  assert.equal(pointAvis({ rating: 3.1, userRatingCount: 40 }).statut, 'alerte');
+  assert.equal(pointAvis({ rating: 4.6, userRatingCount: 8 }).statut, 'a_voir');
+  assert.equal(pointAvis({ displayName: { text: 'X' }, rating: 4.6, userRatingCount: 80, businessStatus: 'CLOSED_PERMANENTLY' }).statut, 'alerte');
+});
+
+test('la commune en chiffres : surface en km² et densité', () => {
+  assert.deepEqual(communeLisible({ code: '69382', nom: 'Lyon 2e', population: 30000, surface: 341, departement: { nom: 'Rhône' }, region: { nom: 'Auvergne-Rhône-Alpes' } }), { code: '69382', nom: 'Lyon 2e', population: 30000, surface_km2: 3, densite_km2: 10000, departement: 'Rhône', region: 'Auvergne-Rhône-Alpes' });
+  assert.equal(communeLisible(null), null);
+});
+
+test('un arrondissement municipal se ramène à sa commune pour l\'API Géo', () => {
+  assert.equal(codeCommuneDe('69382'), '69123');
+  assert.equal(codeCommuneDe('75108'), '75056');
+  assert.equal(codeCommuneDe('13208'), '13055');
+  assert.equal(codeCommuneDe('71270'), '71270');
+  assert.equal(codeCommuneDe(null), null);
 });
 
 test('le SIREN se lit dans un Kbis, et les exploitants possibles se rangent du plus récent au plus ancien', () => {

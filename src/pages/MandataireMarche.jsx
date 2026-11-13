@@ -133,7 +133,7 @@ export function Detail({ m, types, rafraichir }) {
         {!(m.offres || []).length ? <p className="m-0 text-[13px] text-ardoise">Aucune offre transmise. Klocka valide chaque offre avant de vous la transmettre, avec son argumentaire.</p> : (
           <div className="space-y-3">
             {m.offres.map((o) => (
-              <div key={o.id} className="rounded-[12px] border border-trait bg-surface px-4 py-3">
+              <div key={o.id} className="k-verre px-4 py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="m-0 text-[20px] font-light tabular-nums text-encre">{euros(o.montant)}</p>
                   <span className="text-[12px] text-brume">{dateCourte(o.le)}</span>

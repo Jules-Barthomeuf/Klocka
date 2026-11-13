@@ -151,7 +151,7 @@ export default function Assets({ demande = null }) {
       <p className="m-0 max-w-[70ch] text-[13px] text-ardoise">Dans un mail, « Insérer un asset » sous les blocs le glisse en un clic. Le simulateur porte le lien personnel de chaque contact : on sait qui l'utilise, et le call pris depuis le simulateur le sort des newsletters.</p>
       <div className="mt-5 grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
         {liste.map((a) => (
-          <div key={a.id} className="flex flex-col gap-3 rounded-[14px] border border-trait bg-rail p-4">
+          <div key={a.id} className="flex flex-col gap-3 k-verre p-4">
             <div className="flex items-start justify-between gap-2">
               <input defaultValue={a.nom} onBlur={(e) => { const nom = e.target.value.trim(); if (nom && nom !== a.nom) renommer.mutate({ id: a.id, nom }); }} aria-label="Nom de l'asset"
                 className="min-w-0 flex-1 rounded-[6px] border border-transparent bg-transparent px-1 py-0.5 text-[14.5px] text-encre outline-none hover:border-bord-doux focus:border-bord-vif" />

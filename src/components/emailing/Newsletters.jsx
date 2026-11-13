@@ -75,7 +75,7 @@ function ChoixTemplate({ onChoisir, enCours }) {
 function Entonnoir({ e, inscrits }) {
   const etapes = [["Inscrits", inscrits], ["Envoyés", e?.envoyes], ["Délivrés", e?.delivres], ["Ouverts", e?.ouverts], ["Cliqués", e?.cliques], ["Simulateur", e?.simulateur], ["Calls", e?.calls]];
   return (
-    <div className="grid grid-cols-7 overflow-hidden rounded-[14px] border border-trait bg-rail max-md:grid-cols-4">
+    <div className="grid grid-cols-7 overflow-hidden k-verre max-md:grid-cols-4">
       {etapes.map(([mot, v], k) => (
         <div key={mot} className={`flex flex-col gap-0.5 px-3 py-3 ${k ? "border-l border-trait max-md:[&:nth-child(5)]:border-l-0" : ""} max-md:[&:nth-child(n+5)]:border-t`}>
           <span className={`text-[18px] tabular-nums ${mot === "Calls" ? "text-menthe" : "text-encre"}`}>{v ?? 0}</span>
@@ -249,7 +249,7 @@ function VueNewsletter({ id, onMail, onSupprimee, onAtelier = null }) {
       <div className="mt-[22px]"><Entonnoir e={stats?.entonnoir} inscrits={n.inscrits} /></div>
 
       {/* Les réglages : la cohorte et le calendrier. */}
-      <div className="mt-4 flex flex-col gap-4 rounded-[14px] border border-trait bg-rail px-[18px] py-4">
+      <div className="mt-4 flex flex-col gap-4 k-verre px-[18px] py-4">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px] text-craie">
           <ChoixListes options={listes} valeur={n.listes || []} onChange={(v) => changer({ listes: v })} />
           <span className="flex items-center gap-2">Départ

@@ -110,7 +110,7 @@ export function DejaSu({ dealId, lot = 0, className = "" }) {
   const faits = q.data?.faits || [];
   if (!dealId || q.isLoading || !faits.length) return null;
   return (
-    <section className={`rounded-[14px] border border-trait bg-rail px-4 py-3 ${className}`}>
+    <section className={`k-verre px-4 py-3 ${className}`}>
       <p className={etiq}>Ce que Klocka sait déjà</p>
       <ul className="m-0 mt-1.5 list-none p-0">
         {faits.map((f) => (
@@ -148,7 +148,7 @@ export function JourneeLayer({ className = "" }) {
   const j = q.data;
   if (!j || (!j.engagements.length && !j.a_valider && !j.questions.length)) return null;
   return (
-    <section className={`rounded-[14px] border border-trait bg-rail px-4 py-3 ${className}`}>
+    <section className={`k-verre px-4 py-3 ${className}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className={etiq}>L'Intelligence, aujourd'hui</p>
         <Link to="/Intelligence" className="text-[12.5px] text-craie underline decoration-trait underline-offset-2 hover:text-encre">

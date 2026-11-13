@@ -464,7 +464,7 @@ function Banc({ peutEditer }) {
   const c = d.comparaison;
   const pc = (v) => (v == null ? "—" : `${Math.round(v * 100)} %`);
   return (
-    <section className="rounded-[12px] border border-trait bg-surface p-4">
+    <section className="k-verre p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="m-0 text-[11px] font-normal uppercase tracking-[.16em] text-menthe">Banc d'évaluation · {d.banc.length} question{d.banc.length > 1 ? "s" : ""}</h2>
         {peutEditer && (

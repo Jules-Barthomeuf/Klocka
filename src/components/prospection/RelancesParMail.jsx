@@ -19,7 +19,7 @@ function CarteMail({ m, onValider, onIgnorer, occupe }) {
   const [v, setV] = useState({ a: m.a || "", objet: m.objet || "", corps: m.corps || "" });
   const modifie = v.a !== m.a || v.objet !== m.objet || v.corps !== m.corps;
   return (
-    <div className="flex flex-col gap-3 rounded-[16px] border border-trait bg-rail p-5 max-md:p-4">
+    <div className="flex flex-col gap-3 k-verre p-5 max-md:p-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="text-[15px] text-encre">{m.nom || m.agence}</span>
         {m.nom && m.agence && <span className="text-[13px] text-ardoise">{m.agence}{m.ville ? ` · ${m.ville}` : ""}</span>}

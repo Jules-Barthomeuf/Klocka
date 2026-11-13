@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/avis";
 // cellule avec la position du local. Les photos Street View sont celles que le modèle a lues. Le calcul vit dans
 // server/outils/rue.js ; ce détail s'affiche à droite de l'outil Emplacement (outils/ResultatsOutils.jsx).
 
-const POINT = { ok: "bg-menthe", a_voir: "bg-ambre", alerte: "bg-alerte", vide: "bg-brume" };
+const POINT = { ok: "bg-menthe", a_voir: "bg-menthe/55", alerte: "bg-alerte", vide: "bg-brume" };
 const MOT = { ok: "OK", a_voir: "À voir", alerte: "Alerte", vide: "Pas de donnée" };
 const dec = (n) => (n == null ? "—" : String(n).replace(".", ","));
 const annee = (d) => (d ? String(d).slice(0, 4) : "?");
@@ -35,12 +35,13 @@ function Passage({ passage, streetView, noteAnalyste, onNote }) {
   useEffect(() => { setNote(noteAnalyste?.note ?? ""); setCommentaire(noteAnalyste?.commentaire || ""); }, [noteAnalyste]);
   const retenue = noteAnalyste?.note ?? passage?.note ?? null;
   const statut = retenue == null ? "vide" : retenue >= 7 ? "ok" : retenue >= 4.5 ? "a_voir" : "alerte";
+  const explication = noteAnalyste?.note != null ? `Note de ${(noteAnalyste.par || "l'analyste").split("@")[0]}${passage?.note != null ? ` · le calcul disait ${dec(passage.note)}` : ""}` : passage ? `Calcul Klocka, confiance ${passage.confiance}${passage.manque?.length ? ` (sans ${passage.manque.map((m) => ({ troncon: "le tronçon", enseignes: "les enseignes", transports: "les transports", voie: "le type de voie", vues: "les photos" })[m] || m).join(", ")})` : ""}` : "Rien n'a pu être lu.";
   return (
     <section className="flex flex-col gap-3">
       <Titre droite={<Pastille statut={statut} />}>Passage</Titre>
       <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
         <div><span className="text-[28px] leading-none text-encre">{dec(retenue)}</span><span className="text-[14px] text-ardoise"> / 10</span>
-          <p className="m-0 mt-1 text-[12.5px] text-ardoise">{noteAnalyste?.note != null ? `Note de ${(noteAnalyste.par || "l'analyste").split("@")[0]}${passage?.note != null ? ` · le calcul disait ${dec(passage.note)}` : ""}` : passage ? `Calcul Klocka, confiance ${passage.confiance}${passage.manque?.length ? ` (sans ${passage.manque.map((m) => ({ troncon: "le tronçon", enseignes: "les enseignes", transports: "les transports", voie: "le type de voie", vues: "les photos" })[m] || m).join(", ")})` : ""}` : "Rien n'a pu être lu."}</p></div>
+          <p className="m-0 mt-1 text-[12.5px] text-ardoise">{explication}</p></div>
         {onNote && (
           <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); onNote({ note: note === "" ? null : Number(note), commentaire }); }}>
             <input type="number" step="0.5" min="0" max="10" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ma note" aria-label="Ma note de passage" className="h-8 w-24 rounded-[8px] border border-trait bg-rail px-2 text-[13.5px] text-encre outline-none focus:border-bord-vif" />
@@ -72,8 +73,21 @@ function Passage({ passage, streetView, noteAnalyste, onNote }) {
   );
 }
 
+/** Le passage avec la note de l'analyste qui s'enregistre (`id` : l'analyse de la rue). */
+function PassageAvecNote({ x, id = null, onNote = null }) {
+  const [noteAnalyste, setNoteAnalyste] = useState(x?.note_analyste || null);
+  useEffect(() => { setNoteAnalyste(x?.note_analyste || null); }, [x]);
+  const noter = useMutation({
+    mutationFn: ({ note, commentaire }) => base44.request("POST", `/api/outils/rue/${id}/passage`, { body: { note, commentaire } }),
+    onSuccess: (r) => { setNoteAnalyste(r.note_analyste); onNote?.(r.note_analyste); toast.success("Note gardée"); },
+    onError: (e) => toast.error(e?.message || "La note n'a pas été gardée"),
+  });
+  if (!x) return null;
+  return <Passage passage={x.passage} streetView={x.street_view} noteAnalyste={noteAnalyste} onNote={id ? (v) => noter.mutate(v) : null} />;
+}
+
 /** Le local : ce qui y est, et qui s'y est succédé. */
-function Local({ local }) {
+function LocalRue({ local }) {
   const r = local.rotation;
   return (
     <section className="flex flex-col gap-3">
@@ -134,19 +148,12 @@ function RueEntiere({ rue, position, cleLocal }) {
  * l'analyse de la rue, pour y poser la note de l'analyste ; `onNote` est rappelé une fois la note gardée.
  */
 export function RueDetail({ x, id = null, onNote = null }) {
-  const [noteAnalyste, setNoteAnalyste] = useState(x?.note_analyste || null);
-  useEffect(() => { setNoteAnalyste(x?.note_analyste || null); }, [x]);
-  const noter = useMutation({
-    mutationFn: ({ note, commentaire }) => base44.request("POST", `/api/outils/rue/${id}/passage`, { body: { note, commentaire } }),
-    onSuccess: (r) => { setNoteAnalyste(r.note_analyste); onNote?.(r.note_analyste); toast.success("Note gardée"); },
-    onError: (e) => toast.error(e?.message || "La note n'a pas été gardée"),
-  });
   if (!x) return null;
   return (
     <div className="flex flex-col gap-7">
       {x.adresse?.rue_differente && <p className="m-0 text-[13.5px] text-alerte">Adresse à vérifier : la rue écrite (« {x.adresse.ecrite} ») n'est pas celle que la Base Adresse Nationale a reconnue ({x.adresse.label}).</p>}
-      <Local local={x.local} />
-      <Passage passage={x.passage} streetView={x.street_view} noteAnalyste={noteAnalyste} onNote={id ? (v) => noter.mutate(v) : null} />
+      <LocalRue local={x.local} />
+      <PassageAvecNote x={x} id={id} onNote={onNote} />
       <RueEntiere rue={x.rue} position={x.position} cleLocal={x.local.cle} />
       {x.manques?.length > 0 && <p className="m-0 text-[12.5px] text-brume">Pas lu cette fois : {x.manques.join(" · ")}.</p>}
     </div>

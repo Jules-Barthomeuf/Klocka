@@ -514,7 +514,7 @@ export function MailPropose({ dossierId, mail, boite }) {
   return (
     <div className="text-left">
       <p className="m-0 text-[15px] leading-[1.55] text-encre">{mail.raison} Envoyer ?</p>
-      <div className="mt-3 rounded-[12px] border border-trait bg-surface px-4 py-3">
+      <div className="mt-3 k-verre px-4 py-3">
         {ouvert ? (
           <div className="flex flex-col gap-2">
             <input value={m.a} onChange={(e) => setM({ ...m, a: e.target.value })} placeholder="L'adresse du vendeur" aria-label="À" className={`${champ} w-full rounded-[10px]`} />

@@ -10,7 +10,7 @@ import { LEAD_MAGNETS, valeursParDefaut } from "@/lib/lead-magnets";
 // les hypothèses sous le résultat. Avec le jeton, l'outil et son résultat se
 // rangent dans la fiche du contact ; sans jeton, rien n'est noté.
 
-const CARTE = "rounded-[18px] border border-trait bg-surface";
+const CARTE = "k-verre";
 const pastille = (actif) => `inline-flex min-h-9 items-center rounded-full px-4 py-1.5 text-left text-[13.5px] transition-colors ${actif ? "bg-menthe text-sur-menthe" : "border border-trait text-craie hover:border-menthe hover:text-encre"}`;
 
 function Nombre({ valeur, onChange, unite }) {

@@ -108,7 +108,7 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
   // La carte de la page Projets de l'équipe (8 nov. 2026, Jules) : le statut en case, mêmes chiffres ; la photo revient en tête le 9 nov.
   if (compacte) return (
     <div onClick={(e) => { if (onOuvrir && !e.target.closest("button, a, input, select, textarea, label")) onOuvrir(); }}
-      className={`group relative flex flex-col rounded-[12px] border border-trait bg-rail px-3.5 py-3 transition-colors hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
+      className={`group relative flex flex-col k-verre px-3.5 py-3 transition-colors hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
       <div className="-mx-3.5 -mt-3 mb-3 h-[150px] overflow-hidden rounded-t-[11px]">
         {photo
           ? <img src={photo} alt="" loading="lazy" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
@@ -137,7 +137,7 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
     // Plus de boutons « Ouvrir le projet » ni « Étape suivante » sous la carte (19 oct. 2026, Jules) : la carte entière
     // ouvre le projet ; un bouton ou un lien posé dedans garde son propre geste.
     <div onClick={(e) => { if (onOuvrir && !e.target.closest("button, a, input, select, textarea, label")) onOuvrir(); }}
-      className={`group flex flex-col overflow-hidden rounded-[18px] border border-trait bg-surface-pleine transition-colors duration-300 hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
+      className={`group flex flex-col overflow-hidden k-verre transition-colors duration-300 hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
       {/* La photo porte le titre (maquette) : l'étape en pastille en haut, le
           titre, l'adresse et le client en bas, en blanc sous un voile sombre.
           k-sur-photo garde ces textes clairs en mode clair. */}

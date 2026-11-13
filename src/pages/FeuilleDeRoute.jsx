@@ -23,7 +23,7 @@ const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 // Le rendez-vous, c'est le créneau de Paul : quarante-cinq minutes pour définir
 // la stratégie. Le même lien que dans le parcours client, jamais un second.
 const LIEN_RDV = RENDEZ_VOUS_URL;
-const CARTE = "rounded-[18px] border border-trait bg-surface";
+const CARTE = "k-verre";
 const HORIZONS = [10, 15, 20, 25, 30, 35];
 const SLUG = "feuille-de-route";
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);

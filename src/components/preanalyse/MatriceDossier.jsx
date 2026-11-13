@@ -175,7 +175,7 @@ export function FormulaireColonne({ onAnnuler, onValider, enCours }) {
   const [criticite, setCriticite] = useState("moyenne");
   const [gabarit, setGabarit] = useState(false);
   return (
-    <div className="border border-bord rounded-xl bg-surface px-5 py-4 space-y-3">
+    <div className="k-verre px-5 py-4 space-y-3">
       <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Nouvelle colonne</p>
       <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} placeholder="La question posée à chaque document — « Le bail prévoit-il une clause d'accession ? »" className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe/60 max-md:text-[16px]" />
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">

@@ -113,14 +113,14 @@ export default function ColonneZone({ taux, tauxAttente, tauxErreur, adresse, lo
     <div className="px-5 py-4 md:px-6">
       {/* Les chiffres en tête : le rayon, la rue de l'adresse, les signaux récents. */}
       {tauxErreur ? (
-        <p className="m-0 rounded-[12px] border border-trait bg-rail px-4 py-3 text-[13.5px] text-alerte">{tauxErreur}</p>
+        <p className="m-0 k-verre px-4 py-3 text-[13.5px] text-alerte">{tauxErreur}</p>
       ) : !t ? (
-        <p className="m-0 flex items-start gap-2 rounded-[12px] border border-trait bg-rail px-4 py-3 text-[13.5px] text-ardoise">
+        <p className="m-0 flex items-start gap-2 k-verre px-4 py-3 text-[13.5px] text-ardoise">
           {tauxAttente && <Loader2 className="mt-0.5 h-3.5 w-3.5 flex-none animate-spin text-menthe" />}
           Taux de vacance : recensement des locaux de la commune, puis vérification sur Google Maps et OpenStreetMap. La première fois, une à deux minutes.
         </p>
       ) : (
-        <div className="grid grid-cols-3 rounded-[12px] border border-trait bg-rail max-sm:grid-cols-1">
+        <div className="grid grid-cols-3 k-verre max-sm:grid-cols-1">
           <div className="px-4 py-3">
             <p className="m-0 text-[24px] tabular-nums tracking-[-0.01em] text-encre">{t.fiable ? pct(t.taux) : "—"}</p>
             <p className="m-0 text-[12.5px] text-ardoise">Dans le rayon · {t.vacants} vacants sur {t.tranches}</p>

@@ -84,7 +84,7 @@ export function AEnvoyer({ envois }) {
   });
   const ecarter = useMutation({ mutationFn: (id) => base44.request("POST", `/api/prospection/envois/${id}/ecarter`, { body: {} }), onSuccess: raf });
   return (
-    <section className="rounded-[16px] border border-trait bg-surface-pleine p-5">
+    <section className="k-verre p-5">
       <div className="flex items-baseline justify-between"><p className="m-0 text-[15px] text-encre">À envoyer</p><span className="text-[13px] tabular-nums text-ardoise">{envois.length}</span></div>
       <p className="m-0 mt-1 text-[12.5px] text-ardoise">Mails et relances proposés par AK. Rien ne part sans un clic.</p>
       <div className="mt-3 flex max-h-[360px] flex-col gap-2 overflow-y-auto">
@@ -109,7 +109,7 @@ export function Fiabilite({ f }) {
   if (!f) return null;
   const max = Math.max(...f.semaines.map((s) => s.taux ?? 0), 1);
   return (
-    <section className="rounded-[16px] border border-trait bg-surface-pleine p-5">
+    <section className="k-verre p-5">
       <p className="m-0 text-[15px] text-encre">Fiabilité d'AK</p>
       <p className="m-0 mt-3 flex items-baseline gap-3"><span className="text-[40px] leading-none tabular-nums text-encre">{f.taux != null ? `${f.taux} %` : "—"}</span><span className="text-[13px] text-ardoise">cette semaine</span></p>
       <p className="m-0 mt-2 text-[13px] text-craie">{f.cartes ? `${f.sans_modification} carte${f.sans_modification > 1 ? "s" : ""} sur ${f.cartes} validée${f.cartes > 1 ? "s" : ""} sans aucune modification` : "Aucune carte d'appel validée cette semaine."}</p>

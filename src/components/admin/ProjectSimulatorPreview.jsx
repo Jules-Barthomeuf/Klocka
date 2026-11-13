@@ -109,7 +109,7 @@ export default function ProjectSimulatorPreview({ formData, travauxList, vue = n
   // Une vue seule (le graphique) se pose sans en-tête, à la hauteur demandée.
   if (vue) {
     return (
-      <div className="overflow-hidden rounded-[14px] border border-trait bg-surface">
+      <div className="overflow-hidden k-verre">
         <iframe key={previewUrl} src={previewUrl} title="Graphique du simulateur" className="block w-full border-0" style={{ height: hauteur || 360 }} />
       </div>
     );

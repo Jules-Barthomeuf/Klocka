@@ -118,7 +118,7 @@ export function FileRelances({ onOuvrir, integre = false }) {
       </div>
 
       {coches.size > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] border border-trait bg-surface-pleine px-4 py-2.5">
+        <div className="mt-4 flex flex-wrap items-center gap-3 k-verre px-4 py-2.5">
           <span className="text-[13.5px] text-encre">{pl(coches.size, "relance cochée", "relances cochées")}</span>
           <button type="button" disabled={enMasse.isPending} onClick={() => enMasse.mutate({ quoi: "prospection" })}
             className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>

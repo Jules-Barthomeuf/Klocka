@@ -21,7 +21,7 @@ function Case({ label, unite, champ, formData, setFormData, reference, sourceMot
   const affichee = saisi ? duDossier : reference ?? "";
 
   return (
-    <div className="rounded-[12px] border border-trait bg-surface p-3.5">
+    <div className="k-verre p-3.5">
       <FField label={label}>
         <FInput
           type="number"
@@ -75,7 +75,7 @@ export default function MarcheCases({ formData, setFormData, projetId = null }) 
 
   return (
     <div className="space-y-5">
-      <div className="rounded-[12px] border border-trait bg-surface p-3.5">
+      <div className="k-verre p-3.5">
         <FField label="Nom du quartier / secteur">
           <FInput
             value={formData.marche_quartier_nom || ""}

@@ -54,7 +54,7 @@ function Ligne({ label, children, second = null }) {
 /** Un chiffre du bandeau : sa valeur en grand, son intitulé, une précision. */
 function Cartouche({ label, valeur, detail = null }) {
   return (
-    <div className="min-w-0 rounded-[12px] border border-bord bg-surface px-4 py-3 max-md:px-3">
+    <div className="min-w-0 k-verre px-4 py-3 max-md:px-3">
       <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.12em] text-brume">{label}</p>
       <p className="m-0 mt-1 text-[20px] font-medium tabular-nums text-encre max-md:break-words max-md:text-[16px]">{valeur}</p>
       {detail && <p className="m-0 mt-0.5 text-[11.5px] text-menthe-texte">{detail}</p>}

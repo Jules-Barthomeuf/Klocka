@@ -37,7 +37,7 @@ export default function SuiviHaka() {
                 [b.taches, "tâches lancées"], [euros(b.cout_median_usd), "coût médian par tâche"], [euros(b.cout_total_usd), "coût total"],
                 [b.taux_rejet == null ? "—" : `${b.taux_rejet} %`, "rejetées, sur les décisions"],
               ].map(([n, mot]) => (
-                <div key={mot} className="rounded-[16px] border border-trait bg-surface px-4 py-3">
+                <div key={mot} className="k-verre px-4 py-3">
                   <p className="m-0 text-[24px] leading-none tabular-nums text-encre">{n}</p>
                   <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">{mot}</p>
                 </div>

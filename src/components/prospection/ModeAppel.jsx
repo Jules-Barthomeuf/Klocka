@@ -432,7 +432,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   // « Déjà appelé ? ». Après le raccrochage, la note de cinq secondes prend la place de l'en-tête.
   const enCours = !!enLigne;
   return (
-    <div className="overflow-hidden rounded-[12px] border border-trait bg-rail">
+    <div className="overflow-hidden k-verre">
       <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2.5 text-[12.5px] text-ardoise">

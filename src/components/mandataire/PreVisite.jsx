@@ -156,7 +156,7 @@ export function CompteRendu({ cr, onEstimation = null }) {
   // Au dessin de la fiche du bien (3 nov. 2026, Jules) : le titre en 20 px et sa ligne en 13 px, l'encadré pervenche de
   // l'assistant (écarts, à confirmer, questions restées sans réponse), puis un tableau à deux colonnes égales, centrées.
   return (
-    <section className="mb-2 mt-3 overflow-hidden rounded-[12px] border border-trait bg-surface-pleine">
+    <section className="mb-2 mt-3 overflow-hidden k-verre">
       <div className="flex items-start justify-between gap-3 px-5 pt-5">
         <div className="min-w-0">
           <h2 className="m-0 truncate text-[20px] font-normal leading-[1.2] text-encre">Compte rendu de visite</h2>
@@ -185,7 +185,7 @@ export function CompteRendu({ cr, onEstimation = null }) {
           )}
         </div>
         {lignes.length > 0 && (
-          <dl className="m-0 mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
+          <dl className="m-0 mt-3 overflow-hidden k-verre">
             {lignes.map(([mot, v]) => (
               <div key={mot} className="grid grid-cols-2 items-stretch border-t border-trait text-center first:border-t-0">
                 <dt className="flex items-center justify-center px-4 py-3 text-[13px] text-ardoise">{mot}</dt>
@@ -351,7 +351,7 @@ export default function PreVisite({ bien, entete, onFermer, onAvis }) {
         {/* Le chat sous la préparation, à sa largeur, collé en bas de l'écran quand on défile (1er nov. 2026, Jules) :
             plus de bouton ni de panneau à droite, l'assistant est toujours là, avant la visite comme après. */}
         <div className="flex min-w-0 flex-col gap-4">
-        <main className="mx-auto w-full max-w-[1080px] rounded-[12px] border border-trait bg-rail px-7 pb-3 pt-6">
+        <main className="mx-auto w-full max-w-[1080px] k-verre px-7 pb-3 pt-6">
           <div className="flex items-end justify-between gap-3 pb-2">
             <div className="min-w-0">
               <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }} title={maj ? `Préparée par votre assistant · mise à jour ${maj}` : undefined}>Préparer la visite</h1>

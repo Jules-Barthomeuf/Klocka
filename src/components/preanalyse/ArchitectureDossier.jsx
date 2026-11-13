@@ -42,7 +42,7 @@ function useLettres(dealId) {
   return useQuery({ queryKey: ["offres"], queryFn: () => base44.request("GET", "/api/offres"), enabled: !!dealId, select: (d) => (d.offres || []).filter((o) => o.deal_id === dealId) });
 }
 
-const bloc = "relative overflow-hidden rounded-[12px] border border-trait bg-rail p-3.5";
+const bloc = "relative overflow-hidden k-verre p-3.5";
 const titreBloc = "m-0 mb-2 text-[12.5px] text-ardoise";
 
 /**
@@ -107,7 +107,7 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
 }
 
 
-const panneau = "k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail px-5 py-6";
+const panneau = "k-points relative overflow-hidden k-verre px-5 py-6";
 
 /** Étape 1 : d'où vient le dossier, qui l'a envoyé, quand. */
 export function VueReception({ dossier }) {

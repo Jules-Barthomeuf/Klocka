@@ -53,7 +53,7 @@ function Declencheur({ s, changer, onInscrire }) {
   const d = s.declencheur || { type: "manuel" };
   const options = d.type === "liste" ? (ref?.listes || []).map((l) => [l.id, l.nom]) : d.type === "segment" ? (ref?.segments || []).map((x) => [x.id, x.nom]) : d.type === "tag" ? (ref?.tags || []).map((t) => [t.nom, t.nom]) : [];
   return (
-    <div className="rounded-[14px] border border-trait bg-rail px-[18px] py-4">
+    <div className="k-verre px-[18px] py-4">
       <p className="m-0 text-[11.5px] uppercase tracking-[.04em] text-ardoise">Déclencheur</p>
       <div className="mt-2.5 flex flex-wrap gap-2">
         {TYPES.map(([k, mot]) => (
@@ -180,7 +180,7 @@ function VueSequence({ id, onEmail, onSupprimee }) {
         return (
           <React.Fragment key={e.id}>
             <Delai s={s} e={e} changerEtape={(p) => changerEtape(e.id, p)} />
-            <div className="flex items-center justify-between gap-4 rounded-[14px] border border-trait bg-rail px-[18px] py-4">
+            <div className="flex items-center justify-between gap-4 k-verre px-[18px] py-4">
               <div className="min-w-0">
                 <p className="m-0 text-[12px] text-ardoise">Email {i + 1}</p>
                 <p className={`m-0 mt-1 truncate text-[14.5px] ${e.objet ? "text-encre" : "text-brume"}`}>{e.objet || "Sans objet"}</p>

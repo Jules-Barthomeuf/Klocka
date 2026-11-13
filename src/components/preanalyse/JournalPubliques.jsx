@@ -16,7 +16,7 @@ import { Section, Chiffres, Lignes, Note, Vide, LienSource, Etiquette, fmt, jour
 export function SecondPointDeVue({ comparaison, ecart }) {
   if (!comparaison) return null;
   return (
-    <div className="rounded-[14px] border border-trait bg-rail px-[22px] py-5">
+    <div className="k-verre px-[22px] py-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-[11px] font-medium uppercase tracking-[.14em] text-menthe">Ce qui s'est vendu autour · DVF</span>
         <span className="text-[13.5px] font-medium tabular-nums text-encre">

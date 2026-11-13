@@ -46,7 +46,7 @@ export function OngletTests({ c, onTester, enCours }) {
         <button type="button" onClick={onTester} disabled={enCours} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-menthe/60 px-4 text-[13px] text-encre hover:bg-menthe/10 disabled:opacity-40" style={{ background: "transparent" }}>{enCours && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{tests.length ? "Relancer" : "Tester"}</button>
       </div>
       {!tests.length ? <Vide>Aucun test n'a tourné sur ce brouillon.</Vide> : tests.map((t, i) => (
-        <div key={`${t.dossier}-${i}`} className="rounded-[16px] border border-trait bg-rail p-4">
+        <div key={`${t.dossier}-${i}`} className="k-verre p-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="m-0 text-[15px] text-encre">{t.titre || t.dossier}</p>
             {!t.erreur && <p className="m-0 text-[12.5px] tabular-nums text-ardoise">{euros(t.cout_eur)} · {Math.max(1, t.duree_ms || 0)} ms</p>}

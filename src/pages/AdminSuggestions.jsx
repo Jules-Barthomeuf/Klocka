@@ -55,7 +55,7 @@ function PromptCorrection({ r }) {
   };
   const bas = r.pouce === "bas";
   return (
-    <div className="mt-3 rounded-xl border border-bord bg-surface px-4 py-3">
+    <div className="mt-3 k-verre px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <p className="m-0 text-[11px] tracking-[.18em] uppercase" style={{ color: bas ? J["alerte"] : J["menthe"] }}>
           {bas ? "À corriger" : "À préserver"} — prompt pour Claude

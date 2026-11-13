@@ -392,7 +392,8 @@ function LayoutContent({ children, currentPageName }) {
     Semaine: { to: createPageUrl("Semaine"), icon: CalendarDays, actif: isActivePage("Semaine") },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     AValider: { to: createPageUrl("AValider"), icon: ClipboardCheck, actif: isActivePage("AValider"), badge: hakaAValider || null, badgeColor: "bg-menthe text-sur-menthe" },
-    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires") || isActivePage("MemoireKlocka"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
+    // La planche « La barre en verre » (12 nov. 2026) montre un dossier : Dossiers y reste allumé. À retirer avec elle.
+    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("PlancheVerre") ||isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires") || isActivePage("MemoireKlocka"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },

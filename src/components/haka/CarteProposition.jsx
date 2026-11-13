@@ -58,7 +58,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
   const estMail = p.type === "demande_documents" || p.type === "relance_mail" || (ouiNon && p.charge?.geste === "mail");
   const prenom = (e) => String(e || "").split("@")[0].split(".")[0].replace(/^\w/, (c) => c.toUpperCase());
   return (
-    <article className={`rounded-[16px] border border-trait bg-rail ${compacte ? "p-4" : "p-5"}`}>
+    <article className={`k-verre ${compacte ? "p-4" : "p-5"}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[16px] text-encre">{p.titre}</p>

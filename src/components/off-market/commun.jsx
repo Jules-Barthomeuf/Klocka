@@ -67,7 +67,7 @@ export function Section({ titre, children, aide = null }) {
  * à droite, la source et la date sous la valeur. Les `Fait` en sont les lignes.
  */
 export function Tableau({ children }) {
-  return <div className="overflow-hidden rounded-[12px] border border-trait bg-surface/40">{children}</div>;
+  return <div className="overflow-hidden k-verre">{children}</div>;
 }
 
 /** Une ligne libellé / valeur d'un `Tableau`, avec la source et la date en note. */

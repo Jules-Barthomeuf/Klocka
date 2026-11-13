@@ -205,7 +205,7 @@ const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR
  */
 function Cle({ valeur, label, detail = null }) {
   return (
-    <div className="min-w-0 rounded-[12px] border border-trait bg-rail px-3.5 py-2.5">
+    <div className="min-w-0 k-verre px-3.5 py-2.5">
       <p className="m-0 truncate text-[18px] font-medium tabular-nums text-encre">{valeur}</p>
       <p className="m-0 truncate text-[12.5px] text-ardoise">{label}</p>
       {detail && <p className="m-0 mt-0.5 text-[12.5px] text-brume">{detail}</p>}

@@ -38,7 +38,7 @@ const Avatar = ({ id, taille = "h-[38px] w-[38px]" }) => <img src={avatarDe(id)}
 
 function CarteAgent({ a, onOuvrir }) {
   return (
-    <article onClick={onOuvrir} className="flex cursor-pointer flex-col gap-4 rounded-[18px] border border-trait bg-rail px-5 pb-5 pt-[18px] transition-colors hover:border-bord-doux">
+    <article onClick={onOuvrir} className="flex cursor-pointer flex-col gap-4 k-verre px-5 pb-5 pt-[18px] transition-colors hover:border-bord-doux">
       <div className="flex items-center gap-3">
         <Avatar id={a.id} />
         <div className="flex min-w-0 flex-col gap-0.5">

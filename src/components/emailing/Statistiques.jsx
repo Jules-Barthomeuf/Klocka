@@ -71,7 +71,7 @@ function Barres({ seaux }) {
 function Tableau({ colonnes, gabarit, lignes, vide }) {
   if (!lignes.length) return <p className="m-0 mt-3 text-[13px] text-brume">{vide}</p>;
   return (
-    <div className="mt-3 overflow-x-auto rounded-[14px] border border-trait bg-rail">
+    <div className="mt-3 overflow-x-auto k-verre">
       <div className="min-w-[720px]">
         <div className={`grid ${gabarit} gap-3.5 border-b border-trait bg-surface-pleine px-4 py-[11px] text-[12px] text-ardoise`}>{colonnes.map((c) => <div key={c}>{c}</div>)}</div>
         {lignes.map((l) => (
@@ -132,7 +132,7 @@ function ParNewsletter() {
       </div>
       {!nls.length ? <p className="m-0 mt-3 text-[13px] text-brume">Aucune newsletter encore.</p> : (
         <>
-          <div className="mt-3 flex flex-col gap-2.5 rounded-[14px] border border-trait bg-rail px-5 py-[18px] max-md:px-4">
+          <div className="mt-3 flex flex-col gap-2.5 k-verre px-5 py-[18px] max-md:px-4">
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[13px] text-ardoise">Calls pris</span>
               <span className="text-[28px] tabular-nums text-menthe">{nombre(e?.calls)}</span>
@@ -209,7 +209,7 @@ export default function Statistiques() {
         ))}
       </div>
 
-      <div className="mt-[18px] rounded-[14px] border border-trait bg-rail px-5 py-[18px] max-md:px-4">
+      <div className="mt-[18px] k-verre px-5 py-[18px] max-md:px-4">
         <div className="flex flex-wrap justify-between gap-3 text-[13px]">
           <span className="text-encre">Envoyés et ouverts</span>
           <span className="flex gap-3.5 text-[12px] text-ardoise">

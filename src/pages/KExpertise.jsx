@@ -64,7 +64,7 @@ function Panel({ titre, children, className = "", pourPdf = true }) {
 
 /** Un bloc plus clair, posé dans un panneau. */
 function Bloc({ children, className = "" }) {
-  return <div className={`rounded-[12px] border border-trait bg-surface p-4 ${className}`}>{children}</div>;
+  return <div className={`k-verre p-4 ${className}`}>{children}</div>;
 }
 
 /** Étiquette + valeur, comme les lignes « Commercialité » du rapport source. */
@@ -201,7 +201,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
       {/* Un seul fond de verre derrière tout le rapport — le même que les
           panneaux de K-Zoning — plutôt qu'une carte par section, qui donnait
           des blocs flottants sans lien entre eux. */}
-      <div className="rounded-[18px] border border-trait bg-surface p-7 max-md:p-4">
+      <div className="k-verre p-7 max-md:p-4">
       {/* La couverture */}
         <section className="pb-2 text-center">
         <p className="alx-mont m-0 inline-block rounded-full border border-menthe/30 bg-menthe/10 px-4 py-1 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Rapport d&apos;implantation</p>

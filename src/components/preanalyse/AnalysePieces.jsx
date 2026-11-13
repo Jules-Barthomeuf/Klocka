@@ -10,6 +10,7 @@ import TexteEnPlace from "@/components/ui/texte-en-place";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
 import { SourceSeule, Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
 import ResolutionsAG from "@/components/preanalyse/ResolutionsAG";
+import { VERRE, VERRE_LG } from "@/lib/verre";
 
 // L'analyse pièce par pièce (29 oct. 2026, Jules) : les pièces se déposent dans la Data Room, une zone par
 // type (DepotsDossier.jsx) ; les onglets Bail, Quittances, Copropriété et
@@ -166,7 +167,7 @@ export const COLONNES = "grid-cols-[170px_minmax(0,1fr)_150px_190px]";
 // Des traits un peu plus marqués que le filet courant (29 oct. 2026, Jules) : `bord-doux`.
 export const CELLULES = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-trait lg:[&>*]:px-2.5";
 // Le dessin des tableaux de l'application (9 nov. 2026, Jules) : cadre à 12 px, en-tête de 35 px, lignes de 36 px au moins (le texte passe à la ligne).
-export const CADRE_GRILLE = "relative overflow-hidden lg:rounded-[12px] lg:border lg:border-trait lg:bg-rail";
+export const CADRE_GRILLE = `relative overflow-hidden ${VERRE_LG}`;
 export const ENTETE_GRILLE = "border-t border-trait py-3 text-[12.5px] text-ardoise max-lg:hidden lg:border-t-0 lg:[&>*]:py-2";
 export const LIGNE_GRILLE = "border-t border-trait py-2.5 transition-colors hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-[7px]";
 // La source se nomme par sa pièce, pas par son fichier (« Bail p. 4 », pas « doc0165…pdf »).
@@ -391,7 +392,7 @@ function EditeurCase({ dealId, grille, l, docOuvert, onSource, onFermer }) {
   const envoyer = (corps, message) => geste.mutate({ chemin, corps }, { onSuccess: () => message && toast.success(message) });
 
   return (
-    <div className="rounded-[14px] border border-trait bg-rail p-4">
+    <div className={`${VERRE} p-4`}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">{grille.titre}</p>

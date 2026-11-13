@@ -15,7 +15,7 @@ export default function DashboardStrategyCard({ userStrategy }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="rounded-[18px] bg-surface-pleine border border-trait p-7 max-md:p-5 h-full"
+      className="k-verre p-7 max-md:p-5 h-full"
     >
       <p className="text-[16px] font-medium text-encre mb-4">Stratégie</p>
 

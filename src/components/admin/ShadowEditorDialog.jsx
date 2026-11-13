@@ -262,7 +262,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             <TabsContent value="docs_projet"><ProjectFormDocumentsTab formData={formData} setFormData={setFormData} /></TabsContent>
             <TabsContent value="images"><ProjectFormImagesTab formData={formData} setFormData={setFormData} /></TabsContent>
             {/* Le même simulateur partout (11 nov. 2026, Jules). */}
-            <TabsContent value="simulateur"><SimulateurDossier compact parametres={parametresDuProjet(formData, activeTravauxList)} onChange={(corps) => { const { champs, travaux } = champsDuSimulateur(corps); setFormData((f) => ({ ...f, ...champs })); if (travaux) setActiveTravauxList(travaux); }} /></TabsContent>
+            <TabsContent value="simulateur"><SimulateurDossier reglagesOuverts compact parametres={parametresDuProjet(formData, activeTravauxList)} onChange={(corps) => { const { champs, travaux } = champsDuSimulateur(corps); setFormData((f) => ({ ...f, ...champs })); if (travaux) setActiveTravauxList(travaux); }} /></TabsContent>
           </Tabs>
         </div>
 

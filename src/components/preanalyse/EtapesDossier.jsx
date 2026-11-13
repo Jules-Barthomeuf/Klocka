@@ -102,7 +102,7 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
       <AnimatePresence mode="wait" initial={false}>
         {ouvert ? (
           <motion.div key="ouvert" initial={{ opacity: 0, x: 16, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 16, scale: 0.98 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="w-[220px] overflow-hidden rounded-[18px] border border-bord-doux bg-rail shadow-[0_24px_60px_rgb(0_0_0/0.35)]">
+            className="w-[220px] overflow-hidden rounded-[18px] border border-bord-doux k-verre-barre k-verre-epais shadow-[0_24px_60px_rgb(0_0_0/0.35)]">
             <div onPointerDown={attraper} title="Tenir et glisser pour déplacer" className="flex cursor-grab touch-none select-none items-center justify-between border-b border-trait px-4 py-2.5 active:cursor-grabbing">
               <span className="text-[11px] uppercase tracking-[.16em] text-brume">{intitule}{numeros ? ` · ${ici + 1}/${items.length}` : ""}</span>
               <button type="button" onClick={cliquer} aria-label={`Fermer le menu : ${intitule}`} title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
@@ -141,12 +141,12 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
           </motion.div>
         ) : petitEcran ? (
           <motion.button key="ferme" type="button" onClick={basculer} aria-label={`Ouvrir le menu : ${intitule}`} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }}
-            className="inline-flex h-8 items-center gap-1 rounded-full border border-bord-doux bg-rail pl-2 pr-3 text-[12.5px] tabular-nums text-craie">
+            className="inline-flex h-8 items-center gap-1 rounded-full border border-bord-doux k-verre-barre pl-2 pr-3 text-[12.5px] tabular-nums text-craie">
             <ChevronLeft className="h-3.5 w-3.5 text-ardoise" />{ici + 1}/{items.length}
           </motion.button>
         ) : (
           <motion.div key="ferme" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }}
-            className={`flex flex-col items-center rounded-[16px] border border-bord-doux bg-rail shadow-[0_16px_40px_rgb(0_0_0/0.3)] ${petitEcran ? "w-[40px] gap-1 py-2" : "w-[44px] gap-3 py-3"}`}>
+            className={`flex flex-col items-center rounded-[16px] border border-bord-doux k-verre-barre shadow-[0_16px_40px_rgb(0_0_0/0.3)] ${petitEcran ? "w-[40px] gap-1 py-2" : "w-[44px] gap-3 py-3"}`}>
             <button type="button" onPointerDown={attraper} onClick={cliquer} aria-label={`Ouvrir le menu : ${intitule}`} title="Cliquer pour ouvrir · tenir et glisser pour déplacer" className="grid h-6 w-6 cursor-grab touch-none place-items-center rounded-full text-ardoise transition-colors hover:text-encre active:cursor-grabbing" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
             {tete && (
               <button type="button" onClick={() => onChange(tete.cle)} disabled={occupe} aria-label={tete.titre}

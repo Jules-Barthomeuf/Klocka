@@ -46,9 +46,9 @@ export default function CadreOutils({ page, children }) {
   };
 
   return (
-    <div className="flex h-[100dvh] min-h-0 flex-col bg-rail text-encre max-md:h-auto">
+    <div className="k-cadre-l flex h-[100dvh] min-h-0 flex-col bg-rail text-encre max-md:h-auto">
       {createPortal(<span className="pointer-events-none fixed left-[15px] top-0 z-[45] flex h-12 items-center max-md:hidden"><span className="logo-kp logo-kp-theme text-[24px] tracking-[-0.03em]" role="img" aria-label="Outils">outils<span className="logo-kp-trait" style={{ width: "0.4em", marginLeft: "0.17em" }} aria-hidden="true" /></span></span>, document.body)}
-      <header className="relative flex h-12 flex-none items-center gap-4 px-4 max-md:hidden">
+      <header className="k-verre-barre relative flex h-12 flex-none items-center gap-4 px-4 max-md:hidden">
         <form onSubmit={(e) => { e.preventDefault(); chercher(recherche.trim()); }} className="mx-auto flex h-8 w-full max-w-[480px] items-center gap-2.5 rounded-full bg-relief px-4 focus-within:ring-1 focus-within:ring-bord-doux">
           <Search className="h-4 w-4 flex-none text-ardoise" />
           <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Une adresse à lire…" aria-label="Une adresse à lire" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />

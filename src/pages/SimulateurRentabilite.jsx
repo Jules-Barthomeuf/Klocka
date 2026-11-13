@@ -24,6 +24,7 @@ import SimParametresAvances from "../components/simulator/layout/SimParametresAv
 import { calculerTVADeductible } from "../components/simulator";
 
 import { travauxDuProjet, travauxParDefaut } from "@/components/simulator/CalculFinancier";
+import { VERRE } from "@/lib/verre";
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
   const pvif = Math.pow(1 + rate, nper);
@@ -504,13 +505,13 @@ export default function SimulateurRentabilite() {
         <h1 className="k-balayage m-0 mb-6 text-center text-[34px] font-normal leading-[1.05] tracking-[-0.02em] max-md:mb-4 max-md:text-[26px]" style={{ animationDuration: "20s" }}>Simulateur</h1>
         {/* Deux cartes posées sur le fond (10 nov. 2026, Jules, maquette) : les réglages à gauche, à la hauteur de leur
             contenu, et le contenu à droite. */}
-        <div data-zone="listes" className={`k-sim k-entree k-points flex min-h-0 items-start gap-4 ${vueDe(user) === "mandataire" ? "[&_table_:is(th,td)]:border-r [&_table_:is(th,td)]:border-trait [&_table_tr>*:last-child]:border-r-0" : ""} [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail`} style={{ "--k-delai": ".08s" }}>
-          <aside className="k-glisse sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent md:block" style={{ "--k-delai": ".18s" }}>
+        <div data-zone="listes" className={`k-sim k-sim-verre k-entree k-points flex min-h-0 items-start gap-4 ${vueDe(user) === "mandataire" ? "[&_table_:is(th,td)]:border-r [&_table_:is(th,td)]:border-trait [&_table_tr>*:last-child]:border-r-0" : ""} [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail`} style={{ "--k-delai": ".08s" }}>
+          <aside className={`k-glisse sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden ${VERRE} md:block`} style={{ "--k-delai": ".18s" }}>
             {rail}
           </aside>
           <SimReglagesMobile>{rail}</SimReglagesMobile>
 
-          <main className="relative flex-1 w-0 min-w-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent">
+          <main className={`relative flex-1 w-0 min-w-0 overflow-hidden ${VERRE}`}>
             {/* Tab bar + actions */}
             <div className="flex items-center justify-between gap-3 border-b border-trait px-3 h-10 relative z-10 max-md:h-auto max-md:py-1 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
               <div className="flex items-center gap-2 min-w-0">

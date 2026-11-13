@@ -339,13 +339,14 @@ button.k-verre-photo:hover { background: rgb(var(--k-surface-pleine-rgb)); }
 :root[data-theme="clair"] .k-verre .k-verre { box-shadow: none; }
 
 /* Le simulateur tout en verre (13 nov. 2026, Jules : « dans le simulateur, je veux que tout soit en glassmorphism ») :
-   dans le simulateur d'un dossier (SimulateurDossier, classe k-sim-verre), chaque carte (indicateurs, budget,
-   graphiques, revente, scénarios, paramètres avancés) prend le verre posé dans un verre : la surface du thème, le bord
-   doux, rayon 12, sans seconde ombre ni second flou. Les boutons bordés (listes déroulantes) ne sont pas des cartes. */
+   dans le simulateur d'un dossier (SimulateurDossier), puis sur les pages Simulateur et le simulateur public (même jour,
+   « mets le simulateur en glassmorphism »), classe k-sim-verre, chaque carte (indicateurs, budget,
+   graphiques, revente, scénarios, paramètres avancés) est transparente sur le verre du cadre (Jules : « pas de double effet ») : le bord
+   doux et le rayon 12 seuls, ni fond, ni ombre, ni flou. Les boutons bordés (listes déroulantes) ne sont pas des cartes. */
 .k-sim-verre :is(.border.border-trait.rounded-md, .border.border-trait.rounded-lg):not(button) {
     border-color: var(--k-bord-doux);
     border-radius: 12px;
-    background-color: var(--k-surface) !important;
+    background-color: transparent !important;
 }
 
 /* Les cartes de la page projet, au registre de l'onglet Marché : le fond d'un
@@ -1027,15 +1028,49 @@ html.k-cadre-crm .k-flottant-haut { display: none !important; }
 html.k-cadre-dossier .k-barre-laterale { border-color: transparent !important; border-radius: 0 !important; }
 html.k-cadre-dossier .k-barre-laterale::before { border-radius: 0 !important; }
 html.k-cadre-dossier .k-flottant-haut { display: none !important; }
-/* Un filet `trait`, celui du bord des tableaux, sépare la barre et la bande du haut de la page du dossier, en clair comme
-   en sombre : il court en haut, tourne avec le coin arrondi et descend le long de la barre (12 nov. 2026, Jules). */
-html.k-cadre-dossier .k-crm-contenu { border-top: 1px solid var(--k-trait); border-left: 1px solid var(--k-trait); }
-@media (max-width: 767px) { html.k-cadre-dossier .k-crm-contenu { border-left: 0; } }
 /* Le tableau du CRM : sur le fond de la barre en sombre, blanc en clair, et des gris plus légers en clair (5 nov. 2026). */
 html.k-cadre-crm { --k-crm-tableau: rgb(var(--k-rail-rgb)); }
-/* En clair, un filet `trait` sépare le blanc de la page du bleuté de la barre et de la bande du haut (5 nov. 2026). */
-html.k-cadre-crm[data-theme="clair"] .k-crm-contenu { border-top: 1px solid var(--k-trait); border-left: 1px solid var(--k-trait); }
-@media (max-width: 767px) { html.k-cadre-crm[data-theme="clair"] .k-crm-contenu { border-left: 0; } }
+
+/* La barre de navigation en verre, partout (13 nov. 2026, Jules, après la planche « La barre en verre ») : la barre de
+   gauche, la bande du haut des cadres (dossier, CRM, Emailing, Outils), la barre du haut et la barre du bas du
+   téléphone, la colonne des étapes. Une seule matière : la teinte de la barre (celle que chacun a choisie) à 42 % sous le
+   voile `surface`, 60 % en clair, floutée à 12 px et ravivée ; ce qui passe dessous s'y devine. À 24 px, le flou des
+   cartes, le texte fin et les traits disparaissaient : on ne voyait plus le verre. Ouverte par-dessus la page (barre au
+   survol, tiroir du téléphone, menu des étapes), elle s'épaissit à 80 % pour garder ses noms nets. */
+:root {
+  --k-verre-fond: linear-gradient(var(--k-surface), var(--k-surface)), rgb(var(--k-rail-rgb) / .42);
+  --k-verre-epais: linear-gradient(var(--k-surface), var(--k-surface)), rgb(var(--k-rail-rgb) / .8);
+  --k-verre-flou: blur(12px) saturate(1.8);
+}
+:root[data-theme="clair"] {
+  --k-verre-fond: rgb(var(--k-rail-rgb) / .6);
+  --k-verre-epais: rgb(var(--k-rail-rgb) / .86);
+}
+.k-verre-barre {
+  background: var(--k-verre-fond);
+  -webkit-backdrop-filter: var(--k-verre-flou);
+  backdrop-filter: var(--k-verre-flou);
+}
+.k-verre-barre.k-verre-epais { background: var(--k-verre-epais); }
+/* Le cadre en L (`k-cadre-l`, à partir de 768 px) : la bande du haut passe par-dessus la page, qui monte dessous ; le
+   dossier y défile (ses colonnes s'écartent de 48 px elles-mêmes), le CRM, l'Emailing et les Outils gardent leurs
+   panneaux sous la bande. Le filet `trait` du 12 nov. court sous la bande, tourne au coin de 16 px (le verre remplit le
+   quart de rond) et descend le long de la barre. Au téléphone, le cadre d'avant. */
+@media (min-width: 768px) {
+  .k-cadre-l { position: relative; background: transparent; }
+  .k-cadre-l > header { position: absolute; inset: 0 0 auto 0; z-index: 30; }
+  .k-cadre-l > .k-crm-contenu { border-radius: 0; }
+  .k-cadre-l > .k-crm-contenu:not(.k-dossier-ia) { padding-top: 48px; }
+  .k-cadre-l::before {
+    content: ""; position: absolute; top: 48px; left: 0; z-index: 30; width: 16px; height: 16px; pointer-events: none;
+    background: var(--k-verre-fond); -webkit-backdrop-filter: var(--k-verre-flou); backdrop-filter: var(--k-verre-flou);
+    clip-path: path("M0 0H16A16 16 0 0 0 0 16Z");
+  }
+  .k-cadre-l::after {
+    content: ""; position: absolute; inset: 48px 0 0 0; z-index: 31; pointer-events: none;
+    border-top: 1px solid var(--k-trait); border-left: 1px solid var(--k-trait); border-top-left-radius: 16px;
+  }
+}
 html.k-cadre-crm[data-theme="clair"] {
   --k-crm-tableau: rgb(255 255 255);
   /* La barre de navigation et la bande du haut, sur la capture de Jules (5 nov. 2026) : #F6F7FB. */

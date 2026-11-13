@@ -16,6 +16,7 @@ import SimParametresAvances from "../components/simulator/layout/SimParametresAv
 
 import { travauxParDefaut } from "@/components/simulator/CalculFinancier";
 import RendezVousFondateur, { useVisiteSimulateur } from "@/components/simulator/RendezVousFondateur";
+import { VERRE } from "@/lib/verre";
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
   const pvif = Math.pow(1 + rate, nper);
@@ -422,13 +423,13 @@ export default function SimulateurPublic() {
   const ongletClasse = (active) => `flex h-full items-center whitespace-nowrap border-b-2 text-sm font-medium transition-colors ${active ? "k-sim-onglet-actif border-menthe text-encre" : "border-transparent text-ardoise hover:text-craie"}`;
   return (
     <div className={`${enProjet ? "k-sobre" : "bg-fond min-h-screen p-4 max-md:p-0"} relative w-full max-w-full overflow-x-hidden`}>
-      <div data-zone="listes" className={`k-sim k-points flex min-h-0 items-start gap-4 [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail`}>
-          <aside className="sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent md:block">
+      <div data-zone="listes" className={`k-sim k-sim-verre k-points flex min-h-0 items-start gap-4 [&_.bg-surface]:!bg-transparent [&_:is(td,th).sticky]:!bg-rail`}>
+          <aside className={`sticky top-4 hidden w-[250px] flex-shrink-0 overflow-hidden ${VERRE} md:block`}>
             {rail}
           </aside>
           {!enProjet && <SimReglagesMobile>{rail}</SimReglagesMobile>}
 
-          <main className="relative flex-1 w-0 min-w-0 overflow-hidden rounded-[16px] border border-trait bg-rail dark:bg-transparent max-md:rounded-none max-md:border-0">
+          <main className={`relative flex-1 w-0 min-w-0 overflow-hidden ${VERRE} max-md:!rounded-none max-md:!border-0`}>
             <div className="relative z-10 flex h-10 items-center justify-between gap-3 border-b border-trait px-3 max-md:h-auto max-md:overflow-x-auto max-md:py-1 max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
               <div className="flex h-10 min-w-0 flex-shrink-0 items-center gap-4 overflow-x-auto max-md:h-9 max-md:flex-shrink">
                 {tabs.map((t) => (

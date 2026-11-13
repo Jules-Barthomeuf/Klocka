@@ -110,7 +110,9 @@ const formatCurrency = (value) =>
 // plus tard et le projet créé depuis le deal en hérite.
 // `onChange` : un autre endroit garde les chiffres (le projet, 11 nov. 2026, Jules : « tous les simulateurs pareils ») ; il
 // reçoit les mêmes chiffres, une seconde après la dernière retouche, à la place de l'enregistrement sur le lot.
-export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = null, compact = false, dealId = null, lotIndex = 0, onEnregistre = undefined, onChange = null }) {
+// reglagesOuverts : un projet qu'on monte (13 nov. 2026, Jules : « il faut le panneau avec tous les paramètres, comme
+// avant ») : toutes les sections du rail dépliées, et en colonne étroite le rail montré d'emblée.
+export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = null, compact = false, dealId = null, lotIndex = 0, onEnregistre = undefined, onChange = null, reglagesOuverts = false }) {
   const parametres = useMemo(() => avecAnalyse(duLot, depuisAnalyse), [duLot, depuisAnalyse]);
   const [etat, setEtat] = useState(() => etatInitial(parametres));
   // Les champs tapés à la main : l'analyse ne les remplace plus.
@@ -122,7 +124,7 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
   const [apport, setApport] = useState(() => (parametres?.apport != null ? parametres.apport : 0));
   const [ongletActif, setOngletActif] = useState("graphiques");
   const [negoPct, setNegoPct] = useState(0);
-  const [railOuvert, setRailOuvert] = useState(false);
+  const [railOuvert, setRailOuvert] = useState(reglagesOuverts);
   // Tant que l'apport n'a pas été touché, il suit les 15 % du prix de revient.
   const apportTouche = useRef(parametres?.apport != null);
 
@@ -241,7 +243,7 @@ export default function SimulateurDossier({ parametres: duLot, depuisAnalyse = n
       activeTab={ongletActif}
       afficherScenario={false}
       titre="Simulateur"
-      fermeParDefaut
+      fermeParDefaut={!reglagesOuverts}
       ouvertes={["ACQUISITION"]}
       alertes={{ prixBienFAI: !etat.prixBienFAI ? "Prix FAI à renseigner : sans lui, rien ne se calcule." : null, prixBienNegocie: !etat.prixBienNegocie ? "Prix négocié à 0." : null }}
     />

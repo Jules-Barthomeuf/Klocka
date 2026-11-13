@@ -62,9 +62,9 @@ export default function Emailing() {
   const repris = !!ACTIONS[page] || ["statistiques", "listes"].includes(page);
   const nombre = { valider: compteurs?.a_valider, reponses: compteurs?.reponses_a_traiter };
   return (
-    <div className="flex h-[100dvh] min-h-0 flex-col bg-rail max-md:h-auto">
+    <div className="k-cadre-l flex h-[100dvh] min-h-0 flex-col bg-rail max-md:h-auto">
       {createPortal(<span className="pointer-events-none fixed left-[15px] top-0 z-[45] flex h-12 items-center max-md:hidden"><span className="logo-kp logo-kp-theme text-[24px] tracking-[-0.03em]" role="img" aria-label="Emailing">mail<span className="logo-kp-trait" style={{ width: "0.4em", marginLeft: "0.17em" }} aria-hidden="true" /></span></span>, document.body)}
-      <header className="relative flex h-12 flex-none items-center gap-4 px-4">
+      <header className="k-verre-barre relative flex h-12 flex-none items-center gap-4 px-4">
         <form onSubmit={(e) => { e.preventDefault(); aller("contacts", recherche ? { q: recherche } : {}); }} className="mx-auto flex h-8 w-full max-w-[480px] items-center gap-2.5 rounded-full bg-relief px-4 focus-within:ring-1 focus-within:ring-bord-doux max-md:hidden">
           <Search className="h-4 w-4 flex-none text-ardoise" />
           <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un contact…" aria-label="Rechercher un contact" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />

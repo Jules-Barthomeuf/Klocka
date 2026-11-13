@@ -146,9 +146,9 @@ export function candidatsLocataire(nom, exploitants, sansForme = (x) => x) {
 
 // Les réponses des sources gardées un jour : une source qui tombe rend sa dernière réponse, datée, plutôt qu'une ligne vide.
 const CACHE_SOURCES = 'CacheOutilLocataire';
-export async function gardeUnJour(cle, fn) {
+export async function gardeUnJour(cle, fn, { jours = 1 } = {}) {
   const garde = Records.findBy(CACHE_SOURCES, 'cle', cle);
-  if (garde && Date.now() - Date.parse(garde.le) < 86400000) return { valeur: garde.valeur, le: garde.le };
+  if (garde && Date.now() - Date.parse(garde.le) < jours * 86400000) return { valeur: garde.valeur, le: garde.le };
   try {
     const valeur = await reessayer(fn);
     if (garde) Records.update(CACHE_SOURCES, garde.id, { valeur, le: new Date().toISOString() });
@@ -293,12 +293,13 @@ export function pointAvis(p, { simule = false } = {}) {
     { note, nombre: n, nom, ferme, simule }, { lien: simule ? null : p.googleMapsUri || null });
 }
 
-async function outilLocataire(e) {
+async function outilLocataire(e, { partiel = null } = {}) {
   const P = [['societe', 'Société'], ['procedures', 'Procédures collectives'], ['comptes', 'Poids du loyer'], ['avis', 'Avis clients']];
   if (!e.locataire) return { points: P.map(([k, l]) => vide(k, l, 'Pas de nom de locataire dans le dossier.')) };
   const points = [];
-  // L'avis Google ne dépend pas de la société : il part en même temps.
+  // L'avis Google ne dépend pas de la société : il part en même temps, et le résumé des avis du web aussi.
   const avis = avisGoogle(e);
+  const web = resumeAvisWeb(e);
   const { s, local, raison, autres = [] } = await societeDuLocataire(e);
   if (!s) {
     points.push(local?.exploitants?.length && !local.trouve
@@ -347,8 +348,65 @@ async function outilLocataire(e) {
     }
     points.push(pointComptes(comptes, e.loyer, { ei }));
   }
-  points.push(await avis);
+  const pAvis = await avis;
+  // Le résumé du web prend vingt à soixante secondes : le reste s'affiche avant (13 nov. 2026, Jules).
+  partiel?.({ points: [...points, avecResumeWeb(pAvis, null, { enCours: true })], resume: s?.nom || null });
+  points.push(avecResumeWeb(pAvis, await web));
   return { points, resume: s?.nom || null };
+}
+
+/**
+ * Le résumé des avis clients sur le web (13 nov. 2026, Jules : « une recherche, puis un résumé de tous les avis, pas
+ * forcément que Google ») : la recherche web du modèle, bornée à ce local (nom et adresse), toutes sources (Google,
+ * TripAdvisor, PagesJaunes, plateformes de livraison, presse). La note et le nombre d'avis restent ceux de Google
+ * Places : un chiffre lu par le modèle sur une page tierce n'est pas fiable. Gardé sept jours ; null sans modèle.
+ */
+export const CONSIGNE_AVIS_WEB = (e) => `Cherche sur le web les avis de clients sur ce commerce précis : « ${e.locataire} », ${e.adresse}.
+Toutes les sources comptent (Google Maps, TripAdvisor, PagesJaunes, Uber Eats, Deliveroo, Trustpilot, presse locale, forums).
+Attention aux chaînes : ne retiens que les avis sur l'établissement de cette adresse, pas ceux des autres établissements de la même enseigne.
+Réponds en français, exactement dans ce format, sans rien d'autre :
+CERTITUDE: sûr | incertain | introuvable   (sûr = les avis parlent bien de ce local ; introuvable = aucun avis sur ce local)
+SYNTHESE: une phrase de 25 mots au plus sur ce que disent les clients
+POSITIF: un point fort cité par plusieurs clients
+POSITIF: un autre (trois au plus)
+NEGATIF: un point faible cité par plusieurs clients
+NEGATIF: un autre (trois au plus)`;
+
+/** Pure : lit la réponse du modèle au format de CONSIGNE_AVIS_WEB. */
+export function lireResumeAvis(texte) {
+  const lignes = String(texte || '').split('\n').map((l) => l.replace(/^[-*•\s]+/, '').trim());
+  const val = (cle) => lignes.filter((l) => new RegExp(`^${cle}\\s*:`, 'i').test(l)).map((l) => l.replace(new RegExp(`^${cle}\\s*:\\s*`, 'i'), '').trim()).filter(Boolean);
+  const c = (val('CERTITUDE')[0] || '').toLowerCase();
+  const certitude = /introuvable/.test(c) ? 'introuvable' : /incertain/.test(c) ? 'incertain' : /s[uû]r/.test(c) ? 'sur' : null;
+  const synthese = val('SYNTH[EÈ]SE')[0] || null;
+  if (!certitude && !synthese) return null;
+  return { certitude: certitude || 'incertain', synthese, positifs: val('POSITIF').slice(0, 3), negatifs: val('N[EÉ]GATIF').slice(0, 3) };
+}
+
+async function resumeAvisWeb(e) {
+  if (!e.locataire || !e.adresse) return null;
+  try {
+    const { invokeLLMGrounded } = await import('../llm.js');
+    const lu = await gardeUnJour(`avis-web:${String(e.locataire).toLowerCase()}|${String(e.adresse).toLowerCase()}`, async () => {
+      const r = await invokeLLMGrounded({ prompt: CONSIGNE_AVIS_WEB(e) });
+      if (!r) throw new Error('Aucun modèle avec recherche web configuré.');
+      const resume = lireResumeAvis(r.text);
+      if (!resume) throw new Error('Réponse illisible.');
+      return { ...resume, sources: (r.sources || []).slice(0, 6) };
+    }, { jours: 7 });
+    return { ...lu.valeur, le: lu.le };
+  } catch (err) {
+    console.warn(`[avis web] ${e.locataire} : ${err?.message || err}`);
+    return null;
+  }
+}
+
+/** Pure : la ligne Avis clients avec le résumé du web. Sans fiche Google, le résumé fait la ligne, sans note. */
+export function avecResumeWeb(p, web, { enCours = false } = {}) {
+  if (enCours) return { ...p, detail: { ...(p.detail || {}), web_en_cours: true } };
+  if (!web || web.certitude === 'introuvable') return p;
+  if (p.statut !== 'vide' || p.detail?.simule) return { ...p, detail: { ...(p.detail || {}), web } };
+  return point('avis', 'Avis clients', 'a_voir', web.synthese || 'Avis lus sur le web', 'Recherche web, résumé par l\'IA', { web }, { lien: web.sources?.[0]?.url || null });
 }
 
 async function avisGoogle(e) {
@@ -490,34 +548,50 @@ async function vacanceDeLaRue(adresse, { attente = 180000 } = {}) {
   for (;;) {
     const r = await tauxDeLaRue({ commune: adresse.code_insee, voie: adresse.rue }).catch((err) => ({ ok: false, error: err?.message || String(err) }));
     if (!(r.ok && r.statut === 202) || Date.now() > fin) return r;
-    await new Promise((ok) => setTimeout(ok, 10000));
+    // Le recensement de la commune se charge : on regarde toutes les deux secondes (dix avant le 13 nov. 2026).
+    await new Promise((ok) => setTimeout(ok, 2000));
   }
 }
 
-async function outilEmplacement(e) {
+async function outilEmplacement(e, { partiel = null } = {}) {
   const P = [['passage', 'Passage'], ['rotation', 'Rotation du local'], ['vacance', 'Vacance'], ['enseignes', 'Enseignes nationales']];
   if (!e.adresse) return { points: P.map(([k, l]) => vide(k, l, "Pas d'adresse dans le dossier.")) };
   const { analyserRue } = await import('./rue.js');
+  // La vacance part en même temps que la rue (13 nov. 2026, Jules : « beaucoup trop long ») : elle n'a besoin que de la
+  // commune et de la voie, que la Base Adresse donne tout de suite ; avant, elle attendait la fin de la rue.
+  const t0 = Date.now();
+  const { resoudreAdresse } = await import('../adresse-ban.js');
+  const ban = await resoudreAdresse(e.adresse).catch(() => null);
+  let tVac = null;
+  const enAvance = ban?.code_insee && ban?.rue ? vacanceDeLaRue(ban).finally(() => { tVac = Date.now() - t0; }) : null;
   const r = await analyserRue(e.adresse).catch((err) => ({ ok: false, error: err?.message || String(err) }));
+  const tRue = Date.now() - t0;
   if (!r.ok) return { points: P.map(([k, l]) => vide(k, l, r.error, 'Outil Rue')) };
   const x = r.resultat;
   const note = x.note_analyste?.note ?? x.passage?.note ?? null;
   const rot = x.local.rotation;
   // La vacance de la rue vient de l'outil Vacance (12 nov. 2026, Jules) : il tranche chaque local avec le registre,
   // OpenStreetMap et Google Maps, là où les « cellules vides » de l'outil Rue ne lisaient que le registre.
-  const vac = await vacanceDeLaRue(x.adresse);
-  return {
+  const memeVoie = enAvance && ban.code_insee === x.adresse.code_insee && ban.rue === x.adresse.rue;
+  // Chaque partie dès qu'elle est prête (13 nov. 2026, Jules) : Passage, Rotation et Enseignes arrivent avec la rue,
+  // la Vacance se remplit ensuite.
+  const resultat = (pointVac) => ({
     conclusion: x.conclusion.phrase, statut: x.conclusion.statut,
     rue_id: r.id, rue: x,
     points: [
       note == null ? vide('passage', 'Passage', 'Ni commerces, ni transports, ni photo lus.', 'Outil Rue')
         : point('passage', 'Passage', note >= 7 ? 'ok' : note >= 4.5 ? 'a_voir' : 'alerte', `${String(note).replace('.', ',')} / 10${x.note_analyste?.note != null ? " (note de l'analyste)" : x.passage?.confiance === 'basse' ? ' (provisoire : peu de lectures)' : ''}`, 'Indice Klocka, pas un comptage', { pourquoi: x.passage?.pourquoi || [] }),
       rot.statut === 'vide' ? vide('rotation', 'Rotation du local', rot.verdict, x.rue.source) : point('rotation', 'Rotation du local', rot.statut, rot.verdict, x.rue.source),
-      pointVacance(vac),
+      pointVac,
       x.rue.ouvertes ? point('enseignes', 'Enseignes nationales', x.rue.part_enseignes_pct >= 30 ? 'ok' : x.rue.part_enseignes_pct >= 10 ? 'a_voir' : 'alerte', `${x.rue.part_enseignes_pct} % des commerces ouverts sont des enseignes nationales${x.rue.noms_enseignes.length ? ` (${x.rue.noms_enseignes.slice(0, 4).join(', ')})` : ''}`, 'Registre SIRENE et liste des marques')
         : vide('enseignes', 'Enseignes nationales', 'Aucun commerce ouvert connu dans la rue.', x.rue.source),
     ],
-  };
+  });
+
+  partiel?.(resultat(vide('vacance', 'Vacance', 'Lecture en cours…', 'Outil Vacance (registre, OpenStreetMap, Google Maps)')));
+  const vac = await (memeVoie ? enAvance : vacanceDeLaRue(x.adresse));
+  console.log(`[emplacement] « ${e.adresse} » : rue ${Math.round(tRue / 1000)} s${x.du_cache ? ' (gardée)' : ''}, vacance ${Math.round((tVac ?? Date.now() - t0) / 1000)} s, en tout ${Math.round((Date.now() - t0) / 1000)} s`);
+  return resultat(pointVacance(vac));
 }
 
 /** Pure : la commune en chiffres (surface en km², densité) d'après l'API Géo. */
@@ -665,13 +739,21 @@ export function lancerOutil(outil, entrees, { dealId = null, index = 0, user = n
   }
   const rec = Records.create(ENTITE, { outil, entrees, empreinte: empreinte(outil, entrees), deal_id: dealId, index, statut: 'en_cours', lance_le: new Date().toISOString(), fini_le: null, par: user?.email || null }, user?.email);
   enCours.add(cleCours);
-  (moteur || MOTEURS[outil])(entrees)
+  const composer = (r) => {
+    const c = conclusionDe(outil, r.points, r.resume);
+    return { statut: r.statut || c.statut, conclusion: r.conclusion || c.conclusion, points: r.points, rue_id: r.rue_id || null, rue: r.rue || null, commune: r.commune || null };
+  };
+  // `partiel` : un moteur montre ce qu'il a déjà lu, le lancement restant « en cours » (13 nov. 2026, Jules : chaque
+  // partie dès qu'elle est prête). Rien ne s'écrit plus une fois le lancement fini.
+  let fini = false;
+  const partiel = (r) => { if (!fini) try { Records.update(ENTITE, rec.id, { resultat: composer(r) }); } catch (err) { console.warn(`[outils] ${outil}, partiel : ${err?.message || err}`); } };
+  (moteur || MOTEURS[outil])(entrees, { partiel })
     .then((r) => {
-      const c = conclusionDe(outil, r.points, r.resume);
-      const resultat = { statut: r.statut || c.statut, conclusion: r.conclusion || c.conclusion, points: r.points, rue_id: r.rue_id || null, rue: r.rue || null, commune: r.commune || null };
-      Records.update(ENTITE, rec.id, { statut: 'fini', fini_le: new Date().toISOString(), resultat });
+      fini = true;
+      Records.update(ENTITE, rec.id, { statut: 'fini', fini_le: new Date().toISOString(), resultat: composer(r) });
     })
     .catch((err) => {
+      fini = true;
       console.warn(`[outils] ${outil} : ${err?.message || err}`);
       Records.update(ENTITE, rec.id, { statut: 'echec', fini_le: new Date().toISOString(), erreur: err?.message || String(err) });
     })

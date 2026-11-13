@@ -145,6 +145,27 @@ function Procedures({ p }) {
 }
 
 /** Avis clients : la note sur 5 en jauge, le nombre d'avis et le nom de la fiche ; plus les derniers avis (12 nov. 2026). */
+/**
+ * Ce que disent les clients, d'après le web (13 nov. 2026, Jules : « un résumé de tous les avis, pas forcément que
+ * Google ») : la synthèse en 13 px, les points forts et faibles en lignes (« + » accent, « − » alerte), les sources en
+ * liens, « résumé IA » dit ; « à vérifier » quand le modèle n'est pas sûr que les avis parlent de ce local.
+ */
+function ResumeWeb({ d, avecSynthese = true }) {
+  if (d.web_en_cours) return <p className="m-0 text-[12.5px] text-brume">Résumé des avis du web en cours…</p>;
+  const w = d.web;
+  if (!w) return null;
+  const hote = (u) => { try { return new URL(u).host.replace(/^www\./, ""); } catch { return u; } };
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="m-0 text-[11.5px] text-brume">Ce qu'en disent les clients · résumé IA{w.certitude === "incertain" && <span className="ml-1.5 text-alerte">· à vérifier : les avis lus ne parlent peut-être pas de ce local</span>}</p>
+      {avecSynthese && w.synthese && <p className="m-0 text-[13px] leading-[1.45] text-craie">{w.synthese}</p>}
+      {(w.positifs || []).map((x) => <p key={`+${x}`} className="m-0 flex gap-2 text-[12.5px] leading-[1.45] text-ardoise"><span className="text-menthe">+</span>{x}</p>)}
+      {(w.negatifs || []).map((x) => <p key={`-${x}`} className="m-0 flex gap-2 text-[12.5px] leading-[1.45] text-ardoise"><span className="text-alerte">−</span>{x}</p>)}
+      {w.sources?.length > 0 && <p className="m-0 flex flex-wrap gap-x-3 text-[11.5px]">{w.sources.slice(0, 4).map((x) => <a key={x.url} href={x.url} target="_blank" rel="noreferrer" className="text-menthe hover:underline">{hote(x.url)}</a>)}</p>}
+    </div>
+  );
+}
+
 function AvisClients({ p }) {
   if (!p) return null;
   const d = p.detail || {};
@@ -153,11 +174,14 @@ function AvisClients({ p }) {
   const note = d.note ?? (ancien ? Number(ancien[1].replace(",", ".")) : null);
   const n = d.nombre ?? (ancien ? Number(ancien[2].replace(/\D/g, "")) : null);
   const nom = d.nom ?? (ancien ? ancien[3] : null);
-  if (p.statut === "vide" || !note) return <Mesure p={p} badge={d.simule ? "simulé" : null} />;
+  // Sans fiche Google, le résumé du web fait la ligne : sa synthèse en chiffre, sans note.
+  if (!note && d.web) return <Mesure p={p} chiffre="Avis du web" suite=""><ResumeWeb d={d} /></Mesure>;
+  if (p.statut === "vide" || !note) return <Mesure p={p} badge={d.simule ? "simulé" : null}><ResumeWeb d={d} /></Mesure>;
   if (d.ferme) return <Mesure p={p} chiffre="Fiche marquée fermée" suite={nom ? `« ${nom} »` : ""} />;
   return (
     <Mesure p={p} chiffre={`${String(note).replace(".", ",")} sur 5`} suite={`${nombre(n)} avis${nom ? ` · « ${nom} »` : ""}`} badge={d.simule ? "simulé" : null}>
       <Jauge min={1} max={5} zones={[{ de: 1, a: 3.5, statut: "alerte" }, { de: 3.5, a: 4, statut: "a_voir" }, { de: 4, a: 5, statut: "ok" }]} marques={[{ valeur: note, texte: String(note).replace(".", ","), statut: p.statut }]} graduations={[1, 2, 3, 4, 5]} />
+      <ResumeWeb d={d} />
     </Mesure>
   );
 }

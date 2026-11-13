@@ -79,7 +79,8 @@ function FSelect({ label, value, onValueChange, children }) {
   );
 }
 
-export default function ProjectFormSimulateurTab({ formData, setFormData, travauxList, setTravauxList }) {
+// `colonnes` : dans le panneau au-dessus du simulateur d'un projet (13 nov. 2026, Jules), les parties sur deux colonnes.
+export default function ProjectFormSimulateurTab({ formData, setFormData, travauxList, setTravauxList, colonnes = false }) {
   const modeNetVendeur = !!formData.sim_mode_prix_net_vendeur;
 
   // Calcul des honoraires agent en temps réel
@@ -122,7 +123,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
   };
 
   return (
-    <div className="mt-6 space-y-3">
+    <div className={colonnes ? "grid items-start gap-3 lg:grid-cols-2" : "mt-6 space-y-3"}>
       <Bloc titre="1. Acquisition">
       <ToggleRow
         checked={modeNetVendeur}

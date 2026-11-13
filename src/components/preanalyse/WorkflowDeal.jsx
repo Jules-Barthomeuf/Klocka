@@ -66,12 +66,15 @@ const GRILLES_ANALYSE = [
   { id: "diagnostics", titre: "Diagnostics", grilles: null, parPiece: true },
   // Ce que les pièces ne disent pas (11 nov. 2026, Jules : « un seul onglet Marché ») : locataire, loyer, prix,
   // emplacement, ville, lancés seuls à la création du dossier (analyse/ControlesHorsDocuments.jsx).
+  // La fiche du bien de la Pré-analyse, modifiable ici, avant le Marché qui la lit (13 nov. 2026, Jules).
+  { id: "fiche", titre: "Fiche", grilles: null },
   { id: "marche", titre: "Marché", grilles: null },
   { id: "simulateur", titre: "Simulateur", grilles: null },
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
 import MarcheAffine from "@/components/outils/MarcheAffine";
+import FicheAnalyse from "@/components/analyse/FicheAnalyse";
 import { useOutilsDossier, pastilleMarche, lireVu } from "@/components/analyse/ControlesHorsDocuments";
 import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
 import { ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
@@ -764,6 +767,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {/* La section Vendeur est retirée de l'Analyse (30 oct. 2026, Jules). */}
             {grilleAnalyse === "data_room" && <DepotsDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />}
             {/* L'ancien Marché (adresse, verdict de prix, journal des lectures) cède la place aux outils (11 nov. 2026). */}
+            {grilleAnalyse === "fiche" && <FicheAnalyse dossier={dossier} onSaisie={onSaisie} onRefresh={onRefresh} enCours={enCours} apercu={apercu} />}
             {grilleAnalyse === "marche" && dossier?.deal_id && <MarcheAffine dealId={dossier.deal_id} index={0} apercu={apercu} />}
             {/* L'onglet Historique retiré (29 oct. 2026, Jules). */}
             {grilleAnalyse === "simulateur" && (

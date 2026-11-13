@@ -1223,7 +1223,8 @@ export function BandeauRecalcul({ actif }) {
   );
 }
 
-export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false, sansSimulateur = false, apresModes = null }) {
+// `sansCarte` : sans la carte Google Maps de l'emplacement (l'onglet Fiche de l'Analyse, 13 nov. 2026, Jules).
+export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false, sansSimulateur = false, apresModes = null, sansCarte = false }) {
   // Vérifier un critère à la main : vert, jaune, ou retour au calcul.
   // Changer la couleur d'une ligne ne recalcule rien (5 nov. 2026, Jules : « juste on change la couleur ») : l'écran la
   // change tout de suite, le serveur l'enregistre derrière, le dossier n'est pas relu. Un échec la remet.
@@ -1267,7 +1268,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             {modeFiche === "fiche" ? (boutonFicheSource(dossier) ? <FicheSource dossier={dossier} /> : <p className={`m-0 ${VERRE} px-5 py-8 text-center text-[13.5px] text-ardoise`}>Ce dossier n'a pas de fiche commerciale : il a été créé sans pièce.</p>) : (
               <TableauBien
                 lot={lotVu}
-                emplacement={<CarteEmplacement lot={lotVu} dealId={dossier?.deal_id || null} apercu={apercu} />}
+                emplacement={sansCarte ? null : <CarteEmplacement lot={lotVu} dealId={dossier?.deal_id || null} apercu={apercu} />}
                 onSaisie={onSaisie}
                 enCours={enCours}
                 apercu={apercu}

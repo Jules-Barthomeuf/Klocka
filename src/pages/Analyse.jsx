@@ -26,6 +26,7 @@ import Chargement from "@/components/ui/Chargement";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
 import { BoutonPrincipal, CLASSE_OUTIL, Recherche, Statut, TitrePage } from "@/components/mandataire/elements";
 import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
+import { VERRE } from "@/lib/verre";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
 // À traiter (à toi d'agir, en attente d'un tiers), Pipeline (Tri, Qualification,
@@ -452,8 +453,10 @@ export default function Analyse() {
       // arrière et avant »). La bande du haut, de la couleur de la barre, ne fait qu'un bloc avec elle (k-cadre-dossier) ;
       // WorkflowDeal y pose son titre et ses gestes (#bande-dossier-titre, #bande-dossier-droite). Le fond de chacun,
       // halo compris, reste dans le cadre.
-      <div className="flex h-[100dvh] flex-col overflow-hidden bg-rail text-encre">
-      <header className="relative flex h-12 flex-none items-center justify-center px-4">
+      // La bande en verre (13 nov. 2026, Jules) : `k-cadre-l` (index.css) la pose par-dessus le dossier et le chat, qui
+      // montent dessous et s'en écartent de 48 px eux-mêmes ; le filet et le coin rond sont dessinés par le cadre.
+      <div className="k-cadre-l flex h-[100dvh] flex-col overflow-hidden bg-rail text-encre">
+      <header className="k-verre-barre relative flex h-12 flex-none items-center justify-center px-4">
         {/* Les deux icônes (assistant, tous les dossiers) au-dessus du panneau des parties : le bord gauche du dossier. */}
         <div id="bande-dossier-gauche" className="absolute flex items-center gap-1" style={{ left: (reduit ? 0 : largeurChat) + 32, transition: tire ? undefined : "left 520ms cubic-bezier(0.22, 1, 0.36, 1)" }} />
         <div id="bande-dossier-titre" className="flex min-w-0 items-center gap-1.5" />
@@ -464,7 +467,7 @@ export default function Analyse() {
         {/* `transform` : le halo, posé en `fixed` par FondHalo, se cale sur ce cadre et non sur l'écran. */}
         {avecHalo ? <FondHalo /> : <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-fond" />}
         {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
-        <motion.div className="k-colonne-chat relative z-10 flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
+        <motion.div className="k-colonne-chat relative z-10 flex h-full min-h-0 min-w-0 flex-col overflow-hidden pt-12"
           initial={glisse.current ? { opacity: 0, x: -40 } : { opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: glisse.current ? 0.45 : 0, ease: [0.22, 1, 0.36, 1] }}>
           {/* Ouvrir le chat (2 nov. 2026, Jules : « pas du haut en bas, juste que ça apparaisse de droite à gauche, plus
@@ -490,7 +493,7 @@ export default function Analyse() {
           </motion.div>
         </motion.div>
         {/* Le dossier comme en mode normal, à droite, séparé du chat par une fine ligne : plus de carte posée sur la page (18 oct. 2026, Jules). */}
-        <motion.div className={`relative z-10 h-full min-h-0 min-w-0 ${enEditeur ? "overflow-hidden" : `overflow-y-auto px-8 py-8 ${vueDossier === "analyse" ? "lg:pt-0" : ""}`}`}
+        <motion.div className={`relative z-10 h-full min-h-0 min-w-0 ${enEditeur ? "overflow-hidden pt-12" : `overflow-y-auto px-8 pb-8 ${vueDossier === "analyse" ? "pt-12" : "pt-20"}`}`}
           initial={glisse.current ? { x: -largeurChat } : { opacity: 0 }} animate={{ x: 0, opacity: 1 }}
           transition={{ duration: glisse.current ? 0.7 : 0.5, ease: [0.65, 0, 0.35, 1] }}>
           {contenuDossier}
@@ -666,7 +669,7 @@ function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
   // Le verdict choisi par l'équipe, seul (10 nov. 2026, Jules : « je ne veux plus voir insuffisant ») ; sans choix, rien.
   const verdict = d.verdict_choisi ? VERDICTS[d.verdict_choisi] : null;
   return (
-    <article className="relative cursor-pointer rounded-[12px] border border-trait k-carte-rail px-3.5 py-2.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+    <article className={`${VERRE} relative cursor-pointer px-3.5 py-2.5 pr-9 transition-colors hover:border-bord-vif`} onClick={onOuvrir}>
       <div className="flex min-w-0 items-center justify-between gap-2.5">
         <p className="m-0 flex min-w-0 items-center gap-2 text-[14.5px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
         {ecarte ? <Statut couleur="corail" className="flex-none">{d.statut === "abandonne" ? "Abandonné" : "Écarté"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none">{verdict.libelle}</Statut>}
@@ -734,7 +737,7 @@ function QuestionsMandataires() {
       <div className="k-serie k-serie-leve mt-3 grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
         {sansDossier.map((c) => (
           <Link key={c.id} to={`/Conversations?dossier=${c.id}`}
-            className="flex items-center gap-3.5 rounded-[16px] border border-trait k-carte-rail px-4 py-3.5 transition-colors hover:border-bord-doux">
+            className={`${VERRE} flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:border-bord-vif`}>
             <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-relief text-[12px] font-semibold text-craie">{initiales(c.mandataire_nom)}</span>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="flex justify-between gap-2"><span className="truncate text-[15px] font-medium text-encre">{String(c.bien).replace(/\s*\(.*?\)\s*/g, " ").trim()}</span><span className="flex-none text-[12px] text-brume">{quand(c.activite)}</span></span>

@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Map as MapIcon, Search, Building2, Plus, Upload, X, CheckCircle2, MoreHorizontal, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, History, UserPlus, PanelRight, Save } from "lucide-react";
+import { Map as MapIcon, Search, Building2, Plus, Upload, X, CheckCircle2, MoreHorizontal, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, History, UserPlus, PanelRight, Save, ChevronDown } from "lucide-react";
 import CarteKlocka from "@/components/carte/CarteKlocka";
 import { toast } from "@/components/ui/avis";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
@@ -37,6 +37,8 @@ import ProjectFormSwotTab from "../components/admin/ProjectFormSwotTab";
 import ProjectFormMarcheTab from "../components/admin/ProjectFormMarcheTab";
 import { parametresDuProjet, champsDuSimulateur } from "../components/admin/ProjectSimulatorPreview";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
+import ProjectFormSimulateurTab from "../components/admin/ProjectFormSimulateurTab";
+import { VERRE } from "@/lib/verre";
 import BoutonMonday from "@/components/BoutonMonday";
 import ProjetContent from "../components/projet/ProjetContent";
 import { COULEURS_DOC_PROJET } from "../components/projet/EditionEnPlace";
@@ -134,6 +136,8 @@ export default function AdminProjets() {
   const [versionsOuvertes, setVersionsOuvertes] = useState(false);
   const [versions, setVersions] = useState(null);
   const [enregistrement, setEnregistrement] = useState(false);
+  // Le panneau des champs du simulateur, au-dessus du simulateur de l'éditeur : ouvert d'emblée (13 nov. 2026).
+  const [parametresOuverts, setParametresOuverts] = useState(true);
   const [ongletPage, setOngletPage] = useState("marche");
   // Historique des modifications faites sur la page, pour le retour en arrière.
   const [historique, setHistorique] = useState([]);
@@ -1620,8 +1624,25 @@ export default function AdminProjets() {
                 // Le même simulateur que la Pré-analyse et la page Simulateur (11 nov. 2026, Jules : « tous les simulateurs
                 // pareils ; plus de simulateur public ») : ses chiffres viennent des champs du projet et y retournent, une
                 // seconde après la dernière retouche ; le projet s'enregistre ensuite seul, comme le reste.
-                <SimulateurDossier parametres={parametresDuProjet(formData, travauxList)}
-                  onChange={(corps) => { const { champs, travaux } = champsDuSimulateur(corps); setFormDataSaisi((f) => ({ ...f, ...champs })); if (travaux) setTravauxListSaisi(travaux); }} />
+                // Au-dessus, le panneau de tous les champs du simulateur (13 nov. 2026, Jules : « un panneau où on modifie
+                // vraiment tous les champs, puis Enregistrer ; dans le projet, le simulateur montre nos paramètres ») :
+                // les deux écrivent dans les mêmes champs du projet, l'un suit l'autre.
+                <div className="space-y-4">
+                  <section className={`${VERRE} overflow-hidden`}>
+                    <div className="flex min-h-[52px] flex-wrap items-center justify-between gap-3 border-b border-trait px-4 py-2">
+                      <button type="button" onClick={() => setParametresOuverts((o) => !o)} className="inline-flex items-center gap-2 text-[16px] text-encre" style={{ background: "transparent" }}>
+                        <ChevronDown className={`h-4 w-4 text-brume transition-transform ${parametresOuverts ? "" : "-rotate-90"}`} />Paramètres du simulateur
+                      </button>
+                      <button type="button" onClick={() => (editingProject ? enregistrerVersion() : handleSubmit())} disabled={editingProject ? enregistrement : (!formData.titre || isSaving)}
+                        className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
+                        {(editingProject ? enregistrement : isSaving) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Enregistrer
+                      </button>
+                    </div>
+                    {parametresOuverts && <div className="p-4"><ProjectFormSimulateurTab colonnes formData={formData} setFormData={setFormDataSaisi} travauxList={travauxList} setTravauxList={setTravauxListSaisi} /></div>}
+                  </section>
+                  <SimulateurDossier reglagesOuverts parametres={parametresDuProjet(formData, travauxList)}
+                    onChange={(corps) => { const { champs, travaux } = champsDuSimulateur(corps); setFormDataSaisi((f) => ({ ...f, ...champs })); if (travaux) setTravauxListSaisi(travaux); }} />
+                </div>
               }
               onPhotos={() => { setPhotosBrouillon([...(formData.photos || [])]); setPhotosOuvertes(true); }}
               editeurDocuments={!champsOuverts && vueProjet === "edition" && (
@@ -1788,7 +1809,7 @@ export default function AdminProjets() {
               <TabsContent value="marche"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormMarcheTab formData={formData} setFormData={setFormDataSaisi} projetId={editingProject?.id} /></motion.div></TabsContent>
               <TabsContent value="docs_projet"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDocumentsTab formData={formData} setFormData={setFormDataSaisi} /></motion.div></TabsContent>
               <TabsContent value="images"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormImagesTab formData={formData} setFormData={setFormDataSaisi} /></motion.div></TabsContent>
-              <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><SimulateurDossier compact parametres={parametresDuProjet(formData, travauxList)} onChange={(corps) => { const { champs, travaux } = champsDuSimulateur(corps); setFormDataSaisi((f) => ({ ...f, ...champs })); if (travaux) setTravauxListSaisi(travaux); }} /></motion.div></TabsContent>
+              <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><SimulateurDossier reglagesOuverts compact parametres={parametresDuProjet(formData, travauxList)} onChange={(corps) => { const { champs, travaux } = champsDuSimulateur(corps); setFormDataSaisi((f) => ({ ...f, ...champs })); if (travaux) setTravauxListSaisi(travaux); }} /></motion.div></TabsContent>
             </Tabs>
           </div>
           <div className={`px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center ${scindeProjet ? "md:pr-[84px]" : ""}`}>

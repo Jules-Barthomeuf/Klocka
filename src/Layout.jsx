@@ -392,8 +392,7 @@ function LayoutContent({ children, currentPageName }) {
     Semaine: { to: createPageUrl("Semaine"), icon: CalendarDays, actif: isActivePage("Semaine") },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     AValider: { to: createPageUrl("AValider"), icon: ClipboardCheck, actif: isActivePage("AValider"), badge: hakaAValider || null, badgeColor: "bg-menthe text-sur-menthe" },
-    // La planche « La barre en verre » (12 nov. 2026) montre un dossier : Dossiers y reste allumé. À retirer avec elle.
-    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("PlancheVerre") ||isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires") || isActivePage("MemoireKlocka"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
+    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") ||isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires") || isActivePage("MemoireKlocka"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },
@@ -629,7 +628,7 @@ function LayoutContent({ children, currentPageName }) {
           {!hideNavbar && (
             <aside
               data-zone="barre"
-              className={`k-points k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col rounded-r-[24px] border-y border-r border-trait bg-rail transition-[width] duration-200 before:rounded-r-[24px] ${sidebarCollapsed && !barreOuverteAuSurvol ? "w-[64px]" : "w-[228px]"} ${barreOuverteAuSurvol ? "shadow-[0_20px_50px_rgb(0_0_0/0.28)]" : ""}`}
+              className={`k-points k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col rounded-r-[24px] border-y border-r border-trait k-verre-barre transition-[width] duration-200 before:rounded-r-[24px] ${sidebarCollapsed && !barreOuverteAuSurvol ? "w-[64px]" : "w-[228px]"} ${barreOuverteAuSurvol ? "k-verre-epais shadow-[0_20px_50px_rgb(0_0_0/0.28)]" : ""}`}
               style={{ paddingTop: "env(safe-area-inset-top)" }}
               onMouseEnter={sidebarCollapsed ? () => survolerBarre(true) : undefined}
               onMouseLeave={sidebarCollapsed ? () => survolerBarre(false) : undefined}
@@ -641,7 +640,7 @@ function LayoutContent({ children, currentPageName }) {
           {/* Mobile Top Bar : sa hauteur compte l'encoche, comme le haut de main. Seulement pour l'équipe : client et
               mandataire ont le menu dans la barre du bas (24 oct. 2026). */}
           {!hideNavbar && !ongletsMobile && (
-            <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-fond/80 backdrop-blur-xl border-b border-trait flex items-center justify-between gap-2 px-4" style={{ height: "var(--k-haut-mobile)", paddingTop: "env(safe-area-inset-top)" }}>
+            <div className="md:hidden fixed top-0 left-0 right-0 z-50 k-verre-barre border-b border-trait flex items-center justify-between gap-2 px-4" style={{ height: "var(--k-haut-mobile)", paddingTop: "env(safe-area-inset-top)" }}>
               {isChildPage ? (
                 <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-encre -ml-2">
                   <ChevronLeft className="w-5 h-5" />
@@ -671,7 +670,7 @@ function LayoutContent({ children, currentPageName }) {
           {isMobileMenuOpen && !hideNavbar && (
             <>
               <div className="md:hidden fixed inset-0 bg-fond/60 z-40 animate-in fade-in duration-200" onClick={closeMobile} />
-              <aside data-zone="barre" className="k-points md:hidden fixed top-0 left-0 h-[100dvh] w-[280px] max-w-[85vw] z-50 bg-rail animate-in slide-in-from-left duration-200 ease-out" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+              <aside data-zone="barre" className="k-points md:hidden fixed top-0 left-0 h-[100dvh] w-[280px] max-w-[85vw] z-50 k-verre-barre k-verre-epais animate-in slide-in-from-left duration-200 ease-out" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
                 {sidebarContent(true)}
               </aside>
             </>
@@ -769,7 +768,7 @@ function LayoutContent({ children, currentPageName }) {
       {/* Au téléphone, le logo K Partners en haut à gauche, en face de la cloche (25 oct. 2026, Jules), sur une barre
           comme celle du bas : fond transparent et flou, le logo et la cloche, rien d'autre. */}
       {vue === "mandataire" && !hideNavbar && (
-        <div aria-hidden="true" className="fixed inset-x-0 top-0 z-[39] border-b border-trait bg-transparent backdrop-blur-xl md:hidden" style={{ height: "calc(3rem + env(safe-area-inset-top))" }} />
+        <div aria-hidden="true" className="fixed inset-x-0 top-0 z-[39] border-b border-trait k-verre-barre md:hidden" style={{ height: "calc(3rem + env(safe-area-inset-top))" }} />
       )}
       {vue === "mandataire" && !hideNavbar && (
         <Link to={createPageUrl("Dashboard")} title="K Partners" className="fixed left-4 top-[calc(env(safe-area-inset-top)+0.3rem)] z-40 flex h-[38px] items-center md:hidden">

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Records } from '../db.js';
-import { jugerEffort, jugerLoyer, statutVerdictPrix, statutDesPoints, conclusionDe, empreinte, entreesChangees, aRelancer, entreesDe, lancerOutil, reconnaitreLocataire, pointVacance, lireProcedures, consigneNote, deuxPhrases, sirenDuTexte, candidatsLocataire, codeCommuneDe, communeLisible, pointComptes, pointAvis, dernierLancement, rattacher, OUTILS, ENTITE } from './lancements.js';
+import { jugerEffort, jugerLoyer, statutVerdictPrix, statutDesPoints, conclusionDe, empreinte, entreesChangees, aRelancer, entreesDe, lancerOutil, reconnaitreLocataire, pointVacance, lireProcedures, consigneNote, deuxPhrases, sirenDuTexte, candidatsLocataire, codeCommuneDe, communeLisible, pointComptes, pointAvis, dernierLancement, rattacher, OUTILS, ENTITE, lireResumeAvis, avecResumeWeb } from './lancements.js';
 
 test('le poids du loyer dans le chiffre d\'affaires : 10 % confortable, 15 % tendu', () => {
   assert.deepEqual(jugerEffort(30000, 400000), { taux: 7.5, statut: 'ok' });
@@ -58,19 +58,25 @@ test('les entrées viennent du lot, sans rien deviner', () => {
   assert.equal(e.loyer, null);
 });
 
-test('chaque lancement est gardé : relancer en crée un nouveau, le dossier montre le dernier, un lancement libre se rattache', async () => {
+test('chaque lancement est gardé : relancer en crée un nouveau, le dossier montre le dernier, un lancement libre se rattache', async (t) => {
   const dealId = `d-outils-${Date.now()}`;
-  Records.create('Deal', { deal_id: dealId, lots: [] });
+  const dossier = Records.create('Deal', { deal_id: dealId, lots: [] });
+  // Le test écrit dans la base : il efface ce qu'il a créé (13 nov. 2026, Jules : 61 dossiers « d-outils » restés).
+  t.after(() => {
+    for (const x of Records.list(ENTITE)) if (x.deal_id === dealId || [a?.id, b?.id, libre?.id].includes(x.id)) Records.delete(ENTITE, x.id);
+    Records.delete('Deal', dossier.id);
+  });
+  let a = null, b = null, libre = null;
   const moteur = async () => ({ points: [{ cle: 'x', libelle: 'X', statut: 'ok', resultat: 'bien' }] });
-  const a = lancerOutil('loyer', { adresse: '1 rue A', loyer: 1, surface: 1 }, { dealId, moteur }).lancement;
+  a = lancerOutil('loyer', { adresse: '1 rue A', loyer: 1, surface: 1 }, { dealId, moteur }).lancement;
   await new Promise((ok) => setTimeout(ok, 20));
-  const b = lancerOutil('loyer', { adresse: '1 rue A', loyer: 2, surface: 1 }, { dealId, moteur }).lancement;
+  b = lancerOutil('loyer', { adresse: '1 rue A', loyer: 2, surface: 1 }, { dealId, moteur }).lancement;
   await new Promise((ok) => setTimeout(ok, 20));
   assert.notEqual(a.id, b.id);
   assert.equal(Records.get(ENTITE, a.id).statut, 'fini');
   assert.equal(dernierLancement(dealId, 0, 'loyer').id, b.id);
   assert.equal(Records.get(ENTITE, b.id).resultat.conclusion, 'Dans le marché');
-  const libre = lancerOutil('prix', { adresse: '2 rue B' }, { moteur }).lancement;
+  libre = lancerOutil('prix', { adresse: '2 rue B' }, { moteur }).lancement;
   await new Promise((ok) => setTimeout(ok, 20));
   const r = rattacher(libre.id, dealId);
   assert.equal(r.ok, true);
@@ -191,4 +197,39 @@ test('le SIREN se lit dans un Kbis, et les exploitants possibles se rangent du p
   assert.equal(sirenDuTexte('12345678901234'), null);
   const ex = [{ siren: 'a', enseigne: 'KFC', actif: true, ouvert: '2019-01-01' }, { siren: 'b', enseigne: 'KFC', actif: true, ouvert: '2024-01-01' }, { siren: 'c', enseigne: 'KFC', actif: false, ouvert: '2010-01-01' }];
   assert.deepEqual(candidatsLocataire('KFC', ex).map((x) => x.siren), ['b', 'a']);
+});
+
+test('un moteur montre ce qu\'il a déjà lu : le lancement reste en cours avec ses premières parties, puis finit', async (t) => {
+  let finir;
+  const moteur = async (_e, { partiel }) => {
+    partiel({ points: [{ cle: 'passage', libelle: 'Passage', statut: 'ok', resultat: '8 / 10' }, { cle: 'vacance', libelle: 'Vacance', statut: 'vide', resultat: 'Lecture en cours…' }] });
+    await new Promise((ok) => { finir = ok; });
+    return { points: [{ cle: 'passage', libelle: 'Passage', statut: 'ok', resultat: '8 / 10' }, { cle: 'vacance', libelle: 'Vacance', statut: 'ok', resultat: '5 %' }] };
+  };
+  const l = lancerOutil('emplacement', { adresse: '3 rue C' }, { moteur }).lancement;
+  t.after(() => Records.delete(ENTITE, l.id));
+  await new Promise((ok) => setTimeout(ok, 10));
+  const pendant = Records.get(ENTITE, l.id);
+  assert.equal(pendant.statut, 'en_cours');
+  assert.equal(pendant.resultat.points.find((p) => p.cle === 'vacance').resultat, 'Lecture en cours…');
+  finir();
+  await new Promise((ok) => setTimeout(ok, 10));
+  const apres = Records.get(ENTITE, l.id);
+  assert.equal(apres.statut, 'fini');
+  assert.equal(apres.resultat.points.find((p) => p.cle === 'vacance').resultat, '5 %');
+});
+
+test('le résumé des avis du web se lit ligne à ligne, et ne remplace jamais une note Google', () => {
+  const r = lireResumeAvis('CERTITUDE: sûr\nSYNTHESE: Service rapide, salle souvent sale.\n- POSITIF: rapidité\nPOSITIF: emplacement\nNEGATIF: propreté\nPOSITIF: a\nPOSITIF: b');
+  assert.deepEqual(r, { certitude: 'sur', synthese: 'Service rapide, salle souvent sale.', positifs: ['rapidité', 'emplacement', 'a'], negatifs: ['propreté'] });
+  assert.equal(lireResumeAvis('Je ne sais pas.'), null);
+  assert.equal(lireResumeAvis('CERTITUDE: introuvable').certitude, 'introuvable');
+  const google = { cle: 'avis', libelle: 'Avis clients', statut: 'ok', resultat: '4,1 sur 5', detail: { note: 4.1 } };
+  assert.equal(avecResumeWeb(google, r).detail.note, 4.1);
+  assert.equal(avecResumeWeb(google, r).detail.web.synthese, r.synthese);
+  const sans = { cle: 'avis', libelle: 'Avis clients', statut: 'vide', resultat: 'Pas de fiche', detail: null };
+  assert.equal(avecResumeWeb(sans, r).statut, 'a_voir');
+  assert.equal(avecResumeWeb(sans, r).detail.note, undefined);
+  assert.equal(avecResumeWeb(sans, { ...r, certitude: 'introuvable' }), sans);
+  assert.equal(avecResumeWeb(google, null, { enCours: true }).detail.web_en_cours, true);
 });

@@ -117,8 +117,6 @@ const Ressources = lazy(() => import('./pages/Ressources'));
 const SimulateurRentabilite = lazy(() => import('./pages/SimulateurRentabilite'));
 const TableauProjection = lazy(() => import('./pages/TableauProjection'));
 const Vision = lazy(() => import('./pages/Vision'));
-// Planche « La barre en verre » (12 nov. 2026), hors menu : à retirer une fois le choix de Jules fait.
-const PlancheVerre = lazy(() => import('./pages/PlancheVerre'));
 import __Layout from './Layout.jsx';
 
 
@@ -187,7 +185,6 @@ export const PAGES = {
     "SimulateurRentabilite": SimulateurRentabilite,
     "TableauProjection": TableauProjection,
     "Vision": Vision,
-    "PlancheVerre": PlancheVerre,
 }
 
 export const pagesConfig = {

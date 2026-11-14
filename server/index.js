@@ -62,7 +62,7 @@ import { monterModeles } from './routes/modeles.js';
 import { monterPresentations } from './routes/presentations.js';
 import { monterEmailing } from './routes/emailing.js';
 import { monterWhatsApp } from './routes/whatsapp.js';
-import { apiFermee, pagesFermees, estSuperAdmin, admins as adminsAcces, poserAcces, TOUJOURS_OUVERTES } from './acces-pages.js';
+import { apiFermee, pagesFermees, estSuperAdmin, admins as adminsAcces, poserAcces, TOUJOURS_OUVERTES, migrerPiliers } from './acces-pages.js';
 import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
 import { monterVisites } from './routes/visites.js';
@@ -209,6 +209,8 @@ if (AUTH_DESACTIVEE && EN_PRODUCTION) {
 }
 
 const app = express();
+// Les piliers devenus réglables (14 nov. 2026) : ouverts une fois à chaque admin, au démarrage.
+try { migrerPiliers(); } catch (e) { console.warn(`[acces] ${e?.message || e}`); }
 app.set('trust proxy', 1);
 // En production, seule l'origine de l'application est admise ; les cookies de
 // session restant SameSite, le CORS ouvert du dev ne doit pas suivre en prod.
@@ -362,7 +364,7 @@ app.get('/api/auth/passage/:jeton', wrap(async (req, res) => {
 app.get('/api/admin/acces-pages', wrap((req, res) => {
   const user = currentUser(req);
   if (!estSuperAdmin(user)) return res.status(403).json({ error: 'Seul Jules gère les accès.' });
-  ok(res, { admins: adminsAcces(), toujours_ouvertes: TOUJOURS_OUVERTES });
+  ok(res, { admins: adminsAcces(user), toujours_ouvertes: TOUJOURS_OUVERTES });
 }));
 app.post('/api/admin/acces-pages', wrap((req, res) => {
   const r = poserAcces(currentUser(req), req.body?.email, req.body?.pages_ouvertes);

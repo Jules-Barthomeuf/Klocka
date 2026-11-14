@@ -75,6 +75,7 @@ import { MENU_ADMIN, MENU_MANDATAIRE } from '@/lib/menu';
 import { prechargerEnFond } from '@/lib/precharger';
 import { PersonnalisationProvider, usePersonnalisation } from '@/components/providers/PersonnalisationProvider';
 import EcranChargement from "@/components/ui/EcranChargement";
+import { noterArrivee } from "@/lib/arrivee-page";
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -92,14 +93,15 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 // L'attente d'une page, dans la page seulement (21 oct. 2026, Jules : « naviguer est super lent ») : la barre et le
 // cadre restent, et rien ne s'affiche les 300 premières millisecondes, pour ne pas faire clignoter un chargement court.
-const PageEnChargement = () => <EcranChargement delai={300} />;
+// Tout l'écran, barre comprise (14 nov. 2026, Jules : « l'écran noir doit être sur tout l'écran »).
+const PageEnChargement = () => <EcranChargement plein delai={300} />;
 
 // Le cadre (barre latérale, cloche, fenêtres) monté une fois pour toutes les pages : il ne se reconstruit plus à
 // chaque clic, et ses requêtes ne repartent plus. La page change dans l'Outlet ; on remonte en haut à chaque page.
 const CadrePersistant = () => {
   const location = useLocation();
   const page = pageDeChemin(location.pathname) || mainPageKey;
-  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+  useEffect(() => { window.scrollTo(0, 0); noterArrivee(); }, [location.pathname]);
   // Les pages du menu se téléchargent en fond, une fois l'application ouverte : le premier clic n'attend plus.
   const { data: moi } = useCurrentUser();
   useEffect(() => {

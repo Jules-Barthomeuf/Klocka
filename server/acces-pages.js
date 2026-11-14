@@ -6,7 +6,7 @@
 // protégerait rien.
 
 import { Records } from './db.js';
-import { ENTREES_ADMIN, ENTREES_AUTRE } from '../src/lib/menu.js';
+import { ENTREES_ADMIN, ENTREES_AUTRE, PILIERS_ACCES } from '../src/lib/menu.js';
 
 /** Les comptes de Jules, les seuls qui gèrent les accès (et qui ont tout). */
 export const SUPER_ADMINS = (process.env.SUPER_ADMIN_EMAILS || 'jules.b@klocka.immo,jules.btmf@gmail.com,admin@klocka.local')
@@ -43,14 +43,24 @@ export const API_DES_PAGES = {
 
 // Ce qui ne se ferme jamais : sans elles, plus moyen de travailler ni de revenir.
 // Présentations (13 oct. 2026, Jules : « toutes les présentations sont partagées entre tous les admins ») : ouverte à tous.
-export const TOUJOURS_OUVERTES = ['Dashboard', 'Personnalisation', 'AdminPresentations', 'Semaine'];
+// L'Assistant et les Présentations se règlent aussi depuis le 14 nov. 2026 (Jules) : ce sont des piliers.
+export const TOUJOURS_OUVERTES = ['Personnalisation', 'Semaine'];
+// Les pages devenues réglables le 14 nov. 2026 : ouvertes une fois à chaque admin (migrerPiliers), pour que rien ne
+// disparaisse de sa barre tant que Jules ne les lui cache pas.
+export const NOUVELLES_REGLABLES = ['Dashboard', 'AdminPresentations', 'KData', 'CRM'];
 
 /** Les pages du menu de l'équipe, celles qui s'ouvrent ou se ferment. */
-export const PAGES_EQUIPE = [...new Set([...ENTREES_ADMIN, ...ENTREES_AUTRE].map((e) => e.cle))].filter((p) => !TOUJOURS_OUVERTES.includes(p));
+export const PAGES_EQUIPE = [...new Set([...PILIERS_ACCES, ...ENTREES_ADMIN, ...ENTREES_AUTRE].map((e) => e.cle))].filter((p) => !TOUJOURS_OUVERTES.includes(p));
 
-/** Pure : les pages fermées pour ce compte : toutes, sauf celles que Jules lui a ouvertes. Jules n'en a aucune. */
+/**
+ * Pure : les pages fermées pour ce compte : toutes, sauf celles que Jules lui a ouvertes. Jules, lui, a tout, sauf les pages
+ * qu'il se cache pour essayer ce que voient les autres (14 nov. 2026, Jules : « avoir mon compte dans les accès pour
+ * tester par moi-même ») : `pages_cachees_essai`, vide par défaut. L'onglet Accès n'est pas dans ces pages : il ne se
+ * ferme jamais, Jules peut toujours tout rouvrir.
+ */
 export function pagesFermees(u) {
-  if (!u || u.role !== 'admin' || estSuperAdmin(u)) return [];
+  if (!u || u.role !== 'admin') return [];
+  if (estSuperAdmin(u)) return (u.pages_cachees_essai || []).filter((p) => PAGES_EQUIPE.includes(p));
   const ouvertes = new Set(u.pages_ouvertes || []);
   return PAGES_EQUIPE.filter((p) => !ouvertes.has(p));
 }
@@ -67,11 +77,17 @@ export function apiFermee(u, chemin) {
 }
 
 /** Les admins et leurs pages fermées, pour l'écran de Jules. */
-export function admins() {
+export function admins(par = null) {
+  // Jules voit aussi son propre compte, en tête, pour s'essayer à ce que voient les autres.
+  const lui = (u) => !!par && norm(u.email) === norm(par.email);
   return Records.list('User')
-    .filter((u) => u.role === 'admin' && !estSuperAdmin(u))
-    .map((u) => ({ email: norm(u.email), nom: u.full_name || u.email, pages_ouvertes: (u.pages_ouvertes || []).filter((p) => PAGES_EQUIPE.includes(p)), pages_bloquees: pagesFermees(u) }))
-    .sort((a, b) => a.email.localeCompare(b.email));
+    .filter((u) => u.role === 'admin' && (!estSuperAdmin(u) || lui(u)))
+    .map((u) => {
+      const fermees = pagesFermees(u);
+      const ouvertes = estSuperAdmin(u) ? PAGES_EQUIPE.filter((p) => !fermees.includes(p)) : (u.pages_ouvertes || []).filter((p) => PAGES_EQUIPE.includes(p));
+      return { email: norm(u.email), nom: u.full_name || u.email, vous: lui(u), pages_ouvertes: ouvertes, pages_bloquees: fermees };
+    })
+    .sort((a, b) => Number(b.vous) - Number(a.vous) || a.email.localeCompare(b.email));
 }
 
 /** Les pages ouvertes à un admin, toutes les autres fermées. Jules seul. */
@@ -79,8 +95,27 @@ export function poserAcces(par, email, pages) {
   if (!estSuperAdmin(par)) return { ok: false, error: 'Seul Jules gère les accès.' };
   const u = Records.list('User').find((x) => norm(x.email) === norm(email));
   if (!u || u.role !== 'admin') return { ok: false, error: 'Admin introuvable.' };
-  if (estSuperAdmin(u)) return { ok: false, error: 'Vos propres accès ne se ferment pas.' };
   const liste = [...new Set((Array.isArray(pages) ? pages : []).map(String))].filter((p) => PAGES_EQUIPE.includes(p));
+  // Le compte de Jules, par Jules seul : ce qu'il se cache pour essayer (le reste de ses pages reste ouvert).
+  if (estSuperAdmin(u)) {
+    if (norm(u.email) !== norm(par.email)) return { ok: false, error: "Les accès d'un autre compte de Jules ne se changent pas d'ici." };
+    Records.update('User', u.id, { pages_cachees_essai: PAGES_EQUIPE.filter((p) => !liste.includes(p)) });
+    const frais = Records.get('User', u.id);
+    return { ok: true, email: norm(u.email), pages_ouvertes: PAGES_EQUIPE.filter((p) => !pagesFermees(frais).includes(p)), pages_bloquees: pagesFermees(frais) };
+  }
   Records.update('User', u.id, { pages_ouvertes: liste, acces_modifies_le: new Date().toISOString(), acces_modifies_par: norm(par.email) });
   return { ok: true, email: norm(u.email), pages_ouvertes: liste, pages_bloquees: pagesFermees(Records.get('User', u.id)) };
+}
+
+/** Une fois par admin : les pages devenues réglables le 14 nov. 2026 lui sont ouvertes, sa barre ne change pas. */
+export function migrerPiliers() {
+  let n = 0;
+  for (const u of Records.list('User')) {
+    if (u.role !== 'admin' || estSuperAdmin(u) || u.acces_piliers_le) continue;
+    const ouvertes = [...new Set([...(u.pages_ouvertes || []), ...NOUVELLES_REGLABLES])];
+    Records.update('User', u.id, { pages_ouvertes: ouvertes, acces_piliers_le: new Date().toISOString() });
+    n += 1;
+  }
+  if (n) console.log(`[acces] ${n} admin(s) : Assistant, Présentations, Outils et CRM ouverts une fois (pages devenues réglables)`);
+  return n;
 }

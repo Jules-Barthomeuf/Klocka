@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { CLASSES_STATUT, couleurStatut } from "@/lib/couleur-statut";
 
@@ -14,9 +14,50 @@ export const BoutonPrincipal = ({ className = "", type = "button", children, ...
 export const BoutonOutil = ({ className = "", type = "button", style, children, ...props }) => <button type={type} {...props} style={{ ...TRANSPARENT, ...style }} className={`${CLASSE_OUTIL} ${className}`}>{children}</button>;
 
 /** Le titre d'une page : 24 px à gauche, son compteur, ses actions. La droite garde la place de la cloche. */
-export function TitrePage({ titre, nombre = null, actions = null, className = "" }) {
+// Le centre du logo de la barre, depuis le haut de l'écran : la marque fait 56 px de haut, le logo y est centré.
+const CENTRE_LOGO = 28;
+// Puis 28 px sous le logo, sur toutes les pages (14 nov. 2026, Jules : « mets tout plus bas », Dossiers puis le reste).
+const SOUS_LE_LOGO = 28;
+/**
+ * La ligne de titre d'une page, à la hauteur du logo de la barre (14 nov. 2026, Jules : « Projets, la recherche et Nouveau
+ * projet sur la même ligne que le logo en haut à gauche ; pareil pour Dossiers et tout ») : sur ordinateur, la ligne se
+ * cale d'elle-même pour que son milieu tombe sur celui du logo, quelles que soient les marges de la page. Seulement en tête
+ * de page (à moins de 160 px du haut) : une ligne plus bas, ou au téléphone, ne bouge pas.
+ */
+export function useLigneSurLogo(ref) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window === "undefined") return undefined;
+    const caler = () => {
+      el.style.marginTop = "";
+      if (window.innerWidth < 768) return;
+      // La position de mise en page (offsetTop), pas celle de l'écran : les entrées animées (glissement de quelques
+      // pixels à l'arrivée) fausseraient la mesure.
+      let haut = 0;
+      for (let n = el; n; n = n.offsetParent) haut += n.offsetTop;
+      if (haut > 160) return;
+      const base = parseFloat(getComputedStyle(el).marginTop) || 0;
+      el.style.marginTop = `${base + (CENTRE_LOGO + SOUS_LE_LOGO - el.offsetHeight / 2) - haut}px`;
+    };
+    caler();
+    window.addEventListener("resize", caler);
+    return () => window.removeEventListener("resize", caler);
+  }, [ref]);
+}
+
+/** Une ligne d'en-tête faite de plusieurs morceaux (titre, recherche, boutons) : la même place sur toutes les pages. */
+export function LigneTitre({ className = "", children }) {
+  const ref = useRef(null);
+  useLigneSurLogo(ref);
+  return <div ref={ref} className={className}>{children}</div>;
+}
+
+export function TitrePage({ titre, nombre = null, actions = null, className = "", dansLigne = false }) {
+  const ref = useRef(null);
+  // Dans une LigneTitre, c'est la ligne qui se cale, pas le titre.
+  useLigneSurLogo(dansLigne ? { current: null } : ref);
   return (
-    <div className={`flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2 md:pr-[52px] ${className}`}>
+    <div ref={ref} className={`flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2 md:pr-[52px] ${className}`}>
       <h1 className="m-0 min-w-0 truncate text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre max-md:pr-12">
         {titre}{nombre != null && <span className="ml-2 text-[14px] tabular-nums tracking-normal text-ardoise">{nombre}</span>}
       </h1>

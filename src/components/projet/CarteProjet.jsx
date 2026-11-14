@@ -105,31 +105,34 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
   const rang = Math.max(0, ETAPES_PROJET.indexOf(project.statut || "prospect"));
   const derniere = rang >= ETAPES_PROJET.length - 1;
 
-  // La carte de la page Projets de l'équipe (8 nov. 2026, Jules) : le statut en case, mêmes chiffres ; la photo revient en tête le 9 nov.
+  // La carte de la page Projets de l'équipe (14 nov. 2026, Jules) : la photo occupe la carte, et le texte est dessus, en
+  // blanc sous un voile : le nom, l'adresse, le prix (FAI) et dessous le rendement. Plus d'étape ni de barre d'étapes.
+  // L'avatar du conseiller en haut à droite ; les gestes au survol ; le pied (clients, rapport) sous la photo.
+  const prixFai = Number(project.sim_prix_bien_fai) || Number(project.prix_acquisition) || prixRevient;
   if (compacte) return (
     <div onClick={(e) => { if (onOuvrir && !e.target.closest("button, a, input, select, textarea, label")) onOuvrir(); }}
-      className={`group relative flex flex-col k-verre px-3.5 py-3 transition-colors hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
-      <div className="-mx-3.5 -mt-3 mb-3 h-[150px] overflow-hidden rounded-t-[11px]">
+      className={`group relative flex flex-col overflow-hidden k-verre transition-colors hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
+      <div className="k-sur-photo relative h-[230px] overflow-hidden max-md:h-[200px]">
         {photo
           ? <img src={photo} alt="" loading="lazy" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
           : <TramePhoto mot="" />}
+        <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(to top, rgba(10,11,11,0.92) 0%, rgba(10,11,11,0.6) 42%, rgba(10,11,11,0.1) 72%, rgba(10,11,11,0.2) 100%)" }} />
+        {/* L'avatar sans bord blanc (14 nov. 2026, Jules). */}
+        {avatar && <img src={avatar} alt="Conseiller" className="absolute right-3 top-3 h-7 w-7 rounded-full object-cover" />}
+        {/* Le nom et l'adresse à gauche, le prix et le rendement dessous à droite (même jour, Jules). */}
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 px-4 pb-3.5">
+          <div className="min-w-0">
+            <h2 className="m-0 truncate text-[19px] font-normal leading-[1.2] tracking-[-0.01em] text-white">{titreSansAdresse(project.titre, project.adresse_complete)}</h2>
+            {project.adresse_complete && <p className="m-0 mt-0.5 truncate text-[13px] text-white/65">{project.adresse_complete}</p>}
+          </div>
+          <div className="flex-none text-right">
+            <p className="m-0 text-[17px] tabular-nums leading-[1.2] text-white">{formatPrix(prixFai)}</p>
+            {rendement > 0 && <p className="m-0 mt-0.5 text-[13.5px] tabular-nums text-menthe">{Number(rendement).toFixed(1).replace(".", ",")} % net</p>}
+          </div>
+        </div>
+        {actions && <div className="absolute left-3 top-3 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-md:hidden">{actions}</div>}
       </div>
-      <div className="flex min-w-0 items-center justify-between gap-2.5">
-        <h2 className="m-0 truncate text-[15px] font-normal text-encre">{titreSansAdresse(project.titre, project.adresse_complete)}</h2>
-        <Statut className="flex-none">{statutLabels[project.statut] || "Prospect"}</Statut>
-      </div>
-      <div className="mb-2.5 mt-0.5 min-h-5 truncate text-[13.5px] text-ardoise">{project.adresse_complete}{sousLigne}</div>
-      <div className="flex gap-1" aria-hidden>
-        {ETAPES_PROJET.map((e, i) => <span key={e} className={`h-1 flex-1 rounded-full ${i <= rang ? "bg-menthe" : "bg-encre/[0.12]"}`} />)}
-      </div>
-      <div className="mt-2.5 flex items-center gap-6 text-[13.5px] tabular-nums text-encre">
-        <span>{formatPrix(prixRevient)} <span className="text-[12.5px] text-ardoise">revient</span></span>
-        {rendement > 0 && <span className="text-statut-menthe">{Number(rendement).toFixed(1).replace(".", ",")} % <span className="text-[12.5px] text-ardoise">net</span></span>}
-        {surface > 0 && <span>{Math.round(surface)} m²</span>}
-        {avatar && <img src={avatar} alt="Conseiller" className="ml-auto h-5 w-5 rounded-full object-cover" />}
-      </div>
-      {pied}
-      {actions && <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-rail opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-md:hidden">{actions}</div>}
+      {pied && <div className="empty:hidden px-3.5 [&:has(>*)]:pb-3">{pied}</div>}
     </div>
   );
 
@@ -151,7 +154,7 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
         </span>
         {avatar && (
           <div className="absolute right-3 top-3">
-            <img src={avatar} alt="Conseiller" className="h-8 w-8 rounded-full border-2 border-white/80 object-cover" />
+            <img src={avatar} alt="Conseiller" className="h-8 w-8 rounded-full object-cover" />
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 px-5 pb-4">

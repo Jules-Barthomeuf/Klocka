@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { vientDArriver } from "@/lib/arrivee-page";
 import LogoKlocka from "@/components/marque/LogoKlocka";
 
 // L'animation de chargement de K Partners (28 oct. 2026, Jules : « à utiliser partout dans K Partners »). L'anneau
@@ -102,13 +104,26 @@ const GENERIQUES = /^(un instant|je rassemble les informations|je les mets en or
 /** `marque` : « kp » (K Partners, par défaut) ou « klocka ». */
 export default function Loader({ titre = "Un instant", sousTitre = "", taille: tailleDemandee = "md", marque = "kp", brand = null, className = "" }) {
   const m = brand || marque;
+  // Arrivée sur une page ou rechargement d'un bloc : décidé au premier rendu, pour qu'un chargement long ne bascule pas.
+  const [pleinEcran] = useState(() => tailleDemandee === "lg" && vientDArriver());
+  const phrase = [titre, sousTitre].map((x) => String(x || "").trim()).find((x) => x && !GENERIQUES.test(x)) || null;
   if (tailleDemandee === "ligne" && className.includes("en-ligne")) {
     return <span role="status" aria-live="polite" className={`inline-flex items-center text-[13.5px] text-ardoise ${className}`}>{titre}</span>;
   }
+  // Un bloc qui se recharge (un tableau, un panneau, un onglet) : une roue simple, et la phrase si elle dit quelque chose
+  // (14 nov. 2026, Jules : « quand le tableau charge, pas l'animation, juste un spinner simple »).
+  if (!pleinEcran) {
+    return (
+      <div role="status" aria-live="polite" aria-label={titre || "Chargement"} className={`flex w-full flex-col items-center justify-center gap-3 py-16 text-ardoise ${className}`}>
+        <Loader2 className="h-5 w-5 animate-spin" />
+        {phrase && <p className="m-0 max-w-[420px] px-6 text-center text-[13px] leading-[1.5]">{phrase}</p>}
+      </div>
+    );
+  }
+  // L'arrivée sur une page : l'écran noir, sur tout l'écran, barre comprise (« pas que sur une partie »).
   const nom = m === "klocka" ? "Klocka" : "K Partners";
-  const phrase = [titre, sousTitre].map((x) => String(x || "").trim()).find((x) => x && !GENERIQUES.test(x)) || null;
   return (
-    <div role="status" aria-live="polite" aria-label={titre || nom} className={`k-ecran-chargement min-h-[60dvh] w-full flex-col gap-4 ${className}`}>
+    <div role="status" aria-live="polite" aria-label={titre || nom} className={`k-ecran-chargement fixed inset-0 z-[100] flex-col gap-4 ${className}`}>
       <h1>{nom}</h1>
       {phrase && <p className="m-0 max-w-[420px] px-6 text-center text-[13.5px] leading-[1.5] text-[rgb(170_170_170)]">{phrase}</p>}
     </div>

@@ -7,7 +7,7 @@ import { usePersonnalisation } from "@/components/providers/PersonnalisationProv
 import { CLAIR, OPTIONS, PERSONNAGES_HAKA, POLICES, accentHex, barreHex, barreLisible, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
 import jetons from "@/design/jetons.json";
 import { TEINTE_DEPART, barreDepuisTeinte, degradeIntensite, degradeTeintes, teinteDeBarre } from "@/lib/teinte-barre";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, GROUPE_PARAMETRES, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, masquesDe, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
 import Competences from "@/components/haka/Competences";
 import Sources from "@/components/socle/Sources";
@@ -17,6 +17,7 @@ import { ListeVilles } from "@/components/mandataire/VillesMandataire";
 import { estApercuTelephone } from "@/components/ApercuTelephone";
 import { BoutonOutil, Filtres, TitrePage } from "@/components/mandataire/elements";
 import { createPageUrl } from "@/utils";
+import { Link } from "react-router-dom";
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
 // s'applique à l'instant, sur la page elle-même : c'est l'aperçu. Les
@@ -428,7 +429,22 @@ export default function Personnalisation() {
       )}
 
       {/* Les sections en onglets (9 oct. 2026) : on va droit à la bonne, sans faire défiler toute la page. */}
-      {large ? <Filtres className="mb-3" label="Sections du compte" valeur={section} onChange={choisir} options={sections.map(([k, mot]) => [k, mot])} /> : (
+      {/* Tout à droite, Modèles et Suivi (14 nov. 2026, Jules : « dans Paramètres, un onglet tout à droite pour Suivi, un
+          autre pour Modèles ») : ils ouvrent leur page ; Intelligence et Automatismes aussi, pour qui les a. */}
+      {large ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <Filtres label="Sections du compte" valeur={section} onChange={choisir} options={sections.map(([k, mot]) => [k, mot])} />
+          {admin && !vueClient && !vueMandataire && (
+            <div className="flex flex-wrap gap-0.5">
+              {GROUPE_PARAMETRES.entrees.filter((e) => e.cle !== "Personnalisation" && !masquesDe(user?.email).includes(e.cle) && !(user?.pages_fermees || []).includes(e.cle))
+                .sort((a, b) => ["AdminModeles", "Monitoring", "Cerveau", "Automatismes"].indexOf(a.cle) - ["AdminModeles", "Monitoring", "Cerveau", "Automatismes"].indexOf(b.cle))
+                .map((e) => (
+                  <Link key={e.cle} to={createPageUrl(e.cle)} className="inline-flex h-8 items-center rounded-full px-3 text-[13px] text-craie transition-colors hover:bg-relief hover:text-encre">{e.label}</Link>
+                ))}
+            </div>
+          )}
+        </div>
+      ) : (
       <nav className="mb-6 inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Sections du compte">
         {sections.map(([k, mot]) => (
           <button key={k} type="button" onClick={() => choisir(k)} aria-pressed={section === k}

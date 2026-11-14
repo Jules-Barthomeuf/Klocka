@@ -4,7 +4,7 @@ import { precharger } from "@/lib/precharger";
 import MarqueKlocka from "@/components/MarqueKlocka";
 import LogoKP from "@/components/mandataire/LogoKP";
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
@@ -44,7 +44,7 @@ import { PAGES_KDATA } from "@/lib/kdata-modules";
 import CadreOutils from "@/components/kdata/CadreOutils";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, definirEspace, themeEffectif } from "@/lib/personnalisation";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, masquesDe, menuAdmin, menuMandataire, repartir } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, GROUPE_PARAMETRES, groupeDe, masquesDe, menuAdmin, menuMandataire, repartir } from "@/lib/menu";
 import { allerAuBonDomaine, apercuInitial, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ import FeedbackSurvol from "@/components/FeedbackSurvol";
 import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
 import FondHalo from "@/components/projet/FondHalo";
+import LogoKlocka from "@/components/marque/LogoKlocka";
 
 const globalTooltipStyles = `
   [role="tooltip"],
@@ -109,7 +110,7 @@ function AccesReserve() {
   );
 }
 
-function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label = e.label, actif, badge = null, badgeColor, ferme = false }) {
+function LienRail({ details, replie, empile = false, onNaviguer, e, cle = e.cle, to, icon, label = e.label, actif, badge = null, badgeColor, ferme = false }) {
   const d = details[cle] || {};
   const Icone = icon || d.icon;
   const ici = actif ?? d.actif;
@@ -118,6 +119,19 @@ function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label
   // Une entrée externe (le CRM) : un vrai lien, dans un nouvel onglet.
   const Lien = d.href ? "a" : Link;
   const cible = d.href ? { href: d.href, target: "_blank", rel: "noopener noreferrer" } : { to: to || d.to };
+  // La barre repliée de la page Projets (14 nov. 2026, Jules, sur une maquette) : l'icône dans un carré arrondi, son nom en
+  // petit dessous ; l'entrée active a son carré éclairé et son nom en `encre`.
+  if (empile) return (
+    <Lien {...cible} onClick={onNaviguer} onMouseEnter={() => precharger(cle)} onFocus={() => precharger(cle)} data-actif={ici ? "1" : undefined}
+      aria-label={ferme ? `${label}, accès réservé` : label}
+      className={`group relative mx-auto flex w-[80px] flex-col items-center py-1 transition-colors ${ici ? "text-encre" : "text-ardoise hover:text-encre"}`}>
+      <span className={`grid h-10 w-10 place-items-center rounded-[13px] transition-colors ${ici ? "bg-rail-actif" : "group-hover:bg-rail-actif"}`}>
+        <Icone className="h-[19px] w-[19px]" strokeWidth={1.8} />
+      </span>
+      <span className={`-mt-0.5 max-w-[80px] truncate text-[11.5px] leading-[1.15] ${ici ? "font-medium" : ""} ${ferme ? "opacity-60" : ""}`}>{label}</span>
+      {pastille ? <span className={`k-rail-pastille ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`} style={{ right: 16 }}>{pastille}</span> : null}
+    </Lien>
+  );
   return (
     <Lien
       {...cible}
@@ -201,9 +215,17 @@ function LayoutContent({ children, currentPageName }) {
   };
   useEffect(() => () => clearTimeout(minuterieBarre.current), []);
   const barreOuverteAuSurvol = sidebarCollapsed && survolBarre;
+  // La page Projets (14 nov. 2026, Jules : « enlève la navbar, garde les icônes à gauche ; au survol, elle pousse la
+  // partie de droite au lieu de passer dessus ») : la barre sans fond ni bord, ses icônes posées sur la page ; ouverte
+  // au survol, le contenu se décale d'autant et se resserre.
+  // Puis partout (14 nov. 2026, Jules : « applique la barre de navigation de Projets partout ailleurs »).
+  const barreNue = true;
+  // Ouverte ou repliée d'un clic sur le bouton du bas (maquette du 14 nov. 2026), plus au survol ; le choix se garde.
+  const [nueOuverte, setNueOuverte] = useState(() => { try { return localStorage.getItem("klocka.barre-nue.ouverte") === "1"; } catch { return false; } });
+  const basculerNue = () => setNueOuverte((o) => { try { localStorage.setItem("klocka.barre-nue.ouverte", o ? "0" : "1"); } catch { /* navigation privée */ } return !o; });
   // La largeur de la barre, dite à la page : la bulle de l'assistant posée à
   // gauche (Personnalisation) se place à côté de la barre, pas dessus.
-  const largeurBarre = sidebarCollapsed ? "64px" : "228px";
+  const largeurBarre = barreNue ? (nueOuverte ? "228px" : "88px") : sidebarCollapsed ? "64px" : "228px";
   useEffect(() => {
     document.documentElement.style.setProperty("--k-barre-largeur", largeurBarre);
     return () => document.documentElement.style.removeProperty("--k-barre-largeur");
@@ -222,6 +244,10 @@ function LayoutContent({ children, currentPageName }) {
   const isAdmin = user?.role === "admin";
   // Les pages que Jules n'a pas ouvertes à ce compte (acces-pages.js côté serveur).
   const pagesFermees = isAdmin ? user?.pages_fermees || [] : [];
+  // L'Assistant caché à quelqu'un (14 nov. 2026) : c'est la page d'accueil ; on l'envoie sur sa première page ouverte au lieu
+  // de « Accès réservé ».
+  const accueilFerme = currentPageName === "Dashboard" && pagesFermees.includes("Dashboard");
+  const premiereOuverte = ["AdminProjets", "Analyse", "Prospection", "SimulateurRentabilite", "KData"].find((p) => !pagesFermees.includes(p)) || "Personnalisation";
   const vue = isAdmin ? apercu : user?.role === "mandataire" ? "mandataire" : "client";
   // Le bon domaine pour la vue (12 nov. 2026, Jules) : un mandataire, ou un admin en vue mandataire, sur
   // app.kpartners.immo ; le reste sur app.klocka.immo. Le passage garde la connexion et la page (server/domaines.js).
@@ -439,7 +465,8 @@ function LayoutContent({ children, currentPageName }) {
     MandataireMarche: { to: createPageUrl("MandataireMarche"), icon: Presentation, actif: isActivePage("MandataireMarche") },
     MandataireOffMarket: { to: createPageUrl("MandataireOffMarket"), icon: Radar, actif: isActivePage("MandataireOffMarket") },
     MandataireProjets: { to: createPageUrl("MandataireProjets"), icon: Building2, actif: isActivePage("MandataireProjets") },
-    Personnalisation: { to: createPageUrl("Personnalisation"), icon: user?.role === "admin" || user?.role === "mandataire" ? CircleUser : Palette, actif: isActivePage("Personnalisation") },
+    // Paramètres reste allumé sur toutes ses pages, ce qui était Administration compris (14 nov. 2026, Jules).
+    Personnalisation: { to: createPageUrl("Personnalisation"), icon: user?.role === "admin" || user?.role === "mandataire" ? CircleUser : Palette, actif: isActivePage("Personnalisation") || (vue === "admin" && GROUPE_PARAMETRES.entrees.some((e) => isActivePage(e.cle) || (e.aussi || []).some(isActivePage))) },
     MesProjets: { to: createPageUrl("MesProjets"), icon: Building2, actif: isActivePage("MesProjets") },
     MesPresentations: { to: createPageUrl("MesPresentations"), icon: Presentation, actif: isActivePage("MesPresentations") },
     Vision: { to: createPageUrl("Vision"), icon: Eye, actif: isActivePage("Vision") },
@@ -451,14 +478,15 @@ function LayoutContent({ children, currentPageName }) {
   // en bas le compte, l'autre compte, le thème, la déconnexion. Repliée,
   // elle devient un rail d'icônes. Sur mobile, la même chose dans un tiroir.
   const sidebarContent = (isMobile = false) => {
-    const replie = sidebarCollapsed && !isMobile && !barreOuverteAuSurvol;
+    const replie = barreNue && !isMobile ? !nueOuverte : sidebarCollapsed && !isMobile && !barreOuverteAuSurvol;
+    const empile = barreNue && !isMobile && replie;
     // Le menu principal et « Autre », tels que la personne les a rangés dans
     // Personnalisation (glisser-déposer d'un groupe à l'autre).
     // L'équipe (17 oct. 2026, Jules) : un menu fixe, avec ses groupes Relations et Administration, et Paramètres en bas.
     // Les mandataires (18 oct. 2026, Jules) : la même structure, leur menu à eux.
     const menuEquipe = (vue === "admin" && !showClientView) || vue === "mandataire";
     const { principal: entrees, autre: autres } = vue === "mandataire" ? menuMandataire(prefs.menu_masques || [])
-      : menuEquipe ? menuAdmin(prefs.menu_masques || [], { email: user?.email }) : repartir(
+      : menuEquipe ? menuAdmin(prefs.menu_masques || [], { email: user?.email, gereAcces: !!user?.gere_les_acces, fermees: pagesFermees }) : repartir(
       vue === "mandataire" ? ENTREES_MANDATAIRE : showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
       showClientView ? [] : ENTREES_AUTRE,
       { ordre: prefs.menu_ordre, masques: prefs.menu_masques, menuAutre: prefs.menu_autre },
@@ -485,8 +513,11 @@ function LayoutContent({ children, currentPageName }) {
             </Link>
           ) : (
           <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka OS">
-            {/* La marque de Klocka OS (18 oct. 2026, Jules) : trois losanges, à gauche du nom. */}
-            <MarqueKlocka className="h-[22px] w-[22px]" />
+            {/* La marque de Klocka OS (18 oct. 2026, Jules) : trois losanges, à gauche du nom. Sur la barre nue de la page
+                Projets, le K de Klocka, détouré, sa jambe à la couleur d'accent (14 nov. 2026, Jules). */}
+            {barreNue ? (
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-[13px] bg-rail-actif"><LogoKlocka className="k-logo-barre h-[19px] w-[19px]" /></span>
+            ) : <MarqueKlocka className="h-[22px] w-[22px]" />}
             {!replie && (
               <span className="flex items-center gap-2">
                 <span className="text-[18px] font-normal tracking-[-0.02em] text-encre">Klocka</span>
@@ -508,8 +539,8 @@ function LayoutContent({ children, currentPageName }) {
         {/* « Nouveau chat » retiré de la barre le 17 oct. 2026 (Jules). */}
 
         {/* Les pages. */}
-        <div className="mt-7 flex-1 overflow-y-auto px-3 pb-4">
-          <div className="flex flex-col gap-0.5">
+        <div className={`mt-7 flex-1 overflow-y-auto pb-4 ${empile ? "px-1" : "px-3"}`}>
+          <div className={`flex flex-col ${empile ? "gap-2.5" : "gap-0.5"}`}>
             {/* Au téléphone, les notifications en tête du menu (1er nov. 2026, Jules) : la cloche n'a plus de bouton. */}
             {isMobile && vue === "mandataire" && (
               <button type="button" onClick={() => { closeMobile(); ouvrirCloche(); }}
@@ -524,11 +555,11 @@ function LayoutContent({ children, currentPageName }) {
               if (e.groupe) {
                 const premiere = e.entrees[0];
                 // Plus de projets récents sous « Administration » ni de biens récents sous « Biens » (31 oct. 2026, Jules).
-                return <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e}
+                return <LienRail details={DETAILS} replie={replie} empile={empile} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e}
                   to={DETAILS[premiere.cle]?.to} icon={{ Relations: Handshake, Prospection: MapPin, Biens: Folder }[e.groupe] || ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
                   badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />;
               }
-              const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
+              const lien = <LienRail details={DETAILS} replie={replie} empile={empile} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}
@@ -549,11 +580,11 @@ function LayoutContent({ children, currentPageName }) {
               {autreOpen && (
                 <div className="animate-in fade-in slide-in-from-top-1 duration-150 mt-0.5 flex flex-col gap-0.5">
                   {autres.map((e) => {
-              const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
+              const lien = <LienRail details={DETAILS} replie={replie} empile={empile} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}
-                  {AFFICHER_DOUBLE_CHECK && isAdmin && !showClientView && <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} e={{ cle: "AdminBrouillons", label: "Double Check" }} to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} actif={isActivePage("AdminBrouillons")} />}
+                  {AFFICHER_DOUBLE_CHECK && isAdmin && !showClientView && <LienRail details={DETAILS} replie={replie} empile={empile} onNaviguer={isMobile ? closeMobile : undefined} e={{ cle: "AdminBrouillons", label: "Double Check" }} to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} actif={isActivePage("AdminBrouillons")} />}
                 </div>
               )}
             </div>
@@ -562,7 +593,9 @@ function LayoutContent({ children, currentPageName }) {
 
         {/* La vue (18 oct. 2026, Jules) : au-dessus de Paramètres, avec son icône ; un clic passe à la vue suivante
             (Admin, Client, Mandataire), sans menu. Elle vivait en haut de la barre, sous le choix Klocka | Outils. */}
-        {isAdmin && (
+        {/* La barre repliée de la page Projets ne garde en bas que le bouton qui l'ouvre (14 nov. 2026, Jules, sur une
+            capture) : la vue, Paramètres et la déconnexion sont dans la barre ouverte. */}
+        {isAdmin && !empile && (
           <div className={`flex-shrink-0 pb-0.5 ${replie ? "" : "px-3"}`}>
             {(() => {
               const vues = [["admin", "Admin"], ["client", "Client"], ["mandataire", "Mandataire"]];
@@ -580,19 +613,34 @@ function LayoutContent({ children, currentPageName }) {
           </div>
         )}
         {/* Paramètres, en bas de la barre (17 oct. 2026, Jules) : l'ancien « Compte », avec le Suivi dedans. */}
-        {menuEquipe && (
+        {menuEquipe && !empile && (
           <div className={`flex-shrink-0 pb-2 ${replie ? "" : "px-3"}`}>
-            <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} e={{ cle: "Personnalisation", label: "Paramètres" }} icon={Settings} />
+            <LienRail details={DETAILS} replie={replie} empile={empile} onNaviguer={isMobile ? closeMobile : undefined} e={{ cle: "Personnalisation", label: "Paramètres" }} icon={Settings} />
           </div>
         )}
         {/* Le compte. */}
-        <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : `flex items-center gap-2 py-3 ${isMobile ? "px-3" : "px-4"}`}`}>
+        <div className={`mt-auto flex-shrink-0 ${empile ? "" : "border-t border-trait"} ${replie ? "flex flex-col items-center gap-1 py-3" : `flex items-center gap-2 py-3 ${isMobile ? "px-3" : "px-4"}`}`}>
           {/* « Assistant Klocka · Discuter » retiré du bas de la barre le 17 oct. 2026 (Jules). */}
           {/* Au bureau, la déconnexion reste sous la souris quand la barre s'ouvre (9 nov. 2026, Jules) ; à droite au téléphone. */}
           {isMobile && <span className="min-w-0 flex-1" />}
-          <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Connexion')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
+          {/* La roue des Paramètres, juste au-dessus du bouton qui ouvre la barre repliée (14 nov. 2026, Jules) ; ouverte, la
+              barre montre « Paramètres » en entier, plus haut. */}
+          {empile && (
+            <Link to={DETAILS.Personnalisation?.to || createPageUrl("Personnalisation")} aria-label="Paramètres" title="Paramètres"
+              className={`${bouton} ${DETAILS.Personnalisation?.actif ? "bg-rail-actif !text-encre" : ""}`}>
+              <Settings className="h-4 w-4" strokeWidth={1.7} />
+            </Link>
+          )}
+          {barreNue && !isMobile && (
+            <button type="button" onClick={basculerNue} aria-expanded={nueOuverte} aria-label={nueOuverte ? "Replier la barre" : "Ouvrir la barre"} title={nueOuverte ? "Replier la barre" : "Ouvrir la barre"} className={bouton} style={{ background: "transparent" }}>
+              <PanelLeft className="h-4 w-4" strokeWidth={1.7} />
+            </button>
+          )}
+          {!empile && (
+            <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Connexion')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
               <LogOut className="h-4 w-4" strokeWidth={1.7} />
             </button>
+          )}
         </div>
       </div>
     );
@@ -629,10 +677,10 @@ function LayoutContent({ children, currentPageName }) {
           {!hideNavbar && (
             <aside
               data-zone="barre"
-              className={`k-points k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col rounded-r-[24px] border-y border-r border-trait k-verre-barre transition-[width] duration-200 before:rounded-r-[24px] ${sidebarCollapsed && !barreOuverteAuSurvol ? "w-[64px]" : "w-[228px]"} ${barreOuverteAuSurvol ? "k-verre-epais shadow-[0_20px_50px_rgb(0_0_0/0.28)]" : ""}`}
+              className={`k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col transition-[width] duration-200 ${barreNue ? "k-barre-nue" : "k-points rounded-r-[24px] border-y border-r border-trait k-verre-barre before:rounded-r-[24px]"} ${barreNue ? (nueOuverte ? "w-[228px]" : "w-[88px]") : sidebarCollapsed && !barreOuverteAuSurvol ? "w-[64px]" : "w-[228px]"} ${barreOuverteAuSurvol && !barreNue ? "k-verre-epais shadow-[0_20px_50px_rgb(0_0_0/0.28)]" : ""}`}
               style={{ paddingTop: "env(safe-area-inset-top)" }}
-              onMouseEnter={sidebarCollapsed ? () => survolerBarre(true) : undefined}
-              onMouseLeave={sidebarCollapsed ? () => survolerBarre(false) : undefined}
+              onMouseEnter={sidebarCollapsed && !barreNue ? () => survolerBarre(true) : undefined}
+              onMouseLeave={sidebarCollapsed && !barreNue ? () => survolerBarre(false) : undefined}
             >
               {sidebarContent(false)}
             </aside>
@@ -684,7 +732,7 @@ function LayoutContent({ children, currentPageName }) {
         data-zone="fond"
         style={{ "--k-grid-marge": "0px" }}
         className={`k-points k-contenu relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-clip ${
-          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:pl-[64px] md:transition-[padding-left] md:duration-200" : "md:pl-[228px] md:transition-[padding-left] md:duration-200") : ""
+          modoKData ? "" : !hideNavbar ? (barreNue ? `${nueOuverte ? "md:pl-[228px]" : "md:pl-[88px]"} md:transition-[padding-left] md:duration-200` : sidebarCollapsed ? "md:pl-[64px] md:transition-[padding-left] md:duration-200" : "md:pl-[228px] md:transition-[padding-left] md:duration-200") : ""
         } ${
           modoKData
             ? (enCadre ? "" : "pt-[calc(3.5rem+env(safe-area-inset-top))]")
@@ -700,10 +748,11 @@ function LayoutContent({ children, currentPageName }) {
             sous les cartes qui, elles, tombent juste. */}
         <div key={`${location.pathname}|${vue}`} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
           {/* Les pages d'un groupe du menu (Relations, Administration) : leurs onglets en tête, pour passer de l'une à l'autre. */}
-          {((vue === "admin" && !showClientView) || vue === "mandataire") && !hideNavbar && groupeDe(currentPageName, vue) && (
+          {/* Plus d'onglets de groupe pour Paramètres (14 nov. 2026, Jules) : Modèles et Suivi sont à droite de ses sections. */}
+          {((vue === "admin" && !showClientView) || vue === "mandataire") && !hideNavbar && groupeDe(currentPageName, vue) && groupeDe(currentPageName, vue).cle !== "Parametres" && (
             <nav aria-label={groupeDe(currentPageName, vue).groupe} className="flex justify-center px-4 pt-4 max-md:pt-4">
               <div className="inline-flex gap-0.5">
-                {groupeDe(currentPageName, vue).entrees.filter((x) => x.cle === currentPageName || !masquesDe(user?.email).includes(x.cle)).map((x) => {
+                {groupeDe(currentPageName, vue).entrees.filter((x) => (!x.gereLesAcces || user?.gere_les_acces) && !pagesFermees.includes(x.cle) && (x.cle === currentPageName || !masquesDe(user?.email).includes(x.cle))).map((x) => {
                   const ici = currentPageName === x.cle || DETAILS[x.cle]?.actif;
                   return (
                     <Link key={x.cle} to={DETAILS[x.cle]?.to || createPageUrl(x.cle)} aria-current={ici ? "page" : undefined}
@@ -717,7 +766,7 @@ function LayoutContent({ children, currentPageName }) {
           )}
           {/* L'espace K Partners : chaque écran entre d'un fondu et d'une légère montée (1er nov. 2026, Jules). */}
           {vue === "mandataire"
-            ? <div key={location.pathname} className="k-entree-page">{pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}</div>
+            ? <div key={location.pathname} className="k-entree-page">{accueilFerme ? <Navigate to={createPageUrl(premiereOuverte)} replace /> : pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}</div>
             : pagesFermees.includes(currentPageName) ? <AccesReserve /> : cadreOutils ? <CadreOutils page={currentPageName}>{children}</CadreOutils> : children}
         </div>
       </main>

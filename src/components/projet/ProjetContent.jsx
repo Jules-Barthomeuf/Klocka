@@ -160,7 +160,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, ongletsSous = null, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, ongletsSous = null, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -184,6 +184,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   // Le panneau d'édition choisit la section : la page la suit.
   useEffect(() => { if (ongletDemande) setOngletActif(ongletDemande); }, [ongletDemande]);
   const ongletActif = apercuOnglet || ongletChoisi;
+  // Le simulateur complet : dans la page quand l'éditeur le fournit (les paramètres, puis le simulateur), sinon la page Simulateur.
+  const ouvrirSimulateur = () => {
+    if (simulateurDansLaPage && panneauSimulateur) { setOngletActif("simulateur"); onOngletChange?.("simulateur"); return; }
+    navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`);
+  };
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -485,13 +490,16 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {/* L'éditeur en écran scindé a ses onglets soulignés dans son en-tête (18 oct. 2026) : ici, seul le simulateur reste, sous la photo. */}
+          {/* L'éditeur (14 nov. 2026, Jules : « comme dans le projet en ligne, juste un seul bouton Simulateur complet à
+              droite ») : les onglets à gauche, le bouton à droite sur la même ligne ; il ouvre dans la page les paramètres et
+              le simulateur dessous (panneauSimulateur), à la place de l'onglet Simulateur d'avant. */}
           {!apercuOnglet && sansBarreOnglets && (
-            <div className="mb-10 max-md:mb-7">
-              <button onClick={() => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-                className="h-11 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">
+            <div className="mb-10 flex flex-wrap items-center justify-between gap-4 max-md:mb-7">
+              <div className="min-w-0 flex-1">{ongletsSous}</div>
+              <button onClick={ouvrirSimulateur} aria-pressed={simulateurDansLaPage ? ongletActif === "simulateur" : undefined}
+                className={`h-11 flex-none rounded-full px-5 text-[14px] transition-colors ${simulateurDansLaPage && ongletActif === "simulateur" ? "bg-encre text-fond" : "bg-menthe text-sur-menthe hover:bg-menthe-survol"}`}>
                 Simulateur complet →
               </button>
-              {ongletsSous && <div className="mt-8 max-md:mt-6">{ongletsSous}</div>}
             </div>
           )}
           {!apercuOnglet && !sansBarreOnglets && (
@@ -520,7 +528,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           </TabsList>
           <div className="max-md:flex-shrink-0 rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px]">
             <button
-              onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
+              onClick={isPublic ? openPublicSimulator : ouvrirSimulateur}
               className="h-9 rounded-full bg-menthe px-4 max-md:px-3.5 text-[14px] text-sur-menthe hover:bg-menthe-survol transition-colors max-md:whitespace-nowrap"
             >
               <span className="max-md:hidden">Simulateur complet →</span>

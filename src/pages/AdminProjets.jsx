@@ -51,7 +51,7 @@ import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
 
 import { travauxDuProjet, travauxParDefautListe } from "@/components/simulator/CalculFinancier";
-import { BoutonOutil, BoutonPrincipal, Filtres, Recherche, TitrePage } from "@/components/mandataire/elements";
+import { BoutonOutil, BoutonPrincipal, Filtres, Recherche, TitrePage, LigneTitre } from "@/components/mandataire/elements";
 import { ETAPES_PROJET, statutLabels } from "@/components/projet/CarteProjet";
 import Chargement from "@/components/ui/Chargement";
 // Au téléphone (moins de 768 px), l'éditeur s'ouvre en plein écran.
@@ -1482,7 +1482,7 @@ export default function AdminProjets() {
         ) : null} />
     );
     const ongletsProjet = (className) => (
-      <Onglets taille="page" className={className} items={[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => ({ cle: o.value, titre: o.label }))}
+      <Onglets taille="page" className={className} items={ONGLETS_PAGE.map((o) => ({ cle: o.value, titre: o.label }))}
         valeur={ongletPage === "images" ? null : ongletPage} onChange={changerOnglet} />
     );
     const pageAvecOnglets = ongletPage !== "images" && !!projetAffiche;
@@ -1634,7 +1634,8 @@ export default function AdminProjets() {
               onSource={vueProjet === "sources" ? surSourceProjet : null}
               elementChoisi={elementChoisi?.cible || null}
               onElement={setElementChoisi}
-              ongletsSupplementaires={[{ value: "simulateur", label: "Simulateur" }]}
+              // Plus d'onglet Simulateur : le bouton « Simulateur complet » l'ouvre dans la page (14 nov. 2026, Jules).
+              simulateurDansLaPage
               panneauSimulateur={
                 // Le même simulateur que la Pré-analyse et la page Simulateur (11 nov. 2026, Jules : « tous les simulateurs
                 // pareils ; plus de simulateur public ») : ses chiffres viennent des champs du projet et y retournent, une
@@ -1890,27 +1891,25 @@ export default function AdminProjets() {
   const aucunProjet = !pageDeProjets?.nb_projets;
 
   return (
-    <div className="relative min-h-screen px-5 py-[22px] text-encre md:px-8">
-      <div className="relative max-w-[1500px] mx-auto">
+    // Les marges de la page Dossiers (14 nov. 2026, Jules : « la ligne Projets plus haut, comme dans Dossiers ») : 36 px du
+    // haut, la même ligne au même endroit.
+    <div className="relative min-h-screen px-5 py-6 text-encre md:px-10 md:py-9">
+      <div className="relative mx-auto max-w-[1400px]">
         {/* En-tête */}
         {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin (9 oct. 2026). */}
-        <TitrePage titre="Projets" nombre={projects.length || null} className="mb-3.5 md:!pr-[112px]" actions={<>
-          {/* La carte des projets (22 oct. 2026, Jules), avec la prospection, les clients et les deals. */}
-          <BoutonOutil onClick={() => setVoirCarte((v) => !v)} aria-pressed={voirCarte}><MapIcon className="w-3.5 h-3.5" />{voirCarte ? "Masquer la carte" : "Carte"}</BoutonOutil>
-          <BoutonOutil onClick={() => setShowArchived(!showArchived)}><Archive className="w-3.5 h-3.5" />{showArchived ? "Masquer les archivés" : "Archivés"} <span className="text-ardoise">{nbArchives}</span></BoutonOutil>
-          <BoutonPrincipal onClick={() => { resetForm(); setIsDialogOpen(true); }}><Plus className="w-4 h-4" strokeWidth={1.8} /> Nouveau projet</BoutonPrincipal>
-        </>} />
-
-        {/* La recherche, et les archivés à droite. */}
-        <div className="mb-3.5 flex flex-wrap items-center gap-2.5">
-          <Recherche value={searchTerm} onChange={setSearchTerm} placeholder="Rechercher un projet, une adresse, un client" className="w-full md:w-[380px]" />
-          <Filtres label="Filtrer les projets" valeur={etapeVue} onChange={setEtapeVue} options={[["tous", "Tous", projects.length], ...ETAPES_PROJET.map((e) => [e, statutLabels[e], projects.filter((p) => (p.statut || "prospect") === e).length])]} />
-        </div>
-
-        {voirCarte && <CarteKlocka focus="projets" hauteur={560} className="mb-6 k-entree" />}
+        {/* L'en-tête, celui de la page Dossiers (14 nov. 2026, Jules : « le même layout que la page Dossiers, le même écart
+            avec les cartes ») : le titre à gauche sans son nombre, la recherche au milieu, « Nouveau projet » à droite au bord
+            des cartes. Plus de filtres par étape ni de carte ; les archivés masqués. */}
+        <LigneTitre className="k-entree mb-5 grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_minmax(0,360px)_1fr]">
+          <TitrePage titre="Projets" className="min-w-0 md:!pr-0" dansLigne />
+          <Recherche value={searchTerm} onChange={setSearchTerm} placeholder="Rechercher un projet" className="w-full" />
+          <div className="flex items-center justify-end gap-2">
+            <BoutonPrincipal onClick={() => { resetForm(); setIsDialogOpen(true); }}><Plus className="w-4 h-4" strokeWidth={1.8} /> Nouveau projet</BoutonPrincipal>
+          </div>
+        </LigneTitre>
 
         {/* Grille */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
+        <div className="grid items-start gap-3 pt-3 md:grid-cols-2 xl:grid-cols-3">
           {projetsVisibles.map((project, idx) => (
             <motion.div
               key={project.id}

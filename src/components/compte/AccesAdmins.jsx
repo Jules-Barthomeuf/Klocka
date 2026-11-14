@@ -3,30 +3,35 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { ENTREES_ADMIN, ENTREES_AUTRE } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, PILIERS_ACCES } from "@/lib/menu";
 import Chargement from "@/components/ui/Chargement";
 
 // Les accès de l'équipe, page par page (6 oct. 2026) : Jules seul les voit et
 // les change. Tout est fermé par défaut ; un clic sur une page l'ouvre à la
-// personne, un autre la referme. Une page fermée reste dans son menu avec un
-// cadenas, et s'ouvre sur « Accès réservé ».
+// personne, un autre la referme. Depuis le 14 nov. 2026, une page fermée quitte le menu de la personne (avant, elle y
+// restait avec un cadenas) ; par son adresse, elle s'ouvre sur « Accès réservé ».
 
 export default function AccesAdmins() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({ queryKey: ["acces-pages"], queryFn: () => base44.request("GET", "/api/admin/acces-pages") });
   const poser = useMutation({
     mutationFn: ({ email, pages_ouvertes }) => base44.request("POST", "/api/admin/acces-pages", { body: { email, pages_ouvertes } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["acces-pages"] }),
+    // La barre suit tout de suite (14 nov. 2026, Jules : « je dois le voir directement dans la navbar, sans recharger »).
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["acces-pages"] }); queryClient.invalidateQueries({ queryKey: ["current-user"] }); },
     onError: (e) => toast.error(e?.message || "Accès non modifiés"),
   });
   if (isLoading) return <Chargement />;
   if (isError || !data) return null;
   const toujours = new Set(data.toujours_ouvertes || []);
-  const pages = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => !toujours.has(e.cle));
+  // Les piliers d'abord, sous leur nom de la barre ; puis tout le reste (14 nov. 2026, Jules).
+  const piliers = PILIERS_ACCES.filter((e) => !toujours.has(e.cle));
+  const clesPiliers = new Set(piliers.map((e) => e.cle));
+  const reste = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e, i, t) => !toujours.has(e.cle) && !clesPiliers.has(e.cle) && t.findIndex((x) => x.cle === e.cle) === i);
+  const pages = [...piliers, ...reste];
   return (
     <section className="rounded-bloc border border-trait bg-surface p-5 md:p-6">
       <p className="m-0 text-[17px] text-encre">Accès de l'équipe</p>
-      <p className="m-0 mt-1 text-[13px] text-ardoise">Vous seul voyez ce réglage. Tout est fermé par défaut : cliquez sur une page pour l'ouvrir à la personne. Une page fermée reste dans son menu, avec un cadenas, et s'ouvre sur « Accès réservé ». Prospection, Emailing et ALX se ferment aussi côté serveur. Le Dashboard et le Compte restent toujours ouverts.</p>
+      <p className="m-0 mt-1 text-[13px] text-ardoise">Vous seul voyez ce réglage. Tout est fermé par défaut : cliquez sur une page pour l'ouvrir à la personne. Une page fermée est cachée de son menu ; par son adresse, elle s'ouvre sur « Accès réservé ». Prospection, Emailing et ALX se ferment aussi côté serveur. Le Dashboard et le Compte restent toujours ouverts.</p>
       <div className="mt-5 flex flex-col gap-5">
         {(data.admins || []).map((a) => {
           const ouvertes = new Set(a.pages_ouvertes || []);
@@ -38,7 +43,7 @@ export default function AccesAdmins() {
           };
           return (
             <div key={a.email} className="border-t border-trait pt-4 first:border-t-0 first:pt-0">
-              <p className="m-0 text-[15px] text-encre">{a.nom}</p>
+              <p className="m-0 text-[15px] text-encre">{a.nom}{a.vous && <span className="ml-2 text-[12.5px] text-menthe">vous, pour essayer : une page cachée quitte aussi votre menu</span>}</p>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="m-0 text-[12.5px] text-ardoise">{a.email} · {ouvertes.size ? `${ouvertes.size} page${ouvertes.size > 1 ? "s" : ""} ouverte${ouvertes.size > 1 ? "s" : ""}` : "tout est fermé"}</p>
                 <span className="flex gap-1.5">
@@ -46,8 +51,11 @@ export default function AccesAdmins() {
                   <button type="button" onClick={() => poser.mutate({ email: a.email, pages_ouvertes: [] })} disabled={poser.isPending || !ouvertes.size} className="h-7 rounded-full border border-trait px-2.5 text-[12px] text-craie hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Tout fermer</button>
                 </span>
               </div>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {pages.map((e) => {
+              {[["Les piliers", piliers], ["Le reste", reste]].map(([titre, liste]) => (
+                <div key={titre} className="mt-3">
+                  <p className="m-0 mb-1.5 text-[12px] text-brume">{titre}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                {liste.map((e) => {
                   const ferme = fermees.has(e.cle);
                   return (
                     <button key={e.cle} type="button" onClick={() => basculer(e.cle)} disabled={poser.isPending}
@@ -58,11 +66,13 @@ export default function AccesAdmins() {
                     </button>
                   );
                 })}
-              </div>
+                  </div>
+                </div>
+              ))}
             </div>
           );
         })}
-        {!(data.admins || []).length && <p className="m-0 text-[13.5px] text-brume">Aucun autre admin pour l'instant.</p>}
+        {!(data.admins || []).filter((a) => !a.vous).length && <p className="m-0 text-[13.5px] text-brume">Aucun autre admin pour l'instant.</p>}
       </div>
     </section>
   );

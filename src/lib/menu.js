@@ -36,6 +36,20 @@ export const ENTREES_ADMIN = [
   { cle: "AdminModeles", label: "Modèles" },
 ];
 
+/**
+ * Les piliers du menu de l'équipe, en tête du panneau des accès (14 nov. 2026, Jules : « je veux voir d'abord Assistant,
+ * Projets, Dossiers, Appels, Simulateur, Outils, CRM, Feedback, Présentations, Offres, Dossier bancaire ; ensuite tout le
+ * reste »), sous leur nom dans la barre. Chacun se cache à un admin d'un clic, et quitte alors sa barre.
+ */
+export const PILIERS_ACCES = [
+  { cle: "Dashboard", label: "Assistant" }, { cle: "AdminProjets", label: "Projets" }, { cle: "Analyse", label: "Dossiers" },
+  { cle: "Prospection", label: "Appels" }, { cle: "SimulateurRentabilite", label: "Simulateur" }, { cle: "KData", label: "Outils" },
+  { cle: "CRM", label: "CRM" }, { cle: "AdminSuggestions", label: "Feedback" }, { cle: "AdminPresentations", label: "Présentations" },
+  { cle: "Offres", label: "Offres" }, { cle: "AdminBanque", label: "Dossier bancaire" },
+  // Tokimo et Emailing, à la suite (même jour, Jules).
+  { cle: "Tokimo", label: "Tokimo" }, { cle: "Emailing", label: "Emailing" },
+];
+
 export const ENTREES_AUTRE = [
   { cle: "AdminPresentations", label: "Présentations" },
   { cle: "AdminLeadMagnets", label: "Lead magnets" },
@@ -105,11 +119,8 @@ export const MENU_ADMIN = [
   // les pages restent à leur adresse.
   // Le CRM (27 oct. 2026, Jules) : Twenty, hébergé à part, s'ouvre dans un nouvel onglet ; il remplace Monday.
   { cle: "CRM", label: "Twenty CRM", fixe: true },
-  { groupe: "Administration", cle: "Administration", label: "Administration", // Accès CRM quitte le menu, Mandataires y entre (6 nov. 2026, Jules) ; la page /AccesCRM reste ouverte.
-    // Utilisateurs et Mandataires quittent Administration le 6 nov. 2026 (Jules) : ce sont des tableaux du CRM.
-    entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" },
-    // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
-    { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion", "SuiviCorrections"] }] },
+  // Plus d'Administration dans le menu (14 nov. 2026, Jules : « une page Paramètres, pas de page Administration ») : ses
+  // pages passent sous Paramètres (GROUPE_PARAMETRES), en onglets ; l'Accès est la section « Accès de l'équipe ».
 ];
 /**
  * Le menu des mandataires, sur la structure de celui de l'équipe (18 oct. 2026, Jules) : des entrées simples et
@@ -141,7 +152,20 @@ export const MENU_MANDATAIRE = [
 const HORS_MENU_MANDATAIRE = ["Personnalisation", "MandataireOffMarket", "MandataireEstimation", "MandataireMandat", "MandataireDossier", "MandataireMarche", "MandataireProjets", "MandataireDocuments"];
 
 /** Pure : le groupe du menu (équipe ou mandataires) auquel une page appartient, ou null. */
-export const groupeDe = (page, vue = "admin") => (vue === "mandataire" ? MENU_MANDATAIRE : MENU_ADMIN)
+/**
+ * Paramètres et ce qui était Administration (14 nov. 2026, Jules) : une seule entrée en bas de la barre, et ces onglets en
+ * tête de ses pages : les réglages (l'Accès de l'équipe y est une section), les Modèles, le Suivi et ses pages de détail,
+ * l'Intelligence, les Automatismes.
+ */
+export const GROUPE_PARAMETRES = { groupe: "Paramètres", cle: "Parametres", label: "Paramètres", entrees: [
+  { cle: "Personnalisation", label: "Paramètres" },
+  { cle: "AdminModeles", label: "Modèles" },
+  { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion", "SuiviCorrections"] },
+  { cle: "Cerveau", label: "Intelligence" },
+  { cle: "Automatismes", label: "Automatismes" },
+] };
+
+export const groupeDe = (page, vue = "admin") => (vue === "mandataire" ? MENU_MANDATAIRE : [...MENU_ADMIN, GROUPE_PARAMETRES])
   .find((x) => x.groupe && x.entrees.some((e) => e.cle === page || e.aussi?.includes(page))) || null;
 
 /** Pure : le menu des mandataires, ses groupes, et « Autre » (ce qui reste de leurs pages). */
@@ -158,7 +182,7 @@ export function menuMandataire(masques = []) {
 }
 
 /** Hors du menu : l'Agenda (pastille du Dashboard), Paramètres (en bas de la barre). Le Suivi est dans Administration depuis le 18 oct. 2026. */
-const HORS_MENU_ADMIN = ["Semaine", "Personnalisation"];
+const HORS_MENU_ADMIN = ["Semaine", "Personnalisation", ...GROUPE_PARAMETRES.entrees.map((e) => e.cle)];
 
 /**
  * Ce que « Autre » montre à l'équipe (19 oct. 2026, Jules : « masque Offres, Emailing, Présentations… laisse
@@ -187,9 +211,11 @@ const MASQUES_PAR_PERSONNE = {
 /** Pure : les pages qu'une personne ne voit pas dans son menu. */
 export const masquesDe = (email) => MASQUES_PAR_PERSONNE[String(email || "").toLowerCase()] || [];
 
-export function menuAdmin(masques = [], { email = null } = {}) {
+export function menuAdmin(masques = [], { email = null, gereAcces = false, fermees = [] } = {}) {
   const caches = masquesDe(email);
-  const garde = (e) => e.fixe || (!masques.includes(e.cle) && !caches.includes(e.cle));
+  // Une page que Jules a fermée à la personne n'est plus dans son menu (14 nov. 2026, Jules : « cacher les pages ») ;
+  // l'onglet Accès n'est qu'à celui qui gère les accès.
+  const garde = (e) => (!e.gereLesAcces || gereAcces) && !fermees.includes(e.cle) && (e.fixe || (!masques.includes(e.cle) && !caches.includes(e.cle)));
   const places = new Set(HORS_MENU_ADMIN);
   const principal = MENU_ADMIN.map((x) => {
     if (x.groupe) { x.entrees.forEach((e) => places.add(e.cle)); return { ...x, entrees: x.entrees.filter(garde) }; }
@@ -197,9 +223,12 @@ export function menuAdmin(masques = [], { email = null } = {}) {
     return x;
   }).filter((x) => (x.groupe ? x.entrees.length : garde(x)));
   // Les entrées d'Autre ne se masquent plus (26 oct. 2026, Jules) : d'anciens masques de Paramètres les cachaient.
-  const autre = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => AUTRE_VISIBLE_ADMIN.includes(e.cle) && !places.has(e.cle))
+  // « Autre » cache aussi les pages fermées à la personne (14 nov. 2026, Jules : « Feedback a un cadenas et je le vois
+  // toujours ») ; elle ignorait les accès.
+  const autre = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => AUTRE_VISIBLE_ADMIN.includes(e.cle) && !places.has(e.cle) && !fermees.includes(e.cle))
     .sort((x, y) => AUTRE_VISIBLE_ADMIN.indexOf(x.cle) - AUTRE_VISIBLE_ADMIN.indexOf(y.cle));
   const raccourcis = (RACCOURCIS_PAR_PERSONNE[String(email || "").toLowerCase()] || [])
+    .filter((cle) => !fermees.includes(cle))
     .map((cle) => [...ENTREES_ADMIN, ...ENTREES_AUTRE].find((e) => e.cle === cle))
     .filter((e) => e && !principal.some((x) => x.cle === e.cle));
   return { principal: [...principal, ...raccourcis], autre };

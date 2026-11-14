@@ -1,4 +1,3 @@
-import FlechesHistorique from "@/components/ui/fleches-historique";
 import Pages from "@/components/ui/Pages";
 import { motion } from "framer-motion";
 import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
@@ -7,7 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight, PanelLeftClose, PanelLeftOpen, Library, FileSignature } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
 import { VERDICTS } from "@/components/preanalyse/DealResultat";
@@ -24,7 +23,8 @@ import { CLAIR, themeEffectif } from "@/lib/personnalisation";
 import PenseeIA from "@/components/PenseeIA";
 import Chargement from "@/components/ui/Chargement";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
-import { BoutonPrincipal, CLASSE_OUTIL, Recherche, Statut, TitrePage } from "@/components/mandataire/elements";
+import { BoutonPrincipal, Recherche, Statut, TitrePage, LigneTitre, TRANSPARENT } from "@/components/mandataire/elements";
+import MiniaturePiece, { DocumentClassique } from "@/components/preanalyse/MiniaturePiece";
 import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
 import { VERRE } from "@/lib/verre";
 
@@ -215,7 +215,6 @@ export default function Analyse() {
   const conversationDuDeal = dealId ? (conversationsK?.conversations || []).find((x) => x.deal_id === dealId) || null : null;
   const vueConversation = !!conversationDuDeal && params.get("vue") !== "analyse";
   const changerVue = (v) => { const suivant = new URLSearchParams(params); if (v === "analyse") suivant.set("vue", "analyse"); else suivant.delete("vue"); setParams(suivant); };
-  const aRelancer = pipeline?.a_relancer || 0;
 
   const nbDossiers = pipeline?.nb_dossiers ?? 0;
   // Tous les dossiers, en une seule liste, du plus récemment modifié au plus ancien (18 oct. 2026, Jules).
@@ -364,12 +363,6 @@ export default function Analyse() {
     window.scrollTo(0, 0);
     return () => { clearTimeout(fin); document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak", "k-cadre-dossier"); };
   }, [scinde]);
-  const listeEnCadre = ecranLarge && !scinde && !enWorkflow;
-  useEffect(() => {
-    if (!listeEnCadre) return undefined;
-    document.documentElement.classList.add("k-sans-defilement", "k-cadre-liste");
-    return () => document.documentElement.classList.remove("k-sans-defilement", "k-cadre-liste");
-  }, [listeEnCadre]);
 
   // Le dossier s'affiche ici avec sa propre ligne de titre (le retour y est).
   const dossierOuvertIci = !vueConversation && !(nouveau && !dealId) && dossier?.deal_id === dealId && !!dealId;
@@ -512,7 +505,7 @@ export default function Analyse() {
   }
 
   const vuePage = (
-    <div className={`relative w-full max-w-full overflow-x-hidden text-encre ${listeEnCadre ? "" : "min-h-screen"}`}>
+    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
       {/* Plus de lumière propre dans le coin : le fond « Halo » commun suffit (18 oct. 2026). */}
       <div
         key={`${dealId || (nouveau ? "nouveau" : "accueil")}-${modeIA ? "ia" : "normal"}`}
@@ -531,32 +524,25 @@ export default function Analyse() {
                 Lâche la fiche pour l'ajouter
               </div>
             )}
-            {/* Le titre au centre, les onglets en pilule dessous, comme la Prospection. */}
-            {/* Une seule ligne (30 oct. 2026, Jules) : les flèches et le titre à gauche, les gestes à droite. Plus d'absolu : avec
-                Mandats, Mémoire, les relances et Nouveau dossier, le groupe passait sur un titre centré. */}
-            <div className="k-entree mb-3.5 flex items-center gap-3">
-              <FlechesHistorique />
-              <TitrePage titre="Dossiers" nombre={pipeline?.total || null} className="min-w-0 flex-1 md:!pr-[112px]" actions={<>
+            {/* Une ligne (14 nov. 2026, Jules) : le titre à gauche, la recherche au milieu, à droite Mandats et Mémoire en
+                petites icônes et « Nouveau dossier », au bord droit des cartes et de « Suivante ». Plus de flèches, de
+                compte des relances ni de phrase sur la fiche à glisser (le glisser marche toujours). */}
+            <LigneTitre className="k-entree mb-5 grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_minmax(0,360px)_1fr]">
+              <TitrePage titre="Dossiers" className="min-w-0 md:!pr-0" dansLigne />
+              <Recherche value={recherche} onChange={setRecherche} placeholder="Adresse, agent, ville" className="w-full" />
+              <div className="flex items-center justify-end gap-2">
                 <LienMandats />
                 <LienMemoire />
-                <span className={`text-[13px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>{aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente</span>
                 <BoutonPrincipal onClick={() => setCreationOuverte(true)}><Plus className="w-4 h-4" /> Nouveau dossier</BoutonPrincipal>
-              </>} />
-            </div>
-
-            {/* Recherche, et ce que fait la page toute seule. */}
-            <div className="k-entree flex flex-wrap items-center gap-x-4 gap-y-3 pb-2" style={{ "--k-delai": ".1s" }}>
-              <Recherche value={recherche} onChange={setRecherche} placeholder="Adresse, agent, ville" className="w-full md:w-[320px]" />
-              {/* La fiche en cours d'analyse : l'orbe d'AK et un reflet qui passe sur la phrase (19 oct. 2026). */}
-              {analyserFiche.isPending ? (
-                <p key="analyse" className="k-entree m-0 inline-flex flex-1 items-center gap-2.5 text-[13px]" role="status">
-                  <PenseeIA etat="working" taille={22} />
-                  <span className="k-scintille">L'Assistant Klocka analyse la fiche…</span>
-                </p>
-              ) : (
-                <p key="repos" className="k-entree m-0 flex-1 text-[13px] text-ardoise">Glisse une fiche n'importe où pour l'ajouter.</p>
-              )}
-            </div>
+              </div>
+            </LigneTitre>
+            {/* La fiche en cours d'analyse : l'orbe d'AK et un reflet qui passe sur la phrase (19 oct. 2026). */}
+            {analyserFiche.isPending && (
+              <p className="k-entree m-0 mb-2 inline-flex items-center gap-2.5 text-[13px]" role="status">
+                <PenseeIA etat="working" taille={22} />
+                <span className="k-scintille">L'Assistant Klocka analyse la fiche…</span>
+              </p>
+            )}
 
             {/* Les cartes */}
             <QuestionsMandataires />
@@ -569,8 +555,10 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div className="k-serie k-serie-leve grid grid-cols-1 gap-2 pt-3 sm:grid-cols-2 lg:grid-cols-3">
-                {tous.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
+              // Les dossiers en aperçus (14 nov. 2026, Jules : « les preview des fiches et des documents derrière, à la place
+              // des dossiers en bas ») : la fiche devant, deux pièces derrière, le nom et l'étape dessous.
+              <div className="k-serie grid grid-cols-2 gap-x-3 gap-y-5 pt-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                {tous.map((d) => <CarteApercu key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-2.5 right-2.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100" place="top-9 right-3" />} />)}
                 {!tous.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Aucun dossier ne correspond.</p>}
               </div>
             )}
@@ -666,47 +654,71 @@ export default function Analyse() {
       </div>
     </div>
   );
-  // La liste des Dossiers dans le cadre en verre du dossier ouvert (14 nov. 2026, Jules : « mets dans l'Analyse, la
-  // Pré-analyse et tout la barre de navigation en verre, comme dans le CRM ») : la barre de gauche et la bande du haut
-  // ne font qu'un bloc, la liste défile dessous. La bande reste vide : le titre est dans la page.
-  if (!listeEnCadre) return vuePage;
+  // La liste des Dossiers sans bande du haut (14 nov. 2026, Jules : « quand on voit tous les dossiers, la navbar comme
+  // dans Projet, juste à gauche ») : le cadre en L ne vaut que pour un dossier ouvert.
+  return vuePage;
+}
+
+/** Une page de texte en miniature : un dossier reçu en texte collé (ni PDF ni image) a quand même sa fiche. */
+function PageTexte({ texte, largeur }) {
   return (
-    <div className="k-cadre-l flex h-[100dvh] min-h-0 flex-col text-encre">
-      <header className="k-verre-barre relative flex h-12 flex-none items-center px-4" />
-      <div className="k-crm-contenu min-h-0 flex-1 overflow-y-auto rounded-tl-[16px]">{vuePage}</div>
-    </div>
+    <span className="relative block flex-none overflow-hidden rounded-[3px] border border-bord-doux bg-white px-2 py-2.5 shadow-[0_2px_6px_rgb(0_0_0/0.25)]" style={{ width: largeur, height: Math.round(largeur * 1.3) }}>
+      <span className="block whitespace-pre-line break-words text-[5.5px] leading-[1.4] text-black/75">{texte}</span>
+    </span>
   );
 }
 
-/** La carte compacte d'un dossier dans les blocs de la liste : nom, étape de la frise, qui, ce qui attend. */
-
-function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
+/**
+ * Un dossier en aperçu (14 nov. 2026, Jules : « au-dessus du titre, les preview des fiches commerciales et des documents
+ * derrière », puis « à la place des dossiers en bas ») : la première page de la fiche reçue devant (PDF ou image ; un texte
+ * collé devient une page de texte), deux pièces de la Data Room inclinées derrière ; sans fiche, la première pièce passe
+ * devant. Dessous, le nom, le verdict choisi, l'étape et qui s'en occupe, comme l'ancienne carte. Le menu ⋯ au survol.
+ */
+function CarteApercu({ d, qui, onOuvrir, menu, ecarte = false }) {
   const n = etapeFrise(d);
-  // Le verdict choisi par l'équipe, seul (10 nov. 2026, Jules : « je ne veux plus voir insuffisant ») ; sans choix, rien.
   const verdict = d.verdict_choisi ? VERDICTS[d.verdict_choisi] : null;
+  const pieces = d.pieces || [];
+  const devant = d.fiche || (d.fiche_texte ? null : pieces[0]) || null;
+  const derriere = (d.fiche || d.fiche_texte ? pieces : pieces.slice(1)).slice(0, 2);
   return (
-    <article className={`${VERRE} relative cursor-pointer px-3.5 py-2.5 pr-9 transition-colors hover:border-bord-vif`} onClick={onOuvrir}>
-      <div className="flex min-w-0 items-center justify-between gap-2.5">
-        <p className="m-0 flex min-w-0 items-center gap-2 text-[14.5px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
-        {ecarte ? <Statut couleur="corail" className="flex-none">{d.statut === "abandonne" ? "Abandonné" : "Non conforme"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none">{verdict.libelle}</Statut>}
+    <article className="group relative cursor-pointer rounded-[16px] p-2 pb-2.5 transition-colors hover:bg-relief" onClick={onOuvrir}>
+      <div className="relative mx-auto h-[180px] w-[150px]">
+        {derriere.map((p, i) => (
+          // MiniaturePiece se pose en `relative` : c'est son cadre qui la place.
+          <span key={p.url} className={`absolute bottom-3 transition-transform duration-300 ${i === 0 ? "left-0 origin-bottom-right -rotate-[7deg] group-hover:-rotate-[10deg]" : "right-0 origin-bottom-left rotate-[7deg] group-hover:rotate-[10deg]"}`}>
+            <MiniaturePiece url={p.url} largeur={104} />
+          </span>
+        ))}
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 transition-transform duration-300 group-hover:-translate-y-1">
+          {devant ? <MiniaturePiece url={devant.url} largeur={120} />
+            : d.fiche_texte ? <PageTexte texte={d.fiche_texte} largeur={120} />
+            : <DocumentClassique taille={96} />}
+        </span>
       </div>
-      <p className="m-0 mt-0.5 flex min-w-0 items-center gap-x-1.5 text-[13px] text-ardoise">
-        {!ecarte && <span className="flex-none">{FRISE[n - 1].label} ·</span>}
-        <span className="truncate">{qui}</span>
-        {d.origine === "mandataire" && <Statut couleur="lavande" className="flex-none">K Partners</Statut>}
-      </p>
-      {d.pourquoi && <p className="m-0 mt-1 flex items-center gap-1.5 text-[12.5px] text-ambre">{d.a_relancer && <Clock className="h-3 w-3" />}{d.pourquoi}</p>}
+      <div className="mt-2.5 min-w-0 px-0.5">
+        <p className="m-0 flex min-w-0 items-center gap-1.5 text-[14px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
+        <p className="m-0 mt-0.5 truncate text-[12.5px] text-ardoise">{!ecarte && `${FRISE[n - 1].label} · `}{qui}</p>
+        {(ecarte || verdict || d.origine === "mandataire") && (
+          <p className="m-0 mt-1.5 flex flex-wrap gap-1">
+            {ecarte ? <Statut couleur="corail">{d.statut === "abandonne" ? "Abandonné" : "Non conforme"}</Statut> : verdict && <Statut couleur={verdict.statut}>{verdict.libelle}</Statut>}
+            {d.origine === "mandataire" && <Statut couleur="lavande">K Partners</Statut>}
+          </p>
+        )}
+      </div>
       <span onClick={(e) => e.stopPropagation()}>{menu}</span>
     </article>
   );
 }
 
+// Mandats et Mémoire en petites icônes rondes (14 nov. 2026, Jules : « juste une petite icône, très sobre ») : le
+// nom au survol, le point des messages non lus des mandataires gardé sur Mandats.
+const CLASSE_ICONE = "relative grid h-8 w-8 flex-none place-items-center rounded-full border border-bord-doux text-ardoise transition-colors hover:border-bord-vif hover:text-encre";
+
 /** La Mémoire Klocka (30 oct. 2026) : les fiches des biens gardées, à côté des Mandats. */
 function LienMemoire() {
-  const { data } = useQuery({ queryKey: ["memoire-compte"], queryFn: () => base44.request("GET", "/api/memoire?limite=1"), staleTime: 60_000, retry: false });
   return (
-    <Link to="/Memoire" className={CLASSE_OUTIL}>
-      Mémoire{data?.total > 0 && <span className="tabular-nums text-ardoise">{data.total}</span>}
+    <Link to="/Memoire" className={CLASSE_ICONE} aria-label="Mémoire" title="Mémoire">
+      <Library className="h-4 w-4" />
     </Link>
   );
 }
@@ -714,10 +726,11 @@ function LienMemoire() {
 /** Les mandats reçus des mandataires (27 oct. 2026) : la page Mandats, avec ce qui attend Klocka. */
 function LienMandats() {
   const { data } = useQuery({ queryKey: ["k-mandats"], queryFn: () => base44.request("GET", "/api/mandataire/admin/mandats"), refetchInterval: 60_000 });
-  const n = (data?.a_faire || 0);
+  const nonLus = data?.non_lus || 0;
   return (
-    <Link to="/Mandats" className={CLASSE_OUTIL}>
-      Mandats{n > 0 && <span className="tabular-nums text-ambre">{n} à traiter</span>}<PointNouveau n={data?.non_lus || 0} />
+    <Link to="/Mandats" className={CLASSE_ICONE} aria-label="Mandats" title="Mandats">
+      <FileSignature className="h-4 w-4" />
+      {nonLus > 0 && <span className="absolute -right-0.5 -top-0.5"><PointNouveau n={nonLus} /></span>}
     </Link>
   );
 }

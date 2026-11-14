@@ -25,7 +25,7 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
   assert.deepEqual(cles(r.autre), []);
 });
 
-test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration ; Autre : Offres, Dossier bancaire, Feedback (26 oct.)", async () => {
+test("le menu de l'équipe : ses pages, sans Administration (14 nov. 2026) ; Autre : Offres, Dossier bancaire, Feedback (26 oct.)", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
   assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Assistant', 'Projets', 'Dossiers', 'Appels', 'Simulateur', 'Outils', 'Twenty CRM']);
@@ -35,29 +35,22 @@ test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administratio
   // À valider quitte le menu (26 oct. 2026, Jules) ; la cloche et les dossiers y mènent encore.
   assert.ok(![...principal, ...autre].some((x) => x.cle === 'AValider'));
   const cles = autre.map((e) => e.cle);
-  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Administration', ['Intelligence', 'Automatismes', 'Modèles', 'Suivi']]]);
+  // Plus de groupe Administration (14 nov. 2026, Jules) : ses pages sont des onglets de Paramètres.
+  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => x.groupe), []);
   // 6 nov. 2026 : Accès CRM, Relations, Utilisateurs et Mandataires quittent le menu (les deux derniers sont des tableaux du
   // CRM) ; Intelligence et Automatismes cachés pour Jules seul.
   for (const hors of ['AdminMandataires', 'AdminUtilisateurs', 'AdminClients', 'AdminAccesCrm']) assert.ok(![...principal, ...autre].some((x) => x.cle === hors || x.entrees?.some((e) => e.cle === hors)), hors);
-  assert.deepEqual(menuAdmin([], { email: 'Jules.B@klocka.immo' }).principal.find((x) => x.groupe === 'Administration').entrees.map((e) => e.label), ['Modèles', 'Suivi']);
     for (const hors of ['Semaine', 'Monitoring', 'Personnalisation', 'Dashboard', 'Agents']) assert.ok(!cles.includes(hors), hors);
   assert.deepEqual(cles, ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque', 'Tokimo', 'Emailing'], 'Feedback en tête ; Offres, les Présentations bancaires et le Dossier bancaire reviennent (26 oct.) ; Tokimo (6 nov.) ; Emailing de retour (8 nov.) ; Lead magnets… restent hors du menu');
-  // Une page masquée disparaît ; un groupe vidé aussi.
-  const m = menuAdmin(['Cerveau', 'Automatismes', 'AdminModeles', 'Monitoring', 'Offres']);
-  assert.ok(!m.principal.some((x) => x.groupe === 'Administration'));
   // Autre ignore les masques (26 oct.) : d'anciens réglages de Paramètres cachaient Feedback, Offres et Présentations.
   assert.deepEqual(menuAdmin(['AdminSuggestions', 'Offres', 'AdminPresentations', 'AdminBanque']).autre.map((e) => e.cle), ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque', 'Tokimo', 'Emailing']);
 });
 
-test('un groupe est une entrée ; une page sait son groupe', async () => {
-  const { menuAdmin, groupeDe } = await import('../src/lib/menu.js');
-  const g = menuAdmin().principal.find((x) => x.groupe === 'Administration');
-  assert.equal(g.cle, 'Administration');
+test('une page sait son groupe : ce qui était Administration est sous Paramètres (14 nov. 2026)', async () => {
+  const { groupeDe } = await import('../src/lib/menu.js');
   assert.equal(groupeDe('Agents'), null, 'Relations quitte le menu (6 nov. 2026)');
-  // Le Suivi et ses pages de détail sont dans Administration (18 oct. 2026).
-  assert.equal(groupeDe('Monitoring').groupe, 'Administration');
-  assert.equal(groupeDe('SuiviAppels').groupe, 'Administration');
-  assert.equal(groupeDe('Cerveau').groupe, 'Administration');
+  for (const page of ['Personnalisation', 'AdminModeles', 'Monitoring', 'SuiviAppels', 'Cerveau', 'Automatismes']) assert.equal(groupeDe(page).groupe, 'Paramètres', page);
+  assert.deepEqual(groupeDe('Monitoring').entrees.map((e) => e.label), ['Paramètres', 'Modèles', 'Suivi', 'Intelligence', 'Automatismes']);
   assert.equal(groupeDe('Dashboard'), null);
 });
 

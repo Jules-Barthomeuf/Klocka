@@ -131,6 +131,8 @@ button:focus-visible {
     --k-jaune-rgb: 227 207 92;
     /* Une ligne lue par l'IA, pas encore vérifiée (30 oct. 2026, Jules) : le sable #E0CEA9. */
     --k-lu-ia-rgb: 224 206 169;
+    /* La seconde nappe du fond (14 nov. 2026, Jules) : toujours ce rose, quel que soit l'accent choisi. */
+    --k-halo-rose-rgb: 238 160 160;
     --k-bleu-rgb: 143 182 232;
     /* La pervenche (accent « Pervenche » des jetons) : le contour du chat dans une fiche (24 oct. 2026). */
     --k-pervenche-rgb: 166 171 242;
@@ -1076,6 +1078,16 @@ html.k-cadre-crm, html.k-cadre-dossier, html.k-cadre-liste {
 html.k-cadre-crm[data-theme="clair"], html.k-cadre-dossier[data-theme="clair"], html.k-cadre-liste[data-theme="clair"] {
   --k-verre-fond: linear-gradient(rgb(var(--k-rail-rgb) / .6), rgb(var(--k-rail-rgb) / .6)), rgb(var(--k-fond-rgb));
 }
+/* Le dossier et la liste des Dossiers prennent le verre du CRM (14 nov. 2026, Jules : « dans un dossier, la barre doit
+   être en verre ») : le CRM pose son verre sur la barre et le fond standards, le dossier les prenait à la personnalisation
+   de chacun, et un fond « noir pur » rendait la barre presque noire, sans rien d'un verre. Les teintes standards du thème
+   (début de ce fichier), en sombre comme en clair ; le contenu du dossier garde le fond choisi. */
+html.k-cadre-dossier, html.k-cadre-liste {
+  --k-verre-fond: linear-gradient(rgba(242, 243, 245, 0.045), rgba(242, 243, 245, 0.045)), linear-gradient(rgb(25 26 25 / .42), rgb(25 26 25 / .42)), rgb(18 19 18);
+}
+html.k-cadre-dossier[data-theme="clair"], html.k-cadre-liste[data-theme="clair"] {
+  --k-verre-fond: linear-gradient(rgb(244 244 242 / .6), rgb(244 244 242 / .6)), rgb(240 240 238);
+}
 /* Le cadre en L (`k-cadre-l`, à partir de 768 px) : la bande du haut passe par-dessus la page, qui monte dessous ; le
    dossier y défile (ses colonnes s'écartent de 48 px elles-mêmes), le CRM, l'Emailing et les Outils gardent leurs
    panneaux sous la bande. Le filet `trait` du 12 nov. court sous la bande, tourne au coin de 16 px (le verre remplit le
@@ -1567,3 +1579,13 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 @media (prefers-reduced-motion: reduce) {
   .k-ecran-chargement h1 { animation: none; background: none; color: rgb(255 255 255); }
 }
+
+/* La barre nue de la page Projets (14 nov. 2026, Jules : « enlève la navbar, garde les icônes ») : ni fond, ni bord, ni
+   verre ; ses icônes posées sur la page. Ouverte au survol, elle pousse le contenu (Layout, barreNue) au lieu de le couvrir. */
+.k-barre-nue { background: transparent !important; border: 0 !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.k-barre-nue::before { display: none !important; }
+/* Le K de Klocka dans la barre (14 nov. 2026, Jules : « détoure-le, et le pied doit correspondre à la couleur système ») :
+   sans carré autour ; le fût suit la couleur du texte, pour se lire sur le fond sombre ; la jambe prend la couleur
+   d'accent choisie (menthe par défaut, celle de la personnalisation sinon). */
+.k-logo-barre .logo-klocka-noir { fill: rgb(var(--k-encre-rgb)); }
+.k-logo-barre .logo-klocka-menthe { fill: rgb(var(--k-menthe-rgb)); }

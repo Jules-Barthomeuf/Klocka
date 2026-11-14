@@ -8,6 +8,8 @@ export function useCurrentUser() {
     staleTime: 0,
     gcTime: 0,
     refetchOnWindowFocus: true,
+    // Une page que Jules cache à un collègue quitte sa barre dans la minute, sans qu'il recharge (14 nov. 2026).
+    refetchInterval: 60000,
     refetchOnMount: true,
     refetchOnReconnect: true,
     retry: false,

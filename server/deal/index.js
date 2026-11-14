@@ -466,6 +466,9 @@ export function listerDossiers(limit = 50) {
     dernier_suivi: (d.suivi || [])[d.suivi?.length - 1] || null,
     // L'image de la carte : celle du projet né du dossier, sinon une photo du mandataire.
     photo: photoDe(d),
+    // Les aperçus de la page Dossiers (14 nov. 2026, Jules) : la fiche commerciale reçue, et deux pièces de la
+    // Data Room à poser derrière. Des adresses seulement : la vignette se dessine dans le navigateur (MiniaturePiece).
+    ...apercusDe(d),
     // Le verdict choisi par l'équipe, seul montré sur la carte (10 nov. 2026, Jules : plus le verdict calculé).
     verdict_choisi: d.verdict_choisi?.valeur || null,
     lots: (d.lots || []).map((l) => ({
@@ -480,6 +483,20 @@ export function listerDossiers(limit = 50) {
       surface_m2: l.lot?.surface_m2?.absent === false ? l.lot.surface_m2.valeur : null,
     })),
   }));
+}
+
+const LISIBLE = /\.(pdf|png|jpe?g|webp|gif)$/i;
+/** Pure : la fiche (PDF ou image reçus, sinon le début d'un texte collé) et les deux premières pièces lisibles de la Data Room. */
+export function apercusDe(d) {
+  const s = d?.source || {};
+  // `apercu_fiche` : une fiche posée pour l'aperçu seul, sans toucher à la source (les dossiers d'essai en local).
+  const fiche = s.url && ['pdf', 'image'].includes(s.type) ? { url: s.url, nom: s.nom_fichier || null }
+    : d?.apercu_fiche?.url ? { url: d.apercu_fiche.url, nom: d.apercu_fiche.nom || null } : null;
+  const docs = Array.isArray(d?.documents_espace) ? d.documents_espace : [];
+  const pieces = docs.filter((x) => x?.url && (LISIBLE.test(x.url) || /^(application\/pdf|image\/)/.test(x.mime || ''))).slice(0, 2).map((x) => ({ url: x.url, nom: x.nom || null }));
+  // Un dossier reçu en texte collé : le début du texte, pour dessiner sa fiche en page de texte.
+  const texte = !fiche && s.type === 'texte' && typeof s.texte === 'string' ? s.texte.trim().slice(0, 700) : '';
+  return { fiche, fiche_texte: texte || null, pieces, nb_pieces: docs.length };
 }
 
 function photoDe(d) {

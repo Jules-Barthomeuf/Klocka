@@ -298,10 +298,12 @@ function BlocPrix({ pts }) {
         <div className={CELLULE}><Mesure p={v}>{nuage}</Mesure></div>
       )}
       <div className={CELLULE}>
+        {/* Les repères de la jauge sans chiffre (14 nov. 2026, Jules) : « le bien » en blanc (son rendement est déjà en grand
+            au-dessus), « marché » ; le taux du marché se lit dessous, dans les graduations. */}
         {/* Sans taux validé pour la ville (13 nov. 2026, Jules : « rendement face au taux de la ville 5,45 %, et rien en
             dessous ») : la phrase qui le dit, et le rendement placé dans la fourchette usuelle des murs de commerce,
             4 à 10 % (server/taux-rendement.js), sans couleur : ce n'est pas un jugement. */}
-        <Mesure p={r} suite={jauge ? "" : undefined}>{!jauge && Number.isFinite(rendement) && r?.statut !== "vide" && <Jauge min={3} max={11} unite={(x) => pct(x, 0)} marques={[{ valeur: rendement, texte: `le bien, ${pct(rendement, 2)}`, statut: "a_voir" }]} graduations={[4, 7, 10]} />}{jauge && <Jauge min={bas} max={haut} unite={(x) => pct(x, 2)} zones={[{ de: bas, a: taux - 0.75, statut: "alerte" }, { de: taux - 0.75, a: taux - 0.25, statut: "a_voir" }, { de: taux - 0.25, a: haut, statut: "ok" }]} marques={[{ valeur: rendement, texte: `le bien, ${pct(rendement, 2)}`, statut: r.statut }, { valeur: taux, texte: `marché ${pct(taux, 2)}`, sourd: true }]} graduations={[bas, taux, haut]} />}
+        <Mesure p={r} suite={jauge ? "" : undefined}>{!jauge && Number.isFinite(rendement) && r?.statut !== "vide" && <Jauge min={3} max={11} unite={(x) => pct(x, 0)} marques={[{ valeur: rendement, texte: "le bien", statut: "a_voir" }]} graduations={[4, 7, 10]} />}{jauge && <Jauge min={bas} max={haut} unite={(x) => pct(x, 2)} zones={[{ de: bas, a: taux - 0.75, statut: "alerte" }, { de: taux - 0.75, a: taux - 0.25, statut: "a_voir" }, { de: taux - 0.25, a: haut, statut: "ok" }]} marques={[{ valeur: rendement, texte: "le bien", statut: r.statut }, { valeur: taux, texte: "marché", sourd: true }]} graduations={[bas, taux, haut]} />}
           {/* La légende des zones et ce que le taux vaut en euros (14 nov. 2026, revue de design : « trois zones de couleur
               sans légende, un grand vide dessous »). */}
           {jauge && <div className="mt-2"><Legende items={[["bg-alerte/20", "plus de 0,75 pt sous le marché"], ["bg-menthe/35", "0,25 à 0,75 pt sous"], ["bg-menthe/15", "au marché ou au-dessus"]]} /></div>}

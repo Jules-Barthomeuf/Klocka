@@ -1,59 +1,29 @@
-import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import React from "react";
 import { kEuros } from "@/lib/clients-commerces";
 
-// Les clients Monday qui correspondent à un projet, sous ses chiffres : le
-// nombre en vert, puis chaque nom avec son budget et son statut, et pourquoi
-// il correspond. Deux se voient, les autres s'ouvrent d'un clic.
+// Les clients du CRM qui correspondent à un projet, sous sa carte de la page Projets.
 
 const somme = (n) => (typeof n === "number" ? kEuros(n) : null);
 
-function Mention({ children }) {
-  return <p className="m-0 mt-3.5 text-[12.5px] leading-[1.5] text-brume">{children}</p>;
-}
 
+// Les noms seuls, sous la carte (14 nov. 2026, Jules, après la planche « Projets sans clients possibles » : « intègre avec
+// les clients, tu mets juste les noms dessous ») : une ligne, trois noms et « et N autres » ; le budget et le pourquoi
+// restent au survol de chaque nom. Rien quand aucun client ne correspond, que Twenty ne répond pas ou que le rapprochement
+// se fait encore : la carte reste nette.
 export default function ClientsCorrespondants({ clients, chargement, configure, erreur }) {
-  const [ouvert, setOuvert] = useState(false);
-
-  if (erreur) return <Mention>Rapprochement indisponible : Twenty CRM n'a pas répondu.</Mention>;
-  if (chargement)
-    return (
-      <Mention>
-        <Loader2 className="mr-1.5 inline-block h-3 w-3 animate-spin align-[-2px]" />
-        Rapprochement des clients Twenty CRM…
-      </Mention>
-    );
-  if (configure === false) return <Mention>Twenty CRM n'est pas relié : aucun rapprochement possible.</Mention>;
-  if (!clients?.length) return <Mention>Aucun client Twenty CRM ne correspond au prix et à la zone de ce projet.</Mention>;
-
-  const visibles = ouvert ? clients : clients.slice(0, 2);
-  const initiales = (nom) => String(nom || "").trim().split(/\s+/).slice(0, 2).map((m) => m[0]).join("").toUpperCase();
-
+  if (erreur || chargement || configure === false || !clients?.length) return null;
+  const visibles = clients.slice(0, 3);
+  const reste = clients.length - visibles.length;
   return (
-    <div className="mt-4 border-t border-trait pt-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[13.5px] text-encre">Clients possibles</span>
-        <span className="text-[12.5px] text-ardoise">{clients.length} client{clients.length > 1 ? "s" : ""}</span>
-      </div>
-      <div className="mt-3 flex flex-col gap-3.5">
-        {visibles.map((c) => (
-          <div key={c.nom} className="flex gap-3">
-            <span className="mt-0.5 grid h-8 w-8 flex-none place-items-center rounded-full bg-menthe/[0.12] text-[11px] font-semibold text-menthe">{initiales(c.nom)}</span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-[13.5px] text-encre">{c.nom}</span>
-                <span className="flex-shrink-0 whitespace-nowrap text-[12.5px] text-ardoise">{[somme(c.budget), c.statut].filter(Boolean).join(" · ")}</span>
-              </div>
-              {c.raisons?.length > 0 && <p className="m-0 mt-0.5 text-[12px] leading-[1.45] text-brume">{c.raisons.join(" · ")}</p>}
-            </div>
-          </div>
-        ))}
-      </div>
-      {clients.length > 2 && (
-        <button type="button" onClick={() => setOuvert((o) => !o)} className="mt-3 text-[12.5px] text-ardoise transition-colors hover:text-menthe" style={{ background: "transparent" }}>
-          {ouvert ? "Moins" : `et ${clients.length - 2} autre${clients.length - 2 > 1 ? "s" : ""}`}
-        </button>
-      )}
-    </div>
+    <p className="m-0 truncate pt-3 text-[12.5px] text-ardoise">
+      Clients possibles :{" "}
+      {visibles.map((c, i) => (
+        <span key={c.nom}>
+          <span className="text-encre" title={[somme(c.budget), c.statut, ...(c.raisons || [])].filter(Boolean).join(" · ")}>{c.nom}</span>
+          {i < visibles.length - 1 ? ", " : ""}
+        </span>
+      ))}
+      {reste > 0 && ` et ${reste} autre${reste > 1 ? "s" : ""}`}
+    </p>
   );
 }

@@ -11,6 +11,10 @@ import { J, alpha } from "@/design/jetons";
 //    pour que les cartes reposent sur un fond neutre.
 // 3. La nav, rendue translucide par le Layout sur ces pages : le halo la
 //    traverse, et le dégradé est continu d'un bord à l'autre de l'écran.
+//
+// La nappe de gauche est toujours rose, #eea0a0 (14 nov. 2026, Jules, sur le prototype : « nous on choisit la couleur 1
+// comme actuellement, et en couleur 2 pour le fond c'est toujours elle ») : le centre et la droite suivent l'accent
+// choisi dans Paramètres, la gauche ne bouge pas. Elle passe à l'opacité du prototype (22 %, puis 8 %).
 
 // La base suit le thème : figée en dur, elle peignait une dalle presque noire
 // derrière chaque page une fois le mode clair choisi. Les nappes, elles, sont
@@ -19,7 +23,7 @@ export const FOND_BASE = "rgb(var(--k-fond-halo-rgb))";
 
 const HALO = [
   `radial-gradient(58% 52% at 58% 42%, ${alpha("menthe", 0.22)} 0%, ${alpha("menthe", 0.10)} 34%, ${alpha("menthe-fonce", 0.05)} 60%, transparent 80%)`,
-  `radial-gradient(44% 42% at 30% 60%, ${alpha("menthe-clair", 0.11)} 0%, ${alpha("menthe-clair", 0.05)} 40%, transparent 76%)`,
+  `radial-gradient(44% 42% at 30% 60%, ${alpha("halo-rose", 0.22)} 0%, ${alpha("halo-rose", 0.08)} 40%, transparent 76%)`,
   `radial-gradient(40% 40% at 78% 56%, ${alpha("menthe-fonce", 0.16)} 0%, ${alpha("menthe-fonce", 0.06)} 45%, transparent 78%)`,
 ].join(", ");
 

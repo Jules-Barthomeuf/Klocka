@@ -344,9 +344,10 @@ function LayoutContent({ children, currentPageName }) {
   // barre latérale et dans la barre du haut de K-Data ; elle écrit la
   // préférence, qui suit le compte.
   const clair = themeEffectif(prefs) === CLAIR;
+  // Côté mandataire, toujours (14 nov. 2026, Jules : « tout l'espace mandataire en glass »), comme dans personnalisation.js.
   const fondHalo = !hideNavbar
     && !clair
-    && prefs.halo
+    && (prefs.halo || vue === "mandataire")
     && !(currentPageName === "ALXAtelier" && !["carte", "ville"].some((c) => new URLSearchParams(location.search).has(c)));
 
   // Les chemins se comparent sans la casse : « /Analyse » et « /analyse »

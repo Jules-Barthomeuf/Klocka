@@ -1584,8 +1584,84 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
    verre ; ses icônes posées sur la page. Ouverte au survol, elle pousse le contenu (Layout, barreNue) au lieu de le couvrir. */
 .k-barre-nue { background: transparent !important; border: 0 !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 .k-barre-nue::before { display: none !important; }
+/* Dans les cadres en L (dossier ouvert, CRM, Emailing, Outils), la barre nue reprend le verre de la bande du haut
+   (14 nov. 2026, Jules : « problème avec la navbar quand on clique sur un dossier ») : nue, elle laissait le fond de la
+   page à gauche, et la bande en verre s'arrêtait net au bord de la colonne des icônes. Barre et bande refont un bloc. */
+html.k-cadre-dossier .k-barre-nue, html.k-cadre-crm .k-barre-nue {
+  background: var(--k-verre-fond) !important;
+  -webkit-backdrop-filter: var(--k-verre-flou) !important;
+  backdrop-filter: var(--k-verre-flou) !important;
+}
 /* Le K de Klocka dans la barre (14 nov. 2026, Jules : « détoure-le, et le pied doit correspondre à la couleur système ») :
    sans carré autour ; le fût suit la couleur du texte, pour se lire sur le fond sombre ; la jambe prend la couleur
    d'accent choisie (menthe par défaut, celle de la personnalisation sinon). */
 .k-logo-barre .logo-klocka-noir { fill: rgb(var(--k-encre-rgb)); }
 .k-logo-barre .logo-klocka-menthe { fill: rgb(var(--k-menthe-rgb)); }
+
+/* Les dossiers en couvertures de verre (14 nov. 2026, Jules : planche « Couverture de dossier », version Givré, puis
+   « ajoute un balayage ») : la page avant en verre clair qui s'éclaircit vers le haut avec un liseré sur l'arête, deux
+   pages esquissées en éventail derrière. Le verre avant reste du verre (Jules : « la card est noire, je veux que ce soit glass ») :
+   seul son flou cache les pages arrière. Le verre se teinte de l'encre du thème (blanc en sombre). Au survol
+   seulement (même jour, Jules : « uniquement lorsqu'on passe la souris dessus »), un reflet traverse la page avant, une
+   fois par entrée de la souris. */
+.k-couv-arr {
+  border-radius: 12px;
+  border: 1px solid rgb(var(--k-encre-rgb) / .12);
+  background: linear-gradient(160deg, rgb(var(--k-encre-rgb) / .1), rgb(var(--k-encre-rgb) / .025) 70%);
+  box-shadow: 0 24px 48px rgb(0 0 0 / .6), 0 2px 6px rgb(0 0 0 / .4);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+.k-couv-arr-g { transform: translate(-56px, 16px) rotate(-10deg); }
+.k-couv-arr-d { transform: translate(56px, 16px) rotate(10deg); }
+.k-couv-avant {
+  border-radius: 14px;
+  border: 1px solid rgb(var(--k-encre-rgb) / .2);
+  background: linear-gradient(160deg, rgb(var(--k-encre-rgb) / .17), rgb(var(--k-encre-rgb) / .05) 55%, rgb(var(--k-encre-rgb) / .03));
+  box-shadow: 0 24px 48px rgb(0 0 0 / .6), 0 2px 6px rgb(0 0 0 / .4), inset 0 1px 0 rgb(var(--k-encre-rgb) / .4);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  transition: translate .3s cubic-bezier(.22, 1, .36, 1), filter .3s;
+}
+:root[data-theme="clair"] .k-couv-arr,
+:root[data-theme="clair"] .k-couv-avant { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 12px 28px rgb(16 20 24 / .1); }
+.k-couv:hover .k-couv-avant, .k-couv:focus-within .k-couv-avant { translate: 0 -4px; filter: brightness(1.12); }
+.k-couv-balai {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgb(var(--k-encre-rgb) / .24) 47%, transparent 60%);
+  background-size: 260% 100%;
+  background-position: 130% 0;
+}
+.k-couv:hover .k-couv-balai { animation: k-couv-balai 1.1s cubic-bezier(.45, 0, .35, 1) both; }
+@keyframes k-couv-balai {
+  from { background-position: 130% 0; }
+  to { background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) { .k-couv:hover .k-couv-balai { animation: none; } .k-couv-avant { transition: none; } }
+
+/* L'espace mandataire en verre (14 nov. 2026, Jules : « mets tout l'espace mandataire en glass ») : le halo et les surfaces
+   en verre y sont imposés (personnalisation.js, Layout) ; la bande à points d'une carte en verre (les cartes des dossiers)
+   laisse passer le verre au lieu de poser le fond plein de la barre. Les fenêtres à points gardent leur fond. */
+html[data-vue="mandataire"] .k-verre .k-grid { --k-grid-fond: transparent; }
+
+/* La carte des Projets en verre givré (14 nov. 2026, Jules, planche « Projets », vue Givré : « voici le design des cards
+   dans projets que je veux ») : un verre clair qui s'éclaircit vers le haut, un liseré sur l'arête, la photo posée dedans
+   à 8 px du bord ; au survol le verre s'éclaire et la carte monte de 3 px. Teinté de l'encre du thème (blanc en sombre). */
+.k-carte-givre {
+  border-radius: 16px;
+  border: 1px solid rgb(var(--k-encre-rgb) / .18);
+  background: linear-gradient(160deg, rgb(var(--k-encre-rgb) / .14), rgb(var(--k-encre-rgb) / .045) 55%, rgb(var(--k-encre-rgb) / .03));
+  box-shadow: 0 24px 48px rgb(0 0 0 / .55), inset 0 1px 0 rgb(var(--k-encre-rgb) / .38);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  padding: 8px 8px 0;
+  transition: background .25s, border-color .25s, translate .3s cubic-bezier(.22, 1, .36, 1);
+}
+.k-carte-givre:hover, .k-carte-givre:focus-within {
+  background: linear-gradient(160deg, rgb(var(--k-encre-rgb) / .18), rgb(var(--k-encre-rgb) / .06) 55%, rgb(var(--k-encre-rgb) / .04));
+  translate: 0 -3px;
+}
+:root[data-theme="clair"] .k-carte-givre { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 12px 28px rgb(16 20 24 / .1), inset 0 1px 0 rgb(255 255 255 / .6); }
+@media (prefers-reduced-motion: reduce) { .k-carte-givre { transition: none; } .k-carte-givre:hover, .k-carte-givre:focus-within { translate: none; } }

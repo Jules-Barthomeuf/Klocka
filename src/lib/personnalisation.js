@@ -322,7 +322,9 @@ export function appliquerPrefs(brut) {
   if (typeof document === "undefined") return;
   dernieresPrefs = brut;
   const p = normaliser(pageNeutre() ? DEFAUT : cadreCrm ? { mode: normaliser(brut).mode, accent: normaliser(brut).accent } : brut);
-  if (espaceCourant === "mandataire" && !pageNeutre() && !cadreCrm) p.accent = ACCENT_MANDATAIRE;
+  // Tout l'espace mandataire en verre (14 nov. 2026, Jules : « mets tout l'espace mandataire en glass ») : le halo
+  // derrière les pages et les surfaces en verre, quel que soit le réglage du compte, comme l'accent.
+  if (espaceCourant === "mandataire" && !pageNeutre() && !cadreCrm) Object.assign(p, { accent: ACCENT_MANDATAIRE, halo: true, surfaces: "verre" });
   const theme = themeEffectif(p);
   const clair = theme === CLAIR;
   appliquerTheme(theme);

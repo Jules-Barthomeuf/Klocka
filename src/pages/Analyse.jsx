@@ -23,8 +23,7 @@ import { CLAIR, themeEffectif } from "@/lib/personnalisation";
 import PenseeIA from "@/components/PenseeIA";
 import Chargement from "@/components/ui/Chargement";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
-import { BoutonPrincipal, Recherche, Statut, TitrePage, LigneTitre, TRANSPARENT } from "@/components/mandataire/elements";
-import MiniaturePiece, { DocumentClassique } from "@/components/preanalyse/MiniaturePiece";
+import { BoutonPrincipal, Recherche, Statut, TitrePage, LigneTitre } from "@/components/mandataire/elements";
 import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
 import { VERRE } from "@/lib/verre";
 
@@ -555,10 +554,11 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              // Les dossiers en aperçus (14 nov. 2026, Jules : « les preview des fiches et des documents derrière, à la place
-              // des dossiers en bas ») : la fiche devant, deux pièces derrière, le nom et l'étape dessous.
-              <div className="k-serie grid grid-cols-2 gap-x-3 gap-y-5 pt-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {tous.map((d) => <CarteApercu key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-2.5 right-2.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100" place="top-9 right-3" />} />)}
+              // Les dossiers en couvertures de verre (14 nov. 2026, Jules : la planche « Couverture de dossier », version Givré,
+              // « voici ce que je veux pour les dossiers, ajoute un balayage ») : la page avant en verre, deux pages esquissées
+              // en éventail derrière, un reflet qui traverse toutes les cartes ensemble.
+              <div className="k-serie k-couv-grille grid gap-x-4 gap-y-2 pt-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))" }}>
+                {tous.map((d) => <CarteCouverture key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="bottom-2 right-2 grid h-8 w-8 place-items-center rounded-[8px]" place="" />} />)}
                 {!tous.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Aucun dossier ne correspond.</p>}
               </div>
             )}
@@ -659,53 +659,50 @@ export default function Analyse() {
   return vuePage;
 }
 
-/** Une page de texte en miniature : un dossier reçu en texte collé (ni PDF ni image) a quand même sa fiche. */
-function PageTexte({ texte, largeur }) {
+/** Une page esquissée derrière la couverture : un titre, des lignes, un cadre, comme une fiche vue de loin. */
+function PageEsquisse({ cote }) {
+  const trait = (largeur, fort) => <span className={`block rounded-[2px] ${fort ? "h-1 bg-encre/[0.28]" : "h-[3px] bg-encre/[0.14]"}`} style={{ width: largeur }} />;
+  const cadre = (haut, marge = 0) => <span className="block rounded-[5px] border border-encre/[0.16]" style={{ height: haut, marginTop: marge }} />;
   return (
-    <span className="relative block flex-none overflow-hidden rounded-[3px] border border-bord-doux bg-white px-2 py-2.5 shadow-[0_2px_6px_rgb(0_0_0/0.25)]" style={{ width: largeur, height: Math.round(largeur * 1.3) }}>
-      <span className="block whitespace-pre-line break-words text-[5.5px] leading-[1.4] text-black/75">{texte}</span>
-    </span>
+    <div aria-hidden="true" className={`k-couv-arr absolute left-1/2 top-[42px] -ml-[76px] h-[200px] w-[152px] ${cote === "g" ? "k-couv-arr-g" : "k-couv-arr-d"}`}>
+      <div className="flex flex-col gap-[7px] px-3 py-3.5">
+        {cote === "g"
+          ? <>{trait("55%", true)}{trait("85%")}{trait("70%")}{cadre(48, 8)}{trait("62%")}</>
+          : <>{trait("40%", true)}{cadre(30)}{trait("80%")}{trait("66%")}</>}
+      </div>
+    </div>
   );
 }
 
 /**
- * Un dossier en aperçu (14 nov. 2026, Jules : « au-dessus du titre, les preview des fiches commerciales et des documents
- * derrière », puis « à la place des dossiers en bas ») : la première page de la fiche reçue devant (PDF ou image ; un texte
- * collé devient une page de texte), deux pièces de la Data Room inclinées derrière ; sans fiche, la première pièce passe
- * devant. Dessous, le nom, le verdict choisi, l'étape et qui s'en occupe, comme l'ancienne carte. Le menu ⋯ au survol.
+ * Un dossier en couverture de verre (14 nov. 2026, Jules, planche « Couverture de dossier », version Givré) : la page avant
+ * dit l'étape en capitales à l'accent, le nom, puis qui s'en occupe et le menu ⋯ en bas ; deux pages esquissées en éventail
+ * derrière. Le verdict choisi (ou Abandonné, Non conforme) en haut à droite, K Partners en « KP » près du nom de qui suit.
+ * Le reflet du balayage passe sur la page avant (.k-couv-balai, src/index.css).
  */
-function CarteApercu({ d, qui, onOuvrir, menu, ecarte = false }) {
+function CarteCouverture({ d, qui, onOuvrir, menu, ecarte = false }) {
   const n = etapeFrise(d);
   const verdict = d.verdict_choisi ? VERDICTS[d.verdict_choisi] : null;
-  const pieces = d.pieces || [];
-  const devant = d.fiche || (d.fiche_texte ? null : pieces[0]) || null;
-  const derriere = (d.fiche || d.fiche_texte ? pieces : pieces.slice(1)).slice(0, 2);
   return (
-    <article className="group relative cursor-pointer rounded-[16px] p-2 pb-2.5 transition-colors hover:bg-relief" onClick={onOuvrir}>
-      <div className="relative mx-auto h-[180px] w-[150px]">
-        {derriere.map((p, i) => (
-          // MiniaturePiece se pose en `relative` : c'est son cadre qui la place.
-          <span key={p.url} className={`absolute bottom-3 transition-transform duration-300 ${i === 0 ? "left-0 origin-bottom-right -rotate-[7deg] group-hover:-rotate-[10deg]" : "right-0 origin-bottom-left rotate-[7deg] group-hover:rotate-[10deg]"}`}>
-            <MiniaturePiece url={p.url} largeur={104} />
-          </span>
-        ))}
-        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 transition-transform duration-300 group-hover:-translate-y-1">
-          {devant ? <MiniaturePiece url={devant.url} largeur={120} />
-            : d.fiche_texte ? <PageTexte texte={d.fiche_texte} largeur={120} />
-            : <DocumentClassique taille={96} />}
-        </span>
+    <article className="k-couv k-entree group relative h-[290px] cursor-pointer" onClick={onOuvrir}>
+      <PageEsquisse cote="g" />
+      <PageEsquisse cote="d" />
+      <div className="k-couv-avant absolute left-1/2 top-[30px] -ml-[90px] flex h-[220px] w-[180px] flex-col overflow-hidden px-3.5 pb-2 pt-3.5">
+        <span className="k-couv-balai" aria-hidden="true" />
+        <div className="mb-2.5 flex min-h-[18px] items-center justify-between gap-2">
+          <span className="truncate text-[9.5px] uppercase tracking-[0.12em] text-menthe-clair">{ecarte ? "" : FRISE[n - 1].label}</span>
+          {ecarte ? <Statut couleur="corail" className="flex-none !px-[7px] !text-[10.5px]">{d.statut === "abandonne" ? "Abandonné" : "Non conforme"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none !px-[7px] !text-[10.5px]">{verdict.libelle}</Statut>}
+        </div>
+        <p className="m-0 line-clamp-5 text-[14px] leading-[1.3] text-encre" title={d.titre}>
+          {d.titre || d.nom_fichier || d.deal_id}
+          {(d.fil_non_lus || 0) > 0 && <span className="ml-1.5 inline-block align-middle"><PointNouveau n={d.fil_non_lus} /></span>}
+        </p>
+        <div className="mt-auto flex min-w-0 items-center gap-1.5 pr-8">
+          <span className="min-w-0 flex-1 truncate text-[11.5px] text-ardoise">{qui}</span>
+          {d.origine === "mandataire" && <span className="flex-none rounded-[6px] bg-statut-lavande-fond px-1.5 text-[10px] text-statut-lavande" title="K Partners">KP</span>}
+        </div>
+        <span onClick={(e) => e.stopPropagation()}>{menu}</span>
       </div>
-      <div className="mt-2.5 min-w-0 px-0.5">
-        <p className="m-0 flex min-w-0 items-center gap-1.5 text-[14px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
-        <p className="m-0 mt-0.5 truncate text-[12.5px] text-ardoise">{!ecarte && `${FRISE[n - 1].label} · `}{qui}</p>
-        {(ecarte || verdict || d.origine === "mandataire") && (
-          <p className="m-0 mt-1.5 flex flex-wrap gap-1">
-            {ecarte ? <Statut couleur="corail">{d.statut === "abandonne" ? "Abandonné" : "Non conforme"}</Statut> : verdict && <Statut couleur={verdict.statut}>{verdict.libelle}</Statut>}
-            {d.origine === "mandataire" && <Statut couleur="lavande">K Partners</Statut>}
-          </p>
-        )}
-      </div>
-      <span onClick={(e) => e.stopPropagation()}>{menu}</span>
     </article>
   );
 }

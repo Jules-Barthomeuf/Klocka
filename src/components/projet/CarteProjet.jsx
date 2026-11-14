@@ -95,8 +95,10 @@ export const ETAPES_PROJET = ["prospect", "analyse", "negociation", "financement
  * @param {React.ReactNode} sousLigne  une ligne de plus sous l'adresse
  * @param {React.ReactNode} actions    les boutons qui apparaissent au survol de la photo
  * @param {React.ReactNode} pied       ce qui se pose sous les chiffres (clients possibles, rapport)
+ * @param {React.ReactNode} menu       carte compacte : le menu ⋯, à droite de la ligne sous la photo
+ * @param {React.ReactNode} dessous    carte compacte : ce qui vient sous cette ligne (le rapport)
  */
-export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null, avatar = null, sousLigne = null, actions = null, pied = null, compacte = false }) {
+export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null, avatar = null, sousLigne = null, actions = null, pied = null, menu = null, dessous = null, compacte = false }) {
   const { prixRevient, rendement, surface } = chiffresDuProjet(project);
   // Une photo dont l'hébergeur a disparu affichait son texte de remplacement
   // en travers de la carte : on retombe alors sur la trame.
@@ -105,34 +107,38 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
   const rang = Math.max(0, ETAPES_PROJET.indexOf(project.statut || "prospect"));
   const derniere = rang >= ETAPES_PROJET.length - 1;
 
-  // La carte de la page Projets de l'équipe (14 nov. 2026, Jules) : la photo occupe la carte, et le texte est dessus, en
-  // blanc sous un voile : le nom, l'adresse, le prix (FAI) et dessous le rendement. Plus d'étape ni de barre d'étapes.
-  // L'avatar du conseiller en haut à droite ; les gestes au survol ; le pied (clients, rapport) sous la photo.
+  // La carte de la page Projets de l'équipe (14 nov. 2026, Jules, puis la planche « Projets », vue Givré : « voici le design
+  // des cards dans projets que je veux ») : une carte de verre givré, la photo posée dedans à 8 px du bord (rayon 10), le
+  // nom et l'adresse à gauche, le prix (FAI) et le rendement en pastille à droite, en blanc sous un voile. Sous la photo,
+  // une ligne : les clients possibles (le pied) et le menu ⋯ des gestes. L'avatar du conseiller en haut à droite.
   const prixFai = Number(project.sim_prix_bien_fai) || Number(project.prix_acquisition) || prixRevient;
   if (compacte) return (
-    <div onClick={(e) => { if (onOuvrir && !e.target.closest("button, a, input, select, textarea, label")) onOuvrir(); }}
-      className={`group relative flex flex-col overflow-hidden k-verre transition-colors hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
-      <div className="k-sur-photo relative h-[230px] overflow-hidden max-md:h-[200px]">
+    <div onClick={(e) => { if (onOuvrir && !e.target.closest("button, a, input, select, textarea, label, [role=menu]")) onOuvrir(); }}
+      className={`k-carte-givre group relative flex flex-col ${onOuvrir ? "cursor-pointer" : ""}`}>
+      <div className="k-sur-photo relative h-[230px] overflow-hidden rounded-[10px] max-md:h-[200px]">
         {photo
           ? <img src={photo} alt="" loading="lazy" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
           : <TramePhoto mot="" />}
         <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(to top, rgba(10,11,11,0.92) 0%, rgba(10,11,11,0.6) 42%, rgba(10,11,11,0.1) 72%, rgba(10,11,11,0.2) 100%)" }} />
         {/* L'avatar sans bord blanc (14 nov. 2026, Jules). */}
         {avatar && <img src={avatar} alt="Conseiller" className="absolute right-3 top-3 h-7 w-7 rounded-full object-cover" />}
-        {/* Le nom et l'adresse à gauche, le prix et le rendement dessous à droite (même jour, Jules). */}
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 px-4 pb-3.5">
           <div className="min-w-0">
             <h2 className="m-0 truncate text-[19px] font-normal leading-[1.2] tracking-[-0.01em] text-white">{titreSansAdresse(project.titre, project.adresse_complete)}</h2>
             {project.adresse_complete && <p className="m-0 mt-0.5 truncate text-[13px] text-white/65">{project.adresse_complete}</p>}
           </div>
-          <div className="flex-none text-right">
+          <div className="flex flex-none flex-col items-end">
             <p className="m-0 text-[17px] tabular-nums leading-[1.2] text-white">{formatPrix(prixFai)}</p>
-            {rendement > 0 && <p className="m-0 mt-0.5 text-[13.5px] tabular-nums text-menthe">{Number(rendement).toFixed(1).replace(".", ",")} % net</p>}
+            {rendement > 0 && <p className="m-0 mt-0.5 rounded-full bg-menthe/[0.18] px-2 py-0.5 text-[13.5px] tabular-nums text-menthe">{Number(rendement).toFixed(1).replace(".", ",")} % net</p>}
           </div>
         </div>
         {actions && <div className="absolute left-3 top-3 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-md:hidden">{actions}</div>}
       </div>
-      {pied && <div className="empty:hidden px-3.5 [&:has(>*)]:pb-3">{pied}</div>}
+      <div className="flex min-h-[44px] items-center gap-2.5 pl-2">
+        <div className="min-w-0 flex-1">{pied}</div>
+        {menu}
+      </div>
+      {dessous}
     </div>
   );
 

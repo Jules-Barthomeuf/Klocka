@@ -52,6 +52,7 @@ import { Switch } from "@/components/ui/switch";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserProvider, useUser } from "@/components/providers/UserProvider";
 import VeilleAlx from "@/components/alx/VeilleAlx";
+import AgentProjet from "@/components/projet/AgentProjet";
 import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackSurvol from "@/components/FeedbackSurvol";
 import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
@@ -400,7 +401,7 @@ function LayoutContent({ children, currentPageName }) {
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     SuiviActivite: { to: "/SuiviActivite", icon: ChartColumn, actif: isActivePage("SuiviActivite") },
     MandataireTableauDeBord: { to: createPageUrl("MandataireTableauDeBord"), icon: ChartColumn, actif: isActivePage("MandataireTableauDeBord") },
-    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") },
+    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") || isActivePage("SuiviCorrections") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
@@ -790,6 +791,8 @@ export default function Layout(props) {
     <UserProvider>
       <LayoutContent {...props} />
       <VeilleAlx />
+      {/* L'agent qui rentre un projet, en bas à gauche de toutes les pages (13 nov. 2026, Jules). */}
+      <AgentProjet />
     </UserProvider>
   );
 }

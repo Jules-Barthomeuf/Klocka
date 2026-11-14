@@ -359,12 +359,18 @@ export async function completerAvantProjet(dealId, lotIndex = 0) {
  * création du projet et à sa mise à jour depuis le dossier (30 oct. 2026, Jules).
  */
 /** Pure : « 31/12/2030 » ou « 2030-12-31 » en « 2030-12-31 » ; sinon null. */
+// « 22 avril 2033 » aussi (13 nov. 2026) : l'échéance écrite en toutes lettres dans la fiche restait du texte, et la frise
+// du bail ne se dessinait pas.
+const MOIS_FR = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
 export function dateIsoDe(v) {
   const t = String(v || '').trim();
   let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
   m = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
-  return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  m = t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().match(/^(?:le\s+)?(\d{1,2})(?:er)?\s+([a-z]+)\s+(\d{4})$/);
+  const mois = m ? MOIS_FR.indexOf(m[2]) + 1 : 0;
+  return mois ? `${m[3]}-${String(mois).padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
 }
 
 function donneesDuLot(lot) {
@@ -680,7 +686,7 @@ function simulateurDeLAnalyse(champs, analyse) {
 const lignesLues = (analyse, ids) => (analyse?.grilles || []).filter((g) => ids.includes(g.id)).flatMap((g) => g.lignes).filter((l) => l.valeur && l.statut !== 'introuvable');
 const pointsDeLAnalyse = (analyse) => ({ analyse_bail_points: lignesLues(analyse, ['bail']).length, copropriete_points: lignesLues(analyse, ['pv_ag', 'rcp']).length });
 // Ce que l'IA a lu sans que personne l'ait vérifié, et les alertes : à relire avant de présenter le projet.
-function aVerifierDansLAnalyse(analyse) {
+export function aVerifierDansLAnalyse(analyse) {
   const sortie = [];
   for (const g of analyse?.grilles || []) {
     for (const l of g.lignes || []) {
@@ -717,7 +723,8 @@ const RESUME = [
  * Le premier message du chat du projet (30 oct. 2026, Jules) : ce qui a été mis dans le projet, une ligne par valeur,
  * puis ce qu'il reste à vérifier : ce qui manque pour le présenter, et ce que l'IA a lu sans qu'on l'ait vérifié.
  */
-export function questionsDuProjet(projet, { aVerifier = [] } = {}) {
+// `manques` : la liste de l'agent qui rentre le projet (13 nov. 2026) ; elle remplace celle des cases essentielles vides.
+export function questionsDuProjet(projet, { aVerifier = [], manques = null } = {}) {
   const vide = (v) => v == null || v === '' || v === 0;
   const loyerM2 = Number(projet?.sim_loyer_initial_ht) > 0 && Number(projet?.sim_surface) > 0 ? Math.round(projet.sim_loyer_initial_ht / projet.sim_surface) : 0;
   const p = { ...projet, loyer_m2: loyerM2 };
@@ -728,7 +735,7 @@ export function questionsDuProjet(projet, { aVerifier = [] } = {}) {
   const bail = (projet?.analyse_bail_points || 0);
   if (bail) mis.push(`- Analyse du bail : ${bail} point${bail > 1 ? 's' : ''} repris de l'Analyse`);
   if (projet?.copropriete_points) mis.push(`- Copropriété : ${projet.copropriete_points} point${projet.copropriete_points > 1 ? 's' : ''} repris de l'Analyse`);
-  const manque = ESSENTIELS.filter(([champ]) => vide(projet?.[champ])).map(([, q]) => `- ${q[0].toUpperCase()}${q.slice(1)} : manquant`);
+  const manque = Array.isArray(manques) ? manques.map((q) => `- ${q}`) : ESSENTIELS.filter(([champ]) => vide(projet?.[champ])).map(([, q]) => `- ${q[0].toUpperCase()}${q.slice(1)} : manquant`);
   const verifier = [...manque, ...aVerifier.map((t) => `- ${t}`)];
   const parties = [];
   if (mis.length) parties.push(`Voici ce que j'ai mis dans le projet :\n\n${mis.join('\n')}`);

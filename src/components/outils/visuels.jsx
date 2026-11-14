@@ -4,7 +4,8 @@ import React from "react";
 // une jauge à zones, des fourchettes sur une échelle commune, des valeurs en points sur un axe, une frise, des événements
 // en calendrier (années × mois), le ruban d'une rue, des barres couchées. En jetons seulement, comme les graphiques du design
 // system : une série prend la menthe, « non lu » prend `brume`, l'alerte ne dit qu'un état, « à voir » prend l'accent atténué (plus d'ambre, 12 nov. 2026, Jules : « trop de couleurs ») ; chaque visuel
-// porte sa légende en 11,5 px `brume`.
+// porte sa légende en 11,5 px `ardoise` (plus `brume` : sous le seuil de lecture, revue de design du 14 nov. 2026) ; les
+// pistes grises en `encre` à 12 %, plus `relief`, qui se perdait sur le fond.
 
 const MARQUE = { ok: "bg-menthe", a_voir: "bg-menthe/55", alerte: "bg-alerte", vide: "bg-brume" };
 const ZONE = { ok: "bg-menthe/15", a_voir: "bg-menthe/35", alerte: "bg-alerte/20" };
@@ -13,7 +14,7 @@ const nombre = (n) => (n == null ? "—" : Number(n).toLocaleString("fr-FR"));
 const jour = (d) => (d ? String(d).slice(0, 10).split("-").reverse().join("/") : "—");
 const annee = (d) => (d ? Number(String(d).slice(0, 4)) : null);
 
-export const Legende = ({ items }) => <p className="m-0 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-brume">{items.map(([classe, mot]) => <span key={mot} className="inline-flex items-center gap-1.5"><span className={`h-2 w-2 rounded-full ${classe}`} />{mot}</span>)}</p>;
+export const Legende = ({ items }) => <p className="m-0 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-ardoise">{items.map(([classe, mot]) => <span key={mot} className="inline-flex items-center gap-1.5"><span className={`h-2 w-2 ${/rounded-none/.test(classe) ? "" : "rounded-full"} ${classe}`} />{mot}</span>)}</p>;
 
 /** Une jauge : des zones colorées de `min` à `max`, des repères posés dessus avec leur mot, des graduations dessous. */
 export function Jauge({ min, max, zones = [], marques = [], graduations = [], unite = (v) => String(v) }) {
@@ -21,7 +22,7 @@ export function Jauge({ min, max, zones = [], marques = [], graduations = [], un
   return (
     <div className="flex flex-col gap-1">
       <div className="relative h-9">
-        <div className="absolute inset-x-0 top-5 h-2 overflow-hidden rounded-full bg-relief">
+        <div className="absolute inset-x-0 top-5 h-2 overflow-hidden rounded-full bg-encre/[0.12]">
           {zones.map((z, i) => <div key={i} className={`absolute inset-y-0 ${ZONE[z.statut]}`} style={{ left: `${pos(z.de)}%`, width: `${Math.max(0, pos(z.a) - pos(z.de))}%` }} />)}
         </div>
         {marques.map((m, i) => (
@@ -31,37 +32,61 @@ export function Jauge({ min, max, zones = [], marques = [], graduations = [], un
           </div>
         ))}
       </div>
-      {graduations.length > 0 && <div className="relative h-4 text-[11px] text-brume">{graduations.map((g) => <span key={g} className="absolute -translate-x-1/2 whitespace-nowrap tabular-nums" style={{ left: `${pos(g)}%` }}>{unite(g)}</span>)}</div>}
+      {graduations.length > 0 && <div className="relative h-4 text-[11px] text-ardoise">{graduations.map((g) => <span key={g} className="absolute -translate-x-1/2 whitespace-nowrap tabular-nums" style={{ left: `${pos(g)}%` }}>{unite(g)}</span>)}</div>}
     </div>
   );
 }
 
-/** Des fourchettes sur une échelle commune : une ligne par échelle (bas à haut), la moyenne en tiret menthe, le bien en trait. */
+/**
+ * Des fourchettes sur une échelle commune : une ligne par échelle, la fourchette courante, la moyenne en tiret menthe, le
+ * bien en trait (14 nov. 2026, revue de design). Equimmox donne une fourchette courante, pas un minimum et un maximum : sa
+ * moyenne, tirée par quelques baux très chers, peut en sortir ; la ligne le dit au lieu de laisser croire à une erreur.
+ * La colonne des moyennes a son titre et s'écarte du graphique : les chiffres ne se collent plus au trait du bien, posé
+ * avec son nom au-dessus des lignes.
+ */
 export function Fourchettes({ lignes, bien = null, unite = (v) => String(v) }) {
   const valeurs = lignes.flatMap((l) => [l.bas, l.haut, l.moyenne]).concat(bien ?? []).filter((v) => Number.isFinite(v));
   if (!valeurs.length) return null;
-  const max = Math.max(...valeurs) * 1.12;
+  const max = Math.max(...valeurs) * 1.2;
   const pos = (v) => borne((v / max) * 100);
+  const colonnes = "grid grid-cols-[110px_minmax(0,1fr)_88px] items-center gap-x-5 text-[12.5px] max-md:grid-cols-[80px_minmax(0,1fr)_72px] max-md:gap-x-3";
+  const hors = lignes.filter((l) => Number.isFinite(l.moyenne) && Number.isFinite(l.bas) && Number.isFinite(l.haut) && (l.moyenne > l.haut || l.moyenne < l.bas));
   return (
     <div className="flex flex-col gap-2">
+      <div className={colonnes}>
+        <span />
+        <div className="relative h-5">
+          {Number.isFinite(bien) && <span className="absolute top-0 -translate-x-1/2 whitespace-nowrap text-[11.5px] tabular-nums text-encre" style={{ left: `${pos(bien)}%` }}>le bien, {unite(bien)}</span>}
+        </div>
+        <span className="text-right text-[11.5px] text-ardoise">moyenne</span>
+      </div>
       {lignes.map((l) => (
-        <div key={l.nom} className="grid grid-cols-[110px_minmax(0,1fr)_64px] items-center gap-3 text-[12.5px] max-md:grid-cols-[80px_minmax(0,1fr)_56px]">
+        <div key={l.nom} className={colonnes}>
           <span className="truncate text-ardoise">{l.nom}</span>
           <div className="relative h-6">
-            <div className="absolute inset-x-0 top-[9px] h-1.5 rounded-full bg-relief" />
-            {Number.isFinite(l.bas) && Number.isFinite(l.haut) && <div className="absolute top-[9px] h-1.5 rounded-full bg-menthe/35" style={{ left: `${pos(l.bas)}%`, width: `${Math.max(0.8, pos(l.haut) - pos(l.bas))}%` }} />}
-            {Number.isFinite(l.moyenne) && <span className="absolute top-[5px] h-[14px] w-[2px] -translate-x-1/2 rounded-full bg-menthe" style={{ left: `${pos(l.moyenne)}%` }} />}
-            {Number.isFinite(bien) && <span className="absolute top-0 h-6 w-[2px] -translate-x-1/2 bg-encre" style={{ left: `${pos(bien)}%` }} />}
+            <div className="absolute inset-x-0 top-[9px] h-1.5 rounded-full bg-encre/[0.12]" />
+            {Number.isFinite(l.bas) && Number.isFinite(l.haut) && <div className="absolute top-[9px] h-1.5 rounded-full bg-menthe/45" style={{ left: `${pos(l.bas)}%`, width: `${Math.max(0.8, pos(l.haut) - pos(l.bas))}%` }} title={`fourchette courante : ${unite(l.bas)} à ${unite(l.haut)}`} />}
+            {Number.isFinite(l.moyenne) && <span className="absolute top-[5px] h-[14px] w-[2px] -translate-x-1/2 rounded-full bg-menthe" style={{ left: `${pos(l.moyenne)}%` }} title={`moyenne : ${unite(l.moyenne)}`} />}
+            {Number.isFinite(bien) && <span className="absolute -top-1 h-7 w-[2px] -translate-x-1/2 bg-encre" style={{ left: `${pos(bien)}%` }} />}
           </div>
-          <span className="text-right tabular-nums text-craie">{Number.isFinite(l.moyenne) ? unite(l.moyenne) : "—"}</span>
+          <span className="text-right tabular-nums text-encre">{Number.isFinite(l.moyenne) ? unite(l.moyenne) : "—"}</span>
         </div>
       ))}
-      <Legende items={[["bg-menthe/35", "de bas à haut"], ["bg-menthe", "moyenne"], ...(Number.isFinite(bien) ? [["bg-encre", `le bien, ${unite(bien)}`]] : [])]} />
+      <Legende items={[["bg-menthe/45", "fourchette courante des baux"], ["bg-menthe", "moyenne"], ...(Number.isFinite(bien) ? [["bg-encre", "le bien"]] : [])]} />
+      {hors.length > 0 && (
+        <p className="m-0 text-[12.5px] leading-[1.45] text-ardoise">
+          {hors.map((l) => l.nom).join(", ")} : la moyenne sort de la fourchette courante. Equimmox la calcule sur tous les baux, et quelques baux très {hors.some((l) => l.moyenne > l.haut) ? "chers la tirent vers le haut" : "bas la tirent vers le bas"}.
+        </p>
+      )}
     </div>
   );
 }
 
-/** Des valeurs en points sur un axe : la boîte du milieu (du premier au troisième quart), la médiane, le bien. */
+/**
+ * Des valeurs en points sur un axe : la boîte du milieu (du premier au troisième quart), la médiane, le bien (14 nov.
+ * 2026, revue de design : « un point juste à côté du marqueur du bien, sans qu'on sache si c'est le bien ») : les ventes
+ * en points sous l'axe, le bien en losange au-dessus, avec son nom ; chaque point dit sa valeur au survol.
+ */
 export function PointsSurAxe({ points, boite = null, bien = null, unite = (v) => String(v) }) {
   const tout = points.concat(bien ?? []).filter((v) => Number.isFinite(v));
   if (!tout.length) return null;
@@ -70,20 +95,21 @@ export function PointsSurAxe({ points, boite = null, bien = null, unite = (v) =>
   const pos = (v) => borne(((v - min) / (max - min || 1)) * 100);
   return (
     <div className="flex flex-col gap-1">
-      <div className="relative h-14">
-        {boite && Number.isFinite(boite.bas) && Number.isFinite(boite.haut) && <div className="absolute top-6 h-6 rounded-[4px] bg-menthe/15" style={{ left: `${pos(boite.bas)}%`, width: `${Math.max(0.8, pos(boite.haut) - pos(boite.bas))}%` }} />}
-        {boite && Number.isFinite(boite.median) && <span className="absolute top-5 h-8 w-[2px] -translate-x-1/2 rounded-full bg-menthe" style={{ left: `${pos(boite.median)}%` }} />}
-        <div className="absolute inset-x-0 top-[38px] h-px bg-trait" />
-        {points.map((v, i) => <span key={i} className="absolute h-2 w-2 -translate-x-1/2 rounded-full bg-craie/80" style={{ left: `${pos(v)}%`, top: `${32 + ((i * 7) % 3) * 4}px` }} title={unite(v)} />)}
+      <div className="relative h-[72px]">
         {Number.isFinite(bien) && (
           <div className="absolute top-0 flex -translate-x-1/2 flex-col items-center" style={{ left: `${pos(bien)}%` }}>
             <span className="whitespace-nowrap text-[11.5px] tabular-nums text-encre">le bien, {unite(bien)}</span>
-            <span className="mt-0.5 h-9 w-[2px] bg-encre" />
+            <span className="mt-1 h-2.5 w-2.5 rotate-45 bg-encre" />
+            <span className="h-[22px] w-[2px] bg-encre" />
           </div>
         )}
+        {boite && Number.isFinite(boite.bas) && Number.isFinite(boite.haut) && <div className="absolute top-[36px] h-6 rounded-[4px] bg-menthe/15" style={{ left: `${pos(boite.bas)}%`, width: `${Math.max(0.8, pos(boite.haut) - pos(boite.bas))}%` }} />}
+        {boite && Number.isFinite(boite.median) && <span className="absolute top-[34px] h-7 w-[2px] -translate-x-1/2 rounded-full bg-menthe" style={{ left: `${pos(boite.median)}%` }} />}
+        <div className="absolute inset-x-0 top-[44px] h-px bg-encre/[0.18]" />
+        {points.map((v, i) => <span key={i} className="absolute h-2 w-2 -translate-x-1/2 rounded-full border border-encre/40 bg-transparent" style={{ left: `${pos(v)}%`, top: `${50 + ((i * 7) % 3) * 5}px` }} title={`une vente, ${unite(v)}`} />)}
       </div>
-      <div className="flex justify-between text-[11px] tabular-nums text-brume"><span>{unite(Math.round(min))}</span><span>{unite(Math.round(max))}</span></div>
-      <Legende items={[["bg-craie/80", "une vente"], ["bg-menthe/40", "la moitié du milieu"], ["bg-menthe", boite?.median != null ? `médiane ${unite(boite.median)}` : "médiane"]]} />
+      <div className="flex justify-between text-[11px] tabular-nums text-ardoise"><span>{unite(Math.round(min))}</span><span>{unite(Math.round(max))}</span></div>
+      <Legende items={[["border border-encre/40 bg-transparent", "une vente"], ["rotate-45 rounded-none bg-encre", "le bien"], ["bg-menthe/15", "la moitié du milieu"], ["bg-menthe", boite?.median != null ? `médiane ${unite(boite.median)}` : "médiane"]]} />
     </div>
   );
 }
@@ -103,7 +129,7 @@ export function Frise({ lignes, annees = 10 }) {
   const colonnes = "grid grid-cols-[minmax(0,42%)_minmax(0,1fr)] items-center max-md:grid-cols-[minmax(0,38%)_minmax(0,1fr)]";
   return (
     <div className="flex flex-col">
-      <div className={colonnes}><span /><div className="relative h-5 text-[11px] text-brume">{reperes.map((a) => <span key={a} className="absolute -translate-x-1/2 tabular-nums" style={{ left: `${pos(new Date(a, 0, 1).getTime())}%` }}>{a}</span>)}</div></div>
+      <div className={colonnes}><span /><div className="relative h-5 text-[11px] text-ardoise">{reperes.map((a) => <span key={a} className="absolute -translate-x-1/2 tabular-nums" style={{ left: `${pos(new Date(a, 0, 1).getTime())}%` }}>{a}</span>)}</div></div>
       {lignes.map((l, i) => {
         const de = pos(t(l.de));
         const a = pos(t(l.a));
@@ -117,7 +143,7 @@ export function Frise({ lignes, annees = 10 }) {
           </div>
         );
       })}
-      <p className="m-0 mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-brume">
+      <p className="m-0 mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-ardoise">
         <span className="inline-flex items-center gap-2"><span className="h-2 w-5 rounded-full bg-menthe" />ouvert aujourd'hui</span>
         <span className="inline-flex items-center gap-2"><span className="h-2 w-5 rounded-full border border-brume" />fermé</span>
       </p>
@@ -144,7 +170,7 @@ export function Calendrier({ evenements, annees = 5 }) {
   }
   return (
     <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-[40px_repeat(12,minmax(0,1fr))] gap-[3px] text-[11.5px] tabular-nums text-brume">
+      <div className="grid grid-cols-[40px_repeat(12,minmax(0,1fr))] gap-[3px] text-[11.5px] tabular-nums text-ardoise">
         <span />
         {MOIS.map((m, i) => <span key={i} className="text-center">{m}</span>)}
         {liste.map((a) => (
@@ -154,7 +180,7 @@ export function Calendrier({ evenements, annees = 5 }) {
               const evs = parMois[`${a}-${String(m + 1).padStart(2, "0")}`] || [];
               const couleur = evs.map(FAMILLE_COULEUR).sort((x, y) => GRAVITE[y] - GRAVITE[x])[0];
               const avenir = a === fin && m > maintenant.getMonth();
-              return <span key={m} className={`h-[18px] rounded-[4px] ${couleur || "bg-relief"} ${avenir ? "opacity-40" : ""}`} title={evs.length ? evs.map((e) => `${jour(e.date)} · ${e.type}`).join("\n") : undefined} />;
+              return <span key={m} className={`h-[18px] rounded-[4px] ${couleur || "bg-encre/[0.07]"} ${avenir ? "opacity-40" : ""}`} title={evs.length ? evs.map((e) => `${jour(e.date)} · ${e.type}`).join("\n") : undefined} />;
             })}
           </React.Fragment>
         ))}
@@ -169,7 +195,7 @@ export function Ruban({ cellules, cleLocal }) {
   const cote = (pair) => [...cellules].filter((c) => (Number(c.numero) % 2 === 0) === pair).sort((a, b) => a.numero - b.numero);
   const rangee = (liste, nom) => (
     <div className="flex items-center gap-2">
-      <span className="w-20 flex-none text-[11.5px] text-brume max-md:w-14">{nom}</span>
+      <span className="w-20 flex-none text-[11.5px] text-ardoise max-md:w-14">{nom}</span>
       <div className="flex min-w-0 flex-wrap gap-1">
         {liste.map((c) => (
           <span key={c.cle} title={`${c.cle} · ${c.etat === "vacant" ? `vide depuis ${annee(c.dernier?.ferme_le) ?? "?"} (${c.dernier?.nom || "?"})` : (c.occupants || []).map((o) => o.nom).join(", ")}${c.enseigne_nationale ? " · enseigne nationale" : ""}`}
@@ -178,7 +204,7 @@ export function Ruban({ cellules, cleLocal }) {
           </span>
         ))}
       </div>
-      <span className="flex-none text-[11px] tabular-nums text-brume">{liste.length ? `${liste[0].numero} à ${liste[liste.length - 1].numero}` : ""}</span>
+      <span className="flex-none text-[11px] tabular-nums text-ardoise">{liste.length ? `${liste[0].numero} à ${liste[liste.length - 1].numero}` : ""}</span>
     </div>
   );
   return (
@@ -215,19 +241,19 @@ export function Barres({ lignes, max = null, format = (v) => nombre(v), largeurL
  * Une jauge fine (12 nov. 2026, Jules, sur une image) : une bande de 4 px, ses zones teintées sans légende, la valeur en
  * trait `encre` de 22 px, les seuils dessous en 11 px `brume`.
  */
-const ZONE_FINE = { ok: "bg-relief", a_voir: "bg-menthe/45", alerte: "bg-alerte/55" };
+const ZONE_FINE = { ok: "bg-encre/[0.12]", a_voir: "bg-menthe/45", alerte: "bg-alerte/55" };
 export function JaugeFine({ min, max, valeur, zones = [], graduations = [], unite = (v) => String(v) }) {
   const pos = (v) => borne(((v - min) / (max - min || 1)) * 100);
   return (
     <div className="flex flex-col gap-2">
       <div className="relative h-6">
-        <div className="absolute inset-x-0 top-[10px] h-1 overflow-hidden rounded-full bg-relief">
+        <div className="absolute inset-x-0 top-[10px] h-1 overflow-hidden rounded-full bg-encre/[0.12]">
           {zones.map((z, i) => <div key={i} className={`absolute inset-y-0 ${ZONE_FINE[z.statut]}`} style={{ left: `${pos(z.de)}%`, width: `${Math.max(0, pos(z.a) - pos(z.de))}%` }} />)}
         </div>
         {Number.isFinite(valeur) && <span className="absolute top-0 h-[22px] w-[2px] -translate-x-1/2 rounded-full bg-encre" style={{ left: `${pos(valeur)}%` }} />}
       </div>
       {graduations.length > 0 && (
-        <div className="relative h-4 text-[11px] tabular-nums text-brume">
+        <div className="relative h-4 text-[11px] tabular-nums text-ardoise">
           {graduations.map((g, i) => <span key={g} className={`absolute whitespace-nowrap ${i === 0 ? "" : i === graduations.length - 1 ? "-translate-x-full" : "-translate-x-1/2"}`} style={{ left: `${pos(g)}%` }}>{unite(g)}</span>)}
         </div>
       )}
@@ -236,7 +262,7 @@ export function JaugeFine({ min, max, valeur, zones = [], graduations = [], unit
 }
 
 /** Un anneau (12 nov. 2026, Jules, sur une image) : la part en accent, le reste en `brume`, le chiffre au centre. */
-export function Anneau({ part, taille = 128, epaisseur = 12, texte = null }) {
+export function Anneau({ part, taille = 128, epaisseur = 12, texte = null, classeTexte = "text-[20px]" }) {
   const r = (taille - epaisseur) / 2;
   const tour = 2 * Math.PI * r;
   const plein = (borne(part) / 100) * tour;
@@ -246,7 +272,41 @@ export function Anneau({ part, taille = 128, epaisseur = 12, texte = null }) {
         <circle cx={taille / 2} cy={taille / 2} r={r} fill="none" strokeWidth={epaisseur} className="stroke-brume/50" />
         <circle cx={taille / 2} cy={taille / 2} r={r} fill="none" strokeWidth={epaisseur} strokeDasharray={`${plein} ${tour}`} className="stroke-menthe" />
       </svg>
-      <span className="absolute inset-0 grid place-items-center text-[20px] tabular-nums text-encre">{texte ?? `${Math.round(part)} %`}</span>
+      <span className={`absolute inset-0 grid place-items-center ${classeTexte} tabular-nums text-encre`}>{texte ?? `${Math.round(part)} %`}</span>
+    </div>
+  );
+}
+
+/**
+ * La vacance de la rue rangée parmi les repères nationaux (13 nov. 2026, Jules, variante B de la planche « La vacance ») :
+ * une barre par ligne sur une échelle de 0 à 30 %, des traits à 10 % (ça commence à faire beaucoup) et 20 % (trop). La rue
+ * à l'accent, les repères gris, plus soutenus au-delà de 10 %, `alerte` au-delà de 20 %. `lignes` : lignesVacance().
+ */
+export function ClassementVacance({ lignes = [], max = 30 }) {
+  const haut = Math.max(max, ...lignes.map((l) => Math.ceil(l.taux / 10) * 10));
+  const pos = (v) => `${borne((v / haut) * 100)}%`;
+  const virgule = (v) => String(v).replace(".", ",");
+  const COLS = "grid grid-cols-[minmax(0,170px)_minmax(0,1fr)_52px] items-center gap-3 max-md:grid-cols-[minmax(0,120px)_minmax(0,1fr)_48px]";
+  return (
+    <div className="flex flex-col gap-3">
+      {lignes.map((l) => (
+        <div key={l.nom} className={COLS}>
+          <span className={`truncate text-[12.5px] ${l.rue ? "text-encre" : "text-craie"}`} title={l.source || undefined}>{l.nom}</span>
+          <div className="relative h-2">
+            <div className="absolute inset-0 rounded-full bg-encre/[0.05]" />
+            {[10, 20].map((s) => <span key={s} className="absolute inset-y-[-3px] w-px bg-bord-vif" style={{ left: pos(s) }} />)}
+            <div className={`absolute inset-y-0 left-0 rounded-full ${l.rue ? "bg-menthe" : l.taux >= 20 ? "bg-alerte/70" : l.taux >= 10 ? "bg-menthe/45" : "bg-ardoise/60"}`} style={{ width: pos(l.taux) }} />
+          </div>
+          <span className={`whitespace-nowrap text-right text-[12.5px] tabular-nums ${l.rue ? "text-encre" : "text-ardoise"}`}>{virgule(l.taux)} %</span>
+        </div>
+      ))}
+      <div className={COLS}>
+        <span />
+        <div className="relative h-4 text-[11px] tabular-nums text-ardoise">
+          {[0, 10, 20, haut].map((g, i, t) => <span key={g} className={`absolute whitespace-nowrap ${i === 0 ? "" : i === t.length - 1 ? "-translate-x-full" : "-translate-x-1/2"}`} style={{ left: pos(g) }}>{g} %</span>)}
+        </div>
+        <span />
+      </div>
     </div>
   );
 }

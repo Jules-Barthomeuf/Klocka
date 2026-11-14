@@ -75,6 +75,7 @@ import { monterOffMarket, planifierVeilleOffMarket } from './routes/off-market.j
 import { jetonValide as jetonImpressionValide } from './presentation-pdf.js';
 import { monterTesteur } from './routes/testeur.js';
 import { monterSuiviChat } from './routes/suivi-chat.js';
+import { monterSuiviCorrections } from './routes/suivi-corrections.js';
 import { monterLayer } from './routes/layer.js';
 import { monterSemaine } from './routes/semaine.js';
 import { monterQuestionsAppels } from './routes/questions-appels.js';
@@ -97,6 +98,8 @@ import { monterOutils } from './routes/outils.js';
 import { monterReunions } from './routes/reunions.js';
 import { suivreMemoire, resumerEtRepartir } from './memoire-routes.js';
 import { noterRoute } from './temps-chargement.js';
+import { pageKpartners, demandeDePage } from './pwa-kpartners.js';
+import { espaceDeHote as espaceDeHoteKp } from './domaines.js';
 // Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
 import {
   UPLOAD_DIR,
@@ -1357,6 +1360,7 @@ planifierVeilleOffMarket();
 // L'agent testeur (10 oct. 2026) : un audit par page, dans un bac à sable ; ici, le compte testeur si on EST le bac à sable.
 monterTesteur(app);
 monterSuiviChat(app);
+monterSuiviCorrections(app);
 monterLayer(app);
 // La page Semaine (16 oct. 2026) : présences, passation, résumé de retour ; le tour du matin sur Render.
 monterSemaine(app);
@@ -1440,6 +1444,17 @@ import('./off-market/zone/modele.js')
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
+  // Sur app.kpartners.immo, la page porte le nom, l'icône et le manifeste de K Partners (server/pwa-kpartners.js) :
+  // avant express.static, qui servirait sinon l'index.html de Klocka sur « / ». Lu à chaque fois : il change à chaque
+  // construction et pèse quelques kilo-octets.
+  app.use((req, res, next) => {
+    if (!demandeDePage(req.method, req.path) || espaceDeHoteKp(req.headers.host) !== 'kpartners') return next();
+    fs.readFile(path.join(DIST_DIR, 'index.html'), 'utf8', (err, html) => {
+      if (err) return next();
+      res.setHeader('Cache-Control', 'no-cache');
+      res.type('html').send(pageKpartners(html));
+    });
+  });
   // Les fichiers d'`assets` portent une empreinte dans leur nom : un contenu
   // modifié change de nom. Ils peuvent donc être gardés sans limite par le
   // navigateur — c'est ce qui fait qu'une deuxième visite ne retélécharge rien.

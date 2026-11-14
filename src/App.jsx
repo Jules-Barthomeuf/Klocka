@@ -65,6 +65,8 @@ const Automatismes = lazy(() => import('@/pages/Automatismes'));
 const AdminModeles = lazy(() => import('@/pages/AdminModeles'));
 const AdminAccesCrm = lazy(() => import('@/pages/AdminAccesCrm'));
 const SuiviReunion = lazy(() => import('@/pages/SuiviReunion'));
+// Suivi > Corrections (13 nov. 2026, Jules) : ce que l'équipe corrige sur les projets rentrés, et ce qu'on en apprend.
+const SuiviCorrections = lazy(() => import('@/pages/SuiviCorrections'));
 const Semaine = lazy(() => import('@/pages/Semaine'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
@@ -72,7 +74,7 @@ import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 import { MENU_ADMIN, MENU_MANDATAIRE } from '@/lib/menu';
 import { prechargerEnFond } from '@/lib/precharger';
 import { PersonnalisationProvider, usePersonnalisation } from '@/components/providers/PersonnalisationProvider';
-import Chargement from "@/components/ui/Chargement";
+import EcranChargement from "@/components/ui/EcranChargement";
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -81,11 +83,8 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 // Le temps qu'une page arrive. Même signe que les autres attentes de
 // l'application : on ne change pas de vocabulaire selon ce qu'on attend.
 // Entre deux pages, la même animation que partout (16 oct. 2026, Jules : « harmonise »).
-const EnChargement = () => (
-  <div className="fixed inset-0 flex items-center justify-center bg-fond">
-    <Chargement taille="grand" titre="Klocka s'ouvre" etats={["Je prépare la page", "Je rassemble vos données", "J'affiche"]} />
-  </div>
-);
+// Depuis le 14 nov. 2026 (Jules) : l'écran noir avec « Klocka » et sa bande de lumière, à la place de l'animation de la marque.
+const EnChargement = () => <EcranChargement plein />;
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -93,11 +92,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 // L'attente d'une page, dans la page seulement (21 oct. 2026, Jules : « naviguer est super lent ») : la barre et le
 // cadre restent, et rien ne s'affiche les 300 premières millisecondes, pour ne pas faire clignoter un chargement court.
-const PageEnChargement = () => {
-  const [voir, setVoir] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setVoir(true), 300); return () => clearTimeout(t); }, []);
-  return voir ? <div className="flex min-h-[60vh] items-center justify-center"><Chargement titre="Je prépare la page" /></div> : null;
-};
+const PageEnChargement = () => <EcranChargement delai={300} />;
 
 // Le cadre (barre latérale, cloche, fenêtres) monté une fois pour toutes les pages : il ne se reconstruit plus à
 // chaque clic, et ses requêtes ne repartent plus. La page change dans l'Outlet ; on remonte en haut à chaque page.
@@ -173,7 +168,7 @@ const PAGES_PUBLIQUES = {
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviActivite, MandataireTableauDeBord, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
+const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviActivite, MandataireTableauDeBord, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, SuiviCorrections, Semaine, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();
@@ -202,9 +197,7 @@ const AuthenticatedApp = () => {
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-fond">
-        <Chargement taille="grand" titre="Klocka s'ouvre" etats={["Je vérifie votre session", "Je prépare la page", "J'affiche"]} />
-      </div>
+      <EcranChargement plein />
     );
   }
 

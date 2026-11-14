@@ -35,6 +35,8 @@
     "layer:monday": "node --import dotenv/config server/layer-sources.js",
     "locataire:banc": "node scripts/locataire-banc.mjs",
     "marche:banc": "node scripts/marche-banc.mjs",
+    "projet:banc": "node scripts/projet-banc.mjs",
+    "dossiers:factices": "node scripts/dossiers-factices.mjs",
     "test:parcours": "node --test server/parcours-v1.test.js",
     "test:haka": "node server/haka/test-haka.js"
   },

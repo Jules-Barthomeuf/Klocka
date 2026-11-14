@@ -277,9 +277,22 @@ async function chargerRecensement(code, P) {
     const tous = await S.vitrinesCommune(code, P.vitrines);
     const utiles = tous.filter((e) => e.etat === 'actif' || (e.date_fermeture && e.date_fermeture >= limite));
     // Le registre n'a pas toujours le point : la Géoplateforme le donne d'après l'adresse.
-    for (const e of utiles.filter((x) => x.lat == null && x.adresse)) {
-      try { const g = await S.geocoder(e.adresse); if (g?.precision === 'numero') { e.lat = g.lat; e.lon = g.lon; } } catch { /* sans point, il ne compte pas */ }
-    }
+    // Dix à la fois (13 nov. 2026, Jules : « la vacance, c'est trop long ») : une par une, une grande ville en demandait
+    // des milliers à la suite et le recensement prenait plusieurs minutes. Une même adresse n'est demandée qu'une fois.
+    const aPlacer = utiles.filter((x) => x.lat == null && x.adresse);
+    const parAdresse = new Map();
+    for (const e of aPlacer) { const k = String(e.adresse).trim().toUpperCase(); if (!parAdresse.has(k)) parAdresse.set(k, []); parAdresse.get(k).push(e); }
+    const adresses = [...parAdresse.entries()];
+    let i = 0;
+    const ouvrier = async () => {
+      while (i < adresses.length) {
+        const [texte, es] = adresses[i++];
+        try { const g = await S.geocoder(texte); if (g?.precision === 'numero') for (const e of es) { e.lat = g.lat; e.lon = g.lon; } } catch { /* sans point, il ne compte pas */ }
+      }
+    };
+    const t0 = Date.now();
+    await Promise.all(Array.from({ length: Math.min(10, adresses.length) }, ouvrier));
+    if (adresses.length) console.log(`[vacance-taux] ${code} : ${adresses.length} adresses placées en ${Math.round((Date.now() - t0) / 1000)} s`);
     const garde = utiles.map(({ siret, siren, denomination, enseigne, adresse, code_naf, etat, date_fermeture, date_creation, lat, lon, categorie_juridique }) => ({ siret, siren, denomination, enseigne, adresse, code_naf, etat, date_fermeture, date_creation, lat, lon, categorie_juridique }));
     db.prepare('UPDATE vacance_recensement SET donnees = ?, etat = ?, erreur = NULL, charge_le = ? WHERE code_commune = ?').run(JSON.stringify(garde), 'pret', new Date().toISOString(), code);
     console.log(`[vacance-taux] ${code} : ${garde.length} établissements à vitrine recensés`);

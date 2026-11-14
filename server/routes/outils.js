@@ -94,6 +94,48 @@ export function monterOutils(app) {
     ok(res, r);
   }));
 
+  // Le passage jugé par l'équipe (13 nov. 2026, Jules) : une adresse à l'aveugle, la note de chacun, celle de Klocka
+  // dévoilée ensuite, et le réglage des poids appris de ces notes (server/outils/passage.js).
+  app.get('/api/outils/passage', wrap(async (req, res) => {
+    if (!equipe(req, res)) return;
+    const { tableauPassage } = await import('../outils/passage.js');
+    ok(res, tableauPassage());
+  }));
+  app.get('/api/outils/passage/suivante', wrap(async (req, res) => {
+    const user = equipe(req, res);
+    if (!user) return;
+    const { prochaineAJuger } = await import('../outils/passage.js');
+    ok(res, await prochaineAJuger(user, { sauf: String(req.query.sauf || '').split(',').filter(Boolean) }));
+  }));
+  app.post('/api/outils/passage/juger/:id', wrap(async (req, res) => {
+    const user = equipe(req, res);
+    if (!user) return;
+    const { jugerCandidat } = await import('../outils/passage.js');
+    const r = await jugerCandidat(req.params.id, { note: req.body?.note, commentaire: req.body?.commentaire || '' }, user);
+    if (!r.ok) return res.status(400).json(r);
+    ok(res, r);
+  }));
+  // Proposer des adresses de toute la gamme, ou en ajouter une : elles se lisent ensuite en tâche de fond, une à la fois.
+  app.post('/api/outils/passage/proposer', wrap(async (req, res) => {
+    const user = equipe(req, res);
+    if (!user) return;
+    const P = await import('../outils/passage.js');
+    const adresse = String(req.body?.adresse || '').trim();
+    const villes = (Array.isArray(req.body?.villes) ? req.body.villes : String(req.body?.villes || '').split(',')).map((v) => String(v).trim()).filter(Boolean);
+    const r = adresse ? { ok: true, ajoutees: P.ajouterCandidat(adresse, { origine: 'ajoutee' }, user) ? 1 : 0 }
+      : await P.proposerAdresses(villes.length ? { villes, parCommune: Math.min(20, Math.max(4, Number(req.body?.par_ville) || 10)) } : {}, user);
+    P.preparerCandidats().catch((e) => console.error('[passage] préparation :', e?.message || e));
+    ok(res, r);
+  }));
+  app.post('/api/outils/passage/adopter', wrap(async (req, res) => {
+    const user = equipe(req, res);
+    if (!user) return;
+    const { adopterReglage } = await import('../outils/passage.js');
+    const r = adopterReglage(user);
+    if (!r.ok) return res.status(400).json(r);
+    ok(res, r);
+  }));
+
   app.get('/api/outils/vacance/signaux', wrap((req, res) => {
     const user = equipe(req, res);
     if (!user) return;

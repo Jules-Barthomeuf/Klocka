@@ -1,17 +1,17 @@
 # État de la plateforme
 
-Écrit le 13/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 14/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-5 personnes, 3 809 pages ouvertes, 0 demandes à l'assistant, 21 actions exécutées.
+5 personnes, 3 818 pages ouvertes, 0 demandes à l'assistant, 20 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 361 | 0 | 21 | 13/11/2026 |
-| admin.stress@test.local (équipe) | 311 | 0 | 0 | 13/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 368 | 0 | 20 | 14/11/2026 |
+| admin.stress@test.local (équipe) | 313 | 0 | 0 | 13/11/2026 |
 | test.mandataire@kpartners.fr | 130 | 0 | 0 | 12/11/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
 | admin@klocka.local (équipe) | 2 | 0 | 0 | 26/10/2026 |
@@ -20,34 +20,34 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **MandataireBiens** — 1 011 (27 %)
-- **Analyse** — 657 (17 %)
-- **Dashboard** — 348 (9 %)
-- **CrmTwenty** — 277 (7 %)
+- **MandataireBiens** — 1 011 (26 %)
+- **Analyse** — 683 (18 %)
+- **Dashboard** — 347 (9 %)
+- **CrmTwenty** — 282 (7 %)
 - **MandataireProspection** — 243 (6 %)
-- **Personnalisation** — 164 (4 %)
-- **Prospection** — 143 (4 %)
-- **AdminProjets** — 132 (3 %)
+- **Personnalisation** — 162 (4 %)
+- **AdminProjets** — 141 (4 %)
+- **Prospection** — 138 (4 %)
 - **MandatsMandataires** — 66 (2 %)
-- **Cerveau** — 60 (2 %)
+- **Cerveau** — 47 (1 %)
 - **AdminUtilisateurs** — 46 (1 %)
-- **Monitoring** — 43 (1 %)
-- Le reste, sous 1 % : SimulateurRentabilite, KVacance, Outils, PlancheAnalyse, KData, Home, MandataireClients, MandataireTableauDeBord, Offres, AdminClients, AdminPresentations, Emailing, PlancheVerre, AdminModeles, SuiviAppels, MandataireDocuments, KZoning, SuiviActivite, Semaine, KTransactions, Agents, public, MandataireDossier, SimulateurPublic, KProspective, SuiviAudience, MesPresentations, KExpertise, Tokimo, PlancheMarche, KEstimation, KFoncier, Automatismes, AdminSuggestions, Validations, ProjetDetail, AdminMandataires, AdminAccesCrm, tokimo, MesProjets, MandataireProjets, Relances, PlancheLocataire, ValeurLocative, DepotVendeur, MandataireOffMarket, SuiviMandataires, AdminEquipe, AdminBanque, MandataireEstimation, SuiviReunion, CoutsIA, SignerBon, klocka.immo, MemoireKlocka, Feedback, NotreOffre, SuiviChat, Ressources, Haka, SuiviHaka, SuiviTesteur, AdminValidations, FichesCommerciales
+- **Monitoring** — 45 (1 %)
+- Le reste, sous 1 % : SimulateurRentabilite, KVacance, PlancheAnalyse, KData, Outils, Home, MandataireClients, MandataireTableauDeBord, Offres, AdminClients, AdminModeles, Emailing, PlancheVerre, ProjetDetail, SuiviAppels, MandataireDocuments, KZoning, SuiviActivite, Semaine, KTransactions, Agents, public, MandataireDossier, SimulateurPublic, KProspective, SuiviAudience, MesPresentations, KExpertise, Tokimo, PlancheMarche, KEstimation, KFoncier, Automatismes, AdminSuggestions, AdminPresentations, AdminMandataires, AdminAccesCrm, tokimo, MesProjets, MandataireProjets, Relances, PlancheVacance, PlancheLocataire, ValeurLocative, DepotVendeur, MandataireOffMarket, SuiviMandataires, AdminEquipe, AdminBanque, MandataireEstimation, SuiviReunion, CoutsIA, SuiviCorrections, SignerBon, klocka.immo, MemoireKlocka, Feedback, NotreOffre, SuiviChat, Ressources, Haka, SuiviHaka, SuiviTesteur
 
 ## Ce que l'IA coûte
 
-22,24 € sur la période, 1 284 appels, 4 803 k jetons. 13 % part en tâche de fond, sans que personne clique. 71 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+25,31 € sur la période, 1 381 appels, 6 172 k jetons. 24 % part en tâche de fond, sans que personne clique. 64 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
 | Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 372 | 12,91 € | 18 s |
-| Non attribué (fond) | 0,0092 € par appel | 86 | 2,30 € | — |
-| Trier ce qu’on colle dans la boîte | 0,11 € par dépôt | 20 | 2,25 € | 28 s |
+| Non attribué (fond) | 0,0088 € par appel | 139 | 5,13 € | — |
+| Trier ce qu’on colle dans la boîte | 0,11 € par dépôt | 20 | 2,20 € | 28 s |
 | Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
 | Extraire un document déposé | 0,02 € par document | 7 | 0,28 € | 20 s |
-| Faire le récap du matin | 0,14 € par récap | 2 | 0,27 € | 26 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
+| Faire le récap du matin | 0,13 € par récap | 1 | 0,13 € | 24 s |
 | Analyser une fiche commerciale | 0,0090 € par fiche | 13 | 0,12 € | 11 s |
 | Parler à l'assistant après un appel | 0,0075 € par demande | 14 | 0,11 € | 2 s |
 | Trouver les zones commerçantes d'une ville | 0,0079 € par ville | 12 | 0,09 € | 7 s |
@@ -55,7 +55,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/pre-lecture (0,51 €) · POST /api/prospection/mode-appel/issue (0,50 €) · fil dossier (0,41 €) · cerveau (0,37 €) · note de l'IA d'un outil (0,07 €) · POST /api/prospection/rappels/:id/analyser (0,06 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : lire le passage sur Street View (0,53 €) · POST /api/prospection/mode-appel/pre-lecture (0,50 €) · POST /api/prospection/mode-appel/issue (0,49 €) · fil dossier (0,41 €) · cerveau (0,29 €) · note de l'IA d'un outil (0,07 €).
 
 ## Les leviers sur la dépense
 
@@ -68,18 +68,18 @@ Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf pl
 
 ## AK, l'assistant dans le chat
 
-20 demandes, 2.45 € en tout soit 0.123 € la demande.
+20 demandes, 2.39 € en tout soit 0.12 € la demande.
 
-21 actions : 14 réussies, 0 questions posées (il manquait une information), 0 doublons évités, 7 vraiment ratées.
-Les ratées, à corriger : loyers_equimmox ×2 · chercher_photos_projet ×1 · data_b ×1 · prix_murs_equimmox ×1 · analyser_fiche ×1 · lire_presentation ×1.
-Repris par l'équipe : 0 correction (« non, pas ça »), 1 compliment, soit 0 % des demandes corrigées. C'est le chiffre à faire baisser.
+20 actions : 12 réussies, 0 questions posées (il manquait une information), 0 doublons évités, 8 vraiment ratées.
+Les ratées, à corriger : chercher_photos_projet ×2 · loyers_equimmox ×2 · data_b ×1 · prix_murs_equimmox ×1 · analyser_fiche ×1 · lire_presentation ×1.
+Repris par l'équipe : 1 correction (« non, pas ça »), 1 compliment, soit 5 % des demandes corrigées. C'est le chiffre à faire baisser.
 
-Ce qu'il a fait : data_b ×6 · modifier_projet ×4 · donnees_commune ×2 · prix_murs_equimmox ×2 · loyers_equimmox ×2 · lire_presentation ×2 · chercher_photos_projet ×1 · analyser_fiche ×1.
-Pour qui : Jules 21.
+Ce qu'il a fait : data_b ×6 · chercher_photos_projet ×4 · donnees_commune ×2 · modifier_projet ×2 · prix_murs_equimmox ×2 · loyers_equimmox ×2 · analyser_fiche ×1 · lire_presentation ×1.
+Pour qui : Jules 20.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **MandataireBiens** : 27 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **MandataireBiens** : 26 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « demander quelque chose à l'assistant (mandataire) » à 0,03 € par demande : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
-- 13 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
+- 24 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

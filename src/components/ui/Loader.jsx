@@ -89,34 +89,28 @@ function Titre({ texte, balayage }) {
   );
 }
 
+// Les phrases d'attente qui ne disent rien : l'écran noir ne les montre pas.
+const GENERIQUES = /^(un instant|je rassemble les informations|je les mets en ordre|j'affiche|je prépare la page|je rassemble vos données|je vérifie votre session|klocka s'ouvre|chargement)\W*$/i;
+
 /**
- * Le chargement K Partners. `taille` « ligne » : de petits anneaux à côté d'une phrase ; sinon les anneaux et le logo
- * au centre, le titre (balayé en « md », ou si `balayage`) et la phrase dessous.
+ * Le chargement, partout (14 nov. 2026, Jules : « enlève ça de toute l'application, dans le CRM il y en a encore ») : plus
+ * d'anneaux ni de logo qui tourne. L'écran noir de la page (index.css, .k-ecran-chargement) : « Klocka », ou « K Partners »
+ * pour la marque kp, traversé d'une bande de lumière ; dessous, en petit, la phrase quand elle dit quelque chose (« Je lis
+ * les communes de votre secteur… »). `taille` « ligne », dans un bouton : la phrase seule. Les anneaux restent dans ce
+ * fichier (Anneaux), plus montrés.
  */
 /** `marque` : « kp » (K Partners, par défaut) ou « klocka ». */
-export default function Loader({ titre = "Un instant", sousTitre = "", taille: tailleDemandee = "md", logo = true, balayage, marque = "kp", brand = null, className = "" }) {
+export default function Loader({ titre = "Un instant", sousTitre = "", taille: tailleDemandee = "md", marque = "kp", brand = null, className = "" }) {
   const m = brand || marque;
-  let taille = tailleDemandee;
-  // En gros, au milieu, à chaque fois (28 oct. 2026, Jules) : « ligne » ne sert plus qu'aux petits anneaux d'un bouton.
-  if (taille === "ligne" && !className.includes("en-ligne")) taille = "md";
-  const t = TAILLES[taille] || TAILLES.md;
-  if (taille === "ligne") {
-    return (
-      <span role="status" aria-live="polite" className={`inline-flex items-center gap-2.5 text-ardoise ${t.titre} ${className}`}>
-        <Anneaux taille="ligne" logo={false} marque={m} />
-        <Titre texte={titre} balayage={false} />
-      </span>
-    );
+  if (tailleDemandee === "ligne" && className.includes("en-ligne")) {
+    return <span role="status" aria-live="polite" className={`inline-flex items-center text-[13.5px] text-ardoise ${className}`}>{titre}</span>;
   }
+  const nom = m === "klocka" ? "Klocka" : "K Partners";
+  const phrase = [titre, sousTitre].map((x) => String(x || "").trim()).find((x) => x && !GENERIQUES.test(x)) || null;
   return (
-    <div role="status" aria-live="polite" aria-label={titre} className={`flex min-h-[60dvh] w-full flex-col items-center justify-center gap-7 p-8 text-encre ${className}`}>
-      <Anneaux taille={taille} logo={logo} marque={m} />
-      {(titre || sousTitre) && (
-        <motion.div className={`text-center ${t.ecart} ${t.largeur}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8, ease: [0.4, 0, 0.2, 1] }}>
-          {titre && <p className={`m-0 tracking-[-0.02em] antialiased ${t.titre}`}><Titre texte={titre} balayage={balayage ?? taille === "md"} /></p>}
-          {sousTitre && <p className={`m-0 tracking-[-0.01em] opacity-60 antialiased ${t.sous}`}>{sousTitre}</p>}
-        </motion.div>
-      )}
+    <div role="status" aria-live="polite" aria-label={titre || nom} className={`k-ecran-chargement min-h-[60dvh] w-full flex-col gap-4 ${className}`}>
+      <h1>{nom}</h1>
+      {phrase && <p className="m-0 max-w-[420px] px-6 text-center text-[13.5px] leading-[1.5] text-[rgb(170_170_170)]">{phrase}</p>}
     </div>
   );
 }

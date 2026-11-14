@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Map as MapIcon, Search, Building2, Plus, Upload, X, CheckCircle2, MoreHorizontal, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, History, UserPlus, PanelRight, Save, ChevronDown } from "lucide-react";
+import { Map as MapIcon, Search, Building2, Plus, Upload, X, CheckCircle2, MoreHorizontal, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, History, UserPlus, Save, ChevronDown, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import CarteKlocka from "@/components/carte/CarteKlocka";
 import { toast } from "@/components/ui/avis";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
@@ -136,8 +136,9 @@ export default function AdminProjets() {
   const [versionsOuvertes, setVersionsOuvertes] = useState(false);
   const [versions, setVersions] = useState(null);
   const [enregistrement, setEnregistrement] = useState(false);
-  // Le panneau des champs du simulateur, au-dessus du simulateur de l'éditeur : ouvert d'emblée (13 nov. 2026).
-  const [parametresOuverts, setParametresOuverts] = useState(true);
+  // Le panneau des champs du simulateur, au-dessus du simulateur de l'éditeur : fermé à l'arrivée, tout se modifie une
+  // fois ouvert (13 nov. 2026, Jules : « on arrive et c'est fermé, dès qu'on ouvre on peut modifier tout »).
+  const [parametresOuverts, setParametresOuverts] = useState(false);
   const [ongletPage, setOngletPage] = useState("marche");
   // Historique des modifications faites sur la page, pour le retour en arrière.
   const [historique, setHistorique] = useState([]);
@@ -1219,9 +1220,13 @@ export default function AdminProjets() {
   // La réponse d'AK : les champs qu'il a écrits reviennent du serveur dans le formulaire et la page.
   const surReponseAK = useCallback(async (r) => {
     const faits = (r?.actions || []).flatMap((a) => a?.resultat?.faits || []);
+    // Les photos ajoutées par AK (« va chercher des photos », photos jointes) reviennent aussi dans l'onglet Images
+    // (13 nov. 2026, Jules : elles entraient dans le projet sans apparaître dans l'éditeur).
+    const photos = (r?.actions || []).some((a) => Number(a?.resultat?.photos_ajoutees) > 0);
     const id = editingProject?.id;
-    if (!faits.length || !id) return;
+    if ((!faits.length && !photos) || !id) return;
     const racines = new Set(faits.map((f) => String(f.champ).split(".")[0]));
+    if (photos) racines.add("photos");
     if (racines.has("echeance_bail") || racines.has("bail_date_echeance")) { racines.add("echeance_bail"); racines.add("bail_date_echeance"); }
     if (racines.has("loyer_m2_an")) racines.add("sim_loyer_initial_ht");
     try {
@@ -1316,6 +1321,10 @@ export default function AdminProjets() {
   }, [scindeProjet]);
   // Les réglages du chat, ceux du mode IA d'un dossier : sources « Auto » ou choisies, panneau au-dessus de la saisie.
   const [chatOuvert, setChatOuvert] = useState(false);
+  // Le chat replié à l'arrivée (13 nov. 2026, Jules, après une collègue qui le poussait au bord à chaque projet) : comme
+  // l'Analyse depuis le 12 nov., le projet prend toute la largeur ; l'icône en tête de la barre le rouvre, la
+  // conversation reste montée. Un point menthe sur l'icône quand l'assistant a des questions sur le projet rentré.
+  const [chatReduit, setChatReduit] = useState(true);
   const [sourcesChat, setSourcesChat] = useState([]);
   const [sourcesOuvert, setSourcesOuvert] = useState(false);
   const reglagesChat = useMemo(() => ({
@@ -1441,7 +1450,7 @@ export default function AdminProjets() {
         {/* Plus de bouton Enregistrer (11 nov. 2026, Jules : « à quoi ça sert s'il est enregistré automatiquement ») : le projet
             s'enregistre seul, l'état le dit ; garder une version passe dans le « … ». */}
         <div ref={zoneMenuProjet} className="relative">
-          <button type="button" onClick={() => setMenuProjet((x) => !x)} aria-expanded={menuProjet} aria-label="Plus d'actions" title="Assigner, les champs, les versions"
+          <button type="button" onClick={() => setMenuProjet((x) => !x)} aria-expanded={menuProjet} aria-label="Plus d'actions" title="Assigner, les versions"
             className="grid h-9 w-9 place-items-center rounded-full border border-trait text-ardoise hover:text-encre" style={{ background: "transparent" }}>
             <MoreHorizontal className="h-4 w-4" />
           </button>
@@ -1449,7 +1458,6 @@ export default function AdminProjets() {
             <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[230px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
               {[
                 [UserPlus, "Assigner à un client", () => { setMenuProjet(false); setAssignerOuvert(true); }],
-                [PanelRight, champsOuverts ? "Masquer les champs" : "Voir tous les champs", () => { setMenuProjet(false); setChampsOuverts((x) => !x); }],
                 [Save, enregistrement ? "Version en cours…" : "Garder une version", () => { setMenuProjet(false); enregistrerVersion(); }],
                 [History, "Historique des versions", ouvrirVersions],
                 ...(dossierLie ? [[FolderSearch, "Ouvrir le dossier", () => { setMenuProjet(false); navigate(`${createPageUrl("Analyse")}?deal_id=${dossierLie}`); }]] : []),
@@ -1464,7 +1472,14 @@ export default function AdminProjets() {
       </>
     );
     const barreHautProjet = (
-      <BarreEditeur titre={formData.titre || "Projet"} statut={statutAuto || ""} mode={vueProjet} onMode={setVueProjet} actions={actionsProjet} />
+      <BarreEditeur titre={formData.titre || "Projet"} statut={statutAuto || ""} mode={vueProjet} onMode={setVueProjet} actions={actionsProjet}
+        debut={scindeProjet ? (
+          <button type="button" onClick={() => setChatReduit((r) => !r)} aria-label={chatReduit ? "Ouvrir l'assistant" : "Fermer l'assistant"} title={chatReduit ? "Ouvrir l'assistant" : "Fermer l'assistant"}
+            className="relative grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}>
+            {chatReduit ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            {chatReduit && editingProject?.questions_ouverture ? <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-menthe" /> : null}
+          </button>
+        ) : null} />
     );
     const ongletsProjet = (className) => (
       <Onglets taille="page" className={className} items={[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => ({ cle: o.value, titre: o.label }))}
@@ -1830,10 +1845,13 @@ export default function AdminProjets() {
     }
     if (scindeProjet) {
       return (
-        <div className={`k-page-presentation k-dossier-ia relative grid h-[100dvh] w-full overflow-hidden text-encre ${tireChat ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+        <div className={`k-page-presentation k-dossier-ia relative grid h-[100dvh] w-full overflow-hidden text-encre ${tireChat ? "select-none" : ""}`}
+          style={{ gridTemplateColumns: `${chatReduit ? 0 : largeurChat}px minmax(0,1fr)`, transition: tireChat ? undefined : "grid-template-columns 520ms cubic-bezier(0.22, 1, 0.36, 1)" }}>
           {/* À gauche, la colonne du mode IA d'un dossier (18 oct. 2026, Jules) : la question au centre, la saisie en bas
-              avec « + », les sources et l'historique ; la barre du haut n'apparaît qu'une fois la conversation lancée. */}
-          <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5">
+              avec « + », les sources et l'historique ; la barre du haut n'apparaît qu'une fois la conversation lancée.
+              Repliée, elle reste montée (la conversation est gardée) mais ne se voit ni ne se touche. */}
+          <div className={`k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden px-5 transition-opacity duration-200 ${chatReduit ? "pointer-events-none opacity-0" : "opacity-100"}`}
+            aria-hidden={chatReduit} inert={chatReduit ? "" : undefined}>
             {!chatOuvert && (
               <div className="flex min-h-0 flex-1 flex-col justify-center gap-6 overflow-y-auto py-6">
                 <h1 className="k-balayage m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Par où commence-t-on ?</h1>
@@ -1852,12 +1870,12 @@ export default function AdminProjets() {
           </div>
           {/* Le projet, un écran dans l'écran : une carte posée sur le fond, à côté du chat. */}
           {/* Le projet posé sur le fond, comme un dossier : un simple filet le sépare du chat (18 oct. 2026, maquette de Jules). */}
-          <div className="h-[100dvh] min-h-0 min-w-0 border-l border-trait">{editeur}</div>
-          <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
+          <div className={`h-[100dvh] min-h-0 min-w-0 ${chatReduit ? "" : "border-l border-trait"}`}>{editeur}</div>
+          {!chatReduit && <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
             onPointerDown={tirerChat} onDoubleClick={() => { setLargeurChat(420); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } }}
             className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
             <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tireChat ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
-          </div>
+          </div>}
         </div>
       );
     }

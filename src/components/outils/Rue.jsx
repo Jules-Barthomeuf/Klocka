@@ -35,7 +35,7 @@ function Passage({ passage, streetView, noteAnalyste, onNote }) {
   useEffect(() => { setNote(noteAnalyste?.note ?? ""); setCommentaire(noteAnalyste?.commentaire || ""); }, [noteAnalyste]);
   const retenue = noteAnalyste?.note ?? passage?.note ?? null;
   const statut = retenue == null ? "vide" : retenue >= 7 ? "ok" : retenue >= 4.5 ? "a_voir" : "alerte";
-  const explication = noteAnalyste?.note != null ? `Note de ${(noteAnalyste.par || "l'analyste").split("@")[0]}${passage?.note != null ? ` · le calcul disait ${dec(passage.note)}` : ""}` : passage ? `Calcul Klocka, confiance ${passage.confiance}${passage.manque?.length ? ` (sans ${passage.manque.map((m) => ({ troncon: "le tronçon", enseignes: "les enseignes", transports: "les transports", voie: "le type de voie", vues: "les photos" })[m] || m).join(", ")})` : ""}` : "Rien n'a pu être lu.";
+  const explication = noteAnalyste?.note != null ? `Note de ${(noteAnalyste.par || "l'analyste").split("@")[0]}${passage?.note != null ? ` · le calcul disait ${dec(passage.note)}` : ""}` : passage ? `Calcul Klocka, confiance ${passage.confiance}${passage.manque?.length ? ` (sans ${passage.manque.map((m) => ({ troncon: "le tronçon", commerces: "les commerces", avis: "les avis Google", loyer: "le loyer", enseignes: "les enseignes", transports: "les transports", voie: "le type de voie", vues: "les photos" })[m] || m).join(", ")})` : ""}` : "Rien n'a pu être lu.";
   return (
     <section className="flex flex-col gap-3">
       <Titre droite={<Pastille statut={statut} />}>Passage</Titre>

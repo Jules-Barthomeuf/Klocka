@@ -2,7 +2,9 @@ import React, { useMemo, useState } from "react";
 import { nf, useSecteurProjet } from "./SecteurChiffres";
 import { trouverVille, REFERENCES_FR } from "@/data/villes";
 import { EnTeteOnglet } from "./Cartes";
-import { GridPatternCard, GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
+import { GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { BlocEmplacement } from "@/components/outils/MarcheAffine";
 import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce, useEdition } from "./EditionEnPlace";
 
 // L'onglet Marché (maquette « Projet Detail 1b ») : trois cartes (habitants,
@@ -59,7 +61,8 @@ export function serieResidentielle({ prix, evo1 = null, evo5 = null, annee = new
 }
 
 const CHIFFRES = { fontVariantNumeric: "tabular-nums" };
-const signe = (v) => (v < 0 ? "alerte" : "menthe");
+// Une baisse du prix n'est pas une alerte : le point reste gris, le signe moins suffit (13 nov. 2026, Jules : trop de couleurs).
+const signe = (v) => (v < 0 ? "ardoise" : "menthe");
 
 /**
  * Une carte de l'onglet : la carte à grille, au fond d'un onglet au repos.
@@ -68,9 +71,10 @@ const signe = (v) => (v < 0 ? "alerte" : "menthe");
 function CarteMarche({ id, titre, grille = true, className = "", children }) {
   return (
     <Bloc id={id} titre={titre} className={`min-w-0 ${className}`}>
-      <GridPatternCard className="h-full min-w-0 rounded-[16px]" patternClassName={grille ? "" : "!bg-none"}>
+      {/* La carte à points en verre, celle des autres onglets (.k-carte, 13 nov. 2026). */}
+      <div className={`k-carte flex h-full min-w-0 flex-col p-3 ${grille ? "" : "sans-grille"}`}>
         <GridPatternCardBody>{children}</GridPatternCardBody>
-      </GridPatternCard>
+      </div>
     </Bloc>
   );
 }
@@ -262,9 +266,30 @@ function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null, enEdition 
         <span className={`${difference != null && difference !== 0 ? "mt-3" : "mt-auto pt-6"} text-[12px] leading-[1.5] text-ardoise`}>
           {equimmox.loyer_source === "Data-B"
             ? `Estimation Data-B ${equimmox.maille === "rue" ? "de la rue" : equimmox.maille === "ville" ? "de la ville" : "du quartier"}, tous locaux confondus : Equimmox n'a pas constaté de bail comparable à 500 m.`
-            : `Baux constatés par Equimmox à ${equimmox.rayon || "500 m"}${equimmox.surface_min && equimmox.surface_max ? `, locaux de ${nf.format(equimmox.surface_min)} à ${nf.format(equimmox.surface_max)} m²` : ""}.`}
+            : equimmox.du_marche
+              ? `Baux constatés par Equimmox à ${equimmox.rayon || "500 m"}, la lecture de la partie Marché du dossier.`
+              : `Baux constatés par Equimmox à ${equimmox.rayon || "500 m"}${equimmox.surface_min && equimmox.surface_max ? `, locaux de ${nf.format(equimmox.surface_min)} à ${nf.format(equimmox.surface_max)} m²` : ""}.`}
         </span>
       )}
+    </CarteMarche>
+  );
+}
+
+/**
+ * L'Emplacement du dossier (13 nov. 2026, Jules : « la vacance dans une partie du projet, la rotation du local avec les
+ * exploitants, le passage, le pourcentage d'enseignes nationales ») : le dessin de l'Analyse (BlocEmplacement), lu dans
+ * la partie Marché du dossier par le serveur (emplacementDuProjet), seulement ses parties lues. Les filets des parties
+ * vont jusqu'au bord de la carte : la grille rattrape le retrait du corps.
+ */
+function Emplacement({ e }) {
+  const pts = Object.fromEntries(e.points.map((p) => [p.cle, p]));
+  const le = e.le ? new Date(e.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : null;
+  return (
+    <CarteMarche id="marche-emplacement" titre="Emplacement" grille={false} className="w-full">
+      <EnTeteCarte libelle="Emplacement" precision={le ? `lu le ${le}` : null} />
+      <div className="-mx-5 -mb-5 max-md:-mx-4 max-md:-mb-4">
+        <TooltipProvider delayDuration={100}><BlocEmplacement pts={pts} rue={e.rue} simple partie={(id, titre, el) => <Bloc key={id} id={id} titre={titre}>{el}</Bloc>} /></TooltipProvider>
+      </div>
     </CarteMarche>
   );
 }
@@ -311,7 +336,7 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 })
   // un projet qu'on vient de créer montre sa page, pas un vide.
   const enEdition = !!useEdition()?.onChamp;
   const rienDuTout = !habitants && !revenu && !prixResidentiel && !loyerAutour && !loyerProjet;
-  if (rienDuTout && !enEdition) return <div className="mb-5">{entete}</div>;
+  if (rienDuTout && !enEdition && !donnees?.emplacement?.points?.length) return <div className="mb-5">{entete}</div>;
 
   return (
     <div className="flex flex-col gap-4">
@@ -329,6 +354,7 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 })
           <Commercial loyerAutour={loyerAutour} loyerProjet={loyerProjet} nom={nomRue} equimmox={equimmox} enEdition={enEdition} />
         </div>
       )}
+      {donnees?.emplacement?.points?.length > 0 && <Emplacement e={donnees.emplacement} />}
     </div>
   );
 }

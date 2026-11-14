@@ -519,7 +519,7 @@ const OUTILS_AK = [
   },
   {
     name: 'chercher_photos_projet',
-    description: "« Va chercher des photos », « d'autres photos pour Toulouse » : cherche des photos et les ajoute aux images du projet, sans rien retirer. ville : des photos de la ville, libres de droits (Wikipédia) ; autres à vrai : les suivantes, différentes de celles déjà proposées. devanture : le bien vu de la rue (Street View, trois angles), seulement si on parle du bien, de la façade ou de la rue. Rend combien sont entrées : la personne retire celles qu'elle ne veut pas dans l'onglet Images du projet.",
+    description: "« Va chercher des photos », « d'autres photos pour Toulouse » : cherche des photos et les ajoute aux images du projet, sans rien retirer. ville : des photos de la ville sur Google (sa fiche Google), jamais Wikipédia ; autres à vrai : celles qui ne sont pas encore dans le projet. devanture : le bien vu de la rue (Street View, trois angles), seulement si on parle du bien, de la façade ou de la rue. Rend combien sont entrées : la personne retire celles qu'elle ne veut pas dans l'onglet Images du projet.",
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, quoi: { type: 'string', enum: ['ville', 'devanture'] }, autres: { type: 'boolean', description: "vrai pour « d'autres photos »" } }, required: ['projet_id', 'quoi'] },
   },
   {
@@ -1469,13 +1469,24 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
       return { ok: true, photos_ajoutees: ajouterPhotos(projet.id, rue), source: 'Street View', lien: lien(`/Projet?id=${projet.id}`) };
     }
     if (!ville) return { ok: false, error: "Le projet n'a pas de ville." };
-    const page = input.autres ? (Number(projet.photos_ville_page) || 0) + 1 : 0;
-    const { photosDeLaVille } = await import('../photo-commerce.js');
-    const photos = (await photosDeLaVille(ville, { n: 4, page })).map((p) => p.url).filter(Boolean);
-    Records.update('Project', projet.id, { photos_ville_page: page });
-    if (!photos.length) return { ok: false, error: `Aucune photo trouvée pour ${ville}.` };
+    // Google seulement, comme l'agent qui rentre le projet (13 nov. 2026, Jules : « il faut juste que ça cherche la ville
+    // sur Google » ; Wikipédia avait mis le Mont Blanc, l'autoroute A7 et le métro dans « des photos de Lyon »).
+    const { photosGoogleDeLaVille, autresPhotosGoogleDeLaVille } = await import('../photo-commerce.js');
+    const avant = new Set((projet.photos || []).filter((u) => typeof u === 'string'));
+    let trouvees = [];
+    let photos = [];
+    try {
+      trouvees = (await photosGoogleDeLaVille(ville, 3)).map((p) => p.url).filter(Boolean);
+      photos = trouvees.filter((u) => !avant.has(u));
+      // Les gardées sont déjà dans le projet : les suivantes de la fiche Google (13 nov. 2026, Jules).
+      if (!photos.length) photos = (await autresPhotosGoogleDeLaVille(ville, 3)).map((p) => p.url).filter((u) => u && !avant.has(u));
+    } catch (err) {
+      const suspendu = /403/.test(String(err?.message || ''));
+      return { ok: false, error: suspendu ? "Google refuse : le projet Google Cloud de Klocka est suspendu. Aucune photo n'a été ajoutée ; dis-le tel quel." : `Google ne répond pas (${err?.message || err}). Aucune photo n'a été ajoutée.` };
+    }
+    if (!photos.length) return { ok: false, error: trouvees.length ? `Google n'a pas d'autres photos de ${ville} que celles déjà dans le projet. Aucune photo ajoutée.` : `Google n'a pas de photo de ${ville}. Aucune photo ajoutée.` };
     const ajoutees = ajouterPhotos(projet.id, photos);
-    return { ok: true, ville, photos_ajoutees: ajoutees, deja_la: photos.length - ajoutees, source: 'Wikipédia (photos libres)', note: ajoutees ? null : "Toutes étaient déjà dans le projet : propose d'en chercher d'autres.", lien: lien(`/Projet?id=${projet.id}`) };
+    return { ok: true, ville, photos_ajoutees: ajoutees, source: 'Google (fiche de la ville)', note: 'Dis le nombre exact ajouté et la source, Google ; ne décris pas les images, tu ne les as pas vues.', lien: lien(`/Projet?id=${projet.id}`) };
   }
   if (name === 'outils_kdata') return { outils: decrireOutilsKdata() };
   if (name === 'lancer_kdata') {

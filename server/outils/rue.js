@@ -21,9 +21,12 @@ import { cleLocal, voieDe, voieDuNom, horsMagasin, numeroDe, decouperEnTroncons,
 import { lireEtablissementVacance } from './vacance-sources.js';
 import { communeChargee, etablissementsDeCommune, versApi } from '../socle/imports/sirene-stock.js';
 import { indexDesMarques, marqueDe } from '../enseignes-autour.js';
+import { MapBornee } from '../map-bornee.js';
+import { signauxPassage, noteDuPassage, modeleActif, avisAutour, referenceDeLaCommune, loyerDeLaRue, garderJugement } from './passage.js';
 
 export const ENTITE = 'AnalyseRue';
-export const VERSION = 'v1 du 11 nov. 2026';
+// v2 (13 nov. 2026) : la note de passage v2 (passage.js) ; v3 le même jour : la densité des commerces entre au classement.
+export const VERSION = 'v6 du 13 nov. 2026'; // v4 : passage sans Google ; v5 : un exploitant par commerce ; v6 : passage sans photo, loyer et vacance recalés.
 const ANS = 10;
 const CACHE_JOURS = 7;
 const VITRINES = PARAMETRES_TAUX.vitrines;
@@ -65,14 +68,48 @@ export async function registreDeLaCommune(codeInsee, { forcer = false } = {}) {
 /** Pure : les exploitants d'une adresse qui comptent comme occupants d'un local : commerce en boutique, dans la fenêtre. */
 export function exploitantsDe(etablissements, { aujourdhui = new Date() } = {}) {
   const depuis = jourISO(new Date(aujourdhui.getTime() - ANS * 365.25 * 86400000));
-  return etablissements
+  const liste = etablissements
     .filter((e) => !horsMagasin(e.code_naf) && (e.etat === 'actif' || (e.date_fermeture && e.date_fermeture >= depuis)))
     .map((e) => ({
       siret: e.siret, siren: e.siren, nom: nomDe(e), enseigne: e.enseigne || null, naf: e.code_naf, ei: estEI(e),
       ouvert: e.date_creation || null, ferme: e.etat === 'actif' ? null : e.date_fermeture || null, actif: e.etat === 'actif',
       lat: e.lat, lon: e.lon,
-    }))
-    .sort((a, b) => String(a.ouvert || '').localeCompare(String(b.ouvert || '')));
+    }));
+  return fusionnerExploitants(liste);
+}
+
+// Le nom d'un exploitant pour reconnaître le même commerce : sans forme juridique, sans accents ni ponctuation.
+const nomCompare = (nom) => sansForme(nom).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * Pure : un exploitant par commerce (13 nov. 2026, Jules : « Du pareil au même deux fois, Minili et Minili SAS : pour les
+ * clients, ça ne fait pas pro »). Le registre donne deux lignes pour un même commerce quand la société a deux
+ * établissements à l'adresse (un transfert, une réinscription), ou quand l'exploitant change de forme (entreprise
+ * individuelle devenue SAS). Même SIREN ou même nom sans forme juridique : une seule ligne, de la première ouverture à
+ * la dernière fermeture, ouverte si l'une l'est. La rotation ne compte plus deux fois le même commerce.
+ */
+export function fusionnerExploitants(exploitants) {
+  const groupes = [];
+  for (const x of exploitants) {
+    const n = nomCompare(x.nom);
+    const g = groupes.find((y) => y.sirens.has(x.siren) || (n.length >= 3 && y.noms.has(n)));
+    if (!g) { groupes.push({ sirens: new Set([x.siren]), noms: new Set(n.length >= 3 ? [n] : []), lignes: [x] }); continue; }
+    g.sirens.add(x.siren); if (n.length >= 3) g.noms.add(n); g.lignes.push(x);
+  }
+  return groupes.map(({ lignes }) => {
+    if (lignes.length === 1) return lignes[0];
+    const actif = lignes.some((x) => x.actif);
+    // Le nom le plus complet garde la marque (« Minili SAS » plutôt que « MINILI ») ; l'enseigne d'abord.
+    const tete = [...lignes].sort((a, b) => Number(!!b.actif) - Number(!!a.actif) || String(b.ouvert || '').localeCompare(String(a.ouvert || '')))[0];
+    const ouvertures = lignes.map((x) => x.ouvert).filter(Boolean).sort();
+    const fermetures = lignes.map((x) => x.ferme).filter(Boolean).sort();
+    const pts = lignes.filter((x) => Number.isFinite(x.lat));
+    return {
+      ...tete, siren: tete.siren,
+      ouvert: ouvertures[0] || null, ferme: actif ? null : fermetures.at(-1) || null, actif,
+      lat: pts.length ? pts[0].lat : tete.lat, lon: pts.length ? pts[0].lon : tete.lon,
+    };
+  }).sort((a, b) => String(a.ouvert || '').localeCompare(String(b.ouvert || '')));
 }
 
 // Le successeur s'immatricule souvent avant que la fermeture du prédécesseur soit enregistrée (KFC ouvert neuf mois
@@ -169,6 +206,55 @@ export function cellulesDeLaRue(etablissements, voie, { aujourdhui = new Date(),
   return { cellules, domiciliations };
 }
 
+/**
+ * Pure : chaque rue de la commune qui a au moins quatre cellules connues : ses commerces ouverts, ses enseignes
+ * nationales, et un commerce ouvert du milieu de la rue (son adresse écrite au registre et son point). Le passage s'en
+ * sert pour juger une rue face aux autres, et la page Passage pour proposer des rues de toute la gamme.
+ */
+export function rangsDeLaCommune(etablissements, { aujourdhui = new Date(), index = indexDesMarques() } = {}) {
+  const parVoie = new Map();
+  for (const e of etablissements) {
+    const cle = cleLocal(e.adresse);
+    if (!cle) continue;
+    const v = voieDe(cle);
+    if (!parVoie.has(v)) parVoie.set(v, []);
+    parVoie.get(v).push(e);
+  }
+  const rues = [];
+  for (const [voie, es] of parVoie) {
+    const { cellules, domiciliations } = cellulesDeLaRue(es, voie, { aujourdhui, index });
+    if (cellules.length < 4) continue;
+    const r0 = resumeDeLaRue(cellules);
+    // Une adresse écartée comme domiciliation (dix sociétés en dix ans) est souvent, sur une grande artère, un immeuble à
+    // plusieurs boutiques ou une galerie (Nice Étoile, 24 avenue Jean-Médecin : 42) : pour classer la rue, elle compte
+    // pour ses commerces ouverts, trois au plus (13 nov. 2026).
+    const enPlus = domiciliations.reduce((t, d) => t + Math.min(d.occupants?.length || 0, 3), 0);
+    const r = { ...r0, ouvertes: r0.ouvertes + enPlus };
+    const ouvertes = [...cellules, ...domiciliations.filter((d) => d.occupants?.length)].filter((c) => c.etat === 'occupe' && Number.isFinite(c.lat));
+    const milieu = ouvertes[Math.floor(ouvertes.length / 2)] || null;
+    const brute = milieu ? es.find((e) => cleLocal(e.adresse) === milieu.cle && e.etat !== 'ferme')?.adresse || null : null;
+    // La densité : les commerces ouverts par 100 m, sur l'étendue des commerces de la rue (100 m au moins) ; une longue
+    // avenue n'est plus en tête pour sa seule longueur (13 nov. 2026, Nice : l'avenue Sainte-Marguerite devant Jean-Médecin).
+    let etendue = 0;
+    for (const a of ouvertes) for (const b of ouvertes) { const d = distanceM(a, b); if (d > etendue) etendue = d; }
+    const densite = Math.round((r.ouvertes / Math.max(etendue, 100)) * 1000) / 10;
+    rues.push({
+      voie, ouvertes: r.ouvertes, nationales: r.enseignes_nationales, vacance: r0.vacance_registre_pct, densite, etendue_m: etendue,
+      nom: brute ? String(brute).replace(/^\s*\d+\s*(BIS|TER|QUATER|[BTQ](?=\s))?\s*/i, '').replace(/\s*\b\d{5}\b.*$/, '').trim() : voie,
+      centre: milieu ? { lat: milieu.lat, lon: milieu.lon } : null,
+      exemple: brute,
+    });
+  }
+  // Le rang d'une rue : la moyenne géométrique de sa place en nombre de commerces et en densité ; il faut les deux.
+  const ouv = rues.map((r) => r.ouvertes); const den = rues.map((r) => r.densite);
+  const part = (v, l) => { let m = 0; let e = 0; for (const x of l) { if (x < v) m += 1; else if (x === v) e += 1; } return (m + e / 2) / l.length; };
+  for (const r of rues) r.score = Math.round(Math.sqrt(part(r.ouvertes, ouv) * part(r.densite, den)) * 1000) / 1000;
+  const tete = [...rues].filter((r) => r.centre).sort((a, b) => b.score - a.score || b.ouvertes - a.ouvertes)[0] || null;
+  return { rues, ouvertes: ouv, densites: den, nationales: rues.map((r) => r.nationales), vacances: rues.map((r) => r.vacance).filter((v) => v != null), tete };
+}
+// Le classement d'une commune, gardé le temps de lire plusieurs adresses de la même ville (le jour même).
+const RANGS = new MapBornee(4);
+
 /** Pure : ce que la rue dit d'elle-même. */
 export function resumeDeLaRue(cellules) {
   const ouvertes = cellules.filter((c) => c.etat === 'occupe');
@@ -208,59 +294,7 @@ export function positionDuLocal(cellules, cleLocalCible, point) {
   return { troncon: mien ? { ...mien, cles: undefined } : null, troncons: troncons.map(({ cles, ...t }) => t), place: placeTroncon, max_densite: maxDensite, enseigne_proche: enseigneProche };
 }
 
-// --- Le passage : une note sur 10, et son pourquoi --------------------------------------------------------------------
-
-/**
- * Pure : la note de passage. Pas un comptage : la densité de ce qui fait venir du monde, puis ce que montrent les
- * photos. `rue` : resumeDeLaRue ; `position` : positionDuLocal ; `transports` : { genres: [...], lourd } ;
- * `voie` : le type de voie (piétonne, principale…) ; `vues` : la lecture des photos Street View.
- */
-export function notePassage({ rue = null, position = null, transports = null, voie = null, vues = null } = {}) {
-  const pourquoi = []; const parts = {};
-  // 1. Les commerces ouverts sur le tronçon du local, en absolu : quatorze ouverts font le plein (0 à 3,5). Une rue
-  //    de moins de quatre cellules connues ne note pas : on ne sait rien de son passage.
-  const t = position?.troncon;
-  if (t && (rue?.cellules ?? 0) >= 4) {
-    parts.troncon = Math.min(3.5, Math.round(t.occupes * 0.25 * 10) / 10);
-    pourquoi.push(`${t.occupes} commerce${t.occupes > 1 ? 's' : ''} ouvert${t.occupes > 1 ? 's' : ''} sur le tronçon du ${t.du} au ${t.au}${position.place ? ` (${position.place.mot})` : ''}`);
-  } else if ((rue?.cellules ?? 0) >= 4 && rue?.ouvertes != null) {
-    parts.troncon = Math.min(3.5, rue.ouvertes * 0.25);
-    pourquoi.push(`${rue.ouvertes} commerce${rue.ouvertes > 1 ? 's' : ''} ouvert${rue.ouvertes > 1 ? 's' : ''} dans la rue`);
-  }
-  // 2. Les enseignes nationales : elles choisissent les rues qui passent (0 à 2).
-  if (rue?.enseignes_nationales != null && (rue?.cellules ?? 0) >= 4) {
-    parts.enseignes = Math.min(2, rue.enseignes_nationales * 0.5);
-    pourquoi.push(rue.enseignes_nationales ? `${rue.enseignes_nationales} enseigne${rue.enseignes_nationales > 1 ? 's' : ''} nationale${rue.enseignes_nationales > 1 ? 's' : ''} dans la rue (${rue.noms_enseignes.slice(0, 4).join(', ')})` : 'aucune enseigne nationale dans la rue');
-  }
-  // 3. Les transports à 300 m (0 à 1,5).
-  if (transports) {
-    const n = (transports.genres || []).length;
-    parts.transports = Math.min(1.5, n * 0.5 + (transports.lourd ? 0.5 : 0));
-    pourquoi.push(n ? `à 300 m : ${transports.genres.join(', ')}` : 'aucun transport en commun à 300 m');
-  }
-  // 4. Le type de voie (0 à 1).
-  if (voie) {
-    const v = String(voie).toLowerCase();
-    parts.voie = /piéton|pieton/.test(v) ? 1 : /principale|primaire|secondaire|avenue|boulevard/.test(v) ? 0.6 : 0.3;
-    pourquoi.push(`voie : ${voie}`);
-  }
-  // 5. Ce que montrent les photos (0 à 2), lues par le modèle : piétons, trottoirs, rideaux baissés.
-  if (vues?.impression_passage != null) {
-    parts.vues = Math.round((Math.max(0, Math.min(10, vues.impression_passage)) / 10) * 2 * 10) / 10;
-    pourquoi.push(`Street View (${vues.date || 'date inconnue'}) : ${vues.pourquoi || `impression ${vues.impression_passage}/10`}`);
-  }
-  const lues = Object.keys(parts);
-  if (!lues.length) return null;
-  // Les parties absentes ne pénalisent pas : la note se rapporte à ce qui a pu être lu.
-  const maxParts = { troncon: 3.5, enseignes: 2, transports: 1.5, voie: 1, vues: 2 };
-  const total = lues.reduce((s, k) => s + parts[k], 0);
-  const max = lues.reduce((s, k) => s + maxParts[k], 0);
-  const note = Math.round((total / max) * 10 * 2) / 2;
-  const manque = Object.keys(maxParts).filter((k) => !lues.includes(k));
-  // Avec deux lectures sur cinq, la note est provisoire : elle le dit.
-  const confiance = lues.length >= 5 ? 'haute' : lues.length >= 3 ? 'moyenne' : 'basse';
-  return { note, parts, pourquoi, manque, confiance, statut: note >= 7 ? 'ok' : note >= 4.5 ? 'a_voir' : 'alerte' };
-}
+// --- Le passage : la note v2 et son pourquoi vivent dans passage.js -------------------------------------------------
 
 /** Pure : la conclusion de l'outil, en une phrase. */
 export function conclusionRue({ rotation = null, rue = null, passage = null, local = null } = {}) {
@@ -298,16 +332,67 @@ async function transportsAutour(lat, lon) {
   return { genres: [...genres], lourd, source: 'Google Maps' };
 }
 
+// OpenStreetMap par Overpass (13 nov. 2026) : le serveur public est souvent saturé (délais, 502, 504) ; on essaie deux
+// serveurs de secours, et une réponse se garde soixante jours (les voies et les arrêts changent peu).
+const SERVEURS_OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const OSM_JOURS = 60;
+export async function interrogerOverpass(requete, { lire = fetch, serveurs = SERVEURS_OVERPASS, garder = true } = {}) {
+  const cle = requete.replace(/\s+/g, ' ').trim();
+  if (garder) {
+    const garde = Records.filter('LectureOsm', { cle }).filter((x) => Date.now() - Date.parse(x.le) < OSM_JOURS * 86400000)[0];
+    if (garde) return garde.elements;
+  }
+  const erreurs = [];
+  for (const url of serveurs) {
+    const r = await lire(url, {
+      method: 'POST',
+      headers: { 'user-agent': 'Klocka/1.0 (sourcing@klocka.immo)', 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ data: requete }).toString(),
+      signal: AbortSignal.timeout(25000),
+    }).catch((e) => ({ ok: false, status: e?.name === 'TimeoutError' ? 'délai dépassé' : e?.message }));
+    if (!r.ok) { erreurs.push(`${new URL(url).host} ${r.status}`); continue; }
+    const elements = (await r.json().catch(() => ({}))).elements;
+    if (!Array.isArray(elements)) { erreurs.push(`${new URL(url).host} réponse illisible`); continue; }
+    if (garder) Records.create('LectureOsm', { cle, elements, le: new Date().toISOString() });
+    return elements;
+  }
+  throw new Error(`OpenStreetMap ne répond pas (${erreurs.join(', ')})`);
+}
+
+/** Pure : les transports d'après les arrêts OpenStreetMap à 300 m : genres, lourd (métro, tram, gare), arrêts de bus. */
+export function transportsDesArrets(elements) {
+  const genres = new Set(); let lourd = false; let bus = 0;
+  for (const x of elements || []) {
+    const t = x.tags || {};
+    if (t.railway === 'station' || t.railway === 'halt') { genres.add(t.station === 'subway' ? 'métro' : t.station === 'light_rail' ? 'tramway' : 'gare'); lourd = true; }
+    else if (t.station === 'subway' || t.railway === 'subway_entrance') { genres.add('métro'); lourd = true; }
+    else if (t.railway === 'tram_stop' || t.station === 'light_rail') { genres.add('tramway'); lourd = true; }
+    else if (t.highway === 'bus_stop') { genres.add('bus'); bus += 1; }
+  }
+  return { genres: [...genres], lourd, arrets_bus: bus, source: 'OpenStreetMap' };
+}
+
+async function transportsOsm(lat, lon) {
+  const a = `around:300,${lat},${lon}`;
+  return transportsDesArrets(await interrogerOverpass(`[out:json][timeout:20];(node(${a})[highway=bus_stop];node(${a})[railway~"^(station|halt|tram_stop|subway_entrance)$"];node(${a})[station~"^(subway|light_rail)$"];);out tags;`));
+}
+
+/**
+ * Pure : le type de voie d'après le nom de la rue, quand OpenStreetMap ne répond pas. Une avenue, un boulevard, un cours,
+ * un quai ou une place sont des voies larges ; une impasse, une allée ou un chemin, des voies de desserte ; une rue, une
+ * rue. Moins sûr qu'OpenStreetMap (une rue piétonne ne se lit pas dans son nom) : le texte le dit.
+ */
+export function typeDuNom(nom) {
+  const n = String(nom || '').trim().toLowerCase();
+  const m = n.match(/^(avenue|av\.?|boulevard|bd|cours|quai|place|esplanade|promenade|rue|ruelle|impasse|allée|allee|chemin|passage|sentier|square|route)\b/);
+  if (!m) return null;
+  const mot = { 'av.': 'avenue', av: 'avenue', bd: 'boulevard', allee: 'allée' }[m[1]] || m[1];
+  return { type: `${mot} (d'après son nom)`, angle: false, voies: [], du_nom: true };
+}
+
 async function typeDeVoie(lat, lon) {
-  const r = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'user-agent': 'Klocka/1.0 (sourcing@klocka.immo)', 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ data: `[out:json][timeout:10];way(around:25,${lat},${lon})[highway];out tags 10;` }).toString(),
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!r.ok) throw new Error(`Overpass a répondu ${r.status}`);
   const { voiesDe } = await import('../emplacement-auto.js');
-  const voies = voiesDe((await r.json()).elements);
+  const voies = voiesDe(await interrogerOverpass(`[out:json][timeout:15];way(around:25,${lat},${lon})[highway];out tags 10;`));
   const TYPES = { pedestrian: 'rue piétonne', living_street: 'zone de rencontre', primary: 'voie principale', secondary: 'voie secondaire', tertiary: 'voie tertiaire', residential: 'rue résidentielle', unclassified: 'voie locale', footway: 'passage piéton', trunk: 'voie rapide' };
   const noms = [...new Set(voies.map((v) => v.nom).filter(Boolean))];
   return { type: TYPES[voies[0]?.type] || voies[0]?.type || null, angle: noms.length >= 2, voies: noms.slice(0, 3) };
@@ -342,12 +427,47 @@ const lireJson = (brut) => {
 };
 
 /** Les deux photos Street View (vers le local, le long de la rue), leur lecture par le modèle, et les fichiers gardés. */
-async function lireStreetView(adresse, { dossier, cle, lireImage = null }) {
+const lecteurImage = (lireImage) => lireImage || (async (image, prompt, nom) => {
+  const { generateFromDocument } = await import('../llm.js');
+  const { mesurer } = await import('../llm-couts.js');
+  const { resultat } = await mesurer({ operation: 'lire le passage sur Street View' }, () => generateFromDocument({ buffer: image, mimetype: 'image/jpeg', prompt, nom }));
+  return resultat;
+});
+
+/**
+ * La photo de la rue par Panoramax (13 nov. 2026, Jules : « est-ce qu'on est obligé d'utiliser Google ? ») : les photos
+ * de rue libres portées par l'IGN et OpenStreetMap France, gratuites. La plus récente à 30 m, souvent un panorama à 360°
+ * déplié ; l'IA la lit avec la même consigne. Pas de photo tournée vers le local : seule la rue est lue.
+ */
+async function lirePanoramax(adresse, { dossier, cle, lireImage = null, lire = fetch }) {
+  const r = await lire(`https://api.panoramax.xyz/api/search?place_position=${adresse.lon},${adresse.lat}&place_distance=0-30&limit=10`, { signal: AbortSignal.timeout(12000) });
+  if (!r.ok) return { ok: false, error: `Panoramax a répondu ${r.status}` };
+  const f = ((await r.json()).features || []).filter((x) => x.assets?.sd?.href).sort((a, b) => String(b.properties?.datetime || '').localeCompare(String(a.properties?.datetime || '')))[0];
+  if (!f) return { ok: false, error: 'aucune photo Panoramax à 30 m' };
+  const image = Buffer.from(await (await lire(f.assets.sd.href, { signal: AbortSignal.timeout(20000) })).arrayBuffer());
+  fs.mkdirSync(dossier, { recursive: true });
+  const fichiers = { rue: `${cle}-rue.jpg` };
+  fs.writeFileSync(path.join(dossier, fichiers.rue), image);
+  const consigne = `${CONSIGNE_RUE}\nLa photo peut être un panorama à 360° déplié : les deux côtés de la rue y sont.`;
+  let lecture = null; let erreur = null;
+  try { lecture = lireJson(await lecteurImage(lireImage)(image, consigne, `rue-${cle}`)); } catch (e) { erreur = `rue : ${e?.message || e}`; }
+  return { ok: true, source: 'Panoramax', date: String(f.properties?.datetime || '').slice(0, 10) || null, fichiers, lecture, erreur };
+}
+
+async function lireStreetView(adresse, opts) {
+  // Street View d'abord quand Google répond ; sinon Panoramax.
+  const g = await lireStreetViewGoogle(adresse, opts).catch((e) => ({ ok: false, error: e?.message || String(e) }));
+  if (g.ok) return g;
+  const p = await lirePanoramax(adresse, opts).catch((e) => ({ ok: false, error: e?.message || String(e) }));
+  return p.ok ? p : { ok: false, error: `Street View : ${g.error} ; Panoramax : ${p.error}` };
+}
+
+async function lireStreetViewGoogle(adresse, { dossier, cle, lireImage = null }) {
   const SV = await import('../alx/streetview.js');
   if (!SV.streetViewConfigure()) return { ok: false, error: "Street View n'est pas configuré sur ce serveur." };
   const pano = await SV.panoramaDeLaRue({ lat: adresse.lat, lon: adresse.lon, rue: adresse.rue }).catch(() => null)
     || await SV.priseProche(adresse.lat, adresse.lon, { rayon: 50 }).catch(() => null);
-  if (!pano?.pano) return { ok: false, error: 'Aucune prise de vue Street View à cette adresse.' };
+  if (!pano?.pano) return { ok: false, error: 'aucune prise de vue à cette adresse' };
   const cap = pano.cap ?? 0;
   const [versLocal, leLong] = await Promise.all([SV.photo(null, { pano: pano.pano, cap, largeur: 800, hauteur: 500 }), SV.photo(null, { pano: pano.pano, cap: (cap + 90) % 360, largeur: 800, hauteur: 500 })]);
   fs.mkdirSync(dossier, { recursive: true });
@@ -355,19 +475,14 @@ async function lireStreetView(adresse, { dossier, cle, lireImage = null }) {
   fs.writeFileSync(path.join(dossier, fichiers.local), versLocal);
   fs.writeFileSync(path.join(dossier, fichiers.rue), leLong);
   // Deux lectures, une par photo (pas de bibliothèque d'image pour les coller) ; chacune est comptée dans les coûts.
-  const lire = lireImage || (async (image, prompt, nom) => {
-    const { generateFromDocument } = await import('../llm.js');
-    const { mesurer } = await import('../llm-couts.js');
-    const { resultat } = await mesurer({ operation: 'lire le passage sur Street View' }, () => generateFromDocument({ buffer: image, mimetype: 'image/jpeg', prompt, nom }));
-    return resultat;
-  });
+  const lire = lecteurImage(lireImage);
   const erreurs = [];
   const [rue, local] = await Promise.all([
     lire(leLong, CONSIGNE_RUE, `rue-${cle}`).then(lireJson).catch((e) => { erreurs.push(`rue : ${e?.message || e}`); return null; }),
     lire(versLocal, CONSIGNE_LOCAL, `local-${cle}`).then(lireJson).catch((e) => { erreurs.push(`local : ${e?.message || e}`); return null; }),
   ]);
   const lecture = rue || local ? { ...(rue || {}), ...(local || {}) } : null;
-  return { ok: true, date: pano.date || null, pano: pano.pano, cap, meme_rue: pano.meme_rue ?? null, fichiers, lecture, erreur: erreurs.join(' ; ') || null };
+  return { ok: true, source: 'Street View', date: pano.date || null, pano: pano.pano, cap, meme_rue: pano.meme_rue ?? null, fichiers, lecture, erreur: erreurs.join(' ; ') || null };
 }
 
 /**
@@ -396,7 +511,7 @@ const cleDe = (label) => String(label || '').toLowerCase().normalize('NFD').repl
  * L'analyse d'une adresse. Gardée sept jours ; `forcer` relit tout. `lireImage` sert aux tests.
  * @returns {Promise<{ok: true, id, resultat} | {ok: false, error}>}
  */
-export async function analyserRue(texte, { forcer = false, user = null, lireImage = null, aujourdhui = new Date() } = {}) {
+export async function analyserRue(texte, { forcer = false, user = null, lireImage = null, lireAvis = avisAutour, aujourdhui = new Date() } = {}) {
   const { resoudreAdresse } = await import('../adresse-ban.js');
   let adresse;
   try { adresse = await resoudreAdresse(texte); } catch (e) {
@@ -414,7 +529,7 @@ export async function analyserRue(texte, { forcer = false, user = null, lireImag
   const ecart = rueDifferente(texte, adresse.rue);
   const cle = cleDe(adresse.label);
   if (!forcer) {
-    const recent = Records.filter(ENTITE, { cle }).filter((x) => x.version === VERSION && Date.now() - Date.parse(x.le) < CACHE_JOURS * 86400000).sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+    const recent = Records.filter(ENTITE, { cle }).filter((x) => x.version === VERSION && Date.now() - Date.parse(x.le) < (x.incomplet ? 3600000 : CACHE_JOURS * 86400000)).sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
     if (recent) return { ok: true, id: recent.id, resultat: { ...recent.resultat, note_analyste: recent.note_analyste || null, du_cache: true } };
   }
   const manques = [];
@@ -429,15 +544,27 @@ export async function analyserRue(texte, { forcer = false, user = null, lireImag
   const point = { lat: adresse.lat, lon: adresse.lon };
   const rue = resumeDeLaRue(cellules);
   const position = positionDuLocal(cellules, cleCible, point);
-  const [transports, voieLue, vues] = await Promise.all([
-    transportsAutour(adresse.lat, adresse.lon).then((t) => t || { absent: "Google Maps n'est pas configuré" }).catch((e) => ({ absent: e?.message || String(e) })).then((t) => { if (t?.absent) { manques.push(`transports : ${t.absent}`); return null; } return t; }),
-    typeDeVoie(adresse.lat, adresse.lon).catch((e) => { manques.push(`type de voie : ${e?.message || e}`); return null; }),
+  // Le classement des rues de la commune (gardé le jour même) et la rue la plus commerçante, pour juger celle-ci face aux autres.
+  const jour = jourISO(aujourdhui);
+  let rangs = RANGS.get(`${adresse.code_insee}|${jour}`);
+  if (!rangs) { rangs = rangsDeLaCommune(registre.etablissements, { aujourdhui, index }); RANGS.set(`${adresse.code_insee}|${jour}`, rangs); }
+  const [transports, voieLue, vues, avis] = await Promise.all([
+    // Les transports d'OpenStreetMap d'abord (gratuits, 13 nov. 2026) ; Google Maps seulement si OSM ne répond pas.
+    transportsOsm(adresse.lat, adresse.lon).catch(() => transportsAutour(adresse.lat, adresse.lon)).then((t) => t || { absent: "ni OpenStreetMap ni Google Maps" }).catch((e) => ({ absent: e?.message || String(e) })).then((t) => { if (t?.absent) { manques.push(`transports : ${t.absent}`); return null; } return t; }),
+    // OpenStreetMap muet : le type de voie se lit dans le nom de la rue, en le disant (13 nov. 2026, Jules : « le type de
+    // voie, je suis sûr que tu peux le lire »).
+    typeDeVoie(adresse.lat, adresse.lon).catch((e) => { manques.push(`type de voie : ${e?.message || e}`); return typeDuNom(adresse.rue); }),
     lireStreetView(adresse, { dossier: path.join(UPLOAD_DIR, 'rue'), cle, lireImage }).catch((e) => ({ ok: false, error: e?.message || String(e) })),
+    lireAvis(point).catch((e) => ({ ok: false, error: e?.message || String(e) })),
   ]);
-  if (!vues.ok) manques.push(`Street View : ${vues.error}`);
+  if (!avis.ok) manques.push(`avis Google à 100 m : ${avis.error}`);
+  const reference = avis.ok ? await referenceDeLaCommune(adresse.code_insee, rangs.tete, { lire: lireAvis }).catch(() => null) : null;
+  const loyer = await loyerDeLaRue(adresse.label).catch(() => null);
+  if (!vues.ok) manques.push(`photo de la rue : ${vues.error}`);
   else if (vues.erreur) manques.push(`lecture des photos : ${vues.erreur}`);
   const lecture = vues.ok ? vues.lecture : null;
-  const passage = notePassage({ rue, position, transports, voie: voieLue?.type || null, vues: lecture ? { ...lecture, date: vues.date } : null });
+  const classement = rangs.rues.find((x) => x.voie === voie) || null;
+  const passage = noteDuPassage(signauxPassage({ rue: classement ? { ...rue, ouvertes: classement.ouvertes } : rue, position, rangs, avis: avis.ok ? avis : null, reference, loyer, transports, voie: voieLue?.type || null, vues: lecture ? { ...lecture, date: vues.date, source: vues.source } : null, ville: adresse.ville }), modeleActif());
   const rotation = local ? local.rotation : rotationDe([], { aujourdhui });
   const conclusion = ecart
     ? { statut: 'vide', phrase: `Adresse à vérifier : vous avez écrit « ${ecart.ecrite} », la Base Adresse Nationale a reconnu « ${adresse.rue} ».`, raisons: conclusionRue({ rotation, rue, passage, local }).raisons }
@@ -448,11 +575,14 @@ export async function analyserRue(texte, { forcer = false, user = null, lireImag
     local: local ? { ...local, angle: voieLue?.angle || lecture?.angle || false, voies_angle: voieLue?.voies || [] } : { cle: cleCible, etat: 'inconnu', occupants: [], historique: [], rotation, angle: voieLue?.angle || false },
     rue: { ...rue, cellules: cellules.map(({ historique, ...c }) => ({ ...c, exploitants_10_ans: c.rotation.exploitants_10_ans, rotation: undefined })), domiciliations: domiciliations.map((d) => ({ cle: d.cle, entreprises: d.rotation.exploitants_10_ans })), source: registre.source },
     position, transports, voie_type: voieLue?.type || null,
-    street_view: vues.ok ? { date: vues.date, photos: { local: `/uploads/rue/${vues.fichiers.local}`, rue: `/uploads/rue/${vues.fichiers.rue}` }, lecture, meme_rue: vues.meme_rue } : null,
+    street_view: vues.ok ? { source: vues.source, date: vues.date, photos: { local: vues.fichiers.local ? `/uploads/rue/${vues.fichiers.local}` : null, rue: `/uploads/rue/${vues.fichiers.rue}` }, lecture, meme_rue: vues.meme_rue ?? null } : null,
     passage, conclusion, manques,
     le: new Date().toISOString(), par: user?.email || null,
   };
-  const rec = Records.create(ENTITE, { cle, version: VERSION, adresse: adresse.label, resultat, le: resultat.le, par: resultat.par }, user?.email);
+  // Une lecture à laquelle OpenStreetMap a manqué (serveurs en 502, délais dépassés) n'est gardée qu'une heure : la
+  // suivante relit dès que les serveurs reviennent, au lieu de garder sept jours une note sans transports.
+  const incomplet = manques.some((m) => /OpenStreetMap|Overpass|transports/i.test(m));
+  const rec = Records.create(ENTITE, { cle, version: VERSION, adresse: adresse.label, resultat, le: resultat.le, par: resultat.par, incomplet }, user?.email);
   return { ok: true, id: rec.id, resultat: { ...resultat, note_analyste: null } };
 }
 
@@ -488,6 +618,8 @@ export function noterPassage(id, { note, commentaire = '' } = {}, user = null) {
   const n = note === null || note === '' ? null : Math.max(0, Math.min(10, Math.round(Number(note) * 2) / 2));
   const note_analyste = n == null && !commentaire ? null : { note: n, commentaire: String(commentaire || '').slice(0, 600), par: user?.email || null, le: new Date().toISOString() };
   Records.update(ENTITE, id, { note_analyste });
+  // La note de l'analyste apprend aussi au passage (13 nov. 2026) : gardée avec les critères du moment.
+  if (n != null) garderJugement({ note: n, commentaire, passage: r.resultat?.passage, adresse: r.adresse || r.resultat?.adresse?.label, ville: r.resultat?.adresse?.ville || null, rue_id: id, origine: 'analyse' }, user);
   return { ok: true, note_analyste };
 }
 

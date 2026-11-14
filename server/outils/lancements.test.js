@@ -143,22 +143,29 @@ test("la note de l'IA tient en deux phrases au plus", () => {
   assert.equal(deuxPhrases('Loyer de 95 000 €. Rendement de 5,76 % brut. Reste.'), 'Loyer de 95 000 €. Rendement de 5,76 % brut.');
 });
 
-test('le poids du loyer : le dernier exercice de moins de trois ans, un chiffre d\'affaires confidentiel, une perte à voir', () => {
+test('la santé financière : le résultat d\'abord, le poids du loyer pour une boutique seule seulement', () => {
   // Les montants s'écrivent avec l'espace fine insécable du français : on la lit comme une espace.
   const sp = (t) => String(t).replace(/[\u00a0\u202f]/g, ' ');
-  const ok = pointComptes([{ exercice: '2025', chiffre_affaires: 1420000, resultat_net: 61000 }, { exercice: '2024', chiffre_affaires: 1300000 }], 95000, { annee: 2026 });
-  assert.equal(ok.statut, 'ok');
-  assert.equal(ok.detail.taux, 6.7);
-  assert.equal(sp(ok.resultat), "6,7 % du chiffre d'affaires · CA 1 420 000 € en 2025, résultat 61 000 €");
-  assert.equal(pointComptes([{ exercice: '2025', chiffre_affaires: 400000 }], 80000, { annee: 2026 }).statut, 'alerte');
-  const confidentiel = pointComptes([{ exercice: '2025', chiffre_affaires: 0, resultat_net: -214000 }], 95000, { annee: 2026 });
+  const seule = pointComptes([{ exercice: '2025', chiffre_affaires: 1420000, resultat_net: 61000 }, { exercice: '2024', chiffre_affaires: 1300000 }], 95000, { annee: 2026, etablissements: 1 });
+  assert.equal(seule.libelle, 'Santé financière');
+  assert.equal(seule.statut, 'ok');
+  assert.equal(seule.detail.taux, 6.7);
+  assert.equal(sp(seule.resultat), 'Bénéfice de 61 000 € en 2025 · CA 1 420 000 € · loyer 6,7 % du CA');
+  // Une boutique seule dont le loyer pèse 20 % de son chiffre : alerte, même bénéficiaire.
+  assert.equal(pointComptes([{ exercice: '2025', chiffre_affaires: 400000, resultat_net: 5000 }], 80000, { annee: 2026, etablissements: 1 }).statut, 'alerte');
+  // Un groupe : pas de taux, quelle que soit sa taille.
+  const groupe = pointComptes([{ exercice: '2025', chiffre_affaires: 3e9, resultat_net: 8e6 }], 50000, { annee: 2026, etablissements: 240 });
+  assert.equal(groupe.detail.taux, undefined);
+  assert.doesNotMatch(groupe.resultat, /du CA/);
+  // Nombre d'établissements inconnu : pas de taux non plus.
+  assert.equal(pointComptes([{ exercice: '2025', chiffre_affaires: 400000 }], 80000, { annee: 2026 }).detail.taux, undefined);
+  const confidentiel = pointComptes([{ exercice: '2025', chiffre_affaires: 0, resultat_net: -214000 }], 95000, { annee: 2026, etablissements: 2 });
   assert.equal(confidentiel.statut, 'a_voir');
-  assert.equal(sp(confidentiel.resultat), "Chiffre d'affaires confidentiel en 2025, perte de 214 000 €");
+  assert.equal(sp(confidentiel.resultat), 'Perte de 214 000 € en 2025 · CA confidentiel');
+  assert.equal(sp(pointComptes([{ exercice: '2025', chiffre_affaires: 600000 }], null, { annee: 2026 }).resultat), 'CA 600 000 € en 2025');
   assert.equal(pointComptes([{ exercice: '2019', chiffre_affaires: 500000 }], 20000, { annee: 2026 }).resultat, 'Derniers comptes publiés en 2019, trop anciens pour juger.');
   assert.equal(pointComptes([], 20000).resultat, 'Comptes non publiés.');
   assert.equal(pointComptes([{ exercice: '2025', chiffre_affaires: 900000 }], 20000, { ei: true }).statut, 'vide');
-  assert.match(pointComptes([{ exercice: '2025', chiffre_affaires: 3e9 }], 50000, { annee: 2026 }).resultat, /^moins de 0,1 %/);
-  assert.match(pointComptes([{ exercice: '2025', chiffre_affaires: 600000 }], null, { annee: 2026 }).resultat, /loyer manquant/);
 });
 
 test('les avis clients : la fiche Google, ou une fiche simulée qui se dit simulée', () => {

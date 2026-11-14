@@ -127,6 +127,43 @@ export function loyerDataBDe(d, nomRue = null) {
   };
 }
 
+/**
+ * Le loyer autour tel que la partie Marché du dossier l'a lu (13 nov. 2026, Jules : « le loyer autour, il faut que ça
+ * soit vraiment pareil que dans la partie Marché ») : la même lecture Equimmox, la même échelle (rue, 500 m, ville), la
+ * même moyenne. Rend null sans lecture finie qui donne un chiffre.
+ */
+export function loyerDuMarche(lancement) {
+  if (lancement?.statut !== 'fini') return null;
+  const p = (lancement.resultat?.points || []).find((x) => x.cle === 'loyer_marche');
+  const d = p?.detail || {};
+  const m2 = Number(d.marche_m2);
+  if (!(m2 > 0)) return null;
+  const niveau = d.niveaux?.[d.echelle] || {};
+  const n = (v) => (Number.isFinite(Number(v)) && v != null ? Number(v) : null);
+  return {
+    nom: niveau.nom || null,
+    loyer_m2_an: Math.round(m2),
+    loyer_bas: n(niveau.basse),
+    loyer_haut: n(niveau.haute),
+    loyer_source: p.source || 'Equimmox',
+    rayon: niveau.rayon || null,
+    surface_min: null,
+    surface_max: null,
+    capture: niveau.capture || p.lien || null,
+    du_marche: true,
+    le: lancement.fini_le || null,
+  };
+}
+
+/** La dernière lecture du loyer dans la partie Marché du dossier du projet, pour son lot. */
+export async function lancementLoyerDu(projet, deal) {
+  if (!projet?.deal_id || !deal) return null;
+  const lot = lotDuProjet(projet, deal);
+  const index = Math.max(0, (deal.lots || []).indexOf(lot));
+  const { dernierLancement } = await import('./outils/lancements.js');
+  return dernierLancement(projet.deal_id, index, 'loyer');
+}
+
 /** Les étoiles de l'étude d'implantation. Un flux déclaré indisponible n'a pas de note. */
 export function fluxDe(r) {
   if (!r) return null;
@@ -149,6 +186,37 @@ export function implantationEnCache(adresse, enregistrements) {
   return (enregistrements || [])
     .filter((r) => String(r.cle || '').startsWith(debut) && fluxDe(r.resultat))
     .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0]?.resultat || null;
+}
+
+/**
+ * L'Emplacement lu dans la partie Marché du dossier du projet (13 nov. 2026, Jules : « la vacance dans une partie du
+ * projet, la rotation du local avec les exploitants, le passage, le pourcentage d'enseignes nationales »). La dernière
+ * lecture finie, pour le lot du projet ; seulement les parties lues (un outil qui n'a pas répondu ne se montre pas au
+ * client) et seulement ce que le dessin de l'Analyse affiche, pas les 16 ko de la rue. null sans dossier ni lecture.
+ */
+export function emplacementDuProjet(projet, { dealDe = (id) => Records.findBy('Deal', 'deal_id', id) } = {}) {
+  if (!projet?.deal_id) return null;
+  const deal = dealDe(projet.deal_id);
+  if (!deal) return null;
+  const index = Math.max(0, (deal.lots || []).indexOf(lotDuProjet(projet, deal)));
+  const l = Records.filter('LancementOutil', { deal_id: projet.deal_id, outil: 'emplacement' })
+    .filter((x) => (x.index ?? 0) === index && x.statut === 'fini' && x.resultat)
+    .sort((a, b) => String(b.fini_le || '').localeCompare(String(a.fini_le || '')))[0];
+  if (!l) return null;
+  const points = (l.resultat.points || []).filter((p) => ['passage', 'rotation', 'vacance', 'enseignes'].includes(p.cle) && p.statut !== 'vide');
+  if (!points.length) return null;
+  const r = l.resultat.rue || {};
+  return {
+    points,
+    rue: {
+      passage: r.passage || null,
+      rue: r.rue ? { part_enseignes_pct: r.rue.part_enseignes_pct ?? null, noms_enseignes: r.rue.noms_enseignes || [], cellules: (r.rue.cellules || []).map((c) => ({ numero: c.numero })) } : null,
+      // Un entrepreneur individuel porte le nom d'une personne : la page du client ne le nomme pas.
+      local: r.local ? { historique: (r.local.historique || []).map((h) => ({ nom: h.ei ? 'Entrepreneur individuel' : h.nom, ouvert: h.ouvert || null, ferme: h.ferme || null })) } : null,
+      street_view: r.street_view || null,
+    },
+    le: l.fini_le || null,
+  };
 }
 
 /** Le lot du dossier dont vient le projet : celui de sa rue, sinon le premier. */
@@ -191,19 +259,24 @@ export async function calculerSecteur(projet, {
   // Les études internes d'abord ; les anciennes études (DataBImplantation) restent lisibles.
   etudes = () => [...Records.list('EtudeImplantation'), ...Records.list('DataBImplantation')],
   dealDe = (id) => Records.findBy('Deal', 'deal_id', id),
+  marche = lancementLoyerDu,
 } = {}) {
   // L'adresse avec la ville du projet ; un résultat d'une autre ville ne vaut rien.
   const { adresseAChercher, memeVille } = await import('../src/lib/adresse-projet.js');
   const texte = adresseAChercher(projet) || '';
   const trouvee = texte ? await resoudre(texte).catch(() => null) : null;
   const adresse = trouvee && memeVille(projet, trouvee.ville, trouvee.code_postal) ? trouvee : null;
-  const lot = lotDuProjet(projet, projet.deal_id ? dealDe(projet.deal_id) : null);
+  const deal = projet.deal_id ? dealDe(projet.deal_id) : null;
+  const lot = lotDuProjet(projet, deal);
+  // Un projet venu d'un dossier prend le loyer de la partie Marché de ce dossier : plus de seconde lecture Equimmox,
+  // à une autre échelle, qui donnait un autre chiffre (236 au lieu de 304 pour KFC Lyon, 13 nov. 2026).
+  const duMarche = forcerLoyer ? null : loyerDuMarche(await Promise.resolve(marche(projet, deal)).catch(() => null));
 
   const surface = Number(projet.sim_surface) || Number(projet.surface_m2) || null;
   const [hotel, residentiel, equimmox] = await Promise.all([
     adresse?.code_insee ? mairie(communeParente(adresse.code_insee)).catch(() => null) : null,
     lot?.prix_residentiel || (texte ? figaro(texte).catch(() => null) : null),
-    adresse ? loyer(adresse.label, surface, forcerLoyer).catch(() => null) : null,
+    adresse && !duMarche ? loyer(adresse.label, surface, forcerLoyer).catch(() => null) : null,
   ]);
   const implantation = fluxDe(lot?.implantation) ? lot.implantation : adresse ? implantationEnCache(adresse, etudes()) : null;
 
@@ -212,7 +285,8 @@ export async function calculerSecteur(projet, {
     agglomeration: adresse ? agglomerationDe(adresse.code_insee) : null,
     centre: hotel && adresse ? { distance_m: distanceM(adresse, hotel), repere: `${hotel.repere} de ${hotel.nom}` } : null,
     residentiel: residentielDe(residentiel),
-    rue: loyerDe(equimmox, adresse?.rue || null)
+    rue: duMarche
+      || loyerDe(equimmox, adresse?.rue || null)
       || (adresse ? loyerDataBDe(await dataB(adresse.label, forcerLoyer).catch(() => null), adresse.rue || null) : null),
     flux: fluxDe(implantation),
   };
@@ -242,15 +316,24 @@ const dernier = (projetId) => Records.filter(ENTITE, { project_id: projetId })
  * Ce que la page affiche tout de suite, et le calcul relancé en arrière-plan
  * quand la fiche a plus de trente jours ou que l'adresse a changé.
  */
+// La date de la dernière lecture du loyer finie dans la partie Marché du dossier : la relire recalcule la fiche du projet.
+export function marcheLeDu(projet) {
+  if (!projet?.deal_id) return null;
+  return Records.filter('LancementOutil', { deal_id: projet.deal_id, outil: 'loyer' })
+    .filter((l) => l.statut === 'fini' && l.fini_le)
+    .map((l) => l.fini_le).sort().at(-1) || null;
+}
+
 export function lireSecteur(projet, { forcer = false, forcerLoyer = false, calculer = calculerSecteur } = {}) {
   const garde = dernier(projet.id);
   // Version 2 (5 oct. 2026) : l'adresse est cherchée avec la ville du projet ; les fiches d'avant se recalculent.
   const surface = Number(projet.sim_surface) || Number(projet.surface_m2) || null;
-  const frais = garde && garde.version === VERSION && garde.adresse === projet.adresse_complete && (garde.surface ?? null) === surface && Date.now() - Date.parse(garde.le) < dureeDeGarde(garde.donnees);
+  const marcheLe = marcheLeDu(projet);
+  const frais = garde && garde.version === VERSION && garde.adresse === projet.adresse_complete && (garde.surface ?? null) === surface && (garde.marche_le ?? null) === marcheLe && Date.now() - Date.parse(garde.le) < dureeDeGarde(garde.donnees);
   if ((forcer || forcerLoyer || !frais) && projet.adresse_complete && !enCours.has(projet.id)) {
     const tache = calculer(projet, forcerLoyer ? { forcerLoyer: true } : undefined)
       .then((donnees) => {
-        const fiche = { project_id: projet.id, adresse: projet.adresse_complete, surface, version: VERSION, donnees, le: new Date().toISOString() };
+        const fiche = { project_id: projet.id, adresse: projet.adresse_complete, surface, marche_le: marcheLe, version: VERSION, donnees, le: new Date().toISOString() };
         const avant = dernier(projet.id);
         if (avant) Records.update(ENTITE, avant.id, fiche);
         else Records.create(ENTITE, fiche);

@@ -2,13 +2,34 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import fs from 'fs'
+import { pageKpartners, demandeDePage } from './server/pwa-kpartners.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const BACKEND = process.env.VITE_BACKEND_URL || 'http://localhost:3001'
 
+// En local, kpartners.localhost reçoit la page habillée K Partners, comme app.kpartners.immo en ligne
+// (server/pwa-kpartners.js) : le nom, l'icône et le manifeste de l'application à installer.
+const pwaKpartners = {
+  name: 'pwa-kpartners',
+  configureServer(server) {
+    server.middlewares.use(async (req, res, next) => {
+      const chemin = (req.url || '/').split('?')[0]
+      const hote = String(req.headers.host || '').replace(/:\d+$/, '')
+      if (!/^(app\.)?kpartners\./.test(hote) || chemin.startsWith('/@') || chemin.startsWith('/node_modules')
+        || !demandeDePage(req.method, chemin) || !String(req.headers.accept || '').includes('text/html')) return next()
+      try {
+        const html = await server.transformIndexHtml(req.url, fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8'))
+        res.setHeader('Content-Type', 'text/html; charset=utf-8')
+        res.end(pageKpartners(html))
+      } catch (e) { next(e) }
+    })
+  },
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), pwaKpartners],
   // MapLibre analyse ses tuiles vectorielles dans un Web Worker ; le
   // pré-bundling de Vite casse ce worker en dev (symptôme : fond raster OK,
   // aucune tuile vectorielle chargée). On le sert donc tel quel.

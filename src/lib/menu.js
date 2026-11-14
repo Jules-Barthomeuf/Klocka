@@ -109,7 +109,7 @@ export const MENU_ADMIN = [
     // Utilisateurs et Mandataires quittent Administration le 6 nov. 2026 (Jules) : ce sont des tableaux du CRM.
     entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" },
     // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
-    { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
+    { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion", "SuiviCorrections"] }] },
 ];
 /**
  * Le menu des mandataires, sur la structure de celui de l'équipe (18 oct. 2026, Jules) : des entrées simples et

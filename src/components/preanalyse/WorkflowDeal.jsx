@@ -27,6 +27,7 @@ import { FlechesVersions, GrillesPieces, useAnalysePieces } from "@/components/p
 import VideoFilmee from "@/components/preanalyse/VideoFilmee";
 import DepotsDossier, { ActionsDataRoom } from "@/components/preanalyse/DepotsDossier";
 import ApercuProjetPlateforme from "@/components/preanalyse/ApercuProjetPlateforme";
+import { useLancerAgentProjet } from "@/components/projet/AgentProjet";
 import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFonds from "@/components/preanalyse/TransactionsFonds";
@@ -1567,17 +1568,10 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
  * Rentrer le projet (29-30 oct. 2026, Jules) : plus une étape ; à droite du titre du dossier, à toutes les étapes.
  * Créé, il devient la pilule « Projet ↗ » et sa mise à jour depuis le dossier (chiffres du lot, cases OK).
  */
+// Le clic lance l'agent qui rentre le projet (13 nov. 2026, Jules) : il travaille en bas à gauche, on reste sur le
+// dossier ; une fois le projet né, le dossier se relit et le bouton devient « Voir le projet ».
 function BoutonProjet({ dossier, onRefresh }) {
-  const navigate = useNavigate();
-  const creer = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/0/projet`),
-    onSuccess: (r) => {
-      toast.success(`Projet créé : ${r.titre}`, r.champs_remplis?.length ? { description: `${r.champs_remplis.length} champ(s) pré-rempli(s)` } : undefined);
-      onRefresh?.();
-      navigate(`/Projets?id=${r.project_id}`);
-    },
-    onError: (e) => toast.error(e?.message || "Création du projet impossible"),
-  });
+  const agent = useLancerAgentProjet(dossier, { onFini: onRefresh });
   if (dossier.projet_id) {
     return (
       // Plus de flèche de mise à jour (11 nov. 2026, Jules) : le projet suit le dossier tout seul.
@@ -1591,8 +1585,9 @@ function BoutonProjet({ dossier, onRefresh }) {
   }
   return (
     // Le dessin de l'interrupteur Mode Fiche / Mode Tableau (5 nov. 2026, Jules : « comme dans les modes »).
-    <button type="button" onClick={() => creer.mutate()} disabled={creer.isPending} className="inline-flex h-10 flex-none items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif disabled:opacity-60">
-      {creer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4 text-ardoise" />} Créer le projet
+    <button type="button" onClick={agent.lancer} disabled={agent.enCours} title={agent.enCours ? "L'agent remplit le projet : suivez-le en bas à gauche" : "Un agent relit le dossier et remplit le projet"}
+      className="inline-flex h-10 flex-none items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre transition-colors hover:border-bord-vif disabled:opacity-60">
+      {agent.enCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4 text-ardoise" />} {agent.enCours ? "Le projet se remplit…" : "Créer le projet"}
     </button>
   );
 }
@@ -1607,20 +1602,9 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
   const analyses = dossier?.extractions || [];
   const aAnalyser = documents.length > 0 && analyses.length === 0;
 
-  const creerProjet = useMutation({
-    mutationFn: () =>
-      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/0/projet`),
-    onSuccess: (r) => {
-      const details = [
-        r.analyse ? `${r.analyse.documents} document(s) extrait(s), ${r.analyse.donnees} donnée(s)` : null,
-        r.champs_remplis?.length ? `${r.champs_remplis.length} champ(s) pré-rempli(s)` : null,
-      ].filter(Boolean);
-      toast.success(`Projet créé : ${r.titre}`, details.length ? { description: details.join(" · ") } : undefined);
-      onRefresh?.();
-      navigate(`/Projets?id=${r.project_id}`);
-    },
-    onError: (e) => toast.error(e?.message || "Création du projet impossible"),
-  });
+  // Le même agent que le bouton du dossier (13 nov. 2026).
+  const agent = useLancerAgentProjet(dossier, { onFini: onRefresh });
+  const creerProjet = { mutate: agent.lancer, isPending: agent.enCours };
 
   const titre = (
     <TitreEtape n={3} titre="Plateforme" />

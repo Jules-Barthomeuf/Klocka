@@ -104,7 +104,7 @@ export function BoutonMasquer({ champ, titre = "Supprimer de la page" }) {
         e.stopPropagation();
         edition.onChamp("champs_masques", [...(edition.masques || []), champ], true);
       }}
-      className="text-bord-vif hover:text-red-400 transition-colors text-[12.5px] leading-none px-1 flex-shrink-0"
+      className="text-bord-vif hover:text-alerte transition-colors text-[12.5px] leading-none px-1 flex-shrink-0"
     >
       ×
     </button>
@@ -379,7 +379,7 @@ export function ChampsPersonnalises({ zone, project }) {
                   <ValeurEditable champ={`champs_personnalises.${i}.label`} type="text">{champ.label || "Sans libellé"}</ValeurEditable>
                   {edition?.onChamp && (
                     <button type="button" onClick={() => supprimer(i)} aria-label="Supprimer ce champ" title="Supprimer ce champ"
-                      className="text-bord-vif hover:text-red-400 transition-colors text-[12.5px] leading-none">×</button>
+                      className="text-bord-vif hover:text-alerte transition-colors text-[12.5px] leading-none">×</button>
                   )}
                 </div>
               </div>
@@ -411,7 +411,7 @@ export function ChampsPersonnalises({ zone, project }) {
                 <ValeurEditable champ={`champs_personnalises.${i}.valeur`} type="text">{champ.valeur || "—"}</ValeurEditable>
                 {edition?.onChamp && (
                   <button type="button" onClick={() => supprimer(i)} aria-label="Supprimer ce champ" title="Supprimer ce champ"
-                    className="text-brume hover:text-red-400 transition-colors text-[12.5px] leading-none">×</button>
+                    className="text-brume hover:text-alerte transition-colors text-[12.5px] leading-none">×</button>
                 )}
               </span>
             </div>

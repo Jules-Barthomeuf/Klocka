@@ -2,7 +2,7 @@
 //
 // Liste : trois blocs de cartes. « À traiter » (« À toi d'agir » et « En
 // attente d'un tiers »), « Pipeline » (Tri, Qualification, Commercialisation,
-// Transaction) et « Écartés par AK ». Dossier : une frise de huit étapes.
+// Transaction) et « Écartés » (par l'équipe : abandonnés ou jugés non conformes). Dossier : une frise de huit étapes.
 //
 // Rien de tout cela n'est stocké : le serveur garde ses cinq portes
 // (`etape_max`, server/deal/etapes.js) et son statut ; ce module en tire le
@@ -44,8 +44,15 @@ export function etapeFrise(d) {
   return 8;
 }
 
-/** Faux : le dossier est écarté (abandonné, ou AK l'a jugé NO-GO). */
-export const estEcarte = (d) => d?.statut === "abandonne" || d?.lots?.[0]?.verdict === "NO-GO";
+// Le verdict choisi par l'équipe : une chaîne dans la liste, { valeur } dans le dossier ouvert.
+export const verdictChoisi = (d) => (d?.verdict_choisi && typeof d.verdict_choisi === "object" ? d.verdict_choisi.valeur : d?.verdict_choisi) || null;
+
+/**
+ * Le dossier est-il écarté ? Seulement par une décision de l'équipe : abandonné, ou jugé « Non conforme » (13 nov. 2026,
+ * Jules : « KFC Lyon, j'ai mis Conforme, pourquoi est-ce encore marqué écarté ? »). Le verdict calculé par les règles ne
+ * range plus un dossier dans les écartés : il n'est plus montré depuis le 10 nov., il ne doit plus rien décider.
+ */
+export const estEcarte = (d) => d?.statut === "abandonne" || verdictChoisi(d) === "NO-GO";
 
 /** La phase du pipeline d'un dossier, d'après son étape de frise. */
 export function phaseDe(d) {

@@ -295,9 +295,8 @@ body::after {
     --k-craie-rgb: 199 205 201;
     --k-ardoise-rgb: 148 154 151;
     --k-brume-rgb: 124 130 127;
-    --k-menthe-rgb: 150 192 184;
-    --k-menthe-clair-rgb: 195 221 214;
-    --k-sur-menthe-rgb: 8 19 13;
+    /* L'accent n'est pas figé ici : il reste celui que chacun a choisi (13 nov. 2026, Jules : le rendement sur la
+       photo doit être à la couleur système). Tous les accents sont pastel, lisibles sur le voile noir. */
     /* Le champ qu'on ouvre sur la photo (titre, adresse) : sa surface sombre
        aussi, sinon en clair l'encre blanche s'écrit sur du blanc (30 oct. 2026). */
     --k-surface-pleine-rgb: 28 30 29;
@@ -358,21 +357,29 @@ button.k-verre-photo:hover { background: rgb(var(--k-surface-pleine-rgb)); }
     position: relative;
     isolation: isolate;
     border-radius: 16px;
-    border: 1px solid var(--k-trait);
-    background-color: rgb(var(--k-carte-grille-rgb));
-    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 28px rgba(0,0,0,.06);
+    /* En verre (13 nov. 2026, Jules : « les cartes en glassmorphisme, avec toujours les points derrière ») : la surface
+       du thème floutée et le bord doux de .k-verre ; les points restent, estompés vers le bas à gauche par un masque
+       et non plus par un dégradé de la couleur de la carte, qui aurait repeint un fond opaque sur le verre. */
+    border: 1px solid var(--k-bord-doux);
+    background-color: var(--k-surface);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
 }
 .k-carte::before,
 .k-carte::after { content: ""; position: absolute; inset: 12px; z-index: -1; pointer-events: none; }
 }
-.k-carte::before { background-image: theme("backgroundImage.grid-pattern"); background-size: 30px 30px; background-repeat: repeat; }
+.k-carte::before {
+    background-image: theme("backgroundImage.grid-pattern"); background-size: 30px 30px; background-repeat: repeat;
+    -webkit-mask-image: linear-gradient(to top right, rgb(0 0 0 / .1), rgb(0 0 0 / .6), rgb(0 0 0 / .9));
+    mask-image: linear-gradient(to top right, rgb(0 0 0 / .1), rgb(0 0 0 / .6), rgb(0 0 0 / .9));
+}
+:root[data-theme="clair"] .k-carte { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 8px 24px rgb(16 20 24 / .07); }
 :root[data-theme="clair"] .k-carte::before { background-image: theme("backgroundImage.grid-pattern-light"); }
 /* Une carte sans le motif, quand il gênerait la lecture (la chronologie). */
 .k-carte.sans-grille::before,
 .k-carte.sans-grille::after { display: none; }
-.k-carte::after {
-    background-image: linear-gradient(to top right, rgb(var(--k-carte-grille-rgb) / .9), rgb(var(--k-carte-grille-rgb) / .4), rgb(var(--k-carte-grille-rgb) / .1));
-}
+.k-carte::after { display: none; }
 /* L'aperçu de l'onglet Simulateur d'un projet (9 nov. 2026, Jules) : le dessin du formulaire d'à côté, sur le noir du bloc
    (cadres fins sans fond, titre à 16 px, lignes libellé / valeur). Seul cadre=projet porte .k-sim-projet : le simulateur public et ceux des dossiers ne bougent pas. */
 .k-sim-projet .k-sim-corps > .border.border-trait,
@@ -1028,6 +1035,10 @@ html.k-cadre-crm .k-flottant-haut { display: none !important; }
 html.k-cadre-dossier .k-barre-laterale { border-color: transparent !important; border-radius: 0 !important; }
 html.k-cadre-dossier .k-barre-laterale::before { border-radius: 0 !important; }
 html.k-cadre-dossier .k-flottant-haut { display: none !important; }
+/* La liste des Dossiers dans le même cadre (14 nov. 2026, Jules) : la barre soudée à la bande du haut ; la cloche et le
+   mode appel restent, en haut à droite, posés sur la bande. */
+html.k-cadre-liste .k-barre-laterale { border-color: transparent !important; border-radius: 0 !important; }
+html.k-cadre-liste .k-barre-laterale::before { border-radius: 0 !important; }
 /* Le tableau du CRM : sur le fond de la barre en sombre, blanc en clair, et des gris plus légers en clair (5 nov. 2026). */
 html.k-cadre-crm { --k-crm-tableau: rgb(var(--k-rail-rgb)); }
 
@@ -1052,6 +1063,19 @@ html.k-cadre-crm { --k-crm-tableau: rgb(var(--k-rail-rgb)); }
   backdrop-filter: var(--k-verre-flou);
 }
 .k-verre-barre.k-verre-epais { background: var(--k-verre-epais); }
+/* Le cadre des Outils, du CRM et de l'Emailing (13 nov. 2026, Jules : « la barre de gauche est plus claire que celle du
+   haut, il y a une démarcation ; il faut tout le temps la même barre, la même couleur, tout autour ») : un verre prend la
+   couleur de ce qui passe dessous, et la barre de gauche passait sur le halo du fond quand la bande du haut passait sur
+   le fond uni de la page. Ici, rien ne défile sous la bande : le verre garde sa teinte, posé sur le fond uni, et les deux
+   barres sont la même, d'un bord à l'autre. */
+/* Le cadre du dossier aussi (même jour, Jules : « dans l'Analyse, il y a une démarcation en haut, légère ») : le dossier
+   ne se devine plus sous la bande, mais la barre est une, tout autour. */
+html.k-cadre-crm, html.k-cadre-dossier, html.k-cadre-liste {
+  --k-verre-fond: linear-gradient(var(--k-surface), var(--k-surface)), linear-gradient(rgb(var(--k-rail-rgb) / .42), rgb(var(--k-rail-rgb) / .42)), rgb(var(--k-fond-rgb));
+}
+html.k-cadre-crm[data-theme="clair"], html.k-cadre-dossier[data-theme="clair"], html.k-cadre-liste[data-theme="clair"] {
+  --k-verre-fond: linear-gradient(rgb(var(--k-rail-rgb) / .6), rgb(var(--k-rail-rgb) / .6)), rgb(var(--k-fond-rgb));
+}
 /* Le cadre en L (`k-cadre-l`, à partir de 768 px) : la bande du haut passe par-dessus la page, qui monte dessous ; le
    dossier y défile (ses colonnes s'écartent de 48 px elles-mêmes), le CRM, l'Emailing et les Outils gardent leurs
    panneaux sous la bande. Le filet `trait` du 12 nov. court sous la bande, tourne au coin de 16 px (le verre remplit le
@@ -1515,3 +1539,31 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* Le tableau de la Pré-analyse : fond transparent en mode sombre (11 nov. 2026, Jules), le fond `rail` en mode clair. */
 .k-tableau-fond { background-color: transparent; }
 :root[data-theme="clair"] .k-tableau-fond { background-color: rgb(var(--k-rail-rgb)); }
+
+/* L'écran de chargement d'une page (14 nov. 2026, Jules, sur une maquette) : fond noir, le nom au centre en gris clair,
+   une bande de lumière blanche qui le traverse en boucle (1,8 s). Gris au repos : sur un titre déjà blanc, la bande ne se
+   verrait pas. Sans animation si l'appareil le demande : le nom en blanc, fixe. */
+.k-ecran-chargement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0);
+}
+.k-ecran-chargement h1 {
+  margin: 0;
+  font: 500 clamp(44px, 5vw, 64px) / 1.1 var(--k-police, 'Instrument Sans'), Inter, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+  color: transparent;
+  background: linear-gradient(100deg, rgb(140 140 140) 40%, rgb(255 255 255) 50%, rgb(140 140 140) 60%) no-repeat;
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: k-ecran-balayage 1.8s linear infinite;
+}
+@keyframes k-ecran-balayage {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-ecran-chargement h1 { animation: none; background: none; color: rgb(255 255 255); }
+}

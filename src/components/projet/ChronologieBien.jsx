@@ -12,7 +12,7 @@ import { useEdition, ValeurForcee, forcee, estMasque } from "./EditionEnPlace";
 // générales enregistrées. Un événement sans date n'apparaît pas.
 
 function Point({ e }) {
-  const teinte = e.futur ? (e.alerte ? "border-ambre bg-ambre" : "border-encre bg-fond") : "border-ardoise bg-ardoise";
+  const teinte = e.futur ? (e.alerte ? "border-menthe bg-menthe" : "border-encre bg-fond") : "border-ardoise bg-ardoise";
   return <span className={`relative z-10 block h-4 w-4 flex-none rounded-full border-2 ${teinte}`} />;
 }
 
@@ -29,7 +29,7 @@ function Evenement({ e }) {
   };
   return (
     <div className={`flex min-w-0 flex-col gap-1.5 ${e.masque ? "opacity-40" : ""}`}>
-      <span className={`text-[14.5px] ${e.futur ? (e.alerte ? "text-ambre" : "text-encre") : "text-ardoise"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+      <span className={`text-[14.5px] ${e.futur ? (e.alerte ? "text-menthe" : "text-encre") : "text-ardoise"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
         <ValeurForcee cle={`chrono_${e.cle}_date`} type="text">{e.date}</ValeurForcee>
       </span>
       <span className={`text-[17px] font-medium leading-[1.3] ${e.futur ? "text-encre" : "text-craie"}`}>

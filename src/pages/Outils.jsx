@@ -16,6 +16,8 @@ export const PARTIES = [
   { cle: "rue", mot: "Rue", outils: ["emplacement", "ville"] },
   { cle: "marche", mot: "Marché", outils: ["loyer", "prix"] },
   { cle: "locataire", mot: "Locataire", outils: ["locataire"] },
+  // Plus de page Passage (13 nov. 2026, Jules : « pour le passage, enlève ça ») : l'équipe ne note plus des adresses pour
+  // régler le calcul. JugerPassage et ses routes restent dans le code.
   { cle: "historique", mot: "Historique", outils: [] },
 ];
 const CHAMPS = [

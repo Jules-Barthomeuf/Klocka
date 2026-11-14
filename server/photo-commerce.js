@@ -160,7 +160,7 @@ export function choisirPhotosDeVille(photos = [], n = 4) {
  * différentes images »). `[{ url, auteur }]`, gardées comme les autres. Depuis le 3 nov., seulement en repli de la
  * recherche d'images.
  */
-async function photosGoogleDeLaVille(commune, n = 4) {
+export async function photosGoogleDeLaVille(commune, n = 4) {
   const v = norm(commune);
   if (!v || !cle()) return [];
   const k = `ville-choix:${v}`;
@@ -181,6 +181,33 @@ async function photosGoogleDeLaVille(commune, n = 4) {
   })().finally(() => enCours.delete(k));
   enCours.set(k, travail);
   return travail;
+}
+
+/**
+ * D'autres photos Google d'une ville (13 nov. 2026, Jules : « va chercher des photos » ne rendait que les trois
+ * gardées, déjà dans le projet). Les suivantes de sa fiche, dans le même ordre que photosGoogleDeLaVille : les gardées
+ * en sont le début, on prend après elles, on les rapatrie et on les ajoute à la fiche gardée. `[]` quand la fiche
+ * Google n'en a plus (dix photos au plus par lieu).
+ */
+export async function autresPhotosGoogleDeLaVille(commune, n = 3) {
+  const v = norm(commune);
+  if (!v || !cle()) return [];
+  const k = `ville-choix:${v}`;
+  const garde = Records.findBy(ENTITE, 'cle', k);
+  const deja = garde?.photos || [];
+  const id = garde?.place_id || (await trouverVille(commune));
+  if (!id) return [];
+  const suivantes = choisirPhotosDeVille(await photosDuLieu(id), 10).slice(deja.length, deja.length + n);
+  const nouvelles = [];
+  for (const p of suivantes) {
+    try { nouvelles.push({ url: await telecharger(p.name, 1600), auteur: p.authorAttributions?.[0]?.displayName || null }); } catch (err) { console.warn(`[photo-ville] ${err?.message || err}`); }
+  }
+  if (nouvelles.length) {
+    const fiche = { cle: k, place_id: id, photos: [...deja, ...nouvelles], le: new Date().toISOString() };
+    if (garde) Records.update(ENTITE, garde.id, fiche); else Records.create(ENTITE, fiche);
+  }
+  console.log(`[photo-ville] ${JSON.stringify(commune)} autres → ${nouvelles.length} photo(s)`);
+  return nouvelles;
 }
 
 // --- Les photos d'une ville (3 nov. 2026, Jules : « qu'il prenne les tops images ; si on lui demande d'en chercher

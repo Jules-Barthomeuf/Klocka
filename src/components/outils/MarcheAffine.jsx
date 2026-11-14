@@ -4,7 +4,8 @@ import { Check, Info, Loader2, RotateCw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Anneau, Barres, Calendrier, Fourchettes, Frise, Jauge, JaugeFine, PointsSurAxe } from "@/components/outils/visuels";
+import { Anneau, Barres, Calendrier, ClassementVacance, Fourchettes, Frise, Jauge, Legende, PointsSurAxe } from "@/components/outils/visuels";
+import { SOURCE_REPERES, lignesVacance, phraseVacance } from "@/lib/vacance-reperes";
 import { cleOutilsDossier, marquerVu, useOutilsDossier } from "@/components/analyse/ControlesHorsDocuments";
 import { MOT, montants, sansCode, suiteCourte, teteEtSuite, teteProcedure } from "@/lib/marche-texte";
 import { VERRE } from "@/lib/verre";
@@ -14,7 +15,7 @@ import { VERRE } from "@/lib/verre";
 // outil. Chaque bloc a son nom en 20 px, Relancer et Vérifié, puis une carte au seul bord dont les parties sont séparées
 // d'un filet ; chaque partie dit son verdict (le chiffre, puis le jugement) et le montre : fourchettes du loyer, ventes en
 // points, jauge du rendement, ce qui fait la note de passage, frise du local, jauge et ruban de la vacance, jauge et
-// pastilles des enseignes, avis BODACC en points, note Google en jauge, poids du loyer en jauge, jauges du revenu et du
+// pastilles des enseignes, avis BODACC en points, note Google en jauge, les comptes publiés en une ligne sous les procédures, jauges du revenu et du
 // chômage. Le Locataire commence par le nom de la société seul (12 nov. 2026, Jules), les procédures en calendrier.
 // Plus de tableau, de note de l'IA ni de fenêtre. Chaque partie a sa source en bas à droite : « Voir source » ouvre ce
 // que l'outil a lu, le « i » dit d'où vient le chiffre (`Source`).
@@ -85,7 +86,7 @@ function Mesure({ p, chiffre, suite, sansLibelle = false, badge = null, lien, so
       <div className="flex items-start gap-2.5">
         <Point statut={p.statut} className="mt-[9px]" />
         <p className="m-0 min-w-0 leading-[1.4]">
-          {!sansLibelle && <><span className="text-[12.5px] text-brume">{p.libelle}</span>{badge && <span className="ml-2 rounded-full border border-menthe/50 px-1.5 text-[11px] text-menthe">{badge}</span>}<br /></>}
+          {!sansLibelle && <><span className="text-[12.5px] text-ardoise">{p.libelle}</span>{badge && <span className="ml-2 rounded-full border border-menthe/50 px-1.5 text-[11px] text-menthe">{badge}</span>}<br /></>}
           <span className={vide ? "text-[14.5px] text-brume" : "text-[20px] tabular-nums text-encre"}>{tete}</span>
           {reste && <span className="text-[13px] text-ardoise"> {reste}</span>}
         </p>
@@ -96,9 +97,12 @@ function Mesure({ p, chiffre, suite, sansLibelle = false, badge = null, lien, so
   );
 }
 
+// Les gestes d'une section avec leur nom (14 nov. 2026, Jules, revue de design : « rafraîchir et valider sur chaque
+// section, sans qu'on sache ce qu'elles font »).
+const GESTE = "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] text-ardoise transition-colors hover:bg-relief hover:text-encre disabled:opacity-50";
+
 function Entete({ o, onRelancer, onVerifier, relance, apercu }) {
   const l = o.lancement;
-  const icone = "grid h-7 w-7 place-items-center rounded-full transition-colors hover:bg-relief disabled:opacity-50";
   return (
     <header className="flex min-h-[36px] flex-wrap items-center gap-x-3 gap-y-1">
       {/* Le nom de l'outil, de la taille du nom de la partie (20 px) ; ni la question ni la date (12 nov. 2026, Jules). */}
@@ -107,8 +111,8 @@ function Entete({ o, onRelancer, onVerifier, relance, apercu }) {
       {o.a_relancer && <span className="text-[12.5px] text-menthe" title={o.a_relancer}>À relancer</span>}
       {!apercu && (
         <span className="ml-auto flex items-center gap-0.5">
-          <button type="button" onClick={() => onRelancer([o.cle])} disabled={relance || l?.statut === "en_cours"} aria-label={`Relancer ${o.nom}`} title="Relancer" className={`${icone} text-ardoise hover:text-encre`} style={{ background: "transparent" }}>{l?.statut === "en_cours" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}</button>
-          {l?.statut === "fini" && <button type="button" onClick={() => onVerifier(l.id, !l.verifie)} aria-label={l.verifie ? "Revenir à « lu »" : "Marquer vérifié"} title={l.verifie ? `Vérifié par ${(l.verifie.par || "").split("@")[0]}` : "Marquer vérifié"} className={`${icone} ${l.verifie ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}><Check className="h-3.5 w-3.5" /></button>}
+          <button type="button" onClick={() => onRelancer([o.cle])} disabled={relance || l?.statut === "en_cours"} aria-label={`Relancer ${o.nom}`} title="Relire cet outil avec les chiffres du dossier" className={GESTE} style={{ background: "transparent" }}>{l?.statut === "en_cours" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}Relancer</button>
+          {l?.statut === "fini" && <button type="button" onClick={() => onVerifier(l.id, !l.verifie)} aria-label={l.verifie ? "Revenir à « lu »" : "Marquer vérifié"} title={l.verifie ? `Vérifié par ${(l.verifie.par || "").split("@")[0]}` : "Marquer vérifié"} className={`${GESTE} ${l.verifie ? "!text-menthe" : ""}`} style={{ background: "transparent" }}><Check className="h-3.5 w-3.5" />{l.verifie ? "Vérifié" : "Vérifier"}</button>}
         </span>
       )}
     </header>
@@ -137,11 +141,11 @@ function Identite({ p }) {
   );
 }
 
-function Procedures({ p }) {
+function Procedures({ p, comptes = null }) {
   if (!p) return null;
   const [chiffre, suite] = p.statut === "vide" ? [undefined, undefined] : teteProcedure(p.resultat);
   const ev = p.detail?.evenements || [];
-  return <Mesure p={p} chiffre={chiffre} suite={suite}>{ev.length > 0 && <Calendrier evenements={ev} />}</Mesure>;
+  return <Mesure p={p} chiffre={chiffre} suite={suite}>{ev.length > 0 && <Calendrier evenements={ev} />}<LigneComptes p={comptes} /></Mesure>;
 }
 
 /** Avis clients : la note sur 5 en jauge, le nombre d'avis et le nom de la fiche ; plus les derniers avis (12 nov. 2026). */
@@ -186,37 +190,33 @@ function AvisClients({ p }) {
   );
 }
 
-function PoidsDuLoyer({ p }) {
-  if (!p) return <Mesure p={{ cle: "comptes", libelle: "Poids du loyer", statut: "vide", resultat: "Relancez l'outil pour lire les comptes." }} />;
-  const d = p.detail || {};
-  const resultat = d.resultat_net == null ? "" : d.resultat_net < 0 ? ` · perte de ${euros(-d.resultat_net)}` : ` · résultat ${euros(d.resultat_net)}`;
-  if (d.taux != null) {
-    const max = Math.max(25, Math.ceil(d.taux / 5) * 5 + 5);
-    const mot = d.taux < 0.1 ? "moins de 0,1 %" : pct(d.taux);
-    return (
-      <Mesure p={p} chiffre={mot} suite={`du chiffre d'affaires · CA ${euros(d.chiffre_affaires)} en ${d.exercice}${resultat}`}>
-        <Jauge min={0} max={max} unite={(v) => `${v} %`} zones={[{ de: 0, a: 10, statut: "ok" }, { de: 10, a: 15, statut: "a_voir" }, { de: 15, a: max, statut: "alerte" }]} marques={[{ valeur: d.taux, texte: mot, statut: p.statut }]} graduations={[0, 10, 15, max]} />
-      </Mesure>
-    );
-  }
-  if (d.exercice && d.chiffre_affaires) return <Mesure p={p} chiffre={`CA ${euros(d.chiffre_affaires)}`} suite={`en ${d.exercice}${resultat} · loyer manquant dans le dossier`} />;
-  if (d.exercice) return <Mesure p={p} chiffre="CA confidentiel" suite={`en ${d.exercice}${resultat}`} />;
+/**
+ * Les comptes publiés, en une ligne sous les procédures (13 nov. 2026, Jules : « la majorité des cas, ça ne marche pas ;
+ * est-il nécessaire de garder cette partie ? ») : plus de case à part, vide une fois sur deux pour un petit commerce.
+ * La ligne ne vient que si des comptes récents existent : le résultat (une perte en `alerte`), le chiffre d'affaires,
+ * et le poids du loyer pour une société à un seul établissement ouvert. Le serveur lit toujours `comptes`.
+ */
+function LigneComptes({ p }) {
+  const d = p?.detail || {};
+  if (!d.exercice || (d.resultat_net == null && !d.chiffre_affaires)) return null;
+  const res = d.resultat_net;
+  const seule = d.taux != null && Number(d.etablissements) === 1;
+  const reste = [d.chiffre_affaires ? `CA ${euros(d.chiffre_affaires)}` : res != null ? "CA confidentiel" : null, seule ? `loyer ${pct(d.taux)} du CA` : null].filter(Boolean).join(" · ");
   return (
-    <Mesure p={p}>
-      {/^Comptes non publiés/.test(p.resultat || "") && <p className="m-0 text-[12.5px] text-brume">Un commerce sur dix publie des comptes récents ; les entreprises individuelles jamais.</p>}
-    </Mesure>
+    <p className="m-0 text-[12.5px] text-ardoise" title={p.source ? `Source : ${p.source}` : undefined}>
+      Comptes {d.exercice} : {res == null ? null : <span className={res < 0 ? "text-alerte" : "text-craie"}>{res < 0 ? `perte de ${euros(-res)}` : `bénéfice de ${euros(res)}`}</span>}{res != null && reste ? " · " : ""}{reste}
+    </p>
   );
 }
 
-/** Locataire : l'identité de la société, puis trois mesures de même poids (procédures, avis clients, poids du loyer). */
+/** Locataire : l'identité de la société, puis deux mesures de même poids (procédures avec la ligne des comptes, avis clients). */
 function BlocLocataire({ pts }) {
   return (
     <div className={GRILLE[1]}>
       <div className={CELLULE}><Identite p={pts.societe} /></div>
-      <div className={GRILLE[3]}>
-        <div className={CELLULE}><Procedures p={pts.procedures} /></div>
+      <div className={GRILLE[2]}>
+        <div className={CELLULE}><Procedures p={pts.procedures} comptes={pts.comptes} /></div>
         <div className={CELLULE}><AvisClients p={pts.avis} /></div>
-        <div className={CELLULE}><PoidsDuLoyer p={pts.comptes} /></div>
       </div>
     </div>
   );
@@ -231,7 +231,7 @@ const PartieLoyer = ({ statut, libelle, chiffre, suite = null, classe = "text-en
   <div className="flex items-start gap-2.5">
     <Point statut={statut} className="mt-[9px]" />
     <p className="m-0 min-w-0 leading-[1.4]">
-      <span className="text-[12.5px] text-brume">{libelle}</span><br />
+      <span className="text-[12.5px] text-ardoise">{libelle}</span><br />
       <span className={`text-[20px] tabular-nums ${classe}`}>{chiffre}</span>
       {suite && <span className="text-[13px] text-ardoise"> {suite}</span>}
     </p>
@@ -255,7 +255,7 @@ function BlocLoyer({ pts }) {
     <div className={GRILLE[1]}>
       <div className={GRILLE[2]}>
         <div className={CELLULE}><PartieLoyer statut={d.loyer_m2 > 0 ? "ok" : "vide"} libelle="Le bien" chiffre={d.loyer_m2 > 0 ? `${eurosM2(d.loyer_m2)}/an` : "—"} classe={d.loyer_m2 > 0 ? "text-encre" : "text-brume"} /></div>
-        <div className={CELLULE}><PartieLoyer statut={p.statut} libelle="Face au marché" chiffre={ecart == null ? "—" : ecart === 0 ? "au marché" : `${ecart > 0 ? "+" : "−"}${Math.abs(ecart)} %`} suite={ecart == null ? null : Math.abs(ecart) <= 15 ? "dans le marché" : ecart > 0 ? "risque de baisse au renouvellement" : "marge à la hausse au renouvellement"} classe={couleur} /></div>
+        <div className={CELLULE}><PartieLoyer statut={p.statut} libelle="Écart au marché" chiffre={ecart == null ? "—" : ecart === 0 ? "au marché" : `${ecart > 0 ? "+" : "−"}${Math.abs(ecart)} %`} suite={ecart == null ? null : Math.abs(ecart) <= 15 ? "dans le marché" : ecart > 0 ? "au-dessus du marché : le loyer risque de baisser au renouvellement" : "sous le marché : marge à la hausse au renouvellement"} classe={couleur} /></div>
       </div>
       <div className={CELLULE}>
         {niveaux.length > 0 && <Fourchettes lignes={niveaux.map(([k, n]) => ({ nom: ECHELLE[k] || k, bas: n.basse, moyenne: n.moyenne, haut: n.haute }))} bien={d.loyer_m2 ?? null} unite={(v) => `${v} €/m²`} />}
@@ -298,7 +298,21 @@ function BlocPrix({ pts }) {
         <div className={CELLULE}><Mesure p={v}>{nuage}</Mesure></div>
       )}
       <div className={CELLULE}>
-        <Mesure p={r} suite="">{jauge && <Jauge min={bas} max={haut} unite={(x) => pct(x, 2)} zones={[{ de: bas, a: taux - 0.75, statut: "alerte" }, { de: taux - 0.75, a: taux - 0.25, statut: "a_voir" }, { de: taux - 0.25, a: haut, statut: "ok" }]} marques={[{ valeur: rendement, texte: `le bien, ${pct(rendement, 2)}`, statut: r.statut }, { valeur: taux, texte: `marché ${pct(taux, 2)}`, sourd: true }]} graduations={[bas, taux, haut]} />}</Mesure>
+        {/* Sans taux validé pour la ville (13 nov. 2026, Jules : « rendement face au taux de la ville 5,45 %, et rien en
+            dessous ») : la phrase qui le dit, et le rendement placé dans la fourchette usuelle des murs de commerce,
+            4 à 10 % (server/taux-rendement.js), sans couleur : ce n'est pas un jugement. */}
+        <Mesure p={r} suite={jauge ? "" : undefined}>{!jauge && Number.isFinite(rendement) && r?.statut !== "vide" && <Jauge min={3} max={11} unite={(x) => pct(x, 0)} marques={[{ valeur: rendement, texte: `le bien, ${pct(rendement, 2)}`, statut: "a_voir" }]} graduations={[4, 7, 10]} />}{jauge && <Jauge min={bas} max={haut} unite={(x) => pct(x, 2)} zones={[{ de: bas, a: taux - 0.75, statut: "alerte" }, { de: taux - 0.75, a: taux - 0.25, statut: "a_voir" }, { de: taux - 0.25, a: haut, statut: "ok" }]} marques={[{ valeur: rendement, texte: `le bien, ${pct(rendement, 2)}`, statut: r.statut }, { valeur: taux, texte: `marché ${pct(taux, 2)}`, sourd: true }]} graduations={[bas, taux, haut]} />}
+          {/* La légende des zones et ce que le taux vaut en euros (14 nov. 2026, revue de design : « trois zones de couleur
+              sans légende, un grand vide dessous »). */}
+          {jauge && <div className="mt-2"><Legende items={[["bg-alerte/20", "plus de 0,75 pt sous le marché"], ["bg-menthe/35", "0,25 à 0,75 pt sous"], ["bg-menthe/15", "au marché ou au-dessus"]]} /></div>}
+          {!jauge && Number.isFinite(rendement) && r?.statut !== "vide" && <div className="mt-2"><Legende items={[["bg-encre/20", "fourchette usuelle des murs de commerce, 4 à 10 %"]]} /></div>}
+          {jauge && cap?.moyenne > 0 && (
+            <p className="m-0 mt-4 text-[13px] leading-[1.45] text-ardoise">
+              Au taux du marché ({pct(taux, 2)}), les murs valent <span className="tabular-nums text-encre">{euros(cap.moyenne)}</span>
+              {cap.basse > 0 && cap.haute > 0 && <> (de {euros(cap.basse)} à {euros(cap.haute)})</>}.
+            </p>
+          )}
+        </Mesure>
       </div>
     </div>
   );
@@ -330,57 +344,89 @@ function PartieEmplacement({ p, chiffre, a_cote = null, sous = null, lien, sourc
   );
 }
 
-function BlocEmplacement({ pts, rue }) {
-  const parts = rue?.passage?.parts || null;
+// Exporté pour la page projet, qui reprend l'Emplacement du dossier (13 nov. 2026, Jules).
+// `simple` (page projet, 13 nov. 2026, Jules : « juste Passage, la note et un petit paragraphe pourquoi ») : la note
+// seule, puis ce qui l'a faite en phrases, sans barres, sans « provisoire » ni critères non lus.
+// `partie(id, titre, element)` (page projet, 13 nov. 2026, Jules : « on doit pouvoir masquer chaque truc ») : enveloppe
+// chaque partie dans le bloc masquable de l'éditeur ; l'Analyse n'en passe pas.
+export function BlocEmplacement({ pts, rue, simple = false, partie = null }) {
+  const enveloppe = (id, titre, el) => (partie ? partie(id, titre, el) : el);
+  // La note v2 (13 nov. 2026) dit ses critères chacun sur 10 face aux autres rues de la ville ; une lecture d'avant garde
+  // ses cinq parties à leur barème.
+  const signaux = rue?.passage?.signaux || null;
+  const parts = signaux ? null : rue?.passage?.parts || null;
+  const lignesPassage = signaux ? signaux.map((x) => ({ nom: x.nom, valeur: x.valeur != null ? Math.round(x.valeur * 20) / 2 : null, max: 10 }))
+    : parts ? PARTS.map(([k, nom, max]) => ({ nom, valeur: parts[k] != null ? parts[k] : null, max })) : null;
   const t = pts.vacance?.detail?.taux;
-  const maxVac = Math.max(30, Math.ceil(((t?.taux || 0) + 5) / 10) * 10);
   const part = rue?.rue?.part_enseignes_pct;
   const historique = [...(rue?.local?.historique || [])].sort((a, b) => String(b.ouvert || "").localeCompare(String(a.ouvert || ""))).slice(0, 6);
   // Le passage : « Voir source » ouvre la photo Street View que l'IA a lue le long de la rue (server/outils/rue.js).
   const photo = rue?.street_view?.photos?.rue || null;
-  const sourcePassage = `Indice Klocka, pas un comptage. Sources : commerces et enseignes du registre SIRENE, transports à 300 m par Google Maps, type de voie par OpenStreetMap${photo ? `, photo Street View lue par l'IA${rue.street_view.date ? ` (prise de vue de ${rue.street_view.date})` : ""}` : ""}.`;
+  const sourcePassage = `Indice Klocka, pas un comptage : chaque critère est jugé face aux autres rues de la ville. Sources : commerces et enseignes du registre SIRENE, avis Google des commerces à 100 m, loyer de la rue par Equimmox, transports à 300 m et type de voie par OpenStreetMap${photo ? `, photo ${rue.street_view.source || "Street View"} lue par l'IA${rue.street_view.date ? ` (prise de vue de ${rue.street_view.date})` : ""}` : ""}.`;
   // Les phrases du serveur, redites pour l'image : « 10 / 10 (provisoire : …) », « 6 exploitants en dix ans pour 4
   // cellules : local stable », « 9,3 % sur la rue (4 vides sur 43 locaux) : … ».
   const passage = String(pts.passage?.resultat || "");
   const note = passage.match(/^(\d+(?:,\d+)?)\s*\/\s*10/)?.[1];
-  const lus = parts ? PARTS.filter(([k]) => parts[k] != null).length : null;
+  const lus = signaux ? rue.passage.lus : parts ? PARTS.filter(([k]) => parts[k] != null).length : null;
+  const sur = signaux ? rue.passage.sur : PARTS.length;
   const rotation = String(pts.rotation?.resultat || "").match(/^(\d+ exploitants?)\s+(.*)$/);
   const vacance = String(pts.vacance?.resultat || "");
   const vides = vacance.match(/\((\d+) vides? sur (\d+) locaux\)/);
   const reserve = vacance.split(" : ").slice(1).join(" : ");
   const cotes = (rue?.rue?.cellules || []).reduce((acc, c) => { const k = Number(c.numero) % 2 === 0 ? "pair" : "impair"; const n = Number(c.numero); if (Number.isFinite(n)) acc[k] = [Math.min(acc[k]?.[0] ?? n, n), Math.max(acc[k]?.[1] ?? n, n)]; return acc; }, {});
   const noms = rue?.rue?.noms_enseignes || [];
-  return (
-    <div className={GRILLE[2]}>
+  const pourquoi = (rue?.passage?.pourquoi || []).map((x) => String(x).trim().replace(/[.\s]+$/, "")).filter(Boolean);
+  const paragraphe = pourquoi.length ? `${pourquoi.map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(". ")}.` : null;
+  // Page projet (13 nov. 2026, Jules) : la Vacance prend la place du Passage, qui descend à la sienne.
+  const celPassage = enveloppe("emplacement-passage", "Passage", (
       <div className={CELLULE}>
-        <PartieEmplacement p={pts.passage} lien={photo} source={sourcePassage} chiffre={note ? `${note}/10` : teteEtSuite(passage)[0]}
-          a_cote={<>{/provisoire/.test(passage) && <span className="rounded-full border border-menthe/50 px-1.5 text-[11px] text-menthe">provisoire</span>}{lus != null && <span className="text-[13px] text-ardoise">{lus} critère{lus > 1 ? "s" : ""} lu{lus > 1 ? "s" : ""} sur {PARTS.length}</span>}</>}>
-          {parts && <div className="pt-2"><Barres largeurLibelle="minmax(0,190px)" lignes={PARTS.map(([k, nom, max]) => ({ nom, valeur: parts[k] != null ? parts[k] : null, max }))} max={3.5} format={(v, l) => `${String(v).replace(".", ",")} / ${String(l.max).replace(".", ",")}`} /></div>}
+        {simple ? (
+          <PartieEmplacement p={pts.passage} lien={photo} source={sourcePassage} chiffre={note ? `${note}/10` : teteEtSuite(passage)[0]}>
+            {paragraphe && <p className="m-0 text-[13px] leading-[1.55] text-ardoise">{paragraphe}</p>}
+          </PartieEmplacement>
+        ) : <PartieEmplacement p={pts.passage} lien={photo} source={sourcePassage} chiffre={note ? `${note}/10` : teteEtSuite(passage)[0]}
+          a_cote={<>{/provisoire/.test(passage) && <span className="rounded-full border border-menthe/50 px-1.5 text-[11px] text-menthe">provisoire</span>}{lus != null && <span className="text-[13px] text-ardoise">{lus} critère{lus > 1 ? "s" : ""} lu{lus > 1 ? "s" : ""} sur {sur}</span>}</>}>
+          {lignesPassage && <div className="pt-2"><Barres largeurLibelle="minmax(0,190px)" lignes={lignesPassage} max={signaux ? 10 : 3.5} format={(v, l) => `${String(v).replace(".", ",")} / ${String(l.max).replace(".", ",")}`} /></div>}
+        </PartieEmplacement>}
+      </div>
+  ));
+  // La Vacance rangée parmi les repères nationaux (13 nov. 2026, Jules, variante B de la planche : « la B de loin »).
+  const phraseVac = t?.taux != null ? phraseVacance(t.taux) : null;
+  const celVacance = enveloppe("emplacement-vacance", "Vacance", (
+      <div className={CELLULE}>
+        <PartieEmplacement p={pts.vacance} chiffre={t?.taux != null ? `${String(t.taux).replace(".", ",")} %` : teteEtSuite(vacance)[0]}
+          source={pts.vacance ? [sourceDe(pts.vacance), SOURCE_REPERES].filter(Boolean).join(" ") : undefined}
+          sous={vides ? `${vides[1]} ${Number(vides[1]) > 1 ? "locaux vides" : "local vide"} sur ${vides[2]} dans la rue${phraseVac ? ` · ${phraseVac}` : ""}${reserve ? ` · ${reserve}` : ""}` : phraseVac}>
+          {t?.taux != null && <div className="mt-auto pt-4"><ClassementVacance lignes={lignesVacance(t.taux)} /></div>}
+          {(cotes.impair || cotes.pair) && <p className="m-0 pt-2 text-[12.5px] text-ardoise">{[cotes.impair && `Côté impair n° ${cotes.impair[0]} à ${cotes.impair[1]}`, cotes.pair && `côté pair n° ${cotes.pair[0]} à ${cotes.pair[1]}`].filter(Boolean).join(" · ")}</p>}
         </PartieEmplacement>
       </div>
+  ));
+  return (
+    <div className={GRILLE[2]}>
+      {simple ? celVacance : celPassage}
+      {enveloppe("emplacement-rotation", "Rotation du local", (
       <div className={CELLULE}>
         <PartieEmplacement p={pts.rotation} chiffre={rotation ? rotation[1] : teteEtSuite(pts.rotation?.resultat)[0]} sous={rotation ? rotation[2].replace(" : ", " · ") : null}>
           {historique.length > 0 && <Frise lignes={historique.map((h) => ({ nom: h.nom, de: h.ouvert, a: h.ferme || null, actif: !h.ferme }))} />}
         </PartieEmplacement>
       </div>
-      <div className={CELLULE}>
-        <PartieEmplacement p={pts.vacance} chiffre={t?.taux != null ? `${String(t.taux).replace(".", ",")} %` : teteEtSuite(vacance)[0]}
-          sous={vides ? `${vides[1]} ${Number(vides[1]) > 1 ? "locaux vides" : "local vide"} sur ${vides[2]} dans la rue${reserve ? ` · ${reserve}` : ""}` : null}>
-          {t?.taux != null && <div className="mt-auto pt-6"><JaugeFine min={0} max={maxVac} valeur={t.taux} unite={(v) => `${v} %`} zones={[{ de: 0, a: 10, statut: "ok" }, { de: 10, a: 20, statut: "a_voir" }, { de: 20, a: maxVac, statut: "alerte" }]} graduations={[0, 10, 20, maxVac]} /></div>}
-          {(cotes.impair || cotes.pair) && <p className="m-0 pt-4 text-[12.5px] text-ardoise">{[cotes.impair && `Côté impair n° ${cotes.impair[0]} à ${cotes.impair[1]}`, cotes.pair && `côté pair n° ${cotes.pair[0]} à ${cotes.pair[1]}`].filter(Boolean).join(" · ")}</p>}
-        </PartieEmplacement>
-      </div>
+      ))}
+      {simple ? celPassage : celVacance}
+      {enveloppe("emplacement-enseignes", "Enseignes nationales", (
       <div className={CELLULE}>
         <PartieEmplacement p={pts.enseignes} chiffre={null}>
           {part != null && (
-            <div className="flex items-center gap-8 py-2 max-md:gap-5">
-              <Anneau part={part} taille={96} epaisseur={10} />
-              <p className="m-0 text-[13px] leading-[1.5] text-ardoise">des commerces ouverts de la rue sont des <span className="text-encre">enseignes nationales</span>.</p>
+            // L'anneau prend la place de la partie (13 nov. 2026, Jules : « que le rond avec le chiffre prenne plus de place »).
+            <div className="flex items-center gap-8 py-3 max-md:gap-5">
+              <Anneau part={part} taille={168} epaisseur={16} classeTexte="text-[34px]" />
+              <p className="m-0 min-w-0 flex-1 text-[13px] leading-[1.5] text-ardoise">des commerces ouverts de la rue sont des <span className="text-encre">enseignes nationales</span>.</p>
             </div>
           )}
           {noms.length > 0 && <div className="mt-auto flex flex-wrap gap-2 pt-2">{noms.slice(0, 8).map((n) => <span key={n} className="rounded-full border border-trait px-2.5 py-0.5 text-[12.5px] text-craie">{n}</span>)}{noms.length > 8 && <span className="self-center px-1 text-[12.5px] text-brume">+{noms.length - 8}</span>}</div>}
         </PartieEmplacement>
       </div>
+      ))}
     </div>
   );
 }

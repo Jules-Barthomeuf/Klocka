@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { voieDuNom } from './vacance-taux.js';
-import { rueDifferente, sansForme, marqueDuNom, exploitantsDe, cellulesEstimees, rotationDe, cellulesDeLaRue, resumeDeLaRue, positionDuLocal, notePassage, conclusionRue } from './rue.js';
+import { rueDifferente, sansForme, marqueDuNom, exploitantsDe, cellulesEstimees, rotationDe, cellulesDeLaRue, resumeDeLaRue, positionDuLocal, rangsDeLaCommune, conclusionRue } from './rue.js';
 
 const AUJ = new Date('2026-11-11');
 const e = (siret, { adresse = '12 RUE DE LA REPUBLIQUE 06600 ANTIBES', naf = '47.71Z', etat = 'actif', creation = '2015-03-10', fermeture = null, nom = 'X', enseigne = null, cat = '5710', lat = 43.58, lon = 7.12 } = {}) =>
@@ -79,25 +79,18 @@ test('la position : le tronçon du local et son rang parmi les tronçons', () =>
   assert.equal(p.enseigne_proche.distance_m, 22);
 });
 
-test('la note de passage se rapporte à ce qui a pu être lu, et dit son pourquoi', () => {
-  assert.equal(notePassage({}), null);
-  const faible = notePassage({ rue: { cellules: 12, ouvertes: 2, enseignes_nationales: 0, noms_enseignes: [] }, transports: { genres: [], lourd: false }, voie: 'rue résidentielle' });
-  assert.equal(faible.statut, 'alerte');
-  assert.ok(faible.pourquoi.some((p) => /aucune enseigne/.test(p)));
-  const fort = notePassage({
-    rue: { cellules: 40, ouvertes: 30, enseignes_nationales: 6, noms_enseignes: ['Zara', 'Fnac', 'Sephora', 'H&M'] },
-    position: { troncon: { occupes: 14, du: 2, au: 30 }, max_densite: 14, place: { mot: 'le cœur commerçant de la rue' } },
-    transports: { genres: ['métro', 'bus'], lourd: true }, voie: 'rue piétonne',
-    vues: { impression_passage: 9, pourquoi: 'rue piétonne bondée, vitrines ouvertes', date: '2024-06' },
-  });
-  assert.equal(fort.statut, 'ok');
-  assert.ok(fort.note >= 9);
-  assert.deepEqual(fort.manque, []);
-  const sansPhoto = notePassage({ rue: { cellules: 40, ouvertes: 30, enseignes_nationales: 6, noms_enseignes: [] }, transports: { genres: ['métro'], lourd: true } });
-  assert.ok(sansPhoto.manque.includes('vues'));
-  // Une rue de deux cellules ne dit rien de son passage : ni tronçon ni enseignes ne notent.
-  const minuscule = notePassage({ rue: { cellules: 2, ouvertes: 2, enseignes_nationales: 0, noms_enseignes: [] }, position: { troncon: { occupes: 2, du: 1, au: 3 }, max_densite: 2 } });
-  assert.equal(minuscule, null);
+test('le classement de la commune : chaque rue de quatre cellules au moins, un commerce ouvert du milieu, la rue de tête', () => {
+  const es = [];
+  for (let i = 1; i <= 6; i += 1) es.push(e(`1000000000000${i}`, { adresse: `${i * 2} RUE DE LA REPUBLIQUE 06600 ANTIBES`, nom: `BOUTIQUE ${i}`, lat: 43.58 + i / 10000 }));
+  for (let i = 1; i <= 4; i += 1) es.push(e(`2000000000000${i}`, { adresse: `${i} RUE DES PECHEURS 06600 ANTIBES`, nom: `ATELIER ${i}`, etat: i > 1 ? 'ferme' : 'actif', fermeture: i > 1 ? '2024-01-01' : null }));
+  es.push(e('30000000000001', { adresse: '3 IMPASSE DU PORT 06600 ANTIBES' }));
+  const r = rangsDeLaCommune(es, { aujourdhui: AUJ, index: new Map() });
+  assert.equal(r.rues.length, 2, 'l\'impasse d\'une cellule ne compte pas');
+  assert.deepEqual([...r.ouvertes].sort(), [1, 6]);
+  assert.equal(r.tete.ouvertes, 6);
+  assert.match(r.tete.exemple, /RUE DE LA REPUBLIQUE 06600 ANTIBES$/);
+  assert.equal(r.tete.nom, 'RUE DE LA REPUBLIQUE');
+  assert.ok(Number.isFinite(r.tete.centre.lat));
 });
 
 test('la conclusion tranche sur ce qu\'elle a, et le dit quand elle n\'a rien', () => {
@@ -126,4 +119,23 @@ test('la rue reconnue qui n\'est pas celle écrite se signale ; une abréviation
   assert.equal(rueDifferente('16 Av. Franklin Delano Roosevelt, 75008 Paris', 'Avenue Franklin D. Roosevelt'), null);
   assert.equal(rueDifferente('12 rue de la République, 69002 Lyon', 'Rue de la République'), null);
   assert.equal(rueDifferente('1 bis, 75009 Paris', 'Rue de la Tour des Dames'), null);
+});
+
+// 13 nov. 2026, Jules : « dans 4 exploitants, Du pareil au même deux fois, puis Minili et Minili SAS ».
+test('un même commerce ne compte qu’une fois : même société, ou même nom sans forme juridique', async () => {
+  const { fusionnerExploitants, rotationDe } = await import('./rue.js');
+  const x = (siren, nom, ouvert, ferme = null) => ({ siret: `${siren}00010`, siren, nom, ouvert, ferme, actif: !ferme, naf: '47.71Z' });
+  const brut = [
+    x('111', 'DU PAREIL AU MEME', '2016-03-01', '2019-06-30'),
+    x('111', 'DU PAREIL AU MÊME', '2019-07-01', '2021-01-31'),
+    x('222', 'MINILI', '2021-03-01', '2023-02-28'),
+    x('333', 'MINILI SAS', '2023-03-01'),
+  ];
+  const f = fusionnerExploitants(brut);
+  assert.equal(f.length, 2);
+  assert.deepEqual(f.map((e) => [e.ouvert, e.ferme, e.actif]), [['2016-03-01', '2021-01-31', false], ['2021-03-01', null, true]]);
+  assert.equal(f[1].nom, 'MINILI SAS', 'le nom de l’exploitant en place');
+  assert.equal(rotationDe(f, { aujourdhui: new Date('2026-11-13') }).exploitants_10_ans, 2);
+  // Deux commerces différents restent deux.
+  assert.equal(fusionnerExploitants([x('444', 'BOULANGERIE MARTIN', '2015-01-01', '2020-01-01'), x('555', 'FLEURS ET CIE', '2020-02-01')]).length, 2);
 });

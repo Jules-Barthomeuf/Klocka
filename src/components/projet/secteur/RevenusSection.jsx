@@ -15,7 +15,7 @@ function RevenuCompare({ label, local, national, unit = "", prefix = "", suffix 
     <div className="mt-2 flex items-center gap-2 text-xs">
       <span className="text-ardoise">France : {prefix}{typeof national === 'number' && !unit ? Math.round(national).toLocaleString() : national}{suffix}{unit}</span>
       {diff !== null && (
-        <span className={`font-medium ${diff > 0 ? 'text-menthe-clair' : diff < 0 ? 'text-red-400' : 'text-ardoise'}`}>
+        <span className={`font-medium ${diff > 0 ? 'text-menthe-clair' : diff < 0 ? 'text-alerte' : 'text-ardoise'}`}>
           ({diff > 0 ? '+' : ''}{diff.toFixed(1)}%)
         </span>
       )}
@@ -40,12 +40,12 @@ export default function RevenusSection({ data }) {
         {data.taux_pauvrete > 0 && (
           <div className="p-5 bg-gradient-to-br from-menthe/20 to-transparent rounded-md border border-menthe/30">
             <p className="text-sm text-ardoise mb-1">Taux de pauvreté</p>
-            <p className={`text-3xl font-semibold ${data.taux_pauvrete > 15 ? 'text-red-400' : 'text-menthe'}`}>{data.taux_pauvrete}%</p>
+            <p className={`text-3xl font-semibold ${data.taux_pauvrete > 15 ? 'text-alerte' : 'text-menthe'}`}>{data.taux_pauvrete}%</p>
             <p className="text-xs text-ardoise mt-1">seuil à 60% du revenu médian</p>
             <div className="mt-2 flex items-center gap-2 text-xs">
               <span className="text-ardoise">France : {FR_REVENUS.taux_pauvrete}%</span>
               {(() => { const d = data.taux_pauvrete - FR_REVENUS.taux_pauvrete; return (
-                <span className={`font-medium ${d < 0 ? 'text-menthe-clair' : d > 0 ? 'text-red-400' : 'text-ardoise'}`}>
+                <span className={`font-medium ${d < 0 ? 'text-menthe-clair' : d > 0 ? 'text-alerte' : 'text-ardoise'}`}>
                   ({d > 0 ? '+' : ''}{d.toFixed(1)} pts)
                 </span>
               ); })()}
@@ -60,7 +60,7 @@ export default function RevenusSection({ data }) {
             <div className="mt-2 flex items-center gap-2 text-xs">
               <span className="text-ardoise">France : {FR_REVENUS.part_menages_imposes}%</span>
               {(() => { const d = data.part_menages_imposes - FR_REVENUS.part_menages_imposes; return (
-                <span className={`font-medium ${d > 0 ? 'text-menthe-clair' : d < 0 ? 'text-red-400' : 'text-ardoise'}`}>
+                <span className={`font-medium ${d > 0 ? 'text-menthe-clair' : d < 0 ? 'text-alerte' : 'text-ardoise'}`}>
                   ({d > 0 ? '+' : ''}{d.toFixed(1)} pts)
                 </span>
               ); })()}
@@ -90,7 +90,7 @@ export default function RevenusSection({ data }) {
               <p className="text-sm text-ardoise">Rapport interdécile (D9/D1)</p>
               <p className="text-xs text-ardoise mt-1">Mesure les inégalités de revenus</p>
             </div>
-            <p className={`text-2xl font-semibold ${data.rapport_interdecile > 5 ? 'text-red-400' : data.rapport_interdecile > 3.5 ? 'text-menthe' : 'text-menthe-clair'}`}>
+            <p className={`text-2xl font-semibold ${data.rapport_interdecile > 5 ? 'text-alerte' : data.rapport_interdecile > 3.5 ? 'text-menthe' : 'text-menthe-clair'}`}>
               {data.rapport_interdecile}
             </p>
           </div>

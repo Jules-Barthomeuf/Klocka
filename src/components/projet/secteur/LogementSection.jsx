@@ -23,7 +23,7 @@ function FrCompare({ local, national, unit = "%", invert = false }) {
   const diff = local - national;
   const positive = invert ? diff < 0 : diff > 0;
   return (
-    <p className={`text-[11px] mt-1 font-medium ${positive ? 'text-menthe-clair' : diff === 0 ? 'text-ardoise' : 'text-red-400'}`}>
+    <p className={`text-[11px] mt-1 font-medium ${positive ? 'text-menthe-clair' : diff === 0 ? 'text-ardoise' : 'text-alerte'}`}>
       FR: {national}{unit} ({diff > 0 ? '+' : ''}{diff.toFixed(1)} pts)
     </p>
   );
@@ -48,9 +48,9 @@ export default function LogementSection({ data }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {data.nb_logements > 0 && <KPI label="Logements" value={data.nb_logements.toLocaleString()} color="teal" />}
         {data.pct_logements_vacants > 0 && (
-          <div className={`p-4 bg-gradient-to-br ${data.pct_logements_vacants > 8 ? 'from-red-500/20 border-red-500/30' : data.pct_logements_vacants > 5 ? 'from-menthe/20 border-menthe/30' : 'from-menthe/20 border-menthe/30'} to-transparent rounded-md border`}>
+          <div className={`p-4 bg-gradient-to-br ${data.pct_logements_vacants > 8 ? 'from-alerte/20 border-alerte/30' : data.pct_logements_vacants > 5 ? 'from-menthe/20 border-menthe/30' : 'from-menthe/20 border-menthe/30'} to-transparent rounded-md border`}>
             <p className="text-sm text-ardoise mb-1">Taux de vacance</p>
-            <p className={`text-2xl font-semibold ${data.pct_logements_vacants > 8 ? 'text-red-400' : data.pct_logements_vacants > 5 ? 'text-menthe' : 'text-menthe-clair'}`}>{data.pct_logements_vacants}%</p>
+            <p className={`text-2xl font-semibold ${data.pct_logements_vacants > 8 ? 'text-alerte' : data.pct_logements_vacants > 5 ? 'text-menthe' : 'text-menthe-clair'}`}>{data.pct_logements_vacants}%</p>
             <FrCompare local={data.pct_logements_vacants} national={FR_LOG.pct_logements_vacants} invert={true} />
           </div>
         )}

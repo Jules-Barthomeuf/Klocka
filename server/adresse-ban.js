@@ -61,6 +61,24 @@ export async function propositionsBan(q, limite = 8) {
 const RESOLUES = new Map();
 const GARDE_MS = 12 * 3600 * 1000;
 
+/**
+ * Une commune par son nom (13 nov. 2026, page Passage) : seulement les communes et les arrondissements, jamais une rue
+ * qui porte ce nom (« Antibes » rendait la rue d'Antibes à Cannes). Paris, Lyon et Marseille se lisent par
+ * arrondissement, comme le registre : « Lyon » demande lequel.
+ */
+export async function communeDuNom(nom) {
+  const q = String(nom || '').trim();
+  if (q.length < 2) return { ok: false, error: 'Donnez le nom d\'une commune.' };
+  const r = await fetch(`https://data.geopf.fr/geocodage/search/?limit=5&type=municipality&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(10000) });
+  if (!r.ok) return { ok: false, error: `La Base Adresse Nationale a répondu ${r.status}.` };
+  const sans = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const f = ((await r.json()).features || []).map((x) => x.properties);
+  const c = f.find((p) => sans(p.city || p.name) === sans(q) || sans(p.name) === sans(q)) || f[0];
+  if (!c) return { ok: false, error: `Aucune commune « ${q} ».` };
+  if (['75056', '69123', '13055'].includes(c.citycode)) return { ok: false, error: `${c.city || c.name} se lit par arrondissement : dites par exemple « ${c.city || c.name} 2e ».` };
+  return { ok: true, code_insee: c.citycode, ville: c.name || c.city };
+}
+
 export async function resoudreAdresse(texte) {
   const q = String(texte || '').trim();
   if (q.length < 4) return null;

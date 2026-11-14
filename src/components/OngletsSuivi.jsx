@@ -14,6 +14,8 @@ const PAGES = [
   { to: "/SuiviAppels", mot: "Appels" },
   // Enregistrer une réunion, qui nourrit l'Intelligence (14 oct. 2026).
   { to: "/SuiviReunion", mot: "Réunion" },
+  // Ce que l'équipe corrige sur les projets rentrés, et les règles qu'on en tire (13 nov. 2026, Jules).
+  { to: "/SuiviCorrections", mot: "Corrections" },
   // Mandataires, Chat et Assistant KPartners retirés des onglets le 6 nov. 2026 (Jules), comme Coûts IA et Agent testeur
   // le 16 oct. ; leurs pages restent à leur adresse.
 ];

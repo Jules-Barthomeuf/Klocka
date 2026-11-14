@@ -813,6 +813,26 @@ export function monterPreanalyse(app) {
     });
   }));
 
+  // L'agent qui rentre le projet (13 nov. 2026, Jules) : le clic sur « Créer le projet » le lance et rend la main ; la
+  // carte en bas à gauche le suit (deal/agent-projet.js).
+  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/agent-projet', wrap(async (req, res) => {
+    const { lancerAgentProjet } = await import('../deal/agent-projet.js');
+    const r = lancerAgentProjet(req.params.dealId, Number(req.params.index) || 0, { user: currentUser(req), uploadDir: UPLOAD_DIR });
+    if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id || null });
+    const { agentAffiche } = await import('../deal/agent-projet.js');
+    ok(res, agentAffiche(r.agent, { vivant: true }));
+  }));
+  app.get('/api/preanalyse/agents-projet', wrap(async (req, res) => {
+    const { agentsDe } = await import('../deal/agent-projet.js');
+    ok(res, { agents: agentsDe(currentUser(req)?.email) });
+  }));
+  app.post('/api/preanalyse/agents-projet/:id/fermer', wrap(async (req, res) => {
+    const { fermerAgent } = await import('../deal/agent-projet.js');
+    const r = fermerAgent(req.params.id, currentUser(req)?.email);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // À qui ce dossier pourrait correspondre, d'après les investisseurs de Monday :
   // budget, apport et zone face au prix du bien. Une piste, pas une attribution.
   // La matrice : documents × questions, la ligne de synthèse calculée, la revue

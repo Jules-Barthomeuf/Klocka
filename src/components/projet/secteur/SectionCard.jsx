@@ -17,7 +17,7 @@ export function KPI({ label, value, sub, color = "gray", inline }) {
   const accents = {
     teal: "text-menthe-clair",
     green: "text-menthe-clair",
-    red: "text-red-400",
+    red: "text-alerte",
     amber: "text-menthe",
     gray: "text-encre",
   };

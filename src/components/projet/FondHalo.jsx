@@ -5,7 +5,7 @@ import { J, alpha } from "@/design/jetons";
 //
 // 1. Le halo. Un bloc large remonté hors de l'écran : on n'en voit que la
 //    retombée, jamais le centre. Trois nappes s'y superposent, celles du
-//    dashboard admin : menthe au centre, une pointe d'ambre à gauche, un vert
+//    dashboard admin : menthe au centre, une pointe de menthe claire à gauche, un vert
 //    plus sombre à droite, aux mêmes opacités douces.
 // 2. Le fondu. Un dégradé vertical qui écrase le bas du halo dans le noir,
 //    pour que les cartes reposent sur un fond neutre.
@@ -19,7 +19,7 @@ export const FOND_BASE = "rgb(var(--k-fond-halo-rgb))";
 
 const HALO = [
   `radial-gradient(58% 52% at 58% 42%, ${alpha("menthe", 0.22)} 0%, ${alpha("menthe", 0.10)} 34%, ${alpha("menthe-fonce", 0.05)} 60%, transparent 80%)`,
-  `radial-gradient(44% 42% at 30% 60%, ${alpha("ambre", 0.11)} 0%, ${alpha("ambre", 0.05)} 40%, transparent 76%)`,
+  `radial-gradient(44% 42% at 30% 60%, ${alpha("menthe-clair", 0.11)} 0%, ${alpha("menthe-clair", 0.05)} 40%, transparent 76%)`,
   `radial-gradient(40% 40% at 78% 56%, ${alpha("menthe-fonce", 0.16)} 0%, ${alpha("menthe-fonce", 0.06)} 45%, transparent 78%)`,
 ].join(", ");
 

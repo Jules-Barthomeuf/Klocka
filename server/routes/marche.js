@@ -207,9 +207,11 @@ export function monterMarche(app) {
     if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
     const { projetVisiblePar } = await import('../acces-entites.js');
     if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
-    const { lireSecteur } = await import('../projet-secteur.js');
+    const { lireSecteur, emplacementDuProjet } = await import('../projet-secteur.js');
     const admin = user.role === 'admin';
-    ok(res, lireSecteur(projet, { forcer: admin && req.query.forcer === '1', forcerLoyer: admin && req.query.relancer_loyer === '1' }));
+    const fiche = lireSecteur(projet, { forcer: admin && req.query.forcer === '1', forcerLoyer: admin && req.query.relancer_loyer === '1' });
+    // L'Emplacement du Marché du dossier, relu à chaque ouverture : il ne vit pas dans la fiche gardée du secteur.
+    ok(res, fiche && typeof fiche === 'object' ? { ...fiche, emplacement: emplacementDuProjet(projet) } : fiche);
   }));
 
   // Les flux et la commercialité : l'étude d'implantation Data-B (un crédit),

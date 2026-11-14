@@ -162,7 +162,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); handleDelete(idx); }}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8"
+                        className="text-alerte hover:text-alerte hover:bg-alerte/10 h-8 w-8"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

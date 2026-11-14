@@ -17,7 +17,7 @@ import { J } from "@/design/jetons";
 
 const CLE = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const MENTHE = J["menthe"];
-const OR = J["ambre"];
+const OR = J["craie"];
 const GRIS = J["ardoise"];
 
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);

@@ -101,7 +101,7 @@ export function ChiffresStrip({ chiffres, className = "mb-5" }) {
 
 const distance = (m) => (m < 1000 ? `${nf.format(Math.round(m / 10) * 10)} m` : `${String((m / 1000).toFixed(1)).replace(".", ",")} km`);
 const evolution = (e) => (e ? `${e.valeur > 0 ? "+" : ""}${String(e.valeur).replace(".", ",")} %` : null);
-const teinte = (e) => (e ? (e.valeur < 0 ? "text-red-400" : "text-menthe-clair") : "");
+const teinte = (e) => (e ? (e.valeur < 0 ? "text-alerte" : "text-menthe-clair") : "");
 
 /** Distance, commercialité et flux : la bande du secteur. */
 export function chiffresSecteur(donnees) {

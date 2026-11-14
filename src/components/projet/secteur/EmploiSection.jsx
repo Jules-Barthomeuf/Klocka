@@ -54,7 +54,7 @@ function CompareBar({ label, local, national, unit = "%" }) {
         </div>
       </div>
       {diff !== null && (
-        <p className={`text-[11px] mt-1.5 font-medium ${diff > 0 ? 'text-menthe-clair' : diff < 0 ? 'text-red-400' : 'text-ardoise'}`}>
+        <p className={`text-[11px] mt-1.5 font-medium ${diff > 0 ? 'text-menthe-clair' : diff < 0 ? 'text-alerte' : 'text-ardoise'}`}>
           {diff > 0 ? '+' : ''}{diff.toFixed(1)}{unit} vs France
         </p>
       )}

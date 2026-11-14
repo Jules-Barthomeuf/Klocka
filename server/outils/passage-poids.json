@@ -1,0 +1,22 @@
+{
+  "version": "règles du 13 nov. 2026, sans Google ni photo",
+  "_lisez_moi": "Les poids de la note de passage (server/outils/passage.js), relatifs entre eux : la note est la moyenne pondérée sur 10 des seuls critères lus ; un critère absent ne compte pas. Un poids changé ici garde sa raison.",
+  "poids": {
+    "commerces": 4,
+    "vacance": 3,
+    "enseignes": 3,
+    "avis": 3,
+    "loyer": 1.5,
+    "transports": 1,
+    "voie": 0.5
+  },
+  "pourquoi": {
+    "commerces": "Les commerces ouverts de la rue, rangés parmi les rues de la ville : plus il y en a, plus il y a de passage (Jules, 13 nov. 2026). 90 % le nombre, 10 % la densité autour du local. Toujours lu, au registre.",
+    "vacance": "Peu de locaux vides, plus de passage (Jules, 13 nov. 2026). Jusqu'à 15 % de locaux vides au registre, le plein (le bruit d'une grande rue) ; 45 % ou plus, rien.",
+    "enseignes": "Les enseignes nationales choisissent les rues qui passent et en amènent : elles garantissent un passage plus important (Jules, 13 nov. 2026). Poids relevé de 1,5 à 3.",
+    "avis": "La demande : les avis Google des commerces à 100 m. Absent tant que le projet Google de Klocka est suspendu : il ne compte alors pas.",
+    "loyer": "Le marché fait payer le passage : la rue face au kilomètre autour (Equimmox). Au même prix, 5 ; 20 % plus chère, 10 ; 20 % moins chère, 0.",
+    "transports": "Un métro ou un tram à 300 m amène du monde, sans faire une rue commerçante à lui seul.",
+    "voie": "Une rue piétonne passe ; le reste se dit mal par le seul type de voie : poids faible."
+  }
+}

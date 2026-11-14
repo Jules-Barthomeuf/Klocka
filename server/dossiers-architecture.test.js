@@ -26,9 +26,13 @@ test('la phase du pipeline découle de l\'étape', () => {
   assert.equal(phaseDe(d({ etape_max: 5 })), 'transaction');
 });
 
-test('écarté : abandonné ou NO-GO', () => {
+test("écarté : seulement par l'équipe, abandonné ou jugé non conforme ; jamais par le verdict calculé (13 nov. 2026)", () => {
   assert.equal(estEcarte(d({ statut: 'abandonne' })), true);
-  assert.equal(estEcarte(d({ lots: [{ verdict: 'NO-GO' }] })), true);
+  assert.equal(estEcarte(d({ verdict_choisi: 'NO-GO' })), true);
+  assert.equal(estEcarte(d({ verdict_choisi: { valeur: 'NO-GO' } })), true, 'le dossier ouvert porte { valeur }');
+  // KFC Lyon : les règles disent NO-GO, l'équipe a choisi Conforme.
+  assert.equal(estEcarte(d({ verdict_choisi: 'GO', lots: [{ verdict: 'NO-GO' }] })), false);
+  assert.equal(estEcarte(d({ lots: [{ verdict: 'NO-GO' }] })), false, 'sans choix de l’équipe, le verdict calculé n’écarte pas');
   assert.equal(estEcarte(d({ lots: [{ verdict: 'GO' }] })), false);
 });
 

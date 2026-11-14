@@ -90,9 +90,11 @@ export function ModesEditeur({ mode, onMode, modes = MODES_EDITEUR }) {
  * La barre du haut du document : le nom (et son état) à gauche, les modes
  * sur la même ligne, les actions à droite. Sans fond : celui de la page.
  */
-export function BarreEditeur({ titre, statut = "", mode = null, onMode = null, actions = null }) {
+// `debut` : un geste avant le nom (l'icône qui ouvre et ferme le chat, 13 nov. 2026).
+export function BarreEditeur({ titre, statut = "", mode = null, onMode = null, actions = null, debut = null }) {
   return (
     <div className="flex h-14 flex-none items-center gap-3 border-b border-trait px-5 md:pr-[120px] max-md:gap-2 max-md:px-3" style={{ background: "transparent" }}>
+      {debut ? <div className="-ml-2 flex flex-none items-center">{debut}</div> : null}
       <div className="flex min-w-0 flex-1 items-baseline gap-3 max-md:flex-col max-md:gap-0">
         <span className="truncate text-[14.5px] text-encre max-md:max-w-full">{titre}</span>
         {statut ? <span className="truncate text-[12.5px] text-ardoise max-md:max-w-full">{statut}</span> : null}

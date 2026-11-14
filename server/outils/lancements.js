@@ -252,28 +252,32 @@ async function societeDuLocataire(e) {
 const SOURCE_COMPTES = 'Comptes déposés (INPI, data.economie.gouv.fr)';
 
 /**
- * Pure : la ligne « Poids du loyer » d'après les comptes déposés (12 nov. 2026, Jules : elle revient en troisième mesure
- * du Locataire, lue seulement quand des comptes existent). Le dernier exercice de moins de trois ans ; un chiffre
- * d'affaires nul ou absent est confidentiel ; une perte se dit. `ei` : une entreprise individuelle ne publie pas.
+ * Pure : la santé financière du locataire (13 nov. 2026, Jules : « est-ce qu'on garde vraiment le poids du loyer ? ») :
+ * le résultat (bénéfice ou perte) et le chiffre d'affaires du dernier exercice de moins de trois ans. Le poids du loyer
+ * dans le chiffre d'affaires ne se donne que pour une société à un seul établissement ouvert : pour un groupe, le
+ * loyer d'un local face au chiffre de toutes ses boutiques ne veut rien dire (« moins de 0,1 % » rassurait à tort).
+ * Une perte est à voir ; un loyer au-delà de 10 % du chiffre d'une boutique seule, à voir, au-delà de 15 %, en alerte.
+ * Le dernier exercice de moins de trois ans ; un chiffre d'affaires nul ou absent est confidentiel. `ei` : une entreprise
+ * individuelle ne publie pas.
  */
-export function pointComptes(comptes, loyer, { annee = new Date().getFullYear(), ei = false } = {}) {
-  const L = 'Poids du loyer';
+export function pointComptes(comptes, loyer, { annee = new Date().getFullYear(), ei = false, etablissements = null } = {}) {
+  const L = 'Santé financière';
   if (ei) return point('comptes', L, 'vide', 'Entreprise individuelle : pas de comptes publiés.', SOURCE_COMPTES);
   const tous = (comptes || []).filter((c) => Number(c.exercice) > 0).sort((a, b) => Number(b.exercice) - Number(a.exercice));
   const recents = tous.filter((c) => Number(c.exercice) >= annee - 3);
   if (!recents.length) return point('comptes', L, 'vide', tous.length ? `Derniers comptes publiés en ${tous[0].exercice}, trop anciens pour juger.` : 'Comptes non publiés.', SOURCE_COMPTES);
   const c = recents.find((x) => x.chiffre_affaires > 0) || recents[0];
   const res = Number.isFinite(c.resultat_net) ? c.resultat_net : null;
-  const detail = { exercice: Number(c.exercice), chiffre_affaires: c.chiffre_affaires > 0 ? c.chiffre_affaires : null, resultat_net: res, loyer: loyer || null };
-  const resultat = res == null ? '' : res < 0 ? `, perte de ${euros(-res)}` : `, résultat ${euros(res)}`;
-  if (c.chiffre_affaires > 0 && loyer > 0) {
-    const j = jugerEffort(loyer, c.chiffre_affaires);
-    const taux = j.taux < 0.1 ? 'moins de 0,1 %' : pct(j.taux, 1);
-    return point('comptes', L, j.statut, `${taux} du chiffre d'affaires · CA ${euros(c.chiffre_affaires)} en ${c.exercice}${resultat}`, SOURCE_COMPTES, { ...detail, taux: j.taux });
-  }
-  if (c.chiffre_affaires > 0) return point('comptes', L, 'vide', `CA ${euros(c.chiffre_affaires)} en ${c.exercice}${resultat} ; loyer manquant dans le dossier`, SOURCE_COMPTES, detail);
-  // Comptes déposés, chiffre d'affaires confidentiel : seul le résultat se lit ; une perte est à voir.
-  return point('comptes', L, res != null && res < 0 ? 'a_voir' : 'vide', `Chiffre d'affaires confidentiel en ${c.exercice}${resultat}`, SOURCE_COMPTES, detail);
+  const ca = c.chiffre_affaires > 0 ? c.chiffre_affaires : null;
+  const seul = Number(etablissements) === 1;
+  const j = ca && loyer > 0 && seul ? jugerEffort(loyer, ca) : null;
+  const detail = { exercice: Number(c.exercice), chiffre_affaires: ca, resultat_net: res, loyer: loyer || null, etablissements: etablissements ?? null, ...(j ? { taux: j.taux } : {}) };
+  const tete = res == null ? (ca ? `CA ${euros(ca)}` : "Chiffre d'affaires confidentiel") : res < 0 ? `Perte de ${euros(-res)}` : `Bénéfice de ${euros(res)}`;
+  const suite = [`en ${c.exercice}`, res != null ? (ca ? `CA ${euros(ca)}` : 'CA confidentiel') : null, j ? `loyer ${pct(j.taux, 1)} du CA` : null].filter(Boolean).join(' · ');
+  const rang = { vide: 0, ok: 1, a_voir: 2, alerte: 3 };
+  const etats = [res == null ? (ca ? 'ok' : 'vide') : res < 0 ? 'a_voir' : 'ok', j?.statut].filter(Boolean);
+  const statut = etats.sort((a, b) => rang[b] - rang[a])[0];
+  return point('comptes', L, statut, `${tete} ${suite}`, SOURCE_COMPTES, detail);
 }
 
 /**
@@ -294,19 +298,28 @@ export function pointAvis(p, { simule = false } = {}) {
 }
 
 async function outilLocataire(e, { partiel = null } = {}) {
-  const P = [['societe', 'Société'], ['procedures', 'Procédures collectives'], ['comptes', 'Poids du loyer'], ['avis', 'Avis clients']];
+  const P = [['societe', 'Société'], ['procedures', 'Procédures collectives'], ['comptes', 'Santé financière'], ['avis', 'Avis clients']];
   if (!e.locataire) return { points: P.map(([k, l]) => vide(k, l, 'Pas de nom de locataire dans le dossier.')) };
   const points = [];
   // L'avis Google ne dépend pas de la société : il part en même temps, et le résumé des avis du web aussi.
   const avis = avisGoogle(e);
   const web = resumeAvisWeb(e);
-  const { s, local, raison, autres = [] } = await societeDuLocataire(e);
+  const trouve = await societeDuLocataire(e);
+  const { local, autres = [] } = trouve;
+  let { s, raison } = trouve;
+  // Une société trouvée par le nom seul, fermée ou association, n'est pas le commerce en place (13 nov. 2026, essai du
+  // Marché : « Paul » à Lille rendait un entrepreneur individuel fermé, en alerte ; « Maison Lune » une compagnie de
+  // théâtre) : on ne la montre pas, ni ses procédures ni ses comptes.
+  if (s && !local?.trouve && !local?.fixe && (!s.active || /association/i.test(String(s.forme || '')))) {
+    raison = `Le registre ne rapproche ce nom que de ${s.nom} (${[s.forme, s.active ? null : 'fermée'].filter(Boolean).join(', ')}), qui n'est pas un commerce en place : à confirmer avec le SIREN du locataire.`;
+    s = null;
+  }
   if (!s) {
     points.push(local?.exploitants?.length && !local.trouve
       ? point('societe', 'Société', 'a_voir', `Aucun établissement au nom de « ${e.locataire} » à cette adresse ; le registre y donne ${local.exploitants.filter((x) => x.actif).map((x) => x.nom).slice(0, 3).join(', ') || 'seulement des établissements fermés'}. ${raison}`, local.source)
       : vide('societe', 'Société', `${raison} Nom cherché : « ${e.locataire} ».`, 'Annuaire des entreprises'));
     points.push(vide('procedures', 'Procédures collectives', 'Société non trouvée.'));
-    points.push(vide('comptes', 'Poids du loyer', 'Société non trouvée.'));
+    points.push(vide('comptes', 'Santé financière', 'Société non trouvée.'));
   } else {
     const age = s.annee_creation ? new Date().getFullYear() - Number(s.annee_creation) : null;
     const ici = local?.trouve;
@@ -323,7 +336,7 @@ async function outilLocataire(e, { partiel = null } = {}) {
       const m = marqueDuNom(enseigne, indexDesMarques());
       franchise = !!m && !String(s.nom || '').toLowerCase().includes(String(m.n).toLowerCase());
     }
-    points.push(point('societe', 'Société', !s.active ? 'alerte' : parLeNomSeul || (age != null && age < 2) ? 'a_voir' : 'ok',
+    points.push(point('societe', 'Société', parLeNomSeul ? 'a_voir' : !s.active ? 'alerte' : (age != null && age < 2) ? 'a_voir' : 'ok',
       [s.nom, s.forme, s.active ? (age != null ? `créée en ${s.annee_creation} (${age} an${age > 1 ? 's' : ''})` : 'active') : 'fermée',
         ici ? `exploite le local${ici.ouvert ? ` depuis ${ici.ouvert.slice(0, 4)}` : ''}${enseigne ? ` sous l'enseigne ${enseigne}` : ''}` : null,
         parLeNomSeul ? 'trouvée par le nom seul, pas au local : à confirmer' : null].filter(Boolean).join(' · '),
@@ -346,7 +359,7 @@ async function outilLocataire(e, { partiel = null } = {}) {
       const { comptesDe } = await import('../kzoning-societe.js');
       comptes = (await gardeUnJour(`comptes:${s.siren}`, () => comptesDe(s.siren)).catch(() => null))?.valeur || [];
     }
-    points.push(pointComptes(comptes, e.loyer, { ei }));
+    points.push(pointComptes(comptes, e.loyer, { ei, etablissements: s.etablissements_ouverts ?? null }));
   }
   const pAvis = await avis;
   // Le résumé du web prend vingt à soixante secondes : le reste s'affiche avant (13 nov. 2026, Jules).
@@ -517,7 +530,7 @@ async function outilPrix(e) {
   }
   const cap = r.capitalisation;
   if (!r.bien.rendement) points.push(vide('rendement', 'Rendement face au taux de la ville', 'Prix ou loyer manquant dans le dossier.'));
-  else if (!cap) points.push(point('rendement', 'Rendement face au taux de la ville', 'a_voir', `${pct(r.bien.rendement, 2)} brut ; pas de taux validé à ${r.ville || 'cette ville'} pour comparer`, 'Taux validés de la ville'));
+  else if (!cap) points.push(point('rendement', 'Rendement face au taux de la ville', 'a_voir', `${pct(r.bien.rendement, 2)} brut ; aucun taux encore validé à ${r.ville || 'cette ville'} par l'équipe ou les mandataires : placé seulement dans la fourchette usuelle des murs de commerce, 4 à 10 %`, 'Taux validés de la ville'));
   else {
     const ecart = cap.taux ? Math.round((r.bien.rendement - cap.taux) * 100) / 100 : null;
     points.push(point('rendement', 'Rendement face au taux de la ville', ecart == null ? 'a_voir' : ecart >= -0.25 ? 'ok' : ecart >= -0.75 ? 'a_voir' : 'alerte',
@@ -533,7 +546,7 @@ async function outilPrix(e) {
  */
 export function pointVacance(r) {
   const S = "Outil Vacance (registre, OpenStreetMap, Google Maps)";
-  if (!r?.ok || r.statut !== 200) return vide('vacance', 'Vacance', r?.etat === 'chargement' ? "La commune se recense encore : relancez dans quelques minutes." : r?.error || "L'outil Vacance n'a pas répondu.", S);
+  if (!r?.ok || r.statut !== 200) return vide('vacance', 'Vacance', r?.etat === 'chargement' ? "Les commerces de la commune sont encore en cours de recensement (une grande ville prend plusieurs minutes la première fois)." : r?.error || "L'outil Vacance n'a pas répondu.", S);
   const t = r.taux || {};
   if (t.taux == null) return vide('vacance', 'Vacance', `Aucun local tranché sur la rue (${t.locaux || 0} recensé${(t.locaux || 0) > 1 ? 's' : ''}).`, S);
   const detail = `${t.vacants} vide${t.vacants > 1 ? 's' : ''} sur ${t.tranches} locaux${t.incertains ? `, ${t.incertains} incertain${t.incertains > 1 ? 's' : ''}` : ''}`;
@@ -542,7 +555,10 @@ export function pointVacance(r) {
 }
 
 /** Le taux de vacance de la rue par l'outil Vacance ; la première fois, la commune se recense (une à deux minutes). */
-async function vacanceDeLaRue(adresse, { attente = 180000 } = {}) {
+// Le premier passage sur une grande commune la recense en entier (Toulouse : plus de trois minutes) : l'Emplacement montre
+// déjà Passage, Rotation et Enseignes, la Vacance peut attendre (13 nov. 2026, Jules : « la commune se recense encore,
+// relancez dans quelques minutes : c'est gênant »). Quinze minutes au plus, puis le dit sans renvoyer à un geste.
+async function vacanceDeLaRue(adresse, { attente = 15 * 60000 } = {}) {
   const { tauxDeLaRue } = await import('./vacance-taux.js');
   const fin = Date.now() + attente;
   for (;;) {
@@ -568,7 +584,7 @@ async function outilEmplacement(e, { partiel = null } = {}) {
   const tRue = Date.now() - t0;
   if (!r.ok) return { points: P.map(([k, l]) => vide(k, l, r.error, 'Outil Rue')) };
   const x = r.resultat;
-  const note = x.note_analyste?.note ?? x.passage?.note ?? null;
+  let note = x.note_analyste?.note ?? x.passage?.note ?? null;
   const rot = x.local.rotation;
   // La vacance de la rue vient de l'outil Vacance (12 nov. 2026, Jules) : il tranche chaque local avec le registre,
   // OpenStreetMap et Google Maps, là où les « cellules vides » de l'outil Rue ne lisaient que le registre.
@@ -579,7 +595,7 @@ async function outilEmplacement(e, { partiel = null } = {}) {
     conclusion: x.conclusion.phrase, statut: x.conclusion.statut,
     rue_id: r.id, rue: x,
     points: [
-      note == null ? vide('passage', 'Passage', 'Ni commerces, ni transports, ni photo lus.', 'Outil Rue')
+      note == null ? vide('passage', 'Passage', x.passage?.raison || 'Ni commerces, ni transports, ni photo lus.', 'Outil Rue')
         : point('passage', 'Passage', note >= 7 ? 'ok' : note >= 4.5 ? 'a_voir' : 'alerte', `${String(note).replace('.', ',')} / 10${x.note_analyste?.note != null ? " (note de l'analyste)" : x.passage?.confiance === 'basse' ? ' (provisoire : peu de lectures)' : ''}`, 'Indice Klocka, pas un comptage', { pourquoi: x.passage?.pourquoi || [] }),
       rot.statut === 'vide' ? vide('rotation', 'Rotation du local', rot.verdict, x.rue.source) : point('rotation', 'Rotation du local', rot.statut, rot.verdict, x.rue.source),
       pointVac,
@@ -590,8 +606,26 @@ async function outilEmplacement(e, { partiel = null } = {}) {
 
   partiel?.(resultat(vide('vacance', 'Vacance', 'Lecture en cours…', 'Outil Vacance (registre, OpenStreetMap, Google Maps)')));
   const vac = await (memeVoie ? enAvance : vacanceDeLaRue(x.adresse));
+  const pointVac = pointVacance(vac);
+  // Le loyer de la rue arrive souvent après elle : le Loyer lit Equimmox pendant que la rue se lit. La vacance montrée,
+  // on l'attend deux minutes au plus, puis la note de passage se refait avec lui (13 nov. 2026, Jules).
+  if (x.note_analyste?.note == null && x.passage?.note != null && (x.passage.manque || []).includes('loyer')) {
+    partiel?.(resultat(pointVac));
+    const { loyerDeLaRue, passageAvecLoyer, modeleActif } = await import('./passage.js');
+    const fin = Date.now() + 120000;
+    let loyer = null;
+    while (!loyer && Date.now() < fin) {
+      loyer = await loyerDeLaRue(x.adresse.label).catch(() => null);
+      if (!loyer) await new Promise((ok) => setTimeout(ok, 5000));
+    }
+    if (loyer) {
+      x.passage = passageAvecLoyer(x.passage, loyer, modeleActif());
+      note = x.passage?.note ?? note;
+      try { Records.update('AnalyseRue', r.id, { resultat: { ...x, note_analyste: undefined, du_cache: undefined } }); } catch { /* la note refaite reste dans ce lancement */ }
+    }
+  }
   console.log(`[emplacement] « ${e.adresse} » : rue ${Math.round(tRue / 1000)} s${x.du_cache ? ' (gardée)' : ''}, vacance ${Math.round((tVac ?? Date.now() - t0) / 1000)} s, en tout ${Math.round((Date.now() - t0) / 1000)} s`);
-  return resultat(pointVacance(vac));
+  return resultat(pointVac);
 }
 
 /** Pure : la commune en chiffres (surface en km², densité) d'après l'API Géo. */

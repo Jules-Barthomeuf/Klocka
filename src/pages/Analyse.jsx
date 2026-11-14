@@ -30,7 +30,7 @@ import { VERRE } from "@/lib/verre";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
 // À traiter (à toi d'agir, en attente d'un tiers), Pipeline (Tri, Qualification,
-// Commercialisation, Transaction) et Écartés par AK ; le dossier ouvert suit
+// Commercialisation, Transaction) et Écartés (par l'équipe) ; le dossier ouvert suit
 // une frise de huit étapes. Les règles sont dans src/lib/dossiers-architecture.js.
 // « Nouveau dossier » démarre à la réception ; ?deal_id= rouvre un dossier en cours.
 
@@ -364,6 +364,12 @@ export default function Analyse() {
     window.scrollTo(0, 0);
     return () => { clearTimeout(fin); document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak", "k-cadre-dossier"); };
   }, [scinde]);
+  const listeEnCadre = ecranLarge && !scinde && !enWorkflow;
+  useEffect(() => {
+    if (!listeEnCadre) return undefined;
+    document.documentElement.classList.add("k-sans-defilement", "k-cadre-liste");
+    return () => document.documentElement.classList.remove("k-sans-defilement", "k-cadre-liste");
+  }, [listeEnCadre]);
 
   // Le dossier s'affiche ici avec sa propre ligne de titre (le retour y est).
   const dossierOuvertIci = !vueConversation && !(nouveau && !dealId) && dossier?.deal_id === dealId && !!dealId;
@@ -505,8 +511,8 @@ export default function Analyse() {
     );
   }
 
-  return (
-    <div className="relative min-h-screen text-encre w-full max-w-full overflow-x-hidden">
+  const vuePage = (
+    <div className={`relative w-full max-w-full overflow-x-hidden text-encre ${listeEnCadre ? "" : "min-h-screen"}`}>
       {/* Plus de lumière propre dans le coin : le fond « Halo » commun suffit (18 oct. 2026). */}
       <div
         key={`${dealId || (nouveau ? "nouveau" : "accueil")}-${modeIA ? "ia" : "normal"}`}
@@ -660,6 +666,16 @@ export default function Analyse() {
       </div>
     </div>
   );
+  // La liste des Dossiers dans le cadre en verre du dossier ouvert (14 nov. 2026, Jules : « mets dans l'Analyse, la
+  // Pré-analyse et tout la barre de navigation en verre, comme dans le CRM ») : la barre de gauche et la bande du haut
+  // ne font qu'un bloc, la liste défile dessous. La bande reste vide : le titre est dans la page.
+  if (!listeEnCadre) return vuePage;
+  return (
+    <div className="k-cadre-l flex h-[100dvh] min-h-0 flex-col text-encre">
+      <header className="k-verre-barre relative flex h-12 flex-none items-center px-4" />
+      <div className="k-crm-contenu min-h-0 flex-1 overflow-y-auto rounded-tl-[16px]">{vuePage}</div>
+    </div>
+  );
 }
 
 /** La carte compacte d'un dossier dans les blocs de la liste : nom, étape de la frise, qui, ce qui attend. */
@@ -672,7 +688,7 @@ function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
     <article className={`${VERRE} relative cursor-pointer px-3.5 py-2.5 pr-9 transition-colors hover:border-bord-vif`} onClick={onOuvrir}>
       <div className="flex min-w-0 items-center justify-between gap-2.5">
         <p className="m-0 flex min-w-0 items-center gap-2 text-[14.5px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
-        {ecarte ? <Statut couleur="corail" className="flex-none">{d.statut === "abandonne" ? "Abandonné" : "Écarté"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none">{verdict.libelle}</Statut>}
+        {ecarte ? <Statut couleur="corail" className="flex-none">{d.statut === "abandonne" ? "Abandonné" : "Non conforme"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none">{verdict.libelle}</Statut>}
       </div>
       <p className="m-0 mt-0.5 flex min-w-0 items-center gap-x-1.5 text-[13px] text-ardoise">
         {!ecarte && <span className="flex-none">{FRISE[n - 1].label} ·</span>}

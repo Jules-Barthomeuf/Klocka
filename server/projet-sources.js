@@ -19,7 +19,9 @@ const lire = (o, chemin) => String(chemin).split('.').reduce((x, k) => (x == nul
 
 /** Les champs que la page affiche, et leur source quand personne ne les a saisis. */
 function sourcesParDefaut(p, rue) {
-  const loyer = rue?.loyer_m2_an
+  const loyer = rue?.loyer_m2_an && rue.du_marche
+    ? { nature: 'donnee', origine: rue.loyer_source || 'Equimmox', detail: `La moyenne lue dans la partie Marché du dossier : ${rue.nom || 'la rue'}${rue.rayon ? ` (${rue.rayon})` : ''}${rue.loyer_bas != null && rue.loyer_haut != null ? `, de ${rue.loyer_bas} à ${rue.loyer_haut} €/m²/an` : ''}.` }
+    : rue?.loyer_m2_an
     ? rue.loyer_source === 'Data-B'
       ? { nature: 'donnee', origine: 'Data-B', detail: `Estimation Data-B ${rue.maille === 'rue' ? 'de la rue' : rue.maille === 'ville' ? 'de la ville' : 'du quartier'}, tous locaux confondus : ${rue.loyer_bas ?? '?'} à ${rue.loyer_haut ?? '?'} €/m²/an.` }
       : { nature: 'donnee', origine: 'Equimmox', detail: `Baux constatés à ${rue.rayon || '500 m'}${rue.surface_min && rue.surface_max ? `, locaux de ${rue.surface_min} à ${rue.surface_max} m²` : ''} : ${rue.loyer_bas ?? '?'} à ${rue.loyer_haut ?? '?'} €/m²/an.` }

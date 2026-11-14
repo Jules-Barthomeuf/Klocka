@@ -65,7 +65,7 @@ function KpiStrip({ items, className = "", zone = null, project = null }) {
             <span className="text-[13px] text-ardoise flex items-center gap-1">
               {it.champLabel ? <ValeurEditable champ={it.champLabel} type="text">{it.label}</ValeurEditable> : it.label}
               {it.ajoute != null
-                ? enEdition && <button type="button" onClick={() => retirer(it.ajoute)} aria-label="Supprimer de la page" title="Supprimer de la page" className="text-bord-vif hover:text-red-400 transition-colors text-[12.5px] leading-none px-1 flex-shrink-0">×</button>
+                ? enEdition && <button type="button" onClick={() => retirer(it.ajoute)} aria-label="Supprimer de la page" title="Supprimer de la page" className="text-bord-vif hover:text-alerte transition-colors text-[12.5px] leading-none px-1 flex-shrink-0">×</button>
                 : <BoutonMasquer champ={it.champ} />}
             </span>
             <span className={`text-[32px] max-md:text-[26px] font-medium tracking-[-0.02em] leading-tight whitespace-nowrap max-md:whitespace-normal ${it.accent ? "text-menthe" : "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>

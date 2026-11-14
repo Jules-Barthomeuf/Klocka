@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { J } from "@/design/jetons";
+import { J, alpha } from "@/design/jetons";
 import { useEdition, ValeurEditable, ValeurForcee, TexteEditable, Bloc, forcee } from "./EditionEnPlace";
 import { InfoDot, nf } from "./SecteurChiffres";
 import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
@@ -73,7 +73,7 @@ function Case({ titre, valeur, detail, info, source, onSource, champ, edition })
     <Corps
       type={cliquable ? "button" : undefined}
       onClick={cliquable ? () => onSource({ ...source, titre }) : undefined}
-      className={`group relative text-left rounded-[14px] border border-trait bg-carte-grille px-5 py-4 min-h-[112px] flex flex-col transition-colors
+      className={`group relative text-left rounded-[14px] border border-bord-doux bg-[var(--k-surface)] backdrop-blur-xl px-5 py-4 min-h-[112px] flex flex-col transition-colors
         ${cliquable ? "hover:border-menthe/60 cursor-pointer" : ""}`}
     >
       <span className="flex items-center gap-1.5 text-[13px] text-ardoise">
@@ -128,7 +128,7 @@ export default function GrilleCases({ zone, cases, project, onSource }) {
             champ={enEdition ? `champs_personnalises.${c.i}` : null} />
           {enEdition && (
             <button type="button" onClick={() => retirer(c.i)} aria-label="Retirer cette case" title="Retirer cette case"
-              className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-brume hover:text-red-400">
+              className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-brume hover:text-alerte">
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -275,7 +275,7 @@ function PointsDeLaFrise({ marques, perso, onChange }) {
           <div key={`${j.cle}:${isoDe(j.date)}:${j.label}`} className="flex items-center gap-2">
             <input type="date" defaultValue={isoDe(j.date)} onBlur={(e) => e.target.value && e.target.value !== isoDe(j.date) && changer(j, "date", e.target.value)} aria-label={`Date : ${j.label}`} className={`${champ} w-[150px] flex-none`} />
             <input defaultValue={j.label} onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== j.label && changer(j, "label", e.target.value.trim())} aria-label="Nom du point" className={`${champ} min-w-0 flex-1`} />
-            <button type="button" onClick={() => retirer(j)} aria-label={`Retirer « ${j.label} »`} title="Retirer ce point" className="grid h-8 w-8 flex-none place-items-center rounded-full text-brume hover:text-red-400" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => retirer(j)} aria-label={`Retirer « ${j.label} »`} title="Retirer ce point" className="grid h-8 w-8 flex-none place-items-center rounded-full text-brume hover:text-alerte" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
           </div>
         ))}
       </div>
@@ -339,12 +339,12 @@ export function BandesCases({ zone, cases, project, titre = null }) {
  * Les trois colonnes de l'assemblée générale : ce qui est voté, ce qui se
  * discute, ce qui ne l'est pas encore. Trois cases côte à côte se lisaient
  * comme trois chiffres sans lien ; un tableau les met en regard, et la couleur
- * dit l'état — le vert pour ce qui est acté, l'ambre pour ce qui se discute,
+ * dit l'état — l'accent pour ce qui est acté, l'accent pâli pour ce qui se discute,
  * le gris pour ce qui attend.
  */
 const COLONNES_AG = [
   ["travaux_votes", "Travaux votés", J["menthe"]],
-  ["travaux_discussion", "Travaux en discussion", J["ambre"]],
+  ["travaux_discussion", "Travaux en discussion", alpha("menthe", 0.55)],
   ["resolutions_non_votees", "Résolutions non votées", J["ardoise"]],
 ];
 
@@ -361,7 +361,7 @@ export function TableauAG({ cases, project }) {
   if (!enEdition && !colonnes.some((x) => x.c?.valeur)) return null;
 
   return (
-    <div className="overflow-x-auto rounded-[14px] border border-trait bg-carte-grille">
+    <div className="overflow-x-auto rounded-[14px] border border-bord-doux bg-[var(--k-surface)] backdrop-blur-xl">
       <table className="w-full min-w-[640px] max-md:min-w-[560px] border-collapse text-left">
         <thead>
           <tr>

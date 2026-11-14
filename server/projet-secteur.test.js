@@ -180,3 +180,35 @@ test("l'équipe relance l'analyse du loyer : le calcul repart et Equimmox ignore
   });
   assert.equal(force, true);
 });
+
+// 13 nov. 2026, Jules : « le loyer autour, il faut que ça soit vraiment pareil que dans la partie Marché ».
+test('un projet venu d’un dossier prend le loyer autour de la partie Marché, sans relire Equimmox', async () => {
+  const { loyerDuMarche } = await import('./projet-secteur.js');
+  const lancement = {
+    statut: 'fini', fini_le: '2026-11-12T08:21:31.217Z',
+    resultat: { points: [{ cle: 'loyer_marche', source: 'Equimmox', lien: '/uploads/equimmox/loyer-200.png', detail: {
+      echelle: 'rue', marche_m2: 304,
+      niveaux: { rue: { nom: 'Rue de la République', basse: 211, moyenne: 304, haute: 260, rayon: '200m', capture: '/uploads/equimmox/loyer-200.png' }, quartier: { nom: '500 m autour', moyenne: 343, rayon: '500m' } },
+    } }] },
+  };
+  let equimmoxLu = false;
+  const donnees = await calculerSecteur(
+    { adresse_complete: '12 rue de la République, 69002 Lyon', deal_id: 'kfc', sim_surface: 180 },
+    {
+      resoudre: async () => ({ label: '12 Rue de la République 69002 Lyon', code_insee: '69382', numero: '12', rue: 'Rue de la République', code_postal: '69002', ville: 'Lyon', lat: 45.76, lon: 4.83 }),
+      mairie: async () => null,
+      figaro: async () => null,
+      loyer: async () => { equimmoxLu = true; return { moyenne: 236, bas: 155, haut: 220, rayon: '500m' }; },
+      dataB: async () => null,
+      etudes: () => [],
+      dealDe: () => ({ lots: [{}] }),
+      marche: async () => lancement,
+    },
+  );
+  assert.equal(equimmoxLu, false);
+  assert.equal(donnees.rue.loyer_m2_an, 304);
+  assert.equal(donnees.rue.rayon, '200m');
+  assert.equal(donnees.rue.du_marche, true);
+  assert.equal(loyerDuMarche({ ...lancement, statut: 'echec' }), null);
+  assert.equal(loyerDuMarche({ statut: 'fini', resultat: { points: [] } }), null);
+});

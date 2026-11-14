@@ -105,7 +105,7 @@ export function monterEntites(app) {
     ok(res, nettoyer(req.params.entity, Records.create(req.params.entity, corps, user?.email)));
   }));
 
-  app.put('/api/entities/:entity/:id', wrap((req, res) => {
+  app.put('/api/entities/:entity/:id', wrap(async (req, res) => {
     const { entity, id } = req.params;
     const user = accesEntite(req, res, entity, { ecriture: true });
     if (!user) return;
@@ -130,9 +130,16 @@ export function monterEntites(app) {
       if (!rec || !visible(rec)) return res.status(404).json({ error: 'Not found' });
     }
 
+    // Les corrections de l'équipe sur un projet rentré, notées pour que la plateforme apprenne (13 nov. 2026, Jules) :
+    // l'avant se lit avant d'écrire. Une note ratée n'empêche jamais l'enregistrement.
+    const avantProjet = entity === 'Project' && user.role === 'admin' ? Records.get('Project', id) : null;
+
     // Son propre compte, pour un membre d'une famille : le dossier va chez le titulaire.
     const rec = estUser(entity) && user.role !== 'admin' ? ecrireCompte(user, patch) : Records.update(entity, id, patch);
     if (!rec) return res.status(404).json({ error: 'Not found' });
+    if (avantProjet) {
+      try { await (await import('../corrections-projet.js')).noterCorrections(avantProjet, patch, user.email); } catch (e) { console.warn('[corrections] note impossible :', e?.message || e); }
+    }
     ok(res, nettoyer(entity, rec));
   }));
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDictee } from "@/lib/dictee";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -214,9 +214,10 @@ export function OngletAgentIA({ onOuvrirListe }) {
 // Plus d'onglets (11 nov. 2026, Jules : « j'aime pas toute la partie du haut ») : ni villes, ni Relances dues, ni « + ».
 // Toutes les listes en un seul tableau, la ville en colonne ; une ville nouvelle se cherche depuis la recherche du
 // tableau. Les relances dues passent par le Mode appel.
-export function OngletListesAgences({ onAppeler, onBasculer }) {
+// `listeId` (15 nov. 2026) : sous la carte du Mode appel, le tableau de la seule ville ouverte.
+export function OngletListesAgences({ onAppeler, onBasculer, listeId = null }) {
   const { data, isLoading } = useListes();
-  const listes = data?.listes || [];
+  const listes = (data?.listes || []).filter((l) => !listeId || l.id === listeId);
   if (isLoading) return <Chargement />;
   return (
     <div className="w-full pb-16">
@@ -328,6 +329,10 @@ function TableauAgences({ listes, onAppeler, bascule = null }) {
   const prenomDe = (email) => { const m = (equipeDonnees?.equipe || []).find((x) => x.email === email); const n = (m?.nom || String(email || "").split("@")[0].split(".")[0]).split(" ")[0]; return n ? n.charAt(0).toUpperCase() + n.slice(1) : ""; };
   const aAppeler = (a) => a.statut?.etat === "jamais" && !a.statut?.appelee && !a.en_relance && !a.ne_plus_appeler
     && !(a.en_appel_par && a.en_appel_par !== moiEmail) && !((a.pour || []).length && moiEmail && !(a.pour || []).includes(moiEmail));
+// Le tableau se dessine par morceaux (15 nov. 2026, « accélère le chargement ») : 60 lignes tout de suite, le reste
+  // par paquets de 150 entre deux images, pour que la page réponde dès l'ouverture.
+  const [nbVues, setNbVues] = useState(60);
+  useEffect(() => { setNbVues(60); }, [q]);
   const lignes = useMemo(() => {
     // Mot par mot, sans accents (23 oct. 2026, Jules : « Julia Meyer » doit trouver « Julia Suzanne Lisa Meyer »).
     const sansAccents = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -341,6 +346,11 @@ function TableauAgences({ listes, onAppeler, bascule = null }) {
       });
     return base;
   }, [data, q]);
+  useEffect(() => {
+    if (nbVues >= lignes.length) return undefined;
+    const t = setTimeout(() => setNbVues((n) => n + 150), 30);
+    return () => clearTimeout(t);
+  }, [nbVues, lignes.length]);
   if (isLoading) return <Chargement />;
   // Une recherche qui ressemble à une ville sans liste, et qu'aucune agence ne porte dans son nom : la chercher.
   const plat = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -403,7 +413,7 @@ function TableauAgences({ listes, onAppeler, bascule = null }) {
             </tr>
           </thead>
           <tbody>
-            {lignes.map((a) => {
+            {lignes.slice(0, nbVues).map((a) => {
               const domaine = a.site ? String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").split(/[/?#]/)[0] : null;
               const tel = a.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || null;
               const ouvert = ouverte === a.id;

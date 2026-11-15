@@ -260,8 +260,11 @@ export function monterPreanalyse(app) {
   }));
   app.post('/api/preanalyse/dossiers/:dealId/infos-du-bien', wrap(async (req, res) => {
     const { poserInfos, chercherInfos } = await import('../deal/infos-du-bien.js');
-    const { lireAdresse } = await import('../deal/index.js');
-    const r = req.body?.champs ? poserInfos(req.params.dealId, req.body.champs, lireAdresse) : await chercherInfos(req.params.dealId, { uploadDir: UPLOAD_DIR, lireAdresse });
+    const { lireAdresse, adresseSaisie } = await import('../deal/index.js');
+    // L'adresse tapée, découpée par la BAN quand elle n'a ni code postal ni virgule (14 nov. 2026).
+    const champs = req.body?.champs ? { ...req.body.champs } : null;
+    if (champs?.adresse && String(champs.adresse).trim()) champs.adresse = await adresseSaisie(String(champs.adresse).trim());
+    const r = champs ? poserInfos(req.params.dealId, champs, lireAdresse) : await chercherInfos(req.params.dealId, { uploadDir: UPLOAD_DIR, lireAdresse });
     if (r.error) return res.status(r.error === 'Dossier introuvable' ? 404 : 400).json(r);
     // L'adresse ou la surface posée passe aussi dans le projet (30 oct. 2026, Jules).
     import('../deal/projet.js').then((m) => m.projetSuitLeDossier(req.params.dealId, currentUser(req))).catch(() => {});

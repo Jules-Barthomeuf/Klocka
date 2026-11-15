@@ -9,11 +9,9 @@ import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
-import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
 import { ModeAppelUnique } from "@/components/prospection/FileRelances";
-import SuiviAppels from "@/pages/SuiviAppels";
 import AvatarAK from "@/components/AvatarAK";
-import { Filtres, TitrePage } from "@/components/mandataire/elements";
+import { TitrePage } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
@@ -967,25 +965,19 @@ export default function Prospection() {
   // « Carte » (22 oct. 2026, Jules) : où on a prospecté, avec les projets, les clients et les deals.
   // « Aujourd'hui » retiré (24 oct. 2026, Jules) : on arrive sur Listes ; les relances dues y sont dans leur intercalaire.
   // La carte quitte la Prospection (9 nov. 2026, Jules) : elle est dans le tableau de bord du CRM.
-  const PARTIES = [["listes", "Listes"], ["suivi", "Suivi"]];
-  // « ?partie=listes&liste=<id> » (le lien « Voir la liste » d'Off-market, 11 oct. 2026) l'emporte sur la dernière partie ouverte.
+  // Deux parties (15 nov. 2026, Jules) : le Tableau de bord, où l'on arrive (appels, avancement des villes, dossiers
+  // du mois, ville proposée), et Appels, le Mode appel avec le tableau des agences de la ville sous sa carte. Les
+  // Listes et le Suivi quittent la page : le tableau vit dans le Mode appel, le suivi détaillé reste dans Suivi > Appels.
+  // Le Tableau de bord quitte la page le même jour (15 nov. 2026, Jules : « enlève le tableau de bord de la partie
+  // appel ») : on arrive sur Appels. Son code reste (TableauDeBordProspection.jsx, server/prospection/tableau-de-bord.js).
   const depuisAdresse = new URLSearchParams(window.location.search);
-  const [partie, setPartie] = useState(() => { const u = ({ agent: "listes", relances: "listes", journee: "listes" })[depuisAdresse.get("partie")] || depuisAdresse.get("partie"); if (PARTIES.some(([k]) => k === u)) return u; try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "listes"; } catch { return "listes"; } });
+  const partie = "appels";
   // La relance prise dans la file : le Mode appel s'ouvre dessus.
   const [courante, setCourante] = useState(null);
-  // Le Mode appel n'est plus un onglet : « Démarrer les appels » l'ouvre à la place de la page, « Retour » la rend.
-  // `?appel=1` (la pilule « Appel » du coin, 19 oct. 2026) : la page s'ouvre en mode appel.
-  const [enAppel, setEnAppel] = useState(() => new URLSearchParams(window.location.search).get("appel") === "1");
-  // La transition (17 oct. 2026, Jules : « simple, smooth ») : un fondu enchaîné, la page sortante s'efface (180 ms), l'autre apparaît (300 ms).
-  const [sortant, setSortant] = useState(false);
-  const basculer = (v) => {
-    if (sortant) return;
-    setSortant(true);
-    setTimeout(() => { if (!v) setCourante(null); setEnAppel(v); setSortant(false); }, 180);
-  };
-  const basculeAppel = <BasculeModeAppel actif onChange={basculer} />;
-  const choisirPartie = (k) => { setCourante(null); setEnAppel(false); setPartie(k); };
-  useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
+  // La ville ouverte en arrivant sur Appels (?liste=…).
+  const [listeInitiale] = useState(() => depuisAdresse.get("liste") || null);
+  // Après un appel, l'écran n'est plus que le chat de l'assistant, titré du nom de l'appel (15 nov. 2026) : le titre de la page s'efface.
+  const [apresAppel, setApresAppel] = useState(false);
   const [appel, setAppel] = useState(null);
   // La fiche d'un agent ou d'une agence (16 oct. 2026) : depuis À appeler, la grille, ou l'adresse (?agent=… ou ?agence=…, liens de l'Intelligence).
   const [fiche, setFiche] = useState(() => { const u = new URLSearchParams(window.location.search); return u.get("agent") ? { type: "agent", id: u.get("agent") } : u.get("agence") ? { type: "agence", id: u.get("agence") } : null; });
@@ -1005,9 +997,9 @@ export default function Prospection() {
   ], [jour.data]);
   if (jour.isError && /403|réservé/i.test(jour.error?.message || "")) return <p className="p-8 text-[14px] text-ardoise">Cette page est réservée à l'équipe.</p>;
   return (
-    <div className="mx-auto w-full max-w-[1500px] px-5 py-[22px] md:px-8">
-      <header className="mb-3.5 flex flex-col gap-3">
-        <TitrePage titre="Prospection" className="relative md:!pr-[112px]" actions={<div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2"><Filtres label="Parties de la prospection" valeur={partie} onChange={choisirPartie} options={PARTIES.map(([k, mot]) => [k, mot])} /></div>} />
+    <div className={`mx-auto w-full max-w-[1500px] px-5 md:px-8 ${apresAppel ? "pt-[22px]" : "py-[22px]"}`}>
+      <header className={`mb-3.5 flex flex-col gap-3 ${apresAppel ? "hidden" : ""}`}>
+        <TitrePage titre="Prospection" className="relative md:!pr-[112px]" />
         {partie === "prospecter" && <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
           {onglets.map(([cle, mot, n]) => (
             <button key={cle} type="button" onClick={() => setOnglet(cle)}
@@ -1018,20 +1010,12 @@ export default function Prospection() {
           ))}
         </nav>}
       </header>
-      {/* Chaque partie entre en fondu, avec une légère montée (8 oct. 2026). */}
-      <div className={`transition-opacity duration-[180ms] ease-out ${sortant ? "opacity-0" : "opacity-100"}`}>
-      {enAppel && (
-        <div className="duration-300 ease-out animate-in fade-in-0">
-          {/* Sur la ligne des villes ; sans elle (une relance prise), en tête. */}
-          {courante && <div className="mb-4 flex justify-end">{basculeAppel}</div>}
-          <ModeAppelUnique courante={courante} setCourante={setCourante} entete={basculeAppel} />
-        </div>
-      )}
-      <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0">
-
-      {partie === "suivi" && <SuiviAppels dansProspection />}
-      {partie === "listes" && <OngletListesAgences onAppeler={(id) => prendre.mutate({ id })} onBasculer={basculer} />}
-      </div>
+      {/* Chaque partie entre en fondu (8 oct. 2026). */}
+      <div key={partie} className="duration-300 ease-out animate-in fade-in-0">
+        {partie === "appels" && (
+          <ModeAppelUnique key={listeInitiale || "appels"} courante={courante} setCourante={setCourante} listeInitiale={listeInitiale} onApresAppel={setApresAppel}
+            sousLaCarte={(listeId) => <OngletListesAgences key={listeId} listeId={listeId} onAppeler={(id) => prendre.mutate({ id })} />} />
+        )}
       </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
       {partie === "prospecter" && <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
@@ -1042,7 +1026,7 @@ export default function Prospection() {
         {onglet === "reglages" && <OngletReglages />}
       </div>}
       {appel && (
-        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
+        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-50 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
           <PanneauAppel key={appel.id} agent={appel} onCarte={setCarte} onFermer={() => { setAppel(null); ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); }} />
         </div>
       )}

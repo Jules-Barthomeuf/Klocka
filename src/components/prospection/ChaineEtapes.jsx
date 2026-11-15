@@ -38,11 +38,13 @@ export function useEtapesVives() {
  * Haka fait et son texte balayé d'un reflet (`.k-raisonne`) ; un trait relie les étapes. `centre` : la carte seule au
  * milieu de l'écran.
  */
-export function ChaineEtapes({ etapes, titre = "L'Assistant Klocka lit l'appel", attente = "Je lis l'appel", centre = false }) {
+// `nu` (15 nov. 2026, Jules : « les étapes avec le balayage dans le chat directement ») : sans cadre ni titre, dans le
+// message de l'assistant ; le balayage de l'étape en cours et les coches restent.
+export function ChaineEtapes({ etapes, titre = "L'Assistant Klocka lit l'appel", attente = "Je lis l'appel", centre = false, nu = false }) {
   const liste = etapes.length ? etapes : [attente];
   const carte = (
-    <div className={`flex flex-col gap-6 rounded-[24px] border border-bord-doux bg-transparent px-8 py-8 max-md:px-5 ${centre ? "w-full max-w-[560px]" : ""}`}>
-      <p className="m-0 text-[20px] leading-[1.3] tracking-[-0.01em] text-encre">{titre}</p>
+    <div className={nu ? "flex flex-col" : `flex flex-col gap-6 rounded-[24px] border border-bord-doux bg-transparent px-8 py-8 max-md:px-5 ${centre ? "w-full max-w-[560px]" : ""}`}>
+      {!nu && <p className="m-0 text-[20px] leading-[1.3] tracking-[-0.01em] text-encre">{titre}</p>}
       <div className="flex flex-col">
         {liste.map((e, i) => {
           const ici = i === liste.length - 1;

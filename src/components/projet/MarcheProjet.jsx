@@ -4,7 +4,7 @@ import { trouverVille, REFERENCES_FR } from "@/data/villes";
 import { EnTeteOnglet } from "./Cartes";
 import { GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BlocEmplacement } from "@/components/outils/MarcheAffine";
+import { BlocEmplacement, BlocLocataire, BlocLoyer, BlocPrix, BlocVille } from "@/components/outils/MarcheAffine";
 import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce, useEdition } from "./EditionEnPlace";
 
 // L'onglet Marché (maquette « Projet Detail 1b ») : trois cartes (habitants,
@@ -278,7 +278,7 @@ function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null, enEdition 
 /**
  * L'Emplacement du dossier (13 nov. 2026, Jules : « la vacance dans une partie du projet, la rotation du local avec les
  * exploitants, le passage, le pourcentage d'enseignes nationales ») : le dessin de l'Analyse (BlocEmplacement), lu dans
- * la partie Marché du dossier par le serveur (emplacementDuProjet), seulement ses parties lues. Les filets des parties
+ * la partie Marché du dossier par le serveur (emplacementDuProjet, dans marcheDuProjet), seulement ses parties lues. Les filets des parties
  * vont jusqu'au bord de la carte : la grille rattrape le retrait du corps.
  */
 function Emplacement({ e }) {
@@ -292,6 +292,37 @@ function Emplacement({ e }) {
       </div>
     </CarteMarche>
   );
+}
+
+const BLOCS_DOSSIER = { ville: ["Ville", BlocVille], prix: ["Prix", BlocPrix], loyer: ["Loyer", BlocLoyer], locataire: ["Locataire", BlocLocataire] };
+
+/**
+ * Une partie du Marché du dossier sur la page du projet (14 nov. 2026, Jules : « les trucs qu'on a faits dans les parties
+ * du Marché de l'analyse, dans les sous-parties du projet », « il faut vraiment que ça se mette à jour
+ * automatiquement ») : le dessin de l'Analyse (Ville, Prix, Loyer, Locataire), sa dernière lecture, relue par le serveur
+ * à chaque ouverture (marcheDuProjet) ; masquable pour le client comme l'Emplacement. Rien sans dossier ni lecture.
+ */
+export function PartieDuDossier({ outil, donnees }) {
+  const m = donnees?.marche?.[outil];
+  if (!m?.points?.length) return null;
+  const [titre, Dessin] = BLOCS_DOSSIER[outil];
+  const pts = Object.fromEntries(m.points.map((p) => [p.cle, p]));
+  const le = m.le ? new Date(m.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : null;
+  return (
+    <CarteMarche id={`marche-dossier-${outil}`} titre={titre} grille={false} className="w-full">
+      <EnTeteCarte libelle={titre} precision={le ? `lu le ${le}` : null} />
+      <div className="-mx-5 -mb-5 max-md:-mx-4 max-md:-mb-4">
+        <TooltipProvider delayDuration={100}><Dessin pts={pts} /></TooltipProvider>
+      </div>
+    </CarteMarche>
+  );
+}
+
+/** Le Locataire du dossier, pour l'onglet Locataire du projet : la même lecture que le Marché. */
+export function LocataireDuDossier({ project, isPublic = false }) {
+  const { data } = useSecteurProjet(project, !isPublic);
+  if (isPublic) return null;
+  return <PartieDuDossier outil="locataire" donnees={data} />;
 }
 
 export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 }) {
@@ -336,7 +367,8 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 })
   // un projet qu'on vient de créer montre sa page, pas un vide.
   const enEdition = !!useEdition()?.onChamp;
   const rienDuTout = !habitants && !revenu && !prixResidentiel && !loyerAutour && !loyerProjet;
-  if (rienDuTout && !enEdition && !donnees?.emplacement?.points?.length) return <div className="mb-5">{entete}</div>;
+  const duDossierLu = !!donnees?.emplacement?.points?.length || ["ville", "prix", "loyer"].some((o) => donnees?.marche?.[o]?.points?.length);
+  if (rienDuTout && !enEdition && !duDossierLu) return <div className="mb-5">{entete}</div>;
 
   return (
     <div className="flex flex-col gap-4">
@@ -354,7 +386,10 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 })
           <Commercial loyerAutour={loyerAutour} loyerProjet={loyerProjet} nom={nomRue} equimmox={equimmox} enEdition={enEdition} />
         </div>
       )}
+      <PartieDuDossier outil="ville" donnees={donnees} />
       {donnees?.emplacement?.points?.length > 0 && <Emplacement e={donnees.emplacement} />}
+      <PartieDuDossier outil="prix" donnees={donnees} />
+      <PartieDuDossier outil="loyer" donnees={donnees} />
     </div>
   );
 }

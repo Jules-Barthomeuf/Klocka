@@ -824,6 +824,8 @@ export async function executerOutil({ name, input }, user) {
         echeance: e.echeance,
       })),
       dernier_evenement: (deal.suivi || []).slice(-1)[0]?.detail || null,
+      // Ce que l'équipe a raconté sur ce bien (noter_bien, 15 nov. 2026) : l'agent, l'historique de la vente.
+      notes_equipe: (await import('./deal/notes-equipe.js')).notesPourAssistant({ deal, projet: deal.projet_id ? Records.get('Project', deal.projet_id) : null }),
     };
   }
 
@@ -866,6 +868,8 @@ export async function executerOutil({ name, input }, user) {
       // L'onglet Documents : ce qui se joint à un mail avec preparer_mail et
       // projet_id, même sans dossier de préanalyse ni Drive rattaché.
       documents: piecesDeclarees(projet).map((p) => p.nom),
+      // Ce que l'équipe a raconté sur ce bien (noter_bien, 15 nov. 2026), sur le projet ou le dossier d'où il vient.
+      notes_equipe: (await import('./deal/notes-equipe.js')).notesPourAssistant({ deal: projet.deal_id ? Records.findBy('Deal', 'deal_id', projet.deal_id) : null, projet }),
     };
   }
 

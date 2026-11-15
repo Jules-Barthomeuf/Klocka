@@ -70,6 +70,7 @@ export function lignesDuTableau(items, cols) {
     id: String(it.id), nom: it.nom || '', telephone: t(it, 'telephone'), emails: emailsDe(t(it, 'email')),
     entreprise: t(it, 'entreprise'), ville: t(it, 'ville'), remarques: t(it, 'remarques'), relance: t(it, 'relance'),
     spoc: t(it, 'spoc'), prenom: t(it, 'prenom'),
+    statut: t(it, 'statut'), diffusion: t(it, 'diffusion'), date_contact: t(it, 'date_contact'), dernier_contact: t(it, 'dernier_contact'),
   }));
 }
 
@@ -179,7 +180,8 @@ export function valeursPour(ligne, cols, d) {
   const autreEmail = !!(emailNouveau && (avant.emails || []).length && !(avant.emails || []).map(R.normEmail).includes(emailNouveau));
   if (autreEmail) poser('email', 'E-mail', cols.email?.type === 'email' ? { email: emailNouveau, text: emailNouveau } : emailNouveau, emailNouveau, emailNouveau, 'contient');
   else if (email && !(avant.emails || []).length) poser('email', 'E-mail', cols.email?.type === 'email' ? { email, text: email } : email, email, email, 'contient');
-  if (d.analyste_monday_id && !avant.spoc) poser('spoc', 'SPOC', { personsAndTeams: [{ id: Number(d.analyste_monday_id), kind: 'person' }] }, d.analyste_nom || '', d.analyste_nom || '', 'non_vide');
+  // Un SPOC choisi à l'écran (`spoc_force`, 15 nov. 2026) remplace celui de la ligne ; sinon on ne pose que sur une case vide.
+  if (d.analyste_monday_id && (!avant.spoc || d.spoc_force)) poser('spoc', 'SPOC', { personsAndTeams: [{ id: Number(d.analyste_monday_id), kind: 'person' }] }, d.analyste_nom || '', d.analyste_nom || '', 'non_vide');
   const prenom = contact ? String(contact).replace(/^(madame|monsieur)\s+/i, '').split(/\s+/)[0] : null;
   // Le prénom se complète aussi plus tard, quand le nom arrive sur une ligne qui n'en avait pas.
   if (prenom && (!avant.prenom || autreNom) && (!ligne || nom) && R.norm(prenom) !== R.norm(avant.prenom)) poser('prenom', 'Prénom', prenom, prenom);
@@ -231,6 +233,23 @@ export function appliquerForcees({ valeurs, attendus, apercu, avant = {}, cols, 
     if (k >= 0) attendus.splice(k, 1);
   };
   for (const [titre, brut] of Object.entries(forcees)) {
+    // Contact, Téléphone, E-mail corrigés sur une ligne existante (15 nov. 2026, Jules : « chaque champ se modifie »).
+    const special = { Contact: 'nom', 'Téléphone': 'telephone', 'E-mail': 'email' }[titre];
+    if (special) {
+      const texte = String(brut ?? '').trim();
+      if (!texte) continue;
+      if (special === 'nom') { valeurs.name = texte; retirer('nom'); attendus.push({ cle: 'nom', titre, colonne: 'name', attendu: texte }); }
+      else {
+        const col = cols[special];
+        if (!col) continue;
+        valeurs[col.id] = special === 'telephone' ? (col.type === 'phone' ? { phone: texte, countryShortName: 'FR' } : texte) : (col.type === 'email' ? { email: texte, text: texte } : texte);
+        retirer(special); attendus.push({ cle: special, titre, colonne: col.id, attendu: texte, mode: special === 'telephone' ? 'telephone' : 'contient' });
+      }
+      const k = apercu.findIndex((x) => x.titre === titre);
+      const l = { titre, avant: special === 'nom' ? avant.nom ?? '' : special === 'email' ? (avant.emails || [])[0] ?? '' : avant[special] ?? '', apres: texte, corrige: true };
+      if (k >= 0) apercu[k] = l; else apercu.push(l);
+      continue;
+    }
     const cle = CLE_DU_TITRE[titre];
     const col = cle ? cols[cle] : null;
     if (!col) continue;
@@ -369,6 +388,20 @@ async function personneDe(M, email) {
 export const mondayAgentsBranche = async () => (fauxMonday ? true : !process.env.NODE_TEST_CONTEXT && !!tableauAgents() && (await api()).mondayConfigure());
 
 /** La ligne d'un contact et l'aperçu de ce qui va changer, pour l'écran d'actions. Ne lève jamais : Monday absent rend « indisponible ». */
+/**
+ * Pure : les cases d'une ligne existante que l'appel ne change pas, avec leur valeur actuelle (15 nov. 2026, Jules :
+ * « on doit pouvoir tout modifier ») : elles se montrent dans l'aperçu, marquées `inchange`, pour qu'on les corrige.
+ */
+export function casesInchangees(ligne, cols, apercu) {
+  const deja = new Set(apercu.map((x) => x.titre));
+  const cases = [
+    ['Contact', ligne.nom, true], ['SPOC', ligne.spoc, cols.spoc], ['E-mail', (ligne.emails || [])[0], cols.email], ['Téléphone', ligne.telephone, cols.telephone],
+    ['Statut', ligne.statut, cols.statut], ['Liste de diffusion', ligne.diffusion, cols.diffusion], ['Ville', ligne.ville, cols.ville], ['Entreprise', ligne.entreprise, cols.entreprise],
+  ];
+  return cases.filter(([titre, , col]) => col && !deja.has(titre) && !(titre === 'Contact' && deja.has('Contact')))
+    .map(([titre, valeur]) => ({ titre, avant: String(valeur || '').replace(/\u200b/g, '').trim(), apres: String(valeur || '').replace(/\u200b/g, '').trim(), inchange: true }));
+}
+
 export async function preparer(cible, donnees) {
   try {
     if (!(await mondayAgentsBranche())) return { etat: 'indisponible', texte: "Twenty CRM n'est pas branché ici : voici ce qui serait écrit sur une nouvelle ligne", apercu: apercuSansMonday(donnees) };
@@ -386,7 +419,7 @@ export async function preparer(cible, donnees) {
     const m = trouverLigne(toutes, cible);
     const ligne = m.etat === 'trouvee' ? toutes.find((l) => l.id === m.ligne.id) : null;
     const v = valeursPour(ligne, cols, donnees);
-    return { ...m, apercu: v.apercu, contact_modifie: v.contact_modifie };
+    return { ...m, apercu: ligne ? [...v.apercu, ...casesInchangees(ligne, cols, v.apercu)] : v.apercu, contact_modifie: v.contact_modifie };
   } catch (e) {
     return { etat: 'indisponible', texte: 'Twenty CRM ne répond pas : la ligne sera retrouvée à la validation. Voici ce qui serait écrit sur une nouvelle ligne', erreur: String(e?.message || e).slice(0, 200), apercu: apercuSansMonday(donnees) };
   }
@@ -397,8 +430,15 @@ export async function preparer(cible, donnees) {
  * { etat: 'ok' | 'attente', item_id, cree, avant, attendus, texte, lien, ecarts? }.
  * `ligne_id` : la ligne choisie à l'écran ('nouvelle' pour en créer une).
  */
+/** Pure : le SPOC choisi à l'écran (une adresse de l'équipe, case « SPOC » des corrections) devient l'analyste de la ligne. */
+export function spocChoisi(donnees) {
+  const e = String(donnees?.forcees?.SPOC || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+$/.test(e) || e === String(donnees.analyste_email || '').toLowerCase()) return donnees;
+  return { ...donnees, analyste_email: e, analyste_monday_id: null, analyste_nom: null, spoc_force: true };
+}
+
 export async function ecrire({ cible, donnees: donnees0, ligne_id = null, item_cree = null }, { fonctions = null } = {}) {
-  let donnees = donnees0;
+  let donnees = spocChoisi(donnees0);
   const M = fonctions || (await api());
   const tableau = tableauAgents();
   const cols = fonctions?.cols || (await colonnes());

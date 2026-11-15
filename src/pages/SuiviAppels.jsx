@@ -110,6 +110,10 @@ function DetailAppel({ x, modifiable = true, base = "/api/monitoring/appels" }) 
       <div className={ligne}><span className="text-ardoise">Transcription</span>
         {x.transcription ? <span className="max-h-[320px] overflow-y-auto whitespace-pre-line text-craie">{x.transcription}</span> : <span className="text-brume">{x.enregistre ? "Pas gardée (appel d'avant le 13 octobre)" : "Pas d'enregistrement"}</span>}
       </div>
+      {/* Le retour d'AK (15 nov. 2026, Jules : « je veux voir les retours aussi ») : ce qu'il a dit à l'analyste, tel quel. */}
+      <div className={ligne}><span className="text-ardoise">Retour d'AK</span>
+        {x.retour ? <span className="whitespace-pre-line text-craie">{x.retour.message}</span> : <span className="text-brume">Pas demandé</span>}
+      </div>
       {/* L'écran de l'analyste pendant l'appel (14 oct. 2026) : rejoué d'un clic, gardé 30 jours. */}
       {x.ecran_id && <BoutonEcran id={x.ecran_id} ligne={ligne} titre={`Écran de ${String(x.par || "l'analyste").split("@")[0]} · ${x.agence || x.agent || "appel"}`} />}
       {x.temps && <div className={ligne}><span className="text-ardoise">Après l'appel</span><span className="text-craie">{[["pret_ms", "actions prêtes"], ["valide_ms", "validé"], ["prepare_ms", "tout préparé"]].filter(([k]) => x.temps[k] != null).map(([k, t]) => `${t} en ${secondesLisibles(x.temps[k])}`).join(" · ")}, depuis le raccrochage</span></div>}

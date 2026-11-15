@@ -279,6 +279,26 @@ export function lireAdresse(v) {
   return { rue: null, code_postal: null, ville: t || null };
 }
 
+/**
+ * Une adresse tapée à la main, découpée (14 nov. 2026 : le dossier « Essai » à Lorient, « 5 Place de la Libération
+ * Lorient » rangé tout entier dans la ville ; les outils du Marché n'y trouvaient pas de rue et la Ville cherchait une
+ * commune de ce nom). Sans code postal ni virgule, `lireAdresse` ne sait pas où finit la rue : la Base Adresse Nationale
+ * le dit. Une ville seule, rien de trouvé ou la BAN en panne : la lecture d'avant.
+ */
+export async function adresseSaisie(texte, { resoudre = null } = {}) {
+  const a = lireAdresse(texte);
+  if (typeof texte !== 'string' || a.rue || a.code_postal) return a;
+  const ban = await import('../adresse-ban.js');
+  if (!ban.adresseAvecRue(texte)) return a;
+  try {
+    const r = await (resoudre || ban.resoudreAdresse)(texte);
+    if (!r?.rue || !r.ville) return a;
+    return { rue: [r.numero, r.rue].filter(Boolean).join(' '), code_postal: r.code_postal || null, ville: r.ville };
+  } catch {
+    return a;
+  }
+}
+
 function lireValeur(champ, brut) {
   const def = CHAMPS_SAISISSABLES[champ];
   if (!def) return { erreur: 'Champ inconnu' };
@@ -313,6 +333,7 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
     if (!Object.prototype.hasOwnProperty.call(saisie, champ)) continue;
     const lu = lireValeur(champ, saisie[champ]);
     if (lu.erreur) return { error: lu.erreur };
+    if (!lu.vide && CHAMPS_SAISISSABLES[champ].type === 'adresse') lu.valeur = await adresseSaisie(saisie[champ]);
     // Une valeur vidée : le champ redevient absent, comme si la fiche ne le disait pas.
     lot = {
       ...lot,

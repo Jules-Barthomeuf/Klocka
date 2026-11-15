@@ -17,7 +17,7 @@ import { useCasesProjet, PanneauPiece, VueBail, BandesCases, TableauAG, dateFr }
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import { J } from "@/design/jetons";
-import MarcheProjet from "./MarcheProjet";
+import MarcheProjet, { LocataireDuDossier } from "./MarcheProjet";
 import StreetViewRue from "./StreetViewRue";
 import { EnTeteOnglet, Carte } from "./Cartes";
 import BienProjet from "./BienProjet";
@@ -160,7 +160,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, ongletsSous = null, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -490,19 +490,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {/* L'éditeur en écran scindé a ses onglets soulignés dans son en-tête (18 oct. 2026) : ici, seul le simulateur reste, sous la photo. */}
-          {/* L'éditeur (14 nov. 2026, Jules : « comme dans le projet en ligne, juste un seul bouton Simulateur complet à
-              droite ») : les onglets à gauche, le bouton à droite sur la même ligne ; il ouvre dans la page les paramètres et
-              le simulateur dessous (panneauSimulateur), à la place de l'onglet Simulateur d'avant. */}
-          {!apercuOnglet && sansBarreOnglets && (
-            <div className="mb-10 flex flex-wrap items-center justify-between gap-4 max-md:mb-7">
-              <div className="min-w-0 flex-1">{ongletsSous}</div>
-              <button onClick={ouvrirSimulateur} aria-pressed={simulateurDansLaPage ? ongletActif === "simulateur" : undefined}
-                className={`h-11 flex-none rounded-full px-5 text-[14px] transition-colors ${simulateurDansLaPage && ongletActif === "simulateur" ? "bg-encre text-fond" : "bg-menthe text-sur-menthe hover:bg-menthe-survol"}`}>
-                Simulateur complet →
-              </button>
-            </div>
-          )}
-          {!apercuOnglet && !sansBarreOnglets && (
+          {/* L'éditeur prend la même barre que le projet en ligne (14 nov. 2026, Jules : « dans la création de projet, je
+              veux que la barre de navigation, ce soit celle-ci ») : les onglets en pilules, « Simulateur complet → » à droite,
+              qui ouvre dans la page les paramètres et le simulateur (panneauSimulateur). L'onglet choisi et le bouton à la
+              couleur système, blancs au survol (même jour, Jules : « que ça pète d'un coup, juste blanc »). */}
+          {!apercuOnglet && (
           // La barre reste en haut au défilement, sans bande de fond : seules
           // les deux pilules, en verre, passent au-dessus du contenu.
           // Page publique : pas de barre du haut au téléphone, la barre colle en haut.
@@ -521,7 +513,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               // affiche, leur contenu est rendu par le parent.
               ...ongletsSupplementaires.map((o) => ({ v: o.value, l: o.label })),
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="h-9 rounded-full border-0 bg-transparent px-4 py-0 text-[14px] normal-case tracking-normal whitespace-nowrap text-craie shadow-none transition-colors hover:text-encre data-[state=active]:bg-encre data-[state=active]:text-fond data-[state=active]:shadow-none after:hidden">
+              <TabsTrigger key={v} value={v} className="h-9 rounded-full border-0 bg-transparent px-4 py-0 text-[14px] normal-case tracking-normal whitespace-nowrap text-craie shadow-none transition-colors duration-200 hover:text-encre data-[state=active]:bg-menthe data-[state=active]:text-sur-menthe data-[state=active]:shadow-none data-[state=active]:hover:bg-encre data-[state=active]:hover:text-fond after:hidden">
                 {l}
               </TabsTrigger>
             ))}
@@ -529,7 +521,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <div className="max-md:flex-shrink-0 rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px]">
             <button
               onClick={isPublic ? openPublicSimulator : ouvrirSimulateur}
-              className="h-9 rounded-full bg-menthe px-4 max-md:px-3.5 text-[14px] text-sur-menthe hover:bg-menthe-survol transition-colors max-md:whitespace-nowrap"
+              aria-pressed={simulateurDansLaPage ? ongletActif === "simulateur" : undefined}
+              className="h-9 rounded-full bg-menthe px-4 max-md:px-3.5 text-[14px] text-sur-menthe transition-colors duration-200 hover:bg-encre hover:text-fond max-md:whitespace-nowrap"
             >
               <span className="max-md:hidden">Simulateur complet →</span>
               <span className="md:hidden">Simulateur</span>
@@ -567,6 +560,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               />
 
               <LocataireProjet project={project} friseLue={cases?.frise} />
+
+              {/* Le Locataire du Marché du dossier (14 nov. 2026, Jules) : société, procédures, avis, relus à chaque ouverture. */}
+              <div className="mt-5"><LocataireDuDossier project={project} isPublic={isPublic} /></div>
 
               <Bloc id="locataire-liens" titre="Liens du locataire" className="mt-5">
                 <LocataireLiensSociaux liens={project.liens_locataire} />

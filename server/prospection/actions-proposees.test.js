@@ -380,3 +380,30 @@ test('valeursPour : une case vidée efface, une remarque vidée ne s\'ajoute pas
   assert.ok(v.apercu.find((x) => x.titre === 'Statut' && x.corrige));
   assert.ok(!v.attendus.some((x) => x.cle === 'remarques'));
 });
+
+test('le SPOC choisi à l\'écran remplace celui de la ligne (15 nov. 2026)', () => {
+  const d = MON.spocChoisi({ analyste_email: 'jules.b@klocka.immo', analyste_monday_id: 1, forcees: { SPOC: 'Maxime.P@klocka.immo' } });
+  assert.equal(d.analyste_email, 'maxime.p@klocka.immo');
+  assert.equal(d.analyste_monday_id, null, 'la personne se retrouve par son adresse');
+  assert.equal(d.spoc_force, true);
+  const meme = { analyste_email: 'jules.b@klocka.immo', forcees: { SPOC: 'jules.b@klocka.immo' } };
+  assert.equal(MON.spocChoisi(meme), meme, 'le même SPOC ne change rien');
+  assert.equal(MON.spocChoisi({ forcees: { SPOC: 'Maxime' } }).spoc_force, undefined, 'un prénom seul n\'est pas une adresse');
+  const cols = { spoc: { id: 'spoc', type: 'people' } };
+  const ligne = { id: '9', nom: 'Paul', spoc: 'Jules' };
+  assert.equal(MON.valeursPour(ligne, cols, { contact: 'Paul', analyste_monday_id: 7, analyste_nom: 'Maxime' }).valeurs.spoc, undefined, 'sans choix, le SPOC posé reste');
+  assert.deepEqual(MON.valeursPour(ligne, cols, { contact: 'Paul', analyste_monday_id: 7, analyste_nom: 'Maxime', spoc_force: true }).valeurs.spoc, { personsAndTeams: [{ id: 7, kind: 'person' }] });
+});
+
+test('une ligne existante montre aussi ses cases inchangées, et Contact, Téléphone, E-mail se corrigent (15 nov. 2026)', () => {
+  const cols = { telephone: { id: 'tel', type: 'phone' }, email: { id: 'mail', type: 'email' }, ville: { id: 'ville', type: 'text' }, spoc: { id: 'spoc', type: 'people' }, statut: { id: 'st', type: 'status' } };
+  const ligne = { id: '9', nom: 'Paul Martin', telephone: '0611223344', emails: ['paul@agence.fr'], ville: 'Metz', spoc: 'Maxime', statut: 'À rappeler' };
+  const inchangees = MON.casesInchangees(ligne, cols, [{ titre: 'Statut', avant: 'À rappeler', apres: 'A un bien' }]);
+  assert.deepEqual(inchangees.map((x) => x.titre), ['Contact', 'SPOC', 'E-mail', 'Téléphone', 'Ville'], 'Statut, déjà dans l\'aperçu, ne revient pas ; Entreprise sans colonne non plus');
+  assert.ok(inchangees.every((x) => x.inchange && x.avant === x.apres));
+  const v = MON.valeursPour(ligne, cols, { contact: 'Paul Martin', forcees: { Contact: 'Paul Martini', 'Téléphone': '06 99 88 77 66', 'E-mail': 'p.martini@agence.fr' } });
+  assert.equal(v.valeurs.name, 'Paul Martini');
+  assert.deepEqual(v.valeurs.tel, { phone: '06 99 88 77 66', countryShortName: 'FR' });
+  assert.deepEqual(v.valeurs.mail, { email: 'p.martini@agence.fr', text: 'p.martini@agence.fr' });
+  assert.ok(v.apercu.find((x) => x.titre === 'Contact' && x.corrige && x.avant === 'Paul Martin'));
+});

@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/components/ui/avis";
 import { createPortal } from "react-dom";
 import { Check, Eye, Info, Loader2, X } from "lucide-react";
@@ -61,18 +62,20 @@ const BoutonOeil = ({ onClick }) => (
 // Les raisons qu'on donne d'un clic quand on change ce que Haka proposait (APPELS_V2, 19 oct. 2026, Jules).
 const RAISONS = [["trop_tot", "Trop tôt"], ["trop_tard", "Trop tard"], ["mauvais_ton", "Mauvais ton"], ["deja_fait", "Déjà fait"], ["a_dit_autre_chose", "Il a dit autre chose"], ["autre", "Autre"]];
 
-function Etape({ e }) {
+function Etape({ e, sobre = false }) {
   return (
     <div className="py-0.5">
     <div className="flex min-h-[40px] items-center gap-1.5">
       <span className={`flex min-w-0 flex-1 flex-col gap-0.5 transition-opacity ${e.on ? "" : "opacity-40"}`}>
         <span className={`text-[15.5px] text-encre ${e.on ? "" : "line-through"}`}>{e.label}</span>
         {/* Un mail décoché faute d'adresse dit pourquoi (21 oct. 2026) : on saisit l'adresse dans l'étape, puis on coche. */}
-        {e.warn && e.detail && (e.on || e.q?.type === "mail") && <span className="text-[12.5px] text-ambre">{e.detail}</span>}
+        {/* Plus d'ambre sous les étapes dans le chat d'après l'appel (15 nov. 2026, Jules) : le détail reste dans l'œil. */}
+        {!sobre && e.warn && e.detail && (e.on || e.q?.type === "mail") && <span className="text-[12.5px] text-ambre">{e.detail}</span>}
         {e.parce && <span className="text-[12.5px] leading-[1.4] text-ardoise">Parce que : {e.parce}</span>}
       </span>
       <BoutonOeil onClick={e.voir} />
-      {e.basculer && <Interrupteur on={e.on} onChange={e.basculer} label={`${e.on ? "Retirer" : "Remettre"} : ${e.label}`} />}
+      {/* Sans interrupteur, une place vide de sa largeur : l'œil reste aligné sur les autres (15 nov. 2026). */}
+      {e.basculer ? <Interrupteur on={e.on} onChange={e.basculer} label={`${e.on ? "Retirer" : "Remettre"} : ${e.label}`} /> : <span aria-hidden className="w-[42px] flex-none" />}
       {/* La petite croix « Ne plus proposer » à droite de l'interrupteur, retirée (21 oct. 2026, Jules) : l'interrupteur suffit. */}
     </div>
     {e.demandeRaison && (
@@ -93,11 +96,11 @@ const RETIRABLES = ["mail", "sms", "diffusion", "signaler_bien", "nouveau_contac
 const NOMS_RETIRABLES = { mail: "Email", sms: "SMS", diffusion: "Liste de diffusion", signaler_bien: "Noter le bien évoqué", nouveau_contact: "Appeler le contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
 
 /** Une carte d'étapes : elle apparaît tout de suite, déjà bordée ; son moment est écrit au-dessus, hors d'elle. */
-function Carte({ etapes }) {
+function Carte({ etapes, sobre = false }) {
   const actif = etapes.some((e) => e.on);
   return (
     <div className={`relative rounded-[18px] border border-bord-doux bg-transparent px-[18px] py-1.5 duration-300 animate-in fade-in-0 transition-opacity ${actif ? "" : "opacity-45"}`}>
-      {etapes.map((e) => <Etape key={e.k} e={e} />)}
+      {etapes.map((e) => <Etape key={e.k} e={e} sobre={sobre} />)}
     </div>
   );
 }
@@ -168,6 +171,18 @@ function DateTwenty({ col }) {
 function ValeurTwenty({ col }) {
   if (col.desactivee) return <span className="flex flex-1 items-center justify-center px-4 py-3 text-[13px] text-brume">{col.desactivee}</span>;
   if (col.edit?.type === "date") return <DateTwenty col={col} />;
+  // Un choix fermé (15 nov. 2026, Jules : « chaque champ se modifie ») : le SPOC parmi l'équipe, la liste de diffusion Oui / Non.
+  if (col.edit?.type === "choix") {
+    const valeur = String(col.edit.valeur ?? "");
+    const options = col.edit.options.some(([v]) => v === valeur) || !valeur ? col.edit.options : [[valeur, col.edit.libelle || valeur], ...col.edit.options];
+    return (
+      <select value={valeur} onChange={(e) => col.edit.changer(e.target.value)} aria-label={col.titre}
+        className={`${SAISIE_TWENTY} cursor-pointer appearance-none hover:bg-relief/50 [text-align-last:center]`}>
+        {!valeur && <option value="">À compléter</option>}
+        {options.map(([v, mot]) => <option key={v} value={v}>{mot}</option>)}
+      </select>
+    );
+  }
   if (col.edit?.type === "texte") {
     const valeur = String(col.edit.valeur ?? "");
     if (col.titre === "Remarques") return <ZoneQuiGrandit valeur={valeur} onChange={col.edit.changer} lignes={2} label={col.titre} className={`${SAISIE_TWENTY} resize-none overflow-hidden leading-[1.45] hover:bg-relief/50`} />;
@@ -397,7 +412,9 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
 /**
  * @param {{appel, agence, issue, coches: Set, setCoches, mail, setMail, relanceLe, setRelanceLe, ligneMonday, setLigneMonday, onLancer, envoi}} props
  */
-export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null, lancement = 0, onLancementRefuse = null }) {
+export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null, lancement = 0, onLancementRefuse = null, sobre = false, onResume = null }) {
+  // L'équipe, pour choisir le SPOC de la ligne Twenty CRM (15 nov. 2026).
+  const equipe = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/equipe"), staleTime: 5 * 60_000 }).data?.equipe || null;
   // Relances (8 oct. 2026) : « Agent prévenu » s'ajoute aux issues pour un bien retenu ou refusé.
   const ISS = issuesEnPlus ? { ...ISSUES, ...issuesEnPlus } : ISSUES;
   // Une étape retirée (19 oct. 2026, Jules) : elle part de cet appel, et le serveur ne la propose plus à cette
@@ -520,9 +537,18 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         if (pr) return { titre, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
         return setEdits ? { titre, edit: { type: "date", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre) } } : { titre, valeur: apres };
       }
+      // Une case que l'appel ne change pas (ligne existante) : corrigée, elle part telle quelle sur la ligne (15 nov. 2026).
+      if (cle && setEdits && x.inchange) return { titre, edit: { type: "texte", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre), placeholder: PLACEHOLDERS_MONDAY[cle] } };
       if (cle && setEdits) return { titre, edit: { type: "texte", valeur: edits?.[cle] ?? (cle === "interlocuteur" && /^À préciser/.test(apres) ? "" : apres), changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
-      // Le SPOC est une personne de Monday : il se lit.
-      if (x.titre === "SPOC" || !setEdits) return { titre, valeur: x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres };
+      if (!setEdits) return { titre, valeur: x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres };
+      // Le SPOC se choisit dans l'équipe (15 nov. 2026) : l'adresse part dans les corrections, le serveur retrouve la personne.
+      if (x.titre === "SPOC") {
+        // Le nom de Twenty (« JulesB », « Maxime P. ») retrouve la personne de l'équipe par son prénom.
+        const sansAccent = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const moi = apres ? (equipe || []).filter((m) => !m.ancien).find((m) => sansAccent(apres).startsWith(sansAccent((m.nom || m.email).split(/[ @.]/)[0]))) : null;
+        return { titre, edit: { type: "choix", valeur: caseMonday(x.titre, moi?.email || apres), libelle: apres, options: (equipe || []).filter((m) => !m.ancien).map((m) => [m.email, (m.nom || m.email.split("@")[0]).split(" ")[0]]), changer: changerCase(x.titre) } };
+      }
+      if (x.titre === "Liste de diffusion") return { titre, edit: { type: "choix", valeur: /^oui$/i.test(caseMonday(x.titre, apres)) ? "Oui" : caseMonday(x.titre, apres) ? "Non" : "", options: [["Oui", "Oui"], ["Non", "Non"]], changer: changerCase(x.titre) } };
       const base = x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres;
       if (x.titre === "Dernier contact" && /^\d{4}-\d{2}-\d{2}$/.test(apres)) return { titre, edit: { type: "date", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre) } };
       return { titre, edit: { type: "texte", valeur: caseMonday(x.titre, base), changer: changerCase(x.titre), placeholder: x.titre === "Liste de diffusion" ? "Oui ou Non" : "—" } };
@@ -695,7 +721,8 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   if (pmo) {
     const detail = ligne?.etat === "trouvee" ? `${ligne.ligne.nom?.replace(/\u200b/g, "").trim() || "Contact sans nom"}, retrouvé par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `Contact choisi : ${choisie.nom}` : "C'est bien ce contact ? Choisissez") : ligne?.texte || "";
     // Un rappel d'un autre interlocuteur (13 oct. 2026) : « Contact modifié », ses cases remplacent celles de la ligne.
-    maintenant.push(etape(pmo, { label: ligne?.contact_modifie ? "Contact modifié" : "Contact Twenty CRM", detail, warn: doute || ligne?.etat === "indisponible", ...(edits?.sans_twenty ? { on: false, warn: false, basculer: () => setEdits((e) => ({ ...e, sans_twenty: false })) } : {}) }));
+    maintenant.push(etape(pmo, { label: ligne?.contact_modifie ? "Contact modifié" : "Contact Twenty CRM", detail, warn: doute || ligne?.etat === "indisponible", // Un interrupteur aussi pour Twenty (15 nov. 2026, Jules) : éteint, le contact ne part pas dans Twenty CRM (`sans_twenty`).
+    ...(edits?.sans_twenty ? { on: false, warn: false, basculer: () => setEdits((e) => ({ ...e, sans_twenty: false })) } : setEdits ? { basculer: () => setEdits((e) => ({ ...e, sans_twenty: true })) } : {}) }));
   }
   if (par("ne_plus_appeler")) maintenant.push(etape(par("ne_plus_appeler"), { label: "Ne plus appeler", detail: "Ni relance ni mail" }));
   if (pm) maintenant.push(etape(pm, { label: "Email", detail: `${MAILS[mail?.modele || pm.modele] || pm.titre} · ${mail?.a ? `à ${mail.a}` : "adresse manquante : il ne part pas"}${pm.a_incertain && mail?.a === pm.a ? " · adresse à vérifier" : ""}${modifie ? " · modifié" : ""}`, warn: !mail?.a || (pm.a_incertain && mail?.a === pm.a) }));
@@ -711,6 +738,9 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const pv = par("prevenir");
   if (pv) ensuite.push(etape(pv, { label: "Prévenir un collègue", detail: pv.pour.map((e) => e.split("@")[0].split(".")[0]).map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(", ") }));
   const n = [...maintenant, ...ensuite].filter((e) => e.on).length;
+  // Le compte et les noms des étapes pour le Valider épinglé au-dessus de la saisie (15 nov. 2026).
+  const nomsResume = [...maintenant, ...ensuite].filter((e) => e.on).map((e) => e.label).join("|");
+  useEffect(() => { onResume?.({ n, doute: !!doute, envoi: !!envoi, noms: nomsResume ? nomsResume.split("|") : [] }); }, [n, doute, envoi, nomsResume]);
   // Les étapes de la fenêtre, rangées par moment : maintenant, puis chaque date de relance dans l'ordre.
   const COURT = { monday: ligne?.contact_modifie ? "Contact modifié" : "Contact Twenty CRM", ne_plus_appeler: "Ne plus appeler", mail: "Email", sms: "SMS", diffusion: "Liste de diffusion", fiche: "Compléter sa fiche", signaler_bien: "Bien évoqué", nouveau_contact: "Contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
   const dateDe = (e) => (e.q.type === "relance" ? dateRelance : e.q.type === "relance_suivante" ? relance2Le || pr2?.prochaine?.le : null);
@@ -733,13 +763,15 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   useEffect(() => { if (edits?.sms != null) setSms(edits.sms); }, [edits?.sms]);
   return (
     <div className="flex flex-col">
-      <div className="mb-1 flex items-center justify-center px-1">
+      {/* `sobre` (15 nov. 2026, Jules : les actions dans le chat de l'assistant) : ni la phrase du dessus ni son « changer »
+          (l'assistant change l'issue si on le lui dit), plus d'ambre, et Valider petit, à la couleur de l'accent. */}
+      {!sobre && <div className="mb-1 flex items-center justify-center px-1">
         <span className="flex min-w-0 items-center gap-2">
           <span className={`truncate text-[13px] ${issue === "pas_interesse" ? "text-ardoise" : "text-menthe"}`} title={passe || ISS[issue] || ""}>{passe || ISS[issue] || ""}</span>
           {/* AK a mal lu : on réécrit la phrase, et on peut réorienter les actions sur la même transcription. */}
           {(onChangerIssue || setEdits) && <button type="button" onClick={() => setChoixIssue((x) => !x)} disabled={changementEnCours} className="shrink-0 p-0 text-[13px] text-ardoise underline hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>changer</button>}
         </span>
-      </div>
+      </div>}
       {v2 && appel.parce_que?.issue && <p className="m-0 mb-2 px-1 text-[12.5px] leading-[1.4] text-ardoise">Parce que : {appel.parce_que.issue}</p>}
       {choixIssue && (
         <div className="mb-3 flex flex-col gap-2 px-1">
@@ -766,14 +798,14 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       {maintenant.length > 0 && (
         <>
           <Trait p={p("v0")} moment="Maintenant" />
-          <Carte etapes={maintenant} />
+          <Carte etapes={maintenant} sobre={sobre} />
         </>
       )}
 
       {ensuite.length > 0 && (
         <>
           <Trait p={p(maintenant.length ? "v1" : "v0")} moment={pr && dateRelance ? enJour(String(dateRelance).slice(0, 10)) : "Ensuite"} />
-          <Carte etapes={ensuite} />
+          <Carte etapes={ensuite} sobre={sobre} />
         </>
       )}
 
@@ -785,11 +817,22 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         </p>
       )}
       {doute && <p className="m-0 mt-4 px-1 text-[14px] text-ambre">Twenty CRM a plusieurs contacts possibles : ouvrez « Contact Twenty CRM » et choisissez le bon.</p>}
-      <Trait p={p("v2")} />
-      <button type="button" onClick={() => onLancer({ vues: [...vues.current] })} disabled={envoi || !n || doute}
-        className="w-full rounded-full bg-encre py-[18px] text-[17px] text-fond hover:opacity-90 disabled:opacity-50">
-        {envoi ? "Validation…" : `Valider · ${n} étape${n > 1 ? "s" : ""}`}
-      </button>
+      {sobre ? (
+        <div className="mt-3 flex justify-end">
+          <button type="button" onClick={() => onLancer({ vues: [...vues.current] })} disabled={envoi || !n || doute}
+            className="inline-flex h-9 items-center rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-50">
+            {envoi ? "Validation…" : `Valider · ${n} étape${n > 1 ? "s" : ""}`}
+          </button>
+        </div>
+      ) : (
+        <>
+          <Trait p={p("v2")} />
+          <button type="button" onClick={() => onLancer({ vues: [...vues.current] })} disabled={envoi || !n || doute}
+            className="w-full rounded-full bg-encre py-[18px] text-[17px] text-fond hover:opacity-90 disabled:opacity-50">
+            {envoi ? "Validation…" : `Valider · ${n} étape${n > 1 ? "s" : ""}`}
+          </button>
+        </>
+      )}
 
       {/* L'aperçu (l'œil) ne parcourt que les étapes activées (21 oct. 2026, Jules : « le mail désactivé, on ne doit plus le
           voir dans l'aperçu ») ; une étape désactivée ne s'y montre que si l'on ouvre son propre œil. */}

@@ -207,11 +207,13 @@ export function monterMarche(app) {
     if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
     const { projetVisiblePar } = await import('../acces-entites.js');
     if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
-    const { lireSecteur, emplacementDuProjet } = await import('../projet-secteur.js');
+    const { lireSecteur, marcheDuProjet } = await import('../projet-secteur.js');
     const admin = user.role === 'admin';
     const fiche = lireSecteur(projet, { forcer: admin && req.query.forcer === '1', forcerLoyer: admin && req.query.relancer_loyer === '1' });
-    // L'Emplacement du Marché du dossier, relu à chaque ouverture : il ne vit pas dans la fiche gardée du secteur.
-    ok(res, fiche && typeof fiche === 'object' ? { ...fiche, emplacement: emplacementDuProjet(projet) } : fiche);
+    // Le Marché du dossier (Emplacement, Ville, Prix, Loyer, Locataire), relu à chaque ouverture : il ne vit pas dans
+    // la fiche gardée du secteur, et un outil relancé dans l'Analyse se voit au prochain passage (14 nov. 2026, Jules).
+    const { emplacement, ...marche } = marcheDuProjet(projet);
+    ok(res, fiche && typeof fiche === 'object' ? { ...fiche, emplacement, marche } : fiche);
   }));
 
   // Les flux et la commercialité : l'étude d'implantation Data-B (un crédit),

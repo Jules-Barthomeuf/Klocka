@@ -139,7 +139,7 @@ const ESPACES = {
   // sur sa route à lui ; AK n'y touche qu'à la présentation ouverte à droite.
   presentation_client: { api: "/api/client/ak", client: true, modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Que voulez-vous changer ? « Raccourcissez le texte de la couverture », « mettez le titre plus simplement »…" },
   // Après un appel de prospection (9 nov. 2026, Jules) : le même chat, branché par `repondre` sur l'assistant de cet appel ; rien ne se garde en conversation.
-  appel: { api: "/api/assistant", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, saisieTransparente: true, placeholder: "« Mail plus court », « relance lundi », « valide »" },
+  appel: { api: "/api/assistant", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "« Mail plus court », « relance lundi », « valide »" },
   prospection: { api: "/api/mandataire", qs: "?espace=prospection", modesAGauche: true, modeParDefaut: "libre", modes: MODES_PROSPECTION, commandes: COMMANDES_PROSPECTION, fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quelle zone prospectez-vous ? « Mâcon », « la rue Carnot », « les boulangeries indépendantes à Charnay »" },
 };
 
@@ -1070,7 +1070,7 @@ function MessageAvecPiece({ m }) {
 // `lueur` : une lumière fait lentement le tour du cadre de la saisie, pour qu'on la voie (la fiche d'un commerce, 25 oct. 2026, Jules).
 // Dans tous les chats depuis le 26 oct. 2026 (Jules : « dans le dashboard, dans admin, dans tous les chats ») : `lueur={false}` l'éteint.
 // `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
-export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null, finFil = null, repondre = null, annonce = null }) {
+export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAura = false, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null, finFil = null, repondre = null, annonce = null, debutFil = null, auDessusSaisie = null, propositions = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026) ; depuis le 1er nov. 2026 (Jules : « un
   // fil par bien »), l'Avis de valeur et le Mandat d'un bien aussi : un seul fil, seul le moteur qui répond change.
@@ -1685,7 +1685,10 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     onError: (e) => toast.error(e?.message || "Création impossible"),
   });
 
+  // Avec un début de fil (les actions d'après l'appel, 15 nov. 2026, Jules : « on voit en premier "Voici ce que je
+  // propose" ») : le fil reste en haut tant qu'on n'a rien écrit ; il ne descend qu'au premier message.
   useEffect(() => {
+    if (debutFil && !fil.some((m) => m.role === "user")) return;
     finRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [fil, fiche, brouillon]);
 
@@ -1741,7 +1744,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
     const r = reglagesRef.current;
     return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(r ? { sortie: r.sortie, sources: (r.sources || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })), ...(r.competence ? { competence: r.competence.cle, sources_eteintes: (r.eteintes || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })) } : {}) } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}), haka: { longueur: prefsHaka.haka_longueur, tableaux: prefsHaka.haka_tableaux } };
   };
-  const conversation = (!!onConversation && fil.some((m) => m.role === "user" || m.reprise)) || !!filVide;
+  // Un début de fil posé par la page (les actions d'après l'appel, 15 nov. 2026) ouvre aussi la conversation.
+  const conversation = (!!onConversation && fil.some((m) => m.role === "user" || m.reprise)) || !!filVide || !!debutFil;
   useEffect(() => { onConversation?.(conversation); }, [conversation, onConversation]);
   // « Dashboard » ou « Nouveau chat » dans la barre latérale : retour au départ.
   const location = useLocation();
@@ -1932,7 +1936,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
 
   const cadreAura = useRef(null);
   // La lumière de la dictée s'éteint dès l'envoi (ou l'arrêt), sans attendre la fin de la transcription.
-  const aura = lueur || (ecoute && !finalisation);
+  // `sansAura` : aucune lumière, même pendant la dictée (le chat d'après l'appel, 14 nov. 2026, Jules : « plus d'effet »).
+  const aura = !sansAura && (lueur || (ecoute && !finalisation));
   useAuraPosee(cadreAura, ecoute);
 
   const corriger = (cle, valeur, unite) => {
@@ -2281,6 +2286,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
           </div>
         )}
         <div className={`mx-auto w-full max-w-[760px] ${compact ? "space-y-6 py-6" : "space-y-8 py-8"} ${filVide && !fil.length && !travaille ? "hidden" : ""}`}>
+          {/* `debutFil` (15 nov. 2026, Jules : les actions proposées dans le chat de l'assistant) : en tête du fil, il défile avec lui. */}
+          {debutFil}
           {fil.map((m, i) => [
             compact && jourDe(m) && jourDe(m) !== jourDe(fil.slice(0, i).reverse().find((x) => jourDe(x))) && <SeparateurJour key={`j-${i}`} iso={m.le || m.ak_le} />,
             m.role === "user" ? (
@@ -2335,6 +2342,15 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
           )}
           {/* `finFil` (4 nov. 2026, Jules) : ce que la page pose au bout du fil, le mail préparé de la Data room. */}
           {finFil && !travaille && <div className={compact ? "" : "pl-[3.25rem]"}>{finFil}</div>}
+          {/* `propositions` (15 nov. 2026) : des réponses d'un clic sous le premier mot de l'assistant, tant qu'on n'a rien dit. */}
+          {propositions?.length > 0 && !travaille && !fil.some((m) => m.role === "user") && (
+            <div className={`-mt-4 flex flex-wrap gap-2 ${compact ? "" : "pl-[3.25rem]"}`}>
+              {propositions.map((x) => (
+                <button key={x.libelle} type="button" onClick={() => (x.faire ? x.faire() : lancer(x.texte || x.libelle))}
+                  className="inline-flex h-8 items-center rounded-full border border-bord-doux px-3.5 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>{x.libelle}</button>
+              ))}
+            </div>
+          )}
           <div ref={finRef} />
         </div>
         </div>
@@ -2354,6 +2370,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, espace 
               )}
             </div>
           )}
+          {/* `auDessusSaisie` (15 nov. 2026) : ce que la page épingle juste au-dessus de la saisie (Valider, après l'appel). */}
+          {auDessusSaisie}
           {barre}
           {sousSaisie}
         </div>

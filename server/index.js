@@ -1762,12 +1762,15 @@ app.use((err, req, res, next) => {
   res.status(err?.status || 500).json({ error: err?.expose ? err.message : `Erreur du serveur : ${String(err?.message || err).slice(0, 200)}` });
 });
 
-app.listen(PORT, () => {
+// La transcription en temps réel pendant l'appel (15 nov. 2026) : un WebSocket sur le même serveur.
+const serveurHttp = app.listen(PORT, () => {
   // Un démarrage est un incident comme un autre : c'est lui qui date les
   // redémarrages, et donc les 502 qu'ils ont provoqués.
   noterIncident('demarrage', `Klocka démarre sur le port ${PORT}`);
   // Les acquéreurs des biens en vente partent dans Twenty (8 nov. 2026, server/crm-acquereurs.js) : relus toutes les 20 s.
   import('./crm-acquereurs.js').then((m) => m.demarrerRattrapage({ toutesLes: 20000 })).catch((e) => console.warn(`[crm] acquéreurs : ${e?.message || e}`));
+  // Le schéma du CRM lu dès le démarrage (15 nov. 2026) : le premier qui ouvre le CRM n'attend pas Twenty.
+  if (process.env.NODE_ENV !== 'test') import('./crm/ecran.js').then((m) => m.prechaufferSchema()).catch((e) => console.warn(`[crm] préchauffage : ${e?.message || e}`));
   const url = process.env.APP_URL || `http://localhost:${PORT}`;
   const accounts = listAccounts();
   console.log(`\n  ▸ Klocka : ${url}\n`);
@@ -1787,3 +1790,4 @@ app.listen(PORT, () => {
     `    Expéditeurs : ${accounts.length ? accounts.map((a) => a.email).join(', ') : 'aucun — connectez un compte depuis le dashboard'}\n`
   );
 });
+import('./ecoute-temps-reel.js').then((m) => m.brancherEcoute(serveurHttp)).catch((e) => console.warn(`[écoute] relais temps réel non branché : ${e?.message || e}`));

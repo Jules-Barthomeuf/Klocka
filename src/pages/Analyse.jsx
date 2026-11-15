@@ -17,7 +17,6 @@ import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { useUser } from "@/components/providers/UserProvider";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
-import FondHalo from "@/components/projet/FondHalo";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
 import PenseeIA from "@/components/PenseeIA";
@@ -462,8 +461,11 @@ export default function Analyse() {
         <div id="bande-dossier-droite" className="absolute right-[88px] flex items-center gap-2" />
       </header>
       <div className={`k-page-presentation k-dossier-ia k-crm-contenu relative grid min-h-0 flex-1 overflow-hidden rounded-tl-[16px] ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${reduit ? 0 : largeurChat}px minmax(0,1fr)`, transition: tire ? undefined : "grid-template-columns 520ms cubic-bezier(0.22, 1, 0.36, 1)", transform: "translateZ(0)" }}>
-        {/* `transform` : le halo, posé en `fixed` par FondHalo, se cale sur ce cadre et non sur l'écran. */}
-        {avecHalo ? <FondHalo /> : <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-fond" />}
+        {/* Le halo n'est plus redessiné dans ce cadre (15 nov. 2026, Jules : « le fond doit aussi passer derrière la nav
+            barre ») : calé sur le cadre, il était décalé de la largeur de la barre par rapport à celui de la page, posé sur
+            tout l'écran par le Layout ; c'est celui-là qui passe derrière la barre, la bande et le dossier, d'un seul tenant.
+            Sans halo, le fond uni choisi reste peint ici. */}
+        {!avecHalo && <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-fond" />}
         {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
         <motion.div className="k-colonne-chat relative z-10 flex h-full min-h-0 min-w-0 flex-col overflow-hidden pt-12"
           initial={glisse.current ? { opacity: 0, x: -40 } : { opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}

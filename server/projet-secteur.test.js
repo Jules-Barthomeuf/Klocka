@@ -212,3 +212,24 @@ test('un projet venu d’un dossier prend le loyer autour de la partie Marché, 
   assert.equal(loyerDuMarche({ ...lancement, statut: 'echec' }), null);
   assert.equal(loyerDuMarche({ statut: 'fini', resultat: { points: [] } }), null);
 });
+
+test('le Marché du dossier : la dernière lecture finie de chaque outil, sans parties vides ni personne nommée', async () => {
+  const { marcheDuProjet } = await import('./projet-secteur.js');
+  const { Records } = await import('./db.js');
+  const deal_id = `d-marche-${Date.now()}`;
+  const deal = { deal_id, lots: [{ lot: { adresse: { valeur: { rue: 'rue de la Paix' } } } }] };
+  const lance = (outil, points, fini_le, statut = 'fini') => Records.create('LancementOutil', { deal_id, index: 0, outil, statut, fini_le, resultat: { points } });
+  lance('prix', [{ cle: 'verdict_prix', statut: 'ok', resultat: 'ancien' }], '2026-11-01T00:00:00Z');
+  lance('prix', [{ cle: 'verdict_prix', statut: 'a_voir', resultat: 'récent' }, { cle: 'rendement', statut: 'vide', resultat: '' }], '2026-11-10T00:00:00Z');
+  lance('loyer', [{ cle: 'loyer_marche', statut: 'vide', resultat: '' }], '2026-11-10T00:00:00Z');
+  lance('ville', [{ cle: 'population', statut: 'ok', resultat: '1' }], null, 'en_cours');
+  lance('locataire', [{ cle: 'societe', statut: 'ok', resultat: 'JEAN DUPONT', detail: { nom: 'JEAN DUPONT', forme: 'Entrepreneur individuel' }, lien: 'https://x' }], '2026-11-10T00:00:00Z');
+  const m = marcheDuProjet({ deal_id, adresse_complete: '3 rue de la Paix, Paris' }, { dealDe: () => deal });
+  assert.deepEqual(m.prix.points.map((p) => p.resultat), ['récent']);
+  assert.equal(m.loyer, null);
+  assert.equal(m.ville, null);
+  assert.equal(m.emplacement, null);
+  assert.equal(m.locataire.points[0].detail.nom, 'Entrepreneur individuel');
+  assert.equal(m.locataire.points[0].lien, null);
+  assert.deepEqual(marcheDuProjet({ adresse_complete: 'x' }), { emplacement: null, ville: null, prix: null, loyer: null, locataire: null });
+});

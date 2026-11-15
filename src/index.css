@@ -1088,6 +1088,13 @@ html.k-cadre-dossier, html.k-cadre-liste {
 html.k-cadre-dossier[data-theme="clair"], html.k-cadre-liste[data-theme="clair"] {
   --k-verre-fond: linear-gradient(rgb(244 244 242 / .6), rgb(244 244 242 / .6)), rgb(240 240 238);
 }
+/* Avec le halo, la barre et la bande du dossier sont du vrai verre (15 nov. 2026, Jules, sur le prototype « Dossier
+   ouvert » : « mets la nav barre comme ça dans notre vraie page, en glass ») : sans le fond plein dessous, les nappes du
+   halo passent au travers, floutées ; la barre de gauche et la bande du haut, posées sur le même halo, restent d'un
+   tenant. Sans halo ou en clair, le verre sur fond plein d'au-dessus. */
+html.k-cadre-dossier[data-halo="1"]:not([data-theme="clair"]), html.k-cadre-liste[data-halo="1"]:not([data-theme="clair"]) {
+  --k-verre-fond: linear-gradient(rgba(242, 243, 245, 0.045), rgba(242, 243, 245, 0.045)), rgb(25 26 25 / .42);
+}
 /* Le cadre en L (`k-cadre-l`, à partir de 768 px) : la bande du haut passe par-dessus la page, qui monte dessous ; le
    dossier y défile (ses colonnes s'écartent de 48 px elles-mêmes), le CRM, l'Emailing et les Outils gardent leurs
    panneaux sous la bande. Le filet `trait` du 12 nov. court sous la bande, tourne au coin de 16 px (le verre remplit le
@@ -1563,6 +1570,8 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 }
 .k-ecran-chargement h1 {
   margin: 0;
+  padding: 0 16px;
+  text-align: center;
   font: 500 clamp(44px, 5vw, 64px) / 1.1 var(--k-police, 'Instrument Sans'), Inter, system-ui, sans-serif;
   letter-spacing: -0.03em;
   color: transparent;
@@ -1634,7 +1643,7 @@ html.k-cadre-dossier .k-barre-nue, html.k-cadre-crm .k-barre-nue {
   background-size: 260% 100%;
   background-position: 130% 0;
 }
-.k-couv:hover .k-couv-balai { animation: k-couv-balai 1.1s cubic-bezier(.45, 0, .35, 1) both; }
+.k-couv:hover .k-couv-balai { animation: k-couv-balai 2.2s cubic-bezier(.45, 0, .35, 1) both; }
 @keyframes k-couv-balai {
   from { background-position: 130% 0; }
   to { background-position: -30% 0; }

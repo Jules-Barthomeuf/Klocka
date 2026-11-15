@@ -1,6 +1,6 @@
 import Cloche, { ouvrirCloche, useNonLuesMandataire } from "@/components/haka/Cloche";
 import PopupFicheRecue from "@/components/haka/PopupFicheRecue";
-import { precharger } from "@/lib/precharger";
+import { prechargerAuSurvol } from "@/lib/precharger";
 import MarqueKlocka from "@/components/MarqueKlocka";
 import LogoKP from "@/components/mandataire/LogoKP";
 import React, { useState, useEffect, useRef } from "react";
@@ -122,7 +122,7 @@ function LienRail({ details, replie, empile = false, onNaviguer, e, cle = e.cle,
   // La barre repliée de la page Projets (14 nov. 2026, Jules, sur une maquette) : l'icône dans un carré arrondi, son nom en
   // petit dessous ; l'entrée active a son carré éclairé et son nom en `encre`.
   if (empile) return (
-    <Lien {...cible} onClick={onNaviguer} onMouseEnter={() => precharger(cle)} onFocus={() => precharger(cle)} data-actif={ici ? "1" : undefined}
+    <Lien {...cible} onClick={onNaviguer} onMouseEnter={() => prechargerAuSurvol(cle)} onFocus={() => prechargerAuSurvol(cle)} data-actif={ici ? "1" : undefined}
       aria-label={ferme ? `${label}, accès réservé` : label}
       className={`group relative mx-auto flex w-[80px] flex-col items-center py-1 transition-colors ${ici ? "text-encre" : "text-ardoise hover:text-encre"}`}>
       <span className={`grid h-10 w-10 place-items-center rounded-[13px] transition-colors ${ici ? "bg-rail-actif" : "group-hover:bg-rail-actif"}`}>
@@ -137,8 +137,8 @@ function LienRail({ details, replie, empile = false, onNaviguer, e, cle = e.cle,
       {...cible}
       onClick={onNaviguer}
       // Au survol, la page se télécharge déjà : le clic l'ouvre sans attendre (21 oct. 2026).
-      onMouseEnter={() => precharger(cle)}
-      onFocus={() => precharger(cle)}
+      onMouseEnter={() => prechargerAuSurvol(cle)}
+      onFocus={() => prechargerAuSurvol(cle)}
       data-actif={ici ? "1" : undefined}
       title={ferme ? `${label} : accès réservé` : replie ? label : undefined}
       aria-label={ferme ? `${label}, accès réservé` : label}

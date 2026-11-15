@@ -8,12 +8,12 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
 import { montant } from "../../server/montants.js";
-import { apercuAdmin } from "@/lib/vue";
 import LogoKP from "@/components/mandataire/LogoKP";
 import { CLASSES_STATUT, couleurStatut } from "@/lib/couleur-statut";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, definirCadreCrm, themeEffectif } from "@/lib/personnalisation";
 import { useUser } from "@/components/providers/UserProvider";
+import { barreGardee, cleBarreCrm, espaceCrm, garderBarre, lireBarreCrm } from "@/lib/crm-barre";
 
 // Des pages de Klocka dans le CRM (6 nov. 2026, Jules : « mets la page utilisateurs dans le CRM en gardant celle
 // actuelle aussi », puis « fais pareil pour Mandataires ») : en bas de l'espace Klocka, pour l'équipe seule, et pas des
@@ -45,7 +45,7 @@ const COLONNES_CACHEES = { clients: ["entreprise"] };
 const API = "/api/crm/ecran";
 // L'espace mandataire (5 nov. 2026) : quand Jules regarde Klocka comme un mandataire, le CRM aussi (droits de K Partners).
 // Un vrai mandataire l'est de toute façon côté serveur.
-const ESPACE = () => (apercuAdmin() === "mandataire" ? "mandataire" : "");
+const ESPACE = espaceCrm;
 const avecEspace = (chemin) => (ESPACE() ? `${chemin}${chemin.includes("?") ? "&" : "?"}espace=${ESPACE()}` : chemin);
 const req = (methode, chemin, options) => base44.request(methode, avecEspace(chemin), options);
 const dateFr = (iso, heure = false) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", ...(heure ? { hour: "2-digit", minute: "2-digit" } : {}) }) : "");
@@ -906,10 +906,15 @@ function LogoEspace({ nom, ferme = false, petit = false }) {
 export default function CrmTwenty() {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
-  const barre = useQuery({ queryKey: ["crm-barre", ESPACE()], queryFn: () => req("GET", API), staleTime: 120_000, retry: false });
+  const moi = useUser();
+  // La dernière barre reçue s'affiche tout de suite et le tableau part aussitôt ; elle se relit derrière (src/lib/crm-barre.js).
+  const barre = useQuery({ queryKey: cleBarreCrm(), queryFn: lireBarreCrm, staleTime: 120_000, retry: false, initialData: () => barreGardee(moi?.email), initialDataUpdatedAt: 0 });
+  useEffect(() => {
+    if (barre.isError) garderBarre(moi?.email, null);
+    else if (barre.data && !barre.isPlaceholderData) garderBarre(moi?.email, barre.data);
+  }, [barre.data, barre.isError, barre.isPlaceholderData, moi?.email]);
   // Sans la liste du serveur (une ancienne réponse gardée), les membres de Twenty : le choix n'est jamais vide.
   const spoc = barre.data?.spoc?.length ? barre.data.spoc : (barre.data?.membres || []).map((m) => ({ nom: m.nom.replace(/\s+/g, " "), valeur: m.nom, membre: m.id }));
-  const moi = useUser();
   // Un admin garde les pages de Klocka dans la vue mandataire, où l'espace Klocka lui reste ouvert (6 nov. 2026).
   const equipe = moi?.role === "admin";
   // Dans l'ordre que la personne a choisi en glissant les pages : le CRM ouvre sur la première de son panneau.

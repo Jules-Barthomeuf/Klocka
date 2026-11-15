@@ -9,6 +9,7 @@
 // tâches, ses pièces jointes, les actions en lot (Supprimer, Dupliquer, Déplacer vers) et l'envoi d'un mail.
 
 import fs from 'node:fs';
+import zlib from 'node:zlib';
 import { creer, lire, lister, modifier, noter, objetsTwenty, requeteTwenty, supprimer, twentyConfigure } from '../twenty.js';
 import { champCache, gql, lireMenu, lireRoles, niveauDe } from './acces.js';
 
@@ -206,19 +207,54 @@ export const roleDe = (roles, email) => {
 // Le schéma, les rôles, la barre et les vues changent rarement : lus ensemble. Leur lecture complète prend près d'une
 // minute (des dizaines de requêtes au pas de Twenty) : on sert la copie gardée et, passé deux minutes, on la relit
 // derrière, sans faire attendre l'écran ; un changement fait depuis l'écran l'oublie aussitôt (oublierSchema).
+// Le CRM plus rapide à ouvrir (15 nov. 2026, Jules : « réduis le temps de chargement du crm ») : la dernière lecture
+// est gardée dans la base (meta, crm.schema) et resservie au redémarrage pendant qu'on relit Twenty derrière ; sans
+// elle, le premier venu après un déploiement attendait la lecture entière (près de 4 s en local, plus en ligne).
 let cache = null;
 let relecture = null;
+// Une lecture lancée avant un oubli ne remplace pas le cache à son retour : elle dirait l'état d'avant le changement.
+let generation = 0;
+const CLE_COPIE = 'crm.schema';
+const COPIE_MAX = 7 * 24 * 3600e3;
+// Gardée compressée (7 Mo de JSON, moins de 1 Mo une fois les listes imbriquées des vues retirées et le tout zippé) ;
+// ces listes doublent champsDeVue, trisDeVue et filtresDeVue, que le code lit seuls.
+const IMBRIQUEES = ['viewFields', 'viewFieldGroups', 'viewFilters', 'viewFilterGroups', 'viewSorts', 'viewGroups'];
+async function copieGardee() {
+  try {
+    const { Meta } = await import('../db.js');
+    const v = Meta.get(CLE_COPIE);
+    const c = v ? JSON.parse(zlib.gunzipSync(Buffer.from(v, 'base64'))) : null;
+    return c && Date.now() - c.le < COPIE_MAX && Array.isArray(c.objets) && Array.isArray(c.roles) ? c : null;
+  } catch { return null; }
+}
+async function garderCopie(c) {
+  try {
+    const leger = c.vues ? { ...c, vues: c.vues.map((v) => Object.fromEntries(Object.entries(v).filter(([k]) => !IMBRIQUEES.includes(k)))) } : c;
+    (await import('../db.js')).Meta.set(CLE_COPIE, zlib.gzipSync(JSON.stringify(leger)).toString('base64'));
+  } catch (e) { console.warn('[crm] copie du schéma :', e.message); }
+}
+/** Une lecture de Twenty, partagée par ceux qui l'attendent ; un échec ne laisse pas de rejet sans preneur. */
+const lancerLecture = () => {
+  const p = lireSchema().finally(() => { if (relecture === p) relecture = null; });
+  p.catch((e) => console.warn('[crm] relecture du schéma :', e?.message || e));
+  relecture = p;
+  return p;
+};
 async function schema() {
   if (cache && Date.now() - cache.le < 120_000) return cache;
-  if (cache) {
-    relecture ||= lireSchema().catch((e) => console.warn('[crm] relecture du schéma :', e.message)).finally(() => { relecture = null; });
-    return cache;
-  }
-  relecture ||= lireSchema().finally(() => { relecture = null; });
-  return relecture;
+  if (!cache && !relecture) cache = await copieGardee();
+  if (cache) { if (!relecture) lancerLecture(); return cache; }
+  return relecture || lancerLecture();
+}
+/** Au démarrage du serveur : la copie gardée en mémoire, puis Twenty relu, pour que le premier venu n'attende pas. */
+export async function prechaufferSchema() {
+  if (!twentyConfigure()) return;
+  await schema();
+  await relecture?.catch(() => null);
 }
 
 async function lireSchema() {
+  const gen = generation;
   const toutes = async (cle) => {
     const lignes = [];
     let apres = null;
@@ -244,11 +280,20 @@ async function lireSchema() {
   try {
     for (const o of JSON.parse(fs.readFileSync(new URL('../../crm/schema.json', import.meta.url), 'utf8')).objets) personnes[o.nameSingular] = Mb.champsPersonnes(o).map((p) => p.champ);
   } catch { /* sans schéma, les champs Personnes restent du texte */ }
-  cache = { le: Date.now(), objets, roles, menu, vues, champsDeVue, trisDeVue, filtresDeVue, relations, personnes };
-  return cache;
+  const lu = { le: Date.now(), objets, roles, menu, vues, champsDeVue, trisDeVue, filtresDeVue, relations, personnes };
+  if (gen !== generation) return lu;
+  cache = lu;
+  garderCopie(lu);
+  return lu;
 }
-/** Après un changement fait d'ici (vue, colonnes) : la prochaine lecture repart de Twenty. */
-export const oublierSchema = () => { if (cache) cache.le = 0; relecture = null; cache = null; };
+/** Après un changement fait d'ici (vue, colonnes) : la prochaine lecture repart de Twenty, lancée tout de suite. */
+export const oublierSchema = () => {
+  generation += 1;
+  cache = null;
+  relecture = null;
+  garderCopie({ le: 0 });
+  lancerLecture();
+};
 
 // L'espace K Partners (5 nov. 2026, Jules : « les mandataires ont accès à Propriétés Klocka ; l'espace Klocka leur est
 // fermé ») : un mandataire de Klocka, ou Jules quand il regarde l'espace mandataire, a les droits du rôle Twenty

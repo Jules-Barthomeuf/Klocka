@@ -20,7 +20,10 @@ export function useSecteurProjet(project, actif = true) {
     enabled: actif && !!project?.id && !!project?.adresse_complete,
     // Le calcul tourne en arrière-plan côté serveur : on repasse tant qu'il dure.
     refetchInterval: (q) => (q.state.data?.en_cours ? 5000 : false),
-    staleTime: 60_000,
+    // Le Marché du dossier vient avec (14 nov. 2026, Jules : « il faut vraiment que ça se mette à jour automatiquement ») :
+    // relu à chaque ouverture du projet et à chaque retour sur l'onglet, un outil relancé dans l'Analyse s'y voit.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     retry: false,
   });
 }

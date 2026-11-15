@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { nomDuChargement } from "@/lib/arrivee-page";
 import { useAuthPeutEtre } from "@/lib/AuthContext";
 import { vueDe } from "@/lib/vue";
 
@@ -10,7 +12,8 @@ import { vueDe } from "@/lib/vue";
 
 export default function EcranChargement({ plein = false, delai = 0 }) {
   const auth = useAuthPeutEtre();
-  const nom = vueDe(auth?.user) === "mandataire" ? "K Partners" : "Klocka";
+  // « CRM Klocka », « Outils Klocka » selon la partie (15 nov. 2026, Jules) ; la marque seule ailleurs.
+  const nom = nomDuChargement(window.location.pathname, vueDe(auth?.user) === "mandataire" ? "K Partners" : "Klocka");
   const [voir, setVoir] = useState(!delai);
   useEffect(() => {
     if (!delai) return undefined;
@@ -18,9 +21,11 @@ export default function EcranChargement({ plein = false, delai = 0 }) {
     return () => clearTimeout(t);
   }, [delai]);
   if (!voir) return null;
-  return (
+  const ecran = (
     <div className={`k-ecran-chargement ${plein ? "fixed inset-0 z-[100]" : "min-h-[100dvh]"}`} role="status" aria-label={`${nom} se charge`}>
       <h1>{nom}</h1>
     </div>
   );
+  // Tout l'écran : posé sur le document, sinon la barre de gauche (z-40) passe devant la zone de la page (z-10).
+  return plein ? createPortal(ecran, document.body) : ecran;
 }

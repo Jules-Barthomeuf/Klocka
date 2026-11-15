@@ -702,6 +702,20 @@ const OUTILS_AK = [
       required: ['recit'],
     },
   },
+  // Les notes de l'équipe sur un bien (15 nov. 2026, Jules : « tout ça doit passer par le chat de l'assistant »).
+  {
+    name: 'noter_bien',
+    description: "Garde sur un dossier ou un projet ce qu'on raconte à son sujet et qui n'entre pas dans l'analyse : ce que l'agent immobilier a dit du bien (« l'agent m'a dit que le vendeur a déjà refusé 900 k »), l'historique de la vente (« il était chez Century il y a deux ans à 1,2 M »), une info du locataire, du vendeur, de la visite. Après trouver_bien : deal_id du dossier ou projet_id du projet. La note est gardée telle que dite, avec qui et quand, sur le dossier (le projet qui en vient la voit) ; l'Intelligence en tire aussi ses faits. Pas pour un chiffre du bien à changer (dossier modifier, projet modifier), ni pour un appel de prospection avec un agent sans bien précis (noter_appel).",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_id: { type: 'string', description: 'le dossier, rendu par trouver_bien' },
+        projet_id: { type: 'string', description: 'le projet, s\'il n\'y a pas de dossier' },
+        texte: { type: 'string', description: 'la note, avec les mots de la personne' },
+      },
+      required: ['texte'],
+    },
+  },
   {
     name: 'ajouter_prospect',
     description: "Ajoute un agent au carnet de prospection (« ajoute Sophie Martin de chez Barnes, 06 12 34 56 78, Cannes ») ; un agent déjà connu est complété, pas doublé.",
@@ -969,6 +983,16 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     if (!r.ok) return r;
     if (id) { const i = await RP.identifier(r.rappel.id, { agent_id: id }, user); if (!i.ok) return i; }
     return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que l'Assistant Klocka a compris et les actions à cocher (fiche agent, Twenty CRM, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
+  }
+  if (name === 'noter_bien') {
+    if (user?.role !== 'admin') return { ok: false, error: 'Les notes des biens sont réservées à l\'équipe.' };
+    const { noterSurLeBien } = await import('../deal/notes-equipe.js');
+    const r = noterSurLeBien({ deal_id: input.deal_id, projet_id: input.projet_id }, input.texte, user);
+    if (!r.ok) return r;
+    // L'Intelligence en tire ses faits à part, rattachés au bien ; une panne n'empêche pas la note d'être gardée.
+    const liens = [r.deal_id ? { type_entite: 'dossier', entite_id: r.deal_id } : null, r.projet_id ? { type_entite: 'projet', entite_id: r.projet_id } : null].filter(Boolean);
+    import('../layer.js').then((C) => C.noter(`${r.titre ? `Sur « ${r.titre} » : ` : ''}${r.note.texte}`, { user, liens })).catch((e) => console.warn(`[noter_bien] Intelligence : ${e?.message || e}`));
+    return { ok: true, sur: r.sur, titre: r.titre, notes_sur_ce_bien: r.nombre, note: `Noté sur le ${r.sur}${r.titre ? ` « ${r.titre} »` : ''}. Dis-le en une ligne, sans répéter la note.` };
   }
   if (name === 'ajouter_prospect') {
     const P = await import('../prospection/index.js');
@@ -1747,6 +1771,8 @@ LE MARCHÉ, DATA-B ET K-DATA
 
 LA PROSPECTION ET L'OFF-MARKET (ALX)
 - Une note d'appel dictée ou collée dans le chat (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi ») : note_d_appel avec la note telle quelle ; elle met la fiche Twenty CRM de l'agent à jour. Une ligne pour dire ce qui est fait.
+- Un agent qui a rappelé, raconté ou dicté (« Martin de chez Foncia m'a rappelé, il a deux murs à Antibes ») : noter_appel, comme un appel sortant ; c'est le même chemin que le bouton « Il me rappelle ».
+- Ce qu'on sait d'un bien précis et qui n'entre pas dans l'analyse (ce que l'agent en a dit, l'historique de la vente, une info du vendeur ou du locataire) : trouver_bien, puis noter_bien sur le dossier, ou le projet s'il n'a pas de dossier ; dans le chat d'un dossier, sur ce dossier. Une ligne pour dire où c'est noté. Les notes d'un bien reviennent dans son état (notes_equipe) : sers-t'en pour répondre sur ce bien.
 - « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Ce qu'un agent a dit, raconté (« j'ai eu Rosario, pas de murs, mandat fin octobre », ou un échange sans téléphone : « Martin m'a écrit que… ») : noter_appel avec le récit dans ses mots et le nom de l'agent ; c'est le même chemin qu'un rappel ou un appel rapide, l'écran de l'appel s'ouvre sur les actions ; donne le lien d'ouverture en une ligne. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
 - « Prospecte Cannes » : lancer_alx ; le code poste les points d'étape et le bilan. « Qui détient le plus de murs ? », « les SCI de la rue X » : alx_societes, une ligne par société (nom, murs, gérant, mail ou pas). « Montre-moi les messages », « le suivant », « celui de la SCI X » : alx_message, le message est posté par le code ; une retouche : alx_message avec objet et corps réécrits. Il part sur le « envoie » de la personne. Un appel au gérant raconté : alx_appel.
 

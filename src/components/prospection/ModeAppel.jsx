@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ExternalLink, Loader2, Mic, Phone, PhoneOff, Square, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ExternalLink, Loader2, Mic, Phone, PhoneOff, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -19,6 +20,8 @@ import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
 import { clipAutour, morceauDeLaPhrase } from "@/lib/clip-objection";
 import { Statut } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
+import { ouvrirTranscriptionDirecte, enPhrases } from "@/lib/transcription-directe";
+import { objectionEntendue } from "@/lib/objections";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -55,6 +58,9 @@ const poserLocal = (k, v) => { try { if (v == null) localStorage.removeItem(k); 
 // Une conversation d'exemple pour l'appel simulé : AK la lit comme un vrai appel.
 // Le cas joué quand on touche le micro sans en avoir choisi (mode Essai).
 const SCENARIO_DEFAUT = "date_dite";
+// L'appel libre du mode Essai (15 nov. 2026, Jules : « une pill libre où je fais comme si c'était un vrai appel, donc ça
+// écoute vraiment ») : sur l'agence d'essai, le micro et la transcription pour de vrai ; rien ne part (essai).
+const LIBRE = "libre";
 const MOTIFS_ESSAI = { bien_retenu: "Bien retenu", bien_refuse: "Bien refusé", point_mensuel: "Point mensuel" };
 
 /** Le mode Essai : les cas de figure, par groupe ; un clic joue l'appel. */
@@ -76,6 +82,15 @@ function ChoixScenario({ choisi, onJouer, relancesDabord = false, monday = true,
           </span>
         </label>
       )}
+      <div className="flex flex-col gap-2">
+        <span className="text-[12.5px] text-ardoise">Appel libre</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => onJouer({ cle: LIBRE })} aria-pressed={choisi === LIBRE}
+            className={`h-9 rounded-full border px-3.5 text-[13.5px] transition-colors ${choisi === LIBRE ? "border-menthe bg-menthe/10 text-encre" : "border-trait text-craie hover:border-menthe hover:text-encre"}`}
+            style={choisi === LIBRE ? undefined : { background: "transparent" }}>Libre · le micro écoute pour de vrai</button>
+          {choisi === LIBRE && <span className="text-[13px] text-ardoise">Touchez Appeler, puis parlez : jouez l'agent vous-même, ou à deux en haut-parleur.</span>}
+        </div>
+      </div>
       {groupes.map(([g, titre]) => (
         <div key={g} className="flex flex-col gap-2">
           <span className="text-[12.5px] text-ardoise">{titre}</span>
@@ -99,6 +114,8 @@ const MODIFIABLES = ["interlocuteur", "telephone", "email"];
 // Relances « Bien retenu » et « Bien refusé » : les quatre issues de la spec du 8 oct. 2026.
 const ISSUES_BIEN = [["agent_prevenu", "Agent prévenu", true], ["pas_de_reponse", "Pas de réponse", true], ["a_des_murs", "A un autre bien", false], ["pas_interesse", "Pas intéressé", false]];
 const RELANCES = "relances";
+// La liste des relances dues, dans le menu des villes (15 nov. 2026) : pas de session, la liste partagée à la place de la carte.
+const DUES = "relances-dues";
 const MINUTE = 60_000;
 const jourCourt = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
 
@@ -183,8 +200,15 @@ function useTape(paragraphes, actif) {
 
 /** La transcription : en direct pendant l'appel, puis relue à côté des actions. Jamais gardée sur le serveur. */
 // Partagé avec « Il me rappelle » (13 oct. 2026, Jules : « comme dans l'appel normal »).
-export function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = false, tape = false, nu = false }) {
+export function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = false, tape = false, nu = false, vif = "" }) {
   const [ouvert, setOuvert] = useState(!replie);
+  // En direct, la dernière phrase reste en vue (15 nov. 2026, Jules) : le panneau descend seul, sauf si on est remonté lire.
+  const zone = useRef(null);
+  const colle = useRef(true);
+  useEffect(() => {
+    const el = zone.current;
+    if (enDirect && el && colle.current) el.scrollTop = el.scrollHeight;
+  });
   const textes = direct.filter((x) => x.texte);
   const tapes = useTape(textes.map((x) => x.texte), tape);
   const enCours = direct.some((x) => x.etat === "envoi");
@@ -197,9 +221,12 @@ export function PanneauTranscription({ direct, notes, fin, enDirect = false, rep
           : enCours && <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />}
       </div>
       {ouvert && (
-        <div className={`flex flex-col gap-2 overflow-y-auto pr-1 text-[15px] leading-[1.55] text-encre ${replie ? "max-h-[260px]" : nu ? "min-h-[180px] max-h-[360px]" : "max-h-[420px]"}`}>
-          {!textes.length && <p className="m-0 text-[14px] text-brume">{!notes ? "Appel sans notes : rien n'est transcrit." : enDirect ? "La transcription apparaît ici, quelques secondes après chaque phrase." : "Rien n'a été entendu."}</p>}
+        <div ref={zone} onScroll={(e) => { const el = e.currentTarget; colle.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}
+          className={`flex flex-col gap-2 overflow-y-auto pr-1 text-[15px] leading-[1.55] text-encre ${replie ? "max-h-[260px]" : nu ? "min-h-[180px] max-h-[360px]" : "max-h-[420px]"}`}>
+          {!textes.length && !vif && <p className="m-0 text-[14px] text-brume">{!notes ? "Appel sans notes : rien n'est transcrit." : enDirect ? "La transcription apparaît ici, quelques secondes après chaque phrase." : "Rien n'a été entendu."}</p>}
           {textes.map((x, k) => (tapes[k] ? <p key={x.i} className="m-0 [text-wrap:pretty]">{tapes[k]}</p> : null))}
+          {/* Les mots tout juste dits, en gris : l'écoute en direct, avant que la transcription fidèle les remplace. */}
+          {vif && <p className="m-0 text-ardoise [text-wrap:pretty]">{vif}</p>}
           {rates > 0 && <p className="m-0 text-[13px] text-ambre">{rates} passage{rates > 1 ? "s" : ""} pas encore transcrit{rates > 1 ? "s" : ""} : nouvel essai au raccrochage.</p>}
           {fin && <span ref={fin} />}
         </div>
@@ -244,14 +271,22 @@ function CarteAgence({ a, recherches, cahier }) {
 /** « Ensuite » (11 nov. 2026, Jules : « sous l'écran du mode appel, les autres qu'on va prospecter ensuite ») : les
  *  agences qui suivent dans la file, dans son ordre, sous le prochain appel et pendant l'appel. Une ligne : le nom,
  *  l'interlocuteur, la raison ou l'état, le lieu. Dix, puis « n autres ». */
-function Ensuite({ agences }) {
-  const [tout, setTout] = useState(false);
-  if (!agences.length) return null;
-  const vues = tout ? agences : agences.slice(0, 10);
+// « À suivre » (15 nov. 2026, avis produit) : les cinq prochaines de la file, pour savoir ce qui vient sans s'y perdre ;
+// « Toute la ville » ouvre le grand tableau en panneau.
+function Ensuite({ agences, onToutVoir = null, total = null }) {
+  if (!agences.length && !onToutVoir) return null;
+  const vues = agences.slice(0, 5);
   return (
-    <section aria-label="Ensuite" className="mt-2">
-      <p className="m-0 mb-1.5 px-1 text-[13px] text-ardoise">Ensuite <span className="tabular-nums">{agences.length}</span></p>
-      <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-trait p-0">
+    <section aria-label="À suivre" className="mt-2">
+      <div className="mb-1.5 flex items-baseline justify-between gap-3 px-1">
+        <p className="m-0 text-[13px] text-ardoise">À suivre</p>
+        {onToutVoir && (
+          <button type="button" onClick={onToutVoir} className="inline-flex items-center gap-1.5 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+            Toute la ville{total ? <span className="tabular-nums">({total})</span> : null}<ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      {vues.length > 0 && <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-trait p-0">
         {vues.map((x) => (
           <li key={x.id} className="flex min-h-[44px] items-center gap-4 border-t border-trait px-4 py-2 first:border-t-0 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-0.5">
             <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{x.nom}{x.interlocuteurs?.[0] && <span className="text-ardoise"> · {x.interlocuteurs[0]}</span>}</span>
@@ -259,10 +294,7 @@ function Ensuite({ agences }) {
             {x.lieu && <span className="w-[140px] flex-none truncate text-right text-[13px] text-ardoise max-md:hidden">{x.lieu}</span>}
           </li>
         ))}
-      </ul>
-      {!tout && agences.length > 10 && (
-        <button type="button" onClick={() => setTout(true)} className="mt-1.5 px-1 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Voir les {agences.length - 10} autres</button>
-      )}
+      </ul>}
     </section>
   );
 }
@@ -431,12 +463,16 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   // Raccrocher prend la place d'Appeler, la transcription celle de l'accroche, la calculatrice et les notes celle de
   // « Déjà appelé ? ». Après le raccrochage, la note de cinq secondes prend la place de l'en-tête.
   const enCours = !!enLigne;
+  // « Déjà appelé ? » replié (15 nov. 2026, avis produit) : un appel passé hors de l'application est rare ; un lien
+  // sous les boutons ouvre la colonne. Pendant l'appel, la colonne porte les notes et la calculatrice.
+  const [deja, setDeja] = useState(false);
+  const troisColonnes = enCours || deja || essai;
   return (
     <div className="overflow-hidden k-verre">
       <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2.5 text-[12.5px] text-ardoise">
-            {relances ? "Relances" : "Tableau prospection"}{a.ville ? ` · ${a.ville}` : ""}
+            {relances ? `Relances${a.ville ? ` · ${a.ville}` : ""}` : null}
             {enCours ? (
               <Statut couleur="corail" className="inline-flex items-center gap-1.5">
                 <span className={`h-1.5 w-1.5 rounded-full bg-statut-corail ${enLigne.ecoute ? "animate-pulse" : ""}`} />{enLigne.ecoute ? "En ligne" : "En ligne, sans écoute"}
@@ -489,13 +525,14 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
             ? <button type="button" onClick={onRetour} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-5 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
             // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
             : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-5 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
+          {!essai && !deja && <button type="button" onClick={() => setDeja(true)} className="text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Déjà appelé ?</button>}
         </div>
         )}
       </div>
 
       {/* Des filets en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css), la maquette les veut. */}
       <div aria-hidden className="h-px bg-trait" />
-      <div className="grid lg:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.8fr)_minmax(300px,1.25fr)]">
+      <div className={`grid ${troisColonnes ? "lg:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.8fr)_minmax(300px,1.25fr)]" : "lg:grid-cols-[minmax(240px,0.85fr)_minmax(0,2.4fr)]"}`}>
         {/* Les interlocuteurs et l'historique. */}
         <div className="flex min-w-0 flex-col gap-4 border-trait p-4 max-lg:order-3 max-lg:border-t lg:border-r">
           <div className="flex flex-col gap-2">
@@ -531,7 +568,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         </div>
 
         {/* L'accroche et les recherches clients (ou, en relance, ce qu'on s'est dit). */}
-        <div className="flex min-w-0 flex-col gap-3 border-trait p-4 max-lg:order-1 lg:border-r">
+        <div className={`flex min-w-0 flex-col gap-3 border-trait p-4 max-lg:order-1 ${troisColonnes ? "lg:border-r" : ""}`}>
           {enCours ? enLigne.milieu : a.relance ? <PourquoiRelance a={a} /> : relances ? suite : (
             <div className="flex flex-col gap-3">
               <span className={etiq2}>L'accroche</span>
@@ -558,17 +595,79 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         </div>
 
         {/* Déjà appelé ? */}
-        <div className="flex min-w-0 flex-col gap-3 p-4 max-lg:order-2 max-lg:border-t max-lg:border-trait">
-          {enCours ? enLigne.droite : <span className={etiq2}>Déjà appelé ?</span>}
+        {troisColonnes && <div className="flex min-w-0 flex-col gap-3 p-4 max-lg:order-2 max-lg:border-t max-lg:border-trait">
+          {enCours ? enLigne.droite : (
+            <span className="flex items-center justify-between gap-3">
+              <span className={etiq2}>Déjà appelé ?</span>
+              {deja && <button type="button" onClick={() => setDeja(false)} aria-label="Replier" className="grid h-6 w-6 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>}
+            </span>
+          )}
           {enCours ? null : !essai ? <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />
             : <span className="text-[13.5px] leading-[1.5] text-brume">En essai, l'appel se joue tout seul : touchez Appeler.</span>}
-        </div>
+        </div>}
       </div>
     </div>
   );
 }
 
-export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false, entete = null }) {
+/** La carte de réponse à une objection entendue, en pop-up (15 nov. 2026, Jules : « en pop-up, pas au-dessus ») : en bas
+ * au centre de l'écran, par-dessus tout, la phrase à dire en grand ; ce qui a été entendu dessous. */
+function CarteObjection({ carte, onFermer }) {
+  return createPortal(
+    <div key={carte.le} role="status" aria-live="assertive"
+      className="k-verre fixed bottom-8 left-1/2 z-[70] flex w-[min(680px,calc(100vw-32px))] -translate-x-1/2 flex-col gap-2 !rounded-[22px] !border-menthe/50 px-6 py-5 shadow-[0_18px_40px_rgb(0_0_0/0.28)] duration-200 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 md:left-[calc(50%+var(--k-barre-largeur,0px)/2)]">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px] text-menthe">{carte.titre}</span>
+        <button type="button" onClick={onFermer} aria-label="Fermer la carte" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+      </div>
+      <p className="m-0 text-[19px] leading-[1.45] text-encre">« {carte.reponse} »</p>
+      {carte.extrait && <p className="m-0 truncate text-[12.5px] text-ardoise">Entendu : « {carte.extrait} »</p>}
+    </div>,
+    document.body,
+  );
+}
+
+// Le choix de la ville (15 nov. 2026, Jules : « au lieu de toutes les villes comme ça, juste un menu drop-down ») :
+// le nom de la ville ouverte et un chevron ; la liste des villes dessous, Essai en dernier.
+function ChoixVille({ villes, valeur, onChoisir, essai, dues = null, nbDues = 0 }) {
+  const [ouvert, setOuvert] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ouvert) return undefined;
+    const fermer = (e) => { if (!ref.current?.contains(e.target)) setOuvert(false); };
+    const echap = (e) => { if (e.key === "Escape") setOuvert(false); };
+    document.addEventListener("mousedown", fermer);
+    document.addEventListener("keydown", echap);
+    return () => { document.removeEventListener("mousedown", fermer); document.removeEventListener("keydown", echap); };
+  }, [ouvert]);
+  const nom = valeur === essai ? "Essai" : valeur === dues ? "Relances dues" : villes.find((l) => l.id === valeur)?.ville || "Choisir une ville";
+  // Les relances dues en premier (15 nov. 2026) : elles n'avaient plus d'entrée depuis le retrait des intercalaires.
+  const options = [...(dues ? [[dues, "Relances dues", nbDues]] : []), ...villes.map((l) => [l.id, l.ville]), [essai, "Essai"]];
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOuvert((x) => !x)} aria-haspopup="listbox" aria-expanded={ouvert}
+        className="inline-flex h-9 items-center gap-2 rounded-full border border-bord-doux px-4 text-[14px] text-encre transition-colors hover:border-bord-vif max-md:h-10" style={{ background: "transparent" }}>
+        {nom}<ChevronDown className={`h-4 w-4 text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
+      </button>
+      {ouvert && (
+        <div role="listbox" aria-label="Les villes" className="absolute left-0 top-[calc(100%+6px)] z-30 max-h-[60vh] min-w-[220px] overflow-y-auto rounded-[14px] border border-bord-doux bg-rail p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-150 animate-in fade-in-0">
+          {options.map(([id, mot, n]) => (
+            <button key={id} type="button" role="option" aria-selected={valeur === id} onClick={() => { setOuvert(false); if (valeur !== id) onChoisir(id); }}
+              className={`flex w-full items-center justify-between gap-3 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors hover:bg-relief ${valeur === id ? "text-encre" : "text-craie"} ${id === essai ? "mt-1 border-t border-trait pt-2.5" : ""} ${id === dues ? "mb-1 border-b border-trait pb-2.5" : ""}`} style={{ background: "transparent" }}>
+              <span className="truncate">{mot}{n ? <span className="ml-2 tabular-nums text-ambre">{n}</span> : null}</span>
+              {valeur === id && <Check className="h-4 w-4 flex-none text-menthe" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// `sousLaCarte(listeId)` (15 nov. 2026, Jules : « sous la grosse carte d'appel, le tableau complet qui est dans la
+// liste ») : le tableau des agences de la ville ouverte, sous la fiche, hors appel. `listeInitiale` : la ville ouverte
+// d'abord (la ville proposée du tableau de bord), sinon la dernière choisie.
+export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false, entete = null, sousLaCarte = null, listeInitiale = null, relancesDues = null, onApresAppel = null }) {
   // `essaiSeul` (page Relances, 8 oct. 2026) : seulement le mode Essai, sans les villes, les relances d'abord.
   const [scenario, setScenario] = useState(null);
   // En essai, écrire pour de vrai dans Monday (8 oct. 2026) : oui par défaut, retenu dans le navigateur.
@@ -576,6 +675,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const setMondayEssai = (v) => { setMondayEssaiBrut(v); poserLocal("klocka.essai.monday", v); };
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(null);
+  // « Toute la ville » : le grand tableau des agences, en panneau à droite (15 nov. 2026).
+  const [panneau, setPanneau] = useState(false);
+  const nbDues = useQuery({ queryKey: ["relances"], queryFn: () => base44.request("GET", "/api/prospection/relances"), enabled: !!relancesDues, refetchInterval: 60_000 }).data?.lignes?.length || 0;
   const [sessions, setSessions] = useState({}); // onglet → { id, liste_id, ville, essai, debut }
   const [ecran, setEcran] = useState("fiche");
   const [passees, setPassees] = useState(() => new Set());
@@ -640,16 +742,26 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   });
   const choisir = (k) => {
     arreterTout();
+    if (k !== ESSAI && k !== RELANCES) poserLocal("prospection.ville", k);
+    if (k === DUES) { setOnglet(k); setEcran("fiche"); setPanneau(false); return; }
     setOnglet(k); setEcran("fiche"); setPassees(new Set()); setPrise(null); setRappel(null);
     if (!sessions[k] || k === ESSAI) ouvrir.mutate(k);
   };
-  useEffect(() => { if (!onglet && essaiSeul) choisir(ESSAI); else if (!onglet && relances) choisir(RELANCES); else if (!onglet && villes.length) choisir(villes[0].id); }, [villes.length]);
+  useEffect(() => { if (!onglet && essaiSeul) choisir(ESSAI); else if (!onglet && relances) choisir(RELANCES); else if (!onglet && villes.length) { const derniere = lireLocal("prospection.ville"); if (!listeInitiale && derniere === DUES && relancesDues) { choisir(DUES); return; } const voulue = [listeInitiale, derniere].find((id) => id && villes.some((l) => l.id === id)); choisir(voulue || villes[0].id); } }, [villes.length]);
   useEffect(() => { const t = setInterval(() => setHorloge(Date.now()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => () => { clearInterval(chrono.current); clearInterval(compte.current); clearTimeout(messageT.current); rec.current?.flux?.getTracks().forEach((t) => t.stop()); }, []);
 
+  // La file d'une ville part dès qu'on la choisit, en même temps que la session (15 nov. 2026) : elle ne l'attend plus.
+  const listeDeLaFile = session?.liste_id || (onglet && ![ESSAI, DUES, RELANCES].includes(onglet) ? onglet : null);
   const file = useQuery(relances
     ? { queryKey: ["relance-fiche", relance?.agence_id], queryFn: () => base44.request("GET", `/api/prospection/relances/fiche?agence=${relance.agence_id}`), enabled: !!session && !!relance?.agence_id }
-    : { queryKey: ["mode-appel-file", session?.liste_id], queryFn: () => base44.request("GET", `${API}/file?liste=${session.liste_id}`), enabled: !!session?.liste_id, staleTime: 30_000 });
+    : { queryKey: ["mode-appel-file", listeDeLaFile], queryFn: () => base44.request("GET", `${API}/file?liste=${listeDeLaFile}`), enabled: !!listeDeLaFile, staleTime: 30_000 });
+  // « Toute la ville » prêt d'avance (15 nov. 2026) : une fois la carte là, le tableau de la ville se charge en fond.
+  useEffect(() => {
+    if (!file.isSuccess || !sousLaCarte || !listeDeLaFile || session?.essai) return;
+    queryClient.prefetchQuery({ queryKey: ["agent-ia-liste", listeDeLaFile], queryFn: () => base44.request("GET", `/api/prospection/agent-ia/listes/${listeDeLaFile}`), staleTime: 30_000 });
+    queryClient.prefetchQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/equipe"), staleTime: 5 * 60_000 });
+  }, [file.isSuccess, listeDeLaFile]);
   const recap = useQuery({ queryKey: ["mode-appel-recap", session?.id], queryFn: () => base44.request("GET", `${API}/sessions/${session.id}`), enabled: !!session?.id, refetchInterval: ecran === "fin" ? 5000 : false });
   const agences = useMemo(() => (file.data?.file || []).filter((x) => relances || !passees.has(x.id)), [file.data, passees]);
   // L'agence de l'appel en cours est figée dès qu'on quitte la fiche (12 oct. 2026) : une file rechargée pendant
@@ -688,7 +800,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     if (!r0) return;
     r0.actif = false;
     if (jeter) r0.jeter = true;
-    clearTimeout(r0.minuterie);
+    clearInterval(r0.minuterie);
+    try { r0.audio?.close(); } catch { /* déjà fermé */ }
+    if (jeter && tempsReel.current) { tempsReel.current.arreter(); tempsReel.current = null; tempsReelOk.current = false; }
     if (r0.m?.state === "recording") r0.m.stop(); else r0.flux?.getTracks().forEach((t) => t.stop());
   }
   // Relances : rien ne s'enchaîne seul ; ce qui est noté s'affiche, avec « Relance suivante » et « Retour à la liste ».
@@ -831,18 +945,51 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     } catch { x.etat = "echec"; }
     montrer();
   };
-  // Enregistre par morceaux de huit secondes, chacun lisible seul, transcrit pendant que l'appel continue.
+  // Enregistre par morceaux, chacun lisible seul, transcrit pendant que l'appel continue. Coupés aux silences depuis le
+  // 15 nov. 2026 (Jules : « pas des blocs de 8 secondes ») : dès 2 s de parole et 0,6 s de silence, au plus tard à 6 s ;
+  // un morceau sans parole n'est pas envoyé à la transcription (son audio reste pour la part de parole).
   const enregistrer = async () => {
     let flux;
     try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {
       setNotes(false); dire("Micro indisponible ou pris par l'appel : appel sans notes, vous taperez l'issue.");
       return;
     }
-    const r0 = { flux, actif: true, jeter: false, m: null, minuterie: null };
+    const r0 = { flux, actif: true, jeter: false, m: null, minuterie: null, audio: null, debutTour: null };
     rec.current = r0;
+    // La transcription en temps réel (15 nov. 2026) sur le même micro : prête, elle remplace les morceaux transcrits ;
+    // tombée, les morceaux reprennent.
+    tempsReelOk.current = false; tempsReelServi.current = false; setTexteDirect("");
+    tempsReel.current = ouvrirTranscriptionDirecte(flux, {
+      onTexte: (t) => setTexteDirect(t),
+      onEtat: (etat) => {
+        if (etat === "pret") { tempsReelOk.current = true; tempsReelServi.current = true; }
+        else if (tempsReelOk.current) { tempsReelOk.current = false; dire("Transcription en direct coupée : elle reprend par morceaux."); }
+      },
+    });
+    // Le niveau du son, pour couper aux silences : le bruit de fond se mesure seul, le seuil est trois fois au-dessus.
+    let analyse = null;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const an = ctx.createAnalyser(); an.fftSize = 1024;
+      ctx.createMediaStreamSource(flux).connect(an);
+      r0.audio = ctx;
+      const buf = new Float32Array(an.fftSize);
+      let bruit = 0.01;
+      analyse = () => {
+        an.getFloatTimeDomainData(buf);
+        let somme = 0; for (const v of buf) somme += v * v;
+        const n = Math.sqrt(somme / buf.length);
+        bruit = n < bruit ? n : bruit + (n - bruit) * 0.002;
+        return n > Math.max(0.008, bruit * 3);
+      };
+    } catch { /* sans analyse : des morceaux de 6 s */ }
     const tour = () => {
       if (!r0.actif) { flux.getTracks().forEach((t) => t.stop()); return; }
       const bouts = [];
+      const debut = Date.now();
+      r0.debutTour = debut;
+      let dernierSon = debut;
+      let parle = !analyse;
       const m = new MediaRecorder(flux);
       r0.m = m;
       m.ondataavailable = (e) => { if (e.data?.size) bouts.push(e.data); };
@@ -850,24 +997,43 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
         const encore = r0.actif;
         if (encore) tour(); else flux.getTracks().forEach((t) => t.stop());
         if (r0.jeter || !bouts.length) return;
-        const x = { i: morceaux.current.length, texte: null, wav: null, etat: "envoi" };
+        const x = { i: morceaux.current.length, texte: null, wav: null, etat: "envoi", debut };
         morceaux.current.push(x); montrer();
         try { x.wav = await versWav(new Blob(bouts, { type: m.mimeType || "audio/webm" }), 16000); } catch { x.etat = "echec"; montrer(); return; }
         audios.current[x.i] = x.wav;
+        if (!parle) { x.texte = ""; x.etat = "ok"; x.wav = null; montrer(); return; }
+        // En temps réel, le texte vient déjà du flux : le morceau ne garde que son son (part de parole).
+        if (tempsReelOk.current) { x.texte = ""; x.etat = "son"; montrer(); return; }
         transcrireMorceau(x);
       };
       m.start();
-      r0.minuterie = setTimeout(() => { if (m.state === "recording") m.stop(); }, 8000);
+      r0.minuterie = setInterval(() => {
+        const t = Date.now();
+        if (analyse && analyse()) { dernierSon = t; parle = true; }
+        const age = t - debut;
+        if (m.state === "recording" && ((parle && age >= 2000 && t - dernierSon >= 600) || age >= 6000)) { clearInterval(r0.minuterie); m.stop(); }
+      }, 100);
     };
     tour();
   };
   // Attend la fin des morceaux en cours (au plus vingt secondes), puis réessaie une fois ceux qui ont raté.
   const morceauxPrets = async () => {
+    // Le texte final du temps réel, s'il a servi : les phrases deviennent les morceaux de la transcription.
+    if (tempsReel.current) {
+      const fin = await tempsReel.current.arreter();
+      tempsReel.current = null;
+      if (tempsReelServi.current && fin?.trim()) {
+        const { phrases, enCours } = enPhrases(fin);
+        const sons = morceaux.current.filter((x) => x.etat !== "son" && x.texte);
+        morceaux.current = [...sons, ...[...phrases, enCours].filter(Boolean).map((t) => ({ texte: t, etat: "ok" }))].map((x, i) => ({ ...x, i }));
+        tempsReelOk.current = false;
+        montrer();
+      }
+    }
     const t0 = Date.now();
     while (morceaux.current.some((x) => x.etat === "envoi") && Date.now() - t0 < 20000) await new Promise((ok) => setTimeout(ok, 250));
     await Promise.all(morceaux.current.filter((x) => x.etat === "echec" && x.wav).map(transcrireMorceau));
   };
-  useEffect(() => { directFin.current?.scrollIntoView({ block: "nearest" }); }, [direct.length, direct.filter((x) => x.texte).length]);
   // La lecture en avance (9 oct. 2026) : pendant l'appel, AK lit la transcription du moment, au plus toutes
   // les 25 secondes et une à la fois. Au raccrochage, si la fin n'y change rien, l'écran d'actions s'ouvre aussitôt.
   const preLecture = useRef({ dernier: 0, sig: "", enCours: false });
@@ -883,13 +1049,39 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   }, [direct, ecran, notesAppel, prise?.agent_id]);
   const retenirEnCours = (x) => { poserLocal(CLE_EN_COURS, x); setEnCours(x); };
   const micro = () => {
-    if (session?.essai) { simuler(); return; }
+    if (session?.essai && scenario !== LIBRE) { simuler(); return; }
     if (!prise || prise.agence_id !== a.id) prendre.mutate(a.id);
     retenirEnCours({ agence: { id: a.id, nom: a.nom, telephone: numeroAppel, lieu: a.lieu, badge: a.badge, historique: a.historique, interlocuteurs: a.interlocuteurs }, onglet, le: new Date().toISOString() });
     preLecture.current = { dernier: 0, sig: "", enCours: false };
     audios.current = [];
     setNotes(true); setSimule(false); setEcran("appel"); lancerChrono(); enregistrer();
   };
+  // Les cartes de réponse pendant l'appel (15 nov. 2026) : l'écoute en direct du navigateur (quelques centaines de
+  // millisecondes) et les morceaux transcrits ; la tournure repérée montre sa carte, une à la fois, qui s'efface seule.
+  // Le temps réel (15 nov. 2026) : ses phrases finies s'affichent comme la transcription, la phrase en cours en gris.
+  const tempsReel = useRef(null);
+  const tempsReelOk = useRef(false);
+  const tempsReelServi = useRef(false);
+  const [texteDirect, setTexteDirect] = useState("");
+  const directTempsReel = useMemo(() => enPhrases(texteDirect), [texteDirect]);
+  const motsEnDirect = tempsReelOk.current ? directTempsReel.enCours : "";
+  const [carteObjection, setCarteObjection] = useState(null);
+  const objectionsVues = useRef(new Map());
+  const texteMorceaux = tempsReelOk.current ? directTempsReel.phrases.join(" ") : direct.filter((x) => x.texte).map((x) => x.texte).join(" ");
+  useEffect(() => {
+    if (ecran !== "appel") { setCarteObjection(null); objectionsVues.current = new Map(); return; }
+    const maintenant = Date.now();
+    const recentes = new Set([...objectionsVues.current].filter(([, le]) => maintenant - le < 60_000).map(([k]) => k));
+    const o = objectionEntendue(`${texteMorceaux.slice(-600)} ${motsEnDirect}`, recentes);
+    if (!o) return;
+    objectionsVues.current.set(o.cle, maintenant);
+    setCarteObjection({ ...o, le: maintenant });
+  }, [texteDirect, texteMorceaux, ecran]);
+  useEffect(() => {
+    if (!carteObjection) return undefined;
+    const t = setTimeout(() => setCarteObjection((c) => (c?.le === carteObjection.le ? null : c)), 30_000);
+    return () => clearTimeout(t);
+  }, [carteObjection?.le]);
   // Le temps après l'appel (13 oct. 2026, Jules) : depuis le raccrochage jusqu'aux actions prêtes, à la validation, à « Tout est préparé ».
   const finAppel = useRef(null);
   const noterTemps = (etape, id) => {
@@ -902,9 +1094,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     clearInterval(chrono.current);
     couperMicro(false);
     if (!notes) { setEcran("issue"); return; }
-    // Plus de note d'après l'appel (9 nov. 2026, Jules) : une courte transition (« Appel terminé »), et la lecture faite pendant l'appel resert.
-    setEcran("raccroche");
-    setTimeout(() => setEcran((e) => (e === "raccroche" ? "analyse" : e)), 1100);
+    // Plus de note d'après l'appel (9 nov. 2026, Jules), ni de transition « Appel terminé » (retirée le 15 nov. 2026,
+    // Jules) : la lecture de l'assistant s'ouvre aussitôt, et la lecture faite pendant l'appel resert.
+    setEcran("analyse");
     noter.mutate({ issue: "auto" });
   };
   // Message laissé (13 oct. 2026, Jules) : rien à lire, l'issue est posée et les actions proposées s'ouvrent.
@@ -962,7 +1154,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const objectionEnvoyee = useRef(new Set());
   const envoyerObjection = (ap) => {
     const phrase = ap?.objection?.phrase;
-    if (!phrase || !ap.id || session?.essai || simule || objectionEnvoyee.current.has(ap.id)) return;
+    // En temps réel, les phrases ne suivent plus les morceaux de son : l'extrait serait faux, il n'est pas envoyé.
+    if (!phrase || !ap.id || session?.essai || simule || tempsReelServi.current || objectionEnvoyee.current.has(ap.id)) return;
     const i = morceauDeLaPhrase(morceaux.current.map((x) => x.texte || ""), phrase);
     if (i < 0 || !audios.current[i]) return;
     objectionEnvoyee.current.add(ap.id);
@@ -1162,37 +1355,30 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   };
 
   // --- Rendu ---------------------------------------------------------------
+  // Après l'appel (15 nov. 2026, Jules, maquette 1) : la page n'est plus que le chat ; le nom de l'appel prend la place
+  // du titre et des villes, qui reviennent après la validation.
+  // Dès le raccrochage (la lecture) : la page s'épure déjà.
+  const apresAppel = ((ecran === "actions" || ecran === "analyse") && !!appel) || (ecran === "analyse" && !!a);
+  useEffect(() => { onApresAppel?.(apresAppel); }, [apresAppel]);
+  useEffect(() => () => onApresAppel?.(false), []);
+  // Sous le nom : la personne jointe (sa fonction), puis la durée de l'appel.
+  const sousTitreAppel = (() => {
+    const ch = appel?.compris?.champs || {};
+    const qui = (edits?.interlocuteur || "").trim() || ch.interlocuteur?.valeur || null;
+    const fonction = ch.fonction?.valeur || null;
+    const d = secondes > 0 ? (secondes < 60 ? `${secondes} s` : `${Math.floor(secondes / 60)} min ${String(secondes % 60).padStart(2, "0")}`) : null;
+    return [qui ? [qui, fonction ? String(fonction).toLowerCase() : null].filter(Boolean).join(", ") : null, d].filter(Boolean).join(" · ") || null;
+  })();
   const enCoursSansIssue = enCours && ecran === "fiche" && !rappel && Date.now() - Date.parse(enCours.le) < 86400000 ? enCours : null;
   return (
-    <div className="w-full pb-16">
-      {/* Les villes, en onglets de classeur : le même que les Listes (7 oct. 2026), l'intercalaire ouvert raccordé à la page à points. */}
-      {!relances && !essaiSeul && <div role="tablist" aria-label="Les villes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <span aria-hidden className="w-3 flex-none" />
-        {villes.map((l, i) => {
-          const actif = onglet === l.id;
-          return (
-            <React.Fragment key={l.id}>
-              {i > 0 && <span aria-hidden className="w-1 flex-none" />}
-              <button type="button" role="tab" aria-selected={actif} onClick={() => choisir(l.id)}
-                style={actif ? undefined : { background: "transparent" }} className={`flex h-7 max-w-[240px] flex-none items-center gap-1.5 rounded-[8px] px-3 text-left text-[13px] transition-colors max-md:h-10 ${actif ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}>
-                <span className="truncate">{l.ville}</span>
-                <span className="flex-none text-[13px] tabular-nums text-ardoise">{l.agences_seules ?? l.agences}</span>
-              </button>
-            </React.Fragment>
-          );
-        })}
-        {!relances && (
-          <>
-            {villes.length > 0 && <span aria-hidden className="w-1 flex-none" />}
-            <button type="button" role="tab" aria-selected={onglet === ESSAI} onClick={() => choisir(ESSAI)}
-              className={`flex h-7 flex-none items-center gap-1.5 rounded-[8px] px-3 text-[13px] transition-colors max-md:h-10 ${onglet === ESSAI ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}
-              style={onglet === ESSAI ? undefined : { background: "transparent" }}>
-              Essai
-            </button>
-          </>
-        )}
+    <div className={`w-full ${apresAppel ? "" : "pb-16"}`}>
+      {ecran === "appel" && carteObjection && <CarteObjection carte={carteObjection} onFermer={() => setCarteObjection(null)} />}
+      {/* La ville dans un menu déroulant (15 nov. 2026, Jules) ; plus d'onglets de classeur. */}
+      {!relances && !essaiSeul && !apresAppel && <div className="flex flex-wrap items-center gap-y-2">
+        <ChoixVille villes={villes} valeur={onglet} onChoisir={choisir} essai={ESSAI} dues={relancesDues ? DUES : null} nbDues={nbDues} />
+        {/* L'avancement de la ville, à côté de son nom : on le voit monter en appelant. */}
+        {c && onglet !== ESSAI && onglet !== DUES && <span className="ml-3 text-[13px] tabular-nums text-ardoise max-md:hidden">{c.appelees} / {c.agences - c.mortes} agences · {c.fait_pourcent} %</span>}
         <span aria-hidden className="min-w-3 flex-1" />
-        {(ecran === "actions" || ecran === "analyse") && appel && <span className="ml-3 flex-none self-center pb-1"><BoutonTranscription actif={voirTranscription} onClick={() => setVoirTranscription((x) => !x)} /></span>}
         {entete && <span className="ml-3 flex-none self-center pb-1">{entete}</span>}
       </div>}
 
@@ -1216,7 +1402,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
         {session && (c || relances) && (
           <>
 
-            {session.essai && ecran === "fiche" && a && <ChoixScenario choisi={scenario} onJouer={(sc) => simuler(sc)} relancesDabord={essaiSeul} monday={mondayEssai} setMonday={setMondayEssai} />}
+            {session.essai && ecran === "fiche" && a && <ChoixScenario choisi={scenario} onJouer={(sc) => (sc.cle === LIBRE ? setScenario(LIBRE) : simuler(sc))} relancesDabord={essaiSeul} monday={mondayEssai} setMonday={setMondayEssai} />}
             {session.essai && ecran === "fiche" && !a && (
               <div className="flex flex-col items-center gap-3 py-12 text-center">
                 <p className="m-0 text-[14px] text-craie">Les agences d'essai sont toutes appelées.</p>
@@ -1230,7 +1416,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {/* La fiche et le panneau d'appel. */}
             {ecran === "fiche" && !a && !relances && !session.essai && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant.</p>}
             {ecran === "fiche" && a && (
-              <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai}
+              <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai && scenario !== LIBRE}
                 choisi={contactChoisi} onChoisir={setChoisi}
                 onMicro={micro} onSansNotes={() => { setNotes(false); setEcran("issue"); }}
                 onResume={analyserResume} resumeEnCours={noter.isPending}
@@ -1240,7 +1426,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
 
             {/* Pendant l'appel et la note d'après (21 oct. 2026, Jules) : la fiche de la liste, à l'identique, en ligne. */}
             {ecran === "appel" && a && (
-              <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai}
+              <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai && scenario !== LIBRE}
                 choisi={contactChoisi} onChoisir={setChoisi}
                 enLigne={{
                   ecoute: notes, essai: simule,
@@ -1260,7 +1446,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                       {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-1.5 text-[14px] text-menthe hover:underline">{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
                     </div>
                   ) : null,
-                  milieu: <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect nu />,
+                  milieu: <PanneauTranscription direct={tempsReelOk.current ? directTempsReel.phrases.map((t, i) => ({ i, texte: t, etat: "ok" })) : direct} notes={notes} fin={directFin} enDirect nu vif={motsEnDirect} />,
                   droite: (
                     <>
                       {/* Les notes au-dessus de la calculatrice (22 oct. 2026, Jules). */}
@@ -1279,7 +1465,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             )}
 
             {/* Les agences qui suivent, sous le prochain appel et sous l'appel en cours (11 nov. 2026). */}
-            {(ecran === "fiche" || ecran === "appel") && a && !relances && <Ensuite agences={agences.filter((x) => x.id !== a.id)} />}
+            {/* « Ensuite » s'efface devant le tableau complet de la ville (15 nov. 2026). */}
+            {(ecran === "fiche" || ecran === "appel") && a && !relances && <Ensuite agences={agences.filter((x) => x.id !== a.id)} total={c ? c.agences - c.mortes : null} onToutVoir={sousLaCarte && !session?.essai ? () => setPanneau(true) : null} />}
 
             {/* Au raccrochage : l'issue, tapée par l'analyste. */}
             {ecran === "issue" && a && (
@@ -1313,26 +1500,19 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
               </div>
             )}
 
-            {ecran === "raccroche" && a && (
-              <div className="flex flex-col items-center justify-center gap-5 rounded-[12px] border border-trait bg-transparent px-5 py-20 text-center duration-500 animate-in fade-in-0">
-                <span className="grid h-[104px] w-[104px] place-items-center rounded-full bg-menthe text-sur-menthe duration-500 animate-in zoom-in-50"><Check className="h-10 w-10" strokeWidth={2.2} /></span>
-                <p className="m-0 text-[22px] text-encre duration-700 animate-in fade-in-0 slide-in-from-bottom-2">Appel terminé</p>
-                <p className="m-0 text-[14px] text-ardoise delay-300 duration-700 animate-in fade-in-0 fill-mode-both">{a.nom}</p>
-              </div>
-            )}
             {/* AK lit l'appel : sa chaîne de raisonnement, étape par étape, au moment où il la fait. */}
             {/* L'écran de raisonnement (9 oct. 2026) : le raisonnement seul, au milieu, sur le fond des listes ; pas de transcription. */}
-            {ecran === "analyse" && a && !appel && (
-              <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant Klocka lit l'appel · ${a.nom}`} centre />
-            )}
 
             {/* Après l'appel (9 nov. 2026, Jules) : le vrai chat à gauche, les actions à droite ; il reste ouvert pendant que les actions se refont. */}
-            {(ecran === "actions" || ecran === "analyse") && appel && a && (
+            {/* Dès le raccrochage (15 nov. 2026, Jules) : le chat, titré de l'appel ; la lecture s'y déroule, étapes et balayage
+                dans le message de l'assistant, avant même que l'appel soit noté ; puis les actions prennent sa place. */}
+            {((ecran === "actions" && appel) || ecran === "analyse") && a && (
               <EcranApresAppel key={a.id} appel={appel} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                 relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} edits={edits} setEdits={setEdits} voirTranscription={voirTranscription} enRelecture={ecran === "analyse"}
                 annonce={annonce} onRefaire={refaireActions} onLancer={() => setLancement((n) => n + 1)}
-                transcription={<div className="flex flex-col gap-4"><ChaineRepliee etapes={etapesFinies} /><PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} nu /></div>}>
-                {ecran === "analyse" ? <ChaineEtapes etapes={chaine.etapes} titre={`L'Assistant Klocka relit l'appel · ${a.nom}`} /> : (
+                titre={nomLisible(a.nom)} sousTitre={sousTitreAppel} onTranscription={() => setVoirTranscription((x) => !x)}
+                transcription={<div className="flex flex-col gap-4"><ChaineRepliee etapes={etapesFinies} /><PanneauTranscription direct={direct} notes={!appel?.sans_details} fin={null} nu /></div>}>
+                {ecran === "analyse" || !appel ? <ChaineEtapes etapes={chaine.etapes} nu /> : (
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
                     edits={edits} setEdits={setEdits} lancement={lancement} onLancementRefuse={(contenu) => setAnnonce({ id: Date.now(), contenu })} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}
@@ -1419,6 +1599,20 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
           </>
         )}
       </div>
+      {onglet === DUES && relancesDues && <div className="pt-3">{relancesDues()}</div>}
+      {/* Le grand tableau des agences de la ville, en panneau à droite (15 nov. 2026, avis produit) : derrière « Toute la
+          ville », plus sous la carte, pour qu'on appelle plutôt que de fouiller. */}
+      {panneau && sousLaCarte && onglet && onglet !== ESSAI && onglet !== DUES && createPortal(
+        <>
+          <div aria-hidden onClick={() => setPanneau(false)} className="fixed inset-0 z-[44] bg-black/30 duration-200 animate-in fade-in-0" />
+          <div role="dialog" aria-label="Toutes les agences de la ville" className="fixed inset-y-0 right-0 z-[45] flex w-full max-w-[min(1180px,94vw)] flex-col overflow-y-auto border-l border-relief bg-rail p-5 shadow-2xl duration-300 ease-out animate-in slide-in-from-right max-md:max-w-full max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="m-0 text-[20px] font-normal text-encre">{villes.find((l) => l.id === onglet)?.ville || "La ville"}</p>
+              <button type="button" onClick={() => setPanneau(false)} aria-label="Fermer" className="grid h-9 w-9 place-items-center rounded-full border border-bord-doux text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+            </div>
+            {sousLaCarte(onglet)}
+          </div>
+        </>, document.body)}
     </div>
   );
 }

@@ -195,13 +195,7 @@ export function implantationEnCache(adresse, enregistrements) {
  * client) et seulement ce que le dessin de l'Analyse affiche, pas les 16 ko de la rue. null sans dossier ni lecture.
  */
 export function emplacementDuProjet(projet, { dealDe = (id) => Records.findBy('Deal', 'deal_id', id) } = {}) {
-  if (!projet?.deal_id) return null;
-  const deal = dealDe(projet.deal_id);
-  if (!deal) return null;
-  const index = Math.max(0, (deal.lots || []).indexOf(lotDuProjet(projet, deal)));
-  const l = Records.filter('LancementOutil', { deal_id: projet.deal_id, outil: 'emplacement' })
-    .filter((x) => (x.index ?? 0) === index && x.statut === 'fini' && x.resultat)
-    .sort((a, b) => String(b.fini_le || '').localeCompare(String(a.fini_le || '')))[0];
+  const l = dernierLancement(projet, 'emplacement', dealDe);
   if (!l) return null;
   const points = (l.resultat.points || []).filter((p) => ['passage', 'rotation', 'vacance', 'enseignes'].includes(p.cle) && p.statut !== 'vide');
   if (!points.length) return null;
@@ -217,6 +211,41 @@ export function emplacementDuProjet(projet, { dealDe = (id) => Records.findBy('D
     },
     le: l.fini_le || null,
   };
+}
+
+/** La dernière lecture finie d'un outil du Marché du dossier, pour le lot du projet ; null sans dossier ni lecture. */
+function dernierLancement(projet, outil, dealDe) {
+  if (!projet?.deal_id) return null;
+  const deal = dealDe(projet.deal_id);
+  if (!deal) return null;
+  const index = Math.max(0, (deal.lots || []).indexOf(lotDuProjet(projet, deal)));
+  return Records.filter('LancementOutil', { deal_id: projet.deal_id, outil })
+    .filter((x) => (x.index ?? 0) === index && x.statut === 'fini' && x.resultat)
+    .sort((a, b) => String(b.fini_le || '').localeCompare(String(a.fini_le || '')))[0] || null;
+}
+
+// Un entrepreneur individuel est une personne : la page du client ne la nomme pas (comme l'historique du local).
+const PERSONNE = /entrepreneur individuel|^EI$|entreprise individuelle/i;
+function sansPersonne(p) {
+  if (p.cle !== 'societe' || !PERSONNE.test(String(p.detail?.forme || ''))) return p;
+  return { ...p, resultat: 'Entrepreneur individuel', detail: { ...p.detail, nom: 'Entrepreneur individuel' }, lien: null };
+}
+
+/**
+ * Tout le Marché du dossier, pour la page du projet (14 nov. 2026, Jules : « les trucs qu'on a faits dans les parties du
+ * Marché de l'analyse, dans les sous-parties du projet ; il faut vraiment que ça se mette à jour automatiquement ») :
+ * Ville, Prix, Loyer et Locataire comme l'Emplacement, la dernière lecture finie de chaque outil, relue à chaque
+ * ouverture du projet : relancer un outil dans l'Analyse suffit. Seulement les parties lues ; un outil sans partie lue
+ * ne se montre pas. Un entrepreneur individuel n'est pas nommé.
+ */
+export function marcheDuProjet(projet, { dealDe = (id) => Records.findBy('Deal', 'deal_id', id) } = {}) {
+  const marche = { emplacement: emplacementDuProjet(projet, { dealDe }) };
+  for (const outil of ['ville', 'prix', 'loyer', 'locataire']) {
+    const l = dernierLancement(projet, outil, dealDe);
+    const points = (l?.resultat?.points || []).filter((p) => p.statut !== 'vide').map(sansPersonne);
+    marche[outil] = points.length ? { points, le: l.fini_le || null } : null;
+  }
+  return marche;
 }
 
 /** Le lot du dossier dont vient le projet : celui de sa rue, sinon le premier. */

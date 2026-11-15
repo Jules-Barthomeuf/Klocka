@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Mic, PhoneOff, X } from "lucide-react";
-import { chiffresEntendus, calculer } from "@/lib/chiffres-entendus";
+import { createPortal } from "react-dom";
+import { Calculator, GripHorizontal, Mic, PhoneOff, X } from "lucide-react";
+import { chiffresEntendus } from "@/lib/chiffres-entendus";
+import { calculatrice } from "@/lib/calculatrice";
 import seuils from "../../../server/ak/seuils.json";
 import { CARTE, ETIQUETTE } from "@/components/prospection/StyleAppel";
 
@@ -109,50 +111,137 @@ export function TranscriptionEnLigne({ morceaux, interlocuteur = "Agent", attend
 const lireNombre = (s) => { const n = Number(String(s).replace(/[\s  €]/g, "").replace(",", ".")); return Number.isFinite(n) && n > 0 ? n : null; };
 const ecrire = (n) => (n == null ? "" : Math.round(n).toLocaleString("fr-FR"));
 
-function ChampEuros({ libelle, valeur, onChange, vide }) {
+function ChampEuros({ libelle, valeur, onChange, vide, unite = "€" }) {
   return (
     <label className="flex min-w-0 flex-col gap-1.5">
       <span className="text-[12.5px] text-ardoise">{libelle}</span>
       <span className="flex h-12 items-center gap-2 rounded-[12px] border border-bord-doux px-3.5 focus-within:border-menthe">
         <input inputMode="decimal" value={valeur} onChange={(e) => onChange(e.target.value)} placeholder={vide}
           className="w-full min-w-0 bg-transparent text-[16px] tabular-nums text-encre outline-none placeholder:text-brume" />
-        <span className="flex-none text-[13px] text-brume">€</span>
+        <span className="flex-none text-[13px] text-brume">{unite}</span>
       </span>
     </label>
   );
 }
 
-/** La calculatrice, en carte : le loyer et le prix entendus (corrigeables), le rendement brut, le prix pour viser 5, 6, 7 %. */
+// La calculatrice en fenêtre de verre (15 nov. 2026, Jules : « un truc glace, pas dedans ; on peut la déplacer,
+// l'agrandir, la mettre tout autour ; plus simple, enlève prix maximum pour viser ») : posée au-dessus de la page, on
+// la tire par sa barre, on l'agrandit par son coin ; sa place et sa taille sont retenues dans le navigateur.
+// Cachée tant qu'aucun chiffre n'est entendu (14 nov. 2026) : l'icône l'ouvre ; un loyer ou un prix dit pendant l'appel
+// l'ouvre d'office, déjà remplie, le rendement calculé. Fermée à la main, elle se rouvre au chiffre suivant.
+const CLE_CADRE = "klocka.calculatrice.cadre.2";
+const MIN_L = 260;
+const MIN_H = 200;
+const borner = (c) => {
+  const L = Math.max(MIN_L, Math.min(c.l, window.innerWidth - 16));
+  const H = Math.max(MIN_H, Math.min(c.h, window.innerHeight - 16));
+  return { l: L, h: H, x: Math.max(8, Math.min(c.x, window.innerWidth - L - 8)), y: Math.max(8, Math.min(c.y, window.innerHeight - H - 8)) };
+};
+const cadreDepart = () => {
+  try { const c = JSON.parse(localStorage.getItem(CLE_CADRE) || "null"); if (c && Number.isFinite(c.x)) return borner(c); } catch { /* place par défaut */ }
+  // Par défaut en bas à droite, au-dessus de la bulle de l'assistant : jamais sur Raccrocher, en haut de la carte.
+  // Sur un écran moins haut, elle raccourcit pour rester sous l'en-tête de la carte d'appel (Raccrocher), jamais dessus.
+  const h = Math.max(MIN_H, Math.min(600, window.innerHeight - 104 - 260));
+  return borner({ l: 380, h, x: window.innerWidth - 380 - 32, y: window.innerHeight - h - 104 });
+};
+
+function FenetreCalculatrice({ lu, saisi, setSaisi, onFermer }) {
+  const [cadre, setCadre] = useState(cadreDepart);
+  const ref = useRef(null);
+  const tire = useRef(null);
+  useEffect(() => { try { localStorage.setItem(CLE_CADRE, JSON.stringify(cadre)); } catch { /* navigation privée */ } }, [cadre]);
+  // L'agrandissement par le coin (resize CSS) : la taille lue et retenue.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const obs = new ResizeObserver(() => setCadre((c) => (Math.abs(c.l - el.offsetWidth) > 1 || Math.abs(c.h - el.offsetHeight) > 1 ? { ...c, l: el.offsetWidth, h: el.offsetHeight } : c)));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  useEffect(() => {
+    const recaler = () => setCadre((c) => borner(c));
+    window.addEventListener("resize", recaler);
+    return () => window.removeEventListener("resize", recaler);
+  }, []);
+  const prendre = (e) => {
+    if (e.target.closest("button")) return;
+    tire.current = { dx: e.clientX - cadre.x, dy: e.clientY - cadre.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const tirer = (e) => { if (tire.current) setCadre((c) => borner({ ...c, x: e.clientX - tire.current.dx, y: e.clientY - tire.current.dy })); };
+  const lacher = () => { tire.current = null; };
+
+  const loyer = saisi.loyer_an != null ? lireNombre(saisi.loyer_an) : lu.loyer_an;
+  const prixFai = saisi.prix != null ? lireNombre(saisi.prix) : lu.prix;
+  const netVendeur = saisi.net_vendeur != null ? lireNombre(saisi.net_vendeur) : null;
+  const nego = saisi.nego != null ? Math.min(90, Math.max(0, Number(String(saisi.nego).replace(",", ".")) || 0)) : 0;
+  const c = calculatrice({ loyer, prixFai, netVendeur, nego }, seuils.frais_acquisition_pct);
+  const pctCourt = (n) => `${n.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
+  return createPortal(
+    <div ref={ref} role="dialog" aria-label="Calculatrice"
+      className="k-verre fixed z-[60] flex flex-col overflow-hidden !rounded-[20px] shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-200 animate-in fade-in-0 zoom-in-95"
+      style={{ left: cadre.x, top: cadre.y, width: cadre.l, height: cadre.h, minWidth: MIN_L, minHeight: MIN_H, resize: "both" }}>
+      {/* La barre : la poignée à gauche, « Calculatrice » au milieu dans la fonte des titres de page, la croix à droite. */}
+      <div onPointerDown={prendre} onPointerMove={tirer} onPointerUp={lacher} onPointerCancel={lacher}
+        className="grid flex-none cursor-grab touch-none select-none grid-cols-[28px_1fr_28px] items-center px-3 pb-2 pt-3 active:cursor-grabbing">
+        <GripHorizontal className="h-4 w-4 text-brume" aria-hidden />
+        <span className="text-center text-[20px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">Calculatrice</span>
+        <button type="button" onClick={onFermer} aria-label="Fermer la calculatrice" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 pb-4">
+        <div className="grid grid-cols-2 gap-3">
+          <ChampEuros libelle="Loyer annuel HT" valeur={saisi.loyer_an ?? ecrire(lu.loyer_an)} onChange={(v) => setSaisi((x) => ({ ...x, loyer_an: v }))} vide="À demander" />
+          <ChampEuros libelle="Prix FAI" valeur={saisi.prix ?? ecrire(lu.prix)} onChange={(v) => setSaisi((x) => ({ ...x, prix: v }))} vide="À demander" />
+          <ChampEuros libelle="Prix net vendeur" valeur={saisi.net_vendeur ?? ""} onChange={(v) => setSaisi((x) => ({ ...x, net_vendeur: v }))} vide="Facultatif" />
+          <ChampEuros libelle="Négociation" valeur={saisi.nego ?? ""} onChange={(v) => setSaisi((x) => ({ ...x, nego: v }))} vide="0" unite="%" />
+        </div>
+        {c.prixNegocie != null && <p className="m-0 px-1 text-right text-[12.5px] text-ardoise">Prix négocié : <span className="tabular-nums text-craie">{euros(c.prixNegocie)}</span></p>}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col items-center justify-center gap-1 rounded-[14px] border border-bord-doux px-3 py-3">
+            <span className="text-[12.5px] text-ardoise">Rendement brut</span>
+            <span className="text-[26px] font-normal leading-none tabular-nums text-encre">{c.brut != null ? pct(c.brut) : "—"}</span>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-1 rounded-[14px] border border-bord-doux px-3 py-3" title={`Acte en main : le prix majoré de ${String(seuils.frais_acquisition_pct).replace(".", ",")} % de frais d'acquisition`}>
+            <span className="text-[12.5px] text-ardoise">Rendement net</span>
+            <span className="text-[26px] font-normal leading-none tabular-nums text-encre">{c.net != null ? pct(c.net) : "—"}</span>
+          </div>
+        </div>
+        {/* Les quatre demi-points au-dessus du rendement brut : le prix FAI qui les donne, et la négociation à obtenir. */}
+        <div className="flex flex-col">
+          <div className="grid grid-cols-[1fr_1.4fr_1fr] gap-2 px-1 pb-1 text-[12px] text-brume">
+            <span>Rendement brut</span><span className="text-right">Prix FAI</span><span className="text-right">Négociation</span>
+          </div>
+          {c.paliers.map((x) => (
+            <div key={x.taux} className="grid grid-cols-[1fr_1.4fr_1fr] items-baseline gap-2 border-t border-trait px-1 py-2 text-[14px]">
+              <span className="tabular-nums text-craie">{pctCourt(x.taux)}</span>
+              <span className="text-right tabular-nums text-encre">{x.prix != null ? euros(x.prix) : "—"}</span>
+              <span className={`text-right tabular-nums ${x.nego == null ? "text-brume" : "text-encre"}`}>{x.nego == null ? "—" : `−${pctCourt(x.nego)}`}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function CalculatriceEnLigne({ textes }) {
   const lu = useMemo(() => chiffresEntendus(textes), [textes.join("\n")]);
   const [saisi, setSaisi] = useState({});
-  const loyer = saisi.loyer_an != null ? lireNombre(saisi.loyer_an) : lu.loyer_an;
-  const prix = saisi.prix != null ? lireNombre(saisi.prix) : lu.prix;
-  const r = calculer({ prix, loyer_an: loyer, surface: null }, seuils);
-  const repris = saisi.loyer_an == null && lu.loyer_an != null;
+  const [choix, setChoix] = useState(null);
+  const entendu = lu.loyer_an != null || lu.prix != null;
+  const cle = `${lu.loyer_an ?? ""}|${lu.prix ?? ""}`;
+  useEffect(() => { if (entendu) setChoix(null); }, [cle]);
+  const ouverte = choix ?? entendu;
   return (
-    <div className={`flex flex-col gap-4 p-5 ${CARTE}`}>
-      <div className="flex items-center justify-between gap-3">
-        <span className={ETIQUETTE}>Calculatrice</span>
-        {repris && <span className="text-[12px] text-menthe">Loyer repris de l'appel</span>}
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <ChampEuros libelle="Loyer annuel HT" valeur={saisi.loyer_an ?? ecrire(lu.loyer_an)} onChange={(v) => setSaisi((s) => ({ ...s, loyer_an: v }))} vide="À demander" />
-        <ChampEuros libelle="Prix FAI" valeur={saisi.prix ?? ecrire(lu.prix)} onChange={(v) => setSaisi((s) => ({ ...s, prix: v }))} vide="À demander" />
-      </div>
-      <div className="flex items-center justify-between rounded-[14px] bg-relief px-4 py-4">
-        <span className="text-[14px] text-encre">Rendement brut</span>
-        <span className="text-[16px] tabular-nums text-encre">{r.rendement_brut != null ? pct(r.rendement_brut) : "—"}</span>
-      </div>
-      <div className="flex flex-col">
-        <span className="pb-1 text-[12.5px] text-ardoise">Prix maximum pour viser</span>
-        {[5, 6, 7].map((t) => (
-          <div key={t} className="flex items-baseline justify-between border-t border-trait py-2.5 text-[14px] first-of-type:border-t-0">
-            <span className="text-craie">{t} %</span>
-            <span className="tabular-nums text-encre">{loyer ? euros((loyer / t) * 100) : "—"}</span>
-          </div>
-        ))}
-      </div>
+    <div className="flex justify-end">
+      <button type="button" onClick={() => setChoix(!ouverte)} aria-pressed={ouverte} aria-label={ouverte ? "Fermer la calculatrice" : "Ouvrir la calculatrice"} title="Calculatrice : elle s'ouvre seule dès qu'un loyer ou un prix est dit"
+        className={`grid h-9 w-9 place-items-center rounded-full border transition-colors ${ouverte ? "border-menthe/60 text-menthe" : "border-bord-doux text-ardoise hover:border-bord-vif hover:text-encre"}`} style={{ background: "transparent" }}>
+        <Calculator className="h-4 w-4" />
+      </button>
+      {ouverte && <FenetreCalculatrice lu={lu} saisi={saisi} setSaisi={setSaisi} onFermer={() => setChoix(false)} />}
     </div>
   );
 }

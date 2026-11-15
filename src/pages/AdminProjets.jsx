@@ -1622,7 +1622,6 @@ export default function AdminProjets() {
             <div className={scindeProjet ? "px-8 pt-6" : ""}>
             <ProjetContent
               sansBarreOnglets={scindeProjet}
-              ongletsSous={scindeProjet ? ongletsProjet("") : null}
               project={projetAffiche}
               isAdmin={false}
               showAsClient

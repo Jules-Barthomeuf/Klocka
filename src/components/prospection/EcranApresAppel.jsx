@@ -1,13 +1,19 @@
-import React, { useRef } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { AudioLines } from "lucide-react";
+import { demandeRetour } from "@/lib/retour-appel";
+import AvatarAK from "@/components/AvatarAK";
+import SequenceActions from "@/components/prospection/SequenceActions";
 
-// L'écran d'après l'appel (9 nov. 2026, Jules) : deux colonnes dans la page, un filet entre elles ; à gauche le vrai chat
-// (`ChatDashboard`, espace « appel »), à droite les actions proposées, chacune sous son titre. Ce qu'on dit à l'assistant
-// change aussitôt les actions. La transcription s'ouvre par un bouton, posé à gauche de « Mode appel ».
+// L'écran d'après l'appel (9 nov. 2026, Jules ; refait le 15 nov. 2026, planche « Après l'appel », version B) : un seul
+// chat, celui de l'assistant. Il s'ouvre sur « Voici ce que je propose » et les actions, dans leurs cadres, avec un petit
+// Valider à la couleur de l'accent ; puis il propose une précision ou l'analyse de l'appel. Dès qu'on lui a écrit, Valider
+// s'épingle au-dessus de la saisie : plus besoin de remonter. Ce qu'on dit à l'assistant change aussitôt les actions.
+// La saisie est celle de la page Assistant (même fond, même lumière). La transcription s'ouvre par son bouton.
 
-const OUVERTURE = "Dites-moi si je dois ajouter quelque chose ou s'il y a un cas particulier.";
+// L'offre du retour d'AK (15 nov. 2026, Jules) : une précision sur l'appel, ou l'analyse de ce qu'on peut améliorer.
+const OUVERTURE = "Une précision sur cet appel ? J'ai aussi repéré quelques petites choses à améliorer dans votre appel. Voulez-vous qu'on regarde ça ensemble ?";
 const TITRE = "m-0 text-center text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre";
 
 export function BoutonTranscription({ actif, onClick }) {
@@ -19,12 +25,40 @@ export function BoutonTranscription({ actif, onClick }) {
   );
 }
 
-export default function EcranApresAppel({ appel, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, edits, setEdits, transcription, voirTranscription = false, enRelecture = false, annonce = null, onRefaire, onLancer, children }) {
+export default function EcranApresAppel({ appel, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, edits, setEdits, transcription, voirTranscription = false, enRelecture = false, annonce = null, onRefaire, onLancer, titre = null, sousTitre = null, onTranscription = null, children }) {
 
   // Une phrase dite pendant que les actions se refont attend la fin : sinon la relecture écraserait ce qu'elle change.
   const vif = useRef(null);
   vif.current = { appel, issue, coches, mail, relanceLe, relance2Le, edits, enRelecture };
+  // En haut, le nom de l'appel (15 nov. 2026, Jules, maquette « 1 · Le nom en titre ») : l'agence en titre, centrée,
+  // et dessous qui, combien de temps, et le lien Transcription. Le chat occupe la hauteur qui reste dans la fenêtre.
+  const cadre = useRef(null);
+  const [hauteur, setHauteur] = useState(null);
+  useLayoutEffect(() => {
+    const mesurer = () => {
+      const el = cadre.current;
+      if (!el || window.innerWidth < 768) { setHauteur(null); return; }
+      // Jusqu'au bas de la fenêtre (Jules : « la saisie plus bas ») : la saisie garde seulement sa marge du chat. Remesuré à
+      // chaque rendu : le titre de la page et la ligne des villes s'effacent juste après l'arrivée, le cadre remonte.
+      setHauteur(Math.max(520, Math.round(window.innerHeight - el.getBoundingClientRect().top - 2)));
+    };
+    mesurer();
+    window.addEventListener("resize", mesurer);
+    return () => window.removeEventListener("resize", mesurer);
+  });
+  // Les étapes prêtes (compte, noms), pour le Valider épinglé ; il paraît dès qu'on a écrit à l'assistant.
+  const [resume, setResume] = useState(null);
+  const [aEcrit, setAEcrit] = useState(false);
+  const [sansOffre, setSansOffre] = useState(false);
   const repondre = async ({ texte, historique, signal }) => {
+    setAEcrit(true);
+    // Le chat s'ouvre dès le raccrochage, avant que l'appel soit noté : un mot dit pendant la lecture attend la fin.
+    if (!vif.current.appel) return { reponse: "Un instant : je finis de relire l'appel, puis je m'en occupe." };
+    // « Oui » à l'offre, ou une demande d'analyse : le retour d'AK sur l'appel, gardé avec lui (Suivi > Appels).
+    if (demandeRetour(texte)) {
+      const r = await base44.request("POST", `/api/prospection/mode-appel/appels/${vif.current.appel.id}/retour`, { body: {}, signal });
+      return { reponse: r.retour.message };
+    }
     for (let i = 0; vif.current.enRelecture && i < 360; i += 1) await new Promise((ok) => setTimeout(ok, 250));
     const v = vif.current;
     const r = await base44.request("POST", `/api/prospection/mode-appel/appels/${v.appel.id}/assistant`, {
@@ -33,6 +67,7 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
     return { reponse: r.decision.reponse, decision: r.decision };
   };
   const appliquer = ({ decision: d }) => {
+    if (!d) return;
     if (d.cocher?.length || d.decocher?.length) setCoches((st) => { const n = new Set(st); d.cocher.forEach((id) => n.add(id)); d.decocher.forEach((id) => n.delete(id)); return n; });
     if (d.mail) setMail((m) => ({ ...(m || {}), ...d.mail }));
     if (d.relance_le) setRelanceLe(d.relance_le);
@@ -43,22 +78,62 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
     else if (d.valider) onLancer();
   };
 
+  // Les actions dans le fil, au dessin sobre (plus d'ambre, ni phrase au-dessus, Valider petit).
+  const actions = React.isValidElement(children) && children.type === SequenceActions ? React.cloneElement(children, { sobre: true, onResume: setResume }) : children;
+  const pret = resume && resume.n > 0;
+  const epingle = aEcrit && pret ? (
+    <div className="mb-2.5 flex items-center justify-between gap-3 px-1">
+      <span className="min-w-0 truncate text-[13px] text-ardoise">{resume.n} étape{resume.n > 1 ? "s" : ""} prête{resume.n > 1 ? "s" : ""} : {resume.noms.join(", ")}</span>
+      <button type="button" onClick={() => onLancer()} disabled={resume.envoi || resume.doute}
+        className="inline-flex h-9 flex-none items-center rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-50">
+        {resume.envoi ? "Validation…" : `Valider · ${resume.n} étape${resume.n > 1 ? "s" : ""}`}
+      </button>
+    </div>
+  ) : null;
+  const debutFil = (
+    <div className="flex gap-4">
+      <AvatarAK />
+      <div className="min-w-0 flex-1 pt-1.5">
+        <p className="m-0 mb-3 text-[16px] leading-[1.6] text-encre">{enRelecture ? "Je relis l'appel." : "Voici ce que je propose."}</p>
+        {actions}
+        {/* La question dans le même message que les actions (15 nov. 2026, Jules : « un message, une photo de profil ») ;
+            ses deux réponses d'un clic suivent juste dessous. */}
+        {!enRelecture && <p className="m-0 mt-6 text-[16px] leading-[1.6] text-encre">{OUVERTURE}</p>}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="grid duration-500 animate-in fade-in-0 slide-in-from-bottom-3 md:grid-cols-2 max-md:grid-cols-1 max-md:gap-y-6">
-      <div className="min-w-0 md:pr-6 max-md:order-last">
-        <div className="flex min-w-0 flex-col max-md:h-[70dvh] md:sticky md:top-4 md:h-[calc(100dvh-190px)] md:min-h-[480px]">
-          <h2 className={`${TITRE} flex-none`}>{voirTranscription ? "Transcription" : "Assistant"}</h2>
-          <div className={voirTranscription ? "hidden" : "min-h-0 flex-1"}>
-            <ChatDashboard espace="appel" repondre={repondre} annonce={annonce} ouverture={OUVERTURE} onConversation={() => {}} onReponse={appliquer}
-              sansSkills epure lueur sansBarreHaut menusVersLeHaut placeholderFil="Dites-moi ce que vous voulez" />
-          </div>
-          {voirTranscription && <div className="min-h-0 flex-1 overflow-y-auto pt-5">{transcription}</div>}
+    <div ref={cadre} className="relative flex w-full min-w-0 flex-col duration-500 animate-in fade-in-0 slide-in-from-bottom-3 max-md:h-[78dvh] md:h-[calc(100dvh-120px)]"
+      style={hauteur ? { height: hauteur } : undefined}>
+      {titre && (
+        <div className="mx-auto flex w-full max-w-[760px] flex-none flex-col items-center gap-1 px-2 text-center">
+          <h2 className="m-0 max-w-full truncate text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">{titre}</h2>
+          <p className="m-0 text-[13.5px] text-ardoise">
+            {sousTitre && <span>{sousTitre}</span>}
+            {onTranscription && (
+              <>
+                {sousTitre && <span> · </span>}
+                <button type="button" onClick={onTranscription} aria-pressed={voirTranscription} className="p-0 text-[13.5px] text-menthe hover:underline" style={{ background: "transparent" }}>
+                  {voirTranscription ? "Revenir aux actions" : "Transcription"}
+                </button>
+              </>
+            )}
+          </p>
         </div>
+      )}
+      <div className={voirTranscription ? "hidden" : "min-h-0 flex-1"}>
+        <ChatDashboard espace="appel" repondre={repondre} annonce={annonce} onConversation={() => {}} onReponse={appliquer}
+          debutFil={debutFil} auDessusSaisie={epingle}
+          propositions={sansOffre || enRelecture ? null : [{ libelle: "Oui, regardons" }, { libelle: "Plus tard", faire: () => setSansOffre(true) }]}
+          sansSkills epure sansBarreHaut menusVersLeHaut placeholderFil="Dites-moi ce que vous voulez" placeholderAccueil="Dites-moi ce que vous voulez" />
       </div>
-      <div className="flex w-full min-w-0 flex-col gap-3 md:border-l md:border-bord-doux md:pl-6">
-        <h2 className={TITRE}>Actions proposées</h2>
-        {children}
-      </div>
+      {voirTranscription && (
+        <div className="mx-auto flex min-h-0 w-full max-w-[760px] flex-1 flex-col">
+          {!titre && <h2 className={`${TITRE} flex-none`}>Transcription</h2>}
+          <div className="min-h-0 flex-1 overflow-y-auto pt-5">{transcription}</div>
+        </div>
+      )}
     </div>
   );
 }

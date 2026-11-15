@@ -66,7 +66,8 @@ export function poserInfos(dealId, champs = {}, lireAdresse) {
   for (const c of OBLIGATOIRES) {
     const brut = champs[c.id];
     if (brut == null || String(brut).trim() === '') continue;
-    if (c.id === 'adresse') { pose.adresse = champSaisi(lireAdresse(String(brut).trim())); continue; }
+    // Une adresse déjà découpée (adresseSaisie, server/deal/index.js) passe telle quelle.
+    if (c.id === 'adresse') { pose.adresse = champSaisi(lireAdresse(typeof brut === 'object' ? brut : String(brut).trim())); continue; }
     const n = Number(String(brut).replace(/[^\d.,]/g, '').replace(',', '.'));
     if (!Number.isFinite(n) || n <= 0) return { error: `${c.libelle} : un nombre est attendu.` };
     pose[c.id] = champSaisi(Math.round(n * 100) / 100);
@@ -113,7 +114,7 @@ export async function chercherInfos(dealId, { uploadDir, lireAdresse }) {
   // 2. L'adresse connue ailleurs dans le dossier.
   if (etat.champs.find((c) => c.id === 'adresse')?.manque) {
     const trouvee = adresseConnue(Records.findBy('Deal', 'deal_id', dealId), Records.list('DossierMandataire'));
-    if (trouvee) poserInfos(dealId, { adresse: trouvee.texte }, lireAdresse);
+    if (trouvee) { const { adresseSaisie } = await import('./index.js'); poserInfos(dealId, { adresse: await adresseSaisie(trouvee.texte) }, lireAdresse); }
   }
   return { ok: true, ...infosDuBien(dealId) };
 }

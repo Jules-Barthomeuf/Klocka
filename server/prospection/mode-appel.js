@@ -342,12 +342,20 @@ const marquesDe = (nom, ville) => {
 };
 
 /** Pure : une agence du même réseau appelée ce dernier mois (« évitez de pitcher deux fois »), ou null. Un mot qui compte en commun suffit : c'est un avertissement, pas un tri. */
-export function reseauDe(a, lignes, maintenantD = new Date(), ville = null) {
+export function reseauDe(a, lignes, maintenantD = new Date(), ville = null, recentes = null) {
   const mots = marquesDe(a.nom, ville);
   if (!mots.size) return null;
-  const ilYaUnMois = R.jourDe(new Date(maintenantD.getTime() - 30 * 86400000));
-  const autre = lignes.find((x) => x.id !== a.id && x.statut?.quand && String(x.statut.quand).slice(0, 10) >= ilYaUnMois && [...marquesDe(x.nom, ville)].some((m) => mots.has(m)));
+  // `recentes` (15 nov. 2026) : les agences contactées dans le mois avec leurs marques, calculées une fois pour toute
+  // la file ; sans elles, on les recalcule (même résultat).
+  const candidates = recentes || agencesRecentes(lignes, maintenantD, ville);
+  const autre = candidates.find((x) => x.a.id !== a.id && [...x.marques].some((m) => mots.has(m)))?.a;
   return autre ? `Même réseau que ${autre.nom}, contactée le ${R.dateCourte(String(autre.statut.quand).slice(0, 10))} : évitez de pitcher deux fois.` : null;
+}
+
+/** Les agences contactées depuis trente jours, chacune avec ses marques, dans l'ordre des lignes. */
+export function agencesRecentes(lignes, maintenantD = new Date(), ville = null) {
+  const ilYaUnMois = R.jourDe(new Date(maintenantD.getTime() - 30 * 86400000));
+  return lignes.filter((x) => x.statut?.quand && String(x.statut.quand).slice(0, 10) >= ilYaUnMois).map((x) => ({ a: x, marques: marquesDe(x.nom, ville) }));
 }
 
 /** Le numéro à appeler : celui de l'agence, sinon celui d'un de ses agents. */
@@ -445,6 +453,14 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
   const lignes = annoter(agences, maintenantD);
   const jour = R.jourDe(maintenantD);
   const fiches = new Map(Records.list('AgentImmo').map((x) => [x.id, x]));
+  // Les appels validés, rangés par agent, et les agences récentes du même réseau : une fois pour toute la file.
+  const appelsParAgent = new Map();
+  for (const x of Records.list(APPEL)) {
+    if (!x.agent_id || x.etat !== 'valide' || x.essai_archive) continue;
+    if (!appelsParAgent.has(x.agent_id)) appelsParAgent.set(x.agent_id, []);
+    appelsParAgent.get(x.agent_id).push(x);
+  }
+  const recentes = agencesRecentes(lignes, maintenantD, l.ville);
   const demandes = Records.list('DemandeClient');
   const recherches = recherchesDeLaZone(demandes, l.ville, { departement: departementDe(agences) });
   const placees = lignes
@@ -456,7 +472,7 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
   const file = placees
     // Un même numéro ne passe qu'une fois dans la file : on n'appelle pas deux fois la même agence.
     .filter((x, i, t) => t.findIndex((y) => R.normTel(numeroDe(y.a)) === R.normTel(numeroDe(x.a))) === i)
-    .map(({ a, place }) => elementDeFile(a, { place, fiche: fiches.get(a.carnet_id) || null, ville: l.ville, lignes, maintenantD }));
+    .map(({ a, place }) => elementDeFile(a, { place, fiche: fiches.get(a.carnet_id) || null, ville: l.ville, lignes, maintenantD, appelsParAgent, recentes }));
   const chiffres = chiffresDeLaVille(lignes);
   // Reprendre juste après mon dernier appel dans cette liste (12 oct. 2026) : Maxime retrouve la ligne qui suit.
   const ids = new Set(agences.map((a) => a.id));
@@ -502,8 +518,11 @@ export function contactsDe(a, fiche = null, place = null) {
  * le numéro, les interlocuteurs, les trois derniers appels, la raison d'un
  * rappel. Partagé par la file d'une ville et par la page Relances.
  */
-export function elementDeFile(a, { place, badge = null, fiche: f = null, ville = null, lignes = [], maintenantD = new Date() } = {}) {
-  const derniers = Records.list(APPEL).filter((x) => x.agent_id && x.agent_id === a.carnet_id && x.etat === 'valide' && !x.essai_archive).sort((x, y) => String(y.le).localeCompare(String(x.le))).slice(0, 3);
+// `appelsParAgent` et `recentes` (15 nov. 2026, « accélère le chargement ») : lus une fois pour toute la file, au lieu
+// d'une fois par agence (4 s pour une ville de 577 agences). Sans eux, la fonction les lit elle-même.
+export function elementDeFile(a, { place, badge = null, fiche: f = null, ville = null, lignes = [], maintenantD = new Date(), appelsParAgent = null, recentes = null } = {}) {
+  const sesAppels = appelsParAgent ? (appelsParAgent.get(a.carnet_id) || []) : Records.list(APPEL).filter((x) => x.agent_id && x.agent_id === a.carnet_id && x.etat === 'valide' && !x.essai_archive);
+  const derniers = [...sesAppels].sort((x, y) => String(y.le).localeCompare(String(x.le))).slice(0, 3);
   const telephone = place === 0 && a.prioritaire?.telephone ? a.prioritaire.telephone : numeroDe(a);
   return {
     id: a.id, nom: a.nom, adresse: a.adresse || null, telephone, place, badge: badge || badgeDe(place, a.statut?.tentatives),
@@ -529,7 +548,7 @@ export function elementDeFile(a, { place, badge = null, fiche: f = null, ville =
     lieu: [ville, a.adresse].filter(Boolean).join(' · '),
     // Au moment de rappeler : la raison de la relance et ce qu'a dit le dernier appel.
     raison: place === 1 && f?.prochaine?.quoi ? `Relance : ${f.prochaine.quoi}${derniers[0]?.resume ? `. Dernier appel : ${derniers[0].resume}` : ''}` : place === 2 ? `Retente : ${f?.prochaine?.quoi || 'pas de réponse la dernière fois'}` : null,
-    reseau: lignes.length ? reseauDe(a, lignes, maintenantD, ville) : null,
+    reseau: lignes.length ? reseauDe(a, lignes, maintenantD, ville, recentes) : null,
     // La fiche de la maquette du 7 oct. 2026 : les interlocuteurs, chacun avec sa source et son numéro, et l'historique en lignes.
     ville,
     secteur: [ville, a.quartier || (a.code_postal || String(a.adresse || '').match(/\b\d{5}\b/)?.[0] || null)].filter(Boolean).join(' · '),

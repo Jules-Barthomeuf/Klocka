@@ -7,6 +7,9 @@ import fs from 'fs';
 import { Records } from '../db.js';
 import { ok, wrap, currentUser, upload } from '../contexte.js';
 
+// Les croisements de liste avec le CRM en cours (la file d'appel ne les attend plus).
+const croisementsEnCours = new Set();
+
 export function monterProspection(app) {
   const admin = (req, res) => {
     const user = currentUser(req);
@@ -91,8 +94,11 @@ export function monterProspection(app) {
     // présenter la file (qui, quand, relance due), sans bloquer si Monday tombe.
     const lignes = Records.list('AgenceProspect').filter((a) => a.liste_id === liste);
     const plusVieux = lignes.reduce((m, a) => (!a.monday_verifie_le ? 0 : Math.min(m, Date.parse(a.monday_verifie_le))), Infinity);
-    if (lignes.length && (plusVieux === 0 || Date.now() - plusVieux > 6 * 3600 * 1000)) {
-      try { await (await import('../prospection/monday-connus.js')).marquerListe(liste); } catch { /* la file part avec ce qu'on sait */ }
+    // En fond depuis le 15 nov. 2026 (« accélère le chargement ») : attendre le CRM retenait la file jusqu'à 19 s. La
+    // file part avec ce qu'on sait ; le croisement se pose pour la relecture suivante. Un seul à la fois par liste.
+    if (lignes.length && (plusVieux === 0 || Date.now() - plusVieux > 6 * 3600 * 1000) && !croisementsEnCours.has(liste)) {
+      croisementsEnCours.add(liste);
+      import('../prospection/monday-connus.js').then((m) => m.marquerListe(liste)).catch(() => { /* la file part avec ce qu'on sait */ }).finally(() => croisementsEnCours.delete(liste));
     }
     const r = (await MA()).fileDAppel(liste, user);
     if (!r.ok) return refus(res, r);
@@ -145,6 +151,11 @@ export function monterProspection(app) {
     const user = admin(req, res);
     if (!user) return;
     ok(res, { ok: true, remise_a_zero: (await import('../prospection/suivi-appels.js')).remettreAZero(user.email) });
+  }));
+  // Prospection > Tableau de bord (15 nov. 2026, Jules) : appels, avancement des villes, dossiers du mois, ville proposée.
+  app.get('/api/prospection/tableau-de-bord', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, await (await import('../prospection/tableau-de-bord.js')).tableauDeBord());
   }));
   // Prospection > Suivi (13 oct. 2026, Jules) : les mêmes chiffres que Suivi > Appels (vue d'ensemble,
   // par analyste, journal), ouverts à qui a la Prospection.
@@ -501,6 +512,14 @@ export function monterProspection(app) {
     const user = admin(req, res);
     if (!user) return;
     const r = await (await import('../prospection/assistant-appel.js')).repondreAssistant({ appel_id: req.params.id, message: req.body?.message, historique: Array.isArray(req.body?.historique) ? req.body.historique : [], etat: req.body?.etat || {}, user });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  // Le retour d'AK sur l'appel (15 nov. 2026) : demandé dans le chat d'après l'appel, gardé avec l'appel, vu dans Suivi.
+  app.post('/api/prospection/mode-appel/appels/:id/retour', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await import('../prospection/retour-appel.js')).retourSurAppel({ appel_id: req.params.id, user, refaire: !!req.body?.refaire });
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));

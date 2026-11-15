@@ -200,6 +200,8 @@ export function suiviAppels({ jours = 30, source = null, par = null, maintenantD
       // Validé ou non à la main dans le Suivi : la dernière fois, par qui.
       validation_main: (x.validation_main || []).at(-1) || null,
       transcription: x.transcription_gardee || null,
+      // Le retour d'AK sur l'appel, quand l'analyste l'a demandé (15 nov. 2026).
+      retour: x.retour_ak?.message ? { message: x.retour_ak.message, tics: x.retour_ak.tics || [], le: x.retour_ak.le || null } : null,
       // L'écran de l'analyste pendant l'appel (14 oct. 2026), gardé 30 jours.
       ecran_id: ecrans.get(x.id) || null,
       temps: x.temps || null,

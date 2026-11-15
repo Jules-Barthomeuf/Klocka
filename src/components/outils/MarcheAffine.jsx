@@ -210,7 +210,7 @@ function LigneComptes({ p }) {
 }
 
 /** Locataire : l'identité de la société, puis deux mesures de même poids (procédures avec la ligne des comptes, avis clients). */
-function BlocLocataire({ pts }) {
+export function BlocLocataire({ pts }) {
   return (
     <div className={GRILLE[1]}>
       <div className={CELLULE}><Identite p={pts.societe} /></div>
@@ -243,7 +243,7 @@ const PartieLoyer = ({ statut, libelle, chiffre, suite = null, classe = "text-en
  * source ») : deux cases séparées, le loyer du bien puis son écart au marché, puis les fourchettes, la source en bas à
  * droite. L'écart se calcule comme `jugerLoyer` (server/outils/lancements.js) ; la couleur suit le point du serveur.
  */
-function BlocLoyer({ pts }) {
+export function BlocLoyer({ pts }) {
   const p = pts.loyer_marche;
   const d = p?.detail || {};
   const niveaux = Object.entries(d.niveaux || {}).filter(([, n]) => n);
@@ -267,7 +267,7 @@ function BlocLoyer({ pts }) {
   );
 }
 
-function BlocPrix({ pts }) {
+export function BlocPrix({ pts }) {
   const v = pts.verdict_prix;
   const r = pts.rendement;
   const c = v?.detail?.comparaison;
@@ -346,7 +346,8 @@ function PartieEmplacement({ p, chiffre, a_cote = null, sous = null, lien, sourc
   );
 }
 
-// Exporté pour la page projet, qui reprend l'Emplacement du dossier (13 nov. 2026, Jules).
+// Exporté pour la page projet, qui reprend l'Emplacement du dossier (13 nov. 2026, Jules), puis Ville, Prix, Loyer et
+// Locataire (14 nov. 2026, Jules).
 // `simple` (page projet, 13 nov. 2026, Jules : « juste Passage, la note et un petit paragraphe pourquoi ») : la note
 // seule, puis ce qui l'a faite en phrases, sans barres, sans « provisoire » ni critères non lus.
 // `partie(id, titre, element)` (page projet, 13 nov. 2026, Jules : « on doit pouvoir masquer chaque truc ») : enveloppe
@@ -433,7 +434,7 @@ export function BlocEmplacement({ pts, rue, simple = false, partie = null }) {
   );
 }
 
-function BlocVille({ pts }) {
+export function BlocVille({ pts }) {
   const c = pts.population?.detail;
   const rev = pts.revenu?.detail?.revenu;
   const v = rev ? Number(rev.valeur_euros_an) : null;

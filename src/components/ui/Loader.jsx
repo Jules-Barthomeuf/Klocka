@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import { vientDArriver } from "@/lib/arrivee-page";
+import { createPortal } from "react-dom";
+import { nomDuChargement, vientDArriver } from "@/lib/arrivee-page";
 import LogoKlocka from "@/components/marque/LogoKlocka";
 
 // L'animation de chargement de K Partners (28 oct. 2026, Jules : « à utiliser partout dans K Partners »). L'anneau
@@ -120,12 +121,14 @@ export default function Loader({ titre = "Un instant", sousTitre = "", taille: t
       </div>
     );
   }
-  // L'arrivée sur une page : l'écran noir, sur tout l'écran, barre comprise (« pas que sur une partie »).
-  const nom = m === "klocka" ? "Klocka" : "K Partners";
-  return (
+  // L'arrivée sur une page : l'écran noir, sur tout l'écran, barre comprise (« pas que sur une partie »). Posé sur le
+  // document : dans la zone de la page (z-10), la barre de gauche (z-40) restait par-dessus (15 nov. 2026, CRM, Outils).
+  const nom = nomDuChargement(window.location.pathname, m === "klocka" ? "Klocka" : "K Partners");
+  return createPortal(
     <div role="status" aria-live="polite" aria-label={titre || nom} className={`k-ecran-chargement fixed inset-0 z-[100] flex-col gap-4 ${className}`}>
       <h1>{nom}</h1>
       {phrase && <p className="m-0 max-w-[420px] px-6 text-center text-[13.5px] leading-[1.5] text-[rgb(170_170_170)]">{phrase}</p>}
-    </div>
+    </div>,
+    document.body,
   );
 }

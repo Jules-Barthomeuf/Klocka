@@ -834,7 +834,7 @@ export default function RappelEntrant() {
               }}
               transcription={<div className="flex flex-col gap-4"><ChaineRepliee etapes={etapesFinies} />{transcription}</div>}>
               {!appel || analyser.isPending || reanalyser.isPending ? (
-                <ChaineEtapes etapes={chaine.etapes} />
+                <ChaineEtapes etapes={chaine.etapes} nu />
               ) : (
                 <SequenceActions appel={appel} agence={{ nom: agent?.agence || appel.agence }} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                   relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}

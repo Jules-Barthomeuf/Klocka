@@ -430,6 +430,8 @@ export default function Analyse() {
           onVue={surVue}
           onGrille={setOngletAnalyse}
           assistantAGauche={scinde}
+          // L'onglet IA bascule le chat (16 nov. 2026, Jules : « recliquer sur IA le ferme »).
+          onBasculerAssistant={ecranLarge ? () => setChatReduit((r) => !r) : null} assistantOuvert={!chatReduit}
           onOuvrirAssistant={ecranLarge ? (texte) => { setChatReduit(false); if (texte) setTimeout(() => window.dispatchEvent(new CustomEvent("klocka:lancer", { detail: { texte } })), 400); } : null}
           onRetour={() => montrerDeal(null)}
           avantRetour={scinde && vueDossier !== "offre" ? basculePanneau : null}

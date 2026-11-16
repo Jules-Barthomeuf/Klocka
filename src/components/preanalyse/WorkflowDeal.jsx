@@ -330,7 +330,7 @@ function etapeDebloquee(dossier) {
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
 
-export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null, onRetour = null, avantRetour = null, onGrille = null, assistantAGauche = false, onOuvrirAssistant = null }) {
+export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null, onRetour = null, avantRetour = null, onGrille = null, assistantAGauche = false, onOuvrirAssistant = null, onBasculerAssistant = null, assistantOuvert = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // Les onglets de l'analyse se chargent à l'ouverture du dossier, pas au clic : ni « Lecture… » ni attente (18 oct. 2026).
@@ -740,8 +740,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               {onOuvrirAssistant && (
                 <>
                   <span aria-hidden="true" className="block h-4" />
-                  <button type="button" onClick={() => onOuvrirAssistant()}
-                    className="flex h-9 w-full items-center gap-2 rounded-[8px] px-2.5 text-left text-[14px] text-craie transition-colors hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
+                  <button type="button" onClick={() => (onBasculerAssistant ? onBasculerAssistant() : onOuvrirAssistant())} aria-pressed={assistantOuvert}
+                    title={assistantOuvert ? "Fermer l'assistant" : "Ouvrir l'assistant"}
+                    className={`flex h-9 w-full items-center gap-2 rounded-[8px] px-2.5 text-left text-[14px] transition-colors ${assistantOuvert ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`} style={assistantOuvert ? undefined : { background: "transparent" }}>
                     <Sparkles className="h-4 w-4 flex-none text-menthe" strokeWidth={1.8} /><span className="min-w-0 flex-1 truncate">IA</span>
                   </button>
                 </>

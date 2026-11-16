@@ -160,7 +160,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null, onIA = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null, onIA = null, iaOuverte = false }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -538,8 +538,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             ))}
             {/* « IA » à droite de Documents, dans l'éditeur (16 nov. 2026, Jules) : un clic ouvre le chat du projet. */}
             {onIA && (
-              <button type="button" onClick={onIA}
-                className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-[14px] text-craie transition-colors duration-200 hover:text-encre" style={{ background: "transparent" }}>
+              <button type="button" onClick={onIA} aria-pressed={iaOuverte} title={iaOuverte ? "Fermer le chat" : "Ouvrir le chat"}
+                className={`inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-[14px] transition-colors duration-200 ${iaOuverte ? "bg-encre/10 text-encre" : "text-craie hover:text-encre"}`} style={iaOuverte ? undefined : { background: "transparent" }}>
                 <Sparkles className="h-3.5 w-3.5 text-menthe" strokeWidth={1.8} />IA
               </button>
             )}

@@ -423,7 +423,7 @@ export function ligneRecherche(q) {
   return { gauche: gauche.charAt(0).toUpperCase() + gauche.slice(1), droite };
 }
 
-function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null, enLigne = null }) {
+function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null, enLigne = null, onSansConversation = null }) {
   const contacts = (a.contacts || []).filter((x) => !x.standard);
   const standard = (a.contacts || []).find((x) => x.standard)?.telephone || a.telephone;
   const numero = choisi?.telephone || standard;
@@ -473,7 +473,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   const [deja, setDeja] = useState(false);
   const troisColonnes = enCours || deja || essai;
   // Avant l'appel, la carte de la maquette de Jules (15 nov. 2026) ; pendant l'appel, la carte à trois colonnes.
-  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} choisi={choisi} onChoisir={onChoisir} numero={numero} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} />;
+  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} choisi={choisi} onChoisir={onChoisir} numero={numero} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} />;
   return (
     <div className="overflow-hidden k-verre">
       <div className="relative flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
@@ -595,7 +595,7 @@ function initiales(nom) {
  * (ce qu'elle fait, ce qu'elle a en ligne, où on en est et qui demander), Appeler et Passer à droite ; sous un filet, les
  * interlocuteurs en ligne (initiales, nom, fonction ; le numéro de celui qu'on a choisi) et le dernier appel à droite.
  */
-function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai, onMicro, onPasser, passerEnCours, onRetour }) {
+function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai, onMicro, onPasser, passerEnCours, onRetour, onSansConversation = null, occupe = false }) {
   const resume = useQuery({
     queryKey: ["mode-appel", "resume", a.id],
     queryFn: () => base44.request("GET", `/api/prospection/mode-appel/agences/${encodeURIComponent(a.id)}/resume`),
@@ -660,6 +660,17 @@ function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai,
         )}
         <span className="ml-auto whitespace-nowrap text-[13.5px] text-ardoise">{dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"}</span>
       </div>
+      {/* Pas de réponse, aussi avant l'appel (16 nov. 2026, Jules) : on a composé sans lancer l'écoute, personne ou un répondeur. */}
+      {onSansConversation && (
+        <>
+          <div aria-hidden className="h-px bg-trait" />
+          <div className="flex flex-wrap items-center justify-end gap-2.5 px-6 py-3 max-md:px-4">
+            <span className="mr-1 text-[13.5px] text-ardoise">Pas de réponse ?</span>
+            <button type="button" onClick={() => onSansConversation("pas_de_reponse")} disabled={occupe} title="Personne n'a décroché : la relance se planifie, l'agence suivante arrive" className="h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50" style={{ background: "transparent" }}>Rappeler plus tard</button>
+            <button type="button" onClick={() => onSansConversation("repondeur")} disabled={occupe} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1197,6 +1208,14 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     setEcran("analyse");
     noter.mutate({ issue: "repondeur", simple: false });
   };
+  // Avant l'appel (16 nov. 2026, Jules) : composé sans écoute, personne ou un répondeur ; l'agence est prise, l'issue posée.
+  const sansConversation = (is) => {
+    if (!prise || prise.agence_id !== a.id) prendre.mutate(a.id);
+    finAppel.current = Date.now();
+    setNotes(false);
+    if (is === "repondeur") { setIssue("repondeur"); setEcran("analyse"); noter.mutate({ issue: "repondeur", simple: false }); return; }
+    choisirIssue(is, true);
+  };
   // Pas de réponse (16 nov. 2026, maquette de Jules : « Rappeler plus tard ») : l'écoute s'efface, la relance se planifie.
   const pasDeReponse = () => {
     finAppel.current = Date.now();
@@ -1522,7 +1541,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 onMicro={micro} onSansNotes={() => { setNotes(false); setEcran("issue"); }}
                 onResume={analyserResume} resumeEnCours={noter.isPending}
                 passerOuvert={passerOuvert} setPasserOuvert={setPasserOuvert} raisons={file.data?.raisons_passer} onPasser={(k) => (rappel ? suivante() : passer.mutate(k))} passerEnCours={passer.isPending}
-                onRetour={relances ? () => onRetour?.() : null} />
+                onRetour={relances ? () => onRetour?.() : null}
+                onSansConversation={session.essai && scenario !== LIBRE ? null : sansConversation} />
             )}
 
             {/* Pendant l'appel et la note d'après (21 oct. 2026, Jules) : la fiche de la liste, à l'identique, en ligne. */}

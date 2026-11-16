@@ -1089,7 +1089,10 @@ html.k-cadre-crm { --k-crm-tableau: rgb(var(--k-rail-rgb)); }
    tableau ne défile plus lui-même (un défilement horizontal y aurait retenu l'en-tête) : il rogne ses coins (clip) et prend
    la largeur du tableau ; la liste défile dans les deux sens. Le tableau a des bordures séparées (CrmTwenty.jsx) : celles
    d'un tableau à bordures fusionnées restent en place quand la cellule colle. */
-.k-tableau-crm { overflow: clip; width: max-content; min-width: 100%; }
+/* Pas de width: max-content (16 nov. 2026, Jules) : le tableau à 100 % y prenait une largeur sans fin, ses colonnes
+   sans largeur réglée s'étiraient et leurs titres centrés sortaient de l'écran. Le cadre reçoit la largeur du tableau
+   (--k-crm-largeur, posée par CrmTwenty.jsx) en minimum. */
+.k-tableau-crm { overflow: clip; min-width: var(--k-crm-largeur, 0px); }
 .k-tableau-crm thead th { position: sticky; top: 0; z-index: 2; background: var(--k-crm-tableau); }
 
 /* La barre de navigation en verre, partout (13 nov. 2026, Jules, après la planche « La barre en verre ») : la barre de

@@ -792,7 +792,7 @@ const CLASSES_ALIGNEMENT = { gauche: "justify-start text-left", centre: "justify
 const LARGEUR_MIN = 70;
 
 /** L'en-tête d'une colonne : un clic trie ; la roue au survol ouvre ses réglages ; le bord droit se glisse pour la largeur. */
-function EnTeteColonne({ c, tri, reglage, onTri, onReglage, alignementDefaut }) {
+function EnTeteColonne({ c, tri, reglage, onTri, onReglage, alignementDefaut, premiere = false }) {
   const [ouvert, setOuvert] = useState(false);
   const roue = useRef(null);
   const cellule = useRef(null);
@@ -811,7 +811,7 @@ function EnTeteColonne({ c, tri, reglage, onTri, onReglage, alignementDefaut }) 
     window.addEventListener("pointerup", lacher);
   };
   return (
-    <th ref={cellule} className="group relative h-[35px] overflow-hidden whitespace-nowrap border-b border-r border-trait px-2.5 font-normal">
+    <th ref={cellule} className={`group relative h-[35px] overflow-hidden whitespace-nowrap border-b border-r border-trait font-normal ${premiere ? "px-4" : "px-2.5"}`}>
       <div className={`flex items-center gap-1 ${CLASSES_ALIGNEMENT[alignement]}`}>
         <button type="button" onClick={() => onTri()} className="inline-flex min-w-0 items-center gap-1 text-encre hover:text-menthe" style={{ background: "transparent" }}>
           <span className="truncate">{c.libelle}</span>
@@ -1162,7 +1162,7 @@ export default function CrmTwenty() {
             <Case cochee={lignes.every((f) => choisies.includes(f.id))} label="Tout cocher" onChange={() => { const tous = lignes.every((f) => choisies.includes(f.id)); setChoisies((t) => (tous ? t.filter((x) => !lignes.some((f) => f.id === x)) : [...new Set([...t, ...lignes.map((f) => f.id)])])); }} />
           </th>
           {colonnes.map((c, i) => (
-            <EnTeteColonne key={c.nom} c={c} tri={triVu} reglage={reglageDe(c)} alignementDefaut={alignementDefaut(i)} onReglage={(change) => regler(c, change)}
+            <EnTeteColonne key={c.nom} c={c} premiere={i === 0} tri={triVu} reglage={reglageDe(c)} alignementDefaut={alignementDefaut(i)} onReglage={(change) => regler(c, change)}
               onTri={(sens) => setTri((t) => (sens ? { champ: c.nom, sens } : t?.champ === c.nom ? (t.sens === "asc" ? { champ: c.nom, sens: "desc" } : null) : { champ: c.nom, sens: "asc" }))} />
           ))}
           {toutesReglees && <th className="border-b border-trait" />}
@@ -1391,7 +1391,8 @@ export default function CrmTwenty() {
                 </div>
               )}
 
-              <div className="min-h-0 flex-1 overflow-auto px-10 pb-10 max-md:px-4">
+              {/* La largeur du tableau donnée au cadre (16 nov. 2026) : le cadre s'élargit, cette zone défile de côté, l'en-tête reste collé en haut. */}
+              <div className="min-h-0 flex-1 overflow-auto px-10 pb-10 max-md:px-4" style={{ "--k-crm-largeur": `${Math.max(720, largeurMini) + 4}px` }}>
                 {liste.isLoading ? <Chargement /> : liste.isError ? <p className="py-16 text-center text-[14px] text-ardoise">{liste.error?.message || "Twenty ne répond pas."}</p>
                   : !fiches.length ? <p className="py-16 text-center text-[14px] text-brume">{q || tousFiltres.length ? "Rien ne correspond." : "Aucune fiche."}</p>
                   : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => ouvrirLigne(objet.singulier, id)} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />

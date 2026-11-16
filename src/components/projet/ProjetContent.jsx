@@ -8,7 +8,7 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Download, X, ChevronLeft, ChevronRight, FileText, Eye, EyeOff } from "lucide-react";
+import { Download, X, ChevronLeft, ChevronRight, FileText, Eye, EyeOff, Sparkles } from "lucide-react";
 import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
@@ -160,7 +160,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null, onIA = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -536,6 +536,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 )}
               </TabsTrigger>
             ))}
+            {/* « IA » à droite de Documents, dans l'éditeur (16 nov. 2026, Jules) : un clic ouvre le chat du projet. */}
+            {onIA && (
+              <button type="button" onClick={onIA}
+                className="inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-[14px] text-craie transition-colors duration-200 hover:text-encre" style={{ background: "transparent" }}>
+                <Sparkles className="h-3.5 w-3.5 text-menthe" strokeWidth={1.8} />IA
+              </button>
+            )}
           </TabsList>
           <div className="max-md:flex-shrink-0 rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px]">
             <button

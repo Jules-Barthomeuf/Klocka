@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Info, Loader2, RotateCw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -9,6 +11,8 @@ import { SOURCE_REPERES, lignesVacance, phraseVacance } from "@/lib/vacance-repe
 import { cleOutilsDossier, marquerVu, useOutilsDossier } from "@/components/analyse/ControlesHorsDocuments";
 import { MOT, montants, sansCode, suiteCourte, teteEtSuite, teteProcedure } from "@/lib/marche-texte";
 import { VERRE } from "@/lib/verre";
+import { nettoyerReponse } from "@/lib/reponse-recherche";
+import GraphesSante from "@/components/outils/SanteLocataire";
 
 // L'onglet Marché (12 nov. 2026, Jules, après une planche : « est-ce qu'on a besoin de tableaux ? juste les trucs
 // graphiques à la place ; supprime la note de l'IA » ; puis « enlève le truc de pop-up aussi ») : cinq blocs, un par
@@ -217,12 +221,34 @@ const LIGNE_INFO = "flex items-baseline justify-between gap-4 border-t border-tr
 const sirenLisible = (x) => String(x || "").replace(/^(\d{3})(\d{3})(\d{3})(\d{5})?$/, (_, a, b, c, d) => [a, b, c, d].filter(Boolean).join(" "));
 const enMillions = (n) => (n == null ? "—" : Math.abs(n) >= 1e6 ? `${String(Math.round(n / 1e5) / 10).replace(".", ",")} M€` : Math.abs(n) >= 1e3 ? `${Math.round(n / 1e3).toLocaleString("fr-FR")} k€` : `${Math.round(n)} €`);
 
+// La réponse de Claude à « {locataire} {ville} pappers forme financière » (16 nov. 2026, Jules : « retourner les
+// informations directement ») : telle quelle, tableaux et listes compris, avec la requête et les pages lues.
+const MARKDOWN = "text-[13px] leading-[1.55] text-craie [&_h1]:m-0 [&_h1]:mt-3 [&_h1]:text-[14px] [&_h1]:font-medium [&_h1]:text-encre [&_h2]:m-0 [&_h2]:mt-3 [&_h2]:text-[14px] [&_h2]:font-medium [&_h2]:text-encre [&_h3]:m-0 [&_h3]:mt-3 [&_h3]:text-[13.5px] [&_h3]:font-medium [&_h3]:text-encre [&_p]:my-1.5 [&_ul]:my-1.5 [&_ul]:pl-4 [&_li]:my-0.5 [&_strong]:font-medium [&_strong]:text-encre [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border-b [&_th]:border-trait [&_th]:py-1.5 [&_th]:pr-3 [&_th]:text-left [&_th]:text-[12px] [&_th]:font-normal [&_th]:text-ardoise [&_td]:border-b [&_td]:border-trait/60 [&_td]:py-1.5 [&_td]:pr-3 [&_td]:align-top [&_a]:text-menthe [&_hr]:border-trait";
+const hoteDe = (x) => { try { return new URL(x.url).host.replace(/^www\./, ""); } catch { return x.titre || x.url; } };
+
+function ReponseRecherche({ web }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      {/* Ni la requête ni ce que le modèle dit de lui-même (16 nov. 2026, Jules) : les faits seuls. */}
+      <div className={`min-w-0 overflow-x-auto ${MARKDOWN}`}><ReactMarkdown remarkPlugins={[remarkGfm]}>{nettoyerReponse(web.texte)}</ReactMarkdown></div>
+      {web.sources?.length > 0 && (
+        <p className="m-0 flex flex-wrap gap-x-3 text-[11.5px]">{web.sources.slice(0, 5).map((x) => <a key={x.url} href={x.url} target="_blank" rel="noreferrer" className="text-menthe hover:underline">{hoteDe(x)}</a>)}</p>
+      )}
+    </div>
+  );
+}
+
 function InfosJuridiques({ p }) {
   const j = p?.detail?.juridique;
+  const web = p?.detail?.web;
+  // La société retrouvée à l'adresse quand le nom du locataire n'en est pas une (16 nov. 2026) : on le dit en tête.
+  const rappro = p?.detail?.rapprochement ? <p className="m-0 rounded-[10px] bg-encre/[0.04] px-3 py-2 text-[12.5px] leading-[1.45] text-craie">{p.detail.rapprochement}</p> : null;
+  if (web?.texte) return <>{rappro}<ReponseRecherche web={web} /><Source lien={p.lien} texte={sourceDe(p)} /></>;
   if (!j) return <Mesure p={p} />;
   const lignes = [
     ["Dénomination sociale", j.denomination],
     ["Forme juridique", j.forme],
+    ["Capital social", j.capital],
     ["SIREN", sirenLisible(j.siren)],
     ["SIRET du local", j.siret_local ? `${sirenLisible(j.siret_local)}${j.adresse_local ? ` · ${j.adresse_local}` : ""}` : null],
     ["SIRET du siège", j.siret_siege ? `${sirenLisible(j.siret_siege)}${j.adresse_siege ? ` · ${j.adresse_siege}` : ""}` : null],
@@ -247,58 +273,22 @@ function InfosJuridiques({ p }) {
   );
 }
 
+/** La colonne de droite : les graphiques de la santé financière et des annonces légales (SanteLocataire.jsx). */
 function ComptesEtProcedures({ comptes, procedures }) {
-  const h = comptes?.detail?.historique || [];
-  const avecRes = h.filter((x) => x.resultat_net != null);
-  const max = Math.max(1, ...avecRes.map((x) => Math.abs(x.resultat_net)));
-  const dernier = h[h.length - 1];
-  const avant = h[h.length - 2];
-  const pr = procedures && procedures.statut !== "vide" ? teteProcedure(procedures.resultat) : null;
+  const d = comptes?.detail || {};
+  const note = d.depuis_recherche ? `${d.groupe ? "chiffres du groupe · " : ""}lus par la recherche, à vérifier` : (d.historique || []).length ? "comptes déposés" : null;
+  // Un lancement d'avant le 16 nov. n'a pas le décompte par année : il se refait sur les annonces gardées.
+  const ev = procedures?.detail?.evenements;
+  const parAnnee = procedures?.detail?.par_annee || (ev ? Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 4 + i).map((a) => {
+    const evs = ev.filter((x) => String(x.date || "").startsWith(String(a)));
+    const proc = evs.filter((x) => x.famille === "collective" || x.famille === "radiation").length;
+    const ces = evs.filter((x) => x.famille === "vente" || /vente|cession/i.test(x.type || "")).length;
+    return { annee: a, procedures: proc, cessions: ces, courantes: evs.length - proc - ces };
+  }) : null);
   return (
     <>
-      {comptes && h.length > 0 ? (
-        <>
-          <div className="flex items-start gap-2.5">
-            <Point statut={comptes.statut} className="mt-[9px]" />
-            <p className="m-0 min-w-0 leading-[1.4]">
-              <span className="text-[12.5px] text-ardoise">Santé financière</span><br />
-              <span className="text-[20px] tabular-nums text-encre">{dernier?.chiffre_affaires ? `CA ${enMillions(dernier.chiffre_affaires)}` : "CA confidentiel"}</span>
-              <span className="text-[13px] text-ardoise"> en {dernier?.exercice}{avant?.chiffre_affaires && dernier?.chiffre_affaires ? ` · ${enMillions(avant.chiffre_affaires)} en ${avant.exercice}` : ""}</span>
-            </p>
-          </div>
-          {avecRes.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <p className="m-0 text-[12px] text-brume">Résultat net</p>
-              {/* Une barre par exercice, autour d'un axe : au-dessus un bénéfice (accent), dessous une perte (alerte). */}
-              <div className="grid items-center gap-x-2" style={{ gridTemplateColumns: `repeat(${avecRes.length}, minmax(0, 1fr))` }}>
-                {avecRes.map((x) => {
-                  const haut = Math.max(3, Math.round((Math.abs(x.resultat_net) / max) * 44));
-                  const perte = x.resultat_net < 0;
-                  return (
-                    <div key={x.exercice} className="flex flex-col items-center">
-                      <div className="flex h-[48px] w-full items-end justify-center">{!perte && <span className="w-full max-w-[28px] rounded-t-[4px] bg-menthe" style={{ height: haut }} />}</div>
-                      <div className="h-px w-full bg-bord" />
-                      <div className="flex h-[48px] w-full items-start justify-center">{perte && <span className="w-full max-w-[28px] rounded-b-[4px] bg-alerte" style={{ height: haut }} />}</div>
-                      <span className={`mt-1 text-[12px] tabular-nums ${perte ? "text-alerte" : "text-craie"}`}>{perte ? "−" : ""}{enMillions(Math.abs(x.resultat_net))}</span>
-                      <span className="text-[11.5px] tabular-nums text-brume">{x.exercice}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </>
-      ) : comptes ? <Mesure p={comptes} lien={null} /> : null}
-      {procedures && (
-        <div className="flex items-start gap-2.5 border-t border-trait pt-3">
-          <Point statut={procedures.statut} className="mt-[6px]" />
-          <p className="m-0 min-w-0 text-[13px] leading-[1.45] text-craie">
-            <span className="text-ardoise">Procédures collectives · </span>
-            {pr ? [pr[0], pr[1]].filter(Boolean).join(" ") : sansCode(procedures.resultat)}
-            {procedures.lien && <> · <a href={procedures.lien} target="_blank" rel="noreferrer" className="text-menthe hover:underline">BODACC</a></>}
-          </p>
-        </div>
-      )}
+      <GraphesSante historique={d.historique || []} parAnnee={parAnnee} note={note} lienBodacc={procedures?.lien || null} groupeCite={d.groupe_cite || null}
+        alerteProcedure={procedures && !["ok", "vide"].includes(procedures.statut) ? sansCode(procedures.resultat) : null} />
       {comptes && <Source texte={sourceDe(comptes)} />}
     </>
   );

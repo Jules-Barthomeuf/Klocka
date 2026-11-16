@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import OngletsSuivi from "@/components/OngletsSuivi";
+import { FRAIS_USAGE, cleUsage, lireUsage } from "@/lib/suivi-usage-requete";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import SauvegardeBase from "@/components/monitoring/SauvegardeBase";
@@ -33,8 +34,9 @@ export default function Monitoring() {
   const c = useCouleurs();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["monitoring-usage", jours],
-    queryFn: () => base44.request("GET", `/api/monitoring/usage?jours=${jours}`),
+    queryKey: cleUsage(jours),
+    queryFn: () => lireUsage(jours),
+    staleTime: FRAIS_USAGE,
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: true,
   });

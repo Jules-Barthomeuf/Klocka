@@ -492,6 +492,8 @@ function lireListeDossiers() {
     responsable: d.cree_par || d.created_by || null,
     maj_le: d.updated_date || d.cree_le || d.created_date || null,
     etape_max: etapeMax(d),
+    // Les étapes validées à la main : la carte de la liste dit celle qui suit (16 nov. 2026, Jules).
+    frise_validee: Number(d.frise_validee) || 0,
     titre: nettoyerTitre(d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || d.deal_id),
     responsables: d.responsables || [],
     // Un dossier venu d'un mandataire K Partners : sa pastille dans la liste.

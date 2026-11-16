@@ -1661,6 +1661,7 @@ export default function AdminProjets() {
                 </div>
               }
               onPhotos={() => { setPhotosBrouillon([...(formData.photos || [])]); setPhotosOuvertes(true); }}
+              onIA={scindeProjet ? () => setChatReduit(false) : null}
               editeurDocuments={!champsOuverts && vueProjet === "edition" && (
                 // Sans cadre autour (11 nov. 2026, Jules) : la zone de dépôt a le sien.
                 <ProjectFormDocumentsTab formData={formData} setFormData={setFormDataSaisi} />

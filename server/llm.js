@@ -223,44 +223,74 @@ async function rechercheAnthropic(prompt) {
   }
 
   if (!text) return null;
+  // La réponse seule, sans ce que le modèle dit avant ses recherches (« Je vais chercher… ») : les textes d'après le
+  // dernier résultat de recherche.
+  const dernier = blocs.map((b) => b.type).lastIndexOf('web_search_tool_result');
+  // Les morceaux d'un texte cité se suivent : recollés bout à bout, pas à la ligne.
+  const final = blocs.slice(dernier + 1).filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
   return {
     text,
+    final: final || text,
     // Dédoublonné par URL : une même source revient souvent plusieurs fois.
     sources: sources.filter((s, i, arr) => arr.findIndex((x) => x.url === s.url) === i),
   };
 }
 
-export async function invokeLLMGrounded({ prompt } = {}) {
-  if (provider === 'anthropic') return rechercheAnthropic(prompt);
-  if (provider !== 'gemini') return null;
-
+/** Recherche web côté Gemini : la recherche Google intégrée (google_search). */
+async function rechercheGemini(prompt) {
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     tools: [{ google_search: {} }],
-    generationConfig: { maxOutputTokens: 2048 },
+    generationConfig: { maxOutputTokens: 8192 },
   };
-
   const resp = await fetch(GEMINI_URL, {
     method: 'POST',
     headers: { 'x-goog-api-key': GEMINI_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120000),
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok) {
     throw new Error(data?.error?.message || `Gemini a répondu ${resp.status}`);
   }
+  compter(GEMINI_MODEL, data?.usageMetadata);
 
   const meta = data?.candidates?.[0]?.groundingMetadata;
   const sources = (meta?.groundingChunks || [])
     .map((c) => c?.web)
     .filter(Boolean)
+    // Gemini donne une adresse de redirection Google et, en titre, le site lu : le titre sert de nom.
     .map((w) => ({ titre: w.title || w.uri, url: w.uri }))
     // Dédupliqué par URL : un même site est souvent cité plusieurs fois.
     .filter((s, i, arr) => arr.findIndex((x) => x.url === s.url) === i);
 
   const text = geminiText(data);
   if (!text) return null;
-  return { text, sources };
+  return { text, sources, via: 'gemini' };
+}
+
+/**
+ * La recherche web, à part du reste (16 nov. 2026, Jules : « connecter Gemini pour cette recherche ») : RECHERCHE_WEB=gemini
+ * l'envoie à Gemini et sa recherche Google, quel que soit LLM_PROVIDER ; si Gemini ne répond pas (panne, quota), elle repasse
+ * par Claude. `via` force un fournisseur (comparaison).
+ */
+export async function invokeLLMGrounded({ prompt, via = null } = {}) {
+  const voulu = String(via || process.env.RECHERCHE_WEB || provider || '').trim().toLowerCase();
+  if (voulu === 'gemini' && GEMINI_KEY) {
+    try {
+      return await rechercheGemini(prompt);
+    } catch (e) {
+      if (via || !ANTHROPIC_KEY) throw e;
+      console.warn(`[recherche web] Gemini : ${e?.message || e} ; repli sur Claude.`);
+      return { ...(await rechercheAnthropic(prompt)), via: 'anthropic' };
+    }
+  }
+  if ((voulu === 'anthropic' || voulu === 'claude' || provider === 'anthropic') && ANTHROPIC_KEY) {
+    const r = await rechercheAnthropic(prompt);
+    return r ? { ...r, via: 'anthropic' } : r;
+  }
+  if (GEMINI_KEY) return rechercheGemini(prompt);
+  return null;
 }
 
 // La consommation, ramenée à un vocabulaire commun aux deux fournisseurs.

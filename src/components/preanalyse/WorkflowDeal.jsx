@@ -42,17 +42,7 @@ import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 // Le bien et le simulateur ouvrent la série, à gauche du bail.
 // Le module d'analyse (spec du 17 oct. 2026) : Synthèse en tête, le Simulateur après le Marché (il consomme tous les
 // onglets précédents), l'Historique à la fin.
-// Les étapes du menu : la frise sans la Data Room, devenue un onglet de l'Analyse (29 oct. 2026, Jules). Numérotées
-// à la suite pour l'écran ; `vrai` garde le numéro de la frise, celui des étapes validées.
-// Email et Plateforme retirés le même jour : rentrer le projet est un geste de la Pré-analyse et de l'Analyse.
-// Vidéo, après Analyse (29 oct. 2026, Jules) : la vidéo du bien filmée, importée pour les clients. Elle n'est pas une étape de la frise ; elle se
-// valide avec l'Analyse.
-const ETAPES_MENU = (() => {
-  // Clients retiré aussi (29 oct. 2026, Jules).
-  const l = FRISE.filter((e) => !["reception", "documents", "plateforme", "clients"].includes(e.id)).map((e) => ({ ...e, vrai: e.n }));
-  l.splice(l.findIndex((e) => e.id === "analyse") + 1, 0, { id: "video", label: "Vidéo", sous: "Vidéo filmée", vrai: FRISE.find((e) => e.id === "analyse").n });
-  return l.map((e, i) => ({ ...e, n: i + 1 }));
-})();
+// Les étapes du menu (ETAPES_MENU) vivent dans src/lib/dossiers-architecture.js : la carte de la liste les lit aussi.
 
 const GRILLES_ANALYSE = [
 // L'analyse pièce par pièce (29 oct. 2026, Jules) : les pièces se rangent dans la Data Room, une zone par type ;
@@ -79,7 +69,7 @@ import FicheAnalyse from "@/components/analyse/FicheAnalyse";
 import { useOutilsDossier, pastilleMarche, lireVu } from "@/components/analyse/ControlesHorsDocuments";
 import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
 import { ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
-import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
+import { ETAPES_MENU, FRISE, etapeFrise } from "@/lib/dossiers-architecture";
 import { useAValiderDossier } from "@/components/haka/PanneauAValiderDossier";
 
 // Une analyse K-Data rangée dans l'affaire se lit ici, dans une fenêtre qui
@@ -535,7 +525,10 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   const validerEtape = (n) => {
     const avant = etapesValidees;
     setEtapesValidees(n);
-    base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/frise`, { body: { n } }).catch(() => { setEtapesValidees(avant); toast.error("Étape non enregistrée"); });
+    // La liste relue ensuite : sa carte dit l'étape qui suit la dernière validée.
+    base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/frise`, { body: { n } })
+      .then(() => queryClient.invalidateQueries({ queryKey: ["preanalyse-pipeline"] }))
+      .catch(() => { setEtapesValidees(avant); toast.error("Étape non enregistrée"); });
   };
   const allerA = async (id) => {
     const porte = PORTE[id];
@@ -743,6 +736,16 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                   })}
                 </React.Fragment>
               ))}
+              {/* L'onglet IA (16 nov. 2026, Jules : « un onglet IA qui ouvre le chat ») : l'assistant du dossier s'ouvre à gauche. */}
+              {onOuvrirAssistant && (
+                <>
+                  <span aria-hidden="true" className="block h-4" />
+                  <button type="button" onClick={() => onOuvrirAssistant()}
+                    className="flex h-9 w-full items-center gap-2 rounded-[8px] px-2.5 text-left text-[14px] text-craie transition-colors hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
+                    <Sparkles className="h-4 w-4 flex-none text-menthe" strokeWidth={1.8} /><span className="min-w-0 flex-1 truncate">IA</span>
+                  </button>
+                </>
+              )}
               {bande && boutonProjet && <div className="mt-auto pt-6">{boutonProjet}</div>}
             </nav>
             </div>

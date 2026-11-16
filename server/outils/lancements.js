@@ -96,9 +96,15 @@ export async function entreesDuLot(deal, index = 0) {
   if (index === 0) {
     try {
       const { lireAnalyse } = await import('../deal/analyse-pieces.js');
-      const kbis = lireAnalyse(deal.deal_id)?.grilles?.find((g) => g.id === 'kbis')?.lignes?.find((l) => l.id === 'immatriculation')?.valeur;
+      const lignes = lireAnalyse(deal.deal_id)?.grilles?.find((g) => g.id === 'kbis')?.lignes || [];
+      const kbis = lignes.find((l) => l.id === 'immatriculation')?.valeur;
+      // La dénomination lue sur le Kbis (ou l'avis Sirene) nomme la société à chercher (16 nov. 2026, Jules : Lorient
+      // MACSF cherché sous « Essai », le nom tapé dans la fiche) : la pièce officielle l'emporte pour la recherche.
+      const denomination = String(lignes.find((l) => l.id === 'denomination')?.valeur || '').trim() || null;
+      const avecNom = denomination ? { ...e, locataire_societe: denomination } : e;
       const siren = sirenDuTexte(kbis);
-      if (siren) return { ...e, siren, siren_source: 'kbis' };
+      if (siren) return { ...avecNom, siren, siren_source: 'kbis' };
+      return avecNom;
     } catch { /* sans Kbis lu, l'outil cherche comme avant */ }
   }
   return e;
@@ -209,7 +215,7 @@ async function societeDuLocataire(e) {
   if (e.siren) {
     // Le SIREN est connu : plus de reconnaissance par le nom.
     siren = e.siren;
-    local = { source: e.siren_source === 'kbis' ? 'SIREN du Kbis' : 'SIREN confirmé', fixe: true, trouve: null };
+    local = { source: e.siren_source === 'kbis' ? 'SIREN du Kbis' : e.siren_source === 'ia' ? 'Recherche IA (Pappers)' : 'SIREN confirmé', fixe: true, trouve: null };
   } else {
     if (e.adresse) {
       const { occupantsDuLocal, sansForme } = await import('./rue.js');
@@ -251,6 +257,21 @@ async function societeDuLocataire(e) {
 
 const SOURCE_COMPTES = 'Comptes déposés (INPI, data.economie.gouv.fr)';
 
+/**
+ * Pure : les annonces BODACC de la société, année par année sur cinq ans (16 nov. 2026, Jules : « des graphiques à la
+ * place » de « Aucune ») : procédures collectives et radiations, ventes et cessions, vie courante (modifications, dépôts
+ * des comptes).
+ */
+export function annoncesParAnnee(evenements, annee = new Date().getFullYear()) {
+  const famille = (x) => (x.famille === 'collective' || x.famille === 'radiation' || /liquidation|redressement|sauvegarde|radiation/i.test(x.type || '') ? 'procedures' : x.famille === 'vente' || /vente|cession/i.test(x.type || '') ? 'cessions' : 'courantes');
+  const ans = Array.from({ length: 5 }, (_, i) => annee - 4 + i).map((a) => ({ annee: a, procedures: 0, cessions: 0, courantes: 0 }));
+  for (const x of evenements || []) {
+    const a = ans.find((y) => String(x.date || '').startsWith(String(y.annee)));
+    if (a) a[famille(x)] += 1;
+  }
+  return ans;
+}
+
 // Les tranches d'effectif de l'INSEE, en clair.
 export const TRANCHES_EFFECTIF = { '00': 'Aucun salarié', '01': '1 ou 2 salariés', '02': '3 à 5 salariés', '03': '6 à 9 salariés', 11: '10 à 19 salariés', 12: '20 à 49 salariés', 21: '50 à 99 salariés', 22: '100 à 199 salariés', 31: '200 à 249 salariés', 32: '250 à 499 salariés', 41: '500 à 999 salariés', 42: '1 000 à 1 999 salariés', 51: '2 000 à 4 999 salariés', 52: '5 000 à 9 999 salariés', 53: '10 000 salariés et plus' };
 
@@ -280,7 +301,7 @@ export function ficheJuridique(s, ici = null, adresse = null) {
     adresse_siege: s.siege?.adresse || null,
     naf: s.activite_code || null,
     creation: s.creation || null,
-    dirigeants: (s.dirigeants || []).filter((d) => d.nom).slice(0, 3).map((d) => ({ nom: d.nom, qualite: d.qualite || null, morale: !!d.morale })),
+    dirigeants: (s.dirigeants || []).filter((d) => d.nom).length ? (s.dirigeants || []).filter((d) => d.nom).slice(0, 3).map((d) => ({ nom: d.nom, qualite: d.qualite || null, morale: !!d.morale })) : [],
     effectif: TRANCHES_EFFECTIF[String(s.effectif_societe || '')] || null,
     etablissements_ouverts: s.etablissements_ouverts ?? null,
   };
@@ -295,27 +316,28 @@ export function ficheJuridique(s, ici = null, adresse = null) {
  * Le dernier exercice de moins de trois ans ; un chiffre d'affaires nul ou absent est confidentiel. `ei` : une entreprise
  * individuelle ne publie pas.
  */
-export function pointComptes(comptes, loyer, { annee = new Date().getFullYear(), ei = false, etablissements = null } = {}) {
+export function pointComptes(comptes, loyer, { annee = new Date().getFullYear(), ei = false, etablissements = null, source = SOURCE_COMPTES } = {}) {
   const L = 'Santé financière';
+  const SOURCE_COMPTES_ICI = source;
   if (ei) return point('comptes', L, 'vide', 'Entreprise individuelle : pas de comptes publiés.', SOURCE_COMPTES);
   const tous = (comptes || []).filter((c) => Number(c.exercice) > 0).sort((a, b) => Number(b.exercice) - Number(a.exercice));
   const recents = tous.filter((c) => Number(c.exercice) >= annee - 3);
-  if (!recents.length) return point('comptes', L, 'vide', tous.length ? `Derniers comptes publiés en ${tous[0].exercice}, trop anciens pour juger.` : 'Comptes non publiés.', SOURCE_COMPTES);
+  // L'historique suit toujours, même quand les comptes sont trop anciens pour juger : le graphique les montre.
+  const historique = [...new Map(tous.map((x) => [Number(x.exercice), x])).values()].slice(0, 5).reverse()
+    .map((x) => ({ exercice: Number(x.exercice), chiffre_affaires: x.chiffre_affaires > 0 ? x.chiffre_affaires : null, resultat_net: Number.isFinite(x.resultat_net) ? x.resultat_net : null, ...(x.ca_groupe ? { ca_groupe: true } : {}), ...(x.res_groupe ? { res_groupe: true } : {}) }));
+  if (!recents.length) return point('comptes', L, 'vide', tous.length ? `Derniers comptes publiés en ${tous[0].exercice}, trop anciens pour juger.` : 'Comptes non publiés.', SOURCE_COMPTES_ICI, tous.length ? { historique } : null);
   const c = recents.find((x) => x.chiffre_affaires > 0) || recents[0];
   const res = Number.isFinite(c.resultat_net) ? c.resultat_net : null;
   const ca = c.chiffre_affaires > 0 ? c.chiffre_affaires : null;
   const seul = Number(etablissements) === 1;
   const j = ca && loyer > 0 && seul ? jugerEffort(loyer, ca) : null;
-  // L'historique des comptes (16 nov. 2026, Jules) : jusqu'à cinq exercices, le plus ancien d'abord, pour voir la pente.
-  const historique = [...new Map(tous.map((x) => [Number(x.exercice), x])).values()].slice(0, 5).reverse()
-    .map((x) => ({ exercice: Number(x.exercice), chiffre_affaires: x.chiffre_affaires > 0 ? x.chiffre_affaires : null, resultat_net: Number.isFinite(x.resultat_net) ? x.resultat_net : null }));
   const detail = { exercice: Number(c.exercice), chiffre_affaires: ca, resultat_net: res, loyer: loyer || null, etablissements: etablissements ?? null, historique, ...(j ? { taux: j.taux } : {}) };
   const tete = res == null ? (ca ? `CA ${euros(ca)}` : "Chiffre d'affaires confidentiel") : res < 0 ? `Perte de ${euros(-res)}` : `Bénéfice de ${euros(res)}`;
   const suite = [`en ${c.exercice}`, res != null ? (ca ? `CA ${euros(ca)}` : 'CA confidentiel') : null, j ? `loyer ${pct(j.taux, 1)} du CA` : null].filter(Boolean).join(' · ');
   const rang = { vide: 0, ok: 1, a_voir: 2, alerte: 3 };
   const etats = [res == null ? (ca ? 'ok' : 'vide') : res < 0 ? 'a_voir' : 'ok', j?.statut].filter(Boolean);
   const statut = etats.sort((a, b) => rang[b] - rang[a])[0];
-  return point('comptes', L, statut, `${tete} ${suite}`, SOURCE_COMPTES, detail);
+  return point('comptes', L, statut, `${tete} ${suite}`, SOURCE_COMPTES_ICI, detail);
 }
 
 /**
@@ -342,6 +364,60 @@ async function outilLocataire(e, { partiel = null } = {}) {
   // L'avis Google ne dépend pas de la société : il part en même temps, et le résumé des avis du web aussi.
   const avis = avisGoogle(e);
   const web = resumeAvisWeb(e);
+  // La société, cherchée à l'adresse d'abord (16 nov. 2026, Jules : « ça doit voir à cette adresse la société qui a le
+  // truc et regarder derrière ; puisqu'il y a un restaurant ici, il y a forcément la société sur Pappers derrière ») :
+  //   1. le registre à l'adresse : l'établissement ouvert qui porte le nom du locataire, sinon le commerce ouvert du local
+  //      (le nom du locataire est souvent une enseigne : « SAJ & CO » est exploité par EURL AJZ RESTAURATION) ;
+  //   2. la recherche de Jules (« nom ville pappers forme financière »), dont le SIREN n'est retenu que si la société a un
+  //      établissement à cette adresse (sur le nom seul, elle rendait SAJ & CO HOLDING, une holding sans local ici) ;
+  //   3. sans rien au registre à l'adresse, le SIREN de la recherche.
+  // La société retenue est ensuite cherchée sur Pappers par son propre nom ; ses chiffres officiels se relisent avec son SIREN.
+  let trouveWeb = null;
+  let rapprochement = null;
+  if (!e.siren) {
+    const { occupantsDuLocal, sansForme } = await import('./rue.js');
+    const occ = e.adresse ? await occupantsDuLocal(e.adresse).catch(() => null) : null;
+    // Les sociétés qui exploitent un commerce : ni les propriétaires (SCI, indivisions, NAF 68), ni les holdings (64.2, 70.10).
+    const actifs = (occ?.exploitants || []).filter((x) => x.actif && x.siren && !/^(68\.|64\.2|70\.10)/.test(String(x.naf || '')));
+    const parNom = e.locataire ? candidatsLocataire(e.locataire, actifs, sansForme)[0] || null : null;
+    if (parNom) {
+      e = { ...e, siren: parNom.siren, siren_source: 'adresse' };
+      trouveWeb = await societeWeb({ ...e, locataire_societe: parNom.denomination || parNom.nom });
+    } else {
+      const web = await societeWeb(e);
+      // La société trouvée sur le nom est au local si le registre de l'adresse la donne, ou si l'annuaire lui connaît un
+      // établissement ouvert au même code postal et au même numéro (le stock de l'adresse est parfois incomplet : le
+      // magasin Devred de Firminy n'y était pas, 16 nov. 2026).
+      const ici = !!web?.siren && (actifs.some((x) => x.siren === web.siren) || await aUnEtablissementIci(web.siren, occ?.adresse || e.adresse));
+      if (web?.siren && (ici || !actifs.length)) {
+        e = { ...e, siren: web.siren, siren_source: 'ia' };
+        trouveWeb = web;
+      } else if (actifs.length) {
+        // Le commerce du local : un seul ouvert, c'est lui ; plusieurs, Claude cherche lequel exploite le commerce (le nom du
+        // locataire est souvent une enseigne) parmi les sociétés inscrites à l'adresse ; s'il ne tranche pas, le plus récent.
+        let choisi = actifs.length === 1 ? actifs[0] : null;
+        let parQui = actifs.length === 1 ? 'seul commerce ouvert ici' : null;
+        if (!choisi) {
+          const liste = actifs.slice(0, 12).map((x) => `${x.nom}${x.enseigne ? ` (enseigne ${x.enseigne})` : ''}, SIREN ${x.siren}, NAF ${x.naf || '?'}`).join(' ; ');
+          const tri = await societeWeb(e, { requete: `Le commerce « ${e.locataire} » au ${e.adresse} : quelle société l'exploite ? Le registre inscrit à cette adresse : ${liste}. Cherche sur le web (Pappers, societe.com, pages du commerce) et réponds par le SIREN de la société qui exploite « ${e.locataire} », avec une phrase d'explication.` });
+          choisi = premierCite(tri?.texte, actifs);
+          if (choisi) parQui = 'reconnue par la recherche parmi les sociétés inscrites ici';
+        }
+        if (!choisi && !web?.siren) { choisi = [...actifs].sort((a, b) => String(b.ouvert || '').localeCompare(String(a.ouvert || '')))[0]; parQui = `le plus récent des ${actifs.length} commerces ouverts ici, à confirmer`; }
+        if (choisi) {
+          e = { ...e, siren: choisi.siren, siren_source: 'adresse' };
+          const autre = web?.siren && web.siren !== choisi.siren ? (sirenNom(web.texte) || 'une autre société') : null;
+          rapprochement = `« ${e.locataire} » est exploité par {SOCIETE}${choisi.enseigne ? ` (enseigne ${choisi.enseigne})` : ''}, société inscrite à cette adresse (${parQui}).${autre ? ` La recherche sur le nom seul donnait ${autre}, sans établissement ici.` : ''}`;
+          const fiche = await societeWeb({ ...e, locataire_societe: choisi.nom });
+          trouveWeb = fiche ? { ...fiche, siren: choisi.siren } : null;
+        } else {
+          e = { ...e, siren: web.siren, siren_source: 'ia' };
+          trouveWeb = web;
+          rapprochement = `${actifs.length} commerces sont ouverts à cette adresse et aucun n'a pu être rattaché à « ${e.locataire} » : la société vient de la recherche sur le nom, à confirmer.`;
+        }
+      }
+    }
+  }
   const trouve = await societeDuLocataire(e);
   const { local, autres = [] } = trouve;
   let { s, raison } = trouve;
@@ -383,7 +459,7 @@ async function outilLocataire(e, { partiel = null } = {}) {
         // La fiche juridique du locataire (16 nov. 2026, Jules : « toute une partie sur la santé du locataire ») : le siège,
         // l'établissement du local, l'activité, les dirigeants, l'effectif en clair. Le capital social n'est pas donné
         // par l'annuaire ouvert : il n'apparaît pas.
-        juridique: ficheJuridique(s, ici, e.adresse) },
+        juridique: ficheJuridique(s, ici, e.adresse), rapprochement: rapprochement ? rapprochement.replace('{SOCIETE}', s.nom) : null, web: trouveWeb ? { requete: trouveWeb.requete, texte: trouveWeb.texte, sources: trouveWeb.sources, siren: trouveWeb.siren } : null },
       { lien: `https://annuaire-entreprises.data.gouv.fr/entreprise/${s.siren}` }));
     const { evenementsSociete } = await import('../bodacc.js');
     const lu = await gardeUnJour(`bodacc:${s.siren}`, () => evenementsSociete(s.siren, { mois: 60 })).catch(() => null);
@@ -391,7 +467,7 @@ async function outilLocataire(e, { partiel = null } = {}) {
     if (!ev) points.push(vide('procedures', 'Procédures collectives', "Le BODACC n'a pas répondu.", 'BODACC'));
     else {
       const pr = lireProcedures(ev);
-      points.push(point('procedures', 'Procédures collectives', pr.statut, pr.texte, lu.perime ? `BODACC, lu le ${jourFr(lu.le)}` : 'BODACC', { evenements: ev.slice(0, 12) }, { lien: `https://www.bodacc.fr/pages/annonces-commerciales/?q.registre=registre:${s.siren}` }));
+      points.push(point('procedures', 'Procédures collectives', pr.statut, pr.texte, lu.perime ? `BODACC, lu le ${jourFr(lu.le)}` : 'BODACC', { evenements: ev.slice(0, 12), par_annee: annoncesParAnnee(ev) }, { lien: `https://www.bodacc.fr/pages/annonces-commerciales/?q.registre=registre:${s.siren}` }));
     }
     // Le poids du loyer revient (12 nov. 2026, Jules, refonte du bloc Locataire) : lu quand des comptes existent. L'annuaire
     // rend les comptes avec la fiche ; par l'INSEE, ils se lisent à part et se gardent un jour.
@@ -401,7 +477,42 @@ async function outilLocataire(e, { partiel = null } = {}) {
       const { comptesDe } = await import('../kzoning-societe.js');
       comptes = (await gardeUnJour(`comptes:${s.siren}`, () => comptesDe(s.siren)).catch(() => null))?.valeur || [];
     }
-    points.push(pointComptes(comptes, e.loyer, { ei, etablissements: s.etablissements_ouverts ?? null }));
+    // Sans comptes déposés, les chiffres de la recherche Claude, dits comme tels (16 nov. 2026, Jules).
+    // Sans comptes déposés récents, les chiffres de la recherche complètent : les années officielles restent, celles qui
+    // manquent viennent de la réponse (16 nov. 2026, Jules).
+    comptes = unitesCoherentes(comptes);
+    const ansOfficiels = new Set(comptes.map((c) => Number(c.exercice)));
+    const duWeb = (!trouveWeb?.siren || trouveWeb.siren === s.siren) ? (trouveWeb?.comptes || []) : [];
+    let comptesWeb = ei ? [] : duWeb.filter((c) => !ansOfficiels.has(Number(c.exercice)));
+    // Les années encore vides sur cinq ans : une recherche consacrée aux chiffres (16 nov. 2026, Jules : « ça ne marque
+    // rien dans plein d'années alors que je trouve les informations sur internet facilement »), sur la société connue
+    // (nom et SIREN), qui ne comble que ce qui manque.
+    const an = new Date().getFullYear();
+    const voulues = [an - 5, an - 4, an - 3, an - 2, an - 1];
+    // Une année connue seulement par un chiffre du groupe compte comme manquante : celui de la société le remplace.
+    // Elle passe aussi dès que des chiffres viennent de la première recherche : faite sur le SIREN, elle prime sur eux (la
+    // recherche générale rangeait parfois ceux du groupe comme ceux de la société). Les comptes officiels restent devant.
+    // Deux formulations au plus (16 nov. 2026, Jules : « le plus complet possible, tout le temps, pour tous les dossiers ») :
+    // la seconde ne part que s'il manque encore des années, et ne comble que celles-là.
+    const requetesChiffres = [
+      `${s.nom} SIREN ${s.siren} chiffre d'affaires et résultat net de la société ${voulues.join(' ')} (pappers, societe.com, comptes annuels)`,
+      `bilan ${s.nom} ${e.ville || ''} SIREN ${s.siren} : chiffre d'affaires, résultat net, effectif par année (infonet, verif.com, societe.com, ellisphere, rapports annuels)`,
+    ];
+    for (const [k, requete] of requetesChiffres.entries()) {
+      const vides = voulues.filter((y) => !ansOfficiels.has(y) && !comptesWeb.some((c) => Number(c.exercice) === y && !c.ca_groupe && !c.res_groupe));
+      if (ei || (k === 0 ? !(vides.length || comptesWeb.length) : !vides.length)) continue;
+      const chiffres = await societeWeb(e, { requete });
+      const plus = (chiffres?.comptes || []).filter((c) => !ansOfficiels.has(Number(c.exercice)) && !c.ca_groupe && !c.res_groupe && (k === 0 || vides.includes(Number(c.exercice))));
+      const remplaces = new Set(plus.map((c) => Number(c.exercice)));
+      comptesWeb = [...comptesWeb.filter((c) => !remplaces.has(Number(c.exercice))), ...plus];
+    }
+    comptesWeb = chiffresPlausibles(comptesWeb, comptes);
+    // Le chiffre d'affaires du groupe, quand la réponse le cite : dit à droite, pour ne pas le confondre avec celui de la
+    // société (16 nov. 2026, Jules : « à gauche 3,4 Md, à droite 836 M »).
+    const groupeCite = (trouveWeb?.comptes_groupe || []).filter((c) => c.chiffre_affaires).sort((a, b) => Number(b.exercice) - Number(a.exercice))[0] || null;
+    const pc = pointComptes([...comptes, ...comptesWeb], e.loyer, { ei, etablissements: s.etablissements_ouverts ?? null, source: comptesWeb.length ? (comptes.length ? `${SOURCE_COMPTES} et recherche Claude, à vérifier` : 'Recherche Claude (Pappers et autres pages), à vérifier') : SOURCE_COMPTES });
+    const avecGroupe = groupeCite ? { groupe_cite: { exercice: Number(groupeCite.exercice), chiffre_affaires: groupeCite.chiffre_affaires } } : {};
+    points.push(comptesWeb.length ? { ...pc, detail: { ...(pc.detail || {}), depuis_recherche: true, groupe: comptesWeb.some((x) => x.ca_groupe || x.res_groupe), ...avecGroupe } } : { ...pc, detail: pc.detail ? { ...pc.detail, ...avecGroupe } : pc.detail });
   }
   const pAvis = await avis;
   // Le résumé du web prend vingt à soixante secondes : le reste s'affiche avant (13 nov. 2026, Jules).
@@ -452,6 +563,162 @@ async function resumeAvisWeb(e) {
     return { ...lu.valeur, le: lu.le };
   } catch (err) {
     console.warn(`[avis web] ${e.locataire} : ${err?.message || err}`);
+    return null;
+  }
+}
+
+// --- La société du locataire par la recherche IA (16 nov. 2026, Jules : « ça doit juste prendre le nom du locataire, par
+// exemple “macsf lorient santé financière pappers”, sur une recherche IA, et retourner ce que ça a trouvé ») ------------
+
+// La requête, mot pour mot celle de Jules (16 nov. 2026) : « {nom_locataire} {ville} pappers forme financière ». Par Claude.
+export const CONSIGNE_SOCIETE_WEB = (e) => `${e.locataire_societe || e.locataire} ${e.ville || villeDe(e.adresse) || ''} pappers forme financière`.replace(/\s+/g, ' ').trim();
+const villeDe = (adresse) => String(adresse || '').match(/\b\d{5}\s+(.+)$/)?.[1]?.trim() || null;
+
+/** Pure : le SIREN dit dans la réponse (« SIREN : 396 720 310 », « SIREN (Société mère) | 396 720 310 »), clé vérifiée. */
+export function sirenDeLaReponse(texte) {
+  const t = String(texte || '');
+  for (const m of t.matchAll(/SIREN[^0-9\n]{0,40}(\d{3}[\s.\u00a0\u202f]?\d{3}[\s.\u00a0\u202f]?\d{3})(?![\s.\u00a0\u202f]?\d)/gi)) {
+    const s = sirenValide(m[1]);
+    if (s) return s;
+  }
+  // Sans « SIREN » écrit, le SIRET donne le SIREN par ses neuf premiers chiffres.
+  const siret = t.match(/SIRET[^0-9\n]{0,40}(\d{3}[\s.\u00a0\u202f]?\d{3}[\s.\u00a0\u202f]?\d{3})/i);
+  return siret ? sirenValide(siret[1]) : null;
+}
+
+/** Pure : le nom de la société donné en tête d'une réponse (« **Dénomination :** SAJ & CO HOLDING »), sinon null. */
+export function sirenNom(texte) {
+  const m = String(texte || '').match(/(?:d[ée]nomination(?: sociale)?|raison sociale)\s*(?:\*\*)?\s*[:|]\s*(?:\*\*)?\s*([^\n|*]{2,80})/i);
+  return m ? m[1].trim().replace(/[.,;]$/, '') : null;
+}
+
+/** La société a-t-elle un établissement ouvert à cette adresse (code postal et numéro) ? Lu dans l'annuaire, gardé un jour. */
+async function aUnEtablissementIci(siren, adresse) {
+  const cp = String(adresse || '').match(/\b\d{5}\b/)?.[0];
+  const num = String(adresse || '').match(/^\s*(\d+)/)?.[1];
+  const ville = String(adresse || '').split(',').pop().replace(/\d{5}/, '').trim().toLowerCase();
+  if (!siren || (!cp && !ville)) return false;
+  const auNumero = (adr) => !num || String(adr || '').startsWith(`${num} `);
+  // D'abord l'annuaire interrogé sur le SIREN et le code postal : il rend les établissements de ce code postal, même pour
+  // une enseigne aux centaines de magasins (la fiche de la société n'en liste que 25).
+  if (cp) {
+    try {
+      const r = await fetch(`https://recherche-entreprises.api.gouv.fr/search?${new URLSearchParams({ q: siren, code_postal: cp, limite_matching_etablissement: '20', per_page: '1' })}`, { signal: AbortSignal.timeout(12000) });
+      if (r.ok) {
+        const x = ((await r.json()).results || []).find((y) => y.siren === siren);
+        if (x) return (x.matching_etablissements || []).some((et) => et.etat_administratif === 'A' && auNumero(et.adresse));
+      }
+    } catch { /* l'annuaire ne répond pas : la fiche gardée prend le relais */ }
+  }
+  try {
+    const { societe } = await import('../kzoning-societe.js');
+    const r = await societe({ siret: siren });
+    return (r?.societe?.etablissements || []).some((x) => x.actif !== false
+      && (cp ? x.code_postal === cp : String(x.commune || '').toLowerCase().includes(ville))
+      && auNumero(x.adresse));
+  } catch { return false; }
+}
+
+/** Pure : la société de la liste citée la première dans la réponse (son SIREN, espacé ou non), sinon null. */
+export function premierCite(texte, liste) {
+  const t = String(texte || '').replace(/[\s.\u00a0\u202f]/g, '');
+  const vus = (liste || []).map((x) => ({ x, i: t.indexOf(String(x.siren)) })).filter((y) => y.i >= 0).sort((a, b) => a.i - b.i);
+  return vus[0]?.x || null;
+}
+
+/** Pure : un SIREN plausible (9 chiffres, clé de Luhn). */
+export function sirenValide(x) {
+  const d = String(x || '').replace(/\D/g, '');
+  if (d.length !== 9) return null;
+  let somme = 0;
+  for (let i = 0; i < 9; i += 1) { let n = Number(d[8 - i]); if (i % 2) { n *= 2; if (n > 9) n -= 9; } somme += n; }
+  return somme % 10 === 0 ? d : null;
+}
+
+/**
+ * Les chiffres de la réponse, en exercices (16 nov. 2026, Jules : « il doit quand même y avoir des graphiques » quand les
+ * comptes ne sont pas déposés) : le modèle relit sa propre réponse et rend chiffre d'affaires et résultat net par année,
+ * en euros, sans rien ajouter. Vide si la réponse n'en donne pas.
+ */
+/**
+ * Pure : des comptes officiels aux unités cohérentes (16 nov. 2026, essai Lacoste : chiffre d'affaires 585 916 pour un
+ * résultat de 59 M€, le chiffre d'affaires était en milliers d'euros). Un résultat plus de deux fois supérieur au chiffre
+ * d'affaires trahit un chiffre d'affaires en k€ : il est remis en euros.
+ */
+export function unitesCoherentes(comptes = []) {
+  return comptes.map((c) => (c.chiffre_affaires > 0 && Number.isFinite(c.resultat_net) && Math.abs(c.resultat_net) > 2 * c.chiffre_affaires ? { ...c, chiffre_affaires: c.chiffre_affaires * 1000 } : c));
+}
+
+/**
+ * Pure : les chiffres de la recherche qui tiennent face aux autres années (16 nov. 2026, essai Lacoste : 57,5 M€ de
+ * chiffre d'affaires lu sur le web face à 586 M€ déposés). Un chiffre d'affaires hors d'un facteur 4 de la médiane des
+ * autres années est écarté, comme un résultat plus grand que le chiffre d'affaires de l'année.
+ */
+export function chiffresPlausibles(web = [], reference = []) {
+  const cas = [...reference, ...web].map((c) => c.chiffre_affaires).filter((v) => v > 0).sort((a, b) => a - b);
+  const mediane = cas.length ? cas[Math.floor(cas.length / 2)] : null;
+  // Une année dont le chiffre d'affaires est invraisemblable est écartée en entier : son résultat vient de la même lecture.
+  return web.filter((c) => !(c.chiffre_affaires > 0 && mediane && cas.length >= 3 && (c.chiffre_affaires > mediane * 4 || c.chiffre_affaires < mediane / 4)))
+    .map((c) => (Number.isFinite(c.resultat_net) && c.chiffre_affaires > 0 && Math.abs(c.resultat_net) > c.chiffre_affaires ? { ...c, resultat_net: null } : c))
+    .filter((c) => c.chiffre_affaires != null || c.resultat_net != null);
+}
+
+const LIGNE_COMPTES = { type: 'object', properties: { exercice: { type: 'number' }, chiffre_affaires: { type: ['number', 'null'] }, resultat_net: { type: ['number', 'null'] } }, required: ['exercice'] };
+
+/**
+ * Pure : les chiffres de la société d'abord ; ceux du groupe comblent ce qui manque (16 nov. 2026, Jules : MACSF à
+ * « non publié » à droite quand la réponse dit 3,04 Md€ de chiffre d'affaires pour le groupe), chaque valeur reprise du
+ * groupe marquée (`ca_groupe`, `res_groupe`).
+ */
+export function fusionnerComptes(societe = [], groupe = []) {
+  const nb = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+  const par = new Map();
+  for (const [liste, deGroupe] of [[societe, false], [groupe, true]]) {
+    for (const x of liste || []) {
+      const an = Number(x?.exercice);
+      if (!(an > 1990)) continue;
+      const l = par.get(an) || { exercice: String(an), chiffre_affaires: null, resultat_net: null };
+      const ca = nb(x.chiffre_affaires);
+      const res = nb(x.resultat_net);
+      if (l.chiffre_affaires == null && ca) Object.assign(l, { chiffre_affaires: ca, ...(deGroupe ? { ca_groupe: true } : {}) });
+      if (l.resultat_net == null && res != null) Object.assign(l, { resultat_net: res, ...(deGroupe ? { res_groupe: true } : {}) });
+      par.set(an, l);
+    }
+  }
+  return [...par.values()].filter((l) => l.chiffre_affaires != null || l.resultat_net != null);
+}
+
+async function chiffresDeLaReponse(texte) {
+  try {
+    const { invokeLLM } = await import('../llm.js');
+    const r = await invokeLLM({
+      prompt: `Voici un texte sur une société. Relève, pour chaque exercice cité, le chiffre d'affaires et le résultat net, en euros (16,2 M€ = 16200000 ; 3,04 milliards = 3040000000 ; une perte est négative). Deux listes : « societe » pour les chiffres de la société elle-même, « groupe » pour ceux de son groupe quand le texte les donne. N'invente rien : null quand le texte ne le dit pas.\n\n${String(texte).slice(0, 12000)}`,
+      response_json_schema: { type: 'object', properties: { societe: { type: 'array', items: LIGNE_COMPTES }, groupe: { type: 'array', items: LIGNE_COMPTES } }, required: ['societe', 'groupe'] },
+      max_tokens: 2000,
+    });
+    return { comptes: fusionnerComptes(r?.societe, []), groupe: fusionnerComptes(r?.groupe, []) };
+  } catch { return { comptes: [], groupe: [] }; }
+}
+
+/**
+ * La recherche de la société du locataire, par Claude et sa recherche web (16 nov. 2026, Jules : « une requête à Claude,
+ * pas Gemini ») : la réponse telle quelle, ses pages, et le SIREN qu'elle donne. Gardée sept jours par requête.
+ */
+async function societeWeb(e, { requete: imposee = null } = {}) {
+  if (!e.locataire && !e.locataire_societe && !imposee) return null;
+  const requete = imposee || CONSIGNE_SOCIETE_WEB(e);
+  try {
+    const { invokeLLMGrounded } = await import('../llm.js');
+    const lu = await gardeUnJour(`societe-web-claude5:${requete.toLowerCase()}`, async () => {
+      const r = await invokeLLMGrounded({ prompt: requete, via: 'anthropic' });
+      if (!r?.text) throw new Error('Aucune réponse de Claude.');
+      const texte = r.final || r.text;
+      const lus = await chiffresDeLaReponse(texte);
+      return { requete, texte, siren: sirenDeLaReponse(texte), comptes: lus.comptes, comptes_groupe: lus.groupe, sources: (r.sources || []).slice(0, 6) };
+    }, { jours: 7 });
+    return { ...lu.valeur, le: lu.le };
+  } catch (err) {
+    console.warn(`[société web] ${requete} : ${err?.message || err}`);
     return null;
   }
 }

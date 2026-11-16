@@ -18,7 +18,10 @@ export const LECTURE_MS = 60 * 1000;
 
 const estClient = (role) => role !== 'admin' && role !== 'mandataire';
 /** Le jour d'une date, à Paris (AAAA-MM-JJ). */
-export const jourDe = (d) => new Date(d).toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' });
+// Le formateur gardé (16 nov. 2026, Jules : « Suivi charge trop lentement ») : toLocaleDateString en recréait un à chaque
+// appel, des dizaines de milliers de fois par ouverture du Suivi (1,3 s sur 1,6).
+const FORMAT_JOUR = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' });
+export const jourDe = (d) => FORMAT_JOUR.format(new Date(d));
 
 /** Pure : les sessions d'une personne à partir de ses pages ouvertes (dates ISO, dans n'importe quel ordre). */
 export function sessions(dates) {

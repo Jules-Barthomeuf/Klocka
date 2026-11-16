@@ -18,6 +18,7 @@ import { estApercuTelephone } from "@/components/ApercuTelephone";
 import { BoutonOutil, Filtres, TitrePage } from "@/components/mandataire/elements";
 import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
+import { prechargerAuSurvol } from "@/lib/precharger";
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
 // s'applique à l'instant, sur la page elle-même : c'est l'aperçu. Les
@@ -439,7 +440,7 @@ export default function Personnalisation() {
               {GROUPE_PARAMETRES.entrees.filter((e) => e.cle !== "Personnalisation" && !masquesDe(user?.email).includes(e.cle) && !(user?.pages_fermees || []).includes(e.cle))
                 .sort((a, b) => ["AdminModeles", "Monitoring", "Cerveau", "Automatismes"].indexOf(a.cle) - ["AdminModeles", "Monitoring", "Cerveau", "Automatismes"].indexOf(b.cle))
                 .map((e) => (
-                  <Link key={e.cle} to={createPageUrl(e.cle)} className="inline-flex h-8 items-center rounded-full px-3 text-[13px] text-craie transition-colors hover:bg-relief hover:text-encre">{e.label}</Link>
+                  <Link key={e.cle} to={createPageUrl(e.cle)} onMouseEnter={() => prechargerAuSurvol(e.cle)} onFocus={() => prechargerAuSurvol(e.cle)} className="inline-flex h-8 items-center rounded-full px-3 text-[13px] text-craie transition-colors hover:bg-relief hover:text-encre">{e.label}</Link>
                 ))}
             </div>
           )}

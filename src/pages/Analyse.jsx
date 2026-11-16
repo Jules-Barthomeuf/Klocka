@@ -21,7 +21,7 @@ import { usePersonnalisation } from "@/components/providers/PersonnalisationProv
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
 import PenseeIA from "@/components/PenseeIA";
 import Chargement from "@/components/ui/Chargement";
-import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
+import { estEcarte, etapeEnCours } from "@/lib/dossiers-architecture";
 import { BoutonPrincipal, Recherche, Statut, TitrePage, LigneTitre } from "@/components/mandataire/elements";
 import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
 import { VERRE } from "@/lib/verre";
@@ -697,7 +697,7 @@ function PageEsquisse({ cote }) {
 const lireDossier = (id) => base44.request("GET", `/api/preanalyse/dossiers/${id}`);
 
 function CarteCouverture({ d, qui, onOuvrir, onSurvol, menu, ecarte = false }) {
-  const n = etapeFrise(d);
+  const etape = etapeEnCours(d);
   const verdict = d.verdict_choisi ? VERDICTS[d.verdict_choisi] : null;
   return (
     <article className="k-couv k-entree group relative h-[290px] cursor-pointer" onClick={onOuvrir} onMouseEnter={onSurvol} onFocus={onSurvol}>
@@ -706,7 +706,7 @@ function CarteCouverture({ d, qui, onOuvrir, onSurvol, menu, ecarte = false }) {
       <div className="k-couv-avant absolute left-1/2 top-[30px] -ml-[90px] flex h-[220px] w-[180px] flex-col overflow-hidden px-3.5 pb-2 pt-3.5">
         <span className="k-couv-balai" aria-hidden="true" />
         <div className="mb-2.5 flex min-h-[18px] items-center justify-between gap-2">
-          <span className="truncate text-[9.5px] uppercase tracking-[0.12em] text-menthe-clair">{ecarte ? "" : FRISE[n - 1].label}</span>
+          <span className="truncate text-[9.5px] uppercase tracking-[0.12em] text-menthe-clair">{ecarte ? "" : etape ? etape.label : "Terminé"}</span>
           {ecarte ? <Statut couleur="corail" className="flex-none !px-[7px] !text-[10.5px]">{d.statut === "abandonne" ? "Abandonné" : "Non conforme"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none !px-[7px] !text-[10.5px]">{verdict.libelle}</Statut>}
         </div>
         <p className="m-0 line-clamp-5 text-[14px] leading-[1.3] text-encre" title={d.titre}>

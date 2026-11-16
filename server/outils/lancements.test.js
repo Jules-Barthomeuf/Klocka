@@ -260,3 +260,59 @@ test('16 nov. : la fiche juridique du locataire et l\'historique de ses comptes'
   assert.deepEqual(c.detail.historique.map((h) => h.exercice), [2022, 2023, 2024, 2025]);
   assert.equal(c.detail.historique[3].resultat_net, -3970000);
 });
+
+test('16 nov. : la recherche du locataire par Claude, la requête de Jules et le SIREN de la réponse', async () => {
+  const { CONSIGNE_SOCIETE_WEB, sirenDeLaReponse, sirenValide } = await import('./lancements.js');
+  assert.equal(CONSIGNE_SOCIETE_WEB({ locataire: 'MACSF', ville: 'Lorient' }), 'MACSF Lorient pappers forme financière');
+  assert.equal(CONSIGNE_SOCIETE_WEB({ locataire: 'Essai', locataire_societe: 'MUTUELLE ASSURANCES CORPS SANTE FRANCAIS', ville: 'Lorient' }), 'MUTUELLE ASSURANCES CORPS SANTE FRANCAIS Lorient pappers forme financière');
+  assert.equal(CONSIGNE_SOCIETE_WEB({ locataire: 'Comtesse du Barry', adresse: '8 Place Saint-Étienne, 31000 Toulouse' }), 'Comtesse du Barry Toulouse pappers forme financière');
+  assert.equal(sirenValide('396 720 310'), '396720310');
+  assert.equal(sirenValide('396720311'), null);
+  assert.equal(sirenDeLaReponse('| SIREN (Société mère) | 396 720 310 |\n| SIRET | 396 720 310 00186 |'), '396720310');
+  assert.equal(sirenDeLaReponse('SIRET de l\'établissement : 775 665 631 01433'), '775665631');
+  assert.equal(sirenDeLaReponse('Rien de trouvé.'), null);
+});
+
+test('16 nov. : les annonces BODACC année par année, par famille', async () => {
+  const { annoncesParAnnee } = await import('./lancements.js');
+  const a = annoncesParAnnee([{ date: '2026-03-01', famille: 'modification' }, { date: '2024-05-02', type: 'Vente et cession' }, { date: '2023-01-10', famille: 'collective' }, { date: '2010-01-01', famille: 'modification' }], 2026);
+  assert.deepEqual(a.map((x) => x.annee), [2022, 2023, 2024, 2025, 2026]);
+  assert.deepEqual(a.find((x) => x.annee === 2023), { annee: 2023, procedures: 1, cessions: 0, courantes: 0 });
+  assert.equal(a.find((x) => x.annee === 2024).cessions, 1);
+  assert.equal(a.find((x) => x.annee === 2026).courantes, 1);
+});
+
+test('16 nov. : le nom de la société lu dans une réponse', async () => {
+  const { sirenNom } = await import('./lancements.js');
+  assert.equal(sirenNom('- **Dénomination :** SAJ & CO HOLDING\n- **SIREN :** 123'), 'SAJ & CO HOLDING');
+  assert.equal(sirenNom('| Dénomination sociale | COMTESSE DU BARRY |'), 'COMTESSE DU BARRY');
+  assert.equal(sirenNom('Rien.'), null);
+});
+
+test('16 nov. : la société de la liste citée la première dans la réponse de Claude', async () => {
+  const { premierCite } = await import('./lancements.js');
+  const liste = [{ siren: '132228545', nom: 'ADA MRUK' }, { siren: '509140174', nom: 'EURL AJZ RESTAURATION' }];
+  assert.equal(premierCite('**509140174** (EURL AJZ RESTAURATION) exploite « SAJ & CO ». Piste écartée : SIREN 790553820.', liste).nom, 'EURL AJZ RESTAURATION');
+  assert.equal(premierCite('SIREN 509 140 174', liste).siren, '509140174');
+  assert.equal(premierCite('Aucune.', liste), null);
+});
+
+test('16 nov. : les chiffres du groupe comblent ceux de la société, marqués', async () => {
+  const { fusionnerComptes } = await import('./lancements.js');
+  const f = fusionnerComptes([{ exercice: 2024, chiffre_affaires: null, resultat_net: 98300000 }, { exercice: 2023, resultat_net: 56600000 }], [{ exercice: 2024, chiffre_affaires: 3040000000, resultat_net: 300200000 }]);
+  const a24 = f.find((x) => x.exercice === '2024');
+  assert.equal(a24.chiffre_affaires, 3040000000);
+  assert.equal(a24.ca_groupe, true);
+  assert.equal(a24.resultat_net, 98300000);
+  assert.equal(a24.res_groupe, undefined);
+  assert.equal(f.find((x) => x.exercice === '2023').resultat_net, 56600000);
+});
+
+test('16 nov. : comptes en k€ remis en euros, chiffres de la recherche invraisemblables écartés', async () => {
+  const { unitesCoherentes, chiffresPlausibles } = await import('./lancements.js');
+  assert.equal(unitesCoherentes([{ exercice: '2021', chiffre_affaires: 585916, resultat_net: 59197519 }])[0].chiffre_affaires, 585916000);
+  assert.equal(unitesCoherentes([{ exercice: '2021', chiffre_affaires: 204570000, resultat_net: 10310000 }])[0].chiffre_affaires, 204570000);
+  const ref = [{ chiffre_affaires: 585916000 }, { chiffre_affaires: 848132000 }, { chiffre_affaires: 396821000 }];
+  const r = chiffresPlausibles([{ exercice: '2025', chiffre_affaires: 57500000, resultat_net: 61600000 }, { exercice: '2020', chiffre_affaires: 500000000, resultat_net: 30000000 }], ref);
+  assert.deepEqual(r.map((x) => x.exercice), ['2020']);
+});

@@ -20,6 +20,26 @@ export const FRISE = [
   { n: 8, id: "bancaire", label: "Dossier bancaire", sous: "Après offre" },
 ];
 
+/**
+ * Les étapes du menu d'un dossier ouvert : la frise sans la Data Room, devenue un onglet de l'Analyse (29 oct. 2026,
+ * Jules). Numérotées à la suite pour l'écran ; `vrai` garde le numéro de la frise, celui des étapes validées.
+ * Email et Plateforme retirés le même jour : rentrer le projet est un geste de la Pré-analyse et de l'Analyse.
+ * Vidéo, après Analyse (29 oct. 2026, Jules) : la vidéo du bien filmée, importée pour les clients. Elle n'est pas une
+ * étape de la frise ; elle se valide avec l'Analyse. Clients retiré aussi (29 oct. 2026, Jules).
+ */
+export const ETAPES_MENU = (() => {
+  const l = FRISE.filter((e) => !["reception", "documents", "plateforme", "clients"].includes(e.id)).map((e) => ({ ...e, vrai: e.n }));
+  l.splice(l.findIndex((e) => e.id === "analyse") + 1, 0, { id: "video", label: "Vidéo", sous: "Vidéo filmée", vrai: FRISE.find((e) => e.id === "analyse").n });
+  return l.map((e, i) => ({ ...e, n: i + 1 }));
+})();
+
+/**
+ * L'étape où en est le dossier pour la liste : celle juste après la dernière validée à la main (16 nov. 2026, Jules :
+ * « ça met Dossier bancaire et les autres dossiers, ça doit afficher l'étape à laquelle on est »). Rien de validé :
+ * la Pré-analyse. Tout validé : null.
+ */
+export const etapeEnCours = (d) => ETAPES_MENU.find((e) => e.vrai > (Number(d?.frise_validee) || 0)) || null;
+
 /** Les quatre phases du pipeline. */
 export const PHASES = [
   { id: "tri", label: "Tri", sous: "Email et pré-analyse" },

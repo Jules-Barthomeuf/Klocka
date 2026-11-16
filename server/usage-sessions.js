@@ -22,10 +22,15 @@ const REDIRECTION_MS = 1000;
 const minuscule = (e) => String(e || '').toLowerCase();
 const evolution = (a, b) => (b ? Math.round(((a - b) / b) * 100) : null);
 /** L'heure (0-23) et le jour de la semaine (0 = lundi) d'un instant, à Paris. */
+// Un seul formateur, gardé (16 nov. 2026) : deux toLocaleString par page ouverte en recréaient un chaque fois.
+const FORMAT_HEURE_JOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false, weekday: 'short' });
+const JOURS_SEMAINE = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 function heureEtJour(t) {
-  const d = new Date(t);
-  const heure = Number(d.toLocaleString('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false })) % 24;
-  const jour = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(d.toLocaleString('en-GB', { timeZone: 'Europe/Paris', weekday: 'short' }));
+  let heure = 0, jour = -1;
+  for (const p of FORMAT_HEURE_JOUR.formatToParts(new Date(t))) {
+    if (p.type === 'hour') heure = Number(p.value) % 24;
+    else if (p.type === 'weekday') jour = JOURS_SEMAINE.indexOf(p.value);
+  }
   return { heure, jour };
 }
 
@@ -89,7 +94,8 @@ export function syntheseUsage({ visites = [], battements = [], users = [], jours
   const toutes = [];
   const personnes = [];
   for (const [qui, e] of parQui) {
-    const siennes = decouperSessions(e.pages, e.battements).map((s) => ({ ...s, qui, t: Date.parse(s.debut) }));
+    // Le jour de chaque session, calculé une fois (16 nov. 2026) : la courbe des 14 jours et la série le relisaient sans cesse.
+    const siennes = decouperSessions(e.pages, e.battements).map((s) => { const t = Date.parse(s.debut); return { ...s, qui, t, jour: jourDe(t) }; });
     toutes.push(...siennes);
     const periode = siennes.filter((s) => s.t >= depuis);
     if (!periode.length) continue;
@@ -101,7 +107,7 @@ export function syntheseUsage({ visites = [], battements = [], users = [], jours
     const activite = [];
     for (let i = 13; i >= 0; i -= 1) {
       const j = jourDe(fin - i * JOUR_MS);
-      activite.push({ jour: j, minutes: Math.round(siennes.filter((s) => jourDe(s.t) === j).reduce((n, s) => n + s.duree_ms, 0) / 60000) });
+      activite.push({ jour: j, minutes: Math.round(siennes.filter((s) => s.jour === j).reduce((n, s) => n + s.duree_ms, 0) / 60000) });
     }
     const u = comptes.get(qui);
     personnes.push({
@@ -134,9 +140,11 @@ export function syntheseUsage({ visites = [], battements = [], users = [], jours
   const la = resume(precedente);
 
   const serie = [];
+  const parJour = new Map();
+  for (const s of periode) { const l = parJour.get(s.jour); if (l) l.push(s); else parJour.set(s.jour, [s]); }
   for (let i = jours - 1; i >= 0; i -= 1) {
     const j = jourDe(fin - i * JOUR_MS);
-    const du = periode.filter((s) => jourDe(s.t) === j);
+    const du = parJour.get(j) || [];
     const r = resume(du);
     serie.push({ jour: j, personnes: r.personnes, sessions: r.sessions, pages: r.pages, minutes: Math.round(r.temps_ms / 60000), duree_moyenne: Math.round(r.duree_moyenne_ms / 60000) });
   }

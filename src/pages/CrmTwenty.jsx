@@ -884,7 +884,7 @@ function GroupeCrm({ objet, vue, q, tri, filtres, libelle, ferme, onBasculer, re
       <button type="button" onClick={onBasculer} className="mb-2.5 inline-flex items-center gap-2 text-[19px] text-menthe" style={{ background: "transparent" }}>
         {ferme ? <ChevronRight className="h-[18px] w-[18px]" /> : <ChevronDown className="h-[18px] w-[18px]" />}{libelle}<span className="text-[13px] tabular-nums text-ardoise">{total}</span>
       </button>
-      {!ferme && <div className="overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{rendre(fiches, liens)}</div>}
+      {!ferme && <div className="k-tableau-crm rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{rendre(fiches, liens)}</div>}
       {!ferme && liste.hasNextPage && (
         <div className="flex justify-center pt-3">
           <button type="button" onClick={() => liste.fetchNextPage()} disabled={liste.isFetchingNextPage} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
@@ -1149,7 +1149,7 @@ export default function CrmTwenty() {
   const toutesReglees = colonnes.length > 0 && colonnes.every((c, i) => largeurDe(c, i));
   const largeurMini = 37 + colonnes.reduce((s, c, i) => s + (largeurDe(c, i) || 140), 0);
   const tableau = (lignes, liensT = liens) => (
-    <table className="w-full table-fixed border-collapse text-[14px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0" style={{ minWidth: Math.max(720, largeurMini) }}>
+    <table className="w-full table-fixed border-separate border-spacing-0 text-[14px] [&_tbody_tr:last-child_td]:border-b-0 [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0" style={{ minWidth: Math.max(720, largeurMini) }}>
       <colgroup>
         <col style={{ width: 37 }} />
         {colonnes.map((c, i) => <col key={c.nom} data-col={c.nom} style={largeurDe(c, i) ? { width: largeurDe(c, i) } : undefined} />)}
@@ -1395,7 +1395,7 @@ export default function CrmTwenty() {
                 {liste.isLoading ? <Chargement /> : liste.isError ? <p className="py-16 text-center text-[14px] text-ardoise">{liste.error?.message || "Twenty ne répond pas."}</p>
                   : !fiches.length ? <p className="py-16 text-center text-[14px] text-brume">{q || tousFiltres.length ? "Rien ne correspond." : "Aucune fiche."}</p>
                   : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => ouvrirLigne(objet.singulier, id)} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />
-                  : !champGroupe ? <div className="mt-4 overflow-x-auto rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{tableau(fiches)}</div>
+                  : !champGroupe ? <div className="k-tableau-crm mt-4 rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{tableau(fiches)}</div>
                   // Groupé : chaque groupe lit ses fiches à part, 50 par 50, avec son « Voir plus » (8 nov. 2026, Jules).
                   : groupesDuTableau.map((g) => (
                     <GroupeCrm key={g.cle} objet={objet} vue={vue} q={q} tri={triVu} filtres={[...tousFiltres, g.filtre]} libelle={g.libelle}

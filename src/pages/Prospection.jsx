@@ -7,7 +7,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, Plus, Redo2, RefreshCw, Search, Send, Square, Undo2, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
-import { OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
 import { ModeAppelUnique } from "@/components/prospection/FileRelances";
 import AvatarAK from "@/components/AvatarAK";
@@ -971,6 +970,8 @@ export default function Prospection() {
   // Le Tableau de bord quitte la page le même jour (15 nov. 2026, Jules : « enlève le tableau de bord de la partie
   // appel ») : on arrive sur Appels. Son code reste (TableauDeBordProspection.jsx, server/prospection/tableau-de-bord.js).
   const depuisAdresse = new URLSearchParams(window.location.search);
+  // Une seule partie, Appels (16 nov. 2026, Jules : « enlève Agences de la page Prospection ») : les agences, une vue par
+  // ville, sont dans le tableau Agences de Twenty CRM (server/crm/agences-twenty.js).
   const partie = "appels";
   // La relance prise dans la file : le Mode appel s'ouvre dessus.
   const [courante, setCourante] = useState(null);
@@ -1013,8 +1014,7 @@ export default function Prospection() {
       {/* Chaque partie entre en fondu (8 oct. 2026). */}
       <div key={partie} className="duration-300 ease-out animate-in fade-in-0">
         {partie === "appels" && (
-          <ModeAppelUnique key={listeInitiale || "appels"} courante={courante} setCourante={setCourante} listeInitiale={listeInitiale} onApresAppel={setApresAppel}
-            sousLaCarte={(listeId) => <OngletListesAgences key={listeId} listeId={listeId} onAppeler={(id) => prendre.mutate({ id })} />} />
+          <ModeAppelUnique key={listeInitiale || "appels"} courante={courante} setCourante={setCourante} listeInitiale={listeInitiale} onApresAppel={setApresAppel} />
         )}
       </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}

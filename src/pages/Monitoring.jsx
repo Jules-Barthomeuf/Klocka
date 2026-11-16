@@ -50,8 +50,8 @@ export default function Monitoring() {
   return (
     <div className="min-h-screen text-encre">
       <div className="mx-auto max-w-[1500px] px-5 py-[22px] md:px-8">
-        <OngletsSuivi className="mb-3 overflow-x-auto" />
-        <TitrePage titre="Usage de la plateforme" className="mb-3.5 md:!pr-[112px]" actions={<Filtres label="Période" valeur={jours} onChange={setJours} options={FENETRES.map((f) => [f.jours, f.libelle])} />} />
+        <TitrePage titre="Usage de la plateforme" className="mb-3 md:!pr-[112px]" actions={<Filtres label="Période" valeur={jours} onChange={setJours} options={FENETRES.map((f) => [f.jours, f.libelle])} />} />
+        <OngletsSuivi className="mb-4" />
 
         {isLoading || !data ? (
           <Chargement taille="grand" />

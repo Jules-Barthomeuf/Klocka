@@ -140,7 +140,8 @@ export function genreDe(a) {
   // à Nice, dont à peine plus de 550 agences réelles). Une ligne qu'on suit
   // (au carnet, associée à quelqu'un) reste une agence.
   const sources = a?.sources || [];
-  const vitrine = sources.includes('Google Maps') || sources.includes('Equimmox') || !!a?.place_id;
+  // Une agence au code d'activité des agences chez Apollo, ou dont on a lu le site, a aussi une vitrine (15 nov. 2026).
+  const vitrine = sources.includes('Google Maps') || sources.includes('Equimmox') || sources.includes('Site') || !!a?.place_id || !!a?.apollo_id;
   const suivie = !!a?.carnet_id || (a?.pour || []).length > 0 || !!a?.monday_connu;
   if (sources.length && !vitrine && !suivie) return 'societe';
   return 'agence';
@@ -462,7 +463,8 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
   }
   const recentes = agencesRecentes(lignes, maintenantD, l.ville);
   const demandes = Records.list('DemandeClient');
-  const recherches = recherchesDeLaZone(demandes, l.ville, { departement: departementDe(agences) });
+  // « Nice · Apollo » (15 nov. 2026) : une seconde liste de la même ville garde les recherches clients de la ville.
+  const recherches = recherchesDeLaZone(demandes, String(l.ville).split(' · ')[0], { departement: departementDe(agences) });
   const placees = lignes
     .map((a, rang) => ({ a, rang, place: placeDansLaFile(a, moi, { jour, fiche: fiches.get(a.carnet_id) || null, maintenantD }) }))
     .filter((x) => x.place != null)
@@ -507,7 +509,8 @@ export function contactsDe(a, fiche = null, place = null) {
   // « Dernier interlocuteur » seulement si on lui a parlé (13 oct. 2026) : une fiche créée au premier appel porte le nom du gérant.
   if (fiche?.nom && fiche.dernier_contact_le && R.norm(fiche.nom) !== R.norm(a.nom)) ajouter({ nom: fiche.nom, source: 'Dernier interlocuteur', telephone: (fiche.telephones || []).find((t) => R.normTel(t) !== R.normTel(a.telephone)) || null });
   for (const g of (a.gerants || []).slice(0, 2)) ajouter({ nom: g.nom, source: 'Registre du commerce', fonction: g.qualite || null });
-  for (const x of (a.agents || []).filter((y) => y.nom).slice(0, 3)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : 'Agent', telephone: x.telephone || null });
+  // Les personnes des pages équipe (15 nov. 2026) gardent leur fonction (« Co-fondateur », « Conseillère en immobilier »).
+  for (const x of (a.agents || []).filter((y) => y.nom).slice(0, 3)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : x.source === 'page équipe du site' ? 'Site de l\'agence' : 'Agent', fonction: x.fonction || null, telephone: x.telephone || null });
   const standard = a.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || null;
   if (standard) ajouter({ standard: true, source: 'Standard', telephone: standard });
   return out.slice(0, 6);
@@ -738,7 +741,9 @@ export function donneesMonday({ appel, agence, fiche, issue, user, relance, note
   const resumeAppel = [appel.resume && !/^(pas de réponse|pas de bien|a un bien|pas intéressé)[^:]*\.$/i.test(appel.resume) ? appel.resume : null, note ? `Note : ${note}` : null].filter(Boolean).join(' ');
   return {
     contact: contactSur(compris, corrige), ville, agence: agence.nom,
-    remarque: ligneDeRemarque({ jour: R.jourDe(new Date(appel.le || Date.now())), analyste: prenom(user?.email) || user?.full_name || '', issue: ISSUES_APPEL[issue]?.titre || R.ISSUES[issue], resume: [appel.passe ? `${String(appel.passe).replace(/\.$/, '')}.` : null, resumeAppel, (fiche?.relances_suivantes || []).length ? `Relances : ${[fiche?.prochaine?.le, ...fiche.relances_suivantes.map((x) => x.le)].filter(Boolean).map(R.dateCourte).join(' puis ')}` : null].filter(Boolean).join(' '), ne_plus_appeler: issue === 'pas_interesse' }),
+    remarque: ligneDeRemarque({ jour: R.jourDe(new Date(appel.le || Date.now())), analyste: prenom(user?.email) || user?.full_name || '', issue: ISSUES_APPEL[issue]?.titre || R.ISSUES[issue], resume: [appel.passe ? `${String(appel.passe).replace(/\.$/, '')}.` : null, resumeAppel,
+      // Le bien évoqué pendant l'appel, dans la remarque du contact (16 nov. 2026, Jules : « directement dans Twenty CRM »).
+      (appel.biens || []).length ? `Bien évoqué : ${appel.biens.join(' ; ').replace(/\.$/, '')}.` : null, (fiche?.relances_suivantes || []).length ? `Relances : ${[fiche?.prochaine?.le, ...fiche.relances_suivantes.map((x) => x.le)].filter(Boolean).map(R.dateCourte).join(' puis ')}` : null].filter(Boolean).join(' '), ne_plus_appeler: issue === 'pas_interesse' }),
     relance: issue === 'pas_interesse' ? null : relance || null,
     telephone: valeurSure(compris, 'telephone', corrige) || appel.numero || numeroDe(agence),
     // L'adresse dite pendant l'appel, sinon celle à qui part le mail ou qui entre dans la liste.
@@ -854,7 +859,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const relance = relance0 && decalee ? { ...relance0, prochaine: decalee.prochaine, ...(decalee.note ? { pourquoi: [relance0.pourquoi, decalee.note].filter(Boolean).join('\n\n'), parce_que: decalee.note } : {}) } : relance0;
   const appelPourMonday = { ...lu.appel, compris, rappel_entrant: !!entrant, numero: numero || numeroDe(a) };
   const emailPrevu = valeurSure(compris, 'email') || (f?.emails || [])[0] || a.email || null;
-  const d0 = donneesMonday({ appel: appelPourMonday, agence: a, fiche: f, issue, user, relance: relance?.prochaine?.le || null, email: emailPrevu, diffusion: issue === 'pas_interesse' ? false : !!emailPrevu });
+  const d0 = donneesMonday({ appel: appelPourMonday, agence: a, fiche: f, issue, user, relance: relance?.prochaine?.le || null, email: emailPrevu, diffusion: issue === 'pas_interesse' ? false : null });
   const d = ecrireEssai ? marquerEssai(d0) : d0;
   // Les sans-réponse restent dans la plateforme : pas de ligne Monday.
   const releve = [['interlocuteur', 'l\'interlocuteur'], ['email', 'l\'email'], ['telephone', 'le numéro'], ['biens', 'les biens évoqués'], ['mandat', 'le mandat à venir'], ['date', 'la date dite']].filter(([k]) => compris.champs?.[k] && !compris.champs[k].appele).map(([, m]) => m);
@@ -896,7 +901,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
       const m = variantes[0];
       actions.push({ id: 'mail', type: 'mail', titre: 'Email', depuis: await expediteurDe(moi), a: destinataire, ...(destinataire && destinataire === emailIncertain ? { a_incertain: compris.champs.email.incertain } : {}), objet: m.objet, corps: m.corps, contexte: m.contexte, modele: m.slug, variantes, coche: !!choixPropose && !!destinataire, prevu: !!choixPropose });
     }
-    actions.push({ id: 'diffusion', type: 'diffusion', titre: 'Ajouter à la liste de diffusion agents', liste: LISTE_DIFFUSION, a: destinataire, coche: !!choixPropose && !!destinataire && issue !== 'pas_interesse' });
+    // « Ajouter à la liste de diffusion agents » n'est plus proposé (16 nov. 2026, Jules) ; ajouterALaDiffusion reste.
     if (variantes.length && choixPropose) etape(destinataire ? `Je prépare l'email pour ${destinataire}` : 'Je prépare l\'email (il manque son adresse)');
   }
   // Il veut un SMS, pas un mail (16 oct. 2026, Jules) : le mail proposé devient un SMS, envoyé depuis le téléphone.
@@ -935,7 +940,8 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   if (compris.nouveau_contact) actions.push({ id: 'nouveau_contact', type: 'nouveau_contact', titre: `Ajouter ${compris.nouveau_contact.nom || 'ce contact'}${compris.nouveau_contact.telephone ? ` (${compris.nouveau_contact.telephone})` : ''} et l'appeler demain en tête de file`, contact: compris.nouveau_contact, source: compris.nouveau_contact.source, ...(compris.nouveau_contact.incertain ? { incertain: compris.nouveau_contact.incertain } : {}), coche: false });
   const autres = (a.pour || []).filter((e) => e !== moi);
   if (autres.length) actions.push({ id: 'prevenir', type: 'prevenir', titre: `Prévenir ${autres.map(prenom).join(', ')} : la ligne est aussi à eux`, pour: autres, coche: false });
-  if ((lu.appel.biens || []).length && issue === 'a_des_murs') actions.push({ id: 'signaler_bien', type: 'signaler_bien', titre: `Noter le bien évoqué : ${lu.appel.biens[0]}`, biens: lu.appel.biens, coche: false, ...(lu.appel.citations?.biens ? { source: lu.appel.citations.biens } : {}) });
+  // « Noter le bien évoqué » n'est plus proposé (16 nov. 2026, Jules) : le bien part dans la remarque du contact Twenty CRM
+  // (donneesMonday). Son exécution reste pour les appels déjà préparés.
   // Le téléphone : le direct s'il a été dit, sinon le numéro appelé.
   if (!compris.champs?.telephone && (numero || numeroDe(a))) compris.champs = { ...(compris.champs || {}), telephone: { valeur: numero || numeroDe(a), source: 'Numéro appelé', appele: true } };
   // Le « parce que » des actions que le code décide (APPELS_V2) : jamais une action sans raison à l'écran.
@@ -1058,7 +1064,8 @@ async function validerUneFois({ appel_id, sans_twenty = false, passe = null, cho
     Records.update(AGENCE, ag.id, { agents, prioritaire: { le: R.jourDe(new Date(maintenantD.getTime() + 86400000)), par: moi, nom: nc.contact.nom || null, telephone: nc.contact.telephone || null } });
     extras.push({ quoi: 'contact', etat: 'ok', texte: `${nc.contact.nom || 'Le contact'} ajouté, en tête de file demain` });
   }
-  const bien = action('signaler_bien');
+  // Plus exécutées (16 nov. 2026, Jules), même cochées sur un appel préparé avant : le bien va dans la remarque Twenty.
+  const bien = null;
   if (bien && !essai) {
     journal(appel.agent_id, { type: 'note', texte: `Bien évoqué : ${bien.biens.join(' ; ')}. Le dossier se crée quand la fiche arrive.`, par: moi });
     extras.push({ quoi: 'bien', etat: 'ok', texte: `Bien noté : ${bien.biens[0]}` });
@@ -1072,7 +1079,7 @@ async function validerUneFois({ appel_id, sans_twenty = false, passe = null, cho
 
   // La liste de diffusion : ajoutée, puis relue.
   let diffusion = null;
-  const dif = action('diffusion');
+  const dif = null;
   const adresse = R.normEmail(corrige.email || mail?.a || dif?.a);
   if (dif) diffusion = essai ? { etat: 'info', texte: `Essai : ${adresse || 'l\'agent'} n'est pas ajouté à la liste` } : await ajouterALaDiffusion({ email: adresse, nom: contactSur(appel.compris, corrige) || a?.nom, agence: ag?.nom, ville: Records.get(LISTE, ag?.liste_id)?.ville || null, par: moi });
 

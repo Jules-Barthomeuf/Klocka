@@ -47,9 +47,11 @@ export function monterPreanalyse(app) {
     const { nonLus } = await import('../fil-dossier.js');
     const { Records } = await import('../db.js');
     const moi = currentUser(req)?.email || '';
+    // Les comptes lus une fois, pas une fois par dossier.
+    const comptes = Records.list('User');
     ok(res, liste.map((d) => {
       if (!d.dossier_mandataire_id) return d;
-      const u = Records.list('User').find((x) => String(x.email).toLowerCase() === String(d.mandataire_email || '').toLowerCase());
+      const u = comptes.find((x) => String(x.email).toLowerCase() === String(d.mandataire_email || '').toLowerCase());
       return { ...d, mandataire_nom: (u?.full_name || d.mandataire_email || '').split(/[ @]/)[0], fil_non_lus: nonLus(d.dossier_mandataire_id, moi, true) };
     }));
   }));
@@ -107,10 +109,16 @@ export function monterPreanalyse(app) {
     ok(res, { ok: true, ouvert: noterOuverture(req.params.dealId, currentUser(req)) });
   }));
 
+  // L'ouverture d'un dossier (15 nov. 2026, Jules : « ça prend trop de temps pour charger un dossier ») : sans ce que
+  // l'écran ne lit pas ici. La matrice a sa route (/matrice), les trois autres ne servent qu'au serveur ; jusqu'à
+  // 200 Ko de moins par ouverture.
+  const PAS_A_L_OUVERTURE = ['matrice', 'hors_documents', 'fiche_instantane', 'grilles_formatees'];
   app.get('/api/preanalyse/dossiers/:dealId', wrap((req, res) => {
     const d = obtenirDossier(req.params.dealId);
     if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
-    ok(res, d);
+    const leger = { ...d };
+    for (const k of PAS_A_L_OUVERTURE) delete leger[k];
+    ok(res, leger);
   }));
 
   // Le verdict choisi par l'équipe (9 nov. 2026, Jules) : un choix posé à la main, rien ne s'y branche ; null le retire.

@@ -52,4 +52,45 @@ export function monterFiches(app) {
     Records.update('Deal', d.id, { fiche_agent: correction, ...(email && contactVide ? { contact_agent_email: email } : {}) });
     ok(res, { ok: true });
   }));
+
+  // Les fiches reçues par analyste (15 nov. 2026, Jules) : dans Suivi > Appels, jamais dans la Prospection.
+  app.get('/api/monitoring/fiches-analystes', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { fiches } = await import('../prospection/index.js');
+    const { fichesParAnalyste } = await import('../prospection/fiches-par-analyste.js');
+    const { DEBUT_DES_MESURES, remiseAZero } = await import('../prospection/suivi-appels.js');
+    const { EQUIPE } = await import('../prospection/equipe.js');
+    const jours = Math.min(365, Math.max(1, Number(req.query.jours) || 30));
+    const maintenant = new Date();
+    let depuis = new Date(maintenant.getTime() - jours * 86400000).toISOString();
+    const zero = remiseAZero();
+    for (const borne of [DEBUT_DES_MESURES, zero?.le]) if (borne && borne > depuis) depuis = borne;
+    // Les appels au téléphone, sans les essais ni ce qui a été remplacé ; ceux d'avant la période servent à la fenêtre.
+    const appels = Records.list('AppelAgent').filter((x) => x.par && x.canal !== 'mail' && !x.essai && !x.essai_archive && !['remplace', 'abandonne'].includes(x.etat) && String(x.le) >= DEBUT_DES_MESURES);
+    ok(res, fichesParAnalyste({
+      fiches: await fiches(), appels, depuis, maintenant,
+      agents: new Map(Records.list('AgentImmo').map((a) => [a.id, a])),
+      agences: new Map(Records.list('AgenceProspect').map((a) => [a.id, a])),
+      equipe: EQUIPE,
+    }));
+  }));
+
+  // La correction d'une fiche dans ce tableau : « pas une fiche », le nombre de biens, la personne à qui elle revient.
+  app.post('/api/monitoring/fiches-analystes/:id', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const id = String(req.params.id);
+    const record = id.startsWith('mail:') ? Records.get('MailRecu', id.slice(5)) : Records.findBy('Deal', 'deal_id', id);
+    if (!record) return res.status(404).json({ error: 'Fiche introuvable.' });
+    const avant = record.fiche_compte || {};
+    const b = req.body || {};
+    const compte = { ...avant };
+    if ('pas_fiche' in b) compte.pas_fiche = !!b.pas_fiche;
+    if ('biens' in b) { const n = Number(b.biens); if (b.biens == null || b.biens === '') delete compte.biens; else if (Number.isInteger(n) && n >= 0 && n <= 50) compte.biens = n; }
+    if ('analyste' in b) { if (b.analyste) compte.analyste = String(b.analyste).toLowerCase().slice(0, 120); else delete compte.analyste; }
+    compte.par = user.email;
+    compte.le = new Date().toISOString();
+    Records.update(id.startsWith('mail:') ? 'MailRecu' : 'Deal', record.id, { fiche_compte: compte });
+    ok(res, { ok: true, compte });
+  }));
 }

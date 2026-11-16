@@ -112,8 +112,8 @@ export default function SuiviMandataires() {
   return (
     <div className="min-h-screen text-encre">
       <div className="mx-auto max-w-[1500px] px-5 py-[22px] md:px-8">
-        <OngletsSuivi className="mb-3" />
-        <TitrePage titre="Mandataires" className="mb-3.5 md:!pr-[112px]" actions={<Filtres label="Période" valeur={jours} onChange={setJours} options={PERIODES.map(([j, mot]) => [j, mot])} />} />
+        <TitrePage titre="Mandataires" className="mb-3 md:!pr-[112px]" actions={<Filtres label="Période" valeur={jours} onChange={setJours} options={PERIODES.map(([j, mot]) => [j, mot])} />} />
+        <OngletsSuivi className="mb-4" />
 
         <div className="mb-3.5 flex gap-5 border-b border-trait">
           {VUES.map(([k, mot]) => (

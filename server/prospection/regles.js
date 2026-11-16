@@ -106,8 +106,12 @@ export function dejaConnu(index, candidat) {
 }
 
 // Les dates : des jours civils, à Paris, en AAAA-MM-JJ.
-export const jourDe = (d = new Date()) => new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(d));
-export const heureDe = (d = new Date()) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).formatToParts(new Date(d)).find((p) => p.type === 'hour')?.value) % 24;
+// Les formateurs créés une fois (15 nov. 2026) : en créer un par date coûtait cher là où l'on en convertit des milliers
+// (le Suivi des appels).
+const FORMAT_JOUR = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' });
+const FORMAT_HEURE = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false });
+export const jourDe = (d = new Date()) => FORMAT_JOUR.format(new Date(d));
+export const heureDe = (d = new Date()) => Number(FORMAT_HEURE.formatToParts(new Date(d)).find((p) => p.type === 'hour')?.value) % 24;
 export const plusJours = (jour, n) => { const d = new Date(`${jour}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const jourSemaine = (jour) => new Date(`${jour}T12:00:00Z`).getUTCDay();
 /** Pure : un samedi ou un dimanche glisse au lundi. */

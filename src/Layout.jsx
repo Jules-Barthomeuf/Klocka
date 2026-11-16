@@ -1,4 +1,3 @@
-import Cloche, { ouvrirCloche, useNonLuesMandataire } from "@/components/haka/Cloche";
 import PopupFicheRecue from "@/components/haka/PopupFicheRecue";
 import { prechargerAuSurvol } from "@/lib/precharger";
 import MarqueKlocka from "@/components/MarqueKlocka";
@@ -8,7 +7,6 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
-import NotificationsApp from "@/components/NotificationsApp";
 import {
   BookUser,
   Contact,
@@ -37,7 +35,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Globe,
-  Mic, Compass, Smartphone, Lock, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, Bell, LibraryBig, ChartColumn, FileSpreadsheet } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, LibraryBig, ChartColumn, FileSpreadsheet } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { PAGES_KDATA } from "@/lib/kdata-modules";
@@ -253,8 +251,8 @@ function LayoutContent({ children, currentPageName }) {
   // app.kpartners.immo ; le reste sur app.klocka.immo. Le passage garde la connexion et la page (server/domaines.js).
   // Tant que le domaine K Partners n'est pas branché, `domaines.kpartners` est vide et rien ne bouge.
   useEffect(() => { allerAuBonDomaine(user, vue, (...a) => base44.request(...a)); }, [user, vue]);
-  // Les notifications non lues du mandataire : sur le hamburger au téléphone (1er nov. 2026, Jules).
-  const nonLues = useNonLuesMandataire(vue === "mandataire");
+  // Plus de notifications à l'écran (15 nov. 2026, Jules : « supprime complètement les notifications et tout ça ») : ni
+  // cloche, ni volet, ni cartes, ni nombre sur le hamburger, ni ligne « Notifications » au menu du téléphone.
   // La couleur d'accent suit l'espace : K Partners (pervenche) côté mandataire.
   useEffect(() => { definirEspace(vue); }, [vue]);
   // Ce qui relève de l'équipe (relances, dossiers, assistant, recherche) ne
@@ -542,15 +540,6 @@ function LayoutContent({ children, currentPageName }) {
         {/* Les pages. */}
         <div className={`mt-7 flex-1 overflow-y-auto pb-4 ${empile ? "px-1" : "px-3"}`}>
           <div className={`flex flex-col ${empile ? "gap-2.5" : "gap-0.5"}`}>
-            {/* Au téléphone, les notifications en tête du menu (1er nov. 2026, Jules) : la cloche n'a plus de bouton. */}
-            {isMobile && vue === "mandataire" && (
-              <button type="button" onClick={() => { closeMobile(); ouvrirCloche(); }}
-                className="mb-2 flex items-center gap-3 rounded-[10px] px-3 py-[7px] text-left text-[15px] text-encre hover:bg-encre/[0.05]" style={{ background: "transparent" }}>
-                <Bell className="h-[18px] w-[18px] flex-none text-ardoise" strokeWidth={1.7} />
-                <span className="flex-1">Notifications</span>
-                {nonLues > 0 && <span className="grid h-[22px] min-w-[22px] place-items-center rounded-full bg-ambre px-1.5 text-[13px] font-medium tabular-nums text-fond">{nonLues}</span>}
-              </button>
-            )}
             {entrees.map((e) => {
               // Un groupe (Relations, Administration) : une seule entrée, vers sa première page ; actif sur toutes ses pages.
               if (e.groupe) {
@@ -787,7 +776,6 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* La recherche du rail, et ⌘K. */}
       {vueAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}
-      {(vue === "admin" || vue === "mandataire") && <NotificationsApp />}
       {/* « Il me rappelle » : le bouton en haut à droite (dans la barre au téléphone), l'écran d'appel et le bandeau « Rappel à terminer ». */}
       {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), et l'icône Rappel, seule, dans la marge du coin, pour ne jamais couvrir le bouton d'un en-tête. */}
       {vueAdmin && !hideNavbar && !modoKData && (
@@ -796,24 +784,15 @@ function LayoutContent({ children, currentPageName }) {
           {/* L'agent testeur (10 oct. 2026), à gauche du rappel : un clic, et l'IA audite la page ouverte dans un bac à sable. */}
           {testeurVisible && <div className={`k-flottant-haut fixed ${boutonRappel ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
           {boutonRappel && <div className="k-flottant-haut fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
-          {/* La cloche (17 oct. 2026, Jules) : entre les boîtes connectées et le mode appel, sur toutes les pages de l'équipe. */}
-          <Cloche sansBouton className={`k-flottant-haut fixed ${boutonRappel ? "right-[68px]" : "right-4"} top-4 max-md:hidden`} />
           {/* Une fiche commerciale arrivée : « je la rentre ? Oui / Non », en fenêtre, d'elle-même (20 oct. 2026, Jules). */}
           <PopupFicheRecue />
         </>
       )}
-      {/* La cloche du mandataire, en haut à droite comme chez l'équipe, au téléphone aussi (25 oct. 2026, Jules). */}
-      {/* Au téléphone, plus de bouton cloche (1er nov. 2026, Jules) : le nombre en gros sur le hamburger, « Notifications » en
-          tête du menu. */}
-      {vue === "mandataire" && !hideNavbar && <Cloche mandataire sansBouton className="k-flottant-haut fixed right-4 top-4" />}
       {/* Au téléphone, le hamburger à droite de la cloche ouvre le menu (27 oct. 2026, Jules : plus d'onglets en bas). */}
       {vue === "mandataire" && !hideNavbar && (
-        <button type="button" onClick={() => setIsMobileMenuOpen((o) => !o)} aria-label={isMobileMenuOpen ? "Fermer le menu" : nonLues ? `Ouvrir le menu, ${nonLues} notification${nonLues > 1 ? "s" : ""}` : "Ouvrir le menu"} aria-expanded={isMobileMenuOpen}
+        <button type="button" onClick={() => setIsMobileMenuOpen((o) => !o)} aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={isMobileMenuOpen}
           className="fixed right-3 top-[calc(env(safe-area-inset-top)+0.3rem)] z-40 grid h-[38px] w-[38px] place-items-center rounded-full text-encre md:hidden" style={{ background: "transparent" }}>
           {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          {!isMobileMenuOpen && nonLues > 0 && (
-            <span aria-hidden className="absolute -right-1.5 -top-1 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-ambre px-1.5 text-[13px] font-medium tabular-nums text-fond">{nonLues > 99 ? "99+" : nonLues}</span>
-          )}
         </button>
       )}
       {/* Au téléphone, le logo K Partners en haut à gauche, en face de la cloche (25 oct. 2026, Jules), sur une barre

@@ -91,7 +91,8 @@ test("scénarios 2 et 11 : « Pas de bien pour l'instant », un double tap ne fa
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'pas_de_murs', session_id: s.id, user: nora });
   assert.equal(r.ok, true);
   const ids = r.appel.propositions.map((p) => p.id);
-  assert.deepEqual(ids.slice(0, 4), ['monday', 'mail', 'diffusion', 'relance']);
+  // Plus de liste de diffusion ni de « Noter le bien » proposés (16 nov. 2026, Jules).
+  assert.deepEqual(ids.slice(0, 3), ['monday', 'mail', 'relance']);
   const mail = r.appel.propositions.find((p) => p.id === 'mail');
   assert.equal(mail.modele, 'presentation-cahier');
   assert.equal(mail.variantes.length, 1, 'un seul mail de présentation depuis le 12 oct. 2026');
@@ -109,7 +110,7 @@ test("scénarios 2 et 11 : « Pas de bien pour l'instant », un double tap ne fa
   const { E } = await import('../emailing/schema.js');
   const contacts = Records.list(E.CONTACT).filter((c) => c.email === 'contact@riviera-antibes.fr');
   assert.equal(contacts.length, 1, 'un seul ajout à la liste');
-  assert.equal(v1.recu.diffusion.etat, 'ok');
+  assert.ok(!v1.recu.diffusion);
   // Sans boîte connectée, le reçu ne dit pas « envoyé » : brouillon à ouvrir.
   assert.equal(v1.recu.mail.etat, 'brouillon');
   assert.match(v1.recu.mail.mailto, /^mailto:contact%40riviera-antibes\.fr\?subject=/);
@@ -138,7 +139,9 @@ test('scénario 12 : « Annuler » dans les 10 secondes remet tout comme avant',
   assert.equal(a.ok, true);
   assert.equal(Records.get('ProspectionMail', v.recu.mail.mail_id).etat, 'ecarte', 'mail non envoyé');
   const { E } = await import('../emailing/schema.js');
-  assert.ok(!Records.list(E.CONTACT).some((c) => c.email === 'contact@riviera-cannes.fr'), 'agent retiré de la liste');
+  const { listeDuNom } = await import('../emailing/schema.js');
+  const listeAgents = listeDuNom('Agents immobiliers', nora.email).id;
+  assert.ok(!Records.list(E.CONTACT).some((c) => c.email === 'contact@riviera-cannes.fr' && (c.listes || []).includes(listeAgents)), 'agent pas dans la liste');
   const apres = Records.get('AgentImmo', agentId);
   assert.equal(apres.statut, avant.statut);
   assert.deepEqual(apres.prochaine ?? null, avant.prochaine ?? null);
@@ -152,7 +155,7 @@ test('scénario 5 : « Pas intéressé » : ne plus appeler, aucune relance, abs
   const { L, ag } = ville('Grasse');
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'pas_interesse', user: nora });
   // 21 oct. 2026 : mail, liste et relance restent à l'écran, décochés ; on valide ce qui est coché.
-  assert.ok(['mail', 'diffusion', 'relance'].every((id) => r.appel.propositions.some((p) => p.id === id && p.coche === false)));
+  assert.ok(['mail', 'relance'].every((id) => r.appel.propositions.some((p) => p.id === id && p.coche === false)));
   assert.ok(r.appel.propositions.some((p) => p.id === 'ne_plus_appeler'));
   const v = await MA.validerIssue({ appel_id: r.appel.id, choix: r.appel.propositions.filter((p) => p.coche !== false).map((p) => p.id), user: nora, issue: 'pas_interesse' });
   assert.match(v.recu.relance.texte, /Ne plus appeler/);
@@ -297,7 +300,7 @@ test("21 oct. : l'email, la liste et la relance sont toujours à l'écran, déco
   assert.equal(r.ok, true);
   const p = (id) => r.appel.propositions.find((x) => x.id === id);
   assert.ok(p('mail') && p('mail').coche === false, 'Email décoché');
-  assert.ok(p('diffusion') && p('diffusion').coche === false, 'liste décochée');
+  assert.ok(!p('diffusion'), 'plus de liste de diffusion proposée');
   assert.ok(p('relance'), 'la relance prévue pour « à rappeler »');
   const v = await MA.validerIssue({ appel_id: r.appel.id, choix: r.appel.propositions.filter((x) => x.coche !== false).map((x) => x.id), user: nora, issue: 'a_rappeler' });
   assert.equal(v.ok, true);

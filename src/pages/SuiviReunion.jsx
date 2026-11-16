@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Copy, Loader2, Mic, Square, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
+import { TitrePage } from "@/components/mandataire/elements";
 import MicroEcoute from "@/components/prospection/MicroEcoute";
 import { versWav } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
@@ -232,10 +233,10 @@ export default function SuiviReunion() {
 
   return (
     <div className="min-h-screen text-encre">
-      <div className="mx-auto max-w-[1300px] px-4 py-8 md:px-8 md:py-10">
-        <OngletsSuivi className="mb-3.5" />
-        <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Réunion</h1>
-        <p className="m-0 mt-1.5 max-w-[720px] text-[13.5px] text-ardoise">Enregistrez une réunion, aussi longue qu'elle soit : elle se transcrit pendant qu'on parle, puis entre dans l'Intelligence, où ses décisions, informations et engagements attendent votre validation. L'audio n'est pas gardé.</p>
+      <div className="mx-auto max-w-[1300px] px-5 py-[22px] md:px-8">
+        <TitrePage titre="Réunion" className="mb-3" />
+        <OngletsSuivi className="mb-4" />
+        <p className="m-0 max-w-[720px] text-[13.5px] text-ardoise">Enregistrez une réunion, aussi longue qu'elle soit : elle se transcrit pendant qu'on parle, puis entre dans l'Intelligence, où ses décisions, informations et engagements attendent votre validation. L'audio n'est pas gardé.</p>
 
         <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
           {/* À gauche : le micro, les réglages de la réunion, les gestes. */}

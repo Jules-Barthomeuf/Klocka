@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ExternalLink, Loader2, Mic, Phone, PhoneOff, Square, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ExternalLink, Loader2, Mic, Phone, PhoneOff, Sparkles, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -22,6 +22,8 @@ import { Statut } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 import { ouvrirTranscriptionDirecte, enPhrases } from "@/lib/transcription-directe";
 import { objectionEntendue } from "@/lib/objections";
+import TranscriptionParVoix from "@/components/prospection/TranscriptionParVoix";
+import { niveauDePlage, niveauEntre, phrasesAvecPlages, seuilDeuxVoix, texteNormal, voixDe, voixParLesMots } from "@/lib/qui-parle";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -61,6 +63,9 @@ const SCENARIO_DEFAUT = "date_dite";
 // L'appel libre du mode Essai (15 nov. 2026, Jules : « une pill libre où je fais comme si c'était un vrai appel, donc ça
 // écoute vraiment ») : sur l'agence d'essai, le micro et la transcription pour de vrai ; rien ne part (essai).
 const LIBRE = "libre";
+// Les cartes de conseils sur les objections, retirées pour l'instant (15 nov. 2026, Jules : « enlève les cards qui
+// donnent des conseils ») : leur repérage (src/lib/objections.js) et leur pop-up restent, éteints.
+const CARTES_OBJECTION = false;
 const MOTIFS_ESSAI = { bien_retenu: "Bien retenu", bien_refuse: "Bien refusé", point_mensuel: "Point mensuel" };
 
 /** Le mode Essai : les cas de figure, par groupe ; un clic joue l'appel. */
@@ -300,11 +305,11 @@ function Ensuite({ agences, onToutVoir = null, total = null }) {
 }
 
 /** Les notes de l'appel, sous la transcription : ce que le micro capte mal. Elles l'emportent sur ce qu'AK a entendu. */
-function ZoneNotes({ valeur, onChange, nu = false }) {
+function ZoneNotes({ valeur, onChange, nu = false, rows = 3 }) {
   return (
     <label className={`flex min-w-0 flex-col gap-2 ${nu ? "" : "rounded-[12px] border border-bord-doux bg-transparent p-6 max-md:p-5"}`}>
-      <span className={ETIQUETTE}>Notes</span>
-      <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={3}
+      <span className={nu ? "m-0 text-[12.5px] text-ardoise" : ETIQUETTE}>Notes</span>
+      <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={rows}
         placeholder={nu ? "Email, numéro, nom, date : elles l'emportent sur la transcription" : "Email, numéro, nom, date : ce qui compte et que le micro capte mal. Les notes l'emportent sur la transcription."}
         className={`w-full resize-y px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none max-md:text-[16px] ${nu ? "rounded-[12px] border border-bord-doux bg-transparent placeholder:text-brume focus:border-bord-vif" : "rounded-champ border border-bord-doux bg-transparent focus:border-bord-vif"}`} />
     </label>
@@ -467,23 +472,23 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   // sous les boutons ouvre la colonne. Pendant l'appel, la colonne porte les notes et la calculatrice.
   const [deja, setDeja] = useState(false);
   const troisColonnes = enCours || deja || essai;
+  // Avant l'appel, la carte de la maquette de Jules (15 nov. 2026) ; pendant l'appel, la carte à trois colonnes.
+  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} choisi={choisi} onChoisir={onChoisir} numero={numero} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} />;
   return (
     <div className="overflow-hidden k-verre">
-      <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
+      <div className="relative flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
+        {/* Pendant l'appel (16 nov. 2026, Jules) : plus de pastille « En ligne » ni « Essai » ; la durée seule, au milieu,
+            sur la ligne du nom. */}
+        <span aria-label="Durée de l'appel" className="order-last text-[24px] font-normal leading-[1.2] tabular-nums text-craie md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2">
+          {Math.floor((enLigne?.duree || 0) / 60)}:{String((enLigne?.duree || 0) % 60).padStart(2, "0")}
+        </span>
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="flex flex-wrap items-center gap-2.5 text-[12.5px] text-ardoise">
-            {relances ? `Relances${a.ville ? ` · ${a.ville}` : ""}` : null}
-            {enCours ? (
-              <Statut couleur="corail" className="inline-flex items-center gap-1.5">
-                <span className={`h-1.5 w-1.5 rounded-full bg-statut-corail ${enLigne.ecoute ? "animate-pulse" : ""}`} />{enLigne.ecoute ? "En ligne" : "En ligne, sans écoute"}
-              </Statut>
-            ) : <Statut couleur={relance ? "ambre" : a.badge === "Jamais contactée" ? "gris" : "ambre"}>{a.badge || a.statut?.libelle}</Statut>}
-            {enLigne?.essai && <Statut couleur="ambre">Essai</Statut>}
-          </span>
-          <p className="m-0 break-words text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">{nomLisible(a.nom)}</p>
-          <p className="m-0 text-[13.5px] text-ardoise">
-            {[personne?.nom || "Interlocuteur non connu", personne?.fonction].filter(Boolean).join(" · ")}
-            {numero && <> · <span className="select-all tabular-nums text-encre">{numero}</span></>}
+          {relances && <span className="text-[12.5px] text-ardoise">Relances{a.ville ? ` · ${a.ville}` : ""}</span>}
+          {/* Pendant l'appel (16 nov. 2026, Jules) : le nom de l'agence, puis la personne à qui l'on parle, sur une ligne
+              alignée sur Raccrocher ; plus de numéro dessous ni de colonne des interlocuteurs. */}
+          <p className="m-0 break-words text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">
+            {nomLisible(a.nom)}
+            {personne?.nom && <span className="text-[15px] tracking-normal text-ardoise"> · {nomLisible(personne.nom)}{personne.fonction ? `, ${personne.fonction.charAt(0).toLowerCase()}${personne.fonction.slice(1)}` : ""}</span>}
           </p>
           {(a.raison || a.reseau) && (
             <div className="flex flex-col gap-1">
@@ -495,20 +500,15 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         {enCours ? (
           <div className="flex flex-none flex-col items-end gap-2">
             <div className="flex items-center gap-3">
-              {/* Le micro, comme au rappel : en simple contour à la couleur choisie, il respire tant qu'on écoute. */}
-              <span role="img" aria-label={enLigne.ecoute ? "Enregistrement en cours" : "Sans enregistrement"} title={enLigne.ecoute ? "L'appel est écouté" : "Sans enregistrement"}
-                className={`grid h-8 max-md:h-11 w-8 max-md:w-11 place-items-center rounded-full border ${enLigne.ecoute ? "k-anneau border-menthe text-menthe" : "border-bord-doux text-brume"}`}>
-                <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />
-              </span>
-              <button type="button" onClick={enLigne.onRaccrocher} className="inline-flex h-8 max-md:h-10 items-center gap-2 rounded-full bg-alerte px-5 text-[13.5px] text-fond transition-opacity hover:opacity-90">
-                <PhoneOff className="h-4 w-4" strokeWidth={2} />Raccrocher
+              {/* Plus de micro qui respire pendant l'appel (16 nov. 2026, Jules) : la pastille « En ligne » et les rubans disent l'écoute. */}
+              <button type="button" onClick={enLigne.onRaccrocher} className="inline-flex h-11 items-center gap-2.5 rounded-full bg-menthe px-6 text-[15px] text-sur-menthe transition-colors hover:bg-menthe-survol">
+                <PhoneOff className="h-[18px] w-[18px]" strokeWidth={2} />Raccrocher
               </button>
               {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
               <button type="button" onClick={enLigne.onAnnuler} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
-                className="grid h-8 max-md:h-11 w-8 max-md:w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+                className="grid h-11 w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
             </div>
-            {/* L'analyste sait que son écran est enregistré pendant l'appel (14 oct. 2026). */}
-            {enLigne.ecranEnregistre && <span className="text-[12px] text-brume">Écran enregistré pendant l'appel</span>}
+            {/* L'analyste sait que son écran est enregistré pendant l'appel (14 oct. 2026) : le pied de la carte le dit. */}
           </div>
         ) : (
         <div className="flex flex-none items-center gap-3">
@@ -532,41 +532,9 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
 
       {/* Des filets en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css), la maquette les veut. */}
       <div aria-hidden className="h-px bg-trait" />
-      <div className={`grid ${troisColonnes ? "lg:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.8fr)_minmax(300px,1.25fr)]" : "lg:grid-cols-[minmax(240px,0.85fr)_minmax(0,2.4fr)]"}`}>
-        {/* Les interlocuteurs et l'historique. */}
-        <div className="flex min-w-0 flex-col gap-4 border-trait p-4 max-lg:order-3 max-lg:border-t lg:border-r">
-          <div className="flex flex-col gap-2">
-            <span className={etiq2}>Interlocuteurs</span>
-            {contacts.map((x) => {
-              const actif = choisi?.id === x.id;
-              return (
-                <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif} title={x.nom}
-                  className={`flex w-full min-w-0 flex-col items-start gap-0.5 rounded-[12px] px-3.5 py-2.5 text-left transition-colors ${actif ? "bg-relief" : "hover:bg-relief/60"}`} style={actif ? undefined : { background: "transparent" }}>
-                  <span className="block w-full break-words text-[14.5px] leading-[1.3] text-encre">{x.nom}</span>
-                  <span className={`block w-full truncate text-[12.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{x.source}</span>
-                </button>
-              );
-            })}
-            {!contacts.length && <span className="pt-1 text-[13.5px] leading-[1.5] text-brume">Personne de connu : demandez le responsable commerce.</span>}
-          </div>
-          <div className="flex flex-col gap-2">
-            <span className={etiq2}>Historique</span>
-            {histo.map((h, k) => (
-              <div key={k} className="flex gap-3 py-1.5">
-                <span className="mt-[8px] h-1.5 w-1.5 flex-none rounded-full bg-bord-vif" />
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-[14px] text-encre">{h.quoi}</span>
-                  <span className="text-[12.5px] text-ardoise">{[h.quand, h.qui].filter(Boolean).join(" · ")}</span>
-                </span>
-              </div>
-            ))}
-            {!histo.length && <span className="text-[14px] text-ardoise">Jamais appelée</span>}
-          </div>
-          {enLigne?.gauche}
-          {/* L'Intelligence (phase 6, 15 oct. 2026) : avant d'appeler, ce qu'on sait de l'agence et ce qu'on lui doit. */}
-          {!essai && <CeQueKlockaSait type="agence" id={a.id} />}
-        </div>
-
+      {/* Deux colonnes pendant l'appel (16 nov. 2026, Jules) : la transcription et les notes ; interlocuteurs et
+          historique servent avant l'appel, ils restent sur la carte d'avant. */}
+      <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         {/* L'accroche et les recherches clients (ou, en relance, ce qu'on s'est dit). */}
         <div className={`flex min-w-0 flex-col gap-3 border-trait p-4 max-lg:order-1 ${troisColonnes ? "lg:border-r" : ""}`}>
           {enCours ? enLigne.milieu : a.relance ? <PourquoiRelance a={a} /> : relances ? suite : (
@@ -605,6 +573,92 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
           {enCours ? null : !essai ? <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />
             : <span className="text-[13.5px] leading-[1.5] text-brume">En essai, l'appel se joue tout seul : touchez Appeler.</span>}
         </div>}
+      </div>
+      {enCours && enLigne.pied && (
+        <>
+          <div aria-hidden className="h-px bg-trait" />
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">{enLigne.pied}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Pure : les initiales d'un nom (« Sophie Le Gall » → « SL »). */
+function initiales(nom) {
+  const mots = String(nom || "").split(/[\s-]+/).filter((m) => /\p{L}/u.test(m));
+  return ((mots[0]?.[0] || "") + (mots.length > 1 ? mots[1][0] : "")).toUpperCase() || "?";
+}
+
+/**
+ * La carte d'avant l'appel (maquette de Jules, 15 nov. 2026) : le nom de l'agence, « Résumé IA » et ses trois phrases
+ * (ce qu'elle fait, ce qu'elle a en ligne, où on en est et qui demander), Appeler et Passer à droite ; sous un filet, les
+ * interlocuteurs en ligne (initiales, nom, fonction ; le numéro de celui qu'on a choisi) et le dernier appel à droite.
+ */
+function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai, onMicro, onPasser, passerEnCours, onRetour }) {
+  const resume = useQuery({
+    queryKey: ["mode-appel", "resume", a.id],
+    queryFn: () => base44.request("GET", `/api/prospection/mode-appel/agences/${encodeURIComponent(a.id)}/resume`),
+    enabled: !!a.id, staleTime: 10 * 60000, retry: false,
+  });
+  const dernier = histo[0];
+  return (
+    <div className="overflow-hidden k-verre">
+      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4 px-6 py-5 max-md:px-4">
+        <div className="flex min-w-0 max-w-[760px] flex-[1_1_320px] flex-col gap-3">
+          <p className="m-0 break-words text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">{nomLisible(a.nom)}</p>
+          {!resume.isError && (
+            <div className="flex flex-col gap-1.5">
+              <span className="inline-flex items-center gap-2 text-[13px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />Résumé IA</span>
+              {resume.isLoading ? (
+                <div aria-label="Résumé en cours" className="flex flex-col gap-2 pt-1">
+                  <span className="h-3 w-[92%] animate-pulse rounded-full bg-rail-actif" />
+                  <span className="h-3 w-[70%] animate-pulse rounded-full bg-rail-actif" />
+                </div>
+              ) : <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resume.data?.texte}</p>}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-none items-center gap-2.5">
+          {/* Appeler : composer sur son téléphone, l'écoute part (pas de lien tel:, 7 oct. 2026) ; en essai, l'appel se joue. */}
+          <button type="button" onClick={onMicro} title={essai ? "Simuler l'appel" : "Composez le numéro sur votre téléphone : l'écoute démarre"}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14.5px] text-sur-menthe transition-colors hover:bg-menthe-survol">
+            <Phone className="h-4 w-4" strokeWidth={1.8} />Appeler
+          </button>
+          {onRetour
+            ? <button type="button" onClick={onRetour} className="h-10 rounded-full border border-bord-doux px-5 text-[14.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
+            // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
+            : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-10 rounded-full border border-bord-doux px-5 text-[14.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
+        </div>
+      </div>
+
+      {/* Un filet en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css). */}
+      <div aria-hidden className="h-px bg-trait" />
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3 max-md:px-4">
+        <span className="text-[13.5px] text-ardoise">Interlocuteurs</span>
+        {contacts.map((x) => {
+          const actif = choisi?.id === x.id;
+          const role = x.fonction || x.source;
+          return (
+            <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif} title={actif ? "L'interlocuteur choisi" : "Choisir cet interlocuteur"}
+              className="flex min-w-0 items-center gap-2.5 rounded-full py-1 pl-1 pr-2 text-left transition-colors hover:bg-relief/60" style={{ background: "transparent" }}>
+              <span className={`grid h-8 w-8 flex-none place-items-center rounded-full bg-rail-actif text-[11.5px] text-craie ${actif ? "ring-1 ring-menthe" : ""}`}>{initiales(x.nom)}</span>
+              <span className="min-w-0 truncate text-[14.5px] text-encre">{x.nom}</span>
+              {(role || (actif && numero)) && (
+                <span className="truncate text-[13.5px] text-ardoise">
+                  {role && <span className="max-sm:hidden">· {role}</span>}
+                  {actif && numero && <span className="select-all whitespace-nowrap tabular-nums text-encre">{role ? " · " : "· "}{numero}</span>}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        {!contacts.length && (
+          <span className="text-[13.5px] text-ardoise">
+            Personne de connu : demandez le responsable commerce{numero && <> · <span className="select-all tabular-nums text-encre">{numero}</span></>}
+          </span>
+        )}
+        <span className="ml-auto whitespace-nowrap text-[13.5px] text-ardoise">{dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"}</span>
       </div>
     </div>
   );
@@ -697,6 +751,11 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const [note, setNote] = useState("");
   // Les notes tapées pendant l'appel (8 oct. 2026) : email, numéro, nom, date ; elles font foi sur la transcription.
   const [notesAppel, setNotesAppel] = useState("");
+  // Qui parle (16 nov. 2026) : le niveau du micro, gardé hors de React (src/lib/qui-parle.js) ; `parle` pour l'écran.
+  const voix = useRef({ niveau: 0, qui: null, historique: [], seuil: null, arrivees: [], derniere: null });
+  const [parle, setParle] = useState(null);
+  const [voixCorrigees, setVoixCorrigees] = useState({});
+  const nouvellesVoix = () => { voix.current = { niveau: 0, qui: null, historique: [], seuil: null, arrivees: [], derniere: null }; setParle(null); setVoixCorrigees({}); };
   // L'assistant d'après l'appel (9 nov. 2026) : « valide » lui fait lancer le bouton ; `annonce` lui fait dire pourquoi il ne peut pas.
   const [annonce, setAnnonce] = useState(null);
   const [voirTranscription, setVoirTranscription] = useState(false);
@@ -723,7 +782,6 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   // L'audio entier de l'appel (16 oct. 2026) : les morceaux gardés, recollés au raccrochage pour la part de parole.
   const audios = useRef([]);
   const parole = useRef(new Set());
-  const directFin = useRef(null);
   const compte = useRef(null);
   const messageT = useRef(null);
 
@@ -800,7 +858,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     if (!r0) return;
     r0.actif = false;
     if (jeter) r0.jeter = true;
-    clearInterval(r0.minuterie);
+    clearInterval(r0.minuterie); clearInterval(r0.echantillons);
+    voix.current.niveau = 0; voix.current.qui = null; setParle(null);
     try { r0.audio?.close(); } catch { /* déjà fermé */ }
     if (jeter && tempsReel.current) { tempsReel.current.arreter(); tempsReel.current = null; tempsReelOk.current = false; }
     if (r0.m?.state === "recording") r0.m.stop(); else r0.flux?.getTracks().forEach((t) => t.stop());
@@ -888,11 +947,10 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   useEffect(() => { setChoisi(null); }, [a?.id]);
   const contacts = a?.contacts || [];
   const contactChoisi = contacts.find((x) => x.id === choisi) || contacts.find((x) => !x.standard) || contacts[0] || null;
+  // Le nom de l'autre voix dans la transcription : la personne choisie, sinon « Interlocuteur ».
+  const nomAutre = (contactChoisi && !contactChoisi.standard && nomLisible(contactChoisi.nom)) || "Interlocuteur";
   const standard = contacts.find((x) => x.standard)?.telephone || a?.telephone || null;
   const numeroAppel = contactChoisi?.telephone || standard;
-  // Les autres numéros de l'agence (interlocuteurs, standard, agents), sans celui qu'on appelle.
-  const autresNumeros = [...contacts.filter((x) => x.telephone).map((x) => ({ nom: x.nom, telephone: x.telephone })), ...(a?.autres_numeros || []).map((t) => ({ nom: "", telephone: t }))]
-    .filter((x, k, t) => x.telephone && telLien(x.telephone) !== telLien(numeroAppel || "") && t.findIndex((y) => telLien(y.telephone) === telLien(x.telephone)) === k).slice(0, 4);
 
   // --- Les envois gardés hors ligne -------------------------------------------
   const vider = async () => {
@@ -934,7 +992,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     onError: (e) => { if (!erreurReseau(e)) toast.error(e?.message || "Un collègue l'appelle déjà"); },
   });
   const lancerChrono = (depart = 0) => { clearInterval(chrono.current); setSecondes(depart); chrono.current = setInterval(() => setSecondes((s) => s + 1), 1000); };
-  const montrer = () => setDirect(morceaux.current.map((x) => ({ i: x.i, texte: x.texte, etat: x.etat })));
+  const montrer = () => setDirect(morceaux.current.map((x) => ({ i: x.i, texte: x.texte, etat: x.etat, niveau: x.niveau ?? null, qui: x.qui ?? null })));
   const transcrireMorceau = async (x) => {
     try {
       const f = new FormData();
@@ -958,9 +1016,14 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     rec.current = r0;
     // La transcription en temps réel (15 nov. 2026) sur le même micro : prête, elle remplace les morceaux transcrits ;
     // tombée, les morceaux reprennent.
-    tempsReelOk.current = false; tempsReelServi.current = false; setTexteDirect("");
+    tempsReelOk.current = false; tempsReelServi.current = false; setTexteDirect(""); voix.current.arrivees = [];
     tempsReel.current = ouvrirTranscriptionDirecte(flux, {
-      onTexte: (t) => setTexteDirect(t),
+      onTexte: (t) => {
+        const v = voix.current;
+        v.arrivees.push({ fin: texteNormal(t).length, t: Date.now() });
+        v.derniere = Date.now();
+        setTexteDirect(t);
+      },
       onEtat: (etat) => {
         if (etat === "pret") { tempsReelOk.current = true; tempsReelServi.current = true; }
         else if (tempsReelOk.current) { tempsReelOk.current = false; dire("Transcription en direct coupée : elle reprend par morceaux."); }
@@ -975,13 +1038,23 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       r0.audio = ctx;
       const buf = new Float32Array(an.fftSize);
       let bruit = 0.01;
-      analyse = () => {
+      let sonne = false;
+      // Toutes les 50 ms : le niveau pour les rubans, les instants de parole pour savoir qui parle (16 nov. 2026).
+      r0.echantillons = setInterval(() => {
         an.getFloatTimeDomainData(buf);
-        let somme = 0; for (const v of buf) somme += v * v;
+        let somme = 0; for (const x of buf) somme += x * x;
         const n = Math.sqrt(somme / buf.length);
-        bruit = n < bruit ? n : bruit + (n - bruit) * 0.002;
-        return n > Math.max(0.008, bruit * 3);
-      };
+        bruit = n < bruit ? n : bruit + (n - bruit) * 0.001;
+        sonne = n > Math.max(0.008, bruit * 3);
+        const v = voix.current;
+        const t = Date.now();
+        v.niveau = n; v.simule = false;
+        if (sonne) { v.historique.push({ t, n }); v.dernierSon = t; if (v.historique.length > 12000) v.historique.splice(0, 2000); }
+        if (t - (v.calcule || 0) > 2000) { v.calcule = t; v.seuil = seuilDeuxVoix(v.historique.slice(-6000).map((x) => x.n)); }
+        const qui = t - (v.dernierSon || 0) < 400 ? voixDe(niveauEntre(v.historique, t - 500, t), v.seuil) : null;
+        if (qui !== v.qui) { v.qui = qui; setParle(qui); }
+      }, 50);
+      analyse = () => sonne;
     } catch { /* sans analyse : des morceaux de 6 s */ }
     const tour = () => {
       if (!r0.actif) { flux.getTracks().forEach((t) => t.stop()); return; }
@@ -997,7 +1070,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
         const encore = r0.actif;
         if (encore) tour(); else flux.getTracks().forEach((t) => t.stop());
         if (r0.jeter || !bouts.length) return;
-        const x = { i: morceaux.current.length, texte: null, wav: null, etat: "envoi", debut };
+        const x = { i: morceaux.current.length, texte: null, wav: null, etat: "envoi", debut, niveau: niveauEntre(voix.current.historique, debut, Date.now()) };
         morceaux.current.push(x); montrer();
         try { x.wav = await versWav(new Blob(bouts, { type: m.mimeType || "audio/webm" }), 16000); } catch { x.etat = "echec"; montrer(); return; }
         audios.current[x.i] = x.wav;
@@ -1054,6 +1127,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     retenirEnCours({ agence: { id: a.id, nom: a.nom, telephone: numeroAppel, lieu: a.lieu, badge: a.badge, historique: a.historique, interlocuteurs: a.interlocuteurs }, onglet, le: new Date().toISOString() });
     preLecture.current = { dernier: 0, sig: "", enCours: false };
     audios.current = [];
+    nouvellesVoix();
     setNotes(true); setSimule(false); setEcran("appel"); lancerChrono(); enregistrer();
   };
   // Les cartes de réponse pendant l'appel (15 nov. 2026) : l'écoute en direct du navigateur (quelques centaines de
@@ -1065,11 +1139,26 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const [texteDirect, setTexteDirect] = useState("");
   const directTempsReel = useMemo(() => enPhrases(texteDirect), [texteDirect]);
   const motsEnDirect = tempsReelOk.current ? directTempsReel.enCours : "";
+  // La transcription par interlocuteur (16 nov. 2026) : chaque phrase prend la voix entendue pendant qu'elle arrivait ;
+  // une correction à la main l'emporte. En temps réel, les phrases du flux ; sinon, les morceaux transcrits.
+  const lignesVoix = (() => {
+    const v = voix.current;
+    if (tempsReelOk.current) {
+      const { phrases, enCours: bout } = phrasesAvecPlages(texteDirect);
+      const auto = (d, f) => voixDe(niveauDePlage(v.arrivees, v.historique, d, f), v.seuil);
+      return {
+        lignes: phrases.map((p, k) => ({ cle: `r${k}`, texte: p.texte, qui: voixCorrigees[`r${k}`] ?? auto(p.debut, p.fin) })),
+        enCours: bout.texte ? { texte: bout.texte, qui: parle ?? auto(bout.debut, bout.fin) } : null,
+      };
+    }
+    return { lignes: direct.filter((x) => x.texte).map((x) => ({ cle: `m${x.i}`, texte: x.texte, qui: voixCorrigees[`m${x.i}`] ?? x.qui ?? voixDe(x.niveau, v.seuil) })), enCours: null };
+  })();
+  const motsTranscrits = [...lignesVoix.lignes.map((l) => l.texte), lignesVoix.enCours?.texte || ""].join(" ").split(/\s+/).filter(Boolean).length;
   const [carteObjection, setCarteObjection] = useState(null);
   const objectionsVues = useRef(new Map());
   const texteMorceaux = tempsReelOk.current ? directTempsReel.phrases.join(" ") : direct.filter((x) => x.texte).map((x) => x.texte).join(" ");
   useEffect(() => {
-    if (ecran !== "appel") { setCarteObjection(null); objectionsVues.current = new Map(); return; }
+    if (!CARTES_OBJECTION || ecran !== "appel") { setCarteObjection(null); objectionsVues.current = new Map(); return; }
     const maintenant = Date.now();
     const recentes = new Set([...objectionsVues.current].filter(([, le]) => maintenant - le < 60_000).map(([k]) => k));
     const o = objectionEntendue(`${texteMorceaux.slice(-600)} ${motsEnDirect}`, recentes);
@@ -1108,6 +1197,13 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     setEcran("analyse");
     noter.mutate({ issue: "repondeur", simple: false });
   };
+  // Pas de réponse (16 nov. 2026, maquette de Jules : « Rappeler plus tard ») : l'écoute s'efface, la relance se planifie.
+  const pasDeReponse = () => {
+    finAppel.current = Date.now();
+    clearInterval(chrono.current);
+    couperMicro(true);
+    choisirIssue("pas_de_reponse", true);
+  };
   const annulerAppel = () => { arreterTout(); retenirEnCours(null); setNotes(true); setSimule(false); setEcran("fiche"); };
   const rappeler = () => { setEcran("appel"); lancerChrono(secondes); if (notes && !simule) enregistrer(); };
   // L'appel simulé : la conversation d'exemple défile phrase par phrase, comme une vraie transcription.
@@ -1120,13 +1216,18 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     prendre.mutate(a.id);
     morceaux.current = []; setDirect([]);
     preLecture.current = { dernier: 0, sig: "", enCours: false };
+    nouvellesVoix();
     setNotesAppel(sc.notes || "");
     setNotes(true); setSimule(true); setEcran("appel"); setSecondes(0);
     let n = 0;
     clearInterval(chrono.current);
     chrono.current = setInterval(() => {
       setSecondes((s0) => s0 + 4);
-      if (n < sc.phrases.length) { morceaux.current.push({ i: n, texte: sc.phrases[n], etat: "ok" }); n += 1; montrer(); }
+      if (n < sc.phrases.length) {
+        const qui = voixParLesMots(sc.phrases[n]);
+        morceaux.current.push({ i: n, texte: sc.phrases[n], etat: "ok", qui }); n += 1; montrer();
+        Object.assign(voix.current, { niveau: 0.15, simule: true, qui, derniere: Date.now() }); setParle(qui);
+      } else if (voix.current.qui) { voix.current.qui = null; setParle(null); }
     }, 900);
   };
   useEffect(() => { if (simulerApres && session?.essai && a && ecran === "fiche") { setSimulerApres(false); simuler(); } });
@@ -1372,7 +1473,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const enCoursSansIssue = enCours && ecran === "fiche" && !rappel && Date.now() - Date.parse(enCours.le) < 86400000 ? enCours : null;
   return (
     <div className={`w-full ${apresAppel ? "" : "pb-16"}`}>
-      {ecran === "appel" && carteObjection && <CarteObjection carte={carteObjection} onFermer={() => setCarteObjection(null)} />}
+      {CARTES_OBJECTION && ecran === "appel" && carteObjection && <CarteObjection carte={carteObjection} onFermer={() => setCarteObjection(null)} />}
       {/* La ville dans un menu déroulant (15 nov. 2026, Jules) ; plus d'onglets de classeur. */}
       {!relances && !essaiSeul && !apresAppel && <div className="flex flex-wrap items-center gap-y-2">
         <ChoixVille villes={villes} valeur={onglet} onChoisir={choisir} essai={ESSAI} dues={relancesDues ? DUES : null} nbDues={nbDues} />
@@ -1432,32 +1533,30 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   ecoute: notes, essai: simule,
                   onRaccrocher: raccrocher, onAnnuler: annulerAppel,
                   ecranEnregistre: !simule && moi?.role === "admin",
-                  gauche: (autresNumeros.length > 0 || a.site || (numeroAppel === a.telephone && a.telephone_source)) ? (
-                    <div className="flex flex-col gap-2">
-                      <span className="m-0 text-[11px] tracking-[.14em] text-brume">{autresNumeros.length ? "AUTRES NUMÉROS" : "Le numéro"}</span>
-                      {/* D'où vient le numéro (12 oct. 2026) : un numéro d'annonce, ou d'une autre région, se voit. */}
-                      {numeroAppel === a.telephone && a.telephone_source && <span className={`text-[12.5px] ${a.telephone_autre_region ? "text-ambre" : "text-ardoise"}`}>{a.telephone_autre_region ? `Numéro appelé d'une autre région · ${a.telephone_source}` : `Numéro appelé : ${a.telephone_source}`}</span>}
-                      {autresNumeros.map((x) => (
-                        <span key={x.telephone} className="flex flex-col">
-                          <span className="select-all tabular-nums text-[14px] text-encre">{x.telephone}</span>
-                          {x.nom && <span className="truncate text-[12.5px] text-ardoise">{x.nom}</span>}
-                        </span>
-                      ))}
-                      {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-1.5 text-[14px] text-menthe hover:underline">{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
-                    </div>
-                  ) : null,
-                  milieu: <PanneauTranscription direct={tempsReelOk.current ? directTempsReel.phrases.map((t, i) => ({ i, texte: t, etat: "ok" })) : direct} notes={notes} fin={directFin} enDirect nu vif={motsEnDirect} />,
+                  duree: secondes,
+                  milieu: <TranscriptionParVoix lignes={lignesVoix.lignes} enCours={lignesVoix.enCours} nomAutre={nomAutre}
+                    onCorriger={(cles, qui) => setVoixCorrigees((c) => ({ ...c, ...Object.fromEntries(cles.map((k) => [k, qui])) }))}
+                    notes={notes} rates={direct.filter((x) => x.etat === "echec").length} voix={voix} />,
                   droite: (
                     <>
                       {/* Les notes au-dessus de la calculatrice (22 oct. 2026, Jules). */}
-                      <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu />
+                      <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu rows={11} />
                       <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
+                    </>
+                  ),
+                  // Le pied de la carte (16 nov. 2026, maquette de Jules) : ce qui est enregistré, puis les issues sans conversation.
+                  pied: (
+                    <>
+                      <span className="text-[13.5px] text-ardoise">
+                        {[!notes ? "Sans enregistrement" : !simule && moi?.role === "admin" ? "Appel et écran enregistrés" : simule ? "Essai, rien n'est enregistré" : "Appel enregistré",
+                          notes ? `${motsTranscrits} mot${motsTranscrits > 1 ? "s" : ""} transcrit${motsTranscrits > 1 ? "s" : ""}` : null].filter(Boolean).join(" · ")}
+                      </span>
                       {ecran === "appel" && (
-                        <div className="grid grid-cols-2 gap-2.5 [&>button]:whitespace-nowrap">
-                          {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
-                          <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
-                          <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-8 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
-                        </div>
+                        <span className="flex flex-wrap items-center gap-2.5">
+                          <span className="mr-1 text-[13.5px] text-ardoise">Pas de réponse ?</span>
+                          <button type="button" onClick={pasDeReponse} disabled={noter.isPending} title="Personne n'a décroché : la relance se planifie, l'agence suivante arrive" className="h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50" style={{ background: "transparent" }}>Rappeler plus tard</button>
+                          <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
+                        </span>
                       )}
                     </>
                   ),

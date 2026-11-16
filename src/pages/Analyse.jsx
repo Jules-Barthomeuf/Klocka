@@ -148,12 +148,24 @@ export default function Analyse() {
     onError: (e) => toast.error(e?.message || "Suppression impossible"),
   });
 
+  const survolerDossier = (id) => queryClient.prefetchQuery({ queryKey: ["dossier-survole", id], queryFn: () => lireDossier(id), staleTime: 20_000 }).catch(() => {});
+
   const rafraichirListes = () => {
     queryClient.invalidateQueries({ queryKey: ["preanalyse-pipeline"] });
   };
 
+  // Le dossier lu dès le survol de sa carte (15 nov. 2026, Jules : « ça prend trop de temps pour charger un dossier ») :
+  // au clic, la lecture faite il y a moins de 20 s sert une fois, puis s'oublie ; sinon il se lit comme avant.
   const ouvrirDossier = useMutation({
-    mutationFn: (id) => base44.request("GET", `/api/preanalyse/dossiers/${id}`),
+    mutationFn: async (id) => {
+      const cle = ["dossier-survole", id];
+      const etat = queryClient.getQueryState(cle);
+      // Une lecture partie au survol et pas encore revenue : on l'attend plutôt que d'en lancer une seconde.
+      const lu = etat?.fetchStatus === "fetching" ? await queryClient.fetchQuery({ queryKey: cle, queryFn: () => lireDossier(id) }).catch(() => null)
+        : etat?.status === "success" && Date.now() - etat.dataUpdatedAt < 20_000 ? queryClient.getQueryData(cle) : null;
+      queryClient.removeQueries({ queryKey: cle, exact: true });
+      return lu || lireDossier(id);
+    },
     onSuccess: (d) => setDossier(d),
     onError: (e) => toast.error(e?.message || "Dossier introuvable"),
   });
@@ -560,7 +572,7 @@ export default function Analyse() {
               // « voici ce que je veux pour les dossiers, ajoute un balayage ») : la page avant en verre, deux pages esquissées
               // en éventail derrière, un reflet qui traverse toutes les cartes ensemble.
               <div className="k-serie k-couv-grille grid gap-x-4 gap-y-2 pt-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))" }}>
-                {tous.map((d) => <CarteCouverture key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="bottom-2 right-2 grid h-8 w-8 place-items-center rounded-[8px]" place="" />} />)}
+                {tous.map((d) => <CarteCouverture key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} onSurvol={() => survolerDossier(d.deal_id)} menu={<MenuDossier d={d} bouton="bottom-2 right-2 grid h-8 w-8 place-items-center rounded-[8px]" place="" />} />)}
                 {!tous.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Aucun dossier ne correspond.</p>}
               </div>
             )}
@@ -682,11 +694,13 @@ function PageEsquisse({ cote }) {
  * derrière. Le verdict choisi (ou Abandonné, Non conforme) en haut à droite, K Partners en « KP » près du nom de qui suit.
  * Le reflet du balayage passe sur la page avant (.k-couv-balai, src/index.css).
  */
-function CarteCouverture({ d, qui, onOuvrir, menu, ecarte = false }) {
+const lireDossier = (id) => base44.request("GET", `/api/preanalyse/dossiers/${id}`);
+
+function CarteCouverture({ d, qui, onOuvrir, onSurvol, menu, ecarte = false }) {
   const n = etapeFrise(d);
   const verdict = d.verdict_choisi ? VERDICTS[d.verdict_choisi] : null;
   return (
-    <article className="k-couv k-entree group relative h-[290px] cursor-pointer" onClick={onOuvrir}>
+    <article className="k-couv k-entree group relative h-[290px] cursor-pointer" onClick={onOuvrir} onMouseEnter={onSurvol} onFocus={onSurvol}>
       <PageEsquisse cote="g" />
       <PageEsquisse cote="d" />
       <div className="k-couv-avant absolute left-1/2 top-[30px] -ml-[90px] flex h-[220px] w-[180px] flex-col overflow-hidden px-3.5 pb-2 pt-3.5">

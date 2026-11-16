@@ -165,14 +165,16 @@ export function poserMessage(dossierId, { auteur_email = null, cote = 'systeme',
 export const evenement = (dossierId, texte) => poserMessage(dossierId, { cote: 'systeme', genre: 'evenement', texte });
 
 /** Le fil vu d'un côté : le mandataire ne voit pas les notes internes. */
+// Les messages du dossier seuls, triés par la base (15 nov. 2026, Jules : « ça prend trop de temps pour charger les
+// Dossiers ») : la liste des conversations relisait tout le fil de tous les dossiers, trois fois par dossier.
 export function filDe(dossierId, { pourKlocka = false } = {}) {
-  return Records.list(ENTITE)
-    .filter((m) => m.dossier_id === dossierId && (pourKlocka || !m.interne))
+  return Records.filter(ENTITE, { dossier_id: dossierId })
+    .filter((m) => pourKlocka || !m.interne)
     .sort((a, b) => String(a.le).localeCompare(String(b.le)));
 }
 
 export function marquerLu(dossierId, email) {
-  for (const m of Records.list(ENTITE).filter((x) => x.dossier_id === dossierId && !(x.lu_par || []).includes(bas(email)))) {
+  for (const m of Records.filter(ENTITE, { dossier_id: dossierId }).filter((x) => !(x.lu_par || []).includes(bas(email)))) {
     Records.update(ENTITE, m.id, { lu_par: [...(m.lu_par || []), bas(email)] });
   }
 }

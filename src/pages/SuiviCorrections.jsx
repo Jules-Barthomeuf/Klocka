@@ -54,8 +54,8 @@ export default function SuiviCorrections() {
   return (
     <div className="min-h-screen text-encre">
       <div className="mx-auto max-w-[1100px] px-5 py-[22px] md:px-8">
-        <OngletsSuivi className="mb-3 overflow-x-auto" />
-        <TitrePage titre="Corrections" className="mb-2" />
+        <TitrePage titre="Corrections" className="mb-3" />
+        <OngletsSuivi className="mb-4" />
         <p className="m-0 mb-6 max-w-[760px] text-[13.5px] leading-[1.55] text-ardoise">
           Ce que l'équipe corrige sur les projets rentrés par la plateforme. Une correction qui revient sur plusieurs projets devient une règle,
           appliquée d'office aux projets suivants ; chaque règle se coupe ici.

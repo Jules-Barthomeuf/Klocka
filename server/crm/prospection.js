@@ -14,6 +14,7 @@ const prenom = (qui) => {
   return p ? p.charAt(0).toUpperCase() + p.slice(1) : '';
 };
 
+// Les vues par ville (15 nov. 2026) sont parties le 16 nov. dans le tableau Agences de Twenty CRM (server/crm/agences-twenty.js).
 export function objet() {
   const champ = (nom, libelle, type) => ({ id: `p-${nom}`, nom, libelle, type, options: [], modifiable: false, colonne: true });
   const champs = [

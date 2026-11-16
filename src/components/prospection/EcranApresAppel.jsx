@@ -46,12 +46,12 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
     window.addEventListener("resize", mesurer);
     return () => window.removeEventListener("resize", mesurer);
   });
-  // Les étapes prêtes (compte, noms), pour le Valider épinglé ; il paraît dès qu'on a écrit à l'assistant.
+  // Les étapes prêtes (compte, noms), pour le Valider épinglé. Il paraît une fois la réponse de l'assistant écrite dans le
+  // fil (16 nov. 2026, Jules : « sinon on dit oui et ça apparaît direct »), pas dès l'envoi.
   const [resume, setResume] = useState(null);
   const [aEcrit, setAEcrit] = useState(false);
-  const [sansOffre, setSansOffre] = useState(false);
+  // « Plus tard » retiré (16 nov. 2026, Jules) : ne pas toucher « Oui » suffit.
   const repondre = async ({ texte, historique, signal }) => {
-    setAEcrit(true);
     // Le chat s'ouvre dès le raccrochage, avant que l'appel soit noté : un mot dit pendant la lecture attend la fin.
     if (!vif.current.appel) return { reponse: "Un instant : je finis de relire l'appel, puis je m'en occupe." };
     // « Oui » à l'offre, ou une demande d'analyse : le retour d'AK sur l'appel, gardé avec lui (Suivi > Appels).
@@ -67,6 +67,8 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
     return { reponse: r.decision.reponse, decision: r.decision };
   };
   const appliquer = ({ decision: d }) => {
+    // La réponse vient d'être posée dans le fil : le Valider épinglé peut paraître.
+    setAEcrit(true);
     if (!d) return;
     if (d.cocher?.length || d.decocher?.length) setCoches((st) => { const n = new Set(st); d.cocher.forEach((id) => n.add(id)); d.decocher.forEach((id) => n.delete(id)); return n; });
     if (d.mail) setMail((m) => ({ ...(m || {}), ...d.mail }));
@@ -82,7 +84,7 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
   const actions = React.isValidElement(children) && children.type === SequenceActions ? React.cloneElement(children, { sobre: true, onResume: setResume }) : children;
   const pret = resume && resume.n > 0;
   const epingle = aEcrit && pret ? (
-    <div className="mb-2.5 flex items-center justify-between gap-3 px-1">
+    <div className="mb-2.5 flex items-center justify-between gap-3 px-1 duration-300 animate-in fade-in-0 slide-in-from-bottom-1">
       <span className="min-w-0 truncate text-[13px] text-ardoise">{resume.n} étape{resume.n > 1 ? "s" : ""} prête{resume.n > 1 ? "s" : ""} : {resume.noms.join(", ")}</span>
       <button type="button" onClick={() => onLancer()} disabled={resume.envoi || resume.doute}
         className="inline-flex h-9 flex-none items-center rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-50">
@@ -106,26 +108,22 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
   return (
     <div ref={cadre} className="relative flex w-full min-w-0 flex-col duration-500 animate-in fade-in-0 slide-in-from-bottom-3 max-md:h-[78dvh] md:h-[calc(100dvh-120px)]"
       style={hauteur ? { height: hauteur } : undefined}>
-      {titre && (
-        <div className="mx-auto flex w-full max-w-[760px] flex-none flex-col items-center gap-1 px-2 text-center">
-          <h2 className="m-0 max-w-full truncate text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">{titre}</h2>
-          <p className="m-0 text-[13.5px] text-ardoise">
-            {sousTitre && <span>{sousTitre}</span>}
-            {onTranscription && (
-              <>
-                {sousTitre && <span> · </span>}
-                <button type="button" onClick={onTranscription} aria-pressed={voirTranscription} className="p-0 text-[13.5px] text-menthe hover:underline" style={{ background: "transparent" }}>
-                  {voirTranscription ? "Revenir aux actions" : "Transcription"}
-                </button>
-              </>
-            )}
-          </p>
+      {/* Le nom de l'appel seul (16 nov. 2026, Jules) : plus de ligne « qui · durée · Transcription » dessous ; la
+          transcription s'ouvre par son bouton, à droite du titre. */}
+      {(titre || onTranscription) && (
+        <div className="relative mx-auto flex w-full max-w-[760px] flex-none items-center justify-center px-2 md:min-h-9">
+          {titre && <h2 className="m-0 max-w-full truncate text-center text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre md:px-[130px]">{titre}</h2>}
+          {onTranscription && (
+            <div className="max-md:mt-2 md:absolute md:right-2 md:top-1/2 md:-translate-y-1/2">
+              <BoutonTranscription actif={voirTranscription} onClick={onTranscription} />
+            </div>
+          )}
         </div>
       )}
       <div className={voirTranscription ? "hidden" : "min-h-0 flex-1"}>
         <ChatDashboard espace="appel" repondre={repondre} annonce={annonce} onConversation={() => {}} onReponse={appliquer}
           debutFil={debutFil} auDessusSaisie={epingle}
-          propositions={sansOffre || enRelecture ? null : [{ libelle: "Oui, regardons" }, { libelle: "Plus tard", faire: () => setSansOffre(true) }]}
+          propositions={enRelecture ? null : [{ libelle: "Oui" }]}
           sansSkills epure sansBarreHaut menusVersLeHaut placeholderFil="Dites-moi ce que vous voulez" placeholderAccueil="Dites-moi ce que vous voulez" />
       </div>
       {voirTranscription && (

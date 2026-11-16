@@ -33,9 +33,11 @@ const pct = (n, sur) => (sur ? Math.round((n / sur) * 100) : null);
 const moyenne = (t) => (t.length ? Math.round(t.reduce((a, b) => a + b, 0) / t.length) : null);
 const JOURS_SEMAINE = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
 /** Pure : le jour de la semaine à Paris, lundi = 0. */
-export const jourSemaineParis = (iso) => JOURS_SEMAINE[new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', weekday: 'short' }).format(new Date(iso))] ?? 0;
+const FORMAT_JOUR_SEMAINE = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', weekday: 'short' });
+const FORMAT_HEURE = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false });
+export const jourSemaineParis = (iso) => JOURS_SEMAINE[FORMAT_JOUR_SEMAINE.format(new Date(iso))] ?? 0;
 export const TRANCHES_DUREE = [[0, 30, '< 30 s'], [30, 60, '30 s à 1 min'], [60, 120, '1 à 2 min'], [120, 300, '2 à 5 min'], [300, 600, '5 à 10 min'], [600, Infinity, '> 10 min']];
-export const heureParis = (iso) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(new Date(iso))) % 24;
+export const heureParis = (iso) => Number(FORMAT_HEURE.format(new Date(iso))) % 24;
 
 /** Pure : les chiffres d'une liste d'appels (une personne, ou l'équipe). */
 export function chiffres(appels, { sessions = [], maintenantD = new Date() } = {}) {
@@ -125,7 +127,12 @@ export function suiviAppels({ jours = 30, source = null, par = null, maintenantD
   const agences = new Map(Records.list('AgenceProspect').map((a) => [a.id, a]));
   const listes = new Map(Records.list('ListeAgences').map((l) => [l.id, l]));
   const fiches = new Map(Records.list('AgentImmo').map((f) => [f.id, f]));
-  const bruts = Records.list(APPEL)
+  // Toute la table lue une fois (15 nov. 2026, Jules : « le temps de chargement de Suivi appels est trop élevé ») :
+  // le journal la relisait pour chacune de ses 300 lignes, afin de trouver l'appel qu'elle remplace.
+  const tousLesAppels = Records.list(APPEL);
+  const remplacants = new Map();
+  for (const y of tousLesAppels) if (y.remplace_par && !remplacants.has(y.remplace_par)) remplacants.set(y.remplace_par, y);
+  const bruts = tousLesAppels
     .filter((x) => String(x.le) >= depuis && !x.essai_archive && !['remplace', 'abandonne'].includes(x.etat) && sien(x))
     .map((x) => ({ ...x, _source: sourceDe(x, sessions) }));
   // Les relances par mail (10 oct. 2026) sont des contacts, pas des appels : elles se comptent à part,
@@ -136,6 +143,9 @@ export function suiviAppels({ jours = 30, source = null, par = null, maintenantD
   const sessionsFen = [...sessions.values()].filter((s) => String(s.debut) >= depuis && !s.essai && sien(s));
 
   // Par analyste : toute l'équipe nommée, même ceux qui n'ont pas appelé (c'est aussi une information).
+  // Les agences passées en relance, comptées une fois par personne (et non une fois par analyste sur les 1 700 agences).
+  const enRelancePar = new Map();
+  for (const a of agences.values()) if (a.en_relance?.par && String(a.en_relance.le) >= depuis.slice(0, 10)) enRelancePar.set(a.en_relance.par, (enRelancePar.get(a.en_relance.par) || 0) + 1);
   const equipe = new Map();
   for (const x of appels) {
     const e = String(x.par || '').toLowerCase();
@@ -149,7 +159,7 @@ export function suiviAppels({ jours = 30, source = null, par = null, maintenantD
     premier: t.map((x) => x.le).sort()[0] || null,
     dernier: t.map((x) => x.le).sort().at(-1) || null,
     nouvelles_agences: new Set(t.filter((x) => x._source === 'prospection').map((x) => x.agent_id)).size,
-    envoyees_en_relance: [...agences.values()].filter((a) => a.en_relance?.par === email && String(a.en_relance.le) >= depuis.slice(0, 10)).length,
+    envoyees_en_relance: enRelancePar.get(email) || 0,
     relances_mail: mailsRelance.filter((x) => String(x.par || '').toLowerCase() === email).length,
   })).sort((a, b) => b.appels - a.appels);
 
@@ -160,18 +170,28 @@ export function suiviAppels({ jours = 30, source = null, par = null, maintenantD
     // Pas de jour avant le début des mesures : la courbe commence le 13 octobre.
     if (!debutMesures || j >= R.jourDe(new Date(debutMesures))) joursListe.push(j);
   }
+  // Le jour et l'heure de Paris de chaque appel, calculés une fois (et non pour chaque jour et chaque heure).
+  const parJourDe = new Map();
+  const heureDe = new Map();
+  for (const x of appels) {
+    const j = R.jourDe(new Date(x.le));
+    if (!parJourDe.has(j)) parJourDe.set(j, []);
+    parJourDe.get(j).push(x);
+    heureDe.set(x, heureParis(x.le));
+  }
   const parJour = joursListe.map((j) => {
-    const dans = appels.filter((x) => R.jourDe(new Date(x.le)) === j);
+    const dans = parJourDe.get(j) || [];
     const dj = dans.map((x) => Number(x.duree_s)).filter((n) => n > 0);
     const parole = dans.map((x) => x.parole?.pct).filter(Number.isFinite);
     return { jour: j, appels: dans.length, parole_pct: parole.length ? Math.round(parole.reduce((a, b) => a + b, 0) / parole.length) : null, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, duree_moyenne_s: moyenne(dj), duree_totale_s: dj.reduce((t, n) => t + n, 0),
       // Le temps après l'appel, ce jour-là (16 oct. 2026, Jules) : la médiane de chaque étape depuis le raccrochage.
       apres_appel: Object.fromEntries(ETAPES_TEMPS.map((k) => { const t = dans.map((x) => x.temps?.[`${k}_ms`]).filter((n) => Number.isFinite(n)); return [k, { mediane_ms: mediane(t), n: t.length }]; })), biens: dans.filter((x) => x.issue === 'a_des_murs').length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
   });
-  const heures = Array.from({ length: 24 }, (_, h) => ({ heure: h, appels: appels.filter((x) => heureParis(x.le) === h).length }));
+  const heures = Array.from({ length: 24 }, (_, h) => ({ heure: h, appels: 0 }));
+  for (const x of appels) heures[heureDe.get(x)].appels += 1;
   // La carte jour × heure (14 oct. 2026) : lundi à dimanche, heure de Paris.
   const semaine = Array.from({ length: 7 }, (_, j) => ({ jour: j, heures: Array(24).fill(0) }));
-  for (const x of appels) semaine[jourSemaineParis(x.le)].heures[heureParis(x.le)] += 1;
+  for (const x of appels) semaine[jourSemaineParis(x.le)].heures[heureDe.get(x)] += 1;
   // La répartition des durées : combien d'appels de moins de 30 s, de 30 s à 1 min, etc.
   const durees = TRANCHES_DUREE.map(([de, a, mot]) => ({ mot, appels: appels.filter((x) => Number(x.duree_s) > 0 && x.duree_s >= de && x.duree_s < a).length }));
   const sources = Object.keys(SOURCES).map((k) => ({ cle: k, libelle: SOURCES[k], appels: k === 'relances_mail' ? mailsRelance.length : tous.filter((x) => x._source === k).length })).filter((x) => x.appels);
@@ -181,7 +201,7 @@ export function suiviAppels({ jours = 30, source = null, par = null, maintenantD
   const lignes = [...appels].sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, journal).map((x) => {
     const ag = x.agence_id ? agences.get(x.agence_id) : null;
     const f = fiches.get(x.agent_id);
-    const remplace = tous.find((y) => y.remplace_par === x.id) || Records.list(APPEL).find((y) => y.remplace_par === x.id) || null;
+    const remplace = tous.find((y) => y.remplace_par === x.id) || remplacants.get(x.id) || null;
     const champs = Object.fromEntries(Object.entries(x.compris?.champs || {}).map(([k, v]) => [k, Array.isArray(v?.valeur) ? v.valeur.join(' ; ') : v?.valeur ?? null]));
     const citations = Object.entries(x.citations || {}).filter(([, v]) => v).map(([k, v]) => ({ cle: k, phrase: v }));
     return {

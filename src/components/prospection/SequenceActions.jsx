@@ -437,7 +437,6 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const pr = par("relance");
   const pr2 = par("relance_suivante");
   const pmo = par("monday");
-  const pdi = par("diffusion");
   // Le SMS qu'il a demandé (16 oct. 2026) : il part du téléphone de l'analyste, la plateforme le note.
   const psms = par("sms");
   const [sms, setSms] = useState(() => psms?.texte || "");
@@ -727,10 +726,11 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   if (par("ne_plus_appeler")) maintenant.push(etape(par("ne_plus_appeler"), { label: "Ne plus appeler", detail: "Ni relance ni mail" }));
   if (pm) maintenant.push(etape(pm, { label: "Email", detail: `${MAILS[mail?.modele || pm.modele] || pm.titre} · ${mail?.a ? `à ${mail.a}` : "adresse manquante : il ne part pas"}${pm.a_incertain && mail?.a === pm.a ? " · adresse à vérifier" : ""}${modifie ? " · modifié" : ""}`, warn: !mail?.a || (pm.a_incertain && mail?.a === pm.a) }));
   if (psms) maintenant.push(etape(psms, { label: "SMS", detail: psms.a ? `au ${psms.a}, depuis votre téléphone` : "numéro manquant", warn: !psms.a }));
-  if (pdi) maintenant.push(etape(pdi, { label: "Ajouter à la liste de diffusion agents", detail: pdi.a || mail?.a ? `${mail?.a || pdi.a}` : "il manque l'adresse", warn: !(pdi.a || mail?.a) }));
-  for (const q of props.filter((x) => ["fiche", "signaler_bien", "nouveau_contact"].includes(x.type) && !x.cache)) {
-    const lib = { fiche: "Compléter sa fiche", signaler_bien: "Noter le bien évoqué", nouveau_contact: "Appeler le contact donné" }[q.type];
-    maintenant.push(etape(q, { label: lib, detail: String(q.titre).replace(/^Ajouter à sa fiche : /, "").replace(/^Noter le bien évoqué : /, ""), warn: !!q.incertain }));
+  // Plus de « Ajouter à la liste de diffusion agents » ni de « Noter le bien évoqué » (16 nov. 2026, Jules), même sur un
+  // appel préparé avant : le bien part dans la remarque du contact Twenty CRM.
+  for (const q of props.filter((x) => ["fiche", "nouveau_contact"].includes(x.type) && !x.cache)) {
+    const lib = { fiche: "Compléter sa fiche", nouveau_contact: "Appeler le contact donné" }[q.type];
+    maintenant.push(etape(q, { label: lib, detail: String(q.titre).replace(/^Ajouter à sa fiche : /, ""), warn: !!q.incertain }));
   }
   const ensuite = [];
   if (pr) ensuite.push(etape(pr, { label: "Planifier la relance", detail: `${pr.prochaine?.quoi}${relanceLe ? " · date changée" : ""}`, warn: !relanceLe && !!pr.incertain }));

@@ -140,7 +140,8 @@ test("Pas de bien : nouvelle ligne Twenty CRM complète et relue, mail Présenta
   assert.equal(l.colonnes.email, 'contact@agence-test.fr', "l'adresse du mail dans E-mail");
   assert.equal(l.colonnes.date_contact, auj, 'Date = le jour de l\'appel');
   assert.equal(l.colonnes.statut, "Pas de bien pour l'instant");
-  assert.equal(l.colonnes.diffusion, 'Oui');
+  // Plus de liste de diffusion proposée (16 nov. 2026, Jules) : la colonne n'est pas remplie.
+  assert.equal(l.colonnes.diffusion, '');
   assert.equal(l.colonnes.spoc, 'Nora Lorinquer');
   assert.match(l.colonnes.dernier, /^\d{2}\/\d{2}\/\d{4}/);
   assert.equal(l.colonnes.relance, R.ouvre(R.plusJours(auj, 30)));
@@ -156,7 +157,7 @@ test("Pas de bien : nouvelle ligne Twenty CRM complète et relue, mail Présenta
   assert.match(m.body, /^Bonjour,\n\nMerci pour votre temps lors de notre échange téléphonique\./);
   assert.match(m.body, /Au plaisir de travailler ensemble,\nNora Lorinquer\nKlocka · klocka\.immo\nnora\.l@klocka\.immo$/, 'la signature se pose sous la formule du canevas');
   assert.ok(!/\{\w+\}/.test(m.body), 'aucune variable laissée');
-  assert.equal(v.recu.diffusion.etat, 'ok');
+  assert.ok(!v.recu.diffusion);
   assert.match(v.recu.relance.texte, /^Relance /);
   assert.equal(MA.recu(r.appel.id).recu.mail.etat, 'ok', 'le reçu relu le dit aussi');
 });
@@ -189,7 +190,8 @@ test("Pas intéressé : Twenty CRM « Ne plus appeler », relance vidée, liste 
   const avant = envoyes.length;
   const { r, v } = await appeler(ag, 'pas_interesse');
   // 21 oct. 2026 : le mail et la liste restent à l'écran, décochés ; rien ne part tant qu'on ne les coche pas.
-  assert.ok(['mail', 'diffusion'].every((id) => r.appel.propositions.some((p) => p.id === id && p.coche === false)));
+  assert.ok(['mail'].every((id) => r.appel.propositions.some((p) => p.id === id && p.coche === false)));
+  assert.ok(!r.appel.propositions.some((p) => p.id === 'diffusion'));
   assert.equal(v.recu.monday.etat, 'ok', v.recu.monday.erreur);
   const l = ligneDe(faux, ag);
   assert.equal(l.colonnes.statut, 'Ne plus appeler');

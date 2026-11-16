@@ -264,7 +264,7 @@ test("le mode essai : tout le parcours, et rien n'en sort (ni Twenty CRM, ni mai
   assert.equal(v.ok, true);
   assert.equal(v.recu.monday.etat, 'info');
   assert.match(v.recu.monday.texte, /^Essai/);
-  assert.match(v.recu.diffusion.texte, /^Essai/);
+  assert.ok(!v.recu.diffusion);
   if (v.recu.mail) assert.match(v.recu.mail.texte, /^Essai : le mail/);
   const { aEnvoyer } = await import('./mails.js');
   assert.ok(!aEnvoyer().some((m) => m.essai), "« À envoyer » ne voit pas l'essai");
@@ -302,4 +302,9 @@ test("la fiche de la file porte ses interlocuteurs (avec leur source), son secte
   assert.deepEqual(x.contacts.map((c) => [c.nom, c.source, c.telephone]), [['Sophie Martin', 'Contact Twenty CRM', '06 12 48 90 33'], ['Jean-Luc Ferrand', 'Registre du commerce', null], ['Standard', 'Standard', '04 93 87 12 41']]);
   assert.equal(x.secteur, 'Antibes · 06600');
   assert.ok(Array.isArray(x.historique_detail));
+});
+
+test('16 nov. : le bien évoqué pendant l\'appel part dans la remarque du contact Twenty CRM', () => {
+  const d = MA.donneesMonday({ appel: { le: '2026-11-16T09:00:00Z', resume: 'Une pharmacie louée à Vannes.', biens: ['Pharmacie louée à Vannes, 600 000 €.'] }, agence: { nom: 'Cushman', liste_id: null }, fiche: null, issue: 'a_des_murs', user: { email: 'maxime.p@klocka.immo' }, relance: null });
+  assert.match(d.remarque, /Bien évoqué : Pharmacie louée à Vannes, 600 000 €\./);
 });

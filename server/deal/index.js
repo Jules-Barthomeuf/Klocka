@@ -453,12 +453,26 @@ function nettoyerTitre(titre) {
     .trim();
 }
 
+// La liste gardée tant que rien n'a bougé (15 nov. 2026, Jules : « ça prend trop de temps pour charger les Dossiers ») :
+// elle décodait chaque dossier en entier (matrice, extractions : jusqu'à 300 Ko chacun) à chaque ouverture de la page,
+// à chaque retour sur l'onglet et à chaque dossier ouvert (onglets K-Data). Elle se refait dès qu'un dossier, une lettre
+// d'intention, un projet ou un dossier de mandataire change, et au plus tard après une minute (« à relancer » suit l'heure).
+const SOURCES_LISTE = ['Deal', 'LettreIntention', 'Project', 'DossierMandataire'];
+let listeGardee = null;
 export function listerDossiers(limit = 50) {
+  const signature = SOURCES_LISTE.map((e) => Records.signature(e)).join('#');
+  if (!listeGardee || listeGardee.signature !== signature || Date.now() - listeGardee.le > 60_000) {
+    listeGardee = { signature, le: Date.now(), lignes: lireListeDossiers() };
+  }
+  // Un dossier de vente de mandataire pas encore mis en vente (`cache_equipe`) reste hors de la liste de l'équipe.
+  return listeGardee.lignes.slice(0, limit).filter((x) => !x.cache).map((x) => x.d);
+}
+
+function lireListeDossiers() {
   // Les lettres d'intention par dossier : l'étape « Offre » de la frise (17 oct. 2026).
   const offresParDeal = {};
   for (const l of Records.list('LettreIntention')) if (l.deal_id) offresParDeal[l.deal_id] = (offresParDeal[l.deal_id] || 0) + 1;
-  // Un dossier de vente de mandataire pas encore mis en vente (`cache_equipe`) reste hors de la liste de l'équipe.
-  return Records.list('Deal', { sort: '-created_date', limit }).filter((d) => !d.cache_equipe).map((d) => ({
+  return Records.list('Deal', { sort: '-created_date' }).map((d) => ({ cache: !!d.cache_equipe, d: d.cache_equipe ? null : {
     nb_offres: offresParDeal[d.deal_id] || 0,
     id: d.id,
     deal_id: d.deal_id,
@@ -503,7 +517,7 @@ export function listerDossiers(limit = 50) {
       loyer_annuel: l.lot?.loyer_annuel_ht_hc?.absent === false ? l.lot.loyer_annuel_ht_hc.valeur : null,
       surface_m2: l.lot?.surface_m2?.absent === false ? l.lot.surface_m2.valeur : null,
     })),
-  }));
+  } }));
 }
 
 const LISIBLE = /\.(pdf|png|jpe?g|webp|gif)$/i;

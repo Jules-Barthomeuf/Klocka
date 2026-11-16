@@ -9,9 +9,11 @@ const faits = new Set();
 // téléchargeaient ni en fond ni au survol, et le premier clic attendait leur morceau.
 const PAGE_DE = { CRM: "CrmTwenty", KData: "Outils" };
 const nomDePage = (cle) => PAGE_DE[cle] || cle;
-// Au survol, ce que la page lira d'abord part aussi : la barre du CRM (src/lib/crm-barre.js).
+// Au survol, ce que la page lira d'abord part aussi : la barre du CRM (src/lib/crm-barre.js), les chiffres du Suivi des
+// appels (src/lib/suivi-appels-requete.js).
 const DONNEES = {
   CrmTwenty: () => Promise.all([import("@/lib/crm-barre"), import("@/lib/query-client")]).then(([b, q]) => b.prechargerBarreCrm(q.queryClientInstance)),
+  SuiviAppels: () => Promise.all([import("@/lib/suivi-appels-requete"), import("@/lib/query-client")]).then(([s, q]) => s.prechargerSuiviAppels(q.queryClientInstance)),
 };
 const donneesLues = new Map();
 

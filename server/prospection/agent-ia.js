@@ -164,7 +164,9 @@ function resumeListe(l) {
 }
 
 // La liste du mode essai (agences fictives) n'apparaît pas parmi les villes.
-export const listes = () => Records.list(LISTE).filter((l) => !l.essai).sort((a, b) => a.ville.localeCompare(b.ville, 'fr')).map(resumeListe);
+// Une liste remplacée (15 nov. 2026 : « Nice » d'octobre et « Nice · Apollo », remplacées par la Nice complète) est
+// archivée : ses lignes restent (relances, appels), elle ne se montre plus.
+export const listes = () => Records.list(LISTE).filter((l) => !l.essai && !l.archivee).sort((a, b) => a.ville.localeCompare(b.ville, 'fr')).map(resumeListe);
 
 export function liste(id) {
   let l = Records.get(LISTE, id);
@@ -673,7 +675,8 @@ const enCours = new Set();
 export function lancer(villeBrute, user) {
   const ville = casse(String(villeBrute || '').trim()).slice(0, 80);
   if (ville.length < 2) return { ok: false, error: 'Quelle ville ?' };
-  let l = Records.list(LISTE).find((x) => norm(x.ville) === norm(ville));
+  // Une liste archivée (remplacée) ne se relance pas : la ville reprend sa liste en cours.
+  let l = Records.list(LISTE).find((x) => !x.archivee && norm(x.ville) === norm(ville));
   if (l && enCours.has(l.id)) return { ok: true, liste: resumeListe(l), deja: true };
   l = l
     ? Records.update(LISTE, l.id, { etat: 'en_cours', etape: 'Démarrage', lancee_par: user?.email || null, lancee_le: maintenant() })
@@ -1100,7 +1103,7 @@ export function importerAnnuairesFournis({ dossier = path.join(path.dirname(file
     const texte = fs.readFileSync(path.join(dossier, f), 'utf8');
     const empreinte = `${texte.length}:${[...texte].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)}`;
     const cle = `annuaires-fournis:${f}`;
-    const l = Records.list(LISTE).find((x) => !x.essai && norm(x.ville) === norm(villeFichier.replace(/-/g, ' ')));
+    const l = Records.list(LISTE).find((x) => !x.essai && !x.archivee && norm(x.ville) === norm(villeFichier.replace(/-/g, ' ')));
     if (!l) { bilan.push({ fichier: f, ignore: `pas de liste « ${villeFichier} »` }); continue; }
     if (Meta.get(`${cle}:${l.id}`) === empreinte) { bilan.push({ fichier: f, deja: true }); continue; }
     const r = collerMandataires(l.id, { texte, reseau }, { email: 'liens fournis par Jules' });

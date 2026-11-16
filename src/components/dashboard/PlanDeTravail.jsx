@@ -1,6 +1,5 @@
 import React from "react";
 import { motion } from "framer-motion";
-import CeQuiVousAttend from "@/components/dashboard/CeQuiVousAttend";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -12,7 +11,7 @@ import { J, alpha } from "@/design/jetons";
 // « mail » ouvre un brouillon éditable, jamais un envoi.
 
 // L'Accueil (17 oct. 2026, Jules) : `apresChat` (raccourcis et cartes de Haka) se pose sous la saisie,
-// `bas` (À valider, Fait par Haka) prend la place de « Ce qui vous attend ».
+// `bas` (À valider, Fait par Haka) se pose sous la saisie.
 export default function PlanDeTravail({ chat = null, conversation = false, historique = null, apresChat = null, bas = null }) {
   const utilisateur = useUser();
   const brut = (utilisateur?.full_name || utilisateur?.email || "").split(/[ @]/)[0] || "";
@@ -61,11 +60,7 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
           {bas}
         </motion.div>
       )}
-      {!conversation && !historique && !bas && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mx-auto mt-[9vh] grid max-w-[440px] gap-y-8 max-md:mt-10">
-          <CeQuiVousAttend />
-        </motion.div>
-      )}
+      {/* « Ce qui vous attend » retiré (15 nov. 2026, Jules : « supprime complètement les notifications et tout ça »). */}
     </div>
   );
 }

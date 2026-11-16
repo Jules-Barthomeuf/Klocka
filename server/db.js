@@ -95,6 +95,9 @@ db.exec(`
   -- lourdes, qu'on ne désérialise plus toutes pour en garder une ville.
   CREATE INDEX IF NOT EXISTS idx_records_ville_id
     ON records(entity, json_extract(data, '$.ville_id'));
+  -- Le fil d'un dossier de mandataire (15 nov. 2026) : ses messages seuls, sans parcourir ceux des autres dossiers.
+  CREATE INDEX IF NOT EXISTS idx_records_fil_dossier
+    ON records(json_extract(data, '$.dossier_id')) WHERE entity = 'MessageDossier';
   -- Les comptes d'ALX (30 oct. 2026) : cibles par ville et par pile, à appeler, à écrire. L'index porte les quatre
   -- valeurs : SQLite compte depuis l'index sans relire le JSON des onze mille fiches (2 s, à chaque passage de la
   -- veille de toutes les pages, devenues 10 ms).

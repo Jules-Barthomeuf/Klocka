@@ -53,6 +53,25 @@ export function etapeDuDossier(deal, projetsParDeal = new Map()) {
 const rang = (etape) => (etape === 'non' ? 0 : Math.max(0, ETAPES.indexOf(etape)));
 
 const ADRESSE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+
+/**
+ * Pure : la personne de l'équipe qui a fait suivre la fiche (15 nov. 2026, Jules : « dès qu'ils reçoivent une fiche,
+ * ils la transfèrent à sourcing@ »). L'expéditeur du mail quand il est de l'équipe, sinon personne.
+ */
+export function transfereePar(mail, estInterne = () => false) {
+  const e = String(mail?.de_email || '').toLowerCase();
+  return e && (mail.interne || estInterne(e)) ? e : null;
+}
+
+/**
+ * Pure : combien de biens une fiche apporte (15 nov. 2026, Jules : « des fois un PDF avec plusieurs fiches dedans ») :
+ * la correction à la main d'abord, puis les biens lus dans le dossier, sinon un.
+ */
+export function biensDe(record) {
+  const corrige = Number(record?.fiche_compte?.biens);
+  if (Number.isFinite(corrige) && corrige >= 0) return corrige;
+  return Math.max(1, record?.lots?.length || 0);
+}
 const nomSeul = (t) => String(t || '').replace(/<[^>]*>/, '').replace(/["']/g, '').trim() || null;
 
 /**
@@ -107,6 +126,9 @@ export function listerFiches({ deals = [], mails = [], projets = [] } = {}, { de
       agent_email: agent?.email || null,
       agent_corrige: !!agent?.corrige,
       boite: mail?.compte || null,
+      transferee_par: transfereePar(mail, estInterne),
+      biens: biensDe(d),
+      compte: d.fiche_compte || null,
       // Arrivée par mail : seule une fiche reçue a un expéditeur à rattacher (11 oct. 2026).
       par_mail: !!mail,
       titre: d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || 'Dossier',
@@ -124,7 +146,7 @@ export function listerFiches({ deals = [], mails = [], projets = [] } = {}, { de
     const agent = agentDeLaFiche({ corrige: m.fiche_agent, mail: m }, estInterne);
     // Un mail interne sans expéditeur d'origine n'est pas une fiche reçue : c'est un échange d'équipe.
     if (m.interne && !agent) continue;
-    fiches.push({ id: `mail:${m.id}`, le: m.date || null, agent: agent?.nom || null, agent_email: agent?.email || null, agent_corrige: !!agent?.corrige, boite: m.compte || null, par_mail: true, titre: m.objet || '(sans objet)', ville: null, verdict: null, etape: 'recue', deal_id: null, projet_id: null, a_preanalyser: true });
+    fiches.push({ id: `mail:${m.id}`, le: m.date || null, agent: agent?.nom || null, agent_email: agent?.email || null, agent_corrige: !!agent?.corrige, boite: m.compte || null, transferee_par: transfereePar(m, estInterne), biens: biensDe(m), compte: m.fiche_compte || null, par_mail: true, titre: m.objet || '(sans objet)', ville: null, verdict: null, etape: 'recue', deal_id: null, projet_id: null, a_preanalyser: true });
   }
   return fiches
     .filter((f) => !depuis || String(f.le || '') >= depuis)

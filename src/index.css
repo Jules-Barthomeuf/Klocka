@@ -1013,6 +1013,14 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .k-rubans path:nth-child(2) { stroke: rgb(var(--k-bleu-rgb)); opacity: .55; }
 .k-rubans path:nth-child(3) { stroke: rgb(var(--k-encre-rgb)); opacity: .35; }
 :root[data-theme="clair"] .k-rubans path { mix-blend-mode: normal; }
+/* Pendant l'appel (16 nov. 2026) : les rubans passent aux gris quand l'agent parle, à l'accent quand c'est vous. */
+.k-rubans path { transition: stroke .4s ease, opacity .4s ease; }
+.k-rubans-autre path:nth-child(1) { stroke: rgb(var(--k-encre-rgb)); opacity: .7; }
+.k-rubans-autre path:nth-child(2) { stroke: rgb(var(--k-craie-rgb)); opacity: .4; }
+.k-rubans-autre path:nth-child(3) { stroke: rgb(var(--k-ardoise-rgb)); opacity: .3; }
+@keyframes k-curseur { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.k-curseur { animation: k-curseur 1s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) { .k-curseur { animation: none; } }
 @media (prefers-reduced-motion: reduce) {
   .k-aura-halo, .k-aura-filet::before { animation: none; display: none; }
   .k-aura-posee .k-aura-halo, .k-aura-posee .k-aura-filet::before { transition: none; }

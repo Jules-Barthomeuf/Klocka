@@ -4,6 +4,10 @@
 // passe à Voxtral temps réel. Les mots reviennent au fil de la parole. Le même flux de micro que l'enregistrement : rien
 // ne se dispute le micro.
 
+// Les noms propres corrigés à chaque mot reçu (15 nov. 2026, Jules : « Coralie Guillaud, Klocka, Jules Barthomeuf ») :
+// les mêmes règles que la transcription par morceaux et la dictée (server/klocka-nom.js).
+import { corrigerKlocka } from "../../server/klocka-nom.js";
+
 /** Pure : ramène des échantillons (-1..1) d'une fréquence à 16 kHz, en PCM 16 bits. */
 export function versPcm16(echantillons, de, vers = 16000) {
   const pas = de / vers;
@@ -49,12 +53,12 @@ export function ouvrirTranscriptionDirecte(flux, { onTexte = () => {}, onEtat = 
     let m;
     try { m = JSON.parse(e.data); } catch { return; }
     if (m.type === "pret") onEtat("pret");
-    else if (m.type === "delta") { texte += m.texte || ""; onTexte(texte); }
-    else if (m.type === "fin") { if (m.texte) texte = m.texte; onTexte(texte); finRecue(texte); }
+    else if (m.type === "delta") { texte += m.texte || ""; onTexte(corrigerKlocka(texte)); }
+    else if (m.type === "fin") { if (m.texte) texte = m.texte; onTexte(corrigerKlocka(texte)); finRecue(corrigerKlocka(texte)); }
     else if (m.type === "erreur") onEtat("erreur", m.message);
   };
   ws.onerror = () => onEtat("erreur", "Connexion à la transcription perdue");
-  ws.onclose = () => { finRecue(texte); if (!ferme) onEtat("erreur", "Connexion à la transcription fermée"); };
+  ws.onclose = () => { finRecue(corrigerKlocka(texte)); if (!ferme) onEtat("erreur", "Connexion à la transcription fermée"); };
 
   const ctx = new Ctx();
   const source = ctx.createMediaStreamSource(flux);
@@ -84,8 +88,8 @@ export function ouvrirTranscriptionDirecte(flux, { onTexte = () => {}, onEtat = 
     ferme = true;
     try { noeud.disconnect(); source.disconnect(); ctx.close(); } catch { /* déjà fermé */ }
     if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "fin" }));
-    const delai = new Promise((ok) => setTimeout(() => ok(texte), 3000));
+    const delai = new Promise((ok) => setTimeout(() => ok(corrigerKlocka(texte)), 3000));
     return Promise.race([finale, delai]).then((t) => { try { ws.close(); } catch { /* déjà fermée */ } return t; });
   };
-  return { arreter, texte: () => texte };
+  return { arreter, texte: () => corrigerKlocka(texte) };
 }

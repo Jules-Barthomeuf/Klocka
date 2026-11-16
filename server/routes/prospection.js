@@ -523,6 +523,13 @@ export function monterProspection(app) {
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
+  // Le résumé IA de la carte d'appel (15 nov. 2026) : gardé avec l'agence, refait quand ce qu'on sait d'elle change.
+  app.get('/api/prospection/mode-appel/agences/:id/resume', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = await (await import('../prospection/resume-agence.js')).resumeDeLAgence(req.params.id);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/prospection/mode-appel/appels/:id/raison', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const r = (await import('../prospection/appels-v2.js')).noterRaison(req.params.id, req.body?.cle, req.body?.raison);

@@ -23,3 +23,8 @@ test('la session Mistral : son 16 kHz, délai court, sans mots-clés (refusés p
   assert.equal(m.session.target_streaming_delay_ms, 240);
   assert.equal(m.session.context_bias, undefined);
 });
+
+test('les noms propres se corrigent dans le texte du temps réel', async () => {
+  const { corrigerKlocka } = await import('./klocka-nom.js');
+  assert.equal(corrigerKlocka("Bonjour, Jules Bartomeuf de Clocka, je suis avec Coralie Guillot."), "Bonjour, Jules Barthomeuf de Klocka, je suis avec Coralie Guillaud.");
+});

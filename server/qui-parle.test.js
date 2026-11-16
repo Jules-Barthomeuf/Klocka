@@ -43,3 +43,14 @@ test('les phrases d\'une même voix forment un bloc ; en essai, la voix se devin
   assert.equal(voixParLesMots("Bonjour, c'est Jules de Klocka, nous achetons des murs."), 'vous');
   assert.equal(voixParLesMots('Ah non, ici c\'est un cabinet dentaire.'), 'autre');
 });
+
+test('l\'analyste qui se présente est toujours « Vous » ; sans seuil, le niveau se compare au sien', async () => {
+  const { voixDeLaPhrase, ditParVous } = await import('../src/lib/qui-parle.js');
+  assert.ok(ditParVous('Bonjour, c\'est Maxime de Klocka.'));
+  assert.ok(ditParVous('Je suis Coralie, je vous appelle pour nos clients.'));
+  assert.ok(!ditParVous('Oui, on fait du commerce.'));
+  assert.equal(voixDeLaPhrase('Bonjour, Maxime de Klocka.', 0.01, 0.05), 'vous');
+  assert.equal(voixDeLaPhrase('Oui bien sûr.', 0.02, null, 0.1), 'autre');
+  assert.equal(voixDeLaPhrase('Très bien.', 0.09, null, 0.1), 'vous');
+  assert.equal(voixDeLaPhrase('Très bien.', 0.09, null, null), null);
+});

@@ -1719,6 +1719,8 @@ import('./prospection/index.js').then(({ demarrerProspection }) => {
 
 // L'agent IA de la prospection : une ville coupée par un redémarrage se dit interrompue.
 import('./prospection/agent-ia.js').then(({ reprendre }) => reprendre()).catch((e) => console.warn(`[démarrage] agent IA prospection : ${e?.message || e}`));
+// La panne de l'accès Google (12-16 nov. 2026) : les mails restés prêts sont écartés, une fois, au démarrage.
+if (!process.env.NODE_TEST_CONTEXT) import('./prospection/mails.js').then(({ ecarterMailsDeLaPanne }) => { const n = ecarterMailsDeLaPanne(); if (n) console.log(`[mails] ${n} mail(s) de la panne Google écarté(s)`); }).catch((e) => console.warn('[mails] panne Google :', e?.message || e));
 // Le mode appel : une écriture Monday ratée reste orange sur le reçu et se
 // réessaie toute seule, chaque minute, jusqu'à ce que la ligne relue soit juste.
 setInterval(() => {

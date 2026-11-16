@@ -1,7 +1,8 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
-import { AudioLines } from "lucide-react";
+import { ArrowUpRight, AudioLines, UserRound } from "lucide-react";
 import { demandeRetour } from "@/lib/retour-appel";
 import AvatarAK from "@/components/AvatarAK";
 import SequenceActions from "@/components/prospection/SequenceActions";
@@ -15,6 +16,21 @@ import SequenceActions from "@/components/prospection/SequenceActions";
 // L'offre du retour d'AK (15 nov. 2026, Jules) : une précision sur l'appel, ou l'analyse de ce qu'on peut améliorer.
 const OUVERTURE = "Une précision sur cet appel ? J'ai aussi repéré quelques petites choses à améliorer dans votre appel. Voulez-vous qu'on regarde ça ensemble ?";
 const TITRE = "m-0 text-center text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre";
+
+function LienPersonne({ agentId, nom }) {
+  const { data, isLoading } = useQuery({ queryKey: ["page-personne", agentId], queryFn: () => base44.request("GET", `/api/prospection/agents/${encodeURIComponent(agentId)}/page`), staleTime: Infinity, retry: false });
+  if (isLoading) return <p className="m-0 mt-5 text-[13.5px] text-brume">Je cherche la page de {nom || "votre interlocuteur"}…</p>;
+  if (!data?.url) return null;
+  const hote = (() => { try { return new URL(data.url).host.replace(/^www\./, ""); } catch { return data.url; } })();
+  return (
+    <a href={data.url} target="_blank" rel="noreferrer"
+      className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-bord-doux px-4 py-2 text-[14px] text-encre transition-colors hover:border-bord-vif">
+      <UserRound className="h-4 w-4 flex-none text-menthe" strokeWidth={1.8} />
+      <span className="min-w-0 truncate">{nom || "Votre interlocuteur"} · {hote}</span>
+      <ArrowUpRight className="h-3.5 w-3.5 flex-none text-ardoise" />
+    </a>
+  );
+}
 
 export function BoutonTranscription({ actif, onClick }) {
   return (
@@ -100,6 +116,9 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
         {actions}
         {/* La question dans le même message que les actions (15 nov. 2026, Jules : « un message, une photo de profil ») ;
             ses deux réponses d'un clic suivent juste dessous. */}
+        {/* La page de la personne de l'appel (16 nov. 2026, Jules : « la page équipe de la personne ») : page équipe du site
+            de son agence, son LinkedIn, ou trouvée par une recherche web ; s'ouvre dans un nouvel onglet. */}
+        {!enRelecture && appel?.agent_id && <LienPersonne agentId={appel.agent_id} nom={edits?.interlocuteur || appel?.compris?.champs?.interlocuteur?.valeur || null} />}
         {!enRelecture && <p className="m-0 mt-6 text-[16px] leading-[1.6] text-encre">{OUVERTURE}</p>}
       </div>
     </div>

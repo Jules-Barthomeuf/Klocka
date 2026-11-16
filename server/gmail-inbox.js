@@ -210,6 +210,8 @@ export async function releverBoite(compteEmail, { max = 25, repecher = false } =
       const recu = Records.create('MailRecu', { ...mail, retenu_parce_que: raison, juge_par_ia: !!incertain, interne: !!interneTri, ...(commande ? { commande: true } : {}) });
       // Un mail retenu entre dans l'Intelligence (Layer, phase 9).
       if (!process.env.NODE_TEST_CONTEXT) import('./layer-sources.js').then((m) => m.depuisMail(recu, { sens: 'recu' })).catch((e) => console.error('[layer] mail reçu :', e?.message || e));
+      // Le mail d'un agent s'inscrit aussitôt sur son contact Twenty CRM (16 nov. 2026, Jules).
+      if (!process.env.NODE_TEST_CONTEXT) import('./prospection/mail-vers-crm.js').then((m) => m.mailRecuVersCrm(recu)).catch((e) => console.error('[crm] mail reçu :', e?.message || e));
       nouveaux++;
     } catch (e) {
       // Un message illisible ne doit pas bloquer la relève des autres.

@@ -308,3 +308,11 @@ test('16 nov. : le bien évoqué pendant l\'appel part dans la remarque du conta
   const d = MA.donneesMonday({ appel: { le: '2026-11-16T09:00:00Z', resume: 'Une pharmacie louée à Vannes.', biens: ['Pharmacie louée à Vannes, 600 000 €.'] }, agence: { nom: 'Cushman', liste_id: null }, fiche: null, issue: 'a_des_murs', user: { email: 'maxime.p@klocka.immo' }, relance: null });
   assert.match(d.remarque, /Bien évoqué : Pharmacie louée à Vannes, 600 000 €\./);
 });
+
+test('16 nov. : un bien évoqué au téléphone se lit comme une fiche (qui, où, quand, ce qui a été dit)', () => {
+  const t = MA.texteDuBienEvoque('boulangerie louée 24 000 euros par an, centre-ville', { agent: 'Martin Durand', agence: 'Foncia', ville: 'Antibes', le: '2026-11-16T09:00:00Z', analyste: 'Coralie', citation: 'une boulangerie louée 24 000 € par an' });
+  assert.match(t, /^Bien proposé au téléphone par Martin Durand \(Foncia, Antibes\), le 16 novembre 2026, à Coralie\./);
+  assert.match(t, /Le bien : boulangerie louée 24 000 euros par an/);
+  assert.match(t, /Ville : Antibes/);
+  assert.match(t, /Ce que l'agent a dit : « une boulangerie/);
+});

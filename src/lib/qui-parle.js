@@ -88,6 +88,26 @@ const MOTS_DE_KLOCKA = /klocka|nos (clients|investisseurs|recherches|acqu[ée]re
 /** Pure : la voix d'une phrase d'essai, d'après ses mots. */
 export const voixParLesMots = (texte) => (MOTS_DE_KLOCKA.test(String(texte || "")) ? "vous" : "autre");
 
+// L'analyste qui se présente (16 nov. 2026, Jules : « quand Maxime ou les autres se présentent, ça doit mettre Vous ») :
+// « Klocka », « je suis Maxime », « c'est Coralie », « Nora de Klocka », nos clients, nos investisseurs.
+const SE_PRESENTE = /\bklocka\b|\b(?:je suis|c['’]est|ici)\s+(?:jules|coralie|nora|maxime|paul)\b|\b(?:jules|coralie|nora|maxime|paul)\s+de\s+klocka\b|\bnos (?:clients|investisseurs|acqu[ée]reurs)\b|\bnous achetons\b/i;
+
+/** Pure : la phrase est-elle dite par l'analyste, d'après ses mots ? (sa présentation, Klocka, nos clients) */
+export const ditParVous = (texte) => SE_PRESENTE.test(String(texte || ""));
+
+/**
+ * Pure : la voix d'une phrase. Ses mots d'abord (une présentation est toujours « vous ») ; puis le niveau face au seuil ;
+ * sans seuil (voix pas encore séparées), le niveau face à celui des phrases reconnues comme « vous » : proche, c'est
+ * vous ; nettement plus faible, c'est l'autre.
+ */
+export function voixDeLaPhrase(texte, niveau, seuil, ancre = null) {
+  if (ditParVous(texte)) return "vous";
+  const v = voixDe(niveau, seuil);
+  if (v) return v;
+  if (niveau == null || !ancre) return null;
+  return niveau >= ancre * 0.6 ? "vous" : "autre";
+}
+
 /** Pure : les phrases à la suite d'une même voix en un seul bloc, avec leurs clés (pour corriger le bloc d'un clic). */
 export function enBlocs(lignes) {
   const blocs = [];

@@ -838,6 +838,13 @@ export function monterProspection(app) {
   }));
 
   // La page Agents (16 oct. 2026) : tous les agents, et l'intégralité des appels de chacun.
+  // La page de la personne de l'appel (16 nov. 2026, Jules) : page équipe, LinkedIn, ou trouvée par une recherche web.
+  app.get('/api/prospection/agents/:id/page', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { pagePersonne } = await import('../prospection/page-personne.js');
+    ok(res, await pagePersonne(String(req.params.id)));
+  }));
+
   app.get('/api/prospection/agents-liste', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     ok(res, { agents: (await import('../prospection/agents-liste.js')).listerAgents() });

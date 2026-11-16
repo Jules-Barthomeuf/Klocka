@@ -23,7 +23,7 @@ import Chargement from "@/components/ui/Chargement";
 import { ouvrirTranscriptionDirecte, enPhrases } from "@/lib/transcription-directe";
 import { objectionEntendue } from "@/lib/objections";
 import TranscriptionParVoix from "@/components/prospection/TranscriptionParVoix";
-import { niveauDePlage, niveauEntre, phrasesAvecPlages, seuilDeuxVoix, texteNormal, voixDe, voixParLesMots } from "@/lib/qui-parle";
+import { niveauDePlage, niveauEntre, phrasesAvecPlages, seuilDeuxVoix, texteNormal, voixDe, voixDeLaPhrase, ditParVous, voixParLesMots } from "@/lib/qui-parle";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -1156,13 +1156,18 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     const v = voix.current;
     if (tempsReelOk.current) {
       const { phrases, enCours: bout } = phrasesAvecPlages(texteDirect);
-      const auto = (d, f) => voixDe(niveauDePlage(v.arrivees, v.historique, d, f), v.seuil);
+      const niveaux = phrases.map((p) => niveauDePlage(v.arrivees, v.historique, p.debut, p.fin));
+      // L'ancre : le niveau des phrases où l'analyste se présente (Klocka, son prénom) ; elle sert tant que le seuil manque.
+      const ancres = phrases.map((p, k) => (ditParVous(p.texte) ? niveaux[k] : null)).filter((n) => n != null).sort((a, b) => a - b);
+      const ancre = ancres.length ? ancres[Math.floor(ancres.length / 2)] : null;
       return {
-        lignes: phrases.map((p, k) => ({ cle: `r${k}`, texte: p.texte, qui: voixCorrigees[`r${k}`] ?? auto(p.debut, p.fin) })),
-        enCours: bout.texte ? { texte: bout.texte, qui: parle ?? auto(bout.debut, bout.fin) } : null,
+        lignes: phrases.map((p, k) => ({ cle: `r${k}`, texte: p.texte, qui: voixCorrigees[`r${k}`] ?? voixDeLaPhrase(p.texte, niveaux[k], v.seuil, ancre) })),
+        enCours: bout.texte ? { texte: bout.texte, qui: ditParVous(bout.texte) ? "vous" : parle ?? voixDeLaPhrase(bout.texte, niveauDePlage(v.arrivees, v.historique, bout.debut, bout.fin), v.seuil, ancre) } : null,
       };
     }
-    return { lignes: direct.filter((x) => x.texte).map((x) => ({ cle: `m${x.i}`, texte: x.texte, qui: voixCorrigees[`m${x.i}`] ?? x.qui ?? voixDe(x.niveau, v.seuil) })), enCours: null };
+    const ancresM = direct.filter((x) => x.texte && ditParVous(x.texte) && x.niveau != null).map((x) => x.niveau).sort((a, b) => a - b);
+    const ancreM = ancresM.length ? ancresM[Math.floor(ancresM.length / 2)] : null;
+    return { lignes: direct.filter((x) => x.texte).map((x) => ({ cle: `m${x.i}`, texte: x.texte, qui: voixCorrigees[`m${x.i}`] ?? x.qui ?? voixDeLaPhrase(x.texte, x.niveau, v.seuil, ancreM) })), enCours: null };
   })();
   const motsTranscrits = [...lignesVoix.lignes.map((l) => l.texte), lignesVoix.enCours?.texte || ""].join(" ").split(/\s+/).filter(Boolean).length;
   const [carteObjection, setCarteObjection] = useState(null);
@@ -1561,7 +1566,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     <>
                       {/* Les notes au-dessus de la calculatrice (22 oct. 2026, Jules). */}
                       <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu rows={11} />
-                      <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
+                      {/* En temps réel, le texte vient du flux, pas des morceaux (16 nov. 2026, Jules : « la calculatrice quand on parle de prix »). */}
+                      <CalculatriceEnLigne textes={[...lignesVoix.lignes.map((l) => l.texte), lignesVoix.enCours?.texte || "", notesAppel]} />
                     </>
                   ),
                   // Le pied de la carte (16 nov. 2026, maquette de Jules) : ce qui est enregistré, puis les issues sans conversation.

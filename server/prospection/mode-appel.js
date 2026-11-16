@@ -760,6 +760,47 @@ export function donneesMonday({ appel, agence, fiche, issue, user, relance, note
   };
 }
 
+/** Pure : le texte d'un bien évoqué au téléphone, lu comme une fiche (activité, adresse, prix, loyer tels que dits). */
+export function texteDuBienEvoque(bien, { agent = null, agence = null, ville = null, le = null, analyste = null, resume = null, citation = null } = {}) {
+  const quand = new Date(le || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return [
+    `Bien proposé au téléphone par ${agent || 'un agent'}${agence ? ` (${agence}${ville ? `, ${ville}` : ''})` : ville ? ` (${ville})` : ''}, le ${quand}${analyste ? `, à ${analyste}` : ''}.`,
+    '',
+    `Le bien : ${bien}`,
+    ville && !String(bien).toLowerCase().includes(String(ville).toLowerCase()) ? `Ville : ${ville}` : null,
+    citation ? `Ce que l'agent a dit : « ${citation} »` : null,
+    resume ? `Résumé de l'appel : ${resume}` : null,
+  ].filter((l) => l !== null).join('\n');
+}
+
+/** Les biens évoqués pendant un appel (trois au plus), lus comme une fiche et posés dans la Mémoire. */
+async function memoriserBiensDeLAppel(appel, { agence = null, analyste = null }) {
+  const { extraire } = await import('../deal/extract.js');
+  const { bienDepuisLot, ENTITE: MEMOIRE } = await import('../memoire/memoire.js');
+  const agentFiche = appel.agent_id ? Records.get('AgentImmo', appel.agent_id) : null;
+  const ville = Records.get(LISTE, agence?.liste_id)?.ville || agence?.ville || null;
+  const faits = [];
+  for (const bien of (appel.biens || []).slice(0, 3)) {
+    try {
+      const texte = texteDuBienEvoque(bien, { agent: agentFiche?.nom || appel.agent, agence: agence?.nom, ville, le: appel.le, analyste: prenom(analyste), resume: appel.resume, citation: appel.citations?.biens || null });
+      const { lots = [] } = await extraire(texte);
+      const b = bienDepuisLot(lots[0] || {}, null, {
+        agent_nom: agentFiche?.nom || appel.agent || null, agent_email: (agentFiche?.emails || [])[0] || null,
+        agent_telephone: (agentFiche?.telephones || [])[0] || null, agence: agence?.nom || agentFiche?.agence || null,
+        recu_le: appel.le || new Date().toISOString(), origine: 'appel', statut: 'memoire',
+      });
+      if (!b.adresse?.ville && b.ville == null && ville) Object.assign(b, { ville, adresse: { ...(b.adresse || {}), ville } });
+      if (!b.prix && !b.loyer_annuel && !b.cle_adresse && !b.locataire_activite) continue;
+      const cree = Records.create(MEMOIRE, { ...b, appel_id: appel.id, texte_appel: bien, par: analyste || null }, analyste || null);
+      faits.push(cree.id);
+    } catch (e) {
+      console.warn(`[mode appel] bien « ${String(bien).slice(0, 60)} » : ${e?.message || e}`);
+    }
+  }
+  Records.update(APPEL, appel.id, { biens_memoire: { ids: faits, le: new Date().toISOString() } });
+  return faits;
+}
+
 export const cibleMonday = (d, agence, fiche) => ({
   telephones: [d.telephone, numeroDe(agence), ...(fiche?.telephones || [])].filter(Boolean),
   emails: [d.email, ...(fiche?.emails || [])].filter(Boolean),
@@ -1064,11 +1105,13 @@ async function validerUneFois({ appel_id, sans_twenty = false, passe = null, cho
     Records.update(AGENCE, ag.id, { agents, prioritaire: { le: R.jourDe(new Date(maintenantD.getTime() + 86400000)), par: moi, nom: nc.contact.nom || null, telephone: nc.contact.telephone || null } });
     extras.push({ quoi: 'contact', etat: 'ok', texte: `${nc.contact.nom || 'Le contact'} ajouté, en tête de file demain` });
   }
-  // Plus exécutées (16 nov. 2026, Jules), même cochées sur un appel préparé avant : le bien va dans la remarque Twenty.
-  const bien = null;
-  if (bien && !essai) {
-    journal(appel.agent_id, { type: 'note', texte: `Bien évoqué : ${bien.biens.join(' ; ')}. Le dossier se crée quand la fiche arrive.`, par: moi });
-    extras.push({ quoi: 'bien', etat: 'ok', texte: `Bien noté : ${bien.biens[0]}` });
+  // Un commerce décrit au téléphone entre dans la Mémoire, comme une fiche reçue (16 nov. 2026, Jules : « pas un dossier,
+  // un truc à mettre dans la mémoire ») : le bien évoqué est lu comme une fiche (prix, loyer, adresse, activité), à plat,
+  // avec l'agent qui l'a dit ; la Mémoire le pose ensuite dans Propriétés Klocka. Une fois par appel, en fond.
+  if ((appel.biens || []).length && !essai && !appel.biens_memoire && !process.env.NODE_TEST_CONTEXT) {
+    Records.update(APPEL, appel.id, { biens_memoire: { en_cours: true, le: new Date().toISOString() } });
+    memoriserBiensDeLAppel(appel, { agence: ag, analyste: moi }).catch((e) => console.warn(`[mode appel] bien évoqué en Mémoire : ${e?.message || e}`));
+    extras.push({ quoi: 'bien', etat: 'ok', texte: `${appel.biens.length > 1 ? `${appel.biens.length} biens évoqués` : 'Bien évoqué'} : en Mémoire, avec prix et loyer` });
   }
   const prevenir = action('prevenir');
   if (prevenir && !essai) {

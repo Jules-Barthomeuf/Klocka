@@ -70,6 +70,25 @@ export function mailRelance(m, a, envoyeLe) {
   return { objet: /^re\s*:/i.test(m.objet) ? m.objet : `Re : ${m.objet}`, corps: [bonjour(a), '', `Je me permets de revenir vers vous au sujet de mon mail du ${R.dateCourte(R.jourDe(envoyeLe))}.${m.sous_genre === 'demande_fiche' ? ' Avez-vous pu retrouver la fiche du bien ?' : ' Avez-vous des murs commerciaux qui pourraient nous correspondre ?'}`, '', 'Bien à vous,', '{signature}'].join('\n') };
 }
 
+/** Les erreurs d'accès Google (client OAuth désactivé, session révoquée) : le mail ne part pas, et ne doit pas repartir seul. */
+export const PANNE_GOOGLE = /OAuth client was disabled|invalid_client|invalid_grant|unauthorized_client|Session Google expir/i;
+
+/**
+ * Les mails restés prêts pendant la panne de l'accès Google du 12 nov. 2026 (vers 18 h) au 16 nov. (14 h 30) : l'équipe
+ * les a envoyés à la main pendant ce temps ; ils sont écartés pour ne jamais partir en double. Idempotent.
+ */
+export function ecarterMailsDeLaPanne({ debut = '2026-11-12T17:00:00.000Z', fin = '2026-11-16T14:30:00.000Z' } = {}) {
+  let n = 0;
+  for (const m of Records.list(ENTITE)) {
+    if (m.essai || !['pret', 'differe'].includes(m.etat) || m.genre === 'sms') continue;
+    const le = String(m.cree_le || m.created_date || '');
+    if (le < debut || le > fin) continue;
+    Records.update(ENTITE, m.id, { etat: 'ecarte', ecarte_le: new Date().toISOString(), ecarte_motif: 'panne de l\'accès Google du 12 au 16 nov. : envoyé à la main' });
+    n += 1;
+  }
+  return n;
+}
+
 export function mettreEnAttente(champs) {
   return Records.create(ENTITE, { etat: 'pret', cree_le: new Date().toISOString(), ...champs });
 }
@@ -155,7 +174,13 @@ export async function envoyerMails(ids, user) {
     const deal = ['oui', 'retour'].includes(m.genre) ? { deal_id: m.deal_id, intention: m.intention } : {};
     let r;
     try { r = envoiPourTests ? await envoiPourTests({ to: m.a, subject: m.objet, body: corps, user }) : await functions.sendMail({ to: m.a, subject: m.objet, body: corps, intention: 'prospection_appel', ...deal }, { user }); } catch (e) { r = { success: false, error: e?.message || String(e) }; }
-    if (!r?.success && !r?.simulated) { resultats.push({ id, ok: false, error: r?.error || 'envoi raté' }); continue; }
+    if (!r?.success && !r?.simulated) {
+      // Une panne de l'accès Google (16 nov. 2026, Jules : « pendant ce temps on envoie les messages nous-mêmes, pas de
+      // doublon ») : le mail est écarté, il ne repartira pas d'un clic une fois l'accès revenu.
+      if (PANNE_GOOGLE.test(String(r?.error || ''))) Records.update(ENTITE, id, { etat: 'ecarte', ecarte_le: maintenant.toISOString(), ecarte_motif: 'panne de l\'accès Google : à envoyer à la main' });
+      resultats.push({ id, ok: false, error: r?.error || 'envoi raté' });
+      continue;
+    }
     Records.update(ENTITE, id, { etat: r.success ? 'envoye' : 'simule', envoye_le: maintenant.toISOString(), par: user?.email || null, corps });
     if (m.agent_id && agentDe(m.agent_id)) {
       journal(m.agent_id, { type: 'mail', texte: `${m.objet}`, par: user?.email });

@@ -73,7 +73,8 @@ export async function relire({ arreter = () => false, annuaire = null, filtre = 
   try {
     // Les commerces à relire, cherchés une fois par passage (3 nov. 2026) : relire les 82 000 lignes à chaque lot figeait
     // le serveur quatre secondes toutes les deux minutes ; chacun est revérifié au moment de le relire.
-    const aFaire = Records.champs(COMMERCE, ['exploitant.siren', 'exploitant.relu_annuaire_le', 'exploitant.gerants']).filter((l) => aRelire(l) && filtre(l)).map((l) => l.id);
+    // Par lots (16 nov. 2026) : les 82 000 lignes d'un bloc figeaient le serveur 15 s, tous les quarts d'heure.
+    const aFaire = (await Records.champsParLots(COMMERCE, ['exploitant.siren', 'exploitant.relu_annuaire_le', 'exploitant.gerants'])).filter((l) => aRelire(l) && filtre(l)).map((l) => l.id);
     for (let debut = 0; debut < aFaire.length && !arreter(); debut += lot) {
       for (const id of aFaire.slice(debut, debut + lot)) {
         if (arreter()) break;

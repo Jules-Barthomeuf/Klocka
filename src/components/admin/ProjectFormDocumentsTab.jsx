@@ -42,7 +42,8 @@ export default function ProjectFormDocumentsTab({ formData, setFormData, avecLis
       <button type="button" onClick={ajout.ouvrir}
         onDragOver={(e) => { e.preventDefault(); setSurvol(true); }} onDragLeave={() => setSurvol(false)}
         onDrop={(e) => { e.preventDefault(); setSurvol(false); ajouter(e.dataTransfer.files); }}
-        className={`flex min-h-[120px] w-full flex-col items-center justify-center gap-2 rounded-[12px] border px-4 py-6 text-center transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : "border-trait bg-rail hover:border-bord-vif"}`}>
+        // En verre (16 nov. 2026, Jules : « mets en glass ») : la carte k-verre, le bord à l'accent au survol d'un fichier.
+        className={`k-verre flex min-h-[120px] w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center transition-colors ${survol ? "!border-menthe" : "hover:!border-bord-vif"}`}>
         {envoi > 0 ? <Loader2 className="h-5 w-5 animate-spin text-ardoise" /> : <Upload className="h-5 w-5 text-ardoise" />}
         <span className="text-[14px] text-encre">{envoi > 0 ? "Ajout en cours…" : "Choisir un fichier"}</span>
         <span className="text-[12.5px] text-brume">Depuis l'ordinateur ou Google Drive, ou glissez-le ici</span>

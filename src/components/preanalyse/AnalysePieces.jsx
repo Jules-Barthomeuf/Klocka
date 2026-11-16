@@ -5,7 +5,6 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
 import { ChevronLeft, ChevronRight, FileText, Loader2, Plus, RefreshCw, Redo2, Undo2, X } from "lucide-react";
-import { Filtres } from "@/components/mandataire/elements";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
 import { SourceSeule, Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
@@ -247,7 +246,6 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
   const geste = useGeste(dealId);
   const [ouverte, setOuverte] = useState(null);
   const notes = useNotesTableaux(dealId);
-  const [filtre, setFiltre] = useState("tous");
 
   if (apercu) return <p className="m-0 py-8 text-[13.5px] text-brume">Les grilles se lisent sur un vrai dossier.</p>;
   if (isLoading) return <Chargement titre="Les grilles" etats={["Les pièces rangées", "Les valeurs relevées", "Les écarts"]} />;
@@ -257,21 +255,9 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
   // La case ouverte suit les données : après un geste, le panneau montre l'état nouveau.
   const caseOuverte = ouverte?.case ? grilles.find((g) => g.id === ouverte.case.grille)?.lignes.find((l) => l.id === ouverte.case.id) : null;
 
-
-
-  // Tous, Lu par l'IA, OK (9 nov. 2026, Jules) : voir d'un coup ce qu'il reste à vérifier.
-  const estOk = (l) => l.statut === "verifie" || l.statut === "corrige";
-  const remplies = grilles.flatMap((g) => g.lignes).filter((l) => l.valeur);
-  const garde = (l) => filtre === "tous" || (filtre === "ok" ? estOk(l) : l.statut === "ia");
-
+  // Plus de filtres Tous, Lu par l'IA, OK ni de consigne au-dessus des cases (16 nov. 2026, Jules : « enlève ça »).
   return (
     <div className="space-y-5">
-      {remplies.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Filtres label="Filtrer les lignes" valeur={filtre} onChange={setFiltre} options={[["tous", "Tous", grilles.flatMap((g) => g.lignes).length], ["ia", "Lu par l'IA", remplies.filter((l) => l.statut === "ia").length], ["ok", "OK", remplies.filter(estOk).length]]} />
-          <span className="text-[12.5px] text-ardoise">Un clic sur le libellé le passe à OK</span>
-        </div>
-      )}
       {grilles.map((g) => (
         <React.Fragment key={g.id}>
         <section>
@@ -289,7 +275,7 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
           </div>
           {/* On écrit dans toutes les cases, même sans pièce ni extraction (9 nov. 2026, Jules). */}
           <div>
-          {g.lignes.filter(garde).map((l) => {
+          {g.lignes.map((l) => {
             const choisie = ouverte?.case?.grille === g.id && ouverte?.case?.id === l.id;
             return (
               <div key={l.id}

@@ -564,6 +564,7 @@ export default function AdminProjets() {
       champs_personnalises: project.champs_personnalises || [],
       champs_masques: project.champs_masques || [],
       frise_perso: project.frise_perso || null,
+      chrono_perso: project.chrono_perso || null,
       valeurs_forcees: project.valeurs_forcees || {},
       styles: project.styles || {},
       bail_analyse: project.bail_analyse || {},

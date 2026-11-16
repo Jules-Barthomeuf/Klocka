@@ -386,18 +386,55 @@ const RAYON_CENTRE_M = 150;
 const HORS_CENTRE = /\b(chemin|chem|route|rte|impasse|imp|lotissement|lot|za|zi|zac|zae|zone|ccial|centre commercial|galerie marchande|rond point|parc d activites|rn|rd)\b/i;
 
 /** Pure : le nombre de commerces à moins de 150 m de chacun (grille de 150 m, cellules voisines seulement). */
-export function densites(liste) {
-  const cellule = (c) => `${Math.floor(c.lat / 0.00135)}:${Math.floor(c.lon / (0.00135 / Math.cos((c.lat * Math.PI) / 180)))}`;
+// Même calcul qu'avant, plus vite (16 nov. 2026 : 3 s pour les 60 000 commerces de Lyon, le serveur figé pendant ce
+// temps) : les cellules en nombres et calculées une fois, la distance comparée au carré, sans Math.hypot.
+function grilleDensites(liste) {
+  const K = Math.PI / 180;
+  const pts = [];
   const grille = new Map();
-  for (const c of liste) { if (!Number.isFinite(c.lat)) continue; const k = cellule(c); if (!grille.has(k)) grille.set(k, []); grille.get(k).push(c); }
-  const d = (a, b) => 6371000 * Math.hypot(((b.lon - a.lon) * Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180) * Math.PI) / 180, ((b.lat - a.lat) * Math.PI) / 180);
-  const n = new Map();
   for (const c of liste) {
-    if (!Number.isFinite(c.lat)) { n.set(c.id, 0); continue; }
-    const [i, j] = cellule(c).split(':').map(Number);
-    let k = 0;
-    for (let di = -1; di <= 1; di += 1) for (let dj = -1; dj <= 1; dj += 1) for (const o of grille.get(`${i + di}:${j + dj}`) || []) if (o !== c && d(c, o) <= RAYON_CENTRE_M) k += 1;
-    n.set(c.id, k);
+    if (!Number.isFinite(c.lat)) continue;
+    const i = Math.floor(c.lat / 0.00135);
+    const j = Math.floor(c.lon / (0.00135 / Math.cos(c.lat * K)));
+    const p = { c, i, j, lat: c.lat, lon: c.lon };
+    pts.push(p);
+    const k = i * 4194304 + j;
+    const cel = grille.get(k);
+    if (cel) cel.push(p); else grille.set(k, [p]);
+  }
+  const n = new Map();
+  for (const c of liste) if (!Number.isFinite(c.lat)) n.set(c.id, 0);
+  return { pts, grille, n };
+}
+function compterVoisins(p, grille) {
+  const K = Math.PI / 180;
+  const R2 = (RAYON_CENTRE_M / 6371000) ** 2;
+  let k = 0;
+  for (let di = -1; di <= 1; di += 1) {
+    for (let dj = -1; dj <= 1; dj += 1) {
+      const cel = grille.get((p.i + di) * 4194304 + p.j + dj);
+      if (!cel) continue;
+      for (const o of cel) {
+        if (o === p) continue;
+        const x = ((o.lon - p.lon) * Math.cos(((p.lat + o.lat) / 2) * K)) * K;
+        const y = (o.lat - p.lat) * K;
+        if (x * x + y * y <= R2) k += 1;
+      }
+    }
+  }
+  return k;
+}
+export function densites(liste) {
+  const { pts, grille, n } = grilleDensites(liste);
+  for (const p of pts) n.set(p.c.id, compterVoisins(p, grille));
+  return n;
+}
+/** `densites`, la main rendue tous les 3 000 commerces (l'instantané d'une grande ville, 16 nov. 2026). */
+export async function densitesParLots(liste, { lot = 3000 } = {}) {
+  const { pts, grille, n } = grilleDensites(liste);
+  for (let d = 0; d < pts.length; d += lot) {
+    for (const p of pts.slice(d, d + lot)) n.set(p.c.id, compterVoisins(p, grille));
+    if (d + lot < pts.length) await new Promise((r) => setImmediate(r));
   }
   return n;
 }
@@ -411,12 +448,12 @@ const centres = new Map();
 const cleCentre = (liste, ville) => `${liste.length}|${ville?.simple?.lu_le || ''}|${ville?.simple?.zones_le || ''}|${(ville?.simple?.zones || []).length}|${(ville?.rues || []).length}`;
 
 /** Les commerces du centre-ville d'une liste (identifiants), avec leur densité ; gardé par ville. */
-export function centreVille(liste, ville = null) {
-  if (!ville?.id || process.env.NODE_TEST_CONTEXT) return calculerCentre(liste, ville);
+export function centreVille(liste, ville = null, densite = null) {
+  if (!ville?.id || process.env.NODE_TEST_CONTEXT) return calculerCentre(liste, ville, densite);
   const cle = cleCentre(liste, ville);
   const deja = centres.get(ville.id);
   if (deja?.cle === cle) return deja.r;
-  const r = calculerCentre(liste, ville);
+  const r = calculerCentre(liste, ville, densite);
   centres.delete(ville.id);
   centres.set(ville.id, { cle, r });
   if (centres.size > 12) centres.delete(centres.keys().next().value);
@@ -424,8 +461,8 @@ export function centreVille(liste, ville = null) {
 }
 
 /** Pure : les commerces du centre-ville d'une liste (identifiants), avec leur densité. */
-export function calculerCentre(liste, ville = null) {
-  const n = densites(liste);
+export function calculerCentre(liste, ville = null, densite = null) {
+  const n = densite || densites(liste);
   // Les zones commerçantes de la ville (zones.js) font foi quand on les a : un commerce y est, ou n'y est pas.
   const zones = ville?.simple?.zones || [];
   if (zones.length) {
@@ -483,7 +520,8 @@ export function commercesDe(villeId, { moi = null } = {}) {
 // Un commerce interrompu (« en cours » depuis plus de dix minutes) compte comme à faire : le badge « Propriétaires :
 // 3462 sur 3466 » ne tourne plus sans fin, et la recherche le reprend (24 oct. 2026).
 export function etatDe(villeId) {
-  const l = Records.filter(COMMERCE, { ville_id: villeId });
+  // Trois champs, pas les fiches entières (16 nov. 2026) : 157 Mo décodés à chaque ouverture d'une grande ville.
+  const l = Records.champsOu(COMMERCE, 'ville_id', villeId, ['etat_recherche', 'source', 'estimation.prix']).map((c) => ({ ...c, estimation: { prix: c['estimation.prix'] } }));
   const n = (f) => l.filter(f).length;
   return { total: l.length, faits: n((c) => c.etat_recherche === 'fait'), en_cours: n((c) => c.etat_recherche === 'en_cours' && !aChercher(c)), a_faire: n(aChercher), erreurs: n((c) => c.etat_recherche === 'erreur'), en_fond: enFond.has(villeId), google: Records.get(VILLE, villeId)?.simple?.google || null, depuis_google: n((c) => c.source === 'Google Maps'), zones: (Records.get(VILLE, villeId)?.simple?.zones || []).map((z) => ({ nom: z.nom, genre: z.genre, pourquoi: z.pourquoi, rues: z.rues })), zones_en_cours: !Records.get(VILLE, villeId)?.simple?.zones_le, prix_en_cours: prixEnFond.has(villeId), avec_prix: n((c) => !!c.estimation?.prix) };
 }
@@ -514,12 +552,25 @@ export function activiteVue(c) {
  * L'état d'une ville en quelques comptes, sans décoder ses commerces (3 nov. 2026, Jules : « Votre secteur… prend trop
  * de chargement ») : ce que lit la préparation du secteur d'un mandataire. Mêmes comptes que `etatDe`.
  */
-export function etatLeger(villeId) {
-  const l = Records.champsOu(COMMERCE, 'ville_id', villeId, ['etat_recherche', 'estimation.prix']);
+// Les comptes d'une ville lus dans l'index (16 nov. 2026) : champsOu décodait encore les 60 000 fiches de Lyon à chaque
+// entretien et à chaque écran de préparation (10 s, le serveur figé). Le nombre de prix, seul hors de l'index, se lit
+// par lots et se garde dix minutes ; l'entretien n'en a pas besoin (prix: false).
+const prixComptes = new Map();
+export async function etatLeger(villeId, { prix = true } = {}) {
+  const l = Records.lignesEtat(COMMERCE, 'ville_id', villeId, 'etat_recherche');
   const n = (f) => l.filter(f).length;
+  let avecPrix = null;
+  if (prix) {
+    const g = prixComptes.get(villeId);
+    if (g && Date.now() - g.le < 10 * 60_000 && !process.env.NODE_TEST_CONTEXT) avecPrix = g.n;
+    else {
+      avecPrix = (await Records.champsOuParLots(COMMERCE, 'ville_id', villeId, ['estimation.prix'])).filter((c) => !!c['estimation.prix']).length;
+      prixComptes.set(villeId, { le: Date.now(), n: avecPrix });
+    }
+  }
   return {
     total: l.length, faits: n((c) => c.etat_recherche === 'fait'), en_cours: n((c) => c.etat_recherche === 'en_cours' && !aChercher(c)), a_faire: n(aChercher),
-    avec_prix: n((c) => !!c['estimation.prix']), en_fond: enFond.has(villeId), prix_en_cours: prixEnFond.has(villeId),
+    avec_prix: avecPrix, en_fond: enFond.has(villeId), prix_en_cours: prixEnFond.has(villeId),
   };
 }
 
@@ -629,10 +680,11 @@ export async function resoudreCommerce(id, { complet = false, surEtape = () => {
             if (prop.siren) { const sp = await lireSociete({ siren: prop.siren }).catch(() => null); if (sp) Object.assign(prop, { gerants: sp.gerants?.length ? sp.gerants : prop.gerants, creation: sp.creation || null, siege: sp.siege || null, forme: sp.forme || prop.forme }); }
             surEtape(`Aucun propriétaire publié ; ${bailleur.nom} (${bailleur.activite}) loue les murs : propriétaire probable.`);
           }
-          const connus = Records.filter(COMMERCE, { ville_id: c.ville_id });
+          // L'instantané de la ville, pas ses fiches entières (16 nov. 2026) : le siret, le siren et l'adresse suffisent.
+          const connus = (await instantane(c.ville_id)).liste;
           const nouveaux = par.occupants.filter(O.estCommerceOccupant).filter((o) => !connus.some((k) => (o.siret && k.siret === o.siret) || (o.siren && k.siren === o.siren && norm(k.adresse).includes(norm(String(o.adresse || '').split(' ').slice(0, 3).join(' '))))));
           for (const o of nouveaux) {
-            Records.create(COMMERCE, { ville_id: c.ville_id, source: 'Data-B occupants', siret: o.siret, siren: o.siren, nom: o.nom, enseigne: o.nom, activite: o.activite, adresse: o.adresse, code_postal: (String(o.adresse || '').match(/\b(\d{5})\b/) || [])[1] || c.code_postal, ville: c.ville, lat: par.lat || c.lat, lon: par.lon || c.lon, actif: true, chaine: false, depuis: null, epingle: !!c.epingle, etat_recherche: 'a_faire', cree_le: maintenant() });
+            rafraichirInstantane(Records.create(COMMERCE, { ville_id: c.ville_id, source: 'Data-B occupants', siret: o.siret, siren: o.siren, nom: o.nom, enseigne: o.nom, activite: o.activite, adresse: o.adresse, code_postal: (String(o.adresse || '').match(/\b(\d{5})\b/) || [])[1] || c.code_postal, ville: c.ville, lat: par.lat || c.lat, lon: par.lon || c.lon, actif: true, chaine: false, depuis: null, epingle: !!c.epingle, etat_recherche: 'a_faire', cree_le: maintenant() }));
           }
           if (nouveaux.length) surEtape(`${nouveaux.length} commerce${nouveaux.length > 1 ? 's' : ''} de la parcelle ajouté${nouveaux.length > 1 ? 's' : ''} : ${nouveaux.map((o) => o.nom).join(', ')}.`);
         }
@@ -682,18 +734,90 @@ export const prioriser = (villeId) => { villeAyantLaMain = villeId; };
 // Un commerce resté « en cours » plus de dix minutes a été interrompu (un redémarrage) : il se reprend.
 const aChercher = (c) => !c.etat_recherche || c.etat_recherche === 'a_faire' || (c.etat_recherche === 'en_cours' && Date.now() - Date.parse(c.updated_date || 0) > 10 * 60_000);
 
+// Le tour de fond ne décode plus les fiches (16 nov. 2026, Jules : « ça prend trop de temps à ouvrir un dossier ») :
+// toutes les 2,5 s, il relisait deux fois les commerces entiers de la ville (60 000 fiches, 157 Mo à Lyon) et figeait
+// le serveur 7 à 15 s, pour tout le monde. Ce qui reste à chercher se lit dans un index (db.js, idx_records_commerces_a_chercher,
+// 12 ms) ; l'ordre (le centre-ville d'abord, les plus denses en tête) se calcule une fois par ville, sur l'état, la
+// position et l'adresse seuls (l'instantané ci-dessous), puis se consomme tour après tour ; il se refait quand la file
+// est vide ou a six heures.
+// La fiche entière n'est lue que par resoudre(), commerce par commerce.
+// L'instantané léger d'une ville (16 nov. 2026) : une douzaine de champs de chaque commerce, sans décoder la fiche
+// (champsOu), et son centre-ville, lus une fois puis gardés six heures. Le tour de fond, les prix, les voisins d'une
+// estimation et les occupants d'une parcelle s'en servent ; chacun relit la fiche entière du seul commerce qu'il traite.
+// Ce qui change vite (l'état de la recherche) se relit dans l'index, pas ici.
+const INSTANTANE_MS = 6 * 3600_000;
+const CHAMPS_LEGERS = ['etat_recherche', 'lat', 'lon', 'adresse', 'rue', 'code_postal', 'siret', 'siren', 'epingle', 'estimation.le', 'estimation.surface', 'estimation.surface_source', 'drapeaux', 'proprietaire.nom', 'exploitant.nom'];
+const instantanes = new Map();
+/** Pure : la forme légère d'un commerce, depuis une ligne de champsOu ou une fiche entière. */
+export function commerceLeger(c) {
+  const plat = 'estimation.le' in c || 'proprietaire.nom' in c;
+  const est = plat ? (c['estimation.le'] ? { surface: c['estimation.surface'], surface_source: c['estimation.surface_source'] } : null) : (c.estimation ? { surface: c.estimation.surface, surface_source: c.estimation.surface_source } : null);
+  return {
+    id: c.id, ville_id: c.ville_id, updated_date: c.updated_date, etat_recherche: c.etat_recherche ?? null, lat: c.lat, lon: c.lon, adresse: c.adresse, rue: c.rue, code_postal: c.code_postal,
+    siret: c.siret, siren: c.siren, epingle: !!c.epingle, estimation: est, drapeaux: Array.isArray(c.drapeaux) ? c.drapeaux : [],
+    proprietaire: { nom: plat ? c['proprietaire.nom'] : c.proprietaire?.nom }, exploitant: { nom: plat ? c['exploitant.nom'] : c.exploitant?.nom },
+  };
+}
+// Lu par lots (champsOuParLots), une seule lecture à la fois par ville : le tour et les prix qui la demandent ensemble
+// attendent la même.
+const lecturesInstantane = new Map();
+export async function instantane(villeId) {
+  const i = instantanes.get(villeId);
+  if (i && Date.now() - i.le < INSTANTANE_MS && !process.env.NODE_TEST_CONTEXT) return i;
+  if (lecturesInstantane.has(villeId)) return lecturesInstantane.get(villeId);
+  const lecture = (async () => {
+    const liste = (await Records.champsOuParLots(COMMERCE, 'ville_id', villeId, CHAMPS_LEGERS)).map((r) => commerceLeger({ ...r, ville_id: villeId }));
+    const n = { le: Date.now(), liste, ...centreVille(liste, Records.get(VILLE, villeId), await densitesParLots(liste)) };
+    instantanes.delete(villeId);
+    instantanes.set(villeId, n);
+    // Deux villes au plus (48 Mo pour Lyon) ; libéré quand ses deux boucles sont finies (liberer).
+    if (instantanes.size > 2) instantanes.delete(instantanes.keys().next().value);
+    return n;
+  })().finally(() => lecturesInstantane.delete(villeId));
+  lecturesInstantane.set(villeId, lecture);
+  return lecture;
+}
+/** L'instantané d'une ville s'oublie quand ni la recherche des propriétaires ni les prix n'y tournent plus. */
+function liberer(villeId) {
+  if (!enFond.has(villeId) && !prixEnFond.has(villeId)) { instantanes.delete(villeId); files.delete(villeId); }
+}
+/** Un commerce créé ou relu entre dans l'instantané de sa ville, s'il y en a un. */
+function rafraichirInstantane(c) {
+  const i = c?.ville_id ? instantanes.get(c.ville_id) : null;
+  if (!i) return;
+  const k = i.liste.findIndex((x) => x.id === c.id);
+  if (k >= 0) i.liste[k] = commerceLeger(c); else i.liste.push(commerceLeger(c));
+}
+const FILE_MAX_MS = INSTANTANE_MS;
+const files = new Map();
+const enAttenteIci = (villeId) => Records.enAttente(COMMERCE, 'ville_id', villeId, 'etat_recherche', ['a_faire', 'en_cours']).filter(aChercher);
+async function fileDe(villeId) {
+  const f = files.get(villeId);
+  if (f?.ids.length && Date.now() - f.le < FILE_MAX_MS) return f;
+  const { liste, centre, densite } = await instantane(villeId);
+  const attente = new Set(enAttenteIci(villeId).map((c) => c.id));
+  const ids = liste.filter((c) => attente.has(c.id)).sort((a, b) => Number(centre.has(b.id)) - Number(centre.has(a.id)) || (densite.get(b.id) || 0) - (densite.get(a.id) || 0)).map((c) => c.id);
+  // Les commerces ajoutés après l'instantané, en queue.
+  const dedans = new Set(ids);
+  for (const id of attente) if (!dedans.has(id)) ids.push(id);
+  const n = { le: Date.now(), ids };
+  files.set(villeId, n);
+  return n;
+}
+
 export async function tourDeFond(villeId, { max = 3 * PARALLELE_PROPRIETAIRES, resoudre = resoudreCommerce } = {}) {
-  if (villeAyantLaMain && villeAyantLaMain !== villeId && enFond.has(villeAyantLaMain)) {
-    return Records.filter(COMMERCE, { ville_id: villeId }).filter(aChercher).length;
-  }
+  if (villeAyantLaMain && villeAyantLaMain !== villeId && enFond.has(villeAyantLaMain)) return enAttenteIci(villeId).length;
   villeAyantLaMain = villeId;
-  const liste = Records.filter(COMMERCE, { ville_id: villeId });
-  const { centre, densite } = centreVille(liste, Records.get(VILLE, villeId));
-  // Le centre-ville d'abord, les plus denses en tête : c'est là qu'on investit.
-  const aFaire = liste.filter(aChercher).sort((a, b) => Number(centre.has(b.id)) - Number(centre.has(a.id)) || (densite.get(b.id) || 0) - (densite.get(a.id) || 0)).slice(0, max);
+  const attente = new Set(enAttenteIci(villeId).map((c) => c.id));
+  if (!attente.size) { files.delete(villeId); villeAyantLaMain = null; return 0; }
+  const file = await fileDe(villeId);
+  const aFaire = [];
+  while (aFaire.length < max && file.ids.length) { const id = file.ids.shift(); if (attente.has(id)) aFaire.push(id); }
+  // La file épuisée alors qu'il en reste (des commerces ajoutés depuis) : elle se refait au tour suivant.
+  if (!aFaire.length) { files.delete(villeId); return attente.size; }
   // Les créneaux font la file, dans l'ordre (le centre d'abord).
-  await Promise.all(aFaire.map((c) => creneau(() => resoudre(c.id))));
-  const reste = Records.filter(COMMERCE, { ville_id: villeId }).filter(aChercher).length;
+  await Promise.all(aFaire.map((id) => creneau(() => resoudre(id))));
+  const reste = enAttenteIci(villeId).length;
   if (!reste && villeAyantLaMain === villeId) villeAyantLaMain = null;
   return reste;
 }
@@ -703,7 +827,7 @@ export function demarrerFond(villeId, { periode = 2500, tour = tourDeFond } = {}
   const t = setInterval(async () => {
     if (occupe) return;
     occupe = true;
-    try { const reste = await tour(villeId); if (!reste) { clearInterval(t); enFond.delete(villeId); } } catch { /* on réessaie au tour suivant */ } finally { occupe = false; }
+    try { const reste = await tour(villeId); if (!reste) { clearInterval(t); enFond.delete(villeId); liberer(villeId); } } catch { /* on réessaie au tour suivant */ } finally { occupe = false; }
   }, periode);
   t.unref?.();
   enFond.set(villeId, t);
@@ -1067,7 +1191,7 @@ export async function estimerPrix(id, { surface = null, user = null, surEtape = 
       const mesure = batiment || (await import('../alx/batiment.js')).mesurerBatiment;
       b = await mesure({ lat: c.lat, lon: c.lon });
       // OpenStreetMap ne connaît pas toujours les vitrines : on partage entre les commerces que nous connaissons dans ce bâtiment (à 15 m).
-      const voisins = Records.filter(COMMERCE, { ville_id: c.ville_id }).filter((x) => x.id !== c.id && Number.isFinite(x.lat) && 6371000 * Math.hypot(((x.lon - c.lon) * Math.cos((c.lat * Math.PI) / 180) * Math.PI) / 180, ((x.lat - c.lat) * Math.PI) / 180) <= 15).length;
+      const voisins = (await instantane(c.ville_id)).liste.filter((x) => x.id !== c.id && Number.isFinite(x.lat) && 6371000 * Math.hypot(((x.lon - c.lon) * Math.cos((c.lat * Math.PI) / 180) * Math.PI) / 180, ((x.lat - c.lat) * Math.PI) / 180) <= 15).length;
       parts = Math.max(b?.commerces_dans_le_batiment || 1, voisins + 1);
       if (Array.isArray(b?.surface_estimee) && b.surface_estimee[1] > 0) {
         const partage = parts > (b.commerces_dans_le_batiment || 1) ? parts / (b.commerces_dans_le_batiment || 1) : 1;
@@ -1133,14 +1257,23 @@ export async function estimerPrix(id, { surface = null, user = null, surEtape = 
 const prixEnFond = new Map();
 export const PLAFOND_RUES_JOUR = 40;
 export async function tourPrix(villeId, { estimer = estimerPrix } = {}) {
-  const liste = Records.filter(COMMERCE, { ville_id: villeId });
-  const { centre } = centreVille(liste, Records.get(VILLE, villeId));
+  // L'instantané, pas les fiches entières (16 nov. 2026) : toutes les six secondes, les 60 000 fiches de Lyon décodées
+  // figeaient le serveur. L'état de la recherche se relit dans l'index ; un commerce estimé entre-temps est relu avant.
+  const { liste, centre } = await instantane(villeId);
+  const faits = new Set(Records.enAttente(COMMERCE, 'ville_id', villeId, 'etat_recherche', ['fait']).filter((c) => c.etat_recherche === 'fait').map((c) => c.id));
+  const estimer0 = estimer;
+  estimer = async (id) => {
+    const avant = Records.get(COMMERCE, id);
+    rafraichirInstantane(avant);
+    if (avant && !aRefaire(avant)) return null;
+    try { return await estimer0(id); } finally { rafraichirInstantane(Records.get(COMMERCE, id)); }
+  };
   // Sans prix, ou avec une surface invraisemblable d'une version précédente (sauf saisie à la main).
   const aRefaire = (c) => !c.estimation || (Array.isArray(c.estimation.surface) && c.estimation.surface_source !== 'saisie' && c.estimation.surface[0] < SURFACE_MIN);
   // Les cibles d'abord (24 oct. 2026) : un signal de vente, un propriétaire et un exploitant connus. Ce sont elles que
   // « Pour mes clients » propose ; le plafond de rues neuves du jour ne change pas.
   const cible = (c) => (c.drapeaux || []).length > 0 && !!c.proprietaire?.nom && !!c.exploitant?.nom;
-  const aFaire = liste.filter((c) => aRefaire(c) && (centre.has(c.id) || c.epingle) && c.etat_recherche === 'fait')
+  const aFaire = liste.filter((c) => aRefaire(c) && (centre.has(c.id) || c.epingle) && faits.has(c.id))
     .sort((a, b) => Number(cible(b)) - Number(cible(a)) || (b.drapeaux || []).length - (a.drapeaux || []).length);
   if (!aFaire.length) return 0;
   const jour = new Date().toISOString().slice(0, 10);
@@ -1168,7 +1301,7 @@ export function demarrerPrix(villeId, { periode = 6000, tour = tourPrix } = {}) 
   const t = setInterval(async () => {
     if (occupe) return;
     occupe = true;
-    try { const reste = await tour(villeId); if (!reste) { clearInterval(t); prixEnFond.delete(villeId); } } catch { /* au tour suivant */ } finally { occupe = false; }
+    try { const reste = await tour(villeId); if (!reste) { clearInterval(t); prixEnFond.delete(villeId); liberer(villeId); } } catch { /* au tour suivant */ } finally { occupe = false; }
   }, periode);
   t.unref?.();
   prixEnFond.set(villeId, t);

@@ -251,6 +251,41 @@ async function societeDuLocataire(e) {
 
 const SOURCE_COMPTES = 'Comptes déposés (INPI, data.economie.gouv.fr)';
 
+// Les tranches d'effectif de l'INSEE, en clair.
+export const TRANCHES_EFFECTIF = { '00': 'Aucun salarié', '01': '1 ou 2 salariés', '02': '3 à 5 salariés', '03': '6 à 9 salariés', 11: '10 à 19 salariés', 12: '20 à 49 salariés', 21: '50 à 99 salariés', 22: '100 à 199 salariés', 31: '200 à 249 salariés', 32: '250 à 499 salariés', 41: '500 à 999 salariés', 42: '1 000 à 1 999 salariés', 51: '2 000 à 4 999 salariés', 52: '5 000 à 9 999 salariés', 53: '10 000 salariés et plus' };
+
+/**
+ * Pure : la fiche juridique du locataire (16 nov. 2026) : dénomination, forme, SIREN, SIRET du local et du siège avec
+ * son adresse, code NAF de la société et du local, dirigeants (trois au plus), effectif en clair, date de création.
+ */
+export function ficheJuridique(s, ici = null, adresse = null) {
+  if (!s) return null;
+  // L'établissement du local : celui reconnu à l'adresse ; sinon (SIREN donné), celui de la société ouvert au même code
+  // postal et au même numéro, ou le seul ouvert dans ce code postal.
+  const etabs = s.etablissements || [];
+  const cp = String(adresse || '').match(/\b\d{5}\b/)?.[0];
+  const num = String(adresse || '').match(/^\s*(\d+)/)?.[1];
+  const dansCp = cp ? etabs.filter((x) => x.actif !== false && x.code_postal === cp) : [];
+  const etabLocal = ici?.siret ? etabs.find((x) => x.siret === ici.siret)
+    : dansCp.find((x) => num && String(x.adresse || '').startsWith(`${num} `)) || (dansCp.length === 1 ? dansCp[0] : null);
+  ici = ici?.siret ? ici : etabLocal ? { siret: etabLocal.siret } : ici;
+  return {
+    denomination: s.raison_sociale || s.nom || null,
+    forme: s.forme || null,
+    siren: s.siren || null,
+    siret_local: ici?.siret || null,
+    adresse_local: etabLocal?.adresse || null,
+    naf_local: ici?.naf || etabLocal?.activite || null,
+    siret_siege: s.siege?.siret || s.siret || null,
+    adresse_siege: s.siege?.adresse || null,
+    naf: s.activite_code || null,
+    creation: s.creation || null,
+    dirigeants: (s.dirigeants || []).filter((d) => d.nom).slice(0, 3).map((d) => ({ nom: d.nom, qualite: d.qualite || null, morale: !!d.morale })),
+    effectif: TRANCHES_EFFECTIF[String(s.effectif_societe || '')] || null,
+    etablissements_ouverts: s.etablissements_ouverts ?? null,
+  };
+}
+
 /**
  * Pure : la santé financière du locataire (13 nov. 2026, Jules : « est-ce qu'on garde vraiment le poids du loyer ? ») :
  * le résultat (bénéfice ou perte) et le chiffre d'affaires du dernier exercice de moins de trois ans. Le poids du loyer
@@ -271,7 +306,10 @@ export function pointComptes(comptes, loyer, { annee = new Date().getFullYear(),
   const ca = c.chiffre_affaires > 0 ? c.chiffre_affaires : null;
   const seul = Number(etablissements) === 1;
   const j = ca && loyer > 0 && seul ? jugerEffort(loyer, ca) : null;
-  const detail = { exercice: Number(c.exercice), chiffre_affaires: ca, resultat_net: res, loyer: loyer || null, etablissements: etablissements ?? null, ...(j ? { taux: j.taux } : {}) };
+  // L'historique des comptes (16 nov. 2026, Jules) : jusqu'à cinq exercices, le plus ancien d'abord, pour voir la pente.
+  const historique = [...new Map(tous.map((x) => [Number(x.exercice), x])).values()].slice(0, 5).reverse()
+    .map((x) => ({ exercice: Number(x.exercice), chiffre_affaires: x.chiffre_affaires > 0 ? x.chiffre_affaires : null, resultat_net: Number.isFinite(x.resultat_net) ? x.resultat_net : null }));
+  const detail = { exercice: Number(c.exercice), chiffre_affaires: ca, resultat_net: res, loyer: loyer || null, etablissements: etablissements ?? null, historique, ...(j ? { taux: j.taux } : {}) };
   const tete = res == null ? (ca ? `CA ${euros(ca)}` : "Chiffre d'affaires confidentiel") : res < 0 ? `Perte de ${euros(-res)}` : `Bénéfice de ${euros(res)}`;
   const suite = [`en ${c.exercice}`, res != null ? (ca ? `CA ${euros(ca)}` : 'CA confidentiel') : null, j ? `loyer ${pct(j.taux, 1)} du CA` : null].filter(Boolean).join(' · ');
   const rang = { vide: 0, ok: 1, a_voir: 2, alerte: 3 };
@@ -341,7 +379,11 @@ async function outilLocataire(e, { partiel = null } = {}) {
         ici ? `exploite le local${ici.ouvert ? ` depuis ${ici.ouvert.slice(0, 4)}` : ''}${enseigne ? ` sous l'enseigne ${enseigne}` : ''}` : null,
         parLeNomSeul ? 'trouvée par le nom seul, pas au local : à confirmer' : null].filter(Boolean).join(' · '),
       [...new Set([ici ? local.source : null, s.source].filter(Boolean))].join(' et '),
-      { siren: s.siren, nom: s.nom, forme: s.forme || null, active: !!s.active, enseigne, franchise, activite: s.activite_code, etablissements_ouverts: s.etablissements_ouverts, categorie: s.categorie, effectif: s.effectif_societe, confirme: !!local?.fixe, origine: local?.source || null, depuis: ici?.ouvert || null, annee_creation: s.annee_creation || null, nom_seul: parLeNomSeul, autres },
+      { siren: s.siren, nom: s.nom, forme: s.forme || null, active: !!s.active, enseigne, franchise, activite: s.activite_code, etablissements_ouverts: s.etablissements_ouverts, categorie: s.categorie, effectif: s.effectif_societe, confirme: !!local?.fixe, origine: local?.source || null, depuis: ici?.ouvert || null, annee_creation: s.annee_creation || null, nom_seul: parLeNomSeul, autres,
+        // La fiche juridique du locataire (16 nov. 2026, Jules : « toute une partie sur la santé du locataire ») : le siège,
+        // l'établissement du local, l'activité, les dirigeants, l'effectif en clair. Le capital social n'est pas donné
+        // par l'annuaire ouvert : il n'apparaît pas.
+        juridique: ficheJuridique(s, ici, e.adresse) },
       { lien: `https://annuaire-entreprises.data.gouv.fr/entreprise/${s.siren}` }));
     const { evenementsSociete } = await import('../bodacc.js');
     const lu = await gardeUnJour(`bodacc:${s.siren}`, () => evenementsSociete(s.siren, { mois: 60 })).catch(() => null);

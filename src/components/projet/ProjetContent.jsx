@@ -8,7 +8,7 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Download, X, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { Download, X, ChevronLeft, ChevronRight, FileText, Eye, EyeOff } from "lucide-react";
 import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
@@ -183,7 +183,22 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const [ongletChoisi, setOngletActif] = useState("marche");
   // Le panneau d'édition choisit la section : la page la suit.
   useEffect(() => { if (ongletDemande) setOngletActif(ongletDemande); }, [ongletDemande]);
-  const ongletActif = apercuOnglet || ongletChoisi;
+  // Un onglet se masque en entier (16 nov. 2026, Jules) : « onglet:<id> » dans champs_masques. Masqué, il disparaît de la
+  // barre du client ; dans l'éditeur il reste, pâle, avec « Afficher l'onglet ».
+  const enEditionPage = !!(modeEdition && onChamp);
+  const masquesOnglets = new Set((project?.champs_masques || []).filter((c) => String(c).startsWith("onglet:")).map((c) => c.slice(7)));
+  const ONGLETS_BASE = [
+    { v: "marche", l: "Marché" }, { v: "bien", l: "Bien" }, { v: "locataire", l: "Locataire" },
+    { v: "bail", l: "Analyse du bail" }, { v: "copropriete", l: "Copropriété" }, { v: "documents_projet", l: "Documents" },
+  ];
+  const ongletsVisibles = ONGLETS_BASE.filter((o) => enEditionPage || !masquesOnglets.has(o.v));
+  const premierVisible = ongletsVisibles[0]?.v || "marche";
+  const ongletActif = apercuOnglet || (!enEditionPage && masquesOnglets.has(ongletChoisi) ? premierVisible : ongletChoisi);
+  const basculerOnglet = (v) => {
+    const liste = project?.champs_masques || [];
+    const cle = `onglet:${v}`;
+    onChamp("champs_masques", liste.includes(cle) ? liste.filter((c) => c !== cle) : [...liste, cle], true);
+  };
   // Le simulateur complet : dans la page quand l'éditeur le fournit (les paramètres, puis le simulateur), sinon la page Simulateur.
   const ouvrirSimulateur = () => {
     if (simulateurDansLaPage && panneauSimulateur) { setOngletActif("simulateur"); onOngletChange?.("simulateur"); return; }
@@ -503,18 +518,22 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <div className={`sticky top-0 ${isPublic ? "" : "max-md:top-[var(--k-haut-mobile,3.5rem)]"} z-30 -mx-2 mb-10 max-md:mb-7 flex flex-wrap max-md:flex-nowrap items-center justify-between gap-4 max-md:gap-2 px-2 py-3`}>
           <TabsList className="h-auto max-w-full max-md:min-w-0 max-md:flex-shrink inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
-              { v: "marche", l: "Marché" },
-              { v: "bien", l: "Bien" },
-              { v: "locataire", l: "Locataire" },
-              { v: "bail", l: "Analyse du bail" },
-              { v: "copropriete", l: "Copropriété" },
-              { v: "documents_projet", l: "Documents" },
+              ...ongletsVisibles,
               // Onglets ajoutés par l'éditeur (simulateur…) : la barre les
               // affiche, leur contenu est rendu par le parent.
               ...ongletsSupplementaires.map((o) => ({ v: o.value, l: o.label })),
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="h-9 rounded-full border-0 bg-transparent px-4 py-0 text-[14px] normal-case tracking-normal whitespace-nowrap text-craie shadow-none transition-colors duration-200 hover:text-encre data-[state=active]:bg-menthe data-[state=active]:text-sur-menthe data-[state=active]:shadow-none data-[state=active]:hover:bg-encre data-[state=active]:hover:text-fond after:hidden">
-                {l}
+              // Au survol d'un onglet, en Éditeur, l'œil le masque ou le réaffiche pour le client (16 nov. 2026, Jules).
+              <TabsTrigger key={v} value={v} title={masquesOnglets.has(v) ? "Onglet masqué pour le client" : undefined} className={`group/onglet relative ${masquesOnglets.has(v) ? "[&>.k-nom]:line-through [&>.k-nom]:opacity-50 " : ""}h-9 rounded-full border-0 bg-transparent px-4 py-0 text-[14px] normal-case tracking-normal whitespace-nowrap text-craie shadow-none transition-colors duration-200 hover:text-encre data-[state=active]:bg-menthe data-[state=active]:text-sur-menthe data-[state=active]:shadow-none data-[state=active]:hover:bg-encre data-[state=active]:hover:text-fond after:hidden`}>
+                <span className="k-nom">{l}</span>
+                {enEditionPage && ONGLETS_BASE.some((o) => o.v === v) && (
+                  <span role="button" tabIndex={-1} aria-label={masquesOnglets.has(v) ? `Afficher l'onglet ${l}` : `Masquer l'onglet ${l}`} title={masquesOnglets.has(v) ? "Afficher l'onglet pour le client" : "Masquer l'onglet pour le client"}
+                    onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); basculerOnglet(v); }}
+                    className={`ml-1.5 -mr-1.5 inline-grid h-5 w-5 place-items-center rounded-full transition-opacity hover:bg-encre/15 group-hover/onglet:opacity-100 ${masquesOnglets.has(v) ? "opacity-70" : "opacity-0"}`}>
+                    {masquesOnglets.has(v) ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </span>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>

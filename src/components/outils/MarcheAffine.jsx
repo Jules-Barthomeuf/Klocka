@@ -209,13 +209,111 @@ function LigneComptes({ p }) {
   );
 }
 
-/** Locataire : l'identité de la société, puis deux mesures de même poids (procédures avec la ligne des comptes, avis clients). */
+// --- La santé du locataire (16 nov. 2026, Jules : « toute une partie sur la santé du locataire », sur le modèle d'une
+// fiche Pappers) : à gauche les informations juridiques en lignes, à droite les comptes année par année (le résultat en
+// barres, une perte en alerte) et, dessous, les procédures collectives en une ligne. Remplace le calendrier des procédures.
+
+const LIGNE_INFO = "flex items-baseline justify-between gap-4 border-t border-trait py-2 first:border-t-0 first:pt-0";
+const sirenLisible = (x) => String(x || "").replace(/^(\d{3})(\d{3})(\d{3})(\d{5})?$/, (_, a, b, c, d) => [a, b, c, d].filter(Boolean).join(" "));
+const enMillions = (n) => (n == null ? "—" : Math.abs(n) >= 1e6 ? `${String(Math.round(n / 1e5) / 10).replace(".", ",")} M€` : Math.abs(n) >= 1e3 ? `${Math.round(n / 1e3).toLocaleString("fr-FR")} k€` : `${Math.round(n)} €`);
+
+function InfosJuridiques({ p }) {
+  const j = p?.detail?.juridique;
+  if (!j) return <Mesure p={p} />;
+  const lignes = [
+    ["Dénomination sociale", j.denomination],
+    ["Forme juridique", j.forme],
+    ["SIREN", sirenLisible(j.siren)],
+    ["SIRET du local", j.siret_local ? `${sirenLisible(j.siret_local)}${j.adresse_local ? ` · ${j.adresse_local}` : ""}` : null],
+    ["SIRET du siège", j.siret_siege ? `${sirenLisible(j.siret_siege)}${j.adresse_siege ? ` · ${j.adresse_siege}` : ""}` : null],
+    ["Code NAF", [j.naf, j.naf_local && j.naf_local !== j.naf ? `${j.naf_local} pour le local` : null].filter(Boolean).join(" · ")],
+    ["Dirigeants", (j.dirigeants || []).map((d) => [d.nom, d.qualite].filter(Boolean).join(", ")).join(" ; ")],
+    ["Effectif", [j.effectif, j.etablissements_ouverts > 1 ? `${j.etablissements_ouverts} établissements ouverts` : null].filter(Boolean).join(" · ")],
+    ["Création", j.creation || null],
+  ].filter(([, v]) => v);
+  return (
+    <>
+      <p className="m-0 text-[12.5px] text-ardoise">Informations juridiques</p>
+      <div className="flex flex-col">
+        {lignes.map(([l, v]) => (
+          <div key={l} className={LIGNE_INFO}>
+            <span className="flex-none text-[12.5px] text-ardoise">{l}</span>
+            <span className="min-w-0 text-right text-[13.5px] tabular-nums text-encre [overflow-wrap:anywhere]">{v}</span>
+          </div>
+        ))}
+      </div>
+      <Source lien={p.lien} texte={sourceDe(p)} />
+    </>
+  );
+}
+
+function ComptesEtProcedures({ comptes, procedures }) {
+  const h = comptes?.detail?.historique || [];
+  const avecRes = h.filter((x) => x.resultat_net != null);
+  const max = Math.max(1, ...avecRes.map((x) => Math.abs(x.resultat_net)));
+  const dernier = h[h.length - 1];
+  const avant = h[h.length - 2];
+  const pr = procedures && procedures.statut !== "vide" ? teteProcedure(procedures.resultat) : null;
+  return (
+    <>
+      {comptes && h.length > 0 ? (
+        <>
+          <div className="flex items-start gap-2.5">
+            <Point statut={comptes.statut} className="mt-[9px]" />
+            <p className="m-0 min-w-0 leading-[1.4]">
+              <span className="text-[12.5px] text-ardoise">Santé financière</span><br />
+              <span className="text-[20px] tabular-nums text-encre">{dernier?.chiffre_affaires ? `CA ${enMillions(dernier.chiffre_affaires)}` : "CA confidentiel"}</span>
+              <span className="text-[13px] text-ardoise"> en {dernier?.exercice}{avant?.chiffre_affaires && dernier?.chiffre_affaires ? ` · ${enMillions(avant.chiffre_affaires)} en ${avant.exercice}` : ""}</span>
+            </p>
+          </div>
+          {avecRes.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <p className="m-0 text-[12px] text-brume">Résultat net</p>
+              {/* Une barre par exercice, autour d'un axe : au-dessus un bénéfice (accent), dessous une perte (alerte). */}
+              <div className="grid items-center gap-x-2" style={{ gridTemplateColumns: `repeat(${avecRes.length}, minmax(0, 1fr))` }}>
+                {avecRes.map((x) => {
+                  const haut = Math.max(3, Math.round((Math.abs(x.resultat_net) / max) * 44));
+                  const perte = x.resultat_net < 0;
+                  return (
+                    <div key={x.exercice} className="flex flex-col items-center">
+                      <div className="flex h-[48px] w-full items-end justify-center">{!perte && <span className="w-full max-w-[28px] rounded-t-[4px] bg-menthe" style={{ height: haut }} />}</div>
+                      <div className="h-px w-full bg-bord" />
+                      <div className="flex h-[48px] w-full items-start justify-center">{perte && <span className="w-full max-w-[28px] rounded-b-[4px] bg-alerte" style={{ height: haut }} />}</div>
+                      <span className={`mt-1 text-[12px] tabular-nums ${perte ? "text-alerte" : "text-craie"}`}>{perte ? "−" : ""}{enMillions(Math.abs(x.resultat_net))}</span>
+                      <span className="text-[11.5px] tabular-nums text-brume">{x.exercice}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      ) : comptes ? <Mesure p={comptes} lien={null} /> : null}
+      {procedures && (
+        <div className="flex items-start gap-2.5 border-t border-trait pt-3">
+          <Point statut={procedures.statut} className="mt-[6px]" />
+          <p className="m-0 min-w-0 text-[13px] leading-[1.45] text-craie">
+            <span className="text-ardoise">Procédures collectives · </span>
+            {pr ? [pr[0], pr[1]].filter(Boolean).join(" ") : sansCode(procedures.resultat)}
+            {procedures.lien && <> · <a href={procedures.lien} target="_blank" rel="noreferrer" className="text-menthe hover:underline">BODACC</a></>}
+          </p>
+        </div>
+      )}
+      {comptes && <Source texte={sourceDe(comptes)} />}
+    </>
+  );
+}
+
+/** Locataire : l'identité de la société, la santé du locataire (fiche juridique, comptes, procédures), puis les avis clients. */
 export function BlocLocataire({ pts }) {
   return (
     <div className={GRILLE[1]}>
       <div className={CELLULE}><Identite p={pts.societe} /></div>
       <div className={GRILLE[2]}>
-        <div className={CELLULE}><Procedures p={pts.procedures} comptes={pts.comptes} /></div>
+        <div className={CELLULE}><InfosJuridiques p={pts.societe} /></div>
+        <div className={CELLULE}><ComptesEtProcedures comptes={pts.comptes} procedures={pts.procedures} /></div>
+      </div>
+      <div className={GRILLE[1]}>
         <div className={CELLULE}><AvisClients p={pts.avis} /></div>
       </div>
     </div>

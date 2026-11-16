@@ -231,6 +231,24 @@ test('les propriétaires se cherchent trois à la fois, jamais plus, et tous les
   assert.equal(maxi, PARALLELE_PROPRIETAIRES);
 });
 
+test('la file du tour de fond se consomme sans repasser deux fois, et un commerce ajouté ensuite y entre', async () => {
+  const { Records } = await import('./db.js');
+  const { tourDeFond } = await import('./off-market/simple.js');
+  const v = Records.create('Ville', { nom: 'File', centre: { lat: 45.7, lon: 4.8 } });
+  for (let i = 0; i < 5; i += 1) Records.create('CommerceSimple', { ville_id: v.id, siret: `8${i}`, nom: `F${i}`, adresse: `${i} rue File`, lat: 45.7, lon: 4.8, etat_recherche: i === 4 ? 'fait' : 'a_faire' });
+  const vus = [];
+  const resoudre = async (id) => { vus.push(id); Records.update('CommerceSimple', id, { etat_recherche: 'fait' }); };
+  assert.equal(await tourDeFond(v.id, { resoudre, max: 2 }), 2);
+  const tard = Records.create('CommerceSimple', { ville_id: v.id, siret: '89', nom: 'Tard', adresse: '9 rue File', lat: 45.7, lon: 4.8 });
+  assert.equal(await tourDeFond(v.id, { resoudre, max: 2 }), 1);
+  // La file d'origine est vide, le commerce ajouté reste : la file se refait au tour d'après.
+  for (let i = 0; i < 3 && (await tourDeFond(v.id, { resoudre, max: 2 })); i += 1);
+  assert.equal(new Set(vus).size, vus.length);
+  assert.equal(vus.length, 5);
+  assert.ok(vus.includes(tard.id));
+  assert.equal(await tourDeFond(v.id, { resoudre, max: 2 }), 0);
+});
+
 test('la fiche très courte : exploitant et depuis quand, murs (SCI, gérant, âge), signal, accroche', async () => {
   const { ficheCourte } = await import('./mandataire-matin.js');
   const commerce = { lien: 'tiers', depuis: '2008-03-01', exploitant: { nom: 'BOULANGERIE DU PONT' }, proprietaire: { nom: 'SCI LES TILLEULS', forme: 'SCI', gerants: [{ nom: 'Jean Martin', tranche_age: '70+' }] } };

@@ -106,6 +106,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_records_entity_maj ON records(entity, updated_date);
   CREATE INDEX IF NOT EXISTS idx_records_cibles_comptes
     ON records(entity, json_extract(data, '$.ville_id'), json_extract(data, '$.pile'), json_extract(data, '$.deal_id'), json_extract(data, '$.derniere_approche_le'));
+  -- Les commerces qui restent à chercher dans une ville (16 nov. 2026), lus dans l'index seul : la tâche de fond le
+  -- demande toutes les 2,5 s, et décoder les 60 000 fiches de Lyon (157 Mo) figeait le serveur 7 à 15 s à chaque fois.
+  -- Partiel, limité aux commerces : en tête de colonne, l'entité le faisait choisir par d'autres requêtes, dont il
+  -- changeait l'ordre des lignes (findBy sans tri). Seul Records.enAttente, entité écrite en clair, s'en sert.
+  DROP INDEX IF EXISTS idx_records_a_chercher;
+  CREATE INDEX IF NOT EXISTS idx_records_commerces_a_chercher
+    ON records(json_extract(data, '$.ville_id'), json_extract(data, '$.etat_recherche'), updated_date, id) WHERE entity = 'CommerceSimple';
 
   CREATE TABLE IF NOT EXISTS conversations (
     id            TEXT PRIMARY KEY,
@@ -183,6 +190,26 @@ function matchesQuery(record, query) {
   });
 }
 
+// L'index partiel de Records.enAttente, par entité (16 nov. 2026).
+const INDEX_EN_ATTENTE = { CommerceSimple: 'idx_records_commerces_a_chercher' };
+
+// La lecture par lots (16 nov. 2026) : quelques champs, `lot` lignes à la fois dans l'ordre des rowid, la main rendue
+// entre deux lots pour que les requêtes des autres passent.
+async function lireParLots(entity, chemins, { lot = 2000, ou = null, valeurs = [] } = {}) {
+  const valides = chemins.filter((c) => /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(c));
+  const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}, json_type(data, '$.${c}') AS t${i}`).join(', ');
+  const lire = (r, i) => (['object', 'array'].includes(r[`t${i}`]) ? JSON.parse(r[`c${i}`]) : r[`c${i}`]);
+  const st = db.prepare(`SELECT rowid AS rang, id, updated_date${cols ? `, ${cols}` : ''} FROM records WHERE entity = ?${ou ? ` AND ${ou}` : ''} AND rowid > ? ORDER BY rowid LIMIT ?`);
+  const out = [];
+  for (let apres = 0; ;) {
+    const lignes = st.all(entity, ...valeurs, apres, lot);
+    for (const r of lignes) out.push({ id: r.id, updated_date: r.updated_date, ...Object.fromEntries(valides.map((c, i) => [c, lire(r, i)])) });
+    if (lignes.length < lot) return out;
+    apres = lignes[lignes.length - 1].rang;
+    await new Promise((r) => setImmediate(r));
+  }
+}
+
 export const Records = {
   list(entity, { sort, limit, skip } = {}) {
     const rows = db.prepare('SELECT * FROM records WHERE entity = ?').all(entity);
@@ -241,6 +268,42 @@ export const Records = {
     const lire = (r, i) => (['object', 'array'].includes(r[`t${i}`]) ? JSON.parse(r[`c${i}`]) : r[`c${i}`]);
     return db.prepare(`SELECT id, updated_date${cols ? `, ${cols}` : ''} FROM records WHERE entity = ? AND json_extract(data, '$.${champ}') = ?`).all(entity, valeur)
       .map((r) => ({ id: r.id, updated_date: r.updated_date, ...Object.fromEntries(valides.map((c, i) => [c, lire(r, i)])) }));
+  },
+
+  /**
+   * `champsOu`, lu par lots de `lot` lignes en rendant la main entre deux lots (16 nov. 2026) : sur les 60 000
+   * commerces de Lyon, la lecture d'un bloc figeait le serveur 4 s ; par lots, les requêtes passent entre deux.
+   */
+  champsOuParLots(entity, champ, valeur, chemins, { lot = 2000 } = {}) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(champ)) return Promise.resolve([]);
+    return lireParLots(entity, chemins, { lot, ou: `json_extract(data, '$.${champ}') = ?`, valeurs: [valeur] });
+  },
+
+  /** `champs`, lu par lots de la même façon (16 nov. 2026 : la relecture de l'annuaire, 82 000 commerces, 15 s d'un bloc). */
+  champsParLots(entity, chemins, { lot = 2000 } = {}) {
+    return lireParLots(entity, chemins, { lot });
+  },
+
+  /**
+   * L'état de chaque enregistrement dont `champ` vaut `valeur` : id, updated_date et `etat`, lus dans l'index partiel de
+   * l'entité (INDEX_EN_ATTENTE), sans rien désérialiser (16 nov. 2026). Pour compter une ville par état.
+   */
+  lignesEtat(entity, champ, valeur, etat) {
+    if (!INDEX_EN_ATTENTE[entity] || ![champ, etat].every((c) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(c))) return [];
+    return db.prepare(`SELECT id, updated_date, json_extract(data, '$.${etat}') AS ${etat} FROM records INDEXED BY ${INDEX_EN_ATTENTE[entity]} WHERE entity = '${entity}' AND json_extract(data, '$.${champ}') = ?`).all(valeur);
+  },
+
+  /**
+   * Les enregistrements dont `champ` vaut `valeur` et dont `etat` est vide ou l'une des `etats` : id, updated_date et
+   * l'état, lus dans un index partiel qui porte ces colonnes (idx_records_commerces_a_chercher) sans rien désérialiser
+   * (16 nov. 2026). L'entité est écrite en clair, et l'index nommé (INDEXED BY) : laissé à lui-même, SQLite prenait
+   * idx_records_cibles_comptes, qui relit chaque fiche (4 s pour Lyon au lieu de 12 ms).
+   */
+  enAttente(entity, champ, valeur, etat, etats = []) {
+    if (![entity, champ, etat].every((c) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(c))) return [];
+    const dans = etats.length ? ` OR json_extract(data, '$.${etat}') IN (${etats.map(() => '?').join(', ')})` : '';
+    return db.prepare(`SELECT id, updated_date, json_extract(data, '$.${etat}') AS ${etat} FROM records${INDEX_EN_ATTENTE[entity] ? ` INDEXED BY ${INDEX_EN_ATTENTE[entity]}` : ''} WHERE entity = '${entity}' AND json_extract(data, '$.${champ}') = ? AND (json_extract(data, '$.${etat}') IS NULL${dans})`)
+      .all(valeur, ...etats);
   },
 
   /**

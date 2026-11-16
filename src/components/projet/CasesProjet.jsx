@@ -263,19 +263,22 @@ function PointsDeLaFrise({ marques, perso, onChange }) {
   const retirer = (j) => (j.ajoute ? onChange({ ...p, ajoutes: p.ajoutes.filter((a) => a.id !== j.cle) }) : onChange({ ...p, retires: [...p.retires, j.cle] }));
   const ajouter = () => onChange({ ...p, ajoutes: [...p.ajoutes, { id: `point-${Date.now()}`, date: isoDe(new Date()), label: "Nouveau point" }] });
   const touche = p.retires.length || Object.keys(p.modifies).length || p.ajoutes.length;
-  const champ = "h-8 rounded-[8px] border border-trait bg-surface px-2.5 text-[13px] text-encre outline-none focus:border-menthe max-md:text-[16px]";
+  // Le dessin des listes en lignes (16 nov. 2026, Jules) : un point, la date, le nom, à même la carte ; le champ ne se
+  // montre qu'au survol et à la saisie, la croix au survol de la ligne. Plus de trait au-dessus.
+  const champ = "h-9 rounded-[8px] border border-transparent bg-transparent px-2 text-[14px] text-encre outline-none transition-colors hover:bg-relief/60 focus:border-bord-doux focus:bg-relief max-md:text-[16px]";
   return (
-    <div className="mt-2 border-t border-trait pt-4">
+    <div className="mt-2 pt-2">
       <div className="mb-2 flex items-center justify-between gap-3">
         <span className="text-[12.5px] text-ardoise">Points de la frise</span>
         {touche ? <button type="button" onClick={() => onChange(null)} className="text-[12.5px] text-brume hover:text-encre" style={{ background: "transparent" }}>Rétablir la frise calculée</button> : null}
       </div>
-      <div className="space-y-1.5">
-        {marques.map((j) => (
-          <div key={`${j.cle}:${isoDe(j.date)}:${j.label}`} className="flex items-center gap-2">
-            <input type="date" defaultValue={isoDe(j.date)} onBlur={(e) => e.target.value && e.target.value !== isoDe(j.date) && changer(j, "date", e.target.value)} aria-label={`Date : ${j.label}`} className={`${champ} w-[150px] flex-none`} />
+      <div className="flex flex-col">
+        {marques.map((j, i) => (
+          <div key={`${j.cle}:${isoDe(j.date)}:${j.label}`} className={`group/point flex items-center gap-3 py-1 ${i ? "border-t border-trait/60" : ""}`}>
+            <span aria-hidden className={`h-2 w-2 flex-none rounded-full ${j.passe ? "bg-menthe" : "border border-menthe"}`} />
+            <input type="date" defaultValue={isoDe(j.date)} onBlur={(e) => e.target.value && e.target.value !== isoDe(j.date) && changer(j, "date", e.target.value)} aria-label={`Date : ${j.label}`} className={`${champ} w-[150px] flex-none tabular-nums text-craie`} />
             <input defaultValue={j.label} onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== j.label && changer(j, "label", e.target.value.trim())} aria-label="Nom du point" className={`${champ} min-w-0 flex-1`} />
-            <button type="button" onClick={() => retirer(j)} aria-label={`Retirer « ${j.label} »`} title="Retirer ce point" className="grid h-8 w-8 flex-none place-items-center rounded-full text-brume hover:text-alerte" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => retirer(j)} aria-label={`Retirer « ${j.label} »`} title="Retirer ce point" className="grid h-8 w-8 flex-none place-items-center rounded-full text-brume opacity-0 transition-opacity hover:text-alerte focus:opacity-100 group-hover/point:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
           </div>
         ))}
       </div>

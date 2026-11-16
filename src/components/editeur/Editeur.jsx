@@ -13,10 +13,10 @@ import { X } from "lucide-react";
 //  - Sources : au survol d'un élément modifié, d'où il vient.
 // Aucune partie n'a de fond propre : le fond de la page passe dessous.
 
+// La vue Sources est retirée de la barre (16 nov. 2026, Jules) ; son code reste dans les éditeurs.
 export const MODES_EDITEUR = [
   ["edition", "Éditeur"],
   ["lecture", "Lecture"],
-  ["sources", "Sources"],
 ];
 
 const LARGEUR_DEFAUT = 420;

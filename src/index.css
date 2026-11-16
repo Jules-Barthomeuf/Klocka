@@ -307,13 +307,17 @@ body::after {
 /* Le verre des maquettes, posé sur une photo : la surface du thème à 90 %,
    floutée, avec l'encre du thème. Hors de .k-sur-photo, pour qu'en clair le
    texte reste sombre sur le verre blanc. */
+/* 16 nov. 2026 (Jules : « en glass ») : un vrai verre, la photo se voit à travers ; texte blanc sur un voile sombre
+   léger, filet clair, flou et saturation. */
 .k-verre-photo {
-    background: rgb(var(--k-surface-pleine-rgb) / .9);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    color: rgb(var(--k-encre-rgb));
+    background: rgb(0 0 0 / .26);
+    border: 1px solid rgb(255 255 255 / .2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    backdrop-filter: blur(16px) saturate(1.5);
+    color: rgb(255 255 255);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .12);
 }
-button.k-verre-photo:hover { background: rgb(var(--k-surface-pleine-rgb)); }
+button.k-verre-photo:hover { background: rgb(0 0 0 / .4); }
 
 /* Le motif des cartes à grille (GridPatternCard) : un carré de 30 px, ses
    traits à 15 %, un point à chaque intersection. Blanc en sombre, gris
@@ -1049,6 +1053,36 @@ html.k-cadre-dossier .k-flottant-haut { display: none !important; }
    mode appel restent, en haut à droite, posés sur la bande. */
 html.k-cadre-liste .k-barre-laterale { border-color: transparent !important; border-radius: 0 !important; }
 html.k-cadre-liste .k-barre-laterale::before { border-radius: 0 !important; }
+/* Les Outils comme le reste (16 nov. 2026, Jules : « mets le fond et la nav barre verre ») : le cadre en L du CRM gardé,
+   mais plus son fond uni ni sa personnalisation neutre ; le halo de chacun passe derrière la barre, la bande et la page,
+   comme dans un dossier ouvert. Les tableaux des Outils (bg-crm-tableau) deviennent la surface en verre du thème. */
+html.k-cadre-outils .k-barre-laterale { border-color: transparent !important; border-radius: 0 !important; }
+html.k-cadre-outils .k-barre-laterale::before { border-radius: 0 !important; }
+html.k-cadre-outils .k-flottant-haut { display: none !important; }
+html.k-cadre-outils { --k-crm-tableau: var(--k-surface); }
+/* Les champs et les cartes des Outils en verre (16 nov. 2026, Jules : « mets tous les champs d'inputs en glass aussi
+   ainsi que toutes les cards ») : dans la page (pas le panneau des outils), toute boîte arrondie peinte d'un fond plein
+   (bg-rail, bg-fond, bg-crm-tableau, bg-surface-pleine) prend la surface du thème floutée et le bord doux de .k-verre ;
+   les champs bordés aussi, flou plus court. Ce qui flotte (menus, panneaux, légendes de carte) garde le verre épais des
+   surfaces flottantes, sinon on lirait à travers. */
+html.k-cadre-outils .k-crm-contenu > main :is(.bg-rail, .bg-fond, .bg-crm-tableau, .bg-surface-pleine, .\!bg-rail)[class*="rounded"]:not(.absolute, .fixed, .sticky) {
+  background-color: var(--k-surface) !important;
+  border-color: var(--k-bord-doux);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+html.k-cadre-outils .k-crm-contenu > main :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]), select, textarea):not(.bg-transparent, .border-none, .border-0) {
+  background-color: var(--k-surface) !important;
+  border-color: var(--k-bord-doux);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+html.k-cadre-outils .k-crm-contenu > main :is(.bg-rail, .bg-fond, .bg-crm-tableau, .bg-surface-pleine):is(.absolute, .fixed) {
+  background-color: rgb(var(--k-surface-pleine-rgb) / 0.86) !important;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+html.k-cadre-outils .k-crm-contenu > main select option { background-color: rgb(var(--k-surface-pleine-rgb)); }
 /* Le tableau du CRM : sur le fond de la barre en sombre, blanc en clair, et des gris plus légers en clair (5 nov. 2026). */
 html.k-cadre-crm { --k-crm-tableau: rgb(var(--k-rail-rgb)); }
 
@@ -1080,27 +1114,27 @@ html.k-cadre-crm { --k-crm-tableau: rgb(var(--k-rail-rgb)); }
    barres sont la même, d'un bord à l'autre. */
 /* Le cadre du dossier aussi (même jour, Jules : « dans l'Analyse, il y a une démarcation en haut, légère ») : le dossier
    ne se devine plus sous la bande, mais la barre est une, tout autour. */
-html.k-cadre-crm, html.k-cadre-dossier, html.k-cadre-liste {
+html.k-cadre-crm, html.k-cadre-dossier, html.k-cadre-liste, html.k-cadre-outils {
   --k-verre-fond: linear-gradient(var(--k-surface), var(--k-surface)), linear-gradient(rgb(var(--k-rail-rgb) / .42), rgb(var(--k-rail-rgb) / .42)), rgb(var(--k-fond-rgb));
 }
-html.k-cadre-crm[data-theme="clair"], html.k-cadre-dossier[data-theme="clair"], html.k-cadre-liste[data-theme="clair"] {
+html.k-cadre-crm[data-theme="clair"], html.k-cadre-dossier[data-theme="clair"], html.k-cadre-liste[data-theme="clair"], html.k-cadre-outils[data-theme="clair"] {
   --k-verre-fond: linear-gradient(rgb(var(--k-rail-rgb) / .6), rgb(var(--k-rail-rgb) / .6)), rgb(var(--k-fond-rgb));
 }
 /* Le dossier et la liste des Dossiers prennent le verre du CRM (14 nov. 2026, Jules : « dans un dossier, la barre doit
    être en verre ») : le CRM pose son verre sur la barre et le fond standards, le dossier les prenait à la personnalisation
    de chacun, et un fond « noir pur » rendait la barre presque noire, sans rien d'un verre. Les teintes standards du thème
    (début de ce fichier), en sombre comme en clair ; le contenu du dossier garde le fond choisi. */
-html.k-cadre-dossier, html.k-cadre-liste {
+html.k-cadre-dossier, html.k-cadre-liste, html.k-cadre-outils {
   --k-verre-fond: linear-gradient(rgba(242, 243, 245, 0.045), rgba(242, 243, 245, 0.045)), linear-gradient(rgb(25 26 25 / .42), rgb(25 26 25 / .42)), rgb(18 19 18);
 }
-html.k-cadre-dossier[data-theme="clair"], html.k-cadre-liste[data-theme="clair"] {
+html.k-cadre-dossier[data-theme="clair"], html.k-cadre-liste[data-theme="clair"], html.k-cadre-outils[data-theme="clair"] {
   --k-verre-fond: linear-gradient(rgb(244 244 242 / .6), rgb(244 244 242 / .6)), rgb(240 240 238);
 }
 /* Avec le halo, la barre et la bande du dossier sont du vrai verre (15 nov. 2026, Jules, sur le prototype « Dossier
    ouvert » : « mets la nav barre comme ça dans notre vraie page, en glass ») : sans le fond plein dessous, les nappes du
    halo passent au travers, floutées ; la barre de gauche et la bande du haut, posées sur le même halo, restent d'un
    tenant. Sans halo ou en clair, le verre sur fond plein d'au-dessus. */
-html.k-cadre-dossier[data-halo="1"]:not([data-theme="clair"]), html.k-cadre-liste[data-halo="1"]:not([data-theme="clair"]) {
+html.k-cadre-dossier[data-halo="1"]:not([data-theme="clair"]), html.k-cadre-liste[data-halo="1"]:not([data-theme="clair"]), html.k-cadre-outils[data-halo="1"]:not([data-theme="clair"]) {
   --k-verre-fond: linear-gradient(rgba(242, 243, 245, 0.045), rgba(242, 243, 245, 0.045)), rgb(25 26 25 / .42);
 }
 /* Le cadre en L (`k-cadre-l`, à partir de 768 px) : la bande du haut passe par-dessus la page, qui monte dessous ; le
@@ -1604,7 +1638,7 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* Dans les cadres en L (dossier ouvert, CRM, Emailing, Outils), la barre nue reprend le verre de la bande du haut
    (14 nov. 2026, Jules : « problème avec la navbar quand on clique sur un dossier ») : nue, elle laissait le fond de la
    page à gauche, et la bande en verre s'arrêtait net au bord de la colonne des icônes. Barre et bande refont un bloc. */
-html.k-cadre-dossier .k-barre-nue, html.k-cadre-crm .k-barre-nue {
+html.k-cadre-dossier .k-barre-nue, html.k-cadre-crm .k-barre-nue, html.k-cadre-outils .k-barre-nue {
   background: var(--k-verre-fond) !important;
   -webkit-backdrop-filter: var(--k-verre-flou) !important;
   backdrop-filter: var(--k-verre-flou) !important;

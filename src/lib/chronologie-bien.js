@@ -101,3 +101,25 @@ export function evenementsDuBien(project, friseLue = null, aujourdhui = new Date
     .sort((a, b) => a.iso.localeCompare(b.iso));
 }
 
+
+/**
+ * Pure : la chronologie avec les corrections à la main (16 nov. 2026) : `perso.modifies[cle]` change la date (iso), le
+ * titre ou le détail d'un point ; `perso.ajoutes` ajoute des points. Le passé et l'avenir se recalculent, l'ordre suit.
+ */
+export function chronologiePerso(evenements, perso, aujourdhui = new Date()) {
+  if (!perso) return evenements;
+  const maintenant = aujourdhui.toISOString().slice(0, 10);
+  const valide = (iso) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso || ""));
+  const modifies = perso.modifies || {};
+  const liste = evenements.map((e) => {
+    const m = modifies[e.cle];
+    if (!m) return e;
+    const iso = valide(m.iso) ? m.iso : e.iso;
+    return { ...e, iso, annee: Number(iso.slice(0, 4)), anneeSeule: valide(m.iso) ? false : e.anneeSeule, titre: m.titre || e.titre, detail: m.detail !== undefined ? m.detail || null : e.detail };
+  });
+  for (const a of perso.ajoutes || []) {
+    if (!valide(a.iso)) continue;
+    liste.push({ cle: a.id, iso: a.iso, annee: Number(a.iso.slice(0, 4)), anneeSeule: false, titre: a.titre || "Nouveau point", detail: a.detail || null, alerte: false, ajoute: true });
+  }
+  return liste.map((e) => ({ ...e, futur: e.iso > maintenant })).sort((a, b) => a.iso.localeCompare(b.iso));
+}

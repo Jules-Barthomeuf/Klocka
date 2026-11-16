@@ -240,3 +240,23 @@ test('le résumé des avis du web se lit ligne à ligne, et ne remplace jamais u
   assert.equal(avecResumeWeb(sans, { ...r, certitude: 'introuvable' }), sans);
   assert.equal(avecResumeWeb(google, null, { enCours: true }).detail.web_en_cours, true);
 });
+
+test('16 nov. : la fiche juridique du locataire et l\'historique de ses comptes', async () => {
+  const { ficheJuridique } = await import('./lancements.js');
+  const s = { siren: '396720310', nom: 'COMTESSE DU BARRY', raison_sociale: 'COMTESSE DU BARRY', forme: 'SAS unipersonnelle', activite_code: '47.22Z', effectif_societe: '22', creation: '1994-05-01',
+    siege: { siret: '39672031000137', adresse: '20 Route de Touget 32200 Gimont' }, dirigeants: [{ nom: 'PANACHE ET DELICES GASCONS', qualite: 'Président', morale: true }],
+    etablissements: [{ siret: '39672031000186', adresse: '8 Place Saint-Étienne 31000 Toulouse', activite: '47.29Z' }] };
+  const f = ficheJuridique(s, { siret: '39672031000186' });
+  assert.equal(f.siret_local, '39672031000186');
+  assert.equal(f.adresse_local, '8 Place Saint-Étienne 31000 Toulouse');
+  assert.equal(f.naf_local, '47.29Z');
+  assert.equal(f.siret_siege, '39672031000137');
+  assert.equal(f.effectif, '100 à 199 salariés');
+  assert.equal(f.dirigeants[0].nom, 'PANACHE ET DELICES GASCONS');
+  // SIREN donné : l'établissement du local se retrouve par le code postal et le numéro.
+  const g = ficheJuridique({ ...s, etablissements: [{ siret: '39672031000186', adresse: '8 PLACE SAINT ETIENNE 31000 TOULOUSE', code_postal: '31000', actif: true, activite: '47.29Z' }, { siret: '39672031000137', adresse: '20 ROUTE DE TOUGET 32200 GIMONT', code_postal: '32200', actif: true }] }, null, '8 Place Saint-Étienne, 31000 Toulouse');
+  assert.equal(g.siret_local, '39672031000186');
+  const c = pointComptes([2022, 2023, 2024, 2025].map((a, i) => ({ exercice: String(a), chiffre_affaires: 17000000 - i * 300000, resultat_net: [-489000, -2190000, -2910000, -3970000][i] })), 50000, { annee: 2026 });
+  assert.deepEqual(c.detail.historique.map((h) => h.exercice), [2022, 2023, 2024, 2025]);
+  assert.equal(c.detail.historique[3].resultat_net, -3970000);
+});

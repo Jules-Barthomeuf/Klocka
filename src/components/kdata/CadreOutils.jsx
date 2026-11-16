@@ -5,7 +5,7 @@ import { Moon, Search, Sun } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { MODULES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
-import { CLAIR, definirCadreCrm, themeEffectif } from "@/lib/personnalisation";
+import { CLAIR, themeEffectif } from "@/lib/personnalisation";
 
 // Le cadre des Outils (10 nov. 2026, Jules : « je veux que toutes les pages aient la barre de gauche qui monte
 // jusqu'en haut comme sur le tableau de bord ») : le cadre de /CRM et d'Emailing autour de chaque page des Outils.
@@ -33,10 +33,12 @@ export default function CadreOutils({ page, children }) {
   const vueBord = page === "KData" ? (params.get("p") === "analyses" ? "analyses" : "bord") : null;
   const [recherche, setRecherche] = useState(page === "KData" ? params.get("q") || "" : "");
 
+  // Le fond et la barre en verre comme le reste (16 nov. 2026, Jules) : plus le cadre neutre du CRM (k-cadre-crm, fond
+  // uni, personnalisation d'origine) mais celui du dossier ouvert (k-cadre-outils, index.css) : la personnalisation de
+  // chacun, et le halo du Layout qui passe derrière la barre, la bande et la page.
   useEffect(() => {
-    document.documentElement.classList.add("k-cadre-crm");
-    definirCadreCrm(true);
-    return () => { document.documentElement.classList.remove("k-cadre-crm"); definirCadreCrm(false); };
+    document.documentElement.classList.add("k-cadre-outils");
+    return () => document.documentElement.classList.remove("k-cadre-outils");
   }, []);
 
   const chercher = (q) => {
@@ -46,7 +48,7 @@ export default function CadreOutils({ page, children }) {
   };
 
   return (
-    <div className="k-cadre-l flex h-[100dvh] min-h-0 flex-col bg-rail text-encre max-md:h-auto">
+    <div className="k-cadre-l flex h-[100dvh] min-h-0 flex-col text-encre max-md:h-auto">
       {createPortal(<span className="pointer-events-none fixed left-[15px] top-0 z-[45] flex h-12 items-center max-md:hidden"><span className="logo-kp logo-kp-theme text-[24px] tracking-[-0.03em]" role="img" aria-label="Outils">outils<span className="logo-kp-trait" style={{ width: "0.4em", marginLeft: "0.17em" }} aria-hidden="true" /></span></span>, document.body)}
       <header className="k-verre-barre relative flex h-12 flex-none items-center gap-4 px-4 max-md:hidden">
         <form onSubmit={(e) => { e.preventDefault(); chercher(recherche.trim()); }} className="mx-auto flex h-8 w-full max-w-[480px] items-center gap-2.5 rounded-full bg-relief px-4 focus-within:ring-1 focus-within:ring-bord-doux">
@@ -57,7 +59,7 @@ export default function CadreOutils({ page, children }) {
           {clair ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         </button>
       </header>
-      <div className="k-crm-contenu flex min-h-0 flex-1 overflow-hidden rounded-tl-[16px] bg-fond max-md:flex-col max-md:overflow-visible max-md:rounded-none">
+      <div className="k-crm-contenu flex min-h-0 flex-1 overflow-hidden rounded-tl-[16px] max-md:flex-col max-md:overflow-visible max-md:rounded-none">
         <nav aria-label="Pages des outils" className="flex w-[236px] flex-none flex-col overflow-y-auto border-r border-trait px-3 pb-6 pt-3 max-md:w-auto max-md:flex-row max-md:gap-1.5 max-md:overflow-x-auto max-md:border-b max-md:border-r-0 max-md:pb-3">
           {GROUPES.map(([g, liste]) => (
             <React.Fragment key={g}>

@@ -3,6 +3,9 @@
 // dans l'image (alt, title, nom du fichier), sinon quand c'est la dernière image avant son nom sur la page, sans autre
 // nom entre les deux. Les logos et icônes sont écartés. Gardées 30 jours sur l'agence (`photos_equipe`).
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { Records } from '../db.js';
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -166,5 +169,111 @@ export function chercherPhotosWeb(agenceId, personnes, { lire = fetch } = {}) {
     Records.update('AgenceProspect', agenceId, { photos_equipe: { ...pe, par_nom: { ...(pe.par_nom || {}), ...trouvees }, photos_web_le: new Date().toISOString(), photos_web: Object.keys(trouvees) } });
   })().finally(() => PHOTOS_WEB.delete(agenceId));
   PHOTOS_WEB.set(agenceId, p);
+  return p;
+}
+
+// --- Google Images par SerpAPI (17 nov. 2026) ---------------------------------------------------------------------
+// Jules : « parfois on n'a pas les sites, mais tu peux chercher les noms et trouver leurs têtes ; moi je trouve tout le
+// temps la tête des gens sur Google ». Pour chaque personne sans photo : « Prénom Nom agence ville » dans Google Images
+// (SerpAPI, SERPAPI_KEY) ; on garde l'image dont le titre porte son prénom et son nom, le profil LinkedIn d'abord (une
+// photo de profil), sinon une page qui la présente ; ni vidéo ni publication de réseau social. L'image est copiée chez
+// nous (les liens LinkedIn expirent) et servie par /uploads, réservé aux connectés. Une recherche par personne, une fois.
+
+
+// Les annuaires d'entreprises (une fiche, pas un visage), les salons et événements (une bannière).
+const PAS_PORTRAIT = /(societe\.com|pappers|infogreffe|verif\.com|manageo|annuaire-entreprises|societeinfo|dirigeant\.|bodacc|figaro-?entreprises|kompass|summit|salon|event)/i;
+
+/**
+ * Pure : les images d'une recherche Google Images qui peuvent être la tête de cette personne, de la plus sûre à la moins
+ * sûre : son titre porte son prénom et son nom ; ni vidéo, ni publication, ni annuaire d'entreprises, ni bannière trop
+ * large ; le profil LinkedIn d'abord (une photo de profil).
+ */
+export function imagesCandidates(resultats, nom) {
+  const mots = cleNom(nom).split(' ').filter((m) => m.length > 1);
+  if (mots.length < 2) return [];
+  const candidats = (resultats || []).filter((x) => {
+    const lien = String(x.link || '');
+    const t = cleNom(`${x.title || ''} ${decodeURIComponent(lien)}`);
+    if (!mots.every((m) => t.includes(m))) return false;
+    // Une vidéo, un reel, une publication : l'image est une vignette, pas un portrait.
+    if (/\/(videos?|reel|reels|posts?|watch|p)\//i.test(lien) || /youtube|tiktok/i.test(lien)) return false;
+    if (PAS_PORTRAIT.test(`${lien} ${x.source || ''} ${x.title || ''}`)) return false;
+    const l = Number(x.original_width) || 0; const h = Number(x.original_height) || 0;
+    if (l && h && (l / h > 1.4 || l / h < 0.55)) return false;
+    return !!(x.original || x.thumbnail);
+  });
+  const profil = candidats.filter((x) => /linkedin\.com\/in\//i.test(String(x.link || '')));
+  return [...profil, ...candidats.filter((x) => !profil.includes(x) && !/facebook|instagram/i.test(String(x.link || '')))].slice(0, 3);
+}
+
+/** Pure : la meilleure image, ou null (la première candidate). */
+export const meilleureImage = (resultats, nom) => imagesCandidates(resultats, nom)[0] || null;
+
+/** Une image est-elle le portrait d'une personne ? Le modèle regarde la vignette ; un doute vaut non. */
+async function estUnPortrait(url, lire) {
+  try {
+    const r = await lire(url, { headers: { 'user-agent': UA, accept: 'image/*' }, signal: AbortSignal.timeout(8000) });
+    const type = String(r.headers.get('content-type') || '').split(';')[0];
+    if (!r.ok || !/^image\/(jpeg|png|webp|gif)$/.test(type)) return false;
+    const buffer = Buffer.from(await r.arrayBuffer());
+    const { generateFromDocument } = await import('../llm.js');
+    const { mesurer } = await import('../llm-couts.js');
+    const { resultat } = await mesurer({ operation: 'tête trouvée sur Google Images' }, () => generateFromDocument({ buffer, mimetype: type, nom: 'image', prompt: "Cette image est-elle le portrait d'une seule personne (photo ou dessin, visage bien visible) ? Pas un logo, une bannière, un document, un bâtiment, un groupe. Réponds par OUI ou NON, rien d'autre." }));
+    return /^\s*oui/i.test(String(resultat || ''));
+  } catch { return false; }
+}
+
+async function copierImage(url, lire) {
+  const r = await lire(url, { headers: { 'user-agent': UA, accept: 'image/*' }, redirect: 'follow', signal: AbortSignal.timeout(10000) });
+  const type = String(r.headers.get('content-type') || '');
+  if (!r.ok || !/^image\/(jpeg|png|webp|gif)/.test(type)) return null;
+  const octets = Buffer.from(await r.arrayBuffer());
+  if (octets.length < 1500 || octets.length > 4_000_000) return null;
+  const { CHEMIN_UPLOADS } = await import('../db.js');
+  const dossier = path.join(CHEMIN_UPLOADS, 'photos-personnes');
+  fs.mkdirSync(dossier, { recursive: true });
+  const nom = `${createHash('sha1').update(url).digest('hex').slice(0, 20)}.${type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg'}`;
+  fs.writeFileSync(path.join(dossier, nom), octets);
+  return `/uploads/photos-personnes/${nom}`;
+}
+
+export const imagesBranchees = () => !!(process.env.SERPAPI_KEY || '').trim();
+const PHOTOS_IMAGES = new Map();
+
+/**
+ * Les têtes des personnes sans photo, cherchées dans Google Images (au plus `max` par passage), posées dans
+ * `photos_equipe.par_nom` ; chaque personne cherchée est notée dans `photos_equipe.cherches` pour ne pas repayer.
+ */
+export function chercherPhotosImages(agenceId, personnes, { max = 4, lire = fetch } = {}) {
+  if (!imagesBranchees() || process.env.NODE_TEST_CONTEXT) return Promise.resolve();
+  if (PHOTOS_IMAGES.has(agenceId)) return PHOTOS_IMAGES.get(agenceId);
+  const p = (async () => {
+    const a = Records.get('AgenceProspect', agenceId);
+    if (!a) return;
+    const pe0 = a.photos_equipe || {};
+    // Pas un nom court (« Alfredo L. »), ni le nom de l'agence pris pour une personne (« Coast Life »).
+    const a_chercher = (personnes || []).filter((x) => x?.nom && cleNom(x.nom).split(' ').length >= 2 && !/\s\p{L}\.$/u.test(x.nom.trim()) && !cleNom(a.nom).includes(cleNom(x.nom)))
+      .filter((x) => !(pe0.par_nom || {})[cleNom(x.nom)] && !(pe0.cherches || {})[cleNom(x.nom)]).slice(0, max);
+    const trouvees = {}; const cherches = {};
+    const ville = a.ville || (a.liste_id && Records.get('ListeAgences', a.liste_id)?.ville) || '';
+    await Promise.all(a_chercher.map(async (x) => {
+      cherches[cleNom(x.nom)] = new Date().toISOString();
+      try {
+        const q = [x.nom, String(a.nom || '').replace(/\s*[-–|].*$/, '').slice(0, 40), ville].filter(Boolean).join(' ');
+        const r = await lire(`https://serpapi.com/search.json?${new URLSearchParams({ engine: 'google_images', q, hl: 'fr', gl: 'fr', api_key: process.env.SERPAPI_KEY.trim() })}`, { signal: AbortSignal.timeout(20000) });
+        const j = await r.json();
+        // Les trois meilleures candidates, l'une après l'autre : la première que le modèle voit comme un portrait.
+        for (const img of imagesCandidates(j.images_results || [], x.nom)) {
+          if (!(await estUnPortrait(img.thumbnail || img.original, lire))) continue;
+          const copie = (img.original && await copierImage(img.original, lire).catch(() => null)) || (img.thumbnail && await copierImage(img.thumbnail, lire).catch(() => null));
+          if (copie) { trouvees[cleNom(x.nom)] = copie; break; }
+        }
+      } catch (e) { console.warn(`[google images] ${x.nom} : ${e?.message || e}`); }
+    }));
+    const frais = Records.get('AgenceProspect', agenceId) || a;
+    const pe = frais.photos_equipe || { le: new Date().toISOString(), par_nom: {}, vus: {} };
+    Records.update('AgenceProspect', agenceId, { photos_equipe: { ...pe, par_nom: { ...(pe.par_nom || {}), ...trouvees }, cherches: { ...(pe.cherches || {}), ...cherches } } });
+  })().finally(() => PHOTOS_IMAGES.delete(agenceId));
+  PHOTOS_IMAGES.set(agenceId, p);
   return p;
 }

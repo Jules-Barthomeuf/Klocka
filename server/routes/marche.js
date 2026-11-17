@@ -234,6 +234,18 @@ export function monterMarche(app) {
     ok(res, lireSecteur(projet));
   }));
 
+  // La carte des transactions autour d'une adresse (17 nov. 2026, Jules) : les ventes de murs (DVF) et les cessions de
+  // fonds (BODACC) à 500 m, pour l'onglet Marché de l'analyse et celui du projet (server/carte-transactions.js).
+  app.get('/api/carte-transactions', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
+    const adresse = String(req.query.adresse || '').trim();
+    if (!adresse) return res.status(400).json({ error: 'Adresse manquante.' });
+    const { carteTransactions } = await import('../carte-transactions.js');
+    const r = await carteTransactions(adresse, { user: currentUser(req) });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // Les mêmes cessions, pour un projet : un projet créé avant que le dossier ne
   // les relève peut les chercher depuis son éditeur.
   app.post('/api/projects/:id/transactions', wrap(async (req, res) => {

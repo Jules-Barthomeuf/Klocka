@@ -890,7 +890,13 @@ export function monterProspection(app) {
       const { chercherPhotosWeb } = await import('../prospection/photos-equipe.js');
       chercherPhotosWeb(agence.id, contacts.filter((x) => !x.standard && !x.photo).map((x) => ({ nom: x.nom, poste: x.fonction }))).catch(() => {});
     }
-    ok(res, { gens: frais?.apollo_equipe?.gens || gens, photos: Records.get('AgenceProspect', agence.id)?.photos_equipe?.par_nom || photos, contacts, noms_en_cours: enCours, site_en_cours: siteEnCours, photos_en_cours: photosEnCours, site_le: frais?.site_lu?.le || null });
+    // Les têtes par Google Images (17 nov. 2026, Jules) : les quatre premières personnes sans photo, une fois chacune.
+    const PE = await import('../prospection/photos-equipe.js');
+    const cherches = frais?.photos_equipe?.cherches || {};
+    const sansTete = !enCours && !siteEnCours && PE.imagesBranchees()
+      ? contacts.filter((x) => !x.standard && !x.photo && !/\s\p{L}\.$/u.test(String(x.nom || '').trim()) && !cherches[PE.cleNom(x.nom)]).slice(0, 4) : [];
+    if (sansTete.length) PE.chercherPhotosImages(agence.id, sansTete.map((x) => ({ nom: x.nom }))).catch(() => {});
+    ok(res, { gens: frais?.apollo_equipe?.gens || gens, photos: Records.get('AgenceProspect', agence.id)?.photos_equipe?.par_nom || photos, contacts, noms_en_cours: enCours, site_en_cours: siteEnCours, photos_en_cours: photosEnCours || sansTete.length > 0, site_le: frais?.site_lu?.le || null });
   }));
   // Pendant l'appel : la rue de l'adresse dite, en Street View.
   app.get('/api/prospection/mode-appel/lieu', wrap(async (req, res) => {

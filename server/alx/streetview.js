@@ -286,10 +286,12 @@ export async function panoramaDeLaRue({ lat, lon, rue = null }) {
 // serveur, quand elle est posée). On garde le point le plus sûr, et la rue
 // qui va avec : Street View y choisit ensuite son panorama.
 
-const LIEU = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json';
+// Places (New) depuis le 17 nov. 2026 : l'ancienne recherche de lieux (findplacefromtext) ne s'active plus dans un projet
+// Google récent, et le projet a changé ce jour-là. Même résultat : le premier lieu, son point et son adresse.
+const LIEU = 'https://places.googleapis.com/v1/places:searchText';
 const BAN = 'https://data.geopf.fr/geocodage/search/';
 const lieux = new Map();
-const normTexte = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const normTexte = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 /** Le point d'une adresse selon la recherche de lieux de Google : `{ lat, lon, adresse }`, ou null (sans clé aussi). */
 export async function pointDuLieu(texte) {
@@ -298,11 +300,15 @@ export async function pointDuLieu(texte) {
   if (lieux.has(t)) return lieux.get(t);
   let point = null;
   try {
-    const params = new URLSearchParams({ input: t, inputtype: 'textquery', fields: 'geometry,formatted_address', language: 'fr', region: 'fr', key: cle() });
-    const r = await fetch(`${LIEU}?${params}`, { signal: AbortSignal.timeout(10000) });
+    const r = await fetch(LIEU, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': cle(), 'X-Goog-FieldMask': 'places.location,places.formattedAddress' },
+      body: JSON.stringify({ textQuery: t, languageCode: 'fr', regionCode: 'FR', maxResultCount: 1 }),
+      signal: AbortSignal.timeout(10000),
+    });
     const d = r.ok ? await r.json() : null;
-    const c = d?.status === 'OK' ? d.candidates?.[0] : null;
-    point = c?.geometry?.location ? { lat: c.geometry.location.lat, lon: c.geometry.location.lng, adresse: c.formatted_address || null } : null;
+    const c = d?.places?.[0];
+    point = c?.location ? { lat: c.location.latitude, lon: c.location.longitude, adresse: c.formattedAddress || null } : null;
   } catch { point = null; }
   if (lieux.size > 500) lieux.clear();
   lieux.set(t, point);

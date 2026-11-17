@@ -294,9 +294,24 @@ export async function lireFiche(itemId, { notes = 5 } = {}) {
   return { id: String(r.id), nom: r.name || '', cree_le: r.mondayCreeLe || r.createdAt || null, tableau: x.o.labelPlural, groupe: r.mondayGroupe || null, colonnes, notes: notes ? [] : [], lien: T.lienFiche(x.o.nameSingular, r.id) };
 }
 
+/**
+ * Pure : le groupe d'une ligne créée sans groupe, comme Monday la rangeait (le premier groupe du tableau) ; null si le
+ * tableau n'a pas de champ « groupe » ou si la ligne en a déjà un.
+ * 17 nov. 2026 : les agents créés par le mode appel depuis la bascule (6 nov.) n'avaient pas de groupe, et l'écran CRM,
+ * rangé par groupe sans bloc « Sans groupe » (9 nov.), ne les montrait pas (Jules : « je ne les vois pas »).
+ */
+export function groupeParDefaut(meta, valeurs = {}) {
+  if (valeurs.groupe) return null;
+  const f = (meta?.fields || []).find((x) => x.name === 'groupe' && x.type === 'SELECT');
+  const premier = [...(f?.options || [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))[0];
+  return premier?.value || null;
+}
+
 export async function creerElement(boardId, nom, colonnes = {}) {
   const o = objetDuTableau(boardId);
   const valeurs = await valeursTwenty(o, colonnes, nom);
+  const groupe = groupeParDefaut(await metaDe(o), valeurs);
+  if (groupe) valeurs.groupe = groupe;
   const r = await api.creer(o.namePlural, valeurs);
   objetDeId.set(String(r.id), o);
   await apresEcriture(o.nameSingular, r.id, valeurs);

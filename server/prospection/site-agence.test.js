@@ -31,3 +31,17 @@ test('un portrait trouvé sur internet : l\'image à son nom, ou l\'image de par
   assert.equal(portraitDeLaPage('<p>Autre personne</p><img src="/z.jpg">', 'Maxime Douce', 'https://y.fr/'), null);
   assert.deepEqual(adressesParPersonne('1. https://a.fr/x https://b.fr/y\n2. aucune', 2), [['https://a.fr/x', 'https://b.fr/y'], []]);
 });
+
+test('les images Google : son prénom et son nom dans le titre, LinkedIn d\'abord ; ni annuaire, ni bannière, ni vidéo', async () => {
+  const { imagesCandidates } = await import('./photos-equipe.js');
+  const r = imagesCandidates([
+    { title: 'Laurence HANOUNE : fiche dirigeant', link: 'https://www.societe.com/dirigeant/laurence-hanoune', original: 'a.png', original_width: 600, original_height: 600 },
+    { title: 'Paris Blockchain Summit : Julien Pindat', link: 'https://x.io/speakers', original: 'b.png', original_width: 1200, original_height: 600 },
+    { title: 'Maxime Douce, fondateur', link: 'https://www.facebook.com/luckymmo/videos/123/', original: 'c.jpg' },
+    { title: 'Expert immobilier · Maxime Douce · Luckymmo', link: 'https://www.luckymmo.com/expert-immobilier/', original: 'd.png', original_width: 800, original_height: 900 },
+    { title: 'Maxime DOUCE - Dirigeant | LinkedIn', link: 'https://fr.linkedin.com/in/maxime-douce', original: 'e.jpg', original_width: 400, original_height: 400 },
+    { title: 'Maxime Durand', link: 'https://y.fr/', original: 'f.jpg' },
+  ], 'Maxime Douce');
+  assert.deepEqual(r.map((x) => x.original), ['e.jpg', 'd.png']);
+  assert.equal(imagesCandidates([{ title: 'Laurence HANOUNE : fiche dirigeant', link: 'https://www.societe.com/x', original: 'a.png' }], 'Laurence Hanoune').length, 0);
+});

@@ -93,6 +93,13 @@ test('créer, modifier, noter, supprimer : les verbes Monday écrivent dans Twen
   assert.deepEqual(api.journal.at(-1), ['supprimer', 'agentImmobilierListe', c.id]);
 });
 
+test('une ligne créée sans groupe va dans le premier groupe du tableau, comme dans Monday (17 nov. 2026)', () => {
+  const meta = { fields: [{ name: 'groupe', type: 'SELECT', options: [{ value: 'NOUVEAU_GROUPE', position: 1 }, { value: 'CONTACTS', position: 0 }] }] };
+  assert.equal(A.groupeParDefaut(meta, { name: 'Aliaga' }), 'CONTACTS');
+  assert.equal(A.groupeParDefaut(meta, { name: 'Aliaga', groupe: 'NOUVEAU_GROUPE' }), null, 'le groupe donné reste');
+  assert.equal(A.groupeParDefaut({ fields: [] }, { name: 'x' }), null, 'un tableau sans groupe');
+});
+
 test('un statut nouveau ajoute son option, comme labels: true dans Monday', async () => {
   const api = fausseApi();
   A.brancherPourTests({ objets: [OBJET], twenty: api });

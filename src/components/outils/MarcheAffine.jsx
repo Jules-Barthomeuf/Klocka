@@ -10,6 +10,7 @@ import { Anneau, Barres, Calendrier, ClassementVacance, Fourchettes, Frise, Jaug
 import { SOURCE_REPERES, lignesVacance, phraseVacance } from "@/lib/vacance-reperes";
 import { cleOutilsDossier, marquerVu, useOutilsDossier } from "@/components/analyse/ControlesHorsDocuments";
 import { MOT, montants, sansCode, suiteCourte, teteEtSuite, teteProcedure } from "@/lib/marche-texte";
+import CarteTransactions from "@/components/marche/CarteTransactions";
 import { VERRE } from "@/lib/verre";
 import { nettoyerReponse } from "@/lib/reponse-recherche";
 import GraphesSante from "@/components/outils/SanteLocataire";
@@ -545,6 +546,19 @@ export function BlocVille({ pts }) {
 
 const BLOCS = { locataire: BlocLocataire, loyer: BlocLoyer, prix: BlocPrix, emplacement: BlocEmplacement, ville: BlocVille };
 
+/**
+ * La carte des transactions autour du commerce (17 nov. 2026, Jules), sous le Prix : les ventes de murs et les cessions de
+ * fonds à 500 m, sur le dessin des autres parties (titre en 20 px, bloc de verre).
+ */
+function TransactionsAutour({ adresse }) {
+  return (
+    <section id="outil-transactions" className="flex scroll-mt-6 flex-col gap-3">
+      <h2 className="m-0 text-[20px] font-normal text-encre">Transactions autour</h2>
+      <div className={VERRE}><div className="p-3"><CarteTransactions adresse={adresse} hauteur={440} /></div></div>
+    </section>
+  );
+}
+
 export default function MarcheAffine({ dealId, index = 0, apercu = false }) {
   const queryClient = useQueryClient();
   const q = useOutilsDossier(dealId, index);
@@ -598,7 +612,7 @@ export default function MarcheAffine({ dealId, index = 0, apercu = false }) {
               </div>
             </section>
           );
-        })}
+        }).flatMap((el, i) => (outils[i]?.cle === "prix" && entrees.adresse && !apercu ? [el, <TransactionsAutour key="transactions" adresse={entrees.adresse} />] : [el]))}
       </div>
       {!apercu && <button type="button" onClick={() => lancer.mutate(null)} disabled={lancer.isPending} className="mt-6 inline-flex h-8 items-center gap-1.5 self-start rounded-full border border-trait px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
         {lancer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}Tout relancer

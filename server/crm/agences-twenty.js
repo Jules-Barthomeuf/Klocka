@@ -261,7 +261,8 @@ export async function synchroniser({ go = false, T = null, journal = () => {}, a
   // Les agences des agents qu'aucune ligne ne reconnaît : une par entreprise et par ville, jamais deux fois.
   const aCreer = rap.aCreer.filter((g) => !parKlockaId.has(`agent:${g.cle}`));
   res.agences_agents = aCreer.length;
-  if (go && aCreer.length) await creerLot(T, aCreer.map(versTwentyDepuisAgents), res, journal);
+  // Lot par lot (17 nov. 2026) : un lot refusé n'est repris que lui, sans recréer ceux déjà passés.
+  for (let i = 0; go && i < aCreer.length; i += T.LOT_MAX) await creerLot(T, aCreer.slice(i, i + T.LOT_MAX).map(versTwentyDepuisAgents), res, journal);
   return res;
 }
 
@@ -280,6 +281,8 @@ const SANS_TELEPHONE = { primaryPhoneNumber: '', primaryPhoneCountryCode: '', pr
  * ligne au téléphone refusé part sans téléphone, une ligne refusée encore est comptée et passée.
  */
 async function creerLot(T, lignes, res, journal) {
+  // Un seul envoi à la fois : au-delà d'un lot, creerEnLot en ferait plusieurs, et la reprise recréerait les premiers.
+  if (lignes.length > T.LOT_MAX) throw new Error(`creerLot : ${lignes.length} lignes pour un lot de ${T.LOT_MAX}`);
   try { return await T.creerEnLot(PLURIEL, lignes); } catch { /* repris ligne par ligne */ }
   const crees = [];
   for (const l of lignes) {

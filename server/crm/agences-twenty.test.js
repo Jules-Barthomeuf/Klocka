@@ -126,3 +126,22 @@ test("les agents d'Agent immobilier : leur agence passe En contact, l'agence inc
   assert.equal(r2.agences_agents, 0, 'pas recréée au passage suivant');
   assert.equal([...base.values()].filter((x) => String(x.klockaId || '').startsWith('agent:')).length, 1);
 });
+
+test("un lot refusé parmi les agences des agents ne fait pas recréer les lots déjà passés (17 nov. 2026)", async () => {
+  const base = new Map();
+  const agents = Array.from({ length: 5 }, (_, i) => ({ id: `z${i}`, name: `Agent ${i}`, ville: 'Brest', entreprise: `Agence Numero${i}x`, telephone: { primaryPhoneNumber: `61000000${i}` } }));
+  let n = 0;
+  const T = {
+    LOT_MAX: 2,
+    lister: async (_p, o = {}) => (o.filtre ? [] : [...base.values()].filter((x) => x.ville !== undefined)),
+    creerEnLot: async (_p, lignes) => {
+      if (lignes.length > 1 && lignes.some((l) => l.name === 'Agence Numero3x')) throw new Error('refusé');
+      return lignes.map((l) => { const x = { ...l, id: `c${++n}` }; base.set(x.id, x); return x; });
+    },
+    modifier: async () => {},
+  };
+  await M.synchroniser({ go: true, T, agents });
+  const nees = [...base.values()].filter((x) => String(x.klockaId || '').startsWith('agent:'));
+  assert.equal(nees.length, 5);
+  assert.equal(new Set(nees.map((x) => x.klockaId)).size, 5, 'aucun doublon');
+});

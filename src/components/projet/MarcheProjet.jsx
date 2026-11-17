@@ -4,6 +4,7 @@ import { trouverVille, REFERENCES_FR } from "@/data/villes";
 import { EnTeteOnglet } from "./Cartes";
 import { GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import CarteTransactions from "@/components/marche/CarteTransactions";
 import { BlocEmplacement, BlocLocataire, BlocLoyer, BlocPrix, BlocVille } from "@/components/outils/MarcheAffine";
 import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce, useEdition } from "./EditionEnPlace";
 
@@ -389,6 +390,14 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 })
       <PartieDuDossier outil="ville" donnees={donnees} />
       {donnees?.emplacement?.points?.length > 0 && <Emplacement e={donnees.emplacement} />}
       <PartieDuDossier outil="prix" donnees={donnees} />
+      {/* Les transactions autour du commerce (17 nov. 2026, Jules : « cette carte se voit aussi dans le projet ») : sous le
+          Prix, comme dans l'Analyse ; un bloc qu'on masque dans l'éditeur. Pas sur le lien public, qui n'interroge pas le serveur. */}
+      {!isPublic && project.adresse_complete && (
+        <CarteMarche id="marche-transactions" titre="Transactions autour" grille={false} className="w-full">
+          <EnTeteCarte libelle="Transactions autour" precision="ventes de murs et cessions de fonds à 500 m" />
+          <CarteTransactions adresse={project.adresse_complete} hauteur={440} />
+        </CarteMarche>
+      )}
       <PartieDuDossier outil="loyer" donnees={donnees} />
     </div>
   );

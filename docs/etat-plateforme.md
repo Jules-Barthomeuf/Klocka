@@ -6,28 +6,28 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-5 personnes, 4 181 pages ouvertes, 0 demandes à l'assistant, 18 actions exécutées.
+5 personnes, 4 161 pages ouvertes, 0 demandes à l'assistant, 18 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 501 | 0 | 18 | 17/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 478 | 0 | 18 | 17/11/2026 |
 | admin.stress@test.local (équipe) | 372 | 0 | 0 | 15/11/2026 |
 | test.mandataire@kpartners.fr | 182 | 0 | 0 | 14/11/2026 |
-| admin@klocka.local (équipe) | 121 | 0 | 0 | 17/11/2026 |
+| admin@klocka.local (équipe) | 124 | 0 | 0 | 17/11/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
 
 ## Les pages qui comptent
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **MandataireBiens** — 1 021 (24 %)
-- **Analyse** — 840 (20 %)
+- **MandataireBiens** — 1 021 (25 %)
+- **Analyse** — 825 (20 %)
 - **CrmTwenty** — 320 (8 %)
-- **Dashboard** — 307 (7 %)
-- **Prospection** — 297 (7 %)
+- **Dashboard** — 305 (7 %)
+- **Prospection** — 303 (7 %)
 - **MandataireProspection** — 245 (6 %)
-- **AdminProjets** — 202 (5 %)
-- **Personnalisation** — 156 (4 %)
+- **AdminProjets** — 195 (5 %)
+- **Personnalisation** — 154 (4 %)
 - **MandatsMandataires** — 66 (2 %)
 - **SimulateurRentabilite** — 55 (1 %)
 - **AdminUtilisateurs** — 45 (1 %)
@@ -36,7 +36,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 ## Ce que l'IA coûte
 
-43,12 € sur la période, 2 221 appels, 15 673 k jetons. 52 % part en tâche de fond, sans que personne clique. 39 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+43,44 € sur la période, 2 278 appels, 15 900 k jetons. 52 % part en tâche de fond, sans que personne clique. 39 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -44,7 +44,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 | Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 372 | 12,91 € | 18 s |
 | Trier ce qu’on colle dans la boîte | 0,11 € par dépôt | 19 | 2,08 € | 29 s |
 | Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
-| Lire le site d'une agence (et le trouver s'il manque) | 0,0088 € par agence | 10 | 0,45 € | 22 s |
+| Lire le site d'une agence (et le trouver s'il manque) | 0,0066 € par agence | 40 | 0,63 € | 8 s |
 | Extraire un document déposé | 0,02 € par document | 7 | 0,28 € | 20 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
@@ -55,7 +55,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : pages équipe (1,66 €) · POST /api/prospection/mode-appel/pre-lecture (1,15 €) · POST /api/prospection/mode-appel/issue (1,05 €) · GET /api/prospection/agents/:id/page (0,54 €) · lire le passage sur Street View (0,53 €) · fil dossier (0,39 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : pages équipe (1,66 €) · POST /api/prospection/mode-appel/pre-lecture (1,17 €) · POST /api/prospection/mode-appel/issue (1,06 €) · GET /api/prospection/agents/:id/page (0,63 €) · lire le passage sur Street View (0,53 €) · fil dossier (0,39 €).
 
 ## Les leviers sur la dépense
 
@@ -79,7 +79,7 @@ Pour qui : Jules 18.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **MandataireBiens** : 24 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **MandataireBiens** : 25 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « demander quelque chose à l'assistant (mandataire) » à 0,03 € par demande : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
 - 52 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

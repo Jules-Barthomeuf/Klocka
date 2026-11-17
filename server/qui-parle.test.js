@@ -54,3 +54,19 @@ test('l\'analyste qui se présente est toujours « Vous » ; sans seuil, le nive
   assert.equal(voixDeLaPhrase('Très bien.', 0.09, null, 0.1), 'vous');
   assert.equal(voixDeLaPhrase('Très bien.', 0.09, null, null), null);
 });
+
+test('les phrases se coupent aussi aux silences, et gardent leur clé de position', async () => {
+  const { phrasesEtTours } = await import('../src/lib/qui-parle.js');
+  const texte = 'Oui c\'est ça exact dans quelle ville';
+  // « Oui c'est ça exact » arrive, puis 1,5 s de blanc, puis « dans quelle ville ».
+  const arrivees = [{ fin: 3, t: 1000 }, { fin: 18, t: 1600 }, { fin: 24, t: 3100 }, { fin: 36, t: 3500 }];
+  const r = phrasesEtTours(texte, arrivees, { maintenant: 3600 });
+  assert.deepEqual(r.phrases.map((p) => p.texte), ['Oui c\'est ça exact']);
+  assert.equal(r.enCours.texte, 'dans quelle ville');
+  const fini = phrasesEtTours(texte, arrivees, { maintenant: 6000 });
+  assert.deepEqual(fini.phrases.map((p) => p.texte), ['Oui c\'est ça exact', 'dans quelle ville']);
+  assert.equal(fini.phrases[0].cle, 'r0');
+  assert.equal(fini.phrases[1].cle, 'r19');
+  // La ponctuation coupe toujours.
+  assert.deepEqual(phrasesEtTours('Bonjour. Oui ', [], { maintenant: 0 }).phrases.map((p) => p.texte), ['Bonjour.']);
+});

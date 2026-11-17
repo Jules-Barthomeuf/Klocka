@@ -33,3 +33,13 @@ test('sans FAI, le net vendeur sert de prix ; sans loyer, rien ne se calcule', (
   assert.equal(vide.brut, null);
   assert.ok(vide.paliers.every((x) => x.prix == null && x.nego == null));
 });
+
+test('un seul prix : dit net vendeur, le FAI s\'en déduit ; dit FAI, le net vendeur ; sinon rien', async () => {
+  const { prixDesDeux } = await import('../src/lib/calculatrice.js');
+  assert.deepEqual(prixDesDeux({ prix: 400000, base: 'net_vendeur' }), { fai: 420000, net: 400000, honorairesPct: 5 });
+  assert.equal(prixDesDeux({ prix: 400000, base: 'net_vendeur', honorairesPct: 6 }).fai, 424000);
+  assert.equal(prixDesDeux({ prix: 500000, base: 'net_vendeur', honoraires: 25000 }).fai, 525000);
+  assert.equal(prixDesDeux({ prix: 420000, base: 'fai' }).net, 400000);
+  assert.deepEqual(prixDesDeux({ prix: 420000 }), { fai: 420000, net: null, honorairesPct: null });
+  assert.equal(prixDesDeux({}).fai, null);
+});

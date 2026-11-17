@@ -33,7 +33,6 @@ export default function FeedbackSurvol({ children }) {
   const envoyer = useMutation({
     mutationFn: () => base44.entities.Suggestion.create({
       contenu: texte.trim(),
-      urgence: 3,
       statut: "nouveau",
       page: typeof window !== "undefined" ? window.location.pathname + window.location.search : null,
       client_email: user?.email || "admin@klocka.fr",

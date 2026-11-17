@@ -23,7 +23,7 @@ import Chargement from "@/components/ui/Chargement";
 import { ouvrirTranscriptionDirecte, enPhrases } from "@/lib/transcription-directe";
 import { objectionEntendue } from "@/lib/objections";
 import TranscriptionParVoix from "@/components/prospection/TranscriptionParVoix";
-import { niveauDePlage, niveauEntre, phrasesAvecPlages, seuilDeuxVoix, texteNormal, voixDe, voixDeLaPhrase, ditParVous, voixParLesMots } from "@/lib/qui-parle";
+import { niveauEntre, phrasesEtTours, seuilDeuxVoix, texteNormal, voixDe, voixParLesMots } from "@/lib/qui-parle";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -273,36 +273,8 @@ function CarteAgence({ a, recherches, cahier }) {
   );
 }
 
-/** « Ensuite » (11 nov. 2026, Jules : « sous l'écran du mode appel, les autres qu'on va prospecter ensuite ») : les
- *  agences qui suivent dans la file, dans son ordre, sous le prochain appel et pendant l'appel. Une ligne : le nom,
- *  l'interlocuteur, la raison ou l'état, le lieu. Dix, puis « n autres ». */
-// « À suivre » (15 nov. 2026, avis produit) : les cinq prochaines de la file, pour savoir ce qui vient sans s'y perdre ;
-// « Toute la ville » ouvre le grand tableau en panneau.
-function Ensuite({ agences, onToutVoir = null, total = null }) {
-  if (!agences.length && !onToutVoir) return null;
-  const vues = agences.slice(0, 5);
-  return (
-    <section aria-label="À suivre" className="mt-2">
-      <div className="mb-1.5 flex items-baseline justify-between gap-3 px-1">
-        <p className="m-0 text-[13px] text-ardoise">À suivre</p>
-        {onToutVoir && (
-          <button type="button" onClick={onToutVoir} className="inline-flex items-center gap-1.5 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-            Toute la ville{total ? <span className="tabular-nums">({total})</span> : null}<ArrowRight className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-      {vues.length > 0 && <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-trait p-0">
-        {vues.map((x) => (
-          <li key={x.id} className="flex min-h-[44px] items-center gap-4 border-t border-trait px-4 py-2 first:border-t-0 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-0.5">
-            <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{x.nom}{x.interlocuteurs?.[0] && <span className="text-ardoise"> · {x.interlocuteurs[0]}</span>}</span>
-            <span className={`max-w-[40%] flex-none truncate text-[13px] max-md:max-w-full ${x.raison ? "text-ambre" : "text-ardoise"}`}>{x.raison || x.badge || x.statut?.libelle || ""}</span>
-            {x.lieu && <span className="w-[140px] flex-none truncate text-right text-[13px] text-ardoise max-md:hidden">{x.lieu}</span>}
-          </li>
-        ))}
-      </ul>}
-    </section>
-  );
-}
+// « À suivre » et « Toute la ville » retirés (16 nov. 2026, Jules : « le mode appel, juste un mode où on voit une après
+// l'autre ; les listes complètes sont dans la page Agences ») : on ne voit que l'agence à appeler.
 
 /** Les notes de l'appel, sous la transcription : ce que le micro capte mal. Elles l'emportent sur ce qu'AK a entendu. */
 function ZoneNotes({ valeur, onChange, nu = false, rows = 3 }) {
@@ -729,10 +701,9 @@ function ChoixVille({ villes, valeur, onChoisir, essai, dues = null, nbDues = 0 
   );
 }
 
-// `sousLaCarte(listeId)` (15 nov. 2026, Jules : « sous la grosse carte d'appel, le tableau complet qui est dans la
-// liste ») : le tableau des agences de la ville ouverte, sous la fiche, hors appel. `listeInitiale` : la ville ouverte
-// d'abord (la ville proposée du tableau de bord), sinon la dernière choisie.
-export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false, entete = null, sousLaCarte = null, listeInitiale = null, relancesDues = null, onApresAppel = null }) {
+// `listeInitiale` : la ville ouverte d'abord (la ville proposée du tableau de bord), sinon la dernière choisie.
+// `relancesDues()` : prend la première relance due libre et l'ouvre.
+export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false, entete = null, listeInitiale = null, relancesDues = null, onApresAppel = null }) {
   // `essaiSeul` (page Relances, 8 oct. 2026) : seulement le mode Essai, sans les villes, les relances d'abord.
   const [scenario, setScenario] = useState(null);
   // En essai, écrire pour de vrai dans Monday (8 oct. 2026) : oui par défaut, retenu dans le navigateur.
@@ -740,8 +711,6 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const setMondayEssai = (v) => { setMondayEssaiBrut(v); poserLocal("klocka.essai.monday", v); };
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(null);
-  // « Toute la ville » : le grand tableau des agences, en panneau à droite (15 nov. 2026).
-  const [panneau, setPanneau] = useState(false);
   const nbDues = useQuery({ queryKey: ["relances"], queryFn: () => base44.request("GET", "/api/prospection/relances"), enabled: !!relancesDues, refetchInterval: 60_000 }).data?.lignes?.length || 0;
   const [sessions, setSessions] = useState({}); // onglet → { id, liste_id, ville, essai, debut }
   const [ecran, setEcran] = useState("fiche");
@@ -766,7 +735,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const voix = useRef({ niveau: 0, qui: null, historique: [], seuil: null, arrivees: [], derniere: null });
   const [parle, setParle] = useState(null);
   const [voixCorrigees, setVoixCorrigees] = useState({});
-  const nouvellesVoix = () => { voix.current = { niveau: 0, qui: null, historique: [], seuil: null, arrivees: [], derniere: null }; setParle(null); setVoixCorrigees({}); };
+  // Les étiquettes lues au sens par l'IA (16 nov. 2026, Jules), arrivées après la phrase.
+  const [voixIA, setVoixIA] = useState({});
+  const nouvellesVoix = () => { voix.current = { niveau: 0, qui: null, historique: [], seuil: null, arrivees: [], derniere: null }; setParle(null); setVoixCorrigees({}); setVoixIA({}); dejaRelu.current = ""; personne.current = { nom: null, par: null, envoi: false }; setPersonneAppel(null); };
   // L'assistant d'après l'appel (9 nov. 2026) : « valide » lui fait lancer le bouton ; `annonce` lui fait dire pourquoi il ne peut pas.
   const [annonce, setAnnonce] = useState(null);
   const [voirTranscription, setVoirTranscription] = useState(false);
@@ -811,12 +782,13 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   });
   const choisir = (k) => {
     arreterTout();
-    if (k !== ESSAI && k !== RELANCES) poserLocal("prospection.ville", k);
-    if (k === DUES) { setOnglet(k); setEcran("fiche"); setPanneau(false); return; }
+    if (k !== ESSAI && k !== RELANCES && k !== DUES) poserLocal("prospection.ville", k);
+    // Les relances dues une après l'autre (16 nov. 2026, Jules) : la première libre s'ouvre, plus de liste.
+    if (k === DUES) { relancesDues?.(); return; }
     setOnglet(k); setEcran("fiche"); setPassees(new Set()); setPrise(null); setRappel(null);
     if (!sessions[k] || k === ESSAI) ouvrir.mutate(k);
   };
-  useEffect(() => { if (!onglet && essaiSeul) choisir(ESSAI); else if (!onglet && relances) choisir(RELANCES); else if (!onglet && villes.length) { const derniere = lireLocal("prospection.ville"); if (!listeInitiale && derniere === DUES && relancesDues) { choisir(DUES); return; } const voulue = [listeInitiale, derniere].find((id) => id && villes.some((l) => l.id === id)); choisir(voulue || villes[0].id); } }, [villes.length]);
+  useEffect(() => { if (!onglet && essaiSeul) choisir(ESSAI); else if (!onglet && relances) choisir(RELANCES); else if (!onglet && villes.length) { const derniere = lireLocal("prospection.ville"); const voulue = [listeInitiale, derniere].find((id) => id && villes.some((l) => l.id === id)); choisir(voulue || villes[0].id); } }, [villes.length]);
   useEffect(() => { const t = setInterval(() => setHorloge(Date.now()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => () => { clearInterval(chrono.current); clearInterval(compte.current); clearTimeout(messageT.current); rec.current?.flux?.getTracks().forEach((t) => t.stop()); }, []);
 
@@ -825,12 +797,6 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const file = useQuery(relances
     ? { queryKey: ["relance-fiche", relance?.agence_id], queryFn: () => base44.request("GET", `/api/prospection/relances/fiche?agence=${relance.agence_id}`), enabled: !!session && !!relance?.agence_id }
     : { queryKey: ["mode-appel-file", listeDeLaFile], queryFn: () => base44.request("GET", `${API}/file?liste=${listeDeLaFile}`), enabled: !!listeDeLaFile, staleTime: 30_000 });
-  // « Toute la ville » prêt d'avance (15 nov. 2026) : une fois la carte là, le tableau de la ville se charge en fond.
-  useEffect(() => {
-    if (!file.isSuccess || !sousLaCarte || !listeDeLaFile || session?.essai) return;
-    queryClient.prefetchQuery({ queryKey: ["agent-ia-liste", listeDeLaFile], queryFn: () => base44.request("GET", `/api/prospection/agent-ia/listes/${listeDeLaFile}`), staleTime: 30_000 });
-    queryClient.prefetchQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/equipe"), staleTime: 5 * 60_000 });
-  }, [file.isSuccess, listeDeLaFile]);
   const recap = useQuery({ queryKey: ["mode-appel-recap", session?.id], queryFn: () => base44.request("GET", `${API}/sessions/${session.id}`), enabled: !!session?.id, refetchInterval: ecran === "fin" ? 5000 : false });
   const agences = useMemo(() => (file.data?.file || []).filter((x) => relances || !passees.has(x.id)), [file.data, passees]);
   // L'agence de l'appel en cours est figée dès qu'on quitte la fiche (12 oct. 2026) : une file rechargée pendant
@@ -1150,25 +1116,82 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const [texteDirect, setTexteDirect] = useState("");
   const directTempsReel = useMemo(() => enPhrases(texteDirect), [texteDirect]);
   const motsEnDirect = tempsReelOk.current ? directTempsReel.enCours : "";
-  // La transcription par interlocuteur (16 nov. 2026) : chaque phrase prend la voix entendue pendant qu'elle arrivait ;
-  // une correction à la main l'emporte. En temps réel, les phrases du flux ; sinon, les morceaux transcrits.
+  // La transcription par interlocuteur (16 nov. 2026, Jules : « la transcription normale, puis toutes les trois secondes
+  // ça étiquette ») : la phrase s'affiche sans nom ; le nom vient de l'étiquetage au sens par l'IA (voixIA), ou d'une
+  // correction à la main, qui l'emporte. En temps réel, les phrases du flux ; sinon, les morceaux transcrits.
   const lignesVoix = (() => {
-    const v = voix.current;
     if (tempsReelOk.current) {
-      const { phrases, enCours: bout } = phrasesAvecPlages(texteDirect);
-      const niveaux = phrases.map((p) => niveauDePlage(v.arrivees, v.historique, p.debut, p.fin));
-      // L'ancre : le niveau des phrases où l'analyste se présente (Klocka, son prénom) ; elle sert tant que le seuil manque.
-      const ancres = phrases.map((p, k) => (ditParVous(p.texte) ? niveaux[k] : null)).filter((n) => n != null).sort((a, b) => a - b);
-      const ancre = ancres.length ? ancres[Math.floor(ancres.length / 2)] : null;
+      // Coupées à la ponctuation et aux silences, clées par leur position : une correction plus loin ne les décale pas.
+      const { phrases, enCours: bout } = phrasesEtTours(texteDirect, voix.current.arrivees);
       return {
-        lignes: phrases.map((p, k) => ({ cle: `r${k}`, texte: p.texte, qui: voixCorrigees[`r${k}`] ?? voixDeLaPhrase(p.texte, niveaux[k], v.seuil, ancre) })),
-        enCours: bout.texte ? { texte: bout.texte, qui: ditParVous(bout.texte) ? "vous" : parle ?? voixDeLaPhrase(bout.texte, niveauDePlage(v.arrivees, v.historique, bout.debut, bout.fin), v.seuil, ancre) } : null,
+        lignes: phrases.map((p) => ({ cle: p.cle, texte: p.texte, qui: voixCorrigees[p.cle] ?? voixIA[p.cle] ?? null, main: !!voixCorrigees[p.cle] })),
+        enCours: bout.texte ? { texte: bout.texte, qui: null } : null,
       };
     }
-    const ancresM = direct.filter((x) => x.texte && ditParVous(x.texte) && x.niveau != null).map((x) => x.niveau).sort((a, b) => a - b);
-    const ancreM = ancresM.length ? ancresM[Math.floor(ancresM.length / 2)] : null;
-    return { lignes: direct.filter((x) => x.texte).map((x) => ({ cle: `m${x.i}`, texte: x.texte, qui: voixCorrigees[`m${x.i}`] ?? x.qui ?? voixDeLaPhrase(x.texte, x.niveau, v.seuil, ancreM) })), enCours: null };
+    return { lignes: direct.filter((x) => x.texte).map((x) => ({ cle: `m${x.i}`, texte: x.texte, qui: voixCorrigees[`m${x.i}`] ?? voixIA[`m${x.i}`] ?? null, main: !!voixCorrigees[`m${x.i}`] })), enCours: null };
   })();
+  // Toutes les trois secondes, les phrases finies sans nom partent à l'étiquetage, avec la conversation pour contexte.
+  const lignesVoixRef = useRef(lignesVoix);
+  lignesVoixRef.current = lignesVoix;
+  const etiquetage = useRef(false);
+  const dejaRelu = useRef("");
+  useEffect(() => {
+    if (ecran !== "appel" || !notes) return undefined;
+    const id = setInterval(() => {
+      const toutes = lignesVoixRef.current.lignes;
+      const sansNom = toutes.filter((l) => !l.qui).length;
+      // À une pause (plus d'une seconde sans mot) ou quand trois phrases attendent : pas en pleine phrase.
+      const der = voix.current.arrivees[voix.current.arrivees.length - 1];
+      const pause = !tempsReelOk.current || !der || Date.now() - der.t > 1100;
+      // Rien de nouveau depuis la dernière relecture : on n'appelle pas le modèle pour rien.
+      const signature = toutes.map((l) => `${l.cle}:${l.texte.length}`).join("|");
+      if (etiquetage.current || !sansNom || signature === dejaRelu.current || (!pause && sansNom < 3)) return;
+      dejaRelu.current = signature;
+      // Toute la conversation récente est relue à chaque passage (16 nov. 2026, essais sur l'appel MACSF : figer les phrases
+      // après quatre autres en laissait cinq fausses sur 32, relire tout n'en laisse que les deux vraiment ambiguës) ; une
+      // correction à la main reste figée.
+      const lignes = toutes.map((l) => (l.main ? l : { ...l, qui: null }));
+      etiquetage.current = true;
+      base44.request("POST", "/api/prospection/mode-appel/etiqueter", { body: { lignes, analyste: String(moi?.full_name || moi?.email || "").split(/[ .@]/)[0] || null, interlocuteur: nomAutre } })
+        .then((r) => { if (r?.etiquettes) setVoixIA((v) => ({ ...v, ...r.etiquettes })); })
+        .catch(() => {})
+        .finally(() => { etiquetage.current = false; });
+    }, 3000);
+    return () => clearInterval(id);
+  }, [ecran, notes]);
+  // La personne de l'agence, cherchée pendant l'appel (16 nov. 2026, Jules : « dès qu'il dit son nom, ou qu'on le tape dans
+  // les notes, ça lance la recherche en parallèle ; dès qu'on ferme, c'est instantané ») : toutes les cinq secondes, tant
+  // que la conversation n'a pas dit son nom, la transcription et les notes partent au serveur, qui y lit le nom et lance
+  // la recherche de sa page sans attendre ; une fois le nom dit, seules les notes changées repartent.
+  const personne = useRef({ nom: null, par: null, envoi: false });
+  const [personneAppel, setPersonneAppel] = useState(null);
+  const notesRef = useRef("");
+  notesRef.current = notesAppel;
+  const nomAutreRef = useRef(nomAutre);
+  nomAutreRef.current = nomAutre;
+  const agentPris = prise?.agence_id === a?.id ? prise?.agent_id : null;
+  useEffect(() => {
+    if (ecran !== "appel" || !agentPris || session?.essai) return undefined;
+    const envoyer = () => {
+      const p = personne.current;
+      if (p.envoi) return;
+      const lignes = [...lignesVoixRef.current.lignes, ...(lignesVoixRef.current.enCours ? [lignesVoixRef.current.enCours] : [])];
+      const texte = lignes.map((l) => `${l.qui === "vous" ? "Analyste : " : l.qui === "autre" ? "Agent : " : ""}${l.texte}`).join("\n");
+      const notesNow = notesRef.current.trim();
+      // Le nom déjà dit : on ne relit que si les notes changent ; sinon, à chaque nouveau bout de conversation.
+      const notesChangees = notesNow !== (p.notes ?? null);
+      const nouveauTexte = texte.length - (p.longueur || 0) >= 60;
+      if (p.par === "appel" ? !notesChangees : (!notesChangees && !nouveauTexte && p.longueur !== undefined)) return;
+      p.envoi = true; p.notes = notesNow; p.longueur = texte.length;
+      base44.request("POST", `${API}/personne`, { body: { agent_id: agentPris, texte, notes: notesNow, connu: nomAutreRef.current !== "Interlocuteur" ? nomAutreRef.current : null, analyste: String(moi?.full_name || moi?.email || "").split(/[ .@]/)[0] || null } })
+        .then((r) => { if (r?.nom) { p.nom = r.nom; p.par = r.par; setPersonneAppel(r.nom); } })
+        .catch(() => {})
+        .finally(() => { p.envoi = false; });
+    };
+    envoyer();
+    const id = setInterval(envoyer, 5000);
+    return () => clearInterval(id);
+  }, [ecran, agentPris, session?.essai]);
   const motsTranscrits = [...lignesVoix.lignes.map((l) => l.texte), lignesVoix.enCours?.texte || ""].join(" ").split(/\s+/).filter(Boolean).length;
   const [carteObjection, setCarteObjection] = useState(null);
   const objectionsVues = useRef(new Map());
@@ -1589,10 +1612,6 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 }} />
             )}
 
-            {/* Les agences qui suivent, sous le prochain appel et sous l'appel en cours (11 nov. 2026). */}
-            {/* « Ensuite » s'efface devant le tableau complet de la ville (15 nov. 2026). */}
-            {(ecran === "fiche" || ecran === "appel") && a && !relances && <Ensuite agences={agences.filter((x) => x.id !== a.id)} total={c ? c.agences - c.mortes : null} onToutVoir={sousLaCarte && !session?.essai ? () => setPanneau(true) : null} />}
-
             {/* Au raccrochage : l'issue, tapée par l'analyste. */}
             {ecran === "issue" && a && (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-stretch gap-5">
@@ -1632,7 +1651,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {/* Dès le raccrochage (15 nov. 2026, Jules) : le chat, titré de l'appel ; la lecture s'y déroule, étapes et balayage
                 dans le message de l'assistant, avant même que l'appel soit noté ; puis les actions prennent sa place. */}
             {((ecran === "actions" && appel) || ecran === "analyse") && a && (
-              <EcranApresAppel key={a.id} appel={appel} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
+              <EcranApresAppel key={a.id} appel={appel} personneAppel={personneAppel} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                 relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} edits={edits} setEdits={setEdits} voirTranscription={voirTranscription} enRelecture={ecran === "analyse"}
                 annonce={annonce} onRefaire={refaireActions} onLancer={() => setLancement((n) => n + 1)}
                 titre={nomLisible(a.nom)} sousTitre={sousTitreAppel} onTranscription={() => setVoirTranscription((x) => !x)}
@@ -1724,20 +1743,6 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
           </>
         )}
       </div>
-      {onglet === DUES && relancesDues && <div className="pt-3">{relancesDues()}</div>}
-      {/* Le grand tableau des agences de la ville, en panneau à droite (15 nov. 2026, avis produit) : derrière « Toute la
-          ville », plus sous la carte, pour qu'on appelle plutôt que de fouiller. */}
-      {panneau && sousLaCarte && onglet && onglet !== ESSAI && onglet !== DUES && createPortal(
-        <>
-          <div aria-hidden onClick={() => setPanneau(false)} className="fixed inset-0 z-[44] bg-black/30 duration-200 animate-in fade-in-0" />
-          <div role="dialog" aria-label="Toutes les agences de la ville" className="fixed inset-y-0 right-0 z-[45] flex w-full max-w-[min(1180px,94vw)] flex-col overflow-y-auto border-l border-relief bg-rail p-5 shadow-2xl duration-300 ease-out animate-in slide-in-from-right max-md:max-w-full max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <p className="m-0 text-[20px] font-normal text-encre">{villes.find((l) => l.id === onglet)?.ville || "La ville"}</p>
-              <button type="button" onClick={() => setPanneau(false)} aria-label="Fermer" className="grid h-9 w-9 place-items-center rounded-full border border-bord-doux text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
-            </div>
-            {sousLaCarte(onglet)}
-          </div>
-        </>, document.body)}
     </div>
   );
 }

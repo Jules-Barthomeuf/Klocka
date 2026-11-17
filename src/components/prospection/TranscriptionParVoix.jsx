@@ -3,7 +3,7 @@ import { courbe } from "@/components/haka/BarreEcoute";
 import { enBlocs, niveauVisible } from "@/lib/qui-parle";
 
 // La transcription pendant l'appel, par interlocuteur (16 nov. 2026, maquette de Jules) : « Vous » à l'accent, le nom de
-// l'agent en gris, la phrase en cours en gris clair avec « en train de parler » ; dessous, les rubans de la dictée de
+// l'agent en gris, la dictée pas encore étiquetée à la suite, sans nom ; dessous, les rubans de la dictée de
 // l'assistant, qui ondulent avec la voix et changent de teinte selon qui parle. Qui parle se devine au niveau du son
 // (src/lib/qui-parle.js) : un clic sur le nom corrige le bloc.
 
@@ -53,35 +53,34 @@ export default function TranscriptionParVoix({ lignes, enCours = null, nomAutre,
   const colle = useRef(true);
   // La dernière phrase reste en vue, sauf si on est remonté lire.
   useEffect(() => { const el = zone.current; if (el && colle.current) el.scrollTop = el.scrollHeight; });
+  // La dictée coule comme une transcription ordinaire (16 nov. 2026, Jules) : les phrases pas encore étiquetées et celle en
+  // cours se suivent dans un seul paragraphe, sans nom ni « en train de parler » ; l'étiquetage les range ensuite par voix.
   const blocs = enBlocs(lignes);
+  const fin = blocs.length && !blocs[blocs.length - 1].qui ? blocs.pop() : null;
+  const flux = [...(fin?.textes || []), enCours?.texte || ""].filter(Boolean).join(" ");
   const nom = (qui) => (qui === "vous" ? "Vous" : qui === "autre" ? nomAutre : null);
-  const etiquette = (qui, cles, vif = false) => {
+  const etiquette = (qui, cles) => {
     const n = nom(qui);
-    const bouton = n ? (
-      <button type="button" onClick={() => onCorriger(cles, qui === "vous" ? "autre" : "vous")} title={`Ce n'est pas ${qui === "vous" ? "vous" : nomAutre} ? Un clic corrige`}
-        className={`p-0 text-[13.5px] transition-opacity hover:opacity-75 ${qui === "vous" ? "text-menthe" : "text-ardoise"}`} style={{ background: "transparent" }}>{n}</button>
+    return n ? (
+      <span className="flex">
+        <button type="button" onClick={() => onCorriger(cles, qui === "vous" ? "autre" : "vous")} title={`Ce n'est pas ${qui === "vous" ? "vous" : nomAutre} ? Un clic corrige`}
+          className={`p-0 text-[13.5px] transition-opacity duration-300 animate-in fade-in-0 hover:opacity-75 ${qui === "vous" ? "text-menthe" : "text-ardoise"}`} style={{ background: "transparent" }}>{n}</button>
+      </span>
     ) : null;
-    if (!vif) return bouton ? <span className="flex">{bouton}</span> : null;
-    return <span className="flex items-baseline gap-1.5 text-[13.5px]">{bouton}<span className="text-menthe">{bouton ? "· " : ""}en train de parler</span></span>;
   };
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
       {/* Plus de titre ni de « Dernière phrase reçue » (16 nov. 2026, Jules) : la transcription seule. */}
       <div ref={zone} onScroll={(e) => { const el = e.currentTarget; colle.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}
         className="flex min-h-[220px] max-h-[380px] flex-col gap-4 overflow-y-auto pr-1">
-        {!blocs.length && !enCours?.texte && <p className="m-0 text-[14px] text-brume">{notes ? "La transcription apparaît ici au fil de la parole, avec qui parle." : "Appel sans notes : rien n'est transcrit."}</p>}
+        {!blocs.length && !flux && <p className="m-0 text-[14px] text-brume">{notes ? "La transcription apparaît ici au fil de la parole, avec qui parle." : "Appel sans notes : rien n'est transcrit."}</p>}
         {blocs.map((b) => (
           <div key={b.cles[0]} className="flex flex-col gap-1">
             {etiquette(b.qui, b.cles)}
             <p className="m-0 text-[15px] leading-[1.55] text-encre [text-wrap:pretty]">{b.textes.join(" ")}</p>
           </div>
         ))}
-        {enCours?.texte && (
-          <div className="flex flex-col gap-1">
-            {etiquette(enCours.qui, [], true)}
-            <p className="m-0 text-[15px] leading-[1.55] text-ardoise [text-wrap:pretty]">{enCours.texte}<span aria-hidden className="k-curseur ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] bg-encre" /></p>
-          </div>
-        )}
+        {flux && <p className="m-0 text-[15px] leading-[1.55] text-encre [text-wrap:pretty]">{flux}</p>}
         {rates > 0 && <p className="m-0 text-[13px] text-ambre">{rates} passage{rates > 1 ? "s" : ""} pas encore transcrit{rates > 1 ? "s" : ""} : nouvel essai au raccrochage.</p>}
       </div>
       {notes && <div className="mt-auto pt-2"><RubansAppel voix={voix} /></div>}

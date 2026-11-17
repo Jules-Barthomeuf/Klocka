@@ -64,3 +64,17 @@ test('les cas « Calculatrice » du mode Essai donnent ce qu’ils annoncent', (
     for (const [k, v] of Object.entries(sc.calcul)) assert.equal(c[k], v, `${sc.cle} : ${k}`);
   }
 });
+
+test('le prix dit net vendeur ou FAI, et les honoraires', async () => {
+  const { chiffresEntendus: c } = await import('../src/lib/chiffres-entendus.js');
+  assert.equal(c('Le prix est de 450 000 euros net vendeur, loyer 28 000 euros par an.').prix_base, 'net_vendeur');
+  assert.equal(c("On le vend 450 000 euros. C'est un prix net vendeur.").prix_base, 'net_vendeur');
+  assert.equal(c('Prix FAI 480 000 euros.').prix_base, 'fai');
+  const h = c("450 000 euros frais d'agence inclus, les honoraires sont de 6 %.");
+  assert.equal(h.prix_base, 'fai');
+  assert.equal(h.honoraires_pct, 6);
+  const e = c("Le prix c'est 500 000 euros net vendeur et les honoraires 25 000 euros.");
+  assert.equal(e.prix, 500000);
+  assert.equal(e.honoraires, 25000);
+  assert.equal(c('Le prix est de 450 000 euros.').prix_base, null);
+});

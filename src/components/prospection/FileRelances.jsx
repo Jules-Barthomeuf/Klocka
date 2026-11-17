@@ -140,7 +140,7 @@ export function FileRelances({ onOuvrir, integre = false }) {
 }
 
 /** Le Mode appel : sur la relance prise si `courante`, sinon la file des villes. Une seule entrée pour les deux. */
-export function ModeAppelUnique({ courante, setCourante, entete = null, sousLaCarte = null, listeInitiale = null, onApresAppel = null }) {
+export function ModeAppelUnique({ courante, setCourante, entete = null, listeInitiale = null, onApresAppel = null }) {
   const queryClient = useQueryClient();
   const rafraichir = () => { queryClient.invalidateQueries({ queryKey: ["relances"] }); queryClient.invalidateQueries({ queryKey: ["relances-prises"] }); };
   // En quittant le Mode appel avec une ligne prise, elle se libère.
@@ -168,6 +168,7 @@ export function ModeAppelUnique({ courante, setCourante, entete = null, sousLaCa
     setCourante(null); rafraichir();
   };
   if (courante) return <ModeAppel key={courante.cle} relances relance={courante} onSuivante={suivante} onRetour={retour} onApresAppel={onApresAppel} />;
-  // Les relances dues, dans le menu des villes (15 nov. 2026) : un clic prend la ligne, le Mode appel s'ouvre dessus.
-  return <ModeAppel entete={entete} sousLaCarte={sousLaCarte} listeInitiale={listeInitiale} onApresAppel={onApresAppel} relancesDues={() => <FileRelances integre onOuvrir={setCourante} />} />;
+  // Les relances dues, dans le menu des villes : la première libre s'ouvre, puis la suivante (16 nov. 2026, Jules : une
+  // après l'autre, plus de liste dans le Mode appel).
+  return <ModeAppel entete={entete} listeInitiale={listeInitiale} onApresAppel={onApresAppel} relancesDues={suivante} />;
 }

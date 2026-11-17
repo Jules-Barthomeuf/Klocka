@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { ArrowUpRight, AudioLines, UserRound } from "lucide-react";
-import { demandeRetour } from "@/lib/retour-appel";
 import AvatarAK from "@/components/AvatarAK";
 import SequenceActions from "@/components/prospection/SequenceActions";
 
@@ -13,12 +12,13 @@ import SequenceActions from "@/components/prospection/SequenceActions";
 // s'épingle au-dessus de la saisie : plus besoin de remonter. Ce qu'on dit à l'assistant change aussitôt les actions.
 // La saisie est celle de la page Assistant (même fond, même lumière). La transcription s'ouvre par son bouton.
 
-// L'offre du retour d'AK (15 nov. 2026, Jules) : une précision sur l'appel, ou l'analyse de ce qu'on peut améliorer.
-const OUVERTURE = "Une précision sur cet appel ? J'ai aussi repéré quelques petites choses à améliorer dans votre appel. Voulez-vous qu'on regarde ça ensemble ?";
+// L'offre du retour d'AK sur l'appel retirée (16 nov. 2026, Jules) : la question seule, plus d'analyse proposée ni de « Oui ».
+const OUVERTURE = "Une précision sur cet appel ?";
 const TITRE = "m-0 text-center text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre";
 
 function LienPersonne({ agentId, nom }) {
-  const { data, isLoading } = useQuery({ queryKey: ["page-personne", agentId], queryFn: () => base44.request("GET", `/api/prospection/agents/${encodeURIComponent(agentId)}/page`), staleTime: Infinity, retry: false });
+  // Cherchée pendant l'appel dès que le nom a été dit : ici, elle est le plus souvent déjà prête.
+  const { data, isLoading } = useQuery({ queryKey: ["page-personne", agentId, nom || ""], queryFn: () => base44.request("GET", `/api/prospection/agents/${encodeURIComponent(agentId)}/page${nom ? `?nom=${encodeURIComponent(nom)}` : ""}`), staleTime: Infinity, retry: false });
   if (isLoading) return <p className="m-0 mt-5 text-[13.5px] text-brume">Je cherche la page de {nom || "votre interlocuteur"}…</p>;
   if (!data?.url) return null;
   const hote = (() => { try { return new URL(data.url).host.replace(/^www\./, ""); } catch { return data.url; } })();
@@ -41,7 +41,7 @@ export function BoutonTranscription({ actif, onClick }) {
   );
 }
 
-export default function EcranApresAppel({ appel, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, edits, setEdits, transcription, voirTranscription = false, enRelecture = false, annonce = null, onRefaire, onLancer, titre = null, sousTitre = null, onTranscription = null, children }) {
+export default function EcranApresAppel({ appel, personneAppel = null, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, edits, setEdits, transcription, voirTranscription = false, enRelecture = false, annonce = null, onRefaire, onLancer, titre = null, sousTitre = null, onTranscription = null, children }) {
 
   // Une phrase dite pendant que les actions se refont attend la fin : sinon la relecture écraserait ce qu'elle change.
   const vif = useRef(null);
@@ -70,11 +70,6 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
   const repondre = async ({ texte, historique, signal }) => {
     // Le chat s'ouvre dès le raccrochage, avant que l'appel soit noté : un mot dit pendant la lecture attend la fin.
     if (!vif.current.appel) return { reponse: "Un instant : je finis de relire l'appel, puis je m'en occupe." };
-    // « Oui » à l'offre, ou une demande d'analyse : le retour d'AK sur l'appel, gardé avec lui (Suivi > Appels).
-    if (demandeRetour(texte)) {
-      const r = await base44.request("POST", `/api/prospection/mode-appel/appels/${vif.current.appel.id}/retour`, { body: {}, signal });
-      return { reponse: r.retour.message };
-    }
     for (let i = 0; vif.current.enRelecture && i < 360; i += 1) await new Promise((ok) => setTimeout(ok, 250));
     const v = vif.current;
     const r = await base44.request("POST", `/api/prospection/mode-appel/appels/${v.appel.id}/assistant`, {
@@ -118,7 +113,7 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
             ses deux réponses d'un clic suivent juste dessous. */}
         {/* La page de la personne de l'appel (16 nov. 2026, Jules : « la page équipe de la personne ») : page équipe du site
             de son agence, son LinkedIn, ou trouvée par une recherche web ; s'ouvre dans un nouvel onglet. */}
-        {!enRelecture && appel?.agent_id && <LienPersonne agentId={appel.agent_id} nom={edits?.interlocuteur || appel?.compris?.champs?.interlocuteur?.valeur || null} />}
+        {!enRelecture && appel?.agent_id && <LienPersonne agentId={appel.agent_id} nom={(edits?.interlocuteur || "").trim() || personneAppel || appel?.compris?.champs?.interlocuteur?.valeur || null} />}
         {!enRelecture && <p className="m-0 mt-6 text-[16px] leading-[1.6] text-encre">{OUVERTURE}</p>}
       </div>
     </div>
@@ -142,7 +137,6 @@ export default function EcranApresAppel({ appel, issue, coches, setCoches, mail,
       <div className={voirTranscription ? "hidden" : "min-h-0 flex-1"}>
         <ChatDashboard espace="appel" repondre={repondre} annonce={annonce} onConversation={() => {}} onReponse={appliquer}
           debutFil={debutFil} auDessusSaisie={epingle}
-          propositions={enRelecture ? null : [{ libelle: "Oui" }]}
           sansSkills epure sansBarreHaut menusVersLeHaut placeholderFil="Dites-moi ce que vous voulez" placeholderAccueil="Dites-moi ce que vous voulez" />
       </div>
       {voirTranscription && (

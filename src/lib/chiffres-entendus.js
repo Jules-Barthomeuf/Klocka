@@ -78,13 +78,19 @@ export function normaliser(texte) {
 const mot = (s) => new RegExp(`(?<![a-zà-ÿ])(?:${s})(?![a-zà-ÿ])`);
 const AVANT_LOYER = mot('loyers?|lou[ée]e?s?|locatif|locative|bail');
 const AVANT_PRIX = mot('prix|vend[a-zé]*|vente|demand[a-zé]*|net vendeur|fai|affiché|affichée|cession|proposé|proposée|cède');
+const AVANT_HONO = mot("honoraires?|frais d['’ ]?agence|commission");
+// Le prix dit net vendeur, ou frais d'agence inclus (16 nov. 2026, Jules : « c'est juste prix ; s'il dit net vendeur, le
+// FAI se calcule ; s'il dit FAI, on le voit »). Cherché autour du montant, ou dans une phrase sans chiffre qui le suit.
+const NET = mot("net vendeur|net de frais|net d['’ ]?honoraires|hors honoraires|hors frais d['’ ]?agence|net pour le vendeur");
+const FAI = mot("fai|f a i|f\\.a\\.i|frais d['’ ]?agence inclus|honoraires inclus|frais inclus|agence incluse?|honoraires compris|frais d['’ ]?agence compris");
+const baseDuPrix = (t) => (NET.test(t) ? 'net_vendeur' : FAI.test(t) ? 'fai' : null);
 const MOIS = /^\s*(?:euros?\s*)?(?:hors (?:charges|taxes)\s*|ht\s*|hc\s*)*(?:par mois|\/\s*mois|mensuel|le mois|chaque mois)/;
 const AN = /^\s*(?:euros?\s*)?(?:hors (?:charges|taxes)\s*|ht\s*|hc\s*)*(?:par an|\/\s*an|annuel|l'an|par année)/;
 
 /**
  * Les chiffres d'une transcription (morceaux en direct, notes tapées).
  * @param {string[]|string} textes
- * @returns {{ prix: number|null, loyer_an: number|null, loyer_mensuel: boolean, surface: number|null, trouves: {nature:string, valeur:number, extrait:string}[] }}
+ * @returns {{ prix: number|null, prix_base: 'fai'|'net_vendeur'|null, honoraires_pct: number|null, honoraires: number|null, loyer_an: number|null, loyer_mensuel: boolean, surface: number|null, trouves: {nature:string, valeur:number, extrait:string}[] }}
  */
 export function chiffresEntendus(textes) {
   const liste = Array.isArray(textes) ? textes : [textes];
@@ -104,7 +110,11 @@ export function chiffresEntendus(textes) {
           if (valeur >= 5 && valeur <= 20000) trouves.push({ nature: 'surface', valeur, extrait });
           continue;
         }
-        if (/^\s*(%|pour ?cent)/.test(apres)) continue;
+        if (/^\s*(%|pour ?cent)/.test(apres)) {
+          // « des honoraires de 5 % » : le taux qui passe du net vendeur au FAI.
+          if (AVANT_HONO.test(avant.slice(-50)) && valeur > 0 && valeur <= 20) trouves.push({ nature: 'honoraires_pct', valeur, extrait });
+          continue;
+        }
         const euros = /^\s*(d['’]\s*)?(euros?|eur)\b/.test(apres);
         const loyerDit = AVANT_LOYER.test(avant);
         const prixDit = AVANT_PRIX.test(avant);
@@ -112,6 +122,9 @@ export function chiffresEntendus(textes) {
         if (!euros && !((loyerDit || prixDit) && valeur >= 300)) continue;
         if (!euros && valeur >= 1900 && valeur <= 2100 && Number.isInteger(valeur)) continue;
         if (valeur < 100) continue;
+        // Un montant d'honoraires n'est ni un prix ni un loyer.
+        const pres = avant.slice(-25);
+        if (euros && ((AVANT_HONO.test(pres) && !FAI.test(pres)) || (AVANT_HONO.test(avant.slice(-50)) && !FAI.test(avant.slice(-50)) && !prixDit && !loyerDit))) { trouves.push({ nature: 'honoraires', valeur, extrait }); continue; }
         const mensuel = MOIS.test(apres);
         const annuel = AN.test(apres);
         let nature;
@@ -120,7 +133,13 @@ export function chiffresEntendus(textes) {
         else if (prixDit && !loyerDit) nature = 'prix';
         else nature = valeur >= 100000 ? 'prix' : 'loyer';
         if (nature === 'loyer') trouves.push({ nature, valeur: mensuel ? valeur * 12 : valeur, mensuel, extrait });
-        else trouves.push({ nature, valeur, extrait });
+        else trouves.push({ nature, valeur, base: baseDuPrix(`${avant.slice(-60)} ${apres.slice(0, 40)}`), extrait });
+      }
+      // « C'est un prix net vendeur » dit après coup, sans chiffre : le dernier prix entendu le devient.
+      if (!/\d/.test(phrase)) {
+        const b = baseDuPrix(phrase);
+        const p = [...trouves].reverse().find((t) => t.nature === 'prix');
+        if (b && p && !p.base) p.base = b;
       }
     }
   }
@@ -128,6 +147,9 @@ export function chiffresEntendus(textes) {
   const loyer = dernier('loyer');
   return {
     prix: dernier('prix')?.valeur ?? null,
+    prix_base: dernier('prix')?.base ?? null,
+    honoraires_pct: dernier('honoraires_pct')?.valeur ?? null,
+    honoraires: dernier('honoraires')?.valeur ?? null,
     loyer_an: loyer?.valeur ?? null,
     loyer_mensuel: !!loyer?.mensuel,
     surface: dernier('surface')?.valeur ?? null,

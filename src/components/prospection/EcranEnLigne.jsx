@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Calculator, GripHorizontal, Mic, PhoneOff, X } from "lucide-react";
 import { chiffresEntendus } from "@/lib/chiffres-entendus";
-import { calculatrice } from "@/lib/calculatrice";
+import { calculatrice, prixDesDeux } from "@/lib/calculatrice";
 import seuils from "../../../server/ak/seuils.json";
 import { CARTE, ETIQUETTE } from "@/components/prospection/StyleAppel";
 
@@ -111,6 +111,18 @@ export function TranscriptionEnLigne({ morceaux, interlocuteur = "Agent", attend
 const lireNombre = (s) => { const n = Number(String(s).replace(/[\s  €]/g, "").replace(",", ".")); return Number.isFinite(n) && n > 0 ? n : null; };
 const ecrire = (n) => (n == null ? "" : Math.round(n).toLocaleString("fr-FR"));
 
+// FAI ou net vendeur, posé par ce que l'agent dit ; un clic corrige. Rien de choisi tant qu'il ne l'a pas dit.
+function BasePrix({ base, onChange }) {
+  return (
+    <span className="flex gap-1">
+      {[["fai", "FAI"], ["net_vendeur", "Net vendeur"]].map(([k, l]) => (
+        <button key={k} type="button" onClick={(e) => { e.preventDefault(); onChange(base === k ? null : k); }} aria-pressed={base === k}
+          className={`rounded-full border px-2 py-px text-[11.5px] leading-[1.5] transition-colors ${base === k ? "border-menthe/60 text-menthe" : "border-bord-doux text-brume hover:text-ardoise"}`} style={{ background: "transparent" }}>{l}</button>
+      ))}
+    </span>
+  );
+}
+
 function ChampEuros({ libelle, valeur, onChange, vide, unite = "€" }) {
   return (
     <label className="flex min-w-0 flex-col gap-1.5">
@@ -172,10 +184,15 @@ function FenetreCalculatrice({ lu, saisi, setSaisi, onFermer }) {
   const lacher = () => { tire.current = null; };
 
   const loyer = saisi.loyer_an != null ? lireNombre(saisi.loyer_an) : lu.loyer_an;
-  const prixFai = saisi.prix != null ? lireNombre(saisi.prix) : lu.prix;
-  const netVendeur = saisi.net_vendeur != null ? lireNombre(saisi.net_vendeur) : null;
+  // Un seul prix (16 nov. 2026, Jules) : FAI ou net vendeur selon ce que l'agent a dit (un clic corrige) ; l'autre s'en
+  // déduit par les honoraires, dits ou à 5 %. Les rendements se comptent sur le FAI.
+  const prix = saisi.prix != null ? lireNombre(saisi.prix) : lu.prix;
+  const base = saisi.base ?? lu.prix_base ?? null;
+  const tauxSaisi = saisi.honoraires_pct != null && String(saisi.honoraires_pct).trim() ? Number(String(saisi.honoraires_pct).replace(",", ".")) || null : null;
+  const deux = prixDesDeux({ prix, base, honorairesPct: tauxSaisi ?? lu.honoraires_pct, honoraires: tauxSaisi == null ? lu.honoraires : null });
   const nego = saisi.nego != null ? Math.min(90, Math.max(0, Number(String(saisi.nego).replace(",", ".")) || 0)) : 0;
-  const c = calculatrice({ loyer, prixFai, netVendeur, nego }, seuils.frais_acquisition_pct);
+  const c = calculatrice({ loyer, prixFai: deux.fai, nego }, seuils.frais_acquisition_pct);
+  const honoLu = lu.honoraires_pct ?? (lu.honoraires && base ? deux.honorairesPct : null);
   const pctCourt = (n) => `${n.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
   return createPortal(
     <div ref={ref} role="dialog" aria-label="Calculatrice"
@@ -193,11 +210,18 @@ function FenetreCalculatrice({ lu, saisi, setSaisi, onFermer }) {
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 pb-4">
         <div className="grid grid-cols-2 gap-3">
           <ChampEuros libelle="Loyer annuel HT" valeur={saisi.loyer_an ?? ecrire(lu.loyer_an)} onChange={(v) => setSaisi((x) => ({ ...x, loyer_an: v }))} vide="À demander" />
-          <ChampEuros libelle="Prix FAI" valeur={saisi.prix ?? ecrire(lu.prix)} onChange={(v) => setSaisi((x) => ({ ...x, prix: v }))} vide="À demander" />
-          <ChampEuros libelle="Prix net vendeur" valeur={saisi.net_vendeur ?? ""} onChange={(v) => setSaisi((x) => ({ ...x, net_vendeur: v }))} vide="Facultatif" />
+          <ChampEuros libelle={<span className="flex items-center justify-between gap-2">Prix<BasePrix base={base} onChange={(b) => setSaisi((x) => ({ ...x, base: b }))} /></span>}
+            valeur={saisi.prix ?? ecrire(lu.prix)} onChange={(v) => setSaisi((x) => ({ ...x, prix: v }))} vide="À demander" />
+          <ChampEuros libelle="Honoraires" valeur={saisi.honoraires_pct ?? (honoLu != null ? String(honoLu).replace(".", ",") : "")} onChange={(v) => setSaisi((x) => ({ ...x, honoraires_pct: v }))} vide="5" unite="%" />
           <ChampEuros libelle="Négociation" valeur={saisi.nego ?? ""} onChange={(v) => setSaisi((x) => ({ ...x, nego: v }))} vide="0" unite="%" />
         </div>
-        {c.prixNegocie != null && <p className="m-0 px-1 text-right text-[12.5px] text-ardoise">Prix négocié : <span className="tabular-nums text-craie">{euros(c.prixNegocie)}</span></p>}
+        {(base && deux.fai && deux.net) || c.prixNegocie != null ? (
+          <div className="flex flex-wrap justify-end gap-x-4 gap-y-1 px-1 text-[12.5px] text-ardoise">
+            {base === "net_vendeur" && deux.fai && <span>Prix FAI : <span className="tabular-nums text-encre">{euros(deux.fai)}</span></span>}
+            {base === "fai" && deux.net && <span>Net vendeur : <span className="tabular-nums text-encre">{euros(deux.net)}</span></span>}
+            {c.prixNegocie != null && <span>Prix négocié : <span className="tabular-nums text-craie">{euros(c.prixNegocie)}</span></span>}
+          </div>
+        ) : null}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col items-center justify-center gap-1 rounded-[14px] border border-bord-doux px-3 py-3">
             <span className="text-[12.5px] text-ardoise">Rendement brut</span>
@@ -232,7 +256,7 @@ export function CalculatriceEnLigne({ textes }) {
   const [saisi, setSaisi] = useState({});
   const [choix, setChoix] = useState(null);
   const entendu = lu.loyer_an != null || lu.prix != null;
-  const cle = `${lu.loyer_an ?? ""}|${lu.prix ?? ""}`;
+  const cle = `${lu.loyer_an ?? ""}|${lu.prix ?? ""}|${lu.prix_base ?? ""}`;
   useEffect(() => { if (entendu) setChoix(null); }, [cle]);
   const ouverte = choix ?? entendu;
   return (

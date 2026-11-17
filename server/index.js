@@ -1613,6 +1613,16 @@ if (!process.env.NODE_TEST_CONTEXT) {
     .catch((e) => console.warn('[mandataires]', e?.message || e)), 20_000).unref?.();
 }
 
+// Le tableau Agences de Twenty (16 nov. 2026, Jules : « il n'y a que Nice et Rennes alors qu'on en a fait beaucoup
+// plus ») : les listes de la Prospection vivent dans la base du serveur en ligne ; il y pose les villes nouvelles (une
+// vue chacune) et leurs agences, quatre minutes après le démarrage puis toutes les demi-heures. Sur Render seulement :
+// une copie locale n'écrit pas dans Twenty d'elle-même. AGENCES_TWENTY=0 le coupe.
+if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT && process.env.AGENCES_TWENTY !== '0') {
+  const poserAgences = () => import('./crm/agences-twenty.js').then((m) => m.entretenir()).catch((e) => console.warn('[agences]', e?.message || e));
+  setTimeout(poserAgences, 4 * 60_000).unref?.();
+  setInterval(poserAgences, 30 * 60_000).unref?.();
+}
+
 // La carte (22 oct. 2026) : préparée deux minutes après le démarrage, puis toutes les 30 minutes ; la première
 // géolocalisation des villes prend une minute, personne ne l'attend devant l'écran.
 if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {

@@ -838,11 +838,26 @@ export function monterProspection(app) {
   }));
 
   // La page Agents (16 oct. 2026) : tous les agents, et l'intégralité des appels de chacun.
+  // Qui parle, lu au sens par un modèle rapide, toutes les trois secondes pendant l'appel (16 nov. 2026, Jules).
+  app.post('/api/prospection/mode-appel/etiqueter', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connexion requise.' });
+    const { etiqueterVoix } = await import('../prospection/etiqueter-voix.js');
+    ok(res, await etiqueterVoix(req.body?.lignes || [], { analyste: req.body?.analyste || null, interlocuteur: req.body?.interlocuteur || null }));
+  }));
+
   // La page de la personne de l'appel (16 nov. 2026, Jules) : page équipe, LinkedIn, ou trouvée par une recherche web.
   app.get('/api/prospection/agents/:id/page', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const { pagePersonne } = await import('../prospection/page-personne.js');
-    ok(res, await pagePersonne(String(req.params.id)));
+    ok(res, await pagePersonne(String(req.params.id), { nom: String(req.query?.nom || '').trim().slice(0, 120) || null }));
+  }));
+  // Pendant l'appel : le nom de la personne lu dans la conversation et les notes, sa page cherchée sans attendre.
+  app.post('/api/prospection/mode-appel/personne', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { reperer } = await import('../prospection/page-personne.js');
+    const b = req.body || {};
+    ok(res, await reperer(String(b.agent_id || ''), { texte: String(b.texte || '').slice(-6000), notes: String(b.notes || '').slice(0, 4000), connu: String(b.connu || '').trim().slice(0, 120) || null, analyste: String(b.analyste || '').slice(0, 60) || null }));
   }));
 
   app.get('/api/prospection/agents-liste', wrap(async (req, res) => {

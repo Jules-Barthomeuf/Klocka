@@ -49,3 +49,27 @@ test('le rejeu met à jour, crée les nouvelles, et ne recrée pas une ligne mis
   assert.equal(r3.corbeille, 1);
   assert.equal(base.size, 1, 'la ligne mise à la corbeille n’est pas recréée');
 });
+
+test("une autre base qui écrit dans le même Twenty retrouve les lignes au lieu de les recréer (16 nov. 2026)", async () => {
+  const liste = Records.create('ListeAgences', { ville: 'Rennes', nom: 'Rennes' });
+  const a1 = Records.create('AgenceProspect', { liste_id: liste.id, nom: 'Agence Foch', telephone: '02 99 11 11 11' });
+  const a2 = Records.create('AgenceProspect', { liste_id: liste.id, nom: 'Agence Gare', telephone: '02 99 22 22 22' });
+  const a3 = Records.create('AgenceProspect', { liste_id: liste.id, nom: 'Agence Jetée', telephone: '02 99 33 33 33' });
+  const L = await M.agencesDesListes();
+  const ligne = (a) => { const x = L.find((y) => y.a.id === a.id); return M.versTwenty(x.a, x.l); };
+  // Posées par l'autre base : a1 avec son id Klocka, a2 sous un autre id Klocka (même ville, nom, téléphone), a3 jetée.
+  const vivantes = [{ ...ligne(a1), id: 'x1' }, { ...ligne(a2), id: 'x2', klockaId: 'ailleurs' }];
+  const jetee = { ...ligne(a3), id: 'x3', deletedAt: '2026-11-16T10:00:00Z' };
+  const crees = [];
+  const T = {
+    LOT_MAX: 60,
+    lister: async (_p, o = {}) => (o.filtre ? [jetee] : vivantes),
+    creerEnLot: async (_p, lignes) => { crees.push(...lignes); return lignes.map((l, i) => ({ ...l, id: `n${i}` })); },
+    modifier: async () => {},
+  };
+  const r = await M.synchroniser({ go: true, T });
+  assert.equal(crees.filter((c) => [a1.id, a2.id, a3.id].includes(c.klockaId)).length, 0, 'rien de recréé');
+  assert.equal(Records.get('AgenceProspect', a1.id).twenty_agence_id, 'x1');
+  assert.equal(Records.get('AgenceProspect', a2.id).twenty_agence_id, 'x2');
+  assert.ok(r.retrouvees >= 3 && r.corbeille >= 1);
+});

@@ -71,6 +71,40 @@ export function phrasesAvecPlages(texte) {
 }
 
 /**
+ * Pure : les phrases finies et le bout en cours, coupés aussi aux silences (16 nov. 2026 : la transcription en direct ne
+ * met pas toujours de point quand la parole change de bouche ; un blanc de plus de `silenceMs` entre deux mots reçus
+ * coupe la phrase). `arrivees` : [{ fin, t }] (longueur du texte normalisé et heure à chaque mot reçu). La clé d'une
+ * phrase est sa position dans le texte : une correction plus loin ne la déplace pas.
+ */
+export function phrasesEtTours(texte, arrivees = [], { silenceMs = 1100, maintenant = Date.now() } = {}) {
+  const t = texteNormal(texte);
+  const coupes = new Set();
+  for (let i = 0; i + 1 < arrivees.length; i += 1) {
+    if (arrivees[i + 1].t - arrivees[i].t > silenceMs && arrivees[i].fin > 0 && arrivees[i].fin < t.length) coupes.add(arrivees[i].fin);
+  }
+  // Le dernier mot reçu il y a plus d'un silence : le bout en cours est fini lui aussi.
+  const der = arrivees[arrivees.length - 1];
+  if (der && maintenant - der.t > silenceMs && der.fin >= t.length) coupes.add(t.length);
+  const bornes = new Set([...coupes]);
+  const re = /[^.!?…]*[.!?…]+["»”)]?\s*/g;
+  let x;
+  while ((x = re.exec(t))) { if (!x[0]) break; bornes.add(re.lastIndex); }
+  const triees = [...bornes].filter((b) => b > 0 && b <= t.length).sort((a, b) => a - b);
+  const phrases = [];
+  let debut = 0;
+  for (const b of triees) {
+    const brut = t.slice(debut, b);
+    const texteP = brut.trim();
+    if (texteP) {
+      const decal = brut.length - brut.trimStart().length;
+      phrases.push({ texte: texteP, debut: debut + decal, fin: b, cle: `r${debut + decal}` });
+    }
+    debut = b;
+  }
+  return { phrases, enCours: { texte: t.slice(debut).trim(), debut, fin: t.length } };
+}
+
+/**
  * Pure : le niveau d'une plage du texte en temps réel. `arrivees` : [{ fin, t }], la longueur du texte normalisé à
  * chaque mot reçu et l'heure. La voix d'une phrase est celle entendue un peu avant ses premiers mots reçus (le temps
  * que la transcription les rende) jusqu'à un peu avant les derniers.

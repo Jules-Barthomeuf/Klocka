@@ -10,7 +10,7 @@ import { useDictee, versWav } from "@/lib/dictee";
 import MaJournee from "@/components/prospection/MaJournee";
 import { ModeAppelUnique } from "@/components/prospection/FileRelances";
 import AvatarAK from "@/components/AvatarAK";
-import { TitrePage } from "@/components/mandataire/elements";
+import { LigneTitre, TitrePage } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
@@ -1000,7 +1000,11 @@ export default function Prospection() {
   return (
     <div className={`mx-auto w-full max-w-[1500px] px-5 md:px-8 ${apresAppel ? "pt-[22px]" : "py-[22px]"}`}>
       <header className={`mb-3.5 flex flex-col gap-3 ${apresAppel ? "hidden" : ""}`}>
-        <TitrePage titre="Prospection" className="relative md:!pr-[112px]" />
+        {/* Le menu des villes sur la ligne du titre (17 nov. 2026, Jules) : le mode appel s'y pose (#prospection-ville). */}
+        <LigneTitre className="relative flex min-h-9 flex-wrap items-center gap-x-5 gap-y-2 md:pr-[112px]">
+          <TitrePage dansLigne titre="Prospection" className="!pr-0" />
+          {partie === "appels" && <div id="prospection-ville" className="flex min-w-0 items-center" />}
+        </LigneTitre>
         {partie === "prospecter" && <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
           {onglets.map(([cle, mot, n]) => (
             <button key={cle} type="button" onClick={() => setOnglet(cle)}

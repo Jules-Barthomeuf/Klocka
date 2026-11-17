@@ -12,6 +12,7 @@ import { TRANSCRIPTION_MAX } from './aujourdhui.js';
 import * as R from './regles.js';
 import { ligneDeRemarque } from './monday-agents.js';
 import { estVilleCotee } from '../villes-cotees.js';
+import { sessionEnCours } from './ma-session.js';
 
 const AGENCE = 'AgenceProspect';
 const LISTE = 'ListeAgences';
@@ -518,10 +519,14 @@ export function contactsDe(a, fiche = null, place = null) {
   // Toute l'équipe (17 nov. 2026, Jules : « je veux tous les gens »), chacun avec son numéro perso quand le site le donne.
   for (const x of (a.agents || []).filter((y) => y.nom)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : x.source === 'page équipe du site' ? 'Site de l\'agence' : 'Agent', fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null });
   // Le standard : le numéro de l'agence, sinon un numéro sans nom ; jamais le portable d'une personne.
-  const standard = a.telephone || (a.agents || []).find((x) => x.telephone && !x.nom)?.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || null;
+  // (17 nov. 2026 : le portable d'un agent nommé n'est plus pris pour le standard, Nice Homes montrait celui de Simon Crann.)
+  const standard = a.telephone || (a.agents || []).find((x) => x.telephone && !x.nom)?.telephone || null;
   if (standard) ajouter({ standard: true, source: 'Standard', telephone: standard });
   // Dans l'ordre où les demander (17 nov. 2026) : les connus, puis les autres rangés par poste, sans la location.
-  return avecPhotos(rangerInterlocuteurs(out, 40), a.photos_equipe?.par_nom);
+  // Le nom de famille complet, toujours (17 nov. 2026, Jules : « Sandrine R. je ne veux plus ça du tout ») : un prénom
+  // seul ou suivi d'une initiale (Apollo, un mail, une annonce) ne s'affiche plus ; un nom donné pendant un appel reste.
+  const sansNom = (x) => !x.standard && ['Apollo', 'Agent', 'Site de l\'agence'].includes(x.source) && /^\S+(\s+\p{L}\.?)?$/u.test(String(x.nom || '').trim());
+  return avecPhotos(rangerInterlocuteurs(out, 40).filter((x) => !sansNom(x)), a.photos_equipe?.par_nom);
 }
 
 /**
@@ -630,10 +635,13 @@ export function chercher(q, { max = 8 } = {}) {
 // La session
 // ---------------------------------------------------------------------------
 
-export function ouvrirSession(listeId, user) {
+export function ouvrirSession(listeId, user, { demarrer = false } = {}) {
   const l = Records.get(LISTE, listeId);
   if (!l) return { ok: false, error: 'Liste introuvable.' };
-  return { ok: true, session: Records.create(SESSION, { liste_id: l.id, ville: l.ville, par: user?.email || null, debut: maintenant(), appels: [] }) };
+  // « Ma session » (17 nov. 2026) : la session commencée aujourd'hui pour cette ville se reprend (page rechargée).
+  const enCours = sessionEnCours(l.id, user);
+  if (enCours) return { ok: true, session: enCours };
+  return { ok: true, session: Records.create(SESSION, { liste_id: l.id, ville: l.ville, par: user?.email || null, debut: maintenant(), appels: [], ...(demarrer ? { demarree_le: maintenant() } : {}) }) };
 }
 
 function noterDansSession(sessionId, entree) {

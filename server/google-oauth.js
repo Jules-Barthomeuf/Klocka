@@ -347,11 +347,18 @@ export async function accessTokenFor(account, entite = 'MailAccount') {
     throw new Error(`Session Google expirée pour ${account.email}. Reconnectez le compte.`);
   }
 
+  // Un accès donné à un autre client Google (bascule du 17 nov. 2026) ou retiré : Google répond « Unauthorized » ou
+  // invalid_grant. On dit quoi faire plutôt que de relayer le mot anglais.
   const tokens = await postToken({
     refresh_token: account.refresh_token,
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
     grant_type: 'refresh_token',
+  }).catch((e) => {
+    if (/unauthori[sz]ed|invalid_grant|expired or revoked/i.test(e?.message || '')) {
+      throw new Error(`L'accès Google de ${account.email} n'est plus valable : reconnectez la boîte Gmail (« Connecter Gmail »), elle redonne aussi Drive.`);
+    }
+    throw e;
   });
 
   Records.update(entite, account.id, {

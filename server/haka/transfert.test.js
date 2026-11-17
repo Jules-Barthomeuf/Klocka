@@ -60,7 +60,7 @@ test('comprendre : la consigne du collègue, puis le dossier évident, sinon on 
   assert.deepEqual(c2.candidats.map((x) => x.deal_id).sort(), ['deal-lyon', 'deal-nimes']);
   const v3 = X.dossiersVises(lu('le bail de la pharmacie de Lyon', 'paul@cabinet.fr'), deals);
   assert.equal(X.comprendre(lu('le bail de la pharmacie de Lyon'), { pieces: [{}], vises: v3 }).dossier, 'deal-lyon', 'le nom dans la note départage');
-  assert.equal(X.comprendre(lu(''), { pieces: [{}], fiches: [{}], vises: [] }).intention, 'fiche', 'une fiche sans dossier connu');
+  assert.equal(X.comprendre(lu(''), { pieces: [{}], fiches: [{}], vises: [] }).intention, 'memoire', 'une fiche transférée sans consigne : en Mémoire (17 nov. 2026)');
   // Des pièces sans dossier reconnu ni fiche (2 nov. 2026, Jules) : un nouveau dossier, sans demander.
   assert.deepEqual(X.comprendre(lu(''), { pieces: [{}], vises: [] }), { intention: 'nouveau' });
   assert.deepEqual(X.comprendre(lu('pour la data room'), { pieces: [{}], vises: [] }), { intention: 'nouveau' });
@@ -248,7 +248,7 @@ test("« ne rentre pas la fiche dans la plateforme » : aucun dossier, la fiche 
   const r2 = await X.enMemoireSeulement(m, { membre: { email: 'nora@klocka.immo' }, lu: { note: '' }, extraire: async () => { throw new Error('ne doit pas relire'); }, pousser });
   assert.equal(r2.deja, true);
   assert.equal(Records.filter('BienMemoire', { mail_recu_id: m.id }).length, 1);
-  assert.match(X.compteRendu(r).texte, /^Rien dans la plateforme, comme demandé : la fiche est en Mémoire \(3 rue de la République, Arles\) et dans les Propriétés de Twenty CRM\.$/);
+  assert.match(X.compteRendu(r).texte, /^Fiche mise en Mémoire \(3 rue de la République, Arles\) et dans les Propriétés de Twenty CRM, sans dossier\./);
 });
 
 test('un dossier né du transfert : sa fiche en Mémoire et sa Propriété dans Twenty, tout de suite', async () => {
@@ -258,4 +258,36 @@ test('un dossier né du transfert : sa fiche en Mémoire et sa Propriété dans 
   const b = Records.findBy('BienMemoire', 'deal_id', 'deal-transfert');
   assert.equal(b.statut, 'dossier');
   assert.equal(b.agent_email, 'agent@sete.fr');
+});
+
+test("17 nov. 2026 : transférer sans rien dire met en Mémoire ; « préanalyse » pré-analyse ; « juste la fiche X » choisit", () => {
+  const lu = (note, origine = null) => ({ note, origine: origine ? { email: origine } : null, objet_origine: '' });
+  const fiches = [{ nom: 'Fiche Pharmacie Mâcon.pdf', piece_id: 'p1' }, { nom: 'Murs Boulangerie Lyon.pdf', piece_id: 'p2' }, { nom: 'Tabac Nîmes.pdf', piece_id: 'p3' }];
+  const v1 = [{ deal_id: 'deal-macon', nom: 'Boulangerie Aux Délices - Mâcon', score: 3 }];
+  // Sans consigne, même avec un dossier évident de l'agent : la fiche va en Mémoire.
+  assert.deepEqual(X.comprendre(lu('', 'marc@agence.fr'), { pieces: fiches, fiches, vises: v1 }), { intention: 'memoire', defaut: true });
+  assert.deepEqual(X.comprendre(lu('fyi'), { pieces: fiches, fiches, vises: [] }), { intention: 'memoire', defaut: true });
+  assert.equal(X.comprendre(lu('rentre ce dossier dans la plateforme'), { pieces: fiches.slice(0, 1), fiches: fiches.slice(0, 1), vises: [] }).intention, 'fiche');
+  assert.equal(X.coteDuTransfert({ role: 'admin', mandataire: true, espace: 'kpartners' }, { intention: 'memoire', defaut: true }, { transfert: true }), X.coteDuTransfert({ role: 'admin', mandataire: true, espace: 'kpartners' }, { intention: 'fiche' }, { transfert: true }), 'la Mémoire par défaut se demande comme une fiche');
+  // « Préanalyse » : toutes les fiches.
+  assert.deepEqual(X.comprendre(lu('préanalyse ces fiches stp'), { pieces: fiches, fiches, vises: [] }), { intention: 'fiche' });
+  assert.deepEqual(X.comprendre(lu('Pré-analyse'), { pieces: fiches.slice(0, 1), fiches: fiches.slice(0, 1), vises: [] }), { intention: 'fiche' });
+  // « Juste la fiche X » : par le nom, ou par le rang.
+  assert.deepEqual(X.comprendre(lu('préanalyse juste la fiche de Lyon'), { pieces: fiches, fiches, vises: [] }), { intention: 'fiche', seulement: ['p2'] });
+  assert.deepEqual(X.comprendre(lu('Préanalyse seulement la pharmacie'), { pieces: fiches, fiches, vises: [] }), { intention: 'fiche', seulement: ['p1'] });
+  assert.deepEqual(X.comprendre(lu('préanalyse juste la deuxième'), { pieces: fiches, fiches, vises: [] }), { intention: 'fiche', seulement: ['p2'] });
+  // Des documents sans fiche pour un dossier évident : rangés comme avant.
+  assert.deepEqual(X.comprendre(lu('', 'marc@agence.fr'), { pieces: [{ nom: 'bail.pdf' }], fiches: [], vises: v1 }), { intention: 'documents', dossier: 'deal-macon' });
+  // « Ne la rentre pas » reste la Mémoire.
+  assert.deepEqual(X.comprendre(lu('ne la rentre pas'), { pieces: fiches, fiches, vises: [] }), { intention: 'memoire' });
+});
+
+test("toutes les fiches d'un transfert sans consigne vont en Mémoire, pas seulement la première", async () => {
+  const m = transfert({ objet: 'TR: 2 fiches', texte: '', pieces_jointes: [piece('Fiche Bar Sète.pdf'), piece('Fiche Opticien Agde.pdf')] });
+  const villes = { 'Fiche Bar Sète.pdf': 'Sète', 'Fiche Opticien Agde.pdf': 'Agde' };
+  const extraire = async ({ filename }) => ({ lots: [{ lot: { adresse: { valeur: { rue: '1 rue Haute', code_postal: '34200', ville: villes[filename] } }, prix_fai: { valeur: 200000 } } }], agent: null });
+  const r = await X.enMemoireSeulement(m, { membre: { email: 'nora@klocka.immo' }, lu: { note: '' }, extraire, pousser: async () => ({ id: 'tw' }) });
+  assert.equal(r.n, 2);
+  assert.deepEqual(Records.filter('BienMemoire', { mail_recu_id: m.id }).map((b) => b.ville).sort(), ['Agde', 'Sète']);
+  assert.match(X.compteRendu(r).texte, /^2 fiches mises en Mémoire et dans les Propriétés de Twenty CRM, sans dossier\./);
 });

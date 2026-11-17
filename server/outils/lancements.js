@@ -477,42 +477,11 @@ async function outilLocataire(e, { partiel = null } = {}) {
       const { comptesDe } = await import('../kzoning-societe.js');
       comptes = (await gardeUnJour(`comptes:${s.siren}`, () => comptesDe(s.siren)).catch(() => null))?.valeur || [];
     }
-    // Sans comptes déposés, les chiffres de la recherche Claude, dits comme tels (16 nov. 2026, Jules).
-    // Sans comptes déposés récents, les chiffres de la recherche complètent : les années officielles restent, celles qui
-    // manquent viennent de la réponse (16 nov. 2026, Jules).
+    // Les comptes déposés seuls (17 nov. 2026, Jules : « à droite les chiffres sont faux ») : plus de chiffres lus par la
+    // recherche web (836 M€ à droite, 3,4 Md€ dans le texte pour la MACSF). Sans comptes déposés, la case le dit ; une
+    // recherche n'invente plus d'années. Les deux recherches de chiffres sont retirées avec eux.
     comptes = unitesCoherentes(comptes);
-    const ansOfficiels = new Set(comptes.map((c) => Number(c.exercice)));
-    const duWeb = (!trouveWeb?.siren || trouveWeb.siren === s.siren) ? (trouveWeb?.comptes || []) : [];
-    let comptesWeb = ei ? [] : duWeb.filter((c) => !ansOfficiels.has(Number(c.exercice)));
-    // Les années encore vides sur cinq ans : une recherche consacrée aux chiffres (16 nov. 2026, Jules : « ça ne marque
-    // rien dans plein d'années alors que je trouve les informations sur internet facilement »), sur la société connue
-    // (nom et SIREN), qui ne comble que ce qui manque.
-    const an = new Date().getFullYear();
-    const voulues = [an - 5, an - 4, an - 3, an - 2, an - 1];
-    // Une année connue seulement par un chiffre du groupe compte comme manquante : celui de la société le remplace.
-    // Elle passe aussi dès que des chiffres viennent de la première recherche : faite sur le SIREN, elle prime sur eux (la
-    // recherche générale rangeait parfois ceux du groupe comme ceux de la société). Les comptes officiels restent devant.
-    // Deux formulations au plus (16 nov. 2026, Jules : « le plus complet possible, tout le temps, pour tous les dossiers ») :
-    // la seconde ne part que s'il manque encore des années, et ne comble que celles-là.
-    const requetesChiffres = [
-      `${s.nom} SIREN ${s.siren} chiffre d'affaires et résultat net de la société ${voulues.join(' ')} (pappers, societe.com, comptes annuels)`,
-      `bilan ${s.nom} ${e.ville || ''} SIREN ${s.siren} : chiffre d'affaires, résultat net, effectif par année (infonet, verif.com, societe.com, ellisphere, rapports annuels)`,
-    ];
-    for (const [k, requete] of requetesChiffres.entries()) {
-      const vides = voulues.filter((y) => !ansOfficiels.has(y) && !comptesWeb.some((c) => Number(c.exercice) === y && !c.ca_groupe && !c.res_groupe));
-      if (ei || (k === 0 ? !(vides.length || comptesWeb.length) : !vides.length)) continue;
-      const chiffres = await societeWeb(e, { requete });
-      const plus = (chiffres?.comptes || []).filter((c) => !ansOfficiels.has(Number(c.exercice)) && !c.ca_groupe && !c.res_groupe && (k === 0 || vides.includes(Number(c.exercice))));
-      const remplaces = new Set(plus.map((c) => Number(c.exercice)));
-      comptesWeb = [...comptesWeb.filter((c) => !remplaces.has(Number(c.exercice))), ...plus];
-    }
-    comptesWeb = chiffresPlausibles(comptesWeb, comptes);
-    // Le chiffre d'affaires du groupe, quand la réponse le cite : dit à droite, pour ne pas le confondre avec celui de la
-    // société (16 nov. 2026, Jules : « à gauche 3,4 Md, à droite 836 M »).
-    const groupeCite = (trouveWeb?.comptes_groupe || []).filter((c) => c.chiffre_affaires).sort((a, b) => Number(b.exercice) - Number(a.exercice))[0] || null;
-    const pc = pointComptes([...comptes, ...comptesWeb], e.loyer, { ei, etablissements: s.etablissements_ouverts ?? null, source: comptesWeb.length ? (comptes.length ? `${SOURCE_COMPTES} et recherche Claude, à vérifier` : 'Recherche Claude (Pappers et autres pages), à vérifier') : SOURCE_COMPTES });
-    const avecGroupe = groupeCite ? { groupe_cite: { exercice: Number(groupeCite.exercice), chiffre_affaires: groupeCite.chiffre_affaires } } : {};
-    points.push(comptesWeb.length ? { ...pc, detail: { ...(pc.detail || {}), depuis_recherche: true, groupe: comptesWeb.some((x) => x.ca_groupe || x.res_groupe), ...avecGroupe } } : { ...pc, detail: pc.detail ? { ...pc.detail, ...avecGroupe } : pc.detail });
+    points.push(pointComptes(comptes, e.loyer, { ei, etablissements: s.etablissements_ouverts ?? null, source: SOURCE_COMPTES }));
   }
   const pAvis = await avis;
   // Le résumé du web prend vingt à soixante secondes : le reste s'affiche avant (13 nov. 2026, Jules).

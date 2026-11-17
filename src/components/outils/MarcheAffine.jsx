@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Info, Loader2, RotateCw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -12,7 +10,6 @@ import { cleOutilsDossier, marquerVu, useOutilsDossier } from "@/components/anal
 import { MOT, montants, sansCode, suiteCourte, teteEtSuite, teteProcedure } from "@/lib/marche-texte";
 import CarteTransactions from "@/components/marche/CarteTransactions";
 import { VERRE } from "@/lib/verre";
-import { nettoyerReponse } from "@/lib/reponse-recherche";
 import GraphesSante from "@/components/outils/SanteLocataire";
 
 // L'onglet Marché (12 nov. 2026, Jules, après une planche : « est-ce qu'on a besoin de tableaux ? juste les trucs
@@ -219,48 +216,37 @@ function LigneComptes({ p }) {
 // barres, une perte en alerte) et, dessous, les procédures collectives en une ligne. Remplace le calendrier des procédures.
 
 const LIGNE_INFO = "flex items-baseline justify-between gap-4 border-t border-trait py-2 first:border-t-0 first:pt-0";
-const sirenLisible = (x) => String(x || "").replace(/^(\d{3})(\d{3})(\d{3})(\d{5})?$/, (_, a, b, c, d) => [a, b, c, d].filter(Boolean).join(" "));
-const enMillions = (n) => (n == null ? "—" : Math.abs(n) >= 1e6 ? `${String(Math.round(n / 1e5) / 10).replace(".", ",")} M€` : Math.abs(n) >= 1e3 ? `${Math.round(n / 1e3).toLocaleString("fr-FR")} k€` : `${Math.round(n)} €`);
+const TAILLES = { GE: "Grande entreprise", ETI: "Entreprise de taille intermédiaire", PME: "PME" };
+const villeDe = (adresse) => String(adresse || "").match(/\b\d{5}\s+(.+)$/)?.[1]?.trim() || null;
+const anneeDe = (x) => String(x || "").match(/\d{4}/)?.[0] || null;
 
-// La réponse de Claude à « {locataire} {ville} pappers forme financière » (16 nov. 2026, Jules : « retourner les
-// informations directement ») : telle quelle, tableaux et listes compris, avec la requête et les pages lues.
-const MARKDOWN = "text-[13px] leading-[1.55] text-craie [&_h1]:m-0 [&_h1]:mt-3 [&_h1]:text-[14px] [&_h1]:font-medium [&_h1]:text-encre [&_h2]:m-0 [&_h2]:mt-3 [&_h2]:text-[14px] [&_h2]:font-medium [&_h2]:text-encre [&_h3]:m-0 [&_h3]:mt-3 [&_h3]:text-[13.5px] [&_h3]:font-medium [&_h3]:text-encre [&_p]:my-1.5 [&_ul]:my-1.5 [&_ul]:pl-4 [&_li]:my-0.5 [&_strong]:font-medium [&_strong]:text-encre [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border-b [&_th]:border-trait [&_th]:py-1.5 [&_th]:pr-3 [&_th]:text-left [&_th]:text-[12px] [&_th]:font-normal [&_th]:text-ardoise [&_td]:border-b [&_td]:border-trait/60 [&_td]:py-1.5 [&_td]:pr-3 [&_td]:align-top [&_a]:text-menthe [&_hr]:border-trait";
-const hoteDe = (x) => { try { return new URL(x.url).host.replace(/^www\./, ""); } catch { return x.titre || x.url; } };
-
-function ReponseRecherche({ web }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-2">
-      {/* Ni la requête ni ce que le modèle dit de lui-même (16 nov. 2026, Jules) : les faits seuls. */}
-      <div className={`min-w-0 overflow-x-auto ${MARKDOWN}`}><ReactMarkdown remarkPlugins={[remarkGfm]}>{nettoyerReponse(web.texte)}</ReactMarkdown></div>
-      {web.sources?.length > 0 && (
-        <p className="m-0 flex flex-wrap gap-x-3 text-[11.5px]">{web.sources.slice(0, 5).map((x) => <a key={x.url} href={x.url} target="_blank" rel="noreferrer" className="text-menthe hover:underline">{hoteDe(x)}</a>)}</p>
-      )}
-    </div>
-  );
-}
-
+/**
+ * L'essentiel sur le locataire (17 nov. 2026, Jules : « à gauche, plein de trucs qui servent à rien ; on s'en fiche du
+ * SIRET, du code NAF, établissement secondaire de 6 à 9 salariés ») : ce qui dit sa solidité à un investisseur, en lignes.
+ * Plus la réponse de la recherche web, ni SIRET, NAF, dirigeants ou effectif.
+ */
 function InfosJuridiques({ p }) {
-  const j = p?.detail?.juridique;
-  const web = p?.detail?.web;
-  // La société retrouvée à l'adresse quand le nom du locataire n'en est pas une (16 nov. 2026) : on le dit en tête.
-  const rappro = p?.detail?.rapprochement ? <p className="m-0 rounded-[10px] bg-encre/[0.04] px-3 py-2 text-[12.5px] leading-[1.45] text-craie">{p.detail.rapprochement}</p> : null;
-  if (web?.texte) return <>{rappro}<ReponseRecherche web={web} /><Source lien={p.lien} texte={sourceDe(p)} /></>;
-  if (!j) return <Mesure p={p} />;
+  const d = p?.detail || {};
+  const j = d.juridique;
+  const rappro = d.rapprochement ? <p className="m-0 rounded-[10px] bg-encre/[0.04] px-3 py-2 text-[12.5px] leading-[1.45] text-craie">{d.rapprochement}</p> : null;
+  if (!j && !d.siren) return <Mesure p={p} />;
+  const creee = anneeDe(j?.creation) || d.annee_creation;
+  const age = creee ? new Date().getFullYear() - Number(creee) : null;
+  const depuis = anneeDe(d.depuis);
+  const reseau = Number(j?.etablissements_ouverts ?? d.etablissements_ouverts) || 0;
+  const siege = villeDe(j?.adresse_siege);
   const lignes = [
-    ["Dénomination sociale", j.denomination],
-    ["Forme juridique", j.forme],
-    ["Capital social", j.capital],
-    ["SIREN", sirenLisible(j.siren)],
-    ["SIRET du local", j.siret_local ? `${sirenLisible(j.siret_local)}${j.adresse_local ? ` · ${j.adresse_local}` : ""}` : null],
-    ["SIRET du siège", j.siret_siege ? `${sirenLisible(j.siret_siege)}${j.adresse_siege ? ` · ${j.adresse_siege}` : ""}` : null],
-    ["Code NAF", [j.naf, j.naf_local && j.naf_local !== j.naf ? `${j.naf_local} pour le local` : null].filter(Boolean).join(" · ")],
-    ["Dirigeants", (j.dirigeants || []).map((d) => [d.nom, d.qualite].filter(Boolean).join(", ")).join(" ; ")],
-    ["Effectif", [j.effectif, j.etablissements_ouverts > 1 ? `${j.etablissements_ouverts} établissements ouverts` : null].filter(Boolean).join(" · ")],
-    ["Création", j.creation || null],
+    ["Société", [j?.denomination || d.nom, j?.forme || d.forme].filter(Boolean).join(" · ")],
+    ["Taille", TAILLES[d.categorie] || null],
+    ["Ancienneté", creee ? `créée en ${creee}${age > 0 ? ` (${age} an${age > 1 ? "s" : ""})` : ""}` : null],
+    ["Dans le local", depuis ? `depuis ${depuis}` : null],
+    ["Enseigne", d.enseigne ? `${d.enseigne}${d.franchise ? " · franchise" : ""}` : null],
+    ["Réseau", reseau > 1 ? `${reseau.toLocaleString("fr-FR")} établissements ouverts` : reseau === 1 ? "un seul établissement" : null],
+    ["Siège", siege],
   ].filter(([, v]) => v);
   return (
     <>
-      <p className="m-0 text-[12.5px] text-ardoise">Informations juridiques</p>
+      {rappro}
       <div className="flex flex-col">
         {lignes.map(([l, v]) => (
           <div key={l} className={LIGNE_INFO}>
@@ -277,7 +263,9 @@ function InfosJuridiques({ p }) {
 /** La colonne de droite : les graphiques de la santé financière et des annonces légales (SanteLocataire.jsx). */
 function ComptesEtProcedures({ comptes, procedures }) {
   const d = comptes?.detail || {};
-  const note = d.depuis_recherche ? `${d.groupe ? "chiffres du groupe · " : ""}lus par la recherche, à vérifier` : (d.historique || []).length ? "comptes déposés" : null;
+  // Un lancement d'avant le 17 nov. mêlait des chiffres lus par la recherche web : ils ne s'affichent plus (relancer l'outil).
+  const duWeb = !!d.depuis_recherche;
+  const note = duWeb ? "chiffres retirés : relancez l'outil pour les comptes déposés" : (d.historique || []).length ? "comptes déposés" : null;
   // Un lancement d'avant le 16 nov. n'a pas le décompte par année : il se refait sur les annonces gardées.
   const ev = procedures?.detail?.evenements;
   const parAnnee = procedures?.detail?.par_annee || (ev ? Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 4 + i).map((a) => {
@@ -288,7 +276,7 @@ function ComptesEtProcedures({ comptes, procedures }) {
   }) : null);
   return (
     <>
-      <GraphesSante historique={d.historique || []} parAnnee={parAnnee} note={note} lienBodacc={procedures?.lien || null} groupeCite={d.groupe_cite || null}
+      <GraphesSante historique={duWeb ? [] : d.historique || []} parAnnee={parAnnee} note={note} lienBodacc={procedures?.lien || null}
         alerteProcedure={procedures && !["ok", "vide"].includes(procedures.statut) ? sansCode(procedures.resultat) : null} />
       {comptes && <Source texte={sourceDe(comptes)} />}
     </>

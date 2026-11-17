@@ -20,7 +20,9 @@ import { ajouterSuivi } from './lifecycle.js';
  */
 // `automatique` (18 oct. 2026, Jules : « limite les coûts des actions qu'on ne déclenche pas ») : sans clic,
 // l'analyse saute le point de marché par recherche web ; il se fait quand quelqu'un relance l'analyse.
-export async function preanalyserMail(mailRecu, { user = null, uploadDir = null, contactEmail = undefined, automatique = false } = {}) {
+// `seulement` (17 nov. 2026) : les `piece_id` des fiches à pré-analyser, les autres du mail restent de côté (« préanalyse
+// juste la fiche X »). Chaque fiche retenue est lue seule, même s'il n'en reste qu'une.
+export async function preanalyserMail(mailRecu, { user = null, uploadDir = null, contactEmail = undefined, automatique = false, seulement = null } = {}) {
   if (mailRecu.deal_id) throw new Error('Ce mail a déjà été préanalysé.');
 
   // Une réponse dans la conversation d'un dossier, ou la même fiche déjà
@@ -47,7 +49,7 @@ export async function preanalyserMail(mailRecu, { user = null, uploadDir = null,
 
   // Un ou plusieurs ZIP joints (9 nov. 2026, Jules) : on les ouvre et chaque fiche dedans donne son dossier, comme
   // des pièces jointes séparées. Sans ZIP, le chemin habituel ne change pas.
-  const zips = zipsDuMail(mailRecu);
+  const zips = seulement ? [] : zipsDuMail(mailRecu);
   if (zips.length) {
     const aCreer = [];
     for (const p of piecesFiche(mailRecu).filter((x) => x?.piece_id)) {
@@ -70,8 +72,8 @@ export async function preanalyserMail(mailRecu, { user = null, uploadDir = null,
     }
   }
 
-  const fiches = piecesFiche(mailRecu).filter((p) => p?.piece_id);
-  if (fiches.length >= 2) {
+  const fiches = piecesFiche(mailRecu).filter((p) => p?.piece_id).filter((p) => !seulement || seulement.includes(p.piece_id));
+  if (fiches.length >= 2 || (seulement && fiches.length)) {
     const dossiers = [];
     for (const p of fiches) {
       const buffer = await telechargerPieceJointe(mailRecu.compte, mailRecu.gmail_message_id, p.piece_id);

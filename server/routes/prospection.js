@@ -448,7 +448,7 @@ export function monterProspection(app) {
   app.post('/api/prospection/mode-appel/sessions', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
-    const r = (await MA()).ouvrirSession(req.body?.liste_id, user);
+    const r = (await MA()).ouvrirSession(req.body?.liste_id, user, { demarrer: !!req.body?.demarrer });
     if (!r.ok) return refus(res, r);
     ok(res, r);
   }));
@@ -457,6 +457,23 @@ export function monterProspection(app) {
     const user = admin(req, res);
     if (!user) return;
     ok(res, (await MA()).ouvrirEssai(user));
+  }));
+  // « Ma session » (17 nov. 2026, Jules) : commencer, pause, reprendre, terminer ; et ses chiffres.
+  app.post('/api/prospection/mode-appel/sessions/:id/etat', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const action = String(req.body?.action || '');
+    if (!['demarrer', 'pause', 'reprendre', 'terminer'].includes(action)) return res.status(400).json({ error: 'Action inconnue.' });
+    const r = (await import('../prospection/ma-session.js')).changerEtat(req.params.id, action, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.get('/api/prospection/mode-appel/sessions/:id/stats', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await import('../prospection/ma-session.js')).maSession(req.params.id, user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
   }));
   app.get('/api/prospection/mode-appel/sessions/:id', wrap(async (req, res) => {
     if (!admin(req, res)) return;
@@ -896,7 +913,17 @@ export function monterProspection(app) {
     const sansTete = !enCours && !siteEnCours && PE.imagesBranchees()
       ? contacts.filter((x) => !x.standard && !x.photo && !/\s\p{L}\.$/u.test(String(x.nom || '').trim()) && !cherches[PE.cleNom(x.nom)]).slice(0, 4) : [];
     if (sansTete.length) PE.chercherPhotosImages(agence.id, sansTete.map((x) => ({ nom: x.nom }))).catch(() => {});
+    // La chaîne entière d'un trait (17 nov. 2026) : les têtes cherchées dès la fin du site et des noms, sans attendre
+    // une relecture de l'écran ; rien n'est refait de ce qui tourne déjà.
+    if (enCours || siteEnCours) (await import('../prospection/preparer-carte.js')).preparerCarte(agence.id, { ville: String(req.query?.ville || '').trim() || null });
     ok(res, { gens: frais?.apollo_equipe?.gens || gens, photos: Records.get('AgenceProspect', agence.id)?.photos_equipe?.par_nom || photos, contacts, noms_en_cours: enCours, site_en_cours: siteEnCours, photos_en_cours: photosEnCours || sansTete.length > 0, site_le: frais?.site_lu?.le || null });
+  }));
+  // Les cartes des agences suivantes de la file préparées pendant l'appel en cours (17 nov. 2026, Jules : « que les
+  // photos arrivent en même temps que le reste »).
+  app.post('/api/prospection/mode-appel/preparer', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).map((x) => String(x || '').slice(0, 80)).filter((id) => Records.get('AgenceProspect', id));
+    ok(res, (await import('../prospection/preparer-carte.js')).preparerSuivantes(ids));
   }));
   // Pendant l'appel : la rue de l'adresse dite, en Street View.
   app.get('/api/prospection/mode-appel/lieu', wrap(async (req, res) => {

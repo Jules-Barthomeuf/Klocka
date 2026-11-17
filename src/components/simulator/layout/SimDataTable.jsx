@@ -109,6 +109,8 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency }) 
   // En mode clair, l'accent plein et son texte de contraste, comme les boutons du CRM (`.k-sim-surligne`, index.css).
   const surligne = "k-sim-surligne";
   const premiere = "sticky left-0 z-10 bg-rail border-r border-b border-trait";
+  // Des colonnes d'année plus larges (17 nov. 2026, Jules) : « 1 097 295 € » tenait mal et se lisait « 097 295 € ».
+  const COL = "min-w-[124px] px-5";
   const signe = (sec, v) => (sec.title !== "Cash-flow et patrimoine" ? null : String(v).trim().startsWith("-") ? "text-alerte" : /\d/.test(String(v)) && !/^0\b/.test(String(v).trim()) ? "text-vert" : null);
 
   return (
@@ -126,7 +128,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency }) 
             <tr className="h-[35px] border-b border-trait">
               <th className={`${premiere} px-4 text-left text-[12.5px] font-normal text-ardoise whitespace-nowrap`}>Ligne</th>
               {rows.map((r) => (
-                <th key={r.annee} className={`px-3 text-right text-[12.5px] font-normal whitespace-nowrap ${revente(r) ? "text-encre" : "text-ardoise"}`}>
+                <th key={r.annee} className={`${COL} text-right text-[12.5px] font-normal whitespace-nowrap ${revente(r) ? "text-encre" : "text-ardoise"}`}>
                   An {r.annee}{revente(r) ? " · revente" : ""}
                 </th>
               ))}
@@ -147,7 +149,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency }) 
                     {rows.map((r) => {
                       const sum = getSummary(sec, r);
                       const v = sum != null ? fmtCur(sum) : "";
-                      return <td key={r.annee} className={`px-3 text-right font-medium tabular-nums whitespace-nowrap ${signe(sec, v) || "text-encre"}`}>{v}</td>;
+                      return <td key={r.annee} className={`${COL} text-right font-medium tabular-nums whitespace-nowrap ${signe(sec, v) || "text-encre"}`}>{v}</td>;
                     })}
                   </tr>
                   {sec.rows.map((row) => (
@@ -162,7 +164,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency }) 
                       {rows.map((r) => {
                         const v = row.get(r);
                         return (
-                          <td key={r.annee} className={`px-3 py-0 text-right tabular-nums whitespace-nowrap ${signe(sec, v) || (row.fort ? "text-encre" : "text-craie")}${row.fond ? ` ${surligne}` : ""}`}>
+                          <td key={r.annee} className={`${COL} py-0 text-right tabular-nums whitespace-nowrap ${signe(sec, v) || (row.fort ? "text-encre" : "text-craie")}${row.fond ? ` ${surligne}` : ""}`}>
                             <Pli ouverte={ouverte} droite>{v}</Pli>
                           </td>
                         );

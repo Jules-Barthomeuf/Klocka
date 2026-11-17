@@ -25,6 +25,7 @@ import Chargement from "@/components/ui/Chargement";
 import { ouvrirTranscriptionDirecte, enPhrases } from "@/lib/transcription-directe";
 import { objectionEntendue } from "@/lib/objections";
 import TranscriptionParVoix from "@/components/prospection/TranscriptionParVoix";
+import MaSession from "@/components/prospection/MaSession";
 import { niveauEntre, phrasesEtTours, seuilDeuxVoix, texteNormal, voixDe, voixParLesMots } from "@/lib/qui-parle";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
@@ -44,6 +45,18 @@ import { niveauEntre, phrasesEtTours, seuilDeuxVoix, texteNormal, voixDe, voixPa
 // suivante » (`onSuivante`) ou « Retour à la liste » (`onRetour`).
 
 const API = "/api/prospection/mode-appel";
+// L'équipe et le résumé d'une agence, mêmes clés pour la carte ouverte et pour les suivantes chargées d'avance.
+const requeteEquipe = (x) => {
+  const ville = String(x?.lieu || "").split(" · ")[0] || "";
+  return {
+    queryKey: ["equipe-apollo", x.id],
+    queryFn: () => base44.request("GET", `${API}/agences/${encodeURIComponent(x.id)}/equipe?${new URLSearchParams({ ...(ville ? { ville } : {}), ...(x.place != null ? { place: String(x.place) } : {}) })}`),
+  };
+};
+const requeteResume = (id, siteLe) => ({
+  queryKey: ["mode-appel", "resume", id, siteLe || ""],
+  queryFn: () => base44.request("GET", `${API}/agences/${encodeURIComponent(id)}/resume`),
+});
 const ESSAI = "essai";
 const CLE_EN_COURS = "klocka.mode-appel.en-cours";
 const telLien = (t) => `tel:${String(t).replace(/\s/g, "")}`;
@@ -447,7 +460,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   const [deja, setDeja] = useState(false);
   const troisColonnes = enCours || deja || essai;
   // Avant l'appel, la carte de la maquette de Jules (15 nov. 2026) ; pendant l'appel, la carte à trois colonnes.
-  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} choisi={choisi} onChoisir={onChoisir} numero={numero} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} siteLe={siteLe} />;
+  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} standard={standard} choisi={choisi} onChoisir={onChoisir} numero={numero} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} siteLe={siteLe} />;
   return (
     <div className="overflow-hidden k-verre">
       <div className="relative flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
@@ -565,12 +578,6 @@ function initiales(nom) {
 }
 
 /** Pure : ce que la carte dit des annonces de l'agence. */
-function texteAnnonces(an) {
-  if (!an || (!an.total && !an.commerce && !an.publie_commerce)) return "Aucune relevée";
-  if (an.commerce) return `${an.commerce} en commerce${an.total > an.commerce ? ` sur ${an.total}` : ""}`;
-  if (an.publie_commerce) return `Publie du commerce${an.total ? ` · ${an.total} relevée${an.total > 1 ? "s" : ""}` : ""}`;
-  return `${an.total} relevée${an.total > 1 ? "s" : ""}, aucune en commerce`;
-}
 
 /**
  * Une personne de la carte : la tête (sa photo, ses initiales à défaut), le nom, le poste, son numéro, d'où elle vient.
@@ -578,12 +585,15 @@ function texteAnnonces(an) {
  * la photo sur toute la largeur, le nom, le poste, le numéro et le mail ; un second clic la referme. Ni anneau autour de
  * la tête ni pastille « Probable » (Jules, même jour).
  */
-function LignePersonne({ x, actif, ouvert, numero, onClic }) {
+function LignePersonne({ x, actif, ouvert, numero, standard = null, onClic }) {
   const tete = x.photo ? <img src={x.photo} alt="" className="h-full w-full object-cover" loading="lazy" /> : x.standard ? <Phone className="h-4 w-4" strokeWidth={1.8} /> : initiales(x.nom);
-  const tel = x.telephone || (actif ? numero : null);
+  // Le numéro de chacun, toujours visible (17 nov. 2026, Jules : « de tous, pas que celui qui est sélectionné ») : le sien,
+  // sinon le standard de l'agence, dit comme tel.
+  const tel = x.telephone || (actif ? numero : null) || standard;
+  const parStandard = !x.telephone && !x.standard && !!tel && tel === standard;
   return (
     <button type="button" onClick={onClic} aria-pressed={actif} aria-expanded={ouvert} title={ouvert ? "Refermer" : "Choisir et voir en grand"}
-      className={`w-full rounded-[14px] border px-2.5 py-2 text-left transition-colors ${actif ? "border-bord-doux bg-relief/70" : "border-transparent hover:bg-relief/60"}`} style={actif ? undefined : { background: "transparent" }}>
+      className={`w-full rounded-[14px] px-2.5 py-2 text-left transition-colors ${actif ? "bg-relief/70" : "hover:bg-relief/60"}`} style={actif ? undefined : { background: "transparent" }}>
       {ouvert && !x.standard ? (
         <span className="flex flex-col gap-2.5 py-1 duration-200 animate-in fade-in-0">
           {/* La photo en grand ; sans photo, une tête ronde de 64 px : un grand carré d'initiales ne montrerait rien. */}
@@ -593,7 +603,7 @@ function LignePersonne({ x, actif, ouvert, numero, onClic }) {
           <span className="flex flex-col gap-0.5">
             <span className="text-[17px] text-encre">{x.nom}</span>
             {x.fonction && <span className="text-[13.5px] text-ardoise">{x.fonction}</span>}
-            {tel && <span className="select-all pt-1 text-[14px] tabular-nums text-encre">{tel}</span>}
+            {tel && <span className="select-all pt-1 text-[14px] tabular-nums text-encre">{tel}{parStandard && <span className="text-ardoise"> · standard</span>}</span>}
             {x.email && <span className="select-all break-all text-[13px] text-craie">{x.email}</span>}
             {x.source !== "Apollo" && <span className="pt-0.5 text-[12px] text-brume">{x.source}</span>}
           </span>
@@ -605,7 +615,7 @@ function LignePersonne({ x, actif, ouvert, numero, onClic }) {
             <span className="truncate text-[15px] text-encre">{x.nom}</span>
             {x.fonction && !x.standard && <span className="truncate text-[13px] text-ardoise">{x.fonction}</span>}
             {/* Le numéro de chacun (17 nov. 2026, Jules : « leur numéro perso, directement ») ; sans le sien, celui à composer. */}
-            {tel && <span className="select-all text-[13px] tabular-nums text-encre">{tel}</span>}
+            {tel && <span className="select-all text-[13px] tabular-nums text-encre">{tel}{parStandard && <span className="text-ardoise"> · standard</span>}</span>}
             {/* La source, sauf Apollo (17 nov. 2026, Jules : « enlève le "Apollo" »). */}
             {x.source !== "Apollo" && <span className="truncate text-[12px] text-brume">{x.source}</span>}
           </span>
@@ -621,12 +631,14 @@ function LignePersonne({ x, actif, ouvert, numero, onClic }) {
  * le poste, la source ; « Probable » sur la personne d'Apollo choisie d'office) ; à droite, « Résumé IA » et, en lignes,
  * le dernier appel, les annonces et la ville. Pendant et après l'appel, rien ne change.
  */
-function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai, onMicro, onPasser, passerEnCours, onRetour, onSansConversation = null, occupe = false, siteLe = null }) {
+function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, numero, histo, essai, onMicro, onPasser, passerEnCours, onRetour, onSansConversation = null, occupe = false, siteLe = null }) {
   const resume = useQuery({
     // Relu quand le site de l'agence vient d'être lu : le résumé dit alors ses villes, sa taille, ses offres.
-    queryKey: ["mode-appel", "resume", a.id, siteLe || ""],
-    queryFn: () => base44.request("GET", `/api/prospection/mode-appel/agences/${encodeURIComponent(a.id)}/resume`),
+    ...requeteResume(a.id, siteLe),
     enabled: !!a.id, staleTime: 10 * 60000, retry: false,
+    // Le résumé reste affiché pendant qu'il se refait (17 nov. 2026, Jules : « il disparaît et réapparaît ») : quand le
+    // site vient d'être lu, la clé change ; l'ancien texte reste jusqu'au nouveau, jamais celui d'une autre agence.
+    placeholderData: (avant, q) => (q?.queryKey?.[2] === a.id ? avant : undefined),
   });
   const dernier = histo[0];
   const ville = a.ville || String(a.lieu || "").split(" · ")[0] || null;
@@ -655,7 +667,7 @@ function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai,
         <div className="flex flex-col gap-1.5 px-5 py-5 max-md:px-4 md:max-h-[560px] md:overflow-y-auto md:border-r md:border-trait">
           <span className="px-1 pb-1 text-[12.5px] text-ardoise">Interlocuteur</span>
           {contacts.map((x) => (
-            <LignePersonne key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} numero={numero}
+            <LignePersonne key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} numero={numero} standard={standard}
               onClic={() => { if (choisi?.id === x.id) setOuvertId((o) => (o === x.id ? null : x.id)); else { onChoisir(x.id); setOuvertId(x.id); } }} />
           ))}
           {!contacts.length && (
@@ -678,7 +690,7 @@ function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai,
             </div>
           )}
           <div className="flex flex-col">
-            {[["Dernier appel", dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"], ["Annonces", texteAnnonces(a.annonces)], ["Ville", ville]].filter(([, v]) => v).map(([k, v]) => (
+            {[["Dernier appel", dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"], ["Ville", ville]].filter(([, v]) => v).map(([k, v]) => (
               <div key={k} className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 border-t border-trait py-2.5 text-[14px] max-md:grid-cols-[96px_minmax(0,1fr)]">
                 <span className="text-[13px] text-ardoise">{k}</span>
                 <span className="min-w-0 text-encre">{v}</span>
@@ -902,7 +914,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       arreterTout();
       setFait(texte || "Issue notée"); setEcran("fait");
       queryClient.invalidateQueries({ queryKey: ["relances"] });
-      queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
+      queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] }); queryClient.invalidateQueries({ queryKey: ["ma-session"] });
       return;
     }
     arreterTout();
@@ -910,7 +922,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({});
     setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setPasserOuvert(false); setNotesAppel(""); setAnnonce(null); setVoirTranscription(false);
     if (texte) dire(texte);
-    queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
+    queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] }); queryClient.invalidateQueries({ queryKey: ["ma-session"] });
     queryClient.invalidateQueries({ queryKey: ["agent-ia-liste"] });
     queryClient.invalidateQueries({ queryKey: ["relances"] });
     queryClient.invalidateQueries({ queryKey: ["mode-appel-file", session?.liste_id] });
@@ -980,14 +992,45 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   // L'équipe Apollo de l'agence (17 nov. 2026, Jules : « l'interlocuteur probable, puis les personnes d'Apollo, pas
   // ceux de la location ; pas leurs numéros, sinon ça consomme trop de crédits ») : la recherche gratuite, lue à
   // l'ouverture de la carte et gardée 90 jours ; prénom, initiale et poste, sans numéro.
-  const villeAgence = String(a?.lieu || "").split(" · ")[0] || "";
   const equipe = useQuery({
-    queryKey: ["equipe-apollo", a?.id],
-    queryFn: () => base44.request("GET", `${API}/agences/${encodeURIComponent(a.id)}/equipe?${new URLSearchParams({ ...(villeAgence ? { ville: villeAgence } : {}), ...(a.place != null ? { place: String(a.place) } : {}) })}`),
-    enabled: !!a?.id && !session?.essai, staleTime: Infinity, retry: false,
+    ...(a?.id ? requeteEquipe(a) : { queryKey: ["equipe-apollo", null], queryFn: () => null }),
+    // Chargée d'avance (les agences suivantes) : affichée tout de suite, relue derrière si elle a plus de 15 s.
+    enabled: !!a?.id && !session?.essai, staleTime: 15_000, retry: false,
     // Les noms complets et le site de l'agence se lisent en tâche de fond : relue toutes les six secondes tant qu'ils tournent.
     refetchInterval: (q) => (q.state.data?.noms_en_cours || q.state.data?.site_en_cours || q.state.data?.photos_en_cours ? 6000 : false),
   });
+  // Les trois agences suivantes préparées pendant celle-ci (17 nov. 2026, Jules : « que les photos arrivent en même
+  // temps que le reste ») : équipe, site, photos et résumé sont prêts quand leur carte s'ouvre.
+  const preparees = useRef(new Set());
+  useEffect(() => {
+    if (!a?.id || session?.essai || relances) return;
+    const ids = agences.map((x) => x.id).filter((id) => id !== a.id && !preparees.current.has(id)).slice(0, 3);
+    if (!ids.length) return;
+    ids.forEach((id) => preparees.current.add(id));
+    base44.request("POST", `${API}/preparer`, { body: { ids } }).catch(() => ids.forEach((id) => preparees.current.delete(id)));
+  }, [a?.id, agences, session?.essai, relances]);
+  // Et l'écran les charge d'avance, toutes les 15 s tant que la carte est ouverte (17 nov. 2026, Jules : « quand on arrive
+  // dessus, aucune attente ») : l'équipe, les photos (téléchargées dans le cache du navigateur) et le résumé, une fois le
+  // site lu, sous la clé que la carte demandera.
+  const suivantesIds = agences.filter((x) => x.id !== a?.id).slice(0, 3).map((x) => x.id).join(",");
+  useEffect(() => {
+    if (!a?.id || session?.essai || relances || ecran !== "fiche") return undefined;
+    const suivantes = agences.filter((x) => x.id !== a.id).slice(0, 3);
+    const vues = new Set();
+    const chauffer = () => suivantes.forEach((x) => {
+      queryClient.fetchQuery({ ...requeteEquipe(x), staleTime: 10_000 }).then((d) => {
+        for (const url of [...(d?.contacts || []).map((c) => c.photo), ...Object.values(d?.photos || {})].filter(Boolean)) {
+          if (vues.has(url)) continue;
+          vues.add(url);
+          const img = new Image(); img.src = url;
+        }
+        if (!d?.site_en_cours && !d?.noms_en_cours) queryClient.prefetchQuery({ ...requeteResume(x.id, d?.site_le), staleTime: 10 * 60000 });
+      }).catch(() => {});
+    });
+    const t0 = setTimeout(chauffer, 1500);
+    const t = setInterval(chauffer, 15_000);
+    return () => { clearTimeout(t0); clearInterval(t); };
+  }, [a?.id, suivantesIds, session?.essai, relances, ecran]);
   // Les interlocuteurs recalculés par le serveur à l'ouverture de la carte (toute l'équipe du site, Apollo, les noms
   // complets) ; ceux de la file en attendant. La photo de la page équipe se pose sur chacun.
   const contacts = useMemo(() => avecPhotos(equipe.data?.contacts || a?.contacts || [], equipe.data?.photos || {}), [a?.contacts, equipe.data]);
@@ -1022,7 +1065,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       }
     }
     setHorsLigne((await enAttente()).length);
-    queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
+    queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] }); queryClient.invalidateQueries({ queryKey: ["ma-session"] });
   };
   useEffect(() => {
     vider();
@@ -1579,6 +1622,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const apresAppel = ((ecran === "actions" || ecran === "analyse") && !!appel) || (ecran === "analyse" && !!a);
   useEffect(() => { onApresAppel?.(apresAppel); }, [apresAppel]);
   useEffect(() => () => onApresAppel?.(false), []);
+  // La place du menu des villes à côté du titre de la page, quand elle existe (Prospection.jsx).
+  const [placeVille, setPlaceVille] = useState(null);
+  useEffect(() => { setPlaceVille(document.getElementById("prospection-ville")); }, []);
   // Sous le nom : la personne jointe (sa fonction), puis la durée de l'appel.
   const sousTitreAppel = (() => {
     const ch = appel?.compris?.champs || {};
@@ -1592,13 +1638,26 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     <div className={`w-full ${apresAppel ? "" : "pb-16"}`}>
       {CARTES_OBJECTION && ecran === "appel" && carteObjection && <CarteObjection carte={carteObjection} onFermer={() => setCarteObjection(null)} />}
       {/* La ville dans un menu déroulant (15 nov. 2026, Jules) ; plus d'onglets de classeur. */}
-      {!relances && !essaiSeul && !apresAppel && <div className="flex flex-wrap items-center gap-y-2">
-        <ChoixVille villes={villes} valeur={onglet} onChoisir={choisir} essai={ESSAI} dues={relancesDues ? DUES : null} nbDues={nbDues} />
-        {/* L'avancement de la ville, à côté de son nom : on le voit monter en appelant. */}
-        {c && onglet !== ESSAI && onglet !== DUES && <span className="ml-3 text-[13px] tabular-nums text-ardoise max-md:hidden">{c.appelees} / {c.agences - c.mortes} agences · {c.fait_pourcent} %</span>}
-        <span aria-hidden className="min-w-3 flex-1" />
-        {entete && <span className="ml-3 flex-none self-center pb-1">{entete}</span>}
-      </div>}
+      {!relances && !essaiSeul && !apresAppel && (() => {
+        const ville = (
+          <span className="inline-flex flex-wrap items-center gap-y-2">
+            <ChoixVille villes={villes} valeur={onglet} onChoisir={choisir} essai={ESSAI} dues={relancesDues ? DUES : null} nbDues={nbDues} />
+            {/* L'avancement de la ville, à côté de son nom : on le voit monter en appelant. */}
+            {c && onglet !== ESSAI && onglet !== DUES && <span className="ml-3 text-[13px] tabular-nums text-ardoise max-md:hidden">{c.appelees} / {c.agences - c.mortes} agences · {c.fait_pourcent} %</span>}
+          </span>
+        );
+        // Sur la ligne du titre « Prospection » quand la page lui fait une place (17 nov. 2026, Jules), sinon ici.
+        return (
+          <>
+            {placeVille ? createPortal(ville, placeVille) : null}
+            {(!placeVille || entete) && <div className="flex flex-wrap items-center gap-y-2">
+              {!placeVille && ville}
+              <span aria-hidden className="min-w-3 flex-1" />
+              {entete && <span className="ml-3 flex-none self-center pb-1">{entete}</span>}
+            </div>}
+          </>
+        );
+      })()}
 
       {/* Tous les écrans, raisonnement et actions proposées compris, sur le fond des listes : la couleur de la barre choisie dans Compte, et ses points (9 oct. 2026). */}
       <div data-zone="listes" className="flex flex-col gap-3 pt-3">
@@ -1641,6 +1700,18 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 passerOuvert={passerOuvert} setPasserOuvert={setPasserOuvert} raisons={file.data?.raisons_passer} onPasser={(k) => (rappel ? suivante() : passer.mutate(k))} passerEnCours={passer.isPending}
                 onRetour={relances ? () => onRetour?.() : null}
                 onSansConversation={session.essai && scenario !== LIBRE ? null : sansConversation} />
+            )}
+            {/* Le paquet de cartes (17 nov. 2026, Jules) : le bas des agences suivantes dépasse sous la carte, la file se voit. */}
+            {ecran === "fiche" && a && !relances && agences.length > 1 && (
+              <div aria-hidden className="-mt-4 flex flex-col items-center">
+                <div className="h-[9px] w-[96%] rounded-b-[16px] border border-t-0 border-bord-doux bg-surface/80" />
+                {agences.length > 2 && <div className="h-[8px] w-[92%] rounded-b-[16px] border border-t-0 border-bord-doux bg-surface/50" />}
+              </div>
+            )}
+            {/* Ma session (17 nov. 2026, maquette de Jules) : sous la carte, qui reste toujours visible. */}
+            {ecran === "fiche" && !relances && !session.essai && (
+              <MaSession session={session} ville={session.ville} progression={c ? { appelees: c.appelees, agences: c.agences - c.mortes } : null}
+                onNouvelle={(sn) => setSessions((x) => ({ ...x, [onglet]: { id: sn.id, liste_id: sn.liste_id, ville: sn.ville, essai: !!sn.essai, debut: sn.debut } }))} />
             )}
 
             {/* Pendant l'appel et la note d'après (21 oct. 2026, Jules) : la fiche de la liste, à l'identique, en ligne. */}

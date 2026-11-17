@@ -57,7 +57,8 @@ export function fusionnerNoms(contacts = []) {
     if (!m || c.standard) continue;
     const prenom = cle(m[1]); const initiale = cle(m[2]);
     const complet = out.find((x) => x !== c && !x.standard && !retires.has(x) && !/^\S+\s+\p{L}\.$/u.test(String(x.nom || '').trim())
-      && cle(x.nom).split(' ')[0] === prenom && (cle(x.nom).split(' ').slice(1).join(' ')[0] || '') === initiale);
+      // L'initiale du nom, particule passée (« Claire C. » est « Claire de Chambure », 17 nov. 2026).
+      && cle(x.nom).split(' ')[0] === prenom && (cle(x.nom).split(' ').slice(1).filter((w) => !/^(de|du|des|d|la|le|van|von|di|da)$/.test(w))[0]?.[0] || '') === initiale);
     if (!complet) continue;
     complet.fonction = complet.fonction || c.fonction;
     complet.photo = complet.photo || c.photo;

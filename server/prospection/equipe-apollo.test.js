@@ -64,6 +64,16 @@ test('le nom court d\'Apollo se fond dans le nom complet du site ; la photo de l
   assert.equal(p[0].photo, 'https://x/b.jpg');
   assert.equal(p[1].photo, undefined);
   assert.equal(rangerInterlocuteurs([{ id: 'a', nom: 'Benjamin C.', source: 'Apollo', fonction: 'Négociateur' }, { id: 'b', nom: 'Benjamin Casenobe', source: 'Site de l\'agence', fonction: 'Conseiller' }]).length, 1);
+  // La particule passée : « Claire C. » est « Claire de Chambure » (17 nov. 2026).
+  assert.deepEqual(fusionnerNoms([{ id: 'a', nom: 'Claire C.', source: 'Apollo' }, { id: 'b', nom: 'Claire de Chambure', source: 'Site de l\'agence' }]).map((x) => x.nom), ['Claire de Chambure']);
+  assert.equal(fusionnerNoms([{ id: 'a', nom: 'Claire D.', source: 'Apollo' }, { id: 'b', nom: 'Claire de Chambure', source: 'Site de l\'agence' }]).length, 2);
+});
+
+test('le standard n\'est jamais le portable d\'une personne nommée', async () => {
+  const { contactsDe } = await import('./mode-appel.js');
+  const c = contactsDe({ nom: 'Nice Homes', agents: [{ nom: 'Simon Crann', telephone: '06 13 87 26 69', source: 'Apollo' }] });
+  assert.equal(c.some((x) => x.standard), false);
+  assert.equal(c.find((x) => x.nom === 'Simon Crann').telephone, '06 13 87 26 69');
 });
 
 test('les photos d\'une page équipe : le nom dans l\'image, sinon la dernière image avant le nom', async () => {

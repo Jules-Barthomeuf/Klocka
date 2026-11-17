@@ -16,6 +16,9 @@
 //                  Un dossier né du transfert a sa fiche en Mémoire et sa Propriété dans Twenty CRM, sans attendre la
 //                  nuit. « Ne rentre pas la fiche dans la plateforme » : aucun dossier, la fiche lue va en Mémoire et
 //                  dans Twenty seulement (2 nov. 2026, Jules).
+//                  17 nov. 2026 (Jules) : une fiche transférée SANS consigne va en Mémoire seulement, plus de dossier
+//                  d'office. « Préanalyse » : toutes les fiches du mail sont pré-analysées (et en Mémoire) ; « préanalyse
+//                  juste la fiche X » : X seule est pré-analysée, les autres vont en Mémoire.
 //   5. repondre    une notification au collègue seul : ce qui a été fait, avec le lien du dossier. Plus de mail
 //                  depuis sourcing@ (2 nov. 2026, Jules : « je ne veux pas qu'il réponde à l'analyste par mail »).
 //
@@ -93,7 +96,9 @@ export function lireTransfert({ texte = '', objet = '' } = {}) {
 // 2. Comprendre
 // ---------------------------------------------------------------------------
 
-const MOTS_FICHE = /pr[ée][\s-]?analys|nouvelle fiche|nouveau (bien|dossier)|fiche (commerciale|du bien)|[àa] analyser|[ée]tudier ce bien/;
+// « Rentre ce dossier dans la plateforme » : une fiche à pré-analyser, seulement quand le mail en porte une.
+const MOTS_RENTRER = /\brentre[rz]?\b.{0,40}\b(plateforme|dossier)/;
+const MOTS_FICHE = /pr[ée]?[\s-]?analys|\banalyse[rz]?\b|nouvelle fiche|nouveau (bien|dossier)|fiche (commerciale|du bien)|[àa] analyser|[ée]tudier ce bien/;
 // « Ne rentre pas la fiche dans la plateforme » (2 nov. 2026, Jules) : pas de dossier, la fiche en Mémoire et dans Twenty.
 const MOTS_MEMOIRE = /\b(ne|n')\s*(la |le |les |l')?(rentre|entre|mets?|cree|ajoute|integre|enregistre)s?\s+pas\b|\bpas (de|en) dossier|\bsans (creer (de|un) )?dossier|\b(juste|seulement|uniquement|que) (en|dans la) memoire|\bne pas (la |le |les )?(rentrer|entrer|creer|mettre|integrer)\b/;
 const MOTS_DOCUMENTS = /data[\s-]?room|documents?|pi[eè]ces?|[àa] ranger|[àa] classer|ajoute|rajoute|mets? (le|les|dans)|bail|taxe fonci[eè]re/;
@@ -122,24 +127,53 @@ export function dossiersVises(lu, deals, { collegue = null } = {}) {
   return scores.sort((a, b) => b.score - a.score);
 }
 
+// Les mots d'une consigne qui ne désignent pas une fiche (« préanalyse juste la fiche de Mâcon stp » → macon).
+const MOTS_CONSIGNE = new Set(['preanalyse', 'preanalyser', 'preanalyses', 'pre', 'analyse', 'analyser', 'fiche', 'fiches', 'juste', 'seulement', 'uniquement', 'cette', 'celle', 'celui', 'ceci', 'cela', 'les', 'des', 'une', 'pour', 'merci', 'stp', 'svp', 'bien', 'dossier', 'nouvelle', 'nouveau', 'avec', 'sans', 'dans', 'aussi', 'peux', 'tu', 'vous', 'pouvez', 'est', 'qui', 'que', 'pdf', 'jpg', 'png', 'docx', 'doc']);
+const ORDINAUX = [[/\b(premiere|1ere|1re|1er|premier)\b/, 0], [/\b(deuxieme|seconde|second|2e|2eme|2nde)\b/, 1], [/\b(troisieme|3e|3eme)\b/, 2], [/\b(quatrieme|4e|4eme)\b/, 3], [/\b(cinquieme|5e|5eme)\b/, 4]];
+
 /**
- * Pure : ce que le collègue demande. `fiche` (pré-analyser), `documents` (dans la Data Room d'un dossier), `demande`
- * (une question, sans pièce : le chat de Haka). `dossier` : celui retenu ; `candidats` : quand il faut demander.
+ * Pure : les fiches que la consigne désigne (17 nov. 2026, Jules : « préanalyse juste cette fiche X »), par leur nom de
+ * fichier (une ville, une enseigne) ou leur rang (« la deuxième »). Rend les `piece_id` retenus, ou null pour toutes.
+ */
+export function fichesVisees(note0, fiches = []) {
+  if (fiches.length < 2) return null;
+  const note = sansAccents(note0 || '');
+  const mots = [...new Set(note.split(/[^a-z0-9]+/).filter((m) => m.length >= 3 && !MOTS_CONSIGNE.has(m)))];
+  const scores = fiches.map((f) => {
+    const nom = sansAccents(f?.nom || '').split(/[^a-z0-9]+/).filter(Boolean);
+    return mots.filter((m) => nom.some((n) => n === m || (m.length >= 4 && (n.startsWith(m) || m.startsWith(n)) && n.length >= 4))).length;
+  });
+  const max = Math.max(...scores);
+  if (max > 0) return fiches.filter((_, i) => scores[i] === max).map((f) => f.piece_id);
+  for (const [re, i] of ORDINAUX) if (re.test(note) && fiches[i]) return [fiches[i].piece_id];
+  if (/\b(derniere|dernier)\b/.test(note)) return [fiches[fiches.length - 1].piece_id];
+  return null;
+}
+
+/**
+ * Pure : ce que le collègue demande. `fiche` (pré-analyser ; `seulement` : les fiches désignées), `memoire` (les fiches
+ * en Mémoire, sans dossier), `documents` (dans la Data Room d'un dossier), `demande` (une question, sans pièce : le chat
+ * de Haka). `dossier` : celui retenu ; `candidats` : quand il faut demander.
  */
 export function comprendre(lu, { pieces = [], fiches = [], vises = [] } = {}) {
   const note = sansAccents(lu.note || '');
   if (!pieces.length) return { intention: 'demande' };
   if (MOTS_MEMOIRE.test(note)) return { intention: 'memoire' };
-  const veutFiche = MOTS_FICHE.test(note);
+  const veutFiche = MOTS_FICHE.test(note) || (fiches.length > 0 && MOTS_RENTRER.test(note));
   const veutDocs = !veutFiche && MOTS_DOCUMENTS.test(note);
   const sur = vises[0] && (vises.length === 1 || vises[0].score >= vises[1].score + 1.5) && vises[0].score >= 1.5 ? vises[0] : null;
-  if (veutFiche) return { intention: 'fiche' };
+  if (veutFiche) {
+    const seulement = fichesVisees(lu.note, fiches);
+    return seulement ? { intention: 'fiche', seulement } : { intention: 'fiche' };
+  }
   // Aucun dossier reconnu (2 nov. 2026, Jules) : un nouveau dossier, sans demander.
   if (veutDocs) return sur ? { intention: 'documents', dossier: sur.deal_id } : vises.length ? { intention: 'documents', candidats: vises.slice(0, 4) } : { intention: 'nouveau' };
-  // Sans consigne : un dossier évident reçoit les pièces ; sinon une fiche sans dossier est une fiche ; des pièces sans
-  // dossier ni fiche font un nouveau dossier ; plusieurs dossiers possibles : on demande.
+  // Une fiche transférée sans consigne va en Mémoire (17 nov. 2026, Jules : « si la personne transfère juste, on rentre la
+  // fiche en mémoire ; si on ne dit rien, ce n'est pas à pré-analyser »).
+  if (fiches.length) return { intention: 'memoire', defaut: true };
+  // Sans fiche ni consigne : un dossier évident reçoit les pièces ; des pièces sans dossier font un nouveau dossier ;
+  // plusieurs dossiers possibles : on demande.
   if (sur) return { intention: 'documents', dossier: sur.deal_id };
-  if (fiches.length && !vises.length) return { intention: 'fiche' };
   if (!vises.length) return { intention: 'nouveau' };
   return { intention: 'documents', candidats: vises.slice(0, 4), ou_fiche: fiches.length > 0 };
 }
@@ -159,7 +193,8 @@ export function expediteurDuTransfert(email) {
 export function coteDuTransfert(u, c, lu) {
   if (!estMandataire(u)) return 'admin';
   if (u.role !== 'admin') return 'mandataire';
-  return c.intention === 'memoire' || (c.intention === 'demande' && !lu.transfert) ? 'admin' : null;
+  // La Mémoire par défaut (transfert sans consigne) se demande comme le reste : côté mandataire, la fiche entre dans ses Biens.
+  return (c.intention === 'memoire' && !c.defaut) || (c.intention === 'demande' && !lu.transfert) ? 'admin' : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -173,7 +208,7 @@ const telecharger = async (compte, messageId, pieceId) => {
   return telechargerPieceJointe(compte, messageId, pieceId);
 };
 
-async function preanalyser(mail, { membre, lu, uploadDir }) {
+async function preanalyser(mail, { membre, lu, uploadDir, seulement = null }) {
   const contact = lu.origine?.email && !membreDeLEquipe(lu.origine.email) ? lu.origine.email : null;
   const locale = piecesUtiles(mail).find((p) => String(p?.piece_id || '').startsWith('local:'));
   let dossier;
@@ -184,29 +219,37 @@ async function preanalyser(mail, { membre, lu, uploadDir }) {
     Records.update('MailRecu', mail.id, { deal_id: dossier.deal_id });
   } else {
     const { preanalyserMail } = await import('../../deal/preanalyser-mail.js');
-    dossier = await preanalyserMail(mail, { user: membre, uploadDir, contactEmail: contact, automatique: true });
+    dossier = await preanalyserMail(mail, { user: membre, uploadDir, contactEmail: contact, automatique: true, seulement });
   }
   const rejoint = !!(dossier.repris_conversation || dossier.doublon);
-  const deal = Records.findBy('Deal', 'deal_id', dossier.deal_id);
-  if (deal && !rejoint) {
-    const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? (x.absent ? null : x.valeur) : x);
-    const l = deal.lots?.[0]?.lot || {};
-    const adresse = val(l.adresse) || {};
-    const { titreDossier } = await import('../../deal/titre-dossier.js');
-    const nom = titreDossier({ enseigne: val(l.locataire_nom), activite: val(l.locataire_activite), ville: (typeof adresse === 'object' && adresse.ville) || deal.lots?.[0]?.enrichissement?.commune?.nom || null });
-    Records.update('Deal', deal.id, {
-      ...(nom ? { nom } : {}),
-      responsables: [membre.full_name || membre.email], responsable_email: norm(membre.email),
-      source_mail: { mail_recu_id: mail.id, de: lu.origine?.email || mail.de_email, objet: lu.objet_origine || mail.objet, date: lu.date_origine || mail.date, transfere_par: norm(membre.email) },
-      par_haka: { competence: COMPETENCE, version: VERSION, le: new Date().toISOString() },
-      apports: [...(deal.apports || []), { de: lu.origine?.email || null, transfere_par: norm(membre.email), mail_recu_id: mail.id, le: new Date().toISOString() }],
-    });
-    const { ajouterSuivi } = await import('../../deal/lifecycle.js');
-    ajouterSuivi(Records.get('Deal', deal.id), { type: 'preanalyse_auto', detail: `Transféré à l'Assistant Klocka par ${membre.full_name || membre.email}${lu.origine?.email ? ` (fiche de ${lu.origine.email})` : ''} : dossier créé et pré-analysé` }, membre);
+  // Chaque dossier né du mail (un par fiche) est nommé, attribué et mis en Mémoire, pas seulement le premier.
+  for (const un of (rejoint ? [] : dossier.dossiers || [dossier])) {
+    const deal = Records.findBy('Deal', 'deal_id', un.deal_id);
+    if (deal) await finirDossier(deal, { mail, membre, lu });
   }
   const d = Records.findBy('Deal', 'deal_id', dossier.deal_id);
-  const crm = !rejoint && d ? await versMemoireEtTwenty(d, membre) : null;
-  return { fait: rejoint ? 'rejoint' : 'fiche', deal_id: dossier.deal_id, nom: d?.nom || null, verdict: d?.lots?.[0]?.evaluation?.verdict || null, crm };
+  const n = rejoint ? 0 : (dossier.dossiers || [dossier]).length;
+  return { fait: rejoint ? 'rejoint' : 'fiche', deal_id: dossier.deal_id, nom: d?.nom || null, verdict: d?.lots?.[0]?.evaluation?.verdict || null, crm: d?.memoire_crm || null, n_dossiers: n };
+}
+
+/** Un dossier né du transfert : son nom, son responsable, d'où il vient, puis sa fiche en Mémoire et dans Twenty. */
+async function finirDossier(deal, { mail, membre, lu }) {
+  const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? (x.absent ? null : x.valeur) : x);
+  const l = deal.lots?.[0]?.lot || {};
+  const adresse = val(l.adresse) || {};
+  const { titreDossier } = await import('../../deal/titre-dossier.js');
+  const nom = titreDossier({ enseigne: val(l.locataire_nom), activite: val(l.locataire_activite), ville: (typeof adresse === 'object' && adresse.ville) || deal.lots?.[0]?.enrichissement?.commune?.nom || null });
+  Records.update('Deal', deal.id, {
+    ...(nom ? { nom } : {}),
+    responsables: [membre.full_name || membre.email], responsable_email: norm(membre.email),
+    source_mail: { ...(deal.source_mail || {}), mail_recu_id: mail.id, de: lu.origine?.email || mail.de_email, objet: lu.objet_origine || mail.objet, date: lu.date_origine || mail.date, transfere_par: norm(membre.email) },
+    par_haka: { competence: COMPETENCE, version: VERSION, le: new Date().toISOString() },
+    apports: [...(deal.apports || []), { de: lu.origine?.email || null, transfere_par: norm(membre.email), mail_recu_id: mail.id, le: new Date().toISOString() }],
+  });
+  const { ajouterSuivi } = await import('../../deal/lifecycle.js');
+  ajouterSuivi(Records.get('Deal', deal.id), { type: 'preanalyse_auto', detail: `Transféré à l'Assistant Klocka par ${membre.full_name || membre.email}${lu.origine?.email ? ` (fiche de ${lu.origine.email})` : ''} : dossier créé et pré-analysé` }, membre);
+  const crm = await versMemoireEtTwenty(Records.get('Deal', deal.id), membre);
+  Records.update('Deal', deal.id, { memoire_crm: crm });
 }
 
 async function ranger(mail, { membre, dealId, uploadDir }) {
@@ -254,14 +297,27 @@ async function versTwenty(bien, pousser = null) {
  * bien va en Mémoire (statut Mémoire, la fiche gardée) et devient une Propriété de Twenty CRM. L'agent est
  * l'expéditeur d'origine quand la fiche ne le nomme pas. La même pièce transférée deux fois n'est lue qu'une fois.
  */
-export async function enMemoireSeulement(mail, { membre, lu, extraire = null, pousser = null }) {
+export async function enMemoireSeulement(mail, { membre, lu, extraire = null, pousser = null, pieces = null }) {
+  // Toutes les fiches du mail (17 nov. 2026 : avant, la première seule), ou celles qu'on désigne.
+  const toutes = piecesFiche(mail).filter((p) => p?.piece_id);
+  const liste = pieces ? toutes.filter((p) => pieces.includes(p.piece_id)) : toutes.length ? toutes : piecesUtiles(mail).slice(0, 1);
+  if (!liste.length || !liste[0]?.piece_id) throw new Error('Aucune fiche à lire dans ce transfert.');
+  const biens = [];
+  const erreurs = [];
+  for (const piece of liste) {
+    try { biens.push(await uneFicheEnMemoire(mail, piece, { membre, lu, extraire, pousser })); } catch (e) { erreurs.push(`${piece.nom || 'fiche'} : ${e?.message || e}`); }
+  }
+  if (!biens.length) throw new Error(erreurs[0] || 'Aucune fiche lue.');
+  const premier = biens[0];
+  return { fait: 'memoire', n: biens.length, deja: biens.every((b) => b.deja), nom: premier.nom, noms: biens.map((b) => b.nom).filter(Boolean), twenty: biens.some((b) => b.twenty), erreurs };
+}
+
+async function uneFicheEnMemoire(mail, piece, { membre, lu, extraire = null, pousser = null }) {
   const M = await import('../../memoire/memoire.js');
-  const piece = piecesFiche(mail).filter(Boolean)[0] || piecesUtiles(mail)[0];
-  if (!piece?.piece_id) throw new Error('Aucune fiche à lire dans ce transfert.');
   const buffer = await telecharger(mail.compte, mail.gmail_message_id, piece.piece_id);
   const hash = M.hashDe(buffer);
   const deja = Records.findBy(M.ENTITE, 'hash_piece', hash);
-  if (deja) return { fait: 'memoire', deja: true, nom: deja.adresse?.rue || deja.ville || null, ...(await versTwenty(deja, pousser)) };
+  if (deja) return { deja: true, nom: deja.adresse?.rue || deja.ville || null, ...(await versTwenty(deja, pousser)) };
   const lire = extraire || (await import('../../deal/extraire-faits.js')).extraireFaits;
   const faits = await lire({ buffer, filename: piece.nom, mimetype: piece.mime }, { par: membre.email });
   const origine = lu.origine?.email && !membreDeLEquipe(lu.origine.email) ? lu.origine : null;
@@ -274,9 +330,10 @@ export async function enMemoireSeulement(mail, { membre, lu, extraire = null, po
   if (!bien.cle_adresse && !bien.prix && !bien.loyer_annuel) throw new Error("La fiche ne donne ni adresse, ni prix, ni loyer : rien à garder en Mémoire.");
   bien.fiche = M.ecrireFiche(buffer, piece.nom, piece.mime);
   const cree = Records.create(M.ENTITE, { ...bien, objet_mail: String(lu.objet_origine || mail.objet || '').slice(0, 200), par: norm(membre.email), maj_le: new Date().toISOString() }, membre.email);
-  Records.update('MailRecu', mail.id, { memoire_id: cree.id });
+  const m = Records.get('MailRecu', mail.id);
+  Records.update('MailRecu', mail.id, { memoire_id: m?.memoire_id || cree.id, memoire_ids: [...(m?.memoire_ids || []), cree.id] });
   const ou = [bien.adresse?.rue, bien.ville].filter(Boolean).join(', ');
-  return { fait: 'memoire', nom: ou || null, ...(await versTwenty(cree, pousser)) };
+  return { nom: ou || null, ...(await versTwenty(cree, pousser)) };
 }
 
 /**
@@ -325,11 +382,14 @@ function suiteDataRoom(r) {
 /** Pure : ce que Haka a fait du transfert, en une ou deux phrases. */
 export function ceQuiEstFait(r) {
   let corps;
-  if (r.fait === 'fiche') corps = `C'est fait : le dossier « ${r.nom || 'nouveau bien'} » est créé à votre nom et pré-analysé${r.verdict ? ` (verdict : ${r.verdict})` : ''}.${r.crm?.twenty ? ' Sa fiche est en Mémoire et dans les Propriétés de Twenty CRM.' : ''}`;
+  if (r.fait === 'fiche') {
+    const autres = r.memoire_autres?.n ? ` Les ${r.memoire_autres.n} autre${r.memoire_autres.n > 1 ? 's' : ''} fiche${r.memoire_autres.n > 1 ? 's' : ''} du mail ${r.memoire_autres.n > 1 ? 'sont' : 'est'} en Mémoire.` : '';
+    corps = (r.n_dossiers > 1 ? `C'est fait : ${r.n_dossiers} dossiers créés à votre nom et pré-analysés, dont « ${r.nom || 'nouveau bien'} ». Leurs fiches sont en Mémoire.` : `C'est fait : le dossier « ${r.nom || 'nouveau bien'} » est créé à votre nom et pré-analysé${r.verdict ? ` (verdict : ${r.verdict})` : ''}.${r.crm?.memoire ? ' Sa fiche est en Mémoire' + (r.crm?.twenty ? ' et dans les Propriétés de Twenty CRM.' : '.') : ''}`) + autres;
+  }
   else if (r.fait === 'rejoint') corps = `Ce bien était déjà en dossier (« ${r.nom || r.deal_id} ») : j'y ai rattaché votre transfert, sans en créer un second.`;
   else if (r.fait === 'documents') corps = r.deposes.length ? `C'est fait : ${r.deposes.length} pièce${r.deposes.length > 1 ? 's' : ''} dans la Data Room de « ${r.nom} » (${r.deposes.join(', ')}).${suiteDataRoom(r)}${r.deja.length ? ` Déjà présentes, non redéposées : ${r.deja.join(', ')}.` : ''}` : `Ces pièces étaient déjà dans la Data Room de « ${r.nom} » : rien à ajouter.`;
   else if (r.fait === 'nouveau') corps = r.deposes.length ? `Je n'ai reconnu aucun dossier ouvert : j'ai créé « ${r.nom} » à votre nom, avec ${r.deposes.length} pièce${r.deposes.length > 1 ? 's' : ''} dans sa Data Room (${r.deposes.join(', ')}).${suiteDataRoom(r)}${r.preanalyse ? ' La pré-analyse part de ces documents ; sa fiche ira ensuite en Mémoire et dans les Propriétés de Twenty CRM.' : ''}` : `J'ai créé « ${r.nom} », mais aucune pièce n'a pu y entrer.`;
-  else if (r.fait === 'memoire') corps = `Rien dans la plateforme, comme demandé : ${r.deja ? 'cette fiche était déjà' : 'la fiche est'} en Mémoire${r.nom ? ` (${r.nom})` : ''}${r.twenty ? ' et dans les Propriétés de Twenty CRM' : ''}.`;
+  else if (r.fait === 'memoire') corps = `${r.n > 1 ? `${r.n} fiches mises` : r.deja ? 'Cette fiche était déjà' : 'Fiche mise'} en Mémoire${r.n > 1 ? '' : r.nom ? ` (${r.nom})` : ''}${r.twenty ? ' et dans les Propriétés de Twenty CRM' : ''}, sans dossier. Pour la pré-analyser, transférez-la avec « préanalyse » dans votre message.${r.erreurs?.length ? ` Non lue : ${r.erreurs.join(' ; ')}.` : ''}`;
   else corps = "Je n'ai rien fait de ce transfert.";
   return corps;
 }
@@ -449,8 +509,11 @@ taches.enregistrer(COMPETENCE, {
         const membre = membreDeLEquipe(mail.de_email);
         const choix = resultats.choisir?.choix || null;
         const uploadDir = charge.uploadDir || CHEMIN_UPLOADS;
+        // « Préanalyse juste la fiche X » : X pré-analysée, les autres fiches du mail en Mémoire (17 nov. 2026, Jules).
+        const autres = c.seulement ? piecesFiche(mail).filter((p) => p?.piece_id && !c.seulement.includes(p.piece_id)).map((p) => p.piece_id) : [];
+        const enPlus = async (r0) => (autres.length ? { ...r0, memoire_autres: await enMemoireSeulement(mail, { membre, lu: c.lu, pieces: autres }).catch((e) => ({ erreur: e?.message || String(e) })) } : r0);
         const r = c.intention === 'fiche' || choix === 'fiche'
-          ? await preanalyser(mail, { membre, lu: c.lu, uploadDir })
+          ? await enPlus(await preanalyser(mail, { membre, lu: c.lu, uploadDir, seulement: c.seulement || null }))
           : c.intention === 'memoire'
             ? await enMemoireSeulement(mail, { membre, lu: c.lu })
             : c.intention === 'nouveau'

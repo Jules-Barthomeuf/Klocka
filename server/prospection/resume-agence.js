@@ -32,6 +32,15 @@ export function faitsDeLAgence(a, { fiche = null, appels = [], ville = null, per
     crm: a?.monday_connu ? [a.monday_connu.statut, a.monday_connu.date].filter(Boolean).join(', ') || null : null,
     notes: fiche?.remarques ? String(fiche.remarques).slice(0, 500) : null,
     prochaine: fiche?.prochaine?.quoi || null,
+    // Ce que dit son site (17 nov. 2026, Jules : « nous intervenons sur Nice, Antibes, Cannes », « 11 collaborateurs »,
+    // ce qu'ils ont dans leurs offres), lu par site-agence.js.
+    site: a?.site_lu && !a.site_lu.illisible ? {
+      specialite: a.site_lu.specialite || null,
+      zones: a.site_lu.zones || [],
+      collaborateurs: a.site_lu.collaborateurs || null,
+      offres: a.site_lu.offres || null,
+      faits: a.site_lu.faits || [],
+    } : null,
   };
 }
 
@@ -42,12 +51,12 @@ export const cleDesFaits = (faits) => createHash('sha1').update(JSON.stringify(f
 export function construirePrompt(faits) {
   return `Tu prépares un appel de prospection de Klocka. Klocka cherche, pour des investisseurs financés, des murs commerciaux loués à acheter, et appelle les agences immobilières pour recevoir leurs biens avant la mise en ligne.
 
-Écris le résumé de l'agence ci-dessous pour la personne qui va l'appeler, en français, en trois phrases au plus et 55 mots au plus :
-1. ce qu'est l'agence (sa spécialité, commerce, entreprise, résidentiel ou généraliste) ;
-2. ce qu'elle a en ligne, si on le sait (nombre d'annonces, de commerce surtout) ;
-3. où en est l'équipe avec elle (jamais appelée, ou ce que le dernier appel a donné) et qui demander, puis quoi demander.
+Écris le résumé de l'agence ci-dessous pour la personne qui va l'appeler, en français, en trois phrases au plus et 60 mots au plus, avec ce qui est utile à savoir avant de décrocher :
+1. ce qu'est l'agence : sa spécialité, les villes où elle dit intervenir, sa taille (nombre de collaborateurs) ;
+2. ce qu'elle a en offre (le site, les annonces relevées : vente ou location, types de biens, villes), le commerce surtout ;
+3. où en est l'équipe avec elle (jamais appelée, ou ce que le dernier appel a donné) et qui demander.
 
-Règles : n'invente rien qui ne soit dans les faits ; un fait absent ou null ne se dit pas (pas de « aucune annonce » si le nombre est null). Phrases simples, ton neutre, pas de tiret cadratin, pas de liste, pas de titre, pas le nom de l'agence en tête. Si aucun interlocuteur n'est connu, dis de demander le responsable commerce.
+Règles : n'invente rien qui ne soit dans les faits ; un fait absent ou null ne se dit pas (pas de « aucune annonce » si le nombre est null, jamais « aucune information disponible » ni « aucun appel enregistré » : dis « jamais appelée »). Ne dis jamais ce que Klocka cherche ni quoi leur proposer (partenariat, recevoir des murs, biens avant mise en ligne) : l'appelant le sait. Phrases simples, ton neutre, pas de tiret cadratin, pas de liste, pas de titre, pas le nom de l'agence en tête. Si aucun interlocuteur n'est connu, dis de demander le responsable commerce.
 
 Faits (JSON) :
 ${JSON.stringify(faits, null, 1)}

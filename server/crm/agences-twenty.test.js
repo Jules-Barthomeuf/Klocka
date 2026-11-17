@@ -94,3 +94,35 @@ test("un téléphone refusé par Twenty n'arrête plus l'envoi : le lot est repr
   assert.ok(Records.get('AgenceProspect', fautive.id).twenty_agence_id, 'posée sans son téléphone');
   assert.equal(posees.find((x) => x.name === 'Agence Confluence').telephone.primaryPhoneNumber, '');
 });
+
+test("les agents d'Agent immobilier : leur agence passe En contact, l'agence inconnue est créée une fois, le statut posé à la main reste (17 nov. 2026)", async () => {
+  const base = new Map([
+    ['g1', { id: 'g1', name: 'Immothep', ville: 'GRENOBLE', contact: 'JAMAIS', telephone: { primaryPhoneNumber: '476000000' } }],
+    ['g2', { id: 'g2', name: 'Agence De Lille', ville: 'LILLE', contact: 'JAMAIS' }],
+    ['g3', { id: 'g3', name: 'Foncia', ville: 'BORDEAUX', contact: 'MORT' }],
+  ]);
+  const agents = [
+    { id: 'a1', name: 'Stéphane BENIMONT', ville: 'Grenoble', entreprise: 'Immothep', eMail: { primaryEmail: 's@gmail.com' } },
+    { id: 'a2', name: 'Bruno HUBERT', ville: 'Lille', entreprise: 'Lille Immo', eMail: { primaryEmail: 'b@lilleimmo.fr' }, telephone: { primaryPhoneNumber: '611111111', primaryPhoneCountryCode: 'FR', primaryPhoneCallingCode: '+33' } },
+    { id: 'a3', name: 'Paul Bordeaux', ville: 'Bordeaux', entreprise: 'Foncia' },
+    { id: 'a4', name: 'Essai', ville: 'Lyon (essai par l’écran)', entreprise: 'Test' },
+  ];
+  let n = 0;
+  const T = {
+    LOT_MAX: 60,
+    lister: async (_p, o = {}) => (o.filtre ? [] : [...base.values()]),
+    creerEnLot: async (_p, lignes) => lignes.map((l) => { const x = { ...l, id: `c${++n}` }; base.set(x.id, x); return x; }),
+    modifier: async (_p, id, v) => base.set(id, { ...base.get(id), ...v }),
+  };
+  const r = await M.synchroniser({ go: true, T, agents });
+  assert.equal(base.get('g1').contact, 'EN_CONTACT');
+  assert.match(base.get('g1').agentsImmo, /BENIMONT/);
+  assert.equal(base.get('g2').contact, 'JAMAIS', '« Lille Immo » n’est pas « Agence De Lille »');
+  assert.equal(base.get('g3').contact, 'MORT', 'Mort reste mort');
+  const nees = [...base.values()].filter((x) => String(x.klockaId || '').startsWith('agent:'));
+  assert.deepEqual(nees.map((x) => [x.name, x.ville, x.contact]), [['Lille Immo', 'LILLE', 'EN_CONTACT']]);
+  assert.equal(r.agences_agents, 1);
+  const r2 = await M.synchroniser({ go: true, T, agents });
+  assert.equal(r2.agences_agents, 0, 'pas recréée au passage suivant');
+  assert.equal([...base.values()].filter((x) => String(x.klockaId || '').startsWith('agent:')).length, 1);
+});

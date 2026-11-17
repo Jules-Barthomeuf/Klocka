@@ -15,6 +15,7 @@ import { ETIQUETTE } from "@/components/prospection/StyleAppel";
 import EcranApresAppel, { BoutonTranscription } from "@/components/prospection/EcranApresAppel";
 import { CalculatriceEnLigne } from "@/components/prospection/EcranEnLigne";
 import LieuEnLigne from "@/components/prospection/LieuEnLigne";
+import { avecPhotos } from "@/lib/interlocuteurs";
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
@@ -396,7 +397,7 @@ export function ligneRecherche(q) {
   return { gauche: gauche.charAt(0).toUpperCase() + gauche.slice(1), droite };
 }
 
-function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null, enLigne = null, onSansConversation = null }) {
+function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null, enLigne = null, onSansConversation = null, siteLe = null }) {
   const contacts = (a.contacts || []).filter((x) => !x.standard);
   const standard = (a.contacts || []).find((x) => x.standard)?.telephone || a.telephone;
   const numero = choisi?.telephone || standard;
@@ -446,7 +447,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   const [deja, setDeja] = useState(false);
   const troisColonnes = enCours || deja || essai;
   // Avant l'appel, la carte de la maquette de Jules (15 nov. 2026) ; pendant l'appel, la carte à trois colonnes.
-  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} choisi={choisi} onChoisir={onChoisir} numero={numero} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} />;
+  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} choisi={choisi} onChoisir={onChoisir} numero={numero} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} siteLe={siteLe} />;
   return (
     <div className="overflow-hidden k-verre">
       <div className="relative flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
@@ -563,35 +564,79 @@ function initiales(nom) {
   return ((mots[0]?.[0] || "") + (mots.length > 1 ? mots[1][0] : "")).toUpperCase() || "?";
 }
 
+/** Pure : ce que la carte dit des annonces de l'agence. */
+function texteAnnonces(an) {
+  if (!an || (!an.total && !an.commerce && !an.publie_commerce)) return "Aucune relevée";
+  if (an.commerce) return `${an.commerce} en commerce${an.total > an.commerce ? ` sur ${an.total}` : ""}`;
+  if (an.publie_commerce) return `Publie du commerce${an.total ? ` · ${an.total} relevée${an.total > 1 ? "s" : ""}` : ""}`;
+  return `${an.total} relevée${an.total > 1 ? "s" : ""}, aucune en commerce`;
+}
+
 /**
- * La carte d'avant l'appel (maquette de Jules, 15 nov. 2026) : le nom de l'agence, « Résumé IA » et ses trois phrases
- * (ce qu'elle fait, ce qu'elle a en ligne, où on en est et qui demander), Appeler et Passer à droite ; sous un filet, les
- * interlocuteurs en ligne (initiales, nom, fonction ; le numéro de celui qu'on a choisi) et le dernier appel à droite.
+ * Une personne de la carte : la tête (sa photo, ses initiales à défaut), le nom, le poste, son numéro, d'où elle vient.
+ * Un clic la choisit et l'ouvre en grand (17 nov. 2026, Jules : « cliquer sur un interlocuteur pour voir plus zoomé ») :
+ * la photo sur toute la largeur, le nom, le poste, le numéro et le mail ; un second clic la referme. Ni anneau autour de
+ * la tête ni pastille « Probable » (Jules, même jour).
  */
-function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai, onMicro, onPasser, passerEnCours, onRetour, onSansConversation = null, occupe = false }) {
+function LignePersonne({ x, actif, ouvert, numero, onClic }) {
+  const tete = x.photo ? <img src={x.photo} alt="" className="h-full w-full object-cover" loading="lazy" /> : x.standard ? <Phone className="h-4 w-4" strokeWidth={1.8} /> : initiales(x.nom);
+  const tel = x.telephone || (actif ? numero : null);
+  return (
+    <button type="button" onClick={onClic} aria-pressed={actif} aria-expanded={ouvert} title={ouvert ? "Refermer" : "Choisir et voir en grand"}
+      className={`w-full rounded-[14px] border px-2.5 py-2 text-left transition-colors ${actif ? "border-bord-doux bg-relief/70" : "border-transparent hover:bg-relief/60"}`} style={actif ? undefined : { background: "transparent" }}>
+      {ouvert && !x.standard ? (
+        <span className="flex flex-col gap-2.5 py-1 duration-200 animate-in fade-in-0">
+          {/* La photo en grand ; sans photo, une tête ronde de 64 px : un grand carré d'initiales ne montrerait rien. */}
+          {x.photo
+            ? <span className="aspect-[4/5] w-full max-w-[220px] self-center overflow-hidden rounded-[16px] bg-rail-actif">{tete}</span>
+            : <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-rail-actif text-[18px] text-craie">{tete}</span>}
+          <span className="flex flex-col gap-0.5">
+            <span className="text-[17px] text-encre">{x.nom}</span>
+            {x.fonction && <span className="text-[13.5px] text-ardoise">{x.fonction}</span>}
+            {tel && <span className="select-all pt-1 text-[14px] tabular-nums text-encre">{tel}</span>}
+            {x.email && <span className="select-all break-all text-[13px] text-craie">{x.email}</span>}
+            {x.source !== "Apollo" && <span className="pt-0.5 text-[12px] text-brume">{x.source}</span>}
+          </span>
+        </span>
+      ) : (
+        <span className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+          <span className="grid h-11 w-11 flex-none place-items-center overflow-hidden rounded-full bg-rail-actif text-[13px] text-craie">{tete}</span>
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate text-[15px] text-encre">{x.nom}</span>
+            {x.fonction && !x.standard && <span className="truncate text-[13px] text-ardoise">{x.fonction}</span>}
+            {/* Le numéro de chacun (17 nov. 2026, Jules : « leur numéro perso, directement ») ; sans le sien, celui à composer. */}
+            {tel && <span className="select-all text-[13px] tabular-nums text-encre">{tel}</span>}
+            {/* La source, sauf Apollo (17 nov. 2026, Jules : « enlève le "Apollo" »). */}
+            {x.source !== "Apollo" && <span className="truncate text-[12px] text-brume">{x.source}</span>}
+          </span>
+        </span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * La carte d'avant l'appel (17 nov. 2026, Jules, planche « Carte d'appel », A « Deux colonnes ») : le nom de l'agence,
+ * Appeler et Passer en tête ; dessous, à gauche, les interlocuteurs en liste, une ligne par personne (la tête, le nom,
+ * le poste, la source ; « Probable » sur la personne d'Apollo choisie d'office) ; à droite, « Résumé IA » et, en lignes,
+ * le dernier appel, les annonces et la ville. Pendant et après l'appel, rien ne change.
+ */
+function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai, onMicro, onPasser, passerEnCours, onRetour, onSansConversation = null, occupe = false, siteLe = null }) {
   const resume = useQuery({
-    queryKey: ["mode-appel", "resume", a.id],
+    // Relu quand le site de l'agence vient d'être lu : le résumé dit alors ses villes, sa taille, ses offres.
+    queryKey: ["mode-appel", "resume", a.id, siteLe || ""],
     queryFn: () => base44.request("GET", `/api/prospection/mode-appel/agences/${encodeURIComponent(a.id)}/resume`),
     enabled: !!a.id, staleTime: 10 * 60000, retry: false,
   });
   const dernier = histo[0];
+  const ville = a.ville || String(a.lieu || "").split(" · ")[0] || null;
+  // La personne ouverte en grand : aucune à l'arrivée sur l'agence.
+  const [ouvertId, setOuvertId] = useState(null);
+  useEffect(() => { setOuvertId(null); }, [a.id]);
   return (
     <div className="overflow-hidden k-verre">
-      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4 px-6 py-5 max-md:px-4">
-        <div className="flex min-w-0 max-w-[760px] flex-[1_1_320px] flex-col gap-3">
-          <p className="m-0 break-words text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">{nomLisible(a.nom)}</p>
-          {!resume.isError && (
-            <div className="flex flex-col gap-1.5">
-              <span className="inline-flex items-center gap-2 text-[13px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />Résumé IA</span>
-              {resume.isLoading ? (
-                <div aria-label="Résumé en cours" className="flex flex-col gap-2 pt-1">
-                  <span className="h-3 w-[92%] animate-pulse rounded-full bg-rail-actif" />
-                  <span className="h-3 w-[70%] animate-pulse rounded-full bg-rail-actif" />
-                </div>
-              ) : <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resume.data?.texte}</p>}
-            </div>
-          )}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-6 py-5 max-md:px-4">
+        <p className="m-0 min-w-0 break-words text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre">{nomLisible(a.nom)}</p>
         <div className="flex flex-none items-center gap-2.5">
           {/* Appeler : composer sur son téléphone, l'écoute part (pas de lien tel:, 7 oct. 2026) ; en essai, l'appel se joue. */}
           <button type="button" onClick={onMicro} title={essai ? "Simuler l'appel" : "Composez le numéro sur votre téléphone : l'écoute démarre"}
@@ -604,35 +649,43 @@ function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai,
             : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-10 rounded-full border border-bord-doux px-5 text-[14.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
         </div>
       </div>
-
       {/* Un filet en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css). */}
       <div aria-hidden className="h-px bg-trait" />
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3 max-md:px-4">
-        {/* « Interlocuteur probable » quand personne n'est connu et que la première personne vient d'Apollo (17 nov. 2026). */}
-        <span className="text-[13.5px] text-ardoise">{contacts.find((x) => !x.standard)?.source === "Apollo" ? "Interlocuteur probable" : "Interlocuteurs"}</span>
-        {contacts.map((x) => {
-          const actif = choisi?.id === x.id;
-          const role = x.fonction || x.source;
-          return (
-            <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif} title={actif ? "L'interlocuteur choisi" : "Choisir cet interlocuteur"}
-              className="flex min-w-0 items-center gap-2.5 rounded-full py-1 pl-1 pr-2 text-left transition-colors hover:bg-relief/60" style={{ background: "transparent" }}>
-              <span className={`grid h-8 w-8 flex-none place-items-center rounded-full bg-rail-actif text-[11.5px] text-craie ${actif ? "ring-1 ring-menthe" : ""}`}>{initiales(x.nom)}</span>
-              <span className="min-w-0 truncate text-[14.5px] text-encre">{x.nom}</span>
-              {(role || (actif && numero)) && (
-                <span className="truncate text-[13.5px] text-ardoise">
-                  {role && <span className="max-sm:hidden">· {role}</span>}
-                  {actif && numero && <span className="select-all whitespace-nowrap tabular-nums text-encre">{role ? " · " : "· "}{numero}</span>}
-                </span>
-              )}
-            </button>
-          );
-        })}
-        {!contacts.length && (
-          <span className="text-[13.5px] text-ardoise">
-            Personne de connu : demandez le responsable commerce{numero && <> · <span className="select-all tabular-nums text-encre">{numero}</span></>}
-          </span>
-        )}
-        <span className="ml-auto whitespace-nowrap text-[13.5px] text-ardoise">{dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"}</span>
+      <div className="grid min-h-[360px] md:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="flex flex-col gap-1.5 px-5 py-5 max-md:px-4 md:max-h-[560px] md:overflow-y-auto md:border-r md:border-trait">
+          <span className="px-1 pb-1 text-[12.5px] text-ardoise">Interlocuteur</span>
+          {contacts.map((x) => (
+            <LignePersonne key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} numero={numero}
+              onClic={() => { if (choisi?.id === x.id) setOuvertId((o) => (o === x.id ? null : x.id)); else { onChoisir(x.id); setOuvertId(x.id); } }} />
+          ))}
+          {!contacts.length && (
+            <p className="m-0 px-1 text-[14px] text-ardoise">
+              Personne de connu : demandez le responsable commerce{numero && <> · <span className="select-all tabular-nums text-encre">{numero}</span></>}
+            </p>
+          )}
+        </div>
+        <div aria-hidden className="h-px bg-trait md:hidden" />
+        <div className="flex min-w-0 flex-col gap-4 px-6 py-5 max-md:px-4">
+          {!resume.isError && (
+            <div className="flex flex-col gap-1.5">
+              <span className="inline-flex items-center gap-2 text-[13px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />Résumé IA</span>
+              {resume.isLoading ? (
+                <div aria-label="Résumé en cours" className="flex flex-col gap-2 pt-1">
+                  <span className="h-3 w-[92%] animate-pulse rounded-full bg-rail-actif" />
+                  <span className="h-3 w-[70%] animate-pulse rounded-full bg-rail-actif" />
+                </div>
+              ) : <p className="m-0 max-w-[68ch] text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resume.data?.texte}</p>}
+            </div>
+          )}
+          <div className="flex flex-col">
+            {[["Dernier appel", dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"], ["Annonces", texteAnnonces(a.annonces)], ["Ville", ville]].filter(([, v]) => v).map(([k, v]) => (
+              <div key={k} className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 border-t border-trait py-2.5 text-[14px] max-md:grid-cols-[96px_minmax(0,1fr)]">
+                <span className="text-[13px] text-ardoise">{k}</span>
+                <span className="min-w-0 text-encre">{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       {/* Pas de réponse, aussi avant l'appel (16 nov. 2026, Jules) : on a composé sans lancer l'écoute, personne ou un répondeur. */}
       {onSansConversation && (
@@ -930,19 +983,16 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const villeAgence = String(a?.lieu || "").split(" · ")[0] || "";
   const equipe = useQuery({
     queryKey: ["equipe-apollo", a?.id],
-    queryFn: () => base44.request("GET", `${API}/agences/${encodeURIComponent(a.id)}/equipe${villeAgence ? `?ville=${encodeURIComponent(villeAgence)}` : ""}`),
+    queryFn: () => base44.request("GET", `${API}/agences/${encodeURIComponent(a.id)}/equipe?${new URLSearchParams({ ...(villeAgence ? { ville: villeAgence } : {}), ...(a.place != null ? { place: String(a.place) } : {}) })}`),
     enabled: !!a?.id && !session?.essai, staleTime: Infinity, retry: false,
+    // Les noms complets et le site de l'agence se lisent en tâche de fond : relue toutes les six secondes tant qu'ils tournent.
+    refetchInterval: (q) => (q.state.data?.noms_en_cours || q.state.data?.site_en_cours || q.state.data?.photos_en_cours ? 6000 : false),
   });
-  const contacts = useMemo(() => {
-    const base = a?.contacts || [];
-    const gens = equipe.data?.gens || [];
-    if (!gens.length) return base;
-    const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    const connus = new Set(base.map((x) => norm(x.nom)));
-    const ajout = gens.filter((x) => !connus.has(norm(x.nom))).slice(0, 3).map((x, i) => ({ id: `ap${i}`, nom: x.nom, fonction: x.poste || null, source: "Apollo", telephone: null, standard: false }));
-    // Avant le standard, après les personnes déjà connues.
-    return [...base.filter((x) => !x.standard), ...ajout, ...base.filter((x) => x.standard)].slice(0, 7);
-  }, [a?.contacts, equipe.data]);
+  // Les interlocuteurs recalculés par le serveur à l'ouverture de la carte (toute l'équipe du site, Apollo, les noms
+  // complets) ; ceux de la file en attendant. La photo de la page équipe se pose sur chacun.
+  const contacts = useMemo(() => avecPhotos(equipe.data?.contacts || a?.contacts || [], equipe.data?.photos || {}), [a?.contacts, equipe.data]);
+  // La carte d'avant l'appel montre ces interlocuteurs ; pendant l'appel, la fiche reste celle de la file (17 nov. 2026).
+  const aCarte = useMemo(() => (a ? { ...a, contacts } : a), [a, contacts]);
   const contactChoisi = contacts.find((x) => x.id === choisi) || contacts.find((x) => !x.standard) || contacts[0] || null;
   // Le nom de l'autre voix dans la transcription : la personne choisie, sinon « Interlocuteur ».
   const nomAutre = (contactChoisi && !contactChoisi.standard && nomLisible(contactChoisi.nom)) || "Interlocuteur";
@@ -1584,7 +1634,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {/* La fiche et le panneau d'appel. */}
             {ecran === "fiche" && !a && !relances && !session.essai && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant.</p>}
             {ecran === "fiche" && a && (
-              <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai && scenario !== LIBRE}
+              <FicheAppel a={aCarte} siteLe={equipe.data?.site_le || null} relances={relances} recherches={recherches} essai={!!session.essai && scenario !== LIBRE}
                 choisi={contactChoisi} onChoisir={setChoisi}
                 onMicro={micro} onSansNotes={() => { setNotes(false); setEcran("issue"); }}
                 onResume={analyserResume} resumeEnCours={noter.isPending}

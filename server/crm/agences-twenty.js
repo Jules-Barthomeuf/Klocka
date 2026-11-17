@@ -11,18 +11,31 @@
 
 import { Records } from '../db.js';
 import { valeurOption, telephone } from './correspondance.js';
+import { rapprocher, villeOption } from './agents-agences.js';
 
 export const SINGULIER = 'agence';
 export const PLURIEL = 'agences';
 const AGENCE = 'AgenceProspect';
+/** Le tableau « Agent immobilier » de Twenty : les agents qu'on a mis en contact. */
+export const AGENTS = 'agentImmobilierListe';
+
+/**
+ * Le statut d'une agence, en couleur (17 nov. 2026, Jules : « en contact, il est vert ; jamais contacté, d'une autre
+ * couleur ; mort, rouge »). En contact : appelée par l'équipe, ou un de ses agents est dans « Agent immobilier ».
+ */
+export const CONTACT = { EN_CONTACT: 'EN_CONTACT', JAMAIS: 'JAMAIS', MORT: 'MORT' };
 
 /** Les champs de l'objet, dans l'ordre des colonnes. */
 export const CHAMPS = [
+  { name: 'contact', label: 'Statut', type: 'SELECT', icon: 'IconProgress', description: 'En contact (appelée, ou un de ses agents est dans Agent immobilier), jamais contactée, ou morte',
+    options: [{ value: 'EN_CONTACT', label: 'En contact', color: 'green', position: 0 }, { value: 'JAMAIS', label: 'Jamais contacté', color: 'gray', position: 1 }, { value: 'MORT', label: 'Mort', color: 'red', position: 2 }] },
   { name: 'ville', label: 'Ville', type: 'SELECT', icon: 'IconMapPin' },
   { name: 'genre', label: 'Type', type: 'SELECT', icon: 'IconTag', options: [{ value: 'AGENCE', label: 'Agence', color: 'blue', position: 0 }, { value: 'MANDATAIRE', label: 'Mandataire', color: 'purple', position: 1 }] },
   { name: 'telephone', label: 'Téléphone', type: 'PHONES', icon: 'IconPhone' },
   { name: 'interlocuteurs', label: 'Interlocuteurs', type: 'TEXT', icon: 'IconUsers', description: 'Les personnes de l’agence : nom, fonction, téléphone (pages équipe, appels)' },
-  { name: 'statut', label: 'Statut', type: 'TEXT', icon: 'IconProgress', description: 'Où en est l’équipe avec l’agence (Prospection de Klocka)' },
+  { name: 'agentsImmo', label: 'Agents en contact', type: 'TEXT', icon: 'IconAddressBook', description: 'Les agents de l’agence qui sont dans le tableau Agent immobilier' },
+  // L'ancien statut en texte (« Relance due depuis le… ») : gardé, caché ; le Statut en couleur le remplace.
+  { name: 'statut', label: 'Détail du statut', type: 'TEXT', icon: 'IconProgress', description: 'Où en est l’équipe avec l’agence (Prospection de Klocka)', cache: true },
   { name: 'dernierAppel', label: 'Dernier appel', type: 'DATE_TIME', icon: 'IconPhoneCall' },
   { name: 'appelePar', label: 'Appelé par', type: 'TEXT', icon: 'IconUser' },
   { name: 'issue', label: 'Issue', type: 'TEXT', icon: 'IconFlag' },
@@ -64,8 +77,10 @@ export function interlocuteurs(a) {
 export function versTwenty(a, l) {
   const tel = telephone(a.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || '');
   const site = url(a.site);
+  const etat = a.statut?.etat;
   return {
     name: l.name || a.nom || 'Sans nom',
+    contact: etat === 'morte' ? CONTACT.MORT : etat === 'contact' || etat === 'relance' ? CONTACT.EN_CONTACT : CONTACT.JAMAIS,
     ville: l.ville ? valeurOption(l.ville) : null,
     genre: a.genre === 'mandataire' ? 'MANDATAIRE' : 'AGENCE',
     telephone: tel || { primaryPhoneNumber: '', primaryPhoneCountryCode: '', primaryPhoneCallingCode: '' },
@@ -94,6 +109,8 @@ export function difference(avant, apres) {
   for (const [k, v] of Object.entries(apres)) {
     if (k === 'klockaId' || k === 'name') continue;
     const a = avant?.[k];
+    // Le statut posé à la main dans Twenty l'emporte : Mort reste mort, En contact ne redevient pas Jamais contacté.
+    if (k === 'contact' && (a === CONTACT.MORT || (a === CONTACT.EN_CONTACT && v === CONTACT.JAMAIS))) continue;
     // Un champ composé (téléphone, e-mail, lien) : seules les clés que Klocka écrit comptent.
     const change = v && typeof v === 'object' && !Array.isArray(v)
       ? Object.entries(v).some(([sk, sv]) => !pareil(a?.[sk], sv))
@@ -126,17 +143,54 @@ export function cleAgence(x) {
   return `${net(x?.ville)}|${net(x?.name)}|${tel}`;
 }
 
+/** Pure : les agents en contact d'une agence, un par ligne (nom, entreprise si autre, téléphone). */
+export function texteAgents(agents) {
+  return [...new Map((agents || []).map((a) => [a.id, a])).values()]
+    .map((a) => [a.name, a.telephone?.primaryPhoneNumber ? `+33 ${a.telephone.primaryPhoneNumber}` : null, a.eMail?.primaryEmail || null].filter(Boolean).join(' · '))
+    .sort((x, y) => x.localeCompare(y, 'fr')).join('\n');
+}
+
+/** Pure : la ligne Twenty d'une agence connue seulement par ses agents d'« Agent immobilier ». */
+export function versTwentyDepuisAgents(g) {
+  const tel = g.agents.map((a) => a.telephone).find((t) => t?.primaryPhoneNumber);
+  return {
+    name: g.nom,
+    contact: CONTACT.EN_CONTACT,
+    ville: g.ville ? villeOption(g.ville) : null,
+    genre: 'AGENCE',
+    telephone: tel ? { primaryPhoneNumber: tel.primaryPhoneNumber, primaryPhoneCountryCode: tel.primaryPhoneCountryCode || 'FR', primaryPhoneCallingCode: tel.primaryPhoneCallingCode || '+33' } : SANS_TELEPHONE,
+    agentsImmo: texteAgents(g.agents),
+    siteWeb: { primaryLinkUrl: g.domaine ? `https://${g.domaine}` : '', primaryLinkLabel: '', secondaryLinks: [] },
+    sources: 'Agent immobilier',
+    klockaId: `agent:${g.cle}`,
+  };
+}
+
+const modifierLigne = async (T, id, diff, res, journal) => {
+  try { await T.modifier(PLURIEL, id, diff); } catch (e) {
+    // Un téléphone que Twenty refuse : la mise à jour part sans lui.
+    if (diff.telephone) { delete diff.telephone; await T.modifier(PLURIEL, id, diff).catch((e2) => { res.erreurs++; journal(`  ${id} : ${e2?.message || e2}`); }); } else { res.erreurs++; journal(`  ${id} : ${e?.message || e}`); }
+  }
+};
+
 /**
- * Pose les agences dans Twenty. `go` faux : compte seulement. Rend { nouvelles, majs, inchangees, corbeille, retrouvees }.
- * `T` : les verbes de server/twenty.js (remplacés dans les tests).
+ * Pose les agences dans Twenty. `go` faux : compte seulement. Rend { nouvelles, majs, inchangees, corbeille, retrouvees,
+ * erreurs, agents_lies, agences_agents, sans_agence }.
+ * `T` : les verbes de server/twenty.js (remplacés dans les tests). `agents` : les lignes d'« Agent immobilier » (lues
+ * dans Twenty si absentes ; aucune quand `T` est fourni, sauf si on les donne).
  *
  * Une agence sans id Twenty ici retrouve d'abord sa ligne (16 nov. 2026) : par l'id Klocka posé dans Twenty, sinon par
  * sa ville, son nom et son téléphone. La base en ligne et une copie locale écrivent dans le même Twenty sans connaître
  * les ids de l'autre : sans cela, chacune recréerait les lignes de l'autre. Une ligne retrouvée dans la corbeille de
  * Twenty n'est pas recréée.
+ *
+ * Les agents d'« Agent immobilier » (17 nov. 2026) : leur agence passe En contact et les nomme ; l'agence d'un agent
+ * qu'aucune ligne ne reconnaît est ajoutée (une par entreprise et par ville, `klockaId` « agent:… »).
  */
-export async function synchroniser({ go = false, T = null, journal = () => {} } = {}) {
+export async function synchroniser({ go = false, T = null, journal = () => {}, agents = undefined } = {}) {
+  const fourni = !!T;
   T = T || (await import('../twenty.js'));
+  const lesAgents = agents !== undefined ? agents : fourni ? [] : await T.lister(AGENTS).catch(() => []);
   const toutes = await agencesDesListes();
   const vivantes = await T.lister(PLURIEL);
   const posees = new Map(vivantes.map((x) => [x.id, x]));
@@ -149,8 +203,16 @@ export async function synchroniser({ go = false, T = null, journal = () => {} } 
     if (x.klockaId) parKlockaId.set(x.klockaId, x);
     parCle.set(cleAgence(x), x);
   }
-  const res = { nouvelles: 0, majs: 0, inchangees: 0, corbeille: 0, retrouvees: 0, erreurs: 0 };
+  const rap = rapprocher(lesAgents, vivantes);
+  const agentsDe = (id) => rap.parAgence.get(id) || [];
+  const avecAgents = (id, cible) => {
+    const ag = agentsDe(id);
+    if (!lesAgents.length) return cible;
+    return { ...cible, agentsImmo: texteAgents(ag), ...(ag.length && cible.contact !== CONTACT.MORT ? { contact: CONTACT.EN_CONTACT } : {}) };
+  };
+  const res = { nouvelles: 0, majs: 0, inchangees: 0, corbeille: 0, retrouvees: 0, erreurs: 0, agents_lies: [...rap.parAgence.values()].flat().length, agences_agents: 0, sans_agence: rap.sansAgence.length };
   const nouvelles = [];
+  const traitees = new Set();
   for (const x of toutes) {
     let id = x.a.twenty_agence_id;
     if (!id) {
@@ -162,14 +224,25 @@ export async function synchroniser({ go = false, T = null, journal = () => {} } 
     }
     const avant = posees.get(id);
     if (!avant || jeteesIds.has(id)) { res.corbeille++; continue; }
-    const diff = difference(avant, versTwenty(x.a, x.l));
+    traitees.add(id);
+    const diff = difference(avant, avecAgents(id, versTwenty(x.a, x.l)));
     if (!Object.keys(diff).length) { res.inchangees++; continue; }
     res.majs++;
-    if (go) {
-      try { await T.modifier(PLURIEL, avant.id, diff); } catch (e) {
-        // Un téléphone que Twenty refuse : la mise à jour part sans lui.
-        if (diff.telephone) { delete diff.telephone; await T.modifier(PLURIEL, avant.id, diff).catch((e2) => { res.erreurs++; journal(`  ${avant.id} : ${e2?.message || e2}`); }); } else { res.erreurs++; journal(`  ${avant.id} : ${e?.message || e}`); }
-      }
+    if (go) await modifierLigne(T, avant.id, diff, res, journal);
+  }
+  // Les lignes que cette base ne tient pas (une autre base, ou nées des agents) : seuls les agents et le statut qu'ils
+  // donnent ; une ligne sans statut encore reçoit Jamais contacté.
+  if (lesAgents.length) {
+    for (const avant of vivantes) {
+      if (traitees.has(avant.id)) continue;
+      const ag = agentsDe(avant.id);
+      const cible = { agentsImmo: texteAgents(ag), ...(ag.length ? { contact: CONTACT.EN_CONTACT } : !avant.contact ? { contact: CONTACT.JAMAIS } : {}) };
+      // Une ligne née des agents qui n'en a plus garde les siens : un agent sorti d'Agent immobilier ne l'efface pas.
+      if (!ag.length && String(avant.klockaId || '').startsWith('agent:')) delete cible.agentsImmo;
+      const diff = difference(avant, cible);
+      if (!Object.keys(diff).length) continue;
+      res.majs++;
+      if (go) await modifierLigne(T, avant.id, diff, res, journal);
     }
   }
   res.nouvelles = nouvelles.length;
@@ -185,7 +258,19 @@ export async function synchroniser({ go = false, T = null, journal = () => {} } 
       journal(`  ${Math.min(i + T.LOT_MAX, nouvelles.length)} / ${nouvelles.length} posées`);
     }
   }
+  // Les agences des agents qu'aucune ligne ne reconnaît : une par entreprise et par ville, jamais deux fois.
+  const aCreer = rap.aCreer.filter((g) => !parKlockaId.has(`agent:${g.cle}`));
+  res.agences_agents = aCreer.length;
+  if (go && aCreer.length) await creerLot(T, aCreer.map(versTwentyDepuisAgents), res, journal);
   return res;
+}
+
+/** Les villes des agents qu'aucune ligne ne reconnaît : leurs options de Ville, et une vue pour celles qui en ont trois ou plus. */
+export function villesDesAgents(agents, vivantes) {
+  const n = new Map();
+  for (const g of rapprocher(agents, vivantes).aCreer) if (g.ville) n.set(g.ville, (n.get(g.ville) || 0) + 1);
+  const vues = new Set(vivantes.map((x) => x.ville).filter(Boolean));
+  return { options: [...n.keys()], vues: [...n.entries()].filter(([v, k]) => k >= 3 || vues.has(villeOption(v))).map(([v]) => v) };
 }
 
 const SANS_TELEPHONE = { primaryPhoneNumber: '', primaryPhoneCountryCode: '', primaryPhoneCallingCode: '' };
@@ -218,10 +303,13 @@ export async function villesDesListes() {
  * Mandataire K Partners, rangé dans le dossier Klocka, les colonnes de la vue principale et une vue par ville.
  * Rejouable : seul ce qui manque est fait. `go` faux : dit seulement ce qui serait fait.
  */
-export async function preparer({ go = false, dire = () => {}, creerObjetSiAbsent = true } = {}) {
+export async function preparer({ go = false, dire = () => {}, creerObjetSiAbsent = true, villesEnPlus = [], vuesEnPlus = [] } = {}) {
   const { objetsTwenty, creerObjet, creerChamp, modifierChamp, requeteTwenty } = await import('../twenty.js');
   const { lireRoles, lireMenu, rangerAussiDans, gql } = await import('./acces.js');
-  const villes = await villesDesListes();
+  const desListes = await villesDesListes();
+  // Les villes des agents d'« Agent immobilier » (17 nov. 2026) : une option chacune, une vue pour les plus fournies.
+  const enOption = [...desListes, ...villesEnPlus.filter((v) => !desListes.some((x) => valeurOption(x) === valeurOption(v)))];
+  const villes = [...desListes, ...vuesEnPlus.filter((v) => !desListes.some((x) => valeurOption(x) === valeurOption(v)))];
 
   // 1. L'objet et ses champs.
   let objet = (await objetsTwenty()).find((o) => o.nameSingular === SINGULIER);
@@ -232,10 +320,16 @@ export async function preparer({ go = false, dire = () => {}, creerObjetSiAbsent
     await creerObjet({ nameSingular: SINGULIER, namePlural: PLURIEL, labelSingular: 'Agence', labelPlural: 'Agences', icon: 'IconBuildingStore', description: 'Les agences et mandataires des listes de la Prospection Klocka, une vue par ville (server/crm/agences-twenty.js)' });
     objet = (await objetsTwenty()).find((o) => o.nameSingular === SINGULIER);
   }
-  for (const c of CHAMPS) {
+  // Les champs déjà là d'abord (renommés au besoin), puis les nouveaux : « Statut » ne se crée qu'une fois l'ancien renommé.
+  const existe = (c) => (objet.fields || []).some((f) => f.name === c.name);
+  for (const c of [...CHAMPS.filter(existe), ...CHAMPS.filter((x) => !existe(x))]) {
     const deja = (objet.fields || []).find((f) => f.name === c.name);
-    const options = c.name === 'ville' ? villes.map((v, i) => optionVille(v, i)) : c.options;
+    const options = c.name === 'ville' ? enOption.map((v, i) => optionVille(v, i)) : c.options;
     if (deja) {
+      if (deja.label !== c.label) {
+        dire(`${deja.label} → ${c.label}`);
+        if (go) await modifierChamp(deja.id, { label: c.label });
+      }
       const manquantes = (options || []).filter((o) => !(deja.options || []).some((x) => x.value === o.value));
       if (manquantes.length) {
         dire(`+ ${c.label} : ${manquantes.map((o) => o.label).join(', ')}`);
@@ -306,7 +400,21 @@ export async function preparer({ go = false, dire = () => {}, creerObjetSiAbsent
   }
   const vues = (await tout('/metadata/views', 'views')).filter((v) => v.objectMetadataId === objet.id);
   const principale = vues.find((v) => v.key === 'INDEX');
-  if (principale && go) await colonnes(principale.id, (await tout('/metadata/viewFields', 'viewFields')).filter((x) => x.viewId === principale.id));
+  const champsDeVues = go ? await tout('/metadata/viewFields', 'viewFields') : [];
+  if (principale && go) await colonnes(principale.id, champsDeVues.filter((x) => x.viewId === principale.id));
+  // Les vues de ville déjà là (17 nov. 2026) : le Statut en couleur et les agents ajoutés, l'ancien statut caché ; le
+  // reste des colonnes, peut-être réglé à la main, n'est pas touché.
+  if (go) {
+    for (const v of vues.filter((x) => x.key !== 'INDEX')) {
+      const ici = champsDeVues.filter((x) => x.viewId === v.id);
+      for (const nom of ['contact', 'agentsImmo']) {
+        const f = champ(nom);
+        if (f && !ici.some((x) => x.fieldMetadataId === f.id)) await meta('POST', 'viewFields', { viewId: v.id, fieldMetadataId: f.id, isVisible: true, position: COLONNES.indexOf(nom) - 0.5, size: nom === 'agentsImmo' ? 280 : 150 });
+      }
+      const ancien = ici.find((x) => x.fieldMetadataId === champ('statut')?.id);
+      if (ancien?.isVisible) await meta('PATCH', `viewFields/${ancien.id}`, { isVisible: false });
+    }
+  }
   const nouvellesVues = [];
   for (const [i, ville] of villes.entries()) {
     if (vues.some((v) => v.name === ville)) continue;
@@ -318,7 +426,7 @@ export async function preparer({ go = false, dire = () => {}, creerObjetSiAbsent
     await meta('POST', 'viewFilters', { viewId: vueId, fieldMetadataId: champ('ville').id, operand: 'IS', value: JSON.stringify([valeurOption(ville)]) });
     await meta('POST', 'viewSorts', { viewId: vueId, fieldMetadataId: champ('name').id, direction: 'ASC' });
   }
-  return { objet: true, villes, nouvellesVues };
+  return { objet: true, villes: desListes, nouvellesVues };
 }
 
 /**
@@ -331,10 +439,13 @@ export async function entretenir() {
   if (entretienEnCours) return null;
   entretienEnCours = true;
   try {
-    const p = await preparer({ go: true, creerObjetSiAbsent: false });
+    const T = await import('../twenty.js');
+    const agents = await T.lister(AGENTS).catch(() => []);
+    const { options, vues } = villesDesAgents(agents, await T.lister(PLURIEL));
+    const p = await preparer({ go: true, creerObjetSiAbsent: false, villesEnPlus: options, vuesEnPlus: vues });
     if (!p.objet) return null;
-    const r = await synchroniser({ go: true });
-    if (p.nouvellesVues.length || r.nouvelles || r.majs || r.retrouvees || r.erreurs) console.log(`[agences] Twenty : ${p.nouvellesVues.length} vue(s) de ville, ${r.nouvelles} nouvelle(s), ${r.retrouvees} retrouvée(s), ${r.majs} mise(s) à jour, ${r.erreurs} refusée(s)`);
+    const r = await synchroniser({ go: true, agents });
+    if (p.nouvellesVues.length || r.nouvelles || r.majs || r.retrouvees || r.erreurs || r.agences_agents) console.log(`[agences] Twenty : ${p.nouvellesVues.length} vue(s) de ville, ${r.nouvelles} nouvelle(s), ${r.agences_agents} née(s) des agents, ${r.retrouvees} retrouvée(s), ${r.majs} mise(s) à jour, ${r.erreurs} refusée(s)`);
     return r;
   } finally {
     entretienEnCours = false;

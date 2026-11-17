@@ -17,6 +17,7 @@
 
 import { Records } from '../db.js';
 import { telAffiche } from './regles.js';
+import { rangPoste } from '../../src/lib/interlocuteurs.js';
 
 const API = 'https://api.apollo.io/api/v1';
 const cle = () => (process.env.APOLLO_API_KEY || '').trim();
@@ -172,17 +173,6 @@ export async function numeroDUnePersonne({ prenom, nom, organisation = null, vil
 // Seule la recherche (mixed_people/api_search) sert : elle ne coûte aucun crédit et rend le prénom, l'initiale du nom
 // et le poste. Rien n'est révélé (people/match), ni mail ni numéro.
 
-// La location, la gestion locative, le syndic et les métiers sans rapport ne sont pas des interlocuteurs.
-const HORS_SUJET = /(locat|rental|letting|leasing|gestion|property manag|syndic|copropri|comptab|account|marketing|communication|community|social media|e-?commerce|legal|juridique|travaux|logisti|[ée]v[éeè]nement|event|\\bcto\\b|\\bcfo\\b|t[ée]l[ée]conseill|business develop|d[ée]veloppeu|developer|stagiaire|intern\b|alternan|apprenti|photograph|home ?stag|\bit\b|informati|data|rh\b|ressources humaines|human resources|recrut)/i;
-// Un poste mêlé (« négociateur location et transaction ») reste un interlocuteur s'il fait de la transaction ou du commerce.
-const MALGRE_TOUT = /(transaction|immobilier (commercial|d.entreprise)|fonds de commerce|locaux commerciaux|murs commerciaux)/i;
-// Du plus probable au moins probable : le commerce, la transaction, la direction de l'agence, l'administratif.
-const RANGS = [
-  /(immobilier (commercial|d.entreprise)|fonds de commerce|locaux commerciaux|murs commerciaux|cession|(?<![-\w])commerces?\b)/i,
-  /(transaction|n[ée]gociat|conseill|agent immobilier|real estate agent|sales|vente|commercial|charg[ée]e? de projet|consultant|broker)/i,
-  /(directeur|directrice|director|manager|g[ée]rant|responsable d.agence|head|ceo|founder|fondat|pr[ée]sident|associ[ée]|owner|partner|dirigeant)/i,
-  /(assistant|administrati|office|secr[ée]taire|accueil)/i,
-];
 const TRADUCTIONS = [
   [/^co-?founder$/i, 'Cofondateur'], [/^founder$/i, 'Fondateur'], [/^(ceo|chief executive officer)$/i, 'Dirigeant'],
   [/^managing director$/i, 'Directeur général'], [/^(agency|branch) manager$/i, 'Responsable d\'agence'],
@@ -198,14 +188,7 @@ export function posteFrancais(poste) {
   return t ? t[1] : p || null;
 }
 
-/** Pure : le rang d'un poste (0 le plus probable), ou null s'il n'est pas un interlocuteur (location, gestion…). */
-export function rangPoste(poste) {
-  const p = String(poste || '');
-  if (HORS_SUJET.test(p) && !MALGRE_TOUT.test(p)) return null;
-  // Un poste qui ne dit ni transaction, ni direction, ni administratif (« Greenbullien ») n'est pas proposé.
-  const i = RANGS.findIndex((re) => re.test(p));
-  return i < 0 ? null : i;
-}
+export { rangPoste };
 
 /** Pure : « Maxime D. » à partir du prénom et du nom masqué par Apollo (« Do***e »). */
 export function nomCourt(prenom, nomMasque) {
@@ -217,11 +200,11 @@ export function nomCourt(prenom, nomMasque) {
 /** Pure : les personnes de la recherche, sans la location, rangées de la plus probable à la moins probable. */
 export function equipeRangee(people = []) {
   return (people || [])
-    .map((p) => ({ nom: nomCourt(p.first_name, p.last_name_obfuscated || p.last_name), poste: posteFrancais(p.title), rang: rangPoste(p.title), id: p.id }))
+    .map((p) => ({ nom: nomCourt(p.first_name, p.last_name_obfuscated || p.last_name), prenom: String(p.first_name || '').trim(), masque: String(p.last_name_obfuscated || '').trim() || null, poste: posteFrancais(p.title), rang: rangPoste(p.title), id: p.id }))
     .filter((x) => x.nom && x.rang != null)
     .sort((a, b) => a.rang - b.rang)
     .slice(0, 6)
-    .map(({ nom, poste, id }) => ({ nom, poste, apollo_id: id }));
+    .map(({ nom, prenom, masque, poste, id }) => ({ nom, prenom, masque, poste, apollo_id: id }));
 }
 
 const domaineDe = (site) => { try { return new URL(/^https?:/.test(site) ? site : `https://${site}`).hostname.replace(/^www\./, ''); } catch { return null; } };
@@ -234,7 +217,7 @@ export async function equipeDeLAgence(agence, { ville = null, lire = fetch } = {
   if (!apolloConfigure() || !agence) return [];
   const domaine = agence.site ? domaineDe(agence.site) : null;
   if (!agence.apollo_id && !domaine) return [];
-  const cleR = `equipe2|${agence.apollo_id || domaine}|${String(ville || '').toLowerCase()}`;
+  const cleR = `equipe3|${agence.apollo_id || domaine}|${String(ville || '').toLowerCase()}`;
   const gens = await enMemoire(cleR, async () => {
     const org = agence.apollo_id ? { organization_ids: [agence.apollo_id] } : { q_organization_domains_list: [domaine] };
     const chercher = (corps) => appeler('/mixed_people/api_search', { corps: { ...org, per_page: 25, page: 1, ...corps }, lire });
@@ -249,6 +232,87 @@ export async function equipeDeLAgence(agence, { ville = null, lire = fetch } = {
     }
     return equipeRangee(j.people || []);
   }) || [];
-  if (agence.id) Records.update('AgenceProspect', agence.id, { apollo_equipe: { le: new Date().toISOString(), gens } });
-  return gens;
+  // Les noms complets déjà trouvés restent (chercherNomsComplets) : la recherche gardée 90 jours n'en sait rien.
+  const avant = agence.id ? Records.get('AgenceProspect', agence.id)?.apollo_equipe : null;
+  const complets = Object.fromEntries((avant?.gens || []).filter((g) => g.nom_complet).map((g) => [g.apollo_id, g.nom_complet]));
+  const tous = gens.map((g) => (complets[g.apollo_id] ? { ...g, nom_complet: complets[g.apollo_id] } : g));
+  if (agence.id) Records.update('AgenceProspect', agence.id, { apollo_equipe: { le: new Date().toISOString(), gens: tous, ...(avant?.noms_cherches_le ? { noms_cherches_le: avant.noms_cherches_le } : {}) } });
+  return tous;
+}
+
+// --- Les noms complets, sans crédit Apollo (17 nov. 2026) ----------------------------------------------------------
+// Jules : « mets les noms complets des personnes ». Apollo masque le nom (« Do***e ») et le révéler coûte un crédit.
+// Le nom se cherche donc ailleurs : dans les mails connus de l'agence (prenom.nom@), puis par une recherche web, une
+// seule par agence pour toute l'équipe. Un nom trouvé n'est gardé que s'il colle aux lettres qu'Apollo laisse voir.
+
+const sansAccents = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** Pure : le nom de famille colle-t-il au nom masqué d'Apollo (« Do***e » : commence par « do », finit par « e ») ? */
+export function colleAuMasque(nom, masque) {
+  const m = String(masque || '').match(/^([^*]*)\*+([^*]*)$/);
+  if (!m) return false;
+  const n = sansAccents(nom).replace(/[^a-z]/g, '');
+  const debut = sansAccents(m[1]).replace(/[^a-z]/g, ''); const fin = sansAccents(m[2]).replace(/[^a-z]/g, '');
+  return n.length > debut.length + fin.length - 1 && n.startsWith(debut) && n.endsWith(fin);
+}
+
+/** Pure : le nom complet d'une personne d'Apollo d'après des mails « prenom.nom@ », ou null. */
+export function nomParLesMails(personne, mails = []) {
+  const prenom = sansAccents(personne.prenom).replace(/[^a-z]/g, '');
+  for (const e of mails) {
+    const local = sansAccents(String(e).split('@')[0]);
+    const mots = local.split(/[._-]+/).filter(Boolean);
+    if (mots.length < 2 || mots[0] !== prenom) continue;
+    const famille = mots.slice(1).join(' ');
+    if (colleAuMasque(famille, personne.masque)) return `${personne.prenom} ${famille.replace(/\b\p{L}/gu, (c) => c.toUpperCase())}`;
+  }
+  return null;
+}
+
+/** Pure : les noms rendus par la recherche web (« 1. Maxime Douce »), gardés s'ils collent au prénom et au masque. */
+export function nomsDeLaReponse(texte, gens) {
+  const out = {};
+  for (const ligne of String(texte || '').split(/\n+/)) {
+    const m = ligne.match(/^\s*(\d+)[.)]\s*(.+?)\s*$/);
+    if (!m) continue;
+    const g = gens[Number(m[1]) - 1];
+    const nom = m[2].replace(/[*_`]/g, '').replace(/\s*[(,–-].*$/, '').trim();
+    if (!g || /inconnu|aucun|introuvable|\?/i.test(nom)) continue;
+    const mots = nom.split(/\s+/);
+    if (mots.length < 2 || sansAccents(mots[0]) !== sansAccents(g.prenom)) continue;
+    if (colleAuMasque(mots.slice(1).join(' '), g.masque)) out[g.apollo_id] = nom;
+  }
+  return out;
+}
+
+const RECHERCHES_NOMS = new Map();
+
+/**
+ * Les noms complets de l'équipe Apollo d'une agence (mails connus, puis une recherche web), posés sur `apollo_equipe`.
+ * Une seule recherche à la fois par agence, une seule fois : `noms_cherches_le` la marque même sans résultat.
+ */
+export function chercherNomsComplets(agenceId) {
+  if (RECHERCHES_NOMS.has(agenceId)) return RECHERCHES_NOMS.get(agenceId);
+  const p = (async () => {
+    const a = Records.get('AgenceProspect', agenceId);
+    const eq = a?.apollo_equipe;
+    if (!eq?.gens?.length || eq.noms_cherches_le) return;
+    const gens = eq.gens.map((g) => ({ ...g }));
+    const mails = [a.email, ...(a.agents || []).map((x) => x.email), ...(a.emails_site || []), a.site_mail].flat().filter(Boolean);
+    for (const g of gens) { if (!g.nom_complet && g.masque) g.nom_complet = nomParLesMails(g, mails); }
+    const reste = gens.filter((g) => !g.nom_complet && g.prenom && g.masque);
+    if (reste.length && !process.env.NODE_TEST_CONTEXT) {
+      try {
+        const { invokeLLMGrounded } = await import('../llm.js');
+        const liste = reste.map((g, i) => `${i + 1}. ${g.prenom}, nom de famille commençant par « ${g.masque.split('*')[0]} » et finissant par « ${g.masque.split('*').pop()} », ${g.poste || 'poste inconnu'}`).join('\n');
+        const r = await invokeLLMGrounded({ via: 'anthropic', prompt: `Agence immobilière « ${a.nom} »${a.ville ? ` à ${a.ville}` : ''}${a.site ? ` (site ${a.site})` : ''}. Trouve le nom complet de chacune de ces personnes qui y travaillent (site de l'agence, LinkedIn, pages d'annuaire) :\n${liste}\n\nRéponds seulement par les lignes numérotées « 1. Prénom Nom », une par personne, dans le même ordre ; écris « 1. inconnu » quand tu ne trouves pas. N'invente aucun nom.` });
+        const trouves = nomsDeLaReponse(r?.final || r?.text, reste);
+        for (const g of gens) if (trouves[g.apollo_id]) g.nom_complet = trouves[g.apollo_id];
+      } catch (e) { console.warn(`[apollo noms] ${a.nom} : ${e?.message || e}`); }
+    }
+    const frais = Records.get('AgenceProspect', agenceId);
+    Records.update('AgenceProspect', agenceId, { apollo_equipe: { ...(frais?.apollo_equipe || eq), gens, noms_cherches_le: new Date().toISOString() } });
+  })().finally(() => RECHERCHES_NOMS.delete(agenceId));
+  RECHERCHES_NOMS.set(agenceId, p);
+  return p;
 }

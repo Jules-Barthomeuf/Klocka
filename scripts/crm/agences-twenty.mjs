@@ -8,7 +8,7 @@
 //   node --env-file=.env scripts/crm/agences-twenty.mjs        (montre ce qui serait fait)
 //   node --env-file=.env scripts/crm/agences-twenty.mjs --go   (le fait)
 import { twentyConfigure } from '../../server/twenty.js';
-import { preparer, synchroniser } from '../../server/crm/agences-twenty.js';
+import { AGENTS, PLURIEL, preparer, synchroniser, villesDesAgents } from '../../server/crm/agences-twenty.js';
 
 if (!twentyConfigure()) {
   console.error('TWENTY_URL / TWENTY_API_KEY manquants');
@@ -17,11 +17,16 @@ if (!twentyConfigure()) {
 const go = process.argv.includes('--go');
 const dire = (x) => console.log(`${go ? '' : '(à faire) '}${x}`);
 // 1 à 4 : la structure (server/crm/agences-twenty.js, preparer), faite aussi par le serveur en ligne (entretenir).
-const p = await preparer({ go, dire });
-console.log(`Villes : ${p.villes.join(', ')}`);
+const T = await import('../../server/twenty.js');
+const agents = await T.lister(AGENTS).catch(() => []);
+const { options, vues } = villesDesAgents(agents, await T.lister(PLURIEL));
+const p = await preparer({ go, dire, villesEnPlus: options, vuesEnPlus: vues });
+console.log(`Villes des listes : ${p.villes.join(', ')}`);
+console.log(`Villes des agents : ${options.length} en option, vues pour ${vues.join(', ')}`);
 if (!p.objet) { console.log('(le reste se fera une fois l’objet créé)'); process.exit(0); }
 
 // 5. Les lignes.
-const r = await synchroniser({ go, journal: console.log });
-dire(`lignes : ${r.nouvelles} nouvelle(s), ${r.retrouvees} retrouvée(s), ${r.majs} mise(s) à jour, ${r.inchangees} inchangée(s), ${r.corbeille} à la corbeille de Twenty (pas recréées)`);
+const r = await synchroniser({ go, journal: console.log, agents });
+dire(`lignes : ${r.nouvelles} nouvelle(s), ${r.agences_agents} née(s) des agents, ${r.retrouvees} retrouvée(s), ${r.majs} mise(s) à jour, ${r.inchangees} inchangée(s), ${r.corbeille} à la corbeille de Twenty (pas recréées)`);
+dire(`agents : ${agents.length} lus, ${r.agents_lies} rattachés à une agence, ${r.sans_agence} sans entreprise ni domaine`);
 process.exit(0);

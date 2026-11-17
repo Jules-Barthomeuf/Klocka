@@ -860,7 +860,37 @@ export function monterProspection(app) {
     const { equipeDeLAgence } = await import('../prospection/agences-apollo.js');
     let gens = [];
     try { gens = await equipeDeLAgence(agence, { ville: String(req.query?.ville || agence.ville || '').trim() || null }); } catch (e) { console.warn(`[apollo équipe] ${agence.nom} : ${e?.message || e}`); }
-    ok(res, { gens });
+    // Les photos de la page équipe du site (17 nov. 2026, Jules : « le nom complet et la photo ») : gratuites, sans IA.
+    let photos = {};
+    try {
+      const { photosDeLAgence } = await import('../prospection/photos-equipe.js');
+      const noms = [...(agence.agents || []).map((x) => x.nom), ...(agence.gerants || []).map((g) => g.nom), ...gens.map((g) => g.nom_complet)].filter(Boolean);
+      photos = await photosDeLAgence(Records.get('AgenceProspect', agence.id) || agence, noms);
+    } catch (e) { console.warn(`[photos équipe] ${agence.nom} : ${e?.message || e}`); }
+    // Les noms complets (17 nov. 2026, Jules) : cherchés une fois par agence, en tâche de fond ; l'écran relit la route
+    // tant que la recherche tourne.
+    const frais = Records.get('AgenceProspect', agence.id);
+    const enCours = !!gens.length && !frais?.apollo_equipe?.noms_cherches_le;
+    if (enCours) (await import('../prospection/agences-apollo.js')).chercherNomsComplets(agence.id).catch(() => {});
+    // Le site de l'agence (17 nov. 2026, Jules) : la page équipe (qui fait quoi, les numéros perso), les villes, la taille,
+    // les offres ; lu une fois, en tâche de fond ; l'écran relit la route tant que la lecture tourne.
+    // Sans site, il est d'abord retrouvé (autre fiche, e-mail pro, sinon une recherche web, une fois par agence).
+    const siteEnCours = !frais?.site_lu && (!!frais?.site || (frais?.genre !== 'mandataire' && !frais?.site_cherche_le && !!(frais?.telephone || frais?.adresse)));
+    if (siteEnCours) (await import('../prospection/site-agence.js')).lireSiteAgence(agence.id).catch((e) => console.warn(`[site agence] ${agence.nom} : ${e?.message || e}`));
+    // Les interlocuteurs recalculés avec tout ce qu'on sait maintenant (site, Apollo, photos).
+    const MA = await import('../prospection/mode-appel.js');
+    const fiche = frais?.carnet_id ? Records.get('AgentImmo', frais.carnet_id) : null;
+    const place = req.query?.place != null && req.query.place !== '' ? Number(req.query.place) : null;
+    const contacts = MA.contactsDe(frais, fiche, place);
+    // Les photos manquantes cherchées sur internet (17 nov. 2026, Jules), une fois les noms complets et le site lus.
+    // En veille (PHOTOS_WEB=1 pour l'allumer) : essayée le 17 nov. 2026, elle n'a trouvé aucune des 9 personnes sans photo
+    // de trois agences (des profils LinkedIn seulement, illisibles) ; une recherche par agence pour rien.
+    const photosEnCours = /^(1|true|oui)$/i.test(process.env.PHOTOS_WEB || '') && !enCours && !siteEnCours && !frais?.photos_equipe?.photos_web_le && contacts.some((x) => !x.standard && !x.photo);
+    if (photosEnCours) {
+      const { chercherPhotosWeb } = await import('../prospection/photos-equipe.js');
+      chercherPhotosWeb(agence.id, contacts.filter((x) => !x.standard && !x.photo).map((x) => ({ nom: x.nom, poste: x.fonction }))).catch(() => {});
+    }
+    ok(res, { gens: frais?.apollo_equipe?.gens || gens, photos: Records.get('AgenceProspect', agence.id)?.photos_equipe?.par_nom || photos, contacts, noms_en_cours: enCours, site_en_cours: siteEnCours, photos_en_cours: photosEnCours, site_le: frais?.site_lu?.le || null });
   }));
   // Pendant l'appel : la rue de l'adresse dite, en Street View.
   app.get('/api/prospection/mode-appel/lieu', wrap(async (req, res) => {

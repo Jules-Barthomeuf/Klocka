@@ -268,7 +268,7 @@ test("17 nov. 2026 : transférer sans rien dire met en Mémoire ; « préanalyse
   assert.deepEqual(X.comprendre(lu('', 'marc@agence.fr'), { pieces: fiches, fiches, vises: v1 }), { intention: 'memoire', defaut: true });
   assert.deepEqual(X.comprendre(lu('fyi'), { pieces: fiches, fiches, vises: [] }), { intention: 'memoire', defaut: true });
   assert.equal(X.comprendre(lu('rentre ce dossier dans la plateforme'), { pieces: fiches.slice(0, 1), fiches: fiches.slice(0, 1), vises: [] }).intention, 'fiche');
-  assert.equal(X.coteDuTransfert({ role: 'admin', mandataire: true, espace: 'kpartners' }, { intention: 'memoire', defaut: true }, { transfert: true }), X.coteDuTransfert({ role: 'admin', mandataire: true, espace: 'kpartners' }, { intention: 'fiche' }, { transfert: true }), 'la Mémoire par défaut se demande comme une fiche');
+  assert.equal(X.coteDuTransfert({ role: 'admin', mandataire: true, espace: 'kpartners' }, { intention: 'memoire', defaut: true }, { transfert: true }), 'admin', 'la Mémoire part sans question de côté');
   // « Préanalyse » : toutes les fiches.
   assert.deepEqual(X.comprendre(lu('préanalyse ces fiches stp'), { pieces: fiches, fiches, vises: [] }), { intention: 'fiche' });
   assert.deepEqual(X.comprendre(lu('Pré-analyse'), { pieces: fiches.slice(0, 1), fiches: fiches.slice(0, 1), vises: [] }), { intention: 'fiche' });

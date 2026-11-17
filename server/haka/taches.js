@@ -152,11 +152,13 @@ export async function avancer(tache, { declencheur = 'file', user = null } = {})
       if (r.pour !== undefined && !tache.pour) { patch.pour = r.pour; tache.pour = r.pour; }
       if (Object.keys(patch).length) majTache(tache.id, patch);
       if (r.fin) { sauterRestants(tache.id, e.ordre); majTache(tache.id, { etat: 'faite', finie_le: maintenant(), duree_ms: Date.now() - debut }); return; }
-      if (r.attendre === 'validation') { majTache(tache.id, { etat: 'en_attente_validation', etape: noms[noms.indexOf(nom) + 1] || nom }); return; }
+      if (r.attendre === 'validation') { console.log(`[haka] ${tache.type} ${tache.id} attend une réponse de ${tache.pour || 'l\'équipe'} (${nom})`); majTache(tache.id, { etat: 'en_attente_validation', etape: noms[noms.indexOf(nom) + 1] || nom }); return; }
     } catch (err) {
       const essais = (e.essais || 0) + 1;
       const fini = tache.essais + 1 >= ESSAIS_MAX;
       majEtape(e.id, { etat: fini ? 'echec' : 'a_faire', essais, erreur: String(err?.message || err).slice(0, 500) });
+      // Une étape qui échoue se dit au journal (17 nov. 2026 : les transferts échouaient sans trace).
+      console.warn(`[haka] ${tache.type} ${tache.id} · ${e.nom} : ${String(err?.message || err).slice(0, 200)}${fini ? ' (abandonnée)' : ` (essai ${essais})`}`);
       // 1 min, puis 5 min : une panne passagère d'un fournisseur se laisse passer.
       const apres = fini ? null : new Date(Date.now() + (tache.essais + 1 === 1 ? 60000 : 300000)).toISOString();
       majTache(tache.id, { etat: fini ? 'echec' : 'en_attente', erreur: String(err?.message || err).slice(0, 500), apres });

@@ -268,8 +268,8 @@ export function expediteurDuTransfert(email) {
 export function coteDuTransfert(u, c, lu) {
   if (!estMandataire(u)) return 'admin';
   if (u.role !== 'admin') return 'mandataire';
-  // La Mémoire par défaut (transfert sans consigne) se demande comme le reste : côté mandataire, la fiche entre dans ses Biens.
-  return (c.intention === 'memoire' && !c.defaut) || (c.intention === 'demande' && !lu.transfert) ? 'admin' : null;
+  // La Mémoire n'a pas de côté (17 nov. 2026 : Jules, admin et mandataire, attendait une question invisible) : elle part.
+  return c.intention === 'memoire' || (c.intention === 'demande' && !lu.transfert) ? 'admin' : null;
 }
 
 // ---------------------------------------------------------------------------

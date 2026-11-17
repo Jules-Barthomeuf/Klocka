@@ -498,8 +498,10 @@ export function contactsDe(a, fiche = null, place = null) {
   const ajouter = (x) => {
     const nom = String(x.nom || '').trim();
     if (!nom && !x.standard) return;
-    if (nom && out.some((y) => R.norm(y.nom) === R.norm(nom))) {
-      const y = out.find((z) => R.norm(z.nom) === R.norm(nom));
+    // Le même nom dans un autre ordre (« Oliel David » et « David Oliel », 17 nov. 2026) est la même personne.
+    const memeNom = (z) => R.norm(z.nom) === R.norm(nom) || String(R.norm(z.nom)).split(' ').sort().join(' ') === String(R.norm(nom)).split(' ').sort().join(' ');
+    if (nom && out.some(memeNom)) {
+      const y = out.find(memeNom);
       if (!y.telephone && x.telephone) y.telephone = x.telephone;
       if (!y.fonction && x.fonction) y.fonction = x.fonction;
       if (!y.email && x.email) y.email = x.email;

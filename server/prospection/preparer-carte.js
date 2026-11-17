@@ -44,8 +44,9 @@ export function preparerCarte(agenceId, { ville = null } = {}) {
     const fiche = a.carnet_id ? Records.get('AgentImmo', a.carnet_id) : null;
     const cherches = a.photos_equipe?.cherches || {};
     const sansTete = MA.contactsDe(a, fiche, null)
-      .filter((x) => !x.standard && !x.photo && !/\s\p{L}\.$/u.test(String(x.nom || '').trim()) && !cherches[PE.cleNom(x.nom)]).slice(0, 4);
-    if (sansTete.length && PE.imagesBranchees()) await PE.chercherPhotosImages(agenceId, sansTete.map((x) => ({ nom: x.nom }))).catch(() => {});
+      .filter((x) => !x.standard && !x.photo && !/\s\p{L}\.$/u.test(String(x.nom || '').trim()) && !cherches[PE.cleNom(x.nom)]).slice(0, 10);
+    // Toutes les têtes d'avance, pas seulement quatre (17 nov. 2026, Jules : « leur photo directement ») : dix au plus.
+    if (sansTete.length && PE.imagesBranchees()) await PE.chercherPhotosImages(agenceId, sansTete.map((x) => ({ nom: x.nom })), { max: 10 }).catch(() => {});
     // Le résumé IA en dernier : il dit ce que le site vient d'apprendre (villes, taille, offres).
     await (await import('./resume-agence.js')).resumeDeLAgence(agenceId).catch(() => {});
   })().catch((e) => console.warn(`[carte préparée] ${agenceId} : ${e?.message || e}`)).finally(() => EN_COURS.delete(agenceId));

@@ -101,3 +101,16 @@ test('le nom complet, sans crédit : collé au nom masqué d\'Apollo, par les ma
   assert.deepEqual(r, { m: 'Maxime Douce' });
   assert.deepEqual(nomsDeLaReponse('1. Maxime Durand', [maxime]), {});
 });
+
+test('un prénom seul ou suivi d\'une initiale ne s\'affiche plus ; le même nom à l\'envers est la même personne', async () => {
+  const { contactsDe } = await import('./mode-appel.js');
+  const c = contactsDe({
+    nom: 'Agence', telephone: '04 93 00 00 00',
+    apollo_equipe: { gens: [{ nom: 'Sandrine R.', poste: 'Négociatrice' }, { nom: 'Alfredo', poste: 'Agent' }, { nom: 'Oliel David', poste: 'Agent' }] },
+    agents: [{ nom: 'David Oliel', telephone: '06 11 22 33 44', source: 'page équipe du site' }],
+    prioritaire: { nom: 'Marc' },
+  }, null, 0);
+  const noms = c.filter((x) => !x.standard).map((x) => x.nom);
+  assert.deepEqual(noms, ['Marc', 'Oliel David'], 'un prénom donné pendant un appel reste ; Sandrine R. et Alfredo non');
+  assert.equal(c.find((x) => x.nom === 'Oliel David').telephone, '06 11 22 33 44');
+});

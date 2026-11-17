@@ -911,8 +911,8 @@ export function monterProspection(app) {
     const PE = await import('../prospection/photos-equipe.js');
     const cherches = frais?.photos_equipe?.cherches || {};
     const sansTete = !enCours && !siteEnCours && PE.imagesBranchees()
-      ? contacts.filter((x) => !x.standard && !x.photo && !/\s\p{L}\.$/u.test(String(x.nom || '').trim()) && !cherches[PE.cleNom(x.nom)]).slice(0, 4) : [];
-    if (sansTete.length) PE.chercherPhotosImages(agence.id, sansTete.map((x) => ({ nom: x.nom }))).catch(() => {});
+      ? contacts.filter((x) => !x.standard && !x.photo && !/\s\p{L}\.$/u.test(String(x.nom || '').trim()) && !cherches[PE.cleNom(x.nom)]).slice(0, 10) : [];
+    if (sansTete.length) PE.chercherPhotosImages(agence.id, sansTete.map((x) => ({ nom: x.nom })), { max: 10 }).catch(() => {});
     // La chaîne entière d'un trait (17 nov. 2026) : les têtes cherchées dès la fin du site et des noms, sans attendre
     // une relecture de l'écran ; rien n'est refait de ce qui tourne déjà.
     if (enCours || siteEnCours) (await import('../prospection/preparer-carte.js')).preparerCarte(agence.id, { ville: String(req.query?.ville || '').trim() || null });

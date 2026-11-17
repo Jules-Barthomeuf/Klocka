@@ -6,14 +6,14 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-5 personnes, 4 146 pages ouvertes, 0 demandes à l'assistant, 12 actions exécutées.
+5 personnes, 4 147 pages ouvertes, 0 demandes à l'assistant, 12 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
 | jules.b@klocka.immo (équipe) | 3 452 | 0 | 12 | 17/11/2026 |
 | admin.stress@test.local (équipe) | 372 | 0 | 0 | 15/11/2026 |
 | test.mandataire@kpartners.fr | 182 | 0 | 0 | 14/11/2026 |
-| admin@klocka.local (équipe) | 135 | 0 | 0 | 17/11/2026 |
+| admin@klocka.local (équipe) | 136 | 0 | 0 | 17/11/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
 
 ## Les pages qui comptent
@@ -22,8 +22,8 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 - **MandataireBiens** — 1 021 (25 %)
 - **Analyse** — 799 (19 %)
+- **Prospection** — 320 (8 %)
 - **CrmTwenty** — 320 (8 %)
-- **Prospection** — 319 (8 %)
 - **Dashboard** — 304 (7 %)
 - **MandataireProspection** — 245 (6 %)
 - **AdminProjets** — 195 (5 %)
@@ -36,7 +36,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 ## Ce que l'IA coûte
 
-43,13 € sur la période, 2 287 appels, 15 992 k jetons. 53 % part en tâche de fond, sans que personne clique. 38 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+43,19 € sur la période, 2 333 appels, 16 042 k jetons. 53 % part en tâche de fond, sans que personne clique. 38 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -44,14 +44,14 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 | Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 372 | 12,91 € | 18 s |
 | Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 13 | 1,64 € | 31 s |
 | Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
-| Lire le site d'une agence (et le trouver s'il manque) | 0,0062 € par agence | 48 | 0,67 € | 7 s |
+| Lire le site d'une agence (et le trouver s'il manque) | 0,0062 € par agence | 52 | 0,70 € | 7 s |
 | Extraire un document déposé | 0,02 € par document | 6 | 0,23 € | 17 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
 | Parler à l'assistant après un appel | 0,0076 € par demande | 19 | 0,15 € | 2 s |
 | Analyser une fiche commerciale | 0,0091 € par fiche | 15 | 0,15 € | 16 s |
 | Trouver les zones commerçantes d'une ville | 0,0080 € par ville | 13 | 0,10 € | 7 s |
-| Lire une fiche pour la Mémoire (fond) | 0,01 € par fiche | 4 | 0,07 € | 8 s |
+| Résumer une agence avant l'appel | 0,0010 € par agence | 86 | 0,09 € | 2 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 

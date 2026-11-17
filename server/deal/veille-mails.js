@@ -108,8 +108,11 @@ export async function rattacherMailsOrphelins() {
  * Relève toutes les boîtes connectées, puis rattache ce qui peut l'être.
  * Une boîte en erreur n'empêche pas les autres.
  */
+// Une relève demandée pendant qu'une autre tourne (un mail arrivé par notification Gmail, 17 nov. 2026) : elle repart
+// juste après, sans quoi le mail attendrait le passage suivant.
+let aRefaire = false;
 export async function relever(uploadDir = null) {
-  if (enCours) return dernier;
+  if (enCours) { aRefaire = true; return dernier; }
   const { mesurer } = await import('../llm-couts.js');
   // Tout ce que la veille déclenche — tri des mails, lecture des pièces
   // jointes, engagements — porte son nom dans le journal des coûts. Sans ce
@@ -132,7 +135,11 @@ async function releverVraiment(uploadDir = null) {
         const { resultat: r } = await mesurer({ operation: 'veille de la boîte', par: compte.email }, () => releverBoite(compte.email, { max: 25 }));
         nouveaux += r?.nouveaux || 0;
         ecartes += r?.ecartes || 0;
+        // Une ligne quand une boîte apporte quelque chose (17 nov. 2026 : la veille ne disait rien, on ne savait pas si elle lisait).
+        if (r?.nouveaux || r?.ecartes) console.log(`[veille] ${compte.email} : ${r.nouveaux || 0} mail(s) gardé(s), ${r.ecartes || 0} écarté(s)`);
       } catch (e) {
+        // Une boîte qui ne se relève pas se dit au journal, une fois par passage (17 nov. 2026 : elle échouait en silence).
+        console.warn(`[veille] ${compte.email} non relevée : ${String(e?.message || e).slice(0, 200)}`);
         erreurs.push(`${compte.email} : ${e?.message || e}`);
         echecs.push({
           operation: 'releve',
@@ -225,6 +232,7 @@ async function releverVraiment(uploadDir = null) {
     });
   } finally {
     enCours = false;
+    if (aRefaire) { aRefaire = false; setTimeout(() => relever(uploadDir).catch(() => {}), 0); }
   }
   return dernier;
 }
@@ -237,6 +245,30 @@ export const etatVeille = () => ({ ...dernier, active: !!minuterie, minutes: MIN
  * démarre pas : il n'y aurait rien à relever.
  * @returns {boolean} true si la veille tourne
  */
+/**
+ * Les mails de l'équipe écartés à tort sur une boîte commune (17 nov. 2026 : une règle apprise passait avant la boîte
+ * commune ; un mail écarté ne repasse jamais) : leur décision est oubliée, la prochaine relève les relit avec la règle
+ * corrigée. Seulement ceux des `jours` derniers jours, d'un expéditeur de l'équipe ou de la boîte elle-même.
+ */
+export async function reexaminerEcartesCommuns({ jours = 3 } = {}) {
+  const { referentielTri } = await import('./tri-mails.js');
+  const ref = referentielTri();
+  const depuis = Date.now() - jours * 86400000;
+  const communes = ref.commandes || new Set();
+  const domaineDe = (e) => String(e || '').split('@')[1] || '';
+  let n = 0;
+  for (const e of Records.list('MailEcarte')) {
+    const compte = String(e.compte || '').toLowerCase();
+    const de = String(e.de_email || '').toLowerCase();
+    if (!communes.has(compte) || Date.parse(e.le || 0) < depuis) continue;
+    if (!(ref.internes.has(de) || ref.domaines.has(domaineDe(de)) || communes.has(de) || ref.mandataires?.has(de))) continue;
+    Records.delete('MailEcarte', e.id);
+    n += 1;
+  }
+  if (n) console.log(`[veille] ${n} mail(s) de l'équipe écarté(s) à tort sur la boîte commune : relus à la prochaine relève`);
+  return n;
+}
+
 export function demarrerVeille() {
   if (minuterie) return true;
   if (!gmailReadDemande) return false;

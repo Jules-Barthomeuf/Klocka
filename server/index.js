@@ -905,6 +905,8 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
     // attendre le prochain passage de la veille ni un clic de plus. Se
     // connecter une fois doit suffire.
     if (profile.peut_lire) {
+      // La boîte est aussi surveillée par Gmail : un mail arrivé la fait relever aussitôt (server/gmail-push.js).
+      import('./gmail-push.js').then((P) => (P.actif() ? P.surveiller(profile.email) : null)).catch((e) => console.warn('[gmail push] surveillance :', e?.message || e));
       import('./deal/veille-mails.js')
         .then(({ relever }) => relever())
         .then((r) => console.log(`[veille] relève immédiate après connexion : ${r?.nouveaux || 0} mail(s)`))
@@ -1611,6 +1613,30 @@ if (!process.env.NODE_TEST_CONTEXT) {
   setTimeout(() => import('./prospection/agent-ia.js')
     .then((m) => { for (const b of m.importerAnnuairesFournis()) if (!b.deja) console.log('[mandataires]', JSON.stringify(b).slice(0, 300)); })
     .catch((e) => console.warn('[mandataires]', e?.message || e)), 20_000).unref?.();
+}
+
+// Gmail pousse les mails arrivés (17 nov. 2026, Jules) : chaque boîte lisible est surveillée au démarrage puis chaque
+// jour (la surveillance dure sept jours). Sans GMAIL_PUSH_SUJET et GMAIL_PUSH_JETON, rien ne part (server/gmail-push.js).
+if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
+  const surveiller = () => import('./gmail-push.js').then((P) => P.surveillerToutes()).catch((e) => console.warn('[gmail push] :', e?.message || e));
+  setTimeout(surveiller, 90_000).unref?.();
+  setInterval(surveiller, 24 * 3600_000).unref?.();
+}
+
+// Les annonces de commerce d'Equimmox dans la Mémoire (17 nov. 2026, Jules : « commence avec une ville ») : les villes de
+// MEMOIRE_EQUIMMOX_VILLES, un export Equimmox par ville et par jour, sur Render (server/memoire/equimmox.js).
+if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT && String(process.env.MEMOIRE_EQUIMMOX_VILLES || '').trim()) {
+  const importer = () => import('./memoire/equimmox.js').then((m) => m.importerLesVilles()).catch((e) => console.warn('[mémoire] Equimmox :', e?.message || e));
+  setTimeout(importer, 6 * 60_000).unref?.();
+  setInterval(importer, 6 * 3600_000).unref?.();
+}
+
+// La reprise des transferts du 16 nov. (17 nov. 2026, Jules : « 7 mails avec 8 fiches », 2 traitées) : une fois, trois
+// minutes après le démarrage, sur Render ; les fiches transférées sans consigne vont en Mémoire (haka/competences/transfert.js).
+if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
+  // D'abord les mails de l'équipe écartés à tort sur sourcing@, relus aussitôt ; puis la reprise des fiches.
+  setTimeout(() => import('./deal/veille-mails.js').then(async (V) => { if (await V.reexaminerEcartesCommuns()) await V.relever(); }).catch((e) => console.warn('[veille] réexamen :', e?.message || e)), 60_000).unref?.();
+  setTimeout(() => import('./haka/competences/transfert.js').then((m) => m.reprendreTransferts()).catch((e) => console.warn('[transfert] reprise :', e?.message || e)), 3 * 60_000).unref?.();
 }
 
 // Le tableau Agences de Twenty (16 nov. 2026, Jules : « il n'y a que Nice et Rennes alors qu'on en a fait beaucoup

@@ -663,8 +663,9 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, nume
       </div>
       {/* Un filet en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css). */}
       <div aria-hidden className="h-px bg-trait" />
-      <div className="grid min-h-[360px] md:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="flex flex-col gap-1.5 px-5 py-5 max-md:px-4 md:max-h-[560px] md:overflow-y-auto md:border-r md:border-trait">
+      {/* Toujours la même hauteur, plus basse (17 nov. 2026, Jules) : 380 px, chaque colonne défile si elle déborde. */}
+      <div className="grid min-h-[360px] md:h-[380px] md:min-h-0 md:grid-cols-[320px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
+        <div className="flex flex-col gap-1.5 px-5 py-5 max-md:px-4 md:overflow-y-auto md:border-r md:border-trait">
           <span className="px-1 pb-1 text-[12.5px] text-ardoise">Interlocuteur</span>
           {contacts.map((x) => (
             <LignePersonne key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} numero={numero} standard={standard}
@@ -677,7 +678,7 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, nume
           )}
         </div>
         <div aria-hidden className="h-px bg-trait md:hidden" />
-        <div className="flex min-w-0 flex-col gap-4 px-6 py-5 max-md:px-4">
+        <div className="flex min-w-0 flex-col gap-4 px-6 py-5 max-md:px-4 md:overflow-y-auto">
           {!resume.isError && (
             <div className="flex flex-col gap-1.5">
               <span className="inline-flex items-center gap-2 text-[13px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />Résumé IA</span>

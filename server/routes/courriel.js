@@ -39,6 +39,15 @@ export function monterCourriel(app) {
   // mail en cours de rédaction) n'est jamais quittée.
   app.get('/api/mail/google/connect-popup', (req, res) => rattachementBoite(req, res, RETOUR_POPUP));
 
+  // Gmail prévient d'un mail arrivé (17 nov. 2026) : Pub/Sub pousse ici, la relève part aussitôt (server/gmail-push.js).
+  // Pas de session : l'adresse porte un jeton secret. Toujours 204 une fois le jeton bon, pour que Pub/Sub ne rejoue pas.
+  app.post('/api/gmail/push', wrap(async (req, res) => {
+    const P = await import('../gmail-push.js');
+    if (!P.actif() || !P.jetonValide(req.query.jeton)) return res.status(403).end();
+    await P.surNotification(req.body);
+    res.status(204).end();
+  }));
+
   app.post('/api/mails/inbox/relever', wrap(async (req, res) => {
     const { compte } = req.body || {};
     if (!compte) return res.status(400).json({ error: 'Compte manquant' });

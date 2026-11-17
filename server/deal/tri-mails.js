@@ -223,6 +223,15 @@ export function trierMail(mail, ref) {
 
   if (!email) return { garder: false, raison: 'expéditeur illisible' };
 
+  // 0. Sur une boîte commune (sourcing@), un mail de l'équipe, d'un mandataire ou de la boîte elle-même est une demande
+  // à l'assistant, AVANT toute règle apprise (17 nov. 2026 : un domaine marqué « à écarter » jetait les transferts).
+  const surCommune = ref.commandes?.has(String(mail.compte || '').toLowerCase());
+  if (surCommune) {
+    const deLEquipe = ref.internes.has(email) || (!!domaine && ref.domaines.has(domaine)) || ref.commandes.has(email);
+    if (deLEquipe) return { garder: true, interne: true, commande: true, raison: "demande à l'Assistant Klocka" };
+    if (ref.mandataires?.has(email)) return { garder: true, interne: true, commande: true, raison: 'bien transféré par un mandataire' };
+  }
+
   // A. Ce que l'équipe a tranché prime sur tout le reste.
   const apprise = ref.apprises?.parEmail.get(email) || (domaine ? ref.apprises?.parDomaine.get(domaine) : null);
   if (apprise) {

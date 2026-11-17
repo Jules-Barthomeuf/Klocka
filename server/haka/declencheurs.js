@@ -21,6 +21,8 @@ import { porteUneFiche } from '../deal/fiches-auto.js';
 import { enPause, ignorer } from './automatismes.js';
 
 const CLE_DEPUIS = 'mail.preanalyse_auto.depuis';
+// Les mails de sourcing@ dont la route est déjà dite au journal (une ligne par mail, pas une par passage).
+const routesDites = new Set();
 
 /** Une fiche reçue devient une tâche. Rend la tâche (existante si le mail est déjà en file). */
 export function surFicheRecue(mail, { uploadDir = null, lancer } = {}) {
@@ -79,9 +81,12 @@ export async function surReleve({ uploadDir = null } = {}) {
   }
   // Les boîtes communes (sourcing@) : une demande de l'équipe devient une tâche ; un extérieur va dans le Commun.
   for (const mail of contexte.mails.filter((m) => BOITES_COMMUNES.has(String(m.compte || '').toLowerCase()) && !m.haka_tache_id && !m.haka_vu && Date.parse(m.date || 0) >= Date.parse(depuis))) {
+    // La route de chaque mail de sourcing@ se dit au journal, une fois (17 nov. 2026 : « j'ai attendu et ça relève pas »).
+    const route = (r) => { if (!routesDites.has(mail.id)) { routesDites.add(mail.id); console.log(`[sourcing] « ${String(mail.objet || '').slice(0, 60)} » de ${mail.de_email} : ${r}`); } };
     try {
       if (mail.commande && expediteurDuTransfert(mail.de_email) && TRANSFERT) {
         surTransfert(mail, { uploadDir });
+        route('transfert de l\'équipe, pris en charge');
         bilan.transferts = (bilan.transferts || 0) + 1;
       } else if (mail.commande && membreDeLEquipe(mail.de_email)) {
         const t = taches.enfiler('demande_equipe', { mail_id: mail.id }, { cle: `demande:${mail.id}`, pour: String(mail.de_email).toLowerCase() });
@@ -89,7 +94,10 @@ export async function surReleve({ uploadDir = null } = {}) {
         bilan.demandes = (bilan.demandes || 0) + 1;
       } else if (!mail.interne && !porteUneFiche(mail)) {
         await signalerExterieur(mail);
+        route('extérieur, dans le Commun');
         bilan.exterieurs = (bilan.exterieurs || 0) + 1;
+      } else {
+        route(!mail.commande ? (mail.interne ? 'interne mais pas une commande : rien' : 'extérieur avec une fiche : elle attend dans « À valider »') : "expéditeur sans compte d'équipe ni de mandataire dans Klocka : ignoré");
       }
     } catch (e) {
       bilan.erreurs.push(`Mail sourcing@ « ${mail.objet || mail.id} » : ${e?.message || e}`);

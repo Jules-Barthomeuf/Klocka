@@ -71,3 +71,12 @@ test('listerMemoire : filtre par mot (ville, agence)', () => {
   assert.equal(listerMemoire({ q: 'quorner' }).length, 1);
   assert.equal(listerMemoire({ q: 'lyon' }).length, 0);
 });
+
+test("la date d'un transfert Gmail français devient AAAA-MM-JJ (17 nov. 2026 : « lun. 16 no » refusé par Twenty)", async () => {
+  const { jourIso } = await import('./memoire.js');
+  assert.equal(jourIso('lun. 16 nov. 2026 à 10:12'), '2026-11-16');
+  assert.equal(jourIso('jeu. 8 oct. 2026'), '2026-10-08');
+  assert.equal(jourIso('16/11/2026'), '2026-11-16');
+  assert.equal(jourIso('2026-11-16T10:00:00Z'), '2026-11-16');
+  assert.equal(jourIso('pas une date'), null);
+});

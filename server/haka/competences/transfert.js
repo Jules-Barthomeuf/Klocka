@@ -101,6 +101,9 @@ const MOTS_RENTRER = /\brentre[rz]?\b.{0,40}\b(plateforme|dossier)/;
 const MOTS_FICHE = /pr[ée]?[\s-]?analys|\banalyse[rz]?\b|nouvelle fiche|nouveau (bien|dossier)|fiche (commerciale|du bien)|[àa] analyser|[ée]tudier ce bien/;
 // « Ne rentre pas la fiche dans la plateforme » (2 nov. 2026, Jules) : pas de dossier, la fiche en Mémoire et dans Twenty.
 const MOTS_MEMOIRE = /\b(ne|n')\s*(la |le |les |l')?(rentre|entre|mets?|cree|ajoute|integre|enregistre)s?\s+pas\b|\bpas (de|en) dossier|\bsans (creer (de|un) )?dossier|\b(juste|seulement|uniquement|que) (en|dans la) memoire|\bne pas (la |le |les )?(rentrer|entrer|creer|mettre|integrer)\b/;
+// « Ne préanalyse pas cette fiche », « pas de pré-analyse », « sans préanalyse » (17 nov. 2026, Jules) : la négation
+// l'emporte sur le mot, la fiche va en Mémoire seulement.
+const PAS_DE_PREANALYSE = /\b(ne|n')\s*(pas\s+)?(la |le |les |l')?(pre[\s-]?)?analys\w*\s+(pas\b)?|\b(pas|sans|aucune?)\s+(de\s+|d'|la\s+)?(pre[\s-]?)?analys|\bne\s+pas\s+(la |le |les |l')?(pre[\s-]?)?analys/;
 const MOTS_DOCUMENTS = /data[\s-]?room|documents?|pi[eè]ces?|[àa] ranger|[àa] classer|ajoute|rajoute|mets? (le|les|dans)|bail|taxe fonci[eè]re/;
 const OUVERTS = (d) => !d.archived && !d.doublon_de && !['abandonne', 'perdu', 'refuse', 'clos'].includes(d.statut);
 
@@ -156,14 +159,17 @@ export function fichesVisees(note0, fiches = []) {
  * de Haka). `dossier` : celui retenu ; `candidats` : quand il faut demander.
  */
 export function comprendre(lu, { pieces = [], fiches = [], vises = [] } = {}) {
-  const note = sansAccents(lu.note || '');
+  // Un mail écrit directement à sourcing@ (pas un transfert) : son objet est aussi la consigne (« Préanalyse » en objet,
+  // corps vide). Pour un transfert, l'objet est celui de l'agent : il ne compte pas (17 nov. 2026, Jules).
+  const consigne = lu.transfert ? (lu.note || '') : `${lu.note || ''} ${lu.objet_origine || ''}`;
+  const note = sansAccents(consigne);
   if (!pieces.length) return { intention: 'demande' };
-  if (MOTS_MEMOIRE.test(note)) return { intention: 'memoire' };
+  if (MOTS_MEMOIRE.test(note) || PAS_DE_PREANALYSE.test(note)) return { intention: 'memoire' };
   const veutFiche = MOTS_FICHE.test(note) || (fiches.length > 0 && MOTS_RENTRER.test(note));
   const veutDocs = !veutFiche && MOTS_DOCUMENTS.test(note);
   const sur = vises[0] && (vises.length === 1 || vises[0].score >= vises[1].score + 1.5) && vises[0].score >= 1.5 ? vises[0] : null;
   if (veutFiche) {
-    const seulement = fichesVisees(lu.note, fiches);
+    const seulement = fichesVisees(consigne, fiches);
     return seulement ? { intention: 'fiche', seulement } : { intention: 'fiche' };
   }
   // Aucun dossier reconnu (2 nov. 2026, Jules) : un nouveau dossier, sans demander.
@@ -178,11 +184,80 @@ export function comprendre(lu, { pieces = [], fiches = [], vises = [] } = {}) {
   return { intention: 'documents', candidats: vises.slice(0, 4), ou_fiche: fiches.length > 0 };
 }
 
+// La consigne lue par l'IA (17 nov. 2026, Jules : « il faut que ça analyse le message ») : les mots-clés ne voient ni
+// une négation ni une tournure (« ne préanalyse pas », « garde-la juste pour info »). Un modèle rapide lit la consigne
+// et la liste des pièces ; les règles de `comprendre` restent en secours s'il ne répond pas. Sans consigne, pas d'appel.
+const MODELE_CONSIGNE = 'claude-haiku-4-5';
+const SCHEMA_CONSIGNE = {
+  type: 'object',
+  properties: {
+    intention: { type: 'string', enum: ['memoire', 'preanalyse', 'documents', 'question'] },
+    fiches: { type: 'array', items: { type: 'integer' }, description: 'numéros des fiches à pré-analyser ; vide = toutes' },
+    raison: { type: 'string' },
+  },
+  required: ['intention'],
+};
+
+/** Pure : la question posée au modèle. */
+export function promptConsigne(consigne, { pieces = [], fiches = [], transfert = false } = {}) {
+  const liste = pieces.map((p, i) => `${i + 1}. ${p?.nom || 'pièce'}${fiches.some((f) => f === p || (f?.piece_id && f.piece_id === p?.piece_id)) ? ' (fiche de bien)' : ''}`).join('\n');
+  return `Un membre de l'équipe Klocka (immobilier commercial) ${transfert ? 'transfère un mail' : 'écrit un mail'} à la boîte sourcing@ avec des pièces jointes. Voici son message, le seul texte qui compte :
+"""
+${String(consigne || '').slice(0, 1500)}
+"""
+Pièces jointes :
+${liste || '(aucune)'}
+
+Que veut-il ? Une seule intention :
+- "memoire" : garder la ou les fiches en mémoire seulement, sans dossier (y compris « ne préanalyse pas », « pour info », « garde-la »).
+- "preanalyse" : créer un dossier et pré-analyser ; « fiches » donne les numéros des fiches à pré-analyser s'il en désigne certaines (« juste celle de Lyon », « la deuxième »), sinon une liste vide pour toutes.
+- "documents" : ranger les pièces dans un dossier existant (bail, data room, documents d'un bien déjà suivi).
+- "question" : il pose une question ou demande autre chose qu'un rangement.
+En cas de doute entre mémoire et pré-analyse, choisis "memoire".`;
+}
+
+/** Pure : des documents pour un dossier : celui qui est sûr, sinon on demande, sinon un nouveau dossier. */
+function versDocuments(vises) {
+  const sur = vises[0] && (vises.length === 1 || vises[0].score >= vises[1].score + 1.5) && vises[0].score >= 1.5 ? vises[0] : null;
+  return sur ? { intention: 'documents', dossier: sur.deal_id } : vises.length ? { intention: 'documents', candidats: vises.slice(0, 4) } : { intention: 'nouveau' };
+}
+
+/**
+ * Ce que le collègue demande, lu par l'IA quand il a écrit quelque chose. Rend la même forme que `comprendre`, plus
+ * `lu_par: 'ia' | 'regles'`. `lire` : remplacé dans les tests.
+ */
+export async function comprendreAvecIA(lu, { pieces = [], fiches = [], vises = [] } = {}, { lire = null } = {}) {
+  const regles = comprendre(lu, { pieces, fiches, vises });
+  const consigne = (lu.transfert ? (lu.note || '') : `${lu.note || ''} ${lu.objet_origine || ''}`).trim();
+  // Sous les tests sans modèle branché : les règles (le modèle factice répondrait n'importe quoi).
+  if (!pieces.length || !consigne || (!lire && process.env.NODE_TEST_CONTEXT)) return { ...regles, lu_par: 'regles' };
+  try {
+    const demander = lire || (async (prompt) => (await import('../../llm.js')).invokeLLM({ prompt, response_json_schema: SCHEMA_CONSIGNE, modele: MODELE_CONSIGNE, max_tokens: 400 }));
+    const r = await demander(promptConsigne(consigne, { pieces, fiches, transfert: lu.transfert }));
+    const fichesIds = (r?.fiches || []).map((n) => pieces[Number(n) - 1]?.piece_id).filter((id) => id && fiches.some((f) => f?.piece_id === id));
+    if (r?.intention === 'memoire') return fiches.length ? { intention: 'memoire', lu_par: 'ia', raison: r.raison || null } : { ...versDocuments(vises), lu_par: 'ia' };
+    if (r?.intention === 'preanalyse') return { intention: 'fiche', ...(fichesIds.length && fichesIds.length < fiches.length ? { seulement: fichesIds } : {}), lu_par: 'ia', raison: r.raison || null };
+    if (r?.intention === 'documents') return { ...versDocuments(vises), lu_par: 'ia' };
+    if (r?.intention === 'question') return { intention: 'demande', lu_par: 'ia' };
+  } catch (e) {
+    console.warn('[transfert] consigne lue par les règles :', e?.message || e);
+  }
+  return { ...regles, lu_par: 'regles' };
+}
+
 /** Qui peut transférer : un compte de l'équipe ou un mandataire. */
 export function expediteurDuTransfert(email) {
   const e = norm(email);
   if (!e) return null;
-  return Records.list('User').find((u) => norm(u.email) === e && (u.role === 'admin' || estMandataire(u))) || null;
+  const u = Records.list('User').find((x) => norm(x.email) === e && (x.role === 'admin' || estMandataire(x)));
+  if (u) return u;
+  // La boîte commune qui s'écrit à elle-même (17 nov. 2026 : un test envoyé depuis sourcing@) : elle compte comme l'équipe.
+  const communes = String(process.env.HAKA_BOITES_COMMUNES || 'sourcing@klocka.immo').toLowerCase().split(',').map((x) => x.trim());
+  if (communes.includes(e)) {
+    const compte = Records.list('User').find((x) => norm(x.email) === e);
+    return { ...(compte || {}), email: e, role: 'admin', full_name: compte?.full_name || 'Sourcing Klocka' };
+  }
+  return null;
 }
 
 /**
@@ -418,8 +493,8 @@ taches.enregistrer(COMPETENCE, {
         const pieces = piecesUtiles(mail);
         const fiches = piecesFiche(mail).filter(Boolean);
         const vises = dossiersVises(lu, Records.list('Deal'), { collegue: membre.email });
-        const c = comprendre(lu, { pieces, fiches, vises });
-        Records.update('MailRecu', mail.id, { haka_transfert: { intention: c.intention, origine: lu.origine?.email || null, le: new Date().toISOString() } });
+        const c = await comprendreAvecIA(lu, { pieces, fiches, vises });
+        Records.update('MailRecu', mail.id, { haka_transfert: { intention: c.intention, lu_par: c.lu_par, raison: c.raison || null, origine: lu.origine?.email || null, le: new Date().toISOString() } });
         return { ...c, cote: coteDuTransfert(membre, c, lu), lu, pour: norm(membre.email), pieces: pieces.map((p) => p.nom) };
       },
     },
@@ -506,7 +581,7 @@ taches.enregistrer(COMPETENCE, {
       async run({ resultats, charge }) {
         const c = resultats.comprendre;
         const mail = Records.get('MailRecu', charge.mail_id);
-        const membre = membreDeLEquipe(mail.de_email);
+        const membre = expediteurDuTransfert(mail.de_email);
         const choix = resultats.choisir?.choix || null;
         const uploadDir = charge.uploadDir || CHEMIN_UPLOADS;
         // « Préanalyse juste la fiche X » : X pré-analysée, les autres fiches du mail en Mémoire (17 nov. 2026, Jules).
@@ -526,7 +601,7 @@ taches.enregistrer(COMPETENCE, {
       nom: 'repondre',
       async run({ resultats, charge }) {
         const mail = Records.get('MailRecu', charge.mail_id);
-        const membre = membreDeLEquipe(mail.de_email);
+        const membre = expediteurDuTransfert(mail.de_email);
         const n = compteRendu(resultats.agir, { objet: mail.objet });
         notifier({ pour: norm(membre.email), titre: n.titre, texte: n.texte, lien: n.lien, action: n.lien ? 'Ouvrir le dossier' : null, cle: `haka-transfert:${mail.id}` });
         return { notifie: true, texte: n.texte };
@@ -534,6 +609,48 @@ taches.enregistrer(COMPETENCE, {
     },
   ],
 });
+
+/**
+ * La reprise des transferts du 16 nov. 2026 (17 nov., Jules : « on a reçu 7 mails avec 8 fiches », 2 seulement traitées).
+ * Relevés avant la nouvelle règle, les autres sont allés dans la Data Room d'un dossier de l'agent ou attendent une
+ * question que personne ne voit (la cloche est retirée de l'écran). Chaque fiche transférée par l'équipe depuis `depuis`,
+ * sans consigne de pré-analyse et pas encore pré-analysée, va en Mémoire (une pièce déjà lue ne l'est pas deux fois) ; la
+ * question en attente est retirée. Une ligne par mail au journal. Une seule fois (`cle`).
+ */
+export async function reprendreTransferts({ depuis = '2026-11-16T00:00:00Z', cle = 'transfert.reprise.2026-11-17', journal = console.log, deps = {} } = {}) {
+  const { Meta } = await import('../../db.js');
+  if (cle && Meta.get(cle)) return { deja: true };
+  const { BOITES_COMMUNES } = await import('../drapeaux.js');
+  const F = await import('../file.js');
+  const mails = Records.list('MailRecu')
+    .filter((m) => BOITES_COMMUNES.has(norm(m.compte)) && m.commande && Date.parse(m.date || 0) >= Date.parse(depuis) && piecesFiche(m).some((x) => x?.piece_id))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const bilan = { mails: mails.length, fiches: 0, deja: 0, preanalyses: 0, erreurs: 0 };
+  for (const m of mails) {
+    const membre = expediteurDuTransfert(m.de_email);
+    const lu = lireTransfert({ texte: m.texte, objet: m.objet });
+    const avant = m.haka_transfert?.intention || 'aucune';
+    const n = piecesFiche(m).filter((x) => x?.piece_id).length;
+    const tete = `[transfert] reprise « ${String(lu.objet_origine || m.objet || '').slice(0, 70)} » de ${m.de_email}, ${n} fiche(s), ${avant}`;
+    if (!membre || (estMandataire(membre) && membre.role !== 'admin')) { journal(`${tete} : expéditeur hors équipe, laissé`); continue; }
+    const veutFiche = MOTS_FICHE.test(sansAccents(lu.note || '')) || MOTS_RENTRER.test(sansAccents(lu.note || ''));
+    if (avant === 'fiche' && (m.deal_id || m.deal_ids?.length)) { bilan.preanalyses += 1; journal(`${tete} : déjà pré-analysée (dossier ${m.deal_id}), fiche en Mémoire par le dossier`); continue; }
+    if (veutFiche) { journal(`${tete} : pré-analyse demandée dans le message, laissée à la tâche`); continue; }
+    for (const p of Records.list('HakaProposition').filter((x) => x.etat === 'proposee' && x.charge?.mail_id === m.id)) F.retirer(p.id, 'Repris le 17 nov. 2026 : fiche transférée sans consigne, mise en Mémoire');
+    try {
+      const r = await enMemoireSeulement(Records.get('MailRecu', m.id), { membre, lu, ...deps });
+      bilan.fiches += r.n - (r.deja ? r.n : 0);
+      if (r.deja) bilan.deja += r.n;
+      journal(`${tete} : ${r.n} en Mémoire${r.deja ? ' (déjà là)' : ''}${m.deal_id ? `, rangée avant dans le dossier ${m.deal_id}` : ''}${r.erreurs?.length ? ` ; non lues : ${r.erreurs.join(' ; ')}` : ''}`);
+    } catch (e) {
+      bilan.erreurs += 1;
+      journal(`${tete} : échec, ${e?.message || e}`);
+    }
+  }
+  if (cle) Meta.set(cle, new Date().toISOString());
+  journal(`[transfert] reprise du ${depuis.slice(0, 10)} : ${bilan.mails} mail(s), ${bilan.fiches} fiche(s) mises en Mémoire, ${bilan.deja} déjà là, ${bilan.preanalyses} déjà pré-analysée(s), ${bilan.erreurs} échec(s)`);
+  return bilan;
+}
 
 /** Un transfert d'un membre de l'équipe sur sourcing@ devient une tâche. */
 export function surTransfert(mail, { uploadDir = null, lancer } = {}) {

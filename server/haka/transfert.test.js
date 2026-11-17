@@ -291,3 +291,64 @@ test("toutes les fiches d'un transfert sans consigne vont en Mémoire, pas seule
   assert.deepEqual(Records.filter('BienMemoire', { mail_recu_id: m.id }).map((b) => b.ville).sort(), ['Agde', 'Sète']);
   assert.match(X.compteRendu(r).texte, /^2 fiches mises en Mémoire et dans les Propriétés de Twenty CRM, sans dossier\./);
 });
+
+test("la reprise du 16 nov. : les fiches transférées sans consigne vont en Mémoire, une fois, et la question en attente est retirée", async () => {
+  const m = transfert({ objet: 'TR: Fiche Coiffeur Agen', texte: '', date: '2026-11-16T09:00:00Z', pieces_jointes: [piece('Fiche Coiffeur Agen.pdf')], haka_transfert: { intention: 'documents' } });
+  const deja = transfert({ objet: 'TR: Fiche Tabac Pau', texte: '', date: '2026-11-16T10:00:00Z', pieces_jointes: [piece('Fiche Tabac Pau.pdf')], haka_transfert: { intention: 'fiche' }, deal_id: 'deal-pau' });
+  const q = Records.create('HakaProposition', { etat: 'proposee', type: 'transfert_dossier', charge: { mail_id: m.id }, pour: 'nora@klocka.immo' });
+  const lignes = [];
+  const extraire = async () => ({ lots: [{ lot: { adresse: { valeur: { rue: '2 rue Neuve', code_postal: '47000', ville: 'Agen' } }, prix_fai: { valeur: 150000 } } }], agent: null });
+  const b = await X.reprendreTransferts({ cle: 'test.reprise', journal: (l) => lignes.push(l), deps: { extraire, pousser: async () => ({ id: 'tw' }) } });
+  assert.equal(Records.filter('BienMemoire', { mail_recu_id: m.id }).length, 1);
+  assert.equal(Records.filter('BienMemoire', { mail_recu_id: deja.id }).length, 0, 'déjà pré-analysée : sa fiche est en Mémoire par le dossier');
+  assert.equal(Records.get('HakaProposition', q.id).etat, 'retiree');
+  assert.ok(b.fiches >= 1 && b.preanalyses >= 1);
+  assert.ok(lignes.some((l) => /Coiffeur Agen.*1 en Mémoire/.test(l)));
+  assert.equal((await X.reprendreTransferts({ cle: 'test.reprise', journal: () => {} })).deja, true, 'une seule fois');
+});
+
+test("un mail écrit directement à sourcing@ avec la fiche, sans transfert : Mémoire ; « Préanalyse » en objet : pré-analyse", () => {
+  const f = [{ nom: 'Fiche Bar Sète.pdf', piece_id: 'p1' }, { nom: 'Fiche Tabac Agde.pdf', piece_id: 'p2' }];
+  const c = (texte, objet) => X.comprendre(X.lireTransfert({ texte, objet }), { pieces: f, fiches: f, vises: [] });
+  assert.deepEqual(c('', ''), { intention: 'memoire', defaut: true });
+  assert.deepEqual(c('', 'Deux fiches'), { intention: 'memoire', defaut: true });
+  assert.deepEqual(c('', 'Préanalyse'), { intention: 'fiche' });
+  assert.deepEqual(c('', 'Préanalyse juste Agde'), { intention: 'fiche', seulement: ['p2'] });
+  // Un transfert : l'objet est celui de l'agent (« à analyser » chez lui ne vaut pas consigne).
+  assert.deepEqual(c('\n---------- Forwarded message ---------\nDe : Agent <a@agence.fr>\nObjet : Bien à analyser\n', 'TR: Bien à analyser'), { intention: 'memoire', defaut: true });
+});
+
+test("« ne préanalyse pas cette fiche » et ses variantes : Mémoire seulement, jamais de pré-analyse", () => {
+  const f = [{ nom: 'Fiche Bar Sète.pdf', piece_id: 'p1' }];
+  const c = (t) => X.comprendre(X.lireTransfert({ texte: t, objet: '' }), { pieces: f, fiches: f, vises: [] }).intention;
+  for (const t of ['ne préanalyse pas cette fiche', 'ne la préanalyse pas', 'pas de préanalyse', 'sans préanalyse', 'ne pas préanalyser', 'ne pas la pré-analyser stp', 'surtout pas de pré-analyse', "n'analyse pas", 'aucune analyse']) assert.equal(c(t), 'memoire', t);
+  for (const t of ['préanalyse cette fiche', 'peux-tu la préanalyser', 'Pré-analyse stp', 'analyse ce bien']) assert.equal(c(t), 'fiche', t);
+});
+
+test("la consigne lue par l'IA : son intention fait foi, les règles en secours, pas d'appel sans message", async () => {
+  const f = [{ nom: 'Fiche Bar Sète.pdf', piece_id: 'p1' }, { nom: 'Fiche Tabac Agde.pdf', piece_id: 'p2' }];
+  const lu = (texte, objet = '') => X.lireTransfert({ texte, objet });
+  const ia = (r) => async () => r;
+  assert.deepEqual(await X.comprendreAvecIA(lu('garde-la juste pour info'), { pieces: f, fiches: f }, { lire: ia({ intention: 'memoire' }) }), { intention: 'memoire', lu_par: 'ia', raison: null });
+  assert.deepEqual(await X.comprendreAvecIA(lu('ouvre un dossier pour celle d Agde'), { pieces: f, fiches: f }, { lire: ia({ intention: 'preanalyse', fiches: [2] }) }), { intention: 'fiche', seulement: ['p2'], lu_par: 'ia', raison: null });
+  assert.deepEqual(await X.comprendreAvecIA(lu('analyse tout'), { pieces: f, fiches: f }, { lire: ia({ intention: 'preanalyse', fiches: [] }) }), { intention: 'fiche', lu_par: 'ia', raison: null });
+  assert.equal((await X.comprendreAvecIA(lu('quel rendement ?'), { pieces: f, fiches: f }, { lire: ia({ intention: 'question' }) })).intention, 'demande');
+  // L'IA ne répond pas : les règles.
+  assert.deepEqual(await X.comprendreAvecIA(lu('ne préanalyse pas'), { pieces: f, fiches: f }, { lire: async () => { throw new Error('panne'); } }), { intention: 'memoire', lu_par: 'regles' });
+  // Sans message : pas d'appel du tout.
+  let appels = 0;
+  assert.deepEqual(await X.comprendreAvecIA(lu(''), { pieces: f, fiches: f }, { lire: async () => { appels += 1; return { intention: 'preanalyse' }; } }), { intention: 'memoire', defaut: true, lu_par: 'regles' });
+  assert.equal(appels, 0);
+  assert.match(X.promptConsigne('ne préanalyse pas', { pieces: f, fiches: f }), /1\. Fiche Bar Sète\.pdf \(fiche de bien\)/);
+});
+
+test("sur sourcing@, un mail de l'équipe ou de la boîte elle-même est une commande, même si une règle apprise l'écartait", async () => {
+  const { trierMail } = await import('../deal/tri-mails.js');
+  const ref = { internes: new Set(['nora@klocka.immo']), domaines: new Set(['klocka.immo']), commandes: new Set(['sourcing@klocka.immo']), mandataires: new Set(),
+    apprises: { parEmail: new Map(), parDomaine: new Map([['klocka.immo', { decision: 'ecarter' }]]) }, ignores: new Set(), agents: new Set(), attendus: new Set(), ambiant: { agents: new Set(), clients: new Set() }, exemples: [] };
+  const mail = (de) => ({ compte: 'sourcing@klocka.immo', de_email: de, objet: 'Fiche', pieces_jointes: [{ nom: 'fiche.pdf' }] });
+  assert.equal(trierMail(mail('nora@klocka.immo'), ref).commande, true, 'la règle apprise ne jette plus un collègue');
+  assert.equal(trierMail(mail('sourcing@klocka.immo'), ref).commande, true, 'la boîte qui s’écrit à elle-même');
+  assert.equal(X.expediteurDuTransfert('sourcing@klocka.immo')?.role, 'admin');
+  assert.equal(X.expediteurDuTransfert('inconnu@ailleurs.fr'), null);
+});

@@ -49,7 +49,7 @@ export function bienDepuisLot(lotBrut, agent = null, meta = {}) {
     type_actif: texte(l.type_actif),
     agent: { nom: texte(ag.nom) || texte(meta.agent_nom), email: agentEmail, telephone: texte(ag.telephone) || texte(meta.agent_telephone), agence: texte(ag.agence) || texte(meta.agence) },
     agent_email: agentEmail,
-    recu_le: meta.recu_le || new Date().toISOString(),
+    recu_le: (meta.recu_le && /^\d{4}-\d{2}-\d{2}/.test(String(meta.recu_le)) ? meta.recu_le : jourIso(meta.recu_le)) || new Date().toISOString(),
     compte: meta.compte || null,
     gmail_message_id: meta.gmail_message_id || null,
     hash_piece: meta.hash_piece || null,
@@ -59,6 +59,25 @@ export function bienDepuisLot(lotBrut, agent = null, meta = {}) {
     origine: meta.origine || 'scraper',
     statut: meta.statut || 'memoire',
   };
+}
+
+const MOIS_FR = { jan: 1, janv: 1, janvier: 1, fev: 2, fevr: 2, fevrier: 2, mar: 3, mars: 3, avr: 4, avril: 4, mai: 5, juin: 6, juil: 7, juillet: 7, aou: 8, aout: 8, sep: 9, sept: 9, septembre: 9, oct: 10, octobre: 10, nov: 11, novembre: 11, dec: 12, decembre: 12 };
+
+/**
+ * Pure : une date lue n'importe où (ISO, « lun. 16 nov. 2026 à 10:12 » d'un transfert Gmail français, « 16/11/2026 »,
+ * « Mon, 16 Nov 2026 ») en AAAA-MM-JJ, ou null. 17 nov. 2026 : « lun. 16 no » partait tel quel dans Twenty, refusé.
+ */
+export function jourIso(v) {
+  const t = String(v || '').trim();
+  if (!t) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+  const f = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (f) return `${f[3]}-${f[2].padStart(2, '0')}-${f[1].padStart(2, '0')}`;
+  const a = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const fr = a.match(/(\d{1,2})(?:er)?\s+([a-z]+)\.?\s+(\d{4})/);
+  if (fr && MOIS_FR[fr[2]]) return `${fr[3]}-${String(MOIS_FR[fr[2]]).padStart(2, '0')}-${fr[1].padStart(2, '0')}`;
+  const d = Date.parse(t);
+  return Number.isFinite(d) ? new Date(d).toISOString().slice(0, 10) : null;
 }
 
 /** Pure : le bien d'un dossier (lot 0), avec l'agent du dossier plutôt que celui de la fiche quand il est connu. */

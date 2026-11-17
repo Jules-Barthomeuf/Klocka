@@ -8,7 +8,7 @@
 
 import { Records } from '../db.js';
 import { TWENTY } from './drapeaux.js';
-import { ENTITE } from './memoire.js';
+import { ENTITE, jourIso } from './memoire.js';
 import { normaliserAdresse } from '../haka/doublons.js';
 
 const PROPRIETES = 'proprietesListe';
@@ -69,7 +69,7 @@ export async function pousserBienMemoire(bien) {
     activiteLocataire: [bien.locataire_nom, bien.locataire_activite].filter(Boolean).join(' · ') || null,
     agentImmobilier: bien.agent?.nom || bien.agent?.agence || bien.agent_email || null,
     ...(agentId ? { agentId } : {}),
-    date: bien.recu_le ? String(bien.recu_le).slice(0, 10) : null,
+    date: jourIso(bien.recu_le),
     notes: [bien.bail_type ? `Bail ${bien.bail_type}` : null, bien.bail_echeance ? `échéance ${bien.bail_echeance}` : null, bien.type_actif, bien.compte ? `reçu sur ${bien.compte}` : null].filter(Boolean).join(' · ') || null,
   };
   for (const k of Object.keys(valeurs)) if (valeurs[k] === undefined) delete valeurs[k];
@@ -124,7 +124,7 @@ export function valeursKlocka(bien) {
     groupe: 'MEMOIRE',
     personnes: PERSONNES_MEMOIRE,
     ...(a.rue || a.ville ? { adresse: adresseTwenty(a) } : {}),
-    date: bien.recu_le ? String(bien.recu_le).slice(0, 10) : null,
+    date: jourIso(bien.recu_le),
     loyer: bien.loyer_annuel ?? null,
     prix: bien.prix ?? null,
     m: bien.surface_m2 ?? null,
@@ -157,7 +157,8 @@ export async function synchroniserKlocka({ max = 50 } = {}) {
   const p = await pret();
   if (!p.ok) return { ignore: true, raison: p.raison };
   const { T } = p;
-  const aPoser = () => Records.list(ENTITE).filter((b) => (b.twenty_klocka_essais || 0) < ESSAIS_KLOCKA && (!b.twenty_klocka_le || String(b.maj_le || '') > String(b.twenty_klocka_le)));
+  // Les annonces lues dans Equimmox (17 nov. 2026) restent dans la Mémoire : ni Propriétés, ni chiffres des agents.
+  const aPoser = () => Records.list(ENTITE).filter((b) => b.origine !== 'equimmox' && (b.twenty_klocka_essais || 0) < ESSAIS_KLOCKA && (!b.twenty_klocka_le || String(b.maj_le || '') > String(b.twenty_klocka_le)));
   const lot = aPoser().slice(0, max);
   if (!lot.length) return { poses: 0, restants: 0 };
   const lignes = new Map();
@@ -194,7 +195,7 @@ export async function synchroniser({ max = 50 } = {}) {
   if (!TWENTY) return { ignore: true, raison: 'MEMOIRE_TWENTY éteint' };
   const p = await pret();
   if (!p.ok) return { ignore: true, raison: p.raison };
-  const aFaire = Records.list(ENTITE).filter((b) => !b.twenty_le || String(b.maj_le || '') > String(b.twenty_le)).slice(0, max);
+  const aFaire = Records.list(ENTITE).filter((b) => b.origine !== 'equimmox' && (!b.twenty_le || String(b.maj_le || '') > String(b.twenty_le))).slice(0, max);
   let poses = 0;
   const agents = new Set();
   for (const b of aFaire) {
@@ -207,10 +208,10 @@ export async function synchroniser({ max = 50 } = {}) {
   let chiffres = 0;
   if (agents.size) {
     const { chiffresAgent } = await import('./agents.js');
-    const tous = Records.list(ENTITE);
+    const tous = Records.list(ENTITE).filter((b) => b.origine !== 'equimmox');
     for (const email of agents) {
       try { await pousserChiffresAgent(email, chiffresAgent(tous.filter((b) => b.agent_email === email))); chiffres += 1; } catch (e) { console.warn(`[mémoire] chiffres ${email} :`, e?.message || e); }
     }
   }
-  return { poses, chiffres, restants: Math.max(0, Records.list(ENTITE).filter((b) => !b.twenty_le).length) };
+  return { poses, chiffres, restants: Math.max(0, Records.list(ENTITE).filter((b) => b.origine !== 'equimmox' && !b.twenty_le).length) };
 }

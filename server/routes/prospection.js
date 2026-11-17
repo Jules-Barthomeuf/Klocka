@@ -852,6 +852,23 @@ export function monterProspection(app) {
     const { pagePersonne } = await import('../prospection/page-personne.js');
     ok(res, await pagePersonne(String(req.params.id), { nom: String(req.query?.nom || '').trim().slice(0, 120) || null }));
   }));
+  // La carte d'avant l'appel : l'équipe de l'agence chez Apollo (recherche gratuite, rien de révélé), gardée 90 jours.
+  app.get('/api/prospection/mode-appel/agences/:id/equipe', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const agence = Records.get('AgenceProspect', String(req.params.id));
+    if (!agence) return ok(res, { gens: [] });
+    const { equipeDeLAgence } = await import('../prospection/agences-apollo.js');
+    let gens = [];
+    try { gens = await equipeDeLAgence(agence, { ville: String(req.query?.ville || agence.ville || '').trim() || null }); } catch (e) { console.warn(`[apollo équipe] ${agence.nom} : ${e?.message || e}`); }
+    ok(res, { gens });
+  }));
+  // Pendant l'appel : la rue de l'adresse dite, en Street View.
+  app.get('/api/prospection/mode-appel/lieu', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { lieuDeLAdresse } = await import('../prospection/lieu-appel.js');
+    const q = (k, n) => String(req.query?.[k] || '').trim().slice(0, n) || null;
+    ok(res, await lieuDeLAdresse(q('adresse', 200), { ville: q('ville', 80), suite: q('suite', 80), agence: q('agence', 80) }));
+  }));
   // Pendant l'appel : le nom de la personne lu dans la conversation et les notes, sa page cherchée sans attendre.
   app.post('/api/prospection/mode-appel/personne', wrap(async (req, res) => {
     if (!admin(req, res)) return;

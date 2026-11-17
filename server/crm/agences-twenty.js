@@ -149,7 +149,7 @@ export async function synchroniser({ go = false, T = null, journal = () => {} } 
     if (x.klockaId) parKlockaId.set(x.klockaId, x);
     parCle.set(cleAgence(x), x);
   }
-  const res = { nouvelles: 0, majs: 0, inchangees: 0, corbeille: 0, retrouvees: 0 };
+  const res = { nouvelles: 0, majs: 0, inchangees: 0, corbeille: 0, retrouvees: 0, erreurs: 0 };
   const nouvelles = [];
   for (const x of toutes) {
     let id = x.a.twenty_agence_id;
@@ -165,13 +165,18 @@ export async function synchroniser({ go = false, T = null, journal = () => {} } 
     const diff = difference(avant, versTwenty(x.a, x.l));
     if (!Object.keys(diff).length) { res.inchangees++; continue; }
     res.majs++;
-    if (go) await T.modifier(PLURIEL, avant.id, diff);
+    if (go) {
+      try { await T.modifier(PLURIEL, avant.id, diff); } catch (e) {
+        // Un téléphone que Twenty refuse : la mise à jour part sans lui.
+        if (diff.telephone) { delete diff.telephone; await T.modifier(PLURIEL, avant.id, diff).catch((e2) => { res.erreurs++; journal(`  ${avant.id} : ${e2?.message || e2}`); }); } else { res.erreurs++; journal(`  ${avant.id} : ${e?.message || e}`); }
+      }
+    }
   }
   res.nouvelles = nouvelles.length;
   if (go && nouvelles.length) {
     for (let i = 0; i < nouvelles.length; i += T.LOT_MAX) {
       const lot = nouvelles.slice(i, i + T.LOT_MAX);
-      const crees = await T.creerEnLot(PLURIEL, lot.map((x) => versTwenty(x.a, x.l)));
+      const crees = await creerLot(T, lot.map((x) => versTwenty(x.a, x.l)), res, journal);
       const parKlocka = new Map(crees.map((c) => [c.klockaId, c.id]));
       for (const x of lot) {
         const id = parKlocka.get(x.a.id);
@@ -181,6 +186,25 @@ export async function synchroniser({ go = false, T = null, journal = () => {} } 
     }
   }
   return res;
+}
+
+const SANS_TELEPHONE = { primaryPhoneNumber: '', primaryPhoneCountryCode: '', primaryPhoneCallingCode: '' };
+/**
+ * Un lot de lignes à créer. Twenty refuse le lot entier pour une seule ligne fautive (17 nov. 2026 : « Provided and
+ * inferred country code are conflicting », l'envoi s'arrêtait à Lyon) : le lot refusé est repris ligne par ligne, une
+ * ligne au téléphone refusé part sans téléphone, une ligne refusée encore est comptée et passée.
+ */
+async function creerLot(T, lignes, res, journal) {
+  try { return await T.creerEnLot(PLURIEL, lignes); } catch { /* repris ligne par ligne */ }
+  const crees = [];
+  for (const l of lignes) {
+    try { crees.push(...(await T.creerEnLot(PLURIEL, [l]))); continue; } catch { /* sans téléphone */ }
+    try { crees.push(...(await T.creerEnLot(PLURIEL, [{ ...l, telephone: SANS_TELEPHONE }]))); } catch (e) {
+      res.erreurs++;
+      journal(`  ${l.name} : ${e?.message || e}`);
+    }
+  }
+  return crees;
 }
 
 /** Les villes des listes de la Prospection (les listes d'essai exceptées). */
@@ -310,7 +334,7 @@ export async function entretenir() {
     const p = await preparer({ go: true, creerObjetSiAbsent: false });
     if (!p.objet) return null;
     const r = await synchroniser({ go: true });
-    if (p.nouvellesVues.length || r.nouvelles || r.majs || r.retrouvees) console.log(`[agences] Twenty : ${p.nouvellesVues.length} vue(s) de ville, ${r.nouvelles} nouvelle(s), ${r.retrouvees} retrouvée(s), ${r.majs} mise(s) à jour`);
+    if (p.nouvellesVues.length || r.nouvelles || r.majs || r.retrouvees || r.erreurs) console.log(`[agences] Twenty : ${p.nouvellesVues.length} vue(s) de ville, ${r.nouvelles} nouvelle(s), ${r.retrouvees} retrouvée(s), ${r.majs} mise(s) à jour, ${r.erreurs} refusée(s)`);
     return r;
   } finally {
     entretienEnCours = false;

@@ -508,6 +508,9 @@ export function contactsDe(a, fiche = null, place = null) {
   if (a.monday_connu?.nom) ajouter({ nom: a.monday_connu.nom, source: 'Contact Twenty CRM', telephone: a.monday_connu.telephone || null });
   // « Dernier interlocuteur » seulement si on lui a parlé (13 oct. 2026) : une fiche créée au premier appel porte le nom du gérant.
   if (fiche?.nom && fiche.dernier_contact_le && R.norm(fiche.nom) !== R.norm(a.nom)) ajouter({ nom: fiche.nom, source: 'Dernier interlocuteur', telephone: (fiche.telephones || []).find((t) => R.normTel(t) !== R.normTel(a.telephone)) || null });
+  // L'équipe trouvée chez Apollo (17 nov. 2026, Jules : « l'interlocuteur probable ») : la recherche gratuite, prénom,
+  // initiale et poste, sans la location ; rangée du plus probable (commerce, transaction) au moins probable.
+  for (const x of (a.apollo_equipe?.gens || []).slice(0, 3)) ajouter({ nom: x.nom, source: 'Apollo', fonction: x.poste || null });
   for (const g of (a.gerants || []).slice(0, 2)) ajouter({ nom: g.nom, source: 'Registre du commerce', fonction: g.qualite || null });
   // Les personnes des pages équipe (15 nov. 2026) gardent leur fonction (« Co-fondateur », « Conseillère en immobilier »).
   for (const x of (a.agents || []).filter((y) => y.nom).slice(0, 3)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : x.source === 'page équipe du site' ? 'Site de l\'agence' : 'Agent', fonction: x.fonction || null, telephone: x.telephone || null });

@@ -164,3 +164,91 @@ export async function numeroDUnePersonne({ prenom, nom, organisation = null, vil
     return tel || email ? { telephone: tel ? telAffiche(tel) : null, email } : null;
   });
 }
+
+// --- L'équipe d'une agence, pour la carte d'appel (17 nov. 2026) ---------------------------------------------------
+// Jules : « pour nourrir la carte d'appel, aller chercher dans Apollo les membres de l'équipe : l'interlocuteur
+// probable, puis les autres ; pas ceux qui font de la location, mais un conseiller en transaction, une responsable
+// administrative, le manager de l'agence ». Et : « je ne veux pas leurs numéros, sinon ça consomme trop de crédits ».
+// Seule la recherche (mixed_people/api_search) sert : elle ne coûte aucun crédit et rend le prénom, l'initiale du nom
+// et le poste. Rien n'est révélé (people/match), ni mail ni numéro.
+
+// La location, la gestion locative, le syndic et les métiers sans rapport ne sont pas des interlocuteurs.
+const HORS_SUJET = /(locat|rental|letting|leasing|gestion|property manag|syndic|copropri|comptab|account|marketing|communication|community|social media|e-?commerce|legal|juridique|travaux|logisti|[ée]v[éeè]nement|event|\\bcto\\b|\\bcfo\\b|t[ée]l[ée]conseill|business develop|d[ée]veloppeu|developer|stagiaire|intern\b|alternan|apprenti|photograph|home ?stag|\bit\b|informati|data|rh\b|ressources humaines|human resources|recrut)/i;
+// Un poste mêlé (« négociateur location et transaction ») reste un interlocuteur s'il fait de la transaction ou du commerce.
+const MALGRE_TOUT = /(transaction|immobilier (commercial|d.entreprise)|fonds de commerce|locaux commerciaux|murs commerciaux)/i;
+// Du plus probable au moins probable : le commerce, la transaction, la direction de l'agence, l'administratif.
+const RANGS = [
+  /(immobilier (commercial|d.entreprise)|fonds de commerce|locaux commerciaux|murs commerciaux|cession|(?<![-\w])commerces?\b)/i,
+  /(transaction|n[ée]gociat|conseill|agent immobilier|real estate agent|sales|vente|commercial|charg[ée]e? de projet|consultant|broker)/i,
+  /(directeur|directrice|director|manager|g[ée]rant|responsable d.agence|head|ceo|founder|fondat|pr[ée]sident|associ[ée]|owner|partner|dirigeant)/i,
+  /(assistant|administrati|office|secr[ée]taire|accueil)/i,
+];
+const TRADUCTIONS = [
+  [/^co-?founder$/i, 'Cofondateur'], [/^founder$/i, 'Fondateur'], [/^(ceo|chief executive officer)$/i, 'Dirigeant'],
+  [/^managing director$/i, 'Directeur général'], [/^(agency|branch) manager$/i, 'Responsable d\'agence'],
+  [/^real estate agent$/i, 'Agent immobilier'], [/^real estate (consultant|advisor|adviser)$/i, 'Conseiller immobilier'],
+  [/^sales (manager|director)$/i, 'Responsable commercial'], [/^owner$/i, 'Gérant'], [/^office manager$/i, 'Responsable administrative'],
+  [/^(executive )?assistant$/i, 'Assistant'], [/^partner$/i, 'Associé'],
+];
+
+/** Pure : le poste en français quand Apollo le donne en anglais (les plus courants) ; tel quel sinon. */
+export function posteFrancais(poste) {
+  const p = String(poste || '').trim();
+  const t = TRADUCTIONS.find(([re]) => re.test(p));
+  return t ? t[1] : p || null;
+}
+
+/** Pure : le rang d'un poste (0 le plus probable), ou null s'il n'est pas un interlocuteur (location, gestion…). */
+export function rangPoste(poste) {
+  const p = String(poste || '');
+  if (HORS_SUJET.test(p) && !MALGRE_TOUT.test(p)) return null;
+  // Un poste qui ne dit ni transaction, ni direction, ni administratif (« Greenbullien ») n'est pas proposé.
+  const i = RANGS.findIndex((re) => re.test(p));
+  return i < 0 ? null : i;
+}
+
+/** Pure : « Maxime D. » à partir du prénom et du nom masqué par Apollo (« Do***e »). */
+export function nomCourt(prenom, nomMasque) {
+  const p = String(prenom || '').trim();
+  const i = String(nomMasque || '').trim()[0];
+  return p ? `${p}${i ? ` ${i.toUpperCase()}.` : ''}` : null;
+}
+
+/** Pure : les personnes de la recherche, sans la location, rangées de la plus probable à la moins probable. */
+export function equipeRangee(people = []) {
+  return (people || [])
+    .map((p) => ({ nom: nomCourt(p.first_name, p.last_name_obfuscated || p.last_name), poste: posteFrancais(p.title), rang: rangPoste(p.title), id: p.id }))
+    .filter((x) => x.nom && x.rang != null)
+    .sort((a, b) => a.rang - b.rang)
+    .slice(0, 6)
+    .map(({ nom, poste, id }) => ({ nom, poste, apollo_id: id }));
+}
+
+const domaineDe = (site) => { try { return new URL(/^https?:/.test(site) ? site : `https://${site}`).hostname.replace(/^www\./, ''); } catch { return null; } };
+
+/**
+ * L'équipe d'une agence chez Apollo, par son identifiant Apollo ou le domaine de son site ; gardée 90 jours et posée sur
+ * l'agence (`apollo_equipe`). Gratuit : la recherche seule. Rend [{ nom, poste, apollo_id }].
+ */
+export async function equipeDeLAgence(agence, { ville = null, lire = fetch } = {}) {
+  if (!apolloConfigure() || !agence) return [];
+  const domaine = agence.site ? domaineDe(agence.site) : null;
+  if (!agence.apollo_id && !domaine) return [];
+  const cleR = `equipe2|${agence.apollo_id || domaine}|${String(ville || '').toLowerCase()}`;
+  const gens = await enMemoire(cleR, async () => {
+    const org = agence.apollo_id ? { organization_ids: [agence.apollo_id] } : { q_organization_domains_list: [domaine] };
+    const chercher = (corps) => appeler('/mixed_people/api_search', { corps: { ...org, per_page: 25, page: 1, ...corps }, lire });
+    let j = await chercher({});
+    // Un réseau (Orpi, Century 21…) : l'identifiant ou le domaine désigne tout le réseau. On resserre sur la ville ;
+    // encore trop de monde, on ne sait pas qui est de cette agence-ci : personne plutôt que des inconnus d'ailleurs.
+    const total = (j) => Number(j.total_entries ?? j.pagination?.total_entries ?? (j.people || []).length);
+    if (total(j) > 30) {
+      if (!ville) return [];
+      j = await chercher({ person_locations: [`${ville}, France`] });
+      if (total(j) > 30) return [];
+    }
+    return equipeRangee(j.people || []);
+  }) || [];
+  if (agence.id) Records.update('AgenceProspect', agence.id, { apollo_equipe: { le: new Date().toISOString(), gens } });
+  return gens;
+}

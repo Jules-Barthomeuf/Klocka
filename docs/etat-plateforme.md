@@ -1,42 +1,42 @@
 # État de la plateforme
 
-Écrit le 16/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 17/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-5 personnes, 4 174 pages ouvertes, 0 demandes à l'assistant, 18 actions exécutées.
+5 personnes, 4 172 pages ouvertes, 0 demandes à l'assistant, 18 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 505 | 0 | 18 | 16/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 497 | 0 | 18 | 17/11/2026 |
 | admin.stress@test.local (équipe) | 372 | 0 | 0 | 15/11/2026 |
 | test.mandataire@kpartners.fr | 182 | 0 | 0 | 14/11/2026 |
-| admin@klocka.local (équipe) | 110 | 0 | 0 | 16/11/2026 |
+| admin@klocka.local (équipe) | 116 | 0 | 0 | 17/11/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
 
 ## Les pages qui comptent
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **MandataireBiens** — 1 019 (24 %)
-- **Analyse** — 847 (20 %)
-- **Dashboard** — 316 (8 %)
-- **CrmTwenty** — 314 (8 %)
-- **Prospection** — 260 (6 %)
+- **MandataireBiens** — 1 021 (24 %)
+- **Analyse** — 842 (20 %)
+- **CrmTwenty** — 320 (8 %)
+- **Dashboard** — 309 (7 %)
+- **Prospection** — 279 (7 %)
 - **MandataireProspection** — 246 (6 %)
-- **AdminProjets** — 207 (5 %)
-- **Personnalisation** — 161 (4 %)
+- **AdminProjets** — 203 (5 %)
+- **Personnalisation** — 158 (4 %)
 - **MandatsMandataires** — 66 (2 %)
 - **SimulateurRentabilite** — 55 (1 %)
 - **AdminUtilisateurs** — 45 (1 %)
 - **KVacance** — 40 (1 %)
-- Le reste, sous 1 % : Monitoring, Cerveau, PlancheAnalyse, Outils, MandataireClients, MandataireTableauDeBord, KData, Home, AdminModeles, Offres, MandataireDocuments, Emailing, ProjetDetail, PlancheVerre, SuiviAppels, KZoning, SuiviActivite, MandataireDossier, KTransactions, public, AdminClients, KExpertise, SimulateurPublic, KProspective, AdminSuggestions, MandataireProjets, Tokimo, MandataireEstimation, AccesPages, PlancheMarche, KEstimation, KFoncier, Automatismes, Semaine, MandataireOffMarket, AdminMandataires, SuiviAudience, AdminAccesCrm, tokimo, AdminPresentations, MandataireMarche, PlancheVacance, PlancheLocataire, ValeurLocative, DepotVendeur, MemoireKlocka, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, SuiviMandataires, MesProjets, AdminBanque, SuiviCorrections, SignerBon, klocka.immo, AdminEquipe, Feedback, NotreOffre, SuiviChat, Ressources, MesPresentations, Haka
+- Le reste, sous 1 % : Monitoring, PlancheAnalyse, Outils, MandataireClients, MandataireTableauDeBord, Cerveau, KData, Home, AdminModeles, Offres, MandataireDocuments, Emailing, PlancheVerre, ProjetDetail, SuiviAppels, KZoning, SuiviActivite, MandataireDossier, KTransactions, public, AdminClients, KExpertise, SimulateurPublic, KProspective, AdminSuggestions, MandataireProjets, Tokimo, MandataireEstimation, AccesPages, PlancheMarche, KEstimation, KFoncier, Semaine, MandataireOffMarket, AdminMandataires, SuiviAudience, AdminAccesCrm, Automatismes, tokimo, AdminPresentations, MandataireMarche, PlancheVacance, PlancheLocataire, ValeurLocative, DepotVendeur, MemoireKlocka, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, SuiviMandataires, AdminBanque, SuiviCorrections, SignerBon, klocka.immo, MesProjets, AdminEquipe, Feedback, NotreOffre, SuiviChat
 
 ## Ce que l'IA coûte
 
-40,86 € sur la période, 2 111 appels, 14 534 k jetons. 52 % part en tâche de fond, sans que personne clique. 41 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+41,64 € sur la période, 2 185 appels, 14 910 k jetons. 52 % part en tâche de fond, sans que personne clique. 41 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -48,14 +48,14 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
 | Analyser une fiche commerciale | 0,0091 € par fiche | 16 | 0,16 € | 15 s |
-| Parler à l'assistant après un appel | 0,0075 € par demande | 14 | 0,11 € | 2 s |
+| Parler à l'assistant après un appel | 0,0076 € par demande | 19 | 0,15 € | 2 s |
 | Trouver les zones commerçantes d'une ville | 0,0080 € par ville | 13 | 0,10 € | 7 s |
 | Lire une fiche pour la Mémoire (fond) | 0,01 € par fiche | 4 | 0,07 € | 8 s |
 | Le retour d'AK sur un appel | 0,0094 € par demande | 6 | 0,06 € | 11 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : pages équipe (1,66 €) · POST /api/prospection/mode-appel/pre-lecture (1,05 €) · POST /api/prospection/mode-appel/issue (0,94 €) · lire le passage sur Street View (0,53 €) · fil dossier (0,39 €) · cerveau (0,19 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : pages équipe (1,66 €) · POST /api/prospection/mode-appel/pre-lecture (1,15 €) · POST /api/prospection/mode-appel/issue (1,05 €) · GET /api/prospection/agents/:id/page (0,54 €) · lire le passage sur Street View (0,53 €) · fil dossier (0,39 €).
 
 ## Les leviers sur la dépense
 

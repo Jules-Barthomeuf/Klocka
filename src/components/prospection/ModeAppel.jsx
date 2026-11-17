@@ -14,6 +14,7 @@ import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/pros
 import { ETIQUETTE } from "@/components/prospection/StyleAppel";
 import EcranApresAppel, { BoutonTranscription } from "@/components/prospection/EcranApresAppel";
 import { CalculatriceEnLigne } from "@/components/prospection/EcranEnLigne";
+import LieuEnLigne from "@/components/prospection/LieuEnLigne";
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
@@ -607,7 +608,8 @@ function CarteAvantAppel({ a, contacts, choisi, onChoisir, numero, histo, essai,
       {/* Un filet en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css). */}
       <div aria-hidden className="h-px bg-trait" />
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3 max-md:px-4">
-        <span className="text-[13.5px] text-ardoise">Interlocuteurs</span>
+        {/* « Interlocuteur probable » quand personne n'est connu et que la première personne vient d'Apollo (17 nov. 2026). */}
+        <span className="text-[13.5px] text-ardoise">{contacts.find((x) => !x.standard)?.source === "Apollo" ? "Interlocuteur probable" : "Interlocuteurs"}</span>
         {contacts.map((x) => {
           const actif = choisi?.id === x.id;
           const role = x.fonction || x.source;
@@ -922,7 +924,25 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   useEffect(() => { reserveeRef.current = reserveeJusqu; }, [reserveeJusqu]);
   // L'interlocuteur choisi : le premier de la liste à chaque nouvelle agence.
   useEffect(() => { setChoisi(null); }, [a?.id]);
-  const contacts = a?.contacts || [];
+  // L'équipe Apollo de l'agence (17 nov. 2026, Jules : « l'interlocuteur probable, puis les personnes d'Apollo, pas
+  // ceux de la location ; pas leurs numéros, sinon ça consomme trop de crédits ») : la recherche gratuite, lue à
+  // l'ouverture de la carte et gardée 90 jours ; prénom, initiale et poste, sans numéro.
+  const villeAgence = String(a?.lieu || "").split(" · ")[0] || "";
+  const equipe = useQuery({
+    queryKey: ["equipe-apollo", a?.id],
+    queryFn: () => base44.request("GET", `${API}/agences/${encodeURIComponent(a.id)}/equipe${villeAgence ? `?ville=${encodeURIComponent(villeAgence)}` : ""}`),
+    enabled: !!a?.id && !session?.essai, staleTime: Infinity, retry: false,
+  });
+  const contacts = useMemo(() => {
+    const base = a?.contacts || [];
+    const gens = equipe.data?.gens || [];
+    if (!gens.length) return base;
+    const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const connus = new Set(base.map((x) => norm(x.nom)));
+    const ajout = gens.filter((x) => !connus.has(norm(x.nom))).slice(0, 3).map((x, i) => ({ id: `ap${i}`, nom: x.nom, fonction: x.poste || null, source: "Apollo", telephone: null, standard: false }));
+    // Avant le standard, après les personnes déjà connues.
+    return [...base.filter((x) => !x.standard), ...ajout, ...base.filter((x) => x.standard)].slice(0, 7);
+  }, [a?.contacts, equipe.data]);
   const contactChoisi = contacts.find((x) => x.id === choisi) || contacts.find((x) => !x.standard) || contacts[0] || null;
   // Le nom de l'autre voix dans la transcription : la personne choisie, sinon « Interlocuteur ».
   const nomAutre = (contactChoisi && !contactChoisi.standard && nomLisible(contactChoisi.nom)) || "Interlocuteur";
@@ -1590,7 +1610,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                       {/* Les notes au-dessus de la calculatrice (22 oct. 2026, Jules). */}
                       <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu rows={11} />
                       {/* En temps réel, le texte vient du flux, pas des morceaux (16 nov. 2026, Jules : « la calculatrice quand on parle de prix »). */}
-                      <CalculatriceEnLigne textes={[...lignesVoix.lignes.map((l) => l.texte), lignesVoix.enCours?.texte || "", notesAppel]} />
+                      {/* Le lieu à côté de la calculatrice (17 nov. 2026, Jules) : la carte s'ouvre dès qu'une adresse est dite. */}
+                      <CalculatriceEnLigne textes={[...lignesVoix.lignes.map((l) => l.texte), lignesVoix.enCours?.texte || "", notesAppel]}
+                        avant={<LieuEnLigne textes={[...lignesVoix.lignes.map((l) => l.texte), notesAppel]} ville={String(a?.lieu || "").split(" · ")[0] || null} />} />
                     </>
                   ),
                   // Le pied de la carte (16 nov. 2026, maquette de Jules) : ce qui est enregistré, puis les issues sans conversation.

@@ -56,7 +56,10 @@ export default function EcranApresAppel({ appel, personneAppel = null, issue, co
       if (!el || window.innerWidth < 768) { setHauteur(null); return; }
       // Jusqu'au bas de la fenêtre (Jules : « la saisie plus bas ») : la saisie garde seulement sa marge du chat. Remesuré à
       // chaque rendu : le titre de la page et la ligne des villes s'effacent juste après l'arrivée, le cadre remonte.
-      setHauteur(Math.max(520, Math.round(window.innerHeight - el.getBoundingClientRect().top - 2)));
+      // La place du cadre dans la page, pas dans la fenêtre : si la page a glissé, la hauteur ne bouge pas (17 nov. 2026).
+      const haut = el.getBoundingClientRect().top + window.scrollY;
+      const h = Math.max(520, Math.round(window.innerHeight - haut - 2));
+      setHauteur((avant) => (avant != null && Math.abs(avant - h) < 2 ? avant : h));
     };
     mesurer();
     window.addEventListener("resize", mesurer);

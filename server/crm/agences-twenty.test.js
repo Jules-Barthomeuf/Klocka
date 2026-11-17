@@ -73,3 +73,24 @@ test("une autre base qui écrit dans le même Twenty retrouve les lignes au lieu
   assert.equal(Records.get('AgenceProspect', a2.id).twenty_agence_id, 'x2');
   assert.ok(r.retrouvees >= 3 && r.corbeille >= 1);
 });
+
+test("un téléphone refusé par Twenty n'arrête plus l'envoi : le lot est repris ligne par ligne (17 nov. 2026)", async () => {
+  const liste = Records.create('ListeAgences', { ville: 'Lyon', nom: 'Lyon' });
+  const bonne = Records.create('AgenceProspect', { liste_id: liste.id, nom: 'Agence Bellecour', telephone: '04 78 11 11 11' });
+  const fautive = Records.create('AgenceProspect', { liste_id: liste.id, nom: 'Agence Confluence', telephone: '+33 4 78 22 22 22 99' });
+  const posees = [];
+  const T = {
+    LOT_MAX: 60,
+    lister: async () => [],
+    creerEnLot: async (_p, lignes) => {
+      if (lignes.some((l) => l.name === 'Agence Confluence' && l.telephone.primaryPhoneNumber)) throw new Error('Provided and inferred country code are conflicting');
+      return lignes.map((l, i) => { const x = { ...l, id: `l${posees.length + i}` }; posees.push(x); return x; });
+    },
+    modifier: async () => {},
+  };
+  const r = await M.synchroniser({ go: true, T });
+  assert.equal(r.erreurs, 0);
+  assert.ok(Records.get('AgenceProspect', bonne.id).twenty_agence_id);
+  assert.ok(Records.get('AgenceProspect', fautive.id).twenty_agence_id, 'posée sans son téléphone');
+  assert.equal(posees.find((x) => x.name === 'Agence Confluence').telephone.primaryPhoneNumber, '');
+});

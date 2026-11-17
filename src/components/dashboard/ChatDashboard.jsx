@@ -1689,7 +1689,15 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   // propose" ») : le fil reste en haut tant qu'on n'a rien écrit ; il ne descend qu'au premier message.
   useEffect(() => {
     if (debutFil && !fil.some((m) => m.role === "user")) return;
-    finRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    // Seul le fil défile (17 nov. 2026, Jules : « le chat d'après l'appel bouge, il descend un peu ») : scrollIntoView
+    // faisait aussi glisser la page de quelques pixels, saisie comprise. Le conteneur qui défile est cherché ; la page
+    // ne défile que si le fil n'en a pas à lui.
+    const fin = finRef.current;
+    if (!fin) return;
+    let boite = fin.parentElement;
+    while (boite && boite !== document.body && !(/(auto|scroll)/.test(getComputedStyle(boite).overflowY) && boite.scrollHeight > boite.clientHeight)) boite = boite.parentElement;
+    if (boite && boite !== document.body) boite.scrollTo({ top: boite.scrollHeight, behavior: "smooth" });
+    else fin.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [fil, fiche, brouillon]);
 
   const enCours = boite.isPending || analyser.isPending;

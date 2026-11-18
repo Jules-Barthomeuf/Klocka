@@ -132,9 +132,16 @@ export async function remplacerUneFois({ ville, fichier, cle, journal = console.
   const r = await remplacerListe({ ville, donnees, T, journal });
   // La vue Twenty de la liste préparée n'a plus de lignes : elle s'efface (les lignes, elles, passent dans la ville).
   try {
-    const vues = await T.requeteTwenty('GET', '/metadata/views?limit=200');
-    const v = (vues?.data?.views || vues?.data || []).find((x) => x.name === donnees.liste.ville);
-    if (v?.id) await T.requeteTwenty('DELETE', `/metadata/views/${v.id}`);
+    // Toutes les pages de vues (18 nov. 2026 : la première page seule avait laissé « Grenoble 2 » en place).
+    const vues = [];
+    let apres = null;
+    for (let i = 0; i < 20; i += 1) {
+      const r = await T.requeteTwenty('GET', `/metadata/views?limit=200${apres ? `&starting_after=${apres}` : ''}`);
+      vues.push(...(Array.isArray(r?.data) ? r.data : r?.data?.views || []));
+      if (!r?.pageInfo?.hasNextPage) break;
+      apres = r.pageInfo.endCursor;
+    }
+    for (const v of vues.filter((x) => x.name === donnees.liste.ville)) await T.requeteTwenty('DELETE', `/metadata/views/${v.id}`);
   } catch (e) { journal(`[liste] vue ${donnees.liste.ville} : ${e?.message || e}`); }
   Meta.set(cle, new Date().toISOString());
   return r;
@@ -145,10 +152,31 @@ export async function remplacerUneFois({ ville, fichier, cle, journal = console.
  * remplace la liste de sa ville, une fois (la clé porte la ville). La ville : le champ `ville` du fichier, sinon le nom
  * de la liste préparée sans son « 2 ».
  */
+/**
+ * Les listes « Ville 2 » restées vivantes à côté de la liste de leur ville (18 nov. 2026 : une « Grenoble 2 » créée en
+ * ligne à 12 h 07 par un ancien lancement, encore visible après le remplacement) : archivées, leurs agences avec. Dit au
+ * journal ce qu'il a archivé, ou qu'il n'y avait rien.
+ */
+export function archiverListesEnDouble({ journal = console.log } = {}) {
+  const vivantes = Records.list(LISTE).filter((l) => !l.archivee && !l.essai);
+  const le = new Date().toISOString();
+  const archivees = [];
+  for (const l of vivantes) {
+    const m = String(l.ville || '').match(/^(.+?)\s+2$/);
+    if (!m) continue;
+    if (!vivantes.some((x) => x.id !== l.id && norm(x.ville) === norm(m[1]))) continue;
+    Records.update(LISTE, l.id, { archivee: true, archivee_le: le, ville: `${l.ville} (en double, archivée le ${le.slice(0, 10)})` });
+    archivees.push(l.ville);
+  }
+  journal(`[liste] listes en double : ${archivees.length ? `archivées ${archivees.join(', ')}` : 'aucune'} ; listes vivantes : ${Records.list(LISTE).filter((l) => !l.archivee && !l.essai).map((l) => l.ville).join(', ')}`);
+  return archivees;
+}
+
 export async function remplacerToutes({ journal = console.log } = {}) {
   const fs = await import('node:fs');
   const dossier = new URL('./donnees/', import.meta.url);
   const fichiers = fs.existsSync(dossier) ? fs.readdirSync(dossier).filter((f) => f.endsWith('-2.json')).sort((a, b) => Number(b.startsWith('grenoble')) - Number(a.startsWith('grenoble'))) : [];
+  try { archiverListesEnDouble({ journal }); } catch (e) { journal(`[liste] listes en double : ${e?.message || e}`); }
   for (const f of fichiers) {
     try {
       const entete = JSON.parse(fs.readFileSync(new URL(f, dossier), 'utf8'));
@@ -158,5 +186,5 @@ export async function remplacerToutes({ journal = console.log } = {}) {
       await remplacerUneFois({ ville, fichier: `./donnees/${f}`, cle, journal });
     } catch (e) { journal(`[liste] ${f} : ${e?.message || e}`); }
   }
+  try { archiverListesEnDouble({ journal }); } catch (e) { journal(`[liste] listes en double : ${e?.message || e}`); }
 }
-

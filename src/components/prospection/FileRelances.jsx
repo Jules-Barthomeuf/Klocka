@@ -142,6 +142,7 @@ export function FileRelances({ onOuvrir, integre = false }) {
 /** Le Mode appel : sur la relance prise si `courante`, sinon la file des villes. Une seule entrée pour les deux. */
 export function ModeAppelUnique({ courante, setCourante, entete = null, listeInitiale = null, onApresAppel = null }) {
   const queryClient = useQueryClient();
+  const [liste, setListe] = useState(false);
   const rafraichir = () => { queryClient.invalidateQueries({ queryKey: ["relances"] }); queryClient.invalidateQueries({ queryKey: ["relances-prises"] }); };
   // En quittant le Mode appel avec une ligne prise, elle se libère.
   const ref = useRef(null);
@@ -168,7 +169,8 @@ export function ModeAppelUnique({ courante, setCourante, entete = null, listeIni
     setCourante(null); rafraichir();
   };
   if (courante) return <ModeAppel key={courante.cle} relances relance={courante} onSuivante={suivante} onRetour={retour} onApresAppel={onApresAppel} />;
-  // Les relances dues, dans le menu des villes : la première libre s'ouvre, puis la suivante (16 nov. 2026, Jules : une
-  // après l'autre, plus de liste dans le Mode appel).
-  return <ModeAppel entete={entete} listeInitiale={listeInitiale} onApresAppel={onApresAppel} relancesDues={suivante} />;
+  // « À relancer », un onglet à droite des villes (18 nov. 2026, Jules : « c'est là où on voit qui relancer ») : la liste
+  // partagée des relances dues ; un clic sur une ligne la prend et ouvre l'appel, puis la suivante s'enchaîne.
+  const aRelancer = { actif: liste, ouvrir: () => setListe(true), fermer: () => setListe(false), contenu: <FileRelances integre onOuvrir={(c) => { setListe(false); setCourante(c); }} /> };
+  return <ModeAppel entete={entete} listeInitiale={listeInitiale} onApresAppel={onApresAppel} relancesDues={suivante} aRelancer={aRelancer} />;
 }

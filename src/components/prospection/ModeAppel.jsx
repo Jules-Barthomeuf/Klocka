@@ -817,7 +817,8 @@ function ChoixVille({ villes, valeur, onChoisir, essai, dues = null, nbDues = 0 
 
 // `listeInitiale` : la ville ouverte d'abord (la ville proposée du tableau de bord), sinon la dernière choisie.
 // `relancesDues()` : prend la première relance due libre et l'ouvre.
-export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false, entete = null, listeInitiale = null, relancesDues = null, onApresAppel = null }) {
+// `aRelancer` : l'onglet « À relancer » à droite des villes (18 nov. 2026, Jules) : { actif, ouvrir(), fermer(), contenu }.
+export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false, entete = null, listeInitiale = null, relancesDues = null, onApresAppel = null, aRelancer = null }) {
   // `essaiSeul` (page Relances, 8 oct. 2026) : seulement le mode Essai, sans les villes, les relances d'abord.
   const [scenario, setScenario] = useState(null);
   // En essai, écrire pour de vrai dans Monday (8 oct. 2026) : oui par défaut, retenu dans le navigateur.
@@ -825,7 +826,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const setMondayEssai = (v) => { setMondayEssaiBrut(v); poserLocal("klocka.essai.monday", v); };
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(null);
-  const nbDues = useQuery({ queryKey: ["relances"], queryFn: () => base44.request("GET", "/api/prospection/relances"), enabled: !!relancesDues, refetchInterval: 60_000 }).data?.lignes?.length || 0;
+  const nbDues = useQuery({ queryKey: ["relances"], queryFn: () => base44.request("GET", "/api/prospection/relances"), enabled: !!relancesDues || !!aRelancer, refetchInterval: 60_000 }).data?.lignes?.length || 0;
   const [sessions, setSessions] = useState({}); // onglet → { id, liste_id, ville, essai, debut }
   const [ecran, setEcran] = useState("fiche");
   const [passees, setPassees] = useState(() => new Set());
@@ -1688,9 +1689,19 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       {!relances && !essaiSeul && !apresAppel && (() => {
         const ville = (
           <span className="inline-flex flex-wrap items-center gap-y-2">
-            <ChoixVille villes={villes} valeur={onglet} onChoisir={choisir} essai={ESSAI} dues={relancesDues ? DUES : null} nbDues={nbDues} />
+            {/* Avec l'onglet « À relancer », les relances quittent le menu des villes : la liste dit qui relancer. */}
+            <ChoixVille villes={villes} valeur={aRelancer?.actif ? null : onglet} onChoisir={(k) => { aRelancer?.fermer(); if (k !== onglet) choisir(k); }} essai={ESSAI} dues={relancesDues && !aRelancer ? DUES : null} nbDues={nbDues} />
+            {/* « À relancer » à droite des villes (18 nov. 2026, Jules : « c'est là où on voit qui relancer ») : la liste
+                partagée des relances dues ; un clic sur une ligne ouvre l'appel. */}
+            {aRelancer && (
+              <button type="button" onClick={() => (aRelancer.actif ? aRelancer.fermer() : aRelancer.ouvrir())} aria-pressed={aRelancer.actif}
+                className={`ml-2 inline-flex h-9 items-center gap-2 rounded-full border px-4 text-[14px] transition-colors max-md:h-10 ${aRelancer.actif ? "border-bord-vif bg-relief text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`}
+                style={aRelancer.actif ? undefined : { background: "transparent" }}>
+                À relancer{nbDues ? <span className="tabular-nums text-ambre">{nbDues}</span> : null}
+              </button>
+            )}
             {/* L'avancement de la ville, à côté de son nom : on le voit monter en appelant. */}
-            {c && onglet !== ESSAI && onglet !== DUES && <span className="ml-3 text-[13px] tabular-nums text-ardoise max-md:hidden">{c.appelees} / {c.agences - c.mortes} agences · {c.fait_pourcent} %</span>}
+            {c && !aRelancer?.actif && onglet !== ESSAI && onglet !== DUES && <span className="ml-3 text-[13px] tabular-nums text-ardoise max-md:hidden">{c.appelees} / {c.agences - c.mortes} agences · {c.fait_pourcent} %</span>}
           </span>
         );
         // Sur la ligne du titre « Prospection » quand la page lui fait une place (17 nov. 2026, Jules), sinon ici.
@@ -1707,7 +1718,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       })()}
 
       {/* Tous les écrans, raisonnement et actions proposées compris, sur le fond des listes : la couleur de la barre choisie dans Compte, et ses points (9 oct. 2026). */}
-      <div data-zone="listes" className="flex flex-col gap-3 pt-3">
+      {aRelancer?.actif && <div className="pt-3">{aRelancer.contenu}</div>}
+      {/* La file de la ville reste montée sous la liste « À relancer » : on la retrouve telle quelle en revenant. */}
+      <div data-zone="listes" className={`flex flex-col gap-3 pt-3 ${aRelancer?.actif ? "hidden" : ""}`}>
         {(!relances && listes.isLoading) || ouvrir.isPending || (session && file.isLoading) ? <Chargement taille="grand" /> : null}
         {!relances && !listes.isLoading && !villes.length && onglet !== ESSAI && <p className="m-0 py-12 text-center text-[14px] text-brume">Aucune ville encore : lancez l'agent IA sur une ville, ou ouvrez l'onglet Essai.</p>}
         {relances && file.isError && <p className="m-0 py-12 text-center text-[14px] text-alerte">Cette relance n'a pas pu s'ouvrir : {file.error?.message || "erreur"}.</p>}

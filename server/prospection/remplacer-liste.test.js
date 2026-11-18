@@ -56,3 +56,15 @@ test('remplacer la liste d\'une ville : rien du travail fait n\'est perdu, le re
   assert.equal(Records.get('AgenceProspect', 'n-2').liste_id, nouvelle.id);
   assert.deepEqual(jetees.sort(), ['tw-g2-1', 'tw-jumelle', 'tw-vieux-3'], 'à la corbeille : le doublon de la nouvelle, la jumelle et l\'ancienne sortie');
 });
+
+test('une liste « Ville 2 » vivante à côté de la liste de sa ville est archivée ; seule, elle reste', () => {
+  const ville = Records.create('ListeAgences', { ville: 'Annecy', etat: 'fini' });
+  const double = Records.create('ListeAgences', { ville: 'Annecy 2', etat: 'fini' });
+  const seule = Records.create('ListeAgences', { ville: 'Colmar 2', etat: 'fini' });
+  const lignes = [];
+  assert.deepEqual(R.archiverListesEnDouble({ journal: (l) => lignes.push(l) }), ['Annecy 2']);
+  assert.equal(Records.get('ListeAgences', double.id).archivee, true);
+  assert.equal(Records.get('ListeAgences', ville.id).archivee, undefined);
+  assert.equal(Records.get('ListeAgences', seule.id).archivee, undefined);
+  assert.match(lignes[0], /archivées Annecy 2/);
+});

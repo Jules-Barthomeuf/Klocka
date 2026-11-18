@@ -15,7 +15,7 @@
 // Rien n'est révélé chez Apollo (ni mail ni numéro : un crédit chacun).
 
 import { Records } from '../db.js';
-import { rangPoste } from '../../src/lib/interlocuteurs.js';
+import { HORS_SUJET, rangPoste } from '../../src/lib/interlocuteurs.js';
 
 const LISTE = 'ListeAgences';
 const AGENCE = 'AgenceProspect';
@@ -282,6 +282,161 @@ export function nommerMandataires(listeId) {
     if (complet && complet !== a.nom) { Records.update(AGENCE, a.id, { nom: complet, nom_avant: a.nom }); n += 1; }
   }
   return n;
+}
+
+// --- Le tri par type d'entreprise (18 nov. 2026, Jules sur Grenoble 2 : « de 5 à 13, supprime ») ------------------------
+// Gardés : les agences de transaction, l'immobilier d'entreprise et de commerce, les syndics et gestionnaires (souvent
+// aussi en transaction), et les mandataires (un par ligne). Écartés : investissement et foncières, logement social,
+// résidences et tourisme, BTP, diagnostics, coworking, public, tech et portails, et ce qui n'a pas de type clair.
+const T_AGENCES_CONNUES = /\b(square habitat|century ?21|orpi|laforet|guy hoquet|stephane plaza|era immobilier|nestenn|citya|foncia|lamy|valoris|cimm|arthurimmo|sotheby|barnes|engel|kretz|daniel feau|john taylor|cote particuliers|agence)\b/;
+const T_COMMERCE = /\b(cbre|arthur loyd|bnp paribas real estate|jll|cushman|knight frank|savills|evolis|catella|forcaprimm|actimo|pharmacessions?|prolocaux|cession|fonds de commerce|immobilier d.entreprise|immobilier commercial|locaux commerciaux|bureaux et commerces|commerces?)\b/;
+const T_ECARTES = [
+  ['logement_social', /\b(oph|opac|hlm|office public|crous|adoma|action logement|un toit|loyer modere|logement social|alfa3a|erilia|batigere|halpades|arpej|unitoit|semcoda|soliha|habitat et humanisme|cdc habitat|in.li|anah|fondation)\b|habitat\b/],
+  ['residences', /\b(residences?|hotels?|hotel|appart.?city|vacances?|vacanceole|zenitude|domitys|odalys|gites?|camping|airbnb|interhome|tourisme|resort|spa|conciergerie|majordome|homebox|location saisonniere|courte duree|seniors?)\b/],
+  ['btp', /\b(btp|batiment|construction|constructeur|travaux|architectes?|architecture|bureau d.etudes|ingenierie|amenagement|amenageur|bouygues|vinci|eiffage|demathieu|implenia|algeco|spl|epfl?|maisons? individuelles?|promotion|promoteur)\b/],
+  ['diagnostics', /\b(diagnostics?|expertises?|experts?|evaluation|tasacion|qualiconsult|geometres?)\b/],
+  ['coworking', /\b(coworking|cowork|regus|workplace|centre d.affaires|business center|bureaux partages)\b/],
+  ['public', /\b(ville de|mairie|metropole|departement|region|chambre de|technopole|safer|sncf|la poste|gares|ministere|agence de developpement)\b/],
+  ['tech', /\b(bien.?ici|seloger|aviv|casavo|homiwoo|meilleursagents|proptech|software|logiciel|digital|data|startup|pap\.fr)\b/],
+  ['investissement', /\b(invest\w*|foncieres?|asset|gestion d.actifs|capital|perial|mercialys|klepierre|apsys|altarea|banque|bank|bpce|credit|caisse d|financ\w*|wealth|private equity|scpi|reit)\b/],
+  ['assurance', /\b(assurances?|assureur|mutuelle|axa|allianz|generali|groupama|swiss ?life)\b/],
+];
+const T_SYNDICS = /\b(syndic|syndics|copropriete|gestion locative|administrat\w* de biens|regie|gerance|property management|sergic|oralia|nexity lamy)\b/;
+const T_AGENCES = /\b(immo\w*|agence|transaction|realty|real estate|estate|properties|propriete|home|maison)\b|immobili/;
+const T_POSTES_TRANSACTION = /(negociat|agent immobilier|conseill\w* (en )?immobili|transaction|agent commercial|real estate (agent|advisor|consultant)|broker|chasseur)/;
+
+/** Pure : le type d'une entreprise d'après son nom et les postes de ses gens. */
+export function typeEntreprise(nom, postes = []) {
+  const n = sa(nom);
+  const t = sa(postes.join(' | '));
+  if (T_COMMERCE.test(n)) return 'commerce';
+  if (T_AGENCES_CONNUES.test(n)) return 'agences';
+  for (const [k, re] of T_ECARTES) if (re.test(n)) return k;
+  if (T_SYNDICS.test(n)) return 'syndics';
+  if (T_AGENCES.test(n) || T_POSTES_TRANSACTION.test(t)) return 'agences';
+  return 'autres';
+}
+export const TYPES_GARDES = new Set(['agences', 'commerce', 'syndics']);
+
+/**
+ * Une liste complète tirée des personnes, triée par type d'emblée (Nice, 18 nov. 2026) : les entreprises des types
+ * gardés, chacune cherchée sur Maps (vitrine : téléphone, site, adresse ; sinon sans vitrine, ses collaborateurs
+ * seuls), deux noms pour une même vitrine fondus ; les mandataires des réseaux un par ligne. `simuler` : compte seulement.
+ */
+export async function construireListe({ ville, nom, people, par = null, simuler = false, journal = console.log, deps = {} }) {
+  const { nomCourt, posteFrancais } = await import('./agences-apollo.js');
+  const parNom = new Map();
+  for (const p of people) {
+    const n = String(p?.organization?.name || '').trim();
+    if (!n) continue;
+    if (!parNom.has(n)) parNom.set(n, []);
+    parNom.get(n).push(p);
+  }
+  const personne = (p) => ({ nom: nomCourt(p.first_name, p.last_name_obfuscated || p.last_name), prenom: String(p.first_name || '').trim(), masque: String(p.last_name_obfuscated || '').trim() || null, poste: posteFrancais(p.title), apollo_id: p.id });
+  const types = {};
+  const entreprises = [];
+  const mandataires = [];
+  for (const [n, gens] of parNom) {
+    if (RESEAUX.test(sa(n)) && !/fnaim/.test(sa(n))) { for (const p of gens) mandataires.push({ reseau: n, g: personne(p) }); types.mandataires = (types.mandataires || 0) + gens.length; continue; }
+    const type = typeEntreprise(n, gens.map((p) => p.title));
+    types[type] = (types[type] || 0) + 1;
+    if (!TYPES_GARDES.has(type)) continue;
+    const ranges = [];
+    for (const p of gens) ranges.push({ p, r: await rangDe(p.title) });
+    ranges.sort((a, b) => (a.r ?? 9) - (b.r ?? 9));
+    entreprises.push({ nom: n, type, gens: ranges.slice(0, COLLABORATEURS_MAX).map(({ p }) => personne(p)).filter((g) => g.nom) });
+  }
+  if (simuler) return { personnes: people.length, entreprises: parNom.size, types, gardees: entreprises.length, mandataires: mandataires.length };
+  const M = await import('./agences-maps.js');
+  const commune = deps.commune || await M.communeDe(ville);
+  if (!commune) throw new Error(`La commune « ${ville} » est introuvable.`);
+  const dep = String(commune.code || '').slice(0, 2);
+  const zone = { ...commune, nom: '', codes_postaux: [] };
+  const centre = commune.cadre ? { lat: (commune.cadre.sud + commune.cadre.nord) / 2, lon: (commune.cadre.ouest + commune.cadre.est) / 2 } : null;
+  const chercher = deps.chercher || ((n) => M.chercherAgence(n, ville, { commune: zone, accepter: (lieu) => memeEnseigne(n, lieu.nom) && (!dep || String(lieu.code_postal || '').startsWith(dep)) && (!centre || lieu.lat == null || distanceKm(centre, lieu) <= RAYON_KM) }));
+  const parFiche = new Map();
+  const sansVitrine = [];
+  let fait = 0;
+  for (const e of entreprises) {
+    let lieu = null;
+    try { lieu = await chercher(e.nom); } catch (err) { journal(`[liste] ${e.nom} : Maps ${err?.message || err}`); }
+    if (!deps.chercher) await pause(120);
+    if (++fait % 100 === 0) journal(`[liste] ${nom} : ${fait} / ${entreprises.length} entreprises cherchées sur Maps`);
+    if (!lieu?.place_id) { sansVitrine.push(e); continue; }
+    const deja = parFiche.get(lieu.place_id);
+    if (deja) { for (const g of e.gens) if (!deja.gens.some((x) => x.apollo_id === g.apollo_id)) deja.gens.push(g); deja.noms_apollo.push(e.nom); continue; }
+    parFiche.set(lieu.place_id, { lieu, gens: [...e.gens], noms_apollo: [e.nom], type: e.type });
+  }
+  const le = maintenant();
+  const texte = `Liste ${nom} tirée des personnes : ${people.length} personnes de l'immobilier à ${ville} chez Apollo, ${parNom.size} entreprises ; gardées par type (agences, commerce, syndics) : ${entreprises.length}, dont ${parFiche.size} vitrines Google Maps et ${sansVitrine.length} sans vitrine ; ${mandataires.length} mandataires des réseaux, un par ligne.`;
+  const l = Records.create(LISTE, { ville: nom, commune: commune.nom, type: 'agences', source: 'personnes', etat: 'fini', lancee_par: par, lancee_le: le, fini_le: le, journal: [{ le, texte, ton: 'succes' }] });
+  for (const { lieu, gens, noms_apollo, type } of parFiche.values()) Records.create(AGENCE, { liste_id: l.id, ...lieu, ville: commune.nom, type_entreprise: type, agents: [], gerants: [], site_source: lieu.site ? 'Google Maps' : null, sources: ['Apollo', 'Google Maps'], noms_apollo, apollo_equipe: { le, gens, par_personnes: true }, cree_le: le });
+  for (const e of sansVitrine) Records.create(AGENCE, { liste_id: l.id, nom: e.nom, ville: commune.nom, type_entreprise: e.type, agents: [], gerants: [], sources: ['Apollo'], noms_apollo: [e.nom], sans_vitrine: true, apollo_equipe: { le, gens: e.gens, par_personnes: true }, cree_le: le });
+  for (const { reseau, g } of mandataires) Records.create(AGENCE, { liste_id: l.id, nom: g.nom, ville: commune.nom, genre: 'mandataire', reseau_nom: reseau, agents: [], gerants: [], sources: ['Apollo'], noms_apollo: [reseau], apollo_equipe: { le, gens: [g], par_personnes: true }, cree_le: le });
+  journal(`[liste] ${texte}`);
+  return { liste: l.id, vitrines: parFiche.size, sans_vitrine: sansVitrine.length, mandataires: mandataires.length, types };
+}
+
+// --- Tous les collaborateurs d'une entreprise (18 nov. 2026, Jules : « dans certaines entreprises il n'y a pas tous les
+// collaborateurs, il faut pour chacune que tu ailles dans l'entreprise ») ----------------------------------------------
+// La recherche de départ ne prenait que les gens notés dans la ville même ; ceux de Meylan, d'Échirolles ou sans ville
+// manquaient. Ici, pour chaque entreprise : ses gens dans le département, sous son nom Apollo exact (recherche gratuite),
+// les postes utiles (ni location ni gestion, sauf transaction), ajoutés à ceux déjà là.
+const COLLABORATEURS_TOUS = 40;
+
+/** Pure : une personne est-elle un collaborateur à garder ? Un poste reconnu, ou un poste inconnu hors location et gestion. */
+export async function collaborateurUtile(titre) {
+  if ((await rangDe(titre)) != null) return true;
+  const t = String(titre || '');
+  return !!t.trim() && !HORS_SUJET.test(t);
+}
+
+export async function completerCollaborateurs({ ids, departement, journal = console.log, lire = fetch }) {
+  const cle = (process.env.APOLLO_API_KEY || '').trim();
+  if (!cle) throw new Error("Apollo n'est pas branché : APOLLO_API_KEY manque.");
+  const { nomCourt, posteFrancais } = await import('./agences-apollo.js');
+  const chercher = async (nom, page) => {
+    const r = await lire('https://api.apollo.io/api/v1/mixed_people/api_search', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': cle, 'cache-control': 'no-cache' }, body: JSON.stringify({ q_keywords: nom, person_locations: [`${departement}, France`], per_page: 100, page }), signal: AbortSignal.timeout(30_000) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(`Apollo a répondu ${r.status}`);
+    return j;
+  };
+  const bilan = { entreprises: 0, ajoutes: 0 };
+  let fait = 0;
+  for (const id of ids) {
+    const a = Records.get(AGENCE, id);
+    if (!a || a.genre === 'mandataire' || !(a.noms_apollo || []).length) continue;
+    const gens = [...(a.apollo_equipe?.gens || [])];
+    let ajoutes = 0;
+    for (const nom of a.noms_apollo) {
+      for (let page = 1; page <= 3; page += 1) {
+        let j;
+        try { j = await chercher(nom, page); } catch (e) { journal(`[collaborateurs] ${nom} : ${e?.message || e}`); break; }
+        const lot = j.people || [];
+        for (const p of lot) {
+          if (sa(p?.organization?.name).trim() !== sa(nom).trim() || gens.some((g) => g.apollo_id === p.id)) continue;
+          if (!(await collaborateurUtile(p.title))) continue;
+          const g = { nom: nomCourt(p.first_name, p.last_name_obfuscated || p.last_name), prenom: String(p.first_name || '').trim(), masque: String(p.last_name_obfuscated || '').trim() || null, poste: posteFrancais(p.title), apollo_id: p.id };
+          if (g.nom) { gens.push(g); ajoutes += 1; }
+        }
+        if (lot.length < 100) break;
+        await pause(250);
+      }
+      await pause(200);
+    }
+    if (ajoutes) {
+      const ranges = [];
+      for (const g of gens) ranges.push({ g, r: await rangDe(g.poste) });
+      ranges.sort((x, y) => (x.r ?? 9) - (y.r ?? 9));
+      const frais = Records.get(AGENCE, id);
+      // Les nouveaux venus n'ont pas encore leur nom complet : la recherche des noms repassera.
+      Records.update(AGENCE, id, { apollo_equipe: { ...(frais.apollo_equipe || {}), gens: ranges.slice(0, COLLABORATEURS_TOUS).map((x) => x.g), par_personnes: true, noms_cherches_le: null, completee_le: maintenant() } });
+      bilan.entreprises += 1;
+      bilan.ajoutes += ajoutes;
+    }
+    if (++fait % 50 === 0) journal(`[collaborateurs] ${fait} / ${ids.length} entreprises, ${bilan.ajoutes} collaborateurs ajoutés`);
+  }
+  return bilan;
 }
 
 /** La commune d'une liste : son champ `commune`, sinon son nom avant « · » (« Nice · Apollo » → Nice). */

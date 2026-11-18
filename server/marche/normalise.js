@@ -23,6 +23,7 @@ export const INDICATEURS = {
   // Ce que des locaux commerciaux se sont VENDU, d'après les actes notariés.
   // C'est le seul prix du module qui ne soit pas une demande.
   prix_local_commercial_m2: { titre: 'Prix des locaux commerciaux vendus', unite: '€ / m²' },
+  prix_murs_commerce_m2: { titre: 'Prix des murs de commerce en vente', unite: '€ / m²' },
   // La vie de la rue : ni un prix, ni une note — des décomptes d'annonces
   // légales sur une période donnée.
   fermetures_rue: { titre: 'Fermetures sur la rue', unite: 'commerces' },

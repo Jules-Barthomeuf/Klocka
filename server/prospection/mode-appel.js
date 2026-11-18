@@ -8,6 +8,7 @@
 
 import { communeDeListe } from './liste-par-personnes.js';
 import { avecPhotos, rangerInterlocuteurs } from '../../src/lib/interlocuteurs.js';
+import { avecMailsDeduits } from './mails-deduits.js';
 import { Records } from '../db.js';
 import { TRANSCRIPTION_MAX } from './aujourdhui.js';
 import * as R from './regles.js';
@@ -530,7 +531,9 @@ export function contactsDe(a, fiche = null, place = null) {
   // Le nom de famille complet, toujours (17 nov. 2026, Jules : « Sandrine R. je ne veux plus ça du tout ») : un prénom
   // seul ou suivi d'une initiale (Apollo, un mail, une annonce) ne s'affiche plus ; un nom donné pendant un appel reste.
   const sansNom = (x) => !x.standard && ['Apollo', 'Agent', 'Site de l\'agence'].includes(x.source) && /^\S+(\s+\p{L}\.?)?$/u.test(String(x.nom || '').trim());
-  return avecPhotos(rangerInterlocuteurs(out, 40).filter((x) => !sansNom(x)), a.photos_equipe?.par_nom);
+  // Le mail de chacun (18 nov. 2026, Jules : « leurs mails à chaque fois ») : déduit du format de l'agence quand il
+  // manque, gardé à part (`email_deduit`) pour ne jamais partir pour un vrai.
+  return avecMailsDeduits(avecPhotos(rangerInterlocuteurs(out, 40).filter((x) => !sansNom(x)), a.photos_equipe?.par_nom), a);
 }
 
 /**

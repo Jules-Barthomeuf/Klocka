@@ -1643,8 +1643,12 @@ if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
   setTimeout(() => import('./haka/competences/transfert.js').then((m) => m.reprendreTransferts()).catch((e) => console.warn('[transfert] reprise :', e?.message || e)), 3 * 60_000).unref?.();
   // Les transferts bloqués sur la question du côté, invisible depuis le retrait de la cloche (18 nov. 2026, Jules) : ils repartent.
   setTimeout(() => import('./haka/competences/transfert.js').then((m) => m.debloquerCotes()).catch((e) => console.warn('[transfert] côtés :', e?.message || e)), 4 * 60_000).unref?.();
-  // La liste « Grenoble 2 » tirée des personnes de l'immobilier chez Apollo, une fois (18 nov. 2026, Jules).
-  setTimeout(() => import('./prospection/liste-par-personnes.js').then((m) => m.creerListeParPersonnes({ ville: 'Grenoble', nom: 'Grenoble 2', par: 'jules.b@klocka.immo' })).catch((e) => console.warn('[liste] Grenoble 2 :', e?.message || e)), 2 * 60_000).unref?.();
+  // « Remplace la liste Grenoble par Grenoble 2 » (18 nov. 2026, Jules) : la liste préparée sur le poste (personnes Apollo,
+  // collaborateurs, numéros et photos des sites) remplace celle de Grenoble, une fois ; appels, carnet et relances gardés.
+  // Nice de même, puis toutes les villes de prospection (18 nov. 2026, Jules : « les agents déjà appelés dans cette liste,
+  // pas de doublons » ; « fais pareil pour toutes les autres villes ») : chaque fichier de server/prospection/donnees,
+  // l'un après l'autre, une fois par ville.
+  setTimeout(() => import('./prospection/remplacer-liste.js').then((m) => m.remplacerToutes()).catch((e) => console.warn('[liste] remplacements :', e?.message || e)), 2 * 60_000).unref?.();
   // Toutes les fiches de la Mémoire (hors annonces Equimmox) reposées une fois dans Propriétés Klocka (18 nov. 2026, Jules).
   setTimeout(() => import('./memoire/twenty.js').then((m) => m.reposerKlocka()).catch((e) => console.warn('[mémoire] Propriétés Klocka :', e?.message || e)), 6 * 60_000).unref?.();
 }

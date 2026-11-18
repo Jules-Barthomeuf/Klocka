@@ -580,49 +580,75 @@ const effectifLisible = (e) => { const t = String(e ?? "").trim(); return !t ? n
 /** La page d'une personne : son LinkedIn s'il est connu, sinon la recherche LinkedIn sur son nom et l'agence. */
 const pageDe = (x, agence) => lienWeb(x.linkedin) || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent([nomLisible(x.nom), nomLisible(agence)].filter(Boolean).join(" "))}`;
 
-const COLONNES = "grid grid-cols-[32px_minmax(0,1.5fr)_minmax(0,1.3fr)_minmax(0,auto)_40px] items-center gap-x-3 max-md:grid-cols-[32px_minmax(0,1fr)_auto]";
-
-/** Une case à cocher carrée (17 px, coins de 4 px), pleine `menthe` quand elle est cochée. */
-function Case({ coche }) {
-  return (
-    <span aria-hidden className={`grid h-[17px] w-[17px] place-items-center rounded-[4px] border transition-colors ${coche ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif"}`}>
-      {coche && <Check className="h-3 w-3" strokeWidth={2.4} />}
-    </span>
-  );
-}
+const COLONNES = "grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.3fr)_minmax(0,auto)_40px] items-center gap-x-3 max-md:grid-cols-[minmax(0,1fr)_auto]";
 
 /**
- * Une personne en ligne du tableau « Collaborateurs » (18 nov. 2026, Jules, sur sa capture) : la case (la personne
- * choisie, celle à demander), le nom et le poste, le mail, le numéro (le sien, sinon le standard en `ardoise`), le lien
- * vers sa page. Un clic sur la ligne la choisit.
+ * Une personne en ligne du tableau « Collaborateurs » (18 nov. 2026, Jules, sur sa capture ; sans cases à cocher, même
+ * jour) : le nom et le poste, le mail, le numéro (le sien, sinon le standard en `ardoise`), le lien vers sa page. Un clic
+ * sur la ligne la choisit (celle à demander), sur fond `relief`.
  */
-function LigneCollaborateur({ x, actif, standard, agence, onChoisir }) {
+/** Pure : les initiales d'un nom (« Sophie Le Gall » → « SL »). */
+function initiales(nom) {
+  const mots = String(nom || "").split(/[\s-]+/).filter((m) => /\p{L}/u.test(m));
+  return ((mots[0]?.[0] || "") + (mots.length > 1 ? mots[1][0] : "")).toUpperCase() || "?";
+}
+
+function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic }) {
   const tel = x.telephone || standard;
+  // Le mail de chacun (18 nov. 2026, Jules : « à chaque fois ») : le connu, sinon celui déduit du format de l'agence.
+  const mail = x.email || x.email_deduit || null;
+  const titreMail = x.email ? undefined : "Déduit du format des mails de l'agence, pas vérifié";
+  const tete = x.photo ? <img src={x.photo} alt="" className="h-full w-full object-cover" loading="lazy" /> : initiales(nomLisible(x.nom));
   return (
-    <div role="row" aria-selected={actif} onClick={onChoisir}
-      className={`${COLONNES} cursor-pointer border-t border-trait px-5 py-3 transition-colors max-md:px-4 ${actif ? "bg-relief/70" : "hover:bg-relief/50"}`}>
-      <span className="grid place-items-center"><Case coche={actif} /></span>
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate text-[15px] text-encre">{nomLisible(x.nom)}</span>
-        {x.fonction && <span className="truncate text-[13px] text-ardoise">{x.fonction}</span>}
+    <div className={`border-t border-trait transition-colors ${actif ? "bg-relief/70" : "hover:bg-relief/50"}`}>
+    <div role="row" aria-selected={actif} aria-expanded={ouvert} onClick={onClic} title={ouvert ? "Refermer" : "Choisir et voir en grand"}
+      className={`${COLONNES} cursor-pointer px-5 py-3 max-md:px-4`}>
+      {/* La tête de chacun (18 nov. 2026, Jules) : la photo de la page équipe, ses initiales à défaut. */}
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-full bg-rail-actif text-[12.5px] text-craie">
+          {tete}
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-[15px] text-encre">{nomLisible(x.nom)}</span>
+          {x.fonction && <span className="truncate text-[13px] text-ardoise">{x.fonction}</span>}
+        </span>
       </span>
-      <span className="flex min-w-0 items-center gap-2 text-[13.5px] max-md:hidden">
-        {x.email ? <><Mail className="h-3.5 w-3.5 flex-none text-ardoise" strokeWidth={1.8} /><span className="select-all truncate text-encre" onClick={(e) => e.stopPropagation()}>{x.email}</span></> : <span className="text-brume">Pas de mail</span>}
+      {/* Mail, numéro et lien en blanc, icônes comprises (18 nov. 2026, Jules : « pas en gris »). */}
+      <span className="flex min-w-0 items-center gap-2 text-[13.5px] text-encre max-md:hidden">
+        {mail ? <><Mail className="h-3.5 w-3.5 flex-none" strokeWidth={1.8} /><span className="select-all truncate" title={titreMail} onClick={(e) => e.stopPropagation()}>{mail}</span></> : <span className="text-craie">Non trouvé</span>}
       </span>
-      <span className="flex items-center justify-end gap-2 whitespace-nowrap text-[13.5px] tabular-nums">
-        {tel ? <><Phone className="h-3.5 w-3.5 flex-none text-ardoise" strokeWidth={1.8} /><span className={`select-all ${x.telephone ? "text-encre" : "text-ardoise"}`} title={x.telephone ? undefined : "Standard de l'agence"} onClick={(e) => e.stopPropagation()}>{tel}</span></> : <span className="text-brume">Pas de numéro</span>}
+      <span className="flex items-center justify-end gap-2 whitespace-nowrap text-[13.5px] tabular-nums text-encre">
+        {tel ? <><Phone className="h-3.5 w-3.5 flex-none" strokeWidth={1.8} /><span className="select-all" title={x.telephone ? undefined : "Standard de l'agence"} onClick={(e) => e.stopPropagation()}>{tel}</span></> : <span className="text-brume">Pas de numéro</span>}
       </span>
       <a href={pageDe(x, agence)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={x.linkedin ? "Son LinkedIn" : "Le chercher sur LinkedIn"}
-        className="grid h-8 w-8 place-items-center justify-self-center rounded-full text-ardoise transition-colors hover:bg-relief hover:text-encre max-md:hidden">
+        className="grid h-8 w-8 place-items-center justify-self-center rounded-full text-encre transition-colors hover:bg-relief max-md:hidden">
         <Link2 className="h-4 w-4" strokeWidth={1.8} />
       </a>
+    </div>
+    {/* La personne en grand (18 nov. 2026, Jules : « cliquables, et la photo s'agrandit ») : un clic la choisit et
+        l'ouvre sous sa ligne, la photo en 4/5 sur 160 px (une tête ronde de 64 px sans photo), puis ce qu'on sait
+        d'elle ; un second clic la referme. */}
+    {ouvert && (
+      <div className="flex gap-5 px-5 pb-4 pt-1 duration-200 animate-in fade-in-0 max-md:flex-col max-md:px-4">
+        {x.photo
+          ? <span className="aspect-[4/5] w-[160px] flex-none overflow-hidden rounded-[16px] bg-rail-actif">{tete}</span>
+          : <span className="grid h-16 w-16 flex-none place-items-center overflow-hidden rounded-full bg-rail-actif text-[18px] text-craie">{tete}</span>}
+        <span className="flex min-w-0 flex-col gap-1">
+          <span className="text-[17px] text-encre">{nomLisible(x.nom)}</span>
+          {x.fonction && <span className="text-[13.5px] text-ardoise">{x.fonction}</span>}
+          {tel && <span className="select-all pt-1 text-[14px] tabular-nums text-encre">{tel}{!x.telephone && " · standard"}</span>}
+          <span className="select-all break-all text-[13.5px] text-encre">{mail || <span className="text-craie">Mail non trouvé</span>}</span>
+          {x.source && x.source !== "Apollo" && <span className="pt-0.5 text-[12px] text-brume">{x.source}</span>}
+        </span>
+      </div>
+    )}
     </div>
   );
 }
 
 /**
  * La carte d'avant l'appel (18 nov. 2026, Jules, sur sa capture « Richard Gilmore - Réseau 3C ») : le nom de l'agence,
- * Appeler et Passer en tête. Dessous, à gauche (320 px), « Résumé IA » puis, en bas, Dernier appel, Création, Effectif
+ * Appeler et Passer en tête. Dessous, à gauche (380 px), « Résumé IA » puis, en bas, Dernier appel, Création, Effectif
  * et Liens (le site, le LinkedIn de l'agence) ; à droite, « Collaborateurs · n » en tableau (case, nom et poste, mail,
  * numéro, lien), puis « Rappeler plus tard » et « Message laissé ». Pendant et après l'appel, rien ne change.
  */
@@ -636,6 +662,9 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
     placeholderData: (avant, q) => (q?.queryKey?.[2] === a.id ? avant : undefined),
   });
   const dernier = histo[0];
+  // La personne ouverte en grand : aucune à l'arrivée sur l'agence.
+  const [ouvertId, setOuvertId] = useState(null);
+  useEffect(() => { setOuvertId(null); }, [a.id]);
   const liens = [[lienWeb(a.site), "Site de l'agence", Link2], [lienWeb(a.linkedin), "LinkedIn de l'agence", Briefcase]].filter(([u]) => u);
   const faits = [
     ["Dernier appel", dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"],
@@ -662,7 +691,7 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
       {/* Un filet en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css). */}
       <div aria-hidden className="h-px bg-trait" />
       {/* Toujours la même hauteur (17 nov. 2026, Jules) : 400 px sur ordinateur, chaque colonne défile si elle déborde. */}
-      <div className="grid min-h-[360px] md:h-[400px] md:min-h-0 md:grid-cols-[320px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
+      <div className="grid min-h-[360px] md:h-[400px] md:min-h-0 md:grid-cols-[380px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
         <div className="flex flex-col justify-between gap-6 px-5 py-5 max-md:px-4 md:overflow-y-auto md:border-r md:border-trait">
           {!resume.isError ? (
             <div className="flex flex-col gap-2">
@@ -705,13 +734,13 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
             {contacts.length ? (
               <div role="table" aria-label="Collaborateurs">
                 <div role="row" className={`${COLONNES} px-5 pb-2.5 text-[11.5px] uppercase tracking-[0.08em] text-ardoise max-md:px-4`}>
-                  <span />
                   <span>Nom</span>
                   <span className="max-md:hidden">Emails</span>
                   <span className="text-right">Contact</span>
                   <span className="text-center max-md:hidden">Lien</span>
                 </div>
-                {contacts.map((x) => <LigneCollaborateur key={x.id} x={x} actif={choisi?.id === x.id} standard={standard} agence={a.nom} onChoisir={() => onChoisir(x.id)} />)}
+                {contacts.map((x) => <LigneCollaborateur key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} standard={standard} agence={a.nom}
+                  onClic={() => { if (choisi?.id === x.id) setOuvertId((o) => (o === x.id ? null : x.id)); else { onChoisir(x.id); setOuvertId(x.id); } }} />)}
               </div>
             ) : (
               <p className="m-0 border-t border-trait px-5 py-4 text-[14px] text-ardoise max-md:px-4">

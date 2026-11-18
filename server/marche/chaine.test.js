@@ -17,6 +17,7 @@ import { ErreurSource } from './erreurs.js';
 // variable d'environnement avant l'évaluation du module.
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-test-'));
 const vraiEquimmox = (await import('./connecteurs/equimmox.js')).default;
+const vraiEquimmoxPrix = (await import('./connecteurs/equimmox-prix.js')).default;
 const vraiSecteur = (await import('./connecteurs/valeur-locative.js')).default;
 const vraiTransactions = (await import('./connecteurs/bodacc-cessions.js')).default;
 const vraiFigaro = (await import('./connecteurs/figaro.js')).default;
@@ -32,6 +33,7 @@ const EQUIMMOX_OK = {
   rayon: '500m', classe: 'Commerce', surface_min: 70, surface_max: 130,
   le: '2026-09-11T08:00:00.000Z',
 };
+const EQUIMMOX_PRIX_OK = { source: 'Equimmox · Analyse de prix', bas: 2600, moyenne: 3400, haut: 4300, offres: 21, rayon: '5km', le: '2026-09-11T08:00:30.000Z' };
 const SECTEUR_OK = {
   source: 'Equimmox · Analyse de loyer',
   rue: { nom: 'Rue Gazan', basse: 140, haute: 200 },
@@ -104,9 +106,10 @@ function doublure(modele, { resultat = null, erreur = null } = {}) {
   };
 }
 
-function registre({ equimmox, secteur, figaro, transactions, implantation, dvf, bodacc } = {}) {
+function registre({ equimmox, equimmoxPrix, secteur, figaro, transactions, implantation, dvf, bodacc } = {}) {
   return {
     equimmox: equimmox || doublure(vraiEquimmox, { resultat: EQUIMMOX_OK }),
+    'equimmox-prix': equimmoxPrix || doublure(vraiEquimmoxPrix, { resultat: EQUIMMOX_PRIX_OK }),
     'valeur-locative': secteur || doublure(vraiSecteur, { resultat: SECTEUR_OK }),
     'bodacc-cessions': transactions || doublure(vraiTransactions, { resultat: TRANSACTIONS_OK }),
     figaro: figaro || doublure(vraiFigaro, { resultat: FIGARO_OK }),
@@ -159,7 +162,7 @@ test('Equimmox en 502 : trois réessais, puis la valeur locative du secteur pren
   assert.equal(echec.essais, 4);
   assert.equal(r.a_reessayer, true);
   assert.equal(r.complet, true, 'toutes les questions ont trouvé une réponse');
-  assert.equal(r.besoins_couverts, 6, 'loyer, cessions, résidentiel, ventes réelles, vitalité, emplacement');
+  assert.equal(r.besoins_couverts, 7, 'loyer, cessions, résidentiel, ventes réelles, prix des murs, vitalité, emplacement');
 });
 
 test('la panne d’Equimmox ne coûte rien aux autres besoins', async () => {
@@ -198,6 +201,7 @@ test('toutes les sources à terre : la lecture se termine quand même', async ()
     ...sansAttente,
     connecteurs: registre({
       equimmox: doublure(vraiEquimmox, { erreur: panne('Equimmox') }),
+      equimmoxPrix: doublure(vraiEquimmoxPrix, { erreur: panne('Equimmox') }),
       secteur: doublure(vraiSecteur, { erreur: panne('Secteur') }),
       transactions: doublure(vraiTransactions, { erreur: panne('Secteur') }),
       figaro: doublure(vraiFigaro, { erreur: panne('Le Figaro') }),
@@ -210,14 +214,14 @@ test('toutes les sources à terre : la lecture se termine quand même', async ()
   assert.deepEqual(r.indicateurs, {}, 'aucun chiffre — et surtout aucun chiffre inventé');
   assert.equal(r.complet, false);
   assert.equal(r.besoins_couverts, 0);
-  assert.equal(r.sources_en_echec.length, 7);
+  assert.equal(r.sources_en_echec.length, 8);
   assert.deepEqual(
     r.indicateurs_manquants.sort(),
     [
       'loyer_commercial_m2_an', 'prix_fonds_commerce',
       'prix_residentiel_m2', 'loyer_residentiel_m2_mois', 'evolution_prix_residentiel_1_an', 'evolution_prix_residentiel_5_ans',
       'flux_pieton_note', 'flux_voiture_note', 'commercialite_troncon_note', 'revenu_moyen_annuel', 'csp_plus', 'proprietaires_zone',
-      'prix_local_commercial_m2', 'fermetures_rue', 'creations_rue',
+      'prix_local_commercial_m2', 'prix_murs_commerce_m2', 'fermetures_rue', 'creations_rue',
     ].sort()
   );
   assert.equal(r.a_reessayer, true, 'des pannes : on repassera');
@@ -294,6 +298,7 @@ test('la lecture avance à mesure, source par source', async () => {
     ['bodacc-cessions', 'transactions_fonds', true],
     ['figaro', 'prix_residentiel', true],
     ['dvf', 'ventes_dvf', true],
+    ['equimmox-prix', 'analyse_prix', true],
     ['bodacc', 'vitalite_rue', true],
     ['implantation', 'implantation', true],
   ]);

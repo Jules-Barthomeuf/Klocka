@@ -32,6 +32,7 @@ const nb = (champ) => {
 /** Les libellés d'écran des connecteurs, tels que le fil les affiche. */
 const ETIQUETTES = {
   equimmox: "EQUIMMOX",
+  "equimmox-prix": "EQUIMMOX · PRIX DES MURS",
   "valeur-locative": "EQUIMMOX · SECTEUR",
   "bodacc-cessions": "BODACC",
   implantation: "KLOCKA · IMPLANTATION",
@@ -75,6 +76,10 @@ function phraseResultat(champ, r) {
       return r.bas != null || r.haut != null
         ? `Equimmox : baux comparables — bas ${fmt(r.bas)}, moyenne ${fmt(r.moyenne)}, haut ${fmt(r.haut)} €/m²/an${r.rayon ? ` (rayon ${r.rayon})` : ""}.`
         : "Equimmox a répondu sans fourchette.";
+    case "analyse_prix":
+      return r.moyenne != null
+        ? `Equimmox : murs de commerce en vente — bas ${fmt(r.bas)}, moyenne ${fmt(r.moyenne)}, haut ${fmt(r.haut)} €/m²${r.offres != null ? ` sur ${fmt(r.offres)} offres` : ""}${r.rayon ? ` (rayon ${r.rayon})` : ""}.`
+        : "Equimmox a répondu sans prix.";
     case "valeur_locative": {
       const n = r.rue || r.quartier || r.ville;
       const ech = r.rue ? "rue" : r.quartier ? "quartier" : "ville";
@@ -158,7 +163,7 @@ export function filDe(etat, adresse = null) {
   // tentative réussie de la même source.
   // Un champ peut venir de deux sources (Data-B, puis son secours) : c'est
   // celle qui a répondu qui signe.
-  const sourcesDu = { analyse_loyer: ["equimmox"], valeur_locative: ["valeur-locative"], valeur_locative_data_b: ["data-b-valeur-locative"], transactions_fonds: ["data-b-transactions", "bodacc-cessions"], prix_residentiel: ["figaro"], implantation: ["data-b-implantation", "implantation"] };
+  const sourcesDu = { analyse_loyer: ["equimmox"], analyse_prix: ["equimmox-prix"], valeur_locative: ["valeur-locative"], valeur_locative_data_b: ["data-b-valeur-locative"], transactions_fonds: ["data-b-transactions", "bodacc-cessions"], prix_residentiel: ["figaro"], implantation: ["data-b-implantation", "implantation"] };
   const tentativeDe = (champ) => (etat.tentatives || []).find((x) => (sourcesDu[champ] || []).includes(x.source) && x.ok);
   const finDe = (champ) => {
     const t = tentativeDe(champ);

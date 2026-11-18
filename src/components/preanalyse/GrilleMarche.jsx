@@ -42,6 +42,7 @@ const fourchette = (v, unite) => (v.basse != null && v.haute != null ? `${fmt(v.
 function lignesDu(lot, analyse) {
   const l = lot || {};
   const eq = l.analyse_loyer || null;
+  const eqPrix = l.analyse_prix || null;
   const secteur = niveau(l.valeur_locative);
   const datab = niveau(l.valeur_locative_data_b);
   const implantation = l.implantation || null;
@@ -67,7 +68,13 @@ function lignesDu(lot, analyse) {
       { id: "reversion", libelle: "Écart au marché", sources: [{ nom: "Calcul", vue: "carte:reversion", ...deCarte("reversion") }] },
     ] },
     { titre: "Prix", lignes: [
-      { id: "prix_fai", libelle: "Prix demandé", sources: [{ nom: "Calcul", vue: "carte:prix-fai", ...deCarte("prix-fai") }] },
+      // Le prix demandé face aux murs de commerce en vente chez Equimmox (18 nov. 2026, Jules : « pour le prix FAI
+      // utilise Equimmox ») : des offres, donc des prix FAI comme le sien.
+      { id: "prix_fai", libelle: "Prix demandé", sources: [
+        { nom: "Calcul", vue: "carte:prix-fai", ...deCarte("prix-fai") },
+        { cle: "equimmox-prix", nom: "Equimmox · offres", vue: null, n: eqPrix?.moyenne ?? null, valeur: eqPrix?.moyenne != null ? `${fmt(eqPrix.moyenne)} €/m²` : null,
+          detail: eqPrix ? `Moyenne des murs de commerce en vente${eqPrix.offres != null ? ` · ${fmt(eqPrix.offres)} offres` : ""}${eqPrix.rayon ? ` · rayon ${eqPrix.rayon}` : ""}${eqPrix.surface_min ? ` · ${eqPrix.surface_min} à ${eqPrix.surface_max} m²` : ""}${eqPrix.bas != null ? ` · de ${fmt(eqPrix.bas)} à ${fmt(eqPrix.haut)} €/m²` : ""}` : null },
+      ] },
       { id: "ventes_reelles", libelle: "Ventes réelles autour", sources: [{ cle: "dvf", nom: "DVF", vue: "dvf", valeur: dvf ? `${fmt(dvf.prix_m2)} €/m²` : null, detail: dvf ? `Médiane de ${fmt(dvf.n)} vente${dvf.n > 1 ? "s" : ""} à ${fmt(dvf.rayon)} m${dvf.periode ? `, ${dvf.periode}` : ""}${dvf.demande_m2 ? ` · demandé ${fmt(dvf.demande_m2)} €/m²` : ""}` : null }] },
       { id: "residentiel", libelle: "Résidentiel du quartier", sources: [{ cle: "figaro", nom: "Le Figaro", vue: "figaro", valeur: figaro?.prix?.median != null ? `${fmt(figaro.prix.median)} €/m²` : null, detail: figaro?.prix?.sur_1_an != null ? `Prix médian des appartements · ${figaro.prix.sur_1_an > 0 ? "+" : ""}${fmt(figaro.prix.sur_1_an, 1)} % sur un an` : null }] },
     ] },
@@ -124,6 +131,7 @@ export function prixDemande(lot, pieces = null) {
   const prix = affiche + enSus;
   const surface = Number(champ(l.surface_m2)) || Number(pieces?.surface) || null;
   return {
+    m2: surface ? Math.round(prix / surface) : null,
     valeur: surface ? `${fmt(prix)} € · ${fmt(prix / surface)} €/m²` : `${fmt(prix)} €`,
     detail: surface ? `${fmt(prix)} € FAI${enSus ? " (honoraires en sus ajoutés)" : ""} sur ${fmt(surface)} m²` : "Surface inconnue : pas de prix au m²",
   };
@@ -164,7 +172,13 @@ export default function GrilleMarche({ dossier, lot, analyse, onRefresh, apercu 
   if (prix) {
     const ligne = tableaux[1].lignes.find((x) => x.id === "prix_fai");
     const c = carte(analyse, "prix-fai");
-    ligne.sources = [{ ...ligne.sources[0], valeur: prix.valeur, detail: [prix.detail, c && c.valeur !== prix.valeur ? `${c.valeur} · ${c.detail}` : null].filter(Boolean).join(" · "), vue: c ? "carte:prix-fai" : null }];
+    // L'écart au prix des offres d'Equimmox, dit sur la ligne Equimmox.
+    const eq = ligne.sources[1];
+    if (eq?.n && prix.m2) {
+      const r = (prix.m2 - eq.n) / eq.n;
+      eq.detail = `Demandé ${fmt(prix.m2)} €/m², ${Math.abs(r) <= 0.1 ? "dans les prix" : `${r > 0 ? "+" : ""}${fmt(r * 100, 0)} %`} face aux offres · ${eq.detail}`;
+    }
+    ligne.sources = [{ ...ligne.sources[0], valeur: prix.valeur, detail: [prix.detail, c && c.valeur !== prix.valeur ? `${c.valeur} · ${c.detail}` : null].filter(Boolean).join(" · "), vue: c ? "carte:prix-fai" : null }, ...ligne.sources.slice(1)];
   }
 
   return (

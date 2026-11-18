@@ -224,7 +224,7 @@ async function completerContexteMarche(dossier) {
  */
 // Les champs de la fiche qu'on peut corriger à la main, et comment les lire.
 // Ce qui se lit à l'adresse du bien et se garde sur le lot.
-export const LECTURES_A_L_ADRESSE = ['valeur_locative', 'analyse_loyer', 'transactions_fonds', 'prix_residentiel', 'ventes_dvf', 'vitalite_rue', 'implantation', 'contexte_marche', 'comparaison_marche', 'lieu'];
+export const LECTURES_A_L_ADRESSE = ['valeur_locative', 'analyse_loyer', 'analyse_prix', 'transactions_fonds', 'prix_residentiel', 'ventes_dvf', 'vitalite_rue', 'implantation', 'contexte_marche', 'comparaison_marche', 'lieu'];
 
 const ligneAdresse = (l) => {
   const v = l?.adresse?.valeur;

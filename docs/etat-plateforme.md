@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-5 personnes, 4 119 pages ouvertes, 0 demandes à l'assistant, 12 actions exécutées.
+5 personnes, 4 134 pages ouvertes, 0 demandes à l'assistant, 12 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 410 | 0 | 12 | 18/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 425 | 0 | 12 | 18/11/2026 |
 | admin.stress@test.local (équipe) | 384 | 0 | 0 | 18/11/2026 |
 | test.mandataire@kpartners.fr | 182 | 0 | 0 | 14/11/2026 |
 | admin@klocka.local (équipe) | 138 | 0 | 0 | 17/11/2026 |
@@ -21,13 +21,13 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
 - **MandataireBiens** — 1 021 (25 %)
-- **Analyse** — 779 (19 %)
-- **CrmTwenty** — 356 (9 %)
-- **Prospection** — 324 (8 %)
-- **Dashboard** — 281 (7 %)
+- **Analyse** — 770 (19 %)
+- **CrmTwenty** — 382 (9 %)
+- **Prospection** — 333 (8 %)
+- **Dashboard** — 274 (7 %)
 - **MandataireProspection** — 244 (6 %)
-- **AdminProjets** — 185 (4 %)
-- **Personnalisation** — 130 (3 %)
+- **AdminProjets** — 184 (4 %)
+- **Personnalisation** — 128 (3 %)
 - **MandatsMandataires** — 66 (2 %)
 - **SimulateurRentabilite** — 56 (1 %)
 - **AdminUtilisateurs** — 41 (1 %)
@@ -36,21 +36,21 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 ## Ce que l'IA coûte
 
-100,55 € sur la période, 2 800 appels, 45 346 k jetons. 81 % part en tâche de fond, sans que personne clique. 17 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+186,60 € sur la période, 3 637 appels, 89 291 k jetons. 89 % part en tâche de fond, sans que personne clique. 9 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,05 € par appel | 754 | 76,02 € | — |
+| Non attribué (fond) | 0,08 € par appel | 1 313 | 160,73 € | — |
 | Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 372 | 12,91 € | 18 s |
-| Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 13 | 1,64 € | 31 s |
-| Lire le site d'une agence (et le trouver s'il manque) | 0,0062 € par agence | 160 | 1,40 € | 5 s |
+| Lire le site d'une agence (et le trouver s'il manque) | 0,0060 € par agence | 372 | 2,80 € | 4 s |
+| Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 12 | 1,54 € | 33 s |
 | Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
 | Extraire un document déposé | 0,02 € par document | 6 | 0,23 € | 17 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
 | Parler à l'assistant après un appel | 0,0076 € par demande | 19 | 0,15 € | 2 s |
+| Résumer une agence avant l'appel | 0,0011 € par agence | 128 | 0,15 € | 2 s |
 | Analyser une fiche commerciale | 0,0091 € par fiche | 14 | 0,14 € | 17 s |
-| Résumer une agence avant l'appel | 0,0010 € par agence | 96 | 0,10 € | 2 s |
 | Trouver les zones commerçantes d'une ville | 0,0080 € par ville | 13 | 0,10 € | 7 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
@@ -68,11 +68,11 @@ Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf pl
 
 ## AK, l'assistant dans le chat
 
-13 demandes, 1.79 € en tout soit 0.137 € la demande.
+12 demandes, 1.67 € en tout soit 0.139 € la demande.
 
 12 actions : 6 réussies, 0 questions posées (il manquait une information), 0 doublons évités, 6 vraiment ratées.
 Les ratées, à corriger : chercher_photos_projet ×2 · data_b ×1 · prix_murs_equimmox ×1 · loyers_equimmox ×1 · analyser_fiche ×1.
-Repris par l'équipe : 1 correction (« non, pas ça »), 0 compliment, soit 7.7 % des demandes corrigées. C'est le chiffre à faire baisser.
+Repris par l'équipe : 1 correction (« non, pas ça »), 0 compliment, soit 8.3 % des demandes corrigées. C'est le chiffre à faire baisser.
 
 Ce qu'il a fait : chercher_photos_projet ×4 · donnees_commune ×2 · modifier_projet ×2 · data_b ×1 · prix_murs_equimmox ×1 · loyers_equimmox ×1 · analyser_fiche ×1.
 Pour qui : Jules 12.
@@ -81,5 +81,5 @@ Pour qui : Jules 12.
 
 - L'écran de travail, c'est **MandataireBiens** : 25 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « demander quelque chose à l'assistant (mandataire) » à 0,03 € par demande : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
-- 81 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
+- 89 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

@@ -58,6 +58,14 @@ export const BESOINS_DEFAUT = [
     indicateurs: ['prix_local_commercial_m2'],
     chaine: ['dvf'],
   },
+  // Le prix des murs à la vente autour (18 nov. 2026, Jules : « pour le prix FAI utilise Equimmox ») : les offres de
+  // murs de commerce d'Equimmox, des prix FAI comme celui demandé.
+  {
+    cle: 'prix_murs',
+    titre: 'le prix des murs',
+    indicateurs: ['prix_murs_commerce_m2'],
+    chaine: ['equimmox-prix'],
+  },
   // La rue tient-elle ? Aucun loyer ne le dit.
   {
     cle: 'vitalite_commerciale',
@@ -94,6 +102,7 @@ export async function registreParDefaut() {
   if (cacheRegistre) return cacheRegistre;
   const modules = await Promise.all([
     import('./connecteurs/equimmox.js'),
+    import('./connecteurs/equimmox-prix.js'),
     import('./connecteurs/data-b-valeur-locative.js'),
     import('./connecteurs/data-b-transactions.js'),
     import('./connecteurs/data-b-implantation.js'),

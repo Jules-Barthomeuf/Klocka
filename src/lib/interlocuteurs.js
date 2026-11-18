@@ -3,7 +3,7 @@
 // interlocuteurs de la file) et l'écran (la carte d'avant l'appel, qui ajoute l'équipe Apollo à son ouverture).
 
 // La location, la gestion locative, le syndic et les métiers sans rapport ne sont pas des interlocuteurs.
-const HORS_SUJET = /(locat|rental|letting|leasing|gestion|property manag|syndic|copropri|comptab|account|marketing|communication|community|social media|e-?commerce|legal|juridique|travaux|logisti|[ée]v[éeè]nement|event|\\bcto\\b|\\bcfo\\b|t[ée]l[ée]conseill|business develop|d[ée]veloppeu|developer|stagiaire|intern\b|alternan|apprenti|photograph|home ?stag|\bit\b|informati|data|rh\b|ressources humaines|human resources|recrut)/i;
+export const HORS_SUJET = /(locat|rental|letting|leasing|gestion|property manag|syndic|copropri|comptab|account|marketing|communication|community|social media|e-?commerce|legal|juridique|travaux|logisti|[ée]v[éeè]nement|event|\\bcto\\b|\\bcfo\\b|t[ée]l[ée]conseill|business develop|d[ée]veloppeu|developer|stagiaire|intern\b|alternan|apprenti|photograph|home ?stag|\bit\b|informati|data|rh\b|ressources humaines|human resources|recrut)/i;
 // Un poste mêlé (« négociateur location et transaction ») reste un interlocuteur s'il fait de la transaction ou du commerce.
 const MALGRE_TOUT = /(transaction|immobilier (commercial|d.entreprise)|fonds de commerce|locaux commerciaux|murs commerciaux)/i;
 // Du plus probable au moins probable : le commerce, la transaction, la direction de l'agence, l'administratif.

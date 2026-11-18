@@ -13,6 +13,7 @@ import { J } from "@/design/jetons";
 
 export const SOURCES = [
   { cle: "equimmox", nom: "Equimmox", note: "baux comparables · environ une minute" },
+  { cle: "equimmox-prix", nom: "Equimmox · Prix des murs", note: "offres de murs de commerce autour · environ une minute" },
   { cle: "data-b-valeur-locative", nom: "Data-B · Valeurs locatives", note: "rue, quartier, ville estimés · quelques secondes" },
   { cle: "valeur-locative", nom: "Equimmox · Valeur locative du secteur", note: "rue, quartier, ville · quatre minutes" },
   { cle: "data-b-transactions", nom: "Data-B · Cessions de fonds", note: "prix et activité autour du bien" },

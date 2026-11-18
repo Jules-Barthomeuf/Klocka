@@ -5,7 +5,7 @@ import { Records } from '../db.js';
 import { currentUser, ok, wrap } from '../contexte.js';
 import { estSuperAdmin } from '../acces-pages.js';
 import { storedAccount } from '../google-oauth.js';
-import { listerMemoire, ENTITE } from '../memoire/memoire.js';
+import { listerMemoire, ENTITE, estAnnonce } from '../memoire/memoire.js';
 import { drapeaux } from '../memoire/drapeaux.js';
 
 // L'équipe connectée seulement (un admin) ; un mandataire ou un client n'a rien à y lire.
@@ -20,13 +20,16 @@ export function monterMemoire(app) {
   app.get('/api/memoire', wrap((req, res) => {
     if (!equipe(req, res)) return;
     const limite = Math.min(500, Math.max(1, Number(req.query.limite) || 200));
-    const biens = listerMemoire({ q: req.query.q, limite, statut: req.query.statut || null });
+    const type = ['fiches', 'annonces'].includes(req.query.type) ? req.query.type : null;
+    const biens = listerMemoire({ q: req.query.q, limite, statut: req.query.statut || null, type });
     const tous = Records.list(ENTITE);
     ok(res, {
       biens,
       total: tous.length,
       en_memoire: tous.filter((b) => b.statut === 'memoire').length,
       en_dossier: tous.filter((b) => b.statut === 'dossier').length,
+      fiches: tous.filter((b) => !estAnnonce(b)).length,
+      annonces: tous.filter(estAnnonce).length,
       agents: new Set(tous.map((b) => b.agent_email).filter(Boolean)).size,
       drapeaux: drapeaux(),
     });

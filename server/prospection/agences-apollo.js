@@ -215,6 +215,10 @@ const domaineDe = (site) => { try { return new URL(/^https?:/.test(site) ? site 
  */
 export async function equipeDeLAgence(agence, { ville = null, lire = fetch } = {}) {
   if (!apolloConfigure() || !agence) return [];
+  // Une équipe tirée de la recherche de personnes (liste « Grenoble 2 », 18 nov. 2026) reste celle-là : par le domaine,
+  // un réseau (Foncia, Citya) ne rendait personne et l'effaçait.
+  const posee = agence.id ? Records.get('AgenceProspect', agence.id)?.apollo_equipe : null;
+  if (posee?.par_personnes) return posee.gens || [];
   const domaine = agence.site ? domaineDe(agence.site) : null;
   if (!agence.apollo_id && !domaine) return [];
   const cleR = `equipe3|${agence.apollo_id || domaine}|${String(ville || '').toLowerCase()}`;

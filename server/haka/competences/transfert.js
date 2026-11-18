@@ -265,11 +265,38 @@ export function expediteurDuTransfert(email) {
  * « seulement en Mémoire » restent à l'équipe ; tout le reste se demande, même quand un dossier d'équipe semble évident :
  * l'agent d'origine peut avoir un dossier ouvert côté admin et un bien côté mandataire.
  */
+// 18 nov. 2026 (Jules : « j'ai transféré un dossier avec Préanalyse ce bien et ça l'a pas fait ») : la question du côté
+// partait dans la cloche, retirée de l'écran le 15 nov., et le transfert attendait pour toujours. Plus de question : un
+// compte admin et mandataire entre côté admin, sauf si son message dit le côté mandataire.
+const COTE_MANDATAIRE = /\b(cote|espace|vue|compte)\s+(du\s+)?mandataire\b|\ben tant que mandataire\b|\bdans mes biens\b|\bcote\s+k\s?partners\b/;
 export function coteDuTransfert(u, c, lu) {
   if (!estMandataire(u)) return 'admin';
   if (u.role !== 'admin') return 'mandataire';
-  // La Mémoire n'a pas de côté (17 nov. 2026 : Jules, admin et mandataire, attendait une question invisible) : elle part.
-  return c.intention === 'memoire' || (c.intention === 'demande' && !lu.transfert) ? 'admin' : null;
+  if (c.intention === 'memoire' || (c.intention === 'demande' && !lu.transfert)) return 'admin';
+  return COTE_MANDATAIRE.test(sansAccents(lu.note || '')) ? 'mandataire' : 'admin';
+}
+
+/**
+ * Les transferts qui attendent encore la question du côté (invisible depuis le 15 nov.) : le côté est déduit comme
+ * ci-dessus et la tâche repart. Une fois au démarrage (`cle`).
+ */
+export async function debloquerCotes({ cle = 'transfert.cotes.2026-11-18', journal = console.log } = {}) {
+  const { Meta } = await import('../../db.js');
+  if (cle && Meta.get(cle)) return { deja: true };
+  let n = 0;
+  for (const p of Records.list('HakaProposition').filter((x) => x.type === 'transfert_cote' && x.etat === 'proposee')) {
+    const mail = Records.get('MailRecu', p.charge?.mail_id);
+    const membre = mail && expediteurDuTransfert(mail.de_email);
+    if (!membre) continue;
+    const lu = lireTransfert({ texte: mail.texte, objet: mail.objet });
+    const choix = coteDuTransfert(membre, { intention: mail.haka_transfert?.intention || 'fiche' }, lu);
+    try {
+      const r = await file.valider(p.id, membre, { choix });
+      if (r?.ok) { n += 1; journal(`[transfert] « ${String(lu.objet_origine || mail.objet || '').slice(0, 70)} » de ${mail.de_email} : côté ${choix}, la tâche repart`); }
+    } catch (e) { journal(`[transfert] côté non posé pour ${p.id} : ${e?.message || e}`); }
+  }
+  if (cle) Meta.set(cle, new Date().toISOString());
+  return { n };
 }
 
 // ---------------------------------------------------------------------------
@@ -372,43 +399,69 @@ async function versTwenty(bien, pousser = null) {
  * bien va en Mémoire (statut Mémoire, la fiche gardée) et devient une Propriété de Twenty CRM. L'agent est
  * l'expéditeur d'origine quand la fiche ne le nomme pas. La même pièce transférée deux fois n'est lue qu'une fois.
  */
+// Les pièces lues en plus des fiches reconnues (18 nov. 2026, Jules : « des fiches ne sont pas lues », 17 avenue
+// Jean-Médecin) : une fiche nommée « Bail… », « Mandat… », « Local … plan » ou une capture n'était jamais lue. Un
+// transfert à sourcing@ est un geste voulu : chaque document est lu, l'extraction dit s'il y a un bien ; une image ne
+// l'est que si rien d'autre n'en a donné (trois au plus : souvent des photos du local).
+const DOC = /\.(pdf|docx?|odt)$/i;
+const IMAGE = /\.(jpe?g|png|webp)$/i;
+const IMAGES_MAX = 3;
+
 export async function enMemoireSeulement(mail, { membre, lu, extraire = null, pousser = null, pieces = null }) {
   // Toutes les fiches du mail (17 nov. 2026 : avant, la première seule), ou celles qu'on désigne.
-  const toutes = piecesFiche(mail).filter((p) => p?.piece_id);
-  const liste = pieces ? toutes.filter((p) => pieces.includes(p.piece_id)) : toutes.length ? toutes : piecesUtiles(mail).slice(0, 1);
-  if (!liste.length || !liste[0]?.piece_id) throw new Error('Aucune fiche à lire dans ce transfert.');
+  const fiches = piecesFiche(mail).filter((p) => p?.piece_id);
+  const utiles = piecesUtiles(mail).filter((p) => p?.piece_id);
+  const vagues = pieces
+    ? [utiles.filter((p) => pieces.includes(p.piece_id))]
+    : [fiches, utiles.filter((p) => !fiches.includes(p) && DOC.test(p.nom || '')), utiles.filter((p) => IMAGE.test(p.nom || '')).slice(0, IMAGES_MAX)];
+  if (!vagues.some((v) => v.length)) throw new Error('Aucune fiche à lire dans ce transfert.');
   const biens = [];
   const erreurs = [];
-  for (const piece of liste) {
-    try { biens.push(await uneFicheEnMemoire(mail, piece, { membre, lu, extraire, pousser })); } catch (e) { erreurs.push(`${piece.nom || 'fiche'} : ${e?.message || e}`); }
+  const lues = [];
+  for (const [i, vague] of vagues.entries()) {
+    // Les images seulement si les documents n'ont rien donné.
+    if (i === 2 && biens.length) break;
+    for (const piece of vague) {
+      try {
+        // Entre fiches reconnues, deux lignes à la même adresse restent deux fiches ; une pièce en plus ne double pas un bien lu.
+        const b = await uneFicheEnMemoire(mail, piece, { membre, lu, extraire, pousser, deja: i === 0 ? [] : lues });
+        if (b) { biens.push(b); if (b.cle_adresse) lues.push(b.cle_adresse); }
+      } catch (e) {
+        // Une pièce en plus qui n'est pas une fiche (un bail sans adresse, une photo) ne se dit pas en erreur.
+        if (i === 0 || pieces) erreurs.push(`${piece.nom || 'fiche'} : ${e?.message || e}`);
+      }
+    }
   }
-  if (!biens.length) throw new Error(erreurs[0] || 'Aucune fiche lue.');
+  if (!biens.length) throw new Error(erreurs[0] || "Aucune pièce du mail ne donne d'adresse, de prix ou de loyer.");
   const premier = biens[0];
   return { fait: 'memoire', n: biens.length, deja: biens.every((b) => b.deja), nom: premier.nom, noms: biens.map((b) => b.nom).filter(Boolean), twenty: biens.some((b) => b.twenty), erreurs };
 }
 
-async function uneFicheEnMemoire(mail, piece, { membre, lu, extraire = null, pousser = null }) {
+async function uneFicheEnMemoire(mail, piece, { membre, lu, extraire = null, pousser = null, deja: adressesLues = [] }) {
   const M = await import('../../memoire/memoire.js');
   const buffer = await telecharger(mail.compte, mail.gmail_message_id, piece.piece_id);
   const hash = M.hashDe(buffer);
   const deja = Records.findBy(M.ENTITE, 'hash_piece', hash);
-  if (deja) return { deja: true, nom: deja.adresse?.rue || deja.ville || null, ...(await versTwenty(deja, pousser)) };
+  if (deja) return { deja: true, cle_adresse: deja.cle_adresse || null, nom: deja.adresse?.rue || deja.ville || null, ...(await versTwenty(deja, pousser)) };
   const lire = extraire || (await import('../../deal/extraire-faits.js')).extraireFaits;
   const faits = await lire({ buffer, filename: piece.nom, mimetype: piece.mime }, { par: membre.email });
   const origine = lu.origine?.email && !membreDeLEquipe(lu.origine.email) ? lu.origine : null;
   const agentFiche = faits.agent || {};
   const bien = M.bienDepuisLot(faits.lots?.[0], { ...agentFiche, email: agentFiche.email || origine?.email || null, nom: agentFiche.nom || origine?.nom || null }, {
-    recu_le: lu.date_origine || mail.date || new Date().toISOString(),
+    // Reçue : le jour où le mail est arrivé chez nous, pas celui où l'agent l'avait écrit (18 nov. 2026, Jules).
+    recu_le: mail.date || new Date().toISOString(),
     compte: mail.compte, gmail_message_id: mail.gmail_message_id, hash_piece: hash, mail_recu_id: mail.id,
     origine: 'transfert', statut: 'memoire',
   });
   if (!bien.cle_adresse && !bien.prix && !bien.loyer_annuel) throw new Error("La fiche ne donne ni adresse, ni prix, ni loyer : rien à garder en Mémoire.");
+  // Le bail ou le plan du bien dont la fiche vient d'être lue, dans le même mail : pas une seconde ligne.
+  if (bien.cle_adresse && adressesLues.includes(bien.cle_adresse)) return null;
   bien.fiche = M.ecrireFiche(buffer, piece.nom, piece.mime);
   const cree = Records.create(M.ENTITE, { ...bien, objet_mail: String(lu.objet_origine || mail.objet || '').slice(0, 200), par: norm(membre.email), maj_le: new Date().toISOString() }, membre.email);
   const m = Records.get('MailRecu', mail.id);
   Records.update('MailRecu', mail.id, { memoire_id: m?.memoire_id || cree.id, memoire_ids: [...(m?.memoire_ids || []), cree.id] });
   const ou = [bien.adresse?.rue, bien.ville].filter(Boolean).join(', ');
-  return { nom: ou || null, ...(await versTwenty(cree, pousser)) };
+  return { nom: ou || null, cle_adresse: bien.cle_adresse || null, ...(await versTwenty(cree, pousser)) };
 }
 
 /**
@@ -617,21 +670,22 @@ taches.enregistrer(COMPETENCE, {
  * sans consigne de pré-analyse et pas encore pré-analysée, va en Mémoire (une pièce déjà lue ne l'est pas deux fois) ; la
  * question en attente est retirée. Une ligne par mail au journal. Une seule fois (`cle`).
  */
-export async function reprendreTransferts({ depuis = '2026-11-16T00:00:00Z', cle = 'transfert.reprise.2026-11-17', journal = console.log, deps = {} } = {}) {
+// 18 nov. 2026 : relancée depuis le 12 nov. pour les mails dont une pièce n'était pas reconnue comme fiche (lues désormais).
+export async function reprendreTransferts({ depuis = '2026-11-12T00:00:00Z', cle = 'transfert.reprise.2026-11-18', journal = console.log, deps = {} } = {}) {
   const { Meta } = await import('../../db.js');
   if (cle && Meta.get(cle)) return { deja: true };
   const { BOITES_COMMUNES } = await import('../drapeaux.js');
   const F = await import('../file.js');
   const mails = Records.list('MailRecu')
-    .filter((m) => BOITES_COMMUNES.has(norm(m.compte)) && m.commande && Date.parse(m.date || 0) >= Date.parse(depuis) && piecesFiche(m).some((x) => x?.piece_id))
+    .filter((m) => BOITES_COMMUNES.has(norm(m.compte)) && m.commande && Date.parse(m.date || 0) >= Date.parse(depuis) && piecesUtiles(m).some((x) => x?.piece_id))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const bilan = { mails: mails.length, fiches: 0, deja: 0, preanalyses: 0, erreurs: 0 };
   for (const m of mails) {
     const membre = expediteurDuTransfert(m.de_email);
     const lu = lireTransfert({ texte: m.texte, objet: m.objet });
     const avant = m.haka_transfert?.intention || 'aucune';
-    const n = piecesFiche(m).filter((x) => x?.piece_id).length;
-    const tete = `[transfert] reprise « ${String(lu.objet_origine || m.objet || '').slice(0, 70)} » de ${m.de_email}, ${n} fiche(s), ${avant}`;
+    const n = piecesUtiles(m).filter((x) => x?.piece_id).length;
+    const tete = `[transfert] reprise « ${String(lu.objet_origine || m.objet || '').slice(0, 70)} » de ${m.de_email}, ${n} pièce(s) : ${piecesUtiles(m).map((x) => x.nom).join(', ').slice(0, 200)}, ${avant}`;
     if (!membre || (estMandataire(membre) && membre.role !== 'admin')) { journal(`${tete} : expéditeur hors équipe, laissé`); continue; }
     const veutFiche = MOTS_FICHE.test(sansAccents(lu.note || '')) || MOTS_RENTRER.test(sansAccents(lu.note || ''));
     if (avant === 'fiche' && (m.deal_id || m.deal_ids?.length)) { bilan.preanalyses += 1; journal(`${tete} : déjà pré-analysée (dossier ${m.deal_id}), fiche en Mémoire par le dossier`); continue; }

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ExternalLink, Loader2, Mic, Phone, PhoneOff, Sparkles, Square, X } from "lucide-react";
+import { ArrowRight, Briefcase, Check, ChevronDown, ExternalLink, Link2, Loader2, Mail, Mic, Phone, PhoneOff, Sparkles, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -460,7 +460,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   const [deja, setDeja] = useState(false);
   const troisColonnes = enCours || deja || essai;
   // Avant l'appel, la carte de la maquette de Jules (15 nov. 2026) ; pendant l'appel, la carte à trois colonnes.
-  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} standard={standard} choisi={choisi} onChoisir={onChoisir} numero={numero} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} siteLe={siteLe} />;
+  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} standard={standard} choisi={choisi} onChoisir={onChoisir} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} siteLe={siteLe} />;
   return (
     <div className="overflow-hidden k-verre">
       <div className="relative flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
@@ -571,67 +571,62 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   );
 }
 
-/** Pure : les initiales d'un nom (« Sophie Le Gall » → « SL »). */
-function initiales(nom) {
-  const mots = String(nom || "").split(/[\s-]+/).filter((m) => /\p{L}/u.test(m));
-  return ((mots[0]?.[0] || "") + (mots.length > 1 ? mots[1][0] : "")).toUpperCase() || "?";
-}
+/** Pure : un lien sûr à ouvrir (« agence.fr » → « https://agence.fr »), ou null. */
+const lienWeb = (u) => { const t = String(u || "").trim(); return t ? (/^https?:\/\//i.test(t) ? t : `https://${t}`) : null; };
 
-/** Pure : ce que la carte dit des annonces de l'agence. */
+/** Pure : l'effectif dit en clair (« 10 » → « 10 salariés » ; une tranche reste telle quelle). */
+const effectifLisible = (e) => { const t = String(e ?? "").trim(); return !t ? null : /^\d+$/.test(t) ? `${t} salarié${Number(t) > 1 ? "s" : ""}` : t; };
 
-/**
- * Une personne de la carte : la tête (sa photo, ses initiales à défaut), le nom, le poste, son numéro, d'où elle vient.
- * Un clic la choisit et l'ouvre en grand (17 nov. 2026, Jules : « cliquer sur un interlocuteur pour voir plus zoomé ») :
- * la photo sur toute la largeur, le nom, le poste, le numéro et le mail ; un second clic la referme. Ni anneau autour de
- * la tête ni pastille « Probable » (Jules, même jour).
- */
-function LignePersonne({ x, actif, ouvert, numero, standard = null, onClic }) {
-  const tete = x.photo ? <img src={x.photo} alt="" className="h-full w-full object-cover" loading="lazy" /> : x.standard ? <Phone className="h-4 w-4" strokeWidth={1.8} /> : initiales(x.nom);
-  // Le numéro de chacun, toujours visible (17 nov. 2026, Jules : « de tous, pas que celui qui est sélectionné ») : le sien,
-  // sinon le standard de l'agence, dit comme tel.
-  const tel = x.telephone || (actif ? numero : null) || standard;
-  const parStandard = !x.telephone && !x.standard && !!tel && tel === standard;
+/** La page d'une personne : son LinkedIn s'il est connu, sinon la recherche LinkedIn sur son nom et l'agence. */
+const pageDe = (x, agence) => lienWeb(x.linkedin) || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent([nomLisible(x.nom), nomLisible(agence)].filter(Boolean).join(" "))}`;
+
+const COLONNES = "grid grid-cols-[32px_minmax(0,1.5fr)_minmax(0,1.3fr)_minmax(0,auto)_40px] items-center gap-x-3 max-md:grid-cols-[32px_minmax(0,1fr)_auto]";
+
+/** Une case à cocher carrée (17 px, coins de 4 px), pleine `menthe` quand elle est cochée. */
+function Case({ coche }) {
   return (
-    <button type="button" onClick={onClic} aria-pressed={actif} aria-expanded={ouvert} title={ouvert ? "Refermer" : "Choisir et voir en grand"}
-      className={`w-full rounded-[14px] px-2.5 py-2 text-left transition-colors ${actif ? "bg-relief/70" : "hover:bg-relief/60"}`} style={actif ? undefined : { background: "transparent" }}>
-      {ouvert && !x.standard ? (
-        <span className="flex flex-col gap-2.5 py-1 duration-200 animate-in fade-in-0">
-          {/* La photo en grand ; sans photo, une tête ronde de 64 px : un grand carré d'initiales ne montrerait rien. */}
-          {x.photo
-            ? <span className="aspect-[4/5] w-full max-w-[220px] self-center overflow-hidden rounded-[16px] bg-rail-actif">{tete}</span>
-            : <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-rail-actif text-[18px] text-craie">{tete}</span>}
-          <span className="flex flex-col gap-0.5">
-            <span className="text-[17px] text-encre">{x.nom}</span>
-            {x.fonction && <span className="text-[13.5px] text-ardoise">{x.fonction}</span>}
-            {tel && <span className="select-all pt-1 text-[14px] tabular-nums text-encre">{tel}{parStandard && <span className="text-ardoise"> · standard</span>}</span>}
-            {x.email && <span className="select-all break-all text-[13px] text-craie">{x.email}</span>}
-            {x.source !== "Apollo" && <span className="pt-0.5 text-[12px] text-brume">{x.source}</span>}
-          </span>
-        </span>
-      ) : (
-        <span className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
-          <span className="grid h-11 w-11 flex-none place-items-center overflow-hidden rounded-full bg-rail-actif text-[13px] text-craie">{tete}</span>
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-[15px] text-encre">{x.nom}</span>
-            {x.fonction && !x.standard && <span className="truncate text-[13px] text-ardoise">{x.fonction}</span>}
-            {/* Le numéro de chacun (17 nov. 2026, Jules : « leur numéro perso, directement ») ; sans le sien, celui à composer. */}
-            {tel && <span className="select-all text-[13px] tabular-nums text-encre">{tel}{parStandard && <span className="text-ardoise"> · standard</span>}</span>}
-            {/* La source, sauf Apollo (17 nov. 2026, Jules : « enlève le "Apollo" »). */}
-            {x.source !== "Apollo" && <span className="truncate text-[12px] text-brume">{x.source}</span>}
-          </span>
-        </span>
-      )}
-    </button>
+    <span aria-hidden className={`grid h-[17px] w-[17px] place-items-center rounded-[4px] border transition-colors ${coche ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif"}`}>
+      {coche && <Check className="h-3 w-3" strokeWidth={2.4} />}
+    </span>
   );
 }
 
 /**
- * La carte d'avant l'appel (17 nov. 2026, Jules, planche « Carte d'appel », A « Deux colonnes ») : le nom de l'agence,
- * Appeler et Passer en tête ; dessous, à gauche, les interlocuteurs en liste, une ligne par personne (la tête, le nom,
- * le poste, la source ; « Probable » sur la personne d'Apollo choisie d'office) ; à droite, « Résumé IA » et, en lignes,
- * le dernier appel, les annonces et la ville. Pendant et après l'appel, rien ne change.
+ * Une personne en ligne du tableau « Collaborateurs » (18 nov. 2026, Jules, sur sa capture) : la case (la personne
+ * choisie, celle à demander), le nom et le poste, le mail, le numéro (le sien, sinon le standard en `ardoise`), le lien
+ * vers sa page. Un clic sur la ligne la choisit.
  */
-function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, numero, histo, essai, onMicro, onPasser, passerEnCours, onRetour, onSansConversation = null, occupe = false, siteLe = null }) {
+function LigneCollaborateur({ x, actif, standard, agence, onChoisir }) {
+  const tel = x.telephone || standard;
+  return (
+    <div role="row" aria-selected={actif} onClick={onChoisir}
+      className={`${COLONNES} cursor-pointer border-t border-trait px-5 py-3 transition-colors max-md:px-4 ${actif ? "bg-relief/70" : "hover:bg-relief/50"}`}>
+      <span className="grid place-items-center"><Case coche={actif} /></span>
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-[15px] text-encre">{nomLisible(x.nom)}</span>
+        {x.fonction && <span className="truncate text-[13px] text-ardoise">{x.fonction}</span>}
+      </span>
+      <span className="flex min-w-0 items-center gap-2 text-[13.5px] max-md:hidden">
+        {x.email ? <><Mail className="h-3.5 w-3.5 flex-none text-ardoise" strokeWidth={1.8} /><span className="select-all truncate text-encre" onClick={(e) => e.stopPropagation()}>{x.email}</span></> : <span className="text-brume">Pas de mail</span>}
+      </span>
+      <span className="flex items-center justify-end gap-2 whitespace-nowrap text-[13.5px] tabular-nums">
+        {tel ? <><Phone className="h-3.5 w-3.5 flex-none text-ardoise" strokeWidth={1.8} /><span className={`select-all ${x.telephone ? "text-encre" : "text-ardoise"}`} title={x.telephone ? undefined : "Standard de l'agence"} onClick={(e) => e.stopPropagation()}>{tel}</span></> : <span className="text-brume">Pas de numéro</span>}
+      </span>
+      <a href={pageDe(x, agence)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={x.linkedin ? "Son LinkedIn" : "Le chercher sur LinkedIn"}
+        className="grid h-8 w-8 place-items-center justify-self-center rounded-full text-ardoise transition-colors hover:bg-relief hover:text-encre max-md:hidden">
+        <Link2 className="h-4 w-4" strokeWidth={1.8} />
+      </a>
+    </div>
+  );
+}
+
+/**
+ * La carte d'avant l'appel (18 nov. 2026, Jules, sur sa capture « Richard Gilmore - Réseau 3C ») : le nom de l'agence,
+ * Appeler et Passer en tête. Dessous, à gauche (320 px), « Résumé IA » puis, en bas, Dernier appel, Création, Effectif
+ * et Liens (le site, le LinkedIn de l'agence) ; à droite, « Collaborateurs · n » en tableau (case, nom et poste, mail,
+ * numéro, lien), puis « Rappeler plus tard » et « Message laissé ». Pendant et après l'appel, rien ne change.
+ */
+function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, histo, essai, onMicro, onPasser, passerEnCours, onRetour, onSansConversation = null, occupe = false, siteLe = null }) {
   const resume = useQuery({
     // Relu quand le site de l'agence vient d'être lu : le résumé dit alors ses villes, sa taille, ses offres.
     ...requeteResume(a.id, siteLe),
@@ -641,10 +636,13 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, nume
     placeholderData: (avant, q) => (q?.queryKey?.[2] === a.id ? avant : undefined),
   });
   const dernier = histo[0];
-  const ville = a.ville || String(a.lieu || "").split(" · ")[0] || null;
-  // La personne ouverte en grand : aucune à l'arrivée sur l'agence.
-  const [ouvertId, setOuvertId] = useState(null);
-  useEffect(() => { setOuvertId(null); }, [a.id]);
+  const liens = [[lienWeb(a.site), "Site de l'agence", Link2], [lienWeb(a.linkedin), "LinkedIn de l'agence", Briefcase]].filter(([u]) => u);
+  const faits = [
+    ["Dernier appel", dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"],
+    ["Création", a.creation],
+    ["Effectif", effectifLisible(a.effectif)],
+  ].filter(([, v]) => v);
+  const bouton = "h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50";
   return (
     <div className="overflow-hidden k-verre">
       <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-6 py-5 max-md:px-4">
@@ -663,54 +661,73 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, nume
       </div>
       {/* Un filet en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css). */}
       <div aria-hidden className="h-px bg-trait" />
-      {/* Toujours la même hauteur, plus basse (17 nov. 2026, Jules) : 380 px, chaque colonne défile si elle déborde. */}
-      <div className="grid min-h-[360px] md:h-[380px] md:min-h-0 md:grid-cols-[320px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
-        <div className="flex flex-col gap-1.5 px-5 py-5 max-md:px-4 md:overflow-y-auto md:border-r md:border-trait">
-          <span className="px-1 pb-1 text-[12.5px] text-ardoise">Interlocuteur</span>
-          {contacts.map((x) => (
-            <LignePersonne key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} numero={numero} standard={standard}
-              onClic={() => { if (choisi?.id === x.id) setOuvertId((o) => (o === x.id ? null : x.id)); else { onChoisir(x.id); setOuvertId(x.id); } }} />
-          ))}
-          {!contacts.length && (
-            <p className="m-0 px-1 text-[14px] text-ardoise">
-              Personne de connu : demandez le responsable commerce{numero && <> · <span className="select-all tabular-nums text-encre">{numero}</span></>}
-            </p>
-          )}
-        </div>
-        <div aria-hidden className="h-px bg-trait md:hidden" />
-        <div className="flex min-w-0 flex-col gap-4 px-6 py-5 max-md:px-4 md:overflow-y-auto">
-          {!resume.isError && (
-            <div className="flex flex-col gap-1.5">
+      {/* Toujours la même hauteur (17 nov. 2026, Jules) : 400 px sur ordinateur, chaque colonne défile si elle déborde. */}
+      <div className="grid min-h-[360px] md:h-[400px] md:min-h-0 md:grid-cols-[320px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
+        <div className="flex flex-col justify-between gap-6 px-5 py-5 max-md:px-4 md:overflow-y-auto md:border-r md:border-trait">
+          {!resume.isError ? (
+            <div className="flex flex-col gap-2">
               <span className="inline-flex items-center gap-2 text-[13px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />Résumé IA</span>
               {resume.isLoading ? (
                 <div aria-label="Résumé en cours" className="flex flex-col gap-2 pt-1">
                   <span className="h-3 w-[92%] animate-pulse rounded-full bg-rail-actif" />
-                  <span className="h-3 w-[70%] animate-pulse rounded-full bg-rail-actif" />
+                  <span className="h-3 w-[80%] animate-pulse rounded-full bg-rail-actif" />
+                  <span className="h-3 w-[60%] animate-pulse rounded-full bg-rail-actif" />
                 </div>
-              ) : <p className="m-0 max-w-[68ch] text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resume.data?.texte}</p>}
+              ) : <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resume.data?.texte}</p>}
             </div>
-          )}
-          <div className="flex flex-col">
-            {[["Dernier appel", dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"], ["Ville", ville]].filter(([, v]) => v).map(([k, v]) => (
-              <div key={k} className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 border-t border-trait py-2.5 text-[14px] max-md:grid-cols-[96px_minmax(0,1fr)]">
+          ) : <span />}
+          <div className="flex flex-col gap-3">
+            {faits.map(([k, v]) => (
+              <div key={k} className="grid grid-cols-[118px_minmax(0,1fr)] items-baseline gap-3 text-[14px]">
                 <span className="text-[13px] text-ardoise">{k}</span>
                 <span className="min-w-0 text-encre">{v}</span>
               </div>
             ))}
+            {!!liens.length && (
+              <div className="grid grid-cols-[118px_minmax(0,1fr)] items-center gap-3">
+                <span className="text-[13px] text-ardoise">Liens</span>
+                <span className="flex items-center gap-1">
+                  {liens.map(([u, titre, Icone]) => (
+                    <a key={titre} href={u} target="_blank" rel="noreferrer" title={titre} aria-label={titre}
+                      className="grid h-8 w-8 place-items-center rounded-full text-craie transition-colors hover:bg-relief hover:text-encre">
+                      <Icone className="h-4 w-4" strokeWidth={1.8} />
+                    </a>
+                  ))}
+                </span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-      {/* Pas de réponse, aussi avant l'appel (16 nov. 2026, Jules) : on a composé sans lancer l'écoute, personne ou un répondeur. */}
-      {onSansConversation && (
-        <>
-          <div aria-hidden className="h-px bg-trait" />
-          <div className="flex flex-wrap items-center justify-end gap-2.5 px-6 py-3 max-md:px-4">
-            <span className="mr-1 text-[13.5px] text-ardoise">Pas de réponse ?</span>
-            <button type="button" onClick={() => onSansConversation("pas_de_reponse")} disabled={occupe} title="Personne n'a décroché : la relance se planifie, l'agence suivante arrive" className="h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50" style={{ background: "transparent" }}>Rappeler plus tard</button>
-            <button type="button" onClick={() => onSansConversation("repondeur")} disabled={occupe} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
+        <div aria-hidden className="h-px bg-trait md:hidden" />
+        <div className="flex min-w-0 flex-col md:min-h-0">
+          <div className="flex-1 md:min-h-0 md:overflow-y-auto">
+            <p className="m-0 px-5 pb-3 pt-4 text-[13px] text-ardoise max-md:px-4">Collaborateurs · {contacts.length}</p>
+            {contacts.length ? (
+              <div role="table" aria-label="Collaborateurs">
+                <div role="row" className={`${COLONNES} px-5 pb-2.5 text-[11.5px] uppercase tracking-[0.08em] text-ardoise max-md:px-4`}>
+                  <span />
+                  <span>Nom</span>
+                  <span className="max-md:hidden">Emails</span>
+                  <span className="text-right">Contact</span>
+                  <span className="text-center max-md:hidden">Lien</span>
+                </div>
+                {contacts.map((x) => <LigneCollaborateur key={x.id} x={x} actif={choisi?.id === x.id} standard={standard} agence={a.nom} onChoisir={() => onChoisir(x.id)} />)}
+              </div>
+            ) : (
+              <p className="m-0 border-t border-trait px-5 py-4 text-[14px] text-ardoise max-md:px-4">
+                Personne de connu : demandez le responsable commerce{standard && <> · <span className="select-all tabular-nums text-encre">{standard}</span></>}
+              </p>
+            )}
           </div>
-        </>
-      )}
+          {/* Pas de réponse, aussi avant l'appel (16 nov. 2026, Jules) : on a composé sans lancer l'écoute, personne ou un répondeur. */}
+          {onSansConversation && (
+            <div className="flex flex-wrap items-center justify-end gap-2.5 px-5 py-3 max-md:px-4">
+              <button type="button" onClick={() => onSansConversation("pas_de_reponse")} disabled={occupe} title="Personne n'a décroché : la relance se planifie, l'agence suivante arrive" className={bouton} style={{ background: "transparent" }}>Rappeler plus tard</button>
+              <button type="button" onClick={() => onSansConversation("repondeur")} disabled={occupe} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className={bouton} style={{ background: "transparent" }}>Message laissé</button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

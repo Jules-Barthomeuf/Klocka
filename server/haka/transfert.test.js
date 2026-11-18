@@ -156,28 +156,21 @@ test('la même adresse transférée à nouveau complète le bien, sans doublon',
   assert.match(notif(m).texte, /déjà dans vos biens/);
 });
 
-test('admin et mandataire à la fois : la question, puis le côté choisi', async () => {
+test('admin et mandataire à la fois : côté admin sans question, côté mandataire quand le message le dit (18 nov. 2026)', async () => {
   M._brancherLecteur(async () => ({ ...lecture, adresse: '3 place Bellecour' }));
-  const cotes = async (objet, nom) => {
-    const m = transfert({ de_email: ines.email, objet, texte: 'rentre ce dossier dans ma plateforme', pieces_jointes: [piece(nom)] });
+  const cotes = async (objet, nom, texte) => {
+    const m = transfert({ de_email: ines.email, objet, texte, pieces_jointes: [piece(nom)] });
     X.surTransfert(m, { lancer: false, uploadDir: dir });
     await T.tourner();
     return { m, p: Records.list('HakaProposition').find((x) => x.type === 'transfert_cote' && x.charge?.mail_id === m.id) };
   };
-  const a = await cotes('TR: Bellecour', 'fiche-bellecour.pdf');
-  assert.equal(a.p.pour, ines.email);
-  assert.deepEqual(a.p.choix.map((c) => c.cle), ['mandataire', 'admin']);
-  assert.equal(Records.list('Notification').find((x) => x.cle === `haka:${a.p.id}`).genre, 'question_cote');
-  assert.equal(parEmail(ines.email).length, 0, 'rien avant la réponse');
-  assert.equal((await F.valider(a.p.id, ines, { choix: 'mandataire' })).ok, true);
-  await T.tourner();
+  const a = await cotes('TR: Bellecour', 'fiche-bellecour.pdf', 'rentre ce dossier dans ma plateforme, côté mandataire');
+  assert.equal(a.p, undefined, 'aucune question');
   assert.equal(parEmail(ines.email)[0].adresse, '3 place Bellecour');
-  assert.ok(notif(a.m));
 
-  const b = await cotes('TR: Nouveau local Vaise', 'bail-vaise.pdf');
   const avant = parEmail(ines.email).length;
-  assert.equal((await F.valider(b.p.id, ines, { choix: 'admin' })).ok, true);
-  await T.tourner();
+  const b = await cotes('TR: Nouveau local Vaise', 'bail-vaise.pdf', 'rentre ce dossier dans ma plateforme');
+  assert.equal(b.p, undefined, 'aucune question');
   assert.equal(parEmail(ines.email).length, avant, 'pas de bien côté mandataire');
   assert.ok(Records.list('Deal').find((d) => d.source_mail?.mail_recu_id === b.m.id), 'le dossier côté équipe');
 });
@@ -187,8 +180,9 @@ test('le côté : la question seulement pour qui a les deux, et seulement quand 
   assert.equal(X.coteDuTransfert({ role: 'admin' }, { intention: 'fiche' }, lu), 'admin');
   assert.equal(X.coteDuTransfert({ role: 'mandataire' }, { intention: 'demande' }, { transfert: false }), 'mandataire');
   const double = { role: 'admin', aussi_mandataire: true };
-  assert.equal(X.coteDuTransfert(double, { intention: 'fiche' }, lu), null);
-  assert.equal(X.coteDuTransfert(double, { intention: 'documents', dossier: 'deal-macon' }, lu), null);
+  assert.equal(X.coteDuTransfert(double, { intention: 'fiche' }, { ...lu, note: 'Préanalyse ce bien' }), 'admin');
+  assert.equal(X.coteDuTransfert(double, { intention: 'documents', dossier: 'deal-macon' }, lu), 'admin');
+  assert.equal(X.coteDuTransfert(double, { intention: 'fiche' }, { ...lu, note: 'à mettre côté mandataire stp' }), 'mandataire');
   assert.equal(X.coteDuTransfert(double, { intention: 'memoire' }, lu), 'admin');
   assert.equal(X.coteDuTransfert(double, { intention: 'demande' }, { transfert: false }), 'admin');
   assert.equal(X.expediteurDuTransfert('inconnu@ailleurs.fr'), null);
@@ -290,6 +284,28 @@ test("toutes les fiches d'un transfert sans consigne vont en Mémoire, pas seule
   assert.equal(r.n, 2);
   assert.deepEqual(Records.filter('BienMemoire', { mail_recu_id: m.id }).map((b) => b.ville).sort(), ['Agde', 'Sète']);
   assert.match(X.compteRendu(r).texte, /^2 fiches mises en Mémoire et dans les Propriétés de Twenty CRM, sans dossier\./);
+});
+
+test("18 nov. 2026 : une pièce au nom qui ne dit pas « fiche » est lue aussi ; le bail du même bien ne fait pas de doublon ; les photos ne sont pas lues", async () => {
+  const m = transfert({ objet: 'TR: Fiches Cannes', texte: '', pieces_jointes: [piece('Fiche Boulangerie Cannes.pdf'), piece('Local 17 Jean Médecin plan.pdf'), piece('Bail 17 Jean Médecin.pdf'), piece('photo vitrine.jpg')] });
+  const lus = [];
+  const adresse = { 'Fiche Boulangerie Cannes.pdf': ['48 rue d\'Antibes', '06400', 'Cannes'], 'Local 17 Jean Médecin plan.pdf': ['17 avenue Jean Médecin', '06000', 'Nice'], 'Bail 17 Jean Médecin.pdf': ['17 avenue Jean Médecin', '06000', 'Nice'] };
+  const extraire = async ({ filename }) => {
+    lus.push(filename);
+    const [rue, code_postal, ville] = adresse[filename] || [];
+    return { lots: [{ lot: { ...(rue ? { adresse: { valeur: { rue, code_postal, ville } } } : {}), loyer_annuel_ht_hc: { valeur: 30000 } } }], agent: null };
+  };
+  const r = await X.enMemoireSeulement(m, { membre: { email: 'nora@klocka.immo' }, lu: { note: '' }, extraire, pousser: async () => ({ id: 'tw' }) });
+  assert.equal(r.n, 2, 'Cannes et le 17 avenue Jean Médecin');
+  assert.deepEqual(Records.filter('BienMemoire', { mail_recu_id: m.id }).map((b) => b.ville).sort(), ['Cannes', 'Nice']);
+  assert.ok(!lus.includes('photo vitrine.jpg'), 'les documents ont donné des biens : les images ne sont pas lues');
+});
+
+test("18 nov. 2026 : une capture seule, sans document, est lue comme fiche", async () => {
+  const m = transfert({ objet: 'TR: annonce', texte: '', pieces_jointes: [piece('Capture d’écran 2026-11-16.png')] });
+  const extraire = async () => ({ lots: [{ lot: { adresse: { valeur: { rue: '5 rue Masséna', code_postal: '06000', ville: 'Nice' } }, prix_fai: { valeur: 400000 } } }], agent: null });
+  const r = await X.enMemoireSeulement(m, { membre: { email: 'nora@klocka.immo' }, lu: { note: '' }, extraire, pousser: async () => ({ id: 'tw' }) });
+  assert.equal(r.n, 1);
 });
 
 test("la reprise du 16 nov. : les fiches transférées sans consigne vont en Mémoire, une fois, et la question en attente est retirée", async () => {

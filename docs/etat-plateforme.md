@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-5 personnes, 4 103 pages ouvertes, 0 demandes à l'assistant, 12 actions exécutées.
+5 personnes, 4 119 pages ouvertes, 0 demandes à l'assistant, 12 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 394 | 0 | 12 | 18/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 410 | 0 | 12 | 18/11/2026 |
 | admin.stress@test.local (équipe) | 384 | 0 | 0 | 18/11/2026 |
 | test.mandataire@kpartners.fr | 182 | 0 | 0 | 14/11/2026 |
 | admin@klocka.local (équipe) | 138 | 0 | 0 | 17/11/2026 |
@@ -21,35 +21,35 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
 - **MandataireBiens** — 1 021 (25 %)
-- **Analyse** — 784 (19 %)
+- **Analyse** — 779 (19 %)
+- **CrmTwenty** — 356 (9 %)
 - **Prospection** — 324 (8 %)
-- **CrmTwenty** — 320 (8 %)
-- **Dashboard** — 287 (7 %)
+- **Dashboard** — 281 (7 %)
 - **MandataireProspection** — 244 (6 %)
-- **AdminProjets** — 186 (5 %)
-- **Personnalisation** — 141 (3 %)
+- **AdminProjets** — 185 (4 %)
+- **Personnalisation** — 130 (3 %)
 - **MandatsMandataires** — 66 (2 %)
 - **SimulateurRentabilite** — 56 (1 %)
 - **AdminUtilisateurs** — 41 (1 %)
 - **KVacance** — 40 (1 %)
-- Le reste, sous 1 % : Monitoring, Outils, PlancheAnalyse, MandataireTableauDeBord, MandataireClients, KData, Cerveau, Home, AdminModeles, Offres, MandataireDocuments, KPatrimoine, Emailing, PlancheVerre, ProjetDetail, SuiviAppels, SuiviActivite, MandataireDossier, KTransactions, KZoning, public, KExpertise, SimulateurPublic, AdminClients, AdminSuggestions, MandataireProjets, KProspective, Tokimo, KFoncier, MemoireKlocka, MandataireEstimation, AccesPages, PlancheMarche, KEstimation, AdminMandataires, SuiviAudience, AdminAccesCrm, tokimo, AdminPresentations, Semaine, MandataireMarche, MandataireOffMarket, PlancheVacance, PlancheLocataire, ValeurLocative, DepotVendeur, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, SuiviMandataires, Automatismes, AdminBanque, SuiviCorrections, SignerBon, klocka.immo, MesProjets, AdminEquipe, Feedback, NotreOffre
+- Le reste, sous 1 % : Monitoring, Outils, PlancheAnalyse, MandataireTableauDeBord, MandataireClients, KData, Cerveau, Home, AdminModeles, Offres, KPatrimoine, MandataireDocuments, Emailing, PlancheVerre, ProjetDetail, SuiviAppels, SuiviActivite, MandataireDossier, KTransactions, KZoning, public, KExpertise, SimulateurPublic, AdminClients, AdminSuggestions, MandataireProjets, KProspective, Tokimo, KFoncier, MemoireKlocka, MandataireEstimation, AccesPages, PlancheMarche, KEstimation, AdminMandataires, SuiviAudience, AdminAccesCrm, tokimo, AdminPresentations, MandataireMarche, MandataireOffMarket, PlancheVacance, PlancheLocataire, ValeurLocative, DepotVendeur, Semaine, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, SuiviMandataires, Automatismes, AdminBanque, SuiviCorrections, SignerBon, klocka.immo, MesProjets, AdminEquipe, Feedback, NotreOffre
 
 ## Ce que l'IA coûte
 
-43,31 € sur la période, 2 361 appels, 16 107 k jetons. 53 % part en tâche de fond, sans que personne clique. 37 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+100,55 € sur la période, 2 800 appels, 45 346 k jetons. 81 % part en tâche de fond, sans que personne clique. 17 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,0061 € par appel | 418 | 19,41 € | — |
+| Non attribué (fond) | 0,05 € par appel | 754 | 76,02 € | — |
 | Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 372 | 12,91 € | 18 s |
 | Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 13 | 1,64 € | 31 s |
+| Lire le site d'une agence (et le trouver s'il manque) | 0,0062 € par agence | 160 | 1,40 € | 5 s |
 | Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
-| Lire le site d'une agence (et le trouver s'il manque) | 0,0062 € par agence | 55 | 0,77 € | 7 s |
 | Extraire un document déposé | 0,02 € par document | 6 | 0,23 € | 17 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
 | Parler à l'assistant après un appel | 0,0076 € par demande | 19 | 0,15 € | 2 s |
-| Analyser une fiche commerciale | 0,0091 € par fiche | 15 | 0,15 € | 16 s |
+| Analyser une fiche commerciale | 0,0091 € par fiche | 14 | 0,14 € | 17 s |
 | Résumer une agence avant l'appel | 0,0010 € par agence | 96 | 0,10 € | 2 s |
 | Trouver les zones commerçantes d'une ville | 0,0080 € par ville | 13 | 0,10 € | 7 s |
 
@@ -81,5 +81,5 @@ Pour qui : Jules 12.
 
 - L'écran de travail, c'est **MandataireBiens** : 25 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « demander quelque chose à l'assistant (mandataire) » à 0,03 € par demande : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
-- 53 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
+- 81 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

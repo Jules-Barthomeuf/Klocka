@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Phone, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronUp, Maximize2, Minimize2, ChevronsLeft, ChevronsRight, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Phone, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
@@ -338,11 +338,70 @@ function useSupprimer(objet, apres) {
 }
 
 /** La fiche d'une ligne, à droite (au téléphone, par-dessus la page), en onglets comme dans Twenty. */
+// Les collaborateurs d'une agence (18 nov. 2026, Jules) : en lignes, la photo ou les initiales, le nom complet, le poste,
+// le numéro (un clic appelle) ; ceux de la carte d'appel, sinon la colonne Interlocuteurs de Twenty.
+const initialesDe = (nom) => String(nom || "").split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join("");
+function Collaborateurs({ gens }) {
+  if (!gens.length) return <p className="m-0 text-[13.5px] text-brume">Aucun encore.</p>;
+  return (
+    <div className="-mx-5 -mb-4 border-t border-trait">
+      <table className="w-full table-fixed border-collapse text-left">
+        <colgroup><col style={{ width: "40%" }} /><col style={{ width: "31%" }} /><col style={{ width: "29%" }} /></colgroup>
+        <thead>
+          <tr className="text-[11.5px] uppercase tracking-[0.06em] text-ardoise">
+            <th className="px-5 py-2.5 font-normal">Nom</th><th className="px-3 py-2.5 font-normal">Poste</th><th className="px-5 py-2.5 text-right font-normal">Téléphone</th>
+          </tr>
+        </thead>
+        <tbody>
+          {gens.map((x, i) => (
+            <tr key={`${x.nom}-${i}`} className="border-t border-trait hover:bg-relief">
+              <td className="px-5 py-2.5">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-full bg-relief text-[12.5px] text-craie">
+                    {x.photo ? <img src={x.photo} alt="" className="h-full w-full object-cover" loading="lazy" /> : initialesDe(x.nom)}
+                  </span>
+                  <span className="min-w-0 truncate text-[14px] text-encre" title={x.nom}>{x.nom}</span>
+                </span>
+              </td>
+              <td className="truncate px-3 py-2.5 text-[13px] text-ardoise" title={x.fonction || ""}>{x.fonction || ""}</td>
+              <td className="px-5 py-2.5 text-right">
+                {x.telephone ? <a href={`tel:${String(x.telephone).replace(/\s+/g, "")}`} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13.5px] tabular-nums text-encre hover:text-menthe"><Phone className="h-3.5 w-3.5 text-ardoise" />{x.telephone}</a> : <span className="text-[13px] text-brume">—</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Une grande partie de la fiche : une carte, son titre et son nombre, repliable (le chevron en haut à droite). */
+function Partie({ titre, nombre = null, ouverte, onBasculer, actions = null, children }) {
+  return (
+    <section className="k-verre px-5 pb-4 pt-3.5">
+      <div className={`flex items-center justify-between gap-3 ${ouverte ? "mb-3" : ""}`}>
+        <p className="m-0 text-[15px] text-encre">{titre}{nombre != null && <span className="ml-1.5 text-[13px] text-ardoise">{nombre}</span>}</p>
+        <span className="flex items-center gap-1.5">
+          {ouverte && actions}
+          <button type="button" onClick={onBasculer} aria-label={ouverte ? `Replier ${titre}` : `Déplier ${titre}`} aria-expanded={ouverte} className="grid h-8 w-8 place-items-center rounded-[8px] bg-relief text-craie hover:text-encre">
+            {ouverte ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        </span>
+      </div>
+      {ouverte && children}
+    </section>
+  );
+}
+
 function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
   const queryClient = useQueryClient();
   const cle = ["crm-fiche", objet.singulier, id];
   const { data, isLoading, isError, error } = useQuery({ queryKey: cle, queryFn: () => req("GET", `${API}/${objet.singulier}/${id}`), staleTime: 30_000 });
-  const [onglet, setOnglet] = useState("fiche");
+  // Les parties ouvertes ou repliées, et la fiche agrandie à toute la largeur.
+  const [replis, setReplis] = useState({});
+  const ouverte = (k, defaut) => replis[k] ?? defaut;
+  const basculer = (k, defaut) => setReplis((r) => ({ ...r, [k]: !(r[k] ?? defaut) }));
+  const [grand, setGrand] = useState(false);
   const [note, setNote] = useState("");
   const [tache, setTache] = useState("");
   const [echeance, setEcheance] = useState("");
@@ -374,7 +433,7 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
     onError: (e) => toast.error(e?.message || "Création refusée"),
   });
   const supprimer = useSupprimer(objet, onFermer);
-  const histo = useQuery({ queryKey: ["crm-historique", objet.singulier, id], queryFn: () => req("GET", `${API}/${objet.singulier}/${id}/historique`), enabled: onglet === "historique" });
+  const histo = useQuery({ queryKey: ["crm-historique", objet.singulier, id], queryFn: () => req("GET", `${API}/${objet.singulier}/${id}/historique`), enabled: ouverte("historique", false) });
   const choixFichier = useRef(null);
   const deposer = useMutation({
     mutationFn: async (fichiers) => {
@@ -395,8 +454,6 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
   const champNom = objet.champs.find((c) => c.nom === objet.principal);
   const nom = f ? affiche(champNom || SANS_NOM, f[objet.principal]) : "";
   const ouvertes = data?.taches?.filter((t) => t.statut !== "DONE").length || 0;
-  // Un tableau de Klocka (Utilisateurs) n'a ni historique, ni tâches, ni notes, ni fichiers dans Twenty.
-  const ONGLETS = objet.klocka ? [["fiche", "Fiche"]] : [["fiche", "Fiche"], ["historique", "Historique"], ["taches", `Tâches${ouvertes ? ` ${ouvertes}` : ""}`], ["notes", `Notes${data?.notes?.length ? ` ${data.notes.length}` : ""}`], ["fichiers", `Fichiers${data?.pieces?.length ? ` ${data.pieces.length}` : ""}`]];
   const boiteSaisie = "mb-3 rounded-[12px] border border-trait bg-surface px-3 py-2 focus-within:border-bord-doux";
   // Au téléphone, la fiche passe par-dessus tout l'écran, barre de Klocka comprise : elle sort de la page (portail).
   const telephone = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
@@ -408,41 +465,49 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
     document.addEventListener("pointerdown", dehors);
     return () => document.removeEventListener("pointerdown", dehors);
   }, [onFermer]);
+  // La fiche sur le modèle d'Apollo (18 nov. 2026, Jules, capture d'A5P Immobilier : « le layout général, pas les
+  // onglets ») : un en-tête (initiales, nom, lien du site, « type · ville »), à gauche la carte Détails, à droite les
+  // grandes parties en cartes repliables (Collaborateurs, fiches liées, Tâches, Notes, Fichiers, Historique).
+  const lienSite = f ? objet.champs.filter((c) => c.type === "LINKS").map((c) => f[c.nom]?.primaryLinkUrl).find(Boolean) : null;
+  const lieu = f ? ["ville", "adresse", "city"].map((k) => objet.champs.find((c) => c.nom === k)).filter(Boolean).map((c) => affiche(c, f[c.nom], data?.liens)).find(Boolean) : null;
   const panneau = (
     <motion.aside ref={cadre} initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 28 }} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-      className="flex flex-col overflow-hidden bg-rail shadow-[0_12px_40px_rgb(0_0_0/0.3)] max-md:fixed max-md:inset-0 max-md:z-[80] max-md:pt-[env(safe-area-inset-top)] md:absolute md:inset-y-0 md:right-0 md:z-20 md:w-[460px] md:border-l md:border-trait">
-      <div className="flex items-start justify-between gap-3 px-5 pt-5">
-        <div className="min-w-0">
+      className={`flex flex-col overflow-hidden bg-rail shadow-[0_12px_40px_rgb(0_0_0/0.3)] max-md:fixed max-md:inset-0 max-md:z-[80] max-md:pt-[env(safe-area-inset-top)] md:absolute md:inset-y-0 md:right-0 md:z-20 md:border-l md:border-trait ${grand ? "md:w-full" : "md:w-[max(900px,74%)] md:max-w-full"}`}>
+      <div className="flex items-start justify-between gap-4 border-b border-trait px-6 py-4">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span className="grid h-11 w-11 flex-none place-items-center rounded-[10px] bg-relief text-[14px] font-medium text-craie">{initialesDe(nom) || "?"}</span>
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
           {f && champNom?.modifiable ? (
             <Corrigeable c={champNom} valeur={f[objet.principal]} onEnregistrer={(champ, valeur) => changer.mutate({ champ, valeur })} className="-mx-1 rounded-[8px] px-1">
-              {(vu) => <h2 className="m-0 truncate text-[20px] font-normal leading-[1.2] text-encre">{vu || "Sans nom"}</h2>}
+              {(vu) => <h2 className="m-0 truncate text-[22px] font-normal leading-[1.2] text-encre">{vu || "Sans nom"}</h2>}
             </Corrigeable>
-          ) : <h2 className="m-0 truncate text-[20px] font-normal leading-[1.2] text-encre">{nom || (isLoading ? "…" : "Sans nom")}</h2>}
-          <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">{objet.nom_un}{objet.niveau === "lecture" ? " · en lecture" : ""}</p>
+          ) : <h2 className="m-0 truncate text-[22px] font-normal leading-[1.2] text-encre">{nom || (isLoading ? "…" : "Sans nom")}</h2>}
+              {lienSite && <a href={lienSite} target="_blank" rel="noreferrer" aria-label="Ouvrir le site" title="Site" className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre"><ExternalLink className="h-4 w-4" /></a>}
+            </div>
+            <p className="m-0 mt-0.5 truncate text-[13.5px] text-ardoise">{[objet.nom_un, lieu].filter(Boolean).join(" · ")}{objet.niveau === "lecture" ? " · en lecture" : ""}</p>
+          </div>
         </div>
         <span className="flex flex-none items-center gap-1">
           {plein && f && <button type="button" onClick={() => supprimer.mutate([id])} aria-label="Supprimer la fiche" title="Supprimer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-alerte" style={{ background: "transparent" }}><Trash2 className="h-4 w-4" /></button>}
+          <button type="button" onClick={() => setGrand((g) => !g)} aria-label={grand ? "Réduire la fiche" : "Agrandir la fiche"} title={grand ? "Réduire" : "Agrandir"} className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre max-md:hidden" style={{ background: "transparent" }}>{grand ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</button>
           <button type="button" onClick={onFermer} aria-label="Fermer la fiche" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         </span>
       </div>
-      <div role="tablist" className="mt-3 flex gap-1 overflow-x-auto border-b border-trait px-4">
-        {ONGLETS.map(([k, mot]) => (
-          <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => setOnglet(k)}
-            className={`-mb-px flex-none whitespace-nowrap border-b-2 px-2.5 pb-2.5 pt-1 text-[13.5px] ${onglet === k ? "border-encre text-encre" : "border-transparent text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
-        ))}
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-4">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading && <Chargement />}
-        {isError && <p className="m-0 mt-4 text-[13.5px] text-alerte">{error?.message || "Cette fiche ne se charge pas."}</p>}
-        {f && onglet === "fiche" && (
-          <>
-            <dl className="m-0 overflow-hidden k-verre">
-              {objet.champs.filter((c) => c.nom !== objet.principal).map((c) => (
-                <div key={c.nom} className="grid grid-cols-2 items-stretch border-t border-trait text-center first:border-t-0">
-                  <dt className="flex items-center justify-center px-4 py-3 text-[13px] text-ardoise">{c.libelle}</dt>
-                  <dd className="m-0 flex min-w-0 border-l border-bord-doux text-[14px] text-encre">
+        {isError && <p className="m-0 mt-4 px-6 text-[13.5px] text-alerte">{error?.message || "Cette fiche ne se charge pas."}</p>}
+        {f && (
+          <div className="grid min-h-full md:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
+            <div className="p-4 md:border-r md:border-trait">
+              <Partie titre="Détails" ouverte={ouverte("details", true)} onBasculer={() => basculer("details", true)}>
+                <dl className="-mx-5 -mb-4 m-0 overflow-hidden border-t border-trait">
+              {objet.champs.filter((c) => c.nom !== objet.principal && !(c.nom === "interlocuteurs" && data.collaborateurs?.length)).map((c) => (
+                <div key={c.nom} className="grid grid-cols-[minmax(110px,40%)_1fr] items-stretch border-t border-trait first:border-t-0">
+                  <dt className="flex items-center px-4 py-2.5 text-[13px] text-ardoise">{c.libelle}</dt>
+                  <dd className="m-0 flex min-w-0 text-[14px] text-encre">
                     <Corrigeable c={c} valeur={f[c.nom]} liens={data.liens} onEnregistrer={(champ, valeur) => changer.mutate({ champ, valeur })} onMail={(a) => onMail({ a, objet: objet.singulier, id, nom })}
-                      className="flex min-h-full min-w-0 flex-1 items-center justify-center px-4 py-3">
+                      className="flex min-h-full min-w-0 flex-1 items-center px-3 py-2.5">
                       {(vu, lien) => (vu ? (
                         <span className="line-clamp-4 min-w-0 whitespace-pre-line break-words">
                           {c.type === "RELATION" && objets.some((o) => o.singulier === c.cible)
@@ -454,16 +519,22 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
                   </dd>
                 </div>
               ))}
-            </dl>
-            {reglePages && <div className="mt-6"><Suspense fallback={null}><PagesCrm email={f.email} /></Suspense></div>}
+                </dl>
+              </Partie>
+              {reglePages && <div className="mt-4"><Suspense fallback={null}><PagesCrm email={f.email} /></Suspense></div>}
+            </div>
+            <div className="flex min-w-0 flex-col gap-4 p-4">
+              {data.collaborateurs && (
+                <Partie titre="Collaborateurs" nombre={data.collaborateurs.length} ouverte={ouverte("collaborateurs", true)} onBasculer={() => basculer("collaborateurs", true)}>
+                  <Collaborateurs gens={data.collaborateurs} />
+                </Partie>
+              )}
             {(data.liees || []).map((l) => (
-              <div key={l.nom} className="mt-6">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="m-0 text-[15px] text-encre">{l.libelle} <span className="text-[13px] text-ardoise">{l.fiches.length}</span></p>
+              <Partie key={l.nom} titre={l.libelle} nombre={l.fiches.length} ouverte={ouverte(`liee:${l.nom}`, true)} onBasculer={() => basculer(`liee:${l.nom}`, true)}
+                actions={<>
                   {plein && objets.find((o) => o.singulier === l.cible)?.niveau === "plein" && (
                     <button type="button" onClick={() => ajouterLiee.mutate(l)} disabled={ajouterLiee.isPending} className="inline-flex h-8 items-center gap-1 rounded-full border border-trait px-3 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}><Plus className="h-3.5 w-3.5" />Ajouter</button>
-                  )}
-                </div>
+                  )}</>}>
                 {!l.fiches.length ? <p className="m-0 text-[13.5px] text-brume">Aucune.</p> : (
                   <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-bord-doux p-0">
                     {l.fiches.map((x) => (
@@ -475,29 +546,11 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
                     ))}
                   </ul>
                 )}
-              </div>
+              </Partie>
             ))}
-          </>
-        )}
-        {f && onglet === "historique" && (histo.isLoading ? <Chargement /> : !(histo.data?.lignes || []).length ? <p className="m-0 text-[13.5px] text-brume">Rien encore.</p> : (
-          <ol className="relative m-0 list-none p-0 pl-5">
-            <span aria-hidden className="absolute bottom-2 left-[5px] top-2 w-px bg-trait" />
-            {histo.data.lignes.map((l) => (
-              <li key={l.id} className="relative pb-4">
-                <span aria-hidden className="absolute -left-5 top-[7px] h-[11px] w-[11px] rounded-full border border-bord-vif bg-surface-pleine" />
-                <p className="m-0 text-[14px] leading-[1.45] text-encre"><span className="text-craie">{l.qui}</span> {l.quoi}{l.lie ? <span className="text-ardoise"> « {l.lie} »</span> : null}</p>
-                {l.changes.map((x) => {
-                  const c = objet.champs.find((y) => y.nom === x.champ) || SANS_NOM;
-                  const av = affiche(c, x.avant, data.liens); const ap = affiche(c, x.apres, data.liens);
-                  return <p key={x.champ} className="m-0 mt-0.5 break-words text-[13px] text-ardoise">{x.libelle} : {av ? <span className="line-through decoration-trait">{av}</span> : "vide"} → <span className="text-craie">{ap || "vide"}</span></p>;
-                })}
-                <p className="m-0 mt-0.5 text-[12px] text-brume">{dateFr(l.le, true)}</p>
-              </li>
-            ))}
-          </ol>
-        ))}
-        {f && onglet === "taches" && (
-          <>
+              {!objet.klocka && (
+                <>
+                  <Partie titre="Tâches" nombre={ouvertes || null} ouverte={ouverte("taches", true)} onBasculer={() => basculer("taches", true)}>
             {plein && (
               <div className={boiteSaisie}>
                 <input value={tache} onChange={(e) => setTache(e.target.value)} placeholder="Nouvelle tâche" onKeyDown={(e) => { if (e.key === "Enter" && tache.trim()) ajouterTache.mutate(); }}
@@ -524,10 +577,8 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
                 ))}
               </ul>
             )}
-          </>
-        )}
-        {f && onglet === "notes" && (
-          <>
+                  </Partie>
+                  <Partie titre="Notes" nombre={data.notes.length || null} ouverte={ouverte("notes", true)} onBasculer={() => basculer("notes", true)}>
             {plein && (
               <div className={boiteSaisie}>
                 <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Ajouter une note"
@@ -548,9 +599,9 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
                 ))}
               </ul>
             )}
-          </>
-        )}
-        {f && onglet === "fichiers" && plein && (
+                  </Partie>
+                  <Partie titre="Fichiers" nombre={data.pieces.length || null} ouverte={ouverte("fichiers", data.pieces.length > 0)} onBasculer={() => basculer("fichiers", data.pieces.length > 0)}>
+                    {plein && (
           <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const l = [...(e.dataTransfer.files || [])]; if (l.length) deposer.mutate(l); }}
             className="mb-3 flex items-center justify-between gap-3 rounded-[12px] border border-dashed border-bord-vif px-4 py-3">
             <span className="text-[13.5px] text-ardoise">Glissez des fichiers ici</span>
@@ -559,8 +610,8 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
               {deposer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}Déposer
             </button>
           </div>
-        )}
-        {f && onglet === "fichiers" && (!data.pieces.length ? <p className="m-0 text-[13.5px] text-brume">Aucun fichier.</p> : (
+                    )}
+                    {!data.pieces.length ? <p className="m-0 text-[13.5px] text-brume">Aucun fichier.</p> : (
           <ul className="m-0 list-none overflow-hidden rounded-[12px] border border-bord-doux p-0">
             {data.pieces.map((p) => (
               <li key={p.id} className="border-t border-trait first:border-t-0">
@@ -570,7 +621,32 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
               </li>
             ))}
           </ul>
-        ))}
+                    )}
+                  </Partie>
+                  <Partie titre="Historique" ouverte={ouverte("historique", false)} onBasculer={() => basculer("historique", false)}>
+                    {histo.isLoading ? <Chargement /> : !(histo.data?.lignes || []).length ? <p className="m-0 text-[13.5px] text-brume">Rien encore.</p> : (
+          <ol className="relative m-0 list-none p-0 pl-5">
+            <span aria-hidden className="absolute bottom-2 left-[5px] top-2 w-px bg-trait" />
+            {histo.data.lignes.map((l) => (
+              <li key={l.id} className="relative pb-4">
+                <span aria-hidden className="absolute -left-5 top-[7px] h-[11px] w-[11px] rounded-full border border-bord-vif bg-surface-pleine" />
+                <p className="m-0 text-[14px] leading-[1.45] text-encre"><span className="text-craie">{l.qui}</span> {l.quoi}{l.lie ? <span className="text-ardoise"> « {l.lie} »</span> : null}</p>
+                {l.changes.map((x) => {
+                  const c = objet.champs.find((y) => y.nom === x.champ) || SANS_NOM;
+                  const av = affiche(c, x.avant, data.liens); const ap = affiche(c, x.apres, data.liens);
+                  return <p key={x.champ} className="m-0 mt-0.5 break-words text-[13px] text-ardoise">{x.libelle} : {av ? <span className="line-through decoration-trait">{av}</span> : "vide"} → <span className="text-craie">{ap || "vide"}</span></p>;
+                })}
+                <p className="m-0 mt-0.5 text-[12px] text-brume">{dateFr(l.le, true)}</p>
+              </li>
+            ))}
+          </ol>
+                    )}
+                  </Partie>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </motion.aside>
   );

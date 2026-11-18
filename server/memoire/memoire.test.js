@@ -81,11 +81,22 @@ test("la date d'un transfert Gmail français devient AAAA-MM-JJ (17 nov. 2026 : 
   assert.equal(jourIso('pas une date'), null);
 });
 
-test('listerMemoire : le dernier entré en tête, pas la date du mail d\'origine (18 nov. 2026)', async () => {
-  // Une annonce Equimmox datée de sa publication récente, puis une fiche transférée dont le mail d'origine a un mois :
-  // la fiche, entrée après, doit s'afficher la première.
-  Records.create('BienMemoire', { origine: 'equimmox', statut: 'memoire', recu_le: '2026-11-15', ville: 'Nice', adresse: { rue: '1 rue de France' } });
-  await new Promise((ok) => setTimeout(ok, 5));
-  const fiche = Records.create('BienMemoire', { origine: 'transfert', statut: 'memoire', recu_le: '2026-10-12', ville: 'Cannes', adresse: { rue: '8 rue d\'Antibes' } });
-  assert.equal(listerMemoire()[0].id, fiche.id);
+test('listerMemoire : les fiches reçues d\'abord, les annonces Equimmox ensuite, chacune par date reçue (18 nov. 2026)', () => {
+  const annonce = Records.create('BienMemoire', { origine: 'equimmox', statut: 'memoire', recu_le: '2026-11-17', ville: 'Nice', adresse: { rue: '1 rue de France' } });
+  const vieille = Records.create('BienMemoire', { origine: 'scraper', statut: 'memoire', recu_le: '2026-09-02T08:00:00.000Z', ville: 'Antibes', adresse: { rue: '4 bd Wilson' } });
+  const fiche = Records.create('BienMemoire', { origine: 'transfert', statut: 'memoire', recu_le: '2026-11-16T09:12:00.000Z', ville: 'Cannes', adresse: { rue: '8 rue d\'Antibes' } });
+  const ids = listerMemoire({ limite: 500 }).map((b) => b.id);
+  assert.ok(ids.indexOf(fiche.id) < ids.indexOf(vieille.id), 'la fiche du 16 nov. avant celle de septembre');
+  assert.ok(ids.indexOf(vieille.id) < ids.indexOf(annonce.id), 'une annonce, même récente, après toutes les fiches');
+  assert.ok(listerMemoire({ type: 'fiches', limite: 500 }).every((b) => b.origine !== 'equimmox'));
+  assert.deepEqual(listerMemoire({ type: 'annonces', limite: 500 }).map((b) => b.id), [annonce.id]);
+});
+
+test('recalerDatesRecues : une fiche transférée prend le jour où le mail est arrivé, pas celui où l\'agent l\'avait écrit', async () => {
+  const { recalerDatesRecues } = await import('./memoire.js');
+  const mail = Records.create('MailRecu', { compte: 'sourcing@klocka.immo', date: '2026-11-16T09:12:00.000Z', objet: 'TR: Fiches Cannes' });
+  const b = Records.create('BienMemoire', { origine: 'transfert', statut: 'memoire', recu_le: '2026-10-03', mail_recu_id: mail.id, ville: 'Cannes' });
+  assert.ok(recalerDatesRecues() >= 1);
+  assert.equal(Records.get('BienMemoire', b.id).recu_le, '2026-11-16T09:12:00.000Z');
+  assert.equal(recalerDatesRecues(), 0, 'rien à refaire au démarrage suivant');
 });

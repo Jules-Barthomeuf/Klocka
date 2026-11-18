@@ -6,7 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
 import Pages from "@/components/ui/Pages";
-import { CLASSE_TABLE, CLASSE_TABLEAU, CLASSE_TD, CLASSE_TH, Recherche, TitrePage } from "@/components/mandataire/elements";
+import { CLASSE_TABLE, CLASSE_TABLEAU, CLASSE_TD, CLASSE_TH, Filtres, Recherche, TitrePage } from "@/components/mandataire/elements";
 import { kEuros as montant } from "@/lib/clients-commerces";
 
 // La Mémoire Klocka (30 oct. 2026, Jules : « les fiches des biens qu'on supprime normalement ; tous ces biens vont
@@ -26,8 +26,10 @@ export default function MemoireKlocka() {
   const [recherche, setRecherche] = useState("");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+  // Les fiches reçues d'abord, les annonces Equimmox ensuite ; ou l'un des deux seul (18 nov. 2026, Jules).
+  const [type, setType] = useState("");
   useEffect(() => { const t = setTimeout(() => { setQ(recherche.trim()); setPage(1); }, 250); return () => clearTimeout(t); }, [recherche]);
-  const { data, isLoading } = useQuery({ queryKey: ["memoire", q], queryFn: () => base44.request("GET", `${API}?q=${encodeURIComponent(q)}&limite=500`), placeholderData: (a) => a });
+  const { data, isLoading } = useQuery({ queryKey: ["memoire", q, type], queryFn: () => base44.request("GET", `${API}?q=${encodeURIComponent(q)}&limite=500${type ? `&type=${type}` : ""}`), placeholderData: (a) => a });
   const biens = data?.biens || [];
   const affiches = biens.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
 
@@ -40,6 +42,8 @@ export default function MemoireKlocka() {
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
         <Recherche value={recherche} onChange={setRecherche} placeholder="Adresse, ville, agent, agence, locataire" className="w-full md:w-[360px]" />
+        <Filtres label="Fiches ou annonces" valeur={type} onChange={(v) => { setType(v); setPage(1); }}
+          options={[["", "Tout", data?.total], ["fiches", "Fiches reçues", data?.fiches], ["annonces", "Annonces Equimmox", data?.annonces]]} />
         {data && (
           <p className="m-0 text-[13.5px] text-ardoise">
             <span className="text-encre tabular-nums">{data.total}</span> bien{data.total > 1 ? "s" : ""} · <span className="tabular-nums">{data.en_memoire}</span> en mémoire · <span className="tabular-nums">{data.en_dossier}</span> en dossier · <span className="tabular-nums">{data.agents}</span> agent{data.agents > 1 ? "s" : ""}

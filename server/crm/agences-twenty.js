@@ -64,7 +64,10 @@ const url = (s) => {
 export function interlocuteurs(a) {
   const vus = new Set();
   const out = [];
-  for (const p of [...(a.gerants || []), ...(a.agents || [])]) {
+  // Les collaborateurs trouvés chez Apollo (liste « Grenoble 2 », 18 nov. 2026), seulement ceux au nom complet : jamais
+  // « Prénom R. ».
+  const apollo = (a.apollo_equipe?.gens || []).filter((g) => g.nom_complet).map((g) => ({ nom: g.nom_complet, fonction: g.poste }));
+  for (const p of [...(a.gerants || []), ...(a.agents || []), ...apollo]) {
     const nom = String(p?.nom || '').trim();
     if (!nom || vus.has(nom.toLowerCase())) continue;
     vus.add(nom.toLowerCase());
@@ -121,12 +124,12 @@ export function difference(avant, apres) {
 }
 
 /** Les agences de toutes les listes, avec leur ligne du tableau Prospection (statut compris). */
-export async function agencesDesListes() {
+export async function agencesDesListes({ listeIds = null } = {}) {
   const IA = await import('../prospection/agent-ia.js');
   const P = await import('./prospection.js');
   const vues = new Set();
   const out = [];
-  for (const liste of IA.listes()) {
+  for (const liste of IA.listes().filter((x) => !listeIds || listeIds.includes(x.id))) {
     for (const a of IA.liste(liste.id)?.lignes || []) {
       if (a.fermee || vues.has(a.id)) continue;
       vues.add(a.id);
@@ -187,11 +190,12 @@ const modifierLigne = async (T, id, diff, res, journal) => {
  * Les agents d'« Agent immobilier » (17 nov. 2026) : leur agence passe En contact et les nomme ; l'agence d'un agent
  * qu'aucune ligne ne reconnaît est ajoutée (une par entreprise et par ville, `klockaId` « agent:… »).
  */
-export async function synchroniser({ go = false, T = null, journal = () => {}, agents = undefined } = {}) {
+// `listeIds` : ces listes seules (un envoi ciblé depuis le poste, 18 nov. 2026 ; la base locale est une vieille copie).
+export async function synchroniser({ go = false, T = null, journal = () => {}, agents = undefined, listeIds = null } = {}) {
   const fourni = !!T;
   T = T || (await import('../twenty.js'));
   const lesAgents = agents !== undefined ? agents : fourni ? [] : await T.lister(AGENTS).catch(() => []);
-  const toutes = await agencesDesListes();
+  const toutes = await agencesDesListes({ listeIds });
   const vivantes = await T.lister(PLURIEL);
   const posees = new Map(vivantes.map((x) => [x.id, x]));
   // La corbeille : seules les lignes vraiment jetées (deletedAt posé), au cas où Twenty ignorerait le filtre.
@@ -306,10 +310,11 @@ export async function villesDesListes() {
  * Mandataire K Partners, rangé dans le dossier Klocka, les colonnes de la vue principale et une vue par ville.
  * Rejouable : seul ce qui manque est fait. `go` faux : dit seulement ce qui serait fait.
  */
-export async function preparer({ go = false, dire = () => {}, creerObjetSiAbsent = true, villesEnPlus = [], vuesEnPlus = [] } = {}) {
+// `seulementVilles` : ces villes seules, à la place de celles des listes de cette base (envoi ciblé depuis le poste).
+export async function preparer({ go = false, dire = () => {}, creerObjetSiAbsent = true, villesEnPlus = [], vuesEnPlus = [], seulementVilles = null } = {}) {
   const { objetsTwenty, creerObjet, creerChamp, modifierChamp, requeteTwenty } = await import('../twenty.js');
   const { lireRoles, lireMenu, rangerAussiDans, gql } = await import('./acces.js');
-  const desListes = await villesDesListes();
+  const desListes = seulementVilles || await villesDesListes();
   // Les villes des agents d'« Agent immobilier » (17 nov. 2026) : une option chacune, une vue pour les plus fournies.
   const enOption = [...desListes, ...villesEnPlus.filter((v) => !desListes.some((x) => valeurOption(x) === valeurOption(v)))];
   const villes = [...desListes, ...vuesEnPlus.filter((v) => !desListes.some((x) => valeurOption(x) === valeurOption(v)))];

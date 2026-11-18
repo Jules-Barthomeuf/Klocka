@@ -152,8 +152,16 @@ export function seulementVides(valeurs, ligne) {
 }
 
 /** Pose les biens de la Mémoire dans Propriétés Klocka, par paquets ; `restants` dit ce qu'il reste à poser. */
+let klockaEnCours = false;
 export async function synchroniserKlocka({ max = 50 } = {}) {
   if (!TWENTY) return { ignore: true, raison: 'MEMOIRE_TWENTY éteint' };
+  // Un seul passage à la fois : deux passages simultanés créaient la même ligne deux fois.
+  if (klockaEnCours) return { occupe: true, poses: 0, restants: null };
+  klockaEnCours = true;
+  try { return await synchroniserKlockaVraiment({ max }); } finally { klockaEnCours = false; }
+}
+
+async function synchroniserKlockaVraiment({ max }) {
   const p = await pret();
   if (!p.ok) return { ignore: true, raison: p.raison };
   const { T } = p;
@@ -171,7 +179,10 @@ export async function synchroniserKlocka({ max = 50 } = {}) {
       const cle = cleLieu({ ...(b.adresse || {}), ville: b.adresse?.ville || b.ville });
       const meme = (cle && lignes.get(cle)) || null;
       const id = b.twenty_klocka_id || meme?.id || null;
-      const aEcrire = id ? (b.twenty_klocka_id ? valeurs : seulementVides(valeurs, meme)) : valeurs;
+      // Une ligne déjà posée reprend les valeurs du bien, jamais son groupe, son nom ni ses personnes : on a pu la passer
+      // en Vendu ou la renommer à la main (18 nov. 2026).
+      const sansMain = (v) => Object.fromEntries(Object.entries(v).filter(([k]) => !['groupe', 'name', 'personnes'].includes(k)));
+      const aEcrire = id ? (b.twenty_klocka_id ? sansMain(valeurs) : seulementVides(valeurs, meme)) : valeurs;
       let idPose = id;
       if (!id) idPose = (await T.creer(KLOCKA, aEcrire)).id;
       else if (Object.keys(aEcrire).length) await T.modifier(KLOCKA, id, aEcrire);
@@ -214,4 +225,31 @@ export async function synchroniser({ max = 50 } = {}) {
     }
   }
   return { poses, chiffres, restants: Math.max(0, Records.list(ENTITE).filter((b) => b.origine !== 'equimmox' && !b.twenty_le).length) };
+}
+
+/**
+ * Une fois (18 nov. 2026, Jules : « update les Propriétés Klocka avec toutes les fiches sauf les annonces Equimmox ») :
+ * chaque fiche de la Mémoire, hors annonces Equimmox, se repose dans Propriétés Klocka, refus passés oubliés (les dates
+ * « lun. 16 nov. » refusées trois fois ne repartaient plus), lot après lot jusqu'au bout. Sa ligne reprend ses valeurs ;
+ * une ligne d'un autre groupe à la même adresse ne reçoit que ses cases vides, comme avant.
+ */
+export async function reposerKlocka({ cle = 'memoire.klocka.repose.2026-11-18', journal = console.log, pause = 2000 } = {}) {
+  if (!TWENTY) return { ignore: true };
+  const { Meta } = await import('../db.js');
+  if (cle && Meta.get(cle)) return { deja: true };
+  const fiches = Records.list(ENTITE).filter((b) => b.origine !== 'equimmox');
+  for (const b of fiches) Records.update(ENTITE, b.id, { twenty_klocka_le: null, twenty_klocka_essais: 0 });
+  journal(`[mémoire] Propriétés Klocka : ${fiches.length} fiche(s) à reposer (annonces Equimmox à part)`);
+  let poses = 0;
+  for (let tour = 0; tour < 400; tour += 1) {
+    const r = await synchroniserKlocka({ max: 50 });
+    if (r.ignore) return r;
+    poses += r.poses || 0;
+    if (r.restants === 0) break;
+    await new Promise((ok) => setTimeout(ok, r.occupe ? 15_000 : pause));
+  }
+  const refusees = Records.list(ENTITE).filter((b) => b.origine !== 'equimmox' && (b.twenty_klocka_essais || 0) >= ESSAIS_KLOCKA).length;
+  if (cle) Meta.set(cle, new Date().toISOString());
+  journal(`[mémoire] Propriétés Klocka : ${poses} fiche(s) reposée(s), ${refusees} refusée(s) trois fois`);
+  return { poses, refusees };
 }

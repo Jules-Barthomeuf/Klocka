@@ -553,7 +553,32 @@ export async function fiche(email, singulier, id) {
     const lignes = await sur(async () => (await requeteTwenty('GET', `/${c.pluriel}?limit=30&depth=0&filter=${encodeURIComponent(`${l.cle}[eq]:${q(id)}`)}`))?.data?.[c.pluriel] || []);
     return { ...l, nom_cible: c.nom_un, fiches: lignes.map((x) => ({ id: x.id, nom: nomDe(x) })) };
   }));
-  return { fiche: visibles, liens, liees, notes, taches, pieces };
+  return { fiche: visibles, liens, liees, notes, taches, pieces, ...(o.pluriel === 'agences' ? { collaborateurs: await collaborateursDe(f) } : {}) };
+}
+
+/**
+ * Les collaborateurs d'une agence du tableau Agences (18 nov. 2026, Jules : « dans la fiche de l'agence je veux qu'on ait
+ * les collaborateurs ») : ceux de la carte d'appel quand la plateforme a l'agence (nom complet, poste, numéro, photo) ;
+ * sinon la colonne Interlocuteurs de Twenty, une personne par ligne (« Nom · poste · numéro »).
+ */
+export async function collaborateursDe(f) {
+  const { Records } = await import('../db.js');
+  const a = f?.klockaId ? Records.get('AgenceProspect', f.klockaId) : null;
+  if (a) {
+    const { contactsDe } = await import('../prospection/mode-appel.js');
+    const fiche = a.carnet_id ? Records.get('AgentImmo', a.carnet_id) : null;
+    // Pas les faux noms lus sur un site (« Equipe Immobilier », « Contact »).
+    const gens = contactsDe(a, fiche, null).filter((x) => !x.standard && !/^(equipe|équipe|team|contact|accueil|agence|service)\b/i.test(String(x.nom || '').trim()));
+    if (gens.length) return gens.map((x) => ({ nom: x.nom, fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, photo: x.photo || null, source: x.source || null }));
+  }
+  // Les colonnes Interlocuteurs et « Agents en contact » (les agents d'Agent immobilier rattachés), une personne par ligne.
+  const vus = new Set();
+  return [f?.interlocuteurs, f?.agentsImmo].flatMap((t) => String(t || '').split('\n')).map((l) => l.trim()).filter(Boolean).map((l) => {
+    const [nom, ...reste] = l.split(' · ').map((x) => x.trim());
+    const telephone = reste.find((x) => /\d{2}.*\d{2}/.test(x) && !x.includes('@')) || null;
+    const email = reste.find((x) => x.includes('@')) || null;
+    return { nom, fonction: reste.filter((x) => x !== telephone && x !== email).join(' · ') || null, telephone, email, photo: null, source: 'Twenty' };
+  }).filter((x) => x.nom && !vus.has(x.nom.toLowerCase()) && vus.add(x.nom.toLowerCase()));
 }
 
 /** Changer un champ : seulement sur un tableau en plein accès, et un champ que l'écran sait écrire. */

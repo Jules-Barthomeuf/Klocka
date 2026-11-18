@@ -1167,6 +1167,17 @@ export function monterProspection(app) {
     if (!admin(req, res)) return;
     ok(res, { listes: (await IA()).listes() });
   }));
+  // Une liste tirée des personnes de la ville chez Apollo (18 nov. 2026, Jules : « Grenoble 2 ») ; elle se fait en fond.
+  app.post('/api/prospection/agent-ia/listes-par-personnes', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const ville = String(req.body?.ville || '').trim();
+    if (ville.length < 2) return res.status(400).json({ error: 'Quelle ville ?' });
+    const nom = String(req.body?.nom || `${ville} 2`).trim().slice(0, 80);
+    const { creerListeParPersonnes } = await import('../prospection/liste-par-personnes.js');
+    creerListeParPersonnes({ ville, nom, par: user.email }).catch((e) => console.warn(`[liste] ${nom} :`, e?.message || e));
+    ok(res, { lancee: true, nom });
+  }));
   app.get('/api/prospection/agent-ia/listes/:id', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const l = (await IA()).liste(req.params.id);

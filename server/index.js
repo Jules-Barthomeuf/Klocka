@@ -1385,6 +1385,8 @@ import('./visites-acquereur.js').then((m) => m.planifier()).catch((e) => console
 import('./dossier-vente.js').then((m) => m.planifier()).catch((e) => console.error('[dossier de vente] :', e.message));
 // La Mémoire Klocka (30 oct. 2026) : le lecteur des boîtes autorisées reprend au démarrage ce qu'il n'a pas fini.
 import('./memoire/scraper.js').then((m) => m.planifier()).catch((e) => console.error('[mémoire] :', e.message));
+// Les fiches venues d'un mail datées du jour où il est arrivé, pas de celui où l'agent l'avait écrit (18 nov. 2026).
+if (!process.env.NODE_TEST_CONTEXT) import('./memoire/memoire.js').then((m) => { const n = m.recalerDatesRecues(); if (n) console.log(`[mémoire] ${n} fiche(s) redatée(s) du jour de leur arrivée`); }).catch((e) => console.warn('[mémoire] dates :', e?.message || e));
 // Le Layer (15 oct. 2026) : la file de ses tâches repart au démarrage, et les sources restées en attente d'extraction avec elle.
 // Haka (17 oct. 2026) : ses tâches reprennent au démarrage ; un pas externe surpris en cours devient incertain, jamais rejoué.
 import('./haka/drapeaux.js').then(async (D) => { if (!D.FILE) return; await import('./haka/declencheurs.js'); (await import('./haka/competences/relances-matin.js')).planifier(); const r = await (await import('./haka/taches.js')).reprendre(); if (r.reprises || r.incertaines) console.log(`[haka] ${r.reprises} tâche(s) reprise(s), ${r.incertaines} incertaine(s)`); }).catch((e) => console.error('[haka] reprise :', e.message));
@@ -1639,6 +1641,12 @@ if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
   // D'abord les mails de l'équipe écartés à tort sur sourcing@, relus aussitôt ; puis la reprise des fiches.
   setTimeout(() => import('./deal/veille-mails.js').then(async (V) => { if (await V.reexaminerEcartesCommuns()) await V.relever(); }).catch((e) => console.warn('[veille] réexamen :', e?.message || e)), 60_000).unref?.();
   setTimeout(() => import('./haka/competences/transfert.js').then((m) => m.reprendreTransferts()).catch((e) => console.warn('[transfert] reprise :', e?.message || e)), 3 * 60_000).unref?.();
+  // Les transferts bloqués sur la question du côté, invisible depuis le retrait de la cloche (18 nov. 2026, Jules) : ils repartent.
+  setTimeout(() => import('./haka/competences/transfert.js').then((m) => m.debloquerCotes()).catch((e) => console.warn('[transfert] côtés :', e?.message || e)), 4 * 60_000).unref?.();
+  // La liste « Grenoble 2 » tirée des personnes de l'immobilier chez Apollo, une fois (18 nov. 2026, Jules).
+  setTimeout(() => import('./prospection/liste-par-personnes.js').then((m) => m.creerListeParPersonnes({ ville: 'Grenoble', nom: 'Grenoble 2', par: 'jules.b@klocka.immo' })).catch((e) => console.warn('[liste] Grenoble 2 :', e?.message || e)), 2 * 60_000).unref?.();
+  // Toutes les fiches de la Mémoire (hors annonces Equimmox) reposées une fois dans Propriétés Klocka (18 nov. 2026, Jules).
+  setTimeout(() => import('./memoire/twenty.js').then((m) => m.reposerKlocka()).catch((e) => console.warn('[mémoire] Propriétés Klocka :', e?.message || e)), 6 * 60_000).unref?.();
 }
 
 // Le tableau Agences de Twenty (16 nov. 2026, Jules : « il n'y a que Nice et Rennes alors qu'on en a fait beaucoup

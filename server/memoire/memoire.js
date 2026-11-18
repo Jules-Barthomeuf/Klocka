@@ -91,7 +91,8 @@ export function bienDepuisDeal(deal, { origine = 'dossier' } = {}) {
     agent_email: fa.email || deal?.contact_agent_email || null,
     agent_telephone: fa.telephone || ap.agent_telephone || null,
     agence: fa.agence || ap.agence || null,
-    recu_le: deal?.source_mail?.date || deal?.cree_le || deal?.created_date || new Date().toISOString(),
+    // Le jour où le mail est arrivé dans la boîte (18 nov. 2026) ; la date du mail d'origine à défaut.
+    recu_le: mailRecu?.date || deal?.source_mail?.date || deal?.cree_le || deal?.created_date || new Date().toISOString(),
     compte: mailRecu?.compte || null,
     gmail_message_id: mailRecu?.gmail_message_id || null,
     mail_recu_id: deal?.source_mail?.mail_recu_id || null,
@@ -180,16 +181,42 @@ export function phraseHistorique(bien, hits = []) {
   return phrase.charAt(0).toUpperCase() + phrase.slice(1);
 }
 
+// Les fiches reçues (boîtes, transferts, dossiers, appels) et les annonces lues dans Equimmox.
+export const estAnnonce = (b) => b?.origine === 'equimmox';
+const jourDe = (b) => jourIso(b.recu_le) || String(b.created_date || '').slice(0, 10);
+
 /**
- * Les biens de la Mémoire, du dernier entré au premier, filtrés par un mot (adresse, ville, agent, agence, locataire).
- * L'ordre suit l'entrée en Mémoire, pas la date du mail d'origine (18 nov. 2026, Jules : « j'ai envoyé des fiches hier,
- * ça n'a pas fait ») : une fiche transférée porte la date où l'agent l'avait envoyée, parfois des semaines avant, et
- * les 331 annonces Equimmox de Nice, datées de leur publication, la repoussaient au-delà des 500 lignes affichées.
+ * Les biens de la Mémoire, filtrés par un mot (adresse, ville, agent, agence, locataire) et par `type` (« fiches »,
+ * « annonces »). Les fiches d'abord, puis les annonces Equimmox (18 nov. 2026, Jules : « on doit en premier voir les
+ * fiches, pas les annonces ») ; chacune de la plus récemment reçue à la plus ancienne, puis la dernière entrée.
  */
-export function listerMemoire({ q = '', limite = 200, statut = null } = {}) {
+export function listerMemoire({ q = '', limite = 200, statut = null, type = null } = {}) {
   const t = String(q || '').trim().toLowerCase();
   return Records.list(ENTITE, { sort: '-created_date' })
     .filter((b) => !statut || b.statut === statut)
+    .filter((b) => type !== 'fiches' || !estAnnonce(b))
+    .filter((b) => type !== 'annonces' || estAnnonce(b))
     .filter((b) => !t || [b.adresse?.rue, b.ville, b.code_postal, b.agent?.nom, b.agent?.agence, b.agent_email, b.locataire_nom, b.locataire_activite].some((x) => String(x || '').toLowerCase().includes(t)))
+    .map((b) => ({ b, annonce: estAnnonce(b) ? 1 : 0, jour: jourDe(b) }))
+    .sort((x, y) => x.annonce - y.annonce || y.jour.localeCompare(x.jour))
+    .map((x) => x.b)
     .slice(0, limite);
+}
+
+/**
+ * Une fois au démarrage (18 nov. 2026) : les fiches venues d'un mail datées du jour où l'agent l'avait écrit
+ * reprennent le jour où le mail est arrivé dans la boîte. `maj_le` repousse la bonne date dans Twenty.
+ */
+export function recalerDatesRecues() {
+  let n = 0;
+  for (const b of Records.list(ENTITE)) {
+    if (estAnnonce(b)) continue;
+    const deal = !b.mail_recu_id && b.deal_id ? Records.findBy('Deal', 'deal_id', b.deal_id) : null;
+    const mailId = b.mail_recu_id || deal?.source_mail?.mail_recu_id;
+    const arrive = mailId ? Records.get('MailRecu', mailId)?.date : null;
+    if (!arrive || jourIso(arrive) === jourIso(b.recu_le)) continue;
+    Records.update(ENTITE, b.id, { recu_le: arrive, maj_le: new Date().toISOString() });
+    n += 1;
+  }
+  return n;
 }

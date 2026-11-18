@@ -6,6 +6,7 @@
 // Monday, puis RELIT Monday : le reçu dit ce qui y est réellement, pas ce qui
 // a été demandé. Un échec reste orange et se réessaie seul.
 
+import { communeDeListe } from './liste-par-personnes.js';
 import { avecPhotos, rangerInterlocuteurs } from '../../src/lib/interlocuteurs.js';
 import { Records } from '../db.js';
 import { TRANSCRIPTION_MAX } from './aujourdhui.js';
@@ -466,7 +467,7 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
   const recentes = agencesRecentes(lignes, maintenantD, l.ville);
   const demandes = Records.list('DemandeClient');
   // « Nice · Apollo » (15 nov. 2026) : une seconde liste de la même ville garde les recherches clients de la ville.
-  const recherches = recherchesDeLaZone(demandes, String(l.ville).split(' · ')[0], { departement: departementDe(agences) });
+  const recherches = recherchesDeLaZone(demandes, communeDeListe(l), { departement: departementDe(agences) });
   const placees = lignes
     .map((a, rang) => ({ a, rang, place: placeDansLaFile(a, moi, { jour, fiche: fiches.get(a.carnet_id) || null, maintenantD }) }))
     .filter((x) => x.place != null)
@@ -476,7 +477,7 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
   const file = placees
     // Un même numéro ne passe qu'une fois dans la file : on n'appelle pas deux fois la même agence.
     .filter((x, i, t) => t.findIndex((y) => R.normTel(numeroDe(y.a)) === R.normTel(numeroDe(x.a))) === i)
-    .map(({ a, place }) => elementDeFile(a, { place, fiche: fiches.get(a.carnet_id) || null, ville: l.ville, lignes, maintenantD, appelsParAgent, recentes }));
+    .map(({ a, place }) => elementDeFile(a, { place, fiche: fiches.get(a.carnet_id) || null, ville: communeDeListe(l), lignes, maintenantD, appelsParAgent, recentes }));
   const chiffres = chiffresDeLaVille(lignes);
   // Reprendre juste après mon dernier appel dans cette liste (12 oct. 2026) : Maxime retrouve la ligne qui suit.
   const ids = new Set(agences.map((a) => a.id));
@@ -505,9 +506,10 @@ export function contactsDe(a, fiche = null, place = null) {
       if (!y.telephone && x.telephone) y.telephone = x.telephone;
       if (!y.fonction && x.fonction) y.fonction = x.fonction;
       if (!y.email && x.email) y.email = x.email;
+      if (!y.linkedin && x.linkedin) y.linkedin = x.linkedin;
       return;
     }
-    out.push({ id: `c${out.length}`, nom: nom || 'Standard', source: x.source, fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, standard: !!x.standard });
+    out.push({ id: `c${out.length}`, nom: nom || 'Standard', source: x.source, fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, linkedin: x.linkedin || null, standard: !!x.standard });
   };
   if (place === 0 && a.prioritaire?.nom) ajouter({ nom: a.prioritaire.nom, source: 'Contact donné', telephone: a.prioritaire.telephone });
   if (a.monday_connu?.nom) ajouter({ nom: a.monday_connu.nom, source: 'Contact Twenty CRM', telephone: a.monday_connu.telephone || null });
@@ -515,11 +517,11 @@ export function contactsDe(a, fiche = null, place = null) {
   if (fiche?.nom && fiche.dernier_contact_le && R.norm(fiche.nom) !== R.norm(a.nom)) ajouter({ nom: fiche.nom, source: 'Dernier interlocuteur', telephone: (fiche.telephones || []).find((t) => R.normTel(t) !== R.normTel(a.telephone)) || null });
   // L'équipe trouvée chez Apollo (17 nov. 2026, Jules : « l'interlocuteur probable ») : la recherche gratuite, prénom,
   // initiale et poste, sans la location ; rangée du plus probable (commerce, transaction) au moins probable.
-  for (const x of (a.apollo_equipe?.gens || [])) ajouter({ nom: x.nom_complet || x.nom, source: 'Apollo', fonction: x.poste || null });
+  for (const x of (a.apollo_equipe?.gens || [])) ajouter({ nom: x.nom_complet || x.nom, source: 'Apollo', fonction: x.poste || null, linkedin: x.linkedin || null });
   for (const g of (a.gerants || []).slice(0, 2)) ajouter({ nom: g.nom, source: 'Registre du commerce', fonction: g.qualite || null });
   // Les personnes des pages équipe (15 nov. 2026) gardent leur fonction (« Co-fondateur », « Conseillère en immobilier »).
   // Toute l'équipe (17 nov. 2026, Jules : « je veux tous les gens »), chacun avec son numéro perso quand le site le donne.
-  for (const x of (a.agents || []).filter((y) => y.nom)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : x.source === 'page équipe du site' ? 'Site de l\'agence' : 'Agent', fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null });
+  for (const x of (a.agents || []).filter((y) => y.nom)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : x.source === 'page équipe du site' ? 'Site de l\'agence' : 'Agent', fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, linkedin: x.linkedin || null });
   // Le standard : le numéro de l'agence, sinon un numéro sans nom ; jamais le portable d'une personne.
   // (17 nov. 2026 : le portable d'un agent nommé n'est plus pris pour le standard, Nice Homes montrait celui de Simon Crann.)
   const standard = a.telephone || (a.agents || []).find((x) => x.telephone && !x.nom)?.telephone || null;
@@ -562,7 +564,9 @@ export function elementDeFile(a, { place, badge = null, fiche: f = null, ville =
       ...(!derniers.length && f?.remarques ? [f.remarques] : []),
       ...(!derniers.length && a.monday_connu ? [`Twenty CRM : ${[a.monday_connu.statut, a.monday_connu.date].filter(Boolean).join(', ')}`] : []),
     ].slice(0, 3),
-    site: a.site || null, maps_url: a.maps_url || null,
+    site: a.site || null, maps_url: a.maps_url || null, linkedin: a.linkedin || null,
+    // La carte d'avant l'appel (18 nov. 2026, Jules) : l'année de création et l'effectif, sous le résumé.
+    creation: a.creation ? String(a.creation).slice(0, 4) : null, effectif: a.effectif || null,
     // Les annonces relevées de l'agence (la carte d'avant l'appel, 17 nov. 2026) : combien, dont en commerce.
     annonces: { total: Number(a.annonces) || 0, commerce: Number(a.annonces_commerce) || 0, publie_commerce: !!a.publie_commerce },
     lieu: [ville, a.adresse].filter(Boolean).join(' · '),

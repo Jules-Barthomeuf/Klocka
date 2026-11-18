@@ -151,7 +151,7 @@ export async function agencesDeLaVille(ville, { lire = fetch, surCase = () => {}
  * d'agence immobilière de la commune. Sert à compléter une ligne (adresse,
  * site, fiche, téléphone) sans relire toute la ville. Null si rien ne tient.
  */
-export async function chercherAgence(nom, ville, { lire = fetch, commune = null } = {}) {
+export async function chercherAgence(nom, ville, { lire = fetch, commune = null, accepter = null } = {}) {
   if (!mapsConfigure()) throw new Error('La clé GOOGLE_MAPS_SERVEUR manque.');
   const c = commune || await communeDe(ville, { lire });
   const r = await lire(TEXTE, {
@@ -165,6 +165,7 @@ export async function chercherAgence(nom, ville, { lire = fetch, commune = null 
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`Google Maps a répondu ${r.status}${j.error?.message ? ` : ${j.error.message}` : ''}`);
-  const lieu = (j.places || []).find((l) => !c || aGarder(l, c));
+  // `accepter` : la fiche doit aussi porter le bon nom (Maps rend l'agence la plus proche, pas forcément celle cherchée).
+  const lieu = (j.places || []).find((l) => (!c || aGarder(l, c)) && (!accepter || accepter(versAgence(l))));
   return lieu ? versAgence(lieu) : null;
 }

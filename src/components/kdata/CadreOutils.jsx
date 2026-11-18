@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Moon, Search, Sun } from "lucide-react";
+import { Moon, PanelLeftClose, PanelLeftOpen, Search, Sun } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { MODULES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
@@ -20,8 +20,21 @@ const ANALYSER = [["rue", "Rue"], ["marche", "Marché"], ["locataire", "Locatair
   .map(([cle, mot]) => ({ cle: `outil:${cle}`, mot, to: `/Outils?outil=${cle}`, outil: cle }));
 const GROUPES = [
   ["Analyser un bien", ANALYSER],
-  ["Autres outils", ["kexpertise", "kzoning", "valeur-locative", "ktransactions", "kfoncier", "kestimation", "kprospective", "kvacance"]],
+  ["Autres outils", ["kexpertise", "kzoning", "valeur-locative", "ktransactions", "kfoncier", "kpatrimoine", "kestimation", "kprospective", "kvacance"]],
 ];
+// Le panneau se replie (17 nov. 2026, Jules : « fais en sorte qu'on puisse fermer, ouvrir ») : un bouton en haut le
+// ferme en une bande de 48 px, le même le rouvre. Le choix se garde d'une page à l'autre, dans ce navigateur.
+const CLE_REPLIE = "outils.panneau-replie";
+// Les pages qui ont besoin de toute la largeur (le graphe de K-Patrimoine, 18 nov. 2026) s'ouvrent panneau replié, tant
+// que personne ne l'a rouvert ou fermé à la main : un choix posé l'emporte partout.
+const PAGES_LARGES = new Set(["KPatrimoine"]);
+const lireReplie = (page) => {
+  try {
+    const v = localStorage.getItem(CLE_REPLIE);
+    return v == null ? PAGES_LARGES.has(page) : v === "1";
+  } catch { return PAGES_LARGES.has(page); }
+};
+const BOUTON_PANNEAU = "grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre";
 const LIEN = "flex h-9 w-full items-center justify-between gap-2 rounded-[8px] px-2.5 text-left text-[14px] transition-colors max-md:w-auto max-md:flex-none max-md:whitespace-nowrap";
 
 export default function CadreOutils({ page, children }) {
@@ -32,6 +45,9 @@ export default function CadreOutils({ page, children }) {
   const params = new URLSearchParams(search);
   const vueBord = page === "KData" ? (params.get("p") === "analyses" ? "analyses" : "bord") : null;
   const [recherche, setRecherche] = useState(page === "KData" ? params.get("q") || "" : "");
+  const [replie, setReplie] = useState(() => lireReplie(page));
+  useEffect(() => { setReplie(lireReplie(page)); }, [page]);
+  const basculer = () => setReplie((r) => { try { localStorage.setItem(CLE_REPLIE, r ? "0" : "1"); } catch { /* sans stockage */ } return !r; });
 
   // Le fond et la barre en verre comme le reste (16 nov. 2026, Jules) : plus le cadre neutre du CRM (k-cadre-crm, fond
   // uni, personnalisation d'origine) mais celui du dossier ouvert (k-cadre-outils, index.css) : la personnalisation de
@@ -60,7 +76,17 @@ export default function CadreOutils({ page, children }) {
         </button>
       </header>
       <div className="k-crm-contenu flex min-h-0 flex-1 overflow-hidden rounded-tl-[16px] max-md:flex-col max-md:overflow-visible max-md:rounded-none">
-        <nav aria-label="Pages des outils" className="flex w-[236px] flex-none flex-col overflow-y-auto border-r border-trait px-3 pb-6 pt-3 max-md:w-auto max-md:flex-row max-md:gap-1.5 max-md:overflow-x-auto max-md:border-b max-md:border-r-0 max-md:pb-3">
+        {replie && (
+          <div className="flex w-12 flex-none flex-col items-center border-r border-trait pt-3 max-md:hidden">
+            <button type="button" onClick={basculer} aria-label="Ouvrir le panneau des outils" title="Ouvrir le panneau des outils" aria-expanded="false" className={BOUTON_PANNEAU} style={{ background: "transparent" }}>
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        <nav aria-label="Pages des outils" className={`${replie ? "hidden max-md:flex" : "flex"} w-[236px] flex-none flex-col overflow-y-auto border-r border-trait px-3 pb-6 pt-3 max-md:w-auto max-md:flex-row max-md:gap-1.5 max-md:overflow-x-auto max-md:border-b max-md:border-r-0 max-md:pb-3`}>
+          <button type="button" onClick={basculer} aria-label="Fermer le panneau des outils" title="Fermer le panneau des outils" aria-expanded="true" className={`${BOUTON_PANNEAU} relative z-10 -mb-8 self-end max-md:hidden`} style={{ background: "transparent" }}>
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
           {GROUPES.map(([g, liste]) => (
             <React.Fragment key={g}>
               <p className="m-0 px-2.5 pb-1 pt-3 text-[12px] uppercase tracking-[.04em] text-brume max-md:hidden">{g}</p>

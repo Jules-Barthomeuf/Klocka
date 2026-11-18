@@ -7,6 +7,8 @@ import { base44 } from "@/api/base44Client";
 // « Ma session » sous la carte d'appel (17 nov. 2026, maquette de Jules). Une ligne « Ma session » à gauche, les
 // commandes à droite ; dessous, selon l'état : pas commencée (un bloc centré et « Commencer ma session »), en cours ou
 // en pause (les chiffres), terminée (le bilan). La carte d'appel, au-dessus, reste toujours là.
+// À la couleur du système (17 nov. 2026, Jules) : l'accent du compte (`menthe`), plus la pervenche de la maquette ;
+// le record reste en `ambre`.
 // Les chiffres viennent du serveur (server/prospection/ma-session.js) ; le chronomètre tourne ici, pauses ôtées.
 
 const API = "/api/prospection/mode-appel";
@@ -29,7 +31,7 @@ const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 
 const CADRE = "k-verre";
 const BOUTON = "inline-flex h-9 items-center gap-2 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50";
-const BOUTON_PERVENCHE = "inline-flex h-9 items-center gap-2 rounded-full bg-pervenche px-4 text-[13.5px] text-sur-pervenche transition-opacity hover:opacity-90 disabled:opacity-50";
+const BOUTON_ACCENT = "inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe transition-opacity hover:opacity-90 disabled:opacity-50";
 
 /**
  * @param {{ session: {id, liste_id, ville}|null, ville: string|null, progression: {appelees, agences}|null,
@@ -92,13 +94,13 @@ export default function MaSession({ session, ville, progression, onNouvelle }) {
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="mr-1 inline-flex items-center gap-2 text-[13px] tabular-nums text-craie">
               {etat === "en_cours"
-                ? <span aria-hidden className="h-2 w-2 rounded-full bg-pervenche" />
+                ? <span aria-hidden className="h-2 w-2 rounded-full bg-menthe" />
                 : <span aria-hidden className="h-2 w-2 rounded-full border border-craie" />}
               {etat === "en_cours" ? "En cours" : "En pause"} · {chrono(temps)}
             </span>
             {etat === "en_cours"
               ? <button type="button" className={BOUTON} style={{ background: "transparent" }} disabled={occupe} onClick={() => changer.mutate("pause")}><Pause className="h-3.5 w-3.5" strokeWidth={2} />Pause</button>
-              : <button type="button" className={BOUTON_PERVENCHE} disabled={occupe} onClick={() => changer.mutate("reprendre")}><Play className="h-3.5 w-3.5" strokeWidth={2} fill="currentColor" />Reprendre</button>}
+              : <button type="button" className={BOUTON_ACCENT} disabled={occupe} onClick={() => changer.mutate("reprendre")}><Play className="h-3.5 w-3.5" strokeWidth={2} fill="currentColor" />Reprendre</button>}
             <button type="button" className={BOUTON} style={{ background: "transparent" }} disabled={occupe} onClick={() => changer.mutate("terminer")}>Terminer</button>
           </div>
         )}
@@ -114,7 +116,7 @@ export default function MaSession({ session, ville, progression, onNouvelle }) {
             {total ? `${pluriel(reste, "agence")} ${reste > 1 ? "restent" : "reste"} à appeler.` : null}
             {d?.record ? <> Votre record : <span className="text-ambre">{pluriel(d.record, "appel")}</span> en une session.</> : " Votre première session : elle fera votre record."}
           </p>
-          <button type="button" className={`${BOUTON_PERVENCHE} mt-4 h-11 px-6 text-[14.5px]`} disabled={occupe} onClick={() => commencer.mutate()}>
+          <button type="button" className={`${BOUTON_ACCENT} mt-4 h-11 px-6 text-[14.5px]`} disabled={occupe} onClick={() => commencer.mutate()}>
             <Play className="h-3.5 w-3.5" strokeWidth={2} fill="currentColor" />Commencer ma session
           </button>
         </div>
@@ -146,7 +148,7 @@ function Anneau({ valeur, max, taille = 132 }) {
   return (
     <svg width={taille} height={taille} viewBox={`0 0 ${taille} ${taille}`} className="flex-none -rotate-90" aria-hidden>
       <circle cx={taille / 2} cy={taille / 2} r={r} fill="none" strokeWidth="10" className="stroke-trait" />
-      <circle cx={taille / 2} cy={taille / 2} r={r} fill="none" strokeWidth="10" strokeLinecap="round" className="stroke-pervenche transition-[stroke-dashoffset] duration-700"
+      <circle cx={taille / 2} cy={taille / 2} r={r} fill="none" strokeWidth="10" strokeLinecap="round" className="stroke-menthe transition-[stroke-dashoffset] duration-700"
         strokeDasharray={c} strokeDashoffset={c * (1 - part)} />
     </svg>
   );
@@ -202,7 +204,7 @@ function Barre({ part, repere = null }) {
   return (
     <div className={`relative ${repere ? "mt-5" : "mt-2"}`}>
       <div className="h-2 overflow-hidden rounded-full bg-trait">
-        <div className="h-full rounded-full bg-pervenche transition-[width] duration-700" style={{ width: `${Math.round(Math.min(1, Math.max(0, part)) * 100)}%` }} />
+        <div className="h-full rounded-full bg-menthe transition-[width] duration-700" style={{ width: `${Math.round(Math.min(1, Math.max(0, part)) * 100)}%` }} />
       </div>
       {repere && (
         <>
@@ -245,7 +247,7 @@ function CarteFichesMoi({ f }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <span className="text-[13px] text-ardoise">Fiches reçues par vous cette semaine</span>
         <span className="flex items-center gap-4 text-[12px] text-craie">
-          <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-3.5 rounded-full bg-pervenche" />Cette semaine</span>
+          <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-0.5 w-3.5 rounded-full bg-menthe" />Cette semaine</span>
           {f.record && <span className="inline-flex items-center gap-1.5"><span aria-hidden className="w-3.5 border-t-2 border-dotted border-ambre" />Semaine record</span>}
         </span>
       </div>
@@ -261,9 +263,9 @@ function CarteFichesMoi({ f }) {
           </g>
         ))}
         {f.record && <path d={ligne(f.record.cumul)} fill="none" className="stroke-ambre" strokeWidth="2" strokeDasharray="3 5" strokeLinecap="round" />}
-        <path d={ligne(jusqua)} fill="none" className="stroke-pervenche" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={ligne(jusqua)} fill="none" className="stroke-menthe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         {jusqua.map((v, i) => (
-          <circle key={i} cx={x(i)} cy={y(v)} r={i === jusqua.length - 1 ? 5 : 9} className={i === jusqua.length - 1 ? "fill-pervenche stroke-surface" : "fill-transparent"} strokeWidth="2">
+          <circle key={i} cx={x(i)} cy={y(v)} r={i === jusqua.length - 1 ? 5 : 9} className={i === jusqua.length - 1 ? "fill-menthe stroke-surface" : "fill-transparent"} strokeWidth="2">
             <title>{`${f.jours[i]} : ${v} au total${f.moi.par_jour[i] ? ` (+${f.moi.par_jour[i]})` : ""}`}</title>
           </circle>
         ))}
@@ -303,7 +305,7 @@ function CarteFichesEquipe({ f }) {
           const h = Math.max(v ? 3 : 0, y(0) - y(v));
           return (
             <g key={i}>
-              {v > 0 && <path d={`M${cx - larg / 2},${y(0)} V${y(0) - h + 4} Q${cx - larg / 2},${y(0) - h} ${cx - larg / 2 + 4},${y(0) - h} H${cx + larg / 2 - 4} Q${cx + larg / 2},${y(0) - h} ${cx + larg / 2},${y(0) - h + 4} V${y(0)} Z`} className="fill-pervenche"><title>{`${f.jours[i]} : ${v} pour l'équipe, ${f.moi.par_jour[i]} par vous`}</title></path>}
+              {v > 0 && <path d={`M${cx - larg / 2},${y(0)} V${y(0) - h + 4} Q${cx - larg / 2},${y(0) - h} ${cx - larg / 2 + 4},${y(0) - h} H${cx + larg / 2 - 4} Q${cx + larg / 2},${y(0) - h} ${cx + larg / 2},${y(0) - h + 4} V${y(0)} Z`} className="fill-menthe"><title>{`${f.jours[i]} : ${v} pour l'équipe, ${f.moi.par_jour[i]} par vous`}</title></path>}
               {v > 0 && <text x={cx} y={y(0) - h - 6} textAnchor="middle" className="fill-encre text-[12px] tabular-nums">{v}</text>}
             </g>
           );
@@ -336,7 +338,7 @@ function Bilan({ d, temps, ville, appelees, total, occupe, onNouvelle }) {
             {d.record_battu ? `Nouveau record : ${pluriel(d.appels, "appel")}` : `${pluriel(d.appels, "appel")}${d.appels && d.decroches ? `, ${d.decroches} décroché${d.decroches > 1 ? "s" : ""}` : ""}`}
           </h2>
         </div>
-        <button type="button" className={BOUTON_PERVENCHE} disabled={occupe} onClick={onNouvelle}>
+        <button type="button" className={BOUTON_ACCENT} disabled={occupe} onClick={onNouvelle}>
           <Play className="h-3.5 w-3.5" strokeWidth={2} fill="currentColor" />Nouvelle session
         </button>
       </div>

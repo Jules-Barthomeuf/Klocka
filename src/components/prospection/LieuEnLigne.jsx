@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, MapPin } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { adresseDite } from "@/lib/adresse-dite";
+import { adresseRetenue, adressesDites } from "@/lib/adresse-dite";
 import { FenetreFlottante } from "@/components/prospection/EcranEnLigne";
 
 // La rue de l'appel (17 nov. 2026, Jules : « je dis 20 rue de la République à Antibes, ça va directement en Street View
@@ -22,7 +22,20 @@ const departLieu = () => {
  * de l'agence, quand l'adresse dite n'en dit pas.
  */
 export default function LieuEnLigne({ textes, ville = null }) {
-  const dite = useMemo(() => adresseDite(textes), [textes.join("\n")]);
+  // L'adresse retenue : la dernière apparue (17 nov. 2026, Jules : « s'il dit une autre adresse, la vue change ; là ça
+  // reste bloqué sur la première »). Les notes passent après la transcription dans les textes : « la dernière du texte »
+  // gardait celle des notes ; c'est donc la dernière adresse nouvelle, d'où qu'elle vienne, qui déplace la rue.
+  const toutes = useMemo(() => adressesDites(textes), [textes.join("\n")]);
+  // Chaque nouvelle mention compte, une adresse redite aussi (« non, finalement au 20 rue… ») : on compte les mentions de
+  // chaque adresse, et celle dont le compte vient de monter devient la rue affichée.
+  const comptes = useRef(new Map());
+  const [cle, setCle] = useState(null);
+  useEffect(() => {
+    const r = adresseRetenue(toutes, comptes.current, cle);
+    comptes.current = r.comptes;
+    if (r.cle !== cle) setCle(r.cle);
+  }, [toutes]);
+  const dite = toutes.find((x) => x.cle === cle) || (toutes.length ? toutes[toutes.length - 1] : null);
   const params = dite ? Object.fromEntries(Object.entries({
     adresse: [dite.texte, dite.code_postal].filter(Boolean).join(" "), ville: dite.ville, suite: dite.suite, agence: ville,
   }).filter(([, v]) => v)) : null;

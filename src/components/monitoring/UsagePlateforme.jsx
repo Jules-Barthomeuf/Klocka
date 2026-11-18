@@ -18,7 +18,7 @@ const LIBELLES = {
   Analyse: "Dossiers", Dashboard: "Tableau de bord", AdminProjets: "Projets", ProjetDetail: "Projet", Home: "Connexion",
   Cerveau: "Intelligence", Monitoring: "Suivi · Usage", Semaine: "Agenda", AdminClients: "Clients", AdminUtilisateurs: "Utilisateurs",
   AdminMandataires: "Mandataires", AdminPresentations: "Présentations", MesPresentations: "Mes présentations", MesProjets: "Mes projets",
-  OffMarket: "Off-market", KVacance: "K-Vacance", KFoncier: "K-Foncier", KZoning: "K-Zoning", KData: "K-Data", KEstimation: "K-Estimation",
+  OffMarket: "Off-market", KVacance: "K-Vacance", KFoncier: "K-Foncier", KPatrimoine: "K-Patrimoine", KZoning: "K-Zoning", KData: "K-Data", KEstimation: "K-Estimation",
   KExpertise: "K-Expertise", KProspective: "K-Prospective", KTransactions: "K-Transactions", SimulateurRentabilite: "Simulateur",
   SimulateurPublic: "Simulateur public", ConversationsMandataires: "Conversations mandataires", MandatsMandataires: "Mandats des mandataires", CoutsIA: "Coûts IA",
 };

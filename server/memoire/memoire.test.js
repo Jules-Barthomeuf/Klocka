@@ -80,3 +80,12 @@ test("la date d'un transfert Gmail français devient AAAA-MM-JJ (17 nov. 2026 : 
   assert.equal(jourIso('2026-11-16T10:00:00Z'), '2026-11-16');
   assert.equal(jourIso('pas une date'), null);
 });
+
+test('listerMemoire : le dernier entré en tête, pas la date du mail d\'origine (18 nov. 2026)', async () => {
+  // Une annonce Equimmox datée de sa publication récente, puis une fiche transférée dont le mail d'origine a un mois :
+  // la fiche, entrée après, doit s'afficher la première.
+  Records.create('BienMemoire', { origine: 'equimmox', statut: 'memoire', recu_le: '2026-11-15', ville: 'Nice', adresse: { rue: '1 rue de France' } });
+  await new Promise((ok) => setTimeout(ok, 5));
+  const fiche = Records.create('BienMemoire', { origine: 'transfert', statut: 'memoire', recu_le: '2026-10-12', ville: 'Cannes', adresse: { rue: '8 rue d\'Antibes' } });
+  assert.equal(listerMemoire()[0].id, fiche.id);
+});

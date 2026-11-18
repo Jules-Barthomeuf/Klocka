@@ -164,6 +164,19 @@ export async function etablissementsParNom(nom, codePostal) {
   return (d.etablissements || []).map((e) => ({ ...lireEtablissement(e), siren: String(e.siret).slice(0, 9) })).filter((e) => e.siret);
 }
 
+/**
+ * Les établissements ouverts à une adresse (K-Patrimoine, 17 nov. 2026) : ce qu'est un bien d'une SCI, que le fichier
+ * des personnes morales ne dit pas. `voie` sans son type (« GAMBETTA »), comme le registre l'écrit.
+ */
+export async function etablissementsALAdresse(codeCommune, numero, voie) {
+  const n = String(numero || '').match(/^\d+/)?.[0];
+  const v = String(voie || '').replace(/["\\]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (!/^[0-9AB]{5}$/.test(String(codeCommune || '')) || !n || v.length < 2) return [];
+  const q = `codeCommuneEtablissement:${codeCommune} AND numeroVoieEtablissement:${n} AND libelleVoieEtablissement:"${v}" AND periode(etatAdministratifEtablissement:A)`;
+  const d = await appeler({ q, nombre: '40' });
+  return (d.etablissements || []).map((e) => ({ ...lireEtablissement(e), siren: String(e.siret).slice(0, 9) })).filter((e) => e.siret);
+}
+
 /** L'unité légale d'un SIREN (identité, forme, état, création), quand l'annuaire des entreprises ne répond pas. */
 export async function uniteLegale(siren) {
   if (!sireneConfigure()) throw new Error(MESSAGE_SANS_CLE);

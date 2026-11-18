@@ -180,10 +180,15 @@ export function phraseHistorique(bien, hits = []) {
   return phrase.charAt(0).toUpperCase() + phrase.slice(1);
 }
 
-/** Les biens de la Mémoire, du plus récent au plus ancien, filtrés par un mot (adresse, ville, agent, agence, locataire). */
+/**
+ * Les biens de la Mémoire, du dernier entré au premier, filtrés par un mot (adresse, ville, agent, agence, locataire).
+ * L'ordre suit l'entrée en Mémoire, pas la date du mail d'origine (18 nov. 2026, Jules : « j'ai envoyé des fiches hier,
+ * ça n'a pas fait ») : une fiche transférée porte la date où l'agent l'avait envoyée, parfois des semaines avant, et
+ * les 331 annonces Equimmox de Nice, datées de leur publication, la repoussaient au-delà des 500 lignes affichées.
+ */
 export function listerMemoire({ q = '', limite = 200, statut = null } = {}) {
   const t = String(q || '').trim().toLowerCase();
-  return Records.list(ENTITE, { sort: '-recu_le' })
+  return Records.list(ENTITE, { sort: '-created_date' })
     .filter((b) => !statut || b.statut === statut)
     .filter((b) => !t || [b.adresse?.rue, b.ville, b.code_postal, b.agent?.nom, b.agent?.agence, b.agent_email, b.locataire_nom, b.locataire_activite].some((x) => String(x || '').toLowerCase().includes(t)))
     .slice(0, limite);

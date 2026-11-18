@@ -1,4 +1,4 @@
-import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store, DoorClosed } from "lucide-react";
+import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store, DoorClosed, Network } from "lucide-react";
 
 // Les applications d'Outils (K-Data jusqu'au 16 oct. 2026), décrites une seule fois : le tableau de
 // bord en fait des cartes, la barre du haut de K-Data en fait un menu.
@@ -69,6 +69,17 @@ export const MODULES_KDATA = [
     phrase: "Les parcelles autour d'une adresse, leur contenance, et les sociétés qui les possèdent.",
     chemin: "/KFoncier",
     etat: "Ouvert",
+  },
+  {
+    cle: "kpatrimoine",
+    pageName: "KPatrimoine",
+    nom: "K-Patrimoine",
+    icone: Network,
+    image: "/img/kdata/kfoncier.jpg",
+    phrase: "D'un bien en vente à la SCI qui en possède les murs, puis à tous ses autres biens et aux sociétés de ses dirigeants.",
+    chemin: "/KPatrimoine",
+    etat: "Ouvert",
+    lancable: false,
   },
   {
     cle: "valeur-locative",

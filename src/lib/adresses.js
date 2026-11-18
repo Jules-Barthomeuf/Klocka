@@ -113,6 +113,7 @@ export const ADRESSES = {
   KEstimation: "Estimation",
   ValeurLocative: "ValeurLocative",
   KFoncier: "KFoncier",
+  KPatrimoine: "KPatrimoine",
   KProspective: "KProspective",
   KTransactions: "KTransactions",
   KVacance: "KVacance",

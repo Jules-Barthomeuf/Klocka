@@ -36,3 +36,19 @@ test('la ville de la réponse doit avoir été dite ; la caméra sur la chaussé
   assert.equal(cap({ lat: 43.58, lon: 7.125 }, { lat: 43.58, lon: 7.126 }), 90);
   assert.equal(urlStreetView({ lat: 43.58, lon: 7.125 }, 0), 'https://maps.google.com/maps?layer=c&cbll=43.580000,7.125000&cbp=11,0,0,0,0&output=svembed');
 });
+
+test('une autre adresse dite plus tard déplace la rue, même si la première est dans les notes ; une adresse redite revient', async () => {
+  const { adressesDites, adresseRetenue } = await import('../../src/lib/adresse-dite.js');
+  const notes = 'Local au 20 rue de la République à Antibes';
+  let r = adresseRetenue(adressesDites(['Bonjour madame', notes]));
+  assert.equal(r.cle, '20 rue de la république antibes');
+  // L'agent parle d'un autre local : la transcription passe avant les notes dans les textes, il doit pourtant l'emporter.
+  r = adresseRetenue(adressesDites(['Bonjour madame', "J'ai aussi le 12 boulevard Victor Hugo à Nice", notes]), r.comptes, r.cle);
+  assert.equal(r.cle, '12 boulevard Victor Hugo nice'.toLowerCase());
+  // Rien de neuf : la rue ne bouge pas.
+  r = adresseRetenue(adressesDites(['Bonjour madame', "J'ai aussi le 12 boulevard Victor Hugo à Nice", notes]), r.comptes, r.cle);
+  assert.equal(r.cle, '12 boulevard victor hugo nice');
+  // « Non, finalement le 20 rue de la République à Antibes » : redite, elle revient.
+  r = adresseRetenue(adressesDites(['Bonjour madame', "J'ai aussi le 12 boulevard Victor Hugo à Nice", 'Non finalement le 20 rue de la République à Antibes', notes]), r.comptes, r.cle);
+  assert.equal(r.cle, '20 rue de la république antibes');
+});

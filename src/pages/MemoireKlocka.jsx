@@ -20,7 +20,7 @@ const PAR_PAGE = 50;
 const euros = (n) => (n == null ? "" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const kEuros = (n) => montant(n) || "";
 const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "");
-const ORIGINES = { suppression: "dossier supprimé", abandon: "dossier abandonné", dossier: "dossier en cours", veille: "veille des boîtes", scraper: "lecture des boîtes" };
+const ORIGINES = { suppression: "dossier supprimé", abandon: "dossier abandonné", dossier: "dossier en cours", veille: "veille des boîtes", scraper: "lecture des boîtes", transfert: "transfert à sourcing@", equimmox: "annonce Equimmox" };
 
 export default function MemoireKlocka() {
   const [recherche, setRecherche] = useState("");

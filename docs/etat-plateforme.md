@@ -1,19 +1,19 @@
 # État de la plateforme
 
-Écrit le 17/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 18/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-5 personnes, 4 147 pages ouvertes, 0 demandes à l'assistant, 12 actions exécutées.
+5 personnes, 4 103 pages ouvertes, 0 demandes à l'assistant, 12 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 452 | 0 | 12 | 17/11/2026 |
-| admin.stress@test.local (équipe) | 372 | 0 | 0 | 15/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 394 | 0 | 12 | 18/11/2026 |
+| admin.stress@test.local (équipe) | 384 | 0 | 0 | 18/11/2026 |
 | test.mandataire@kpartners.fr | 182 | 0 | 0 | 14/11/2026 |
-| admin@klocka.local (équipe) | 136 | 0 | 0 | 17/11/2026 |
+| admin@klocka.local (équipe) | 138 | 0 | 0 | 17/11/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
 
 ## Les pages qui comptent
@@ -21,41 +21,41 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
 - **MandataireBiens** — 1 021 (25 %)
-- **Analyse** — 799 (19 %)
-- **Prospection** — 320 (8 %)
+- **Analyse** — 784 (19 %)
+- **Prospection** — 324 (8 %)
 - **CrmTwenty** — 320 (8 %)
-- **Dashboard** — 304 (7 %)
-- **MandataireProspection** — 245 (6 %)
-- **AdminProjets** — 195 (5 %)
-- **Personnalisation** — 143 (3 %)
+- **Dashboard** — 287 (7 %)
+- **MandataireProspection** — 244 (6 %)
+- **AdminProjets** — 186 (5 %)
+- **Personnalisation** — 141 (3 %)
 - **MandatsMandataires** — 66 (2 %)
-- **SimulateurRentabilite** — 62 (1 %)
-- **AdminUtilisateurs** — 45 (1 %)
+- **SimulateurRentabilite** — 56 (1 %)
+- **AdminUtilisateurs** — 41 (1 %)
 - **KVacance** — 40 (1 %)
-- Le reste, sous 1 % : Monitoring, PlancheAnalyse, Outils, MandataireTableauDeBord, Cerveau, MandataireClients, KData, Home, AdminModeles, Offres, MandataireDocuments, Emailing, PlancheVerre, ProjetDetail, SuiviAppels, KZoning, SuiviActivite, MandataireDossier, KTransactions, public, AdminClients, KExpertise, SimulateurPublic, KProspective, AdminSuggestions, MandataireProjets, Tokimo, MandataireEstimation, AccesPages, PlancheMarche, KEstimation, KFoncier, Semaine, MandataireOffMarket, AdminMandataires, SuiviAudience, AdminAccesCrm, Automatismes, tokimo, AdminPresentations, MandataireMarche, PlancheVacance, PlancheLocataire, ValeurLocative, DepotVendeur, MemoireKlocka, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, SuiviMandataires, AdminBanque, SuiviCorrections, SignerBon, klocka.immo, MesProjets, AdminEquipe, Feedback, NotreOffre
+- Le reste, sous 1 % : Monitoring, Outils, PlancheAnalyse, MandataireTableauDeBord, MandataireClients, KData, Cerveau, Home, AdminModeles, Offres, MandataireDocuments, KPatrimoine, Emailing, PlancheVerre, ProjetDetail, SuiviAppels, SuiviActivite, MandataireDossier, KTransactions, KZoning, public, KExpertise, SimulateurPublic, AdminClients, AdminSuggestions, MandataireProjets, KProspective, Tokimo, KFoncier, MemoireKlocka, MandataireEstimation, AccesPages, PlancheMarche, KEstimation, AdminMandataires, SuiviAudience, AdminAccesCrm, tokimo, AdminPresentations, Semaine, MandataireMarche, MandataireOffMarket, PlancheVacance, PlancheLocataire, ValeurLocative, DepotVendeur, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, SuiviMandataires, Automatismes, AdminBanque, SuiviCorrections, SignerBon, klocka.immo, MesProjets, AdminEquipe, Feedback, NotreOffre
 
 ## Ce que l'IA coûte
 
-43,19 € sur la période, 2 333 appels, 16 042 k jetons. 53 % part en tâche de fond, sans que personne clique. 38 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+43,31 € sur la période, 2 361 appels, 16 107 k jetons. 53 % part en tâche de fond, sans que personne clique. 37 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,0063 € par appel | 408 | 19,41 € | — |
+| Non attribué (fond) | 0,0061 € par appel | 418 | 19,41 € | — |
 | Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 372 | 12,91 € | 18 s |
 | Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 13 | 1,64 € | 31 s |
 | Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
-| Lire le site d'une agence (et le trouver s'il manque) | 0,0062 € par agence | 52 | 0,70 € | 7 s |
+| Lire le site d'une agence (et le trouver s'il manque) | 0,0062 € par agence | 55 | 0,77 € | 7 s |
 | Extraire un document déposé | 0,02 € par document | 6 | 0,23 € | 17 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
 | Parler à l'assistant après un appel | 0,0076 € par demande | 19 | 0,15 € | 2 s |
 | Analyser une fiche commerciale | 0,0091 € par fiche | 15 | 0,15 € | 16 s |
+| Résumer une agence avant l'appel | 0,0010 € par agence | 96 | 0,10 € | 2 s |
 | Trouver les zones commerçantes d'une ville | 0,0080 € par ville | 13 | 0,10 € | 7 s |
-| Résumer une agence avant l'appel | 0,0010 € par agence | 86 | 0,09 € | 2 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : pages équipe (1,66 €) · POST /api/prospection/mode-appel/pre-lecture (1,17 €) · POST /api/prospection/mode-appel/issue (1,06 €) · GET /api/prospection/agents/:id/page (0,63 €) · lire le passage sur Street View (0,53 €) · fil dossier (0,39 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : pages équipe (1,66 €) · POST /api/prospection/mode-appel/pre-lecture (1,20 €) · POST /api/prospection/mode-appel/issue (1,06 €) · GET /api/prospection/agents/:id/page (0,63 €) · lire le passage sur Street View (0,53 €) · fil dossier (0,39 €).
 
 ## Les leviers sur la dépense
 

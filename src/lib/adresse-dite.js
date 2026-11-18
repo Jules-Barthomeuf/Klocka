@@ -26,7 +26,17 @@ function villeApres(suite) {
  * @returns {{ texte: string, numero: string|null, voie: string, ville: string|null, code_postal: string|null, suite: string|null, cle: string } | null}
  */
 export function adresseDite(textes) {
+  const toutes = adressesDites(textes);
+  return toutes.length ? toutes[toutes.length - 1] : null;
+}
+
+/**
+ * Pure : toutes les adresses dites, dans l'ordre des textes, chacune avec sa clé (17 nov. 2026 : une autre adresse dite
+ * plus tard dans l'appel doit déplacer la rue, même si la première est dans les notes).
+ */
+export function adressesDites(textes) {
   const liste = (Array.isArray(textes) ? textes : [textes]).map((t) => motsEnChiffres(String(t || "")));
+  const toutes = [];
   let derniere = null;
   for (const t of liste) {
     const re = new RegExp(`(?:(\\d{1,4})(?:\\s?(bis|ter|b))?\\s*,?\\s+)?\\b(${TYPES})\\.?\\s+((?:[\\p{L}'’-]+\\s?){1,7})`, "giu");
@@ -57,8 +67,23 @@ export function adresseDite(textes) {
       // Les mots qui suivent, jusqu'à la fin de la phrase : la ville s'y vérifie au serveur, même tapée en minuscules.
       const suite = apres.replace(/^\s*,?\s*(?:au\s+)?(?:num[ée]ro\s+)?\d{1,4}(?:\s?(?:bis|ter))?/i, "").split(/[.!?;\n]/)[0].trim().slice(0, 50) || null;
       derniere = { texte, numero, voie, ville: lieu?.ville || null, code_postal: lieu?.code_postal || null, suite };
+      toutes.push({ ...derniere, cle: [derniere.texte, derniere.code_postal, derniere.ville || derniere.suite].filter(Boolean).join(" ").toLowerCase() });
     }
   }
-  if (!derniere) return null;
-  return { ...derniere, cle: [derniere.texte, derniere.code_postal, derniere.ville || derniere.suite].filter(Boolean).join(" ").toLowerCase() };
+  return toutes;
+}
+
+/**
+ * Pure : l'adresse à montrer après une mise à jour des textes. `avant` : les mentions comptées la fois d'avant (Map clé →
+ * nombre) ; `cle` : celle montrée. L'adresse dont le compte vient de monter l'emporte (dite pour la première fois ou
+ * redite) ; sinon on garde la même, tant qu'elle est encore dans les textes.
+ * @returns {{ cle: string|null, comptes: Map<string, number> }}
+ */
+export function adresseRetenue(toutes, avant = new Map(), cle = null) {
+  const comptes = new Map();
+  toutes.forEach((x) => comptes.set(x.cle, (comptes.get(x.cle) || 0) + 1));
+  const montees = toutes.filter((x, i) => comptes.get(x.cle) > (avant.get(x.cle) || 0) && toutes.findLastIndex((y) => y.cle === x.cle) === i);
+  if (montees.length) return { cle: montees[montees.length - 1].cle, comptes };
+  if (cle && comptes.has(cle)) return { cle, comptes };
+  return { cle: toutes.length ? toutes[toutes.length - 1].cle : null, comptes };
 }

@@ -88,6 +88,7 @@ import { monterKEstimation } from './routes/kestimation.js';
 import { monterKValeurLocative } from './routes/kvaleurlocative.js';
 import { monterSocle } from './routes/socle.js';
 import { monterKFoncier } from './routes/kfoncier.js';
+import { monterKPatrimoine } from './routes/kpatrimoine.js';
 import { monterTokimo } from './routes/tokimo.js';
 import { monterKProspective } from './routes/kprospective.js';
 import { monterLeadMagnet } from './routes/leadmagnet.js';
@@ -1402,6 +1403,7 @@ import('./socle/entrepot.js').then((m) => m.planifierImports()).catch((e) => con
 // La collecte d'annonces des sites d'agences (lot 3) : éteinte tant que BOITE_OUTILS, la source « annonces » et ANNONCES_COLLECTE=1 ne sont pas réunis.
 import('./annonces/collecte.js').then((m) => m.planifierCollecte()).catch((e) => console.error('[annonces] :', e.message));
 monterKFoncier(app);
+monterKPatrimoine(app);
 monterTokimo(app);
 monterKProspective(app);
 monterLeadMagnet(app);

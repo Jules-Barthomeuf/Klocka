@@ -125,19 +125,6 @@ export async function listerMessagesGmail(compteEmail, { q = '', pageToken = nul
   return { ids: (liste.messages || []).map((m) => m.id), suivant: liste.nextPageToken || null, estimation: liste.resultSizeEstimate ?? null };
 }
 
-/**
- * Les derniers mails de la réception encore jamais vus, ni gardés ni écartés (19 nov. 2026) : une lecture de la liste,
- * rien d'écrit, rien de lu en entier. Le coup d'oeil de chaque minute sur sourcing@ (deal/veille-mails.js).
- * @returns {Promise<string[]>}
- */
-export async function idsInconnus(compteEmail, { max = 10 } = {}) {
-  const account = compteLisible(compteEmail);
-  const token = await accessTokenFor(account);
-  const liste = await gmailGet(token, `/messages?labelIds=INBOX&maxResults=${max}`);
-  return (liste.messages || []).map((m) => m.id)
-    .filter((id) => !Records.existe('MailRecu', 'gmail_message_id', id) && !Records.existe('MailEcarte', 'gmail_message_id', id));
-}
-
 /** Un message lu en entier, à la forme d'un MailRecu, sans l'enregistrer. */
 export async function lireMessage(compteEmail, gmailMessageId) {
   const account = compteLisible(compteEmail);

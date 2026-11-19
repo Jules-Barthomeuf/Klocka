@@ -269,6 +269,34 @@ export async function reexaminerEcartesCommuns({ jours = 3 } = {}) {
   return n;
 }
 
+// Le coup d'oeil sur les boîtes communes (19 nov. 2026, Jules : « ça prend trop longtemps quand un mail avec une fiche
+// est transféré vers sourcing@ ») : le transfert se traitait en vingt secondes mais attendait la relève suivante, jusqu'à
+// quinze minutes (le push Gmail attend toujours son sujet Pub/Sub). Chaque minute, la liste de la réception de sourcing@,
+// une lecture ; un mail inconnu fait partir la relève complète. Un mail resté inconnu après sa relève (sa lecture a
+// échoué) ne la relance plus : la relève des quinze minutes le reprend.
+const COUP_D_OEIL_S = Math.max(30, Number(process.env.MAIL_COMMUNES_SECONDES || 60));
+let coupDOeil = null;
+const dejaRelances = new Set();
+
+/** Un mail arrivé sur une boîte commune ? La relève part. Rend les ids qui l'ont fait partir. */
+export async function regarderCommunes({ inconnus = null, releve = relever } = {}) {
+  if (enCours) return [];
+  const { BOITES_COMMUNES } = await import('../haka/drapeaux.js');
+  const lire = inconnus || (await import('../gmail-inbox.js')).idsInconnus;
+  const nouveaux = [];
+  for (const compte of comptesLisibles()) {
+    if (!BOITES_COMMUNES.has(String(compte.email).toLowerCase())) continue;
+    try {
+      for (const id of await lire(compte.email)) if (!dejaRelances.has(id)) nouveaux.push(id);
+    } catch { /* la relève des quinze minutes dira l'erreur au journal */ }
+  }
+  if (!nouveaux.length) return [];
+  for (const id of nouveaux) dejaRelances.add(id);
+  if (dejaRelances.size > 500) dejaRelances.clear();
+  await releve();
+  return nouveaux;
+}
+
 export function demarrerVeille() {
   if (minuterie) return true;
   if (!gmailReadDemande) return false;
@@ -277,10 +305,14 @@ export function demarrerVeille() {
   minuterie = setInterval(() => relever().catch(() => {}), MINUTES * 60 * 1000);
   // La veille ne doit pas retenir le processus à l'arrêt.
   minuterie.unref?.();
+  coupDOeil = setInterval(() => regarderCommunes().catch(() => {}), COUP_D_OEIL_S * 1000);
+  coupDOeil.unref?.();
   return true;
 }
 
 export function arreterVeille() {
   if (minuterie) clearInterval(minuterie);
+  if (coupDOeil) clearInterval(coupDOeil);
   minuterie = null;
+  coupDOeil = null;
 }

@@ -1606,6 +1606,11 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* Le tableau de la Pré-analyse : fond transparent en mode sombre (11 nov. 2026, Jules), le fond `rail` en mode clair. */
 .k-tableau-fond { background-color: transparent; }
 :root[data-theme="clair"] .k-tableau-fond { background-color: rgb(var(--k-rail-rgb)); }
+/* La carte de la fiche dans l'écran scindé de l'assistant (20 nov. 2026, Jules) : en sombre, le fond de la fiche
+   d'appel du chat (le verre : surface et flou) ; en clair, le fond de la saisie du chat (« Répondre ou ajouter une
+   précision »). */
+.k-fiche-fond { background-color: var(--k-surface); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+:root[data-theme="clair"] .k-fiche-fond { background-color: rgb(var(--k-barre-rgb)); }
 
 /* L'écran de chargement d'une page (14 nov. 2026, Jules, sur une maquette) : fond noir, le nom au centre en gris clair,
    une bande de lumière blanche qui le traverse en boucle (1,8 s). Gris au repos : sur un titre déjà blanc, la bande ne se
@@ -1722,3 +1727,15 @@ html[data-vue="mandataire"] .k-verre .k-grid { --k-grid-fond: transparent; }
 }
 :root[data-theme="clair"] .k-carte-givre { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 12px 28px rgb(16 20 24 / .1), inset 0 1px 0 rgb(255 255 255 / .6); }
 @media (prefers-reduced-motion: reduce) { .k-carte-givre { transition: none; } .k-carte-givre:hover, .k-carte-givre:focus-within { translate: none; } }
+
+/* La lumière d'une ligne de la fiche où l'assistant a ajouté quelque chose (19 nov. 2026, Jules) : un point menthe
+   dont le halo respire doucement. Immobile si le système ou le réglage demande moins d'animations. */
+.k-lumiere { box-shadow: 0 0 6px 1px rgb(var(--k-menthe-rgb) / .45); animation: k-lumiere 2.6s ease-in-out infinite; }
+@keyframes k-lumiere { 50% { box-shadow: 0 0 10px 3px rgb(var(--k-menthe-rgb) / .7); } }
+:root[data-animations="reduites"] .k-lumiere { animation: none; }
+@media (prefers-reduced-motion: reduce) { .k-lumiere { animation: none; } }
+
+/* L'onde du mode Enregistrement (20 nov. 2026) : cinq barres qui montent et descendent, décalées. */
+@keyframes k-onde { 0%, 100% { height: 4px; } 50% { height: 16px; } }
+.k-onde-barre { height: 4px; animation: k-onde 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .k-onde-barre { animation: none; height: 8px; } }

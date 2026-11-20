@@ -24,6 +24,24 @@ const miennes = (user, espace) => Conversations.list(agentDe(espace)).filter((c)
 /** Pure : le titre d'une conversation, son premier message. */
 export function titreDe(messages) {
   const premier = (messages || []).find((m) => m?.role === 'user' && m.contenu);
+  // Un enregistrement (20 nov. 2026, Jules : « Enregistrement avec X ») : les personnes liées d'abord, sinon le bien ;
+  // sans rien de lié, sa date (« Enregistrement du 20 nov., 14 h 05 »).
+  const enr = (messages || []).find((m) => m?.role === 'bloc' && m.type === 'enregistrement' && m.donnees?.debut);
+  if (enr) {
+    // Les liens du bloc, sinon ceux de la note rangée à la fin de l'enregistrement.
+    const note = (messages || []).find((m) => m?.role === 'bloc' && m.type === 'note_dossier' && Array.isArray(m.donnees?.liens) && m.donnees.liens.length);
+    const sources = Array.isArray(enr.donnees.liens) && enr.donnees.liens.length ? enr.donnees.liens : note?.donnees?.liens || [];
+    const liens = sources.filter((l) => l && l.nom);
+    const gens = liens.filter((l) => l.genre !== 'bien').map((l) => l.nom);
+    const biens = liens.filter((l) => l.genre === 'bien').map((l) => l.nom);
+    const et = (noms) => (noms.length > 1 ? `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}` : noms[0]);
+    if (gens.length) return `Enregistrement avec ${et(gens.slice(0, 3))}${gens.length > 3 ? '…' : ''}`.slice(0, 80);
+    if (biens.length) return `Enregistrement · ${et(biens.slice(0, 2))}`.slice(0, 80);
+  }
+  if (enr && !premier) {
+    const d = new Date(enr.donnees.debut);
+    if (!Number.isNaN(d.getTime())) return `Enregistrement du ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'Europe/Paris' })}, ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }).replace(':', ' h ')}`;
+  }
   return String(premier?.contenu || '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Conversation';
 }
 
@@ -97,7 +115,7 @@ export function enregistrerConversation(user, { id = null, messages = [], espace
   // Le fil d'un bien court de la prospection à la vente (1er nov. 2026, Jules) : il garde bien plus que 80 messages.
   const max = String(espace || '').startsWith('mandataire-fiche-') ? MAX_MESSAGES_FIL : MAX_MESSAGES;
   const propres = serialisables(messages).slice(-max);
-  if (!propres.some((m) => m.role === 'user')) return { ok: false, error: 'Rien à garder.' };
+  if (!propres.some((m) => m.role === 'user' || (m.role === 'bloc' && m.type === 'enregistrement'))) return { ok: false, error: 'Rien à garder.' };
   let c = id ? Conversations.get(id) : null;
   if (c && (c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user))) c = null;
   if (!c) {
@@ -108,6 +126,11 @@ export function enregistrerConversation(user, { id = null, messages = [], espace
     }
   }
   Conversations.setMessages(c.id, propres);
+  // Le titre d'un enregistrement suit ce qui y est lié (les noms arrivent après le début), tant qu'on ne l'a pas renommé.
+  if (!c.metadata?.renommee && /^Enregistrement\b/.test(c.metadata?.titre || '')) {
+    const titre = titreDe(propres);
+    if (titre !== c.metadata.titre) { Conversations.setMetadata(c.id, { ...(c.metadata || {}), titre }); c = Conversations.get(c.id); }
+  }
   return { ok: true, id: c.id, titre: c.metadata?.titre || titreDe(propres) };
 }
 
@@ -124,6 +147,16 @@ export function renommerConversation(user, id, titre, { espace = null } = {}) {
   if (!c || c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user)) return { ok: false, error: 'Conversation introuvable.' };
   const propre = String(titre || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   if (!propre) return { ok: false, error: 'Un titre, même court.' };
-  Conversations.setMetadata(c.id, { ...(c.metadata || {}), titre: propre });
+  Conversations.setMetadata(c.id, { ...(c.metadata || {}), titre: propre, renommee: true });
   return { ok: true, id: c.id, titre: propre };
+}
+
+/**
+ * La conversation où une note a été rangée (20 nov. 2026, Jules : « on clique sur une chose à faire et on revient à la
+ * conversation ») : celle de la personne qui contient la réponse à cette note.
+ */
+export function conversationDeLaNote(user, noteId, { espace = null } = {}) {
+  if (!noteId) return null;
+  const c = miennes(user, espace).find((x) => (x.messages || []).some((m) => m?.role === 'bloc' && m.donnees?.note_id === noteId));
+  return c ? c.id : null;
 }

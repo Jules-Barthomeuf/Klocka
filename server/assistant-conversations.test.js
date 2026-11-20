@@ -75,3 +75,22 @@ test('les boutons d’un message de l’assistant reviennent avec le fil (2 nov.
   const [m] = serialisables([{ role: 'assistant', contenu: 'Un appel ?', boutons: [{ libelle: 'Appeler', href: 'tel:0600000000', principal: true }, { texte: 'sans libellé' }] }]);
   assert.deepEqual(m.boutons, [{ libelle: 'Appeler', href: 'tel:0600000000', principal: true }]);
 });
+
+test('Un enregistrement sans rien tapé se garde, titré par sa date (20 nov. 2026)', () => {
+  const messages = [{ role: 'assistant', contenu: 'Mode Enregistrement.' }, { role: 'bloc', type: 'enregistrement', donnees: { id: 'e1', debut: '2026-11-20T13:05:00Z', fin: true } }];
+  assert.equal(titreDe(messages), 'Enregistrement du 20 nov., 14 h 05');
+  const r = enregistrerConversation({ email: 'rdv@klocka.immo', role: 'admin' }, { messages });
+  assert.equal(r.ok, true);
+  assert.equal(r.titre, 'Enregistrement du 20 nov., 14 h 05');
+});
+
+test('Un enregistrement s\'intitule par les personnes liées, et le titre suit les noms qui arrivent, sauf renommé', () => {
+  const user = { email: 'rdv2@klocka.immo', role: 'admin' };
+  const bloc = (liens) => ({ role: 'bloc', type: 'enregistrement', donnees: { id: 'e2', debut: '2026-11-20T13:05:00Z', liens } });
+  assert.equal(titreDe([bloc([{ cle: 'deal:x', genre: 'bien', nom: 'Comtesse du Barry' }, { cle: 'twenty:clients:a', genre: 'client', nom: 'Adrien Mina' }, { cle: 'twenty:clients:b', genre: 'client', nom: 'Claire Dumas' }])]), 'Enregistrement avec Adrien Mina et Claire Dumas');
+  assert.equal(titreDe([bloc([{ cle: 'deal:x', genre: 'bien', nom: 'Comtesse du Barry' }])]), 'Enregistrement · Comtesse du Barry');
+  const r = enregistrerConversation(user, { messages: [bloc([])] });
+  assert.equal(r.titre, 'Enregistrement du 20 nov., 14 h 05');
+  const r2 = enregistrerConversation(user, { id: r.id, messages: [bloc([{ cle: 'agent:z', genre: 'agent', nom: 'Alexandre Lourenço' }])] });
+  assert.equal(r2.titre, 'Enregistrement avec Alexandre Lourenço');
+});

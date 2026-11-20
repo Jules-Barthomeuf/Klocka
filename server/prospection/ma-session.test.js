@@ -58,3 +58,39 @@ test('ma session : les fiches de la semaine, par moi et par l\'équipe, et ma me
   assert.deepEqual(r.equipe.par_jour, [6, 2, 0, 0, 0], 'une fiche sans analyste (spontanée) ne compte pas pour l\'équipe');
   assert.deepEqual(r.record, { total: 4, cumul: [2, 2, 3, 3, 4] });
 });
+
+test('ma session : le journal des appels fait le record, la moyenne et le classement de la semaine', () => {
+  const moi = 'nora.l@klocka.immo';
+  const a = (le, issue, par = moi) => ({ le, issue, par });
+  const fois = (n, le, issue, par) => Array.from({ length: n }, () => a(le, issue, par));
+  const appels = [
+    // Le 10 nov. : 8 appels, 6 décrochés, 2 biens ; le 12 : 4 appels, tous décrochés (moins de cinq : pas un taux record).
+    ...fois(4, '2026-11-10T08:00:00Z', 'pas_de_murs'), ...fois(2, '2026-11-10T08:30:00Z', 'a_des_murs'), ...fois(2, '2026-11-10T09:00:00Z', 'repondeur'),
+    ...fois(4, '2026-11-12T08:00:00Z', 'pas_de_murs'),
+    // Cette semaine : 5 le lundi, 3 aujourd'hui (le mardi), dont un bien.
+    ...fois(3, '2026-11-16T08:00:00Z', 'pas_de_reponse'), ...fois(2, '2026-11-16T08:10:00Z', 'pas_de_murs'),
+    a('2026-11-17T08:00:00Z', 'a_des_murs'), ...fois(2, '2026-11-17T08:05:00Z', 'pas_de_reponse'),
+    // Coralie appelle plus cette semaine ; Maxime n'a pas appelé.
+    ...fois(10, '2026-11-17T08:00:00Z', 'pas_de_murs', 'coralie.g@klocka.immo'),
+  ];
+  const equipe = [{ prenom: 'Coralie', email: 'coralie.g@klocka.immo' }, { prenom: 'Nora', email: moi }, { prenom: 'Maxime', email: 'maxime.p@klocka.immo' }];
+  const j = M.chiffresDuJournal({ appels, moi, equipe, maintenant: new Date('2026-11-17T10:00:00Z') });
+  assert.deepEqual(j.record_jour, { appels: 8, jour: '2026-11-10', le: '10 nov.' }, 'aujourd\'hui ne compte pas pour le record');
+  assert.equal(j.jours_actifs, 3);
+  assert.equal(j.moyenne_jour, 5.7, '17 appels sur 3 jours');
+  assert.equal(j.taux_moyen, 71, '12 décrochés sur 17');
+  assert.equal(j.taux_record.taux, 75, 'la journée de 4 appels ne fait pas le taux record');
+  assert.deepEqual(j.record_biens, { biens: 2, jour: '2026-11-10', le: '10 nov.' });
+  assert.deepEqual(j.aujourdhui, { appels: 3, decroches: 1, biens: 1 });
+  assert.equal(j.semaine.appels, 8);
+  assert.deepEqual(j.semaine.meilleure, { appels: 12, lundi: '2026-11-09', le: '9 nov.' });
+  assert.deepEqual(j.equipe_semaine.map((m) => [m.prenom, m.appels, m.moi]), [['Coralie', 10, false], ['Nora', 8, true]], 'qui n\'a pas appelé ne figure pas');
+
+  // Le record de la session se lit au journal quand les sessions n'en ont pas encore.
+  const session = { id: 's', demarree_le: '2026-11-17T09:00:00Z', appels: entrees(['a_des_murs', 'pas_de_reponse']) };
+  const b = M.bilanDeSession({ session, passees: [], journal: j, maintenant: new Date('2026-11-17T09:30:00Z') });
+  assert.equal(b.record, 8);
+  assert.equal(b.reste_pour_record, 6);
+  assert.equal(b.taux_moyen, 71);
+  assert.equal(b.taux_record, 75);
+});

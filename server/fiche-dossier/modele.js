@@ -1,0 +1,702 @@
+// La fiche du dossier (19 nov. 2026, Jules, sur les notes de Maxime) : une fiche par dossier, sur laquelle on
+// branche des agents et des clients. On écrit en vrac sur la page de l'assistant, on lie la note (icône lien) à un
+// bien, un agent, un ou des clients ; l'assistant propose « Ce que j'en retiens » (mises à jour, décisions et leur
+// raison, actions datées, questions), la personne appuie sur OK et tout se range ici. Rien ne s'écrit sans ce OK.
+//
+// Cinq choses, et rien d'autre :
+//   - FicheDossier : une par clé (un bien, un agent, un client) ; le résumé qui se lit en vingt secondes, l'étape,
+//     le blocage, et les fiches liées (les personnes d'un bien, les biens d'une personne) ;
+//   - NoteDossier : la note telle qu'écrite, ce que l'assistant en a tiré, ce qui a été gardé ;
+//   - EntreeDossier : le journal daté de chaque fiche (mise à jour, décision et sa raison, ressenti, précision,
+//     action faite), chaque ligne rattachée à sa note ;
+//   - ActionDossier : ce qu'il reste à faire, qui (soi, l'assistant qui a préparé un message, un collègue), pour quand ;
+//   - les notes de l'équipe sur le bien (notes_equipe), pour que l'assistant les relise quand on l'interroge.
+//
+// Twenty fait foi pour les coordonnées des agents et des clients ; la plateforme garde l'historique et le contexte.
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import db, { Records } from '../db.js';
+import { noterSurLeBien } from '../deal/notes-equipe.js';
+import { ETAPES, donneesDuBien } from './dossier.js';
+
+export { ETAPES };
+const GENRES_ENTREE = ['note', 'evenement', 'maj', 'decision', 'negociation', 'ressenti', 'precision', 'action_faite', 'etape', 'projet'];
+
+const propre = (t, n = 2000) => String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
+const jour = (d = new Date()) => {
+  const x = new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+};
+export const dateValide = (s) => (/^\d{4}-\d{2}-\d{2}$/.test(String(s || '')) && !Number.isNaN(new Date(`${s}T12:00:00`).getTime()) ? String(s) : null);
+
+// ---------------------------------------------------------------------------
+// L'équipe : à qui une action peut revenir.
+// ---------------------------------------------------------------------------
+
+const ICI = path.dirname(fileURLToPath(import.meta.url));
+let equipeLue = null;
+/** Les personnes de l'équipe Klocka (crm/equipe.json, liste « _spoc ») : nom, prénom, adresse. */
+export function equipe() {
+  if (equipeLue) return equipeLue;
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(ICI, '..', '..', 'crm', 'equipe.json'), 'utf8'));
+    equipeLue = (j._spoc || []).filter((p) => p?.email).map((p) => ({ nom: p.nom, prenom: String(p.nom || '').split(/\s+/)[0], email: String(p.email).toLowerCase() }));
+  } catch { equipeLue = []; }
+  return equipeLue;
+}
+export const prenomDe = (email) => {
+  const e = String(email || '').toLowerCase();
+  const p = equipe().find((x) => x.email === e);
+  if (p) return p.prenom;
+  const avant = e.split('@')[0].split(/[._-]/)[0];
+  return avant ? avant[0].toUpperCase() + avant.slice(1) : null;
+};
+/** « Paul », « paul de zulueta », une adresse : la personne de l'équipe, ou null. */
+export function membreDe(qui) {
+  const q = String(qui || '').toLowerCase().trim();
+  if (!q) return null;
+  return equipe().find((p) => p.email === q || p.prenom.toLowerCase() === q || p.nom.toLowerCase() === q) || null;
+}
+
+// ---------------------------------------------------------------------------
+// Les clés : un bien (dossier ou projet), un agent, un client.
+// ---------------------------------------------------------------------------
+
+const titreDeal = (d) => d?.nom || d?.lots?.[0]?.synthese?.titre || d?.source?.nom_fichier || d?.deal_id || 'Dossier';
+
+/** La clé d'un bien : son dossier s'il en a un (un projet né d'un dossier partage sa fiche), sinon le projet. */
+export function cleDuBien({ deal_id = null, projet_id = null } = {}) {
+  const projet = projet_id ? Records.get('Project', String(projet_id)) : null;
+  const dealId = deal_id || projet?.deal_id || null;
+  if (dealId && Records.findBy('Deal', 'deal_id', String(dealId))) return `deal:${dealId}`;
+  if (projet) return `projet:${projet.id}`;
+  return null;
+}
+
+/** Ce que désigne une clé : son genre, son nom lisible, et de quoi ouvrir l'objet ailleurs. */
+export function objetDe(cle) {
+  const [type, ...reste] = String(cle || '').split(':');
+  const id = reste.join(':');
+  if (type === 'deal') {
+    const deal = Records.findBy('Deal', 'deal_id', id);
+    if (!deal) return null;
+    const projet = deal.projet_id ? Records.get('Project', deal.projet_id) : Records.findBy('Project', 'deal_id', id);
+    return { cle, genre: 'bien', nom: projet?.titre || titreDeal(deal), deal_id: id, projet_id: projet?.id || null, statut: deal.statut || null, lien: projet ? `/Projets?id=${projet.id}` : `/Dossiers?deal_id=${id}` };
+  }
+  if (type === 'projet') {
+    const p = Records.get('Project', id);
+    if (!p) return null;
+    return { cle, genre: 'bien', nom: p.titre || p.adresse_complete || 'Projet', deal_id: p.deal_id || null, projet_id: p.id, statut: p.statut || null, lien: `/Projets?id=${p.id}` };
+  }
+  if (type === 'agent') {
+    const a = Records.get('AgentImmo', id);
+    return a ? { cle, genre: 'agent', nom: a.nom || [a.prenom, a.nom_famille].filter(Boolean).join(' ') || 'Agent', detail: [a.agence, a.ville].filter(Boolean).join(' · ') || null, lien: `/Prospection?agent=${id}` } : null;
+  }
+  if (type === 'client') {
+    const c = Records.get('DemandeClient', id);
+    return c ? { cle, genre: 'client', nom: c.client_nom || 'Client', detail: c.profil || null } : null;
+  }
+  if (type === 'twenty') {
+    // twenty:<objet>:<id> : la fiche du CRM ; son nom est celui qu'on a reçu au moment du lien.
+    const [objet] = reste;
+    const f = Records.findBy('FicheDossier', 'cle', cle);
+    return { cle, genre: objet === 'agentImmobilier' ? 'agent' : 'client', nom: f?.nom || 'Fiche du CRM', crm: { objet, id: reste.slice(1).join(':') } };
+  }
+  return null;
+}
+
+/** Un lien venu de l'écran, réduit à ce que la plateforme connaît : { cle, genre, nom }. */
+export function lienPropre(l) {
+  const cle = propre(l?.cle, 200);
+  if (!/^(deal|projet|agent|client|twenty):/.test(cle)) return null;
+  const o = objetDe(cle);
+  if (!o && !cle.startsWith('twenty:')) return null;
+  const genre = o?.genre || (/:agentImmobilier:/.test(cle) ? 'agent' : 'client');
+  return { cle, genre, nom: propre(cle.startsWith('twenty:') ? (l?.nom || o?.nom) : (o?.nom || l?.nom), 160) || 'Sans nom', ...((l?.detail || o?.detail) ? { detail: propre(l?.detail || o.detail, 160) } : {}) };
+}
+
+// ---------------------------------------------------------------------------
+// Les fiches.
+// ---------------------------------------------------------------------------
+
+/** La fiche d'une clé, créée vide au premier besoin. */
+export function fiche(cle, { nom = null, genre = null } = {}) {
+  const f = Records.findBy('FicheDossier', 'cle', cle);
+  if (f) return f;
+  const o = objetDe(cle);
+  return Records.create('FicheDossier', { cle, genre: genre || o?.genre || 'bien', nom: nom || o?.nom || 'Sans nom', etape: null, resume: null, blocage: null, liees: [], maj_le: null, maj_par: null });
+}
+
+/**
+ * Reporte un chiffre dit dans une note sur le projet du bien (taxe foncière, surface…), après le oui de la personne.
+ * @returns {string|null} la ligne d'historique, ou null si le bien n'a pas de projet
+ */
+export function majProjet(cleBien, { champ, valeur }) {
+  const o = objetDe(cleBien);
+  const projet = o?.projet_id ? Records.get('Project', o.projet_id) : null;
+  if (!projet) return null;
+  const nombre = /^[\d\s.,]+$/.test(String(valeur)) ? Number(String(valeur).replace(/\s/g, '').replace(',', '.')) : null;
+  const v = nombre !== null && Number.isFinite(nombre) ? nombre : String(valeur);
+  Records.update('Project', projet.id, { [champ]: v });
+  const libelles = { taxe_fonciere_an: 'Taxe foncière', charges_copropriete: 'Charges de copropriété', loyer_annuel_ht: 'Loyer annuel HT', surface_m2: 'Surface', prix_acquisition: 'Prix', nom_locataire: 'Locataire', activite_locataire: 'Activité du locataire', echeance_bail: 'Fin de bail' };
+  return `Projet mis à jour : ${libelles[champ] || champ} ${typeof v === 'number' ? v.toLocaleString('fr-FR') : v}`;
+}
+
+/** La position d'un client sur un bien, sur le lien de la fiche `de` vers `vers`. */
+function poserPosition(de, vers, { position, position_detail: detail = null }, le) {
+  const f = Records.findBy('FicheDossier', 'cle', de);
+  if (!f) return;
+  Records.update('FicheDossier', f.id, { liees: (f.liees || []).map((l) => (l.cle === vers ? { ...l, position, position_detail: detail, position_le: le } : l)) });
+}
+
+const lier = (a, b) => {
+  const fa = fiche(a.cle, a);
+  const liees = fa.liees || [];
+  if (!liees.some((x) => x.cle === b.cle)) Records.update('FicheDossier', fa.id, { liees: [...liees, { cle: b.cle, genre: b.genre, nom: b.nom }] });
+};
+
+// ---------------------------------------------------------------------------
+// Ranger une note : ce que la personne a gardé de la proposition, et rien d'autre.
+// ---------------------------------------------------------------------------
+
+/**
+ * Range la note validée. `garde` liste les ids des éléments gardés (tous si absent) ; `modifs` change une action
+ * (titre, échéance, qui, texte du message) ; `reponses` sont les réponses aux questions, rangées en précisions.
+ */
+export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = {}, user = null, { maintenant = () => new Date() } = {}) {
+  if (!note || note.etat !== 'proposee') return { ok: false, error: note ? 'Cette note est déjà rangée.' : 'Note introuvable.' };
+  const p = note.proposition || {};
+  const garder = (id) => !Array.isArray(garde) || garde.includes(id);
+  const le = maintenant().toISOString();
+  const par = user?.email || note.par || null;
+  const creees = { entrees: [], actions: [], fiches: [] };
+  const entree = (cle, genre, texte, raison = null) => {
+    if (!GENRES_ENTREE.includes(genre) || !propre(texte)) return;
+    creees.entrees.push(Records.create('EntreeDossier', { fiche_cle: cle, genre, texte: propre(texte), raison: raison ? propre(raison) : null, note_id: note.id, par, le, ordre: creees.entrees.length }).id);
+  };
+
+  // Les liens entre les fiches : les personnes d'un bien, les biens d'une personne.
+  const liens = note.liens || [];
+  for (const l of liens) fiche(l.cle, l);
+  const biens = liens.filter((l) => l.genre === 'bien');
+  const gens = liens.filter((l) => l.genre !== 'bien');
+  for (const b of biens) for (const g of gens) { lier(b, g); lier(g, b); }
+
+  // Chaque fiche : ses éléments gardés, puis son résumé, son étape et son blocage s'ils ont été gardés.
+  for (const fp of p.fiches || []) {
+    const lien = liens.find((l) => l.cle === fp.cle);
+    if (!lien) continue;
+    const f = fiche(lien.cle, lien);
+    let touchee = false;
+    for (const el of fp.elements || []) {
+      if (!garder(el.id)) continue;
+      entree(lien.cle, el.genre, el.texte, el.genre === 'decision' ? el.raison : null);
+      touchee = true;
+    }
+    const patch = {};
+    if (fp.etape && garder(`${fp.id}-etape`) && (fp.etape !== f.etape || (fp.etat || null) !== (f.etat || null))) {
+      patch.etape = fp.etape;
+      patch.etat = fp.etat || null;
+      entree(lien.cle, 'etape', `Étape : ${fp.etape}${fp.etat ? ` · ${fp.etat}` : ''}`);
+    }
+    if (fp.blocage !== undefined && garder(`${fp.id}-blocage`)) patch.blocage = fp.blocage || null;
+    if (fp.vendeur && fp.vendeur !== f.vendeur) patch.vendeur = fp.vendeur;
+    // La position d'un client sur les biens de la note : portée par le lien, des deux côtés (la carte du dossier).
+    if (fp.position) for (const b of biens) { poserPosition(b.cle, lien.cle, fp, le); poserPosition(lien.cle, b.cle, fp, le); }
+    if (fp.resume && (touchee || Object.keys(patch).length)) patch.resume = fp.resume;
+    if (touchee || Object.keys(patch).length) {
+      Records.update('FicheDossier', f.id, { ...patch, maj_le: le, maj_par: par });
+      creees.fiches.push(lien.cle);
+    }
+  }
+
+  // Les réponses aux questions : une précision sur la fiche visée, ou sur chaque bien lié.
+  for (const q of p.questions || []) {
+    const r = propre(reponses?.[q.id], 600);
+    if (!r) continue;
+    // Un chiffre du bien accepté : il passe dans le projet, et l'historique le dit.
+    if (q.maj_projet) {
+      if (/^(oui|ok|yes|vas-y|d'accord|ouais)/i.test(r) && q.fiche) {
+        const fait = majProjet(q.fiche, q.maj_projet);
+        if (fait) entree(q.fiche, 'projet', fait);
+      }
+      continue;
+    }
+    const cibles = q.fiche && liens.some((l) => l.cle === q.fiche) ? [q.fiche] : (biens.length ? biens : liens).map((l) => l.cle);
+    for (const c of cibles) entree(c, 'precision', `${q.texte} Réponse : ${r}.`.replace(/\.\.$/, '.'));
+  }
+
+  // Une fiche liée dont rien n'a été gardé garde au moins la note, pour que son journal la montre.
+  for (const l of liens) {
+    if (creees.entrees.some((id) => Records.get('EntreeDossier', id)?.fiche_cle === l.cle)) continue;
+    entree(l.cle, 'note', p.titre || propre(note.texte, 160));
+    Records.update('FicheDossier', fiche(l.cle, l).id, { maj_le: le, maj_par: par });
+  }
+
+  // Les actions déjà prévues que la note montre faites (20 nov. 2026, Jules : « on a appelé Alexandre, la relance
+  // ne doit pas rester dans À faire ») : fermées avec le OK, sans ligne de plus au journal ; Annuler les rouvre.
+  creees.faites = [];
+  for (const d of p.faites || []) {
+    if (!garder(d.id)) continue;
+    const a = Records.get('ActionDossier', d.action_id);
+    if (!a || a.statut !== 'ouverte') continue;
+    if (changerAction(a.id, { statut: 'faite', journal: false }, user || { email: par }, { maintenant }).ok) creees.faites.push(a.id);
+  }
+
+  // Les actions gardées, avec ce que la personne a changé.
+  for (const a of p.actions || []) {
+    if (!garder(a.id)) continue;
+    const m = modifs?.[a.id] || {};
+    const qui = m.qui ?? a.qui;
+    const membre = qui && qui !== 'moi' && qui !== 'assistant' ? membreDe(qui) : null;
+    const brouillon = a.brouillon ? { ...a.brouillon, texte: propre(m.brouillon ?? a.brouillon.texte, 4000) } : null;
+    creees.actions.push(Records.create('ActionDossier', {
+      titre: propre(m.titre ?? a.titre, 300),
+      genre: a.genre || (brouillon ? brouillon.canal : 'tache'),
+      pour: a.pour || null,
+      contexte: Array.isArray(a.contexte) ? a.contexte : [],
+      qui: qui === 'assistant' && brouillon ? 'assistant' : 'personne',
+      responsable: membre?.email || par,
+      echeance: m.echeance === null ? null : dateValide(m.echeance ?? a.echeance),
+      statut: 'ouverte',
+      fiches: (a.fiches || []).filter((c) => liens.some((l) => l.cle === c)),
+      note_id: note.id,
+      brouillon,
+      cree_par: par,
+      cree_le: le,
+    }).id);
+  }
+
+  // L'assistant relit les notes d'un bien quand on l'interroge : la note brute y va aussi.
+  const notesEquipe = [];
+  for (const b of biens) {
+    const o = objetDe(b.cle);
+    const r = o ? noterSurLeBien({ deal_id: o.deal_id, projet_id: o.projet_id }, note.texte, user || { email: par }, { maintenant }) : null;
+    if (r?.ok) notesEquipe.push({ deal_id: r.deal_id, projet_id: r.projet_id, note_id: r.note.id });
+  }
+
+  Records.update('NoteDossier', note.id, { etat: 'rangee', rangee_le: le, rangee_par: par, garde: Array.isArray(garde) ? garde : null, modifs, reponses, creees: { ...creees, notes_equipe: notesEquipe } });
+  return { ok: true, note_id: note.id, ...compteDe(creees), fiches: [...new Set(creees.fiches.length ? creees.fiches : liens.map((l) => l.cle))].map((c) => ({ cle: c, nom: liens.find((l) => l.cle === c)?.nom || objetDe(c)?.nom })) };
+}
+
+const compteDe = (c) => ({ entrees: c.entrees.length, actions: c.actions.length, faites: (c.faites || []).length });
+
+/** Défait une note rangée : ses lignes de journal, ses actions, sa note sur le bien. Les fiches liées restent liées. */
+export function annulerNote(note, user = null) {
+  if (!note || note.etat !== 'rangee') return { ok: false, error: 'Rien à annuler.' };
+  const c = note.creees || {};
+  for (const id of c.entrees || []) Records.delete('EntreeDossier', id);
+  for (const id of c.actions || []) Records.delete('ActionDossier', id);
+  for (const id of c.faites || []) changerAction(id, { statut: 'ouverte' }, user);
+  for (const n of c.notes_equipe || []) {
+    const r = n.deal_id ? Records.findBy('Deal', 'deal_id', n.deal_id) : n.projet_id ? Records.get('Project', n.projet_id) : null;
+    if (r) Records.update(n.deal_id ? 'Deal' : 'Project', r.id, { notes_equipe: (r.notes_equipe || []).filter((x) => x.id !== n.note_id) }, { garderDate: true });
+  }
+  Records.update('NoteDossier', note.id, { etat: 'annulee', annulee_le: new Date().toISOString(), annulee_par: user?.email || null });
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Les actions.
+// ---------------------------------------------------------------------------
+
+/** Faite ou rouverte ; une action faite laisse une ligne au journal de ses fiches. */
+export function changerAction(id, { statut = null, echeance, titre = null, brouillon = null, journal = true } = {}, user = null, { maintenant = () => new Date() } = {}) {
+  const a = Records.get('ActionDossier', String(id));
+  if (!a) return { ok: false, error: 'Action introuvable.' };
+  const patch = {};
+  if (statut && ['ouverte', 'faite', 'annulee'].includes(statut) && statut !== a.statut) {
+    patch.statut = statut;
+    if (statut === 'faite') {
+      patch.faite_le = maintenant().toISOString();
+      patch.faite_par = user?.email || null;
+      // Fermée par la note qui rapporte l'appel (20 nov. 2026) : l'événement de la note dit déjà « Appel avec … ».
+      patch.entrees = journal ? (a.fiches || []).map((c) => Records.create('EntreeDossier', { fiche_cle: c, genre: 'action_faite', texte: `Fait : ${a.titre}`, note_id: a.note_id || null, action_id: a.id, par: user?.email || null, le: patch.faite_le }).id) : [];
+    } else if (a.statut === 'faite') {
+      for (const e of a.entrees || []) Records.delete('EntreeDossier', e);
+      patch.entrees = [];
+      patch.faite_le = null;
+    }
+  }
+  if (echeance !== undefined) patch.echeance = echeance === null ? null : dateValide(echeance) || a.echeance;
+  if (titre) patch.titre = propre(titre, 300);
+  if (brouillon != null && a.brouillon) patch.brouillon = { ...a.brouillon, texte: String(brouillon).trim().slice(0, 4000) };
+  return { ok: true, action: Records.update('ActionDossier', a.id, patch) };
+}
+
+/**
+ * Une prochaine action dite au chat (19 nov. 2026, Jules : « je vais devoir relancer l'agent vendredi » ; « la fiche c'est
+ * ce qui fait foi, une relance c'est juste une prochaine action qui arrive ce jour-là ») : posée sur la fiche du dossier
+ * quand il est connu, à la personne qui l'a dite ou au collègue nommé, datée ; le jour venu, elle sort dans
+ * « Aujourd'hui ». Une relance (relancer, rappeler, appeler) est du genre « appel ».
+ */
+export function poserProchaineAction({ dealId = null, projetId = null, quoi, echeance = null, de = null, aDemander = [], user = null }, { maintenant = () => new Date() } = {}) {
+  const titre = propre(quoi, 300);
+  if (!titre) return { ok: false, error: 'Rien à noter' };
+  const cle = dealId || projetId ? cleDuBien({ deal_id: dealId, projet_id: projetId }) : null;
+  if ((dealId || projetId) && !cle) return { ok: false, error: 'Dossier introuvable' };
+  const par = user?.email || null;
+  const membre = de ? membreDe(de) : null;
+  const genre = /\b(relanc|rappel|appel)/i.test(sansAccent(titre)) ? 'appel' : 'tache';
+  // L'agent du dossier, quand c'est lui qu'il faut relancer : sa fiche est liée aussi, son nom dit pour qui.
+  const agent = cle && dealId && /\bagent\b/i.test(titre) ? agentsDuDossier(dealId)[0] || null : null;
+  const le = maintenant().toISOString();
+  if (cle) { const f = fiche(cle); Records.update('FicheDossier', f.id, { maj_le: le, maj_par: par }); }
+  const action = Records.create('ActionDossier', {
+    titre: titre.charAt(0).toUpperCase() + titre.slice(1),
+    genre,
+    pour: agent?.nom || null,
+    // Les questions préparées pour l'appel (19 nov. 2026, Jules : « on va aussi préparer les questions à poser à l'agent »).
+    contexte: (Array.isArray(aDemander) ? aDemander : []).map((q) => propre(q, 240)).filter(Boolean).slice(0, 10),
+    qui: 'personne',
+    responsable: membre?.email || par,
+    echeance: dateValide(echeance),
+    statut: 'ouverte',
+    fiches: [cle, agent?.cle].filter(Boolean),
+    note_id: null,
+    brouillon: null,
+    cree_par: par,
+    cree_le: le,
+    source: 'chat',
+  });
+  return { ok: true, action: actionLisible(action), fiche: cle ? { cle, nom: objetDe(cle)?.nom || null } : null };
+}
+
+/** L'inverse, pour l'annulation de la dernière action du chat. */
+export function retirerProchaineAction(id) {
+  const a = Records.get('ActionDossier', String(id || ''));
+  if (!a) return { ok: false, error: 'Action introuvable' };
+  Records.delete('ActionDossier', a.id);
+  return { ok: true };
+}
+
+const actionLisible = (a) => ({
+  id: a.id, titre: a.titre, qui: a.qui, responsable: a.responsable, responsable_prenom: prenomDe(a.responsable), echeance: a.echeance || null,
+  statut: a.statut, genre: a.genre || (a.brouillon ? a.brouillon.canal : 'tache'), pour: a.pour || null, contexte: a.contexte || [], brouillon: a.brouillon || null, faite_le: a.faite_le || null, note_id: a.note_id || null,
+  fiches: (a.fiches || []).map((c) => ({ cle: c, nom: Records.findBy('FicheDossier', 'cle', c)?.nom || objetDe(c)?.nom || null })),
+  telephone: ['appel', 'whatsapp'].includes(a.genre) ? telephoneDe(a.fiches, a.pour) : null,
+});
+
+/**
+ * Le numéro de la personne à appeler (20 nov. 2026, Jules : « la relance dit Appeler Alexandre, sans son numéro ») :
+ * celui de l'agent lié à l'action, celui qui porte son nom quand il y en a plusieurs.
+ */
+export function telephoneDe(cles = [], pour = null) {
+  const agents = (cles || []).filter((c) => String(c).startsWith('agent:')).map((c) => Records.get('AgentImmo', String(c).slice(6))).filter(Boolean);
+  const cible = sansAccent(pour || '');
+  const a = agents.length === 1 ? agents[0] : agents.find((x) => cible && sansAccent(x.nom).includes(cible.split(/\s+/).pop())) || null;
+  const tel = (a?.telephones || []).map((t) => String(t || '').trim()).find(Boolean);
+  return tel || null;
+}
+
+/** Les actions encore ouvertes sur les fiches d'une note, numérotées A1, A2… pour que le modèle dise lesquelles sont faites. */
+export function prevuesDes(liens = [], { limite = 12 } = {}) {
+  const cles = new Set((liens || []).map((l) => l.cle));
+  return Records.filter('ActionDossier', { statut: 'ouverte' })
+    .filter((a) => (a.fiches || []).some((c) => cles.has(c)))
+    .sort(parEcheance)
+    .slice(0, limite)
+    .map((a, i) => ({ ref: `A${i + 1}`, id: a.id, genre: a.genre || (a.brouillon ? a.brouillon.canal : 'tache'), titre: a.titre, pour: a.pour || null, contexte: a.contexte || [], echeance: a.echeance || null, fiches: a.fiches || [] }));
+}
+
+// ---------------------------------------------------------------------------
+// Ce qu'on lit : la fiche, le jour, les fiches récentes.
+// ---------------------------------------------------------------------------
+
+/** Les actions ouvertes d'une fiche, la plus urgente d'abord (sans date en dernier). */
+const actionsDe = (cle) => Records.list('ActionDossier').filter((a) => (a.fiches || []).includes(cle));
+const parEcheance = (a, b) => String(a.echeance || '9999').localeCompare(String(b.echeance || '9999'));
+
+/**
+ * La fiche entière : le résumé qui se lit en vingt secondes (étape, dernière action, prochaine action, blocage),
+ * les actions, les personnes ou les biens liés, les décisions et leur raison, le journal daté avec ses notes brutes.
+ */
+/**
+ * Les dossiers dont le texte nomme cette personne (« conseiller Sébastien ROBIC » dans l'analyse) : prénom et nom qui
+ * se suivent, dans un sens ou dans l'autre. Une recherche dans la base, quelques millisecondes.
+ */
+export function dossiersQuiNomment(nom, { emails = [] } = {}) {
+  const mots = String(nom || '').trim().split(/\s+/).filter(Boolean);
+  const noms = mots.length >= 2 && mots.join(' ').length >= 6 ? [mots.join(' '), [...mots].reverse().join(' ')] : [];
+  // Son adresse aussi : un dossier transféré garde l'expéditeur (« s robic <srobic@immobilier-professionnel.bzh> »).
+  const adresses = (emails || []).map((e) => String(e || '').trim().toLowerCase()).filter((e) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(e));
+  const motifs = [...noms, ...adresses].map((m) => `%${m.replace(/[%_]/g, '')}%`);
+  if (!motifs.length) return [];
+  const lignes = db.prepare(`SELECT json_extract(data, '$.deal_id') AS id FROM records WHERE entity = 'Deal' AND (${motifs.map(() => 'data LIKE ?').join(' OR ')}) AND COALESCE(json_extract(data, '$.archived'), 0) = 0 AND COALESCE(json_extract(data, '$.test'), 0) = 0`).all(...motifs);
+  return lignes.map((r) => objetDe(`deal:${r.id}`)).filter(Boolean).slice(0, 12).map((o) => ({ cle: o.cle, genre: 'bien', nom: o.nom, plateforme: true }));
+}
+
+const sansAccent = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/**
+ * Les agents qu'un dossier nomme : l'adresse de l'expéditeur du mail transféré, l'adresse de contact, ou le nom complet
+ * d'un agent de la Prospection dans le texte (« conseiller Sébastien ROBIC »).
+ */
+export function agentsDuDossier(dealId) {
+  const ligne = dealId ? db.prepare("SELECT data FROM records WHERE entity = 'Deal' AND json_extract(data, '$.deal_id') = ?").get(dealId) : null;
+  if (!ligne) return [];
+  // En minuscules seulement : ôter les accents d'un dossier entier coûte plus que la recherche elle-même.
+  const texte = ligne.data.toLowerCase();
+  const adresses = new Set(texte.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g) || []);
+  const mots = new Set(texte.split(/[^\p{L}'-]+/u));
+  return Records.champs('AgentImmo', ['nom', 'prenom', 'nom_famille', 'agence', 'ville', 'emails'])
+    .filter((a) => {
+      const nom = String(a.nom || [a.prenom, a.nom_famille].filter(Boolean).join(' ')).toLowerCase().trim();
+      // Les mots du nom d'abord, dans l'ensemble des mots du dossier ; le nom entier ensuite, pour les seuls candidats.
+      return (a.emails || []).some((e) => adresses.has(String(e).toLowerCase().trim()))
+        || (nom.length >= 6 && /\s/.test(nom) && nom.split(/\s+/).every((m) => mots.has(m)) && texte.includes(nom));
+    })
+    .slice(0, 3)
+    .map((a) => ({ cle: `agent:${a.id}`, genre: 'agent', nom: a.nom || [a.prenom, a.nom_famille].filter(Boolean).join(' '), detail: [a.agence, a.ville].filter(Boolean).join(' · ') || null }));
+}
+
+/**
+ * La carte d'un dossier (19 nov. 2026, Jules) : le dossier au centre, l'agent (et le vendeur, lié à lui seul), les
+ * clients à qui on l'a présenté avec leur position, et les personnes de l'équipe qui y ont vraiment travaillé (une note
+ * liée, un appel avec l'agent), chacune reliée à ce qu'elle a touché.
+ */
+export function carteDuBien(cle, f) {
+  const liees = f?.liees || [];
+  const o = objetDe(cle);
+  const agenceDe = (c) => (c.startsWith('agent:') ? Records.get('AgentImmo', c.slice(6))?.agence || null : null);
+  const agents = [...liees.filter((l) => l.genre === 'agent').map((l) => ({ cle: l.cle, nom: l.nom, detail: agenceDe(l.cle) }))];
+  for (const a of agentsDuDossier(o?.deal_id)) if (!agents.some((x) => x.cle === a.cle)) agents.push({ cle: a.cle, nom: a.nom, detail: agenceDe(a.cle), plateforme: true });
+  // Sans position notée, une offre en négociation qui nomme le client vaut « offre » ; sinon il a été présenté.
+  const nego = Records.filter('EntreeDossier', { fiche_cle: cle, genre: 'negociation' }).map((e) => sansAccent(e.texte));
+  const clients = liees.filter((l) => l.genre === 'client').map((l) => {
+    const famille = sansAccent(l.nom).split(/\s+/).filter((m) => m.length >= 3).pop();
+    const deduite = famille && nego.some((t) => /offre|loi/.test(t) && t.includes(famille)) ? 'offre' : null;
+    // « interesse » d'avant le 19 nov. au soir vaut « positionne ».
+    const position = l.position === 'interesse' ? 'positionne' : l.position || deduite || 'presente';
+    return { cle: l.cle, nom: l.nom, position, detail: l.position ? l.position_detail || null : null, le: l.position_le || null };
+  });
+  // L'équipe : qui a écrit une note liée à l'une de ces fiches, qui a appelé l'agent.
+  const cles = new Set([cle, ...agents.map((a) => a.cle), ...clients.map((c) => c.cle)]);
+  const parPersonne = new Map();
+  const toucher = (email, vers, le) => {
+    const e = String(email || '').toLowerCase();
+    if (!e) return;
+    const p = parPersonne.get(e) || { email: e, prenom: prenomDe(e), liens: new Set(), le: '', premier: '' };
+    p.liens.add(vers);
+    if (String(le || '') > p.le) p.le = String(le || '');
+    if (le && (!p.premier || String(le) < p.premier)) p.premier = String(le);
+    parPersonne.set(e, p);
+  };
+  for (const n of Records.filter('NoteDossier', { etat: 'rangee' })) for (const l of n.liens || []) if (cles.has(l.cle)) toucher(n.par, l.cle, n.le);
+  const idsAgents = new Set(agents.map((a) => a.cle.replace(/^agent:/, '')));
+  if (idsAgents.size) {
+    const ids = [...idsAgents];
+    const appels = db.prepare(`SELECT json_extract(data, '$.agent_id') AS agent_id, json_extract(data, '$.par') AS par, json_extract(data, '$.le') AS le FROM records WHERE entity = 'AppelAgent' AND json_extract(data, '$.agent_id') IN (${ids.map(() => '?').join(',')}) AND COALESCE(json_extract(data, '$.essai'), 0) = 0`).all(...ids);
+    for (const a of appels) if (a.par) toucher(a.par, `agent:${a.agent_id}`, a.le);
+  }
+  return {
+    dossier: { cle, nom: f?.nom || o?.nom || 'Dossier' },
+    vendeur: f?.vendeur || null,
+    agents,
+    clients,
+    // Le premier à y avoir travaillé porte le dossier ; ceux venus après l'ont repris (Coralie, un appel la semaine d'après).
+    equipe: [...parPersonne.values()].sort((a, b) => a.premier.localeCompare(b.premier)).slice(0, 5)
+      .map((p, i) => ({ prenom: p.prenom, email: p.email, liens: [...p.liens], repris: i > 0, depuis: p.premier || null })),
+  };
+}
+
+export function ficheVue(cle) {
+  const f = Records.findBy('FicheDossier', 'cle', cle);
+  const o = objetDe(cle);
+  if (!f && !o) return null;
+  const entrees = Records.filter('EntreeDossier', { fiche_cle: cle }).sort((a, b) => String(b.le).localeCompare(String(a.le)));
+  const actions = actionsDe(cle);
+  const ouvertes = actions.filter((a) => a.statut === 'ouverte').sort(parEcheance);
+  const faites = actions.filter((a) => a.statut === 'faite').sort((a, b) => String(b.faite_le).localeCompare(String(a.faite_le)));
+  const notes = new Map();
+  for (const e of entrees) if (e.note_id && !notes.has(e.note_id)) notes.set(e.note_id, Records.get('NoteDossier', e.note_id));
+  // Le journal : une ligne par note (ce qu'on en a gardé, la note brute dépliable), une ligne par action faite.
+  const journal = [];
+  const vues = new Set();
+  for (const e of entrees) {
+    if (e.genre === 'action_faite') { journal.push({ id: e.id, le: e.le, par: prenomDe(e.par), source: 'action', titre: e.texte, lignes: [{ genre: e.genre, texte: e.texte }] }); continue; }
+    const k = e.note_id || e.id;
+    if (vues.has(k)) continue;
+    vues.add(k);
+    const n = e.note_id ? notes.get(e.note_id) : null;
+    journal.push({
+      // La ligne de l'historique : ce qui s'est passé, vu de cette fiche (« Appel avec Sébastien Robic à propos de la
+      // taxe foncière »), sinon le titre de la note (20 nov. 2026, Jules).
+      id: k, le: n?.le || e.le, par: prenomDe(n?.par || e.par), source: 'note',
+      titre: entrees.find((x) => (x.note_id || x.id) === k && x.genre === 'evenement')?.texte || n?.proposition?.titre || null,
+      lignes: entrees.filter((x) => (x.note_id || x.id) === k && !['action_faite', 'ressenti', 'evenement'].includes(x.genre)).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0)).map((x) => ({ genre: x.genre, texte: x.texte, raison: x.raison || null })),
+      brut: n?.texte || null,
+    });
+  }
+  const derniere = journal[0] || null;
+  const genre = f?.genre || o?.genre;
+  // Les dossiers d'un agent que la plateforme connaît sans note : ceux dont l'analyse le nomme (19 nov. 2026, Jules :
+  // « ça ne m'a pas rempli les dossiers de l'agent »).
+  const deLaPlateforme = genre === 'agent' ? dossiersQuiNomment(f?.nom || o?.nom, { emails: cle.startsWith('agent:') ? Records.get('AgentImmo', cle.slice(6))?.emails : [] }).filter((d) => !(f?.liees || []).some((l) => l.cle === d.cle)) : [];
+  const liees = [...(f?.liees || []), ...deLaPlateforme].map((l) => {
+    const sa = Records.findBy('FicheDossier', 'cle', l.cle);
+    // Un dossier dit son étape : celle des notes, sinon celle que la plateforme voit (« Projet »), pas « Dossier ».
+    const etape = sa?.etape || (l.genre === 'bien' ? donneesDuBien(l.cle)?.avancement?.etapes?.find((e) => e.courante)?.nom || null : null);
+    const dernierRessenti = Records.filter('EntreeDossier', { fiche_cle: l.cle, genre: 'ressenti' }).sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+    return { ...l, resume: sa?.resume || null, etape: etape && sa?.etat ? `${etape} · ${sa.etat}` : etape, maj_le: sa?.maj_le || null, ressenti: dernierRessenti?.texte || null, ressenti_le: dernierRessenti?.le || null };
+  });
+  return {
+    dossier: genre === 'bien' ? donneesDuBien(cle, { etape: f?.etape || null, entrees }) : null,
+    carte: genre === 'bien' ? carteDuBien(cle, f) : null,
+    cle, genre, nom: f?.nom || o?.nom, lien: o?.lien || null, crm: o?.crm || null, detail: o?.detail || null,
+    etape: f?.etape || null, etat: f?.etat || null, etapes: ETAPES, resume: f?.resume || null, source: f?.source || null, blocage: f?.blocage || null, maj_le: f?.maj_le || null, maj_par: prenomDe(f?.maj_par),
+    derniere: derniere ? { le: derniere.le, par: derniere.par, texte: derniere.lignes[0]?.texte || null } : null,
+    prochaine: ouvertes[0] ? actionLisible(ouvertes[0]) : null,
+    actions: ouvertes.map(actionLisible),
+    faites: faites.slice(0, 20).map(actionLisible),
+    decisions: entrees.filter((e) => e.genre === 'decision').map((e) => ({ id: e.id, texte: e.texte, raison: e.raison || null, le: e.le, par: prenomDe(e.par) })),
+    // Les notes libres : les ressentis et impressions, hors de l'historique (19 nov. 2026, Jules).
+    notes: entrees.filter((e) => e.genre === 'ressenti').map((e) => ({ id: e.id, texte: e.texte, le: e.le, par: prenomDe(e.par) })),
+    liees,
+    journal,
+  };
+}
+
+/** Le jour d'une personne : ses actions dues (en retard comprises), les messages prêts à relire, les notes laissées sans OK. */
+export function aujourdhui(user, { maintenant = () => new Date() } = {}) {
+  const moi = String(user?.email || '').toLowerCase();
+  const auj = jour(maintenant());
+  const dans7 = jour(new Date(maintenant().getTime() + 7 * 864e5));
+  const miennes = Records.filter('ActionDossier', { statut: 'ouverte' }).filter((a) => String(a.responsable || '').toLowerCase() === moi);
+  const dues = miennes.filter((a) => a.echeance && a.echeance <= auj).sort(parEcheance);
+  const prets = miennes.filter((a) => a.qui === 'assistant' && a.brouillon && !(a.echeance && a.echeance <= auj));
+  const bientot = miennes.filter((a) => a.qui !== 'assistant' && a.echeance && a.echeance > auj && a.echeance <= dans7).sort(parEcheance);
+  const sansDate = miennes.filter((a) => !a.echeance && a.qui !== 'assistant');
+  const enSuspens = Records.filter('NoteDossier', { etat: 'proposee' })
+    .filter((n) => String(n.par || '').toLowerCase() === moi && Date.now() - new Date(n.le).getTime() < 14 * 864e5)
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)))
+    .map((n) => ({ id: n.id, le: n.le, titre: n.proposition?.titre || propre(n.texte, 90), liens: n.liens || [] }));
+  return { aujourdhui: auj, dues: dues.map(actionLisible), prets: prets.map(actionLisible), bientot: bientot.map(actionLisible), sans_date: sansDate.length, en_suspens: enSuspens };
+}
+
+/** Les fiches touchées le plus récemment, pour qui revient et veut voir où en est l'équipe. */
+export function fichesRecentes({ genre = 'bien', limite = 8 } = {}) {
+  return Records.filter('FicheDossier', { genre })
+    .filter((f) => f.maj_le)
+    .sort((a, b) => String(b.maj_le).localeCompare(String(a.maj_le)))
+    .slice(0, limite)
+    .map((f) => {
+      const prochaine = actionsDe(f.cle).filter((a) => a.statut === 'ouverte').sort(parEcheance)[0];
+      return { cle: f.cle, nom: f.nom, etape: f.etape, resume: f.resume, blocage: f.blocage, maj_le: f.maj_le, maj_par: prenomDe(f.maj_par), prochaine: prochaine ? actionLisible(prochaine) : null };
+    });
+}
+
+/** Ce que l'assistant sait déjà d'une fiche, à lui redonner avant qu'il lise une nouvelle note. */
+export function contexteDe(cle) {
+  const f = Records.findBy('FicheDossier', 'cle', cle);
+  if (!f) return null;
+  const ouvertes = actionsDe(cle).filter((a) => a.statut === 'ouverte').sort(parEcheance).slice(0, 8);
+  const decisions = Records.filter('EntreeDossier', { fiche_cle: cle, genre: 'decision' }).sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, 5);
+  return {
+    etape: f.etape || null, etat: f.etat || null, resume: f.resume || null, blocage: f.blocage || null,
+    actions_ouvertes: ouvertes.map((a) => `${a.titre}${a.echeance ? ` (pour le ${a.echeance})` : ''}`),
+    decisions: decisions.map((d) => `${d.texte}${d.raison ? ` : ${d.raison}` : ''}`),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Mes notes (19 nov. 2026, Jules : « c'est l'entrée la plus importante, parce que c'est son réflexe : je relis mes
+// notes ») : toutes les notes de la personne, de la plus récente à la plus ancienne, avec leurs liens et leur état ;
+// une note ouverte montre le texte tel qu'écrit et ce qui en a été rangé, fiche par fiche.
+// ---------------------------------------------------------------------------
+
+const ETAT_LISIBLE = { proposee: 'En attente de validation', rangee: 'Rangée', ecartee: 'Écartée', annulee: 'Annulée' };
+
+/** Les notes de `user`, une recherche sur le texte, le titre et les noms liés. Les propositions remplacées sont tues. */
+export function mesNotes(user, { q = '', limite = 300 } = {}) {
+  const moi = String(user?.email || '').toLowerCase();
+  const mots = sansAccent(q).split(/\s+/).filter(Boolean);
+  return Records.filter('NoteDossier', {})
+    .filter((n) => String(n.par || '').toLowerCase() === moi && ETAT_LISIBLE[n.etat])
+    .map((n) => ({ id: n.id, le: n.le, etat: n.etat, etat_lisible: ETAT_LISIBLE[n.etat], titre: n.proposition?.titre || propre(n.texte, 90), liens: (n.liens || []).map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })), extrait: propre(n.texte, 220), _texte: n.texte }))
+    .filter((n) => !mots.length || mots.every((m) => sansAccent(`${n.titre} ${n._texte} ${n.liens.map((l) => l.nom).join(' ')}`).includes(m)))
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)))
+    .slice(0, limite)
+    .map(({ _texte, ...n }) => n);
+}
+
+/** Une note ouverte : le texte tel qu'écrit, et ce qui en a été rangé sur chaque fiche (ou ce qui est proposé). */
+export function noteEtRangement(id) {
+  const n = Records.get('NoteDossier', id);
+  if (!n) return null;
+  const parFiche = new Map();
+  const ajouter = (cle, ligne) => {
+    const l = (n.liens || []).find((x) => x.cle === cle);
+    const f = parFiche.get(cle) || { cle, genre: l?.genre || objetDe(cle)?.genre || null, nom: l?.nom || objetDe(cle)?.nom || cle, lignes: [] };
+    f.lignes.push(ligne);
+    parFiche.set(cle, f);
+  };
+  for (const eid of n.creees?.entrees || []) {
+    const e = Records.get('EntreeDossier', eid);
+    if (e && e.genre !== 'note') ajouter(e.fiche_cle, { genre: e.genre, texte: e.texte, raison: e.raison || null });
+  }
+  const actions = (n.creees?.actions || []).map((aid) => Records.get('ActionDossier', aid)).filter(Boolean)
+    .map((a) => ({ id: a.id, titre: a.titre, echeance: a.echeance || null, statut: a.statut, genre: a.genre }));
+  return {
+    id: n.id, le: n.le, etat: n.etat, etat_lisible: ETAT_LISIBLE[n.etat] || n.etat, titre: n.proposition?.titre || propre(n.texte, 90),
+    texte: n.texte, conversation: !!n.conversation, liens: n.liens || [],
+    rangement: [...parFiche.values()], actions,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Les fiches récentes (19 nov. 2026, Jules : « on range, on part, on revient dans la journée, on ouvre l'application :
+// il faut juste avoir accès aux fiches récemment ouvertes ») : une ligne par personne et par fiche, datée à chaque
+// ouverture ; avec les fiches que ses notes ont touchées.
+// ---------------------------------------------------------------------------
+
+/** Note qu'une personne a ouvert une fiche. */
+export function noterOuverture(cle, user, { maintenant = new Date() } = {}) {
+  const par = String(user?.email || '').toLowerCase();
+  if (!par || !cle) return;
+  const deja = Records.filter('FicheOuverte', { par, cle })[0];
+  if (deja) Records.update('FicheOuverte', deja.id, { le: maintenant.toISOString() }, { garderDate: true });
+  else Records.create('FicheOuverte', { par, cle, le: maintenant.toISOString() });
+}
+
+const GENRE_COURT = { bien: 'Dossier', agent: 'Agent', client: 'Client' };
+
+/**
+ * Les fiches qu'une personne a ouvertes, la plus récente en haut : sa liste à elle (19 nov. 2026, Jules : « nos fiches
+ * individuelles qu'on a ouvertes récemment »). La fiche, elle, est la même pour tous : une note de l'un la met à jour
+ * pour chacun.
+ */
+export function fichesRecentesDe(user, { limite = 10 } = {}) {
+  const par = String(user?.email || '').toLowerCase();
+  const quand = new Map();
+  const vu = (cle, le) => { if (cle && String(le || '') > String(quand.get(cle) || '')) quand.set(cle, String(le || '')); };
+  for (const o of Records.filter('FicheOuverte', { par })) vu(o.cle, o.le);
+  return [...quand.entries()].sort((a, b) => b[1].localeCompare(a[1])).slice(0, limite * 2)
+    .map(([cle, le]) => {
+      const f = Records.findBy('FicheDossier', 'cle', cle);
+      const o = objetDe(cle);
+      if (!f && !o) return null;
+      const genre = f?.genre || o?.genre;
+      const nom = f?.nom || o?.nom;
+      // Un dossier dit où il en est : l'étape notée, sinon celle que la plateforme voit (« Offre », « Projet »).
+      const etape = genre === 'bien' ? f?.etape || donneesDuBien(cle, { entrees: Records.filter('EntreeDossier', { fiche_cle: cle }) })?.avancement?.etapes?.find((e) => e.courante)?.nom || null : null;
+      return { cle, genre, nom, sous: [GENRE_COURT[genre], etape ? `${etape}${f?.etat ? ` · ${f.etat}` : ''}` : o?.detail || null].filter(Boolean).join(' · '), le };
+    })
+    .filter(Boolean)
+    .slice(0, limite);
+}
+
+/**
+ * Les choses à faire d'une personne (20 nov. 2026, Jules : la pilule « À faire » de l'accueil) : ses actions ouvertes,
+ * le retard et le jour d'abord, puis les dates à venir, puis ce qui n'a pas de date.
+ */
+export function mesActions(user, { maintenant = new Date() } = {}) {
+  const moi = String(user?.email || '').toLowerCase();
+  const auj = jour(maintenant);
+  const miennes = Records.filter('ActionDossier', { statut: 'ouverte' }).filter((a) => String(a.responsable || '').toLowerCase() === moi);
+  const rang = (a) => (!a.echeance ? 2 : a.echeance <= auj ? 0 : 1);
+  return miennes.sort((a, b) => rang(a) - rang(b) || String(a.echeance || '').localeCompare(String(b.echeance || '')))
+    .map((a) => ({ ...actionLisible(a), du: !!a.echeance && a.echeance <= auj }));
+}

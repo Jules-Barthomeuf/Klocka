@@ -388,7 +388,7 @@ export const OUTILS = [
   {
     name: 'noter_engagement',
     description:
-      "Inscrit un engagement au registre : qui doit quoi, pour quand. Ex: « Marc envoie le PV jeudi », « rappeler le notaire lundi ». Le dossier est facultatif — le chercher d'abord avec chercher_dossier quand l'utilisateur en nomme un. Résous les dates relatives en YYYY-MM-DD par rapport à aujourd'hui.",
+      "Pose une prochaine action datée sur la fiche du dossier : une relance (« je dois relancer l'agent vendredi », « rappeler le notaire lundi ») ou ce qu'on attend de quelqu'un (« Marc envoie le PV jeudi »). Le jour venu, elle sort dans « Aujourd'hui ». Cherche d'abord le dossier avec chercher_dossier quand l'utilisateur en nomme un : sans dossier, l'action n'est sur aucune fiche. Résous les dates relatives en YYYY-MM-DD par rapport à aujourd'hui.",
     input_schema: {
       type: 'object',
       properties: {
@@ -396,6 +396,7 @@ export const OUTILS = [
         deal_id: { type: 'string', description: 'identifiant du dossier concerné, si connu' },
         de: { type: 'string', description: 'qui doit : adresse mail ou nom de la personne' },
         echeance: { type: 'string', description: 'date YYYY-MM-DD, omise si aucune date' },
+        a_demander: { type: 'array', items: { type: 'string' }, description: "pour une relance : les questions à poser à la personne, une par élément, telles qu'on les poserait (toutes celles que l'utilisateur prépare, sans en perdre)" },
         types: {
           type: 'array',
           items: { type: 'string', enum: ['bail', 'pv_ag', 'rcp', 'quittances', 'diagnostics'] },
@@ -996,24 +997,29 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'noter_engagement') {
-    const { noter } = await import('./deal/engagements.js');
-    const r = noter({
-      dealId: input.deal_id || null,
-      de: input.de || null,
-      quoi: input.quoi,
-      echeance: input.echeance || null,
-      types: input.types || [],
-      user,
-    });
+    // La fiche fait foi (19 nov. 2026, Jules) : ce qu'on dit au chat (« relancer l'agent vendredi ») devient une
+    // prochaine action datée de la fiche du dossier, qui sort dans « Aujourd'hui » le jour venu. Le registre ne garde
+    // que les pièces promises (types), pour que la veille des mails les reconnaisse à l'arrivée.
+    const { poserProchaineAction } = await import('./fiche-dossier/modele.js');
+    const r = poserProchaineAction({ dealId: input.deal_id || null, quoi: input.quoi, echeance: input.echeance || null, de: input.de || null, aDemander: input.a_demander || [], user });
     if (!r.ok) return { erreur: r.error };
+    let engagementId = null;
+    if ((input.types || []).length) {
+      const { noter } = await import('./deal/engagements.js');
+      const e = noter({ dealId: input.deal_id || null, de: input.de || null, quoi: input.quoi, echeance: input.echeance || null, types: input.types, user });
+      if (e.ok) engagementId = e.engagement.id;
+    }
     return {
       ok: true,
       cree: true,
-      id: r.engagement.id,
-      titre: r.engagement.quoi,
-      dossier: r.engagement.dossier,
-      echeance: r.engagement.echeance,
-      lien: '/Engagements',
+      id: r.action.id,
+      action_id: r.action.id,
+      engagement_id: engagementId,
+      titre: r.action.titre,
+      dossier: r.fiche?.nom || null,
+      echeance: r.action.echeance,
+      questions: r.action.contexte.length,
+      pose_sur: r.fiche ? `la fiche du dossier ${r.fiche.nom}, onglet Prochaine action` : "la liste « Aujourd'hui » de la page de l'assistant (aucun dossier lié)",
     };
   }
 
@@ -1061,7 +1067,7 @@ Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque, lire ses 
 
 Tu ouvres un dossier en sortant d'un appel : « j'ai eu Marc de l'agence Untel, il a un local à Lyon à 400 k€, il m'envoie les documents » → creer_dossier fait tout — la coquille, l'agent au CRM, le bien dans Twenty CRM, la promesse de documents au registre — et tu rends compte de ce qui a été fait et de ce qui a manqué. Demande l'adresse mail de l'agent si elle n'est pas donnée : sans elle, la veille ne reconnaîtra pas son mail. Des documents promis n'attendent rien : la coquille se crée pendant l'appel (jamais « je créerai le dossier quand les documents arriveront »), ils viendront s'y poser. Une phrase dictée est souvent imparfaite (« quatre cents k », « Marc de chez Orpi ») : interprète avec bon sens, et récapitule ce que tu as compris.
 
-Tu tiens le registre des engagements : qui doit quoi, pour quand. « Marc envoie le PV jeudi », « rappeler le notaire lundi », « le syndic nous doit le RCP avant fin de mois » s'inscrivent au registre avec noter_engagement ; « c'est reçu », « il l'a fait » les marquent tenus avec tenir_engagement ; registre_engagements dit ce qui est dû. La date du jour est le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} : résous « jeudi », « la semaine prochaine » en date réelle — « jeudi » est le prochain jeudi à venir, demain s'il tombe demain, jamais celui d'après.
+La fiche du dossier fait foi. Une relance ou une promesse datée (« je dois relancer l'agent vendredi », « Marc envoie le PV jeudi », « le syndic nous doit le RCP avant fin de mois ») devient une prochaine action de sa fiche avec noter_engagement : dis-le ainsi (« posé sur la fiche, en prochaine action pour vendredi »), jamais « engagement » ni « registre » ; les questions qu'on prépare pour l'appel (« lui demander si… ») vont dans a_demander, une par élément ; « c'est reçu », « il l'a fait » les marquent tenus avec tenir_engagement ; registre_engagements dit ce qui est dû. La date du jour est le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} : résous « jeudi », « la semaine prochaine » en date réelle — « jeudi » est le prochain jeudi à venir, demain s'il tombe demain, jamais celui d'après.
 
 Pour tout le reste — droit des baux commerciaux, financement, fiscalité, méthode d'analyse — réponds directement, sans outil, en restant bref et en disant franchement quand tu ne sais pas.
 

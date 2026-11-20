@@ -511,7 +511,9 @@ function LayoutContent({ children, currentPageName }) {
               <LogoKP fond="theme" className={replie ? "text-[22px]" : "text-[26px]"} />
             </Link>
           ) : (
-          <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka OS">
+          // Le haut du logo à 16 px du bord, sur celui des pilules de l'accueil (Fiches, Agenda, les boîtes), au lieu
+          // d'être centré dans la bande de 56 px (19 nov. 2026, Jules).
+          <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className={`flex items-center gap-2.5 ${barreNue ? "mt-4 self-start" : ""}`} title="Klocka OS">
             {/* La marque de Klocka OS (18 oct. 2026, Jules) : trois losanges, à gauche du nom. Sur la barre nue de la page
                 Projets, le K de Klocka, détouré, sa jambe à la couleur d'accent (14 nov. 2026, Jules). */}
             {barreNue ? (

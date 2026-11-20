@@ -18,7 +18,7 @@ const REVERSIBLES = {
   pousser_projet_monday: "l'élément Twenty CRM créé sera supprimé",
   creer_agent_monday: "la fiche agent créée sera supprimée",
   creer_drive_dossier: 'le dossier Drive créé partira à la corbeille',
-  noter_engagement: "l'engagement noté sera effacé du registre",
+  noter_engagement: "la prochaine action posée sera retirée de la fiche",
   creer_dossier: 'le dossier ouvert sera supprimé, avec sa fiche Twenty CRM et sa promesse',
 };
 
@@ -149,11 +149,16 @@ export async function annuler(action) {
   }
 
   if (action.outil === 'noter_engagement') {
-    const { effacer } = await import('./deal/engagements.js');
-    const r = effacer(id);
-    if (!r.ok) return { ok: false, message: r.error };
+    // Depuis le 19 nov. 2026, une prochaine action de la fiche ; avant, une ligne du registre.
+    if (action.resultat?.action_id) {
+      const { retirerProchaineAction } = await import('./fiche-dossier/modele.js');
+      const r = retirerProchaineAction(action.resultat.action_id);
+      if (!r.ok) return { ok: false, message: r.error };
+    }
+    const engagement = action.resultat?.action_id ? action.resultat?.engagement_id : id;
+    if (engagement) { const { effacer } = await import('./deal/engagements.js'); effacer(engagement); }
     Records.update('AssistantAction', action.id, { annulee: true, annulee_le: new Date().toISOString() });
-    return { ok: true, message: `Engagement effacé du registre (${action.resultat?.titre || id}).` };
+    return { ok: true, message: `Prochaine action retirée (${action.resultat?.titre || id}).` };
   }
 
   if (action.outil === 'creer_drive_dossier') {

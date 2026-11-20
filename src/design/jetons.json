@@ -333,6 +333,19 @@
     },
     "etiquette_defaut": "#c4c4c4"
   },
+  "_whatsapp": "Le message prêt de la fiche du dossier (19 nov. 2026, Jules : « on doit avoir l'impression que ça écrit un vrai WhatsApp ») : le dessin sombre de WhatsApp, seule exception au thème avec Monday, pour ce seul aperçu.",
+  "whatsapp": {
+    "fond": "#161717",
+    "entete": "#161717",
+    "bulle_envoyee": "#144d37",
+    "bulle_recue": "#242626",
+    "saisie": "#242626",
+    "texte": "#fafafa",
+    "texte_doux": "#a5a8a7",
+    "coche": "#53bdeb",
+    "vert": "#21c063",
+    "jour": "#242626"
+  },
   "surfaces_pleines": {
     "sombre": {
       "surface": "#1c1e1d",

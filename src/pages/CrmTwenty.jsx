@@ -13,6 +13,9 @@ import { CLASSES_STATUT, couleurStatut } from "@/lib/couleur-statut";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, definirCadreCrm, themeEffectif } from "@/lib/personnalisation";
 import { useUser } from "@/components/providers/UserProvider";
+import DossiersSuivis, { OBJETS_SUIVIS } from "@/components/fiche-dossier/DossiersSuivis";
+import { FicheDossierHote } from "@/components/fiche-dossier/FicheDossier";
+import { EtoileCrm, useEtoiles } from "@/components/fiche-dossier/EtoileAgent";
 import { barreGardee, cleBarreCrm, espaceCrm, garderBarre, lireBarreCrm } from "@/lib/crm-barre";
 
 // Des pages de Klocka dans le CRM (6 nov. 2026, Jules : « mets la page utilisateurs dans le CRM en gardant celle
@@ -529,6 +532,10 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
                   <Collaborateurs gens={data.collaborateurs} />
                 </Partie>
               )}
+              {/* Les dossiers auxquels des notes l'ont lié (19 nov. 2026) : la fiche tournée autour de l'agent ou du client. */}
+              {OBJETS_SUIVIS.includes(objet.singulier) && (
+                <DossiersSuivis objet={objet.singulier} id={id} Partie={Partie} ouverte={ouverte("suivis", true)} onBasculer={() => basculer("suivis", true)} />
+              )}
             {(data.liees || []).map((l) => (
               <Partie key={l.nom} titre={l.libelle} nombre={l.fiches.length} ouverte={ouverte(`liee:${l.nom}`, true)} onBasculer={() => basculer(`liee:${l.nom}`, true)}
                 actions={<>
@@ -993,6 +1000,9 @@ export default function CrmTwenty() {
   const spoc = barre.data?.spoc?.length ? barre.data.spoc : (barre.data?.membres || []).map((m) => ({ nom: m.nom.replace(/\s+/g, " "), valeur: m.nom, membre: m.id }));
   // Un admin garde les pages de Klocka dans la vue mandataire, où l'espace Klocka lui reste ouvert (6 nov. 2026).
   const equipe = moi?.role === "admin";
+  // Les étoiles des agents préférés de l'équipe (20 nov. 2026) : l'équipe seule les lit.
+  const etoilesLues = useEtoiles({ enabled: equipe });
+  const etoilesAgents = equipe ? etoilesLues.data?.agents || null : null;
   // Dans l'ordre que la personne a choisi en glissant les pages : le CRM ouvre sur la première de son panneau.
   const objets = useMemo(() => (barre.data?.dossiers || []).filter((d) => !d.ferme).flatMap((d) => {
     const rang = new Map((barre.data.ordre?.[d.nom || "Autres"] || []).map((x, i) => [x, i]));
@@ -1256,7 +1266,10 @@ export default function CrmTwenty() {
                 <td key={c.nom} className={`h-[36px] overflow-hidden border-b border-r border-trait p-0 ${i === 0 ? "text-encre" : c.type === "SELECT" && f[c.nom] ? couleurCase(c, f[c.nom]) : "text-craie"} ${NUMERIQUES.includes(c.type) ? "tabular-nums" : ""}`}>
                   {i === 0 ? (
                     <button type="button" onPointerDown={() => { if (!objet.local) queryClient.prefetchQuery({ queryKey: ["crm-fiche", objet.singulier, f.id], queryFn: () => req("GET", `${API}/${objet.singulier}/${f.id}`), staleTime: 30_000 }); }} onClick={() => ouvrirLigne(objet.singulier, f.id)} className={`block w-full truncate px-4 py-1.5 text-encre hover:text-menthe ${CLASSES_ALIGNEMENT[reglageDe(c).align || "gauche"].split(" ")[1]}`} style={{ background: "transparent" }}>
-                      {affiche(c, f[c.nom], liensT) || <span className="text-brume">Sans nom</span>}
+                      {/* L'étoile d'un agent préféré de l'équipe, devant son nom (20 nov. 2026, Jules). */}
+                      {objet.singulier === "agentImmobilier" && etoilesAgents?.length ? (
+                        <span className="inline-flex max-w-full items-center gap-1.5 align-middle"><EtoileCrm nom={[f.prenom, affiche(c, f[c.nom], liensT)].filter(Boolean).join(" ")} etoiles={etoilesAgents} /><span className="truncate">{affiche(c, f[c.nom], liensT) || <span className="text-brume">Sans nom</span>}</span></span>
+                      ) : (affiche(c, f[c.nom], liensT) || <span className="text-brume">Sans nom</span>)}
                     </button>
                   ) : (
                     <Corrigeable c={c} valeur={f[c.nom]} liens={liensT} onEnregistrer={(champ, valeur) => changerCase.mutate({ id: f.id, champ, valeur })} onMail={(a) => setEnvoi({ a, objet: objet.singulier, id: f.id, nom: nomDeFiche(f) })}
@@ -1486,6 +1499,7 @@ export default function CrmTwenty() {
                   </div>
                 )}
               </div>
+              <FicheDossierHote />
               <AnimatePresence>
                 {ficheId && ficheObjet && <Fiche key={`${ficheObjet.singulier}-${ficheId}`} objet={ficheObjet} objets={objets} id={ficheId} onFermer={() => aller({ f: null, ft: null })} onOuvrir={ouvrir} onMail={setEnvoi} />}
               </AnimatePresence>

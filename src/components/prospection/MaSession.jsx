@@ -10,6 +10,7 @@ import { base44 } from "@/api/base44Client";
 // À la couleur du système (17 nov. 2026, Jules) : l'accent du compte (`menthe`), plus la pervenche de la maquette ;
 // le record reste en `ambre`.
 // Les chiffres viennent du serveur (server/prospection/ma-session.js) ; le chronomètre tourne ici, pauses ôtées.
+// Le record, la moyenne et l'équipe se lisent aussi au journal des appels, comme Suivi > Appels (18 nov. 2026, Jules).
 
 const API = "/api/prospection/mode-appel";
 const SANS_PERSONNE = new Set(["pas_de_reponse", "repondeur"]);
@@ -114,7 +115,8 @@ export default function MaSession({ session, ville, progression, onNouvelle }) {
           <h2 className="m-0 text-[24px] font-normal leading-[1.2] text-encre">Prêt pour une session d'appels ?</h2>
           <p className="m-0 text-[14px] text-craie">
             {total ? `${pluriel(reste, "agence")} ${reste > 1 ? "restent" : "reste"} à appeler.` : null}
-            {d?.record ? <> Votre record : <span className="text-ambre">{pluriel(d.record, "appel")}</span> en une session.</> : " Votre première session : elle fera votre record."}
+            {d?.record ? <> Votre record : <span className="text-ambre">{pluriel(d.record, "appel")}</span>{jourDuRecord(d) ? ` en une journée, le ${jourDuRecord(d).replace(/\.$/, "")}` : " en une session"}.</> : " Votre première session : elle fera votre record."}
+            {d?.journal?.moyenne_jour != null ? ` En moyenne ${String(d.journal.moyenne_jour).replace(".", ",")} appels par jour, ${d.journal.taux_moyen} % décrochés.` : null}
           </p>
           <button type="button" className={`${BOUTON_ACCENT} mt-4 h-11 px-6 text-[14.5px]`} disabled={occupe} onClick={() => commencer.mutate()}>
             <Play className="h-3.5 w-3.5" strokeWidth={2} fill="currentColor" />Commencer ma session
@@ -128,6 +130,7 @@ export default function MaSession({ session, ville, progression, onNouvelle }) {
           <div className="flex flex-col gap-3">
             <CarteTaux d={d} />
             <CarteVille ville={nomVille} appelees={appelees} total={total} reste={reste} />
+            <CarteEquipe j={d.journal} />
           </div>
           <CarteFichesMoi f={d.fiches} />
           <CarteFichesEquipe f={d.fiches} />
@@ -154,30 +157,79 @@ function Anneau({ valeur, max, taille = 132 }) {
   );
 }
 
+/** Le jour du record : celui du journal quand c'est lui qui le tient. */
+const jourDuRecord = (d) => (d.journal?.record_jour && d.journal.record_jour.appels === d.record ? d.journal.record_jour.le : null);
+
 function CarteAppels({ d }) {
   const titre = !d.record ? "Votre première session fait le record"
     : d.record_battu ? `Record battu : ${pluriel(d.appels, "appel")}`
       : d.reste_pour_record === 0 ? "Encore un pour battre votre record"
         : `Encore ${d.reste_pour_record} pour battre votre record`;
+  const le = jourDuRecord(d);
   return (
-    <div className="k-verre flex items-center gap-7 px-6 py-6 max-md:flex-col max-md:items-start max-md:gap-4">
-      <div className="relative grid place-items-center">
-        <Anneau valeur={d.appels} max={d.record || d.appels} />
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[36px] leading-none tabular-nums text-encre">{d.appels}</span>
-          <span className="mt-1 text-[12.5px] text-ardoise">{d.record ? `appels sur ${d.record}` : pluriel(d.appels, "appel")}</span>
+    <div className="k-verre flex flex-col gap-5 px-6 py-6">
+      <div className="flex items-center gap-7 max-md:flex-col max-md:items-start max-md:gap-4">
+        <div className="relative grid place-items-center">
+          <Anneau valeur={d.appels} max={d.record || d.appels} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[36px] leading-none tabular-nums text-encre">{d.appels}</span>
+            <span className="mt-1 text-[12.5px] text-ardoise">{d.record ? `appels sur ${d.record}` : pluriel(d.appels, "appel")}</span>
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <span className="text-[13px] text-ardoise">Appels</span>
+          <span className="text-[17px] leading-snug text-encre">{titre}</span>
+          {d.record > 0 && (
+            <span className="text-[12.5px] text-ardoise">
+              <span className="text-ambre">Record {d.record}{le ? `, le ${le}` : ""}</span>
+              {d.record_vers ? ` · à ce rythme vers ${d.record_vers}` : ""}
+            </span>
+          )}
         </div>
       </div>
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <span className="text-[13px] text-ardoise">Appels</span>
-        <span className="text-[17px] leading-snug text-encre">{titre}</span>
-        {d.record > 0 && (
-          <span className="text-[12.5px] text-ardoise">
-            <span className="text-ambre">Record {d.record}</span>
-            {d.record_vers ? ` · à ce rythme vers ${d.record_vers}` : ""}
-          </span>
-        )}
+      {d.journal && <ChiffresDuJournal j={d.journal} />}
+    </div>
+  );
+}
+
+/** Les chiffres du journal des appels, ceux de Suivi > Appels par analyste : la journée, la moyenne, les biens, la semaine. */
+function ChiffresDuJournal({ j }) {
+  const cases = [
+    ["Aujourd'hui", pluriel(j.aujourdhui.appels, "appel"), j.aujourdhui.appels ? `${j.aujourdhui.decroches} décroché${j.aujourdhui.decroches > 1 ? "s" : ""}` : "aucun encore"],
+    ["Moyenne", j.moyenne_jour == null ? "–" : `${String(j.moyenne_jour).replace(".", ",")} par jour`, j.jours_actifs ? `sur ${pluriel(j.jours_actifs, "jour")} d'appels` : "pas encore de jour passé"],
+    ["Biens trouvés", String(j.biens + j.aujourdhui.biens), j.record_biens ? `record ${j.record_biens.biens} en un jour, le ${j.record_biens.le}` : "pas encore de record"],
+    ["Cette semaine", pluriel(j.semaine.appels, "appel"), j.semaine.meilleure ? `meilleure : ${j.semaine.meilleure.appels}, semaine du ${j.semaine.meilleure.le}` : "première semaine mesurée"],
+  ];
+  return (
+    <div className="border-t border-trait pt-4">
+      <div className="grid grid-cols-2 gap-x-5 gap-y-4">
+        {cases.map(([k, v, sous]) => (
+          <div key={k} className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-[12.5px] text-ardoise">{k}</span>
+            <span className="text-[17px] leading-snug tabular-nums text-encre">{v}</span>
+            <span className="text-[12px] text-craie">{sous}</span>
+          </div>
+        ))}
       </div>
+    </div>
+  );
+}
+
+/** L'équipe cette semaine, au journal des appels : qui a appelé, combien, et son taux de décroché. */
+function CarteEquipe({ j }) {
+  const equipe = j?.equipe_semaine || [];
+  if (equipe.length < 2) return null;
+  return (
+    <div className="k-verre flex flex-col gap-2 px-5 py-4">
+      <span className="text-[13px] text-ardoise">L'équipe cette semaine</span>
+      {equipe.map((m, i) => (
+        <div key={m.prenom} className="grid grid-cols-[18px_minmax(0,1fr)_auto_auto] items-baseline gap-3 text-[13px] tabular-nums">
+          <span className="text-ardoise">{i + 1}</span>
+          <span className={m.moi ? "font-medium text-encre" : "text-encre"}>{m.moi ? "Vous" : m.prenom}</span>
+          <span className="text-encre">{pluriel(m.appels, "appel")}</span>
+          <span className="w-[92px] text-right text-ardoise">{m.taux == null ? "–" : `${m.taux} % décroché`}</span>
+        </div>
+      ))}
     </div>
   );
 }

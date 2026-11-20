@@ -64,8 +64,10 @@ function Historique() {
   );
 }
 
-export default function BoiteMail() {
-  const [ouvert, setOuvert] = useState(false);
+/** `enLigne` : le panneau seul, posé dans la page (Paramètres › Boîtes mail, 20 nov. 2026, Jules), sans la pilule. */
+export default function BoiteMail({ enLigne = false }) {
+  const [ouvertPilule, setOuvert] = useState(false);
+  const ouvert = enLigne || ouvertPilule;
   const [historique, setHistorique] = useState(false);
   const queryClient = useQueryClient();
   const { data: statut, isLoading } = useQuery({
@@ -106,7 +108,7 @@ export default function BoiteMail() {
   // le panneau le dit, et propose de la connecter.
   return (
     <div className="relative">
-      <button
+      {!enLigne && <button
         type="button"
         onClick={() => setOuvert((v) => !v)}
         aria-expanded={ouvert}
@@ -115,15 +117,15 @@ export default function BoiteMail() {
         <span className={`h-[7px] w-[7px] rounded-full ${teinte}`} />
         {mot}
         <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
-      </button>
+      </button>}
 
       {ouvert && (
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setOuvert(false)} />
+          {!enLigne && <div className="fixed inset-0 z-30" onClick={() => setOuvert(false)} />}
           {/* Le panneau (maquette) : les boîtes, la coche sur celle qui envoie,
               un clic sur une autre en fait la boîte par défaut ; puis ajouter
               une boîte Google et l'historique des envois. */}
-          <div className="animate-in fade-in slide-in-from-top-1 duration-150 absolute right-0 top-[calc(100%+8px)] z-40 w-[340px] max-w-[calc(100vw-32px)] rounded-[16px] border border-trait bg-surface-pleine py-2 shadow-[0_18px_48px_rgb(0_0_0/0.14)]">
+          <div className={enLigne ? "max-w-[520px] rounded-[12px] border border-trait py-2" : "animate-in fade-in slide-in-from-top-1 duration-150 absolute right-0 top-[calc(100%+8px)] z-40 w-[340px] max-w-[calc(100vw-32px)] rounded-[16px] border border-trait bg-surface-pleine py-2 shadow-[0_18px_48px_rgb(0_0_0/0.14)]"}>
             <p className="m-0 px-4 pb-1.5 pt-2 text-[13px] text-craie">Boîtes mail connectées</p>
             {aReconnecter.length > 0 && (
               <p className="m-0 flex items-start gap-2 px-4 pb-1.5 text-[12px] leading-[1.45] text-ambre"><TriangleAlert className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />{aReconnecter.map((c) => c.email).join(", ")} demande une reconnexion.</p>

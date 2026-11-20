@@ -3,15 +3,16 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
 import ChatDashboard, { HistoriqueColonne, cartesDe } from "@/components/dashboard/ChatDashboard";
-import BoiteMail from "@/components/dashboard/BoiteMail";
 import RaccourcisHaka from "@/components/haka/RaccourcisHaka";
 import LivrableAccueil, { usePropositionsNees } from "@/components/haka/LivrableAccueil";
 import { Depliant, PanneauSources, PastilleSource } from "@/components/haka/ReglagesDemande";
 import { useCompteHaka } from "@/components/haka/useFileHaka";
-import PastilleAgenda from "@/components/dashboard/PastilleAgenda";
+import PastilleAFaire from "@/components/dashboard/PastilleAFaire";
+import PastilleFiches from "@/components/dashboard/PastilleFiches";
 import { useLocation } from "react-router-dom";
 import { sourceDe } from "@/lib/sources";
 import { base44 } from "@/api/base44Client";
+import { PanneauFlottant, PanneauNote, usePanneau } from "@/components/fiche-dossier/FicheDossier";
 
 // L'Accueil de l'équipe (17 oct. 2026, Jules : « comme l'accueil de Max ») :
 // la page sert à donner du travail à Haka et à voir ce qu'il a préparé. De
@@ -26,6 +27,12 @@ import { base44 } from "@/api/base44Client";
 
 const CLE_LARGEUR = "klocka.accueil.largeur-chat";
 const LARGEUR_DEFAUT = 420;
+// Avec une fiche ouverte, le chat prend 60 % de la page et la fiche le reste (19 nov. 2026, seconde capture de Jules :
+// « voici le ratio que je veux » ; 42 % la première fois). Tirée à la poignée, la part se garde ; la clé a changé pour
+// que la part gardée avant ne masque pas la nouvelle.
+const CLE_RATIO_FICHE = "klocka.accueil.ratio-fiche-2";
+const RATIO_FICHE = 0.6;
+const ratioLu = () => { try { const v = Number(localStorage.getItem(CLE_RATIO_FICHE)); return v > 0.2 && v < 0.8 ? v : RATIO_FICHE; } catch { return RATIO_FICHE; } };
 const borner = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, (typeof window !== "undefined" ? window.innerWidth : 1600) - 560)));
 
 /** Un écran assez large pour Haka et le livrable côte à côte. */
@@ -76,7 +83,9 @@ export default function AdminDashboardView() {
     setEteintes(c ? eteintesDepart : []);
     if (c) setSortie("produire");
   }, []);
-  const reglages = useMemo(() => ({ sources, sortie, setSortie, sourcesOuvert, onOuvrirSources: () => setSourcesOuvert((o) => !o), panneau: panneauSources, competence, eteintes, choisirCompetence }),
+  // Plus de bascule Répondre / Produire dans la saisie (19 nov. 2026, Jules) : l'icône lien prend sa place ; une
+  // compétence choisie passe toujours en « produire ».
+  const reglages = useMemo(() => ({ sources, sortie, sourcesOuvert, onOuvrirSources: () => setSourcesOuvert((o) => !o), panneau: panneauSources, competence, eteintes, choisirCompetence }),
     // Le panneau se redessine avec les sources : elles suffisent à le suivre.
     [sources, sortie, sourcesOuvert, competence, eteintes, choisirCompetence]);
   // Une conversation qui commence repart d'un panneau vide ; qui se ferme, l'Accueil revient.
@@ -109,7 +118,18 @@ export default function AdminDashboardView() {
   // latérale reste. L'écran se scinde seulement quand quelque chose a été produit.
   const nees = usePropositionsNees(conversation ? depuis : null, null);
   const enConversation = large && conversation;
-  const scinde = enConversation && (livrables.length > 0 || nees.length > 0);
+  // La fiche du dossier ou l'action d'une note (19 nov. 2026, Jules) : à droite du chat, comme un livrable ; hors
+  // conversation ou sur un petit écran, par-dessus la page.
+  const [panneau, setPanneau] = usePanneau();
+  useEffect(() => {
+    if (!panneau) return undefined;
+    const echap = (e) => { if (e.key === "Escape") setPanneau(null); };
+    window.addEventListener("keydown", echap);
+    return () => window.removeEventListener("keydown", echap);
+  }, [panneau, setPanneau]);
+  const scinde = enConversation && (livrables.length > 0 || nees.length > 0 || !!panneau);
+  // Une conversation fermée emporte son panneau.
+  useEffect(() => { if (!conversation) setPanneau(null); }, [conversation, setPanneau]);
   useEffect(() => {
     if (!enConversation) return undefined;
     document.documentElement.classList.add("k-sans-defilement");
@@ -119,26 +139,64 @@ export default function AdminDashboardView() {
   const [largeurChat, setLargeurChat] = useState(() => { try { const v = Number(localStorage.getItem(CLE_LARGEUR)); return v ? borner(v) : LARGEUR_DEFAUT; } catch { return LARGEUR_DEFAUT; } });
   const [tire, setTire] = useState(false);
   const derniere = useRef(largeurChat);
+  const pageRef = useRef(null);
+  const [largeurPage, setLargeurPage] = useState(0);
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el || !enConversation || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(([e]) => setLargeurPage(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [enConversation]);
+  const [ratioFiche, setRatioFiche] = useState(ratioLu);
+  // Le bas de la colonne de droite (fiche, message, livrable) sur le bas de la barre de chat (19 nov. 2026, Jules) :
+  // mesuré sur la saisie, qui ne bouge pas quand elle grandit (elle pousse vers le haut).
+  const [basChat, setBasChat] = useState(20);
+  useEffect(() => {
+    if (!scinde) return undefined;
+    const mesurer = () => {
+      const saisie = pageRef.current?.querySelector(".k-colonne-chat .k-saisie-chat");
+      const page = pageRef.current?.getBoundingClientRect();
+      if (!saisie || !page) return;
+      const ecart = Math.round(page.bottom - saisie.getBoundingClientRect().bottom);
+      if (ecart >= 0 && ecart < 200) setBasChat(ecart);
+    };
+    const t = setTimeout(mesurer, 80);
+    window.addEventListener("resize", mesurer);
+    return () => { clearTimeout(t); window.removeEventListener("resize", mesurer); };
+  }, [scinde, panneau]);
+  const parRatio = !!panneau && largeurPage > 0;
+  const bornerFiche = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, largeurPage - 420)));
+  const largeurVue = parRatio ? bornerFiche(ratioFiche * largeurPage) : largeurChat;
   const tirer = (e) => {
     e.preventDefault();
     setTire(true);
-    const bouger = (ev) => { derniere.current = borner(ev.clientX); setLargeurChat(derniere.current); };
+    const gauche = pageRef.current?.getBoundingClientRect().left || 0;
+    const bouger = (ev) => {
+      if (parRatio) { derniere.current = bornerFiche(ev.clientX - gauche) / largeurPage; setRatioFiche(derniere.current); return; }
+      derniere.current = borner(ev.clientX); setLargeurChat(derniere.current);
+    };
     const lacher = () => {
       setTire(false);
-      try { localStorage.setItem(CLE_LARGEUR, String(derniere.current)); } catch { /* navigation privée */ }
+      try { localStorage.setItem(parRatio ? CLE_RATIO_FICHE : CLE_LARGEUR, String(derniere.current)); } catch { /* navigation privée */ }
       window.removeEventListener("pointermove", bouger);
       window.removeEventListener("pointerup", lacher);
     };
     window.addEventListener("pointermove", bouger);
     window.addEventListener("pointerup", lacher);
   };
-  const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
+  const remettre = () => {
+    if (parRatio) { setRatioFiche(RATIO_FICHE); try { localStorage.removeItem(CLE_RATIO_FICHE); } catch { /* rien */ } return; }
+    setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ }
+  };
 
   return (
-    <div className={enConversation ? `k-page-presentation k-accueil-ia relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : "relative min-h-screen md:h-[100dvh] md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
-      style={enConversation ? { gridTemplateColumns: scinde ? `${largeurChat}px minmax(0,1fr)` : "minmax(0,1fr)" } : undefined}>
-      {/* L'Agenda, tout à gauche de la page (17 oct. 2026, Jules : « plus à gauche »), hors de la colonne centrée. */}
-      {!conversation && <div className="absolute left-5 top-4 z-10 md:left-6"><PastilleAgenda /></div>}
+    <div ref={pageRef} className={enConversation ? `k-page-presentation k-accueil-ia relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : "relative min-h-screen md:h-[100dvh] md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
+      style={enConversation ? { gridTemplateColumns: scinde ? `${largeurVue}px minmax(0,1fr)` : "minmax(0,1fr)" } : undefined}>
+      {/* « Fiches », tout à gauche de la page, à la place de l'Agenda (19 nov. 2026, Jules) : les fiches récentes au
+          survol. L'Agenda rejoint les boîtes, en haut à droite. */}
+      {/* Le haut de la pilule à 16 px, sur celui des pilules de droite et du logo de la barre (19 nov. 2026, Jules). */}
+      {!conversation && <div className="absolute left-5 top-4 z-10 md:left-6"><PastilleFiches /></div>}
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
       <div className={scinde ? "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : enConversation ? "k-colonne-chat mx-auto h-[100dvh] min-h-0 w-full max-w-[860px] overflow-hidden px-5" : `mx-auto max-w-[1100px] px-5 md:px-8 ${conversation ? "" : "pt-4 max-md:pb-14"}`}>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -146,19 +204,20 @@ export default function AdminDashboardView() {
           {!conversation && (
             <>
               <div className="flex min-h-[38px] items-center justify-end gap-3">
-                <div className={coin ? "md:hidden" : ""}>
-                  <BoiteMail />
+                {/* « À faire » à la place de l'Agenda et des boîtes mail, passées dans les Paramètres (20 nov. 2026, Jules). */}
+                <div className={`flex items-center gap-2 ${coin ? "md:hidden" : ""}`}>
+                  <PastilleAFaire />
                 </div>
               </div>
-              {coin && createPortal(<BoiteMail />, coin)}
+              {coin && createPortal(<PastilleAFaire />, coin)}
             </>
           )}
           <PlanDeTravail
             conversation={conversation}
             historique={historique ? <HistoriqueColonne /> : null}
             chat={<ChatDashboard onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse} onTravail={surTravail}
-              barreApercu={enConversation} sansSkills choixDossier onDossier={setDossier} libelleAccueil="Assistant Klocka" reglages={reglages}
-              placeholderAccueil={hakaActif ? "Collez une note, déposez une fiche, ou demandez à l'Assistant Klocka…" : null} />}
+              barreApercu={enConversation} sansSkills choixDossier lienNote onDossier={setDossier} libelleAccueil="Assistant Klocka" reglages={reglages}
+              placeholderAccueil={hakaActif ? "Ta note en vrac, liée à un bien, un agent ou un client, ou une demande à l'Assistant Klocka…" : "Ta note en vrac (lie-la à un bien, un agent ou un client), ou une question…"} />}
             apresChat={(
               <>
                 {/* Les raccourcis remplacent « Connecter un skill » ; les cartes « Ce que Haka sait faire » sont retirées de la page (17 oct. 2026, Jules). */}
@@ -173,6 +232,8 @@ export default function AdminDashboardView() {
                   </div>
                 </Depliant>
                 <Depliant ouvert={sourcesOuvert} className="mx-auto max-w-[900px]"><div className="pt-6">{panneauSources}</div></Depliant>
+                {/* Plus d'« Aujourd'hui » ni de « Dans les sept jours » sous l'assistant (20 nov. 2026, Jules : « ça dénature le
+                    but du dashboard ») : les actions datées restent dans chaque fiche, onglet Prochaine action. */}
               </>
             )}
           />
@@ -180,17 +241,27 @@ export default function AdminDashboardView() {
       </div>
       {/* Le livrable, un écran dans l'écran : une carte posée sur le fond, comme la lettre à côté du chat. */}
       {scinde && (
-        <motion.div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2"
+        <motion.div className="h-[100dvh] min-h-0 min-w-0 pr-2 pt-2" style={{ paddingBottom: basChat }}
           initial={{ opacity: 0, x: 48, scale: 0.985 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}>
-          <div className="h-full min-h-0 overflow-hidden k-verre">
-            <LivrableAccueil livrables={livrables} dossier={dossier} depuis={depuis} travail={travail} />
-          </div>
+          {panneau ? (
+            // La fiche prend toute la partie droite ; le chat et la navigation à gauche (19 nov. 2026, Jules). La carte
+            // arrondie, sur le fond de la fiche d'appel du chat en sombre (le verre), celui de la saisie du chat en
+            // clair (20 nov. 2026, Jules, après l'essai d'un panneau droit collé au bord).
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-trait k-fiche-fond">
+              <PanneauNote vue={panneau} onVue={setPanneau} onFermer={() => setPanneau(null)} />
+            </div>
+          ) : (
+            <div className="h-full min-h-0 overflow-hidden k-verre">
+              <LivrableAccueil livrables={livrables} dossier={dossier} depuis={depuis} travail={travail} />
+            </div>
+          )}
         </motion.div>
       )}
+      {!enConversation && <PanneauFlottant vue={panneau} setVue={setPanneau} />}
       {scinde && (
         <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
           onPointerDown={tirer} onDoubleClick={remettre}
-          className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
+          className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurVue - 6 }}>
           <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tire ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import BoiteMail from "@/components/dashboard/BoiteMail";
 import { vueDe } from "@/lib/vue";
 import { Check, Eye, EyeOff, Grip, Maximize2, Pipette, RotateCcw, Smartphone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -393,6 +394,8 @@ export default function Personnalisation() {
     ["signature", "Signature", admin && !vueClient],
     // Ses mails après un appel (13 oct. 2026) : à partir de ceux de l'équipe.
     ["mails", "Mails", admin && !vueClient],
+    // Les boîtes connectées, quittées de l'accueil (20 nov. 2026, Jules) : la boîte qui envoie, en ajouter, l'historique.
+    ["boites", "Boîtes mail", admin && !vueClient],
     ["habilitations", "Habilitations", vueMandataire],
     // Le Suivi, rangé ici le 17 oct. 2026, est passé dans Administration le 18 oct. (Jules).
     // Les compétences de Haka (17 oct. 2026) : Jules seul les écrit et les publie.
@@ -573,6 +576,13 @@ export default function Personnalisation() {
 
       {section === "signature" && <SignatureMails email={user?.email} />}
       {section === "mails" && <MesMails />}
+      {section === "boites" && (
+        <section className="rounded-[12px] border border-trait p-5">
+          <p className="m-0 mb-1 text-[15px] text-encre">Boîtes mail connectées</p>
+          <p className="m-0 mb-4 text-[13px] text-ardoise">Les mails de la plateforme partent de la boîte cochée. Un clic sur une autre en fait la boîte par défaut.</p>
+          <BoiteMail enLigne />
+        </section>
+      )}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
       {section === "haka" && (
       <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">

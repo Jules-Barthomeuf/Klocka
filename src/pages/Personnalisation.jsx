@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import BoiteMail from "@/components/dashboard/BoiteMail";
+import ImportFiches from "@/components/fiche-dossier/ImportFiches";
 import { vueDe } from "@/lib/vue";
 import { Check, Eye, EyeOff, Grip, Maximize2, Pipette, RotateCcw, Smartphone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -400,6 +401,8 @@ export default function Personnalisation() {
     // Le Suivi, rangé ici le 17 oct. 2026, est passé dans Administration le 18 oct. (Jules).
     // Les compétences de Haka (17 oct. 2026) : Jules seul les écrit et les publie.
     ["competences", "Compétences", !vueClient && !!user?.gere_les_acces],
+    // L'import des fiches (22 nov. 2026, Jules) : remplir les fiches avant que l'équipe s'en serve.
+    ["import", "Import des fiches", !vueClient && !vueMandataire && !!user?.gere_les_acces],
     // Les sources de la boîte à outils de Haka (18 oct. 2026, lot 1) : interrupteurs, poids, entrepôt.
     ["sources", "Sources", admin && !vueClient && !vueMandataire],
   ].filter((x) => x[2]);
@@ -576,6 +579,7 @@ export default function Personnalisation() {
 
       {section === "signature" && <SignatureMails email={user?.email} />}
       {section === "mails" && <MesMails />}
+      {section === "import" && <ImportFiches />}
       {section === "boites" && (
         <section className="rounded-[12px] border border-trait p-5">
           <p className="m-0 mb-1 text-[15px] text-encre">Boîtes mail connectées</p>

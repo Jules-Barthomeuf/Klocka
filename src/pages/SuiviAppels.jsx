@@ -6,7 +6,6 @@ import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import RetoursAnalystes from "@/components/monitoring/RetoursAnalystes";
 import LecteurEcran from "@/components/monitoring/LecteurEcran";
-import FichesParAnalyste from "@/components/monitoring/FichesParAnalyste";
 import { useAuth } from "@/lib/AuthContext";
 import { TempsPostAppel, TempsEtAppels, AppelsParJour, BarresHorizontales, Chiffre, ChiffreCourbe, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
 import { BoutonOutil, Filtres, TitrePage } from "@/components/mandataire/elements";
@@ -24,7 +23,8 @@ import { FRAIS_SUIVI_APPELS, cleSuiviAppels, lireSuiviAppels } from "@/lib/suivi
 const PERIODES = [[1, "Aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [90, "90 jours"]];
 // « Retours » (16 oct. 2026, Jules) : les réponses des analystes aux questions d'AK sur leurs appels (hors de la Prospection : Jules seul).
 // « Fiches reçues » (15 nov. 2026, Jules) : les biens reçus par analyste, dans le Suivi seulement, jamais dans la Prospection.
-const VUES = [["ensemble", "Vue d'ensemble"], ["analystes", "Par analyste"], ["fiches", "Fiches reçues"], ["moi", "Mes appels"], ["journal", "Journal des appels"], ["retours", "Retours"]];
+// Le 20 nov. 2026 (Jules), « Fiches reçues » part dans le menu Statistiques (src/pages/Statistiques.jsx).
+const VUES = [["ensemble", "Vue d'ensemble"], ["analystes", "Par analyste"], ["moi", "Mes appels"], ["journal", "Journal des appels"], ["retours", "Retours"]];
 const titreCase = "m-0 mb-3 text-[14px] font-normal text-encre";
 const filtre = (actif) => `px-3 py-1.5 rounded-md text-[12.5px] border transition-colors ${actif ? "border-menthe text-menthe bg-menthe/[0.1]" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`;
 const dureeLisible = (s) => (s == null ? "—" : s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}` : `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`);
@@ -337,7 +337,7 @@ export default function SuiviAppels({ dansProspection = false }) {
         {data?.debut_mesures && !data?.remise_a_zero && <p className="m-0 mb-4 text-[12.5px] text-brume">Compté à partir du 13 octobre : avant, les appels étaient des essais.</p>}
         {/* Les vues en intercalaires de classeur, comme les listes de la Prospection (17 oct. 2026, Jules) : l'ouvert raccordé au panneau à points. */}
         <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <Filtres label="Les vues du suivi" valeur={vue} onChange={setVue} options={VUES.filter(([k]) => (k !== "retours" || (!dansProspection && retoursOuverts)) && (k !== "fiches" || !dansProspection)).map(([k, mot]) => [k, mot])} />
+          <Filtres label="Les vues du suivi" valeur={vue} onChange={setVue} options={VUES.filter(([k]) => (k !== "retours" || (!dansProspection && retoursOuverts))).map(([k, mot]) => [k, mot])} />
           <Filtres label="Période" valeur={jours} onChange={setJours} options={PERIODES.map(([j, mot]) => [j, mot])} />
         </div>
         <div data-zone="listes" className="pt-3">
@@ -369,7 +369,6 @@ export default function SuiviAppels({ dansProspection = false }) {
               <p className="m-0 mt-3 text-[12px] text-brume">Durée, enregistrement, notes, validation depuis la fenêtre, étapes ouvertes et corrections d'AK sont mesurés depuis le 9 octobre 2026 : avant, « — ». Un clic sur une personne ouvre ses appels.</p>
             </div>}
 
-            {vue === "fiches" && !dansProspection && <FichesParAnalyste jours={jours} />}
             {vue === "moi" && <VueMesAppels base={base} jours={jours} c={c} onJournal={voirJournalDe} />}
             {vue === "retours" && !dansProspection && <RetoursAnalystes jours={jours} />}
 

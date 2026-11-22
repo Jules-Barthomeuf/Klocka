@@ -11,6 +11,7 @@ import Chargement from "@/components/ui/Chargement";
 import { PastilleTest } from "@/components/mandataire/kit";
 import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 import VillesCotees from "@/components/clients/VillesCotees";
+import PhotoFiche, { usePhotosFiches } from "@/components/fiche-dossier/PhotoFiche";
 import { resumeVillesCotees } from "../../server/villes-cotees.js";
 
 // Les clients, côté équipe (16 oct. 2026, Jules) : la page Clients des
@@ -34,7 +35,19 @@ const avatarDe = (d) => {
   for (const c of String(d.id || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return `/avatars/client-${String((h % NB_AVATARS) + 1).padStart(2, "0")}.png`;
 };
-const Avatar = ({ d, taille = "h-[38px] w-[38px]" }) => <img src={avatarDe(d)} alt="" aria-hidden="true" className={`block flex-none rounded-full ${taille}`} />;
+// Sa photo quand on l'a importée (22 nov. 2026, Jules : « tous les clients doivent avoir une image qu'on importe »), sinon
+// le visage dessiné. Dans sa fiche, un clic sur la tête en importe une (PhotoFiche).
+const Avatar = ({ d, taille = "h-[38px] w-[38px]" }) => {
+  const { data: photos } = usePhotosFiches();
+  const photo = photos?.[`client:${d.id}`];
+  return <img src={photo || avatarDe(d)} alt="" aria-hidden="true" className={`block flex-none rounded-full object-cover ${taille}`} />;
+};
+
+/** La tête du client dans sa fiche : un clic importe sa photo. */
+function PhotoClient({ d }) {
+  const { data: photos } = usePhotosFiches();
+  return <PhotoFiche cle={`client:${d.id}`} nom={d.nom} photo={photos?.[`client:${d.id}`] || null} defaut={avatarDe(d)} taille={48} />;
+}
 
 function PastilleReseau({ d }) {
   return (
@@ -211,7 +224,7 @@ export function FicheClient({ id, onFermer, onAppel, onCrm = null }) {
           <div className="flex flex-col gap-4 border-b border-trait px-7 pb-5 pt-7 max-md:px-5 max-md:pt-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3.5">
-                <Avatar d={d} taille="h-12 w-12" />
+                <PhotoClient d={d} />
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="flex items-center text-[22px] font-medium text-encre max-md:text-[20px]">{d.nom}<PastilleTest x={d} /></span>
                   <span className="text-[13px] text-ardoise">{[d.email, d.telephone, quand(d.entre_le, "long") ? `client depuis le ${quand(d.entre_le, "long")}` : null].filter(Boolean).join(" · ")}</span>

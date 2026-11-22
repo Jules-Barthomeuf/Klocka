@@ -245,6 +245,16 @@ test("« ne rentre pas la fiche dans la plateforme » : aucun dossier, la fiche 
   assert.match(X.compteRendu(r).texte, /^Fiche mise en Mémoire \(3 rue de la République, Arles\) et dans les Propriétés de Twenty CRM, sans dossier\./);
 });
 
+test("un PDF qui porte quatre fiches : quatre biens en Mémoire, pas un (20 nov. 2026, Jules)", async () => {
+  const m = transfert({ objet: 'TR: Sélection murs Bretagne', texte: "---------- Forwarded message ---------\nDe : Paul Agent <paul@agence-vannes.fr>\nObjet : Sélection murs Bretagne\n", pieces_jointes: [piece('selection-4-fiches.pdf')] });
+  const lotA = (rue, ville, prix) => ({ lot: { adresse: { valeur: { rue, code_postal: '56000', ville } }, prix_fai: { valeur: prix } } });
+  const extraire = async () => ({ lots: [lotA('1 rue A', 'Vannes', 300000), lotA('2 rue B', 'Lorient', 410000), lotA('3 rue C', 'Auray', 220000), lotA('4 rue D', 'Quimper', 515000)], agent: null });
+  const r = await X.enMemoireSeulement(m, { membre: { email: 'maxime@klocka.immo' }, lu: { note: '', origine: { email: 'paul@agence-vannes.fr', nom: 'Paul Agent' } }, extraire, pousser: async () => ({ id: 'tw' }) });
+  assert.equal(r.n, 4);
+  assert.deepEqual(Records.filter('BienMemoire', { mail_recu_id: m.id }).map((b) => b.ville).sort(), ['Auray', 'Lorient', 'Quimper', 'Vannes']);
+  assert.equal(Records.get('MailRecu', m.id).memoire_ids.length, 4, 'le mail sait ses quatre biens : le compte les voit');
+});
+
 test('un dossier né du transfert : sa fiche en Mémoire et sa Propriété dans Twenty, tout de suite', async () => {
   const d = Records.create('Deal', { deal_id: 'deal-transfert', nom: 'Tabac · Sète', lots: [{ lot: { adresse: { valeur: { rue: '1 quai Aspirant Herber', ville: 'Sète' } }, prix_fai: { valeur: 300000 } } }], contact_agent_email: 'agent@sete.fr' });
   const r = await X.versMemoireEtTwenty(d, { email: 'nora@klocka.immo' }, { pousser: async () => ({ id: 'tw-2' }) });

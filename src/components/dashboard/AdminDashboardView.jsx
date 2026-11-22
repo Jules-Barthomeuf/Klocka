@@ -196,7 +196,7 @@ export default function AdminDashboardView() {
       {/* « Fiches », tout à gauche de la page, à la place de l'Agenda (19 nov. 2026, Jules) : les fiches récentes au
           survol. L'Agenda rejoint les boîtes, en haut à droite. */}
       {/* Le haut de la pilule à 16 px, sur celui des pilules de droite et du logo de la barre (19 nov. 2026, Jules). */}
-      {!conversation && <div className="absolute left-5 top-4 z-10 md:left-6"><PastilleFiches /></div>}
+      {/* 22 nov. 2026, Jules : « Fiches » rejoint « À faire », à sa gauche, en haut à droite ; plus rien en haut à gauche. */}
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
       <div className={scinde ? "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : enConversation ? "k-colonne-chat mx-auto h-[100dvh] min-h-0 w-full max-w-[860px] overflow-hidden px-5" : `mx-auto max-w-[1100px] px-5 md:px-8 ${conversation ? "" : "pt-4 max-md:pb-14"}`}>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -206,10 +206,11 @@ export default function AdminDashboardView() {
               <div className="flex min-h-[38px] items-center justify-end gap-3">
                 {/* « À faire » à la place de l'Agenda et des boîtes mail, passées dans les Paramètres (20 nov. 2026, Jules). */}
                 <div className={`flex items-center gap-2 ${coin ? "md:hidden" : ""}`}>
+                  <PastilleFiches droite />
                   <PastilleAFaire />
                 </div>
               </div>
-              {coin && createPortal(<PastilleAFaire />, coin)}
+              {coin && createPortal(<><PastilleFiches droite /><PastilleAFaire /></>, coin)}
             </>
           )}
           <PlanDeTravail

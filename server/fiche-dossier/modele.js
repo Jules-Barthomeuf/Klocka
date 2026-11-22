@@ -20,9 +20,13 @@ import { fileURLToPath } from 'url';
 import db, { Records } from '../db.js';
 import { noterSurLeBien } from '../deal/notes-equipe.js';
 import { ETAPES, donneesDuBien } from './dossier.js';
+import { photoDe } from '../photos-fiches.js';
+import { nomAgent } from '../nom-agent.js';
 
 export { ETAPES };
-const GENRES_ENTREE = ['note', 'evenement', 'maj', 'decision', 'negociation', 'ressenti', 'precision', 'action_faite', 'etape', 'projet'];
+// `profil`, `ecart`, `message` (22 nov. 2026) : comment parler à la personne, deux sources qui se contredisent, un message
+// envoyé (seul l'envoyé entre dans l'historique : un brouillon jamais parti n'affirme rien).
+const GENRES_ENTREE = ['note', 'evenement', 'maj', 'decision', 'negociation', 'ressenti', 'precision', 'action_faite', 'etape', 'projet', 'profil', 'ecart', 'message'];
 
 const propre = (t, n = 2000) => String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
 const jour = (d = new Date()) => {
@@ -92,7 +96,7 @@ export function objetDe(cle) {
   }
   if (type === 'agent') {
     const a = Records.get('AgentImmo', id);
-    return a ? { cle, genre: 'agent', nom: a.nom || [a.prenom, a.nom_famille].filter(Boolean).join(' ') || 'Agent', detail: [a.agence, a.ville].filter(Boolean).join(' · ') || null, lien: `/Prospection?agent=${id}` } : null;
+    return a ? { cle, genre: 'agent', nom: nomAgent(a.nom, a) || a.nom || 'Agent', detail: [a.agence, a.ville].filter(Boolean).join(' · ') || null, photo: a.photo || null, lien: `/Prospection?agent=${id}` } : null;
   }
   if (type === 'client') {
     const c = Records.get('DemandeClient', id);
@@ -174,7 +178,7 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
   const creees = { entrees: [], actions: [], fiches: [] };
   const entree = (cle, genre, texte, raison = null) => {
     if (!GENRES_ENTREE.includes(genre) || !propre(texte)) return;
-    creees.entrees.push(Records.create('EntreeDossier', { fiche_cle: cle, genre, texte: propre(texte), raison: raison ? propre(raison) : null, note_id: note.id, par, le, ordre: creees.entrees.length }).id);
+    creees.entrees.push(Records.create('EntreeDossier', { fiche_cle: cle, genre, texte: propre(texte), raison: raison ? propre(raison) : null, note_id: note.id, par, le, ordre: creees.entrees.length, ...(note.importe ? { importe: true, source: note.source?.genre || null } : {}) }).id);
   };
 
   // Les liens entre les fiches : les personnes d'un bien, les biens d'une personne.
@@ -205,7 +209,11 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
     if (fp.vendeur && fp.vendeur !== f.vendeur) patch.vendeur = fp.vendeur;
     // La position d'un client sur les biens de la note : portée par le lien, des deux côtés (la carte du dossier).
     if (fp.position) for (const b of biens) { poserPosition(b.cle, lien.cle, fp, le); poserPosition(lien.cle, b.cle, fp, le); }
+    if (fp.comment_parler && fp.genre !== 'bien' && (touchee || Object.keys(patch).length)) patch.comment_parler = fp.comment_parler;
     if (fp.resume && (touchee || Object.keys(patch).length)) patch.resume = fp.resume;
+    // Rempli par l'import (22 nov. 2026, Jules : « valider par fiche, pas fait par fait ») : la fiche attend la relecture
+    // de son analyste ; ses lignes portent l'étiquette « importé » jusque-là.
+    if (note.importe && (touchee || Object.keys(patch).length)) { patch.a_relire = true; patch.a_relire_par = relecteurDe(lien.cle); }
     if (touchee || Object.keys(patch).length) {
       Records.update('FicheDossier', f.id, { ...patch, maj_le: le, maj_par: par });
       creees.fiches.push(lien.cle);
@@ -228,8 +236,9 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
     for (const c of cibles) entree(c, 'precision', `${q.texte} Réponse : ${r}.`.replace(/\.\.$/, '.'));
   }
 
-  // Une fiche liée dont rien n'a été gardé garde au moins la note, pour que son journal la montre.
-  for (const l of liens) {
+  // Une fiche liée dont rien n'a été gardé garde au moins la note, pour que son journal la montre (pas pour un import :
+  // une source qui n'apprend rien sur la fiche ne l'encombre pas).
+  for (const l of note.importe ? [] : liens) {
     if (creees.entrees.some((id) => Records.get('EntreeDossier', id)?.fiche_cle === l.cle)) continue;
     entree(l.cle, 'note', p.titre || propre(note.texte, 160));
     Records.update('FicheDossier', fiche(l.cle, l).id, { maj_le: le, maj_par: par });
@@ -253,6 +262,9 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
     const membre = qui && qui !== 'moi' && qui !== 'assistant' ? membreDe(qui) : null;
     const brouillon = a.brouillon ? { ...a.brouillon, texte: propre(m.brouillon ?? a.brouillon.texte, 4000) } : null;
     creees.actions.push(Records.create('ActionDossier', {
+      ...(a.avant ? { avant: a.avant } : {}),
+      // Le brouillon tel que proposé : l'écart avec ce qui part, c'est ce que l'assistant apprend du style (22 nov. 2026).
+      ...(brouillon ? { brouillon_initial: a.brouillon.texte } : {}),
       titre: propre(m.titre ?? a.titre, 300),
       genre: a.genre || (brouillon ? brouillon.canal : 'tache'),
       pour: a.pour || null,
@@ -277,6 +289,8 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
     if (r?.ok) notesEquipe.push({ deal_id: r.deal_id, projet_id: r.projet_id, note_id: r.note.id });
   }
 
+  // Les règles de travail que la note énonce : gardées, puis proposées au Cerveau par la route (garderRegles).
+  creees.regles = (p.regles || []).filter((r) => garder(r.id)).map((r) => ({ texte: r.texte, portee: r.portee }));
   Records.update('NoteDossier', note.id, { etat: 'rangee', rangee_le: le, rangee_par: par, garde: Array.isArray(garde) ? garde : null, modifs, reponses, creees: { ...creees, notes_equipe: notesEquipe } });
   return { ok: true, note_id: note.id, ...compteDe(creees), fiches: [...new Set(creees.fiches.length ? creees.fiches : liens.map((l) => l.cle))].map((c) => ({ cle: c, nom: liens.find((l) => l.cle === c)?.nom || objetDe(c)?.nom })) };
 }
@@ -313,17 +327,80 @@ export function changerAction(id, { statut = null, echeance, titre = null, broui
       patch.faite_le = maintenant().toISOString();
       patch.faite_par = user?.email || null;
       // Fermée par la note qui rapporte l'appel (20 nov. 2026) : l'événement de la note dit déjà « Appel avec … ».
-      patch.entrees = journal ? (a.fiches || []).map((c) => Records.create('EntreeDossier', { fiche_cle: c, genre: 'action_faite', texte: `Fait : ${a.titre}`, note_id: a.note_id || null, action_id: a.id, par: user?.email || null, le: patch.faite_le }).id) : [];
+      // Un message envoyé entre dans l'historique avec ce qu'il dit (22 nov. 2026, Jules : « chaque message envoyé est un
+      // fait à garder : ce qu'on a dit au client ») ; et le style de l'auteur s'apprend de ce qu'il a envoyé.
+      const envoye = a.brouillon && ['whatsapp', 'mail'].includes(a.genre) ? String((brouillon != null ? brouillon : a.brouillon.texte) || '').trim() : '';
+      const ligne = envoye ? `${a.genre === 'mail' ? 'Mail' : 'Message WhatsApp'} envoyé${a.pour ? ` à ${a.pour}` : ''} : « ${propre(envoye, 1500)} »` : `Fait : ${a.titre}`;
+      patch.entrees = journal || envoye ? (a.fiches || []).map((c) => Records.create('EntreeDossier', { fiche_cle: c, genre: envoye ? 'message' : 'action_faite', texte: ligne, note_id: a.note_id || null, action_id: a.id, par: user?.email || null, le: patch.faite_le }).id) : [];
+      if (envoye) {
+        patch.envoye = envoye;
+        Records.create('MessageEnvoye', { par: String(user?.email || a.responsable || '').toLowerCase() || null, pour: a.pour || null, canal: a.genre, initial: a.brouillon_initial || a.brouillon.texte || null, texte: envoye, de_l_auteur: !!a.brouillon.de_l_auteur, retouche: !a.brouillon.de_l_auteur && String(a.brouillon_initial || a.brouillon.texte || '').trim() !== envoye, action_id: a.id, fiches: a.fiches || [], le: patch.faite_le });
+      }
     } else if (a.statut === 'faite') {
       for (const e of a.entrees || []) Records.delete('EntreeDossier', e);
+      for (const m of Records.filter('MessageEnvoye', { action_id: a.id })) Records.delete('MessageEnvoye', m.id);
       patch.entrees = [];
       patch.faite_le = null;
+      patch.envoye = null;
     }
   }
   if (echeance !== undefined) patch.echeance = echeance === null ? null : dateValide(echeance) || a.echeance;
   if (titre) patch.titre = propre(titre, 300);
   if (brouillon != null && a.brouillon) patch.brouillon = { ...a.brouillon, texte: String(brouillon).trim().slice(0, 4000) };
   return { ok: true, action: Records.update('ActionDossier', a.id, patch) };
+}
+
+/**
+ * Le style d'une personne (22 nov. 2026, Jules : « l'écart entre le brouillon et l'envoi, c'est l'apprentissage ») : ses
+ * derniers messages envoyés, et ceux où elle a retouché le brouillon de l'assistant (avant, après).
+ */
+export function styleDe(email, { n = 6, retouches = 3 } = {}) {
+  const moi = String(email || '').toLowerCase();
+  if (!moi) return null;
+  const siens = Records.filter('MessageEnvoye', { par: moi }).sort((a, b) => String(b.le).localeCompare(String(a.le)));
+  if (!siens.length) return null;
+  return {
+    envoyes: siens.slice(0, n).map((m) => ({ pour: m.pour, canal: m.canal, texte: m.texte })),
+    retouches: siens.filter((m) => m.retouche && m.initial).slice(0, retouches).map((m) => ({ initial: m.initial, texte: m.texte })),
+  };
+}
+
+/**
+ * Qui relit une fiche remplie par l'import (22 nov. 2026, Jules : « chaque analyste relit ses propres fiches, la relation
+ * agent-analyste est individuelle ») : pour un agent, la dernière personne qui l'a appelé ; pour un bien, le premier
+ * responsable du dossier ; sinon personne en particulier (toute l'équipe le voit).
+ */
+export function relecteurDe(cle) {
+  const c = String(cle || '');
+  if (c.startsWith('agent:')) {
+    const appels = Records.filter('AppelAgent', { agent_id: c.slice(6) }).filter((x) => x.par).sort((a, b) => String(b.le).localeCompare(String(a.le)));
+    return appels[0]?.par ? String(appels[0].par).toLowerCase() : null;
+  }
+  const o = objetDe(c);
+  const deal = o?.deal_id ? Records.findBy('Deal', 'deal_id', o.deal_id) : null;
+  const r = (deal?.responsables || []).map((x) => (typeof x === 'string' ? x : x?.email)).find(Boolean) || deal?.cree_par || null;
+  // Un responsable noté par son prénom (« jules ») : son adresse, sans quoi la fiche ne sortirait chez personne.
+  return r ? (membreDe(r)?.email || String(r).toLowerCase()) : null;
+}
+
+/** La fiche relue : ses lignes importées deviennent les siennes, l'étiquette tombe (22 nov. 2026). */
+export function validerFiche(cle, user, { maintenant = new Date() } = {}) {
+  const f = Records.findBy('FicheDossier', 'cle', String(cle || ''));
+  if (!f) return { ok: false, error: 'Fiche introuvable.' };
+  const le = maintenant.toISOString();
+  let n = 0;
+  for (const e of Records.filter('EntreeDossier', { fiche_cle: f.cle }).filter((x) => x.importe)) { Records.update('EntreeDossier', e.id, { importe: false, relue_le: le }); n += 1; }
+  Records.update('FicheDossier', f.id, { a_relire: false, relue_le: le, relue_par: user?.email || null });
+  return { ok: true, cle: f.cle, lignes: n };
+}
+
+/** Les fiches importées qui attendent une relecture : les siennes d'abord, puis celles sans relecteur. */
+export function aRelire(user, { limite = 60 } = {}) {
+  const moi = String(user?.email || '').toLowerCase();
+  const toutes = Records.filter('FicheDossier', { a_relire: true });
+  const rang = (f) => (f.a_relire_par === moi ? 0 : !f.a_relire_par ? 1 : 2);
+  return toutes.filter((f) => rang(f) < 2).sort((a, b) => rang(a) - rang(b) || String(a.nom).localeCompare(String(b.nom))).slice(0, limite)
+    .map((f) => ({ cle: f.cle, nom: f.nom, genre: f.genre, a_moi: f.a_relire_par === moi, lignes: Records.filter('EntreeDossier', { fiche_cle: f.cle }).filter((e) => e.importe).length }));
 }
 
 /**
@@ -375,6 +452,7 @@ export function retirerProchaineAction(id) {
 const actionLisible = (a) => ({
   id: a.id, titre: a.titre, qui: a.qui, responsable: a.responsable, responsable_prenom: prenomDe(a.responsable), echeance: a.echeance || null,
   statut: a.statut, genre: a.genre || (a.brouillon ? a.brouillon.canal : 'tache'), pour: a.pour || null, contexte: a.contexte || [], brouillon: a.brouillon || null, faite_le: a.faite_le || null, note_id: a.note_id || null,
+  avant: a.avant || null, envoye: a.envoye || null,
   fiches: (a.fiches || []).map((c) => ({ cle: c, nom: Records.findBy('FicheDossier', 'cle', c)?.nom || objetDe(c)?.nom || null })),
   telephone: ['appel', 'whatsapp'].includes(a.genre) ? telephoneDe(a.fiches, a.pour) : null,
 });
@@ -506,6 +584,7 @@ export function ficheVue(cle) {
   const f = Records.findBy('FicheDossier', 'cle', cle);
   const o = objetDe(cle);
   if (!f && !o) return null;
+  const photoPosee = photoDe(cle);
   const entrees = Records.filter('EntreeDossier', { fiche_cle: cle }).sort((a, b) => String(b.le).localeCompare(String(a.le)));
   const actions = actionsDe(cle);
   const ouvertes = actions.filter((a) => a.statut === 'ouverte').sort(parEcheance);
@@ -516,7 +595,7 @@ export function ficheVue(cle) {
   const journal = [];
   const vues = new Set();
   for (const e of entrees) {
-    if (e.genre === 'action_faite') { journal.push({ id: e.id, le: e.le, par: prenomDe(e.par), source: 'action', titre: e.texte, lignes: [{ genre: e.genre, texte: e.texte }] }); continue; }
+    if (e.genre === 'action_faite' || (e.genre === 'message' && e.action_id)) { journal.push({ id: e.id, le: e.le, par: prenomDe(e.par), source: 'action', titre: e.texte, lignes: [{ genre: e.genre, texte: e.texte }] }); continue; }
     const k = e.note_id || e.id;
     if (vues.has(k)) continue;
     vues.add(k);
@@ -526,8 +605,10 @@ export function ficheVue(cle) {
       // taxe foncière »), sinon le titre de la note (20 nov. 2026, Jules).
       id: k, le: n?.le || e.le, par: prenomDe(n?.par || e.par), source: 'note',
       titre: entrees.find((x) => (x.note_id || x.id) === k && x.genre === 'evenement')?.texte || n?.proposition?.titre || null,
-      lignes: entrees.filter((x) => (x.note_id || x.id) === k && !['action_faite', 'ressenti', 'evenement'].includes(x.genre)).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0)).map((x) => ({ genre: x.genre, texte: x.texte, raison: x.raison || null })),
-      brut: n?.texte || null,
+      lignes: entrees.filter((x) => (x.note_id || x.id) === k && !['action_faite', 'ressenti', 'evenement', 'profil'].includes(x.genre)).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0)).map((x) => ({ genre: x.genre, texte: x.texte, raison: x.raison || null })),
+      brut: n?.importe ? null : n?.texte || null,
+      importe: entrees.some((x) => (x.note_id || x.id) === k && x.importe),
+      origine: n?.source ? { genre: n.source.genre, de: n.source.de || null, lieu: n.source.lieu || null } : null,
     });
   }
   const derniere = journal[0] || null;
@@ -545,15 +626,22 @@ export function ficheVue(cle) {
   return {
     dossier: genre === 'bien' ? donneesDuBien(cle, { etape: f?.etape || null, entrees }) : null,
     carte: genre === 'bien' ? carteDuBien(cle, f) : null,
-    cle, genre, nom: f?.nom || o?.nom, lien: o?.lien || null, crm: o?.crm || null, detail: o?.detail || null,
+    cle, genre, nom: (genre === 'agent' && nomAgent(f?.nom || o?.nom)) || f?.nom || o?.nom, lien: o?.lien || null, crm: o?.crm || null, detail: o?.detail || null,
+    // La photo posée sur la fiche (importée, ou trouvée pour un agent : server/photos-fiches.js), sinon celle de l'agent.
+    photo: photoPosee?.url || o?.photo || null, photo_importee: photoPosee?.source === 'importee',
     etape: f?.etape || null, etat: f?.etat || null, etapes: ETAPES, resume: f?.resume || null, source: f?.source || null, blocage: f?.blocage || null, maj_le: f?.maj_le || null, maj_par: prenomDe(f?.maj_par),
+    // Comment lui parler (22 nov. 2026) : la synthèse, puis les profils notés, du plus récent au plus ancien.
+    comment_parler: f?.comment_parler || null,
+    profils: entrees.filter((e) => e.genre === 'profil').map((e) => ({ id: e.id, texte: e.texte, le: e.le, par: prenomDe(e.par), importe: !!e.importe })),
+    ecarts: entrees.filter((e) => e.genre === 'ecart').map((e) => ({ id: e.id, texte: e.texte, le: e.le })),
+    a_relire: !!f?.a_relire, a_relire_par: prenomDe(f?.a_relire_par), importees: entrees.filter((e) => e.importe).length,
     derniere: derniere ? { le: derniere.le, par: derniere.par, texte: derniere.lignes[0]?.texte || null } : null,
     prochaine: ouvertes[0] ? actionLisible(ouvertes[0]) : null,
     actions: ouvertes.map(actionLisible),
     faites: faites.slice(0, 20).map(actionLisible),
     decisions: entrees.filter((e) => e.genre === 'decision').map((e) => ({ id: e.id, texte: e.texte, raison: e.raison || null, le: e.le, par: prenomDe(e.par) })),
     // Les notes libres : les ressentis et impressions, hors de l'historique (19 nov. 2026, Jules).
-    notes: entrees.filter((e) => e.genre === 'ressenti').map((e) => ({ id: e.id, texte: e.texte, le: e.le, par: prenomDe(e.par) })),
+    notes: entrees.filter((e) => e.genre === 'ressenti').map((e) => ({ id: e.id, texte: e.texte, le: e.le, par: prenomDe(e.par), rangee: !!e.note_id })),
     liees,
     journal,
   };
@@ -653,6 +741,19 @@ export function noteEtRangement(id) {
 // ---------------------------------------------------------------------------
 
 /** Note qu'une personne a ouvert une fiche. */
+/**
+ * Une note écrite sur la fiche elle-même, dans l'onglet Notes (20 nov. 2026, Jules, maquette « Ajouter une note sur
+ * Sébastien ROBIC ») : gardée telle quelle, sans passer par l'assistant ; celles qu'il a rangées le disent.
+ */
+export function noterSurLaFiche(cle, texte, user, { maintenant = new Date() } = {}) {
+  const c = String(cle || '');
+  const t = propre(texte);
+  if (!t) return { ok: false, error: 'La note est vide.' };
+  if (!Records.findBy('FicheDossier', 'cle', c) && !objetDe(c)) return { ok: false, error: 'Fiche introuvable.' };
+  const e = Records.create('EntreeDossier', { fiche_cle: c, genre: 'ressenti', texte: t, note_id: null, par: user?.email || null, le: maintenant.toISOString() });
+  return { ok: true, note: { id: e.id, texte: e.texte, le: e.le, par: prenomDe(e.par), rangee: false } };
+}
+
 export function noterOuverture(cle, user, { maintenant = new Date() } = {}) {
   const par = String(user?.email || '').toLowerCase();
   if (!par || !cle) return;

@@ -6,12 +6,15 @@
 import { Records } from '../db.js';
 import { invokeLLM } from '../llm.js';
 import { mesurer } from '../llm-couts.js';
-import { ETAPES, contexteDe, dateValide, equipe, lienPropre, membreDe, prenomDe, prevuesDes, telephoneDe } from './modele.js';
+import { ETAPES, contexteDe, dateValide, equipe, lienPropre, membreDe, prenomDe, prevuesDes, styleDe, telephoneDe } from './modele.js';
 import { conversationLisible, cotes, lireConversation } from './whatsapp.js';
 
 const simple = (t) => String(t || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 const propre = (t, n = 1200) => String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
-const GENRES = ['evenement', 'maj', 'decision', 'negociation', 'ressenti'];
+// `profil` : comment parler à une personne (22 nov. 2026, Jules, sur les notes de Maxime : « les profils sont la vraie
+// richesse ») ; `ecart` : deux sources qui se contredisent, signalé au lieu d'être tranché en silence (l'import).
+const GENRES = ['evenement', 'maj', 'decision', 'negociation', 'ressenti', 'profil', 'ecart'];
+export const PORTEES_REGLE = ['prospection', 'dossiers', 'general'];
 const CANAUX = ['whatsapp', 'mail'];
 export const GENRES_ACTION = ['whatsapp', 'mail', 'appel', 'tache', 'attente'];
 // Les chiffres d'un bien qu'une note peut proposer de mettre à jour dans le projet, jamais sans accord (20 nov. 2026).
@@ -46,6 +49,7 @@ export const SCHEMA = {
       donnees: { type: 'array', items: { type: 'object', properties: { champ: { type: 'string', enum: Object.keys(CHAMPS_PROJET) }, valeur: { type: 'string' } }, required: ['champ', 'valeur'] } },
       blocage: { type: 'string' },
       resume: { type: 'string' },
+      comment_parler: { type: 'string' },
     }, required: ['lien', 'elements'] } },
     actions: { type: 'array', items: { type: 'object', properties: {
       genre: { type: 'string', enum: GENRES_ACTION },
@@ -55,11 +59,13 @@ export const SCHEMA = {
       qui: { type: 'string' },
       echeance: { type: 'string' },
       liens: { type: 'array', items: { type: 'string' } },
-      brouillon: { type: 'object', properties: { canal: { type: 'string', enum: CANAUX }, a: { type: 'string' }, objet: { type: 'string' }, texte: { type: 'string' } } },
+      avant: { type: 'string' },
+      brouillon: { type: 'object', properties: { canal: { type: 'string', enum: CANAUX }, a: { type: 'string' }, objet: { type: 'string' }, texte: { type: 'string' }, de_l_auteur: { type: 'boolean' } } },
     }, required: ['genre', 'titre', 'qui'] } },
     faites: { type: 'array', items: { type: 'object', properties: { action: { type: 'string' }, restees: { type: 'array', items: { type: 'string' } } }, required: ['action'] } },
     questions: { type: 'array', items: { type: 'object', properties: { texte: { type: 'string' }, lien: { type: 'string' } }, required: ['texte'] } },
     mentions: { type: 'array', items: { type: 'object', properties: { texte: { type: 'string' }, genre: { type: 'string', enum: ['bien', 'agent', 'client'] } }, required: ['texte', 'genre'] } },
+    regles: { type: 'array', items: { type: 'object', properties: { texte: { type: 'string' }, portee: { type: 'string', enum: PORTEES_REGLE } }, required: ['texte'] } },
   },
   required: ['nature', 'titre', 'fiches', 'actions', 'questions', 'mentions'],
 };
@@ -89,14 +95,19 @@ export function dejaDit(liens) {
   const biens = noms('bien');
   const lignes = [
     clients.length ? `- ${clients.length === 1 ? `Le client lié, ${clients[0]}, est celui dont parle la note` : `Les clients liés (${clients.join(', ')}) sont ceux dont parle la note`} : « leur offre », « ils », « elle », « le client », une visite, un avis, c'est ${clients.length === 1 ? 'lui' : 'eux'}. Une offre dont la note ne dit pas l'auteur vient de ${clients.length === 1 ? 'ce client' : 'ces clients'} : pose-la sur ${clients.length === 1 ? 'sa fiche' : 'leurs fiches'} (position, étape) sans demander de qui elle vient.` : null,
-    agents.length ? `- ${agents.length === 1 ? `L'agent lié, ${agents[0]}, est` : `Les agents liés (${agents.join(', ')}) sont`} celui qui a présenté le dossier dont parle la note et qui en donne les nouvelles. Un dossier que la note nomme et que sa fiche connaît (« la crèche », « le Basic Fit ») est celui-là : ne demande jamais si c'est bien lui.` : null,
+    agents.length ? `- ${agents.length === 1 ? `L'agent lié, ${agents[0]}, est` : `Les agents liés (${agents.join(', ')}) sont`} celui qui a présenté le dossier dont parle la note et qui en donne les nouvelles. Un dossier que la note nomme et que sa fiche connaît (« la crèche », « le Basic Fit ») est celui-là : ne demande jamais si c'est bien lui. « Le dossier », « l'offre », « les nouvelles » sans nom : le dossier que sa fiche dit en cours (une offre attendue, une pièce promise, une visite) ; s'il n'y en a qu'un, c'est lui, sans le faire confirmer.` : null,
     biens.length ? `- ${biens.length === 1 ? `Le dossier lié, ${biens[0]}, est` : `Les dossiers liés (${biens.join(', ')}) sont`} celui dont parle la note, sauf si elle en nomme clairement un autre.` : null,
   ].filter(Boolean);
   return lignes.length ? `\nCe que les liens disent déjà, à ne jamais demander :\n${lignes.join('\n')}\n` : '';
 }
 
 /** La consigne : la date, l'auteur, l'équipe, les fiches liées avec ce qu'on en sait déjà, puis la note. */
-export function consigne(texte, liens, user, { maintenant = new Date(), conversation = null, ajout = null, connus = [], prevues = [], suite = null, transcription = false } = {}) {
+/**
+ * `libre` (22 nov. 2026) : une note collée sans « Lier » ; les fiches sont devinées par ses noms, le modèle n'y range
+ * que ce qui en parle. `source` : une source passée importée en lot ({ genre, de, le, lieu }), rangée sans OK, datée
+ * de son jour. `style` : les derniers messages envoyés par l'auteur, et ce qu'il a changé dans les brouillons.
+ */
+export function consigne(texte, liens, user, { maintenant = new Date(), conversation = null, ajout = null, connus = [], prevues = [], suite = null, transcription = false, libre = false, source = null, style = null } = {}) {
   const auteur = prenomDe(user?.email) || 'la personne';
   const collegues = equipe().map((p) => p.prenom).filter((p) => p !== auteur);
   const conv = conversation ? conversationLisible(conversation, LIMITE_CONVERSATION) : null;
@@ -114,7 +125,11 @@ export function consigne(texte, liens, user, { maintenant = new Date(), conversa
     if (c?.decisions?.length) lignes.push(`  décisions passées : ${c.decisions.join(' ; ')}`);
     return lignes.join('\n');
   }).join('\n');
-  const entete = conv
+  const deQui = source?.de || auteur;
+  const entete = source
+    ? `Voici ${conv ? `une conversation WhatsApp (${conversation.messages.length} messages, du ${jour(conversation.du)} au ${jour(conversation.au)})` : `un message de ${deQui} du ${jour(source.le)}`}${source.lieu ? ` (${source.lieu})` : ''}, importé en lot pour remplir les fiches. C'est une source passée : tu ranges ce qu'elle apprend, daté de son jour ; rien n'est demandé à personne, l'analyste relira la fiche ensuite.${conv ? `\nQui parle : ${[qui.nous.length ? `de notre côté (équipe Klocka) : ${qui.nous.join(', ')}` : null, qui.eux.length ? `en face : ${qui.eux.join(', ')}` : null, qui.autres.length ? `à reconnaître : ${qui.autres.join(', ')}` : null].filter(Boolean).join(' ; ')}. Ce que dit la personne en face est un fait sur elle ou sur le dossier ; ce que nous lui avons écrit n'est pas un fait appris, sauf un engagement pris. Date les faits qui comptent avec le jour du message.` : ''}
+`
+    : conv
     ? `${auteur} a collé une conversation WhatsApp (${conversation.messages.length} messages, du ${jour(conversation.du)} au ${jour(conversation.au)}) et l'a liée à des fiches. Tu ranges ce qu'elle apprend ; rien n'est enregistré avant son OK.
 Qui parle : ${[qui.nous.length ? `de notre côté (équipe Klocka) : ${qui.nous.join(', ')}` : null, qui.eux.length ? `en face (les personnes liées) : ${qui.eux.join(', ')}` : null, qui.autres.length ? `à reconnaître : ${qui.autres.join(', ')} (celui qui écrit au nom de Klocka est sans doute ${auteur} ; les autres sont en face)` : null].filter(Boolean).join(' ; ')}.
 Lire une conversation : ce que dit la personne en face est un fait sur elle ou sur le dossier (« selon Alexandre, … ») ; ce que nous lui avons écrit n'est pas un fait appris, sauf un engagement pris. Date les faits qui comptent avec le jour du message (« le 12 nov., Alexandre a promis le bail pour vendredi »). Ne recopie pas la conversation : garde ce qu'un collègue doit savoir. Les actions : ce qui reste ouvert à la fin (une promesse non tenue, une question sans réponse, une pièce attendue). Un message WhatsApp proposé fait suite au dernier message, sur le ton de la conversation (tutoiement si elle tutoie). Le ressenti sur la personne se tire de sa façon de répondre (délais, précision, ton).
@@ -131,11 +146,14 @@ Lire une conversation : ce que dit la personne en face est un fait sur elle ou s
 Aujourd'hui : ${JOURS[maintenant.getDay()]} ${iso(maintenant)}. Auteur : ${auteur}. Ses collègues : ${collegues.join(', ') || 'aucun'}.
 Étapes habituelles d'un dossier, des repères et pas une liste fermée : ${ETAPES.join(', ')}.
 
-Fiches liées :
-${fiches}
-${dejaDit(liens)}${prevues.length ? `\nActions déjà prévues, encore ouvertes :\n${prevues.map((a) => `${a.ref} : ${a.titre}${a.echeance ? ` (pour le ${a.echeance})` : ''}${a.contexte.length ? `\n${a.contexte.map((q) => `    - ${q}`).join('\n')}` : ''}`).join('\n')}\n` : ''}${suivie ? `\n${transcription ? 'Cet enregistrement' : 'Cette note'} est le compte rendu de l'action ${suivie.ref}, prise depuis sa fiche d'appel : mets-la dans faites, sauf si la note dit que personne n'a répondu.\n` : ''}${connus.length ? `\nPersonnes que la note nomme, connues de Klocka sans être liées (ne demande jamais qui elles sont ; si deux portent le même prénom, tu peux demander laquelle) :\n${connus.map((c) => `- ${c.nom} : ${GENRE_LISIBLE[c.genre] || c.genre}${c.detail && c.detail !== 'Twenty CRM' ? ` (${c.detail})` : ''}`).join('\n')}\n` : ''}
+${libre ? 'Fiches que les noms de la note évoquent (devinées)' : 'Fiches liées'} :
+${fiches || '(aucune)'}
+${libre ? '' : dejaDit(liens)}${prevues.length ? `\nActions déjà prévues, encore ouvertes :\n${prevues.map((a) => `${a.ref} : ${a.titre}${a.echeance ? ` (pour le ${a.echeance})` : ''}${a.contexte.length ? `\n${a.contexte.map((q) => `    - ${q}`).join('\n')}` : ''}`).join('\n')}\n` : ''}${suivie ? `\n${transcription ? 'Cet enregistrement' : 'Cette note'} est le compte rendu de l'action ${suivie.ref}, prise depuis sa fiche d'appel : mets-la dans faites, sauf si la note dit que personne n'a répondu.\n` : ''}${connus.length ? `\nPersonnes que la note nomme, connues de Klocka sans être liées (ne demande jamais qui elles sont ; si deux portent le même prénom, tu peux demander laquelle) :\n${connus.map((c) => `- ${c.nom} : ${GENRE_LISIBLE[c.genre] || c.genre}${c.detail && c.detail !== 'Twenty CRM' ? ` (${c.detail})` : ''}`).join('\n')}\n` : ''}
 Règles :
-- nature : ${conv ? "« note », toujours : une conversation collée n'est jamais une demande, même si elle finit sur une question." : "« demande » seulement si le texte demande à l'assistant de faire ou de répondre quelque chose maintenant (une question, « fais la LOI », « prépare le mail »). Une note qui contient des choses à faire reste une « note »."}
+- nature : ${conv ? "« note », toujours : une conversation collée n'est jamais une demande, même si elle finit sur une question." : source ? "« note », toujours." : "« demande » seulement si le texte demande à l'assistant de faire ou de répondre quelque chose maintenant (une question, « fais la LOI », « fais l'analyse »). Une demande d'écrire à quelqu'un (« réponds à Étienne sur la fissure », « fais le mail à l'agent pour les PV d'AG ») est une « note » : tu écris le message (voir Les messages). Une note qui contient des choses à faire reste une « note »."}
+- Une note peut tout mêler (22 nov. 2026, Jules : les notes de Maxime) : plusieurs dossiers, des choses à faire, des messages, des faits, des profils, sans date ni rattachement. Découpe-la en morceaux et range chacun là où il va.${libre ? `
+- Les fiches ci-dessus sont DEVINÉES par les noms de la note : personne ne les a choisies. Range un morceau sur l'une d'elles seulement si ce morceau en parle vraiment (son nom, son adresse, sa ville, une personne qui y est liée). Un morceau dont rien ne dit de quel dossier ou de quelle personne il parle (des chiffres sans nom de bien juste après un autre dossier, une personne qu'on ne sait pas classer client ou agent) : ne le range nulle part, pose la question (« Le droit d'entrée de 30 k€ et les 318 k€ FAI : c'est quel bien ? », « Sarra Gendre : cliente ou agente ? »). Les variantes d'un même nom (Matis, Matiss) sont la même personne. Un dossier ou une personne nommés qui ne sont pas parmi ces fiches : dans mentions.` : ''}${source ? `
+- Une source passée (l'import) : les consignes qu'elle donne (« relance Sougiron », « tiens Paul informé », « rentre le dossier ») sont passées ; ce ne sont pas des actions : écris-les en evenement ou maj datés (« Le 30 oct., Nora demande de relancer Sougiron, qui a lu sans répondre »). actions : une liste vide. questions : une liste vide ; ce qui est incertain s'écrit sans le détail incertain, ou pas du tout. Ce qui ne touche aucun dossier ni aucune personne (un souci de la plateforme, une plaisanterie, l'organisation de l'équipe) : rien. Un fait qui contredit ce que la fiche sait déjà : garde le plus récent, et ajoute un élément ecart qui dit les deux (« Écart : le récap du 30 oct. dit 280 à 300 k€, la fiche disait 320 k€ »).` : ''}
 - fiches : une entrée par fiche liée touchée par la note (lien = L1, L2…). Dans elements :
   - evenement : ce qui s'est passé, vu de cette fiche, en une ligne sans date (la date est celle de la note) : c'est la ligne de l'historique de la fiche. « Appel avec Sébastien Robic à propos de la taxe foncière », « Visio de présentation de Comtesse du Barry », « Présentation à Adrien Mina et Claire Dumas », « Demande de documents par la banque », « Thomas Nguyen ne poursuit pas : rendement trop bas », « Annonce d'un local à Vannes par Sébastien Robic », « Visite avec Rachel », « Coralie reprend le dossier », « Dossier mis en stand-by ». Un seul par fiche touchée, sur chaque fiche touchée, dès que la note rapporte un échange qui a eu lieu, une visite faite, une décision ou un changement ; aucun si elle ne rapporte rien qui se soit passé.
   Une note qui prépare un appel ou un message (des questions à poser, ce qu'on va dire : « est-ce que vos honoraires sont inclus ? », « le loyer HC HT ? ») n'est pas un échange : aucun événement, aucun fait, rien dans l'historique (20 nov. 2026, Jules). Elle donne une action « appel » vers la personne (ou « whatsapp » si elle répond mieux par message), avec en contexte chaque question telle qu'elle sera posée et ce qu'on doit lui dire ; l'avis qu'on a sur un dossier (« crèche intéressante avec négociation ») est un ressenti sur ce dossier s'il est lié, sinon sur la fiche de la personne, et devient aussi un point à dire pendant l'appel (« Lui dire que la crèche nous intéresse, sous réserve de négociation »).
@@ -157,19 +175,27 @@ Règles :
   - qui : « assistant » pour un message ou un mail que tu as écrit ; « moi » pour ${auteur} ; le prénom d'un collègue si la note dit que c'est à lui de faire.
   - echeance : la date ISO si la note en donne une (« lundi », « demain », « avant vendredi »), sinon rien. N'invente pas de date.
   - liens : les fiches concernées (L1…) ; une liste vide si l'action parle d'un dossier qui n'est pas lié (il va alors dans mentions).
+- Les messages (22 nov. 2026, Jules : « que Maxime écrive ou demande, on arrive au même endroit »), trois cas, sans demander lequel :
+  - un message écrit par ${auteur} à quelqu'un (« Bonjour à tous, voici un point sur… », une réponse à un client) : une action whatsapp ou mail ; brouillon.texte = son message MOT POUR MOT, de_l_auteur = vrai ; qui = moi ; pour = le destinataire si on le sait. Il n'entre dans l'historique qu'une fois envoyé : aucun evenement pour lui. Les faits qu'il apprend (« l'ensemble des travaux a été réalisé, mainlevée de l'arrêté ») vont en maj sur la fiche.
+  - une demande d'écrire (« réponds à Étienne sur la fissure de Montauban », « fais le mail à l'agent pour les PV d'AG ») : une action whatsapp ou mail, avec le brouillon que tu rédiges à partir de ce que les fiches savent, dans le style de ${auteur}${style?.envoyes?.length ? ' (ses messages ci-dessous)' : ''} ; qui = assistant. Rien dans l'historique.
+  - un message reçu collé (la question d'un client, d'un agent), avec ou sans « réponds » : ce que la personne demande ou dit est un evenement ou une maj sur sa fiche (« Adrien Mina demande pourquoi les frais de notaire passent de 9 200 à 10 400 € ») ; si la note demande de répondre, le brouillon de la réponse en action.
+- avant : une action qui doit être faite avant une étape (« avant de faire signer Tony et sa femme, rappeler Matis pour les PV d'AG ») : avant = l'étape qu'elle conditionne, en quelques mots (« la signature de la LOI de Tony Pitiot ») ; et sur la fiche du bien, blocage = « Avant la signature de la LOI : rappeler Matis pour les PV d'AG ».
+- profil : sur la fiche d'une personne, ce qui dit comment lui parler et lui présenter un dossier : son métier et sa façon de raisonner (« banquier à la SG, raisonne en gestion du risque »), ce qu'il vise (« vise une offre à 340 k€ »), sa présence (« pas sur place »), le ton (tutoiement). C'est le plus précieux, ne le manque jamais ; un ressenti sur une personne qui dit comment lui parler est un profil. comment_parler : la synthèse à jour de comment lui parler, deux à quatre phrases, faite de ce qu'on savait et de la note (seulement si la note apprend quelque chose là-dessus). Un profil ne dit que ce que le texte montre : pas de métier, de situation ni de trait deviné.
+- La vie privée (22 nov. 2026, Jules, sur ses groupes WhatsApp) : rien sur la santé, la famille, un divorce, la religion ou les opinions d'une personne, même quand elle le raconte. Écris seulement ce que ça change au dossier (« en pause pour raisons personnelles », « doit fournir une pièce d'état civil »).
+- regles : une leçon ou une règle de travail que la note énonce, valable au-delà de ce dossier (« lors de la prospection, demander le contexte de la vente ») ; portee : prospection, dossiers ou general. Ce n'est pas un fait sur un dossier.
 - faites : les actions déjà prévues (A1…) que la note montre faites (20 nov. 2026, Jules) : l'appel a eu lieu avec la personne (même s'il n'a pas répondu à tout), le message est parti, la pièce attendue est arrivée, la tâche est faite. Une note qui prépare l'appel ne le fait pas ; un appel sans réponse (« pas de réponse », « messagerie », « il ne décroche pas ») non plus. restees : les questions de cette action, écrites comme dans la liste, auxquelles la note n'apporte pas de réponse ; une liste vide si tout est répondu. Ne propose pas d'action pour reposer ces questions : elles passent d'office sur la prochaine relance de la personne. Ne repropose pas une action déjà prévue et encore ouverte.
-- questions : seulement ce qui manque vraiment pour bien ranger et que les fiches liées ne disent pas (une personne inconnue, un montant flou, une date qui compte). Les fiches liées répondent d'abord (20 nov. 2026, Jules : « j'ai déjà lié les clients et l'agent, c'est bête de me redemander ça ») : une offre, une visite, un avis viennent d'un client lié (s'il n'y en a qu'un, c'est lui) ; ce que dit l'agent vient de l'agent lié ; le bien dont on parle est le bien lié. Jamais « qui est X », « de qui vient l'offre » ou « de quel dossier » quand une fiche liée y répond. Dans le doute, écris le fait sans le détail incertain plutôt que de deviner. Autant qu'il en faut, aucune si tout est clair. Jamais de choix proposés : une question ouverte, à laquelle on répond dans le chat avec ses mots (un choix deviné, « offre Klocka », ne veut rien dire). lien : la fiche visée.
+- questions : seulement ce qui manque vraiment pour bien ranger et que les fiches liées ne disent pas (une personne inconnue, un montant flou, une date qui compte). Les fiches liées répondent d'abord (20 nov. 2026, Jules : « j'ai déjà lié les clients et l'agent, c'est bête de me redemander ça ») : une offre, une visite, un avis viennent d'un client lié (s'il n'y en a qu'un, c'est lui) ; ce que dit l'agent vient de l'agent lié ; le bien dont on parle est le bien lié. Jamais « qui est X », « de qui vient l'offre » ou « de quel dossier » quand une fiche liée y répond. Dans le doute, écris le fait sans le détail incertain plutôt que de deviner. Jamais une question pour faire confirmer ce que tu sais déjà (« est-ce bien l'offre MACSF ? », « c'est bien le 30 novembre ? ») ni pour faire préciser ce que la note dit déjà (elle dit « lundi ou plus tard » : le fait est « lundi ou plus tard », 20 nov. 2026, Jules : « ça me dit est-ce que c'est bien ce dossier alors que je l'ai déjà coché »). Autant qu'il en faut, aucune si tout est clair. Jamais de choix proposés : une question ouverte, à laquelle on répond dans le chat avec ses mots (un choix deviné, « offre Klocka », ne veut rien dire). lien : la fiche visée.
 - mentions : les dossiers, agents ou clients nommés dans la note qui ne sont pas parmi les fiches liées (texte = le nom tel qu'écrit). Jamais un collègue de l'équipe ni l'auteur.
 - titre : la note en une ligne, quatre-vingts caractères au plus.
 
-${ajout ? `Ce que ${auteur} écrit en l'important (à suivre en priorité) : « ${String(ajout).slice(0, 4000)} »\n\n` : ''}${conv ? 'La conversation (un message par ligne : date, qui, texte)' : 'La note'} :
+${style?.envoyes?.length ? `Les derniers messages envoyés par ${auteur}, pour écrire comme lui (ton, longueur, tutoiement selon la personne) :\n${style.envoyes.map((m) => `- à ${m.pour || 'quelqu\'un'} (${m.canal}) : « ${String(m.texte).slice(0, 500)} »`).join('\n')}\n${style.retouches?.length ? `Ce qu'il a changé dans tes brouillons avant de les envoyer (fais comme la version envoyée) :\n${style.retouches.map((m) => `- proposé : « ${String(m.initial).slice(0, 300)} »\n  envoyé : « ${String(m.texte).slice(0, 300)} »`).join('\n')}\n` : ''}\n` : ''}${ajout ? `Ce que ${auteur} écrit en l'important (à suivre en priorité) : « ${String(ajout).slice(0, 4000)} »\n\n` : ''}${conv ? 'La conversation (un message par ligne : date, qui, texte)' : 'La note'} :
 """
 ${conv ? conv.texte : String(texte || '').slice(0, transcription ? 42000 : 12000)}
 """`;
 }
 
 /** La réponse du modèle, ramenée à ce que l'écran affiche et que le rangement accepte. Les ids sont posés ici. */
-export function normaliser(brut, liens, { auteur = null, connus = [], prevues = [] } = {}) {
+export function normaliser(brut, liens, { auteur = null, connus = [], prevues = [], libre = false, source = null } = {}) {
   const r = brut && typeof brut === 'object' ? brut : {};
   const cleDe = (x) => {
     const m = /^L(\d+)$/i.exec(String(x || '').trim());
@@ -187,11 +213,20 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
       .filter((e) => e.texte)
       // Un ressenti vaut sur un dossier comme sur une personne (19 nov. 2026, Jules : l'onglet Notes de toutes les fiches).
       .map((e) => ({ ...e, raison: e.genre === 'decision' ? e.raison : null }))
+      // Un profil posé sur un bien (l'acquéreur sans fiche à lui) va dans les Notes du bien, où il se lit.
+      .map((e) => (e.genre === 'profil' && lien.genre === 'bien' ? { ...e, genre: 'ressenti' } : e))
       .map((e) => ({ id: id('e'), ...e }));
     // L'étape est celle que la note dit (« Offre »), pas forcément une case de la plateforme (19 nov. 2026, Jules).
     // Le client aussi a son avancement (« En recherche », « Projet présenté »), 20 nov. 2026, Jules.
-    const etape = lien.genre === 'bien' || lien.genre === 'client' ? propre(f.etape, 40).replace(/^étape\s*:?\s*/i, '') || null : null;
-    const etat = etape ? propre(f.etat, 90) || null : null;
+    let etape = lien.genre === 'bien' || lien.genre === 'client' ? propre(f.etape, 80).replace(/^étape\s*:?\s*/i, '') || null : null;
+    let etat = etape ? propre(f.etat, 90) || null : null;
+    // Une étape en phrase (« Compromis en attente de l'accord de la banque », import du 22 nov. 2026) : l'étape habituelle
+    // qui l'ouvre, le reste dans l'état.
+    if (etape && etape.split(/\s+/).length > 3) {
+      const connue = ETAPES.find((n) => etape.toLowerCase().startsWith(n.toLowerCase()));
+      if (connue) { const reste = etape.slice(connue.length).replace(/^[\s,:·-]+/, ''); etat = etat || propre(reste, 90) || null; etape = connue; }
+    }
+    etape = etape ? etape.slice(0, 40) : null;
     const position = lien.genre === 'client' && POSITIONS.includes(f.position) ? f.position : null;
     const positionDetail = position ? propre(f.position_detail, 50) || null : null;
     const vendeur = lien.genre === 'bien' ? propre(f.vendeur, 80) || null : null;
@@ -201,7 +236,8 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
       .filter((d) => CHAMPS_PROJET[d?.champ] && propre(d.valeur, 120))
       .filter((d, i, t) => t.findIndex((x) => x.champ === d.champ) === i)
       .map((d) => ({ champ: d.champ, valeur: propre(d.valeur, 120) })) : [];
-    fiches.push({ donnees, id: id('f'), cle, nom: lien.nom, genre: lien.genre, elements, etape, etat, position, position_detail: positionDetail, vendeur, ...(blocage !== undefined && lien.genre === 'bien' ? { blocage } : {}), resume: propre(f.resume, 1500) || null });
+    const commentParler = lien.genre !== 'bien' ? propre(f.comment_parler, 700) || null : null;
+    fiches.push({ donnees, id: id('f'), cle, nom: lien.nom, genre: lien.genre, elements, etape, etat, position, position_detail: positionDetail, vendeur, ...(blocage !== undefined && lien.genre === 'bien' ? { blocage } : {}), resume: propre(f.resume, 1500) || null, comment_parler: commentParler });
   }
   const biens = liens.filter((l) => l.genre === 'bien').map((l) => l.cle);
   const actions = (Array.isArray(r.actions) ? r.actions : []).map((a) => {
@@ -212,6 +248,7 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
       a: propre(a.brouillon.a, 120) || null,
       objet: propre(a.brouillon.objet, 160) || null,
       texte: String(a.brouillon.texte || '').trim().slice(0, 4000),
+      ...(a.brouillon.de_l_auteur ? { de_l_auteur: true } : {}),
     } : null;
     let genre = GENRES_ACTION.includes(a?.genre) ? a.genre : (b ? b.canal : 'tache');
     if (b && genre !== b.canal) genre = b.canal;
@@ -219,11 +256,17 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
     const contexte = (Array.isArray(a?.contexte) ? a.contexte : a?.contexte ? [a.contexte] : []).map((c) => propre(c, 240)).filter(Boolean).slice(0, 10);
     const q = String(a?.qui || '').trim().toLowerCase();
     const membre = q && q !== 'moi' && q !== 'assistant' ? membreDe(q) : null;
-    const qui = q === 'assistant' && b ? 'assistant' : membre && membre.email !== String(auteur || '').toLowerCase() ? membre.prenom : 'moi';
+    // Un message écrit par l'auteur lui-même reste le sien (22 nov. 2026) : à lui de l'envoyer, tel quel.
+    const qui = b?.de_l_auteur ? 'moi' : q === 'assistant' && b ? 'assistant' : membre && membre.email !== String(auteur || '').toLowerCase() ? membre.prenom : 'moi';
     const cles = (Array.isArray(a?.liens) ? a.liens : []).map(cleDe).filter(Boolean);
     // Une liste vide dite par le modèle : l'action ne touche aucune fiche liée. Rien de dit : les biens liés.
-    return { id: id('a'), genre, titre, qui, pour: propre(a?.pour || b?.a, 120) || null, contexte, echeance: dateValide(a?.echeance), fiches: cles.length ? [...new Set(cles)] : Array.isArray(a?.liens) ? [] : biens, brouillon: b };
+    // Une action qui conditionne une étape (« avant de faire signer, rappeler Matis ») : l'étape qu'elle précède.
+    const avant = propre(a?.avant, 160) || null;
+    return { id: id('a'), genre, titre, qui, pour: propre(a?.pour || b?.a, 120) || null, contexte, echeance: dateValide(a?.echeance), fiches: cles.length ? [...new Set(cles)] : Array.isArray(a?.liens) || libre ? [] : biens, brouillon: b, ...(avant ? { avant } : {}) };
   }).filter(Boolean);
+  // Une source passée importée ne crée ni action ni question (22 nov. 2026) : ses consignes sont de l'histoire, et
+  // personne n'est là pour répondre.
+  if (source) actions.length = 0;
   // Les actions prévues que la note a faites (20 nov. 2026, Jules) : proposées fermées, à décocher ; les questions
   // restées sans réponse passent sur la prochaine relance de la même personne, ou sur une relance à programmer.
   const faites = [];
@@ -256,7 +299,10 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
     const nom = simple(m[1]);
     return deja.some((d) => d.includes(nom) || nom.includes(d) || d.split(/\s+/)[0] === nom.split(/\s+/)[0]);
   };
-  const questions = (Array.isArray(r.questions) ? r.questions : []).filter((q) => !sansObjet(String(q?.texte || ''))).map((q) => {
+  // « Est-ce bien l'offre MACSF ? », « c'est bien le 30 novembre ? » (20 nov. 2026, Jules) : une confirmation de ce qui est
+  // déjà su, jamais posée.
+  const confirmation = (texte) => /\b(est-ce bien|c'est bien|s'agit-il bien|(?:est|sont)-(?:ils?|elles?) bien|bien (?:celle|celui|ceux|celles) (?:de|du|des|présenté|présentée|dont))\b/i.test(texte.replace(/[’]/g, "'"));
+  const questions = (Array.isArray(r.questions) ? r.questions : []).filter((q) => !sansObjet(String(q?.texte || '')) && !confirmation(String(q?.texte || ''))).map((q) => {
     const texte = propre(q?.texte, 300);
     // Pas de choix devinés (20 nov. 2026, Jules : « je préfère que tu mettes rien plutôt qu'un truc faux ») : on répond dans le chat.
     return texte ? { id: id('q'), texte, choix: [], fiche: cleDe(q?.lien) } : null;
@@ -275,7 +321,17 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
     .map((m) => ({ texte: propre(m?.texte, 120), genre: ['bien', 'agent', 'client'].includes(m?.genre) ? m.genre : 'bien' }))
     .filter((m) => m.texte && !collegues.has(m.texte.toLowerCase()) && !nomsLies.some((x) => x.includes(m.texte.toLowerCase())))
     .slice(0, 6);
-  return { nature: r.nature === 'demande' ? 'demande' : 'note', titre: propre(r.titre, 100) || null, fiches, faites, actions, questions, mentions };
+  const regles = (Array.isArray(r.regles) ? r.regles : [])
+    .map((x) => ({ texte: propre(x?.texte, 300), portee: PORTEES_REGLE.includes(x?.portee) ? x.portee : 'general' }))
+    .filter((x) => x.texte).slice(0, 5).map((x) => ({ id: id('r'), ...x }));
+  const sansQuestions = source ? [] : questions;
+  const prop = { nature: r.nature === 'demande' && !source ? 'demande' : 'note', titre: propre(r.titre, 100) || null, fiches, faites, actions, questions: sansQuestions, mentions, regles };
+  // Une note libre : seules les fiches devinées dont un morceau parle restent liées.
+  if (libre) {
+    const utiles = new Set([...fiches.map((f) => f.cle), ...actions.flatMap((a) => a.fiches || []), ...sansQuestions.map((q) => q.fiche).filter(Boolean)]);
+    prop.liens_utiles = liens.filter((l) => utiles.has(l.cle)).map((l) => l.cle);
+  }
+  return prop;
 }
 
 /** Des fiches qui pourraient être celles qu'une mention désigne, pour la lier d'un clic. */
@@ -295,14 +351,37 @@ async function candidats(mentions, user) {
  * Lit la note et garde la proposition, sans rien ranger. Rend `{ nature: 'demande' }` quand le texte est une demande
  * à l'assistant : l'écran l'envoie alors au chat, avec le dossier lié en contexte.
  */
-export async function proposer({ texte, liens = [], conversation: importee = null, action_id: suite = null, transcription = false }, user, { maintenant = new Date(), lire = null, surEtape = () => {} } = {}) {
+/**
+ * Les fiches qu'une note sans lien évoque (22 nov. 2026, Jules : « Maxime ne cliquera pas sur Lier à chaque note ») : les
+ * sûres et les hésitantes de « Lier », sans IA ; le modèle ne garde que celles dont un morceau parle.
+ */
+export async function fichesDevinees(texte, user, { noms = [], limite = 12 } = {}) {
+  const { suggererPourLier } = await import('./chercher.js');
+  const r = await suggererPourLier({ texte: String(texte || '').slice(0, 12000), noms }, user, { equipe: equipe().map((p) => p.prenom) });
+  const toutes = [...(r.surs || []), ...(r.choix || []).flatMap((c) => c.options || [])];
+  return toutes.map(lienPropre).filter(Boolean).filter((l, i, a) => a.findIndex((x) => x.cle === l.cle) === i).slice(0, limite);
+}
+
+export async function proposer({ texte, liens = [], conversation: importee = null, action_id: suite = null, transcription = false, libre = false, source = null, vous = null }, user, { maintenant = new Date(), lire = null, surEtape = () => {} } = {}) {
   const t = String(texte || '').trim();
   const brute = String(importee || '').trim();
   if (!t && !brute) return { ok: false, error: 'La note est vide.' };
-  const conversation = lireConversation(brute || t);
+  // « Vous » dans un export : la personne qui l'a exporté (celle qui importe, sauf si l'import dit qui).
+  const conversation = lireConversation(brute || t, { vous: vous || user?.full_name || null });
   if (brute && !conversation) return { ok: false, error: "Ce fichier n'est pas une conversation WhatsApp exportée." };
-  const lies = (Array.isArray(liens) ? liens : []).map(lienPropre).filter(Boolean).filter((l, i, a) => a.findIndex((x) => x.cle === l.cle) === i).slice(0, 8);
-  if (!lies.length) return { ok: false, error: 'Liez la note à un bien, un agent ou un client.' };
+  let lies = (Array.isArray(liens) ? liens : []).map(lienPropre).filter(Boolean).filter((l, i, a) => a.findIndex((x) => x.cle === l.cle) === i).slice(0, 8);
+  // Une source importée est datée de son jour : ses faits et le résumé partent de là.
+  const src = source && source.le && !Number.isNaN(new Date(source.le).getTime()) ? { ...source, le: new Date(source.le).toISOString() } : null;
+  if (src) maintenant = new Date(src.le);
+  // Sans lien (22 nov. 2026) : la note libre ; les fiches que ses noms évoquent, que le modèle garde ou non.
+  const sansLien = !lies.length;
+  if (sansLien && !libre && !src) return { ok: false, error: 'Liez la note à un bien, un agent ou un client.' };
+  if (sansLien) {
+    surEtape('Je cherche de quels dossiers et de quelles personnes parle la note');
+    try { lies = await fichesDevinees(brute ? `${t}\n${brute.slice(-8000)}` : t, user, { noms: conversation ? conversation.participants.map((p) => p.nom) : [] }); } catch { lies = []; }
+    if (lies.length) surEtape(`J'y vois ${lies.slice(0, 4).map((l) => l.nom).join(', ')}${lies.length > 4 ? '…' : ''}`);
+  }
+  const devine = sansLien;
   // Le raisonnement montré pendant qu'il travaille (19 nov. 2026, Jules : « on ne voit pas le raisonnement ») : ce
   // qui est vraiment fait, dans l'ordre où c'est fait.
   const j = (d) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -324,12 +403,20 @@ export async function proposer({ texte, liens = [], conversation: importee = nul
   if (prevues.length) surEtape(`Je regarde ${prevues.length === 1 ? "l'action déjà prévue" : `les ${prevues.length} actions déjà prévues`} sur ces fiches`);
   surEtape('Je range ce qui revient à chaque fiche');
   if (transcription && !conversation) surEtape("C'est l'enregistrement de l'appel : je retrouve qui dit quoi");
-  const prompt = consigne(t, lies, user, { maintenant, conversation, ajout: brute ? t || null : null, connus, prevues, suite, transcription: !!transcription && !conversation });
+  let style = null;
+  try { style = styleDe(user?.email); } catch { style = null; }
+  const prompt = consigne(t, lies, user, { maintenant, conversation, ajout: brute ? t || null : null, connus, prevues, suite, transcription: !!transcription && !conversation, libre: devine, source: src, style });
   const appeler = lire || (() => invokeLLM({ prompt, response_json_schema: SCHEMA, effort: 'low', max_tokens: 6000 }));
   const { resultat } = await mesurer({ operation: transcription && !conversation ? 'ranger un enregistrement' : 'ranger une note', par: user?.email || null }, appeler);
-  const proposition = normaliser(resultat, lies, { auteur: user?.email, connus, prevues });
+  const proposition = normaliser(resultat, lies, { auteur: user?.email, connus, prevues, libre: devine, source: src });
+  // La note libre ne garde liées que les fiches dont elle parle.
+  if (devine) {
+    const utiles = new Set(proposition.liens_utiles || []);
+    lies = lies.filter((l) => utiles.has(l.cle));
+    delete proposition.liens_utiles;
+  }
   for (const d of proposition.faites) surEtape(`${d.libelle} : je le ferme avec ton OK${d.restees.length ? `, ${d.restees.length} question${d.restees.length > 1 ? 's' : ''} sans réponse passent sur la prochaine relance` : ''}`);
-  if (conversation || transcription) proposition.nature = 'note';
+  if (conversation || transcription || src) proposition.nature = 'note';
   if (proposition.nature === 'demande') { surEtape("C'est une demande : je la passe à l'assistant"); return { ok: true, nature: 'demande', liens: lies }; }
   for (const f of proposition.fiches) {
     const n = f.elements.length;
@@ -345,7 +432,7 @@ export async function proposer({ texte, liens = [], conversation: importee = nul
   proposition.mentions = await candidats(proposition.mentions, user);
   if (proposition.questions.length) surEtape(`Il me manque ${proposition.questions.length} précision${proposition.questions.length > 1 ? 's' : ''}`);
   const resumeImport = brute ? `Conversation WhatsApp importée : ${conversation.messages.length} messages, du ${j(conversation.du)} au ${j(conversation.au)}.` : null;
-  const note = Records.create('NoteDossier', { texte: brute ? [t, resumeImport].filter(Boolean).join('\n\n') : conversation ? t.slice(-20000) : t.slice(0, transcription ? 60000 : 20000), ...(brute ? { conversation: brute.slice(-200000) } : {}), par: user?.email || null, le: maintenant.toISOString(), liens: lies, etat: 'proposee', proposition, ...(suite ? { action_id: String(suite) } : {}), ...(transcription ? { transcription: true } : {}) });
+  const note = Records.create('NoteDossier', { texte: brute ? [t, resumeImport].filter(Boolean).join('\n\n') : conversation ? t.slice(-20000) : t.slice(0, transcription ? 60000 : 20000), ...(brute ? { conversation: brute.slice(-200000) } : {}), par: user?.email || null, le: maintenant.toISOString(), liens: lies, etat: 'proposee', proposition, ...(suite ? { action_id: String(suite) } : {}), ...(transcription ? { transcription: true } : {}), ...(devine ? { libre: true } : {}), ...(src ? { source: src, importe: true } : {}) });
   return { ok: true, nature: 'note', note_id: note.id, liens: lies, proposition };
 }
 

@@ -167,6 +167,17 @@ export default function CarteNote({ donnees }) {
 
       </div>
 
+      {/* Les règles de travail que la note énonce (22 nov. 2026, Jules : « lors de la prospection, demander le contexte de la
+          vente ») : au OK, elles partent au Cerveau, où Jules les valide. */}
+      {(p.regles || []).length > 0 && (
+        <div className="mt-5">
+          <p className="m-0 mb-1.5 text-[13.5px] text-ardoise">À retenir pour l'équipe, envoyé au Cerveau pour validation</p>
+          <ul className="m-0 list-none space-y-1.5 p-0">
+            {p.regles.map((r) => <li key={r.id} className="flex gap-2.5 text-[15px] leading-[1.5] text-encre"><span className="mt-[9px] h-1.5 w-1.5 flex-none rounded-full bg-menthe" />{r.texte}</li>)}
+          </ul>
+        </div>
+      )}
+
       {/* La question, dans la même réponse (19 nov. 2026, Jules : « pas une autre image de l'assistant ») : ce qui manque,
           puis la date de chaque action gardée ; on répond dans la saisie, avec ses mots. Pas de OK tant qu'il en reste. */}
       {/* Les réponses déjà données, sous leur question (20 nov. 2026, Jules : « c'est comme si mon message n'était pas

@@ -67,6 +67,7 @@ const AdminAccesCrm = lazy(() => import('@/pages/AdminAccesCrm'));
 const SuiviReunion = lazy(() => import('@/pages/SuiviReunion'));
 // Suivi > Corrections (13 nov. 2026, Jules) : ce que l'équipe corrige sur les projets rentrés, et ce qu'on en apprend.
 const SuiviCorrections = lazy(() => import('@/pages/SuiviCorrections'));
+const Statistiques = lazy(() => import('@/pages/Statistiques'));
 const Semaine = lazy(() => import('@/pages/Semaine'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
@@ -170,7 +171,7 @@ const PAGES_PUBLIQUES = {
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviActivite, MandataireTableauDeBord, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, SuiviCorrections, Semaine, Alexis, AdminPresentations, AdminModeleZone };
+const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviActivite, MandataireTableauDeBord, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, SuiviCorrections, Statistiques, Semaine, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

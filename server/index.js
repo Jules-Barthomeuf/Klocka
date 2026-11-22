@@ -1385,6 +1385,8 @@ import('./mandataire-matin.js').then((m) => m.planifier()).catch((e) => console.
 import('./preparation-rdv.js').then((m) => m.planifier()).catch((e) => console.error('[preparation] :', e.message));
 import('./visites-acquereur.js').then((m) => m.planifier()).catch((e) => console.error('[visites] :', e.message));
 import('./dossier-vente.js').then((m) => m.planifier()).catch((e) => console.error('[dossier de vente] :', e.message));
+// Les gels du serveur et leur coupable, au journal (« [gel] »), sur Render (22 nov. 2026).
+import('./gel.js').then((m) => m.demarrerGels()).catch((e) => console.error('[gel] :', e.message));
 // La Mémoire Klocka (30 oct. 2026) : le lecteur des boîtes autorisées reprend au démarrage ce qu'il n'a pas fini.
 import('./memoire/scraper.js').then((m) => m.planifier()).catch((e) => console.error('[mémoire] :', e.message));
 // Les fiches venues d'un mail datées du jour où il est arrivé, pas de celui où l'agent l'avait écrit (18 nov. 2026).

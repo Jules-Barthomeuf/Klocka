@@ -5,7 +5,7 @@ import { EnTeteOnglet } from "./Cartes";
 import { GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import CarteTransactions from "@/components/marche/CarteTransactions";
-import { BlocEmplacement, BlocLocataire, BlocLoyer, BlocPrix, BlocVille } from "@/components/outils/MarcheAffine";
+import { BlocEmplacement, BlocLoyer, BlocPrix, BlocVille } from "@/components/outils/MarcheAffine";
 import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce, useEdition } from "./EditionEnPlace";
 
 // L'onglet Marché (maquette « Projet Detail 1b ») : trois cartes (habitants,
@@ -295,12 +295,12 @@ function Emplacement({ e }) {
   );
 }
 
-const BLOCS_DOSSIER = { ville: ["Ville", BlocVille], prix: ["Prix", BlocPrix], loyer: ["Loyer", BlocLoyer], locataire: ["Locataire", BlocLocataire] };
+const BLOCS_DOSSIER = { ville: ["Ville", BlocVille], prix: ["Prix", BlocPrix], loyer: ["Loyer", BlocLoyer] };
 
 /**
  * Une partie du Marché du dossier sur la page du projet (14 nov. 2026, Jules : « les trucs qu'on a faits dans les parties
  * du Marché de l'analyse, dans les sous-parties du projet », « il faut vraiment que ça se mette à jour
- * automatiquement ») : le dessin de l'Analyse (Ville, Prix, Loyer, Locataire), sa dernière lecture, relue par le serveur
+ * automatiquement ») : le dessin de l'Analyse (Ville, Prix, Loyer ; le Locataire retiré le 22 nov. 2026), sa dernière lecture, relue par le serveur
  * à chaque ouverture (marcheDuProjet) ; masquable pour le client comme l'Emplacement. Rien sans dossier ni lecture.
  */
 export function PartieDuDossier({ outil, donnees }) {
@@ -317,13 +317,6 @@ export function PartieDuDossier({ outil, donnees }) {
       </div>
     </CarteMarche>
   );
-}
-
-/** Le Locataire du dossier, pour l'onglet Locataire du projet : la même lecture que le Marché. */
-export function LocataireDuDossier({ project, isPublic = false }) {
-  const { data } = useSecteurProjet(project, !isPublic);
-  if (isPublic) return null;
-  return <PartieDuDossier outil="locataire" donnees={data} />;
 }
 
 export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 }) {

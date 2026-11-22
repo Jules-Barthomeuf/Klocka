@@ -40,7 +40,8 @@ export function monterFicheDossier(app) {
     const user = equipe(req, res); if (!user) return;
     // `conversation` : un export WhatsApp importé (le .txt, ou celui du .zip), lu à part du texte tapé.
     // `action_id` : la note prise depuis la fiche d'appel d'une relance ; `transcription` : l'appel enregistré (20 nov. 2026).
-    const { remplace, conversation, action_id: actionId, enregistrement_id: enrId } = req.body || {};
+    // `libre` (22 nov. 2026) : une note collée sans « Lier » ; l'assistant devine les fiches et n'y range que ce qui en parle.
+    const { remplace, conversation, action_id: actionId, enregistrement_id: enrId, libre } = req.body || {};
     let { texte, transcription, liens } = req.body || {};
     // Le mode Enregistrement : ce qui a été dit (gardé ici, morceau par morceau), puis les notes tapées pendant.
     if (enrId) {
@@ -67,7 +68,7 @@ export function monterFicheDossier(app) {
     // En flux (?flux=1) : les étapes arrivent une à une, puis le résultat.
     const flux = req.query.flux ? (await import('../flux.js')).ouvrirFlux(res) : null;
     try {
-      const r = await (await import('../fiche-dossier/ranger.js')).proposer({ texte, liens, conversation, action_id: actionId ? String(actionId) : null, transcription: !!transcription }, user, { surEtape: (t) => flux?.etape(t) });
+      const r = await (await import('../fiche-dossier/ranger.js')).proposer({ texte, liens, conversation, action_id: actionId ? String(actionId) : null, transcription: !!transcription, libre: !!libre }, user, { surEtape: (t) => flux?.etape(t) });
       if (!r.ok) return flux ? flux.erreur(new Error(r.error)) : refus(res, r);
       if (remplace) {
         const avant = Records.get('NoteDossier', String(remplace));
@@ -89,7 +90,23 @@ export function monterFicheDossier(app) {
     const P = await import('../fiche-dossier/preferes.js');
     const r = P.basculerPrefere(user, req.body?.cle);
     if (!r.ok) return refus(res, r);
+    // Un agent mis en préféré a sa photo (22 nov. 2026, Jules) : cherchée d'elle-même s'il n'en a pas.
+    if (r.etoile) (await import('../photos-fiches.js')).photoAuto(req.body?.cle);
     ok(res, { ...r, ...P.etoiles(user) });
+  }));
+
+  // Les photos des fiches (22 nov. 2026, Jules) : toutes d'un coup pour les listes, et l'import d'une photo.
+  app.get('/api/fiche-dossier/photos', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    ok(res, (await import('../photos-fiches.js')).toutesLesPhotos());
+  }));
+  app.post('/api/fiche-dossier/photo', upload.single('fichier'), wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    if (!req.file) return res.status(400).json({ error: 'Aucune photo reçue.' });
+    if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(req.file.mimetype || '')) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Une photo : JPEG, PNG ou WebP.' }); }
+    const r = (await import('../photos-fiches.js')).poserPhoto(req.body?.cle, `/uploads/${req.file.filename}`, { par: user.email });
+    if (!r.ok) { fs.unlink(req.file.path, () => {}); return refus(res, r); }
+    ok(res, r);
   }));
   // Le mode Enregistrement (20 nov. 2026) : un enregistrement ouvert, ses morceaux de trente secondes, sa fin.
   const ENR = () => import('../fiche-dossier/enregistrement.js');
@@ -158,6 +175,8 @@ export function monterFicheDossier(app) {
     const user = equipe(req, res); if (!user) return;
     const r = (await M()).rangerNote(Records.get('NoteDossier', req.params.id), req.body || {}, user);
     if (!r.ok) return refus(res, r);
+    // Les règles de travail que la note énonce partent au Cerveau, à valider (22 nov. 2026).
+    try { r.regles = (await (await import('../fiche-dossier/import.js')).garderRegles(Records.get('NoteDossier', req.params.id), user)).regles; } catch { r.regles = 0; }
     ok(res, r);
   }));
   app.post('/api/fiche-dossier/notes/:id/annuler', wrap(async (req, res) => {
@@ -192,6 +211,13 @@ export function monterFicheDossier(app) {
     m.noterOuverture(v.cle, user);
     ok(res, v);
   }));
+  // Une note écrite dans l'onglet Notes d'une fiche, gardée telle quelle.
+  app.post('/api/fiche-dossier/fiche/notes', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = (await M()).noterSurLaFiche(req.body?.cle, req.body?.texte, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
   // « À faire » : ses actions ouvertes ; et la conversation où l'action est née, pour y revenir.
   app.get('/api/fiche-dossier/mes-actions', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
@@ -217,6 +243,68 @@ export function monterFicheDossier(app) {
   app.patch('/api/fiche-dossier/actions/:id', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
     const r = (await M()).changerAction(req.params.id, req.body || {}, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+
+  // La relecture des fiches remplies par l'import (22 nov. 2026, Jules : « valider par fiche, pas fait par fait ») : celles
+  // de la personne d'abord ; OK fait tomber l'étiquette « importé ».
+  app.get('/api/fiche-dossier/a-relire', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    ok(res, { fiches: (await M()).aRelire(user) });
+  }));
+  app.post('/api/fiche-dossier/fiche/valider', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = (await M()).validerFiche(req.body?.cle, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+
+  // L'import des fiches (22 nov. 2026, Paramètres > Import des fiches) : Jules seul le lance.
+  const I = () => import('../fiche-dossier/import.js');
+  const gerant = async (req, res) => {
+    const user = equipe(req, res); if (!user) return null;
+    const { estSuperAdmin } = await import('../acces-pages.js');
+    if (!estSuperAdmin(user)) { res.status(403).json({ error: "Réservé à qui gère l'équipe." }); return null; }
+    return user;
+  };
+  app.get('/api/fiche-dossier/import', wrap(async (req, res) => {
+    if (!(await gerant(req, res))) return;
+    ok(res, (await I()).etatImport());
+  }));
+  app.post('/api/fiche-dossier/import/squelette', wrap(async (req, res) => {
+    if (!(await gerant(req, res))) return;
+    const m = await I();
+    const r = m.squelette();
+    let clients = null;
+    try { clients = await m.clientsDeTwenty(); } catch (e) { clients = { erreur: e?.message || String(e) }; }
+    ok(res, { ...r, clients });
+  }));
+  app.get('/api/fiche-dossier/import/chat/espaces', wrap(async (req, res) => {
+    if (!(await gerant(req, res))) return;
+    try { ok(res, { espaces: await (await I()).espacesChat(String(req.query.compte || '')) }); } catch (e) { refus(res, { error: e?.message }); }
+  }));
+  app.post('/api/fiche-dossier/import/chat', wrap(async (req, res) => {
+    const user = await gerant(req, res); if (!user) return;
+    const { compte, espace, titre, depuis, auteurs } = req.body || {};
+    if (!compte || !espace) return refus(res, { error: 'Choisissez le compte et la conversation.' });
+    try { ok(res, await (await I()).lancerGoogleChat({ compte: String(compte), espace: String(espace), titre: titre || null, depuis: depuis || null, auteurs: Array.isArray(auteurs) ? auteurs : [] }, user)); } catch (e) { refus(res, { error: e?.message }); }
+  }));
+  app.post('/api/fiche-dossier/import/whatsapp', wrap(async (req, res) => {
+    const user = await gerant(req, res); if (!user) return;
+    const r = (await I()).lancerWhatsapp(Array.isArray(req.body?.fichiers) ? req.body.fichiers.slice(0, 200) : [], user, { exportePar: req.body?.exporte_par || null });
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/fiche-dossier/import/textes', wrap(async (req, res) => {
+    const user = await gerant(req, res); if (!user) return;
+    const r = (await I()).lancerTextes(Array.isArray(req.body?.textes) ? req.body.textes.slice(0, 200) : [], user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/fiche-dossier/import/appels', wrap(async (req, res) => {
+    const user = await gerant(req, res); if (!user) return;
+    const r = (await I()).lancerAppels(user, { depuis: req.body?.depuis || null });
     if (!r.ok) return refus(res, r);
     ok(res, r);
   }));

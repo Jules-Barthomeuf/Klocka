@@ -90,10 +90,11 @@ export function BoutonSources({ sources, onOuvrir, ouvert }) {
   return (
     <button type="button" onClick={onOuvrir} aria-expanded={ouvert}
       title={sources.length ? `L'${nom} ne lira que : ${sources.map((c) => sourceDe(c).nom).join(", ")}` : `L'${nom} choisit lui-même ses sources ; un clic pour les choisir`}
-      className={`inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] transition-colors hover:bg-barre-relief ${sources.length ? "text-menthe" : "text-craie"}`}
+      aria-label={`Sources : ${libelle}`}
+      className={`grid h-8 w-8 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief ${sources.length ? "text-menthe" : "text-craie"}`}
       style={{ background: "transparent" }}>
-      <Sparkles className="h-3.5 w-3.5" />
-      <span><span className="max-md:hidden">Sources : </span>{libelle}</span>
+      {/* L'icône seule (21 nov. 2026, Jules) : menthe quand des sources sont cochées, le détail au survol. */}
+      <Sparkles className="h-4 w-4" strokeWidth={1.7} />
     </button>
   );
 }

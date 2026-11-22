@@ -19,7 +19,10 @@
 // Tout est calculé ici, sur les listes de la base : pur, testé sans réseau.
 
 import { statutDe } from './lifecycle.js';
-import { porteUneFiche } from './fiches-auto.js';
+import { piecesFiche, porteUneFiche } from './fiches-auto.js';
+
+// La boîte commune où l'équipe transfère chaque fiche reçue (règle d'équipe).
+const boiteCommune = () => (process.env.AK_COMPTE || 'sourcing@klocka.immo').trim().toLowerCase();
 
 const OUI = new Set(['documents_demandes', 'documents_recus', 'depouille', 'projet_cree']);
 export const ETAPES = ['recue', 'oui', 'presente', 'abouti'];
@@ -131,6 +134,7 @@ export function listerFiches({ deals = [], mails = [], projets = [] } = {}, { de
       compte: d.fiche_compte || null,
       // Arrivée par mail : seule une fiche reçue a un expéditeur à rattacher (11 oct. 2026).
       par_mail: !!mail,
+      rentree: 'dossier',
       titre: d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || 'Dossier',
       ville,
       verdict: d.lots?.[0]?.evaluation?.verdict || null,
@@ -142,11 +146,22 @@ export function listerFiches({ deals = [], mails = [], projets = [] } = {}, { de
   for (const m of mails) {
     // Un mail dont le dossier a été supprimé : comme si la fiche n'avait
     // jamais été importée — elle ne compte pas, même « à préanalyser ».
-    if (m.deal_id || m.dossier_supprime_le || !porteUneFiche(m)) continue;
+    if (m.deal_id || m.dossier_supprime_le) continue;
+    // Ce que le transfert a rentré en Mémoire (20 nov. 2026, Jules : « on en a reçu plus » que les 16 comptées) : un bien
+    // par fiche lue, plusieurs pour un PDF qui en porte plusieurs. Une pièce déjà lue (un renvoi) ne compte pas deux fois.
+    const rentres = [...new Set(m.memoire_ids || [])];
+    if (!rentres.length && (m.memoire_deja_ids || []).length) continue;
+    // Un transfert de l'équipe à sourcing@ avec une pièce est une fiche par la règle d'équipe, même si son nom ne le dit
+    // pas ; sauf des pièces pour un dossier ou une question. Rien de rentré : il compte, à vérifier.
+    const transfert = String(m.compte || '').toLowerCase() === boiteCommune() && !!transfereePar(m, estInterne)
+      && piecesFiche(m).length > 0 && !['documents', 'question'].includes(m.haka_transfert?.intention);
+    if (!rentres.length && !transfert && !porteUneFiche(m)) continue;
     const agent = agentDeLaFiche({ corrige: m.fiche_agent, mail: m }, estInterne);
     // Un mail interne sans expéditeur d'origine n'est pas une fiche reçue : c'est un échange d'équipe.
-    if (m.interne && !agent) continue;
-    fiches.push({ id: `mail:${m.id}`, le: m.date || null, agent: agent?.nom || null, agent_email: agent?.email || null, agent_corrige: !!agent?.corrige, boite: m.compte || null, transferee_par: transfereePar(m, estInterne), biens: biensDe(m), compte: m.fiche_compte || null, par_mail: true, titre: m.objet || '(sans objet)', ville: null, verdict: null, etape: 'recue', deal_id: null, projet_id: null, a_preanalyser: true });
+    if (m.interne && !agent && !rentres.length && !transfert) continue;
+    const corrige = Number(m.fiche_compte?.biens);
+    const biens = Number.isFinite(corrige) && corrige >= 0 ? corrige : Math.max(1, m.lots?.length || 0, rentres.length);
+    fiches.push({ id: `mail:${m.id}`, le: m.date || null, agent: agent?.nom || null, agent_email: agent?.email || null, agent_corrige: !!agent?.corrige, boite: m.compte || null, transferee_par: transfereePar(m, estInterne), biens, compte: m.fiche_compte || null, par_mail: true, rentree: rentres.length ? 'memoire' : 'non', titre: m.objet || '(sans objet)', ville: null, verdict: null, etape: 'recue', deal_id: null, projet_id: null, a_preanalyser: true });
   }
   return fiches
     .filter((f) => !depuis || String(f.le || '') >= depuis)

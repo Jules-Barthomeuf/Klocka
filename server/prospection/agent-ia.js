@@ -154,8 +154,8 @@ function noter(liste, texte, ton = 'info') {
 // Une ligne écartée (pas une agence) reste en base, cachée de la liste.
 const agencesDe = (listeId, { toutes = false } = {}) => Records.list(AGENCE).filter((a) => a.liste_id === listeId && (toutes || !a.hors_cible));
 
-function resumeListe(l) {
-  const a = agencesDe(l.id);
+function resumeListe(l, agences = null) {
+  const a = agences || agencesDe(l.id);
   return {
     id: l.id, ville: l.ville, type: l.type || 'agences', etat: l.etat, etape: l.etape || null, lancee_par: l.lancee_par || null, lancee_le: l.lancee_le || null, fini_le: l.fini_le || null,
     agences: a.length, agences_seules: a.filter((x) => MA.genreDe(x) === 'agence').length, avec_telephone: a.filter((x) => x.telephone).length, agents: a.reduce((n, x) => n + (x.agents || []).length, 0),
@@ -166,7 +166,17 @@ function resumeListe(l) {
 // La liste du mode essai (agences fictives) n'apparaît pas parmi les villes.
 // Une liste remplacée (15 nov. 2026 : « Nice » d'octobre et « Nice · Apollo », remplacées par la Nice complète) est
 // archivée : ses lignes restent (relances, appels), elle ne se montre plus.
-export const listes = () => Records.list(LISTE).filter((l) => !l.essai && !l.archivee).sort((a, b) => a.ville.localeCompare(b.ville, 'fr')).map(resumeListe);
+// Les agences lues une seule fois pour toutes les listes (22 nov. 2026, Jules : « baisse le temps de chargement ») : chaque
+// liste relisait les 6 900 agences, 2,3 s à chaque ouverture de la Prospection.
+export function listes() {
+  const parListe = new Map();
+  for (const a of Records.list(AGENCE)) {
+    if (a.hors_cible) continue;
+    if (!parListe.has(a.liste_id)) parListe.set(a.liste_id, []);
+    parListe.get(a.liste_id).push(a);
+  }
+  return Records.list(LISTE).filter((l) => !l.essai && !l.archivee).sort((a, b) => a.ville.localeCompare(b.ville, 'fr')).map((l) => resumeListe(l, parListe.get(l.id) || []));
+}
 
 export function liste(id) {
   let l = Records.get(LISTE, id);
@@ -713,10 +723,13 @@ export const prenomDe = (email) => {
 // Sans fichier ni photo de compte : celle des cartes de projets (9 nov. 2026, Jules : « personne n'a de tête »).
 const PHOTOS_EN_LIGNE = { 'maxime.p@klocka.immo': 'https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e92131b8c_Capturedecran2026-02-18a164304.png' };
 const DOSSIER_PHOTOS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'equipe');
-const photoDe = (u) => {
-  if (u.picture) return u.picture;
+// L'ordre (22 nov. 2026, Jules envoie la photo de Maxime) : celle déposée dans Compte, puis celle de public/equipe, puis
+// celle de Google, qui vient seule à la connexion et ne doit pas cacher celle que Jules a choisie.
+export const photoDe = (u) => {
+  if (String(u.picture || '').startsWith('/uploads/')) return u.picture;
   const fichier = `${prenomDe(u.email).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}.jpg`;
-  return fs.existsSync(path.join(DOSSIER_PHOTOS, fichier)) ? `/equipe/${fichier}` : PHOTOS_EN_LIGNE[normEmail(u.email)] || null;
+  if (fs.existsSync(path.join(DOSSIER_PHOTOS, fichier))) return `/equipe/${fichier}`;
+  return u.picture || PHOTOS_EN_LIGNE[normEmail(u.email)] || null;
 };
 
 // L'équipe de la prospection (6 oct. 2026) : les analystes, puis Alexis, qui

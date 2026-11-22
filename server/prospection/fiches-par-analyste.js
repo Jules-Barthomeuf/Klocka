@@ -13,9 +13,53 @@
 //
 // Pur : calculé sur les listes qu'on lui donne, testé sans base.
 
+import { nomAgent as nomLisible } from '../nom-agent.js';
+
 export const FENETRE_JOURS = 60;
 const JOUR = 86400000;
 const min = (e) => String(e || '').trim().toLowerCase();
+// L'étape d'une fiche (fiches-stats.js, etapeDuDossier) : reçue, Oui, présentée au client, aboutie ; « non » à part.
+const ORDRE = ['recue', 'oui', 'presente', 'abouti'];
+const rang = (etape) => (etape === 'non' ? 0 : Math.max(0, ORDRE.indexOf(etape)));
+const avancer = (c, etape) => {
+  if (etape === 'non') { c.non += 1; return; }
+  const r = rang(etape);
+  if (r >= 1) c.oui += 1;
+  if (r >= 2) c.presente += 1;
+  if (r >= 3) c.abouti += 1;
+};
+/** Le record de biens en une semaine, sur toute l'histoire. */
+const recordDe = (fiches) => {
+  const par = new Map();
+  for (const f of fiches) {
+    const d = new Date(f.le || '');
+    if (Number.isNaN(d.getTime())) continue;
+    const s = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7))).toISOString().slice(0, 10);
+    par.set(s, (par.get(s) || 0) + (f.biens ?? 1));
+  }
+  let r = { semaine: null, biens: 0 };
+  for (const [semaine, biens] of par) if (biens > r.biens) r = { semaine, biens };
+  return r;
+};
+
+/** Le record d'un analyste : le plus de fiches reçues en une semaine (du lundi au dimanche), sur toute l'histoire. */
+export function recordAnalyste(fiches, analysteDe, prenom = (e) => e.split('@')[0]) {
+  const par = new Map();
+  for (const f of fiches) {
+    const d = new Date(f.le || '');
+    if (Number.isNaN(d.getTime())) continue;
+    const qui = analysteDe(f);
+    if (!qui) continue;
+    const s = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7))).toISOString().slice(0, 10);
+    const k = `${qui}|${s}`;
+    if (!par.has(k)) par.set(k, { email: qui, semaine: s, fiches: 0, biens: 0 });
+    const x = par.get(k);
+    x.fiches += 1;
+    x.biens += f.biens ?? 1;
+  }
+  const meilleur = [...par.values()].sort((a, b) => b.fiches - a.fiches || b.biens - a.biens || a.semaine.localeCompare(b.semaine))[0];
+  return meilleur ? { ...meilleur, prenom: prenom(meilleur.email) } : null;
+}
 
 /** Pure : chaque adresse d'agent ou d'agence, et les appels qui l'ont jointe (les plus récents d'abord). */
 export function appelsParAdresse(appels, { agents = new Map(), agences = new Map() } = {}) {
@@ -63,28 +107,36 @@ export function analysteDeLaFiche(f, parAdresse, { equipe = new Set(), fenetreJo
  * @param {{ fiches, appels, agents?: Map, agences?: Map, equipe: Array<{email, prenom}>, depuis: string, maintenant?: Date }} d
  *   fiches : listerFiches ; appels : les appels téléphoniques de la période et d'avant (pour la fenêtre).
  */
-export function fichesParAnalyste({ fiches = [], appels = [], agents = new Map(), agences = new Map(), equipe = [], depuis, semaines = 8, maintenant = new Date(), fenetreJours = FENETRE_JOURS }) {
+export function fichesParAnalyste({ fiches = [], appels = [], agents = new Map(), agences = new Map(), equipe = [], depuis, avant = null, semaines = 8, maintenant = new Date(), fenetreJours = FENETRE_JOURS }) {
   const emails = new Set(equipe.map((m) => min(m.email)));
   const prenom = (e) => equipe.find((m) => min(m.email) === e)?.prenom || (e ? e.split('@')[0] : null);
   const parAdresse = appelsParAdresse(appels, { agents, agences });
   const dans = (iso) => String(iso || '') >= depuis;
 
-  const lignes = fiches.filter((f) => dans(f.le)).map((f) => {
+  // Chaque fiche de l'histoire, rattachée une fois ; la période en est tirée.
+  const toutes = fiches.map((f) => {
     const a = analysteDeLaFiche(f, parAdresse, { equipe: emails, fenetreJours });
     const ecartee = !!f.compte?.pas_fiche;
     return {
       id: f.id, le: f.le, titre: f.titre, ville: f.ville, agent: f.agent, agent_email: f.agent_email,
       biens: ecartee ? 0 : f.biens ?? 1, ecartee, biens_corriges: Number.isFinite(Number(f.compte?.biens)),
       analyste: a.analyste, prenom: a.analyste ? prenom(a.analyste) : null, via: a.via, appel_le: a.appel_le || null,
-      deal_id: f.deal_id, etape: f.etape,
+      deal_id: f.deal_id, etape: f.etape || 'recue',
+      // Un dossier entré : la fiche a été ouverte en dossier pour être étudiée (20 nov. 2026, Jules : « combien on étudie de dossiers »).
+      dossier: !!f.deal_id,
+      // Où la fiche est rentrée (20 nov. 2026, Jules : « s'assurer qu'il soit vraiment bien rentré ») : « dossier »,
+      // « memoire », ou « non » (un transfert à sourcing@ qui n'a rien donné, à reprendre).
+      rentree: f.rentree || null,
     };
   });
+  const lignes = toutes.filter((l) => dans(l.le));
   const comptees = lignes.filter((l) => !l.ecartee);
 
   const appelsPeriode = appels.filter((x) => dans(x.le));
-  const personnes = new Map(equipe.map((m) => [min(m.email), { email: min(m.email), prenom: m.prenom, appels: 0, biens_appel: 0, biens_transfert: 0, fiches: 0 }]));
+  const vide = () => ({ appels: 0, biens_appel: 0, biens_transfert: 0, fiches: 0, fiches_appel: 0, dossiers: 0, oui: 0, presente: 0, abouti: 0, non: 0 });
+  const personnes = new Map(equipe.map((m) => [min(m.email), { email: min(m.email), prenom: m.prenom, ...vide() }]));
   const ligneDe = (e) => {
-    if (!personnes.has(e)) personnes.set(e, { email: e, prenom: prenom(e), appels: 0, biens_appel: 0, biens_transfert: 0, fiches: 0 });
+    if (!personnes.has(e)) personnes.set(e, { email: e, prenom: prenom(e), ...vide() });
     return personnes.get(e);
   };
   for (const x of appelsPeriode) ligneDe(min(x.par)).appels += 1;
@@ -92,11 +144,15 @@ export function fichesParAnalyste({ fiches = [], appels = [], agents = new Map()
     if (!l.analyste) continue;
     const p = ligneDe(l.analyste);
     p.fiches += 1;
-    if (l.via === 'appel' || l.via === 'corrige') p.biens_appel += l.biens;
+    if (l.dossier) p.dossiers += 1;
+    avancer(p, l.etape);
+    if (l.via === 'appel' || l.via === 'corrige') { p.biens_appel += l.biens; p.fiches_appel += 1; }
     else p.biens_transfert += l.biens;
   }
   const analystes = [...personnes.values()]
-    .map((p) => ({ ...p, biens: p.biens_appel + p.biens_transfert, pour_100_appels: p.appels ? Math.round((p.biens_appel / p.appels) * 1000) / 10 : null }))
+    .map((p) => ({ ...p, biens: p.biens_appel + p.biens_transfert, pour_100_appels: p.appels ? Math.round((p.biens_appel / p.appels) * 1000) / 10 : null, taux_oui: p.fiches ? Math.round((p.oui / p.fiches) * 100) : null,
+      // Appels passés et fiches reçues (20 nov. 2026, Jules : « un ratio entre appels passés et fiches reçues, en pourcentage »).
+      fiches_par_appel: p.appels ? Math.round((p.fiches_appel / p.appels) * 1000) / 10 : null }))
     .sort((a, b) => b.biens - a.biens || b.appels - a.appels);
 
   // Semaine par semaine : appels et biens suite à un appel, pour juger un changement sur plusieurs semaines.
@@ -104,7 +160,7 @@ export function fichesParAnalyste({ fiches = [], appels = [], agents = new Map()
   const fin = lundi(maintenant);
   const liste = [];
   for (let i = semaines - 1; i >= 0; i -= 1) liste.push(new Date(Date.parse(`${fin}T00:00:00Z`) - i * 7 * JOUR).toISOString().slice(0, 10));
-  const parSemaine = new Map(liste.map((s) => [s, { semaine: s, appels: 0, biens_appel: 0, biens: 0 }]));
+  const parSemaine = new Map(liste.map((s) => [s, { semaine: s, appels: 0, biens_appel: 0, biens: 0, fiches: 0, dossiers: 0, oui: 0, par_analyste: {}, fiches_par_analyste: {}, dossiers_par_analyste: {} }]));
   for (const x of appels) parSemaine.get(lundi(x.le)) && (parSemaine.get(lundi(x.le)).appels += 1);
   for (const f of fiches) {
     if (f.compte?.pas_fiche) continue;
@@ -112,8 +168,48 @@ export function fichesParAnalyste({ fiches = [], appels = [], agents = new Map()
     if (!s) continue;
     const a = analysteDeLaFiche(f, parAdresse, { equipe: emails, fenetreJours });
     s.biens += f.biens ?? 1;
+    s.fiches += 1;
+    if (rang(f.etape) >= 1) s.oui += 1;
     if (a.via === 'appel' || a.via === 'corrige') s.biens_appel += f.biens ?? 1;
+    const qui = a.analyste || 'personne';
+    s.par_analyste[qui] = (s.par_analyste[qui] || 0) + (f.biens ?? 1);
+    s.fiches_par_analyste[qui] = (s.fiches_par_analyste[qui] || 0) + 1;
+    if (f.deal_id) { s.dossiers += 1; s.dossiers_par_analyste[qui] = (s.dossiers_par_analyste[qui] || 0) + 1; }
   }
+
+  // Global : l'entonnoir des fiches de la période (une fiche présentée a eu son Oui), les agents et les villes qui en
+  // envoient le plus (20 nov. 2026, Jules : « des statistiques de fiches dans Suivi, par analyste, global »).
+  const entonnoir = { fiches: 0, dossiers: 0, oui: 0, presente: 0, abouti: 0, non: 0 };
+  for (const l of comptees) { entonnoir.fiches += 1; if (l.dossier) entonnoir.dossiers += 1; avancer(entonnoir, l.etape); }
+  const premier = (q) => Object.entries(q).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const classer = (liste, cle, nom, max = 12) => {
+    const par = new Map();
+    for (const l of liste) {
+      const k = cle(l);
+      if (!k) continue;
+      if (!par.has(k)) par.set(k, { cle: k, nom: nom(l), fiches: 0, biens: 0, oui: 0, analystes: {}, villes: {} });
+      const x = par.get(k);
+      x.fiches += 1; x.biens += l.biens;
+      if (rang(l.etape) >= 1) x.oui += 1;
+      if (l.analyste) x.analystes[l.analyste] = (x.analystes[l.analyste] || 0) + 1;
+      if (l.ville) x.villes[l.ville.trim()] = (x.villes[l.ville.trim()] || 0) + 1;
+    }
+    return [...par.values()]
+      .map(({ analystes: q, villes: v, ...x }) => {
+        const e = premier(q);
+        return { ...x, analyste: e ? prenom(e) : null, analyste_email: e, ville: premier(v) };
+      })
+      .sort((a, b) => b.biens - a.biens || b.fiches - a.fiches).slice(0, max);
+  };
+  const cleAgent = (l) => min(l.agent_email) || (l.agent ? l.agent.toLowerCase() : null);
+  // « Prénom Nom », jamais l'adresse quand on peut l'éviter (22 nov. 2026, Jules : « le même format tout le temps »).
+  const nomAgent = (l) => nomLisible(l.agent) || nomLisible(l.agent_email) || l.agent || l.agent_email;
+  const agentsTop = classer(comptees, cleAgent, nomAgent);
+  const villesTop = classer(comptees, (l) => (l.ville ? l.ville.trim().toLowerCase() : null), (l) => l.ville);
+  // Le classement commun des agents (22 nov. 2026, Jules : « Meilleurs agents ») : sur toute l'histoire, pas la période.
+  const agentsTous = classer(toutes.filter((l) => !l.ecartee), cleAgent, nomAgent, 60);
+  // La période d'avant, de même longueur, pour l'écart des chiffres de tête (22 nov. 2026, maquette de Jules).
+  const precedentes = avant ? toutes.filter((l) => !l.ecartee && String(l.le || '') >= avant && String(l.le || '') < depuis) : null;
 
   const somme = (k) => comptees.reduce((t, l) => t + (k(l) ? l.biens : 0), 0);
   return {
@@ -125,7 +221,20 @@ export function fichesParAnalyste({ fiches = [], appels = [], agents = new Map()
       biens_transfert: somme((l) => l.via === 'transfert' || l.via === 'boite'),
       biens_spontanes: somme((l) => l.via === 'spontanee'),
       ecartees: lignes.length - comptees.length,
+      ...entonnoir,
+      sans_analyste: comptees.filter((l) => !l.analyste).length,
+      non_rentrees: comptees.filter((l) => l.rentree === 'non').length,
+      fiches_appel: comptees.filter((l) => l.via === 'appel' || l.via === 'corrige').length,
+      fiches_par_appel: appelsPeriode.length ? Math.round((comptees.filter((l) => l.via === 'appel' || l.via === 'corrige').length / appelsPeriode.length) * 1000) / 10 : null,
     },
+    record: recordDe(fiches.filter((f) => !f.compte?.pas_fiche)),
+    // Le record d'un analyste (22 nov. 2026, Jules : « le record de fiches reçues, avec la tête de l'analyste qui l'a fait ») :
+    // le plus de fiches en une semaine, sur toute l'histoire ; à égalité, les biens, puis le premier à l'avoir atteint.
+    record_analyste: recordAnalyste(fiches.filter((f) => !f.compte?.pas_fiche), (f) => analysteDeLaFiche(f, parAdresse, { equipe: emails, fenetreJours }).analyste, prenom),
+    agents: agentsTop,
+    agents_tous: agentsTous,
+    precedent: precedentes ? { fiches: precedentes.length, dossiers: precedentes.filter((l) => l.dossier).length, biens: precedentes.reduce((t, l) => t + l.biens, 0) } : null,
+    villes: villesTop,
     analystes,
     semaines: [...parSemaine.values()],
     fiches: lignes.sort((a, b) => String(b.le).localeCompare(String(a.le))),

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Building2, Check, ChevronDown, Sparkles, X } from "lucide-react";
+import { ArrowRight, Building2, Check, ChevronDown, Loader2, Mic, Sparkles, X } from "lucide-react";
+import { useDictee } from "@/lib/dictee";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { dateCourte, dateJournal, enRetard } from "@/lib/fiche-dossier";
@@ -12,6 +13,8 @@ import { Depliant, RESSORT } from "@/components/haka/ReglagesDemande";
 import CarteDossier from "@/components/fiche-dossier/CarteDossier";
 import MesNotes from "@/components/fiche-dossier/MesNotes";
 import { EtoileAgent } from "@/components/fiche-dossier/EtoileAgent";
+import PhotoFiche from "@/components/fiche-dossier/PhotoFiche";
+import FondHalo from "@/components/projet/FondHalo";
 
 // La fiche du dossier (19 nov. 2026, Jules, maquette « Murs de pharmacie ») : trois onglets soulignés, Dossier, Client,
 // Agent ; le nom centré et sa ligne (« Antibes · dossier ») ; puis, sous le nom, les onglets de la fiche (19 nov. 2026,
@@ -24,7 +27,8 @@ const GENRE_LISIBLE = { bien: "dossier", agent: "agent", client: "client" };
 const ONGLETS = [["bien", "Dossier"], ["client", "Client"], ["agent", "Agent"]];
 const initiales = (n) => String(n || "?").replace(/^\(test\)\s*/i, "").split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join("").toUpperCase();
 const raisonLisible = (r) => `Parce que ${r.charAt(0).toLowerCase()}${r.slice(1)}`;
-const TAG = { evenement: ["Historique", "text-ardoise"], decision: ["Décision", "text-menthe"], negociation: ["Négociation", "text-menthe"], ressenti: ["Ressenti", "text-brume"] };
+const TAG = { evenement: ["Historique", "text-ardoise"], decision: ["Décision", "text-menthe"], negociation: ["Négociation", "text-menthe"], ressenti: ["Ressenti", "text-brume"], profil: ["Comment lui parler", "text-menthe"], ecart: ["Écart entre deux sources", "text-craie"] };
+const ORIGINE = { google_chat: "Google Chat", whatsapp: "WhatsApp", appel: "un appel", texte: "un texte collé" };
 const POSITION_LISIBLE = { presente: "Présenté", visio: "Visio faite", positionne: "Positionné", interesse: "Positionné", offre: "Offre", signe: "Signé", abandon: "Présenté, refusé" };
 
 /**
@@ -33,15 +37,23 @@ const POSITION_LISIBLE = { presente: "Présenté", visio: "Visio faite", positio
  * remplace tout ce qui est dessous ; une lumière dit qu'une note en attente y ajoute quelque chose.
  */
 function OngletsFiche({ onglets, actif, onChoisir }) {
+  // Une fiche ouverte sur un onglet du bout (Notes, Personnes) le montre, sans faire bouger la page.
+  const rangee = React.useRef(null);
+  useEffect(() => {
+    const r = rangee.current;
+    const b = r?.querySelector('[aria-selected="true"]');
+    if (r && b && (b.offsetLeft + b.offsetWidth > r.scrollLeft + r.clientWidth || b.offsetLeft < r.scrollLeft)) r.scrollLeft = b.offsetLeft - 8;
+  }, []);
   return (
-    // Un peu d'air à gauche (20 nov. 2026, Jules) : la lumière de « Résumé » et son halo ne touchent plus le bord.
-    <div role="tablist" aria-label="Parties de la fiche" className="mt-5 flex items-end gap-6 overflow-x-auto border-b border-trait pl-2.5 pr-1 max-md:gap-5" style={{ scrollbarWidth: "none" }}>
+    // En pastilles (20 nov. 2026, Jules, maquette de la fiche de Sébastien ROBIC) : l'onglet ouvert sur un fond plein, sans
+    // trait dessous.
+    <div ref={rangee} role="tablist" aria-label="Parties de la fiche" className="mt-6 flex items-center gap-0.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
       {onglets.map(([id, libelle, lumiere]) => (
         <button key={id} type="button" role="tab" aria-selected={actif === id} onClick={(e) => { onChoisir(id); e.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" }); }}
-          className={`relative flex h-11 flex-none items-center gap-2 whitespace-nowrap px-0.5 text-[14px] transition-colors ${actif === id ? "text-encre" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
-          {lumiere && <span aria-label="Ajouté par l'assistant" title="Ajouté par l'assistant" className="k-lumiere h-[7px] w-[7px] rounded-full bg-menthe" />}
-          {libelle}
-          {actif === id && <motion.span layoutId="k-onglet-partie" transition={RESSORT} aria-hidden className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-menthe" />}
+          className={`relative flex h-10 flex-none items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-[14px] transition-colors ${actif === id ? "text-encre" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
+          {actif === id && <motion.span layoutId="k-onglet-partie" transition={RESSORT} aria-hidden className="absolute inset-0 rounded-full bg-relief" />}
+          {lumiere && <span aria-label="Ajouté par l'assistant" title="Ajouté par l'assistant" className="k-lumiere relative h-[7px] w-[7px] rounded-full bg-menthe" />}
+          <span className="relative">{libelle}</span>
         </button>
       ))}
     </div>
@@ -50,24 +62,35 @@ function OngletsFiche({ onglets, actif, onChoisir }) {
 
 const Titre = ({ children, className = "" }) => <p className={`m-0 mb-2 text-[15px] text-encre ${className}`}>{children}</p>;
 
-function Case({ coche, onClick, libelle, rond = false, enCours = false }) {
+function Case({ coche, onClick, libelle, rond = false, enCours = false, grand = false }) {
   return (
     <button type="button" role="checkbox" aria-checked={coche} onClick={onClick} disabled={enCours} aria-label={libelle}
-      className={`mt-[2px] grid h-[18px] w-[18px] flex-none place-items-center border transition-colors ${rond ? "rounded-full" : "rounded-[6px]"} ${coche ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-doux text-transparent hover:border-menthe"}`}>
-      <Check className="h-3 w-3" strokeWidth={3} />
+      className={`grid flex-none place-items-center border transition-colors ${grand ? "mt-0.5 h-[22px] w-[22px] border-[1.5px]" : "mt-[2px] h-[18px] w-[18px]"} ${rond ? "rounded-full" : "rounded-[6px]"} ${coche ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-doux text-transparent hover:border-menthe"}`}>
+      <Check className={grand ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={3} />
     </button>
   );
 }
 
-/** Un ajout de la note en attente, dans la ligne où il ira : la case pour le garder ou non. */
-function Ajout({ coche, onClick, children, libelle }) {
+/**
+ * Ce que l'assistant propose, après une note ou un appel, en carte (20 nov. 2026, Jules, maquette « Décider de la suite ») :
+ * le fond d'une carte posé sur la fiche, le rond pour le garder ou non, la pastille « proposé », qui le propose et
+ * pourquoi, et ses boutons s'il en a.
+ */
+function Ajout({ coche, onClick, children, libelle, actions = null }) {
   return (
-    <li className={`flex gap-3 py-2 ${coche ? "" : "opacity-45"}`}>
-      <Case coche={coche} onClick={onClick} libelle={libelle} />
-      <div className="min-w-0 flex-1">{children}</div>
+    <li className={`flex gap-3.5 rounded-[18px] border border-trait bg-relief px-4 py-3.5 transition-opacity duration-200 ${coche ? "" : "opacity-55"}`}>
+      <Case rond grand coche={coche} onClick={onClick} libelle={libelle} />
+      <div className="min-w-0 flex-1">
+        {children}
+        {actions && <div className="mt-3 flex flex-wrap gap-2">{actions}</div>}
+      </div>
     </li>
   );
 }
+const Proposees = ({ children, className = "" }) => <ul className={`m-0 flex list-none flex-col gap-2 p-0 ${className}`}>{children}</ul>;
+const Propose = () => <span className="ml-2 inline-block rounded-full bg-menthe/15 px-2 py-px align-[1px] text-[12px] leading-[1.6] text-menthe">proposé</span>;
+const BOUTON_PLEIN = "inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-4 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol";
+const VOIR_ACTION = { whatsapp: "Voir le message", sms: "Voir le message", mail: "Voir le mail", appel: "Voir la relance" };
 
 /** Une action enregistrée : la case pour la cocher, qui et quand ; un clic ouvre son aperçu (le message, la relance). */
 export function LigneAction({ a, avecFiche = false, onOuvrir = null }) {
@@ -91,6 +114,7 @@ export function LigneAction({ a, avecFiche = false, onOuvrir = null }) {
           {[a.qui === "assistant" ? "Préparé par l'assistant" : a.responsable_prenom,
             a.echeance ? (retard ? `en retard, prévu ${dateCourte(a.echeance)}` : dateCourte(a.echeance)) : "sans date",
             a.genre === "appel" && a.contexte?.length ? `${a.contexte.length} question${a.contexte.length > 1 ? "s" : ""} à poser` : null,
+            a.avant ? `avant ${a.avant.replace(/^avant\s+/i, "")}` : null,
             avecFiche && a.fiches?.length ? a.fiches.map((f) => f.nom).filter(Boolean).join(", ") : null].filter(Boolean).join(" · ")}
         </span>
       </button>
@@ -155,7 +179,6 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
   const bien = f.genre === "bien";
   const d = f.dossier;
   const id = d?.identite || {};
-  const neuf = <span className="ml-1.5 rounded-full bg-menthe/15 px-1.5 py-0.5 text-[11px] text-menthe">proposé</span>;
 
   // L'avancement : ce que la plateforme et les notes savent, plus l'étape que la note propose (« Offre », son état).
   const etapes = (d?.avancement?.etapes || []).map((e) => ({ ...e }));
@@ -166,15 +189,19 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
   const ajoutsDe = (pred) => (ajouts?.elements || []).filter(pred);
   const enNego = ajoutsDe((e) => e.genre === "negociation");
   const enDecision = ajoutsDe((e) => e.genre === "decision");
-  const enHistorique = ajoutsDe((e) => !["negociation", "decision", "ressenti"].includes(e.genre));
+  const enHistorique = ajoutsDe((e) => !["negociation", "decision", "ressenti", "profil"].includes(e.genre));
+  // Comment lui parler (22 nov. 2026, Jules, sur les notes de Maxime : « les profils sont la vraie richesse ») : en tête du
+  // Résumé d'une personne, la synthèse, puis les profils notés.
+  const enProfil = ajoutsDe((e) => e.genre === "profil");
+  const parlerNeuf = ajouts?.comment_parler && enProfil.some((e) => garde.has(e.id)) ? ajouts.comment_parler : null;
   // Les ressentis vont dans « Notes » (19 nov. 2026, Jules : « des notes libres, un ressenti sur le client, sur l'agent,
   // qui ne sont ni dans l'historique, ni dans la prochaine action, ni dans les dossiers »).
   const enNotes = ajoutsDe((e) => e.genre === "ressenti");
   const ajout = (e) => (
     <Ajout key={e.id} coche={garde.has(e.id)} onClick={() => basculer(noteId, e.id)} libelle={garde.has(e.id) ? `Retirer : ${e.texte}` : `Garder : ${e.texte}`}>
-      {TAG[e.genre] && <p className={`m-0 text-[11px] uppercase tracking-[.14em] ${TAG[e.genre][1]}`}>{TAG[e.genre][0]}</p>}
-      <p className="m-0 text-[14px] leading-[1.5] text-encre">{e.texte}</p>
-      {e.raison && <p className="m-0 mt-0.5 text-[13px] leading-[1.5] text-ardoise">{raisonLisible(e.raison)}</p>}
+      <p className="m-0 text-[15px] leading-[1.45] text-encre [text-wrap:pretty]">{e.texte}<Propose /></p>
+      <p className="m-0 mt-1 text-[13.5px] leading-[1.45] text-ardoise">{["Proposé par l'assistant", TAG[e.genre]?.[0]].filter(Boolean).join(" · ")}</p>
+      {e.raison && <p className="m-0 mt-0.5 text-[13.5px] leading-[1.45] text-ardoise">{raisonLisible(e.raison)}</p>}
     </Ajout>
   );
   const nego = d?.negociation;
@@ -185,16 +212,22 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
     vendeur: ajouts?.vendeur || f.carte.vendeur,
     clients: f.carte.clients.map((c) => (positionsNeuves.has(c.cle) ? { ...c, ...positionsNeuves.get(c.cle) } : c)),
   } : null;
-  const sous = [bien ? id.ville : f.detail, GENRE_LISIBLE[f.genre]].filter(Boolean).join(" · ");
+  // Une personne : « Agent · 1 dossier en cours » sous son nom, ses initiales au-dessus (20 nov. 2026, Jules, maquette).
+  const enCours = f.liees.filter((l) => l.genre === "bien").length;
+  const sous = bien ? [id.ville, GENRE_LISIBLE[f.genre]].filter(Boolean).join(" · ")
+    : [f.genre === "agent" ? "Agent" : "Client", f.detail && f.detail !== "Twenty CRM" ? f.detail : null, enCours ? `${enCours} dossier${enCours > 1 ? "s" : ""} en cours` : null].filter(Boolean).join(" · ");
 
   return (
     <div className="flex min-h-0 flex-auto flex-col">
       <div className="flex min-h-0 flex-auto flex-col overflow-y-auto">
         <div className="k-entree mx-auto flex w-full max-w-[860px] flex-auto shrink-0 flex-col px-8 pb-10 pt-8 max-md:px-4">
+          {/* Sa photo quand on l'a (20 nov. 2026, Jules), sinon ses initiales ; un clic en importe une (22 nov. 2026, Jules :
+              « chaque agent doit avoir une image ; tous les clients aussi »). Celle d'une page équipe est resserrée sur le visage. */}
+          {!bien && <PhotoFiche cle={cle} nom={nom} photo={f.photo} taille={60} recadrer={!!f.photo && !f.photo_importee} className="mx-auto mb-4" />}
           {/* L'étoile d'un agent, à droite de son nom (20 nov. 2026, Jules) : un de ses cinq agents préférés. */}
           <div className="flex items-center justify-center gap-1">
             {f.genre === "agent" && <span aria-hidden className="w-8 flex-none" />}
-            <h2 className="m-0 text-center text-[19px] font-normal leading-[1.25] tracking-[-0.01em] text-encre">{nom}</h2>
+            <h2 className="m-0 text-center text-[22px] font-normal leading-[1.25] tracking-[-0.01em] text-encre">{nom}</h2>
             {f.genre === "agent" && <EtoileAgent cle={cle} />}
           </div>
           {sous && <p className="m-0 mt-1 text-center text-[14.5px] text-ardoise">{sous}</p>}
@@ -202,7 +235,7 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
           {(() => {
             const vide = (t) => <p className="m-0 text-[13.5px] text-brume">{t}</p>;
             const onglets = [
-              ["resume", "Résumé", !!resumeNeuf || !!ajouts?.etape || enNego.length > 0],
+              ["resume", "Résumé", !!resumeNeuf || !!ajouts?.etape || enNego.length > 0 || enProfil.length > 0],
               ...(bien || aFaire.length > 0 ? [["action", "Prochaine action", proposees.length > 0]] : []),
               ...(bien && d ? [["identite", "Identité", false]] : []),
               ...(!bien ? [["dossiers", "Dossiers", false]] : []),
@@ -213,6 +246,7 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
             const ici = onglets.some(([o]) => o === onglet) ? onglet : "resume";
             return (
               <>
+                {f.a_relire && <BandeauRelire cle={cle} f={f} />}
                 <OngletsFiche onglets={onglets} actif={ici} onChoisir={setOnglet} />
                 <div key={ici} className={`k-entree pt-5 ${ici === "personnes" ? "flex flex-auto flex-col" : ""}`}>
                   {ici === "resume" && (
@@ -221,17 +255,37 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
                         <span className="inline-flex items-center gap-1.5 text-[13.5px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />{!resumeNeuf && f.source === "twenty" && !f.maj_le ? <>Résumé<span className="text-ardoise"> · repris de Twenty</span></> : <>Résumé IA{resumeNeuf && <span className="text-ardoise"> · mis à jour par l'assistant</span>}</>}</span>
                         <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resumeNeuf || f.resume || <span className="text-brume">Il s'écrira à la première note liée à cette fiche.</span>}</p>
                       </div>
+                      {!bien && (f.comment_parler || parlerNeuf || f.profils?.length > 0 || enProfil.length > 0) && (
+                        <section className="mt-6 border-t border-trait pt-4">
+                          <Titre>Comment lui parler</Titre>
+                          {(parlerNeuf || f.comment_parler) && <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{parlerNeuf || f.comment_parler}{parlerNeuf && <Propose />}</p>}
+                          {enProfil.length > 0 && <Proposees className="mt-3">{enProfil.map(ajout)}</Proposees>}
+                          {f.profils?.length > 0 && (
+                            <ul className="m-0 mt-3 list-none space-y-1.5 p-0">
+                              {f.profils.slice(0, 6).map((x) => <li key={x.id} className="text-[13.5px] leading-[1.5] text-craie">{x.texte}<span className="text-ardoise"> · {dateJournal(x.le)}{x.par ? `, ${x.par}` : ""}{x.importe ? " · importé" : ""}</span></li>)}
+                            </ul>
+                          )}
+                        </section>
+                      )}
+                      {/* Deux sources qui se contredisent (l'import, 22 nov. 2026) : dit, jamais tranché en silence. */}
+                      {f.ecarts?.length > 0 && (
+                        <section className="mt-6 border-t border-trait pt-4">
+                          <Titre>À vérifier</Titre>
+                          <ul className="m-0 list-none space-y-1.5 p-0">{f.ecarts.slice(0, 5).map((x) => <li key={x.id} className="text-[14px] leading-[1.5] text-encre">{x.texte}<span className="text-ardoise"> · {dateJournal(x.le)}</span></li>)}</ul>
+                        </section>
+                      )}
                       {/* L'avancement d'un client (20 nov. 2026, Jules) : où il en est (« En recherche »), puis chaque
                           dossier qu'on lui a présenté et sa position (« Comtesse du Barry · Présenté, refusé »). */}
                       {f.genre === "client" && (f.etape || ajouts?.etape || f.liees.some((l) => l.genre === "bien")) && (
                         <section className="mt-6 border-t border-trait pt-4">
                           <Titre>Avancement</Titre>
                           {ajouts?.etape && (
-                            <ul className="m-0 mb-2 list-none p-0">
+                            <Proposees className="mb-3">
                               <Ajout coche={garde.has(`${ajouts.id}-etape`)} onClick={() => basculer(noteId, `${ajouts.id}-etape`)} libelle={`Étape ${ajouts.etape}`}>
-                                <p className="m-0 text-[14px] text-encre">Passe à <span className="text-menthe">{ajouts.etape}</span>{ajouts.etat && <span className="text-ardoise"> · {ajouts.etat}</span>}</p>
+                                <p className="m-0 text-[15px] leading-[1.45] text-encre">Passe à <span className="text-menthe">{ajouts.etape}</span>{ajouts.etat && <span className="text-ardoise"> · {ajouts.etat}</span>}<Propose /></p>
+                                <p className="m-0 mt-1 text-[13.5px] text-ardoise">Proposé par l'assistant · Avancement</p>
                               </Ajout>
-                            </ul>
+                            </Proposees>
                           )}
                           {f.etape && <p className="m-0 text-[14.5px] text-encre">{f.etape}{f.etat ? <span className="text-ardoise"> · {f.etat}</span> : null}</p>}
                           {f.liees.some((l) => l.genre === "bien") && (
@@ -252,18 +306,19 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
                         <section className="mt-6 border-t border-trait pt-4">
                           <Titre>Avancement</Titre>
                           {ajouts?.etape && (
-                            <ul className="m-0 mb-2 list-none p-0">
+                            <Proposees className="mb-3">
                               <Ajout coche={garde.has(`${ajouts.id}-etape`)} onClick={() => basculer(noteId, `${ajouts.id}-etape`)} libelle={`Étape ${ajouts.etape}`}>
-                                <p className="m-0 text-[14px] text-encre">Passe à <span className="text-menthe">{ajouts.etape}</span>{ajouts.etat && <span className="text-ardoise"> · {ajouts.etat}</span>}</p>
+                                <p className="m-0 text-[15px] leading-[1.45] text-encre">Passe à <span className="text-menthe">{ajouts.etape}</span>{ajouts.etat && <span className="text-ardoise"> · {ajouts.etat}</span>}<Propose /></p>
+                                <p className="m-0 mt-1 text-[13.5px] text-ardoise">Proposé par l'assistant · Avancement</p>
                               </Ajout>
-                            </ul>
+                            </Proposees>
                           )}
                           <Frise etapes={etapes} />
                           {(enNego.length > 0 || nego?.lignes?.length > 0 || nego?.offre) && (
                             <div className="mt-3 border-t border-trait pt-3">
                               <p className="m-0 mb-1 text-[12.5px] text-ardoise">Négociation{nego?.offre && nego?.resume ? ` · ${nego.resume}` : ""}</p>
+                              {enNego.length > 0 && <Proposees className="mb-2 mt-1">{enNego.map(ajout)}</Proposees>}
                               <ul className="m-0 list-none divide-y divide-trait p-0">
-                                {enNego.map(ajout)}
                                 {(nego?.lignes || []).map((l, i) => <li key={i} className="flex justify-between gap-4 py-2 text-[14px] leading-[1.5] text-encre"><span>{l.texte}</span><span className="flex-none text-[13px] text-ardoise">{dateJournal(l.le)}</span></li>)}
                               </ul>
                             </div>
@@ -274,19 +329,24 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
                   )}
 
                   {ici === "action" && (aFaire.length ? (
-                    <ul className="m-0 list-none divide-y divide-trait p-0">
-                      {aFaire.map((a) => a.propose ? (
-                        <li key={a.id} className="py-2.5">
-                          <button type="button" onClick={() => onAction?.(a.id)} className="flex w-full items-start gap-2.5 text-left" style={{ background: "transparent" }}>
-                            {(() => { const I = ICONE_ACTION[a.genre] || Check; return <I className="mt-[4px] h-3.5 w-3.5 flex-none text-menthe" />; })()}
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-[14.5px] leading-[1.5] text-encre">{a.titre}{neuf}</span>
-                              <span className="block text-[13.5px] text-ardoise">{a.qui === "assistant" ? "Préparé par l'assistant" : a.qui === "moi" ? "À toi" : `Pour ${a.qui}`} · {a.echeance ? dateCourte(a.echeance) : "à programmer"}</span>
-                            </span>
-                          </button>
-                        </li>
-                      ) : <LigneAction key={a.id} a={a} onOuvrir={() => onVue?.({ vue: "action", action: a, note_id: noteId })} />)}
-                    </ul>
+                    <>
+                      {proposees.length > 0 && (
+                        <Proposees className={f.actions.length ? "mb-4" : ""}>
+                          {proposees.map((a) => (
+                            <Ajout key={a.id} coche={garde.has(a.id)} onClick={() => basculer(noteId, a.id)} libelle={garde.has(a.id) ? `Retirer : ${a.titre}` : `Garder : ${a.titre}`}
+                              actions={onAction ? <button type="button" onClick={() => onAction(a.id)} className={BOUTON_PLEIN}>{VOIR_ACTION[a.genre] || "Voir le détail"}<ArrowRight className="h-4 w-4" strokeWidth={1.8} /></button> : null}>
+                              <p className="m-0 text-[15px] leading-[1.45] text-encre [text-wrap:pretty]">{a.titre}<Propose /></p>
+                              <p className="m-0 mt-1 text-[13.5px] leading-[1.45] text-ardoise">{["Proposé par l'assistant", a.qui === "assistant" ? "préparé par lui" : a.qui === "moi" ? "à toi" : `pour ${a.qui}`, a.echeance ? dateCourte(a.echeance) : "à programmer"].join(" · ")}</p>
+                            </Ajout>
+                          ))}
+                        </Proposees>
+                      )}
+                      {f.actions.length > 0 && (
+                        <ul className="m-0 list-none divide-y divide-trait p-0">
+                          {f.actions.map((a) => <LigneAction key={a.id} a={a} onOuvrir={() => onVue?.({ vue: "action", action: a, note_id: noteId })} />)}
+                        </ul>
+                      )}
+                    </>
                   ) : vide("Rien de prévu. Dis la suite dans une note liée : l'assistant la posera ici."))}
 
                   {ici === "identite" && (
@@ -300,17 +360,18 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
 
                   {ici === "notes" && (
                     <>
-                      {enNotes.length > 0 && <ul className="m-0 mb-1 list-none divide-y divide-trait border-b border-trait p-0">{enNotes.map(ajout)}</ul>}
+                      <NouvelleNote cle={cle} nom={nom} />
+                      {enNotes.length > 0 && <Proposees className="mt-5">{enNotes.map(ajout)}</Proposees>}
                       {f.notes?.length ? (
-                        <ul className="k-serie m-0 list-none divide-y divide-trait p-0">
+                        <ul className="k-serie m-0 mt-3 list-none divide-y divide-trait p-0">
                           {f.notes.map((x) => (
-                            <li key={x.id} className="py-3">
-                              <p className="m-0 text-[14.5px] leading-[1.55] text-encre">{x.texte}</p>
-                              <p className="m-0 mt-1 text-[13px] text-ardoise">{dateJournal(x.le)}{x.par ? ` · ${x.par}` : ""}</p>
+                            <li key={x.id} className="py-4">
+                              <p className="m-0 text-[15px] leading-[1.55] text-encre [text-wrap:pretty]">{x.texte}</p>
+                              <p className="m-0 mt-1.5 text-[13.5px] text-ardoise">{[dateJournal(x.le), x.par, x.rangee ? "rangée par l'assistant" : null].filter(Boolean).join(" · ")}</p>
                             </li>
                           ))}
                         </ul>
-                      ) : !enNotes.length && vide("Pas encore de note : un ressenti ou une impression dits dans une note liée viendront ici.")}
+                      ) : !enNotes.length && <div className="mt-4">{vide("Pas encore de note : écris-en une ici, ou dis un ressenti dans une note liée.")}</div>}
                     </>
                   )}
 
@@ -319,8 +380,8 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
                       {(f.decisions.length > 0 || enDecision.length > 0) && (
                         <section className="mb-5 border-b border-trait pb-3">
                           <Titre>Décisions</Titre>
+                          {enDecision.length > 0 && <Proposees className="mb-2">{enDecision.map(ajout)}</Proposees>}
                           <ul className="m-0 list-none divide-y divide-trait p-0">
-                            {enDecision.map(ajout)}
                             {f.decisions.map((x) => (
                               <li key={x.id} className="py-2.5">
                                 <p className="m-0 text-[14.5px] leading-[1.5] text-encre">{x.texte}</p>
@@ -330,18 +391,59 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
                           </ul>
                         </section>
                       )}
-                      {enHistorique.length > 0 && <ul className="m-0 mb-1 list-none divide-y divide-trait border-b border-trait p-0">{enHistorique.map(ajout)}</ul>}
+                      {enHistorique.length > 0 && <Proposees className="mb-4">{enHistorique.map(ajout)}</Proposees>}
                       {f.journal.length ? <Chronologie journal={f.journal} /> : !enHistorique.length && vide("Lie une note à cette fiche depuis la page de l'assistant.")}
                     </>
                   )}
 
-                  {ici === "personnes" && <CarteDossier carte={carteVue} sous={[id.ville, etapes[0]?.nom].filter(Boolean).join(" · ")} onOuvrir={onOuvrir} />}
+                  {ici === "personnes" && <CarteDossier carte={carteVue} onOuvrir={onOuvrir} />}
                 </div>
               </>
             );
           })()}
 
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Écrire une note sur la fiche, en tête de l'onglet Notes (20 nov. 2026, Jules, maquette « Ajouter une note sur Sébastien
+ * ROBIC… ») : tapée ou dictée, gardée telle quelle, sans passer par l'assistant.
+ */
+function NouvelleNote({ cle, nom }) {
+  const queryClient = useQueryClient();
+  const [texte, setTexte] = useState("");
+  const base = React.useRef("");
+  const dictee = useDictee({ onTexte: (t) => setTexte(`${base.current}${t}`), onFin: (t) => setTexte(`${base.current}${t}`) });
+  const ajouter = useMutation({
+    mutationFn: () => base44.request("POST", "/api/fiche-dossier/fiche/notes", { body: { cle, texte } }),
+    onSuccess: () => { setTexte(""); queryClient.invalidateQueries({ queryKey: ["fiche-dossier", cle] }); },
+    onError: (e) => toast.error(e?.message || "La note n'a pas été ajoutée."),
+  });
+  const pret = texte.trim().length > 0 && !ajouter.isPending && !dictee.ecoute && !dictee.finalisation;
+  const micro = () => {
+    if (dictee.ecoute) { dictee.arreter(); return; }
+    base.current = texte.trim() ? `${texte.trim()} ` : "";
+    dictee.demarrer();
+  };
+  return (
+    <div className="rounded-[16px] border border-bord-doux px-4 pb-3 pt-3.5 transition-colors focus-within:border-bord-vif">
+      <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={2} placeholder={`Ajouter une note sur ${nom}…`} aria-label={`Ajouter une note sur ${nom}`}
+        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && pret) { e.preventDefault(); ajouter.mutate(); } }}
+        className="block w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume" style={{ background: "transparent" }} />
+      <div className="mt-2 flex items-center justify-between">
+        {dictee.supporte ? (
+          <button type="button" onClick={micro} aria-label={dictee.ecoute ? "Arrêter la dictée" : "Dicter la note"} aria-pressed={dictee.ecoute}
+            className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${dictee.ecoute ? "k-anneau text-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={{ background: "transparent" }}>
+            {dictee.finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />}
+          </button>
+        ) : <span />}
+        <button type="button" onClick={() => ajouter.mutate()} disabled={!pret}
+          className="inline-flex h-9 items-center gap-2 rounded-full bg-relief px-4 text-[14px] text-encre transition-colors hover:bg-rail-actif disabled:opacity-50">
+          {ajouter.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Ajouter
+        </button>
       </div>
     </div>
   );
@@ -371,6 +473,31 @@ function Personnes({ liees, onOuvrir }) {
  * côté la date avec une petite annotation ») : le plus récent en haut, un côté sur deux ; sur un téléphone, d'un seul
  * côté. Un clic sur une entrée déplie ce que la note a rangé et la note telle qu'écrite.
  */
+/**
+ * La fiche remplie par l'import, à relire (22 nov. 2026, Jules : « l'analyste relit le résumé de ses fiches, corrige ce qui
+ * est faux et clique OK ») : un OK pour toute la fiche, pas un par fait.
+ */
+function BandeauRelire({ cle, f }) {
+  const queryClient = useQueryClient();
+  const valider = useMutation({
+    mutationFn: () => base44.request("POST", "/api/fiche-dossier/fiche/valider", { body: { cle } }),
+    onSuccess: () => { for (const k of [["fiche-dossier", cle], ["fiche-dossier-a-relire"]]) queryClient.invalidateQueries({ queryKey: k }); toast.success("Fiche relue."); },
+    onError: (e) => toast.error(e?.message || "La fiche n'a pas été validée."),
+  });
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[14px] border border-trait px-4 py-3">
+      <p className="m-0 min-w-0 flex-1 text-[14px] leading-[1.5] text-encre">
+        Remplie par l'import{f.importees ? ` · ${f.importees} ligne${f.importees > 1 ? "s" : ""} à relire` : ""}
+        <span className="block text-[13px] text-ardoise">{f.a_relire_par ? `Relecture : ${f.a_relire_par}. ` : ""}Corrige ce qui est faux dans une note liée, puis OK.</span>
+      </p>
+      <button type="button" onClick={() => valider.mutate()} disabled={valider.isPending}
+        className="inline-flex h-9 flex-none items-center gap-2 rounded-full bg-menthe px-4 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
+        {valider.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}OK, c'est relu
+      </button>
+    </div>
+  );
+}
+
 function Chronologie({ journal }) {
   return (
     <ol className="k-serie relative m-0 list-none p-0">
@@ -390,7 +517,7 @@ function EntreeJournal({ j, gauche, recente }) {
       <span aria-hidden className={`col-start-2 row-start-1 mt-[5px] h-[9px] w-[9px] justify-self-center rounded-full ring-4 ring-barre max-md:col-start-1 ${recente ? "bg-menthe" : "bg-ardoise"}`} />
       <div className={`row-start-1 min-w-0 ${cote}`}>
         <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} className={`group block w-full ${gauche ? "text-right max-md:text-left" : "text-left"}`} style={{ background: "transparent" }}>
-          <span className="block text-[14px] tabular-nums text-ardoise">{dateJournal(j.le)}{j.par ? ` · ${j.par}` : ""}</span>
+          <span className="block text-[14px] tabular-nums text-ardoise">{dateJournal(j.le)}{j.origine ? ` · ${ORIGINE[j.origine.genre] || "import"}${j.origine.de ? `, ${j.origine.de.split(/\s+/)[0]}` : ""}` : j.par ? ` · ${j.par}` : ""}{j.importe && <span className="ml-1.5 rounded-full border border-trait px-1.5 py-px text-[11px] text-ardoise">importé</span>}</span>
           <span className={`mt-0.5 block text-[14.5px] leading-[1.45] text-encre transition-colors group-hover:text-menthe-texte ${ouvert ? "" : "line-clamp-2"}`}>{annotation}</span>
         </button>
         <Depliant ouvert={ouvert}>
@@ -400,6 +527,7 @@ function EntreeJournal({ j, gauche, recente }) {
                 <li key={i} className="text-[13.5px] leading-[1.5] text-craie">
                   {l.genre === "decision" && <span className="mr-1.5 text-[11px] uppercase tracking-[.14em] text-menthe">Décision</span>}
                   {l.genre === "ressenti" && <span className="mr-1.5 text-[11px] uppercase tracking-[.14em] text-brume">Ressenti</span>}
+                  {l.genre === "ecart" && <span className="mr-1.5 text-[11px] uppercase tracking-[.14em] text-craie">Écart</span>}
                   {l.texte}
                   {l.raison && <span className="text-ardoise"> {raisonLisible(l.raison)}</span>}
                 </li>
@@ -548,18 +676,28 @@ export function usePanneau() {
   return [vue, setVue];
 }
 
-/** Le panneau posé par-dessus la page, à droite (plein écran au téléphone). */
+/**
+ * La fiche ouverte hors de l'écran scindé (la page de l'assistant, les fiches récentes, le CRM). Un écran qui cache
+ * tout, fait du seul fond de la page (la base, le halo s'il est allumé, les points), et la fiche au milieu, au format
+ * de celle d'à côté du chat ; un clic ailleurs la referme (20 nov. 2026, Jules). Au téléphone, plein écran sur `barre`.
+ */
 export function PanneauFlottant({ vue, setVue }) {
+  // Le halo de la page (Layout, FondHalo) : repris seulement s'il est posé, sinon le fond uni du thème.
+  const [halo, setHalo] = useState(false);
+  useEffect(() => { if (vue) setHalo(!!document.querySelector(".k-fond-halo")); }, [vue]);
   return createPortal(
     <AnimatePresence>
       {vue && (
-        <>
-          <motion.div key="voile" data-crm-dehors className="fixed inset-0 z-[84] bg-fond/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setVue(null)} />
-          <motion.aside key="panneau" role="dialog" aria-label="Fiche" initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 28 }} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed inset-y-0 right-0 z-[85] flex w-full flex-col overflow-hidden bg-barre shadow-[0_12px_40px_rgb(0_0_0/0.3)] max-md:pt-[env(safe-area-inset-top)] md:w-[min(760px,94vw)] md:border-l md:border-trait">
+        <motion.div key="ecran" data-crm-dehors className="fixed inset-0 z-[84] flex items-center justify-center bg-fond"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }} onClick={() => setVue(null)}>
+          {halo && <FondHalo />}
+          <div aria-hidden className="k-points pointer-events-none absolute inset-0" data-zone="fond" style={{ "--k-grid-marge": "0px" }} />
+          <motion.aside role="dialog" aria-label="Fiche" onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, y: 14, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.985 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="k-fiche-fond relative z-10 flex h-full w-full flex-col overflow-hidden max-md:!bg-barre max-md:pt-[env(safe-area-inset-top)] md:h-[calc(100dvh-48px)] md:w-[clamp(460px,42vw,640px)] md:rounded-[16px] md:border md:border-trait">
             <PanneauNote vue={vue} onVue={setVue} onFermer={() => setVue(null)} />
           </motion.aside>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body,

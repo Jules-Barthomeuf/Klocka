@@ -21,6 +21,8 @@ export const ENTREES_ADMIN = [
   { cle: "Emailing", label: "Emailing" },
   { cle: "ALX", label: "ALX" },
   { cle: "Monitoring", label: "Suivi" },
+  // Statistiques (20 nov. 2026, Jules : « ajoute un menu Statistiques ») : les fiches reçues, global et par analyste.
+  { cle: "Statistiques", label: "Statistiques" },
   { cle: "SuiviActivite", label: "Tableau de bord" },
   // L'Intelligence (14 oct. 2026) : ce qui a été dit, décidé, promis ; les faits à valider.
   { cle: "Cerveau", label: "Intelligence" },
@@ -43,7 +45,7 @@ export const ENTREES_ADMIN = [
  */
 export const PILIERS_ACCES = [
   { cle: "Dashboard", label: "Assistant" }, { cle: "AdminProjets", label: "Projets" }, { cle: "Analyse", label: "Dossiers" },
-  { cle: "Prospection", label: "Appels" }, { cle: "SimulateurRentabilite", label: "Simulateur" }, { cle: "KData", label: "Outils" },
+  { cle: "Prospection", label: "Appels" }, { cle: "Statistiques", label: "Statistiques" }, { cle: "SimulateurRentabilite", label: "Simulateur" }, { cle: "KData", label: "Outils" },
   { cle: "CRM", label: "CRM" }, { cle: "AdminSuggestions", label: "Feedback" }, { cle: "AdminPresentations", label: "Présentations" },
   { cle: "Offres", label: "Offres" }, { cle: "AdminBanque", label: "Dossier bancaire" },
   // Tokimo et Emailing, à la suite (même jour, Jules).
@@ -109,6 +111,8 @@ export const MENU_ADMIN = [
   { cle: "Analyse", label: "Dossiers" },
   // À valider quitte le menu (26 oct. 2026, Jules) : la page reste ouverte par la cloche et les dossiers.
   { cle: "Prospection", label: "Appels" },
+  // Statistiques (20 nov. 2026, Jules) : une entrée du menu, sous Appels ; les fiches reçues, global et par analyste.
+  { cle: "Statistiques", label: "Statistiques" },
   // Le Simulateur dans le menu de gauche (18 oct. 2026, Jules) : toujours là, même masqué dans d'anciennes préférences.
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
   // Outils dans le menu (9 nov. 2026, Jules), à la place de la bascule Klocka | Outils en haut de la barre.

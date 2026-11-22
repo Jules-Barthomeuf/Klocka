@@ -17,7 +17,7 @@ import { useCasesProjet, PanneauPiece, VueBail, BandesCases, TableauAG, dateFr }
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import { J } from "@/design/jetons";
-import MarcheProjet, { LocataireDuDossier } from "./MarcheProjet";
+import MarcheProjet from "./MarcheProjet";
 import StreetViewRue from "./StreetViewRue";
 import { EnTeteOnglet, Carte } from "./Cartes";
 import BienProjet from "./BienProjet";
@@ -586,9 +586,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               />
 
               <LocataireProjet project={project} friseLue={cases?.frise} />
-
-              {/* Le Locataire du Marché du dossier (14 nov. 2026, Jules) : société, procédures, avis, relus à chaque ouverture. */}
-              <div className="mt-5"><LocataireDuDossier project={project} isPublic={isPublic} /></div>
 
               <Bloc id="locataire-liens" titre="Liens du locataire" className="mt-5">
                 <LocataireLiensSociaux liens={project.liens_locataire} />

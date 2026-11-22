@@ -47,6 +47,9 @@ export function useEnregistrementRdv() {
   const relances = useRef(0);
   const veille = useRef(null);
   const [passages, setPassages] = useState([]);
+  // Le niveau du micro, lu à chaque image par les rubans de la carte (20 nov. 2026, Jules : « les lignes qui bougent,
+  // comme dans le mode appel ») : { niveau (RMS), qui }, hors de React.
+  const voix = useRef({ niveau: 0, qui: "vous" });
 
   // Un enregistrement resté ouvert (page fermée, rechargée) : proposé à la reprise.
   useEffect(() => {
@@ -88,6 +91,8 @@ export function useEnregistrementRdv() {
     const d = direct.current;
     direct.current = null;
     d?.arreter?.().catch?.(() => {});
+    r0.ctx?.close?.().catch?.(() => {});
+    voix.current = { niveau: 0, qui: "vous" };
     verrou.current?.release?.().catch?.(() => {});
     verrou.current = null;
   };
@@ -106,6 +111,15 @@ export function useEnregistrementRdv() {
     let i = e.prochain || 0;
     const r0 = { flux, actif: true, jeter: false, m: null, minuterie: null };
     rec.current = r0;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const an = ctx.createAnalyser();
+      an.fftSize = 1024;
+      ctx.createMediaStreamSource(flux).connect(an);
+      const buf = new Float32Array(an.fftSize);
+      r0.ctx = ctx;
+      voix.current = { qui: "vous", get niveau() { an.getFloatTimeDomainData(buf); let t = 0; for (const x of buf) t += x * x; return Math.sqrt(t / buf.length); } };
+    } catch { /* les rubans restent calmes */ }
     setTexteDirect(""); setEtatDirect("attente"); setPassages([]);
     baseDirect.current = ""; courantDirect.current = ""; relances.current = 0;
     dernierMot.current = Date.now(); dernierPassage.current = 0;
@@ -202,5 +216,5 @@ export function useEnregistrementRdv() {
   // Ce que le chat montre : le direct, ou les passages de trente secondes quand le direct n'a pas pu revenir.
   const textePassages = passages.map((x) => x.texte).filter(Boolean).join(" ");
   const montre = etatDirect === "coupe" ? textePassages : texteDirect;
-  return { etat, id, secondes, caracteres, erreur, demarrer, terminer, abandonner, ouvert, oublierOuvert, direct: montre, etatDirect };
+  return { etat, id, secondes, caracteres, erreur, demarrer, terminer, abandonner, ouvert, oublierOuvert, direct: montre, etatDirect, voix };
 }

@@ -26,6 +26,8 @@ export const API_DES_PAGES = {
   Automatismes: ['/api/haka/automatismes'],
   Monitoring: ['/api/monitoring/haka', '/api/monitoring/appels', '/api/monitoring/mandataires', '/api/monitoring/activite', '/api/monitoring/regles', '/api/monitoring/qualite-ak', '/api/monitoring/chat', '/api/monitoring/reunions', '/api/monitoring/audience', '/api/monitoring/enregistrements', '/api/ak/lecons', '/api/testeur'],
   Emailing: ['/api/emailing'],
+  // Statistiques (20 nov. 2026) : les fiches reçues par analyste et leurs corrections, fermées avec la page.
+  Statistiques: ['/api/monitoring/fiches-analystes', '/api/statistiques'],
   ALX: ['/api/alx'],
   // Off-market (10 oct. 2026) : sa page et son API, pour l'équipe ; les mandataires passent par la même API, hors de ce cadenas.
   OffMarket: ['/api/off-market'],

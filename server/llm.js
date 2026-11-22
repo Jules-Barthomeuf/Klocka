@@ -84,7 +84,32 @@ function parseJsonLoose(text) {
       }
     }
   }
+  // Deux objets à la suite, le second corrigé (« {…}\n\nCorrection : … {…} », 20 nov. 2026, rangement d'une note) :
+  // le dernier objet complet qui se lit.
+  const objets = objetsDe(t);
+  for (let i = objets.length - 1; i >= 0; i--) {
+    try { return JSON.parse(objets[i]); } catch { /* le précédent */ }
+  }
   return null;
+}
+
+/** Les objets JSON de premier niveau d'un texte, accolades comptées hors des chaînes. */
+function objetsDe(t) {
+  const out = [];
+  let prof = 0; let debut = -1; let chaine = false; let echappe = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (chaine) {
+      if (echappe) echappe = false;
+      else if (c === '\\') echappe = true;
+      else if (c === '"') chaine = false;
+      continue;
+    }
+    if (c === '"' && prof > 0) chaine = true;
+    else if (c === '{') { if (prof === 0) debut = i; prof++; }
+    else if (c === '}' && prof > 0) { prof--; if (prof === 0) out.push(t.slice(debut, i + 1)); }
+  }
+  return out;
 }
 
 // Placeholder value generator matching a Base44 response_json_schema shape.

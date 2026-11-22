@@ -14,6 +14,8 @@ export const toutesLesCles = (p) => [
   ...(p?.fiches || []).flatMap((f) => [...(f.elements || []).map((e) => e.id), ...(f.etape ? [`${f.id}-etape`] : []), ...(f.blocage !== undefined ? [`${f.id}-blocage`] : [])]),
   ...(p?.faites || []).map((d) => d.id),
   ...(p?.actions || []).map((a) => a.id),
+  // Les règles de travail (22 nov. 2026) : gardées d'office, elles partent au Cerveau au OK.
+  ...(p?.regles || []).map((r) => r.id),
 ];
 
 /** Pose la note (une fois) ; une note relue avec un lien de plus la remplace. */

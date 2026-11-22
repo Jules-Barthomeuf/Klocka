@@ -11,7 +11,7 @@ import { useDictee } from "@/lib/dictee";
 import { demanderNotifications } from "@/lib/notifications";
 import SkillsChat from "@/components/dashboard/SkillsChat";
 import ChoixDossier from "@/components/haka/ChoixDossier";
-import LienNote from "@/components/fiche-dossier/LienNote";
+import LienNote, { PastilleLien } from "@/components/fiche-dossier/LienNote";
 import CarteNote from "@/components/fiche-dossier/CarteNote";
 import FicheAppelChat from "@/components/fiche-dossier/FicheAppelChat";
 import { BarreEnregistrement, BlocEnregistrement, BoutonMode } from "@/components/fiche-dossier/ModeEnregistrement";
@@ -1082,6 +1082,12 @@ function MessageAvecPiece({ m }) {
 // `lueur` : une lumière fait lentement le tour du cadre de la saisie, pour qu'on la voie (la fiche d'un commerce, 25 oct. 2026, Jules).
 // Dans tous les chats depuis le 26 oct. 2026 (Jules : « dans le dashboard, dans admin, dans tous les chats ») : `lueur={false}` l'éteint.
 // `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
+/** Les pastilles de la saisie sur une ligne qui défile de côté ; sans `actif`, elles restent dans la ligne. */
+function LigneDefilante({ actif, children }) {
+  if (!actif) return <>{children}</>;
+  return <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:flex-none">{children}</div>;
+}
+
 export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAura = false, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, lienNote = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null, finFil = null, repondre = null, annonce = null, debutFil = null, auDessusSaisie = null, propositions = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026) ; depuis le 1er nov. 2026 (Jules : « un
@@ -1358,7 +1364,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     const focaliser = () => champRef.current?.focus();
     window.addEventListener("klocka:assistant", focaliser);
     // Une carte de compétence (Haka, 17 oct. 2026) remplit le champ ; la personne envoie.
-    const composer = (e) => { const t = e?.detail?.texte; if (!t) return; setTexte(t); if (e.detail.competence) reglagesRef.current?.choisirCompetence?.(e.detail.competence, e.detail.eteintes || []); if (e.detail.sortie) reglagesRef.current?.setSortie?.(e.detail.sortie); if (choixDossier && e.detail.contexte?.deal_id) setDossierChoisi({ deal_id: e.detail.contexte.deal_id, titre: e.detail.contexte.titre || e.detail.contexte.deal_id }); setTimeout(() => { champRef.current?.focus(); champRef.current?.setSelectionRange?.(t.length, t.length); }, 30); };
+    // `liens` (20 nov. 2026, « Présenter à un autre client » de la fiche) : la note part déjà liée au dossier.
+    const composer = (e) => { const t = e?.detail?.texte; if (!t) return; setTexte(t); if (Array.isArray(e.detail.liens)) setLiensNote((l) => [...l, ...e.detail.liens.filter((x) => x?.cle && !l.some((y) => y.cle === x.cle)).map(lienDe)]);if (e.detail.competence) reglagesRef.current?.choisirCompetence?.(e.detail.competence, e.detail.eteintes || []); if (e.detail.sortie) reglagesRef.current?.setSortie?.(e.detail.sortie); if (choixDossier && e.detail.contexte?.deal_id) setDossierChoisi({ deal_id: e.detail.contexte.deal_id, titre: e.detail.contexte.titre || e.detail.contexte.deal_id }); setTimeout(() => { champRef.current?.focus(); champRef.current?.setSelectionRange?.(t.length, t.length); }, 30); };
     window.addEventListener("klocka:composer", composer);
     // Un mot de l'assistant posé par la page (l'avis envoyé, 27 oct. 2026) : il entre dans le fil, sans appel au modèle.
     const dire = (e) => { const t = e?.detail?.texte; if (t) pousser({ role: "assistant", contenu: t }); };
@@ -1393,7 +1400,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     if (!id) return;
     enr.current = { id, derniereNote: null, dernierLu: reprise?.caracteres || 0, dernierLe: Date.now(), notes: [], action_id: suivi?.id || null, enMaj: false, liens: [], cleOuverte: suivi?.cle || null, luDirect: 0, verifie: 0, enVerif: false };
     if (suivi) marquerAppel(suivi.id, { enregistre: true });
-    pousser({ role: "bloc", type: "enregistrement", donnees: { id, debut: new Date().toISOString(), liens: liensNoteRef.current.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })) } });
+    pousser({ role: "bloc", type: "enregistrement", donnees: { id, debut: new Date().toISOString(), appel: suivi ? { id: suivi.id } : null, liens: liensNoteRef.current.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })) } });
   };
   // Pendant la conversation, l'assistant relit ce qui a été dit et la fiche se met à jour à droite (20 nov. 2026,
   // Jules : « on les voit s'updater au fur et à mesure ») : à chaque fin de sujet (voir `verifierSujet`), pas à heure
@@ -1424,26 +1431,69 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     }
   };
   // La lecture finale : tout l'enregistrement et les notes tapées, en flux (le raisonnement se voit), puis « Voici ce
-  // que je propose » et la fiche à droite ; le OK range.
-  const rangerEnregistrement = (id, e = {}) => {
+  // que je propose » et la fiche à droite ; le OK range. `suite` : le raisonnement de la fin est déjà commencé.
+  const rangerEnregistrement = (id, e = {}, { suite = false } = {}) => {
     const liens = liensNoteRef.current.length ? liensNoteRef.current : (e.liens || []);
     setLiensNote([]);
     setEnCoursTexte("Je relis tout l'enregistrement…");
-    annoncer("ranger");
+    if (!suite) annoncer("ranger");
     envoiEnVol.current = true;
     rangerNote.mutate({ t: (e.notes || []).join("\n"), liens: liens.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })), enregistrement_id: id, remplace: e.derniereNote || null, action_id: e.action_id || null, ouvrir: e.cleOuverte || personnePrincipale(liens) });
   };
-  const terminerRdv = async () => {
+  // Terminer, sur la carte du chat (version C, 20 nov. 2026) : la carte se ferme tout de suite (« Enregistrement
+  // terminé · 7:42 ») et, dessous, le raisonnement de l'assistant prend le relais (20 nov. 2026, Jules : « qu'on ferme
+  // cette carte et qu'en dessous il y ait le raisonnement ; on sait que ça travaille encore ») : « Je finis la
+  // transcription », « Une dernière lecture de l'enregistrement », puis les étapes du rangement, en flux. Un appel
+  // raccroché demande d'abord son issue (« On s'est parlé » range l'enregistrement ; « Pas de réponse », « Message
+  // laissé » le notent et laissent la relance dans À faire) ; la transcription se finit pendant qu'on répond.
+  const [cloture, setCloture] = useState(false);
+  const etapeVive = (t) => { vivesRef.current = [...vivesRef.current, t]; setEtapesVives(vivesRef.current); };
+  const issuesEnAttente = useRef({});
+  const finirTranscription = (id) => {
+    const suivi = { fini: false };
+    suivi.promesse = rdv.terminer().then((rid) => {
+      suivi.fini = true;
+      majBlocRdv(id, { transcription: (directRef.current || "").slice(-30000) || null });
+      return rid;
+    });
+    return suivi;
+  };
+  const cloturer = async (id, e, suivi) => {
+    annoncer("ranger");
+    vivesRef.current = [];
+    setEtapesVives([]);
+    setCloture(true);
+    if (!suivi.fini) etapeVive("Je finis la transcription");
+    const rid = await suivi.promesse;
+    if (!rid) { setCloture(false); pousser({ role: "assistant", contenu: "L'enregistrement n'a pas pu se fermer : sa transcription reste lisible sur la carte." }); return; }
+    etapeVive("Une dernière lecture de l'enregistrement");
+    rangerEnregistrement(id, e, { suite: true });
+  };
+  const terminerRdv = () => {
     const e = enr.current;
+    if (!e) return;
+    const id = e.id;
     const duree = rdv.secondes;
-    const id = await rdv.terminer();
     enr.current = null;
     setModeRdv("normal");
-    if (!id) return;
+    const suivi = finirTranscription(id);
+    if (e.action_id) {
+      issuesEnAttente.current[id] = { e, duree, suivi };
+      majBlocRdv(id, { fin: true, duree, issue_attendue: true });
+      return;
+    }
     majBlocRdv(id, { fin: true, duree });
-    if (e?.action_id) marquerAppel(e.action_id, { enregistre: false, fait: { duree, mode: "enregistre" } });
-    if (appelSuivi.current?.id === e?.action_id) appelSuivi.current = null;
-    rangerEnregistrement(id, e || {});
+    cloturer(id, e, suivi);
+  };
+  const issueAppel = (id, issue) => {
+    const { e = {}, duree = null, suivi = null } = issuesEnAttente.current[id] || {};
+    delete issuesEnAttente.current[id];
+    majBlocRdv(id, { issue, issue_attendue: false });
+    if (e.action_id) marquerAppel(e.action_id, { enregistre: false, fait: { duree, mode: issue === "parle" ? "enregistre" : issue } });
+    if (appelSuivi.current?.id === e.action_id) appelSuivi.current = null;
+    if (issue === "parle") { if (suivi) cloturer(id, e, suivi); else rangerEnregistrement(id, e); return; }
+    setLiensNote([]);
+    pousser({ role: "assistant", contenu: issue === "message" ? "Noté : message laissé. La relance reste dans À faire, pour rappeler." : "Noté : pas de réponse. La relance reste dans À faire, pour rappeler." });
   };
   const abandonnerRdv = async () => {
     if (!window.confirm("Abandonner l'enregistrement ? Rien ne sera rangé.")) return;
@@ -1908,8 +1958,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   // Une note liée (19 nov. 2026) : lue par l'assistant, rendue en « Ce que j'en retiens » ; une demande repart au chat.
   const rangerNote = useMutation({
     // En flux (19 nov. 2026, Jules : « on ne voit pas le raisonnement ») : chaque étape s'affiche quand elle se fait.
-    mutationFn: async ({ t, liens, conversation = null, action_id: actionId = null, transcription = false, enregistrement_id: enrId = null, remplace = null }) => {
-      const r = await base44.flux("/api/fiche-dossier/notes?flux=1", { body: { texte: t, liens, ...(conversation ? { conversation } : {}), ...(actionId ? { action_id: actionId } : {}), ...(transcription ? { transcription: true } : {}), ...(enrId ? { enregistrement_id: enrId } : {}), ...(remplace ? { remplace } : {}) }, surEtape });
+    mutationFn: async ({ t, liens, conversation = null, action_id: actionId = null, transcription = false, enregistrement_id: enrId = null, remplace = null, libre = false }) => {
+      const r = await base44.flux("/api/fiche-dossier/notes?flux=1", { body: { texte: t, liens, ...(libre ? { libre: true } : {}), ...(conversation ? { conversation } : {}), ...(actionId ? { action_id: actionId } : {}), ...(transcription ? { transcription: true } : {}), ...(enrId ? { enregistrement_id: enrId } : {}), ...(remplace ? { remplace } : {}) }, surEtape });
       await vider();
       return r;
     },
@@ -1932,6 +1982,9 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     },
   });
   const enCours = boite.isPending || analyser.isPending || rangerNote.isPending;
+  // Le rangement d'une note ou d'un enregistrement envoie ses étapes une à une : elles s'affichent comme le raisonnement.
+  const fluxVif = enFlux || rangerNote.isPending || cloture;
+  useEffect(() => { if (rangerNote.isPending) setCloture(false); }, [rangerNote.isPending]);
   // La fin d'un sujet (20 nov. 2026, Jules : « pas un truc temporel, plus par rapport aux faits : on change de sujet, il
   // me pose une question, il parle d'autre chose ; là, ce que j'ai dit va dans les fiches ») : à chaque pause d'une
   // seconde et demie dans la transcription en direct, ou dès qu'une question se termine, un modèle rapide lit ce qui
@@ -2024,14 +2077,14 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   // La page voisine (l'aperçu à droite) suit le travail en cours et ses étapes.
   useEffect(() => { onTravail?.({ enCours: travaille, etapes: etapesVives }); }, [onTravail, travaille, etapesVives]);
   useEffect(() => {
-    if (!enFlux) return undefined;
+    if (!fluxVif) return undefined;
     const t = setInterval(() => {
       if (!fileRef.current.length) return;
       vivesRef.current = [...vivesRef.current, fileRef.current.shift()];
       setEtapesVives(vivesRef.current);
     }, 450);
     return () => clearInterval(t);
-  }, [enFlux]);
+  }, [fluxVif]);
   useEffect(() => {
     if (!travaille) return undefined;
     const t = setInterval(() => setEtapeCourante((i) => Math.min(i + 1, Math.max(0, etapesRef.current.length - 1))), 950);
@@ -2292,6 +2345,20 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
       envoiEnVol.current = true; rangerNote.mutate({ t, liens, ...(suivi ? { action_id: suivi.id, ouvrir: suivi.cle } : {}) });
       return;
     }
+    // Une note collée sans « Lier » (22 nov. 2026, Jules : « Maxime ne cliquera pas sur Lier à chaque note ») : longue, en
+    // plusieurs lignes, ou une demande d'écrire à quelqu'un. L'assistant devine les dossiers et les personnes, n'y range
+    // que ce qui en parle et demande quand il ne sait pas ; une vraie demande (une question, « fais la LOI ») repart au chat.
+    const lignes = t.split(/\n/).filter((l) => l.trim()).length;
+    const ecrire = /^\s*(r[ée]ponds?\b|fais(-lui)? (le|un) (mail|message|whatsapp)|[ée]cris(-lui)? (à|a|un)\b|pr[ée]pare (le|un) (mail|message))/i.test(t);
+    if (lienNote && !mode && !jointes.length && !mandataire && (t.length >= 220 || lignes >= 3 || ecrire)) {
+      pousser({ role: "user", contenu: t });
+      setTexte("");
+      setSuites([]);
+      setEnCoursTexte("Je range la note…");
+      annoncer("ranger");
+      envoiEnVol.current = true; rangerNote.mutate({ t, liens: [], libre: true });
+      return;
+    }
     pousser({ role: "user", contenu: t });
     setTexte("");
     setSuites([]);
@@ -2437,11 +2504,11 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
           {/* Pendant la dictée, la barre du mode micro : Annuler, l'onde, le minuteur, Envoyer. */}
           {ecoute && <BarreEcoute niveau={niveau} cadre={cadreAura} onAnnuler={annulerDictee} onEnvoyer={() => lancer()} onTerminer={() => { arreter(); setTimeout(() => champRef.current?.focus(), 30); }} envoi={envoiDemande} />}
           {lienNote && modeRdv === "enregistrement" && (
-            <BarreEnregistrement etat={rdv.etat} secondes={rdv.secondes} erreur={rdv.erreur} ouvert={rdv.ouvert}
-              onDemarrer={() => demarrerRdv()} onTerminer={terminerRdv} onAbandonner={abandonnerRdv}
+            <BarreEnregistrement etat={rdv.etat} secondes={rdv.secondes} erreur={rdv.erreur} ouvert={rdv.ouvert} appel={!!enr.current?.action_id}
+              onDemarrer={() => demarrerRdv()}
               onReprendre={() => demarrerRdv(rdv.ouvert)} onFinirOuvert={finirOuvert} />
           )}
-          <div className={`mt-4 flex flex-wrap items-center gap-1.5 max-md:flex-nowrap ${ecoute ? "hidden" : ""}`}>
+          <div className={`mt-4 flex items-center gap-1.5 ${lienNote ? "flex-nowrap" : "flex-wrap max-md:flex-nowrap"} ${ecoute ? "hidden" : ""}`}>
             {E.fichier && <button
               type="button"
               onClick={ajoutFichier.ouvrir}
@@ -2452,6 +2519,10 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
             >
               <Plus className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </button>}
+            {lienNote && <LienNote sansPastilles liens={liensNote} onChange={changerLiens} versLeHaut={conversation || menusVersLeHaut} indices={{ texte, noms: conversationWa?.participants || [] }} />}
+            {/* Avec le lien (page de l'assistant, 21 nov. 2026, Jules) : les pastilles tiennent sur une ligne, jusqu'au
+                mode, et défilent de côté ; la dernière est coupée plutôt que de passer à la ligne. */}
+            <LigneDefilante actif={lienNote}>
             {/* Les pièces jointes, dans la barre, à droite du « + » : une pastille chacune, retirable. */}
             {jointes.map((f) => (
               <span key={`${f.name}-${f.size}`} className="inline-flex min-w-0 max-w-[260px] items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] text-craie max-md:max-w-[160px]" style={{ background: J["barre-relief"] }}>
@@ -2468,7 +2539,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
                 <button onClick={() => setConversationWa(null)} className="flex-none text-brume hover:text-alerte" aria-label="Retirer la conversation" title="Retirer" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
               </span>
             )}
-            {lienNote ? <LienNote liens={liensNote} onChange={changerLiens} versLeHaut={conversation || menusVersLeHaut} indices={{ texte, noms: conversationWa?.participants || [] }} />
+            {lienNote ? liensNote.map((l) => <PastilleLien key={l.cle} l={l} onRetirer={() => changerLiens(liensNote.filter((x) => x.cle !== l.cle))} />)
               : choixDossier && <ChoixDossier valeur={dossierChoisi} onChoisir={setDossierChoisi} versLeHaut={conversation || menusVersLeHaut} mandataire={espace === "mandataire"} />}
             {reglages?.competence && (
               <span className="inline-flex h-8 min-w-0 max-w-[260px] items-center gap-1.5 rounded-full bg-menthe/10 pl-2.5 pr-1 text-[13px] text-encre">
@@ -2477,6 +2548,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
                 <button type="button" onClick={() => reglages.choisirCompetence(null)} aria-label="Retirer la compétence" title="Retirer la compétence" className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
               </span>
             )}
+            </LigneDefilante>
             {/* Sans `setSortie` (le chat d'un dossier, 18 oct. 2026, Jules), pas de bascule : l'assistant choisit selon la demande. */}
             {reglages?.setSortie && <BasculeSortie sortie={reglages.sortie} onChange={reglages.setSortie} />}
             {E.boiteEnvoi && <BoiteEnvoi versLeHaut={conversation || menusVersLeHaut} />}
@@ -2729,10 +2801,11 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
                 <MessageAvecPiece m={m} />
               </motion.div>
             ) : m.role === "bloc" && m.type === "enregistrement" ? (
-              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex gap-4">
-                {!compact && <AvatarAK />}
-                <div className={`min-w-0 flex-1 ${compact ? "" : "pt-1"}`}>
-                  <BlocEnregistrement donnees={m.donnees} enCours={!m.donnees?.fin && rdv.id === m.donnees?.id} secondes={rdv.secondes} direct={rdv.direct} etatDirect={rdv.etatDirect} />
+              // Sans avatar en face (20 nov. 2026, Jules : « deux têtes d'assistant au plus, pas trois ») : la carte est alignée sur les messages.
+              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={compact ? "" : "pl-[3.25rem]"}>
+                <div className="min-w-0">
+                  <BlocEnregistrement donnees={m.donnees} enCours={!m.donnees?.fin && rdv.id === m.donnees?.id} secondes={rdv.secondes} direct={rdv.direct} etatDirect={rdv.etatDirect}
+                    voix={rdv.voix} onTerminer={terminerRdv} onAbandonner={abandonnerRdv} onIssue={(issue) => issueAppel(m.donnees.id, issue)} />
                   {m.donnees?.a_ranger && !rangerNote.isPending && (
                     <button type="button" onClick={() => { majBlocRdv(m.donnees.id, { a_ranger: false }); rangerEnregistrement(m.donnees.id, {}); }} disabled={!liensNote.length}
                       className="mt-2 inline-flex h-9 items-center rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">Ranger l'enregistrement</button>
@@ -2776,12 +2849,12 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
               </motion.div>
             ),
           ])}
-          {travaille && (
+          {(travaille || cloture) && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} className="flex gap-4">
               {!compact && <AvatarAK />}
               <div className="min-w-0 flex-1 pt-2">
-                {enFlux
-                  ? <Etapes etapes={etapesVives.length ? etapesVives : ["Réflexion…"]} courante={Math.max(0, etapesVives.length - 1)} />
+                {fluxVif
+                  ? <Etapes etapes={etapesVives.length ? etapesVives : enFlux ? ["Réflexion…"] : etapesPrevues.slice(0, 1)} courante={Math.max(0, etapesVives.length - 1)} />
                   : <Etapes etapes={etapesPrevues} courante={etapeCourante} />}
                 {texteVif && <p className="m-0 mt-3 whitespace-pre-wrap text-[15px] leading-[1.65] text-encre">{texteVif}</p>}
               </div>

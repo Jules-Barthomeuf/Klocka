@@ -106,8 +106,12 @@ export default function ActionApercu({ a, onTexte = null, liees = [], onFermer =
   // proposée dans une note attend le OK de la note.
   const enregistree = a.statut === "ouverte" || a.statut === "faite";
   const [faite, setFaite] = useState(a.statut === "faite");
+  // Un message déjà enregistré se retouche ici avant de partir (22 nov. 2026, Jules : « l'écart entre le brouillon et
+  // l'envoi, c'est l'apprentissage ») : « C'est envoyé » garde le texte tel qu'il est parti.
+  const message = ["whatsapp", "mail"].includes(a.genre) && !!a.brouillon?.texte;
+  const [local, setLocal] = useState(a.envoye || a.brouillon?.texte || "");
   const fermer = useMutation({
-    mutationFn: (statut) => base44.request("PATCH", `/api/fiche-dossier/actions/${a.id}`, { body: { statut } }),
+    mutationFn: (statut) => base44.request("PATCH", `/api/fiche-dossier/actions/${a.id}`, { body: { statut, ...(message && statut === "faite" ? { brouillon: local } : {}) } }),
     onSuccess: (_r, statut) => {
       setFaite(statut === "faite");
       for (const k of [["fiche-dossier-mes-actions"], ["fiche-dossier"], ["fiche-dossier-jour"]]) queryClient.invalidateQueries({ queryKey: k });
@@ -115,7 +119,8 @@ export default function ActionApercu({ a, onTexte = null, liees = [], onFermer =
     onError: (e) => toast.error(e?.message || "L'action n'a pas changé."),
   });
   const tel = a.telephone ? String(a.telephone).replace(/[^\d+]/g, "") : null;
-  const texte = a.brouillon?.texte || "";
+  const texte = enregistree && message && !onTexte ? local : a.brouillon?.texte || "";
+  const surTexte = onTexte || (enregistree && message && !faite ? setLocal : null);
   const copier = async () => {
     try {
       await navigator.clipboard.writeText(a.brouillon?.objet ? `${a.brouillon.objet}\n\n${texte}` : texte);
@@ -123,7 +128,7 @@ export default function ActionApercu({ a, onTexte = null, liees = [], onFermer =
       setTimeout(() => setCopie(false), 1800);
     } catch { toast.error("Copie refusée par le navigateur."); }
   };
-  if (a.genre === "whatsapp" && texte) return <ConversationWhatsApp a={a} texte={texte} onTexte={onTexte} cle={a.id} onFermer={onFermer} copier={copier} copie={copie} faite={faite} onFaite={enregistree && !fermer.isPending ? () => fermer.mutate(faite ? "ouverte" : "faite") : null} />;
+  if (a.genre === "whatsapp" && texte) return <ConversationWhatsApp a={a} texte={texte} onTexte={surTexte} cle={a.id} onFermer={onFermer} copier={copier} copie={copie} faite={faite} onFaite={enregistree && !fermer.isPending ? () => fermer.mutate(faite ? "ouverte" : "faite") : null} />;
 
   const Icone = ICONE_ACTION[a.genre] || CheckSquare;
   // La relance qui suit le message à la même personne, et inversement : on voit le lien entre les deux.
@@ -135,7 +140,9 @@ export default function ActionApercu({ a, onTexte = null, liees = [], onFermer =
         <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-relief text-menthe"><Icone className="h-4 w-4" /></span>
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[15px] leading-[1.35] text-encre">{a.titre}</p>
-          <p className="m-0 mt-0.5 text-[13px] text-ardoise">{a.qui === "assistant" ? "Écrit par l'assistant, à relire puis à copier" : a.qui === "moi" ? "À toi" : `Pour ${a.qui}`}{a.echeance ? ` · ${dateCourte(a.echeance)}` : ""}</p>
+          <p className="m-0 mt-0.5 text-[13px] text-ardoise">{a.qui === "assistant" ? "Écrit par l'assistant, à relire puis à copier" : a.brouillon?.de_l_auteur ? "Ton message, à envoyer" : a.qui === "moi" ? "À toi" : `Pour ${a.qui}`}{a.echeance ? ` · ${dateCourte(a.echeance)}` : ""}</p>
+          {/* Une action qui conditionne une étape (22 nov. 2026) : « Avant la signature de la LOI ». */}
+          {a.avant && <p className="m-0 mt-1 text-[13px] text-menthe-texte">Avant {a.avant.replace(/^avant\s+/i, "")}</p>}
         </div>
         {onFermer && <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>}
       </div>
@@ -144,8 +151,8 @@ export default function ActionApercu({ a, onTexte = null, liees = [], onFermer =
         <div className="k-verre px-5 py-4">
           <p className="m-0 text-[13px] text-ardoise">À : {a.pour || a.brouillon?.a || "—"}</p>
           {a.brouillon?.objet && <p className="m-0 mt-1 text-[14px] text-encre">Objet : {a.brouillon.objet}</p>}
-          {onTexte ? (
-            <textarea value={texte} onChange={(e) => onTexte(e.target.value)} rows={Math.min(16, Math.max(5, Math.ceil(texte.length / 70)))} aria-label="Texte du mail"
+          {surTexte ? (
+            <textarea value={texte} onChange={(e) => surTexte(e.target.value)} rows={Math.min(16, Math.max(5, Math.ceil(texte.length / 70)))} aria-label="Texte du mail"
               className="mt-3 w-full resize-y border-0 border-t border-trait bg-transparent pt-3 text-[14.5px] leading-[1.6] text-encre outline-none max-md:text-[16px]" />
           ) : <p className="m-0 mt-3 whitespace-pre-line border-t border-trait pt-3 text-[14.5px] leading-[1.6] text-encre">{texte}</p>}
         </div>
@@ -191,13 +198,13 @@ export default function ActionApercu({ a, onTexte = null, liees = [], onFermer =
           )}
           {enregistree && (faite ? (
             <>
-              <span className="inline-flex h-9 items-center gap-2 px-1 text-[14px] text-menthe"><CheckCheck className="h-4 w-4" />C'est fait, sorti de « À faire »</span>
+              <span className="inline-flex h-9 items-center gap-2 px-1 text-[14px] text-menthe"><CheckCheck className="h-4 w-4" />{message ? "Envoyé, gardé dans l'historique" : "C'est fait, sorti de « À faire »"}</span>
               <button type="button" onClick={() => fermer.mutate("ouverte")} disabled={fermer.isPending} className="h-9 rounded-full px-3 text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Rouvrir</button>
             </>
           ) : (
             <button type="button" onClick={() => fermer.mutate("faite")} disabled={fermer.isPending}
               className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-[14px] disabled:opacity-60 ${texte ? "border border-trait text-encre hover:border-bord-doux" : "bg-menthe text-sur-menthe hover:bg-menthe-survol"}`} style={texte ? { background: "transparent" } : undefined}>
-              <Check className="h-4 w-4" />C'est fait
+              <Check className="h-4 w-4" />{message ? "C'est envoyé" : "C'est fait"}
             </button>
           ))}
         </div>

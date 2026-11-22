@@ -7,7 +7,7 @@
 // Le mode Simple a ses propres données (CommerceSimple) et sa propre liste
 // d'appels (AppelSimple) : rien n'en passe au mode Avancé.
 
-import { Records } from '../db.js';
+import db, { Records } from '../db.js';
 import { etablissementsAutour, refusRecent, societe } from '../alx/annuaire.js';
 import { piedDImmeuble, cleRue, rueDe, etablissementDe } from '../alx/commerces.js';
 import { proprietairesDe as proprietairesOuverts, choisirProprietaire } from '../alx/foncier-ouvert.js';
@@ -1157,6 +1157,24 @@ export function tauxDesMurs(ville, { dansZone = true } = {}) {
   return { taux: dansZone ? base : base + 0.5, source: `Barème Klocka : ${String(base).replace('.', ',')} % ${base === 6 ? 'à Paris' : TAUX_VILLE[nom] ? `à ${ville.nom}` : 'par défaut'}${dansZone ? '' : ', + 0,5 point hors des zones commerçantes'}` };
 }
 
+// Les fiches du mode Avancé d'une ville qui ont mesuré une façade, en champs seuls, gardées dix minutes (22 nov. 2026,
+// Jules : « ça prend trop de temps à charger ») : estimerPrix décodait toutes les cibles de la ville (3 371 fiches, 44 Mo)
+// à chaque prix, cinq prix par tour de fond toutes les six secondes ; le serveur figeait 2 à 10 s, pour tout le monde.
+const ciblesParVille = new Map();
+export function ciblesMesurees(villeId) {
+  const g = ciblesParVille.get(villeId);
+  if (g && Date.now() - g.le < 10 * 60_000 && !process.env.NODE_TEST_CONTEXT) return g.liste;
+  // Les seules fiches à façade mesurée, triées par la base, et leurs six champs d'un seul json_extract (une lecture de
+  // chaque fiche au lieu de douze) : 0,6 à 1 s pour 3 371 cibles, au lieu de 7 s avec Records.filter.
+  const lignes = db.prepare(`SELECT id, json_extract(data, '$.lat', '$.lon', '$.place_id', '$.enseigne', '$.valorisation.surface_estimee', '$.valorisation.estimee_detail') AS v
+    FROM records WHERE entity = 'Cible' AND json_extract(data, '$.ville_id') = ? AND json_type(data, '$.valorisation.surface_estimee') = 'array'`).all(villeId);
+  const liste = lignes.map((r) => { const [lat, lon, place_id, enseigne, surface_estimee, estimee_detail] = JSON.parse(r.v); return { id: r.id, lat, lon, place_id, enseigne, valorisation: { surface_estimee, estimee_detail } }; })
+    .filter((x) => Number.isFinite(x.lat));
+  ciblesParVille.set(villeId, { le: Date.now(), liste });
+  if (ciblesParVille.size > 20) ciblesParVille.delete(ciblesParVille.keys().next().value);
+  return liste;
+}
+
 export async function estimerPrix(id, { surface = null, user = null, surEtape = () => {}, batiment = null, loyer = null, rendement = null, dvf = null } = {}) {
   const c = Records.get(COMMERCE, id);
   if (!c) return { ok: false, error: 'Commerce introuvable.' };
@@ -1213,7 +1231,7 @@ export async function estimerPrix(id, { surface = null, user = null, surEtape = 
   }
   if (!s && Number.isFinite(c.lat)) {
     // La fiche du mode Avancé au même endroit, quand elle a mesuré la façade.
-    const proche = Records.filter('Cible', { ville_id: c.ville_id }).filter((x) => Array.isArray(x.valorisation?.surface_estimee) && Number.isFinite(x.lat))
+    const proche = ciblesMesurees(c.ville_id)
       .map((x) => ({ x, d: 6371000 * Math.hypot(((x.lon - c.lon) * Math.cos((c.lat * Math.PI) / 180) * Math.PI) / 180, ((x.lat - c.lat) * Math.PI) / 180) }))
       .filter((o) => o.d <= 25 && (o.x.place_id && o.x.place_id === c.place_id || norm(o.x.enseigne).split(' ').some((m) => m.length >= 4 && norm(`${c.enseigne} ${c.nom}`).includes(m))))
       .sort((a, bb) => a.d - bb.d)[0];
@@ -1256,7 +1274,18 @@ export async function estimerPrix(id, { surface = null, user = null, surEtape = 
 // au plus 40 rues neuves par ville et par jour.
 const prixEnFond = new Map();
 export const PLAFOND_RUES_JOUR = 40;
-export async function tourPrix(villeId, { estimer = estimerPrix } = {}) {
+// Une ville à la fois pour les prix (22 nov. 2026, Jules : « baisse le temps de chargement ») : chaque ville avait sa
+// boucle, toutes en même temps, et l'instantané (deux villes gardées au plus) se relisait à chaque tour, 60 000
+// commerces à Lyon, le serveur figé des secondes durant. Les autres villes attendent que celle-ci ait fini.
+let villePrixAyantLaMain = null;
+export async function tourPrix(villeId, options = {}) {
+  if (villePrixAyantLaMain && villePrixAyantLaMain !== villeId && prixEnFond.has(villePrixAyantLaMain)) return 1;
+  villePrixAyantLaMain = villeId;
+  const reste = await tourPrixVille(villeId, options);
+  if (!reste && villePrixAyantLaMain === villeId) villePrixAyantLaMain = null;
+  return reste;
+}
+async function tourPrixVille(villeId, { estimer = estimerPrix } = {}) {
   // L'instantané, pas les fiches entières (16 nov. 2026) : toutes les six secondes, les 60 000 fiches de Lyon décodées
   // figeaient le serveur. L'état de la recherche se relit dans l'index ; un commerce estimé entre-temps est relu avant.
   const { liste, centre } = await instantane(villeId);

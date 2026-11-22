@@ -239,6 +239,19 @@ test('Pas de « Qui est … ? » sur une personne liée, connue ou de l\'équipe
   assert.match(c, /- Alexandre LOURENCO : agent immobilier \(Citya · Dieppe\)/);
 });
 
+test('Pas de question pour faire confirmer ce qui est su (20 nov. 2026, Jules : « est-ce que c\'est bien ce dossier »)', () => {
+  const questions = [
+    { texte: "Quelle offre est concernée : est-ce bien l'offre MACSF, et sur quel dossier précisément ?" },
+    { texte: 'Pour la date limite de la LOI, c\'est bien le 30 novembre 2026 ?' },
+    { texte: 'La crèche concernée est-elle bien celle présentée par Alexandre Lourenço ?' },
+    { texte: 'Quel est le montant de l\'offre acceptée ?' },
+  ];
+  const p = normaliser({ ...brut, questions }, liens, { auteur: maxime.email });
+  assert.deepEqual(p.questions.map((q) => q.texte), ['Quel est le montant de l\'offre acceptée ?']);
+  assert.match(consigne('Des nouvelles du dossier ?', liens, maxime, { maintenant }), /Jamais une question pour faire confirmer ce que tu sais déjà/);
+  assert.match(dejaDit([{ cle: 'agent:x', genre: 'agent', nom: 'Sébastien ROBIC' }]), /« Le dossier », « l'offre », « les nouvelles » sans nom : le dossier que sa fiche dit en cours/);
+});
+
 test('Un nom en début de phrase, derrière un mot qui n\'en est pas un', async () => {
   const { nomsPropres } = await import('./chercher.js');
   assert.ok(nomsPropres('Eu Bilel Djaber au téléphone : le syndic a enfin envoyé le PV.').includes('Bilel Djaber'));
@@ -610,4 +623,17 @@ test('Les agents préférés : une étoile par personne et par agent, cinq au pl
   assert.equal(a1.nom, 'Agent Étoile 1');
   assert.equal(P.etoiles(autre).agents.find((x) => x.cle === `agent:${agents[2].id}`).moi, false);
   assert.equal(P.basculerPrefere(moi, 'deal:x').ok, false);
+});
+
+test('Une note écrite sur la fiche, onglet Notes : gardée telle quelle, sans l\'assistant', () => {
+  const a = Records.create('AgentImmo', { nom: 'Sébastien Robic', agence: 'Robic Immobilier' });
+  const cle = `agent:${a.id}`;
+  assert.equal(M.noterSurLaFiche(cle, '   ', maxime).ok, false);
+  assert.equal(M.noterSurLaFiche('agent:inconnu', 'x', maxime).ok, false);
+  const r = M.noterSurLaFiche(cle, '  Va bientôt envoyer de nouveaux dossiers :  demander les documents. ', maxime, { maintenant });
+  assert.equal(r.ok, true);
+  assert.equal(r.note.texte, 'Va bientôt envoyer de nouveaux dossiers : demander les documents.');
+  const n = M.ficheVue(cle).notes.find((x) => x.id === r.note.id);
+  assert.equal(n.rangee, false);
+  assert.equal(n.par, 'Maxime');
 });

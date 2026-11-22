@@ -229,7 +229,7 @@ test('le Marché du dossier : la dernière lecture finie de chaque outil, sans p
   assert.equal(m.loyer, null);
   assert.equal(m.ville, null);
   assert.equal(m.emplacement, null);
-  assert.equal(m.locataire.points[0].detail.nom, 'Entrepreneur individuel');
-  assert.equal(m.locataire.points[0].lien, null);
-  assert.deepEqual(marcheDuProjet({ adresse_complete: 'x' }), { emplacement: null, ville: null, prix: null, loyer: null, locataire: null });
+  // Le Locataire n'est plus une partie du Marché du projet (22 nov. 2026, Jules), même lu.
+  assert.equal('locataire' in m, false);
+  assert.deepEqual(marcheDuProjet({ adresse_complete: 'x' }), { emplacement: null, ville: null, prix: null, loyer: null });
 });

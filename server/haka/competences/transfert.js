@@ -424,8 +424,10 @@ export async function enMemoireSeulement(mail, { membre, lu, extraire = null, po
     for (const piece of vague) {
       try {
         // Entre fiches reconnues, deux lignes à la même adresse restent deux fiches ; une pièce en plus ne double pas un bien lu.
-        const b = await uneFicheEnMemoire(mail, piece, { membre, lu, extraire, pousser, deja: i === 0 ? [] : lues });
-        if (b) { biens.push(b); if (b.cle_adresse) lues.push(b.cle_adresse); }
+        // Un PDF peut porter plusieurs fiches (20 nov. 2026, Jules : « un seul PDF, et il y avait 4 fiches dedans ») : chacune.
+        for (const b of await fichesEnMemoire(mail, piece, { membre, lu, extraire, pousser, deja: i === 0 ? [] : lues })) {
+          biens.push(b); if (b.cle_adresse) lues.push(b.cle_adresse);
+        }
       } catch (e) {
         // Une pièce en plus qui n'est pas une fiche (un bail sans adresse, une photo) ne se dit pas en erreur.
         if (i === 0 || pieces) erreurs.push(`${piece.nom || 'fiche'} : ${e?.message || e}`);
@@ -437,31 +439,50 @@ export async function enMemoireSeulement(mail, { membre, lu, extraire = null, po
   return { fait: 'memoire', n: biens.length, deja: biens.every((b) => b.deja), nom: premier.nom, noms: biens.map((b) => b.nom).filter(Boolean), twenty: biens.some((b) => b.twenty), erreurs };
 }
 
-async function uneFicheEnMemoire(mail, piece, { membre, lu, extraire = null, pousser = null, deja: adressesLues = [] }) {
+async function fichesEnMemoire(mail, piece, { membre, lu, extraire = null, pousser = null, deja: adressesLues = [] }) {
   const M = await import('../../memoire/memoire.js');
   const buffer = await telecharger(mail.compte, mail.gmail_message_id, piece.piece_id);
   const hash = M.hashDe(buffer);
-  const deja = Records.findBy(M.ENTITE, 'hash_piece', hash);
-  if (deja) return { deja: true, cle_adresse: deja.cle_adresse || null, nom: deja.adresse?.rue || deja.ville || null, ...(await versTwenty(deja, pousser)) };
+  // La pièce déjà lue (un renvoi) : ses biens sont déjà là, le mail les rejoint.
+  const dejaLus = Records.filter(M.ENTITE, { hash_piece: hash });
+  if (dejaLus.length) {
+    const m = Records.get('MailRecu', mail.id);
+    Records.update('MailRecu', mail.id, { memoire_deja_ids: [...new Set([...(m?.memoire_deja_ids || []), ...dejaLus.map((d) => d.id)])] });
+    const sortie = [];
+    for (const d of dejaLus) sortie.push({ deja: true, cle_adresse: d.cle_adresse || null, nom: d.adresse?.rue || d.ville || null, ...(await versTwenty(d, pousser)) });
+    return sortie;
+  }
   const lire = extraire || (await import('../../deal/extraire-faits.js')).extraireFaits;
   const faits = await lire({ buffer, filename: piece.nom, mimetype: piece.mime }, { par: membre.email });
   const origine = lu.origine?.email && !membreDeLEquipe(lu.origine.email) ? lu.origine : null;
   const agentFiche = faits.agent || {};
-  const bien = M.bienDepuisLot(faits.lots?.[0], { ...agentFiche, email: agentFiche.email || origine?.email || null, nom: agentFiche.nom || origine?.nom || null }, {
-    // Reçue : le jour où le mail est arrivé chez nous, pas celui où l'agent l'avait écrit (18 nov. 2026, Jules).
-    recu_le: mail.date || new Date().toISOString(),
-    compte: mail.compte, gmail_message_id: mail.gmail_message_id, hash_piece: hash, mail_recu_id: mail.id,
-    origine: 'transfert', statut: 'memoire',
-  });
-  if (!bien.cle_adresse && !bien.prix && !bien.loyer_annuel) throw new Error("La fiche ne donne ni adresse, ni prix, ni loyer : rien à garder en Mémoire.");
-  // Le bail ou le plan du bien dont la fiche vient d'être lue, dans le même mail : pas une seconde ligne.
-  if (bien.cle_adresse && adressesLues.includes(bien.cle_adresse)) return null;
-  bien.fiche = M.ecrireFiche(buffer, piece.nom, piece.mime);
-  const cree = Records.create(M.ENTITE, { ...bien, objet_mail: String(lu.objet_origine || mail.objet || '').slice(0, 200), par: norm(membre.email), maj_le: new Date().toISOString() }, membre.email);
-  const m = Records.get('MailRecu', mail.id);
-  Records.update('MailRecu', mail.id, { memoire_id: m?.memoire_id || cree.id, memoire_ids: [...(m?.memoire_ids || []), cree.id] });
-  const ou = [bien.adresse?.rue, bien.ville].filter(Boolean).join(', ');
-  return { nom: ou || null, cle_adresse: bien.cle_adresse || null, ...(await versTwenty(cree, pousser)) };
+  const agent = { ...agentFiche, email: agentFiche.email || origine?.email || null, nom: agentFiche.nom || origine?.nom || null };
+  const lots = (faits.lots || []).length ? faits.lots : [null];
+  const sortie = [];
+  let fiche = null;
+  let doublons = 0;
+  for (const lot of lots) {
+    const bien = M.bienDepuisLot(lot, agent, {
+      // Reçue : le jour où le mail est arrivé chez nous, pas celui où l'agent l'avait écrit (18 nov. 2026, Jules).
+      recu_le: mail.date || new Date().toISOString(),
+      compte: mail.compte, gmail_message_id: mail.gmail_message_id, hash_piece: hash, mail_recu_id: mail.id,
+      origine: 'transfert', statut: 'memoire',
+    });
+    if (!bien.cle_adresse && !bien.prix && !bien.loyer_annuel) continue;
+    // Le bail ou le plan du bien dont la fiche vient d'être lue, dans le même mail : pas une seconde ligne.
+    if (bien.cle_adresse && adressesLues.includes(bien.cle_adresse)) { doublons += 1; continue; }
+    // Le PDF écrit une fois, partagé par les biens qu'il porte.
+    fiche = fiche || M.ecrireFiche(buffer, piece.nom, piece.mime);
+    bien.fiche = fiche;
+    const cree = Records.create(M.ENTITE, { ...bien, objet_mail: String(lu.objet_origine || mail.objet || '').slice(0, 200), par: norm(membre.email), maj_le: new Date().toISOString() }, membre.email);
+    const m = Records.get('MailRecu', mail.id);
+    Records.update('MailRecu', mail.id, { memoire_id: m?.memoire_id || cree.id, memoire_ids: [...(m?.memoire_ids || []), cree.id] });
+    const ou = [bien.adresse?.rue, bien.ville].filter(Boolean).join(', ');
+    sortie.push({ nom: ou || null, cle_adresse: bien.cle_adresse || null, ...(await versTwenty(cree, pousser)) });
+  }
+  // Rien de lisible (ni adresse, ni prix, ni loyer) : une erreur ; un bien déjà lu dans une autre pièce du mail n'en est pas une.
+  if (!sortie.length && !doublons) throw new Error("La fiche ne donne ni adresse, ni prix, ni loyer : rien à garder en Mémoire.");
+  return sortie;
 }
 
 /**

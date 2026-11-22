@@ -30,6 +30,10 @@ export const OUTILS = [
   { cle: 'emplacement', nom: 'Emplacement', question: 'Un commerce peut-il vivre ici, celui-là ou le suivant ?', entrees: ['adresse'] },
   { cle: 'ville', nom: 'Ville', question: "La ville porte-t-elle l'investissement ?", entrees: ['ville'] },
 ];
+
+// Le Marché d'un dossier sans Locataire (22 nov. 2026, Jules : « la partie Locataire, enlève-la dans le marché et le
+// projet ») : l'outil n'y est plus lancé ni montré ; il reste sur la page Outils.
+export const OUTILS_DOSSIER = OUTILS.filter((o) => o.cle !== 'locataire');
 const LIBELLES_ENTREES = { siren: 'le SIREN du locataire', adresse: "l'adresse", locataire: 'le locataire', ville: 'la ville', loyer: 'le loyer', surface: 'la surface', prix: 'le prix', echeance: "l'échéance du bail" };
 
 // --- Les jugements, purs ----------------------------------------------------------------------------------------------
@@ -1077,7 +1081,7 @@ const nettoyer = ({ id, created_date, updated_date, created_by, ...reste }) => r
 
 /** Lance plusieurs outils sur les mêmes entrées ; chacun tourne seul. */
 export function lancerOutils(entrees, { outils = null, dealId = null, index = 0, user = null } = {}) {
-  const liste = OUTILS.map((o) => o.cle).filter((k) => !outils || outils.includes(k));
+  const liste = (dealId && !outils ? OUTILS_DOSSIER : OUTILS).map((o) => o.cle).filter((k) => !outils || outils.includes(k));
   return liste.map((k) => lancerOutil(k, entrees, { dealId, index, user })).map((r) => r.lancement).filter(Boolean);
 }
 
@@ -1112,7 +1116,7 @@ export function aRelancer(lancement, entreesActuelles, { ecartLoyer = null } = {
   return raisons.length ? raisons.join(' ; ') : null;
 }
 
-/** L'état des cinq outils d'un lot de dossier : le dernier lancement de chacun, et s'il est à relancer. */
+/** L'état des outils d'un lot de dossier (sans Locataire) : le dernier lancement de chacun, et s'il est à relancer. */
 export async function etatDuDossier(deal, index = 0) {
   const entrees = await entreesDuLot(deal, index);
   let ecartLoyer = null;
@@ -1121,7 +1125,7 @@ export async function etatDuDossier(deal, index = 0) {
     const e = lireAnalyse(deal.deal_id)?.ecarts?.find((x) => x.cle === 'loyer');
     if (e?.ecart && !e.retenu) ecartLoyer = `les pièces ne donnent pas le même loyer (${e.valeurs.map((v) => `${v.source} ${v.valeur}`).join(', ')})`;
   } catch { /* sans analyse des pièces, pas d'écart */ }
-  const outils = OUTILS.map((o) => {
+  const outils = OUTILS_DOSSIER.map((o) => {
     const l = dernierLancement(deal.deal_id, index, o.cle);
     return { ...o, lancement: l, a_relancer: aRelancer(l, entrees, { ecartLoyer }), en_cours: l?.statut === 'en_cours' };
   });

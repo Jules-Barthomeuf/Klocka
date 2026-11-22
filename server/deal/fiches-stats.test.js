@@ -64,3 +64,22 @@ test('les semaines et le record', () => {
   assert.deepEqual(s[1], { semaine: '2026-09-28', fiches: 2, oui: 1, presente: 1, abouti: 0 });
   assert.deepEqual(recordDeFiches(fiches), { semaine: '2026-09-21', fiches: 3 });
 });
+
+test('un transfert à sourcing@ compte ses biens rentrés, et compte aussi quand rien n\'est rentré (20 nov. 2026, Jules)', () => {
+  const base = { compte: 'sourcing@klocka.immo', de_email: 'maxime.p@klocka.immo', interne: true, date: '2026-11-18T09:00:00.000Z', texte: 'Pour info', pieces_jointes: [{ nom: 'scan001.pdf' }] };
+  const mails = [
+    { ...base, id: 'm4', objet: 'TR: 4 biens', memoire_ids: ['b1', 'b2', 'b3', 'b4'] },
+    { ...base, id: 'm0', objet: 'TR: rien lu' },
+    { ...base, id: 'mdeja', objet: 'TR: renvoi', memoire_deja_ids: ['b1'] },
+    { ...base, id: 'mdocs', objet: 'TR: le bail', haka_transfert: { intention: 'documents' } },
+    { ...base, id: 'mperso', compte: 'maxime.p@klocka.immo', objet: 'TR: un mail sans fiche' },
+  ];
+  const f = listerFiches({ mails }, { estInterne: equipe });
+  const par = Object.fromEntries(f.map((x) => [x.id, x]));
+  assert.deepEqual(Object.keys(par).sort(), ['mail:m0', 'mail:m4']);
+  assert.equal(par['mail:m4'].biens, 4);
+  assert.equal(par['mail:m4'].rentree, 'memoire');
+  assert.equal(par['mail:m4'].transferee_par, 'maxime.p@klocka.immo');
+  assert.equal(par['mail:m0'].biens, 1);
+  assert.equal(par['mail:m0'].rentree, 'non');
+});

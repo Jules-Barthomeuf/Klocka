@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Records } from '../db.js';
-import { jugerEffort, jugerLoyer, statutVerdictPrix, statutDesPoints, conclusionDe, empreinte, entreesChangees, aRelancer, entreesDe, lancerOutil, reconnaitreLocataire, pointVacance, lireProcedures, consigneNote, deuxPhrases, sirenDuTexte, candidatsLocataire, codeCommuneDe, communeLisible, pointComptes, pointAvis, dernierLancement, rattacher, OUTILS, ENTITE, lireResumeAvis, avecResumeWeb } from './lancements.js';
+import { jugerEffort, jugerLoyer, statutVerdictPrix, statutDesPoints, conclusionDe, empreinte, entreesChangees, aRelancer, entreesDe, lancerOutil, reconnaitreLocataire, pointVacance, lireProcedures, consigneNote, deuxPhrases, sirenDuTexte, candidatsLocataire, codeCommuneDe, communeLisible, pointComptes, pointAvis, dernierLancement, rattacher, OUTILS, OUTILS_DOSSIER, ENTITE, lireResumeAvis, avecResumeWeb } from './lancements.js';
 
 test('le poids du loyer dans le chiffre d\'affaires : 10 % confortable, 15 % tendu', () => {
   assert.deepEqual(jugerEffort(30000, 400000), { taux: 7.5, statut: 'ok' });
@@ -34,6 +34,8 @@ test('le statut d\'un outil est le pire de ses points lus, et sa conclusion tien
 
 test('cinq outils, chacun avec les entrées dont il dépend', () => {
   assert.deepEqual(OUTILS.map((o) => o.cle), ['locataire', 'loyer', 'prix', 'emplacement', 'ville']);
+  // Le Marché d'un dossier, sans Locataire (22 nov. 2026, Jules).
+  assert.deepEqual(OUTILS_DOSSIER.map((o) => o.cle), ['loyer', 'prix', 'emplacement', 'ville']);
   const e = { adresse: '1 rue A, Lyon', loyer: 20000, surface: 80, prix: 300000, locataire: 'X', ville: 'Lyon' };
   assert.equal(empreinte('emplacement', e), empreinte('emplacement', { ...e, loyer: 99999 }));
   assert.notEqual(empreinte('loyer', e), empreinte('loyer', { ...e, loyer: 99999 }));

@@ -10,7 +10,7 @@ import jetons from "@/design/jetons.json";
 // tableau. Les couleurs sont lues sur le thème courant : recharts écrit ses
 // tracés en attributs SVG, où une variable CSS ne se résout pas.
 
-const ROLES = ["menthe", "encre", "craie", "ardoise", "brume", "surface-pleine", "fond", "lu-ia"];
+const ROLES = ["menthe", "encre", "craie", "ardoise", "brume", "surface-pleine", "fond", "lu-ia", "statut-orchidee", "statut-lavande", "statut-menthe", "statut-gris", "statut-bleu", "statut-turquoise", "statut-ambre", "statut-corail"];
 
 function lireCouleurs() {
   const racine = typeof document !== "undefined" ? document.documentElement : null;
@@ -87,6 +87,14 @@ export const axe = (c) => ({ stroke: c.trait, tick: { fill: c.ardoise, fontSize:
  * La couleur de chaque personne : son rang dans l'équipe triée par adresse,
  * pas dans le classement du moment. Filtrer une période ne la repeint pas.
  */
+// Les couleurs douces d'une personne (22 nov. 2026, Jules : « j'aime pas les couleurs trop vives » sur la page
+// Statistiques) : celles des statuts, plus pâles que la palette des graphiques. Même règle : par l'adresse, jamais le rang.
+const DOUCES = ["statut-orchidee", "statut-lavande", "statut-menthe", "statut-gris", "statut-bleu", "statut-turquoise", "statut-ambre", "statut-corail"];
+export function couleursDouces(analystes, c) {
+  const tries = [...analystes].map((a) => a.email).sort();
+  return Object.fromEntries(tries.map((e, i) => [e, c[DOUCES[i % DOUCES.length]]]));
+}
+
 export function couleursAnalystes(analystes, c) {
   const tries = [...analystes].map((a) => a.email).sort();
   return Object.fromEntries(tries.map((e, i) => [e, c.series[i % c.series.length]]));

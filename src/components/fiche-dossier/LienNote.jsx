@@ -36,9 +36,9 @@ export function PastilleLien({ l, onRetirer = null }) {
 /**
  * `indices` : ce qui est écrit et les participants d'une conversation importée ; à l'ouverture, les fiches qu'ils nomment
  * sont proposées en premier (19 nov. 2026, Jules : « au lieu de lier, ça propose des liens »).
- * @param {{ liens: Array<{cle: string, genre: string, nom: string}>, onChange: (l: any[]) => void, versLeHaut?: boolean, libelle?: string, indices?: { texte?: string, noms?: string[] } }} props
+ * @param {{ liens: Array<{cle: string, genre: string, nom: string}>, onChange: (l: any[]) => void, versLeHaut?: boolean, libelle?: string, indices?: { texte?: string, noms?: string[] }, sansPastilles?: boolean }} props
  */
-export default function LienNote({ liens, onChange, versLeHaut = false, libelle = "Lier", indices = null }) {
+export default function LienNote({ liens, onChange, versLeHaut = false, libelle = "Lier", indices = null, sansPastilles = false }) {
   const [ouvert, setOuvert] = useState(false);
   const [cherche, setCherche] = useState("");
   // La liste sort de la saisie (portail, position fixe) : sur l'Accueil, les raccourcis posés dessous passaient
@@ -105,7 +105,8 @@ export default function LienNote({ liens, onChange, versLeHaut = false, libelle 
 
   return (
     <>
-      {liens.map((l) => <PastilleLien key={l.cle} l={l} onRetirer={() => onChange(liens.filter((x) => x.cle !== l.cle))} />)}
+      {/* `sansPastilles` : la saisie les pose elle-même, sur une ligne qui défile (21 nov. 2026, Jules). */}
+      {!sansPastilles && liens.map((l) => <PastilleLien key={l.cle} l={l} onRetirer={() => onChange(liens.filter((x) => x.cle !== l.cle))} />)}
       <div className="relative">
         <button ref={bouton} type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-haspopup="listbox"
           aria-label="Lier la note à un bien, un agent ou un client" title="Lier à un bien, un agent, un client"

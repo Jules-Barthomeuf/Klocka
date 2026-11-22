@@ -53,6 +53,7 @@ import VeilleAlx from "@/components/alx/VeilleAlx";
 import AgentProjet from "@/components/projet/AgentProjet";
 import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackSurvol from "@/components/FeedbackSurvol";
+import RecordEquipe from "@/components/RecordEquipe";
 import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
 import FondHalo from "@/components/projet/FondHalo";
@@ -283,24 +284,9 @@ function LayoutContent({ children, currentPageName }) {
     staleTime: 30 * 1000,
   });
   const enRetard = vueAdmin ? attend?.en_retard || 0 : 0;
-  // ALX suit de même : les cibles à appeler cette semaine, en pastille.
-  const { data: alx } = useQuery({
-    queryKey: ["alx-etat"],
-    queryFn: () => base44.request("GET", "/api/alx/etat"),
-    enabled: vueAdmin,
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 60 * 1000,
-  });
-  const alxAFaire = vueAdmin ? alx?.a_faire?.a_appeler || 0 : 0;
-  // L'Intelligence : les faits qui attendent la validation, en pastille.
-  const { data: layer } = useQuery({
-    queryKey: ["layer", "etat"],
-    queryFn: () => base44.request("GET", "/api/layer/etat"),
-    enabled: vueAdmin,
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 60 * 1000,
-  });
-  const layerAValider = vueAdmin ? layer?.a_valider || 0 : 0;
+  // Plus de pastilles ALX ni Intelligence (22 nov. 2026, Jules : « baisse le temps de chargement ») : ni l'une ni l'autre
+  // n'est plus au menu, et leurs deux lectures (/api/alx/etat, /api/layer/etat, jusqu'à 10 s en ligne) partaient de
+  // chaque page toutes les cinq minutes ; chaque page attendait leur réponse pour se dire chargée.
   // Haka (17 oct. 2026) : ce qui attend dans À valider ; l'entrée du menu n'existe que si Haka est allumé.
   const { data: haka } = useQuery({ queryKey: ["haka-compte"], queryFn: () => base44.request("GET", "/api/haka/propositions/compte"), enabled: vueAdmin, refetchInterval: 60 * 1000, staleTime: 30 * 1000, retry: false });
   const hakaActif = !!haka?.actif;
@@ -421,10 +407,12 @@ function LayoutContent({ children, currentPageName }) {
     Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") ||isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires") || isActivePage("MemoireKlocka"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
-    Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },
-    ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
+    Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau") },
+    ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan") },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     SuiviActivite: { to: "/SuiviActivite", icon: ChartColumn, actif: isActivePage("SuiviActivite") },
+    // Statistiques (20 nov. 2026, Jules) : les fiches reçues, global et par analyste.
+    Statistiques: { to: createPageUrl("Statistiques"), icon: ChartColumn, actif: isActivePage("Statistiques") },
     MandataireTableauDeBord: { to: createPageUrl("MandataireTableauDeBord"), icon: ChartColumn, actif: isActivePage("MandataireTableauDeBord") },
     Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") || isActivePage("SuiviCorrections") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
@@ -788,6 +776,8 @@ function LayoutContent({ children, currentPageName }) {
           {boutonRappel && <div className="k-flottant-haut fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
           {/* Une fiche commerciale arrivée : « je la rentre ? Oui / Non », en fenêtre, d'elle-même (20 oct. 2026, Jules). */}
           <PopupFicheRecue />
+          {/* Le record de l'équipe (22 nov. 2026, Jules) : aux admins, une fois par semaine à la première ouverture. */}
+          <RecordEquipe />
         </>
       )}
       {/* Au téléphone, le hamburger à droite de la cloche ouvre le menu (27 oct. 2026, Jules : plus d'onglets en bas). */}

@@ -3,6 +3,7 @@
 // pour les contacts, puis de la base de la Prospection pour un agent que le CRM n'a pas encore.
 
 import { Records } from '../db.js';
+import { nomAgent } from '../nom-agent.js';
 
 const sansAccent = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const repond = (texte, q) => {
@@ -91,7 +92,8 @@ export async function chercher(q, user, { limite = 6 } = {}) {
   ]);
   return {
     biens: sansDoublon([...suivies(q, 'bien', 3), ...b]).slice(0, limite),
-    agents: unParNom([...suivies(q, 'agent', 3), ...at, ...agentsLocaux(q, limite)]).slice(0, limite),
+    // Un agent au même format partout (22 nov. 2026, Jules) : « Prénom Nom », avant d'écarter les doublons.
+    agents: unParNom([...suivies(q, 'agent', 3), ...at, ...agentsLocaux(q, limite)].map((x) => ({ ...x, nom: nomAgent(x.nom) || x.nom }))).slice(0, limite),
     clients: unParNom([...suivies(q, 'client', 3), ...ct]).slice(0, limite),
   };
 }

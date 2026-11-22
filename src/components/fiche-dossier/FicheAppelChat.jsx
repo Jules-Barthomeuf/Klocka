@@ -45,7 +45,8 @@ export default function FicheAppelChat({ action: a, fait = null, enregistre = fa
         <div className="flex flex-col gap-4 px-5 py-4 max-md:px-4 md:border-r md:border-trait">
           <div className="flex flex-col gap-1.5">
             <span className="inline-flex items-center gap-2 text-[13px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />Résumé IA</span>
-            {f ? <p className="m-0 line-clamp-6 text-[14px] leading-[1.6] text-encre [text-wrap:pretty]">{f.resume || "Rien encore sur sa fiche : ce que tu notes la remplira."}</p> : (
+            {/* Le résumé en entier (22 nov. 2026, Jules : « on ne peut pas voir le reste du résumé ») : plus de coupe à six lignes. */}
+            {f ? <p className="m-0 text-[14px] leading-[1.6] text-encre [text-wrap:pretty]">{f.resume || "Rien encore sur sa fiche : ce que tu notes la remplira."}</p> : (
               <div aria-label="Résumé en cours" className="flex flex-col gap-2 pt-1">
                 <span className="h-3 w-[92%] animate-pulse rounded-full bg-rail-actif" />
                 <span className="h-3 w-[70%] animate-pulse rounded-full bg-rail-actif" />
@@ -66,7 +67,7 @@ export default function FicheAppelChat({ action: a, fait = null, enregistre = fa
 
       <div aria-hidden className="h-px bg-trait" />
       <div className="flex flex-wrap items-center gap-2.5 px-5 py-3.5 max-md:px-4">
-        {fait ? <span className="inline-flex items-center gap-2.5 text-[14px] text-ardoise"><Check className="h-4 w-4 text-menthe" />{fait.mode === "notes" ? "Notes envoyées" : `Appel enregistré${fait.duree ? ` · ${mm(fait.duree)}` : ""}`}</span>
+        {fait ? <span className="inline-flex items-center gap-2.5 text-[14px] text-ardoise"><Check className="h-4 w-4 text-menthe" />{fait.mode === "notes" ? "Notes envoyées" : fait.mode === "pas_de_reponse" ? "Pas de réponse" : fait.mode === "message" ? "Message laissé" : `Appel enregistré${fait.duree ? ` · ${mm(fait.duree)}` : ""}`}</span>
           : enregistre ? <span className="inline-flex items-center gap-2.5 text-[14px] text-encre"><Onde />Enregistrement en cours : tout se passe en bas du chat</span>
             : (
               <button type="button" onClick={onEnregistrer} title="Mets le téléphone sur haut-parleur près de l'ordinateur, compose le numéro : l'assistant écoute et met sa fiche à jour"

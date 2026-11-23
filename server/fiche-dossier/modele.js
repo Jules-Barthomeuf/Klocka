@@ -20,7 +20,7 @@ import { fileURLToPath } from 'url';
 import db, { Records } from '../db.js';
 import { noterSurLeBien } from '../deal/notes-equipe.js';
 import { ETAPES, donneesDuBien } from './dossier.js';
-import { photoDe } from '../photos-fiches.js';
+import { photoDe, photosDe } from '../photos-fiches.js';
 import { nomAgent } from '../nom-agent.js';
 
 export { ETAPES };
@@ -96,11 +96,12 @@ export function objetDe(cle) {
   }
   if (type === 'agent') {
     const a = Records.get('AgentImmo', id);
-    return a ? { cle, genre: 'agent', nom: nomAgent(a.nom, a) || a.nom || 'Agent', detail: [a.agence, a.ville].filter(Boolean).join(' · ') || null, photo: a.photo || null, lien: `/Prospection?agent=${id}` } : null;
+    // Le nom de Twenty d'abord, quand l'agent y est (23 nov. 2026, Jules) : server/crm/klocka.js le garde.
+    return a ? { cle, genre: 'agent', nom: nomAgent(a.nom_crm) || nomAgent(a.nom, a) || a.nom || 'Agent', nom_crm: !!a.nom_crm, detail: [a.agence, a.ville].filter(Boolean).join(' · ') || null, photo: a.photo || null, lien: `/Prospection?agent=${id}` } : null;
   }
   if (type === 'client') {
     const c = Records.get('DemandeClient', id);
-    return c ? { cle, genre: 'client', nom: c.client_nom || 'Client', detail: c.profil || null } : null;
+    return c ? { cle, genre: 'client', nom: c.nom_crm || c.client_nom || 'Client', nom_crm: !!c.nom_crm, detail: c.profil || null } : null;
   }
   if (type === 'twenty') {
     // twenty:<objet>:<id> : la fiche du CRM ; son nom est celui qu'on a reçu au moment du lien.
@@ -626,9 +627,9 @@ export function ficheVue(cle) {
   return {
     dossier: genre === 'bien' ? donneesDuBien(cle, { etape: f?.etape || null, entrees }) : null,
     carte: genre === 'bien' ? carteDuBien(cle, f) : null,
-    cle, genre, nom: (genre === 'agent' && (f?.nom || o?.nom) !== 'Fiche du CRM' && nomAgent(f?.nom || o?.nom)) || f?.nom || o?.nom, lien: o?.lien || null, crm: o?.crm || null, detail: o?.detail || null,
+    cle, genre, nom: (o?.nom_crm && o.nom) || (genre === 'agent' && (f?.nom || o?.nom) !== 'Fiche du CRM' && nomAgent(f?.nom || o?.nom)) || f?.nom || o?.nom, lien: o?.lien || null, crm: o?.crm || null, detail: o?.detail || null,
     // La photo posée sur la fiche (importée, ou trouvée pour un agent : server/photos-fiches.js), sinon celle de l'agent.
-    photo: photoPosee?.url || o?.photo || null, photo_importee: photoPosee?.source === 'importee',
+    photo: photoPosee?.url || o?.photo || null, photo_importee: photoPosee?.source === 'importee', photos: photosDe(cle),
     etape: f?.etape || null, etat: f?.etat || null, etapes: ETAPES, resume: f?.resume || null, source: f?.source || null, blocage: f?.blocage || null, maj_le: f?.maj_le || null, maj_par: prenomDe(f?.maj_par),
     // Comment lui parler (22 nov. 2026) : la synthèse, puis les profils notés, du plus récent au plus ancien.
     comment_parler: f?.comment_parler || null,

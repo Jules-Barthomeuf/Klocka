@@ -98,13 +98,21 @@ export function monterFicheDossier(app) {
   // Les photos des fiches (22 nov. 2026, Jules) : toutes d'un coup pour les listes, et l'import d'une photo.
   app.get('/api/fiche-dossier/photos', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
-    ok(res, (await import('../photos-fiches.js')).toutesLesPhotos());
+    const P = await import('../photos-fiches.js');
+    // Une fiche : toutes ses photos (plusieurs personnes, 23 nov. 2026) ; sinon la première de chaque fiche.
+    ok(res, req.query.cle ? { photos: P.photosDe(String(req.query.cle)) } : P.toutesLesPhotos());
+  }));
+  app.delete('/api/fiche-dossier/photo/:id', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = (await import('../photos-fiches.js')).retirerPhoto(String(req.query.cle || ''), req.params.id);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
   }));
   app.post('/api/fiche-dossier/photo', upload.single('fichier'), wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
     if (!req.file) return res.status(400).json({ error: 'Aucune photo reçue.' });
     if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(req.file.mimetype || '')) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Une photo : JPEG, PNG ou WebP.' }); }
-    const r = (await import('../photos-fiches.js')).poserPhoto(req.body?.cle, `/uploads/${req.file.filename}`, { par: user.email });
+    const r = (await import('../photos-fiches.js')).poserPhoto(req.body?.cle, `/uploads/${req.file.filename}`, { par: user.email, id: req.body?.id || null, ajouter: req.body?.ajouter === '1' });
     if (!r.ok) { fs.unlink(req.file.path, () => {}); return refus(res, r); }
     ok(res, r);
   }));

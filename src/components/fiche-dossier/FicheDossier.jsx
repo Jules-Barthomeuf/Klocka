@@ -14,7 +14,7 @@ import { Depliant } from "@/components/haka/ReglagesDemande";
 import CarteDossier from "@/components/fiche-dossier/CarteDossier";
 import MesNotes from "@/components/fiche-dossier/MesNotes";
 import { EtoileAgent } from "@/components/fiche-dossier/EtoileAgent";
-import PhotoFiche from "@/components/fiche-dossier/PhotoFiche";
+import { PhotosFiche } from "@/components/fiche-dossier/PhotoFiche";
 import FondHalo from "@/components/projet/FondHalo";
 
 // La fiche du dossier (19 nov. 2026, Jules, maquette « Murs de pharmacie ») : trois onglets soulignés, Dossier, Client,
@@ -227,7 +227,7 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
         <div className="k-entree mx-auto flex w-full max-w-[860px] flex-auto shrink-0 flex-col px-8 pb-10 pt-8 max-md:px-4">
           {/* Sa photo quand on l'a (20 nov. 2026, Jules), sinon ses initiales ; un clic en importe une (22 nov. 2026, Jules :
               « chaque agent doit avoir une image ; tous les clients aussi »). Celle d'une page équipe est resserrée sur le visage. */}
-          {!bien && <PhotoFiche cle={cle} nom={nom} photo={f.photo} taille={60} recadrer={!!f.photo && !f.photo_importee} className="mx-auto mb-4" />}
+          {!bien && <PhotosFiche cle={cle} nom={nom} photo={f.photo} taille={60} recadrer={!!f.photo && !f.photo_importee} className="mx-auto mb-4" />}
           {/* L'étoile d'un agent, à droite de son nom (20 nov. 2026, Jules) : un de ses cinq agents préférés. */}
           <div className="flex items-center justify-center gap-1">
             {f.genre === "agent" && <span aria-hidden className="w-8 flex-none" />}

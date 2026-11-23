@@ -14,27 +14,64 @@ const ENTITE = 'PhotoFiche';
 const bas = (t) => String(t || '').trim().toLowerCase();
 const EN_COURS = new Map();
 
-/** La photo posée sur une fiche, ou null. */
+// Plusieurs photos par fiche (23 nov. 2026, Jules : « on puisse mettre plusieurs images des gens, car il y en a qui
+// investissent à plusieurs ») : un couple, des associés. Rangées par `ordre` ; la première est celle des listes.
+const MAX = 6;
+const deLaFiche = (c) => Records.filter(ENTITE, { cle: c }).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0) || String(a.le).localeCompare(String(b.le)));
+
+/** La première photo d'une fiche, ou null. */
 export function photoDe(cle) {
-  const p = Records.findBy(ENTITE, 'cle', String(cle || ''));
+  const p = deLaFiche(String(cle || ''))[0];
   return p ? { url: p.url, source: p.source || null } : null;
 }
 
-/** Toutes les photos posées, par clé : les listes (Clients, Meilleurs agents) les lisent d'un coup. */
-export function toutesLesPhotos() {
-  return Object.fromEntries(Records.list(ENTITE).map((p) => [p.cle, p.url]));
+/** Toutes les photos d'une fiche, dans l'ordre : [{ id, url, source }]. */
+export function photosDe(cle) {
+  return deLaFiche(String(cle || '')).map((p) => ({ id: p.id, url: p.url, source: p.source || null }));
 }
 
-/** Pose la photo d'une fiche ; `source` : « importee » ou « auto ». */
-export function poserPhoto(cle, url, { source = 'importee', par = null } = {}) {
+/** La première photo de chaque fiche, par clé : les listes (Clients, Meilleurs agents) les lisent d'un coup. */
+export function toutesLesPhotos() {
+  const out = {};
+  for (const p of Records.list(ENTITE).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))) if (!out[p.cle]) out[p.cle] = p.url;
+  return out;
+}
+
+// L'agent de Klocka garde sa première photo sur sa fiche : la Prospection et le fil la lisent là.
+function reporterSurLAgent(c) {
+  if (!c.startsWith('agent:') || !Records.get('AgentImmo', c.slice(6))) return;
+  const p = deLaFiche(c)[0];
+  Records.update('AgentImmo', c.slice(6), { photo: p?.url || null, photo_source: p?.source || null });
+}
+
+/**
+ * Pose une photo sur une fiche ; `source` : « importee » ou « auto ». Par défaut elle remplace la première ; `id` en
+ * remplace une autre ; `ajouter` en met une de plus (une personne de plus).
+ */
+export function poserPhoto(cle, url, { source = 'importee', par = null, id = null, ajouter = false } = {}) {
   const c = String(cle || '');
   if (!/^(agent|client|twenty):/.test(c) || !url) return { ok: false, error: 'Une photo se pose sur un agent ou un client.' };
+  let deja = deLaFiche(c);
+  // Un agent dont la photo n'est que sur sa fiche de la Prospection : elle devient la première avant d'en ajouter une.
+  const agent = ajouter && !deja.length && c.startsWith('agent:') ? Records.get('AgentImmo', c.slice(6)) : null;
+  if (agent?.photo) { Records.create(ENTITE, { cle: c, url: agent.photo, source: agent.photo_source || 'auto', par: null, le: new Date().toISOString(), ordre: 0 }); deja = deLaFiche(c); }
   const donnees = { cle: c, url, source, par: bas(par) || null, le: new Date().toISOString() };
-  const deja = Records.findBy(ENTITE, 'cle', c);
-  if (deja) Records.update(ENTITE, deja.id, donnees); else Records.create(ENTITE, donnees);
-  // L'agent de Klocka la garde aussi sur sa fiche : la Prospection et le fil la lisent là.
-  if (c.startsWith('agent:') && Records.get('AgentImmo', c.slice(6))) Records.update('AgentImmo', c.slice(6), { photo: url, photo_source: source });
-  return { ok: true, url };
+  const visee = id ? deja.find((p) => p.id === id) : ajouter ? null : deja[0];
+  if (id && !visee) return { ok: false, error: 'Cette photo n\'est plus sur la fiche.' };
+  if (!visee && deja.length >= MAX) return { ok: false, error: `${MAX} photos au plus sur une fiche.` };
+  const p = visee ? Records.update(ENTITE, visee.id, donnees) : Records.create(ENTITE, { ...donnees, ordre: deja.length ? Math.max(...deja.map((x) => x.ordre ?? 0)) + 1 : 0 });
+  reporterSurLAgent(c);
+  return { ok: true, url, id: p?.id || visee?.id || null };
+}
+
+/** Retire une photo d'une fiche. */
+export function retirerPhoto(cle, id) {
+  const c = String(cle || '');
+  const p = deLaFiche(c).find((x) => x.id === id);
+  if (!p) return { ok: false, error: 'Cette photo n\'est plus sur la fiche.' };
+  Records.delete(ENTITE, p.id);
+  reporterSurLAgent(c);
+  return { ok: true };
 }
 
 /**

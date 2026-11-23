@@ -1657,6 +1657,17 @@ if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
   setTimeout(() => import('./memoire/twenty.js').then((m) => m.reposerKlocka()).catch((e) => console.warn('[mémoire] Propriétés Klocka :', e?.message || e)), 6 * 60_000).unref?.();
 }
 
+// Le nom de Twenty fait foi sur les fiches des agents et des clients (23 nov. 2026, Jules) : posé sur tous ceux que le
+// CRM rattache, cinq minutes après le démarrage puis chaque jour. Twenty est lu, jamais écrit ; un clic dans le CRM le
+// remet à jour entre deux passages.
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
+  const nommer = () => import('./twenty.js').then((T) => (T.twentyConfigure() ? import('./crm/klocka.js').then((m) => m.nommerDepuisTwenty()) : null))
+    .then((r) => { if (r && (r.agents || r.clients)) console.log(`[crm] noms de Twenty posés : ${r.agents} agent(s), ${r.clients} client(s)`); })
+    .catch((e) => console.warn('[crm] noms de Twenty :', e?.message || e));
+  setTimeout(nommer, 5 * 60_000).unref?.();
+  setInterval(nommer, 24 * 3600_000).unref?.();
+}
+
 // Le tableau Agences de Twenty (16 nov. 2026, Jules : « il n'y a que Nice et Rennes alors qu'on en a fait beaucoup
 // plus ») : les listes de la Prospection vivent dans la base du serveur en ligne ; il y pose les villes nouvelles (une
 // vue chacune) et leurs agences, quatre minutes après le démarrage puis toutes les demi-heures. Sur Render seulement :

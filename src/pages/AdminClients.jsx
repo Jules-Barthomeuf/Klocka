@@ -11,7 +11,7 @@ import Chargement from "@/components/ui/Chargement";
 import { PastilleTest } from "@/components/mandataire/kit";
 import { kEuros, fourchetteEuros } from "@/lib/clients-commerces";
 import VillesCotees from "@/components/clients/VillesCotees";
-import PhotoFiche, { usePhotosFiches } from "@/components/fiche-dossier/PhotoFiche";
+import PhotoFiche, { PhotosFiche, usePhotosFiches } from "@/components/fiche-dossier/PhotoFiche";
 import { resumeVillesCotees } from "../../server/villes-cotees.js";
 
 // Les clients, côté équipe (16 oct. 2026, Jules) : la page Clients des
@@ -46,7 +46,7 @@ const Avatar = ({ d, taille = "h-[38px] w-[38px]" }) => {
 /** La tête du client dans sa fiche : un clic importe sa photo. */
 function PhotoClient({ d }) {
   const { data: photos } = usePhotosFiches();
-  return <PhotoFiche cle={`client:${d.id}`} nom={d.nom} photo={photos?.[`client:${d.id}`] || null} defaut={avatarDe(d)} taille={48} />;
+  return <PhotosFiche cle={`client:${d.id}`} nom={d.nom} photo={photos?.[`client:${d.id}`] || null} defaut={avatarDe(d)} taille={48} className="justify-start" />;
 }
 
 function PastilleReseau({ d }) {

@@ -21,15 +21,35 @@ export function contactsTwenty(t) {
   return { mails, tels };
 }
 
+// Un mail ou un téléphone ne suffit pas : le standard de l'agence ou contact@agence est partagé par toute l'équipe
+// (23 nov. 2026 : « Claire Vasseur » de Twenty ouvrait la fiche de Sophie Martin, sa collègue au même numéro). Le
+// rattachement par contact n'est gardé que si c'est la même personne : même nom de famille, ou un agent du carnet sans
+// vrai nom (né d'une adresse mail). L'id Monday, lui, suffit : la ligne de Twenty vient de cette ligne-là.
+const CIVILITES = new Set(['m', 'mr', 'mme', 'mlle', 'madame', 'monsieur', 'mademoiselle', 'me', 'maitre']);
+const mots = (t) => norm(t).split(' ').filter((m) => m.length >= 2 && !CIVILITES.has(m));
+const nomsDuCarnet = (a) => [a.nom, [a.prenom, a.nom_famille].filter(Boolean).join(' ')].filter((n) => n && !String(n).includes('@'));
+
+/** Pure : la ligne de Twenty et l'agent du carnet sont-ils la même personne ? */
+export function memePersonne(t, a) {
+  const noms = nomsDuCarnet(a);
+  if (!noms.length) return true;
+  const deTwenty = mots([t?.prenom, typeof t?.name === 'string' ? t.name : [t?.name?.firstName, t?.name?.lastName].filter(Boolean).join(' ')].filter(Boolean).join(' '));
+  if (!deTwenty.length) return true;
+  return noms.some((n) => {
+    const k = mots(n);
+    return k.length && (deTwenty.includes(k[k.length - 1]) || k.includes(deTwenty[deTwenty.length - 1]));
+  });
+}
+
 /** Pure : l'agent du carnet d'une ligne de Twenty, ou null. */
 export function agentPour(t, agents = []) {
   if (!t) return null;
   const { mails, tels } = contactsTwenty(t);
   const parMonday = t.mondayId && agents.find((a) => String(a.monday_ligne_id || '') === String(t.mondayId));
   if (parMonday) return parMonday;
-  const parMail = mails.length && agents.find((a) => (a.emails || []).some((m) => mails.includes(bas(m))));
+  const parMail = mails.length && agents.find((a) => (a.emails || []).some((m) => mails.includes(bas(m))) && memePersonne(t, a));
   if (parMail) return parMail;
-  const parTel = tels.length && agents.find((a) => (a.telephones || []).some((x) => tels.includes(chiffres(x))));
+  const parTel = tels.length && agents.find((a) => (a.telephones || []).some((x) => tels.includes(chiffres(x))) && memePersonne(t, a));
   if (parTel) return parTel;
   const nom = norm([t.prenom, t.name].filter(Boolean).join(' '));
   const seul = norm(t.name);
@@ -55,10 +75,50 @@ export async function ficheKlocka(singulier, id, { lire = null } = {}) {
   const t = await lecture(pluriel, id);
   if (singulier === 'agentImmobilier') {
     const a = agentPour(t, Records.list('AgentImmo').filter((x) => !x.essai));
+    if (a) retenirNomCrm('AgentImmo', a, t);
     return a ? { type: 'agent', id: a.id } : null;
   }
   const d = clientPour(t, Records.list('DemandeClient'));
+  if (d) retenirNomCrm('DemandeClient', d, t);
   return d ? { type: 'client', id: d.id } : null;
+}
+
+/** Pure : le nom d'une ligne de Twenty (« Alexis Petit »), ou null. */
+export function nomTwenty(t) {
+  const n = typeof t?.name === 'string' ? t.name : [t?.name?.firstName, t?.name?.lastName].filter(Boolean).join(' ');
+  return String(n || '').replace(/\s+/g, ' ').trim() || null;
+}
+
+// Le nom écrit dans Twenty fait foi sur la fiche (23 nov. 2026, Jules : « le CRM montre Alexis Petit, sa fiche
+// Apetit Agducentre ; le nom de la fiche doit être celui de Twenty »). Un agent du carnet né d'une adresse mail porte
+// un nom deviné ; celui du CRM est gardé à côté (`nom_crm`) et la fiche le lit d'abord. Le carnet n'est pas réécrit.
+function retenirNomCrm(entite, r, t) {
+  const n = nomTwenty(t);
+  if (n && n !== r.nom_crm) Records.update(entite, r.id, { nom_crm: n });
+}
+
+/**
+ * Le nom de Twenty posé sur tous les agents et clients rattachés, sans attendre un clic (23 nov. 2026, Jules : « vérifie
+ * que c'est pareil pour tous les agents »). Twenty est lu, jamais écrit. Une pause toutes les 25 lignes : le serveur
+ * reste libre. Rend { agents, clients } : combien de noms ont changé.
+ */
+export async function nommerDepuisTwenty({ lister = null } = {}) {
+  const lecture = lister || (await import('../twenty.js')).lister;
+  const pause = () => new Promise((r) => setImmediate(r));
+  const compte = { agents: 0, clients: 0 };
+  const passe = async (pluriel, entite, trouver, quoi) => {
+    const lignes = await lecture(pluriel);
+    for (const [i, t] of lignes.entries()) {
+      if (i % 25 === 0) await pause();
+      const r = trouver(t);
+      if (r && nomTwenty(t) && nomTwenty(t) !== r.nom_crm) { retenirNomCrm(entite, r, t); compte[quoi]++; }
+    }
+  };
+  const agents = Records.list('AgentImmo').filter((x) => !x.essai);
+  await passe(AGENTS, 'AgentImmo', (t) => agentPour(t, agents), 'agents');
+  const demandes = Records.list('DemandeClient');
+  await passe(CLIENTS, 'DemandeClient', (t) => clientPour(t, demandes), 'clients');
+  return compte;
 }
 
 let libellesStatut = null;

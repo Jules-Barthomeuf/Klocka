@@ -38,6 +38,7 @@ import { membreDeLEquipe } from './demande-equipe.js';
 import { notifier } from '../../notifications.js';
 import { piecesFiche, parleDUnBien } from '../../deal/fiches-auto.js';
 import { estTableur } from '../../deal/lire-bureautique.js';
+import { sansHistorique, liensNonLus, poserCompteRendu } from '../compte-rendu-transfert.js';
 import { estMandataire } from '../../mandataire-espace.js';
 
 export const COMPETENCE = 'transfert';
@@ -162,13 +163,13 @@ export function fichesVisees(note0, fiches = []) {
  * en Mémoire, sans dossier), `documents` (dans la Data Room d'un dossier), `demande` (une question, sans pièce : le chat
  * de Haka). `dossier` : celui retenu ; `candidats` : quand il faut demander.
  */
-export function comprendre(lu, { pieces = [], fiches = [], vises = [], corps = false } = {}) {
+export function comprendre(lu, { pieces = [], fiches = [], vises = [], corps = false, liens = false } = {}) {
   // Un mail écrit directement à sourcing@ (pas un transfert) : son objet est aussi la consigne (« Préanalyse » en objet,
   // corps vide). Pour un transfert, l'objet est celui de l'agent : il ne compte pas (17 nov. 2026, Jules).
   const consigne = lu.transfert ? (lu.note || '') : `${lu.note || ''} ${lu.objet_origine || ''}`;
   const note = sansAccents(consigne);
   // Sans pièce : une question, sauf la fiche écrite dans le mail transféré sans un mot (22 nov. 2026) : en Mémoire.
-  if (!pieces.length) return corps && !note.trim() ? { intention: 'memoire', defaut: true, corps: true } : { intention: 'demande' };
+  if (!pieces.length) return (corps || liens) && !note.trim() ? { intention: 'memoire', defaut: true, ...(corps ? { corps: true } : { liens: true }) } : { intention: 'demande' };
   if (MOTS_MEMOIRE.test(note) || PAS_DE_PREANALYSE.test(note) || PAS_BESOIN.test(note)) return { intention: 'memoire' };
   const veutFiche = MOTS_FICHE.test(note) || (fiches.length > 0 && MOTS_RENTRER.test(note));
   const veutDocs = !veutFiche && MOTS_DOCUMENTS.test(note);
@@ -231,8 +232,8 @@ function versDocuments(vises) {
  * Ce que le collègue demande, lu par l'IA quand il a écrit quelque chose. Rend la même forme que `comprendre`, plus
  * `lu_par: 'ia' | 'regles'`. `lire` : remplacé dans les tests.
  */
-export async function comprendreAvecIA(lu, { pieces = [], fiches = [], vises = [], corps = false } = {}, { lire = null } = {}) {
-  const regles = comprendre(lu, { pieces, fiches, vises, corps });
+export async function comprendreAvecIA(lu, { pieces = [], fiches = [], vises = [], corps = false, liens = false } = {}, { lire = null } = {}) {
+  const regles = comprendre(lu, { pieces, fiches, vises, corps, liens });
   const consigne = (lu.transfert ? (lu.note || '') : `${lu.note || ''} ${lu.objet_origine || ''}`).trim();
   // Sous les tests sans modèle branché : les règles (le modèle factice répondrait n'importe quoi).
   if (!pieces.length || !consigne || (!lire && process.env.NODE_TEST_CONTEXT)) return { ...regles, lu_par: 'regles' };
@@ -461,12 +462,16 @@ export async function enMemoireSeulement(mail, { membre, lu, extraire = null, po
   }
   if (!biens.length) throw new Error(erreurs[0] || "Aucune pièce du mail ne donne d'adresse, de prix ou de loyer.");
   const premier = biens[0];
-  return { fait: 'memoire', n: biens.length, deja: biens.every((b) => b.deja), nom: premier.nom, noms: biens.map((b) => b.nom).filter(Boolean), twenty: biens.some((b) => b.twenty), erreurs };
+  // `biens` et `deja_biens` : la liste du compte rendu dans le chat (haka/compte-rendu-transfert.js).
+  const vu = (b) => ({ nom: b.nom || null, prix: b.prix || null, loyer: b.loyer || null });
+  return { fait: 'memoire', n: biens.length, deja: biens.every((b) => b.deja), nom: premier.nom, noms: biens.map((b) => b.nom).filter(Boolean), twenty: biens.some((b) => b.twenty), erreurs,
+    biens: biens.filter((b) => !b.deja).map(vu), deja_biens: biens.filter((b) => b.deja).map(vu) };
 }
 
 /** Pure : la fiche écrite dans le corps d'un transfert sans pièce, quand le texte parle d'un bien et donne un montant. */
 export function ficheDuCorps(mail, lu = {}) {
-  const texte = String(mail?.texte || '').trim();
+  // Sans l'historique cité : trois réponses dans le fil ne font pas trois biens (23 nov. 2026).
+  const texte = sansHistorique(mail?.texte || '');
   if (texte.length < 80 || !parleDUnBien({ objet: lu.objet_origine || mail.objet, texte })) return null;
   if (!/\d[\d\s.\u00a0\u202f]*(?:k?\s?€|euros?|\s?k\b|\s?m€)/i.test(texte)) return null;
   return { nom: 'texte-du-mail.txt', mime: 'text/plain', buffer: Buffer.from(texte, 'utf-8'), piece_id: `corps:${mail.id}`, corps: true };
@@ -490,7 +495,7 @@ async function fichesEnMemoire(mail, piece, { membre, lu, extraire = null, pouss
     const m = Records.get('MailRecu', mail.id);
     Records.update('MailRecu', mail.id, { memoire_deja_ids: [...new Set([...(m?.memoire_deja_ids || []), ...dejaLus.map((d) => d.id)])] });
     const sortie = [];
-    for (const d of dejaLus) sortie.push({ deja: true, cle_adresse: d.cle_adresse || null, nom: d.adresse?.rue || d.ville || null, ...(await versTwenty(d, pousser)) });
+    for (const d of dejaLus) sortie.push({ deja: true, cle_adresse: d.cle_adresse || null, nom: [d.adresse?.rue, d.ville].filter(Boolean).join(', ') || null, prix: d.prix || null, loyer: d.loyer_annuel || null, ...(await versTwenty(d, pousser)) });
     return sortie;
   }
   const lire = extraire || (await import('../../deal/extraire-faits.js')).extraireFaits;
@@ -519,7 +524,7 @@ async function fichesEnMemoire(mail, piece, { membre, lu, extraire = null, pouss
     const m = Records.get('MailRecu', mail.id);
     Records.update('MailRecu', mail.id, { memoire_id: m?.memoire_id || cree.id, memoire_ids: [...(m?.memoire_ids || []), cree.id] });
     const ou = [bien.adresse?.rue, bien.ville].filter(Boolean).join(', ');
-    sortie.push({ nom: ou || null, cle_adresse: bien.cle_adresse || null, ...(await versTwenty(cree, pousser)) });
+    sortie.push({ nom: ou || null, cle_adresse: bien.cle_adresse || null, prix: bien.prix || null, loyer: bien.loyer_annuel || null, ...(await versTwenty(cree, pousser)) });
   }
   // Ce que la lecture a vu, gardé sur le mail pour le compte des fiches reçues (deal/fiches-stats.js) : les biens lus, le
   // nombre que la pièce annonce (« 4 actifs »), et si c'est un tableur (une liste de biens, comptée à part).
@@ -615,7 +620,7 @@ taches.enregistrer(COMPETENCE, {
         const pieces = [...piecesUtiles(mail), ...zips];
         const fiches = [...piecesFiche(mail).filter(Boolean), ...zips];
         const vises = dossiersVises(lu, Records.list('Deal'), { collegue: membre.email });
-        const c = await comprendreAvecIA(lu, { pieces, fiches, vises, corps: !!ficheDuCorps(mail, lu) });
+        const c = await comprendreAvecIA(lu, { pieces, fiches, vises, corps: !!ficheDuCorps(mail, lu), liens: liensNonLus(mail.texte).length > 0 });
         Records.update('MailRecu', mail.id, { haka_transfert: { intention: c.intention, lu_par: c.lu_par, raison: c.raison || null, origine: lu.origine?.email || null, le: new Date().toISOString() } });
         return { ...c, cote: coteDuTransfert(membre, c, lu), lu, pour: norm(membre.email), pieces: pieces.map((p) => p.nom) };
       },
@@ -719,7 +724,7 @@ taches.enregistrer(COMPETENCE, {
         const r = c.intention === 'fiche' || choix === 'fiche'
           ? await enPlus(await preanalyser(mail, { membre, lu: c.lu, uploadDir, seulement: c.seulement || null }))
           : c.intention === 'memoire'
-            ? await enMemoireSeulement(mail, { membre, lu: c.lu })
+            ? await enMemoireSeulement(mail, { membre, lu: c.lu }).catch((e) => ({ fait: 'memoire', n: 0, biens: [], deja_biens: [], erreurs: [e?.message || String(e)] }))
             : c.intention === 'nouveau'
               ? await nouveauDossier(mail, { membre, lu: c.lu, uploadDir })
               : await ranger(mail, { membre, dealId: c.dossier || choix, uploadDir });
@@ -733,7 +738,9 @@ taches.enregistrer(COMPETENCE, {
         const membre = expediteurDuTransfert(mail.de_email);
         const n = compteRendu(resultats.agir, { objet: mail.objet });
         notifier({ pour: norm(membre.email), titre: n.titre, texte: n.texte, lien: n.lien, action: n.lien ? 'Ouvrir le dossier' : null, cle: `haka-transfert:${mail.id}` });
-        return { notifie: true, texte: n.texte };
+        // Le compte rendu dans son chat de l'assistant (23 nov. 2026, Jules) : les biens repérés, ce qui n'a pas été lu.
+        const compte = poserCompteRendu(mail, { pour: membre.email, r: resultats.agir, lu: resultats.comprendre?.lu || {} });
+        return { notifie: true, texte: n.texte, compte_rendu: compte };
       },
     },
   ],

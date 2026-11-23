@@ -428,6 +428,11 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'corriger_transfert',
+    description: "Corrige le compte d'un transfert à sourcing@ après le compte rendu de l'assistant (« Votre transfert … : 3 biens repérés »), quand la personne répond « c'était 2 », « il en manque un », « ce n'est pas une fiche », « fusionne les deux ». nombre : le vrai nombre de fiches (biens à vendre ou à louer) du mail ; pas_une_fiche : rien à compter ; remarque : sa phrase, telle quelle (elle règle le repérage). Sans objet : son dernier transfert ; objet : un mot de l'objet ou une ville pour un autre. « C'est juste » : remarque seule. Réponds en une phrase.",
+    input_schema: { type: 'object', properties: { nombre: { type: 'integer', minimum: 0, maximum: 50 }, pas_une_fiche: { type: 'boolean' }, remarque: { type: 'string', description: 'ce que la personne a dit, tel quel' }, objet: { type: 'string', description: "un mot de l'objet du transfert ou une ville, s'il ne s'agit pas du dernier" } }, required: ['remarque'] },
+  },
+  {
     name: 'ouvrir_fiche',
     description: "Ouvre À L'ÉCRAN la fiche Klocka d'une personne ou d'un bien (un client, un agent, un dossier) : celle que remplissent les notes, les appels et les groupes WhatsApp importés (résumé, avancement, historique, personnes). À utiliser dès qu'on dit « ouvre / montre / affiche la fiche de X », avant tout autre outil. La fiche s'ouvre d'elle-même à côté du chat : réponds en une phrase (« Voici la fiche de Rachel Peyrabout. »), sans recopier son contenu ni ce que dit Twenty CRM. Plusieurs fiches possibles : nomme-les et demande laquelle. Aucune : dis-le, sans chercher ailleurs.",
     input_schema: { type: 'object', properties: { nom: { type: 'string', description: 'le nom tel que dit : une personne, une agence, un bien (« Rachel Peyrabout », « MACSF Lorient »)' }, genre: { type: 'string', enum: ['client', 'agent', 'bien'], description: 'si la demande le dit' } }, required: ['nom'] },
@@ -1194,6 +1199,11 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null, pour: input.personnelle ? user?.email || null : null });
   if (name === 'oublier') return oublier(input.id);
   // « Ouvre la fiche de Rachel Peyrabout » (23 nov. 2026, Jules : l'assistant récitait Twenty au lieu d'ouvrir la fiche).
+  // « C'était 2 » après le compte rendu d'un transfert (23 nov. 2026, Jules).
+  if (name === 'corriger_transfert') {
+    const { corrigerTransfert } = await import('../haka/compte-rendu-transfert.js');
+    return corrigerTransfert(input || {}, user);
+  }
   if (name === 'ouvrir_fiche') {
     const { ficheAOuvrir } = await import('../fiche-dossier/ouvrir.js');
     return ficheAOuvrir(input || {}, user);

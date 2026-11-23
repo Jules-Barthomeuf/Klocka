@@ -24,8 +24,9 @@ test('chaque ancien outil est couvert par la v2', () => {
 
 test('28 outils au plus, les noms uniques, les rares chargés à la demande, lire_procedure en dernier', () => {
   const defs = outilsV2(OUTILS, { listeProcedures: 'loi (…)' });
-  // 30 depuis ouvrir_fiche (23 nov. 2026, Jules : « ouvre la fiche de X » doit ouvrir la fiche, pas réciter le CRM).
-  assert.ok(defs.length <= 30, `${defs.length} outils`);
+  // 30 depuis ouvrir_fiche, 31 depuis corriger_transfert (23 nov. 2026, Jules : « ouvre la fiche de X » ; le compte
+  // rendu d'un transfert qu'on corrige dans le chat).
+  assert.ok(defs.length <= 31, `${defs.length} outils`);
   assert.equal(new Set(defs.map((d) => d.name)).size, defs.length);
   assert.equal(defs.at(-1).name, 'lire_procedure');
   assert.ok(!defs.at(-1).defer_loading, 'le dernier porte le point de cache : jamais différé');

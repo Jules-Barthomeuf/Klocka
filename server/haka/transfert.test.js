@@ -420,3 +420,8 @@ test("23 nov. 2026 : « pas besoin de les rentrer, je m'en occuperai pour l'anal
   // Le compte rendu dit la Mémoire d'abord, quand la suite est un rangement.
   assert.match(X.ceQuiEstFait({ fait: 'documents', deposes: ['Bail.pdf'], deja: [], nom: 'Mâcon', memoire_dabord: { n: 1 } }), /La fiche est aussi en Mémoire\./);
 });
+
+test("23 nov. 2026 : un transfert qui ne porte qu'un lien WeTransfer va en Mémoire, et le compte rendu le dit", () => {
+  assert.equal(X.comprendre({ transfert: true, note: '' }, { pieces: [], fiches: [], vises: [], liens: true }).intention, 'memoire');
+  assert.equal(X.comprendre({ transfert: true, note: 'tu peux regarder ?' }, { pieces: [], fiches: [], vises: [], liens: true }).intention, 'demande');
+});

@@ -15,6 +15,7 @@ export const GROUPES = [
   { nom: 'trouver_bien', defaut: 'recherche', actions: { recherche: 'trouver_bien', dossier: 'chercher_dossier', projet: 'chercher_projet', criteres: 'chercher_biens' },
     tete: "Retrouver un bien de la plateforme. À utiliser dès qu'un bien est nommé (une ville, une rue, une enseigne, un locataire) : recherche cherche dans les projets et les dossiers d'un coup ; dossier ou projet quand on sait lequel ; criteres pour des biens qui répondent à des critères (ville, prix, rendement, bail). Il te faut l'identifiant avant d'agir sur un bien. Pas pour compter ou exporter (chercher_entites). Rend les candidats avec leurs identifiants ; plusieurs : liste-les et demande lequel ; aucun : essaie une autre formulation avant de dire que tu n'as rien." },
   { nom: 'ouvrir_fiche', seul: 'ouvrir_fiche' },
+  { nom: 'corriger_transfert', seul: 'corriger_transfert' },
   { nom: 'lire_entite', seul: 'lire_entite' },
   { nom: 'chercher_entites', seul: 'chercher_entites' },
   { nom: 'dossier', actions: { etat: 'etat_dossier', verifier: 'verifier', simuler: 'simuler_dossier', renta: 'verifier_renta', avis: 'avis_dossier', modifier: 'modifier_dossier', corriger_tableau: 'corriger_tableau', renommer: 'renommer_dossier', interroger: 'interroger_documents', extraire: 'extraire_documents', ajouter_document: 'ajouter_document', noter: 'noter_bien' },

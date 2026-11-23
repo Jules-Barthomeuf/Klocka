@@ -408,6 +408,20 @@ export function monterAssistant(app) {
   // Le fil de conversation de l'utilisateur, tel qu'il l'a laissé.
   // L'historique du chat du dashboard : lister, rouvrir, enregistrer,
   // supprimer ses conversations. Chacun ne voit que les siennes.
+  // Les comptes rendus des transferts à sourcing@, pour le chat de celui qui a transféré (23 nov. 2026, Jules) :
+  // server/haka/compte-rendu-transfert.js.
+  app.get('/api/assistant/comptes-rendus', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connectez-vous.' });
+    const { comptesRendusPour } = await import('../haka/compte-rendu-transfert.js');
+    ok(res, { comptes_rendus: comptesRendusPour(user.email) });
+  }));
+  app.post('/api/assistant/comptes-rendus/vus', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connectez-vous.' });
+    const { marquerVus } = await import('../haka/compte-rendu-transfert.js');
+    ok(res, { vus: marquerVus(user.email, Array.isArray(req.body?.ids) ? req.body.ids : []) });
+  }));
   app.get('/api/assistant/conversations', wrap(async (req, res) => {
     const { listerConversations } = await import('../assistant-conversations.js');
     ok(res, { conversations: listerConversations(currentUser(req)) });

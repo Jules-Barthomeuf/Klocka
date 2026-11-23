@@ -1241,6 +1241,18 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   });
   // La conversation en cours : créée au premier échange, complétée ensuite.
   const [conversationId, setConversationId] = useState(null);
+  // Les comptes rendus des transferts à sourcing@ (23 nov. 2026, Jules : « le système répond à la personne qui a transféré »,
+  // dans son chat de l'assistant) : à l'ouverture de la page de l'assistant, chacun devient un message de l'assistant ;
+  // la personne répond ici (« c'était 2 ») et l'outil corriger_transfert corrige. Vus une fois.
+  useEffect(() => {
+    if (!lienNote || repondre || embarque) return;
+    base44.request("GET", "/api/assistant/comptes-rendus").then((r) => {
+      const liste = r?.comptes_rendus || [];
+      if (!liste.length) return;
+      setFil((f) => [...f, ...liste.map((c) => ({ role: "assistant", contenu: c.texte }))]);
+      base44.request("POST", "/api/assistant/comptes-rendus/vus", { body: { ids: liste.map((c) => c.id) } }).catch(() => {});
+    }).catch(() => { /* rien à dire */ });
+  }, [lienNote, repondre, embarque]);
   // `annonce` (9 nov. 2026) : une phrase que la page fait dire à l'assistant (« il manque… ») ; { id, contenu }.
   useEffect(() => { if (annonce?.contenu) setFil((f) => [...f, { role: "assistant", contenu: annonce.contenu }]); }, [annonce?.id]);
   // Le titre enregistré (renommable) ; sans lui, le premier message en tient lieu.

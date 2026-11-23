@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/avis";
 import { dateCourte, dateJournal, enRetard } from "@/lib/fiche-dossier";
 import { actionVue, basculer, modifier, useNote } from "@/lib/note-en-cours";
 import ActionApercu, { ICONE_ACTION } from "@/components/fiche-dossier/ActionApercu";
-import { Depliant, RESSORT } from "@/components/haka/ReglagesDemande";
+import { Depliant } from "@/components/haka/ReglagesDemande";
 import CarteDossier from "@/components/fiche-dossier/CarteDossier";
 import MesNotes from "@/components/fiche-dossier/MesNotes";
 import { EtoileAgent } from "@/components/fiche-dossier/EtoileAgent";
@@ -52,7 +52,10 @@ function OngletsFiche({ onglets, actif, onChoisir }) {
       {onglets.map(([id, libelle, lumiere]) => (
         <button key={id} type="button" role="tab" aria-selected={actif === id} onClick={(e) => { onChoisir(id); e.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" }); }}
           className={`relative flex h-10 flex-none items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-[14px] transition-colors ${actif === id ? "text-encre" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
-          {actif === id && <motion.span layoutId="k-onglet-partie" transition={RESSORT} aria-hidden className="absolute inset-0 rounded-full bg-relief" />}
+          {/* Un fondu en CSS, plus la forme partagée de framer-motion (`layoutId`) : dans la fiche qui se ferme, elle
+              empêchait le retrait de l'écran, resté invisible par-dessus la page (23 nov. 2026, Jules : « je ne peux plus
+              cliquer sur rien »). */}
+          <span aria-hidden className={`absolute inset-0 rounded-full bg-relief transition-opacity duration-200 ${actif === id ? "opacity-100" : "opacity-0"}`} />
           {lumiere && <span aria-label="Ajouté par l'assistant" title="Ajouté par l'assistant" className="k-lumiere relative h-[7px] w-[7px] rounded-full bg-menthe" />}
           <span className="relative">{libelle}</span>
         </button>
@@ -634,7 +637,8 @@ function PanneauFiche({ vue, onVue, onFermer }) {
               <button key={g} type="button" role="tab" aria-selected={actif} disabled={!nb} onClick={() => ouvrirGenre(g)}
                 className={`relative h-11 px-0.5 text-[14px] transition-colors disabled:opacity-35 ${actif ? "text-encre" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
                 {libelle}{nb > 1 ? ` · ${nb}` : ""}
-                {actif && <motion.span layoutId="k-onglet-fiche" transition={RESSORT} aria-hidden className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-menthe" />}
+                {/* Fondu en CSS, pas de `layoutId` : voir les onglets des parties. */}
+                <span aria-hidden className={`absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-menthe transition-[opacity,transform] duration-200 ${actif ? "scale-x-100 opacity-100" : "scale-x-50 opacity-0"}`} />
               </button>
             );
           })}

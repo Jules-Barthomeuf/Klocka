@@ -408,3 +408,15 @@ test("22 nov. 2026 : un ZIP de fiches, et la fiche écrite dans le mail transfé
   // Un mail sans montant ni bien n'est pas une fiche.
   assert.equal(X.ficheDuCorps(transfert({ texte: 'Salut, tu peux rappeler Paul demain matin pour le dossier de Lyon ? Merci beaucoup, bonne soirée à toi.' }), {}), null);
 });
+
+test("23 nov. 2026 : « pas besoin de les rentrer, je m'en occuperai pour l'analyse » va en Mémoire, pas en pré-analyse", () => {
+  const f = [{ nom: 'Fiche Bar.pdf', piece_id: 'p1' }];
+  const lu = (note) => ({ transfert: true, note });
+  for (const note of ["Bonjour, je te transfère ces dossiers. Pas besoin de les rentrer sur la plateforme, je m'en occuperai moi-même pour l'analyse.", 'Pas la peine de les analyser', "je m'en charge"]) {
+    assert.equal(X.comprendre(lu(note), { pieces: f, fiches: f, vises: [] }).intention, 'memoire', note);
+  }
+  // « Préanalyse » reste une pré-analyse.
+  assert.equal(X.comprendre(lu('préanalyse la stp'), { pieces: f, fiches: f, vises: [] }).intention, 'fiche');
+  // Le compte rendu dit la Mémoire d'abord, quand la suite est un rangement.
+  assert.match(X.ceQuiEstFait({ fait: 'documents', deposes: ['Bail.pdf'], deja: [], nom: 'Mâcon', memoire_dabord: { n: 1 } }), /La fiche est aussi en Mémoire\./);
+});

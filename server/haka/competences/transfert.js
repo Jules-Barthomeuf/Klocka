@@ -101,6 +101,9 @@ export function lireTransfert({ texte = '', objet = '' } = {}) {
 const MOTS_RENTRER = /\brentre[rz]?\b.{0,40}\b(plateforme|dossier)/;
 const MOTS_FICHE = /pr[ée]?[\s-]?analys|\banalyse[rz]?\b|nouvelle fiche|nouveau (bien|dossier)|fiche (commerciale|du bien)|[àa] analyser|[ée]tudier ce bien/;
 // « Ne rentre pas la fiche dans la plateforme » (2 nov. 2026, Jules) : pas de dossier, la fiche en Mémoire et dans Twenty.
+// « Pas besoin de les rentrer, je m'en occuperai pour l'analyse » (23 nov. 2026, Maxime) : la Mémoire, jamais la
+// pré-analyse, même si le mot « analyse » est dans la phrase.
+const PAS_BESOIN = /\bpas (besoin|la peine|n[ée]cessaire) d[e']\s*(la |le |les |l')?(rentrer|entrer|mettre|creer|integrer|ajouter|enregistrer|traiter|analyser|pre[\s-]?analyser)|\bje m'?en (occupe|occuperai|charge|chargerai)|\bje (la |le |les |l')?(rentrerai|analyserai|preanalyserai|traiterai)\b/;
 const MOTS_MEMOIRE = /\b(ne|n')\s*(la |le |les |l')?(rentre|entre|mets?|cree|ajoute|integre|enregistre)s?\s+pas\b|\bpas (de|en) dossier|\bsans (creer (de|un) )?dossier|\b(juste|seulement|uniquement|que) (en|dans la) memoire|\bne pas (la |le |les )?(rentrer|entrer|creer|mettre|integrer)\b/;
 // « Ne préanalyse pas cette fiche », « pas de pré-analyse », « sans préanalyse » (17 nov. 2026, Jules) : la négation
 // l'emporte sur le mot, la fiche va en Mémoire seulement.
@@ -166,7 +169,7 @@ export function comprendre(lu, { pieces = [], fiches = [], vises = [], corps = f
   const note = sansAccents(consigne);
   // Sans pièce : une question, sauf la fiche écrite dans le mail transféré sans un mot (22 nov. 2026) : en Mémoire.
   if (!pieces.length) return corps && !note.trim() ? { intention: 'memoire', defaut: true, corps: true } : { intention: 'demande' };
-  if (MOTS_MEMOIRE.test(note) || PAS_DE_PREANALYSE.test(note)) return { intention: 'memoire' };
+  if (MOTS_MEMOIRE.test(note) || PAS_DE_PREANALYSE.test(note) || PAS_BESOIN.test(note)) return { intention: 'memoire' };
   const veutFiche = MOTS_FICHE.test(note) || (fiches.length > 0 && MOTS_RENTRER.test(note));
   const veutDocs = !veutFiche && MOTS_DOCUMENTS.test(note);
   const sur = vises[0] && (vises.length === 1 || vises[0].score >= vises[1].score + 1.5) && vises[0].score >= 1.5 ? vises[0] : null;
@@ -211,7 +214,7 @@ Pièces jointes :
 ${liste || '(aucune)'}
 
 Que veut-il ? Une seule intention :
-- "memoire" : garder la ou les fiches en mémoire seulement, sans dossier (y compris « ne préanalyse pas », « pour info », « garde-la »).
+- "memoire" : garder la ou les fiches en mémoire seulement, sans dossier (y compris « ne préanalyse pas », « pour info », « garde-la », « pas besoin de les rentrer », « je m'en occupe moi-même », « je ferai l'analyse »).
 - "preanalyse" : créer un dossier et pré-analyser ; « fiches » donne les numéros des fiches à pré-analyser s'il en désigne certaines (« juste celle de Lyon », « la deuxième »), sinon une liste vide pour toutes.
 - "documents" : ranger les pièces dans un dossier existant (bail, data room, documents d'un bien déjà suivi).
 - "question" : il pose une question ou demande autre chose qu'un rangement.
@@ -409,6 +412,13 @@ const DOC = /\.(pdf|docx?|odt|ods|odp|pptx|xlsx|xlsm|rtf)$/i;
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 const IMAGES_MAX = 3;
 
+/** Les fiches du mail en Mémoire, avant toute autre suite ; une erreur ne bloque pas la suite. Rien sans fiche. */
+async function memoireDabord(mail, { membre, lu }) {
+  const ids = piecesFiche(mail).filter((p) => p?.piece_id).map((p) => p.piece_id);
+  if (!ids.length) return null;
+  return enMemoireSeulement(mail, { membre, lu, pieces: ids }).catch((e) => ({ erreur: e?.message || String(e) }));
+}
+
 export async function enMemoireSeulement(mail, { membre, lu, extraire = null, pousser = null, pieces = null, ouvrirZip = null }) {
   // Toutes les fiches du mail (17 nov. 2026 : avant, la première seule), ou celles qu'on désigne.
   const fiches = piecesFiche(mail).filter((p) => p?.piece_id);
@@ -574,6 +584,7 @@ export function ceQuiEstFait(r) {
   else if (r.fait === 'nouveau') corps = r.deposes.length ? `Je n'ai reconnu aucun dossier ouvert : j'ai créé « ${r.nom} » à votre nom, avec ${r.deposes.length} pièce${r.deposes.length > 1 ? 's' : ''} dans sa Data Room (${r.deposes.join(', ')}).${suiteDataRoom(r)}${r.preanalyse ? ' La pré-analyse part de ces documents ; sa fiche ira ensuite en Mémoire et dans les Propriétés de Twenty CRM.' : ''}` : `J'ai créé « ${r.nom} », mais aucune pièce n'a pu y entrer.`;
   else if (r.fait === 'memoire') corps = `${r.n > 1 ? `${r.n} fiches mises` : r.deja ? 'Cette fiche était déjà' : 'Fiche mise'} en Mémoire${r.n > 1 ? '' : r.nom ? ` (${r.nom})` : ''}${r.twenty ? ' et dans les Propriétés de Twenty CRM' : ''}, sans dossier. Pour la pré-analyser, transférez-la avec « préanalyse » dans votre message.${r.erreurs?.length ? ` Non lue : ${r.erreurs.join(' ; ')}.` : ''}`;
   else corps = "Je n'ai rien fait de ce transfert.";
+  if (r.memoire_dabord?.n && r.fait !== 'fiche' && r.fait !== 'memoire') corps += ` ${r.memoire_dabord.n > 1 ? `Les ${r.memoire_dabord.n} fiches sont` : 'La fiche est'} aussi en Mémoire.`;
   return corps;
 }
 
@@ -653,6 +664,10 @@ taches.enregistrer(COMPETENCE, {
       nom: 'demande',
       async run({ resultats, charge }) {
         if (resultats.comprendre.intention !== 'demande') return {};
+        // Une question avec des fiches jointes : les fiches vont quand même en Mémoire (23 nov. 2026).
+        const mail = Records.get('MailRecu', charge.mail_id);
+        const membre = mail ? expediteurDuTransfert(mail.de_email) : null;
+        if (mail && membre) await memoireDabord(mail, { membre, lu: resultats.comprendre.lu });
         const t = taches.enfiler('demande_equipe', { mail_id: charge.mail_id }, { cle: `demande:${charge.mail_id}`, pour: resultats.comprendre.pour });
         Records.update('MailRecu', charge.mail_id, { haka_tache_id: t.id });
         return { fin: true, demande: t.id };
@@ -698,6 +713,9 @@ taches.enregistrer(COMPETENCE, {
         // « Préanalyse juste la fiche X » : X pré-analysée, les autres fiches du mail en Mémoire (17 nov. 2026, Jules).
         const autres = c.seulement ? piecesFiche(mail).filter((p) => p?.piece_id && !c.seulement.includes(p.piece_id)).map((p) => p.piece_id) : [];
         const enPlus = async (r0) => (autres.length ? { ...r0, memoire_autres: await enMemoireSeulement(mail, { membre, lu: c.lu, pieces: autres }).catch((e) => ({ erreur: e?.message || String(e) })) } : r0);
+        // Une fiche transférée va d'abord en Mémoire, quoi que dise le message (23 nov. 2026, Jules : « quand on transfère
+        // une fiche, ça va de toute façon en mémoire en premier ») ; la pré-analyse ou le rangement viennent ensuite.
+        const dabord = c.intention === 'memoire' ? null : await memoireDabord(mail, { membre, lu: c.lu });
         const r = c.intention === 'fiche' || choix === 'fiche'
           ? await enPlus(await preanalyser(mail, { membre, lu: c.lu, uploadDir, seulement: c.seulement || null }))
           : c.intention === 'memoire'
@@ -705,7 +723,7 @@ taches.enregistrer(COMPETENCE, {
             : c.intention === 'nouveau'
               ? await nouveauDossier(mail, { membre, lu: c.lu, uploadDir })
               : await ranger(mail, { membre, dealId: c.dossier || choix, uploadDir });
-        return { ...r, dossier: r.deal_id };
+        return { ...r, dossier: r.deal_id, ...(dabord ? { memoire_dabord: dabord } : {}) };
       },
     },
     {

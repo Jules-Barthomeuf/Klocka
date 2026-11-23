@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Upload } from "lucide-react";
+import { Check, Loader2, Upload, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { lireExportWhatsApp } from "@/lib/import-whatsapp";
@@ -14,7 +14,7 @@ import { dateJournal } from "@/lib/fiche-dossier";
 
 const ETAT = { en_cours: "en cours", fini: "fini", echec: "échec" };
 
-function Etape({ n, titre, note, children }) {
+function Etape({ n, titre, note, children, dessous = null }) {
   return (
     <li className="flex gap-4 border-t border-trait py-5 first:border-t-0">
       <span className="grid h-7 w-7 flex-none place-items-center rounded-full border border-trait text-[13px] tabular-nums text-craie">{n}</span>
@@ -22,7 +22,29 @@ function Etape({ n, titre, note, children }) {
         <p className="m-0 text-[15px] text-encre">{titre}</p>
         <p className="m-0 mt-0.5 text-[13px] leading-[1.5] text-ardoise">{note}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">{children}</div>
+        {dessous}
       </div>
+    </li>
+  );
+}
+
+const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : null);
+const pluriel = (n, un, plus = `${un}s`) => `${n.toLocaleString("fr-FR")} ${n > 1 ? plus : un}`;
+
+/** Une conversation en ligne : son nom, ce qu'elle contient, son état à droite (23 nov. 2026). */
+function LigneConversation({ titre, detail, etat, etatClair = false, onRetirer = null }) {
+  return (
+    <li className="flex items-start gap-3 border-t border-trait py-2.5 first:border-t-0">
+      <div className="min-w-0 flex-1">
+        <p className="m-0 truncate text-[14px] text-encre" title={titre}>{titre}</p>
+        <p className="m-0 mt-0.5 text-[13px] leading-[1.5] text-ardoise">{detail}</p>
+      </div>
+      {etat && <span className={`shrink-0 pt-0.5 text-[13px] ${etatClair ? "text-menthe" : "text-brume"}`}>{etat}</span>}
+      {onRetirer && (
+        <button type="button" onClick={onRetirer} aria-label={`Retirer ${titre}`} className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-brume transition-colors hover:text-encre" style={{ background: "transparent" }}>
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
     </li>
   );
 }
@@ -54,11 +76,19 @@ export default function ImportFiches() {
   });
   const [wa, setWa] = useState([]);
   const [exportePar, setExportePar] = useState("");
+  const [toutesImportees, setToutesImportees] = useState(false);
+  // Les choix s'ajoutent (23 nov. 2026, Jules : « je ne vois pas toutes les conversations ») : avant, chaque choix
+  // remplaçait le précédent. Une conversation déjà choisie (même empreinte, ou même fichier) ne s'ajoute pas deux fois.
   const choisirWa = async (e) => {
-    const lus = (await Promise.all([...(e.target.files || [])].map(lireExportWhatsApp))).filter(Boolean);
-    setWa(lus);
-    if (!lus.length) toast.error("Aucun export WhatsApp reconnu (un .txt ou un .zip « Exporter la discussion »).");
+    const fichiers = [...(e.target.files || [])];
+    e.target.value = "";
+    const lus = (await Promise.all(fichiers.map(lireExportWhatsApp))).filter(Boolean);
+    if (lus.length < fichiers.length) toast.error(`${pluriel(fichiers.length - lus.length, "fichier non reconnu", "fichiers non reconnus")} : un .txt, .md ou .zip « Exporter la discussion ».`);
+    setWa((avant) => [...avant, ...lus.filter((c) => !avant.some((a) => (c.cle && a.cle === c.cle) || (a.fichier === c.fichier && a.messages === c.messages)))]);
   };
+  const importees = etat.data?.whatsapp || [];
+  const dejaLue = (c) => importees.find((x) => c.cle && x.cle === c.cle) || null;
+  const nouvelles = wa.filter((c) => !dejaLue(c));
   const enCours = (genre) => (etat.data?.lots || []).some((l) => l.genre === genre && l.etat === "en_cours");
   const titre = (espaces.data?.espaces || []).find((x) => x.nom === espace)?.titre || null;
 
@@ -88,15 +118,54 @@ export default function ImportFiches() {
           <button type="button" className={plein} disabled={!espace || !leCompte || lancer.isPending || enCours("google_chat")}
             onClick={() => lancer.mutate({ chemin: "chat", body: { compte: leCompte, espace, titre, depuis: depuis || null, auteurs: auteurs.split(/[,;]/).map((x) => x.trim()).filter(Boolean) } })}>Importer</button>
         </Etape>
-        <Etape n={3} titre="Les groupes WhatsApp des dossiers" note="Sur le téléphone : le groupe, « Exporter la discussion », sans les médias ; déposez tous les fichiers d'un coup. Le nom du groupe aide à trouver le dossier.">
+        <Etape n={3} titre="Les groupes WhatsApp des dossiers" note="Sur le téléphone : le groupe, « Exporter la discussion », sans les médias ; déposez les fichiers, en une ou plusieurs fois. Le nom du groupe aide à trouver le dossier."
+          dessous={(wa.length > 0 || importees.length > 0) && (
+            <div className="mt-4 flex flex-col gap-4">
+              {wa.length > 0 && (
+                <div>
+                  <p className="m-0 mb-1 text-[13px] text-craie">Choisies · {pluriel(wa.length, "conversation")}, {pluriel(wa.reduce((t, c) => t + c.messages, 0), "message")}{nouvelles.length < wa.length ? ` · ${pluriel(wa.length - nouvelles.length, "déjà importée", "déjà importées")}` : ""}</p>
+                  <ul className="m-0 list-none p-0">
+                    {wa.map((c) => {
+                      const d = dejaLue(c);
+                      return (
+                        <LigneConversation key={c.cle || `${c.fichier}-${c.messages}`} titre={c.nom}
+                          detail={[pluriel(c.messages, "message"), c.du && c.au ? `du ${jour(c.du)} au ${jour(c.au)}` : null, c.participants?.length ? pluriel(c.participants.length, "personne") : null].filter(Boolean).join(" · ")}
+                          etat={d ? `Déjà importée le ${jour(d.le)}` : "Nouvelle"} etatClair={!d}
+                          onRetirer={() => setWa((l) => l.filter((x) => x !== c))} />
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+              {importees.length > 0 && (
+                <div>
+                  <p className="m-0 mb-1 text-[13px] text-craie">Déjà importées · {pluriel(importees.length, "conversation")}</p>
+                  <ul className="m-0 list-none p-0">
+                    {(toutesImportees ? importees : importees.slice(0, 8)).map((x) => (
+                      <LigneConversation key={x.cle} titre={x.titre}
+                        detail={[x.messages != null ? pluriel(x.messages, "message") : null, x.vide ? "rien trouvé à ranger" : `${pluriel(x.fiches, "fiche")}, ${pluriel(x.entrees, "ligne")}`, x.noms_fiches?.length ? x.noms_fiches.join(", ") : null, x.manquants?.length ? `sans fiche : ${x.manquants.join(", ")}` : null].filter(Boolean).join(" · ")}
+                        etat={jour(x.le)} />
+                    ))}
+                  </ul>
+                  {importees.length > 8 && (
+                    <button type="button" onClick={() => setToutesImportees(!toutesImportees)} className="mt-1 p-0 text-[13px] text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>
+                      {toutesImportees ? "Voir moins" : `Voir les ${importees.length}`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}>
           <label className={`${bouton} cursor-pointer border border-trait text-encre hover:border-bord-doux`}>
             <Upload className="h-4 w-4" />Choisir les exports
             <input type="file" multiple accept=".txt,.zip,.md" className="sr-only" onChange={choisirWa} />
           </label>
           <input value={exportePar} onChange={(e) => setExportePar(e.target.value)} placeholder="Exportés par (« Vous »), vide : moi" className={`${champ} w-[240px]`} aria-label="Exportés par" />
-          {wa.length > 0 && <span className="text-[13px] text-ardoise">{wa.length} conversation{wa.length > 1 ? "s" : ""} · {wa.reduce((t, c) => t + c.messages, 0).toLocaleString("fr-FR")} messages</span>}
-          <button type="button" className={plein} disabled={!wa.length || lancer.isPending || enCours("whatsapp")}
-            onClick={() => lancer.mutate({ chemin: "whatsapp", body: { fichiers: wa.map((c) => ({ nom: c.nom, texte: c.texte })), exporte_par: exportePar.trim() || null } })}>Importer</button>
+          <button type="button" className={plein} disabled={!nouvelles.length || lancer.isPending || enCours("whatsapp")}
+            onClick={() => lancer.mutate({ chemin: "whatsapp", body: { fichiers: nouvelles.map((c) => ({ nom: c.nom, texte: c.texte })), exporte_par: exportePar.trim() || null } }, { onSuccess: () => setWa([]) })}>
+            {enCours("whatsapp") ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {nouvelles.length ? `Importer ${nouvelles.length > 1 ? `les ${nouvelles.length} nouvelles` : "la nouvelle"}` : "Importer"}
+          </button>
         </Etape>
         <Etape n={4} titre="Les appels du mode appel" note="Les appels qui ont parlé d'un bien : leur résumé, leurs notes et leur transcription, rangés sur l'agent et les dossiers nommés.">
           <button type="button" className={plein} disabled={lancer.isPending || enCours("appels")} onClick={() => lancer.mutate({ chemin: "appels" })}>Importer</button>

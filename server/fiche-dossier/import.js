@@ -175,7 +175,9 @@ export async function importerTexte({ texte = '', conversation = null, source, l
   // pour les rentrer à la main (un dossier jamais créé dans la plateforme, un agent hors de la Prospection).
   const manquants = (note?.proposition?.mentions || []).filter((m) => !(m.candidats || []).length).map((m) => m.texte);
   const ancienne = Records.findBy(SOURCE, 'cle', k);
-  const ligne = { cle: k, genre: source?.genre || 'texte', note_id: note?.id || null, fiches, entrees: rangee.entrees || 0, manquants, le: new Date().toISOString(), de: source?.de || null, du: source?.le || null, vide: vide(note?.proposition) };
+  const ligne = { cle: k, genre: source?.genre || 'texte', note_id: note?.id || null, fiches, entrees: rangee.entrees || 0, manquants, le: new Date().toISOString(), de: source?.de || null, du: source?.le || null, vide: vide(note?.proposition),
+    // Pour la liste des conversations importées (23 nov. 2026, Jules : « je ne vois pas toutes les conversations que j'ai importées ») :
+    titre: source?.titre || null, messages: source?.messages ?? null, noms_fiches: (note?.liens || []).map((l) => l.nom).filter(Boolean).slice(0, 12) };
   if (ancienne) Records.update(SOURCE, ancienne.id, ligne); else Records.create(SOURCE, ligne);
   return { ok: true, note_id: note?.id, fiches: (note?.liens || []).map((l) => l.nom), entrees: rangee.entrees || 0, manquants };
 }
@@ -282,7 +284,7 @@ export function lancerWhatsapp(fichiers, user, { exportePar = null } = {}) {
     const nom = conv?.titre || propre(f?.nom, 120).replace(/\.(txt|zip|md)$/i, '').replace(/^(Discussion WhatsApp avec|WhatsApp Chat with)\s+/i, '');
     return conv ? { nom: propre(nom, 120), texte, conv } : null;
   }).filter(Boolean);
-  const taches = lus.map((f) => () => importerTexte({ texte: `Groupe WhatsApp « ${f.nom} »`, conversation: f.texte, vous, source: { genre: 'whatsapp', de: null, le: f.conv.au, lieu: `groupe WhatsApp « ${f.nom} »` }, cle: `wa:${empreinte(f.texte)}` }, user));
+  const taches = lus.map((f) => () => importerTexte({ texte: `Groupe WhatsApp « ${f.nom} »`, conversation: f.texte, vous, source: { genre: 'whatsapp', de: null, le: f.conv.au, lieu: `groupe WhatsApp « ${f.nom} »`, titre: f.nom, messages: f.conv.messages.length }, cle: `wa:${empreinte(f.texte)}` }, user));
   return { ...lancerLot('whatsapp', `WhatsApp · ${lus.length} groupe${lus.length > 1 ? 's' : ''}`, taches, user), lus: lus.length, ignores: (fichiers || []).length - lus.length };
 }
 
@@ -309,5 +311,14 @@ export function lancerAppels(user, { depuis = null } = {}) {
 export function etatImport() {
   const lots = Records.list(LOT).sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, 12);
   const aRelire = Records.filter('FicheDossier', { a_relire: true }).length;
-  return { lots, a_relire: aRelire, sources: Records.list(SOURCE).length };
+  // Les conversations WhatsApp déjà lues, les plus récentes d'abord : leur nom (gardé depuis le 23 nov. ; avant, relu
+  // dans la note), leur empreinte (l'écran reconnaît un fichier déjà importé), ce qu'elles ont rempli.
+  const whatsapp = Records.filter(SOURCE, { genre: 'whatsapp' })
+    .map((x) => {
+      const note = x.titre ? null : Records.get('NoteDossier', x.note_id);
+      const titre = x.titre || (String(note?.source?.lieu || '').match(/« (.+) »/) || [])[1] || 'Groupe sans nom';
+      return { cle: x.cle, titre, messages: x.messages ?? null, au: x.du || null, le: x.le, fiches: x.fiches || 0, entrees: x.entrees || 0, noms_fiches: x.noms_fiches || (note?.liens || []).map((l) => l.nom).filter(Boolean).slice(0, 12), manquants: x.manquants || [], vide: !!x.vide };
+    })
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)));
+  return { lots, a_relire: aRelire, sources: Records.list(SOURCE).length, whatsapp };
 }

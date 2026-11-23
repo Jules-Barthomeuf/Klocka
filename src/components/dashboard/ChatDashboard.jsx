@@ -40,6 +40,7 @@ import { J, alpha } from "@/design/jetons";
 import { CarteCriteres, FenetreMulticriteres } from "@/components/mandataire/ProspecterDataB";
 import Chargement from "@/components/ui/Chargement";
 import { lienCrm } from "@/lib/crm";
+import { ouvrirFiche } from "@/lib/fiche-dossier";
 import { kEuros } from "@/lib/clients-commerces";
 import VillesCotees from "@/components/clients/VillesCotees";
 import { entreeEnvoie } from "@/lib/entree-envoie";
@@ -1843,6 +1844,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
         for (const b of r.blocs || []) {
           if (b.type === "client") setFiche(b.champs);
           if (b.type === "echeances") pousser({ role: "bloc", type: "echeances", donnees: {} });
+          // « Ouvre la fiche de X » (23 nov. 2026) : la fiche Klocka s'ouvre à côté du chat.
+          if (b.type === "fiche_dossier" && b.cle) ouvrirFiche(b.cle, { nom: b.nom || null });
           if (b.type === "note") { if (b.dossier) suitesAk.push({ libelle: "Ouvrir le dossier", principal: true, href: b.dossier }); if (b.agent) suitesAk.push({ libelle: "Fiche Twenty CRM de l'agent", externe: b.agent }); }
           if (b.type === "fiche") {
             Promise.all([

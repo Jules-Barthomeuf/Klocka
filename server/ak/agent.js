@@ -428,6 +428,11 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'ouvrir_fiche',
+    description: "Ouvre À L'ÉCRAN la fiche Klocka d'une personne ou d'un bien (un client, un agent, un dossier) : celle que remplissent les notes, les appels et les groupes WhatsApp importés (résumé, avancement, historique, personnes). À utiliser dès qu'on dit « ouvre / montre / affiche la fiche de X », avant tout autre outil. La fiche s'ouvre d'elle-même à côté du chat : réponds en une phrase (« Voici la fiche de Rachel Peyrabout. »), sans recopier son contenu ni ce que dit Twenty CRM. Plusieurs fiches possibles : nomme-les et demande laquelle. Aucune : dis-le, sans chercher ailleurs.",
+    input_schema: { type: 'object', properties: { nom: { type: 'string', description: 'le nom tel que dit : une personne, une agence, un bien (« Rachel Peyrabout », « MACSF Lorient »)' }, genre: { type: 'string', enum: ['client', 'agent', 'bien'], description: 'si la demande le dit' } }, required: ['nom'] },
+  },
+  {
     name: 'lire_entite',
     description: "Lit une fiche entière de la plateforme, tous ses champs, en lecture seule : un dossier (par deal_id), un projet, une présentation, une LOI, un agent, une agence, une liste d'agences, une prospection, un commerce off-market, une relance, un dossier ou un propriétaire de mandataire. À utiliser quand l'outil métier ne montre pas le champ cherché (une échéance, un champ du simulateur, l'historique d'une fiche), ou pour vérifier avant d'affirmer. Pas pour chercher : il faut l'identifiant (chercher_entites, trouver_bien ou un autre outil le donne). Rend la fiche nettoyée (secrets retirés, textes très longs raccourcis) ; lis-la avec le modèle de données de la consigne.",
     input_schema: { type: 'object', properties: { type: { type: 'string', enum: TYPES_LECTURE }, id: { type: 'string', description: "l'identifiant ; pour un dossier, le deal_id" } }, required: ['type', 'id'] },
@@ -1188,6 +1193,11 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   }
   if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null, pour: input.personnelle ? user?.email || null : null });
   if (name === 'oublier') return oublier(input.id);
+  // « Ouvre la fiche de Rachel Peyrabout » (23 nov. 2026, Jules : l'assistant récitait Twenty au lieu d'ouvrir la fiche).
+  if (name === 'ouvrir_fiche') {
+    const { ficheAOuvrir } = await import('../fiche-dossier/ouvrir.js');
+    return ficheAOuvrir(input || {}, user);
+  }
   // L'Intelligence (le Layer) : outils renommés le 15 oct. 2026 ; les anciens noms (chercher_cerveau, historique, noter) restent acceptés.
   if (name === 'chercher_cerveau') name = 'layer_chercher';
   if (name === 'historique') name = 'layer_fiche';
@@ -1906,7 +1916,7 @@ export async function repondre(message) {
     onTool: async (appel) => {
       outils.push(appel.name);
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
-      const agissant = !['layer_chercher', 'layer_fiche', 'historique', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
+      const agissant = !['ouvrir_fiche', 'layer_chercher', 'layer_fiche', 'historique', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
       if (agissant) {
         if (!estEchec(resultat)) actions.push({ ...appel, resultat });
         try { journaliser({ outil: appel.name, args: appel.input, resultat, user, via: `AK pour ${prenom}` }); } catch (e) { console.warn('[ak] journalisation impossible :', e?.message || e); }

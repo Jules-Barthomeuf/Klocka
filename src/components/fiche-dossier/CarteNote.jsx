@@ -9,7 +9,6 @@ import { dateCourte, ouvrirFiche } from "@/lib/fiche-dossier";
 import { actionVue, basculer, fermerNote, ouvrirPanneau, poserNote, prochaineEtape, repondre, toutesLesCles, useNote } from "@/lib/note-en-cours";
 import { ICONE_GENRE } from "@/components/fiche-dossier/LienNote";
 import { ICONE_ACTION } from "@/components/fiche-dossier/ActionApercu";
-import { RESSORT } from "@/components/haka/ReglagesDemande";
 
 // La réponse de l'assistant à une note liée (19 nov. 2026, Jules : « l'assistant dit voici ce que je propose, voici les
 // fiches modifiées, voici ce que je propose comme actions ; on clique, et le détail est à droite ») : les fiches mises
@@ -125,7 +124,8 @@ export default function CarteNote({ donnees }) {
           {onglets.map(([k, libelle]) => (
             <button key={k} type="button" role="tab" aria-selected={vu === k} onClick={() => setOnglet(k)}
               className={`relative h-9 rounded-[10px] px-4 text-[14px] transition-colors ${vu === k ? "text-encre" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
-              {vu === k && <motion.span layoutId={`k-onglet-note-${noteId}`} transition={RESSORT} aria-hidden className="absolute inset-0 rounded-[10px] bg-barre-relief" />}
+              {/* Fondu en CSS, pas de `layoutId` : dans un panneau qui se ferme, il bloquait le retrait de l'écran (23 nov. 2026). */}
+              <span aria-hidden className={`absolute inset-0 rounded-[10px] bg-barre-relief transition-opacity duration-200 ${vu === k ? "opacity-100" : "opacity-0"}`} />
               <span className="relative">{libelle}</span>
             </button>
           ))}

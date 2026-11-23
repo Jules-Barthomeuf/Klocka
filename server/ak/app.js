@@ -55,7 +55,7 @@ export function nomsV2(texte, groupes) {
   return String(texte || '').replace(/\b[a-z][a-z_]+_[a-z_]+\b/g, (m) => table.get(m) || m);
 }
 
-const LECTURES = new Set(['layer_chercher', 'layer_fiche', 'historique', 'lire_entite', 'chercher_entites', 'lire_fiche_monday', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
+const LECTURES = new Set(['ouvrir_fiche', 'layer_chercher', 'layer_fiche', 'historique', 'lire_entite', 'chercher_entites', 'lire_fiche_monday', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
 const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
 
 /**
@@ -331,6 +331,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     if (nom === 'fiche_client_decouverte' && r?.champs) blocs.push({ type: 'client', champs: r.champs });
     if (nom === 'echeances' && r?.ok && !blocs.some((b) => b.type === 'echeances')) blocs.push({ type: 'echeances' });
     if (nom === 'note_d_appel' && r) blocs.push({ type: 'note', dossier: r.dossier?.lien || null, agent: r.agent?.url || null });
+    if (nom === 'ouvrir_fiche' && r?.ouvrir && !blocs.some((b) => b.type === 'fiche_dossier')) blocs.push({ type: 'fiche_dossier', cle: r.ouvrir.cle, nom: r.ouvrir.nom });
   };
   // La v2 : la consigne, les outils regroupés et la traduction des appels vers les anciens outils.
   const v2 = enV2() ? await (async () => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Building2, Check, ChevronDown, Loader2, Mic, Sparkles, X } from "lucide-react";
@@ -155,12 +156,12 @@ const Faits = ({ lignes }) => (
 );
 
 /** Une fiche, sur la maquette : `noteId` montre ce qu'une note en attente ajoute. */
-export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAction, onVue, ongletDepart = null }) {
+export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onOuvrir, onAction, onVue, ongletDepart = null }) {
   const n = useNote(noteId);
   const [onglet, setOnglet] = useState(ongletDepart || "resume");
   const { data: f, isLoading, isError, error } = useQuery({
     queryKey: ["fiche-dossier", cle],
-    queryFn: () => base44.request("GET", `/api/fiche-dossier/fiche?cle=${encodeURIComponent(cle)}`),
+    queryFn: () => base44.request("GET", `/api/fiche-dossier/fiche?cle=${encodeURIComponent(cle)}${nomDefaut ? `&nom=${encodeURIComponent(nomDefaut)}` : ""}`),
     staleTime: 15_000,
   });
   if (isLoading) return <p className="m-0 px-6 py-6 text-[13.5px] text-brume">Chargement de la fiche…</p>;
@@ -231,6 +232,13 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, onOuvrir, onAct
             {f.genre === "agent" && <EtoileAgent cle={cle} />}
           </div>
           {sous && <p className="m-0 mt-1 text-center text-[14.5px] text-ardoise">{sous}</p>}
+          {/* Ouverte d'une ligne du CRM (22 nov. 2026) : le retour à sa fiche du CRM (champs, tâches, pièces). */}
+          {(crm || f.crm) && (
+            <p className="m-0 mt-1.5 text-center">
+              <Link to={`/CrmTwenty?t=${(crm || f.crm).objet}&f=${(crm || f.crm).id}`} onClick={() => window.dispatchEvent(new CustomEvent("klocka:panneau-note", { detail: { fermer: true } }))}
+                className="text-[13px] text-craie underline decoration-trait underline-offset-2 hover:text-encre">Fiche du CRM</Link>
+            </p>
+          )}
 
           {(() => {
             const vide = (t) => <p className="m-0 text-[13.5px] text-brume">{t}</p>;
@@ -645,7 +653,7 @@ function PanneauFiche({ vue, onVue, onFermer }) {
       )}
       <div className="flex min-h-0 flex-auto flex-col">
         {vue.vue === "fiche" && active && (
-          <FicheVue key={`${active}-${vue.onglet || ""}`} ongletDepart={vue.onglet || null} cle={active} noteId={vue.note_id || null} nomDefaut={liens.find((l) => l.cle === active)?.nom}
+          <FicheVue key={`${active}-${vue.onglet || ""}`} ongletDepart={vue.onglet || null} cle={active} noteId={vue.note_id || null} nomDefaut={liens.find((l) => l.cle === active)?.nom || (active === vue.cle ? vue.nom : null) || null} crm={active === vue.cle ? vue.crm || null : null}
             onOuvrir={(c) => onVue({ vue: "fiche", cle: c, note_id: liens.some((l) => l.cle === c) ? vue.note_id : null })}
             onAction={(id) => onVue({ ...vue, vue: "action", action_id: id, action: null })} onVue={onVue} onFermer={onFermer} />
         )}
@@ -666,7 +674,7 @@ function PanneauFiche({ vue, onVue, onFermer }) {
 export function usePanneau() {
   const [vue, setVue] = useState(null);
   useEffect(() => {
-    const surFiche = (e) => { const cle = e?.detail?.cle; if (cle) setVue({ vue: "fiche", cle }); };
+    const surFiche = (e) => { const cle = e?.detail?.cle; if (cle) setVue({ vue: "fiche", cle, nom: e.detail.nom || null, crm: e.detail.crm || null }); };
     // `{ fermer: true }` referme le panneau (20 nov. 2026 : la fiche d'appel arrive dans le chat seul).
     const surPanneau = (e) => { if (e?.detail?.fermer) setVue(null); else if (e?.detail) setVue(e.detail); };
     window.addEventListener("klocka:fiche-dossier", surFiche);
@@ -704,8 +712,29 @@ export function PanneauFlottant({ vue, setVue }) {
   );
 }
 
-/** Pour les pages sans écran scindé (le CRM) : le panneau flottant, ouvert par ouvrirFiche ou ouvrirPanneau. */
-export function FicheDossierHote() {
+/**
+ * La fiche à droite de la page (22 nov. 2026, Jules : « lorsqu'on clique sur un nom, on doit voir à droite la fiche de
+ * l'agent ») : la page reste visible à gauche ; un clic à côté, Échap ou la croix la ferment.
+ */
+export function PanneauDroite({ vue, setVue }) {
+  return createPortal(
+    <AnimatePresence>
+      {vue && (
+        <motion.div key="droite" data-crm-dehors className="fixed inset-0 z-[84]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+          <div aria-hidden className="absolute inset-0 bg-fond/40" onClick={() => setVue(null)} />
+          <motion.aside role="dialog" aria-label="Fiche" initial={{ x: 32, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 24, opacity: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="k-fiche-fond absolute inset-y-0 right-0 flex w-full flex-col overflow-hidden border-l border-trait shadow-[0_0_40px_-12px_rgb(0_0_0/0.5)] max-md:!bg-barre max-md:pt-[env(safe-area-inset-top)] md:w-[clamp(440px,38vw,600px)]">
+            <PanneauNote vue={vue} onVue={setVue} onFermer={() => setVue(null)} />
+          </motion.aside>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
+/** Pour les pages sans écran scindé (le CRM, Statistiques) : la fiche ouverte par ouvrirFiche ou ouvrirPanneau ; au centre, ou à droite. */
+export function FicheDossierHote({ cote = "centre" }) {
   const [vue, setVue] = usePanneau();
   useEffect(() => {
     if (!vue) return undefined;
@@ -713,5 +742,5 @@ export function FicheDossierHote() {
     window.addEventListener("keydown", echap);
     return () => window.removeEventListener("keydown", echap);
   }, [vue, setVue]);
-  return <PanneauFlottant vue={vue} setVue={setVue} />;
+  return cote === "droite" ? <PanneauDroite vue={vue} setVue={setVue} /> : <PanneauFlottant vue={vue} setVue={setVue} />;
 }

@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { simpleParser } from 'mailparser';
 import { transcribeDocument } from './vision.js';
+import * as B from './lire-bureautique.js';
 
 const TEXT_EXTS = new Set(['.txt', '.md', '.csv']);
 const IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
@@ -160,7 +161,7 @@ export async function ingerer({ buffer, filename, mimetype, texte } = {}) {
 
   // --- Texte brut -----------------------------------------------------------
   if (TEXT_EXTS.has(ext) || mime.startsWith('text/')) {
-    return { texte: nettoyer(buffer.toString('utf-8')), source: 'texte', transcrit: false, pages: 1, avertissements };
+    return { texte: nettoyer(buffer.toString('utf-8')), source: ext === '.csv' ? 'tableur' : 'texte', transcrit: false, pages: 1, avertissements };
   }
 
   // --- Image ----------------------------------------------------------------
@@ -198,8 +199,31 @@ export async function ingerer({ buffer, filename, mimetype, texte } = {}) {
     if (!t) avertissements.push('Le document Word ne contient aucun texte lisible.');
     return { texte: t, source: 'docx', transcrit: false, pages: 1, avertissements };
   }
+  // --- Bureautique (22 nov. 2026, Jules : « n'importe quel type de documents ») : Word 97, Excel, PowerPoint, OpenDocument.
   if (ext === '.doc' || mime === 'application/msword') {
-    throw new Error('Le format .doc (Word 97) ne se lit pas ici : réenregistrez le document en .docx ou en PDF.');
+    const t = nettoyer(B.lireDoc(buffer).texte);
+    if (!t) throw new Error('Le document Word 97 (.doc) ne contient aucun texte lisible : réenregistrez-le en .docx ou en PDF.');
+    avertissements.push('Word 97 (.doc) lu sans sa mise en page : vérifiez les chiffres relevés.');
+    return { texte: t, source: 'doc', transcrit: false, pages: 1, avertissements };
+  }
+  if (['.xlsx', '.xlsm'].includes(ext) || /spreadsheetml/.test(mime)) {
+    const t = nettoyer((await B.lireXlsx(buffer)).texte);
+    if (!t) throw new Error('Le classeur Excel ne contient aucune cellule remplie.');
+    return { texte: t, source: 'tableur', transcrit: false, pages: 1, avertissements };
+  }
+  if (ext === '.xls' || mime === 'application/vnd.ms-excel') {
+    throw new Error('Le format .xls (Excel 97) ne se lit pas ici : réenregistrez le classeur en .xlsx.');
+  }
+  if (ext === '.pptx' || /presentationml/.test(mime)) {
+    const { texte: brut, pages } = await B.lirePptx(buffer);
+    const t = nettoyer(brut);
+    if (t.length >= 200) return { texte: t, source: 'pptx', transcrit: false, pages, avertissements };
+    throw new Error('La présentation ne contient presque pas de texte (des images seulement) : envoyez-la en PDF.');
+  }
+  if (['.odt', '.ods', '.odp'].includes(ext) || /opendocument/.test(mime)) {
+    const t = nettoyer((await B.lireOdf(buffer)).texte);
+    if (!t) throw new Error('Le document OpenDocument ne contient aucun texte lisible.');
+    return { texte: t, source: ext === '.ods' || /spreadsheet/.test(mime) ? 'tableur' : 'odf', transcrit: false, pages: 1, avertissements };
   }
 
   // --- RTF ------------------------------------------------------------------
@@ -218,7 +242,7 @@ export async function ingerer({ buffer, filename, mimetype, texte } = {}) {
   }
 
   throw new Error(
-    `Format non pris en charge : ${filename || mime || 'inconnu'}. Sont lus : PDF, Word (.docx), images, .eml, texte (.txt, .md, .csv), RTF.`
+    `Format non pris en charge : ${filename || mime || 'inconnu'}. Sont lus : PDF, Word (.docx, .doc), Excel (.xlsx), PowerPoint (.pptx), OpenDocument, images, .eml, texte (.txt, .md, .csv), RTF.`
   );
 }
 

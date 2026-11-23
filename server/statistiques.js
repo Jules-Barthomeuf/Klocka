@@ -64,18 +64,20 @@ export function parJourPersonne({ email, fiches = [], projets = [], presentation
   for (let i = 0; i < 2 * jours; i += 1) rangs.set(date(i), i);
   const serie = Array.from({ length: jours }, (_, i) => ({ jour: date(jours - 1 - i), ...Object.fromEntries(CHIFFRES_PERSONNE.flatMap((k) => [[k, 0], [`${k}_avant`, 0]])) }));
   const totaux = Object.fromEntries(CHIFFRES_PERSONNE.map((k) => [k, { actuel: 0, avant: 0 }]));
-  const compter = (k, iso) => {
+  const compter = (k, iso, n = 1) => {
     const r = rangs.get(jourParis(iso));
     if (r == null) return;
     const avant = r >= jours;
     const ligne = serie[jours - 1 - (avant ? r - jours : r)];
-    ligne[avant ? `${k}_avant` : k] += 1;
-    totaux[k][avant ? 'avant' : 'actuel'] += 1;
+    ligne[avant ? `${k}_avant` : k] += n;
+    totaux[k][avant ? 'avant' : 'actuel'] += n;
   };
+  // En fiches, pas en envois (22 nov. 2026, Jules) : un PDF de quatre fiches en compte quatre.
   for (const f of fiches) {
     if (f.ecartee || min(f.analyste) !== qui) continue;
-    compter('fiches', f.le);
-    if (f.dossier) compter('dossiers', f.le);
+    const n = f.biens ?? 1;
+    compter('fiches', f.le, n);
+    if (f.dossier) compter('dossiers', f.le, n);
   }
   for (const p of projets) if (min(p.created_by) === qui) compter('projets', p.created_date);
   for (const x of presentations) if (min(x.cree_par || x.created_by) === qui) compter('presentations', x.cree_le || x.created_date);

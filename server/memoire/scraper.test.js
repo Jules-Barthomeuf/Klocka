@@ -80,3 +80,20 @@ test('lireBoite : autorisée, la boîte se lit d\'un bout à l\'autre ; sans aut
   assert.equal(r.termine, true);
   assert.ok(pointDeReprise('sourcing@klocka.immo').termine_le);
 });
+
+test('traiterMessage : chaque fiche du mail et chaque bien d\'un PDF, gardés sur le mail reçu (22 nov. 2026, Jules)', async () => {
+  const mail = { compte: 'nora.l@klocka.immo', gmail_message_id: 'm-multi', de: 'Léa <lea@agence.fr>', de_email: 'lea@agence.fr', objet: 'Murs commerciaux : trois biens', date: '2026-11-20T10:00:00.000Z', texte: '',
+    pieces_jointes: [{ nom: 'fiches-commerciales-lyon.pdf', piece_id: 'q1', mime: 'application/pdf' }, { nom: 'fiche-commerciale-vienne.pdf', piece_id: 'q2', mime: 'application/pdf' }] };
+  const recu = Records.create('MailRecu', { compte: mail.compte, gmail_message_id: 'm-multi', date: mail.date });
+  const lotA = (rue, ville) => ({ lot: { adresse: { valeur: { rue, code_postal: '69001', ville } }, prix_fai: { valeur: 300000 } } });
+  const multi = {
+    gmail: { lireMessage: async () => mail, telechargerPieceJointe: async (_c, _m, id) => Buffer.from(`pièce ${id}`) },
+    // Le PDF de Lyon porte deux fiches, celui de Vienne une.
+    extraire: async ({ filename }) => ({ lots: /lyon/.test(filename) ? [lotA('3 rue de la République', 'Lyon'), lotA('8 quai Saint-Antoine', 'Lyon')] : [lotA('2 cours Romestang', 'Vienne')], agent: {}, cout_eur: 0.01 }),
+  };
+  const r = await traiterMessage(mail.compte, 'm-multi', multi);
+  assert.equal(r.fiche, true);
+  assert.equal(r.n, 3);
+  assert.equal(Records.filter('BienMemoire', { gmail_message_id: 'm-multi' }).length, 3);
+  assert.equal(Records.get('MailRecu', recu.id).memoire_ids.length, 3);
+});

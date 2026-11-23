@@ -50,7 +50,7 @@ export async function analyserFiche(entree, ctx = {}) {
   }
 
   // --- [2] Extraction ------------------------------------------------------
-  const { lots: lotsExtraits, incidents, ia: extractionIA, agent: agentExtrait = null } = await extraire(ingestion.texte);
+  const { lots: lotsExtraits, incidents, ia: extractionIA, agent: agentExtrait = null, biens_annonces: biensAnnonces = null } = await extraire(ingestion.texte);
 
   // --- [3] + [4] par lot, en parallèle -------------------------------------
   // Les lots sont indépendants entre eux, et dans un lot la synthèse et le
@@ -123,7 +123,7 @@ export async function analyserFiche(entree, ctx = {}) {
       // Conservé pour l'audit du garde-fou, jamais transmis au rédacteur.
       texte_source: ingestion.texte,
     },
-    extraction: { ia: extractionIA, incidents },
+    extraction: { ia: extractionIA, incidents, biens_annonces: biensAnnonces },
     multi_lots: lots.length > 1,
     lots,
     duree_ms: Date.now() - debut,

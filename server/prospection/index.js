@@ -70,12 +70,12 @@ async function estInterneDe() {
 // chaque fois. L'empreinte (nombre et dernière écriture des dossiers, mails, projets et comptes) se lit sur l'index
 // sans rien désérialiser : un dossier ou un mail qui change, et la liste se refait.
 let fichesGardees = null;
-const empreinteFiches = () => JSON.stringify(db.prepare("SELECT entity, count(*) n, max(updated_date) m FROM records WHERE entity IN ('Deal', 'MailRecu', 'Project', 'User') GROUP BY entity").all());
+const empreinteFiches = () => JSON.stringify(db.prepare("SELECT entity, count(*) n, max(updated_date) m FROM records WHERE entity IN ('Deal', 'MailRecu', 'Project', 'User', 'BienMemoire', 'FicheManuelle') GROUP BY entity").all());
 export async function fiches() {
   const empreinte = empreinteFiches();
   if (fichesGardees?.empreinte === empreinte) return fichesGardees.liste;
   const { listerFiches } = await import('../deal/fiches-stats.js');
-  const liste = listerFiches({ deals: Records.list('Deal'), mails: Records.list('MailRecu'), projets: Records.list('Project') }, { estInterne: await estInterneDe() });
+  const liste = listerFiches({ deals: Records.list('Deal'), mails: Records.list('MailRecu'), projets: Records.list('Project'), biensMemoire: Records.list('BienMemoire'), manuelles: Records.list('FicheManuelle') }, { estInterne: await estInterneDe() });
   fichesGardees = { empreinte, liste };
   return liste;
 }

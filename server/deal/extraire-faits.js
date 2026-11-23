@@ -18,7 +18,7 @@ export async function extraireFaits(entree, { par = null } = {}) {
     const source = await ingerer(entree);
     const texte = source?.texte || '';
     const r = await extraire(texte);
-    return { lots: r.lots || [], agent: r.agent || null, incidents: r.incidents || [], ia: !!r.ia, texte };
+    return { lots: r.lots || [], agent: r.agent || null, incidents: r.incidents || [], ia: !!r.ia, texte, biens_annonces: r.biens_annonces ?? null, source: source?.source || null };
   });
   // Le compteur est en dollars (le prix des modèles) ; le budget de la nuit se compte en euros.
   return { ...resultat, cout_eur: Number(consommation?.cout || 0) * EUR_PAR_USD };

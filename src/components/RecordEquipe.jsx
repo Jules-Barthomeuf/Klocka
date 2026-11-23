@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Trophy, Volume2, VolumeX } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import { jouerRecord } from "@/lib/son-record";
@@ -174,7 +174,7 @@ export function CarteRecordPage({ r }) {
   );
 }
 
-function Carte({ r, calme, son, sonBloque, onSon, onActiverSon, onRejouer, onFermer }) {
+function Carte({ r, calme, son, sonBloque, onSon, onActiverSon, onQuitter, onFermer }) {
   const a = (nom, delai, duree = 0.6) => ({ animation: `${nom} ${duree}s cubic-bezier(.2,.8,.2,1) ${delai}s both` });
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="krec-titre" className="krec-a relative w-[400px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[24px] px-7 pb-7 pt-6 text-center"
@@ -182,14 +182,20 @@ function Carte({ r, calme, son, sonBloque, onSon, onActiverSon, onRejouer, onFer
       {/* Le reflet qui traverse la carte à 2,9 s. */}
       <span aria-hidden className="krec-reflet pointer-events-none absolute inset-y-0 left-0 w-1/3" style={{ background: `linear-gradient(90deg, transparent, ${orClair(0.16)}, transparent)`, animation: "krec-reflet 1.1s ease-in-out 2.9s both", transform: "translateX(-130%)" }} />
 
-      {sonBloque && (
-        <button type="button" onClick={onActiverSon} className="absolute left-4 top-4 inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12.5px] text-encre" style={{ borderColor: or(0.5), background: or(0.12) }}>
+      {/* La croix en haut à gauche (22 nov. 2026, Jules) : ferme sans changer de page. */}
+      <button type="button" onClick={onQuitter} aria-label="Fermer" className="absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full text-encre" style={{ background: "rgb(0 0 0 / .35)", border: `1px solid ${or(0.25)}` }}>
+        <X className="h-4 w-4" />
+      </button>
+      {/* Le son en haut à droite ; bloqué par le navigateur, le même coin propose « Activer le son ». */}
+      {sonBloque ? (
+        <button type="button" onClick={onActiverSon} className="absolute right-4 top-4 inline-flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-[12.5px] text-encre" style={{ borderColor: or(0.5), background: or(0.12) }}>
           <Volume2 className="h-3.5 w-3.5" />Activer le son
         </button>
+      ) : (
+        <button type="button" onClick={onSon} aria-label={son ? "Couper le son" : "Remettre le son"} className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full text-encre" style={{ background: "rgb(0 0 0 / .35)", border: `1px solid ${or(0.25)}` }}>
+          {son ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        </button>
       )}
-      <button type="button" onClick={onSon} aria-label={son ? "Couper le son" : "Remettre le son"} className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full text-encre" style={{ background: "rgb(0 0 0 / .35)", border: `1px solid ${or(0.25)}` }}>
-        {son ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-      </button>
 
       <p id="krec-titre" className="m-0 mt-2 text-[12px] font-medium uppercase tracking-[0.2em]" style={{ color: orClair(1) }}>Record de l'équipe</p>
 
@@ -210,16 +216,19 @@ function Carte({ r, calme, son, sonBloque, onSon, onActiverSon, onRejouer, onFer
 
       <p className="m-0 mt-5 text-[13.5px] text-craie">Le record de fiches reçues en une semaine.<br />À qui le tour{"\u00a0"}?</p>
 
-      <div className="mt-5 grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] gap-2.5">
-        <button type="button" onClick={onRejouer} className="h-12 rounded-full border border-bord-vif text-[14px] text-encre hover:bg-encre/[0.05]" style={{ background: "transparent" }}>Rejouer</button>
-        <button type="button" onClick={onFermer} className="h-12 rounded-full bg-pervenche text-[14px] font-medium text-sur-pervenche outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-pervenche/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-pleine">Voir les statistiques</button>
+      {/* Plus de « Rejouer » (22 nov. 2026, Jules). */}
+      <div className="mt-5">
+        <button type="button" onClick={onFermer} className="h-12 w-full rounded-full bg-pervenche text-[14px] font-medium text-sur-pervenche outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-pervenche/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-pleine">Voir les statistiques</button>
       </div>
     </div>
   );
 }
 
+let dejaMontree = false;
+
 /** Monte la pop-up quand le serveur dit qu'elle est à montrer ; la marque vue dès qu'elle s'ouvre. */
 export default function RecordEquipe() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   // Un instant après l'arrivée : la page se charge d'abord, et sa mesure de chargement ne l'attend pas.
   const [pret, setPret] = useState(false);
@@ -232,13 +241,17 @@ export default function RecordEquipe() {
   const musique = useRef(null);
   const calme = sansMouvement();
 
+  // Une seule fois (22 nov. 2026, Jules : « ça s'affiche tout le temps ») : la réponse « à montrer » est oubliée dès
+  // l'ouverture, sinon chaque rechargement du cadre (changement de page) la rouvrait depuis le cache.
   useEffect(() => {
-    if (!data?.montrer || record) return;
+    if (!data?.montrer || record || dejaMontree) return;
+    dejaMontree = true;
     setRecord(data.record);
+    queryClient.setQueryData(["record-equipe"], { montrer: false });
     base44.request("POST", "/api/record-equipe/vu").catch(() => {});
-  }, [data, record]);
+  }, [data, record, queryClient]);
 
-  // La musique, à chaque tour (ouverture, Rejouer, Activer le son).
+  // La musique, à chaque tour (ouverture, Activer le son).
   useEffect(() => {
     if (!record) return undefined;
     const m = jouerRecord({ muet: !son, surDeblocage: () => setSonBloque(false) });
@@ -277,7 +290,7 @@ export default function RecordEquipe() {
         <Carte r={record} calme={calme} son={son} sonBloque={sonBloque}
           onSon={basculerSon}
           onActiverSon={() => { setSon(true); garderSon(true); setTour((t) => t + 1); }}
-          onRejouer={() => setTour((t) => t + 1)}
+          onQuitter={() => setRecord(null)}
           onFermer={fermer} />
       </div>
     </div>,

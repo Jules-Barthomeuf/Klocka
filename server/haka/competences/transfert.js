@@ -36,7 +36,8 @@ import * as file from '../file.js';
 import { sourceMail } from '../sources.js';
 import { membreDeLEquipe } from './demande-equipe.js';
 import { notifier } from '../../notifications.js';
-import { piecesFiche } from '../../deal/fiches-auto.js';
+import { piecesFiche, parleDUnBien } from '../../deal/fiches-auto.js';
+import { estTableur } from '../../deal/lire-bureautique.js';
 import { estMandataire } from '../../mandataire-espace.js';
 
 export const COMPETENCE = 'transfert';
@@ -158,12 +159,13 @@ export function fichesVisees(note0, fiches = []) {
  * en Mémoire, sans dossier), `documents` (dans la Data Room d'un dossier), `demande` (une question, sans pièce : le chat
  * de Haka). `dossier` : celui retenu ; `candidats` : quand il faut demander.
  */
-export function comprendre(lu, { pieces = [], fiches = [], vises = [] } = {}) {
+export function comprendre(lu, { pieces = [], fiches = [], vises = [], corps = false } = {}) {
   // Un mail écrit directement à sourcing@ (pas un transfert) : son objet est aussi la consigne (« Préanalyse » en objet,
   // corps vide). Pour un transfert, l'objet est celui de l'agent : il ne compte pas (17 nov. 2026, Jules).
   const consigne = lu.transfert ? (lu.note || '') : `${lu.note || ''} ${lu.objet_origine || ''}`;
   const note = sansAccents(consigne);
-  if (!pieces.length) return { intention: 'demande' };
+  // Sans pièce : une question, sauf la fiche écrite dans le mail transféré sans un mot (22 nov. 2026) : en Mémoire.
+  if (!pieces.length) return corps && !note.trim() ? { intention: 'memoire', defaut: true, corps: true } : { intention: 'demande' };
   if (MOTS_MEMOIRE.test(note) || PAS_DE_PREANALYSE.test(note)) return { intention: 'memoire' };
   const veutFiche = MOTS_FICHE.test(note) || (fiches.length > 0 && MOTS_RENTRER.test(note));
   const veutDocs = !veutFiche && MOTS_DOCUMENTS.test(note);
@@ -226,8 +228,8 @@ function versDocuments(vises) {
  * Ce que le collègue demande, lu par l'IA quand il a écrit quelque chose. Rend la même forme que `comprendre`, plus
  * `lu_par: 'ia' | 'regles'`. `lire` : remplacé dans les tests.
  */
-export async function comprendreAvecIA(lu, { pieces = [], fiches = [], vises = [] } = {}, { lire = null } = {}) {
-  const regles = comprendre(lu, { pieces, fiches, vises });
+export async function comprendreAvecIA(lu, { pieces = [], fiches = [], vises = [], corps = false } = {}, { lire = null } = {}) {
+  const regles = comprendre(lu, { pieces, fiches, vises, corps });
   const consigne = (lu.transfert ? (lu.note || '') : `${lu.note || ''} ${lu.objet_origine || ''}`).trim();
   // Sous les tests sans modèle branché : les règles (le modèle factice répondrait n'importe quoi).
   if (!pieces.length || !consigne || (!lire && process.env.NODE_TEST_CONTEXT)) return { ...regles, lu_par: 'regles' };
@@ -403,17 +405,30 @@ async function versTwenty(bien, pousser = null) {
 // Jean-Médecin) : une fiche nommée « Bail… », « Mandat… », « Local … plan » ou une capture n'était jamais lue. Un
 // transfert à sourcing@ est un geste voulu : chaque document est lu, l'extraction dit s'il y a un bien ; une image ne
 // l'est que si rien d'autre n'en a donné (trois au plus : souvent des photos du local).
-const DOC = /\.(pdf|docx?|odt)$/i;
+const DOC = /\.(pdf|docx?|odt|ods|odp|pptx|xlsx|xlsm|rtf)$/i;
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 const IMAGES_MAX = 3;
 
-export async function enMemoireSeulement(mail, { membre, lu, extraire = null, pousser = null, pieces = null }) {
+export async function enMemoireSeulement(mail, { membre, lu, extraire = null, pousser = null, pieces = null, ouvrirZip = null }) {
   // Toutes les fiches du mail (17 nov. 2026 : avant, la première seule), ou celles qu'on désigne.
   const fiches = piecesFiche(mail).filter((p) => p?.piece_id);
   const utiles = piecesUtiles(mail).filter((p) => p?.piece_id);
+  // Les fiches d'un ZIP joint, chacune lue comme une pièce (22 nov. 2026, Jules : « n'importe quel type de documents »).
+  const dansLesZips = [];
+  if (!pieces) {
+    const { zipsDuMail, fichesDuZip } = await import('../../deal/zip-fiches.js');
+    for (const z of zipsDuMail(mail)) {
+      try {
+        const entrees = await (ouvrirZip || fichesDuZip)(await telecharger(mail.compte, mail.gmail_message_id, z.piece_id));
+        for (const e of entrees) dansLesZips.push({ ...e, piece_id: `${z.piece_id}#${e.nom}` });
+      } catch (e) { console.warn(`[transfert] ZIP ${z.nom} :`, e?.message || e); }
+    }
+  }
+  // Sans pièce, la fiche écrite dans le mail lui-même (le texte transféré de l'agent).
+  const corps = !pieces && !fiches.length && !dansLesZips.length && !utiles.length ? ficheDuCorps(mail, lu) : null;
   const vagues = pieces
     ? [utiles.filter((p) => pieces.includes(p.piece_id))]
-    : [fiches, utiles.filter((p) => !fiches.includes(p) && DOC.test(p.nom || '')), utiles.filter((p) => IMAGE.test(p.nom || '')).slice(0, IMAGES_MAX)];
+    : [[...fiches, ...dansLesZips, ...(corps ? [corps] : [])], utiles.filter((p) => !fiches.includes(p) && DOC.test(p.nom || '')), utiles.filter((p) => IMAGE.test(p.nom || '')).slice(0, IMAGES_MAX)];
   if (!vagues.some((v) => v.length)) throw new Error('Aucune fiche à lire dans ce transfert.');
   const biens = [];
   const erreurs = [];
@@ -439,9 +454,25 @@ export async function enMemoireSeulement(mail, { membre, lu, extraire = null, po
   return { fait: 'memoire', n: biens.length, deja: biens.every((b) => b.deja), nom: premier.nom, noms: biens.map((b) => b.nom).filter(Boolean), twenty: biens.some((b) => b.twenty), erreurs };
 }
 
+/** Pure : la fiche écrite dans le corps d'un transfert sans pièce, quand le texte parle d'un bien et donne un montant. */
+export function ficheDuCorps(mail, lu = {}) {
+  const texte = String(mail?.texte || '').trim();
+  if (texte.length < 80 || !parleDUnBien({ objet: lu.objet_origine || mail.objet, texte })) return null;
+  if (!/\d[\d\s.\u00a0\u202f]*(?:k?\s?€|euros?|\s?k\b|\s?m€)/i.test(texte)) return null;
+  return { nom: 'texte-du-mail.txt', mime: 'text/plain', buffer: Buffer.from(texte, 'utf-8'), piece_id: `corps:${mail.id}`, corps: true };
+}
+
+/** Une lecture de pièce, notée sur le mail reçu (une par pièce, la dernière l'emporte). */
+function noterLecture(mailId, lecture) {
+  const m = Records.get('MailRecu', mailId);
+  if (!m) return;
+  const autres = (m.fiches_lues || []).filter((x) => x.nom !== lecture.nom);
+  Records.update('MailRecu', mailId, { fiches_lues: [...autres, { ...lecture, le: new Date().toISOString() }] });
+}
+
 async function fichesEnMemoire(mail, piece, { membre, lu, extraire = null, pousser = null, deja: adressesLues = [] }) {
   const M = await import('../../memoire/memoire.js');
-  const buffer = await telecharger(mail.compte, mail.gmail_message_id, piece.piece_id);
+  const buffer = piece.buffer || await telecharger(mail.compte, mail.gmail_message_id, piece.piece_id);
   const hash = M.hashDe(buffer);
   // La pièce déjà lue (un renvoi) : ses biens sont déjà là, le mail les rejoint.
   const dejaLus = Records.filter(M.ENTITE, { hash_piece: hash });
@@ -480,6 +511,9 @@ async function fichesEnMemoire(mail, piece, { membre, lu, extraire = null, pouss
     const ou = [bien.adresse?.rue, bien.ville].filter(Boolean).join(', ');
     sortie.push({ nom: ou || null, cle_adresse: bien.cle_adresse || null, ...(await versTwenty(cree, pousser)) });
   }
+  // Ce que la lecture a vu, gardé sur le mail pour le compte des fiches reçues (deal/fiches-stats.js) : les biens lus, le
+  // nombre que la pièce annonce (« 4 actifs »), et si c'est un tableur (une liste de biens, comptée à part).
+  noterLecture(mail.id, { nom: piece.nom || null, biens: sortie.length, annonce: faits.biens_annonces ?? null, tableur: faits.source === 'tableur' || estTableur(piece.nom, piece.mime) });
   // Rien de lisible (ni adresse, ni prix, ni loyer) : une erreur ; un bien déjà lu dans une autre pièce du mail n'en est pas une.
   if (!sortie.length && !doublons) throw new Error("La fiche ne donne ni adresse, ni prix, ni loyer : rien à garder en Mémoire.");
   return sortie;
@@ -564,10 +598,13 @@ taches.enregistrer(COMPETENCE, {
         const membre = expediteurDuTransfert(mail.de_email);
         if (!membre) return { fin: true, ignore: 'expéditeur hors équipe' };
         const lu = lireTransfert({ texte: mail.texte, objet: mail.objet });
-        const pieces = piecesUtiles(mail);
-        const fiches = piecesFiche(mail).filter(Boolean);
+        // Un ZIP joint compte comme une fiche (ses fiches sont lues une à une, enMemoireSeulement).
+        const { zipsDuMail } = await import('../../deal/zip-fiches.js');
+        const zips = zipsDuMail(mail);
+        const pieces = [...piecesUtiles(mail), ...zips];
+        const fiches = [...piecesFiche(mail).filter(Boolean), ...zips];
         const vises = dossiersVises(lu, Records.list('Deal'), { collegue: membre.email });
-        const c = await comprendreAvecIA(lu, { pieces, fiches, vises });
+        const c = await comprendreAvecIA(lu, { pieces, fiches, vises, corps: !!ficheDuCorps(mail, lu) });
         Records.update('MailRecu', mail.id, { haka_transfert: { intention: c.intention, lu_par: c.lu_par, raison: c.raison || null, origine: lu.origine?.email || null, le: new Date().toISOString() } });
         return { ...c, cote: coteDuTransfert(membre, c, lu), lu, pour: norm(membre.email), pieces: pieces.map((p) => p.nom) };
       },

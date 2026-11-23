@@ -43,28 +43,30 @@ test('le tableau : biens suite à l\'appel pour 100 appels, spontanées et fiche
     { id: 'd4', le: '2026-11-08T10:00:00Z', agent_email: 'autre@agence.fr', transferee_par: 'nora.l@klocka.immo', biens: 2, etape: 'non' },
   ];
   const r = fichesParAnalyste({ fiches, appels, agents, equipe: EQUIPE, depuis: '2026-11-01T00:00:00Z', maintenant: new Date('2026-11-10T12:00:00Z') });
-  assert.deepEqual(r.total, { appels: 20, biens: 6, biens_appel: 3, biens_transfert: 2, biens_spontanes: 1, ecartees: 1, fiches: 3, dossiers: 1, oui: 1, presente: 1, abouti: 0, non: 1, sans_analyste: 1, non_rentrees: 0, fiches_appel: 1, fiches_par_appel: 5 });
+  // Tout compte en fiches (22 nov. 2026, Jules : « un pdf avec plusieurs fiches dedans et ça en compte qu'une ») : le PDF
+  // de trois murs en vaut trois, partout ; `envois` garde les trois mails comptés.
+  assert.deepEqual(r.total, { appels: 20, biens: 6, biens_appel: 3, biens_transfert: 2, biens_spontanes: 1, ecartees: 1, fiches: 6, envois: 3, dossiers: 3, oui: 3, presente: 3, abouti: 0, non: 2, sans_analyste: 1, a_verifier: 0, listes: 0, biens_listes: 0, non_rentrees: 0, fiches_appel: 3, fiches_par_appel: 15 });
   const coralie = r.analystes.find((a) => a.prenom === 'Coralie');
   assert.equal(coralie.biens_appel, 3);
   assert.equal(coralie.pour_100_appels, 15);
-  // Une fiche suite à un appel pour vingt appels : 5 %.
-  assert.equal(coralie.fiches_par_appel, 5);
+  // Trois fiches suite à un appel (un PDF) pour vingt appels : 15 %.
+  assert.equal(coralie.fiches_par_appel, 15);
   // L'entonnoir par analyste : la fiche présentée a eu son Oui.
-  assert.deepEqual([coralie.fiches, coralie.dossiers, coralie.oui, coralie.presente, coralie.taux_oui], [1, 1, 1, 1, 100]);
+  assert.deepEqual([coralie.fiches, coralie.envois, coralie.dossiers, coralie.oui, coralie.presente, coralie.taux_oui], [3, 1, 3, 3, 3, 100]);
   const nora = r.analystes.find((a) => a.prenom === 'Nora');
   assert.equal(nora.biens_transfert, 2);
   assert.equal(nora.pour_100_appels, null);
-  assert.deepEqual([nora.non, nora.taux_oui], [1, 0]);
+  assert.deepEqual([nora.non, nora.taux_oui], [2, 0]);
   const semaine = r.semaines.find((s) => s.semaine === '2026-11-02');
-  assert.deepEqual(semaine, { semaine: '2026-11-02', appels: 20, biens_appel: 3, biens: 6, fiches: 3, dossiers: 1, oui: 1, par_analyste: { 'coralie.g@klocka.immo': 3, personne: 1, 'nora.l@klocka.immo': 2 }, fiches_par_analyste: { 'coralie.g@klocka.immo': 1, personne: 1, 'nora.l@klocka.immo': 1 }, dossiers_par_analyste: { 'coralie.g@klocka.immo': 1 } });
+  assert.deepEqual(semaine, { semaine: '2026-11-02', appels: 20, biens_appel: 3, biens: 6, fiches: 6, envois: 3, dossiers: 3, oui: 3, par_analyste: { 'coralie.g@klocka.immo': 3, personne: 1, 'nora.l@klocka.immo': 2 }, fiches_par_analyste: { 'coralie.g@klocka.immo': 3, personne: 1, 'nora.l@klocka.immo': 2 }, dossiers_par_analyste: { 'coralie.g@klocka.immo': 3 } });
   // Global : les agents et les villes qui envoient le plus, le record de biens en une semaine.
-  assert.deepEqual(r.agents[0], { cle: 'martin@foncia-antibes.fr', nom: 'Martin', fiches: 1, biens: 3, oui: 1, analyste: 'Coralie', analyste_email: 'coralie.g@klocka.immo', ville: 'Antibes' });
+  assert.deepEqual(r.agents[0], { cle: 'martin@foncia-antibes.fr', nom: 'Martin', fiches: 3, biens: 3, oui: 3, analyste: 'Coralie', analyste_email: 'coralie.g@klocka.immo', ville: 'Antibes' });
   assert.deepEqual(r.villes.map((v) => v.nom), ['Antibes']);
   assert.deepEqual(r.record, { semaine: '2026-11-02', biens: 6 });
   assert.equal(r.fiches.find((f) => f.id === 'd3').biens, 0);
 });
 
-test('le record d\'un analyste : le plus de fiches en une semaine ; à égalité les biens, puis le premier', () => {
+test('le record d\'un analyste : le plus de fiches en une semaine, un PDF de trois fiches en vaut trois', () => {
   const qui = (f) => f.qui;
   const fiches = [
     { le: '2026-11-03T09:00:00Z', qui: 'nora.l@klocka.immo', biens: 1 },
@@ -75,6 +77,14 @@ test('le record d\'un analyste : le plus de fiches en une semaine ; à égalité
     { le: '2026-11-12T10:00:00Z', qui: null, biens: 1 },
     { le: '2026-11-12T11:00:00Z', qui: null, biens: 1 },
   ];
-  assert.deepEqual(recordAnalyste(fiches, qui, (e) => e.split('.')[0]), { email: 'coralie.g@klocka.immo', semaine: '2026-11-09', fiches: 2, biens: 4, prenom: 'coralie' });
+  assert.deepEqual(recordAnalyste(fiches, qui, (e) => e.split('.')[0]), { email: 'coralie.g@klocka.immo', semaine: '2026-11-09', fiches: 4, biens: 4, envois: 2, prenom: 'coralie' });
+  // Trois mails d'une fiche contre un PDF de quatre : le PDF l'emporte.
+  const pdf = [
+    { le: '2026-11-03T09:00:00Z', qui: 'nora.l@klocka.immo', biens: 1 }, { le: '2026-11-04T09:00:00Z', qui: 'nora.l@klocka.immo', biens: 1 }, { le: '2026-11-05T09:00:00Z', qui: 'nora.l@klocka.immo', biens: 1 },
+    { le: '2026-11-10T09:00:00Z', qui: 'maxime.p@klocka.immo', biens: 4 },
+  ];
+  assert.equal(recordAnalyste(pdf, qui).email, 'maxime.p@klocka.immo');
+  // Une fiche écartée (« pas une fiche ») ne compte pas.
+  assert.equal(recordAnalyste([{ le: '2026-11-10T09:00:00Z', qui: 'nora.l@klocka.immo', biens: 1, compte: { pas_fiche: true } }], qui), null);
   assert.equal(recordAnalyste([], qui), null);
 });

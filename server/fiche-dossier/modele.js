@@ -626,7 +626,7 @@ export function ficheVue(cle) {
   return {
     dossier: genre === 'bien' ? donneesDuBien(cle, { etape: f?.etape || null, entrees }) : null,
     carte: genre === 'bien' ? carteDuBien(cle, f) : null,
-    cle, genre, nom: (genre === 'agent' && nomAgent(f?.nom || o?.nom)) || f?.nom || o?.nom, lien: o?.lien || null, crm: o?.crm || null, detail: o?.detail || null,
+    cle, genre, nom: (genre === 'agent' && (f?.nom || o?.nom) !== 'Fiche du CRM' && nomAgent(f?.nom || o?.nom)) || f?.nom || o?.nom, lien: o?.lien || null, crm: o?.crm || null, detail: o?.detail || null,
     // La photo posée sur la fiche (importée, ou trouvée pour un agent : server/photos-fiches.js), sinon celle de l'agent.
     photo: photoPosee?.url || o?.photo || null, photo_importee: photoPosee?.source === 'importee',
     etape: f?.etape || null, etat: f?.etat || null, etapes: ETAPES, resume: f?.resume || null, source: f?.source || null, blocage: f?.blocage || null, maj_le: f?.maj_le || null, maj_par: prenomDe(f?.maj_par),

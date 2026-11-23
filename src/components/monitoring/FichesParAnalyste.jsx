@@ -30,6 +30,8 @@ export default function FichesParAnalyste({ jours }) {
   const taux = t.appels ? Math.round((t.biens_appel / t.appels) * 1000) / 10 : null;
   const max = Math.max(1, ...data.semaines.map((s) => s.biens));
   const fiches = toutes ? data.fiches : data.fiches.slice(0, 30);
+  // Une ligne est un envoi (un mail, un dépôt) ; elle porte ses fiches (un PDF de quatre en porte quatre).
+  const nbFiches = data.fiches.reduce((n, f) => n + (f.ecartee ? 0 : f.biens), 0);
   const equipe = data.analystes.map((a) => [a.email, a.prenom]);
 
   const pct = (n, sur) => (sur ? `${Math.round((n / sur) * 100)} %` : "—");
@@ -110,7 +112,7 @@ export default function FichesParAnalyste({ jours }) {
         <Classement titre="Les villes" lignes={data.villes} vide="Aucune ville lue sur la période." />
       </div>
 
-      <Cadre titre="Les fiches" aide="Corrigez ce que le compte automatique a mal vu : ce n'est pas une fiche, le nombre de biens, la personne." droite={<span className="text-[12px] text-brume">{data.fiches.length} fiche{data.fiches.length > 1 ? "s" : ""}</span>}>
+      <Cadre titre="Les fiches" aide="Corrigez ce que le compte automatique a mal vu : ce n'est pas une fiche, le nombre de biens, la personne." droite={<span className="text-[12px] text-brume">{nbFiches} fiche{nbFiches > 1 ? "s" : ""} en {data.fiches.length} envoi{data.fiches.length > 1 ? "s" : ""}</span>}>
         <div className="overflow-x-auto">
           <div className="min-w-[900px]">
             <div className="grid grid-cols-[64px_minmax(0,1.6fr)_minmax(0,1fr)_72px_150px_150px_110px] gap-3 border-b border-bord py-2 text-[12px] text-brume">

@@ -15,6 +15,7 @@ import { CLAIR, definirCadreCrm, themeEffectif } from "@/lib/personnalisation";
 import { useUser } from "@/components/providers/UserProvider";
 import DossiersSuivis, { OBJETS_SUIVIS } from "@/components/fiche-dossier/DossiersSuivis";
 import { FicheDossierHote } from "@/components/fiche-dossier/FicheDossier";
+import { ouvrirFiche } from "@/lib/fiche-dossier";
 import { EtoileCrm, useEtoiles } from "@/components/fiche-dossier/EtoileAgent";
 import { barreGardee, cleBarreCrm, espaceCrm, garderBarre, lireBarreCrm } from "@/lib/crm-barre";
 
@@ -1106,14 +1107,18 @@ export default function CrmTwenty() {
 
   const aller = (patch) => setParams((p) => { const n = new URLSearchParams(p); Object.entries(patch).forEach(([k, v]) => (v ? n.set(k, v) : n.delete(k))); return n; });
   const ouvrir = (singulier, id) => aller(singulier === objet?.singulier ? { f: id, ft: null } : { f: id, ft: singulier });
-  // Un agent ou un client : sa fiche de Klocka, comme dans Relations ; sans fiche de Klocka, sa fiche du CRM.
-  const ouvrirLigne = async (singulier, id) => {
+  // Un agent ou un client : sa fiche (résumé, dossiers, historique, notes, photo), à droite de la page (22 nov. 2026,
+  // Jules : « lorsqu'on clique sur un nom dans agent immobilier ou autres, on doit voir à droite la fiche de l'agent »).
+  // Celle de Klocka quand il y en a une (agent de la Prospection, client de l'équipe), sinon celle de sa ligne du CRM.
+  // Les autres tableaux gardent leur fiche du CRM, déjà à droite.
+  const ouvrirLigne = async (singulier, id, nom = null) => {
     if (!equipe || !AVEC_FICHE_KLOCKA.has(singulier)) { ouvrir(singulier, id); return; }
+    let cle = `twenty:${singulier}:${id}`;
     try {
       const r = await queryClient.fetchQuery({ queryKey: ["crm-klocka", singulier, id], queryFn: () => req("GET", `/api/crm/klocka/${singulier}/${id}`), staleTime: 5 * 60_000 });
-      if (r?.fiche) { setKlocka({ ...r.fiche, singulier, twenty: id }); return; }
-    } catch { /* la fiche du CRM, faute de mieux */ }
-    ouvrir(singulier, id);
+      if (r?.fiche?.type && r.fiche.id) cle = `${r.fiche.type}:${r.fiche.id}`;
+    } catch { /* la fiche de sa ligne du CRM */ }
+    ouvrirFiche(cle, { nom, crm: { objet: singulier, id } });
   };
   const versCrm = () => { const k = klocka; setKlocka(null); if (k) aller({ t: k.singulier, v: null, f: k.twenty, ft: null }); };
   const kanban = vue?.kanban || null;
@@ -1265,7 +1270,7 @@ export default function CrmTwenty() {
               {colonnes.map((c, i) => (
                 <td key={c.nom} className={`h-[36px] overflow-hidden border-b border-r border-trait p-0 ${i === 0 ? "text-encre" : c.type === "SELECT" && f[c.nom] ? couleurCase(c, f[c.nom]) : "text-craie"} ${NUMERIQUES.includes(c.type) ? "tabular-nums" : ""}`}>
                   {i === 0 ? (
-                    <button type="button" onPointerDown={() => { if (!objet.local) queryClient.prefetchQuery({ queryKey: ["crm-fiche", objet.singulier, f.id], queryFn: () => req("GET", `${API}/${objet.singulier}/${f.id}`), staleTime: 30_000 }); }} onClick={() => ouvrirLigne(objet.singulier, f.id)} className={`block w-full truncate px-4 py-1.5 text-encre hover:text-menthe ${CLASSES_ALIGNEMENT[reglageDe(c).align || "gauche"].split(" ")[1]}`} style={{ background: "transparent" }}>
+                    <button type="button" onPointerDown={() => { if (!objet.local) queryClient.prefetchQuery({ queryKey: ["crm-fiche", objet.singulier, f.id], queryFn: () => req("GET", `${API}/${objet.singulier}/${f.id}`), staleTime: 30_000 }); }} onClick={() => ouvrirLigne(objet.singulier, f.id, nomDeFiche(f))} className={`block w-full truncate px-4 py-1.5 text-encre hover:text-menthe ${CLASSES_ALIGNEMENT[reglageDe(c).align || "gauche"].split(" ")[1]}`} style={{ background: "transparent" }}>
                       {/* L'étoile d'un agent préféré de l'équipe, devant son nom (20 nov. 2026, Jules). */}
                       {objet.singulier === "agentImmobilier" && etoilesAgents?.length ? (
                         <span className="inline-flex max-w-full items-center gap-1.5 align-middle"><EtoileCrm nom={[f.prenom, affiche(c, f[c.nom], liensT)].filter(Boolean).join(" ")} etoiles={etoilesAgents} /><span className="truncate">{affiche(c, f[c.nom], liensT) || <span className="text-brume">Sans nom</span>}</span></span>
@@ -1484,7 +1489,7 @@ export default function CrmTwenty() {
               <div className="min-h-0 flex-1 overflow-auto px-10 pb-10 max-md:px-4" style={{ "--k-crm-largeur": `${Math.max(720, largeurMini) + 4}px` }}>
                 {liste.isLoading ? <Chargement /> : liste.isError ? <p className="py-16 text-center text-[14px] text-ardoise">{liste.error?.message || "Twenty ne répond pas."}</p>
                   : !fiches.length ? <p className="py-16 text-center text-[14px] text-brume">{q || tousFiltres.length ? "Rien ne correspond." : "Aucune fiche."}</p>
-                  : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => ouvrirLigne(objet.singulier, id)} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />
+                  : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => ouvrirLigne(objet.singulier, id, (() => { const x = fiches.find((y) => y.id === id); return x ? nomDeFiche(x) : null; })())} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />
                   : !champGroupe ? <div className="k-tableau-crm mt-4 rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{tableau(fiches)}</div>
                   // Groupé : chaque groupe lit ses fiches à part, 50 par 50, avec son « Voir plus » (8 nov. 2026, Jules).
                   : groupesDuTableau.map((g) => (
@@ -1499,7 +1504,7 @@ export default function CrmTwenty() {
                   </div>
                 )}
               </div>
-              <FicheDossierHote />
+              <FicheDossierHote cote="droite" />
               <AnimatePresence>
                 {ficheId && ficheObjet && <Fiche key={`${ficheObjet.singulier}-${ficheId}`} objet={ficheObjet} objets={objets} id={ficheId} onFermer={() => aller({ f: null, ft: null })} onOuvrir={ouvrir} onMail={setEnvoi} />}
               </AnimatePresence>

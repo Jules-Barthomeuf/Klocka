@@ -24,7 +24,7 @@ export function monterFiches(app) {
     if (!admin(req, res)) return;
     const { listerFiches, statsParSemaine, recordDeFiches, COMPTE_DEPUIS } = await import('../deal/fiches-stats.js');
     const semaines = Math.min(52, Math.max(4, Number(req.query.semaines) || 12));
-    const fiches = listerFiches({ deals: Records.list('Deal'), mails: Records.list('MailRecu'), projets: Records.list('Project') }, { estInterne: await estInterneDe() });
+    const fiches = listerFiches({ deals: Records.list('Deal'), mails: Records.list('MailRecu'), projets: Records.list('Project'), biensMemoire: Records.list('BienMemoire'), manuelles: Records.list('FicheManuelle') }, { estInterne: await estInterneDe() });
     ok(res, { fiches: fiches.slice(0, 400), total: fiches.length, semaines: statsParSemaine(fiches, { semaines }), record: recordDeFiches(fiches), depuis: COMPTE_DEPUIS });
   }));
 
@@ -199,9 +199,12 @@ export function monterFiches(app) {
   app.get('/api/record-equipe', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
-    const { aMontrer } = await import('../record-equipe.js');
+    const { aMontrer, semaineDe } = await import('../record-equipe.js');
     if (!aMontrer(user)) return ok(res, { montrer: false });
     const r = (await calculerFichesAnalystes(7)).record_analyste;
+    // Vue dès qu'on dit de la montrer (22 nov. 2026, Jules : « ça s'affiche tout le temps, mets-la juste une fois ») :
+    // une seule réponse « à montrer » par semaine, quoi que fasse l'écran ensuite.
+    if (r) Records.update('User', user.id, { record_vu_semaine: semaineDe() });
     ok(res, r ? { montrer: true, record: r } : { montrer: false });
   }));
   app.post('/api/record-equipe/vu', wrap(async (req, res) => {
@@ -220,22 +223,35 @@ export function monterFiches(app) {
     ok(res, parMois({ projets: Records.list('Project'), lettres: Records.list('LettreIntention'), mois }));
   }));
 
+  // Des fiches reçues ailleurs, ajoutées à la main (23 nov. 2026, Jules : « en live ça met 19 alors que c'est 25 ») : un
+  // nombre, la personne à qui elles reviennent, un mot, le jour. Elles comptent comme les autres, corrigées pareil.
+  app.post('/api/monitoring/fiches-manuelles', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const b = req.body || {};
+    const nombre = Number(b.nombre);
+    if (!Number.isInteger(nombre) || nombre < 1 || nombre > 50) return res.status(400).json({ error: 'Un nombre de fiches entre 1 et 50.' });
+    const le = /^\d{4}-\d{2}-\d{2}/.test(String(b.le || '')) ? new Date(`${String(b.le).slice(0, 10)}T12:00:00Z`).toISOString() : new Date().toISOString();
+    const x = Records.create('FicheManuelle', { nombre, le, analyste: b.analyste ? String(b.analyste).toLowerCase().slice(0, 120) : null, titre: String(b.titre || '').trim().slice(0, 160) || null, par: user.email }, user.email);
+    ok(res, { ok: true, id: `main:${x.id}` });
+  }));
+
   // La correction d'une fiche dans ce tableau : « pas une fiche », le nombre de biens, la personne à qui elle revient.
   app.post('/api/monitoring/fiches-analystes/:id', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
     const id = String(req.params.id);
-    const record = id.startsWith('mail:') ? Records.get('MailRecu', id.slice(5)) : Records.findBy('Deal', 'deal_id', id);
+    // Une fiche envoyée sur WhatsApp (« wa:… ») : la correction se pose sur le premier bien de l'envoi en Mémoire.
+    const entite = id.startsWith('mail:') ? 'MailRecu' : id.startsWith('wa:') ? 'BienMemoire' : id.startsWith('main:') ? 'FicheManuelle' : 'Deal';
+    const record = entite === 'MailRecu' ? Records.get('MailRecu', id.slice(5)) : entite === 'BienMemoire' ? Records.filter('BienMemoire', { envoi_id: id })[0] : entite === 'FicheManuelle' ? Records.get('FicheManuelle', id.slice(5)) : Records.findBy('Deal', 'deal_id', id);
     if (!record) return res.status(404).json({ error: 'Fiche introuvable.' });
-    const avant = record.fiche_compte || {};
-    const b = req.body || {};
-    const compte = { ...avant };
-    if ('pas_fiche' in b) compte.pas_fiche = !!b.pas_fiche;
-    if ('biens' in b) { const n = Number(b.biens); if (b.biens == null || b.biens === '') delete compte.biens; else if (Number.isInteger(n) && n >= 0 && n <= 50) compte.biens = n; }
-    if ('analyste' in b) { if (b.analyste) compte.analyste = String(b.analyste).toLowerCase().slice(0, 120); else delete compte.analyste; }
-    compte.par = user.email;
-    compte.le = new Date().toISOString();
-    Records.update(id.startsWith('mail:') ? 'MailRecu' : 'Deal', record.id, { fiche_compte: compte });
+    // Ce que la machine avait compté, avant ce geste : la mesure de sa justesse (corrigerCompte).
+    const { fiches } = await import('../prospection/index.js');
+    const { corrigerCompte } = await import('../deal/justesse-compte.js');
+    const ligne = (await fiches()).find((f) => f.id === id);
+    const auto = ligne ? (ligne.liste ? 0 : ligne.biens) : null;
+    const compte = corrigerCompte(record.fiche_compte || {}, req.body || {}, { auto, par: user.email });
+    Records.update(entite, record.id, { fiche_compte: compte });
     ok(res, { ok: true, compte });
   }));
 }

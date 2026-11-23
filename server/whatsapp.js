@@ -112,8 +112,23 @@ export async function traiterMessage(m) {
       return;
     }
     if (!texte) { await envoyer(numero, "Le vocal est vide ou inaudible."); return; }
+  } else if ((m.type === 'document' || m.type === 'image') && user.role !== 'mandataire') {
+    // Une fiche envoyée par quelqu'un de l'équipe (22 nov. 2026, Jules) : lue et rangée en Mémoire comme un transfert à
+    // sourcing@, comptée dans les fiches reçues à son nom (memoire/fiche-directe.js).
+    const media = m.document || m.image || {};
+    try {
+      const { buffer, mimetype } = await telechargerMedia(media.id);
+      const nom = media.filename || `whatsapp-${m.id}.${/png/.test(mimetype) ? 'png' : /jpe?g/.test(mimetype) ? 'jpg' : /pdf/.test(mimetype) ? 'pdf' : 'bin'}`;
+      const { ficheEnMemoire } = await import('./memoire/fiche-directe.js');
+      const r = await ficheEnMemoire({ buffer, nom, mime: mimetype, par: user.email, envoiId: `wa:${m.id}`, legende: media.caption || '' });
+      await envoyer(numero, r.deja ? 'Cette fiche était déjà en Mémoire.' : r.n ? `${r.n > 1 ? `${r.n} fiches mises` : 'Fiche mise'} en Mémoire${r.noms.length ? ` : ${r.noms.slice(0, 6).join(' ; ')}` : ''}.` : "Je n'ai trouvé ni adresse, ni prix, ni loyer dans ce document.");
+    } catch (e) {
+      console.warn(`[whatsapp] fiche illisible : ${e?.message || e}`);
+      await envoyer(numero, `Je n'ai pas pu lire ce document : ${String(e?.message || e).slice(0, 200)}`);
+    }
+    return;
   } else {
-    await envoyer(numero, 'Pour l’instant je lis les messages et les vocaux, pas encore les photos ni les fichiers.');
+    await envoyer(numero, 'Pour l’instant je lis les messages, les vocaux et les fiches envoyées par l’équipe.');
     return;
   }
   if (!texte) return;

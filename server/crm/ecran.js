@@ -548,11 +548,13 @@ export async function fiche(email, singulier, id) {
   ]);
   const visibles = sansCaches(f, o.champs);
   const liens = await nomsLies(o, [visibles], dossiers, membresDe(s.roles)).catch(() => ({}));
-  const liees = await Promise.all(o.liees.map(async (l) => {
+  const liees = (await Promise.all(o.liees.map(async (l) => {
     const c = objetsVus(dossiers).find((x) => x.singulier === l.cible);
+    // Une relation vers un tableau caché ou absent : on la passe, la fiche s'ouvre quand même (22 nov. 2026).
+    if (!c) return null;
     const lignes = await sur(async () => (await requeteTwenty('GET', `/${c.pluriel}?limit=30&depth=0&filter=${encodeURIComponent(`${l.cle}[eq]:${q(id)}`)}`))?.data?.[c.pluriel] || []);
     return { ...l, nom_cible: c.nom_un, fiches: lignes.map((x) => ({ id: x.id, nom: nomDe(x) })) };
-  }));
+  }))).filter(Boolean);
   return { fiche: visibles, liens, liees, notes, taches, pieces, ...(o.pluriel === 'agences' ? { collaborateurs: await collaborateursDe(f) } : {}) };
 }
 

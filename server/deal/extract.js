@@ -78,6 +78,10 @@ const SCHEMA_REPONSE = {
         },
       },
     },
+    biens_annonces: {
+      type: 'integer',
+      description: "Le nombre de biens que le document annonce lui-même, en toutes lettres ou en chiffres (« 4 actifs à céder », « portefeuille de 6 murs », « 3 lots »). 0 s'il n'annonce aucun nombre.",
+    },
     agent: {
       type: 'object',
       description: "L'agent immobilier qui présente le bien, et ses coordonnées telles qu'écrites. Vide si le document n'en donne pas.",
@@ -142,9 +146,10 @@ RÈGLES IMPÉRATIVES :
 4. bail_type : "ferme" UNIQUEMENT si le document emploie ce terme, ou mentionne une période d'engagement sans faculté de résiliation. Sinon "3-6-9", ou absent si rien n'est dit.
 5. occupe : false UNIQUEMENT si la vacance est explicite ("vacant", "libre de tout occupant"). Un bien présenté sans mention de locataire est ABSENT, pas vacant.
 6. prix_fai : le prix de vente affiché, quel que soit son libellé — « prix de vente », « prix net vendeur », « NV », « FAI », « HAI » — hors frais de notaire et hors prix d'acquisition total. Relève le montant écrit, sans rien y ajouter ni en retrancher. Un prix net vendeur avec honoraires en sus va DANS prix_fai, tel quel. honoraires_inclus : true si le prix est donné honoraires inclus (FAI, HAI), false s'il est net vendeur ou que les honoraires sont « en sus » ; absent si rien ne le dit. montant_honoraires : le montant des honoraires en euros s'il est écrit quelque part dans le document ; un simple pourcentage ne suffit pas (tu ne calcules rien).
-7. Si la fiche décrit PLUSIEURS LOTS, renvoie un élément par lot dans "lots", chacun avec ses propres valeurs et citations. Ne fusionne jamais deux lots. Ne répartis pas un prix global entre les lots : si un prix est global, il est absent au niveau du lot.
+7. Si la fiche décrit PLUSIEURS LOTS, renvoie un élément par lot dans "lots", chacun avec ses propres valeurs et citations. Ne fusionne jamais deux lots. Ne répartis pas un prix global entre les lots : si un prix est global, il est absent au niveau du lot. Un lot est un bien qu'on peut vendre : un immeuble ou un local loué à plusieurs locataires reste UN lot (ses locataires ne sont pas des lots), sauf si le document les vend séparément. Une liste ou un tableau de biens à vendre donne un lot par ligne.
 8. N'ajoute aucun champ hors du schéma.
-9. agent : la personne de l'agence qui présente ou envoie le bien (signature d'un mail, pied de fiche, « votre contact »), avec son nom, son adresse mail, son téléphone et le nom de son agence, recopiés tels qu'écrits. Jamais le locataire, le vendeur, le syndic, un notaire ni l'équipe Klocka (@klocka.immo). Ce qui n'est pas écrit reste vide.`;
+9. agent : la personne de l'agence qui présente ou envoie le bien (signature d'un mail, pied de fiche, « votre contact »), avec son nom, son adresse mail, son téléphone et le nom de son agence, recopiés tels qu'écrits. Jamais le locataire, le vendeur, le syndic, un notaire ni l'équipe Klocka (@klocka.immo). Ce qui n'est pas écrit reste vide.
+10. biens_annonces : le nombre de biens que le document dit lui-même porter (« 4 actifs », « 6 murs commerciaux »), recopié ; 0 s'il ne donne aucun nombre. Tu ne comptes pas toi-même.`;
 
 // --- Garde-fou -------------------------------------------------------------
 
@@ -307,5 +312,8 @@ export async function extraire(texteSource) {
     );
   }
 
-  return { lots, incidents, ia: true, agent: verifierAgent(brut?.agent, texteSource) };
+  // Le nombre de biens que le document annonce (22 nov. 2026, Jules : « 4 fiches dans un PDF ») : le compte des fiches
+  // reçues le compare aux biens lus, et un écart se met « à vérifier » (deal/fiches-stats.js).
+  const annonce = Number(brut?.biens_annonces);
+  return { lots, incidents, ia: true, agent: verifierAgent(brut?.agent, texteSource), biens_annonces: Number.isInteger(annonce) && annonce > 0 && annonce <= 200 ? annonce : null };
 }

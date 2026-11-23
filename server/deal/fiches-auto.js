@@ -25,7 +25,9 @@ const PAR_PASSAGE = 3;
 const ESSAIS_MAX = 2;
 const DOUBLON_JOURS = 14;
 
-const FICHE = /\.(pdf|docx?)$/i;
+// Les formats qu'une fiche prend (22 nov. 2026, Jules : « n'importe quel type de documents ») : PDF, Word, et
+// désormais PowerPoint, Excel, OpenDocument et RTF (deal/lire-bureautique.js les lit).
+const FICHE = /\.(pdf|docx?|pptx|xlsx|xlsm|odt|ods|odp|rtf)$/i;
 const PARASITES = /^(image\d+|logo|signature|banniere|banner|icon|unnamed)/i;
 // Ce que le classement par nom ne voit pas : « DIAG DT », « diag. ».
 const DOCUMENT_DE_DOSSIER = /\bdiag\b|\bdt\b|\bdpe\b|\bkbis\b|\bstatuts\b|\brib\b|\bfacture\b/i;

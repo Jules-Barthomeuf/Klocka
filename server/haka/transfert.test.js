@@ -378,3 +378,33 @@ test("sur sourcing@, un mail de l'équipe ou de la boîte elle-même est une com
   assert.equal(X.expediteurDuTransfert('sourcing@klocka.immo')?.role, 'admin');
   assert.equal(X.expediteurDuTransfert('inconnu@ailleurs.fr'), null);
 });
+
+test("22 nov. 2026 : un ZIP de fiches, et la fiche écrite dans le mail transféré, vont en Mémoire ; la lecture est notée sur le mail", async () => {
+  const zipLocal = path.join(dir, 'fiches.zip');
+  fs.writeFileSync(zipLocal, 'PK zip');
+  const mz = transfert({ objet: 'TR: portefeuille', texte: '', pieces_jointes: [{ nom: 'fiches.zip', mime: 'application/zip', taille: 6, piece_id: `local:${zipLocal}` }] });
+  // Le ZIP compte comme une fiche : sans consigne, la Mémoire.
+  assert.equal(X.comprendre({ transfert: true, note: '' }, { pieces: mz.pieces_jointes, fiches: mz.pieces_jointes, vises: [] }).intention, 'memoire');
+  const ouvrirZip = async () => [{ nom: 'Fiche Lunel.pdf', mime: 'application/pdf', buffer: Buffer.from('lunel') }, { nom: 'Fiche Mauguio.pdf', mime: 'application/pdf', buffer: Buffer.from('mauguio') }];
+  const villes = { 'Fiche Lunel.pdf': 'Lunel', 'Fiche Mauguio.pdf': 'Mauguio' };
+  const extraire = async ({ filename }) => ({ lots: [{ lot: { adresse: { valeur: { rue: '2 place du Marché', code_postal: '34400', ville: villes[filename] } }, prix_fai: { valeur: 250000 } } }], agent: null, biens_annonces: null });
+  const r = await X.enMemoireSeulement(mz, { membre: { email: 'nora@klocka.immo' }, lu: { note: '' }, extraire, pousser: async () => ({ id: 'tw' }), ouvrirZip });
+  assert.equal(r.n, 2);
+  assert.deepEqual(Records.get('MailRecu', mz.id).fiches_lues.map((x) => [x.nom, x.biens]).sort(), [['Fiche Lunel.pdf', 1], ['Fiche Mauguio.pdf', 1]]);
+
+  // La fiche dans le corps : pas de pièce, le texte de l'agent parle d'un bien et donne un montant.
+  const texte = "---------- Message transféré ---------\nDe : Paul <paul@cabinet.fr>\nBonjour, je vous propose des murs commerciaux à vendre au 12 rue Foch à Montpellier, loués à une boulangerie, loyer 24 000 € HT par an, prix 380 000 € net vendeur.";
+  const mc = transfert({ objet: 'TR: Murs Foch', texte });
+  assert.ok(X.ficheDuCorps(mc, {}));
+  assert.equal(X.comprendre({ transfert: true, note: '' }, { pieces: [], fiches: [], vises: [], corps: true }).intention, 'memoire');
+  assert.equal(X.comprendre({ transfert: true, note: 'tu peux regarder ?' }, { pieces: [], fiches: [], vises: [], corps: true }).intention, 'demande');
+  const lus = [];
+  const rc = await X.enMemoireSeulement(mc, { membre: { email: 'nora@klocka.immo' }, lu: { note: '' }, pousser: async () => ({ id: 'tw' }),
+    extraire: async ({ filename, buffer }) => { lus.push([filename, String(buffer)]); return { lots: [{ lot: { adresse: { valeur: { rue: '12 rue Foch', code_postal: '34000', ville: 'Montpellier' } }, prix_fai: { valeur: 380000 } } }], agent: null, biens_annonces: 1 }; } });
+  assert.equal(rc.n, 1);
+  assert.equal(lus[0][0], 'texte-du-mail.txt');
+  assert.match(lus[0][1], /12 rue Foch/);
+  assert.equal(Records.get('MailRecu', mc.id).fiches_lues[0].annonce, 1);
+  // Un mail sans montant ni bien n'est pas une fiche.
+  assert.equal(X.ficheDuCorps(transfert({ texte: 'Salut, tu peux rappeler Paul demain matin pour le dossier de Lyon ? Merci beaucoup, bonne soirée à toi.' }), {}), null);
+});

@@ -83,3 +83,93 @@ test('un transfert à sourcing@ compte ses biens rentrés, et compte aussi quand
   assert.equal(par['mail:m0'].biens, 1);
   assert.equal(par['mail:m0'].rentree, 'non');
 });
+
+test('un PDF ou un mail à plusieurs fiches compte chacune ; la même fiche transférée ne compte qu\'une fois (22 nov. 2026, Jules)', () => {
+  const pdf = (nom, taille) => ({ nom, taille, piece_id: nom, mime: 'application/pdf' });
+  const deals = [
+    // Un PDF de quatre fiches lu en un dossier : quatre lots, quatre fiches.
+    { deal_id: 'd4', created_date: '2026-11-18T09:00:00.000Z', lots: [lot, lot, lot, lot], source: { nom_fichier: 'portefeuille.pdf' }, source_mail: { mail_recu_id: 'mx' } },
+  ];
+  const mails = [
+    // Le mail du dossier, sans `deal_id` posé : il ne compte pas une seconde fois.
+    { id: 'mx', compte: 'jules.b@klocka.immo', de_email: 'agent@agence.fr', date: '2026-11-18T08:00:00.000Z', objet: 'Fiches commerciales', pieces_jointes: [pdf('portefeuille.pdf', 900)] },
+    // Deux fiches jointes, pas encore lues : deux.
+    { id: 'm2', compte: 'jules.b@klocka.immo', de_email: 'theo@quorner.com', date: '2026-11-19T08:00:00.000Z', objet: 'Fiches commerciales Nice', pieces_jointes: [pdf('fiche-commerciale-nice.pdf', 100), pdf('fiche-commerciale-antibes.pdf', 200)] },
+    // Un ZIP de fiches, pas encore ouvert : une au moins.
+    { id: 'mz', compte: 'jules.b@klocka.immo', de_email: 'lea@agence.fr', date: '2026-11-19T09:00:00.000Z', objet: 'Murs commerciaux à vendre', pieces_jointes: [{ nom: 'fiches.zip', taille: 5000, piece_id: 'z' }] },
+    // Reçue par Nora puis transférée à sourcing@ : la même pièce, une seule fiche.
+    { id: 'mn', compte: 'nora.l@klocka.immo', de_email: 'paul@cabinet.fr', date: '2026-11-20T08:00:00.000Z', objet: 'Fiche commerciale Cannes', pieces_jointes: [pdf('fiche-commerciale-cannes.pdf', 300)] },
+    { id: 'ms', compte: 'sourcing@klocka.immo', de_email: 'nora.l@klocka.immo', interne: true, date: '2026-11-20T08:05:00.000Z', objet: 'TR: Fiche commerciale Cannes', texte: 'De : Paul <paul@cabinet.fr>', pieces_jointes: [pdf('fiche-commerciale-cannes.pdf', 300)] },
+    // La même fiche que le dossier, renvoyée par l'agent : déjà comptée.
+    { id: 'mr', compte: 'jules.b@klocka.immo', de_email: 'agent@agence.fr', date: '2026-11-21T08:00:00.000Z', objet: 'Fiches commerciales (relance)', pieces_jointes: [pdf('portefeuille.pdf', 900)] },
+  ];
+  const f = listerFiches({ deals, mails }, { estInterne: equipe });
+  const par = Object.fromEntries(f.map((x) => [x.id, x]));
+  assert.deepEqual(Object.keys(par).sort(), ['d4', 'mail:m2', 'mail:mn', 'mail:mz']);
+  assert.equal(par.d4.biens, 4);
+  assert.equal(par['mail:m2'].biens, 2);
+  assert.equal(par['mail:mz'].biens, 1);
+  assert.equal(par['mail:mn'].biens, 1);
+  // Les semaines et le record comptent les fiches, pas les envois.
+  const s = statsParSemaine(f, { semaines: 1, maintenant: new Date('2026-11-21T12:00:00.000Z') });
+  assert.equal(s[0].fiches, 8);
+  assert.equal(recordDeFiches(f).fiches, 8);
+});
+
+test('le compte contrôlé : même adresse une fois, écart avec ce que le document annonce, listes à part, « Pas une fiche » écarté (22 nov. 2026)', () => {
+  const lotA = (rue, ville = 'Montpellier', cp = '34000') => ({ lot: { adresse: { valeur: { rue, code_postal: cp, ville } } } });
+  const deals = [
+    // Le teaser de Montpellier : quatre actifs annoncés, quatre lus.
+    { deal_id: 'ao', created_date: '2026-11-10T09:00:00.000Z', source: { nom_fichier: 'AO Teaser.pdf', type: 'pdf' }, extraction: { biens_annonces: 4 },
+      lots: [lotA('1218 avenue du Père Soulas'), lotA('40 avenue du Pont Juvénal'), lotA('65 route de Lavérune'), lotA('1 rue des Volontaires')] },
+    // Un portefeuille qui annonce six murs, la lecture en trouve deux : à vérifier.
+    { deal_id: 'p6', created_date: '2026-11-11T09:00:00.000Z', source: { nom_fichier: 'portefeuille.pdf', type: 'pdf' }, extraction: { biens_annonces: 6 }, lots: [lotA('3 rue Foch'), lotA('5 rue Foch')] },
+    // Un classeur Excel de huit biens : une liste, hors du record.
+    { deal_id: 'xl', created_date: '2026-11-12T09:00:00.000Z', source: { nom_fichier: 'stock.xlsx', type: 'tableur' }, lots: Array.from({ length: 8 }, (_, i) => lotA(`${i + 1} rue de la Loge`)) },
+  ];
+  const biensMemoire = [
+    // Le Lavérune renvoyé par un autre agent, rentré en Mémoire : déjà compté.
+    { id: 'b1', cle_adresse: '65|route de laverune|34000', ville: 'Montpellier' },
+    { id: 'b2', cle_adresse: '9|rue de verdun|34000', ville: 'Montpellier' },
+  ];
+  const mails = [
+    { id: 'mm', compte: 'sourcing@klocka.immo', de_email: 'nora.l@klocka.immo', interne: true, date: '2026-11-15T09:00:00.000Z', objet: 'TR: deux biens', pieces_jointes: [{ nom: 'fiche.pdf', taille: 1 }], memoire_ids: ['b1', 'b2'], fiches_lues: [{ nom: 'fiche.pdf', biens: 2, annonce: 2 }] },
+    // « Pas une fiche », répondu à l'Assistant : ne compte pas.
+    { id: 'mp', compte: 'jules.b@klocka.immo', de_email: 'agence@x.fr', date: '2026-11-16T09:00:00.000Z', objet: 'Fiche commerciale', pieces_jointes: [{ nom: 'fiche-commerciale.pdf', taille: 2 }], fiche_refusee: { categorie: 'pas_une_fiche' } },
+    // « Hors critères » : une fiche reçue quand même.
+    { id: 'mh', compte: 'jules.b@klocka.immo', de_email: 'agence@y.fr', date: '2026-11-16T10:00:00.000Z', objet: 'Fiche commerciale', pieces_jointes: [{ nom: 'fiche-commerciale-lyon.pdf', taille: 3 }], fiche_refusee: { categorie: 'hors_criteres' } },
+  ];
+  const f = listerFiches({ deals, mails, biensMemoire }, { estInterne: equipe });
+  const par = Object.fromEntries(f.map((x) => [x.id, x]));
+  assert.deepEqual(Object.keys(par).sort(), ['ao', 'mail:mh', 'mail:mm', 'p6', 'xl']);
+  assert.equal(par.ao.biens, 4);
+  assert.equal(par.ao.a_verifier, undefined);
+  assert.equal(par.p6.biens, 2);
+  assert.match(par.p6.a_verifier, /annonce 6 biens, la lecture en a trouvé 2/);
+  assert.equal(par.xl.biens, 0);
+  assert.equal(par.xl.liste, 8);
+  assert.equal(par['mail:mm'].biens, 1, 'Lavérune déjà compté avec le teaser');
+  assert.equal(par['mail:mm'].doublons, 1);
+  assert.match(par['mail:mh'].a_verifier, /Pas encore lue/);
+  // Corrigé à la main, le chiffre fait foi : plus d'écart ni de liste.
+  const corrige = listerFiches({ deals: [{ ...deals[2], fiche_compte: { biens: 8 } }] }, { estInterne: equipe });
+  assert.equal(corrige[0].biens, 8);
+  assert.equal(corrige[0].liste, undefined);
+});
+
+test('une fiche d\'avant la remise à zéro ne prend pas l\'adresse d\'une fiche reçue depuis', () => {
+  const lot = { lot: { adresse: { valeur: { rue: '12 rue de la République', code_postal: '69002', ville: 'Lyon' } } } };
+  const deals = [
+    { deal_id: 'vieux', created_date: '2026-08-14T16:00:00.000Z', source: { nom_fichier: 'kfc.pdf' }, lots: [lot] },
+    { deal_id: 'neuf', created_date: '2026-11-11T17:00:00.000Z', source: { nom_fichier: 'kfc.pdf' }, lots: [lot] },
+  ];
+  assert.deepEqual(listerFiches({ deals }).map((f) => [f.id, f.biens]), [['neuf', 1]]);
+});
+
+test('des fiches reçues ailleurs, ajoutées à la main : comptées à leur nombre, à la personne choisie (23 nov. 2026)', () => {
+  const f = listerFiches({ manuelles: [{ id: 'x1', nombre: 6, le: '2026-11-20T12:00:00.000Z', analyste: 'maxime.p@klocka.immo', titre: 'Fiches données au salon' }, { id: 'x2', nombre: 2, le: '2026-11-21T12:00:00.000Z', fiche_compte: { pas_fiche: true } }] });
+  const par = Object.fromEntries(f.map((x) => [x.id, x]));
+  assert.equal(par['main:x1'].biens, 6);
+  assert.equal(par['main:x1'].compte.analyste, 'maxime.p@klocka.immo');
+  assert.equal(par['main:x2'].biens, 0);
+});

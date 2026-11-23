@@ -73,7 +73,7 @@ export default function ApercuStatistiques({ jours }) {
   return (
     <div className="k-monte flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Tuile valeur={d.total.fiches} avant={d.precedent?.fiches ?? 0} libelle="Fiches reçues" aide={`${pluriel(d.total.biens, "bien")} ; comparé aux ${jours} jours d'avant`}
+        <Tuile valeur={d.total.fiches} avant={d.precedent?.fiches ?? 0} libelle="Fiches reçues" aide={`${d.total.envois ? `Reçues en ${pluriel(d.total.envois, "mail ou dépôt", "mails ou dépôts")} ; c` : "C"}omparé aux ${jours} jours d'avant`}
           barres={huit.map((s) => ({ nom: `Semaine du ${jourCourt(s.semaine)}`, v: s.fiches }))} />
         <Tuile valeur={d.total.dossiers || 0} avant={d.precedent?.dossiers ?? 0} libelle="Dossiers étudiés" aide={`${pour100(d.total.dossiers || 0, d.total.fiches) ?? 0} pour 100 fiches reçues`}
           barres={huit.map((s) => ({ nom: `Semaine du ${jourCourt(s.semaine)}`, v: s.dossiers || 0 }))} />

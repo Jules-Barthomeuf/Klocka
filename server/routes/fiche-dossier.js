@@ -205,7 +205,16 @@ export function monterFicheDossier(app) {
   app.get('/api/fiche-dossier/fiche', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
     const m = await M();
-    const v = m.ficheVue(String(req.query.cle || ''));
+    const cle = String(req.query.cle || '');
+    // Une fiche du CRM ouverte d'un clic sur son nom (22 nov. 2026, Jules) : sa fiche de Klocka prend ce nom, au même format.
+    const nom = String(req.query.nom || '').trim().slice(0, 120);
+    if (nom && /^twenty:(agentImmobilier|clients):/.test(cle)) {
+      const genre = cle.startsWith('twenty:agentImmobilier:') ? 'agent' : 'client';
+      const propre = genre === 'agent' ? (await import('../nom-agent.js')).nomAgent(nom) || nom : nom;
+      const f = m.fiche(cle, { nom: propre, genre });
+      if (!f.nom || ['Fiche du CRM', 'Sans nom'].includes(f.nom)) Records.update('FicheDossier', f.id, { nom: propre });
+    }
+    const v = m.ficheVue(cle);
     if (!v) return res.status(404).json({ error: 'Fiche introuvable.' });
     // Une fiche ouverte devient une fiche récente de la personne (la pastille « Fiches » de l'accueil).
     m.noterOuverture(v.cle, user);

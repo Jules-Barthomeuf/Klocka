@@ -33,7 +33,11 @@ export function choixDates() {
   ];
 }
 
-/** Ouvre la fiche d'un bien, d'un agent ou d'un client par-dessus la page (FicheDossierHote l'affiche). */
-export const ouvrirFiche = (cle) => window.dispatchEvent(new CustomEvent("klocka:fiche-dossier", { detail: { cle } }));
+/**
+ * Ouvre la fiche d'un bien, d'un agent ou d'un client par-dessus la page (FicheDossierHote l'affiche). `nom` : le nom
+ * connu de qui l'ouvre (une ligne du CRM), pour une fiche du CRM que Klocka ne connaît pas encore ; `crm` :
+ * { objet, id } de cette ligne, pour revenir à sa fiche du CRM.
+ */
+export const ouvrirFiche = (cle, { nom = null, crm = null } = {}) => window.dispatchEvent(new CustomEvent("klocka:fiche-dossier", { detail: { cle, nom, crm } }));
 
 export const enRetard = (iso) => !!iso && iso < isoJour();

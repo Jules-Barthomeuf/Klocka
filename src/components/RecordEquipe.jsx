@@ -6,6 +6,7 @@ import { Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import { jouerRecord } from "@/lib/son-record";
+import { useUser } from "@/components/providers/UserProvider";
 
 // La pop-up « Record de l'équipe » (22 nov. 2026, Jules, maquette « or satiné cousu ») : elle fête qui tient le record
 // de fiches reçues en une semaine. Aux admins seuls, une fois par semaine à la première ouverture (server/record-equipe.js).
@@ -226,14 +227,29 @@ function Carte({ r, calme, son, sonBloque, onSon, onActiverSon, onQuitter, onFer
 
 let dejaMontree = false;
 
+// La semaine (le lundi, heure de Paris), comme le serveur (server/record-equipe.js).
+const semaineParis = () => {
+  const jour = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const d = new Date(`${jour}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+};
+// Une seconde garde, dans le navigateur (23 nov. 2026, Jules : « on la voit à chaque nouveau déploiement, je veux la
+// voir une fois par semaine par admin ») : vue cette semaine sur ce navigateur, on ne redemande même pas au serveur.
+const cleVue = (email) => `klocka.record.vu.${String(email || "").toLowerCase()}`;
+const dejaVueIci = (email) => { try { return localStorage.getItem(cleVue(email)) === semaineParis(); } catch { return false; } };
+const noterVueIci = (email) => { try { localStorage.setItem(cleVue(email), semaineParis()); } catch { /* stockage refusé : le serveur garde la marque */ } };
+
 /** Monte la pop-up quand le serveur dit qu'elle est à montrer ; la marque vue dès qu'elle s'ouvre. */
 export default function RecordEquipe() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const user = useUser();
+  const email = user?.email || "";
   // Un instant après l'arrivée : la page se charge d'abord, et sa mesure de chargement ne l'attend pas.
   const [pret, setPret] = useState(false);
   useEffect(() => { const t = setTimeout(() => setPret(true), 1500); return () => clearTimeout(t); }, []);
-  const { data } = useQuery({ queryKey: ["record-equipe"], queryFn: () => base44.request("GET", "/api/record-equipe"), enabled: pret, staleTime: Infinity, refetchOnWindowFocus: false, retry: false });
+  const { data } = useQuery({ queryKey: ["record-equipe"], queryFn: () => base44.request("GET", "/api/record-equipe"), enabled: pret && !!email && !dejaVueIci(email), staleTime: Infinity, refetchOnWindowFocus: false, retry: false });
   const [record, setRecord] = useState(null);
   const [tour, setTour] = useState(0);
   const [son, setSon] = useState(sonVoulu);
@@ -246,10 +262,11 @@ export default function RecordEquipe() {
   useEffect(() => {
     if (!data?.montrer || record || dejaMontree) return;
     dejaMontree = true;
+    noterVueIci(email);
     setRecord(data.record);
     queryClient.setQueryData(["record-equipe"], { montrer: false });
     base44.request("POST", "/api/record-equipe/vu").catch(() => {});
-  }, [data, record, queryClient]);
+  }, [data, record, queryClient, email]);
 
   // La musique, à chaque tour (ouverture, Activer le son).
   useEffect(() => {

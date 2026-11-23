@@ -223,6 +223,36 @@ export function monterFiches(app) {
     ok(res, parMois({ projets: Records.list('Project'), lettres: Records.list('LettreIntention'), mois }));
   }));
 
+  // Les fiches transférées à sourcing@, une par une, et l'avis de l'équipe dessous (23 nov. 2026, Jules : « un module
+  // avec les fiches en mémoire qu'on t'a transférées, je peux juste te dire en dessous ce que j'en pense ») : le banc
+  // d'essai du repérage des fiches (server/deal/fiches-transferees.js).
+  app.get('/api/fiches-transferees', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const jours = Math.min(365, Math.max(1, Number(req.query.jours) || 30));
+    const { listerTransferts, enTexte } = await import('../deal/fiches-transferees.js');
+    const { lireTransfert } = await import('../haka/competences/transfert.js');
+    const { fiches } = await import('../prospection/index.js');
+    const { EQUIPE } = await import('../prospection/equipe.js');
+    const prenom = (e) => EQUIPE.find((m) => String(m.email).toLowerCase() === e)?.prenom || e.split('@')[0];
+    const lignes = listerTransferts({
+      mails: Records.list('MailRecu'), biens: Records.list('BienMemoire'), deals: Records.list('Deal'), fiches: await fiches(),
+      depuis: new Date(Date.now() - jours * 86400000).toISOString(), estInterne: await estInterneDe(), lire: lireTransfert, prenom,
+    });
+    ok(res, { lignes, jours, texte: enTexte(lignes) });
+  }));
+  app.post('/api/fiches-transferees/:id/avis', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const m = Records.get('MailRecu', String(req.params.id));
+    if (!m) return res.status(404).json({ error: 'Transfert introuvable.' });
+    const { ajouterAvis } = await import('../deal/fiches-transferees.js');
+    if (!String(req.body?.texte || '').trim()) return res.status(400).json({ error: 'Écrivez votre avis.' });
+    const avis = ajouterAvis(m.avis_fiche || [], req.body.texte, { par: user.email });
+    Records.update('MailRecu', m.id, { avis_fiche: avis });
+    ok(res, { ok: true, avis });
+  }));
+
   // Des fiches reçues ailleurs, ajoutées à la main (23 nov. 2026, Jules : « en live ça met 19 alors que c'est 25 ») : un
   // nombre, la personne à qui elles reviennent, un mot, le jour. Elles comptent comme les autres, corrigées pareil.
   app.post('/api/monitoring/fiches-manuelles', wrap(async (req, res) => {

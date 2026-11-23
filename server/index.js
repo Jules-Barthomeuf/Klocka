@@ -1565,7 +1565,7 @@ import('./deal/veille-mails.js').then(({ demarrerVeille }) => {
   const active = demarrerVeille();
   console.log(
     active
-      ? `  ▸ Veille des boîtes mail active (toutes les ${process.env.MAIL_VEILLE_MINUTES || 15} min)`
+      ? `  ▸ Veille des boîtes mail active (toutes les ${process.env.MAIL_VEILLE_MINUTES || 15} min, les boîtes communes toutes les ${process.env.MAIL_COMMUNES_SECONDES || 15} s)`
       : '  ▸ Veille des boîtes mail inactive (GOOGLE_GMAIL_READ absent)'
   );
 }).catch((e) => console.warn(`[démarrage] veille des boîtes mail : ${e?.message || e}`));
@@ -1655,6 +1655,13 @@ if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
   setTimeout(() => import('./prospection/remplacer-liste.js').then((m) => m.remplacerToutes()).catch((e) => console.warn('[liste] remplacements :', e?.message || e)), 2 * 60_000).unref?.();
   // Toutes les fiches de la Mémoire (hors annonces Equimmox) reposées une fois dans Propriétés Klocka (18 nov. 2026, Jules).
   setTimeout(() => import('./memoire/twenty.js').then((m) => m.reposerKlocka()).catch((e) => console.warn('[mémoire] Propriétés Klocka :', e?.message || e)), 6 * 60_000).unref?.();
+}
+
+// Le compte rendu des transferts traités avant qu'il existe, ou pendant un redémarrage (23 nov. 2026, Jules : « il faut
+// que ça fasse le truc pour le dernier mail ») : une minute après le démarrage, les 48 dernières heures.
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
+  setTimeout(() => import('./haka/compte-rendu-transfert.js').then((m) => { const n = m.rattraperComptesRendus(); if (n) console.log(`[transfert] ${n} compte(s) rendu(s) rattrapé(s)`); })
+    .catch((e) => console.warn('[transfert] rattrapage des comptes rendus :', e?.message || e)), 60_000).unref?.();
 }
 
 // Le nom de Twenty fait foi sur les fiches des agents et des clients (23 nov. 2026, Jules) : posé sur tous ceux que le

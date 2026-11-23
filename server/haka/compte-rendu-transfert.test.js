@@ -74,3 +74,15 @@ test('posé sur le mail, montré une fois à celui qui a transféré, puis corri
   assert.equal((await C.corrigerTransfert({ remarque: 'x', objet: 'Lyon' }, { email: 'maxime.p@klocka.immo' })).ok, false);
   assert.equal((await C.corrigerTransfert({ remarque: 'x' }, { email: 'nora.l@klocka.immo' })).ok, false);
 });
+
+test('le rattrapage : un transfert déjà traité sans compte rendu reçoit le sien, une fois ; un transfert sans résultat attend', () => {
+  const b = Records.create('BienMemoire', { adresse: { rue: '3 rue Foch' }, ville: 'Montpellier', prix: 250000 });
+  const fait = Records.create('MailRecu', { compte: 'sourcing@klocka.immo', de_email: 'nora.l@klocka.immo', interne: true, objet: 'TR: Murs Foch', date: new Date().toISOString(), memoire_ids: [b.id] });
+  const enCours = Records.create('MailRecu', { compte: 'sourcing@klocka.immo', de_email: 'nora.l@klocka.immo', interne: true, objet: 'TR: autre', date: new Date().toISOString() });
+  const vieux = Records.create('MailRecu', { compte: 'sourcing@klocka.immo', de_email: 'nora.l@klocka.immo', interne: true, objet: 'TR: vieux', date: '2026-01-01T00:00:00Z', memoire_ids: [b.id] });
+  assert.equal(C.rattraperComptesRendus(), 1);
+  assert.match(Records.get('MailRecu', fait.id).compte_rendu.texte, /« Murs Foch »[\s\S]*1\. 3 rue Foch, Montpellier, 250 k€/);
+  assert.equal(Records.get('MailRecu', enCours.id).compte_rendu, undefined);
+  assert.equal(Records.get('MailRecu', vieux.id).compte_rendu, undefined);
+  assert.equal(C.rattraperComptesRendus(), 0, 'rejouer ne double rien');
+});

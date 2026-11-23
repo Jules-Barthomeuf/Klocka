@@ -141,3 +141,29 @@ export async function corrigerTransfert({ nombre = null, pas_une_fiche = false, 
     consigne: 'Confirme en une phrase ce qui est corrigé, sans plus.',
   };
 }
+
+/**
+ * Le rattrapage (23 nov. 2026, Jules : « il faut que ça fasse le truc pour le dernier mail ») : les transferts de
+ * l'équipe à sourcing@ déjà traités avant que le compte rendu existe (ou pendant un redémarrage) reçoivent le leur, bâti
+ * sur ce qui a été rentré (biens en Mémoire, renvois, dossiers). Seulement ceux qui ont donné quelque chose : un
+ * transfert encore en cours de lecture attend sa fin normale. Rejouer ne double rien.
+ */
+export function rattraperComptesRendus({ heures = 48, maintenant = Date.now(), boite = (process.env.AK_COMPTE || 'sourcing@klocka.immo') } = {}) {
+  const vu = (b) => ({ nom: [b?.adresse?.rue, b?.ville].filter(Boolean).join(', ') || null, prix: b?.prix || null, loyer: b?.loyer_annuel || null });
+  let n = 0;
+  for (const m of Records.list('MailRecu')) {
+    if (min(m.compte) !== min(boite) || !m.interne || m.compte_rendu || !m.de_email) continue;
+    if (maintenant - Date.parse(m.date || 0) > heures * 3600000) continue;
+    const biens = (m.memoire_ids || []).map((id) => Records.get('BienMemoire', id)).filter(Boolean).map(vu);
+    const deja = (m.memoire_deja_ids || []).map((id) => Records.get('BienMemoire', id)).filter(Boolean).map(vu);
+    const dossiers = [...new Set([m.deal_id, ...(m.deal_ids || [])].filter(Boolean))].map((id) => Records.findBy('Deal', 'deal_id', id)).filter(Boolean);
+    if (!biens.length && !deja.length && !dossiers.length) continue;
+    const memoire = { fait: 'memoire', biens, deja_biens: deja, erreurs: [] };
+    const r = dossiers.length
+      ? { fait: 'fiche', nom: dossiers[0].nom || dossiers[0].lots?.[0]?.synthese?.titre || 'nouveau bien', n_dossiers: dossiers.length, memoire_dabord: memoire }
+      : memoire;
+    poserCompteRendu(m, { pour: m.de_email, r, lu: {} });
+    n += 1;
+  }
+  return n;
+}

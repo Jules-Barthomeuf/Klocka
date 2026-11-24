@@ -354,9 +354,17 @@ export function monterAssistant(app) {
     if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
   }));
+  // Les notifications gardées, à montrer en avis (23 nov. 2026, Jules : « des notifications réellement utiles »).
+  app.get('/api/notifications/a-montrer', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connectez-vous.' });
+    const { aMontrer } = await import('../notifications.js');
+    ok(res, { notifications: aMontrer(user) });
+  }));
   app.post('/api/notifications/:id/:quoi', wrap(async (req, res) => {
     const { marquer } = await import('../notifications.js');
-    const r = marquer(req.params.id, currentUser(req), req.params.quoi === 'vue' ? 'vue' : 'lue');
+    const q = req.params.quoi;
+    const r = marquer(req.params.id, currentUser(req), q === 'vue' ? 'vue' : q === 'plus-tard' ? 'plus_tard' : 'lue');
     if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
   }));
@@ -413,8 +421,16 @@ export function monterAssistant(app) {
   app.get('/api/assistant/comptes-rendus', wrap(async (req, res) => {
     const user = currentUser(req);
     if (!user) return res.status(401).json({ error: 'Connectez-vous.' });
-    const { comptesRendusPour } = await import('../haka/compte-rendu-transfert.js');
-    ok(res, { comptes_rendus: comptesRendusPour(user.email) });
+    const { conversationsDesComptesRendus } = await import('../haka/compte-rendu-transfert.js');
+    ok(res, { comptes_rendus: await conversationsDesComptesRendus(user) });
+  }));
+  app.post('/api/assistant/comptes-rendus/:id/:geste', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Connectez-vous.' });
+    const { gesteSurCompteRendu } = await import('../haka/compte-rendu-transfert.js');
+    const r = gesteSurCompteRendu(user.email, req.params.id, req.params.geste === 'plus-tard' ? 'plus_tard' : req.params.geste);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
   }));
   app.post('/api/assistant/comptes-rendus/vus', wrap(async (req, res) => {
     const user = currentUser(req);

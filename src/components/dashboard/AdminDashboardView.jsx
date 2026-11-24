@@ -8,7 +8,6 @@ import LivrableAccueil, { usePropositionsNees } from "@/components/haka/Livrable
 import { Depliant, PanneauSources, PastilleSource } from "@/components/haka/ReglagesDemande";
 import { useCompteHaka } from "@/components/haka/useFileHaka";
 import PastilleAFaire from "@/components/dashboard/PastilleAFaire";
-import PastilleFiches from "@/components/dashboard/PastilleFiches";
 import { useLocation } from "react-router-dom";
 import { sourceDe } from "@/lib/sources";
 import { base44 } from "@/api/base44Client";
@@ -205,12 +204,12 @@ export default function AdminDashboardView() {
             <>
               <div className="flex min-h-[38px] items-center justify-end gap-3">
                 {/* « À faire » à la place de l'Agenda et des boîtes mail, passées dans les Paramètres (20 nov. 2026, Jules). */}
+                {/* « Fiches » retirée de la page Assistant (23 nov. 2026, Jules) ; PastilleFiches.jsx est gardé. */}
                 <div className={`flex items-center gap-2 ${coin ? "md:hidden" : ""}`}>
-                  <PastilleFiches droite />
                   <PastilleAFaire />
                 </div>
               </div>
-              {coin && createPortal(<><PastilleFiches droite /><PastilleAFaire /></>, coin)}
+              {coin && createPortal(<PastilleAFaire />, coin)}
             </>
           )}
           <PlanDeTravail

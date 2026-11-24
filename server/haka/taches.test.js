@@ -85,7 +85,8 @@ test('reprise : un pas interne surpris en cours est rejoué ; un pas externe en 
   assert.equal(etape(t.id, 'envoyer').etat, 'incertaine');
   assert.equal(etat(t.id), 'en_pause');
   assert.equal(compteur.externe, 1, 'rien n\'est reparti');
-  assert.ok(Records.list('Notification').some((n) => n.cle === `haka:incertaine:${e.id}` && n.pour === 'jules@test.local'));
+  // L'action incertaine reste dans la tâche (en pause) ; plus de notification (23 nov. 2026 : technique, pas une notification).
+  assert.ok(!Records.list('Notification').some((n) => n.cle === `haka:incertaine:${e.id}`));
   // Jules a vérifié : l'action n'était pas partie, le pas redevient à valider.
   assert.equal(T.leverPause(t.id, { reprendreLePas: true }), true);
   assert.equal(etape(t.id, 'envoyer').etat, 'a_faire');

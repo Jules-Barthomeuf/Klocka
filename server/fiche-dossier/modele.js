@@ -22,6 +22,7 @@ import { noterSurLeBien } from '../deal/notes-equipe.js';
 import { ETAPES, donneesDuBien } from './dossier.js';
 import { photoDe, photosDe } from '../photos-fiches.js';
 import { nomAgent } from '../nom-agent.js';
+import { envoisDeLAgent } from './fiches-envoyees.js';
 
 export { ETAPES };
 // `profil`, `ecart`, `message` (22 nov. 2026) : comment parler à la personne, deux sources qui se contredisent, un message
@@ -159,8 +160,41 @@ function poserPosition(de, vers, { position, position_detail: detail = null }, l
 const lier = (a, b) => {
   const fa = fiche(a.cle, a);
   const liees = fa.liees || [];
-  if (!liees.some((x) => x.cle === b.cle)) Records.update('FicheDossier', fa.id, { liees: [...liees, { cle: b.cle, genre: b.genre, nom: b.nom }] });
+  // Lier à nouveau ce qu'on avait retiré : le retrait ne tient plus.
+  const ecartees = (fa.ecartees || []).filter((c) => c !== b.cle);
+  if (!liees.some((x) => x.cle === b.cle)) Records.update('FicheDossier', fa.id, { liees: [...liees, { cle: b.cle, genre: b.genre, nom: b.nom }], ecartees });
+  else if (ecartees.length !== (fa.ecartees || []).length) Records.update('FicheDossier', fa.id, { ecartees });
 };
+
+/**
+ * Délie deux fiches, des deux côtés (24 nov. 2026, Jules : « on doit pouvoir retirer un bien d'un agent, cliquer sur une
+ * croix pour le délier d'Alexis »). Le lien noté est retiré ; un dossier que la plateforme rattachait seule (son analyse
+ * nomme l'agent) est écarté, pour ne pas revenir. Rend ce qu'il faut pour le relier (Annuler).
+ */
+export function delier(de, vers) {
+  const a = String(de || ''), b = String(vers || '');
+  if (!a || !b || a === b) return { ok: false, error: 'Rien à délier.' };
+  const avant = [];
+  for (const [x, y] of [[a, b], [b, a]]) {
+    const f = Records.findBy('FicheDossier', 'cle', x) || (objetDe(x) ? fiche(x) : null);
+    if (!f) continue;
+    const lien = (f.liees || []).find((l) => l.cle === y) || null;
+    avant.push({ de: x, vers: y, lien });
+    Records.update('FicheDossier', f.id, { liees: (f.liees || []).filter((l) => l.cle !== y), ecartees: [...new Set([...(f.ecartees || []), y])] });
+  }
+  return avant.length ? { ok: true, avant } : { ok: false, error: 'Fiche introuvable.' };
+}
+
+/** Défait un retrait : chaque lien revient tel qu'il était, l'écart est levé. */
+export function relier(avant = []) {
+  for (const { de, vers, lien } of avant) {
+    const f = Records.findBy('FicheDossier', 'cle', de);
+    if (!f) continue;
+    const liees = (f.liees || []).filter((l) => l.cle !== vers);
+    Records.update('FicheDossier', f.id, { liees: lien ? [...liees, lien] : liees, ecartees: (f.ecartees || []).filter((c) => c !== vers) });
+  }
+  return { ok: true };
+}
 
 // ---------------------------------------------------------------------------
 // Ranger une note : ce que la personne a gardé de la proposition, et rien d'autre.
@@ -221,6 +255,21 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
     }
   }
 
+  // Les fiches liées que la note demande d'enlever (24 nov. 2026, Jules : « il ne nous a pas envoyé le dossier à Pau,
+  // enlève-le de la fiche d'Alexis ») : déliées au OK, des deux côtés ; Annuler les relie.
+  creees.retraits = [];
+  for (const r of p.retraits || []) {
+    if (!garder(r.id)) continue;
+    const d = delier(r.de, r.vers);
+    if (d.ok) creees.retraits.push(...d.avant);
+  }
+  const retirees = new Set((p.retraits || []).filter((r) => garder(r.id)).map((r) => r.de));
+  for (const c of retirees) {
+    const f = Records.findBy('FicheDossier', 'cle', c);
+    if (f) Records.update('FicheDossier', f.id, { maj_le: le, maj_par: par });
+    if (!creees.fiches.includes(c)) creees.fiches.push(c);
+  }
+
   // Les réponses aux questions : une précision sur la fiche visée, ou sur chaque bien lié.
   for (const q of p.questions || []) {
     const r = propre(reponses?.[q.id], 600);
@@ -240,7 +289,7 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
   // Une fiche liée dont rien n'a été gardé garde au moins la note, pour que son journal la montre (pas pour un import :
   // une source qui n'apprend rien sur la fiche ne l'encombre pas).
   for (const l of note.importe ? [] : liens) {
-    if (creees.entrees.some((id) => Records.get('EntreeDossier', id)?.fiche_cle === l.cle)) continue;
+    if (retirees.has(l.cle) || creees.entrees.some((id) => Records.get('EntreeDossier', id)?.fiche_cle === l.cle)) continue;
     entree(l.cle, 'note', p.titre || propre(note.texte, 160));
     Records.update('FicheDossier', fiche(l.cle, l).id, { maj_le: le, maj_par: par });
   }
@@ -296,7 +345,7 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
   return { ok: true, note_id: note.id, ...compteDe(creees), fiches: [...new Set(creees.fiches.length ? creees.fiches : liens.map((l) => l.cle))].map((c) => ({ cle: c, nom: liens.find((l) => l.cle === c)?.nom || objetDe(c)?.nom })) };
 }
 
-const compteDe = (c) => ({ entrees: c.entrees.length, actions: c.actions.length, faites: (c.faites || []).length });
+const compteDe = (c) => ({ entrees: c.entrees.length, actions: c.actions.length, faites: (c.faites || []).length, retraits: new Set((c.retraits || []).map((x) => [x.de, x.vers].sort().join('|'))).size });
 
 /** Défait une note rangée : ses lignes de journal, ses actions, sa note sur le bien. Les fiches liées restent liées. */
 export function annulerNote(note, user = null) {
@@ -305,6 +354,7 @@ export function annulerNote(note, user = null) {
   for (const id of c.entrees || []) Records.delete('EntreeDossier', id);
   for (const id of c.actions || []) Records.delete('ActionDossier', id);
   for (const id of c.faites || []) changerAction(id, { statut: 'ouverte' }, user);
+  relier(c.retraits || []);
   for (const n of c.notes_equipe || []) {
     const r = n.deal_id ? Records.findBy('Deal', 'deal_id', n.deal_id) : n.projet_id ? Records.get('Project', n.projet_id) : null;
     if (r) Records.update(n.deal_id ? 'Deal' : 'Project', r.id, { notes_equipe: (r.notes_equipe || []).filter((x) => x.id !== n.note_id) }, { garderDate: true });
@@ -541,7 +591,8 @@ export function carteDuBien(cle, f) {
   const o = objetDe(cle);
   const agenceDe = (c) => (c.startsWith('agent:') ? Records.get('AgentImmo', c.slice(6))?.agence || null : null);
   const agents = [...liees.filter((l) => l.genre === 'agent').map((l) => ({ cle: l.cle, nom: l.nom, detail: agenceDe(l.cle) }))];
-  for (const a of agentsDuDossier(o?.deal_id)) if (!agents.some((x) => x.cle === a.cle)) agents.push({ cle: a.cle, nom: a.nom, detail: agenceDe(a.cle), plateforme: true });
+  const ecartees = new Set(f?.ecartees || []);
+  for (const a of agentsDuDossier(o?.deal_id)) if (!ecartees.has(a.cle) && !agents.some((x) => x.cle === a.cle)) agents.push({ cle: a.cle, nom: a.nom, detail: agenceDe(a.cle), plateforme: true });
   // Sans position notée, une offre en négociation qui nomme le client vaut « offre » ; sinon il a été présenté.
   const nego = Records.filter('EntreeDossier', { fiche_cle: cle, genre: 'negociation' }).map((e) => sansAccent(e.texte));
   const clients = liees.filter((l) => l.genre === 'client').map((l) => {
@@ -581,6 +632,25 @@ export function carteDuBien(cle, f) {
   };
 }
 
+/**
+ * Les fiches liées à une fiche : celles que les notes ont liées, puis, pour un agent, les dossiers que la plateforme
+ * connaît sans note (ceux dont l'analyse le nomme : 19 nov. 2026, Jules, « ça ne m'a pas rempli les dossiers de
+ * l'agent ») ; jamais ce qu'on a retiré à la main ou par une note (`ecartees`).
+ */
+function lieesBrutes(cle, f, o) {
+  const genre = f?.genre || o?.genre;
+  const ecartees = new Set(f?.ecartees || []);
+  const deLaPlateforme = genre === 'agent' ? dossiersQuiNomment(f?.nom || o?.nom, { emails: cle.startsWith('agent:') ? Records.get('AgentImmo', cle.slice(6))?.emails : [] }).filter((d) => !(f?.liees || []).some((l) => l.cle === d.cle)) : [];
+  return [...(f?.liees || []), ...deLaPlateforme].filter((l) => !ecartees.has(l.cle));
+}
+
+/** Les fiches liées à `cle`, comme sa fiche les montre : [{ cle, genre, nom, plateforme? }]. */
+export function lieesDe(cle) {
+  const f = Records.findBy('FicheDossier', 'cle', cle);
+  const o = objetDe(cle);
+  return f || o ? lieesBrutes(cle, f, o) : [];
+}
+
 export function ficheVue(cle) {
   const f = Records.findBy('FicheDossier', 'cle', cle);
   const o = objetDe(cle);
@@ -616,8 +686,7 @@ export function ficheVue(cle) {
   const genre = f?.genre || o?.genre;
   // Les dossiers d'un agent que la plateforme connaît sans note : ceux dont l'analyse le nomme (19 nov. 2026, Jules :
   // « ça ne m'a pas rempli les dossiers de l'agent »).
-  const deLaPlateforme = genre === 'agent' ? dossiersQuiNomment(f?.nom || o?.nom, { emails: cle.startsWith('agent:') ? Records.get('AgentImmo', cle.slice(6))?.emails : [] }).filter((d) => !(f?.liees || []).some((l) => l.cle === d.cle)) : [];
-  const liees = [...(f?.liees || []), ...deLaPlateforme].map((l) => {
+  const liees = lieesBrutes(cle, f, o).map((l) => {
     const sa = Records.findBy('FicheDossier', 'cle', l.cle);
     // Un dossier dit son étape : celle des notes, sinon celle que la plateforme voit (« Projet »), pas « Dossier ».
     const etape = sa?.etape || (l.genre === 'bien' ? donneesDuBien(l.cle)?.avancement?.etapes?.find((e) => e.courante)?.nom || null : null);
@@ -635,6 +704,8 @@ export function ficheVue(cle) {
     comment_parler: f?.comment_parler || null,
     profils: entrees.filter((e) => e.genre === 'profil').map((e) => ({ id: e.id, texte: e.texte, le: e.le, par: prenomDe(e.par), importe: !!e.importe })),
     ecarts: entrees.filter((e) => e.genre === 'ecart').map((e) => ({ id: e.id, texte: e.texte, le: e.le })),
+    // Les fiches qu'il nous a envoyées, lues dans la Mémoire à chaque ouverture (24 nov. 2026, Jules) : fiches-envoyees.js.
+    envois: genre === 'agent' ? envoisDeLAgent(cle, { nom: f?.nom || o?.nom, prenomDe }) : null,
     a_relire: !!f?.a_relire, a_relire_par: prenomDe(f?.a_relire_par), importees: entrees.filter((e) => e.importe).length,
     derniere: derniere ? { le: derniere.le, par: derniere.par, texte: derniere.lignes[0]?.texte || null } : null,
     prochaine: ouvertes[0] ? actionLisible(ouvertes[0]) : null,

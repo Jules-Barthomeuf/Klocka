@@ -87,7 +87,7 @@ export default function CarteNote({ donnees }) {
         <span className="mt-0.5 grid h-6 w-6 flex-none place-items-center rounded-full bg-menthe text-sur-menthe"><Check className="h-3.5 w-3.5" strokeWidth={3} /></span>
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[16px] text-encre">C'est rangé.</p>
-          {recu && <p className="m-0 mt-0.5 text-[14px] text-ardoise">{[pluriel(recu.entrees, "ligne"), recu.actions ? pluriel(recu.actions, "action") : null].filter(Boolean).join(" et ")} sur {pluriel(fiches.length, "fiche")}{recu.faites ? `, ${pluriel(recu.faites, "action fermée", "actions fermées")}` : ""}. Les actions sont dans « À faire ».</p>}
+          {recu && <p className="m-0 mt-0.5 text-[14px] text-ardoise">{[recu.entrees || !recu.retraits ? pluriel(recu.entrees, "ligne") : null, recu.actions ? pluriel(recu.actions, "action") : null].filter(Boolean).join(" et ")}{recu.entrees || recu.actions || !recu.retraits ? ` sur ${pluriel(fiches.length, "fiche")}` : ""}{recu.retraits ? `${recu.entrees || recu.actions ? ", " : ""}${pluriel(recu.retraits, "lien retiré", "liens retirés")}` : ""}{recu.faites ? `, ${pluriel(recu.faites, "action fermée", "actions fermées")}` : ""}.{recu.actions ? " Les actions sont dans « À faire »." : ""}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             {fiches.map((f) => (
               <button key={f.cle} type="button" onClick={() => ouvrirFiche(f.cle)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>
@@ -104,6 +104,9 @@ export default function CarteNote({ donnees }) {
   }
 
   const fichesTouchees = (p.fiches || []).filter((f) => f.elements?.length || f.etape);
+  const retraits = p.retraits || [];
+  // Les retraits, par fiche : « Retirer de la fiche d'Alexis Petit ».
+  const retraitsPar = [...new Set(retraits.map((r) => r.de))].map((de) => ({ de, nom: retraits.find((r) => r.de === de)?.de_nom, liste: retraits.filter((r) => r.de === de) }));
   const actions = (p.actions || []).map((a0) => actionVue(n, a0));
   const faites = p.faites || [];
   const aProgrammer = actions.filter((a) => n.garde.has(a.id) && !a.echeance).length;
@@ -117,7 +120,7 @@ export default function CarteNote({ donnees }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-      <p className="m-0 text-[17px] leading-[1.5] text-encre">{onglets.length ? "Voici ce que je propose." : "Je n'y vois rien à ranger sur ces fiches : la note sera gardée telle quelle si tu valides."}</p>
+      <p className="m-0 text-[17px] leading-[1.5] text-encre">{onglets.length || retraits.length ? "Voici ce que je propose." : "Je n'y vois rien à ranger sur ces fiches : la note sera gardée telle quelle si tu valides."}</p>
 
       {onglets.length > 1 && (
         <div role="tablist" aria-label="Ce que je propose" className="mt-4 inline-flex rounded-[14px] bg-relief p-1">
@@ -166,6 +169,35 @@ export default function CarteNote({ donnees }) {
       )}
 
       </div>
+
+      {/* Les fiches liées à retirer (24 nov. 2026, Jules : « il ne nous a pas envoyé le dossier à Pau, enlève-le de la fiche
+          d'Alexis ») : cochées, le OK les délie ; décochées, elles restent liées. */}
+      {retraitsPar.map((g) => (
+        <div key={g.de} className="mt-5">
+          <p className="m-0 mb-2 text-[13.5px] text-ardoise">{g.nom ? `Retirer de la fiche ${/^[aeiouyhàâéèêîôû]/i.test(g.nom) ? "d'" : "de "}${g.nom}` : "Retirer de la fiche"}</p>
+          <Cadre>
+            {g.liste.map((r) => {
+              const oui = n.garde.has(r.id);
+              const I = ICONE_GENRE[r.genre] || Building2;
+              return (
+                <li key={r.id} className={`border-t border-trait px-5 py-3.5 first:border-t-0 transition-opacity ${oui ? "" : "opacity-45"}`}>
+                  <div className="flex items-center gap-3.5">
+                    <button type="button" role="checkbox" aria-checked={oui} onClick={() => basculer(noteId, r.id)} aria-label={oui ? `Laisser ${r.nom} sur la fiche` : `Retirer ${r.nom} de la fiche`}
+                      className={`grid h-[22px] w-[22px] flex-none place-items-center rounded-full border transition-colors ${oui ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif text-transparent hover:border-menthe"}`}>
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </button>
+                    <Pastille><I className="h-4 w-4" /></Pastille>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] leading-[1.45] text-encre">{r.nom}</span>
+                      <span className="mt-0.5 block text-[13px] text-ardoise">{oui ? "Retiré avec ton OK" : "Reste sur la fiche"}</span>
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </Cadre>
+        </div>
+      ))}
 
       {/* Les règles de travail que la note énonce (22 nov. 2026, Jules : « lors de la prospection, demander le contexte de la
           vente ») : au OK, elles partent au Cerveau, où Jules les valide. */}

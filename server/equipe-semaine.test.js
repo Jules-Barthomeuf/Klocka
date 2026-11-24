@@ -82,9 +82,9 @@ test('Maxime clique sur le lundi du retour de Nora : son briefing, la réunion p
   const invoke = async (prompt) => { invoke.prompts.push(prompt); return { objet: 'Ta semaine du 2 au 6 novembre', texte: 'Bon retour.\nCe que chacun a fait\n- Maxime : bail reçu.' }; };
   invoke.prompts = [];
   await S.tourDuMatin({ aujourdhui: '2026-11-06', invoke });
+  // Les rappels de l'agenda ne sont plus des notifications (23 nov. 2026, Jules) : le briefing se fait depuis l'agenda.
   const cles = Records.list('Notification').map((n) => n.cle);
-  assert.ok(cles.includes(`agenda:a-briefer:${NORA}:2026-11-02:${CORALIE}`));
-  assert.ok(!cles.includes(`agenda:a-briefer:${NORA}:2026-11-02:${MAXIME}`));
+  assert.ok(!cles.some((k) => String(k).startsWith('agenda:')));
   // Jules relit avant le retour : brouillon (avec le briefing de Maxime), validation, rien ne paraît encore.
   const b = await S.ecrireBrouillon(NORA, { du: '2026-11-02', au: '2026-11-06' }, { invoke });
   assert.match(invoke.prompts[0], /Bail reçu sur Murs Antibes/);
@@ -99,7 +99,7 @@ test('Maxime clique sur le lundi du retour de Nora : son briefing, la réunion p
   const vue = await S.monAgenda({ email: NORA }, { aujourdhui: '2026-11-09' });
   assert.equal(vue.retour.etat, 'publie');
   assert.equal(vue.briefings[0].de_nom, 'Maxime');
-  assert.ok(Records.list('Notification').some((n) => n.cle === `agenda:briefing:${r.briefing.id}:${NORA}` && n.pour === NORA));
+  assert.ok(!Records.list('Notification').some((n) => n.cle === `agenda:briefing:${r.briefing.id}:${NORA}`));
   assert.ok(!Records.list('EmailLog').length);
   // Un second tour le même jour ne refait rien.
   assert.deepEqual((await S.tourDuMatin({ aujourdhui: '2026-11-09', invoke })).fait, []);
@@ -110,8 +110,7 @@ test('Maxime part la semaine du 26 : le vendredi, il est invité à faire le bri
   Records.create('Deal', { deal_id: 'd-max2', nom: 'Murs Cannes', statut: 'analyse', cree_par: MAXIME, suivi: [{ le: '2026-11-10T09:00:00Z', par: MAXIME, detail: 'Analyse' }] });
   const vendredi = await S.tourDuMatin({ aujourdhui: '2026-11-13', invoke: async () => ({}) });
   assert.ok(vendredi.fait.includes('départ Maxime'));
-  const n = Records.list('Notification').find((x) => x.cle === `agenda:depart:${MAXIME}:2026-11-16`);
-  assert.match(n.titre, /fais le brief à Nora, Coralie/);
+  assert.ok(!Records.list('Notification').some((x) => x.cle === `agenda:depart:${MAXIME}:2026-11-16`), 'plus de notification');
   const prep = await S.preparerBriefing({ email: MAXIME }, '2026-11-13', { ctx: ctx() });
   assert.equal(prep.genre, 'depart');
   assert.equal(prep.jour, '2026-11-16');

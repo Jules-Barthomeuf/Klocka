@@ -49,7 +49,8 @@ test('un tuto par sujet dans la semaine ; le quiz attend le lendemain, puis pré
   assert.equal(C.mesTutos(nora, demain).quiz.length, 1);
   assert.equal(await C.prevenirQuiz(demain), 1);
   assert.equal(await C.prevenirQuiz(demain), 0, 'une seule fois');
-  assert.ok(Records.list('Notification').some((n) => n.pour === nora.email && /petit quiz/.test(n.titre)));
+  // Le quiz se prépare ; plus de notification (23 nov. 2026 : coaching pas demandé).
+  assert.ok(!Records.list('Notification').some((n) => n.pour === nora.email && /petit quiz/.test(n.titre)));
 });
 
 test('le quiz corrigé, et il ne revient plus', async () => {

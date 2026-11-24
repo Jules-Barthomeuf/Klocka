@@ -230,7 +230,9 @@ export function listerFiches({ deals = [], mails = [], projets = [], biensMemoir
   for (const m of ordre) {
     // Ce que le transfert a rentré en Mémoire (20 nov. 2026, Jules : « on en a reçu plus » que les 16 comptées) : un bien
     // par fiche lue, plusieurs pour un PDF qui en porte plusieurs. Une pièce déjà lue (un renvoi) ne compte pas deux fois.
-    const rentres = [...new Set(m.memoire_ids || [])];
+    // Les biens supprimés de la Mémoire ne comptent plus ; un mail dont tous les biens sont supprimés non plus.
+    const rentres = [...new Set(m.memoire_ids || [])].filter((id) => !memoireParId.get(id)?.supprime_le);
+    if (!rentres.length && (m.memoire_ids || []).length) continue;
     if (!rentres.length && (m.memoire_deja_ids || []).length) continue;
     // Un transfert de l'équipe à sourcing@ avec une pièce est une fiche par la règle d'équipe, même si son nom ne le dit
     // pas ; sauf des pièces pour un dossier ou une question. Rien de rentré : il compte, à vérifier.
@@ -273,7 +275,7 @@ export function listerFiches({ deals = [], mails = [], projets = [], biensMemoir
   // Les fiches envoyées hors d'une boîte mail, au numéro WhatsApp de Klocka (memoire/fiche-directe.js) : un envoi par
   // document, au nom de la personne qui l'a envoyé.
   const directs = new Map();
-  for (const b of biensMemoire) if (b.envoi_id) { if (!directs.has(b.envoi_id)) directs.set(b.envoi_id, []); directs.get(b.envoi_id).push(b); }
+  for (const b of biensMemoire) if (b.envoi_id && !b.supprime_le) { if (!directs.has(b.envoi_id)) directs.set(b.envoi_id, []); directs.get(b.envoi_id).push(b); }
   for (const [envoi, biens] of [...directs].sort((a, b) => String(a[1][0].recu_le || '').localeCompare(String(b[1][0].recu_le || '')))) {
     const b0 = biens.find((b) => b.fiche_compte) || biens[0];
     const corrige = Number.isFinite(Number(b0.fiche_compte?.biens)) && Number(b0.fiche_compte.biens) >= 0;

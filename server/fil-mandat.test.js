@@ -49,8 +49,9 @@ test('un mandat, de la demande au registre : chaque étape dans le fil, celui qu
   assert.equal(c1.mandat.a_relire.url, '/uploads/r.pdf', 'le dernier PDF joint est le mandat rempli');
   assert.equal(F.tempsDuMandat(c1.mandat), 'en_signature');
   await attendre();
-  assert.ok(notif(mandataire.email, /Votre mandat est validé · Boulangerie/));
-  assert.ok(notif(klocka.email, /Mandat validé · Boulangerie/));
+  // Trois variantes du même mandat : seules « Mandat à saisir » et « Votre mandat signé est arrivé » restent (23 nov. 2026).
+  assert.ok(!notif(mandataire.email, /Votre mandat est validé · Boulangerie/));
+  assert.ok(!notif(klocka.email, /Mandat validé · Boulangerie/));
   assert.equal(F.mandatsPourKlocka(klocka.email)[0].a_faire, true, 'validé : à envoyer en signature');
 
   await F.ecrireKlocka(Records.get('MandatMandataire', id), klocka, { pieces: [{ nom: 'Mandat Masséna.pdf', url: '/uploads/m.pdf' }] });
@@ -68,7 +69,7 @@ test('un mandat, de la demande au registre : chaque étape dans le fil, celui qu
   // Le mandataire passe à l'étape suivante, sans redéposer de document.
   assert.equal(P.passerALaSuite(id, mandataire).mandat.statut, 'signe');
   await attendre();
-  assert.ok(notif(klocka.email, /Mandat signé · Boulangerie/));
+  assert.ok(!notif(klocka.email, /Mandat signé · Boulangerie/));
   assert.equal(F.mandatsPourKlocka(klocka.email)[0].a_faire, true);
 
   const r = P.enregistrerMandat(id, klocka);

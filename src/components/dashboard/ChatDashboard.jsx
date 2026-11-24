@@ -1241,18 +1241,6 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   });
   // La conversation en cours : créée au premier échange, complétée ensuite.
   const [conversationId, setConversationId] = useState(null);
-  // Les comptes rendus des transferts à sourcing@ (23 nov. 2026, Jules : « le système répond à la personne qui a transféré »,
-  // dans son chat de l'assistant) : à l'ouverture de la page de l'assistant, chacun devient un message de l'assistant ;
-  // la personne répond ici (« c'était 2 ») et l'outil corriger_transfert corrige. Vus une fois.
-  useEffect(() => {
-    if (!lienNote || repondre || embarque) return;
-    base44.request("GET", "/api/assistant/comptes-rendus").then((r) => {
-      const liste = r?.comptes_rendus || [];
-      if (!liste.length) return;
-      setFil((f) => [...f, ...liste.map((c) => ({ role: "assistant", contenu: c.texte }))]);
-      base44.request("POST", "/api/assistant/comptes-rendus/vus", { body: { ids: liste.map((c) => c.id) } }).catch(() => {});
-    }).catch(() => { /* rien à dire */ });
-  }, [lienNote, repondre, embarque]);
   // `annonce` (9 nov. 2026) : une phrase que la page fait dire à l'assistant (« il manque… ») ; { id, contenu }.
   useEffect(() => { if (annonce?.contenu) setFil((f) => [...f, { role: "assistant", contenu: annonce.contenu }]); }, [annonce?.id]);
   // Le titre enregistré (renommable) ; sans lui, le premier message en tient lieu.
@@ -1291,6 +1279,24 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     setHistoriqueOuvert(false);
     onHistorique?.(false);
   };
+  // La conversation qu'on demande par l'adresse (?conversation=) : le compte rendu d'un transfert, ouvert depuis sa
+  // pop-up ou depuis « À faire » (23 nov. 2026, Jules : « on clique dessus, on arrive sur la conversation ; si on va sur
+  // l'assistant, on voit la page normale »). Le paramètre est retiré une fois la conversation ouverte.
+  const adresse = useLocation();
+  useEffect(() => {
+    if (!lienNote || repondre || embarque) return undefined;
+    const id = new URLSearchParams(adresse.search).get("conversation");
+    if (!id) return undefined;
+    let fini = false;
+    base44.request("GET", `/api/assistant/conversations/${encodeURIComponent(id)}`).then((c) => {
+      if (fini || !c) return;
+      ouvrirConversation(c);
+      // Le paramètre part de l'adresse sans passer par le routeur : un changement d'adresse repart d'une conversation neuve.
+      try { window.history.replaceState(window.history.state, "", adresse.pathname); } catch { /* adresse laissée telle quelle */ }
+    }).catch(() => toast.error("Conversation introuvable"));
+    return () => { fini = true; };
+  }, [adresse.search, lienNote, repondre, embarque]);
+
   // Une conversation rouverte depuis l'historique (20 nov. 2026, Jules : « la conversation à gauche, les fiches à droite ») :
   // si elle a rangé une note ou enregistré un rendez-vous, ses fiches reviennent à droite.
   const liensDuFil = (messages) => {

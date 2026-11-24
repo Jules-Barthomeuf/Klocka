@@ -70,8 +70,8 @@ test('une réponse : une question chez la responsable seule ; oui pose le rappel
   assert.equal(p.pour, 'nora@test.local');
   assert.deepEqual(p.actions, ['oui_non']);
   assert.match(p.resume, /« Je vous rappelle jeudi\. »/);
-  const notes = Records.list('Notification').filter((x) => x.cle === `haka:${p.id}`);
-  assert.deepEqual(notes.map((x) => x.pour), ['nora@test.local'], 'personne d’autre ne la voit');
+  // La question est dans la file de Nora seule ; plus de notification (23 nov. 2026 : la cloche n'a plus d'écran).
+  assert.equal(Records.list('Notification').filter((x) => x.cle === `haka:${p.id}`).length, 0);
   assert.equal(Records.list('Rappel').length, 0, 'rien avant le oui');
   const r = await F.valider(p.id, nora, { choix: null });
   assert.equal(r.ok, true, r.error);

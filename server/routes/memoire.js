@@ -17,12 +17,16 @@ function equipe(req, res) {
 }
 
 export function monterMemoire(app) {
-  app.get('/api/memoire', wrap((req, res) => {
+  app.get('/api/memoire', wrap(async (req, res) => {
     if (!equipe(req, res)) return;
     const limite = Math.min(500, Math.max(1, Number(req.query.limite) || 200));
     const type = ['fiches', 'annonces'].includes(req.query.type) ? req.query.type : null;
-    const biens = listerMemoire({ q: req.query.q, limite, statut: req.query.statut || null, type });
-    const tous = Records.list(ENTITE);
+    // « Boîte » : qui a envoyé le bien (24 nov. 2026, Jules : « là c'est marqué sourcing alors que c'est Maxime qui a
+    // transféré ») : le collègue d'un transfert, le titulaire de la boîte, le responsable d'un dossier.
+    const { quiDuBien } = await import('../memoire/record-memoire.js');
+    const ctx = { mails: new Map(Records.list('MailRecu').map((m) => [m.id, m])), deals: new Map(Records.list('Deal').map((d) => [d.deal_id, d])) };
+    const biens = listerMemoire({ q: req.query.q, limite, statut: req.query.statut || null, type }).map((b) => ({ ...b, par_qui: quiDuBien(b, ctx) }));
+    const tous = Records.list(ENTITE).filter((b) => !b.supprime_le);
     ok(res, {
       biens,
       total: tous.length,
@@ -75,6 +79,18 @@ export function monterMemoire(app) {
     ok(res, { email: compte.email, autorisee: autoriser, lecture: autoriser && !S.enPause() });
   }));
 
+  // Supprimer une fiche de la Mémoire (24 nov. 2026, Jules : « dans la Mémoire, je dois pouvoir supprimer les fiches que
+  // je veux ») : marquée supprimée (qui, quand), jamais effacée ; elle sort de la liste, des fiches reçues et du record.
+  app.delete('/api/memoire/:id', wrap((req, res) => {
+    const user = equipe(req, res);
+    if (!user) return;
+    const b = Records.get(ENTITE, req.params.id);
+    if (!b) return res.status(404).json({ error: 'Fiche introuvable.' });
+    Records.update(ENTITE, b.id, { supprime_le: new Date().toISOString(), supprime_par: String(user.email || '').toLowerCase() });
+    // Sa ligne de Propriétés Klocka part aussitôt (24 nov. 2026, Jules : « les deux en synchronisation »).
+    if (b.twenty_klocka_id) import('../memoire/twenty.js').then((m) => m.synchroniserKlocka({ max: 50 })).catch((e) => console.warn('[mémoire] Propriétés Klocka :', e?.message || e));
+    ok(res, { ok: true });
+  }));
   app.get('/api/memoire/:id', wrap((req, res) => {
     if (!equipe(req, res)) return;
     const b = Records.get(ENTITE, req.params.id);

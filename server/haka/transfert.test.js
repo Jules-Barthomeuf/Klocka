@@ -77,8 +77,9 @@ test('des pièces sans dossier reconnu : un nouveau dossier au nom de Nora, ses 
   assert.equal(d.contact_agent_email, 'julie@notaire.fr');
   assert.deepEqual(d.documents_espace.map((x) => x.nom).sort(), ['bail-vienne.pdf', 'quittances-vienne.pdf']);
   assert.equal(Records.list('HakaProposition').filter((p) => p.charge?.mail_id === m.id).length, 0, 'pas de question');
-  const log = notif(m);
-  assert.match(log.texte, /Je n'ai reconnu aucun dossier ouvert : j'ai créé « Murs Tabac de la Gare - Vienne » à votre nom, avec 2 pièces dans sa Data Room/);
+  // Le compte rendu, dans le chat de Nora (23 nov. 2026 : la notification est retirée, il la remplace).
+  assert.equal(notif(m), undefined);
+  assert.match(Records.get('MailRecu', m.id).compte_rendu.texte, /J'ai créé le dossier « Murs Tabac de la Gare - Vienne » avec ses pièces\./);
 });
 
 test('des pièces pour un dossier évident : rangées sans redemander, et Nora reçoit le compte rendu', async () => {
@@ -88,10 +89,9 @@ test('des pièces pour un dossier évident : rangées sans redemander, et Nora r
   const d = Records.findBy('Deal', 'deal_id', 'deal-macon');
   assert.deepEqual(d.documents_espace.map((x) => x.nom).sort(), ['bail-macon.pdf', 'taxe-fonciere.pdf']);
   assert.equal(Records.list('HakaProposition').filter((p) => p.charge?.mail_id === m.id).length, 0, 'pas de question : le transfert est la décision');
-  const log = notif(m);
+  const log = Records.get('MailRecu', m.id).compte_rendu;
   assert.equal(log.pour, 'nora@klocka.immo');
-  assert.match(log.texte, /^C'est fait : 2 pièces dans la Data Room de « Boulangerie Aux Délices - Mâcon »/);
-  assert.equal(log.lien, '/Dossiers?deal_id=deal-macon');
+  assert.match(log.texte, /Les pièces sont rangées dans la Data Room de « Boulangerie Aux Délices - Mâcon »/);
   assert.equal(Records.list('EmailLog').filter((e) => String(e.template_id || '').startsWith('haka-transfert:')).length, 0, 'aucun mail à l’analyste');
   // Le même transfert relu ne refait rien.
   X.surTransfert(m, { lancer: false, uploadDir: dir });
@@ -108,11 +108,13 @@ test('plusieurs dossiers possibles : une question à Nora seule, puis les pièce
   assert.ok(p);
   assert.equal(p.pour, 'nora@klocka.immo');
   assert.deepEqual(p.choix.map((c) => c.cle).sort(), ['deal-lyon', 'deal-nimes', 'fiche']);
-  assert.deepEqual(Records.list('Notification').filter((x) => x.cle === `haka:${p.id}`).map((x) => x.pour), ['nora@klocka.immo']);
+  // La question est dans la file de Nora seule ; plus de notification (23 nov. 2026 : la cloche n'a plus d'écran).
+  assert.equal(p.pour, 'nora@klocka.immo');
+  assert.equal(Records.list('Notification').filter((x) => x.cle === `haka:${p.id}`).length, 0);
   assert.equal((await F.valider(p.id, nora, { choix: 'deal-nimes' })).ok, true);
   await T.tourner();
   assert.deepEqual(Records.findBy('Deal', 'deal_id', 'deal-nimes').documents_espace.map((x) => x.nom), ['plans.pdf']);
-  assert.ok(notif(m));
+  assert.ok(Records.get('MailRecu', m.id).compte_rendu);
 });
 
 // Un mandataire transfère (9 nov. 2026, Jules) : le bien entre dans ses Biens ; admin et mandataire à la fois : on demande.
@@ -139,10 +141,9 @@ test('un mandataire transfère : le bien est dans ses Biens, en import, avec ses
   assert.equal(Records.get('MailRecu', m.id).proprietaire_id, p.id);
   assert.equal(Records.list('Deal').length, dealsAvant, 'aucun dossier côté équipe');
   assert.equal(Records.list('HakaProposition').filter((x) => x.charge?.mail_id === m.id).length, 0, 'pas de question');
-  const log = notif(m);
+  const log = Records.get('MailRecu', m.id).compte_rendu;
   assert.equal(log.pour, leo.email);
-  assert.equal(log.lien, `/MandataireBiens?bien=proprietaire:${p.id}`);
-  assert.match(log.texte, /^C'est fait : « 12 rue Mercière, Lyon » est dans vos biens, avec 2 pièces\./);
+  assert.match(log.texte, /« 12 rue Mercière, Lyon » est dans vos biens, avec 2 pièces\./);
 });
 
 test('la même adresse transférée à nouveau complète le bien, sans doublon', async () => {
@@ -153,7 +154,7 @@ test('la même adresse transférée à nouveau complète le bien, sans doublon',
   const vivants = parEmail(leo.email).filter((p) => !p.retire_le);
   assert.equal(vivants.length, 1);
   assert.ok(vivants[0].biens.pieces.some((x) => x.nom === 'taxe-merciere.pdf'));
-  assert.match(notif(m).texte, /déjà dans vos biens/);
+  assert.match(Records.get('MailRecu', m.id).compte_rendu.texte, /déjà dans vos biens/);
 });
 
 test('admin et mandataire à la fois : côté admin sans question, côté mandataire quand le message le dit (18 nov. 2026)', async () => {

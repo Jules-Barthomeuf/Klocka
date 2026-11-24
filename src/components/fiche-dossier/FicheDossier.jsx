@@ -219,7 +219,7 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
   // Une personne : « Agent · 1 dossier en cours » sous son nom, ses initiales au-dessus (20 nov. 2026, Jules, maquette).
   const enCours = f.liees.filter((l) => l.genre === "bien").length;
   const sous = bien ? [id.ville, GENRE_LISIBLE[f.genre]].filter(Boolean).join(" · ")
-    : [f.genre === "agent" ? "Agent" : "Client", f.detail && f.detail !== "Twenty CRM" ? f.detail : null, enCours ? `${enCours} dossier${enCours > 1 ? "s" : ""} en cours` : null].filter(Boolean).join(" · ");
+    : [f.genre === "agent" ? "Agent" : "Client", f.detail && f.detail !== "Twenty CRM" ? f.detail : f.envois?.contact?.agence || null, enCours ? `${enCours} dossier${enCours > 1 ? "s" : ""} en cours` : null].filter(Boolean).join(" · ");
 
   return (
     <div className="flex min-h-0 flex-auto flex-col">
@@ -263,8 +263,18 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
                   {ici === "resume" && (
                     <>
                       <div className="flex flex-col gap-1.5">
-                        <span className="inline-flex items-center gap-1.5 text-[13.5px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />{!resumeNeuf && f.source === "twenty" && !f.maj_le ? <>Résumé<span className="text-ardoise"> · repris de Twenty</span></> : <>Résumé IA{resumeNeuf && <span className="text-ardoise"> · mis à jour par l'assistant</span>}</>}</span>
-                        <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resumeNeuf || f.resume || <span className="text-brume">Il s'écrira à la première note liée à cette fiche.</span>}</p>
+                        {/* Sans note, le résumé d'un agent dit ses fiches (24 nov. 2026, Jules) : des faits, pas de l'IA. */}
+                        {!resumeNeuf && !f.resume && f.envois?.resume ? (
+                          <>
+                            <span className="text-[13.5px] text-ardoise">Résumé · d'après ses fiches</span>
+                            <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{f.envois.resume}</p>
+                          </>
+                        ) : (
+                          <>
+                            <span className="inline-flex items-center gap-1.5 text-[13.5px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />{!resumeNeuf && f.source === "twenty" && !f.maj_le ? <>Résumé<span className="text-ardoise"> · repris de Twenty</span></> : <>Résumé IA{resumeNeuf && <span className="text-ardoise"> · mis à jour par l'assistant</span>}</>}</span>
+                            <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resumeNeuf || f.resume || <span className="text-brume">Il s'écrira à la première note liée à cette fiche.</span>}</p>
+                          </>
+                        )}
                       </div>
                       {!bien && (f.comment_parler || parlerNeuf || f.profils?.length > 0 || enProfil.length > 0) && (
                         <section className="mt-6 border-t border-trait pt-4">
@@ -278,6 +288,7 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
                           )}
                         </section>
                       )}
+                      {f.envois && <FichesEnvoyees envois={f.envois} />}
                       {/* Deux sources qui se contredisent (l'import, 22 nov. 2026) : dit, jamais tranché en silence. */}
                       {f.ecarts?.length > 0 && (
                         <section className="mt-6 border-t border-trait pt-4">
@@ -367,7 +378,7 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
                     </>
                   )}
 
-                  {ici === "dossiers" && (f.liees.length ? <Personnes liees={f.liees} onOuvrir={onOuvrir} /> : vide("Aucun dossier encore : lie une note à un bien et à cette fiche."))}
+                  {ici === "dossiers" && (f.liees.length ? <Personnes cle={cle} nom={nom} liees={f.liees} onOuvrir={onOuvrir} /> : vide("Aucun dossier encore : lie une note à un bien et à cette fiche."))}
 
                   {ici === "notes" && (
                     <>
@@ -420,6 +431,51 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
 }
 
 /**
+ * Les fiches qu'un agent nous a envoyées (24 nov. 2026, Jules : « des agents nous ont envoyé des fiches mais leur fiche
+ * est vide ») : lues dans la Mémoire à chaque ouverture (server/fiche-dossier/fiches-envoyees.js), en lignes ; une
+ * ligne ouvre la fiche reçue. Ses coordonnées d'abord, celles lues sur ses fiches dites comme telles.
+ */
+function FichesEnvoyees({ envois }) {
+  const [tout, setTout] = useState(false);
+  const c = envois.contact || {};
+  const coord = [c.telephone, c.email].filter(Boolean);
+  const lues = (c.lues_sur_fiches || []).filter((k) => k !== "agence" && c[k]);
+  const lignes = tout ? envois.lignes : envois.lignes.slice(0, 6);
+  return (
+    <section className="mt-6 border-t border-trait pt-4">
+      <Titre>Fiches envoyées<span className="text-ardoise"> · {envois.total}</span></Titre>
+      {coord.length > 0 && <p className="m-0 mb-2 text-[14px] leading-[1.5] text-craie [overflow-wrap:anywhere]">{coord.join(" · ")}{lues.length > 0 && <span className="text-ardoise"> · lu sur ses fiches</span>}</p>}
+      <ul className="m-0 list-none divide-y divide-trait p-0">
+        {lignes.map((l) => {
+          const contenu = (
+            <>
+              <span className="min-w-0">
+                <span className="block truncate text-[14.5px] text-encre">{l.titre}</span>
+                <span className="block truncate text-[13px] text-ardoise">{[l.ou, l.prix, l.loyer].filter(Boolean).join(" · ") || "Sans adresse"}</span>
+              </span>
+              <span className="flex-none text-right text-[13px] text-ardoise">{dateJournal(l.jour)}{l.qui ? <span className="block text-brume">via {l.qui}</span> : null}</span>
+            </>
+          );
+          const classe = "flex w-full items-center justify-between gap-4 py-2.5 text-left";
+          return (
+            <li key={l.id}>
+              {l.fiche?.url
+                ? <a href={l.fiche.url} target="_blank" rel="noreferrer" className={`${classe} no-underline hover:opacity-80`} title={l.fiche.nom || "Ouvrir la fiche"}>{contenu}</a>
+                : <Link to={`/MemoireKlocka?q=${encodeURIComponent(l.ville || l.titre)}`} onClick={() => window.dispatchEvent(new CustomEvent("klocka:panneau-note", { detail: { fermer: true } }))} className={`${classe} no-underline hover:opacity-80`}>{contenu}</Link>}
+            </li>
+          );
+        })}
+      </ul>
+      {envois.lignes.length > 6 && (
+        <button type="button" onClick={() => setTout((x) => !x)} className="mt-1 text-[13px] text-craie underline decoration-trait underline-offset-2 hover:text-encre" style={{ background: "transparent" }}>
+          {tout ? "Moins" : `Voir les ${envois.lignes.length}`}
+        </button>
+      )}
+    </section>
+  );
+}
+
+/**
  * Écrire une note sur la fiche, en tête de l'onglet Notes (20 nov. 2026, Jules, maquette « Ajouter une note sur Sébastien
  * ROBIC… ») : tapée ou dictée, gardée telle quelle, sans passer par l'assistant.
  */
@@ -460,18 +516,41 @@ function NouvelleNote({ cle, nom }) {
   );
 }
 
-function Personnes({ liees, onOuvrir }) {
+/**
+ * Les fiches liées. La croix délie (24 nov. 2026, Jules : « on doit pouvoir retirer un bien d'un agent, par exemple le
+ * bien de Nazelles, cliquer sur une croix pour le délier d'Alexis ») : des deux côtés, et « Annuler » le relie.
+ */
+function Personnes({ cle, nom, liees, onOuvrir }) {
+  const queryClient = useQueryClient();
+  const rafraichir = (vers) => { for (const k of [["fiche-dossier", cle], ["fiche-dossier", vers]]) queryClient.invalidateQueries({ queryKey: k }); };
+  const relier = useMutation({
+    mutationFn: (avant) => base44.request("POST", "/api/fiche-dossier/relier", { body: { avant } }),
+    onSuccess: (_, avant) => rafraichir(avant[0]?.vers),
+    onError: (e) => toast.error(e?.message || "Le lien n'est pas revenu."),
+  });
+  const delier = useMutation({
+    mutationFn: (l) => base44.request("POST", "/api/fiche-dossier/delier", { body: { de: cle, vers: l.cle } }),
+    onSuccess: (r, l) => {
+      rafraichir(l.cle);
+      toast.success(`${l.nom} retiré de la fiche${nom ? ` ${/^[aeiouyhàâéèêîôû]/i.test(nom) ? "d'" : "de "}${nom}` : ""}.`, { action: { mot: "Annuler", faire: () => relier.mutate(r.avant || []) } });
+    },
+    onError: (e) => toast.error(e?.message || "Le lien n'a pas été retiré."),
+  });
   return (
     <ul className="m-0 list-none divide-y divide-trait p-0">
       {liees.map((l) => (
-        <li key={l.cle}>
-          <button type="button" onClick={() => onOuvrir?.(l.cle)} className="grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 py-2.5 text-left" style={{ background: "transparent" }}>
+        <li key={l.cle} className="group flex items-center gap-1">
+          <button type="button" onClick={() => onOuvrir?.(l.cle)} className="grid min-w-0 flex-1 grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 py-2.5 text-left" style={{ background: "transparent" }}>
             <span className="grid h-8 w-8 place-items-center rounded-full bg-rail-actif text-[12px] text-craie">{l.genre === "bien" ? <Building2 className="h-3.5 w-3.5" /> : initiales(l.nom)}</span>
             <span className="min-w-0">
               <span className="block truncate text-[14px] text-encre">{l.nom}</span>
               <span className="block truncate text-[12.5px] text-ardoise">{l.genre === "bien" ? (l.etape || "Dossier") : [l.genre === "agent" ? "Agent" : "Client", l.ressenti || l.resume].filter(Boolean).join(" · ")}</span>
             </span>
             <span className="flex items-center gap-2 text-[12.5px] text-brume">{l.ressenti_le || l.maj_le ? dateJournal(l.ressenti_le || l.maj_le) : ""}<ArrowRight className="h-3.5 w-3.5 text-ardoise" /></span>
+          </button>
+          <button type="button" onClick={() => delier.mutate(l)} disabled={delier.isPending} aria-label={`Retirer ${l.nom} de cette fiche`} title="Retirer de cette fiche"
+            className="grid h-8 w-8 flex-none place-items-center rounded-full text-brume opacity-0 transition-opacity hover:text-encre focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-40 max-md:opacity-100" style={{ background: "transparent" }}>
+            {delier.isPending && delier.variables?.cle === l.cle ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
           </button>
         </li>
       ))}

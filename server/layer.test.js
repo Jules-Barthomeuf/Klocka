@@ -82,7 +82,8 @@ test('un dossier refusé sans motif : une question à qui a tranché, trois par 
   assert.equal(r.fait.fiches[0].entite_id, 'd-2');
   assert.equal(C.questionOuverte(MAXIME.email).id, q2.id, 'la suivante est posée');
   assert.match((await C.chercher({ question: 'Mâcon refusé' }))[0].resume, /emplacement trop faible/);
-  assert.ok(Records.list('Notification').some((n) => n.pour === MAXIME.email && /Boulangerie, Mâcon refusé/.test(n.titre)));
+  // La question reste dans l'Intelligence ; plus de notification (23 nov. 2026 : pas d'écran).
+  assert.ok(!Records.list('Notification').some((n) => n.pour === MAXIME.email && /Boulangerie, Mâcon refusé/.test(n.titre)));
   // Trois par jour au plus.
   const demain = new Date('2030-01-01T09:00:00Z');
   for (const id of ['a', 'b', 'c', 'd']) Records.create(C.QUESTION, { pour: 'nora@klocka.test', deal_id: id, texte: id, etat: 'en_attente', cree_le: id });

@@ -57,3 +57,31 @@ test('du Drive, seuls les fichiers dont le nom dit une fiche sont lus', () => {
   assert.equal(estFicheDrive({ nom: 'scan001.pdf', taille: 1000 }, F), false);
   assert.equal(estFicheDrive({ nom: 'Fiche.pdf', taille: 60 * 1024 * 1024 }, F), false);
 });
+
+test('Propriétés Klocka → Mémoire : un geste de l\'équipe revient dans la Mémoire, jamais une écriture de Klocka', async () => {
+  const { depuisTwenty, bienDepuisLigne } = await import('./twenty.js');
+  const { Records } = await import('../db.js');
+  const ligne = { id: 'tw-1', name: 'Nice - 12 av. Jean Médecin', groupe: 'MEMOIRE', adresse: { addressStreet1: '12 av. Jean Médecin', addressCity: 'Nice', addressPostcode: '06000' }, loyer: 27000, prix: 450000, m: 85, activiteLocataire: 'Boulangerie Martin · boulangerie', date: '2026-11-20', agentImmobilier: 'Nicolas Serra' };
+  assert.deepEqual(bienDepuisLigne(ligne, ['loyer']), { loyer_annuel: 27000 });
+  assert.equal(bienDepuisLigne(ligne).locataire_nom, 'Boulangerie Martin');
+
+  assert.deepEqual(depuisTwenty({ eventName: 'proprietesKlocka.created', record: ligne }), { ignore: 'écrit par Klocka' });
+  assert.equal(depuisTwenty({ eventName: 'clients.created', record: ligne, workspaceMemberId: 'm' }), null);
+  const cree = depuisTwenty({ eventName: 'proprietesKlocka.created', record: ligne, workspaceMemberId: 'm' });
+  const b = Records.get('BienMemoire', cree.cree);
+  assert.equal(b.ville, 'Nice');
+  assert.equal(b.prix, 450000);
+  assert.equal(b.origine, 'crm');
+  assert.equal(b.twenty_klocka_le, b.maj_le, 'la fiche née de Twenty n\'y repart pas');
+
+  depuisTwenty({ eventName: 'proprietesKlocka.updated', record: { ...ligne, prix: 420000 }, updatedFields: ['prix'], workspaceMemberId: 'm' });
+  assert.equal(Records.get('BienMemoire', b.id).prix, 420000);
+  assert.equal(Records.get('BienMemoire', b.id).loyer_annuel, 27000);
+
+  // Une ligne d'un autre groupe ne crée rien ; la suppression retire la fiche de la Mémoire, gardée en base.
+  assert.deepEqual(depuisTwenty({ eventName: 'proprietesKlocka.created', record: { ...ligne, id: 'tw-2', groupe: 'VENDU' }, workspaceMemberId: 'm' }), { ignore: 'hors du groupe Mémoire' });
+  depuisTwenty({ eventName: 'proprietesKlocka.deleted', record: { id: 'tw-1' }, workspaceMemberId: 'm' });
+  const apres = Records.get('BienMemoire', b.id);
+  assert.ok(apres.supprime_le);
+  assert.equal(apres.twenty_klocka_id, null);
+});

@@ -239,7 +239,11 @@ export function monterFicheDossier(app) {
   app.get('/api/fiche-dossier/mes-actions', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
     const actions = (await M()).mesActions(user);
-    ok(res, { actions, dues: actions.filter((a) => a.du).length });
+    // Les comptes rendus de transfert fermés sans être ouverts (23 nov. 2026, Jules) : une ligne qui ouvre leur conversation.
+    const { comptesRendusAFaire } = await import('../haka/compte-rendu-transfert.js');
+    // Et les notifications gardées qu'on a fermées sans les ouvrir (23 nov. 2026, Jules).
+    const { aFaire } = await import('../notifications.js');
+    ok(res, { actions: [...comptesRendusAFaire(user.email), ...aFaire(user), ...actions], dues: actions.filter((a) => a.du).length });
   }));
   app.get('/api/fiche-dossier/actions/:id/conversation', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
@@ -275,6 +279,20 @@ export function monterFicheDossier(app) {
     const r = (await M()).validerFiche(req.body?.cle, user);
     if (!r.ok) return refus(res, r);
     ok(res, r);
+  }));
+
+  // Délier deux fiches d'une croix (24 nov. 2026, Jules : « retirer un bien d'un agent, cliquer sur une croix pour le
+  // délier d'Alexis ») ; « Annuler » les relie tels qu'ils étaient.
+  app.post('/api/fiche-dossier/delier', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = (await M()).delier(req.body?.de, req.body?.vers);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/fiche-dossier/relier', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const avant = (Array.isArray(req.body?.avant) ? req.body.avant : []).filter((x) => x && typeof x.de === 'string' && typeof x.vers === 'string').slice(0, 4);
+    ok(res, (await M()).relier(avant));
   }));
 
   // L'import des fiches (22 nov. 2026, Paramètres > Import des fiches) : Jules seul le lance.

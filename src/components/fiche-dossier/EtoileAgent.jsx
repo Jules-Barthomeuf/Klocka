@@ -25,8 +25,23 @@ export function EtoileAgent({ cle, className = "" }) {
   const e = (data?.agents || []).find((x) => x.cle === cle) || null;
   const basculer = useMutation({
     mutationFn: () => base44.request("POST", "/api/fiche-dossier/agents-preferes", { body: { cle } }),
-    onSuccess: (r) => { queryClient.setQueryData(CLE, { agents: r.agents, miens: r.miens, max: r.max }); },
-    onError: (x) => toast.error(x?.message || "L'étoile n'a pas été posée."),
+    // L'étoile change au clic, sans attendre le serveur (24 nov. 2026, Jules : « on clique sur l'étoile, elle ne se
+    // modifie pas ») ; refusée, elle revient comme avant.
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: CLE });
+      const avant = queryClient.getQueryData(CLE);
+      if (avant) {
+        const deja = (avant.agents || []).find((x) => x.cle === cle);
+        const agents = deja?.moi
+          ? (avant.agents || []).map((x) => (x.cle === cle ? { ...x, moi: false, par: (x.par || []).slice(0, -1) } : x)).filter((x) => x.cle !== cle || x.par.length)
+          : deja ? avant.agents.map((x) => (x.cle === cle ? { ...x, moi: true } : x)) : [...(avant.agents || []), { cle, nom: null, par: [], moi: true }];
+        queryClient.setQueryData(CLE, { ...avant, agents });
+      }
+      return { avant };
+    },
+    // Les préférés montent en tête de la liste Agent immobilier du CRM (23 nov. 2026) : elle se relit.
+    onSuccess: (r) => { queryClient.setQueryData(CLE, { agents: r.agents, miens: r.miens, max: r.max }); queryClient.invalidateQueries({ queryKey: ["crm-page", "agentImmobilier"] }); queryClient.invalidateQueries({ queryKey: ["agents-favoris"] }); },
+    onError: (x, _v, ctx) => { if (ctx?.avant) queryClient.setQueryData(CLE, ctx.avant); toast.error(x?.message || "L'étoile n'a pas été posée."); },
   });
   const plein = !!e?.moi;
   return (

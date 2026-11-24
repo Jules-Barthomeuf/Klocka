@@ -39,6 +39,39 @@ export function parMois({ projets = [], lettres = [], mois = 12, maintenant = ne
   };
 }
 
+// Les statistiques partent de la semaine du lundi 16 novembre 2026 (24 nov. 2026, Jules : « je veux qu'on voie les
+// statistiques à partir de la semaine du 16 novembre ») : avant, ni semaine, ni jour, ni période.
+export const DEBUT_STATISTIQUES = '2026-11-16';
+
+/**
+ * Pure : la carte « Dossiers étudiés » (24 nov. 2026, Jules : « les nouveaux dossiers rentrés, pas les dossiers qu'on
+ * rouvre ; il faut savoir quand chaque dossier est créé ») : les dossiers créés (`cree_le`, sinon `created_date`) depuis
+ * le lundi de la semaine, à l'heure de Paris, toute l'équipe ; la semaine d'avant au même jour ; les `n` dernières
+ * semaines. Un dossier rouvert garde sa date de création : il ne compte pas deux fois. Ni test, ni essai.
+ */
+export function carteDossiersEntres(deals = [], { aujourdhui, n = 8 } = {}) {
+  const c = carteSemaine(deals.filter((d) => !d.test && !d.essai_marche && !d.essai).map((d) => d.cree_le || d.created_date), { aujourdhui, n });
+  return { depuis: c.depuis, dossiers: c.n, avant: c.avant, semaines: c.semaines.map((s) => ({ semaine: s.semaine, dossiers: s.n })) };
+}
+
+/**
+ * Pure : une carte du haut de Statistiques, sur des dates de création (24 nov. 2026, Jules : les projets créés, les LOI
+ * faites, « il faut voir la bonne date ») : combien depuis le lundi de la semaine (heure de Paris) ; la semaine d'avant
+ * au même jour ; les `n` dernières semaines.
+ */
+export function carteSemaine(dates = [], { aujourdhui, n = 8 } = {}) {
+  const lundiDe = (j) => { const d = new Date(`${j}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
+  const decaler = (j, x) => new Date(Date.parse(`${j}T12:00:00Z`) + x * 86400000).toISOString().slice(0, 10);
+  const jours = dates.map((x) => jourParis(x)).filter(Boolean);
+  const lundi = lundiDe(aujourdhui);
+  return {
+    depuis: lundi,
+    n: jours.filter((j) => j >= lundi && j <= aujourdhui).length,
+    avant: jours.filter((j) => j >= decaler(lundi, -7) && j <= decaler(aujourdhui, -7)).length,
+    semaines: Array.from({ length: n }, (_, i) => decaler(lundi, -7 * (n - 1 - i))).filter((s) => s >= DEBUT_STATISTIQUES).map((s) => ({ semaine: s, n: jours.filter((j) => j >= s && j <= decaler(s, 6)).length })),
+  };
+}
+
 // « Mes statistiques » (22 nov. 2026, maquette de Jules) : pour une personne, par jour sur les `jours` derniers jours
 // (mois glissant), comparés aux `jours` d'avant. Quatre chiffres : les fiches reçues qui lui reviennent, celles ouvertes
 // en dossier (à la date de la fiche), les projets qu'elle a créés, les présentations bancaires qu'elle a faites.
@@ -55,7 +88,7 @@ export const CHIFFRES_PERSONNE = ['fiches', 'dossiers', 'projets', 'presentation
  * @param {{ email: string, fiches?: object[], projets?: object[], presentations?: object[], jours?: number, maintenant?: Date }} d
  *   fiches : les lignes de fichesParAnalyste (le, analyste, dossier, ecartee).
  */
-export function parJourPersonne({ email, fiches = [], projets = [], presentations = [], jours = 30, maintenant = new Date() }) {
+export function parJourPersonne({ email, fiches = [], fichesMemoire = null, dossiersCrees = null, projets = [], presentations = [], jours = 30, maintenant = new Date() }) {
   const qui = min(email);
   const fin = new Date(`${jourParis(maintenant)}T12:00:00Z`);
   const date = (decalage) => new Date(fin.getTime() - decalage * 86400000).toISOString().slice(0, 10);
@@ -63,6 +96,8 @@ export function parJourPersonne({ email, fiches = [], projets = [], presentation
   const rangs = new Map();
   for (let i = 0; i < 2 * jours; i += 1) rangs.set(date(i), i);
   const serie = Array.from({ length: jours }, (_, i) => ({ jour: date(jours - 1 - i), ...Object.fromEntries(CHIFFRES_PERSONNE.flatMap((k) => [[k, 0], [`${k}_avant`, 0]])) }));
+  // Rien avant le 16 novembre 2026 : ni jour sur la courbe, ni « avant » compté.
+  for (const [j] of [...rangs]) if (j < DEBUT_STATISTIQUES) rangs.delete(j);
   const totaux = Object.fromEntries(CHIFFRES_PERSONNE.map((k) => [k, { actuel: 0, avant: 0 }]));
   const compter = (k, iso, n = 1) => {
     const r = rangs.get(jourParis(iso));
@@ -76,11 +111,15 @@ export function parJourPersonne({ email, fiches = [], projets = [], presentation
   for (const f of fiches) {
     if (f.ecartee || min(f.analyste) !== qui) continue;
     const n = f.biens ?? 1;
-    compter('fiches', f.le, n);
-    if (f.dossier) compter('dossiers', f.le, n);
+    // Les fiches de la Mémoire, quand on les donne (24 nov. 2026) : une par fiche ; les dossiers restent ceux des envois.
+    if (!fichesMemoire) compter('fiches', f.le, n);
+    if (f.dossier && !dossiersCrees) compter('dossiers', f.le, n);
   }
+  for (const f of fichesMemoire || []) if (min(f.analyste) === qui) compter('fiches', f.le);
+  // Les dossiers qu'elle a créés, à leur date de création (24 nov. 2026, Jules : « les autres trucs, pareil, même principe »).
+  for (const d of dossiersCrees || []) if (min(d.par) === qui) compter('dossiers', d.le);
   for (const p of projets) if (min(p.created_by) === qui) compter('projets', p.created_date);
   for (const x of presentations) if (min(x.cree_par || x.created_by) === qui) compter('presentations', x.cree_le || x.created_date);
-  return { email: qui, jours, serie, totaux };
+  return { email: qui, jours, serie: serie.filter((x) => x.jour >= DEBUT_STATISTIQUES), totaux };
 }
 

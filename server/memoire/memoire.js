@@ -193,6 +193,7 @@ const jourDe = (b) => jourIso(b.recu_le) || String(b.created_date || '').slice(0
 export function listerMemoire({ q = '', limite = 200, statut = null, type = null } = {}) {
   const t = String(q || '').trim().toLowerCase();
   return Records.list(ENTITE, { sort: '-created_date' })
+    .filter((b) => !b.supprime_le)
     .filter((b) => !statut || b.statut === statut)
     .filter((b) => type !== 'fiches' || !estAnnonce(b))
     .filter((b) => type !== 'annonces' || estAnnonce(b))

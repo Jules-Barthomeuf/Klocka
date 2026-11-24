@@ -661,6 +661,8 @@ taches.enregistrer(COMPETENCE, {
         const r = await M.bienDepuisTransfert(mail, { user, lu: c.lu, uploadDir: charge.uploadDir || CHEMIN_UPLOADS, fichiers: await fichiersDuMail(mail) });
         const n = M.compteRenduBien(r, { objet: mail.objet });
         notifier({ pour: norm(user.email), titre: n.titre, texte: n.texte, lien: n.lien, action: n.lien ? 'Ouvrir le bien' : null, cle: `haka-transfert:${mail.id}` });
+        // Le compte rendu, comme côté équipe (23 nov. 2026) : la notification ci-dessus n'est plus créée.
+        poserCompteRendu(mail, { pour: user.email, r, lu: c.lu || {} });
         return { fin: true, ...r };
       },
     },

@@ -16,6 +16,8 @@ export const toutesLesCles = (p) => [
   ...(p?.actions || []).map((a) => a.id),
   // Les règles de travail (22 nov. 2026) : gardées d'office, elles partent au Cerveau au OK.
   ...(p?.regles || []).map((r) => r.id),
+  // Les fiches liées à retirer (24 nov. 2026) : cochées d'office, puisque la note le demande.
+  ...(p?.retraits || []).map((r) => r.id),
 ];
 
 /** Pose la note (une fois) ; une note relue avec un lien de plus la remplace. */

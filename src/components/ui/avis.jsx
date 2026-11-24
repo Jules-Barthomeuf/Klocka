@@ -119,7 +119,8 @@ export function poser(ton, titre, o = {}) {
         onFermer={() => { clore(); o.surFermeture?.(); sonner.dismiss(id); }}
       />
     ),
-    { id: cle, duration: duree, className: o.className, position: o.position, onDismiss: clore, onAutoClose: clore },
+    // `surFin` (23 nov. 2026) : l'avis parti de lui-même, sans geste (le compte rendu d'un transfert va alors dans « À faire »).
+    { id: cle, duration: duree, className: o.className, position: o.position, onDismiss: clore, onAutoClose: () => { clore(); o.surFin?.(); } },
   ));
   return rendre(false);
 }

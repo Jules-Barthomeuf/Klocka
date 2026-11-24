@@ -62,18 +62,37 @@ export function monterFiches(app) {
     const maintenant = new Date();
     let depuis = new Date(maintenant.getTime() - jours * 86400000).toISOString();
     const zero = remiseAZero();
-    for (const borne of [DEBUT_DES_MESURES, zero?.le]) if (borne && borne > depuis) depuis = borne;
+    // Les statistiques partent du lundi 16 novembre 2026, minuit à Paris (24 nov. 2026, Jules).
+    const DEPART = '2026-11-15T23:00:00.000Z';
+    for (const borne of [DEBUT_DES_MESURES, zero?.le, DEPART]) if (borne && borne > depuis) depuis = borne;
     // Les appels au téléphone, sans les essais ni ce qui a été remplacé ; ceux d'avant la période servent à la fenêtre.
     const appels = Records.list('AppelAgent').filter((x) => x.par && x.canal !== 'mail' && !x.essai && !x.essai_archive && !['remplace', 'abandonne'].includes(x.etat) && String(x.le) >= DEBUT_DES_MESURES);
     // La période d'avant, de même longueur, jamais avant le début des mesures.
     let avant = new Date(maintenant.getTime() - 2 * jours * 86400000).toISOString();
-    for (const borne of [DEBUT_DES_MESURES, zero?.le]) if (borne && borne > avant) avant = borne;
+    for (const borne of [DEBUT_DES_MESURES, zero?.le, DEPART]) if (borne && borne > avant) avant = borne;
     const resultat = fichesParAnalyste({
       fiches: await fiches(), appels, depuis, avant: avant < depuis ? avant : null, maintenant, semaines: Math.min(52, Math.max(8, Math.ceil(jours / 7))),
       agents: new Map(Records.list('AgentImmo').map((a) => [a.id, a])),
       agences: new Map(Records.list('AgenceProspect').map((a) => [a.id, a])),
       equipe: EQUIPE,
     });
+    // La courbe des semaines part aussi de la semaine du 16 novembre.
+    if (Array.isArray(resultat.semaines)) resultat.semaines = resultat.semaines.filter((s) => s.semaine >= '2026-11-16');
+    // Le record se compte dans la Mémoire, semaine complète par semaine complète (24 nov. 2026, Jules) :
+    // server/memoire/record-memoire.js ; vérifié chaque dimanche soir.
+    const { recordGarde, lignesDeLaMemoire, carteFichesRecues, jourParis } = await import('../memoire/record-memoire.js');
+    // La carte « Fiches reçues » : toute l'équipe, comptée dans la Mémoire, depuis le lundi (24 nov. 2026, Jules).
+    resultat.memoire = carteFichesRecues(lignesDeLaMemoire(), { aujourdhui: jourParis(maintenant.toISOString()) });
+    // La carte « Dossiers étudiés » : les nouveaux dossiers créés depuis le lundi, toute l'équipe (24 nov. 2026, Jules).
+    const { carteDossiersEntres, carteSemaine } = await import('../statistiques.js');
+    const aujourdhui = jourParis(maintenant.toISOString());
+    resultat.dossiers_semaine = carteDossiersEntres(Records.list('Deal'), { aujourdhui });
+    // Projets entrés : les projets créés depuis le lundi ; offres faites : les LOI rédigées depuis le lundi (24 nov. 2026, Jules).
+    resultat.projets_semaine = carteSemaine(Records.list('Project').map((p) => p.created_date), { aujourdhui });
+    resultat.offres_semaine = carteSemaine(Records.list('LettreIntention').map((l) => l.cree_le || l.created_date), { aujourdhui });
+    const { prenomDe } = await import('../prospection/equipe.js');
+    const rm = recordGarde({ maintenant });
+    resultat.record_analyste = rm ? { email: rm.email, prenom: prenomDe(rm.email), semaine: rm.semaine, fiches: rm.fiches, biens: rm.fiches } : null;
     // La photo de qui tient le record : la même que dans la Prospection (Compte, public/equipe, puis Google).
     const r = resultat.record_analyste;
     if (r) r.photo = (await import('../prospection/agent-ia.js')).photoDe(Records.findBy('User', 'email', r.email) || { email: r.email });
@@ -93,8 +112,13 @@ export function monterFiches(app) {
     const { parJourPersonne } = await import('../statistiques.js');
     const jours = 30;
     const { fiches: lignes } = await calculerFichesAnalystes(2 * jours);
+    // Les fiches de la personne, comptées dans la Mémoire comme la carte et le record (24 nov. 2026, Jules : « idem pour
+    // la personne si on enlève une fiche de la Mémoire »).
+    const { lignesDeLaMemoire } = await import('../memoire/record-memoire.js');
     ok(res, parJourPersonne({
-      email: String(req.query.email || user.email), jours, fiches: lignes,
+      email: String(req.query.email || user.email), jours, fiches: lignes, fichesMemoire: lignesDeLaMemoire().map((l) => ({ le: l.jour, analyste: l.qui })),
+      // Ses dossiers : ceux qu'elle a créés (`cree_par`), à leur date de création, ni test ni essai.
+      dossiersCrees: Records.list('Deal').filter((d) => !d.test && !d.essai_marche && !d.essai).map((d) => ({ le: d.cree_le || d.created_date, par: d.cree_par || d.created_by })),
       projets: Records.list('Project'), presentations: Records.list('PresentationBancaire'),
     }));
   }));
@@ -158,6 +182,38 @@ export function monterFiches(app) {
       for (const a of agents) if (!a.photo && infos[a.cle]) photoAuto(a.cle, infos[a.cle]);
     }
     ok(res, { agents, par: pose?.par || null, le: pose?.le || null });
+  }));
+  // Les agents favoris (24 nov. 2026, Jules : « dans Statistiques, sous le record, un tableau des agents favoris, ceux avec
+  // une étoile ») : chaque agent étoilé par l'équipe, le plus étoilé d'abord, avec qui l'a étoilé et ses fiches reçues
+  // sur la période de la page. Même ligne que l'ancien classement des meilleurs agents.
+  app.get('/api/statistiques/agents-favoris', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const jours = [7, 30, 90, 365].includes(Number(req.query.jours)) ? Number(req.query.jours) : 30;
+    const { objetDe, prenomDe } = await import('../fiche-dossier/modele.js');
+    const { photoDe } = await import('../photos-fiches.js');
+    const { cleNom } = await import('../prospection/photos-equipe.js');
+    const { nomAgent } = await import('../nom-agent.js');
+    const { agents_tous: parFiches } = await calculerFichesAnalystes(jours);
+    const parAgent = new Map();
+    for (const x of Records.list('AgentPrefere')) {
+      if (!CLE_AGENT.test(x.cle)) continue;
+      const e = parAgent.get(x.cle) || { cle: x.cle, nom_pose: x.nom, par: [], le: '' };
+      e.par.push({ email: x.par, prenom: prenomDe(x.par) || String(x.par).split('@')[0] });
+      if (String(x.le) > e.le) e.le = String(x.le);
+      parAgent.set(x.cle, e);
+    }
+    const agents = [];
+    for (const e of parAgent.values()) {
+      const o = objetDe(e.cle);
+      const brut = o?.nom && o.nom !== 'Fiche du CRM' ? o.nom : e.nom_pose;
+      const nom = (o?.nom_crm && o.nom) || nomAgent(brut) || brut || 'Agent du CRM';
+      const emails = e.cle.startsWith('agent:') ? (Records.get('AgentImmo', e.cle.slice(6))?.emails || []).map((m) => String(m).toLowerCase()) : [];
+      const f = parFiches.find((x) => emails.includes(x.cle)) || parFiches.find((x) => cleNom(x.nom) && cleNom(x.nom) === cleNom(nom));
+      const connu = [Records.findBy('FicheDossier', 'cle', e.cle)?.detail, o?.detail].find((x) => x && x !== 'Twenty CRM');
+      agents.push({ cle: e.cle, nom, detail: connu || f?.ville || null, photo: photoDe(e.cle)?.url || o?.photo || null, fiches: f?.fiches || 0, par: e.par, le: e.le });
+    }
+    agents.sort((a, b) => b.par.length - a.par.length || b.fiches - a.fiches || b.le.localeCompare(a.le));
+    ok(res, { agents, jours });
   }));
   app.post('/api/statistiques/meilleurs-agents', wrap(async (req, res) => {
     const user = admin(req, res);

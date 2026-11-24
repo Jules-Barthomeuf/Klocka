@@ -6,7 +6,7 @@
 import { Records } from '../db.js';
 import { invokeLLM } from '../llm.js';
 import { mesurer } from '../llm-couts.js';
-import { ETAPES, contexteDe, dateValide, equipe, lienPropre, membreDe, prenomDe, prevuesDes, styleDe, telephoneDe } from './modele.js';
+import { ETAPES, contexteDe, dateValide, equipe, lieesDe, lienPropre, membreDe, prenomDe, prevuesDes, styleDe, telephoneDe } from './modele.js';
 import { conversationLisible, cotes, lireConversation } from './whatsapp.js';
 
 const simple = (t) => String(t || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -50,6 +50,7 @@ export const SCHEMA = {
       blocage: { type: 'string' },
       resume: { type: 'string' },
       comment_parler: { type: 'string' },
+      retirer: { type: 'array', items: { type: 'string' } },
     }, required: ['lien', 'elements'] } },
     actions: { type: 'array', items: { type: 'object', properties: {
       genre: { type: 'string', enum: GENRES_ACTION },
@@ -74,6 +75,16 @@ export const SCHEMA = {
 export const LIMITE_CONVERSATION = 40000;
 
 const GENRE_LISIBLE = { bien: 'dossier', agent: 'agent immobilier', client: 'client' };
+
+/**
+ * Ce qui est déjà lié à chaque fiche de la note, numéroté D1, D2… (24 nov. 2026, Jules : « enlève ceux-là de la fiche
+ * d'Alexis ») : le modèle les nomme pour les retirer. Le même calcul sert à la consigne et à la lecture de la réponse.
+ */
+export function rattaches(liens) {
+  const out = [];
+  for (const l of liens) for (const d of lieesDe(l.cle).slice(0, 40)) out.push({ ref: `D${out.length + 1}`, de: l.cle, de_nom: l.nom, vers: d.cle, genre: d.genre, nom: d.nom });
+  return out;
+}
 
 /** « Appel à Alexandre Lourenço fait », « Message à Bilel envoyé », « Reçu : le mail… », « Fait : … ». */
 function faiteLisible(a) {
@@ -107,7 +118,8 @@ export function dejaDit(liens) {
  * que ce qui en parle. `source` : une source passée importée en lot ({ genre, de, le, lieu }), rangée sans OK, datée
  * de son jour. `style` : les derniers messages envoyés par l'auteur, et ce qu'il a changé dans les brouillons.
  */
-export function consigne(texte, liens, user, { maintenant = new Date(), conversation = null, ajout = null, connus = [], prevues = [], suite = null, transcription = false, libre = false, source = null, style = null } = {}) {
+export function consigne(texte, liens, user, { maintenant = new Date(), conversation = null, ajout = null, connus = [], prevues = [], suite = null, transcription = false, libre = false, source = null, style = null, deja: dejaLies = null } = {}) {
+  const lies = dejaLies || (source || libre ? [] : rattaches(liens));
   const auteur = prenomDe(user?.email) || 'la personne';
   const collegues = equipe().map((p) => p.prenom).filter((p) => p !== auteur);
   const conv = conversation ? conversationLisible(conversation, LIMITE_CONVERSATION) : null;
@@ -123,6 +135,8 @@ export function consigne(texte, liens, user, { maintenant = new Date(), conversa
     if (siennes.length) lignes.push(`  actions déjà prévues : ${siennes.join(', ')}`);
     else if (c?.actions_ouvertes?.length) lignes.push(`  actions déjà prévues : ${c.actions_ouvertes.join(' ; ')}`);
     if (c?.decisions?.length) lignes.push(`  décisions passées : ${c.decisions.join(' ; ')}`);
+    const siens = lies.filter((d) => d.de === l.cle);
+    if (siens.length) lignes.push(`  déjà liés à cette fiche : ${siens.map((d) => `${d.ref} ${GENRE_LISIBLE[d.genre] || d.genre} « ${d.nom} »`).join(' ; ')}`);
     return lignes.join('\n');
   }).join('\n');
   const deQui = source?.de || auteur;
@@ -174,7 +188,7 @@ Règles :
   - genre : « whatsapp » ou « mail » quand il faut écrire à une personne extérieure et que la note suffit à l'écrire : titre « Écrire un message WhatsApp à Bilel », pour = la personne, brouillon (canal = le genre ; a = la personne ; texte = le message prêt à coller, court, naturel, au nom de ${auteur}, tutoiement si la note tutoie la personne, sinon vouvoiement, sans formule creuse ; WhatsApp par défaut, mail si la note le dit). « appel » pour une relance : appeler quelqu'un pour obtenir ou vérifier quelque chose ; titre « Relance : appeler Bilel pour … », pour = la personne, contexte = les questions à lui poser, une par point, telles qu'on les poserait : toutes celles que la note prépare (jusqu'à dix, sans en fusionner ni en perdre), sinon deux à quatre points courts de ce qu'il faut obtenir ou dire (et, si un message part à la même personne, ce que le message a déjà demandé). Quand un message part à quelqu'un et que la note demande aussi de vérifier ou d'obtenir de lui quelque chose de précis, propose en plus cette relance avec son contexte. « tache » pour le reste (parler à un collègue, vérifier un document, rentrer un dossier, « une fois la fiche reçue, la pré-analyser »). « attente » quand quelqu'un promet d'envoyer ou de faire quelque chose (« il me l'envoie par mail demain ») : titre « Recevoir le mail de Sébastien Robic avec la taxe foncière », echeance = la date promise, qui = moi ; propose alors en plus une relance au cas où (« appel », ou « whatsapp » si la note dit que la personne répond mieux par message ; titre « Relancer Sébastien Robic si la taxe foncière n'est pas arrivée »), sans échéance : on demandera quand. Quelqu'un qui ne répond pas au téléphone se relance par WhatsApp.
   - qui : « assistant » pour un message ou un mail que tu as écrit ; « moi » pour ${auteur} ; le prénom d'un collègue si la note dit que c'est à lui de faire.
   - echeance : la date ISO si la note en donne une (« lundi », « demain », « avant vendredi »), sinon rien. N'invente pas de date.
-  - liens : les fiches concernées (L1…) ; une liste vide si l'action parle d'un dossier qui n'est pas lié (il va alors dans mentions).
+  - liens : les fiches concernées (L1…) : le bien ET la personne de l'action (« rappeler Paul pour le local de Nice » : le bien et Paul) ; une liste vide si l'action parle d'un dossier qui n'est pas lié (il va alors dans mentions).
 - Les messages (22 nov. 2026, Jules : « que Maxime écrive ou demande, on arrive au même endroit »), trois cas, sans demander lequel :
   - un message écrit par ${auteur} à quelqu'un (« Bonjour à tous, voici un point sur… », une réponse à un client) : une action whatsapp ou mail ; brouillon.texte = son message MOT POUR MOT, de_l_auteur = vrai ; qui = moi ; pour = le destinataire si on le sait. Il n'entre dans l'historique qu'une fois envoyé : aucun evenement pour lui. Les faits qu'il apprend (« l'ensemble des travaux a été réalisé, mainlevée de l'arrêté ») vont en maj sur la fiche.
   - une demande d'écrire (« réponds à Étienne sur la fissure de Montauban », « fais le mail à l'agent pour les PV d'AG ») : une action whatsapp ou mail, avec le brouillon que tu rédiges à partir de ce que les fiches savent, dans le style de ${auteur}${style?.envoyes?.length ? ' (ses messages ci-dessous)' : ''} ; qui = assistant. Rien dans l'historique.
@@ -185,6 +199,7 @@ Règles :
 - regles : une leçon ou une règle de travail que la note énonce, valable au-delà de ce dossier (« lors de la prospection, demander le contexte de la vente ») ; portee : prospection, dossiers ou general. Ce n'est pas un fait sur un dossier.
 - faites : les actions déjà prévues (A1…) que la note montre faites (20 nov. 2026, Jules) : l'appel a eu lieu avec la personne (même s'il n'a pas répondu à tout), le message est parti, la pièce attendue est arrivée, la tâche est faite. Une note qui prépare l'appel ne le fait pas ; un appel sans réponse (« pas de réponse », « messagerie », « il ne décroche pas ») non plus. restees : les questions de cette action, écrites comme dans la liste, auxquelles la note n'apporte pas de réponse ; une liste vide si tout est répondu. Ne propose pas d'action pour reposer ces questions : elles passent d'office sur la prochaine relance de la personne. Ne repropose pas une action déjà prévue et encore ouverte.
 - questions : seulement ce qui manque vraiment pour bien ranger et que les fiches liées ne disent pas (une personne inconnue, un montant flou, une date qui compte). Les fiches liées répondent d'abord (20 nov. 2026, Jules : « j'ai déjà lié les clients et l'agent, c'est bête de me redemander ça ») : une offre, une visite, un avis viennent d'un client lié (s'il n'y en a qu'un, c'est lui) ; ce que dit l'agent vient de l'agent lié ; le bien dont on parle est le bien lié. Jamais « qui est X », « de qui vient l'offre » ou « de quel dossier » quand une fiche liée y répond. Dans le doute, écris le fait sans le détail incertain plutôt que de deviner. Jamais une question pour faire confirmer ce que tu sais déjà (« est-ce bien l'offre MACSF ? », « c'est bien le 30 novembre ? ») ni pour faire préciser ce que la note dit déjà (elle dit « lundi ou plus tard » : le fait est « lundi ou plus tard », 20 nov. 2026, Jules : « ça me dit est-ce que c'est bien ce dossier alors que je l'ai déjà coché »). Autant qu'il en faut, aucune si tout est clair. Jamais de choix proposés : une question ouverte, à laquelle on répond dans le chat avec ses mots (un choix deviné, « offre Klocka », ne veut rien dire). lien : la fiche visée.
+- retirer : dans l'entrée d'une fiche liée, les fiches déjà liées (D1…) que la note dit de retirer ou qui n'ont rien à y faire (« il ne nous a pas envoyé le dossier de Pau, enlève-le de sa fiche ») ; la fiche peut n'avoir alors aucun élément. Retirer n'est jamais une action ni une question : la note le demande, tu le proposes, son OK le fait.
 - mentions : les dossiers, agents ou clients nommés dans la note qui ne sont pas parmi les fiches liées (texte = le nom tel qu'écrit). Jamais un collègue de l'équipe ni l'auteur.
 - titre : la note en une ligne, quatre-vingts caractères au plus.
 
@@ -195,8 +210,11 @@ ${conv ? conv.texte : String(texte || '').slice(0, transcription ? 42000 : 12000
 }
 
 /** La réponse du modèle, ramenée à ce que l'écran affiche et que le rangement accepte. Les ids sont posés ici. */
-export function normaliser(brut, liens, { auteur = null, connus = [], prevues = [], libre = false, source = null } = {}) {
+const sansAccents = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+export function normaliser(brut, liens, { auteur = null, connus = [], prevues = [], libre = false, source = null, deja: dejaLies = null } = {}) {
   const r = brut && typeof brut === 'object' ? brut : {};
+  const lies = dejaLies || (source || libre ? [] : rattaches(liens));
   const cleDe = (x) => {
     const m = /^L(\d+)$/i.exec(String(x || '').trim());
     return m && liens[Number(m[1]) - 1] ? liens[Number(m[1]) - 1].cle : null;
@@ -204,10 +222,15 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
   let n = 0;
   const id = (p) => `${p}${++n}`;
   const fiches = [];
+  const retraits = [];
   for (const f of Array.isArray(r.fiches) ? r.fiches : []) {
     const cle = cleDe(f?.lien);
     const lien = liens.find((l) => l.cle === cle);
     if (!lien || fiches.some((x) => x.cle === cle)) continue;
+    for (const ref of Array.isArray(f.retirer) ? f.retirer : []) {
+      const d = lies.find((x) => x.ref === String(ref || '').trim().toUpperCase() && x.de === cle);
+      if (d && !retraits.some((x) => x.de === d.de && x.vers === d.vers)) retraits.push({ id: `t${retraits.length + 1}`, de: d.de, de_nom: d.de_nom, vers: d.vers, genre: d.genre, nom: d.nom });
+    }
     const elements = (Array.isArray(f.elements) ? f.elements : [])
       .map((e) => ({ genre: GENRES.includes(e?.genre) ? e.genre : 'maj', texte: propre(e?.texte, 600), raison: propre(e?.raison, 400) || null }))
       .filter((e) => e.texte)
@@ -239,7 +262,6 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
     const commentParler = lien.genre !== 'bien' ? propre(f.comment_parler, 700) || null : null;
     fiches.push({ donnees, id: id('f'), cle, nom: lien.nom, genre: lien.genre, elements, etape, etat, position, position_detail: positionDetail, vendeur, ...(blocage !== undefined && lien.genre === 'bien' ? { blocage } : {}), resume: propre(f.resume, 1500) || null, comment_parler: commentParler });
   }
-  const biens = liens.filter((l) => l.genre === 'bien').map((l) => l.cle);
   const actions = (Array.isArray(r.actions) ? r.actions : []).map((a) => {
     const titre = propre(a?.titre, 300);
     if (!titre) return null;
@@ -258,11 +280,22 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
     const membre = q && q !== 'moi' && q !== 'assistant' ? membreDe(q) : null;
     // Un message écrit par l'auteur lui-même reste le sien (22 nov. 2026) : à lui de l'envoyer, tel quel.
     const qui = b?.de_l_auteur ? 'moi' : q === 'assistant' && b ? 'assistant' : membre && membre.email !== String(auteur || '').toLowerCase() ? membre.prenom : 'moi';
-    const cles = (Array.isArray(a?.liens) ? a.liens : []).map(cleDe).filter(Boolean);
-    // Une liste vide dite par le modèle : l'action ne touche aucune fiche liée. Rien de dit : les biens liés.
+    // Ce que le modèle dit ; rien de dit : toutes les fiches liées, le bien et la personne (24 nov. 2026 ; avant, les
+    // biens seuls). Une liste vide dite par le modèle : l'action ne touche aucune fiche liée.
+    const dit = Array.isArray(a?.liens);
+    const cles = dit ? a.liens.map(cleDe).filter(Boolean) : libre ? [] : liens.map((l) => l.cle);
+    // La personne de l'action, quand sa fiche est liée, en est toujours (24 nov. 2026, Jules : « j'ai lié un agent et un
+    // bien pour dire de le rappeler tel jour : ça a mis juste un rappel, alors que c'est logique de mettre aussi la fiche
+    // du bien et de l'agent ») : « Rappeler Paul » va sur la fiche de Paul autant que sur celle du bien.
+    const pour = sansAccents(a?.pour || b?.a || titre);
+    for (const l of liens) {
+      if (l.genre === 'bien' || cles.includes(l.cle)) continue;
+      const mots = sansAccents(l.nom).split(/[^a-z0-9]+/).filter((m) => m.length >= 3);
+      if (mots.length && mots.some((m) => pour.includes(m)) && (!dit || cles.length)) cles.push(l.cle);
+    }
     // Une action qui conditionne une étape (« avant de faire signer, rappeler Matis ») : l'étape qu'elle précède.
     const avant = propre(a?.avant, 160) || null;
-    return { id: id('a'), genre, titre, qui, pour: propre(a?.pour || b?.a, 120) || null, contexte, echeance: dateValide(a?.echeance), fiches: cles.length ? [...new Set(cles)] : Array.isArray(a?.liens) || libre ? [] : biens, brouillon: b, ...(avant ? { avant } : {}) };
+    return { id: id('a'), genre, titre, qui, pour: propre(a?.pour || b?.a, 120) || null, contexte, echeance: dateValide(a?.echeance), fiches: [...new Set(cles)], brouillon: b, ...(avant ? { avant } : {}) };
   }).filter(Boolean);
   // Une source passée importée ne crée ni action ni question (22 nov. 2026) : ses consignes sont de l'histoire, et
   // personne n'est là pour répondre.
@@ -325,7 +358,15 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
     .map((x) => ({ texte: propre(x?.texte, 300), portee: PORTEES_REGLE.includes(x?.portee) ? x.portee : 'general' }))
     .filter((x) => x.texte).slice(0, 5).map((x) => ({ id: id('r'), ...x }));
   const sansQuestions = source ? [] : questions;
-  const prop = { nature: r.nature === 'demande' && !source ? 'demande' : 'note', titre: propre(r.titre, 100) || null, fiches, faites, actions, questions: sansQuestions, mentions, regles };
+  // Une action « retirer de la fiche » à côté d'un retrait proposé fait double emploi : le retrait suffit.
+  if (retraits.length) {
+    const noms = retraits.map((x) => sansAccents(x.nom).split(/[^a-z0-9]+/).filter((m) => m.length >= 4)).flat();
+    for (let i = actions.length - 1; i >= 0; i--) {
+      const t = sansAccents(actions[i].titre);
+      if (/\b(retirer|enlever|supprimer|delier|detacher)\b/.test(t) && /\bfiche\b/.test(t) && noms.some((m) => t.includes(m))) actions.splice(i, 1);
+    }
+  }
+  const prop = { nature: r.nature === 'demande' && !source ? 'demande' : 'note', titre: propre(r.titre, 100) || null, fiches, faites, actions, questions: sansQuestions, mentions, regles, retraits };
   // Une note libre : seules les fiches devinées dont un morceau parle restent liées.
   if (libre) {
     const utiles = new Set([...fiches.map((f) => f.cle), ...actions.flatMap((a) => a.fiches || []), ...sansQuestions.map((q) => q.fiche).filter(Boolean)]);
@@ -405,10 +446,11 @@ export async function proposer({ texte, liens = [], conversation: importee = nul
   if (transcription && !conversation) surEtape("C'est l'enregistrement de l'appel : je retrouve qui dit quoi");
   let style = null;
   try { style = styleDe(user?.email); } catch { style = null; }
-  const prompt = consigne(t, lies, user, { maintenant, conversation, ajout: brute ? t || null : null, connus, prevues, suite, transcription: !!transcription && !conversation, libre: devine, source: src, style });
+  const deja = src || devine ? [] : rattaches(lies);
+  const prompt = consigne(t, lies, user, { maintenant, conversation, ajout: brute ? t || null : null, connus, prevues, suite, transcription: !!transcription && !conversation, libre: devine, source: src, style, deja });
   const appeler = lire || (() => invokeLLM({ prompt, response_json_schema: SCHEMA, effort: 'low', max_tokens: 6000 }));
   const { resultat } = await mesurer({ operation: transcription && !conversation ? 'ranger un enregistrement' : 'ranger une note', par: user?.email || null }, appeler);
-  const proposition = normaliser(resultat, lies, { auteur: user?.email, connus, prevues, libre: devine, source: src });
+  const proposition = normaliser(resultat, lies, { auteur: user?.email, connus, prevues, libre: devine, source: src, deja });
   // La note libre ne garde liées que les fiches dont elle parle.
   if (devine) {
     const utiles = new Set(proposition.liens_utiles || []);
@@ -428,6 +470,7 @@ export async function proposer({ texte, liens = [], conversation: importee = nul
     else if (a.genre === 'mail') surEtape(`J'écris le mail${a.pour ? ` pour ${a.pour}` : ''}`);
     else if (a.genre === 'appel') surEtape(`Je prépare une relance${a.pour ? ` : appeler ${a.pour}` : ''}`);
   }
+  for (const r of proposition.retraits || []) surEtape(`Je retire « ${r.nom} » de la fiche ${r.de_nom}, avec ton OK`);
   for (const m of proposition.mentions) surEtape(`Je cherche « ${m.texte} » dans les fiches et le CRM`);
   proposition.mentions = await candidats(proposition.mentions, user);
   if (proposition.questions.length) surEtape(`Il me manque ${proposition.questions.length} précision${proposition.questions.length > 1 ? 's' : ''}`);

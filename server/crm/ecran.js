@@ -518,13 +518,32 @@ export async function page(email, singulier, { q: texte = '', tri = null, sens =
   const params = new URLSearchParams({ limit: String(PAR_PAGE), depth: '0' });
   const parNom = new Map(o.champs.map((c) => [c.nom, c]));
   const morceaux = [rechercheTwenty(o.champs, texte), ...(Array.isArray(filtres) ? filtres : []).map((f) => filtreTwenty(parNom.get(f?.champ), f || {}, { membreId }))].filter(Boolean);
-  if (morceaux.length) params.set('filter', morceaux.length > 1 ? `and(${morceaux.join(',')})` : morceaux[0]);
+  // Les agents préférés en haut de la liste (23 nov. 2026, Jules), pour l'équipe : ils passent les filtres et la
+  // recherche comme les autres, viennent en tête de la première page (les miens d'abord) et ne reviennent pas plus bas.
+  const favoris = singulier === 'agentImmobilier' ? await favorisDe(email) : [];
+  const avecFiltre = (liste) => (liste.length > 1 ? `and(${liste.join(',')})` : liste[0]);
+  const horsFavoris = favoris.length ? [...morceaux, `not(id[in]:[${favoris.map(q).join(',')}])`] : morceaux;
+  if (horsFavoris.length) params.set('filter', avecFiltre(horsFavoris));
   const champTri = parNom.get(tri || o.tri?.champ);
   if (champTri) params.set('order_by', `${champTri.type === 'RELATION' ? champTri.cle : champTri.nom}${champTri.type === 'FULL_NAME' ? '.firstName' : champTri.type === 'CURRENCY' ? '.amountMicros' : champTri.type === 'EMAILS' ? '.primaryEmail' : ''}[${(tri ? sens : o.tri?.sens) === 'desc' ? 'DescNullsLast' : 'AscNullsFirst'}]`);
   if (apres) params.set('starting_after', apres);
-  const r = await requeteTwenty('GET', `/${o.pluriel}?${params}`);
-  const fiches = (r?.data?.[o.pluriel] || []).map((f) => sansCaches(f, o.champs));
-  return { fiches, liens: await nomsLies(o, fiches, dossiers, membresDe(s.roles)).catch(() => ({})), suite: r?.pageInfo?.hasNextPage ? r.pageInfo.endCursor : null, total: r?.totalCount ?? null };
+  const enTete = async () => {
+    if (!favoris.length || apres) return [];
+    const p = new URLSearchParams({ limit: String(Math.min(60, favoris.length)), depth: '0', filter: avecFiltre([...morceaux, `id[in]:[${favoris.map(q).join(',')}]`]) });
+    const lus = (await requeteTwenty('GET', `/${o.pluriel}?${p}`).catch(() => null))?.data?.[o.pluriel] || [];
+    return lus.sort((a, b) => favoris.indexOf(a.id) - favoris.indexOf(b.id));
+  };
+  const [r, premiers] = await Promise.all([requeteTwenty('GET', `/${o.pluriel}?${params}`), enTete()]);
+  const fiches = [...premiers, ...(r?.data?.[o.pluriel] || [])].map((f) => sansCaches(f, o.champs));
+  const total = r?.totalCount == null ? null : r.totalCount + premiers.length;
+  return { fiches, liens: await nomsLies(o, fiches, dossiers, membresDe(s.roles)).catch(() => ({})), suite: r?.pageInfo?.hasNextPage ? r.pageInfo.endCursor : null, total, favoris: premiers.length };
+}
+
+// Les favoris ne regardent que l'équipe de Klocka (pas la vue mandataire) ; une lecture ratée laisse la liste telle quelle.
+// `qui` : { email, admin, mandataire } (server/routes/monday.js).
+async function favorisDe(qui) {
+  if (!qui?.admin || qui.mandataire) return [];
+  try { return await (await import('./klocka.js')).favorisTwenty(qui.email); } catch { return []; }
 }
 
 const cible = (singulier) => `target${singulier[0].toUpperCase()}${singulier.slice(1)}Id`;

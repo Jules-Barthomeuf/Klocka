@@ -4,6 +4,8 @@ import { ChevronDown } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { dateCourte, enRetard } from "@/lib/fiche-dossier";
 import { ICONE_ACTION } from "@/components/fiche-dossier/ActionApercu";
+import { useNavigate } from "react-router-dom";
+import { ouvrirCompteRendu } from "@/lib/compte-rendu-transfert";
 
 // « À faire », en haut à droite de l'accueil, à la place de l'Agenda et des boîtes mail (20 nov. 2026, Jules : « on
 // passe la souris dessus, on a les choses à faire, on clique et on revient à la conversation, la fiche avec les
@@ -26,7 +28,18 @@ export default function PastilleAFaire() {
     document.addEventListener("pointerdown", dehors);
     return () => document.removeEventListener("pointerdown", dehors);
   }, [ouvert]);
-  const reprendre = (a) => { setOuvert(false); window.dispatchEvent(new CustomEvent("klocka:reprendre-action", { detail: { action: a } })); };
+  const navigate = useNavigate();
+  // Un compte rendu de transfert fermé sans être ouvert (23 nov. 2026) : un clic ouvre sa conversation.
+  const reprendre = (a) => {
+    setOuvert(false);
+    if (a.genre === "transfert") { ouvrirCompteRendu(a.cr, navigate, a.conversation_id).then(() => refetch()); return; }
+    if (a.genre === "notification") {
+      base44.request("POST", `/api/notifications/${encodeURIComponent(a.notification)}/lue`).catch(() => {}).then(() => refetch());
+      if (a.lien) { if (/^https?:/.test(a.lien)) window.location.assign(a.lien); else navigate(a.lien); }
+      return;
+    }
+    window.dispatchEvent(new CustomEvent("klocka:reprendre-action", { detail: { action: a } }));
+  };
 
   return (
     <div ref={boite} className="relative" onMouseEnter={entrer} onMouseLeave={sortir}>
@@ -53,7 +66,7 @@ export default function PastilleAFaire() {
                         <span className="min-w-0 flex-1">
                           <span className="block text-[14px] leading-[1.4] text-encre">{a.titre}</span>
                           <span className="mt-0.5 block truncate text-[12.5px] text-ardoise">
-                            {[a.echeance ? (retard ? `en retard, prévu ${dateCourte(a.echeance)}` : dateCourte(a.echeance)) : "sans date", a.contexte?.length ? `${a.contexte.length} question${a.contexte.length > 1 ? "s" : ""}` : null, a.fiches.map((f) => f.nom).filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
+                            {a.genre === "transfert" ? (a.resume || "Compte rendu à lire") : a.genre === "notification" ? (a.resume || "Notification à relire") : [a.echeance ? (retard ? `en retard, prévu ${dateCourte(a.echeance)}` : dateCourte(a.echeance)) : "sans date", a.contexte?.length ? `${a.contexte.length} question${a.contexte.length > 1 ? "s" : ""}` : null, (a.fiches || []).map((f) => f.nom).filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
                           </span>
                         </span>
                       </button>

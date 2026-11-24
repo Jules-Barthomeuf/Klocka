@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, ChevronUp, Maximize2, Minimize2, ChevronsLeft, ChevronsRight, Columns3, Copy, Download, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Phone, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, ChevronUp, Maximize2, Minimize2, ChevronsLeft, ChevronsRight, Columns3, Copy, Download, EyeOff, ExternalLink, FileText, ListFilter, Loader2, Lock, Moon, MoreHorizontal, PanelLeft, Paperclip, Pencil, Phone, Plus, Rows3, Search, Send, Settings2, Sun, Trash2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
@@ -230,7 +230,40 @@ function Saisie({ c, valeur, onFini }) {
   );
 }
 
-/** Une valeur qui se corrige d'un clic : la fenêtre de saisie s'ouvre dessous. */
+// Les champs qui se corrigent dans la case même (24 nov. 2026, Jules : « un petit crayon dans la case au passage dessus,
+// on clique et on modifie directement ce qu'il y a dedans ») ; un choix, une relation, des personnes ou un long texte
+// gardent leur fenêtre sous la case.
+const EN_PLACE = new Set(["TEXT", "NUMBER", "CURRENCY", "EMAILS", "PHONES", "LINKS", "FULL_NAME", "DATE", "DATE_TIME", "ADDRESS", "RATING"]);
+const enPlace = (c, valeur) => EN_PLACE.has(c.type) && !c.personnes && !(c.type === "TEXT" && (String(brut(c, valeur)).length > 60 || String(brut(c, valeur)).includes("\n")));
+
+/** La saisie dans la case : Entrée ou un clic ailleurs enregistre (si la valeur a changé), Échap annule. */
+function SaisieEnPlace({ c, valeur, onFini, className = "" }) {
+  const depart = brut(c, valeur);
+  const [texte, setTexte] = useState(depart);
+  const fini = useRef(false);
+  const finir = (v) => { if (fini.current) return; fini.current = true; onFini(v === undefined || v === depart ? undefined : v); };
+  return (
+    <input autoFocus value={texte} onChange={(e) => setTexte(e.target.value)} aria-label={c.libelle} onClick={(e) => e.stopPropagation()}
+      type={c.type === "DATE" ? "date" : c.type === "DATE_TIME" ? "datetime-local" : "text"}
+      inputMode={c.type === "NUMBER" || c.type === "CURRENCY" ? "decimal" : undefined}
+      onFocus={(e) => e.target.select()}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); finir(texte); } if (e.key === "Escape") { e.preventDefault(); finir(); } }}
+      onBlur={() => finir(texte)}
+      className={`block h-full min-h-[36px] w-full min-w-0 bg-surface px-2.5 text-[13px] text-encre outline-none ring-1 ring-inset ring-menthe max-md:text-[16px] ${className}`} />
+  );
+}
+
+/** Le crayon d'une case, au survol (toujours là sur un écran tactile). */
+function Crayon({ onClick, libelle }) {
+  return (
+    <button type="button" tabIndex={-1} onClick={(e) => { e.stopPropagation(); onClick(); }} aria-label={libelle} title={libelle}
+      className="absolute right-1 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-surface-pleine text-ardoise opacity-0 shadow-sm transition-opacity hover:text-encre group-hover/case:opacity-100 [@media(hover:none)]:hidden">
+      <Pencil className="h-3 w-3" />
+    </button>
+  );
+}
+
+/** Une valeur qui se corrige d'un clic : dans la case pour un texte, un nombre, un mail ; sinon la fenêtre dessous. */
 function Corrigeable({ c, valeur, liens, onEnregistrer, onMail, className = "", children }) {
   const [ouvert, setOuvert] = useState(false);
   const ancre = useRef(null);
@@ -238,15 +271,18 @@ function Corrigeable({ c, valeur, liens, onEnregistrer, onMail, className = "", 
   const vu = affiche(c, valeur, liens);
   const lien = vu && (c.type === "EMAILS" ? { onClick: (e) => { e.stopPropagation(); onMail?.(vu); } }
     : c.type === "PHONES" ? { href: `tel:${vu.replace(/\s/g, "")}` } : c.type === "LINKS" ? { href: valeur.primaryLinkUrl, target: "_blank", rel: "noreferrer" } : null);
+  const ici = enPlace(c, valeur);
+  if (ouvert && ici) return <SaisieEnPlace c={c} valeur={valeur} onFini={fini} />;
   return (
     <>
       <div ref={ancre} role={c.modifiable ? "button" : undefined} tabIndex={c.modifiable ? 0 : undefined}
         onClick={(e) => { if (!c.modifiable) return; e.stopPropagation(); setOuvert(true); }}
         onKeyDown={(e) => { if (e.key === "Enter" && c.modifiable) setOuvert(true); }}
-        className={`${c.modifiable ? "cursor-pointer hover:bg-relief/50" : ""} ${className}`}>
+        className={`${c.modifiable ? "group/case relative cursor-pointer hover:bg-relief/50 hover:pr-8" : ""} ${className}`}>
         {children ? children(vu, lien) : vu}
+        {c.modifiable && <Crayon onClick={() => setOuvert(true)} libelle={`Modifier ${c.libelle || "la case"}`} />}
       </div>
-      {ouvert && <Flottant ancre={ancre.current} onFermer={() => setOuvert(false)} largeur={c.type === "TEXT" ? 360 : 280}><Saisie c={c} valeur={valeur} onFini={fini} /></Flottant>}
+      {ouvert && !ici && <Flottant ancre={ancre.current} onFermer={() => setOuvert(false)} largeur={c.type === "TEXT" ? 360 : 280}><Saisie c={c} valeur={valeur} onFini={fini} /></Flottant>}
     </>
   );
 }
@@ -876,8 +912,10 @@ const CLASSES_ALIGNEMENT = { gauche: "justify-start text-left", centre: "justify
 const LARGEUR_MIN = 70;
 
 /** L'en-tête d'une colonne : un clic trie ; la roue au survol ouvre ses réglages ; le bord droit se glisse pour la largeur. */
-function EnTeteColonne({ c, tri, reglage, onTri, onReglage, alignementDefaut, premiere = false }) {
+function EnTeteColonne({ c, tri, reglage, onTri, onReglage, alignementDefaut, premiere = false, onDeplacer = null, onRetirer = null }) {
   const [ouvert, setOuvert] = useState(false);
+  const [renommer, setRenommer] = useState(null);
+  const libelle = reglage.libelle || c.libelle;
   const roue = useRef(null);
   const cellule = useRef(null);
   const alignement = reglage.align || alignementDefaut;
@@ -898,10 +936,10 @@ function EnTeteColonne({ c, tri, reglage, onTri, onReglage, alignementDefaut, pr
     <th ref={cellule} className={`group relative h-[35px] overflow-hidden whitespace-nowrap border-b border-r border-trait font-normal ${premiere ? "px-4" : "px-2.5"}`}>
       <div className={`flex items-center gap-1 ${CLASSES_ALIGNEMENT[alignement]}`}>
         <button type="button" onClick={() => onTri()} className="inline-flex min-w-0 items-center gap-1 text-encre hover:text-menthe" style={{ background: "transparent" }}>
-          <span className="truncate">{c.libelle}</span>
+          <span className="truncate">{libelle}</span>
           {tri?.champ === c.nom && (tri.sens === "desc" ? <ArrowDown className="h-3 w-3 flex-none" /> : <ArrowUp className="h-3 w-3 flex-none" />)}
         </button>
-        <button ref={roue} type="button" onClick={() => setOuvert(true)} aria-label={`Réglages de la colonne ${c.libelle}`} title="Réglages de la colonne"
+        <button ref={roue} type="button" onClick={() => setOuvert(true)} aria-label={`Réglages de la colonne ${libelle}`} title="Réglages de la colonne"
           className={`grid h-6 w-6 flex-none place-items-center rounded-[6px] text-ardoise hover:bg-relief hover:text-encre group-hover:opacity-100 max-md:opacity-100 ${ouvert ? "opacity-100" : "opacity-0 focus:opacity-100"}`} style={{ background: "transparent" }}>
           <Settings2 className="h-3.5 w-3.5" />
         </button>
@@ -922,7 +960,47 @@ function EnTeteColonne({ c, tri, reglage, onTri, onReglage, alignementDefaut, pr
           <button type="button" onClick={() => { setOuvert(false); onTri("asc"); }} className={ligneMenu} style={{ background: "transparent" }}><span className="inline-flex items-center gap-2"><ArrowUp className="h-3.5 w-3.5" />Trier croissant</span></button>
           <button type="button" onClick={() => { setOuvert(false); onTri("desc"); }} className={ligneMenu} style={{ background: "transparent" }}><span className="inline-flex items-center gap-2"><ArrowDown className="h-3.5 w-3.5" />Trier décroissant</span></button>
           {reglage.largeur && <button type="button" onClick={() => { setOuvert(false); onReglage({ largeur: null }); }} className={ligneMenu} style={{ background: "transparent" }}>Largeur automatique</button>}
+          {/* Renommer, déplacer, retirer (24 nov. 2026, Jules : « on doit pouvoir supprimer, déplacer, modifier les
+              colonnes »). Le nom affiché est le sien, dans ce navigateur (le champ de Twenty garde le sien) ; l'ordre et
+              les colonnes montrées sont ceux de la vue, partagés avec l'équipe comme dans Twenty. */}
+          <div className="my-1 border-t border-trait" />
+          {renommer === null ? (
+            <button type="button" onClick={() => setRenommer(libelle)} className={ligneMenu} style={{ background: "transparent" }}><span className="inline-flex items-center gap-2"><Pencil className="h-3.5 w-3.5" />Renommer</span></button>
+          ) : (
+            <div className="p-1">
+              <input autoFocus value={renommer} onChange={(e) => setRenommer(e.target.value)} aria-label="Nom de la colonne"
+                onKeyDown={(e) => { if (e.key === "Enter") { const n = renommer.trim(); onReglage({ libelle: n && n !== c.libelle ? n : null }); setRenommer(null); setOuvert(false); } if (e.key === "Escape") setRenommer(null); }}
+                className="h-9 w-full rounded-[10px] border border-bord-doux bg-surface px-3 text-[14px] text-encre outline-none max-md:text-[16px]" />
+              <p className="m-0 px-1 pt-1.5 text-[12px] text-brume">Entrée enregistre{reglage.libelle ? ` · vide pour revenir à « ${c.libelle} »` : ""}</p>
+            </div>
+          )}
+          {onDeplacer && (
+            <div className="flex gap-1 px-1.5 py-1">
+              <button type="button" disabled={!onDeplacer.gauche} onClick={() => { setOuvert(false); onDeplacer(-1); }} className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[13px] text-encre hover:bg-relief disabled:opacity-35" style={{ background: "transparent" }}><ArrowLeft className="h-3.5 w-3.5" />À gauche</button>
+              <button type="button" disabled={!onDeplacer.droite} onClick={() => { setOuvert(false); onDeplacer(1); }} className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[13px] text-encre hover:bg-relief disabled:opacity-35" style={{ background: "transparent" }}>À droite<ArrowRight className="h-3.5 w-3.5" /></button>
+            </div>
+          )}
+          {onRetirer && <button type="button" onClick={() => { setOuvert(false); onRetirer(); }} className={`${ligneMenu} hover:text-alerte`} style={{ background: "transparent" }}><span className="inline-flex items-center gap-2"><EyeOff className="h-3.5 w-3.5" />Retirer la colonne</span></button>}
           <p className="m-0 px-2.5 pb-1 pt-2 text-[12px] text-brume">Glissez le bord droit de la colonne pour changer sa largeur.</p>
+        </Flottant>
+      )}
+    </th>
+  );
+}
+
+/** Le « + » au bout des en-têtes : remet une colonne retirée, ou en montre une nouvelle (24 nov. 2026, Jules). */
+function AjoutColonne({ champs, onChoisir }) {
+  const [ouvert, setOuvert] = useState(false);
+  const ancre = useRef(null);
+  return (
+    <th className="h-[35px] border-b border-trait p-0 align-middle">
+      <button ref={ancre} type="button" onClick={() => setOuvert(true)} aria-label="Ajouter une colonne" title="Ajouter une colonne" className="mx-auto grid h-6 w-6 place-items-center rounded-[6px] text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><Plus className="h-3.5 w-3.5" /></button>
+      {ouvert && (
+        <Flottant ancre={ancre.current} onFermer={() => setOuvert(false)} largeur={240}>
+          <p className="m-0 px-2.5 pb-1 pt-1.5 text-[12px] text-brume">Ajouter une colonne</p>
+          <div className="max-h-[320px] overflow-y-auto">
+            {champs.map((c) => <button key={c.nom} type="button" onClick={() => { setOuvert(false); onChoisir(c); }} className={ligneMenu} style={{ background: "transparent" }}>{c.libelle}</button>)}
+          </div>
         </Flottant>
       )}
     </th>
@@ -1155,6 +1233,14 @@ export default function CrmTwenty() {
     onSuccess: (r) => { relire(); aller({ f: r.fiche.id, ft: null }); },
     onError: (e) => toast.error(e?.message || "Création refusée"),
   });
+  // L'ordre et les colonnes de la vue, changés depuis l'en-tête : à l'écran tout de suite, puis dans Twenty.
+  const poserColonnes = useMutation({
+    mutationFn: (cols) => req("PATCH", `${API}/${objet.singulier}/vues/${vue.id}`, { body: { colonnes: cols } }),
+    onMutate: (cols) => queryClient.setQueryData(["crm-barre", ESPACE()], (d) => (d ? { ...d, dossiers: d.dossiers.map((x) => ({ ...x, objets: x.objets.map((o) => (o.singulier !== objet.singulier ? o : { ...o, vues: o.vues.map((w) => (w.id === vue.id ? { ...w, colonnes: cols } : w)) })) })) } : d)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["crm-barre"] }),
+    onError: (e) => toast.error(e?.message || "Twenty a refusé le changement de colonnes"),
+  });
+  const [nomEnCours, setNomEnCours] = useState(null);
   const changerCase = useMutation({
     mutationFn: ({ id, champ, valeur }) => req("PATCH", `${API}/${objet.singulier}/${id}`, { body: { champ, valeur } }),
     onSuccess: (r, { id }) => {
@@ -1237,6 +1323,17 @@ export default function CrmTwenty() {
     const n = { ...reglagesColonnes, [objet.singulier]: tableauNouveau };
     setReglagesColonnes(n); ecrireLocal("crm-colonnes", n);
   };
+  const deplacerColonne = (c, sens) => {
+    const voisine = colonnes[colonnes.indexOf(c) + sens];
+    if (!vue || !voisine || colonnes.indexOf(voisine) === 0) return;
+    const cols = (vue.colonnes || []).filter((n) => n !== c.nom);
+    const j = cols.indexOf(voisine.nom);
+    if (j < 0) return;
+    cols.splice(sens > 0 ? j + 1 : j, 0, c.nom);
+    poserColonnes.mutate(cols);
+  };
+  const retirerColonne = (c) => vue && poserColonnes.mutate((vue.colonnes || []).filter((n) => n !== c.nom));
+  const colonnesAjoutables = objet && vue ? objet.champs.filter((c) => !(vue.colonnes || []).includes(c.nom) && !COLONNES_CACHEES[objet.singulier]?.includes(c.nom)) : [];
   const toutesReglees = colonnes.length > 0 && colonnes.every((c, i) => largeurDe(c, i));
   const largeurMini = 37 + colonnes.reduce((s, c, i) => s + (largeurDe(c, i) || 140), 0);
   const tableau = (lignes, liensT = liens) => (
@@ -1246,6 +1343,7 @@ export default function CrmTwenty() {
         {colonnes.map((c, i) => <col key={c.nom} data-col={c.nom} style={largeurDe(c, i) ? { width: largeurDe(c, i) } : undefined} />)}
         {/* Quand toutes les colonnes ont leur largeur, une colonne vide prend le reste au lieu de les élargir. */}
         {toutesReglees && <col />}
+        {colonnesAjoutables.length > 0 && !objet.local && <col style={{ width: 40 }} />}
       </colgroup>
       <thead>
         <tr className="text-encre">
@@ -1254,9 +1352,12 @@ export default function CrmTwenty() {
           </th>
           {colonnes.map((c, i) => (
             <EnTeteColonne key={c.nom} c={c} premiere={i === 0} tri={triVu} reglage={reglageDe(c)} alignementDefaut={alignementDefaut(i)} onReglage={(change) => regler(c, change)}
+              onDeplacer={i > 0 && vue && !objet.local ? Object.assign((sens) => deplacerColonne(c, sens), { gauche: i > 1, droite: i < colonnes.length - 1 }) : null}
+              onRetirer={i > 0 && vue && !objet.local && c.nom !== champGroupe?.nom ? () => retirerColonne(c) : null}
               onTri={(sens) => setTri((t) => (sens ? { champ: c.nom, sens } : t?.champ === c.nom ? (t.sens === "asc" ? { champ: c.nom, sens: "desc" } : null) : { champ: c.nom, sens: "asc" }))} />
           ))}
           {toutesReglees && <th className="border-b border-trait" />}
+          {colonnesAjoutables.length > 0 && !objet.local && <AjoutColonne champs={colonnesAjoutables} onChoisir={(c) => poserColonnes.mutate([...(vue.colonnes || []), c.nom])} />}
         </tr>
       </thead>
       <tbody>
@@ -1269,13 +1370,19 @@ export default function CrmTwenty() {
               </td>
               {colonnes.map((c, i) => (
                 <td key={c.nom} className={`h-[36px] overflow-hidden border-b border-r border-trait p-0 ${i === 0 ? "text-encre" : c.type === "SELECT" && f[c.nom] ? couleurCase(c, f[c.nom]) : "text-craie"} ${NUMERIQUES.includes(c.type) ? "tabular-nums" : ""}`}>
-                  {i === 0 ? (
+                  {i === 0 && nomEnCours === f.id ? (
+                    <SaisieEnPlace c={c} valeur={f[c.nom]} onFini={(v) => { setNomEnCours(null); if (v !== undefined) changerCase.mutate({ id: f.id, champ: c.nom, valeur: v }); }} className="px-4" />
+                  ) : i === 0 ? (
+                    <div className="group/case relative">
                     <button type="button" onPointerDown={() => { if (!objet.local) queryClient.prefetchQuery({ queryKey: ["crm-fiche", objet.singulier, f.id], queryFn: () => req("GET", `${API}/${objet.singulier}/${f.id}`), staleTime: 30_000 }); }} onClick={() => ouvrirLigne(objet.singulier, f.id, nomDeFiche(f))} className={`block w-full truncate px-4 py-1.5 text-encre hover:text-menthe ${CLASSES_ALIGNEMENT[reglageDe(c).align || "gauche"].split(" ")[1]}`} style={{ background: "transparent" }}>
                       {/* L'étoile d'un agent préféré de l'équipe, devant son nom (20 nov. 2026, Jules). */}
                       {objet.singulier === "agentImmobilier" && etoilesAgents?.length ? (
                         <span className="inline-flex max-w-full items-center gap-1.5 align-middle"><EtoileCrm nom={[f.prenom, affiche(c, f[c.nom], liensT)].filter(Boolean).join(" ")} etoiles={etoilesAgents} /><span className="truncate">{affiche(c, f[c.nom], liensT) || <span className="text-brume">Sans nom</span>}</span></span>
                       ) : (affiche(c, f[c.nom], liensT) || <span className="text-brume">Sans nom</span>)}
                     </button>
+                    {/* Le nom se corrige à son crayon : le clic sur le nom ouvre la fiche (24 nov. 2026, Jules). */}
+                    {c.modifiable && enPlace(c, f[c.nom]) && <Crayon onClick={() => setNomEnCours(f.id)} libelle="Modifier le nom" />}
+                    </div>
                   ) : (
                     <Corrigeable c={c} valeur={f[c.nom]} liens={liensT} onEnregistrer={(champ, valeur) => changerCase.mutate({ id: f.id, champ, valeur })} onMail={(a) => setEnvoi({ a, objet: objet.singulier, id: f.id, nom: nomDeFiche(f) })}
                       className={`flex min-h-[36px] items-center truncate px-2.5 py-1 ${CLASSES_ALIGNEMENT[reglageDe(c).align || alignementDefaut(i)]}`}>
@@ -1285,7 +1392,9 @@ export default function CrmTwenty() {
                         : c.type === "RELATION" && vu && objets.some((o) => o.singulier === c.cible)
                           ? <button type="button" onClick={(e) => { e.stopPropagation(); ouvrir(c.cible, f[c.nom]); }} className="max-w-full truncate text-encre underline decoration-trait underline-offset-2 hover:text-menthe" style={{ background: "transparent" }}>{vu}</button>
                           : c.type === "SELECT" && vu ? <span className="truncate">{vu}</span>
-                          : (c.type === "EMAILS" || c.type === "PHONES" || c.type === "LINKS") && vu ? <ValeurAction vu={vu} lien={lien} type={c.type} />
+                          // Plus d'icône à droite d'un mail ou d'un téléphone dans le tableau (24 nov. 2026, Jules) : la valeur seule.
+                          : (c.type === "EMAILS" || c.type === "PHONES") && vu ? <span className="block min-w-0 truncate text-encre">{vu}</span>
+                          : c.type === "LINKS" && vu ? <ValeurAction vu={vu} lien={lien} type={c.type} />
                           // Un texte long ne montre que son début (8 nov. 2026, Jules) : la première ligne, coupée ; le clic ouvre le détail.
                           : vu ? <span className="block min-w-0 truncate">{String(vu).split("\n")[0]}</span> : vu)}
                     </Corrigeable>
@@ -1293,6 +1402,7 @@ export default function CrmTwenty() {
                 </td>
               ))}
               {toutesReglees && <td className="border-b border-trait" />}
+              {colonnesAjoutables.length > 0 && !objet.local && <td className="border-b border-trait" />}
             </tr>
           );
         })}

@@ -92,9 +92,47 @@ export function nomTwenty(t) {
 // Le nom écrit dans Twenty fait foi sur la fiche (23 nov. 2026, Jules : « le CRM montre Alexis Petit, sa fiche
 // Apetit Agducentre ; le nom de la fiche doit être celui de Twenty »). Un agent du carnet né d'une adresse mail porte
 // un nom deviné ; celui du CRM est gardé à côté (`nom_crm`) et la fiche le lit d'abord. Le carnet n'est pas réécrit.
+// L'id de la ligne de Twenty est gardé aussi (`twenty_id`) : les agents préférés se retrouvent dans le CRM par lui.
 function retenirNomCrm(entite, r, t) {
   const n = nomTwenty(t);
-  if (n && n !== r.nom_crm) Records.update(entite, r.id, { nom_crm: n });
+  const patch = {};
+  if (n && n !== r.nom_crm) patch.nom_crm = n;
+  if (entite === 'AgentImmo' && t?.id && t.id !== r.twenty_id) patch.twenty_id = t.id;
+  if (Object.keys(patch).length) Records.update(entite, r.id, patch);
+}
+
+/**
+ * Les agents préférés de l'équipe, en ids de Twenty, les miens d'abord (23 nov. 2026, Jules : « dans Agent immobilier,
+ * les agents favoris en haut de la liste »). Une étoile sur un agent du CRM porte son id ; sur un agent de Klocka, son
+ * `twenty_id`, sinon sa ligne cherchée par ses adresses (une lecture, gardée ensuite).
+ */
+export async function favorisTwenty(email, { requete = null } = {}) {
+  const moi = bas(email);
+  const etoiles = Records.list('AgentPrefere').sort((a, b) => Number(b.par === moi) - Number(a.par === moi) || String(b.le).localeCompare(String(a.le)));
+  const ids = [];
+  const aChercher = [];
+  for (const e of etoiles) {
+    const c = String(e.cle || '');
+    if (c.startsWith('twenty:agentImmobilier:')) ids.push(c.slice(23));
+    else if (c.startsWith('agent:')) {
+      const a = Records.get('AgentImmo', c.slice(6));
+      if (a?.twenty_id) ids.push(a.twenty_id);
+      else if (a && (a.emails || []).length) { aChercher.push(a); ids.push(`agent:${a.id}`); }
+    }
+  }
+  if (aChercher.length) {
+    const appel = requete || (await import('../twenty.js')).requeteTwenty;
+    const mails = [...new Set(aChercher.flatMap((a) => (a.emails || []).map(bas)))].slice(0, 60);
+    const r = await appel('GET', `/${AGENTS}?limit=100&depth=0&filter=${encodeURIComponent(`eMail.primaryEmail[in]:[${mails.map((m) => JSON.stringify(m)).join(',')}]`)}`).catch(() => null);
+    for (const t of r?.data?.[AGENTS] || []) {
+      const a = agentPour(t, aChercher);
+      if (!a) continue;
+      retenirNomCrm('AgentImmo', a, t);
+      const i = ids.indexOf(`agent:${a.id}`);
+      if (i >= 0) ids[i] = t.id;
+    }
+  }
+  return [...new Set(ids.filter((x) => !x.startsWith('agent:')))];
 }
 
 /**

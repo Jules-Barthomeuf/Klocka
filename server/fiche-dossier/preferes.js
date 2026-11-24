@@ -15,7 +15,8 @@ export const preferesDe = (user) => Records.filter('AgentPrefere', { par: bas(us
 export function basculerPrefere(user, cle, { maintenant = new Date() } = {}) {
   const par = bas(user?.email);
   const c = String(cle || '');
-  if (!par || !c.startsWith('agent:')) return { ok: false, error: 'Une étoile se met sur un agent.' };
+  // Un agent du CRM sans fiche de Klocka (twenty:agentImmobilier:<id>) a aussi son étoile (23 nov. 2026).
+  if (!par || !/^(agent:|twenty:agentImmobilier:)[\w-]+$/.test(c)) return { ok: false, error: 'Une étoile se met sur un agent.' };
   const deja = Records.filter('AgentPrefere', { par, cle: c });
   if (deja.length) {
     for (const x of deja) Records.delete('AgentPrefere', x.id);

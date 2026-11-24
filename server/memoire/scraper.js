@@ -221,7 +221,12 @@ export async function lireBoite(email, deps = {}) {
 
 /** Un tour : chaque boîte autorisée et pas finie se lit (en fond), puis les fiches de la veille, puis Twenty. */
 export async function tour() {
-  if (enPause()) return { ignore: 'en pause' };
+  // La pause arrête la lecture des boîtes, pas Propriétés Klocka (24 nov. 2026, Jules : « les deux doivent être en
+  // synchronisation »).
+  if (enPause()) {
+    const klocka = await (await import('./twenty.js')).synchroniserKlocka({ max: 50 }).catch((e) => ({ erreur: e?.message || String(e) }));
+    return { ignore: 'en pause', twenty: { klocka } };
+  }
   const lancees = [];
   for (const a of await boitesAFaire()) {
     if (enLecture.has(String(a.email).toLowerCase())) continue;

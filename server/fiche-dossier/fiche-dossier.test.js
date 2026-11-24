@@ -55,7 +55,7 @@ test('la réponse du modèle est ramenée aux fiches liées, avec des ids, des d
   assert.deepEqual(p.actions.map((a) => a.genre), ['tache', 'whatsapp', 'tache'], 'un message prêt fait une action WhatsApp');
   assert.equal(p.actions[1].pour, 'Bilel');
   assert.equal(p.actions[2].echeance, null, 'une date qui n\'est pas ISO est laissée vide');
-  assert.deepEqual(p.actions[2].fiches, ['deal:d-cave'], 'sans lien, une action va sur les biens liés');
+  assert.deepEqual(p.actions[2].fiches, ['deal:d-cave', `agent:${agent.id}`], 'sans lien, une action va sur toutes les fiches liées, le bien et la personne (24 nov. 2026)');
   assert.equal(p.questions[0].fiche, 'deal:d-cave');
   assert.deepEqual(p.mentions.map((m) => m.texte), ['Comtesse du Barry'], 'une mention déjà liée, ou un collègue, n\'est pas reproposée');
   const ids = [...p.fiches.flatMap((f) => [f.id, ...f.elements.map((e) => e.id)]), ...p.actions.map((a) => a.id), ...p.questions.map((q) => q.id)];
@@ -636,4 +636,54 @@ test('Une note écrite sur la fiche, onglet Notes : gardée telle quelle, sans l
   const n = M.ficheVue(cle).notes.find((x) => x.id === r.note.id);
   assert.equal(n.rangee, false);
   assert.equal(n.par, 'Maxime');
+});
+
+test('Retirer un dossier de la fiche d\'un agent : par la note (sans action), ou d\'une croix ; un dossier de la plateforme ne revient pas ; Annuler relie', async () => {
+  const ag = Records.create('AgentImmo', { nom: 'Alexis Testretrait', agence: 'Agence du Centre', ville: 'Toulouse' });
+  const cleAg = `agent:${ag.id}`;
+  Records.create('Deal', { deal_id: 'd-pau-r', nom: 'Dossier Pau', statut: 'analyse', lots: [] });
+  Records.create('Deal', { deal_id: 'd-tls-r', nom: 'Local Toulouse', statut: 'analyse', lots: [] });
+  // Un dossier que la plateforme rattache seule : son analyse nomme l'agent.
+  Records.create('Deal', { deal_id: 'd-naz-r', nom: 'Basic Fit Nazelles', statut: 'analyse', lots: [{ evaluation: { lignes: [{ constat: 'transmis par Alexis Testretrait' }] } }] });
+  const lienAg = M.lienPropre({ cle: cleAg });
+  const premiere = await proposer({ texte: 'Alexis nous a envoyé Pau et Toulouse.', liens: [lienAg, M.lienPropre({ cle: 'deal:d-pau-r' }), M.lienPropre({ cle: 'deal:d-tls-r' })] }, maxime, { maintenant, lire: async () => ({ nature: 'note', titre: 'Dossiers d\'Alexis', fiches: [], actions: [], questions: [], mentions: [] }) });
+  M.rangerNote(Records.get('NoteDossier', premiere.note_id), {}, maxime, { maintenant: () => maintenant });
+  assert.deepEqual(M.lieesDe(cleAg).map((l) => l.cle).sort(), ['deal:d-naz-r', 'deal:d-pau-r', 'deal:d-tls-r']);
+
+  // La note qui demande de retirer : la consigne nomme les dossiers liés, la réponse les retire, l'action en double tombe.
+  const deja = (await import('./ranger.js')).rattaches([lienAg]);
+  const refs = Object.fromEntries(deja.map((d) => [d.nom, d.ref]));
+  assert.match(consigne('Enlève Pau', [lienAg], maxime, { maintenant, deja }), /déjà liés à cette fiche : .*D\d+ dossier « Dossier Pau »/);
+  const n = await proposer({ texte: 'Il ne nous a pas envoyé Pau ni Basic Fit Nazelles, enlève-les de la fiche d\'Alexis.', liens: [lienAg] }, maxime, { maintenant, lire: async () => ({
+    nature: 'note', titre: 'Retrait de deux dossiers',
+    fiches: [{ lien: 'L1', elements: [], retirer: [refs['Dossier Pau'], refs['Basic Fit Nazelles'], 'D99'] }],
+    actions: [{ titre: 'Retirer de la fiche d\'Alexis les dossiers de Pau et Basic Fit Nazelles', qui: 'moi' }], questions: [], mentions: [],
+  }) });
+  assert.deepEqual(n.proposition.retraits.map((r) => r.nom).sort(), ['Basic Fit Nazelles', 'Dossier Pau']);
+  assert.equal(n.proposition.actions.length, 0);
+  const r = M.rangerNote(Records.get('NoteDossier', n.note_id), {}, maxime, { maintenant: () => maintenant });
+  assert.equal(r.retraits, 2);
+  assert.deepEqual(M.lieesDe(cleAg).map((l) => l.cle), ['deal:d-tls-r']);
+  assert.ok(!M.lieesDe('deal:d-pau-r').some((l) => l.cle === cleAg));
+  assert.ok(!M.ficheVue('deal:d-naz-r').carte.agents.some((a) => a.cle === cleAg));
+  assert.ok(!M.ficheVue(cleAg).journal.some((j) => /Retrait/.test(j.titre || '')));
+  M.annulerNote(Records.get('NoteDossier', n.note_id), maxime);
+  assert.equal(M.lieesDe(cleAg).length, 3);
+
+  // La croix : délié des deux côtés, puis relié tel qu'il était.
+  const d = M.delier(cleAg, 'deal:d-tls-r');
+  assert.equal(d.ok, true);
+  assert.ok(!M.lieesDe(cleAg).some((l) => l.cle === 'deal:d-tls-r'));
+  assert.ok(!M.lieesDe('deal:d-tls-r').some((l) => l.cle === cleAg));
+  M.relier(d.avant);
+  assert.ok(M.lieesDe(cleAg).some((l) => l.cle === 'deal:d-tls-r'));
+  assert.ok(M.lieesDe('deal:d-tls-r').some((l) => l.cle === cleAg));
+});
+
+test('Une étoile se pose sur un agent du CRM sans fiche de Klocka, et se retire', async () => {
+  const P = await import('./preferes.js');
+  const qui = { email: 'etoile.crm@klocka.immo' };
+  assert.deepEqual(P.basculerPrefere(qui, 'twenty:agentImmobilier:322d7040-c63c-4af8-83cd-f393a1a0f2c4'), { ok: true, etoile: true });
+  assert.deepEqual(P.basculerPrefere(qui, 'twenty:agentImmobilier:322d7040-c63c-4af8-83cd-f393a1a0f2c4'), { ok: true, etoile: false });
+  assert.equal(P.basculerPrefere(qui, 'twenty:clients:abc').ok, false);
 });

@@ -166,9 +166,17 @@ async function synchroniserKlockaVraiment({ max }) {
   if (!p.ok) return { ignore: true, raison: p.raison };
   const { T } = p;
   // Les annonces lues dans Equimmox (17 nov. 2026) restent dans la Mémoire : ni Propriétés, ni chiffres des agents.
-  const aPoser = () => Records.list(ENTITE).filter((b) => b.origine !== 'equimmox' && (b.twenty_klocka_essais || 0) < ESSAIS_KLOCKA && (!b.twenty_klocka_le || String(b.maj_le || '') > String(b.twenty_klocka_le)));
+  const aPoser = () => Records.list(ENTITE).filter((b) => b.origine !== 'equimmox' && !b.supprime_le && (b.twenty_klocka_essais || 0) < ESSAIS_KLOCKA && (!b.twenty_klocka_le || String(b.maj_le || '') > String(b.twenty_klocka_le)));
+  // Une fiche retirée de la Mémoire quitte aussi Propriétés Klocka (24 nov. 2026, Jules : « les deux doivent être en
+  // synchronisation ») : à la corbeille de Twenty, récupérable.
+  let retires = 0;
+  for (const b of Records.list(ENTITE).filter((x) => x.supprime_le && x.twenty_klocka_id).slice(0, max)) {
+    try { await T.supprimer(KLOCKA, b.twenty_klocka_id); } catch (e) { if (e?.status !== 404) { console.warn(`[mémoire] Propriétés Klocka, retrait ${b.id} :`, e?.message || e); continue; } }
+    Records.update(ENTITE, b.id, { twenty_klocka_id: null, twenty_klocka_retire_le: new Date().toISOString() });
+    retires += 1;
+  }
   const lot = aPoser().slice(0, max);
-  if (!lot.length) return { poses: 0, restants: 0 };
+  if (!lot.length) return { poses: 0, retires, restants: 0 };
   const lignes = new Map();
   for (const l of await T.lister(KLOCKA)) { const c = cleLigneKlocka(l); if (c && !lignes.has(c)) lignes.set(c, l); }
   const { apresEcriture } = await import('../crm/membres.js');
@@ -195,7 +203,69 @@ async function synchroniserKlockaVraiment({ max }) {
       console.warn(`[mémoire] Propriétés Klocka ${b.id} :`, e?.message || e);
     }
   }
-  return { poses, restants: aPoser().length };
+  return { poses, retires, restants: aPoser().length };
+}
+
+// ---------------------------------------------------------------------------
+// Propriétés Klocka → Mémoire (24 nov. 2026, Jules : « les deux doivent être en synchronisation »). Un geste de
+// l'équipe dans Twenty (le webhook porte son workspaceMemberId ; les écritures de Klocka n'en ont pas) revient dans la
+// Mémoire : une ligne créée dans le groupe Mémoire y devient une fiche, une ligne liée modifiée change sa fiche, une
+// ligne supprimée retire sa fiche de la Mémoire (gardée en base, comme tout retrait de la Mémoire).
+// ---------------------------------------------------------------------------
+
+const nombreOuNul = (x) => { const n = Number(x?.amountMicros != null ? x.amountMicros / 1e6 : x); return Number.isFinite(n) && n > 0 ? n : null; };
+const texteOuNul = (x) => (x == null ? null : String(x).trim() || null);
+
+/** Pure : ce qu'une ligne de Propriétés Klocka dit d'un bien, aux noms de la Mémoire ; seulement les champs donnés. */
+export function bienDepuisLigne(ligne, champs = null) {
+  const l = ligne || {};
+  const a = l.adresse || {};
+  const rue = texteOuNul(String(a.addressStreet1 || '').split(',')[0]);
+  const ville = texteOuNul(a.addressCity);
+  const cp = texteOuNul(a.addressPostcode);
+  const [locNom, ...locAct] = String(l.activiteLocataire || '').split(' · ');
+  const tout = {
+    adresse: { adresse: { rue, ville, code_postal: cp }, ville, code_postal: cp, cle_adresse: normaliserAdresse({ rue, ville, code_postal: cp }).cle },
+    loyer: { loyer_annuel: nombreOuNul(l.loyer) },
+    prix: { prix: nombreOuNul(l.prix) },
+    m: { surface_m2: nombreOuNul(l.m) },
+    activiteLocataire: locAct.length ? { locataire_nom: texteOuNul(locNom), locataire_activite: texteOuNul(locAct.join(' · ')) } : { locataire_activite: texteOuNul(locNom) },
+    date: l.date ? { recu_le: jourIso(l.date) || String(l.date).slice(0, 10) } : {},
+    name: { objet_mail: texteOuNul(l.name)?.slice(0, 200) || null },
+  };
+  const garder = champs?.length ? champs.filter((c) => tout[c]) : Object.keys(tout);
+  return Object.assign({}, ...garder.map((c) => tout[c]));
+}
+
+/** Le webhook de Twenty pour Propriétés Klocka. Rend ce qui a été fait, pour le journal du webhook. */
+export function depuisTwenty(ev) {
+  const [objet, geste] = String(ev?.eventName || '').split('.');
+  if (objet !== 'proprietesKlocka') return null;
+  if (!ev.workspaceMemberId) return { ignore: 'écrit par Klocka' };
+  const r = ev.record || {};
+  if (!r.id) return { ignore: 'sans id' };
+  const bien = Records.findBy(ENTITE, 'twenty_klocka_id', r.id);
+  const le = new Date().toISOString();
+  // La Mémoire changée depuis Twenty ne repart pas vers Twenty : sa date de pose suit sa date de changement.
+  const suivi = { maj_le: le, twenty_klocka_le: le, twenty_klocka_essais: 0 };
+  if (geste === 'deleted' || geste === 'destroyed') {
+    if (!bien || bien.supprime_le) return { ignore: 'aucune fiche liée' };
+    Records.update(ENTITE, bien.id, { supprime_le: le, supprime_par: 'Twenty CRM', twenty_klocka_id: null, twenty_klocka_retire_le: le });
+    return { retire: bien.id };
+  }
+  if (geste === 'updated' && bien) {
+    const champs = (ev.updatedFields || []).filter((c) => c !== 'deplacerVers');
+    const patch = bienDepuisLigne(r, champs.length ? champs : null);
+    if (!Object.keys(patch).length) return { ignore: 'rien qui touche la Mémoire' };
+    Records.update(ENTITE, bien.id, { ...patch, ...suivi });
+    return { modifie: bien.id };
+  }
+  // Une ligne née (ou passée) dans le groupe Mémoire sans fiche : la fiche naît dans la Mémoire.
+  if ((geste === 'created' || geste === 'updated') && !bien && r.groupe === 'MEMOIRE') {
+    const b = Records.create(ENTITE, { ...bienDepuisLigne(r), recu_le: jourIso(r.date) || le.slice(0, 10), origine: 'crm', statut: 'memoire', agent: { nom: texteOuNul(r.agentImmobilier) }, twenty_klocka_id: r.id, ...suivi });
+    return { cree: b.id };
+  }
+  return { ignore: 'hors du groupe Mémoire' };
 }
 
 /**

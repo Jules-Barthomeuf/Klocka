@@ -23,8 +23,10 @@ const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { d
 const ORIGINES = { suppression: "dossier supprimé", abandon: "dossier abandonné", dossier: "dossier en cours", veille: "veille des boîtes", scraper: "lecture des boîtes", transfert: "transfert à sourcing@", equimmox: "annonce Equimmox" };
 
 export default function MemoireKlocka() {
-  const [recherche, setRecherche] = useState("");
-  const [q, setQ] = useState("");
+  // Ouverte depuis la fiche d'un agent (« Fiches envoyées », 24 nov. 2026) : la recherche arrive dans l'adresse.
+  const depart = (() => { try { return new URLSearchParams(window.location.search).get("q") || ""; } catch { return ""; } })();
+  const [recherche, setRecherche] = useState(depart);
+  const [q, setQ] = useState(depart);
   const [page, setPage] = useState(1);
   // Les fiches reçues d'abord, les annonces Equimmox ensuite ; ou l'un des deux seul (18 nov. 2026, Jules).
   const [type, setType] = useState("");
@@ -32,6 +34,14 @@ export default function MemoireKlocka() {
   const { data, isLoading } = useQuery({ queryKey: ["memoire", q, type], queryFn: () => base44.request("GET", `${API}?q=${encodeURIComponent(q)}&limite=500${type ? `&type=${type}` : ""}`), placeholderData: (a) => a });
   const biens = data?.biens || [];
   const affiches = biens.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
+  // Supprimer une fiche (24 nov. 2026, Jules) : un premier clic demande « Supprimer ? », le second supprime.
+  const queryClient = useQueryClient();
+  const [aConfirmer, setAConfirmer] = useState(null);
+  const supprimer = useMutation({
+    mutationFn: (id) => base44.request("DELETE", `${API}/${encodeURIComponent(id)}`),
+    onSuccess: () => { setAConfirmer(null); queryClient.invalidateQueries({ queryKey: ["memoire"] }); toast.success("Fiche supprimée de la Mémoire"); },
+    onError: (e) => toast.error(e?.message || "Suppression refusée"),
+  });
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-[22px] md:px-8">
@@ -56,10 +66,10 @@ export default function MemoireKlocka() {
       ) : (
         <div className={`mt-3 ${CLASSE_TABLEAU}`}>
           <table className={`${CLASSE_TABLE} min-w-[1200px]`}>
-            <colgroup>{[84, 180, 130, 96, 80, 56, 190, 150, 130, 84, 110, 72].map((l, i) => <col key={i} style={{ width: l }} />)}</colgroup>
+            <colgroup>{[84, 180, 130, 96, 80, 56, 190, 150, 130, 84, 110, 72, 104].map((l, i) => <col key={i} style={{ width: l }} />)}</colgroup>
             <thead>
               <tr>
-                {["Reçue", "Adresse", "Ville", "Loyer / an", "Prix", "m²", "Locataire", "Agent", "Agence", "Boîte", "Origine", ""].map((t, i) => (
+                {["Reçue", "Adresse", "Ville", "Loyer / an", "Prix", "m²", "Locataire", "Agent", "Agence", "Boîte", "Origine", "", ""].map((t, i) => (
                   <th key={i} className={CLASSE_TH}>{t}</th>
                 ))}
               </tr>
@@ -76,11 +86,21 @@ export default function MemoireKlocka() {
                   <td className={CLASSE_TD}>{[b.locataire_nom, b.locataire_activite].filter(Boolean).join(" · ")}</td>
                   <td className={CLASSE_TD} title={b.agent_email || ""}>{b.agent?.nom || b.agent_email || ""}</td>
                   <td className={CLASSE_TD}>{b.agent?.agence || ""}</td>
-                  <td className={CLASSE_TD}>{(b.compte || "").split("@")[0]}</td>
+                  <td className={CLASSE_TD}>{(b.par_qui || b.compte || "").split("@")[0]}</td>
                   <td className={CLASSE_TD}>{b.statut === "dossier" ? "dossier en cours" : ORIGINES[b.origine] || b.origine}</td>
                   <td className={CLASSE_TD}>
                     {b.fiche?.url && <a href={b.fiche.url} target="_blank" rel="noreferrer" className="text-[13px] text-menthe hover:text-menthe-survol">Fiche</a>}
                     {b.deal_id && b.statut === "dossier" && <Link to={`/Dossiers?dossier=${encodeURIComponent(b.deal_id)}`} className="ml-3 text-[13px] text-menthe hover:text-menthe-survol">Dossier</Link>}
+                  </td>
+                  <td className={CLASSE_TD}>
+                    {aConfirmer === b.id ? (
+                      <span className="inline-flex items-center gap-2">
+                        <button type="button" disabled={supprimer.isPending} onClick={() => supprimer.mutate(b.id)} className="p-0 text-[13px] text-alerte hover:underline disabled:opacity-50" style={{ background: "transparent" }}>Supprimer ?</button>
+                        <button type="button" onClick={() => setAConfirmer(null)} className="p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Non</button>
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => setAConfirmer(b.id)} className="p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Supprimer</button>
+                    )}
                   </td>
                 </tr>
               ))}

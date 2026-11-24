@@ -26,7 +26,7 @@ import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospe
 // AK propose qui a appelé (trois candidats au plus) ; une fois l'agent
 // confirmé, c'est l'écran d'un appel sortant : « Compris : … », les actions
 // cochées, Valider, le reçu relu. Les notes font foi sur la transcription.
-// Un rappel pas terminé reste dans le bandeau « Rappel à terminer ».
+// Un rappel pas terminé n'a plus de bandeau à l'écran (24 nov. 2026, Jules) : il se reprend depuis son lien.
 
 const API = "/api/prospection/rappels";
 const MA = "/api/prospection/mode-appel";
@@ -205,7 +205,6 @@ export default function RappelEntrant() {
     const t = setTimeout(() => dicteeNote.arreter(), 30000);
     return () => clearTimeout(t);
   }, [dicteeNote.ecoute]);
-  const enCours = useQuery({ queryKey: ["rappels-en-cours"], queryFn: () => base44.request("GET", `${API}/en-cours`), refetchInterval: 60_000, enabled: !ouvert });
 
   // --- L'enregistrement : des morceaux de huit secondes, transcrits pendant l'appel ---------------
   const transcrire = async (x) => {
@@ -521,7 +520,6 @@ export default function RappelEntrant() {
     onError: (e) => toast.error(e?.message || "Rappel introuvable"),
   });
 
-  const enAttente = (enCours.data?.rappels || [])[0] || null;
   const notesChangees = rappel && rappel.notes_analysees != null && notes !== rappel.notes_analysees;
   const agent = rappel?.agent;
   const candidats = rappel?.candidats || [];
@@ -536,16 +534,9 @@ export default function RappelEntrant() {
   };
 
   // --- Rendu -----------------------------------------------------------------------------------------
-  const bandeau = !ouvert && enAttente && createPortal(
-    <div className="fixed bottom-[calc(16px+var(--k-bas-mobile,0px)+var(--k-bas-chat,0px))] left-1/2 z-[60] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-3 rounded-full border border-ambre/50 bg-surface-pleine px-4 py-2 shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:left-[calc(50%+var(--k-barre-largeur,0px)/2)]">
-      <PhoneIncoming className="h-4 w-4 flex-none text-ambre" />
-      <span className="min-w-0 truncate text-[14px] text-encre">Appel à terminer · {enAttente.agent || "agent à identifier"}</span>
-      <button type="button" onClick={() => reprendre.mutate(enAttente.id)} disabled={reprendre.isPending} className="h-8 flex-none rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">Reprendre</button>
-    </div>,
-    document.body,
-  );
-
-  if (!ouvert) return bandeau || null;
+  // Plus de bandeau « Appel à terminer · Reprendre » en bas des pages (24 nov. 2026, Jules : « la notification reprendre
+  // l'appel, enlève-la ») : un rappel pas terminé se reprend depuis son lien, rien ne le rappelle à l'écran.
+  if (!ouvert) return null;
   const IconeSens = SENS[sens].icone;
 
   const zoneNotes = (
@@ -592,7 +583,7 @@ export default function RappelEntrant() {
           </span>
           {ecran === "actions" && appel && <span className="ml-auto flex-none"><BoutonTranscription actif={voirTranscription} onClick={() => setVoirTranscription((x) => !x)} /></span>}
           {(sens === "raconte" || essai || ["essai", "choix"].includes(ecran) || (ecran !== "enregistrement" && ecran !== "transcription")) && (
-            <button type="button" onClick={fermer} aria-label="Fermer : le rappel reste à terminer" title="Plus tard : le rappel reste dans le bandeau" className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+            <button type="button" onClick={fermer} aria-label="Fermer : le rappel reste à terminer" title="Plus tard : le rappel reste à terminer" className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
           )}
         </div>)}
         {erreur && <p className="m-0 rounded-[14px] border border-ambre/40 px-4 py-2.5 text-[14px] text-ambre">{erreur}</p>}

@@ -1657,6 +1657,15 @@ if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
   setTimeout(() => import('./memoire/twenty.js').then((m) => m.reposerKlocka()).catch((e) => console.warn('[mémoire] Propriétés Klocka :', e?.message || e)), 6 * 60_000).unref?.();
 }
 
+// Le record de fiches reçues, compté dans la Mémoire (24 nov. 2026, Jules : « chaque dimanche, ça calcule si le record a
+// été battu ») : deux minutes après le démarrage (la dernière semaine finie, si elle n'est pas vérifiée), puis chaque
+// heure ; il ne compte vraiment que le dimanche soir à partir de 22 h et une fois par semaine (server/memoire/record-memoire.js).
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
+  const record = () => import('./memoire/record-memoire.js').then((m) => m.verifierRecord()).catch((e) => console.warn('[record] :', e?.message || e));
+  setTimeout(record, 2 * 60_000).unref?.();
+  setInterval(record, 3600_000).unref?.();
+}
+
 // Le compte rendu des transferts traités avant qu'il existe, ou pendant un redémarrage (23 nov. 2026, Jules : « il faut
 // que ça fasse le truc pour le dernier mail ») : une minute après le démarrage, les 48 dernières heures.
 if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {

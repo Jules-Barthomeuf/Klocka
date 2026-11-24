@@ -41,8 +41,9 @@ test('peutDecider : le responsable, Jules partout, le Commun à tout admin, jama
   assert.equal(F.peutDecider(paul, c), true);
   assert.equal(F.peutDecider(client, c), false);
   // La notification est posée pour la personne, une seule fois.
-  assert.equal(Records.list('Notification').filter((n) => n.cle === `haka:${p.id}`).length, 1);
-  assert.equal(Records.list('Notification').find((n) => n.cle === `haka:${p.id}`).pour, 'nora@test.local');
+  // La question est dans la file de Nora ; plus de notification (23 nov. 2026 : la cloche n'a plus d'écran).
+  assert.equal(p.pour, 'nora@test.local');
+  assert.equal(Records.list('Notification').filter((n) => n.cle === `haka:${p.id}`).length, 0);
 });
 
 test('lister et compter : moi, commun, tout', async () => {

@@ -54,6 +54,7 @@ import AgentProjet from "@/components/projet/AgentProjet";
 import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackSurvol from "@/components/FeedbackSurvol";
 import RecordEquipe from "@/components/RecordEquipe";
+import PopupTransfert from "@/components/haka/PopupTransfert";
 import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
 import FondHalo from "@/components/projet/FondHalo";
@@ -776,6 +777,8 @@ function LayoutContent({ children, currentPageName }) {
           {boutonRappel && <div className="k-flottant-haut fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
           {/* Une fiche commerciale arrivée : « je la rentre ? Oui / Non », en fenêtre, d'elle-même (20 oct. 2026, Jules). */}
           <PopupFicheRecue />
+          {/* Le compte rendu d'un transfert à sourcing@ (23 nov. 2026, Jules) : un clic ouvre sa conversation, la croix le range dans À faire. */}
+          <PopupTransfert />
           {/* Le record de l'équipe (22 nov. 2026, Jules) : aux admins, une fois par semaine à la première ouverture. */}
           <RecordEquipe />
         </>

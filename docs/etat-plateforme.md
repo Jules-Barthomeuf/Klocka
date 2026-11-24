@@ -1,17 +1,17 @@
 # État de la plateforme
 
-Écrit le 23/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 24/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-5 personnes, 4 267 pages ouvertes, 0 demandes à l'assistant, 16 actions exécutées.
+5 personnes, 4 323 pages ouvertes, 0 demandes à l'assistant, 19 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 467 | 0 | 16 | 23/11/2026 |
-| admin.stress@test.local (équipe) | 472 | 0 | 0 | 23/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 465 | 0 | 17 | 24/11/2026 |
+| admin.stress@test.local (équipe) | 530 | 0 | 2 | 24/11/2026 |
 | test.mandataire@kpartners.fr | 182 | 0 | 0 | 14/11/2026 |
 | admin@klocka.local (équipe) | 141 | 0 | 0 | 18/11/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
@@ -20,32 +20,32 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **MandataireBiens** — 986 (23 %)
-- **Analyse** — 795 (19 %)
-- **CrmTwenty** — 430 (10 %)
-- **Dashboard** — 364 (9 %)
-- **Prospection** — 320 (7 %)
-- **MandataireProspection** — 223 (5 %)
-- **AdminProjets** — 191 (4 %)
-- **Personnalisation** — 132 (3 %)
-- **Home** — 69 (2 %)
+- **MandataireBiens** — 974 (23 %)
+- **Analyse** — 796 (18 %)
+- **CrmTwenty** — 447 (10 %)
+- **Dashboard** — 401 (9 %)
+- **Prospection** — 322 (7 %)
+- **MandataireProspection** — 198 (5 %)
+- **AdminProjets** — 192 (4 %)
+- **Personnalisation** — 128 (3 %)
+- **Home** — 84 (2 %)
 - **MandatsMandataires** — 66 (2 %)
 - **SimulateurRentabilite** — 60 (1 %)
-- **Outils** — 43 (1 %)
-- Le reste, sous 1 % : KVacance, PlancheAnalyse, MandataireTableauDeBord, Statistiques, MandataireClients, AdminUtilisateurs, KData, Monitoring, AdminModeles, KPatrimoine, Offres, MandataireDocuments, Emailing, PlancheVerre, ProjetDetail, Cerveau, SuiviActivite, KTransactions, KZoning, public, AdminSuggestions, KExpertise, SimulateurPublic, MandataireProjets, KProspective, Tokimo, SuiviAppels, KFoncier, MemoireKlocka, AccesPages, PlancheMarche, KEstimation, MandataireDossier, AdminClients, AdminMandataires, AdminAccesCrm, tokimo, AdminPresentations, Semaine, MandataireMarche, MandataireEstimation, PlancheVacance, PlancheLocataire, ValeurLocative, SuiviAudience, DepotVendeur, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, Automatismes, AdminBanque, MandataireOffMarket, SuiviCorrections, SignerBon, klocka.immo, SuiviMandataires, MesProjets, AdminEquipe, Feedback, NotreOffre
+- **Statistiques** — 53 (1 %)
+- Le reste, sous 1 % : Outils, KVacance, PlancheAnalyse, MandataireTableauDeBord, AdminUtilisateurs, KData, MandataireClients, Monitoring, AdminModeles, Offres, KPatrimoine, MandataireDocuments, Emailing, PlancheVerre, ProjetDetail, Cerveau, SuiviActivite, KTransactions, KZoning, public, MemoireKlocka, AdminSuggestions, KExpertise, SimulateurPublic, MandataireProjets, KProspective, Tokimo, SuiviAppels, KFoncier, AccesPages, PlancheMarche, KEstimation, MandataireDossier, AdminClients, AdminMandataires, AdminAccesCrm, tokimo, AdminPresentations, Semaine, MandataireMarche, MandataireEstimation, PlancheVacance, PlancheLocataire, ValeurLocative, SuiviAudience, DepotVendeur, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, Automatismes, AdminBanque, MandataireOffMarket, SuiviCorrections, SignerBon, klocka.immo, SuiviMandataires, MesProjets, AdminEquipe, Feedback, NotreOffre
 
 ## Ce que l'IA coûte
 
-460,66 € sur la période, 5 432 appels, 229 286 k jetons. 94 % part en tâche de fond, sans que personne clique. 4 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+461,07 € sur la période, 5 442 appels, 229 315 k jetons. 94 % part en tâche de fond, sans que personne clique. 4 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,09 € par appel | 2 437 | 429,35 € | — |
+| Non attribué (fond) | 0,09 € par appel | 2 439 | 429,47 € | — |
 | Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 372 | 12,91 € | 18 s |
 | Lire le site d'une agence (et le trouver s'il manque) | 0,0061 € par agence | 894 | 6,23 € | 4 s |
-| Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 19 | 2,22 € | 24 s |
+| Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 22 | 2,46 € | 21 s |
 | Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
-| Ranger une note sur les fiches | 0,02 € par note | 62 | 1,22 € | 6 s |
+| Ranger une note sur les fiches | 0,02 € par note | 65 | 1,27 € | 6 s |
 | Extraire un document déposé | 0,02 € par document | 6 | 0,23 € | 17 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Résumer une agence avant l'appel | 0,0012 € par agence | 163 | 0,19 € | 2 s |
@@ -68,14 +68,14 @@ Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf pl
 
 ## AK, l'assistant dans le chat
 
-19 demandes, 2.41 € en tout soit 0.127 € la demande.
+22 demandes, 2.68 € en tout soit 0.122 € la demande.
 
-16 actions : 10 réussies, 0 questions posées (il manquait une information), 0 doublons évités, 6 vraiment ratées.
+19 actions : 13 réussies, 0 questions posées (il manquait une information), 0 doublons évités, 6 vraiment ratées.
 Les ratées, à corriger : chercher_photos_projet ×2 · data_b ×1 · prix_murs_equimmox ×1 · loyers_equimmox ×1 · analyser_fiche ×1.
-Repris par l'équipe : 1 correction (« non, pas ça »), 0 compliment, soit 5.3 % des demandes corrigées. C'est le chiffre à faire baisser.
+Repris par l'équipe : 2 corrections (« non, pas ça »), 0 compliment, soit 9.1 % des demandes corrigées. C'est le chiffre à faire baisser.
 
-Ce qu'il a fait : chercher_photos_projet ×4 · noter_bien ×2 · donnees_commune ×2 · modifier_projet ×2 · noter_engagement ×1 · noter_appel ×1 · data_b ×1 · prix_murs_equimmox ×1.
-Pour qui : Jules 16.
+Ce qu'il a fait : chercher_photos_projet ×4 · corriger_transfert ×3 · noter_bien ×2 · donnees_commune ×2 · modifier_projet ×2 · noter_engagement ×1 · noter_appel ×1 · data_b ×1.
+Pour qui : Jules 17 · Admin 2.
 
 ## Ce qu'il faut en retenir
 

@@ -5,6 +5,8 @@ import { base44 } from "@/api/base44Client";
 import { Bulle, Cadre, axe, couleursDouces, useCouleurs } from "@/components/monitoring/GraphesAppels";
 import Chargement from "@/components/ui/Chargement";
 
+const DEBUT_COURBE = "2026-11-16";
+
 // Le haut de la page Statistiques, à droite (20 nov. 2026, Jules ; refait le 22 nov. d'après sa maquette) : quatre chiffres
 // avec leur écart à la période d'avant et une petite série, puis les fiches reçues semaine par semaine en courbes, pour
 // toute l'équipe ou une personne. Les fiches : server/prospection/fiches-par-analyste.js ; les mois : server/statistiques.js.
@@ -56,7 +58,8 @@ export default function ApercuStatistiques({ jours }) {
   const actuel = choix.find(([k]) => k === qui) || choix[0];
   const tous = actuel[0] === "tous";
   const couleur = actuel[2];
-  const semaines = d.semaines.map((s) => ({
+  // La courbe part du lundi 16 novembre 2026 (23 nov. 2026, Jules : « ça doit commencer à partir de là »).
+  const semaines = d.semaines.filter((s) => s.semaine >= DEBUT_COURBE).map((s) => ({
     semaine: s.semaine,
     fiches: tous ? s.fiches : s.fiches_par_analyste?.[actuel[0]] || 0,
     dossiers: tous ? s.dossiers || 0 : s.dossiers_par_analyste?.[actuel[0]] || 0,
@@ -73,12 +76,23 @@ export default function ApercuStatistiques({ jours }) {
   return (
     <div className="k-monte flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Tuile valeur={d.total.fiches} avant={d.precedent?.fiches ?? 0} libelle="Fiches reçues" aide={`${d.total.envois ? `Reçues en ${pluriel(d.total.envois, "mail ou dépôt", "mails ou dépôts")} ; c` : "C"}omparé aux ${jours} jours d'avant`}
-          barres={huit.map((s) => ({ nom: `Semaine du ${jourCourt(s.semaine)}`, v: s.fiches }))} />
-        <Tuile valeur={d.total.dossiers || 0} avant={d.precedent?.dossiers ?? 0} libelle="Dossiers étudiés" aide={`${pour100(d.total.dossiers || 0, d.total.fiches) ?? 0} pour 100 fiches reçues`}
-          barres={huit.map((s) => ({ nom: `Semaine du ${jourCourt(s.semaine)}`, v: s.dossiers || 0 }))} />
-        <Tuile valeur={m.ce_mois.projets} avant={m.mois_dernier?.projets ?? 0} libelle="Projets entrés ce mois-ci" aide="Comparé au mois dernier" barres={deuxMois("projets")} />
-        <Tuile valeur={m.ce_mois.offres} avant={m.mois_dernier?.offres ?? 0} libelle="Offres faites ce mois-ci" aide="Comparé au mois dernier" barres={deuxMois("offres")} />
+        {/* Fiches reçues (24 nov. 2026, Jules) : toute l'équipe, comptées dans la Mémoire depuis le lundi de la semaine ;
+            une fiche supprimée de la Mémoire en sort. Comparé à la semaine d'avant au même jour. */}
+        <Tuile valeur={d.memoire?.fiches ?? d.total.fiches} avant={d.memoire?.avant ?? d.precedent?.fiches ?? 0} libelle="Fiches reçues cette semaine"
+          aide={d.memoire ? `Depuis le lundi ${jourCourt(d.memoire.depuis)}, dans la Mémoire ; comparé à la semaine dernière au même jour` : `Comparé aux ${jours} jours d'avant`}
+          barres={(d.memoire?.semaines || huit).map((s) => ({ nom: `Semaine du ${jourCourt(s.semaine)}`, v: s.fiches }))} />
+        {/* Dossiers étudiés (24 nov. 2026, Jules) : les nouveaux dossiers créés depuis le lundi, toute l'équipe ; un
+            dossier rouvert ne compte pas deux fois. Comparé à la semaine dernière au même jour. */}
+        <Tuile valeur={d.dossiers_semaine?.dossiers ?? d.total.dossiers ?? 0} avant={d.dossiers_semaine?.avant ?? d.precedent?.dossiers ?? 0} libelle="Dossiers étudiés cette semaine"
+          aide={d.dossiers_semaine ? `Nouveaux dossiers depuis le lundi ${jourCourt(d.dossiers_semaine.depuis)} ; comparé à la semaine dernière au même jour` : `${pour100(d.total.dossiers || 0, d.total.fiches) ?? 0} pour 100 fiches reçues`}
+          barres={(d.dossiers_semaine?.semaines || huit).map((s) => ({ nom: `Semaine du ${jourCourt(s.semaine)}`, v: s.dossiers || 0 }))} />
+        {/* Projets entrés et offres faites (24 nov. 2026, Jules) : les projets créés et les LOI rédigées depuis le lundi. */}
+        <Tuile valeur={d.projets_semaine?.n ?? m.ce_mois.projets} avant={d.projets_semaine?.avant ?? m.mois_dernier?.projets ?? 0} libelle="Projets entrés cette semaine"
+          aide={d.projets_semaine ? `Les projets créés depuis le lundi ${jourCourt(d.projets_semaine.depuis)} ; comparé à la semaine dernière au même jour` : "Comparé au mois dernier"}
+          barres={d.projets_semaine ? d.projets_semaine.semaines.map((x) => ({ nom: `Semaine du ${jourCourt(x.semaine)}`, v: x.n })) : deuxMois("projets")} />
+        <Tuile valeur={d.offres_semaine?.n ?? m.ce_mois.offres} avant={d.offres_semaine?.avant ?? m.mois_dernier?.offres ?? 0} libelle="Offres faites cette semaine"
+          aide={d.offres_semaine ? `Les LOI rédigées depuis le lundi ${jourCourt(d.offres_semaine.depuis)} ; comparé à la semaine dernière au même jour` : "Comparé au mois dernier"}
+          barres={d.offres_semaine ? d.offres_semaine.semaines.map((x) => ({ nom: `Semaine du ${jourCourt(x.semaine)}`, v: x.n })) : deuxMois("offres")} />
       </div>
 
       <Cadre titre="Fiches reçues, semaine par semaine"

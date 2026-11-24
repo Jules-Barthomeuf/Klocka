@@ -5,6 +5,7 @@ import ApercuStatistiques from "@/components/monitoring/ApercuStatistiques";
 import MesStatistiques from "@/components/monitoring/MesStatistiques";
 import { couleursDouces, useCouleurs } from "@/components/monitoring/GraphesAppels";
 import { CarteRecordPage } from "@/components/RecordEquipe";
+import AgentsFavoris from "@/components/monitoring/AgentsFavoris";
 import { Filtres, TitrePage } from "@/components/mandataire/elements";
 import { useUser } from "@/components/providers/UserProvider";
 
@@ -21,7 +22,8 @@ import { useUser } from "@/components/providers/UserProvider";
 const PERIODES = [[7, "7 jours"], [30, "30 jours"], [90, "90 jours"], [365, "Un an"]];
 
 export default function Statistiques() {
-  const [jours, setJours] = useState(30);
+  // Sept jours d'office (24 nov. 2026, Jules : « on doit arriver sur le mode 7 jours directement »).
+  const [jours, setJours] = useState(7);
   const c = useCouleurs();
   const user = useUser();
   const { data } = useQuery({ queryKey: ["fiches-analystes", jours], queryFn: () => base44.request("GET", `/api/monitoring/fiches-analystes?jours=${jours}`), placeholderData: (prev) => prev, staleTime: 30_000 });
@@ -40,6 +42,8 @@ export default function Statistiques() {
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
           <div className="flex flex-col gap-4">
             <CarteRecordPage r={data?.record_analyste} />
+            {/* Sous le record, les agents étoilés par l'équipe (24 nov. 2026, Jules). */}
+            <AgentsFavoris jours={jours} teintes={teintes} />
           </div>
           <div className="flex min-w-0 flex-col gap-6">
             <ApercuStatistiques jours={jours} />

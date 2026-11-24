@@ -139,7 +139,8 @@ test('le plafond du jour : la fiche de trop attend demain, Jules est prévenu un
   assert.ok(tache.apres > new Date().toISOString());
   assert.equal(Records.get('MailRecu', mail.id).deal_id, undefined, 'rien n\'est créé');
   const jour = new Date().toISOString().slice(0, 10);
-  assert.equal(Records.list('Notification').filter((n) => n.cle === `haka:plafond:${jour}`).length, 1);
+  // Le plafond se lit dans le journal ; plus de notification (23 nov. 2026 : technique).
+  assert.equal(Records.list('Notification').filter((n) => n.cle === `haka:plafond:${jour}`).length, 0);
 });
 
 test('surReleve : la même fiche relevée deux fois ne fait qu\'une tâche', async () => {

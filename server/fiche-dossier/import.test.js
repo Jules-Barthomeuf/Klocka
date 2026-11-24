@@ -186,3 +186,14 @@ test('une étape écrite en phrase garde l\'étape habituelle, le reste passe da
   assert.equal(p.fiches[0].etape, 'Compromis');
   assert.equal(p.fiches[0].etat, "en attente de l'accord de la banque");
 });
+
+test("24 nov. 2026 : un rappel d'une note liée à un bien et à un agent va sur les deux fiches", async () => {
+  const { normaliser } = await import('./ranger.js');
+  const liens = [{ cle: 'deal:d-nice', genre: 'bien', nom: 'Local de Nice' }, { cle: 'agent:a-paul', genre: 'agent', nom: 'Paul Durand' }];
+  // Rien de dit par le modèle : toutes les fiches liées.
+  const a = normaliser({ actions: [{ titre: 'Rappeler Paul Durand', genre: 'appel', echeance: '2026-11-28' }] }, liens);
+  assert.deepEqual(a.actions[0].fiches.sort(), ['agent:a-paul', 'deal:d-nice']);
+  // Le modèle ne dit que le bien : la personne rappelée s'ajoute.
+  const b = normaliser({ actions: [{ titre: 'Rappeler Paul pour le bail', pour: 'Paul', liens: ['L1'] }] }, liens);
+  assert.deepEqual(b.actions[0].fiches.sort(), ['agent:a-paul', 'deal:d-nice']);
+});

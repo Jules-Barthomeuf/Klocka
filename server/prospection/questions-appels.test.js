@@ -166,13 +166,14 @@ test('Jules voit les questions posées aux autres, en lecture seule, sans en êt
   const q = Records.list('QuestionAppel').find((x) => x.appel_id === b.id);
   assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel-jules:${q.id}`)).length, 0);
   assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel:${q.id}`) && n.pour === 'jules.b@klocka.immo').length, 0);
-  assert.match(Records.list('Notification').find((n) => String(n.cle).startsWith(`question-appel:${q.id}`)).titre, /^L'Assistant Klocka a une question/);
+  // Plus de notification des questions sur les appels (23 nov. 2026, Jules) : la question attend sur le Dashboard.
+  assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel:${q.id}`)).length, 0);
   // Les siennes ne lui sont pas annoncées deux fois.
   const c = appel({ par: 'jules.b@klocka.immo', modifie: true, corrections: [{ champ: 'Mail', avant: 'proposé', apres: 'réécrit' }], le: il_y_a(130) });
   await Q.tour({ invoke: async () => ({ resume: 'r', questions: [] }), maintenant: T0 });
   const qc = Records.list('QuestionAppel').find((x) => x.appel_id === c.id);
   assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel-jules:${qc.id}`)).length, 0);
-  assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel:${qc.id}`) && n.pour === 'jules.b@klocka.immo').length, 1);
+  assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel:${qc.id}`) && n.pour === 'jules.b@klocka.immo').length, 0);
 });
 
 test('la rédaction ne pose pas de nouvelle question sur un cas déjà répondu', async () => {
@@ -194,16 +195,16 @@ test('relecture du 16 oct. : annonce quel que soit le chemin, réannonce d\'un m
   const q = Records.list('QuestionAppel').find((x) => x.appel_id === a.id);
   assert.ok((await Q.annoncer()) >= 1);
   const pour = (n) => Records.list('Notification').filter((x) => String(x.cle).startsWith(`question-appel:${q.id}:`) && x.pour === n).length;
-  assert.equal(pour(NORA), 1);
+  assert.equal(pour(NORA), 0, 'annoncée sans notification (23 nov. 2026)');
   assert.equal(Records.list('Notification').filter((x) => String(x.cle).startsWith(`question-appel-jules:${q.id}:`)).length, 0);
   await Q.annoncer();
-  assert.equal(pour(NORA), 1);
+  assert.equal(pour(NORA), 0, 'annoncée sans notification (23 nov. 2026)');
   // Validé une heure plus tard : « pas validé » s'efface, « validation longue » arrive ; même nombre de motifs, réannoncée.
   Records.update('AppelAgent', a.id, { etat: 'valide', temps: { valide_ms: 3600000 } });
   Q.surveiller({ maintenant: T0 });
   assert.deepEqual(Records.get('QuestionAppel', q.id).motifs, ['trop_long']);
   await Q.annoncer();
-  assert.equal(pour(NORA), 2);
+  assert.equal(pour(NORA), 0);
   // Jules ne répond pas à la place de Nora.
   assert.equal(Q.repondre(q.id, { email: 'jules.b@klocka.immo' }, [{ id: Records.get('QuestionAppel', q.id).questions[0].id, texte: 'x' }]).ok, false);
   // Deux rédactions lancées ensemble : un seul appel au modèle.

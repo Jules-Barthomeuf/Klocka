@@ -83,3 +83,24 @@ test('tous les agents rattachés prennent le nom de Twenty, sans clic', async ()
   assert.equal(Records.get('AgentImmo', autre.id).nom_crm, undefined);
   assert.equal((await nommerDepuisTwenty({ lister: async (p) => lignes[p] })).agents, 0);
 });
+
+test('les agents préférés en ids de Twenty, les miens d\'abord ; un agent de Klocka retrouvé par son adresse (23 nov. 2026)', async () => {
+  const { Records } = await import('../db.js');
+  const { favorisTwenty } = await import('./klocka.js');
+  const { basculerPrefere } = await import('../fiche-dossier/preferes.js');
+  const lie = Records.create('AgentImmo', { nom: 'Léa Roux', twenty_id: 'tw-lea' });
+  const aTrouver = Records.create('AgentImmo', { nom: 'Marc Petit', emails: ['marc@agence.fr'] });
+  const moi = { email: 'moi@klocka.immo' };
+  const collegue = { email: 'nora@klocka.immo' };
+  assert.equal(basculerPrefere(collegue, `agent:${lie.id}`, { maintenant: new Date('2026-11-20') }).ok, true);
+  assert.equal(basculerPrefere(moi, 'twenty:agentImmobilier:tw-alexis', { maintenant: new Date('2026-11-21') }).ok, true);
+  assert.equal(basculerPrefere(moi, `agent:${aTrouver.id}`, { maintenant: new Date('2026-11-22') }).ok, true);
+  assert.equal(basculerPrefere(moi, 'projet:1').ok, false);
+  let appels = 0;
+  const requete = async (m, chemin) => { appels++; assert.match(decodeURIComponent(chemin), /eMail\.primaryEmail\[in\]:\["marc@agence\.fr"\]/); return { data: { agentImmobilierListe: [{ id: 'tw-marc', name: 'Marc PETIT', eMail: { primaryEmail: 'marc@agence.fr' } }] } }; };
+  assert.deepEqual(await favorisTwenty('moi@klocka.immo', { requete }), ['tw-marc', 'tw-alexis', 'tw-lea']);
+  assert.equal(Records.get('AgentImmo', aTrouver.id).twenty_id, 'tw-marc');
+  // Retrouvé une fois, il n'est plus cherché.
+  assert.deepEqual(await favorisTwenty('nora@klocka.immo', { requete }), ['tw-lea', 'tw-marc', 'tw-alexis']);
+  assert.equal(appels, 1);
+});

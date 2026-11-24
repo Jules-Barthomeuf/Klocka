@@ -134,6 +134,19 @@ export function enregistrerConversation(user, { id = null, messages = [], espace
   return { ok: true, id: c.id, titre: c.metadata?.titre || titreDe(propres) };
 }
 
+/**
+ * Une conversation que l'assistant ouvre lui-même (23 nov. 2026 : le compte rendu d'un transfert à sourcing@), avec son
+ * titre : elle n'attend pas de message de la personne pour exister dans l'Historique.
+ */
+export function ouvrirConversationAssistant(user, { titre, messages = [], espace = null } = {}) {
+  const propres = serialisables(messages);
+  if (!propres.length) return { ok: false, error: 'Rien à garder.' };
+  const c = Conversations.create({ agent_name: agentDe(espace), metadata: { utilisateur: proprietaire(user), titre: String(titre || titreDe(propres)).slice(0, 80), renommee: true } });
+  for (const vieille of miennes(user, espace).filter((x) => x.id !== c.id && !x.metadata?.bien).slice(MAX_CONVERSATIONS - 1)) Conversations.delete(vieille.id);
+  Conversations.setMessages(c.id, propres);
+  return { ok: true, id: c.id };
+}
+
 export function supprimerConversation(user, id, { espace = null } = {}) {
   const c = Conversations.get(id);
   if (!c || c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user)) return { ok: false, error: 'Conversation introuvable.' };

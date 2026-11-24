@@ -68,6 +68,44 @@ export function normEmail(v) {
   return m[0];
 }
 
+/** Pure : la distance d'édition entre deux mots (lettres ajoutées, retirées ou changées). */
+export function distanceEdition(a, b) {
+  const d = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i += 1) {
+    let prec = d[0];
+    d[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const t = d[j];
+      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prec + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prec = t;
+    }
+  }
+  return d[b.length];
+}
+
+/**
+ * Pure : l'adresse mail qu'on a voulu dire (24 nov. 2026, Jules dicte « contact@gence tiret du 6 » et l'assistant
+ * prend « contact@gence-du-6 » telle quelle). Une adresse complète reste ; une adresse sans domaine complet prend
+ * l'adresse connue (carnet, agence, équipe) qui lui ressemble à quelques lettres près ; sinon null, jamais une
+ * adresse qui ne peut pas partir.
+ */
+export function adresseEntendue(dite, connues = []) {
+  const brut = String(dite || '').trim();
+  if (!brut) return null;
+  const sure = normEmail(brut);
+  // Une adresse complète au domaine courant reste telle quelle (« paul@agence.fr » n'est pas « paule@agence.fr »).
+  if (sure && /\.(fr|com|net|org|immo|eu|io|co|biz|info|be|ch|mc|lu|it|es|de|uk|re|pro|paris|nice)$/.test(sure)) return sure;
+  const plats = (x) => { const t = String(x).toLowerCase(); return [t.replace(/[^a-z0-9]/g, ''), t.replace(/\.[a-z]{2,}$/, '').replace(/[^a-z0-9]/g, '')]; };
+  const dits = plats(brut.replace(/\s*(tiret|trait d'union)\s*/gi, '-').replace(/\s*arobase\s*/gi, '@'));
+  if (dits[1].length < 5) return sure;
+  let mieux = null;
+  for (const c of [...new Set(connues.map(normEmail).filter(Boolean))]) {
+    const k = Math.min(...plats(c).flatMap((x) => dits.map((d) => distanceEdition(x, d))));
+    if (k <= Math.max(2, Math.round(dits[1].length * 0.2)) && (!mieux || k < mieux.k)) mieux = { c, k };
+  }
+  return mieux?.c || sure || null;
+}
+
 /** Pure : un téléphone réduit à ses neuf derniers chiffres (06 51… et +33 6 51… se rejoignent), ou null. */
 export function normTel(v) {
   const chiffres = String(v || '').split(/[,;/]/)[0].replace(/\D/g, '');

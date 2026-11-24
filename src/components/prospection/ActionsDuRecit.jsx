@@ -76,6 +76,8 @@ export default function ActionsDuRecit({ rappelId }) {
       </div>
     );
   }
+  // Refaite plus bas avec une précision (24 nov. 2026) : ses actions disparaissent, une ligne le dit.
+  if (rappel.etat === "remplace") return <p className="m-0 mt-4 text-[13px] text-ardoise">Note refaite plus bas avec la précision.</p>;
   if (rappel.rien_de_nouveau) return null;
   if (!appel) return null;
   return (

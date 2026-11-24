@@ -80,3 +80,43 @@ test("un rappel raconté retrouve l'agent dans Twenty CRM à l'orthographe près
   assert.equal(trouverDansMonday({ nom: 'arthur duranson' }, lignes).ligne?.id, 'a');
   assert.equal(trouverDansMonday({ telephone: '06 09 76 09 20' }, lignes).ligne?.id, 'a');
 });
+
+// Une précision dans le chat (24 nov. 2026, Jules : « je te dis qu'il vient de me rappeler, j'ai déjà envoyé un mail »,
+// dicté avec « contact@gence tiret du 6 ») : la note refaite, l'adresse lue comme la connue, le mail parti décoché.
+test("une adresse dictée incomplète prend l'adresse connue qui lui ressemble, sinon aucune", async () => {
+  const R = await import('./regles.js');
+  assert.equal(R.adresseEntendue('contact@gence-du-6', ['contact@agence-du-6.fr', 'autre@x.fr']), 'contact@agence-du-6.fr');
+  assert.equal(R.adresseEntendue('contact@gence tiret du 6', ['contact@agence-du-6.fr']), 'contact@agence-du-6.fr');
+  assert.equal(R.adresseEntendue('contact@gence-du-6', ['jean@foncia.fr']), null);
+  assert.equal(R.adresseEntendue('Paul@Agence.fr', []), 'paul@agence.fr');
+  assert.equal(R.adresseEntendue('info@locopro-immo.entreprise', ['info@locopro-immo-entreprise.com']), 'info@locopro-immo-entreprise.com');
+  assert.equal(R.adresseEntendue('paul@agence.fr', ['paule@agence.fr']), 'paul@agence.fr');
+});
+
+test("un mail déjà parti se reconnaît dans le récit ; un mail demandé non", async () => {
+  const { mailEnvoyeDans } = await import('./mode-appel.js');
+  assert.equal(mailEnvoyeDans("il vient de me rappeler donc j'ai déjà envoyé un mail"), true);
+  assert.equal(mailEnvoyeDans("j'ai laissé un mail à l'adresse contact@agence.fr"), true);
+  assert.equal(mailEnvoyeDans('mail envoyé ce matin'), true);
+  assert.equal(mailEnvoyeDans('il veut un mail, voici son adresse'), false);
+});
+
+test("une précision sur l'échange noté juste avant refait sa note : l'ancienne est retirée", async () => {
+  const RP = await import('./rappels.js');
+  const { Records } = await import('../db.js');
+  const user = { email: 'analyste@klocka.immo', role: 'admin' };
+  assert.equal(RP.recitPrecise('Il va me rappeler.', "Il vient de me rappeler, j'ai déjà envoyé un mail."), "Il va me rappeler.\n\nPrécision donnée ensuite, qui l'emporte sur ce qui la contredit : Il vient de me rappeler, j'ai déjà envoyé un mail.");
+  assert.equal(RP.recitPrecise('Il va me rappeler.', 'Il va me rappeler. Et il a deux fiches.'), 'Il va me rappeler. Et il a deux fiches.');
+  const agent = Records.create('AgentImmo', { nom: 'Agent Rouge', agence: 'Le Rouge et le Noir', telephones: [], emails: [] });
+  const appel = Records.create('AppelAgent', { agent_id: agent.id, etat: 'a_valider', par: user.email });
+  const vieux = Records.create('RappelEntrant', { par: user.email, sens: 'raconte', etat: 'identifie', agent_id: agent.id, appel_id: appel.id, debut: new Date(Date.now() - 3600000).toISOString(), notes: 'x' });
+  const ancien = Records.create('RappelEntrant', { par: user.email, sens: 'raconte', etat: 'identifie', agent_id: agent.id, appel_id: appel.id, debut: new Date().toISOString(), notes: 'Il va me rappeler.' });
+  assert.equal(RP.recitRecent(user)?.id, ancien.id);
+  assert.equal(RP.recitRecent({ email: 'autre@klocka.immo' }), null);
+  const nouveau = Records.create('RappelEntrant', { par: user.email, sens: 'raconte', etat: 'identifie', agent_id: agent.id, debut: new Date().toISOString(), notes: '' });
+  assert.equal(RP.remplacerRecit(ancien.id, nouveau.id, user).ok, true);
+  assert.equal(RP.lire(ancien.id, user).rappel.etat, 'remplace');
+  assert.equal(RP.lire(ancien.id, user).rappel.remplace_par, nouveau.id);
+  assert.equal(Records.get('AppelAgent', appel.id).etat, 'remplace');
+  assert.equal(Records.get('RappelEntrant', vieux.id).etat, 'identifie');
+});

@@ -768,9 +768,14 @@ const contactSur = (compris, corrige = {}) => {
   // (13 oct. 2026, Jules) : il s'affiche dans la case Contact, corrigeable avant de valider.
   return c?.valeur ? String(c.valeur).split(/[,·(]/)[0].replace(/^(madame|monsieur|mme|m\.)\s+/i, '').trim() || null : null;
 };
+/** Pure : la note dit qu'un mail est déjà parti (« j'ai déjà envoyé un mail », « mail envoyé ce matin »). */
+export const mailEnvoyeDans = (texte) => /\b(j'?\s?ai|on a|je lui ai|nous avons)\s+(d[ée]j[àa]\s+)?(envoy[ée]|laiss[ée]|écrit|transmis|fait)\s+(un|le|mon|son|notre)\s+(e-?mail|mail|courriel)|\b(e-?mail|mail|courriel)\s+(d[ée]j[àa]\s+)?(envoy[ée]|parti)/i.test(String(texte || ''));
+
 const valeurSure = (compris, cle, corrige = {}) => {
   if (corrige[cle] != null) return String(corrige[cle]).trim() || null;
   const c = compris?.champs?.[cle];
+  // Une adresse mal entendue (« contact@gence-du-6 ») n'est pas sûre : elle n'entre ni dans Twenty CRM ni dans le mail.
+  if (cle === 'email') return c && !c.incertain ? R.normEmail(c.valeur) : null;
   return c && !c.incertain ? c.valeur : null;
 };
 
@@ -780,6 +785,9 @@ export const marquerEssai = (d) => ({ ...d, agence: /^\(Essai\)/.test(d.agence |
 /** Ce que la ligne Monday doit recevoir pour cet appel. */
 export function donneesMonday({ appel, agence, fiche, issue, user, relance, note = '', corrige = {}, email = null, diffusion = null }) {
   const compris = appel.compris || {};
+  // L'adresse dite, lue comme celle qu'on a voulu dire parmi les connues ; une correction à l'écran l'emporte.
+  const emailDit = corrige.email != null ? valeurSure(compris, 'email', corrige)
+    : compris.champs?.email && !compris.champs.email.incertain ? R.adresseEntendue(compris.champs.email.valeur, [email, ...(fiche?.emails || []), agence.email]) : null;
   const ville = Records.get(LISTE, agence.liste_id)?.ville || fiche?.ville || null;
   const resumeAppel = [appel.resume && !/^(pas de réponse|pas de bien|a un bien|pas intéressé)[^:]*\.$/i.test(appel.resume) ? appel.resume : null, note ? `Note : ${note}` : null].filter(Boolean).join(' ');
   return {
@@ -790,7 +798,7 @@ export function donneesMonday({ appel, agence, fiche, issue, user, relance, note
     relance: issue === 'pas_interesse' ? null : relance || null,
     telephone: valeurSure(compris, 'telephone', corrige) || appel.numero || numeroDe(agence),
     // L'adresse dite pendant l'appel, sinon celle à qui part le mail ou qui entre dans la liste.
-    email: valeurSure(compris, 'email', corrige) || R.normEmail(email),
+    email: emailDit || R.normEmail(email),
     analyste_email: String(user?.email || '').toLowerCase() || null,
     analyste_nom: prenom(user?.email) || null,
     diffusion,
@@ -799,7 +807,7 @@ export function donneesMonday({ appel, agence, fiche, issue, user, relance, note
     dernier_contact: R.jourDe(new Date(appel.le || Date.now())),
     // Un rappel entrant (13 oct. 2026, Jules) : celui qui rappelle n'est pas toujours celui qu'on avait
     // appelé. Son nom, son numéro et son email, sûrs (entendus ou notés), remplacent ceux de la ligne.
-    ...(appel.rappel_entrant ? { remplacer: { contact: contactSur(compris, corrige), telephone: compris.champs?.telephone?.appele && corrige.telephone == null ? null : valeurSure(compris, 'telephone', corrige), email: valeurSure(compris, 'email', corrige) } } : {}),
+    ...(appel.rappel_entrant ? { remplacer: { contact: contactSur(compris, corrige), telephone: compris.champs?.telephone?.appele && corrige.telephone == null ? null : valeurSure(compris, 'telephone', corrige), email: emailDit } } : {}),
   };
 }
 
@@ -942,7 +950,12 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const decalee = relance0 ? await auRetour(relance0.prochaine) : null;
   const relance = relance0 && decalee ? { ...relance0, prochaine: decalee.prochaine, ...(decalee.note ? { pourquoi: [relance0.pourquoi, decalee.note].filter(Boolean).join('\n\n'), parce_que: decalee.note } : {}) } : relance0;
   const appelPourMonday = { ...lu.appel, compris, rappel_entrant: !!entrant, numero: numero || numeroDe(a) };
-  const emailPrevu = valeurSure(compris, 'email') || (f?.emails || [])[0] || a.email || null;
+  // L'adresse dictée, lue comme celle qu'on a voulu dire (24 nov. 2026) : complète, ou l'adresse connue du carnet, de
+  // l'agence ou de son équipe qui lui ressemble ; une adresse incomplète sans ressemblance n'est jamais proposée.
+  const emailDite = compris.champs?.email?.valeur || null;
+  const emailLu = R.adresseEntendue(emailDite, [...(f?.emails || []), a.email, ...(a.agents || []).map((x) => x.email)]);
+  const emailSur = valeurSure(compris, 'email') ? emailLu : emailLu && emailLu !== R.normEmail(emailDite) ? emailLu : null;
+  const emailPrevu = emailSur || (f?.emails || [])[0] || a.email || null;
   const d0 = donneesMonday({ appel: appelPourMonday, agence: a, fiche: f, issue, user, relance: relance?.prochaine?.le || null, email: emailPrevu, diffusion: issue === 'pas_interesse' ? false : null });
   const d = ecrireEssai ? marquerEssai(d0) : d0;
   // Les sans-réponse restent dans la plateforme : pas de ligne Monday.
@@ -965,9 +978,11 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // Toujours à l'écran (21 oct. 2026, Jules : « on n'envoie pas de mail, ça met quand même Email, mais décoché ») : sans
   // mail prévu pour l'issue, le mail de présentation est là, décoché ; l'analyste le coche s'il le veut.
   const choixModele = choixPropose || { defaut: 'presentation-cahier' };
-  const emailSur = valeurSure(compris, 'email');
-  const emailIncertain = !emailSur && compris.champs?.email ? compris.champs.email.valeur : null;
+  const emailIncertain = !emailSur && emailLu ? emailLu : null;
   const destinataire = emailSur || (f?.emails || [])[0] || a.email || emailIncertain || null;
+  const adresseMalEntendue = emailDite && !R.normEmail(emailDite) ? { dite: emailDite, lue: emailLu || null } : null;
+  // Le mail déjà parti (« j'ai déjà envoyé un mail », 24 nov. 2026) : proposé, décoché.
+  const mailDejaParti = mailEnvoyeDans(notes);
   if (choixModele) {
     const vars = { analyste, salutation: compris.salutation || 'Bonjour,', contexte: compris.contexte || null, type_bien: compris.bien?.type || null, ville: compris.bien?.ville || null };
     const variantes = [];
@@ -983,7 +998,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
     }
     if (variantes.length) {
       const m = variantes[0];
-      actions.push({ id: 'mail', type: 'mail', titre: 'Email', depuis: await expediteurDe(moi), a: destinataire, ...(destinataire && destinataire === emailIncertain ? { a_incertain: compris.champs.email.incertain } : {}), objet: m.objet, corps: m.corps, contexte: m.contexte, modele: m.slug, variantes, coche: !!choixPropose && !!destinataire, prevu: !!choixPropose });
+      actions.push({ id: 'mail', type: 'mail', titre: 'Email', depuis: await expediteurDe(moi), a: destinataire, ...(destinataire && destinataire === emailIncertain ? { a_incertain: compris.champs.email.incertain } : {}), objet: m.objet, corps: m.corps, contexte: m.contexte, modele: m.slug, variantes, coche: !!choixPropose && !!destinataire && !mailDejaParti, prevu: !!choixPropose && !mailDejaParti, ...(adresseMalEntendue ? { adresse_dite: adresseMalEntendue } : {}), ...(mailDejaParti ? { deja_parti: true } : {}) });
     }
     // « Ajouter à la liste de diffusion agents » n'est plus proposé (16 nov. 2026, Jules) ; ajouterALaDiffusion reste.
     if (variantes.length && choixPropose) etape(destinataire ? `Je prépare l'email pour ${destinataire}` : 'Je prépare l\'email (il manque son adresse)');

@@ -1000,6 +1000,9 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     let agenceId = input.agence_id || null;
     let ligneId = input.ligne_twenty_id || null;
     const qui = [input.agent, input.agence].filter(Boolean).join(' ').trim();
+    // Une précision sur l'échange noté juste avant (24 nov. 2026) : le même agent, la même note refaite.
+    const precedent = RP.recitRecent(user);
+    if (!id && !agenceId && !ligneId && !qui && precedent) { id = precedent.agent_id; agenceId = precedent.agence_id || null; }
     if (!id && !agenceId && !ligneId) {
       if (!qui) return { ok: false, a_preciser: true, note: "Qui a appelé ? Demande-le en une question (son nom et son agence), sans rien noter d'autre." };
       const trouves = input.agent ? P.trouver(P.agents(), input.agent) : [];
@@ -1027,14 +1030,30 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     if (!r.ok) return r;
     const i = await RP.identifier(r.rappel.id, { agent_id: id, agence_id: agenceId, monday_ligne_id: ligneId }, user);
     if (!i.ok) return i;
-    const a = await RP.analyser(r.rappel.id, {}, user);
+    // Le même agent que l'échange noté juste avant : le récit est refait avec la précision, l'ancienne note retirée.
+    const refait = !!precedent && precedent.id !== r.rappel.id && i.rappel.agent?.id === precedent.agent_id;
+    if (refait) RP.noter(r.rappel.id, RP.recitPrecise(precedent.notes, input.recit), user);
+    const a = await RP.analyser(r.rappel.id, refait ? { remplace: precedent.appel_id } : {}, user);
     if (!a.ok) return a;
+    if (refait) RP.remplacerRecit(precedent.id, r.rappel.id, user);
     const agent = i.rappel.agent?.nom || input.agent || null;
     if (a.rien_de_nouveau) return { ok: true, echange_id: r.rappel.id, agent, rien_de_nouveau: true, note: "Rien d'exploitable dans le récit : demande ce qui s'est dit, en une question." };
+    const pm = (a.appel?.propositions || []).find((p) => p.type === 'mail');
+    const surMail = !pm ? null
+      : pm.deja_parti ? 'Le mail est déjà parti : il reste dans les actions, décoché.'
+        : pm.adresse_dite?.lue ? `L'adresse dictée « ${pm.adresse_dite.dite} » est lue comme ${pm.adresse_dite.lue}, l'adresse connue de l'agence : dis-le en quelques mots, sans poser de question.`
+          : pm.adresse_dite ? `L'adresse dictée « ${pm.adresse_dite.dite} » est incomplète et ne ressemble à aucune adresse connue de l'agence : demande-la en une question courte.`
+            : !pm.a && pm.prevu ? "Son adresse mail manque : demande-la en une question courte." : null;
     return {
       ok: true, echange_id: r.rappel.id, agent, agence: i.rappel.agent?.agence || i.rappel.agence?.nom || null, compris: a.appel?.resume || null,
       avertissements: (i.rappel.avertissements || []).map((x) => x.texte),
-      note: "Les actions de cet échange (contact Twenty CRM, mail « Suite à notre échange », relance) s'affichent sous ta réponse, à cocher puis valider : ne prépare aucun mail toi-même et ne donne pas de lien. Dis en une ou deux phrases ce que tu as compris, et pose une question seulement si un point manque (adresse mail, date).",
+      ...(refait ? { refait: true } : {}),
+      note: [
+        refait ? "Cette note refait celle de l'échange précédent avec la précision : les actions de l'ancienne sont retirées d'elles-mêmes, seules celles sous ta réponse comptent. Ne dis pas de ne pas valider l'ancienne, ne t'excuse pas." : null,
+        "Les actions de cet échange (contact Twenty CRM, mail « Suite à notre échange », relance) s'affichent sous ta réponse, à cocher puis valider : ne prépare aucun mail toi-même et ne donne pas de lien. Dis en une ou deux phrases ce que tu as compris.",
+        surMail,
+        "Ne pose pas d'autre question : ce qui a été dit suffit pour noter l'échange.",
+      ].filter(Boolean).join(' '),
     };
   }
   if (name === 'noter_bien') {
@@ -1839,7 +1858,7 @@ LE MARCHÉ, DATA-B ET K-DATA
 
 LA PROSPECTION ET L'OFF-MARKET (ALX)
 - Une note d'appel dictée ou collée dans le chat (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi ») : note_d_appel avec la note telle quelle ; elle met la fiche Twenty CRM de l'agent à jour. Une ligne pour dire ce qui est fait.
-- Un agent qui a rappelé, raconté ou dicté (« Martin de chez Foncia m'a rappelé, il a deux murs à Antibes, il veut un mail, voici son adresse ») : noter_appel, comme un appel sortant ; ses actions (Twenty CRM, mail, relance) s'affichent sous ta réponse, à valider. Pas de preparer_mail pour cet échange. Appelle noter_appel d'abord, même pour un nom inconnu : s'il ne reconnaît pas l'agent ou en trouve plusieurs, pose la question qu'il te donne, sans ajouter l'agent au carnet avant la réponse.
+- Un agent qui a rappelé, raconté ou dicté (« Martin de chez Foncia m'a rappelé, il a deux murs à Antibes, il veut un mail, voici son adresse ») : noter_appel, comme un appel sortant ; ses actions (Twenty CRM, mail, relance) s'affichent sous ta réponse, à valider. Pas de preparer_mail pour cet échange. Appelle noter_appel d'abord, même pour un nom inconnu : s'il ne reconnaît pas l'agent ou en trouve plusieurs, pose la question qu'il te donne, sans ajouter l'agent au carnet avant la réponse. Une précision ou une correction sur l'échange que tu viens de noter (« non, il vient de me rappeler », « j'ai déjà envoyé le mail », une adresse redonnée) : noter_appel encore, avec le même agent et la précision ; la note est refaite à la place de l'ancienne. Une dictée se lit pour ce qu'elle veut dire (« contact@gence tiret du 6 » : contact@agence-du-6…) ; pas d'excuses, pas de longues explications. Jamais d'accord au masculin ou au féminin sur la personne qui te parle (« vous a rappelée ») : tourne la phrase sur l'agent (« l'agent a rappelé »).
 - Ce qu'on sait d'un bien précis et qui n'entre pas dans l'analyse (ce que l'agent en a dit, l'historique de la vente, une info du vendeur ou du locataire) : trouver_bien, puis noter_bien sur le dossier, ou le projet s'il n'a pas de dossier ; dans le chat d'un dossier, sur ce dossier. Une ligne pour dire où c'est noté. Les notes d'un bien reviennent dans son état (notes_equipe) : sers-t'en pour répondre sur ce bien.
 - « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Ce qu'un agent a dit, raconté (« j'ai eu Rosario, pas de murs, mandat fin octobre », ou un échange sans téléphone : « Martin m'a écrit que… ») : noter_appel avec le récit dans ses mots, le nom de l'agent et son agence ; les actions s'affichent sous ta réponse, sans lien à donner. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
 - « Prospecte Cannes » : lancer_alx ; le code poste les points d'étape et le bilan. « Qui détient le plus de murs ? », « les SCI de la rue X » : alx_societes, une ligne par société (nom, murs, gérant, mail ou pas). « Montre-moi les messages », « le suivant », « celui de la SCI X » : alx_message, le message est posté par le code ; une retouche : alx_message avec objet et corps réécrits. Il part sur le « envoie » de la personne. Un appel au gérant raconté : alx_appel.

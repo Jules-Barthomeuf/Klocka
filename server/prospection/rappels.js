@@ -274,19 +274,7 @@ ${String(note || '').slice(0, 2000)}`,
 // Les traits d'union séparent les mots : « Roche-Baron » au carnet, « Roche Baron » dicté (21 oct. 2026).
 const motsDe = (s) => R.norm(s).replace(/-/g, ' ').split(' ').filter((m) => m.length >= 3 && !MOTS_VIDES.has(m));
 /** Pure : la distance d'édition entre deux mots (lettres ajoutées, retirées ou changées). */
-function distance(a, b) {
-  const d = Array.from({ length: b.length + 1 }, (_, j) => j);
-  for (let i = 1; i <= a.length; i += 1) {
-    let prec = d[0];
-    d[0] = i;
-    for (let j = 1; j <= b.length; j += 1) {
-      const t = d[j];
-      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prec + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prec = t;
-    }
-  }
-  return d[b.length];
-}
+const distance = R.distanceEdition;
 const colle = (s) => R.norm(s).replace(/[^a-z]/g, '');
 
 /**
@@ -525,7 +513,7 @@ function vue(r) {
   return {
     id: r.id, etat: r.etat, sens: sensDe(r.sens), essai: !!r.essai, debut: r.debut, fin: r.fin || null, duree_s: r.duree_s || null,
     notes: r.notes || '', notes_analysees: r.notes_analysees ?? null, transcription: r.transcription || null, transcription_echec: r.transcription_echec || null,
-    candidats: r.candidats || [], appel_id: r.appel_id || null, rien_de_nouveau: !!r.rien_de_nouveau,
+    candidats: r.candidats || [], appel_id: r.appel_id || null, rien_de_nouveau: !!r.rien_de_nouveau, remplace_par: r.remplace_par || null,
     // La note vocale (21 oct. 2026) : ce qu'elle dit, ce qu'on en a lu, et le contact qu'elle remplit si personne ne correspond.
     note_vocale: r.note_vocale || null, qui_note: r.qui_note || null, nouveau_propose: r.nouveau_propose || null, identifie_par: r.identifie_par || null,
     agent: agent ? { id: agent.id, nom: agent.nom, agence: agent.agence || agence?.nom || null, telephone: (agent.telephones || [])[0] || null } : null,
@@ -834,6 +822,38 @@ export async function rienDeNouveau(id, user, { maintenantD = new Date() } = {})
   if (r.appel_id) { const a = Records.get(APPEL, r.appel_id); if (a?.etat === 'a_valider') Records.update(APPEL, a.id, { etat: 'remplace', remplace_par: appel.id }); }
   Records.update(ENTITE, id, { etat: 'valide', appel_id: appel.id, transcription: null, termine_le: iso });
   return { ok: true, texte: `${f.nom} : rien de nouveau, dernier contact aujourd'hui` };
+}
+
+/**
+ * L'échange raconté juste avant, pas encore validé (24 nov. 2026, Jules corrige dans le chat : « je te dis qu'il vient
+ * de me rappeler, j'ai déjà envoyé un mail », et l'assistant ajoutait une seconde note en disant de ne pas valider la
+ * première). Une précision sur le même agent dans la demi-heure refait cette note au lieu d'en ajouter une.
+ */
+export function recitRecent(user, { maintenantD = new Date(), minutes = 30 } = {}) {
+  const moi = moiDe(user);
+  const depuis = new Date(maintenantD.getTime() - minutes * 60000).toISOString();
+  return Records.list(ENTITE)
+    .filter((r) => r.par === moi && sensDe(r.sens) === 'raconte' && r.etat === 'identifie' && !r.essai && r.agent_id && String(r.debut || '') >= depuis
+      && r.appel_id && Records.get(APPEL, r.appel_id)?.etat === 'a_valider')
+    .sort((x, y) => String(y.debut).localeCompare(String(x.debut)))[0] || null;
+}
+
+/** Pure : le récit refait avec la précision, qui l'emporte sur ce qui la contredit. */
+export const recitPrecise = (ancien, precision) => {
+  const a = String(ancien || '').trim();
+  const p = String(precision || '').trim();
+  if (!a || a.includes(p)) return p || a;
+  if (p.includes(a)) return p;
+  return `${a}\n\nPrécision donnée ensuite, qui l'emporte sur ce qui la contredit : ${p}`.slice(0, 4000);
+};
+
+/** L'ancienne note d'un échange refait : retirée, elle renvoie à la nouvelle. */
+export function remplacerRecit(ancienId, nouveauId, user) {
+  const r = Records.get(ENTITE, ancienId);
+  if (!r || r.par !== moiDe(user) || !OUVERTS.includes(r.etat)) return { ok: false };
+  if (r.appel_id) { const a = Records.get(APPEL, r.appel_id); if (a?.etat === 'a_valider') Records.update(APPEL, a.id, { etat: 'remplace', remplace_par: Records.get(ENTITE, nouveauId)?.appel_id || null }); }
+  Records.update(ENTITE, ancienId, { etat: 'remplace', remplace_par: nouveauId, transcription: null, termine_le: maintenant() });
+  return { ok: true };
 }
 
 /** L'appel a été validé dans l'écran d'actions : le rappel est fini, sa transcription s'efface. */

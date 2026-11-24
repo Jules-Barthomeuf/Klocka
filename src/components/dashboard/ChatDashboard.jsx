@@ -1759,6 +1759,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
       const loiNeuve = (r.actions || []).find((a) => a.name === "rediger_loi" && a.resultat?.nouvelle && a.resultat?.loi_id)?.resultat.loi_id;
       if (loiNeuve && !/^\/(Offres|Dossiers)/i.test(window.location.pathname)) loiAOuvrir.current = loiNeuve;
       const recits = (r.actions || []).filter((a) => a.name === "noter_appel" && a.resultat?.ok && a.resultat?.echange_id && !a.resultat?.rien_de_nouveau).map((a) => a.resultat.echange_id);
+      // Une note refaite (une précision sur l'échange d'avant) : l'ancienne se relit et se retire d'elle-même.
+      if ((r.actions || []).some((a) => a.name === "noter_appel" && a.resultat?.refait)) queryClient.invalidateQueries({ queryKey: ["rappel-recit"] });
       const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r), ...(r.memoire ? { memoire: r.memoire } : {}), ...(recits.length ? { recits } : {}) };
       if (estimation) {
         pousser({

@@ -69,3 +69,14 @@ test("l'assistant, sur un rappel raconté : sans nom ou pour un agent inconnu, u
   assert.match(inconnu.note, /ajouter au carnet/);
   assert.equal(Records.list('RappelEntrant').length, avant);
 });
+
+test("un rappel raconté retrouve l'agent dans Twenty CRM à l'orthographe près (« Durançon » pour « Duranson »)", async () => {
+  const { trouverDansMonday } = await import('./rappels.js');
+  const lignes = [
+    { id: 'a', nom: 'Arthur Duranson', entreprise: 'HAPI IMMOBILIER', ville: 'Grenoble', telephone: '+33609760920', emails: [] },
+    { id: 'b', nom: 'Arthur Martin', entreprise: 'Autre', ville: 'Lyon', telephone: '', emails: [] },
+  ];
+  assert.equal(trouverDansMonday({ nom: 'Arthur Durançon' }, lignes).ligne?.id, 'a');
+  assert.equal(trouverDansMonday({ nom: 'arthur duranson' }, lignes).ligne?.id, 'a');
+  assert.equal(trouverDansMonday({ telephone: '06 09 76 09 20' }, lignes).ligne?.id, 'a');
+});

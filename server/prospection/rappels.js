@@ -369,6 +369,17 @@ async function ficheDeMonday(l) {
   return f.id;
 }
 
+/**
+ * La personne dite dans le chat de l'assistant, cherchée dans Twenty CRM (24 nov. 2026, Jules : « Arthur Durançon, c'est
+ * bien marqué dans le CRM ») : le nom à l'orthographe près, l'agence et la ville si elles sont dites, ou le numéro.
+ * Rend `{ ligne }` (une seule) ou `{ lignes }` (cinq au plus), avec le nom, l'agence et la ville de chacune.
+ */
+export async function chercherDansTwenty(qui) {
+  const m = trouverDansMonday(qui, await lignesMonday());
+  const vue = (l) => ({ ligne_twenty_id: l.id, nom: nomMonday(l), agence: l.entreprise || null, ville: l.ville || null, telephone: String(l.telephone || '').split(/[,;/]/)[0] || null });
+  return m.ligne ? { ligne: vue(m.ligne) } : { lignes: (m.lignes || []).map(vue) };
+}
+
 /** Les lignes Monday des agents, si Monday est branché ; une liste vide sinon (jamais d'erreur). */
 async function lignesMonday() {
   try {

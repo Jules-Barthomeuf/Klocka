@@ -709,9 +709,12 @@ const OUTILS_AK = [
         agence: { type: 'string', description: "son agence, si elle est dite" },
         agent_id: { type: 'string', description: "l'identifiant rendu par un appel précédent, quand on a précisé lequel" },
         agence_id: { type: 'string', description: "l'identifiant d'agence rendu par un appel précédent, quand on a précisé laquelle" },
+        ligne_twenty_id: { type: 'string', description: "l'identifiant de sa ligne Twenty CRM rendu par un appel précédent, quand on a précisé laquelle" },
+        ville: { type: 'string', description: "sa ville, si elle est dite" },
+        telephone: { type: 'string', description: "son numéro, s'il est dit" },
         recit: { type: 'string', description: "ce qui s'est passé pendant l'appel, avec les mots de la personne" },
       },
-      required: ['recit'],
+      required: [],
     },
   },
   // Les notes de l'équipe sur un bien (15 nov. 2026, Jules : « tout ça doit passer par le chat de l'assistant »).
@@ -990,8 +993,9 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const RP = await import('../prospection/rappels.js');
     let id = input.agent_id || null;
     let agenceId = input.agence_id || null;
+    let ligneId = input.ligne_twenty_id || null;
     const qui = [input.agent, input.agence].filter(Boolean).join(' ').trim();
-    if (!id && !agenceId) {
+    if (!id && !agenceId && !ligneId) {
       if (!qui) return { ok: false, a_preciser: true, note: "Qui a appelé ? Demande-le en une question (son nom et son agence), sans rien noter d'autre." };
       const trouves = input.agent ? P.trouver(P.agents(), input.agent) : [];
       if (trouves.length > 1) return { ok: false, plusieurs: true, candidats: trouves.slice(0, 5).map((a) => ({ agent_id: a.id, nom: a.nom, agence: a.agence, ville: a.ville, telephone: a.telephones?.[0] || null })), note: 'Plusieurs agents correspondent : demande lequel en une question (nom, agence, ville), puis rappelle noter_appel avec son agent_id.' };
@@ -1005,12 +1009,18 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
         const c = [...vus.values()];
         if (c.length > 1) return { ok: false, plusieurs: true, candidats: c.slice(0, 5).map((x) => ({ agent_id: x.agent_id, agence_id: x.agence_id, nom: x.nom, agence: x.agence, ville: x.ville, telephone: x.telephone })), note: 'Plusieurs agents ou agences correspondent : demande lequel en une question, puis rappelle noter_appel avec son agent_id ou son agence_id.' };
         if (c.length === 1) { id = c[0].agent_id; agenceId = c[0].agence_id; }
-        else return { ok: false, inconnu: true, note: `Ni le carnet ni les listes ne connaissent « ${qui} » : demande en une question son agence et sa ville, ou son numéro. Ou propose de l'ajouter au carnet comme nouveau contact, et attends sa réponse : n'appelle ni ajouter_prospect ni preparer_mail avant. Une fois ajouté (ajouter_prospect), rappelle noter_appel avec le même récit.` };
+        // Ni au carnet ni dans les listes : sa ligne dans Twenty CRM, le nom à l'orthographe près (« Duranson » pour
+        // « Durançon »), départagée par l'agence, la ville ou le numéro s'ils sont dits.
+        const tw = !id && !agenceId ? await RP.chercherDansTwenty({ nom: input.agent || null, agence: input.agence || null, ville: input.ville || null, telephone: input.telephone || (/^[\d\s+.]{8,}$/.test(String(input.agent || '')) ? input.agent : null) }) : null;
+        if (tw?.ligne) ligneId = tw.ligne.ligne_twenty_id;
+        else if (tw?.lignes?.length) return { ok: false, plusieurs: true, candidats: tw.lignes, note: "Plusieurs contacts de Twenty CRM correspondent : demande lequel en une question (nom, agence, ville), puis rappelle noter_appel avec son ligne_twenty_id." };
+        else if (!id && !agenceId) return { ok: false, inconnu: true, note: `Ni le carnet, ni les listes, ni Twenty CRM ne connaissent « ${qui} » : demande en une question son agence et sa ville, ou son numéro. Ou propose de l'ajouter au carnet comme nouveau contact, et attends sa réponse : n'appelle ni ajouter_prospect ni preparer_mail avant. Une fois ajouté (ajouter_prospect), rappelle noter_appel avec le même récit.` };
       }
     }
+    if (String(input.recit || '').trim().length < 10) return { ok: false, recit_manquant: true, trouve: { agent_id: id, agence_id: agenceId, ligne_twenty_id: ligneId }, note: "L'agent est retrouvé : demande seulement ce qu'il a dit, avec ses mots, puis rappelle noter_appel avec ces identifiants et le récit." };
     const r = await RP.raconter(input.recit, user);
     if (!r.ok) return r;
-    const i = await RP.identifier(r.rappel.id, { agent_id: id, agence_id: agenceId }, user);
+    const i = await RP.identifier(r.rappel.id, { agent_id: id, agence_id: agenceId, monday_ligne_id: ligneId }, user);
     if (!i.ok) return i;
     const a = await RP.analyser(r.rappel.id, {}, user);
     if (!a.ok) return a;

@@ -197,14 +197,19 @@ export function implantationEnCache(adresse, enregistrements) {
 export function emplacementDuProjet(projet, { dealDe = (id) => Records.findBy('Deal', 'deal_id', id) } = {}) {
   const l = dernierLancement(projet, 'emplacement', dealDe);
   if (!l) return null;
-  const points = (l.resultat.points || []).filter((p) => ['passage', 'rotation', 'vacance', 'enseignes'].includes(p.cle) && p.statut !== 'vide');
+  // Les locaux vides de la carte (24 nov. 2026) : placés, sans le nom du dernier occupant (une personne, parfois).
+  const points = (l.resultat.points || []).filter((p) => ['passage', 'rotation', 'vacance', 'enseignes'].includes(p.cle) && p.statut !== 'vide')
+    .map((p) => (p.cle === 'vacance' && p.detail?.vides ? { ...p, detail: { ...p.detail, vides: p.detail.vides.map(({ adresse, etat, lat, lon }) => ({ adresse, etat, lat, lon })) } } : p));
   if (!points.length) return null;
   const r = l.resultat.rue || {};
   return {
     points,
     rue: {
       passage: r.passage || null,
-      rue: r.rue ? { part_enseignes_pct: r.rue.part_enseignes_pct ?? null, noms_enseignes: r.rue.noms_enseignes || [], cellules: (r.rue.cellules || []).map((c) => ({ numero: c.numero })) } : null,
+      // La carte de l'Emplacement (24 nov. 2026, Jules) : le bien placé, les arrêts à 300 m, les enseignes nationales placées.
+      adresse: r.adresse ? { label: r.adresse.label, lat: r.adresse.lat, lon: r.adresse.lon } : null,
+      transports: r.transports ? { genres: r.transports.genres || [], arrets: r.transports.arrets || null } : null,
+      rue: r.rue ? { part_enseignes_pct: r.rue.part_enseignes_pct ?? null, noms_enseignes: r.rue.noms_enseignes || [], cellules: (r.rue.cellules || []).map((c) => (c.enseigne_nationale ? { numero: c.numero, adresse: c.adresse, enseigne_nationale: c.enseigne_nationale, lat: c.lat, lon: c.lon } : { numero: c.numero })) } : null,
       // Un entrepreneur individuel porte le nom d'une personne : la page du client ne le nomme pas.
       local: r.local ? { historique: (r.local.historique || []).map((h) => ({ nom: h.ei ? 'Entrepreneur individuel' : h.nom, ouvert: h.ouvert || null, ferme: h.ferme || null })) } : null,
       street_view: r.street_view || null,

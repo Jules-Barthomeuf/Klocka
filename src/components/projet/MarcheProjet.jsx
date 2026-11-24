@@ -282,14 +282,14 @@ function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null, enEdition 
  * la partie Marché du dossier par le serveur (emplacementDuProjet, dans marcheDuProjet), seulement ses parties lues. Les filets des parties
  * vont jusqu'au bord de la carte : la grille rattrape le retrait du corps.
  */
-function Emplacement({ e }) {
+function Emplacement({ e, transactions = null }) {
   const pts = Object.fromEntries(e.points.map((p) => [p.cle, p]));
   const le = e.le ? new Date(e.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : null;
   return (
     <CarteMarche id="marche-emplacement" titre="Emplacement" grille={false} className="w-full">
       <EnTeteCarte libelle="Emplacement" precision={le ? `lu le ${le}` : null} />
       <div className="-mx-5 -mb-5 max-md:-mx-4 max-md:-mb-4">
-        <TooltipProvider delayDuration={100}><BlocEmplacement pts={pts} rue={e.rue} simple partie={(id, titre, el) => <Bloc key={id} id={id} titre={titre}>{el}</Bloc>} /></TooltipProvider>
+        <TooltipProvider delayDuration={100}><BlocEmplacement pts={pts} rue={e.rue} simple transactions={transactions} partie={(id, titre, el) => <Bloc key={id} id={id} titre={titre}>{el}</Bloc>} /></TooltipProvider>
       </div>
     </CarteMarche>
   );
@@ -319,7 +319,7 @@ export function PartieDuDossier({ outil, donnees }) {
   );
 }
 
-export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 }) {
+export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0, equipe = false }) {
   const { data: lus } = useSecteurProjet(project, !isPublic);
   // Le lien public n'interroge pas le serveur : la fiche gardée vient avec le projet.
   const donnees = isPublic ? project.secteur || null : lus;
@@ -381,14 +381,16 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 })
         </div>
       )}
       <PartieDuDossier outil="ville" donnees={donnees} />
-      {donnees?.emplacement?.points?.length > 0 && <Emplacement e={donnees.emplacement} />}
+      {/* Une seule carte (24 nov. 2026, Jules) : les transactions sont un onglet de la carte de l'Emplacement. */}
+      {donnees?.emplacement?.points?.length > 0 && <Emplacement e={donnees.emplacement} transactions={!isPublic && project.adresse_complete ? { adresse: project.adresse_complete, avecMurs: equipe } : null} />}
       <PartieDuDossier outil="prix" donnees={donnees} />
       {/* Les transactions autour du commerce (17 nov. 2026, Jules : « cette carte se voit aussi dans le projet ») : sous le
           Prix, comme dans l'Analyse ; un bloc qu'on masque dans l'éditeur. Pas sur le lien public, qui n'interroge pas le serveur. */}
-      {!isPublic && project.adresse_complete && (
+      {!isPublic && project.adresse_complete && !(donnees?.emplacement?.points?.length > 0 && donnees.emplacement.rue?.adresse) && (
         <CarteMarche id="marche-transactions" titre="Transactions autour" grille={false} className="w-full">
-          <EnTeteCarte libelle="Transactions autour" precision="ventes de murs et cessions de fonds à 500 m" />
-          <CarteTransactions adresse={project.adresse_complete} hauteur={440} />
+          {/* Les ventes de murs pour l'équipe seulement, jamais dans la vue client (24 nov. 2026, Jules). */}
+          <EnTeteCarte libelle="Transactions autour" precision={equipe ? "cessions de fonds et ventes de murs à 500 m" : "cessions de fonds de commerce à 500 m"} />
+          <CarteTransactions adresse={project.adresse_complete} hauteur={440} avecMurs={equipe} />
         </CarteMarche>
       )}
       <PartieDuDossier outil="loyer" donnees={donnees} />

@@ -42,11 +42,56 @@ function Section({ titre, sous = null, children }) {
 
 const Vide = ({ children }) => <p className={`${VERRE} m-0 px-5 py-4 text-[13.5px] text-ardoise`}>{children}</p>;
 
+/**
+ * Les agences écartées du mode appel (24 nov. 2026, Jules : « un bouton supprimer qui demande pourquoi ; ça va apprendre
+ * au fur et à mesure pour écarter les mauvais trucs dans les autres cartes ») : chaque règle apprise d'une suppression,
+ * ce qu'elle cherche, combien de cartes elle écarte, d'où elle vient ; elle se coupe d'un clic.
+ */
+function AgencesEcartees() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["agences-ecartees"], queryFn: () => base44.request("GET", "/api/monitoring/agences-ecartees") });
+  const basculer = useMutation({
+    mutationFn: ({ id, active }) => base44.request("POST", `/api/monitoring/agences-ecartees/${id}`, { body: { active } }),
+    onSuccess: (d, v) => { qc.setQueryData(["agences-ecartees"], d); toast.success(v.active ? "Règle rallumée" : "Règle coupée : ses cartes reviennent", { duration: 1800 }); },
+    onError: (e) => toast.error("La règle n'a pas changé", { description: e?.message || "" }),
+  });
+  if (!data) return null;
+  return (
+    <Section titre="Agences écartées des appels" sous="apprises des cartes supprimées avec leur pourquoi ; une agence intéressée ou à rappeler n'est jamais écartée">
+      {data.regles.length ? (
+        <ul className={`${VERRE} m-0 list-none divide-y divide-trait p-0`}>
+          {data.regles.map((r) => (
+            <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className={`text-[16px] ${r.active ? "text-encre" : "text-ardoise line-through"}`}>{r.libelle}</span>
+                <span className="text-[13.5px] text-ardoise">
+                  {[r.mots.length ? `cherche ${r.mots.map((m) => `« ${m} »`).join(", ")}` : null, r.specialite === "residentiel" ? "agences résidentielles" : null].filter(Boolean).join(" · ")}
+                  {" · "}{r.trop_large ? `écarterait ${r.ecartees} agences sur ${data.agences} : trop large, pas allumée` : `${r.ecartees} carte${r.ecartees > 1 ? "s" : ""} écartée${r.ecartees > 1 ? "s" : ""}`}
+                </span>
+                {r.exemples.length > 0 && (
+                  <span className="text-[13px] text-brume">
+                    {r.exemples.map((x) => `${x.nom || "Une agence"} : « ${x.pourquoi} » (${prenom(x.par)}, ${date(x.le)})`).join(" · ")}
+                  </span>
+                )}
+              </div>
+              <button type="button" disabled={basculer.isPending} onClick={() => basculer.mutate({ id: r.id, active: !r.active })}
+                className={r.active ? "h-9 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol" : "h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre"}
+                style={r.active ? undefined : { background: "transparent" }}>
+                {r.active ? "Appliquée d'office" : "Coupée"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : <Vide>Rien d'appris pour l'instant : dans le mode appel, « Supprimer » demande pourquoi, et un genre d'agence (promoteur, syndic…) devient une règle.</Vide>}
+    </Section>
+  );
+}
+
 export default function SuiviCorrections() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({ queryKey: ["suivi-corrections"], queryFn: () => base44.request("GET", "/api/monitoring/corrections") });
   const couper = useMutation({
-    mutationFn: ({ cle, coupee }) => base44.request("POST", "/api/monitoring/corrections/regle", { cle, coupee }),
+    mutationFn: ({ cle, coupee }) => base44.request("POST", "/api/monitoring/corrections/regle", { body: { cle, coupee } }),
     onSuccess: (d, v) => { qc.setQueryData(["suivi-corrections"], d); toast.success(v.coupee ? "Règle coupée" : "Règle rallumée", { duration: 1800 }); },
     onError: (e) => toast.error("La règle n'a pas changé", { description: e?.message || "" }),
   });
@@ -63,6 +108,8 @@ export default function SuiviCorrections() {
         {error ? <p className="text-[13.5px] text-alerte">{error.message || "Accès refusé."}</p> : isLoading || !data ? <Chargement taille="grand" /> : (
           <div className="flex flex-col gap-9 pb-10">
             <p className="m-0 text-[13.5px] text-craie">{data.total} correction{data.total > 1 ? "s" : ""} sur {data.projets} projet{data.projets > 1 ? "s" : ""}</p>
+
+            <AgencesEcartees />
 
             <Section titre="Ce que la plateforme a appris" sous={`une majuscule à partir de ${data.seuil} projets, un même remplacement à partir de 2`}>
               {data.regles.length ? (

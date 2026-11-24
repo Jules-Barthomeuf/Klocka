@@ -2,66 +2,177 @@ import React, { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useAjoutFichier } from "@/components/ui/ajout-fichier";
-import { FileText, Loader2, Upload, X } from "lucide-react";
+import TexteEnPlace from "@/components/ui/texte-en-place";
+import { FileText, Loader2, Plus, X } from "lucide-react";
+import { AUTRES_DOCUMENTS, documentsParGroupe, groupesDuProjet } from "@/lib/groupes-documents";
 
-// L'onglet Documents d'un projet, en édition (11 nov. 2026, Jules : « juste un truc d'upload ; on choisit depuis le
-// Google Drive ou depuis l'ordi ») : une zone de dépôt au dessin de la Data Room, qui ouvre le petit menu commun
-// Ordinateur / Google Drive (ui/ajout-fichier) ; on peut aussi y glisser un fichier. Plus d'ajout par URL, plus de
-// liste à cocher, plus de phrases d'explication. `avecListe` : la liste des fichiers, quand la page ne la montre pas déjà.
+// L'onglet Documents d'un projet, en édition. Une zone par partie (24 nov. 2026, Jules : « des parties comme dans
+// l'analyse, un truc quittances, un truc PV d'AG, des groupes de documents qu'on peut nommer »), au dessin de la Data
+// Room (preanalyse/DepotsDossier.jsx) : toute la zone se clique et ouvre le petit menu Ordinateur / Google Drive
+// (ui/ajout-fichier), on peut y glisser un fichier, ou une pièce d'une autre partie pour l'y ranger. Le nom d'une
+// partie s'écrit sur place ; « Nouvelle partie » en ajoute une. Voir src/lib/groupes-documents.js.
+// `avecListe` : les pièces sous chaque partie, quand la page ne les montre pas déjà.
+
+const PIECE = "text/x-klocka-piece";
+const cadre = (survol) => `flex min-h-[150px] flex-col rounded-[16px] border p-4 text-left shadow-lg backdrop-blur-xl transition-colors ${survol ? "border-menthe bg-menthe/[0.06]" : "border-bord-doux bg-[var(--k-surface)] hover:border-bord-vif"}`;
+const arreter = (ev) => ev.stopPropagation();
 
 export default function ProjectFormDocumentsTab({ formData, setFormData, avecListe = true }) {
-  const fichiers = formData.fichiers_projet || [];
+  const parties = documentsParGroupe(formData);
   const choix = useRef(null);
-  const [envoi, setEnvoi] = useState(0);
-  const [survol, setSurvol] = useState(false);
+  const cible = useRef(null);
+  const [envoi, setEnvoi] = useState({});
 
-  const ajouter = async (liste) => {
+  // Toute modification fige la liste des parties dans le projet : l'ordre et les parties vides se gardent.
+  const poser = (faire) => setFormData((f) => faire({ ...f, groupes_documents: groupesDuProjet(f) }));
+  const compter = (nom, n) => setEnvoi((e) => ({ ...e, [nom]: Math.max(0, (e[nom] || 0) + n) }));
+
+  const ajouter = async (liste, nom = cible.current) => {
     const tous = [...(liste || [])];
     if (!tous.length) return;
-    setEnvoi((n) => n + tous.length);
+    const groupe = nom && nom !== AUTRES_DOCUMENTS ? nom : undefined;
+    compter(nom, tous.length);
     const ajoutes = [];
     for (const file of tous) {
       try {
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        ajoutes.push({ nom: file.name, url: file_url });
+        ajoutes.push({ nom: file.name, url: file_url, ...(groupe ? { groupe } : {}) });
       } catch (e) {
         toast.error(e?.message || `« ${file.name} » n'a pas pu être ajouté`);
       } finally {
-        setEnvoi((n) => n - 1);
+        compter(nom, -1);
       }
     }
-    if (ajoutes.length) setFormData((f) => ({ ...f, fichiers_projet: [...(f.fichiers_projet || []), ...ajoutes] }));
+    if (ajoutes.length) poser((f) => ({ ...f, fichiers_projet: [...(f.fichiers_projet || []), ...ajoutes] }));
   };
-  const ajout = useAjoutFichier({ onOrdinateur: () => choix.current?.click(), onFichiers: ajouter });
+  const ajout = useAjoutFichier({ onOrdinateur: () => choix.current?.click(), onFichiers: (fichiers) => ajouter(fichiers) });
+  const ouvrir = (nom, ev) => { cible.current = nom; ajout.ouvrir(ev); };
+
   const retirer = (idx) => setFormData((f) => ({ ...f, fichiers_projet: (f.fichiers_projet || []).filter((_, i) => i !== idx) }));
+  const ranger = (idx, nom) => poser((f) => ({
+    ...f,
+    fichiers_projet: (f.fichiers_projet || []).map((p, i) => {
+      if (i !== idx) return p;
+      const { groupe: _ancien, ...reste } = p;
+      return nom === AUTRES_DOCUMENTS ? reste : { ...reste, groupe: nom };
+    }),
+  }));
+  const renommer = (ancien, nouveau) => {
+    const nom = String(nouveau || "").trim();
+    if (!nom || nom === ancien) return;
+    if (nom === AUTRES_DOCUMENTS || groupesDuProjet(formData).includes(nom)) { toast.error(`Une partie s'appelle déjà « ${nom} »`); return; }
+    poser((f) => ({
+      ...f,
+      groupes_documents: f.groupes_documents.map((g) => (g === ancien ? nom : g)),
+      fichiers_projet: (f.fichiers_projet || []).map((p) => (p.groupe === ancien ? { ...p, groupe: nom } : p)),
+    }));
+  };
+  const retirerPartie = (nom) => poser((f) => ({ ...f, groupes_documents: f.groupes_documents.filter((g) => g !== nom) }));
+  const creerPartie = (nouveau) => {
+    const nom = String(nouveau || "").trim();
+    if (!nom) return false;
+    if (nom === AUTRES_DOCUMENTS || groupesDuProjet(formData).includes(nom)) { toast.error(`Une partie s'appelle déjà « ${nom} »`); return false; }
+    poser((f) => ({ ...f, groupes_documents: [...f.groupes_documents, nom] }));
+    return true;
+  };
 
   return (
-    <div className="mb-5 space-y-4">
+    <div className="mb-5">
       <input ref={choix} type="file" multiple className="hidden" onChange={(e) => { ajouter(e.target.files); e.target.value = ""; }} />
       {ajout.rendu}
-      <button type="button" onClick={ajout.ouvrir}
-        onDragOver={(e) => { e.preventDefault(); setSurvol(true); }} onDragLeave={() => setSurvol(false)}
-        onDrop={(e) => { e.preventDefault(); setSurvol(false); ajouter(e.dataTransfer.files); }}
-        // En verre (16 nov. 2026, Jules : « mets en glass ») : la carte k-verre, le bord à l'accent au survol d'un fichier.
-        className={`k-verre flex min-h-[120px] w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center transition-colors ${survol ? "!border-menthe" : "hover:!border-bord-vif"}`}>
-        {envoi > 0 ? <Loader2 className="h-5 w-5 animate-spin text-ardoise" /> : <Upload className="h-5 w-5 text-ardoise" />}
-        <span className="text-[14px] text-encre">{envoi > 0 ? "Ajout en cours…" : "Choisir un fichier"}</span>
-        <span className="text-[12.5px] text-brume">Depuis l'ordinateur ou Google Drive, ou glissez-le ici</span>
-      </button>
-      {avecListe && fichiers.length > 0 && (
-        <ul className="m-0 list-none border-b border-trait p-0">
-          {fichiers.map((f, idx) => (
-            <li key={idx} className="flex items-center gap-3 border-t border-trait py-3">
-              <FileText className="h-4 w-4 flex-shrink-0 text-ardoise" />
-              <span className="min-w-0 flex-1 truncate text-[15px] text-craie">{f.nom}</span>
-              <button type="button" onClick={() => retirer(idx)} aria-label={`Retirer ${f.nom}`} title="Retirer"
-                className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-                <X className="h-3.5 w-3.5" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {parties.map((p) => (
+          <Partie key={p.nom} partie={p} avecListe={avecListe} occupe={(envoi[p.nom] || 0) > 0}
+            onOuvrir={(ev) => ouvrir(p.nom, ev)} onFichiers={(fichiers) => ajouter(fichiers, p.nom)} onRanger={(idx) => ranger(idx, p.nom)}
+            onRenommer={(nom) => renommer(p.nom, nom)} onRetirerPartie={() => retirerPartie(p.nom)} onRetirer={retirer} />
+        ))}
+        <NouvellePartie onCreer={creerPartie} />
+      </div>
+    </div>
+  );
+}
+
+function Partie({ partie, avecListe, occupe, onOuvrir, onFichiers, onRanger, onRenommer, onRetirerPartie, onRetirer }) {
+  const [survol, setSurvol] = useState(false);
+  const n = partie.fichiers.length;
+  const deposer = (ev) => {
+    ev.preventDefault();
+    setSurvol(false);
+    const piece = ev.dataTransfer.getData(PIECE);
+    if (piece !== "") { onRanger(Number(piece)); return; }
+    onFichiers([...ev.dataTransfer.files]);
+  };
+  return (
+    <section role="button" tabIndex={0} aria-label={`Ajouter dans : ${partie.nom}`}
+      onClick={(ev) => !occupe && onOuvrir(ev)}
+      onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); onOuvrir(ev); } }}
+      onDragOver={(ev) => { ev.preventDefault(); setSurvol(true); }} onDragLeave={() => setSurvol(false)} onDrop={deposer}
+      className={`cursor-pointer ${cadre(survol)}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        {partie.autres
+          ? <p className="m-0 text-[15px] text-encre">{partie.nom}</p>
+          : <TexteEnPlace valeur={partie.nom} placeholder="Nom de la partie" onEnregistrer={onRenommer} classeCase="flex-1"
+              className="text-[15px] text-encre placeholder:text-brume max-md:text-[16px]" />}
+        <span className="flex flex-none items-center gap-1">
+          {n > 0 && <span className="text-[12.5px] tabular-nums text-brume">{n}</span>}
+          {!partie.autres && !n && (
+            <button type="button" onClick={(ev) => { arreter(ev); onRetirerPartie(); }} className="grid h-6 w-6 place-items-center rounded-full text-ardoise hover:text-encre"
+              style={{ background: "transparent" }} aria-label={`Retirer la partie ${partie.nom}`} title="Retirer cette partie">
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </span>
+      </div>
+      {avecListe && n > 0 && (
+        <ul className="m-0 mt-2 list-none space-y-1.5 p-0">
+          {partie.fichiers.map((f) => (
+            <li key={f.idx} draggable onDragStart={(ev) => { ev.dataTransfer.setData(PIECE, String(f.idx)); ev.dataTransfer.effectAllowed = "move"; }}
+              onClick={arreter} title="Glissez-la dans une autre partie pour l'y ranger"
+              className="group flex cursor-grab items-center gap-2.5 text-[13px] active:cursor-grabbing">
+              <FileText className="h-4 w-4 flex-none text-ardoise" />
+              <span className="min-w-0 flex-1 truncate text-craie">{f.nom}</span>
+              <button type="button" onClick={(ev) => { arreter(ev); onRetirer(f.idx); }}
+                className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-encre group-hover:opacity-100 focus:opacity-100 max-md:opacity-100"
+                style={{ background: "transparent" }} aria-label={`Retirer ${f.nom}`} title="Retirer">
+                <X className="h-3 w-3" />
               </button>
             </li>
           ))}
         </ul>
       )}
-    </div>
+      <p className="m-0 mt-auto flex items-center justify-center gap-1.5 pt-4 text-[12.5px] text-brume">
+        {occupe && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {occupe ? "Ajout en cours…" : n ? "Cliquez ou glissez pour en ajouter" : "Cliquez ou glissez un fichier"}
+      </p>
+    </section>
+  );
+}
+
+// Le « + » : on nomme la partie (Entrée), elle se place avant lui, vide, prête à recevoir ses pièces.
+function NouvellePartie({ onCreer }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [nom, setNom] = useState("");
+  const fermer = () => { setOuvert(false); setNom(""); };
+  if (!ouvert) {
+    return (
+      <button type="button" onClick={() => setOuvert(true)} className={`${cadre(false)} items-center justify-center gap-2 text-brume hover:text-encre`} style={{ background: "rgb(var(--k-rail-rgb))" }}>
+        <Plus className="h-5 w-5" />
+        <span className="text-[13.5px]">Nouvelle partie</span>
+      </button>
+    );
+  }
+  return (
+    <section className={`${cadre(false)} gap-3`}>
+      <input autoFocus value={nom} onChange={(ev) => setNom(ev.target.value)} placeholder="Nom de la partie : état locatif, plans…" aria-label="Nom de la partie"
+        onKeyDown={(ev) => { if (ev.key === "Escape") fermer(); if (ev.key === "Enter") { ev.preventDefault(); if (onCreer(nom)) fermer(); } }}
+        className="h-9 w-full rounded-[10px] border border-trait bg-surface px-3 text-[14px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
+      <div className="mt-auto flex items-center gap-3">
+        <button type="button" disabled={!nom.trim()} onClick={() => { if (onCreer(nom)) fermer(); }}
+          className="inline-flex h-9 items-center rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+          Ajouter la partie
+        </button>
+        <button type="button" onClick={fermer} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+      </div>
+    </section>
   );
 }

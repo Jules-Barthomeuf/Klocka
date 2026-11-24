@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { Check, Eye, Info, Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import Calendrier from "@/components/ui/calendrier";
+import QuiADecroche from "@/components/prospection/QuiADecroche";
+import { champsDecroche, quiADecroche } from "@/lib/interlocuteurs";
 
 // Les actions proposées après un appel abouti, en séquence (maquette de
 // Jules, 7 oct. 2026) : ce qui part maintenant (Monday, le mail du modèle, la
@@ -412,7 +414,7 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
 /**
  * @param {{appel, agence, issue, coches: Set, setCoches, mail, setMail, relanceLe, setRelanceLe, ligneMonday, setLigneMonday, onLancer, envoi}} props
  */
-export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null, lancement = 0, onLancementRefuse = null, sobre = false, onResume = null }) {
+export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null, lancement = 0, onLancementRefuse = null, sobre = false, onResume = null, personnes = null, choisiAvant = null, entendu = null }) {
   // L'équipe, pour choisir le SPOC de la ligne Twenty CRM (15 nov. 2026).
   const equipe = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/equipe"), staleTime: 5 * 60_000 }).data?.equipe || null;
   // Relances (8 oct. 2026) : « Agent prévenu » s'ajoute aux issues pour un bien retenu ou refusé.
@@ -443,7 +445,43 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const compris = appel.compris?.champs || {};
   // Le nom seul (8 oct. 2026) : ni « président de SAS », ni numéro, ni civilité.
   const nomSeul = (t) => String(t || "").split(/[,·(]/)[0].replace(/^(madame|monsieur)\s+/i, "").trim() || null;
-  const interlocuteur = nomSeul(compris.interlocuteur?.valeur) || (agence?.contacts || []).find((x) => !x.standard)?.nom || nomSeul(agence?.interlocuteurs?.[0]) || nomSeul(appel.avant?.interlocuteur);
+  const interlocuteur = nomSeul(edits?.interlocuteur) || nomSeul(compris.interlocuteur?.valeur) || (agence?.contacts || []).find((x) => !x.standard)?.nom || nomSeul(agence?.interlocuteurs?.[0]) || nomSeul(appel.avant?.interlocuteur);
+  // « Qui a décroché ? » (24 nov. 2026, Jules) : les personnes d'avant l'appel ; un clic remplit le contact Twenty CRM,
+  // l'adresse du mail et la relance. Cochée d'office : le nom entendu, sinon la personne choisie avant l'appel.
+  const gens = useMemo(() => (personnes || []).filter((x) => !x.standard && x.nom), [personnes]);
+  const standardNum = (personnes || []).find((x) => x.standard)?.telephone || agence?.telephone || null;
+  const avecDecroche = !!personnes && !!setEdits;
+  const auDepart = useMemo(() => quiADecroche({ contacts: gens, entendu: entendu || nomSeul(compris.interlocuteur?.valeur), avant: choisiAvant }), [appel.id, gens.length]);
+  const choisirDecroche = (id) => {
+    if (id === "autre") { setEdits((e) => { const n = { ...e, decroche: "autre", interlocuteur: "" }; delete n.telephone; delete n.email; return n; }); return; }
+    const ch = champsDecroche(id === "standard" ? { standard: true } : gens.find((x) => x.id === id));
+    setEdits((e) => { const n = { ...e, decroche: id, ...ch }; if (!ch.telephone) delete n.telephone; if (!ch.email) delete n.email; return n; });
+    // L'adresse du mail suit la personne, sauf une adresse entendue pendant l'appel.
+    if (pm) setMail((mm) => {
+      const base = mm || { a: pm.a || "", objet: pm.objet, corps: pm.corps, modele: pm.modele };
+      const dUneFiche = gens.some((x) => x.email && x.email === base.a);
+      if (String(base.a || "").trim() && !dUneFiche) return base;
+      return { ...base, a: ch.email || (dUneFiche ? pm.a || "" : base.a || "") };
+    });
+  };
+  useEffect(() => {
+    if (!avecDecroche || edits?.decroche !== undefined || !auDepart.id) return;
+    if (auDepart.id === "autre") setEdits((e) => ({ ...e, decroche: "autre" }));
+    else choisirDecroche(auDepart.id);
+  }, [appel.id, auDepart.id, edits?.decroche === undefined]);
+  // Ce qui est coché suit aussi le chat (« c'était Thomas » écrit le nom) : la personne dont c'est le nom, sinon « autre ».
+  const choixDecroche = (() => {
+    const nomEd = edits?.interlocuteur;
+    if (nomEd == null) return edits?.decroche ?? null;
+    if (String(nomEd).trim()) return quiADecroche({ contacts: gens, entendu: nomEd }).id;
+    return ["standard", "autre"].includes(edits?.decroche) ? edits.decroche : null;
+  })();
+  const blocDecroche = (compact) => avecDecroche && (
+    <QuiADecroche gens={gens} standard={standardNum} choix={choixDecroche} compact={compact}
+      entenduId={auDepart.par === "entendu" ? auDepart.id : null} avantId={gens.some((x) => x.id === choisiAvant) ? choisiAvant : null}
+      onChoisir={choisirDecroche} autre={{ nom: edits?.interlocuteur || "", telephone: edits?.telephone || "" }}
+      onAutre={(k, v) => setEdits((e) => ({ ...e, decroche: "autre", [k]: v }))} />
+  );
   const [ouverte, setOuverte] = useState(null);
   const vues = useRef(new Set());
   const [choixIssue, setChoixIssue] = useState(false);
@@ -452,6 +490,12 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const [t, setT] = useState(() => (lenteur() ? 99 : 0));
   const ligne = pmo?.ligne || null;
   const doute = ligne?.etat === "doute" && !ligneMonday && !edits?.sans_twenty;
+  // La personne choisie n'est pas le contact de la ligne trouvée (par le standard) : elle aura sa ligne à elle à la
+  // validation (la sienne si Twenty l'a, sinon une nouvelle), le serveur ne réécrit pas celle d'un collègue.
+  const nomLigne = String(ligne?.ligne?.nom || "").replace(/\u200b/g, "").trim();
+  const nomChoisi = String(edits?.interlocuteur || "").trim();
+  const autrePersonne = avecDecroche && !!edits?.decroche && ligne?.etat === "trouvee" && !!nomChoisi && !!nomLigne
+    && !/^(accueil|à préciser)/i.test(nomLigne) && quiADecroche({ contacts: [{ id: "l", nom: nomLigne }], entendu: nomChoisi }).id !== "l";
 
   const segments = useMemo(() => {
     // Les cartes sont là d'emblée ; seuls les traits se dessinent, l'un après l'autre.
@@ -537,6 +581,8 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         return setEdits ? { titre, edit: { type: "date", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre) } } : { titre, valeur: apres };
       }
       // Une case que l'appel ne change pas (ligne existante) : corrigée, elle part telle quelle sur la ligne (15 nov. 2026).
+      // Une autre personne que celle de la ligne : ses cases à elle, pas celles du collègue.
+      if (cle && setEdits && x.inchange && autrePersonne) return { titre, edit: { type: "texte", valeur: edits?.[cle] ?? (cle === "telephone" ? appel.numero || standardNum || "" : ""), changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
       if (cle && setEdits && x.inchange) return { titre, edit: { type: "texte", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre), placeholder: PLACEHOLDERS_MONDAY[cle] } };
       if (cle && setEdits) return { titre, edit: { type: "texte", valeur: edits?.[cle] ?? (cle === "interlocuteur" && /^À préciser/.test(apres) ? "" : apres), changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
       if (!setEdits) return { titre, valeur: x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres };
@@ -548,7 +594,9 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         return { titre, edit: { type: "choix", valeur: caseMonday(x.titre, moi?.email || apres), libelle: apres, options: (equipe || []).filter((m) => !m.ancien).map((m) => [m.email, (m.nom || m.email.split("@")[0]).split(" ")[0]]), changer: changerCase(x.titre) } };
       }
       if (x.titre === "Liste de diffusion") return { titre, edit: { type: "choix", valeur: /^oui$/i.test(caseMonday(x.titre, apres)) ? "Oui" : caseMonday(x.titre, apres) ? "Non" : "", options: [["Oui", "Oui"], ["Non", "Non"]], changer: changerCase(x.titre) } };
-      const base = x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres;
+      // Le prénom suit le contact choisi (« Qui a décroché ? ») : le serveur le tire du nom, l'aperçu aussi.
+      const prenomChoisi = x.titre === "Prénom" && String(edits?.interlocuteur || "").trim() ? String(edits.interlocuteur).trim().replace(/^(madame|monsieur)\s+/i, "").split(/\s+/)[0] : null;
+      const base = x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : prenomChoisi || apres;
       if (x.titre === "Dernier contact" && /^\d{4}-\d{2}-\d{2}$/.test(apres)) return { titre, edit: { type: "date", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre) } };
       return { titre, edit: { type: "texte", valeur: caseMonday(x.titre, base), changer: changerCase(x.titre), placeholder: x.titre === "Liste de diffusion" ? "Oui ou Non" : "—" } };
     });
@@ -563,10 +611,12 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       const cases = casesMonday();
       return {
         kicker: "MONDAY · AGENTS IMMOBILIERS",
-        titre: ligne?.etat === "trouvee" ? `${String(ligne.ligne.nom || "").replace(/\u200b/g, "").trim() || "Contact sans nom"} · ${agence?.nom || ""}`.replace(/ · $/, "") : ligne?.etat === "doute" ? (choisie ? choisie.nom : "Quel contact ?") : agence?.nom || appel.agent,
+        titre: autrePersonne ? `${nomChoisi} · ${agence?.nom || ""}`.replace(/ · $/, "") : ligne?.etat === "trouvee" ? `${String(ligne.ligne.nom || "").replace(/\u200b/g, "").trim() || "Contact sans nom"} · ${agence?.nom || ""}`.replace(/ · $/, "") : ligne?.etat === "doute" ? (choisie ? choisie.nom : "Quel contact ?") : agence?.nom || appel.agent,
         haut: (
           <>
-            {ligne?.etat === "trouvee" && <p className="m-0 text-[13.5px] text-ardoise">Retrouvé par {ligne.par}</p>}
+            {blocDecroche(true)}
+            {ligne?.etat === "trouvee" && !autrePersonne && <p className="m-0 text-[13.5px] text-ardoise">Retrouvé par {ligne.par}</p>}
+            {autrePersonne && <p className="m-0 text-[13.5px] text-ardoise">La ligne trouvée est celle de {nomLigne} : {nomChoisi} aura la sienne dans Twenty CRM.</p>}
             {ligne?.contact_modifie && <p className="m-0 text-[13.5px] text-ambre">Contact modifié : celui qui a rappelé remplace l'ancien contact sur la ligne (nom, numéro, email).</p>}
             {["info", "indisponible"].includes(ligne?.etat) && ligne.apercu?.length > 0 && <p className={`m-0 text-[13.5px] ${ligne.etat === "indisponible" ? "text-ambre" : "text-ardoise"}`}>{ligne.texte}</p>}
             {ligne?.etat === "nouvelle" && <p className="m-0 text-[13.5px] text-ardoise">Nouvelle ligne</p>}
@@ -795,6 +845,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         </div>
       )}
 
+      {blocDecroche(false)}
       {maintenant.length > 0 && (
         <>
           <Trait p={p("v0")} moment="Maintenant" />

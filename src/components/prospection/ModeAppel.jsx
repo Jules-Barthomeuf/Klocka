@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { garder, enAttente, retirer, erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
+import BoutonPasDeReponse from "@/components/prospection/BoutonPasDeReponse";
 import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
@@ -22,6 +23,7 @@ import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
 import { clipAutour, morceauDeLaPhrase } from "@/lib/clip-objection";
 import { Statut } from "@/components/mandataire/elements";
 import Chargement from "@/components/ui/Chargement";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ouvrirTranscriptionDirecte, enPhrases } from "@/lib/transcription-directe";
 import { objectionEntendue } from "@/lib/objections";
 import TranscriptionParVoix from "@/components/prospection/TranscriptionParVoix";
@@ -410,7 +412,7 @@ export function ligneRecherche(q) {
   return { gauche: gauche.charAt(0).toUpperCase() + gauche.slice(1), droite };
 }
 
-function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null, enLigne = null, onSansConversation = null, siteLe = null }) {
+function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onSupprimer = null, onRetour = null, enLigne = null, onSansConversation = null, siteLe = null }) {
   const contacts = (a.contacts || []).filter((x) => !x.standard);
   const standard = (a.contacts || []).find((x) => x.standard)?.telephone || a.telephone;
   const numero = choisi?.telephone || standard;
@@ -460,7 +462,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   const [deja, setDeja] = useState(false);
   const troisColonnes = enCours || deja || essai;
   // Avant l'appel, la carte de la maquette de Jules (15 nov. 2026) ; pendant l'appel, la carte à trois colonnes.
-  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} standard={standard} choisi={choisi} onChoisir={onChoisir} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} siteLe={siteLe} />;
+  if (!enCours) return <CarteAvantAppel a={a} contacts={contacts} standard={standard} choisi={choisi} onChoisir={onChoisir} histo={histo} essai={essai} onMicro={onMicro} onPasser={onPasser} passerEnCours={passerEnCours} onSupprimer={onSupprimer} onRetour={onRetour} onSansConversation={onSansConversation} occupe={resumeEnCours} siteLe={siteLe} />;
   return (
     <div className="overflow-hidden k-verre">
       <div className="relative flex flex-wrap items-center justify-between gap-4 px-4 py-3 max-md:px-4">
@@ -512,6 +514,8 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
             ? <button type="button" onClick={onRetour} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-5 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
             // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
             : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-5 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
+          {/* Supprimer, en disant pourquoi (24 nov. 2026, Jules) : le pourquoi apprend à écarter les cartes du même genre. */}
+          {!onRetour && !essai && onSupprimer && <button type="button" onClick={onSupprimer} className="h-8 max-md:h-10 rounded-full border border-bord-doux px-5 text-[13.5px] text-craie transition-colors hover:border-alerte hover:text-alerte" style={{ background: "transparent" }}>Supprimer</button>}
           {!essai && !deja && <button type="button" onClick={() => setDeja(true)} className="text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Déjà appelé ?</button>}
         </div>
         )}
@@ -650,9 +654,9 @@ function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic }) {
  * La carte d'avant l'appel (18 nov. 2026, Jules, sur sa capture « Richard Gilmore - Réseau 3C ») : le nom de l'agence,
  * Appeler et Passer en tête. Dessous, à gauche (380 px), « Résumé IA » puis, en bas, Dernier appel, Création, Effectif
  * et Liens (le site, le LinkedIn de l'agence) ; à droite, « Collaborateurs · n » en tableau (case, nom et poste, mail,
- * numéro, lien), puis « Rappeler plus tard » et « Message laissé ». Pendant et après l'appel, rien ne change.
+ * numéro, lien), puis « Pas de réponse » (son triangle ouvre « Message laissé »). Pendant et après l'appel, rien ne change.
  */
-function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, histo, essai, onMicro, onPasser, passerEnCours, onRetour, onSansConversation = null, occupe = false, siteLe = null }) {
+function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, histo, essai, onMicro, onPasser, passerEnCours, onSupprimer = null, onRetour, onSansConversation = null, occupe = false, siteLe = null }) {
   const resume = useQuery({
     // Relu quand le site de l'agence vient d'être lu : le résumé dit alors ses villes, sa taille, ses offres.
     ...requeteResume(a.id, siteLe),
@@ -686,6 +690,7 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
             ? <button type="button" onClick={onRetour} className="h-10 rounded-full border border-bord-doux px-5 text-[14.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
             // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
             : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-10 rounded-full border border-bord-doux px-5 text-[14.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
+          {!onRetour && !essai && onSupprimer && <button type="button" onClick={onSupprimer} className="h-10 rounded-full border border-bord-doux px-5 text-[14.5px] text-craie transition-colors hover:border-alerte hover:text-alerte" style={{ background: "transparent" }}>Supprimer</button>}
         </div>
       </div>
       {/* Un filet en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css). */}
@@ -751,8 +756,8 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
           {/* Pas de réponse, aussi avant l'appel (16 nov. 2026, Jules) : on a composé sans lancer l'écoute, personne ou un répondeur. */}
           {onSansConversation && (
             <div className="flex flex-wrap items-center justify-end gap-2.5 px-5 py-3 max-md:px-4">
-              <button type="button" onClick={() => onSansConversation("pas_de_reponse")} disabled={occupe} title="Personne n'a décroché : la relance se planifie, l'agence suivante arrive" className={bouton} style={{ background: "transparent" }}>Rappeler plus tard</button>
-              <button type="button" onClick={() => onSansConversation("repondeur")} disabled={occupe} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className={bouton} style={{ background: "transparent" }}>Message laissé</button>
+              {/* Un seul bouton (24 nov. 2026, Jules) : « Pas de réponse », le triangle ouvre « Message laissé ». */}
+              <BoutonPasDeReponse onPasDeReponse={() => onSansConversation("pas_de_reponse")} onMessageLaisse={() => onSansConversation("repondeur")} disabled={occupe} />
             </div>
           )}
         </div>
@@ -818,6 +823,51 @@ function ChoixVille({ villes, valeur, onChoisir, essai, dues = null, nbDues = 0 
 // `listeInitiale` : la ville ouverte d'abord (la ville proposée du tableau de bord), sinon la dernière choisie.
 // `relancesDues()` : prend la première relance due libre et l'ouvre.
 // `aRelancer` : l'onglet « À relancer » à droite des villes (18 nov. 2026, Jules) : { actif, ouvrir(), fermer(), contenu }.
+/**
+ * « Supprimer ? » (24 nov. 2026, Jules : « un bouton supprimer qui demande pourquoi on supprime ») : le pourquoi est
+ * obligatoire, dit en quelques mots ; un genre d'agence (« promoteur », « que de la location saisonnière ») apprend à
+ * écarter les autres cartes du même genre, un cas isolé (« numéro faux ») ne vaut que pour celle-ci.
+ */
+function FenetreSupprimer({ nom, onFermer, onConfirmer }) {
+  const [pourquoi, setPourquoi] = useState("");
+  // Le pourquoi se dit aussi au micro (24 nov. 2026, Jules) : la dictée s'ajoute à ce qui est déjà tapé.
+  const base = useRef("");
+  const dictee = useDictee({ onTexte: (t) => setPourquoi(`${base.current}${t}`), onFin: (t) => setPourquoi(`${base.current}${t}`) });
+  const micro = () => {
+    if (dictee.ecoute) { dictee.arreter(); return; }
+    base.current = pourquoi.trim() ? `${pourquoi.trim()} ` : "";
+    dictee.demarrer();
+  };
+  const pret = pourquoi.trim().length > 1 && !dictee.ecoute && !dictee.finalisation;
+  return (
+    <AlertDialog open onOpenChange={(o) => { if (!o) { if (dictee.ecoute) dictee.arreter(); onFermer(); } }}>
+      <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-encre">Supprimer {nom} ?</AlertDialogTitle>
+          <AlertDialogDescription className="text-ardoise">
+            Elle sort de la file pour toute l'équipe. Dis pourquoi : si c'est un genre d'agence (promoteur, syndic, que du saisonnier…), les cartes du même genre seront écartées d'office.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="flex items-start gap-2 rounded-[10px] border border-trait bg-surface px-3 py-2 focus-within:border-menthe">
+          <textarea autoFocus value={pourquoi} onChange={(e) => setPourquoi(e.target.value)} rows={2} placeholder={dictee.ecoute ? "Je t'écoute…" : "Pourquoi, en quelques mots, ou dis-le au micro"}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && pret) { e.preventDefault(); onConfirmer(pourquoi); } }}
+            className="min-w-0 flex-1 resize-y border-0 bg-transparent py-0.5 text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" style={{ background: "transparent" }} />
+          {dictee.supporte && (
+            <button type="button" onClick={micro} aria-label={dictee.ecoute ? "Arrêter la dictée" : "Dire pourquoi au micro"} aria-pressed={dictee.ecoute}
+              className={`grid h-9 w-9 flex-none place-items-center rounded-full transition-colors ${dictee.ecoute ? "k-anneau text-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={{ background: "transparent" }}>
+              {dictee.finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />}
+            </button>
+          )}
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogAction disabled={!pret} onClick={() => onConfirmer(pourquoi)} className="bg-alerte text-fond hover:bg-alerte/90">Supprimer</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false, entete = null, listeInitiale = null, relancesDues = null, onApresAppel = null, aRelancer = null }) {
   // `essaiSeul` (page Relances, 8 oct. 2026) : seulement le mode Essai, sans les villes, les relances d'abord.
   const [scenario, setScenario] = useState(null);
@@ -1447,6 +1497,32 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     onError: (e) => toast.error(e?.message || "Impossible de passer"),
   });
 
+  // --- Supprimer, avec son pourquoi (24 nov. 2026, Jules) --------------------
+  // La carte sort pour toute l'équipe ; le pourquoi peut devenir une règle qui écarte les cartes du même genre
+  // (server/prospection/ecarter-agences.js). « Annuler » pendant dix secondes rend la carte et éteint la règle née ici.
+  const [aSupprimer, setASupprimer] = useState(null);
+  const annulerSuppression = useMutation({
+    mutationFn: ({ id, regle_id }) => base44.request("POST", `${API}/supprimer/annuler`, { body: { agence_id: id, regle_id } }),
+    onSuccess: (_r, v) => { setPassees((s) => { const n = new Set(s); n.delete(v.id); return n; }); queryClient.invalidateQueries({ queryKey: ["mode-appel-file"] }); dire(`${v.nom} est revenue.`); },
+    onError: (e) => toast.error(e?.message || "La suppression n'a pas été annulée."),
+  });
+  const supprimer = useMutation({
+    mutationFn: ({ id, pourquoi }) => base44.request("POST", `${API}/supprimer`, { body: { agence_id: id, pourquoi } }),
+    onSuccess: (r, v) => {
+      queryClient.invalidateQueries({ queryKey: ["mode-appel-file"] });
+      const autres = r?.regle?.active && r.ecartees ? ` J'écarte aussi ${r.ecartees} agence${r.ecartees > 1 ? "s" : ""} du même genre : ${r.regle.libelle.charAt(0).toLowerCase()}${r.regle.libelle.slice(1)}.` : "";
+      toast.success(`${v.nom} supprimée.${autres}`, { duration: 10000, action: { mot: "Annuler", faire: () => annulerSuppression.mutate({ id: v.id, nom: v.nom, regle_id: r?.regle?.id || null }) } });
+    },
+    onError: (e, v) => { setPassees((s) => { const n = new Set(s); n.delete(v.id); return n; }); toast.error(e?.message || "La carte n'a pas été supprimée."); },
+  });
+  const confirmerSuppression = (pourquoi) => {
+    const v = aSupprimer;
+    setASupprimer(null);
+    if (!v || !pourquoi.trim()) return;
+    supprimer.mutate({ ...v, pourquoi: pourquoi.trim() });
+    if (a?.id === v.id) suivante();
+  };
+
   // --- L'issue -------------------------------------------------------------
   const ouvrirActions = (ap, is) => {
     noterTemps("pret", ap.id);
@@ -1573,6 +1649,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     // Les cases Monday corrigées à l'écran d'actions (16 oct. 2026) : elles partent telles quelles.
     monday_cases: edits.monday && Object.keys(edits.monday).length ? edits.monday : null,
     sans_twenty: !!edits.sans_twenty,
+    // « Qui a décroché ? » (24 nov. 2026) : la personne choisie a sa ligne Twenty à elle.
+    contact_choisi: !!edits.decroche && edits.decroche !== "standard",
     corrections: faits.filter((f) => MODIFIABLES.includes(f.cle) && edits[f.cle] != null && edits[f.cle].trim() !== f.valeur).map((f) => ({ cle: f.cle, libelle: f.libelle, valeur: edits[f.cle].trim() })),
   });
   // Valider depuis la fenêtre des actions (8 oct. 2026) : elle reste ouverte et suit l'envoi, puis « Tout préparé ».
@@ -1684,6 +1762,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const enCoursSansIssue = enCours && ecran === "fiche" && !rappel && Date.now() - Date.parse(enCours.le) < 86400000 ? enCours : null;
   return (
     <div className={`w-full ${apresAppel ? "" : "pb-16"}`}>
+      {aSupprimer && <FenetreSupprimer nom={aSupprimer.nom} onFermer={() => setASupprimer(null)} onConfirmer={confirmerSuppression} />}
       {CARTES_OBJECTION && ecran === "appel" && carteObjection && <CarteObjection carte={carteObjection} onFermer={() => setCarteObjection(null)} />}
       {/* La ville dans un menu déroulant (15 nov. 2026, Jules) ; plus d'onglets de classeur. */}
       {!relances && !essaiSeul && !apresAppel && (() => {
@@ -1758,6 +1837,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 onMicro={micro} onSansNotes={() => { setNotes(false); setEcran("issue"); }}
                 onResume={analyserResume} resumeEnCours={noter.isPending}
                 passerOuvert={passerOuvert} setPasserOuvert={setPasserOuvert} raisons={file.data?.raisons_passer} onPasser={(k) => (rappel ? suivante() : passer.mutate(k))} passerEnCours={passer.isPending}
+                onSupprimer={rappel || relances ? null : () => setASupprimer({ id: a.id, nom: a.nom })}
                 onRetour={relances ? () => onRetour?.() : null}
                 onSansConversation={session.essai && scenario !== LIBRE ? null : sansConversation} />
             )}
@@ -1805,9 +1885,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                       </span>
                       {ecran === "appel" && (
                         <span className="flex flex-wrap items-center gap-2.5">
-                          <span className="mr-1 text-[13.5px] text-ardoise">Pas de réponse ?</span>
-                          <button type="button" onClick={pasDeReponse} disabled={noter.isPending} title="Personne n'a décroché : la relance se planifie, l'agence suivante arrive" className="h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50" style={{ background: "transparent" }}>Rappeler plus tard</button>
-                          <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-9 max-md:h-10 rounded-full border border-bord-doux px-4 text-[13.5px] text-encre transition-colors hover:border-bord-vif disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
+                          <BoutonPasDeReponse onPasDeReponse={pasDeReponse} onMessageLaisse={messageLaisse} disabled={noter.isPending} />
                         </span>
                       )}
                     </>
@@ -1861,6 +1939,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 transcription={<div className="flex flex-col gap-4"><ChaineRepliee etapes={etapesFinies} /><PanneauTranscription direct={direct} notes={!appel?.sans_details} fin={null} nu /></div>}>
                 {ecran === "analyse" || !appel ? <ChaineEtapes etapes={chaine.etapes} nu /> : (
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
+                    personnes={contacts} choisiAvant={contactChoisi && !contactChoisi.standard ? contactChoisi.id : null} entendu={personneAppel}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
                     edits={edits} setEdits={setEdits} lancement={lancement} onLancementRefuse={(contenu) => setAnnonce({ id: Date.now(), contenu })} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}
                     onLancer={(o) => { depuisFenetre.current = !!o?.depuisFenetre; etapesVues.current = o?.vues || []; valider.mutate(); }} envoi={valider.isPending}

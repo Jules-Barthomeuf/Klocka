@@ -23,7 +23,7 @@ const CHAMPS = new Set([
   // La synthèse de l'analyse du bail (14 oct. 2026) : AK la corrige quand elle dit faux.
   'analyse_bail',
 ]);
-const INTERDITS = new Set(['id', 'titre', 'client_email', 'client_emails', 'admins', 'admin_principal', 'conversation_id', 'sources_champs', 'champs_masques', 'photos', 'documents', 'fichiers_projet', 'journal_champs']);
+const INTERDITS = new Set(['id', 'titre', 'client_email', 'client_emails', 'admins', 'admin_principal', 'conversation_id', 'sources_champs', 'champs_masques', 'photos', 'documents', 'fichiers_projet', 'groupes_documents', 'journal_champs']);
 
 // Les champs texte parmi les familles chiffrées : ils ne se convertissent pas en nombre.
 const TEXTES = /^(marche_quartier_nom|ville_secteur_champ\d|sim_(mode_prix_net_vendeur|honoraires_agent_mode|commission_agent_type|fees_klocka_type|type_detention|type_revente|lien_google_sheets|fichier_excel|fichier_pdf)|bail_date_|bail_analyse\.|cases_forcees\.|valeurs_forcees\.|secteur_points|ville_points|loyer_source|analyse_bail|bail_type|bail_infos_importantes)/;

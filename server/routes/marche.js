@@ -234,14 +234,16 @@ export function monterMarche(app) {
     ok(res, lireSecteur(projet));
   }));
 
-  // La carte des transactions autour d'une adresse (17 nov. 2026, Jules) : les ventes de murs (DVF) et les cessions de
-  // fonds (BODACC) à 500 m, pour l'onglet Marché de l'analyse et celui du projet (server/carte-transactions.js).
+  // La carte des transactions autour d'une adresse (17 nov. 2026, Jules) : les cessions de fonds (BODACC) à 500 m, pour
+  // l'onglet Marché de l'analyse et celui du projet (server/carte-transactions.js). Les ventes de murs (DVF) avec ?murs=1,
+  // pour l'équipe seulement (24 nov. 2026, Jules : « juste pas pour les clients ») : un autre compte ne les reçoit jamais.
   app.get('/api/carte-transactions', wrap(async (req, res) => {
     if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
     const adresse = String(req.query.adresse || '').trim();
     if (!adresse) return res.status(400).json({ error: 'Adresse manquante.' });
     const { carteTransactions } = await import('../carte-transactions.js');
-    const r = await carteTransactions(adresse, { user: currentUser(req) });
+    const user = currentUser(req);
+    const r = await carteTransactions(adresse, { user, avecMurs: user.role === 'admin' && req.query.murs === '1' });
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));

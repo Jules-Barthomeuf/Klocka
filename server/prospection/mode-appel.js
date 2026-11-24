@@ -15,6 +15,7 @@ import * as R from './regles.js';
 import { ligneDeRemarque } from './monday-agents.js';
 import { estVilleCotee } from '../villes-cotees.js';
 import { sessionEnCours } from './ma-session.js';
+import { reglesActives, trier, supprimerAgence } from './ecarter-agences.js';
 
 const AGENCE = 'AgenceProspect';
 const LISTE = 'ListeAgences';
@@ -466,10 +467,14 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
     appelsParAgent.get(x.agent_id).push(x);
   }
   const recentes = agencesRecentes(lignes, maintenantD, l.ville);
+  // Les cartes qu'on aurait supprimées de toute façon (24 nov. 2026, Jules) : écartées par les règles apprises des
+  // suppressions (ecarter-agences.js) ; jamais une agence intéressée ou à rappeler.
+  const regles = reglesActives();
+  const { gardees, ecartees } = trier(lignes, regles);
   const demandes = Records.list('DemandeClient');
   // « Nice · Apollo » (15 nov. 2026) : une seconde liste de la même ville garde les recherches clients de la ville.
   const recherches = recherchesDeLaZone(demandes, communeDeListe(l), { departement: departementDe(agences) });
-  const placees = lignes
+  const placees = gardees
     .map((a, rang) => ({ a, rang, place: placeDansLaFile(a, moi, { jour, fiche: fiches.get(a.carnet_id) || null, maintenantD }) }))
     .filter((x) => x.place != null)
     .sort((x, y) => x.place - y.place
@@ -486,7 +491,18 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
     .sort((x, y) => String(y.le).localeCompare(String(x.le)))[0] || null;
   const ordre = ordreStable(lignes);
   const repriseDe = dernier ? agences.find((a) => a.id === dernier.agence_id) : null;
-  return { ok: true, ville: l.ville, chiffres, recherches, file: reprendreApres(file, ordre, dernier?.agence_id || null), reprise: repriseDe ? { apres: repriseDe.nom, le: dernier.le } : null };
+  const parRegle = regles.map((r) => ({ id: r.id, libelle: r.libelle, n: ecartees.filter((x) => x.regle_id === r.id).length })).filter((r) => r.n);
+  return { ok: true, ville: l.ville, chiffres, recherches, file: reprendreApres(file, ordre, dernier?.agence_id || null), reprise: repriseDe ? { apres: repriseDe.nom, le: dernier.le } : null, ecartees: { n: ecartees.length, regles: parRegle } };
+}
+
+/** « Supprimer », avec son pourquoi (24 nov. 2026, Jules) : la carte sort, et le pourquoi peut devenir une règle. */
+export async function supprimer(agenceId, pourquoi, user, { lire = null, maintenantD = new Date() } = {}) {
+  const a = Records.get(AGENCE, agenceId);
+  if (!a) return { ok: false, error: 'Agence introuvable.' };
+  // La règle se mesure sur toutes les agences des listes réelles, annotées comme dans la file.
+  const listes = new Set(Records.list(LISTE).filter((x) => !x.essai).map((x) => x.id));
+  const toutes = annoter(Records.list(AGENCE).filter((x) => listes.has(x.liste_id) && !x.hors_cible), maintenantD);
+  return supprimerAgence(agenceId, pourquoi, user, { toutes, specialite: pertinence(a).specialite, lire, maintenantD });
 }
 
 /**
@@ -1052,7 +1068,7 @@ export async function validerIssue(x) {
   return p;
 }
 
-async function validerUneFois({ appel_id, sans_twenty = false, passe = null, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, monday_cases = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
+async function validerUneFois({ appel_id, sans_twenty = false, passe = null, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, monday_cases = null, note = '', corrections = [], contact_choisi = false, cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
   // « Ce qui s'est passé », réécrit par l'analyste : c'est sa phrase qui part dans Monday et le journal.
   const passeTapee = passe != null ? String(passe).trim() : null;
   const passeAvant = Records.get(APPEL, appel_id)?.passe ?? null;
@@ -1171,7 +1187,8 @@ async function validerUneFois({ appel_id, sans_twenty = false, passe = null, cho
     else {
       // Monday ne retient plus la validation (12 oct. 2026, « Validation… » qui tournait) : au-delà de 15 s, on rend la main
       // avec « Monday : écriture en cours » ; l'écriture continue et pose son résultat sur le reçu quand elle finit.
-      const ecrit = ecrireMonday({ appel_id, cible: cibleMonday(d, ag, a), donnees: d, ligne_id: monday_ligne });
+      // La personne choisie dans « Qui a décroché ? » (24 nov. 2026) : sa ligne à elle, pas celle d'un collègue au même standard.
+      const ecrit = ecrireMonday({ appel_id, cible: { ...cibleMonday(d, ag, a), contact_choisi: !!contact_choisi && !!d.contact }, donnees: d, ligne_id: monday_ligne });
       const r = await Promise.race([ecrit, new Promise((ok) => setTimeout(() => ok(null), DELAI_MONDAY_MS).unref?.())]);
       if (r) { monday = r.monday; ecriture = r.ecriture; }
       else {

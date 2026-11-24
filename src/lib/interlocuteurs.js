@@ -81,3 +81,35 @@ export function rangerInterlocuteurs(contacts0 = [], max = 6) {
   const standard = contacts.filter((x) => x.standard);
   return [...connus, ...autres].slice(0, max).concat(standard);
 }
+
+/**
+ * Pure : qui a décroché, cochée d'office après l'appel (24 nov. 2026, Jules : « on oublie qui on a appelé, on clique sur
+ * qui a décroché et ça remplit les cases de Twenty »). Le nom entendu pendant l'appel s'il est dans la liste (prénom et
+ * nom, ou un prénom que personne d'autre ne porte) ; un nom entendu absent de la liste : « autre », avec ce nom ; sinon la
+ * personne choisie avant l'appel ; sinon personne. Rend { id, nom, par } : par « entendu », « avant » ou null.
+ */
+export function quiADecroche({ contacts = [], entendu = null, avant = null } = {}) {
+  const gens = contacts.filter((x) => !x.standard && x.nom);
+  const e = cle(entendu);
+  if (e) {
+    const mots = e.split(' ');
+    const complet = gens.find((x) => { const n = cle(x.nom).split(' '); return mots.length > 1 && mots.every((m) => n.includes(m)); });
+    const parPrenom = gens.filter((x) => cle(x.nom).split(' ')[0] === mots[0]);
+    const trouve = complet || (mots.length === 1 && parPrenom.length === 1 ? parPrenom[0] : null);
+    if (trouve) return { id: trouve.id, nom: trouve.nom, par: 'entendu' };
+    return { id: 'autre', nom: String(entendu).trim(), par: 'entendu' };
+  }
+  const a = gens.find((x) => x.id === avant);
+  return a ? { id: a.id, nom: a.nom, par: 'avant' } : { id: null, nom: null, par: null };
+}
+
+/**
+ * Pure : les cases du contact Twenty CRM que remplit la personne choisie. Son nom ; son numéro direct et son mail s'ils
+ * sont connus (un mail déduit du format de l'agence n'est pas vérifié : il ne part pas dans Twenty). Le standard : le
+ * contact reste à compléter, le numéro composé ne change pas.
+ */
+export function champsDecroche(x) {
+  if (!x) return {};
+  if (x.standard) return { interlocuteur: '' };
+  return { interlocuteur: String(x.nom || '').trim(), ...(x.telephone ? { telephone: x.telephone } : {}), ...(x.email ? { email: x.email } : {}) };
+}

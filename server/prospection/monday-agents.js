@@ -81,7 +81,44 @@ const resume = (l) => ({ id: l.id, nom: l.nom, entreprise: l.entreprise || null,
  * ligne?, par?, candidates? }. Le téléphone d'abord, puis le mail, puis
  * l'agence et la ville, puis le nom du contact.
  */
-export function trouverLigne(lignes, { telephones = [], emails = [], agence = null, ville = null, contact = null } = {}) {
+export function trouverLigne(lignes, cible = {}) {
+  const m = trouverLigne0(lignes, cible);
+  if (!cible.contact_choisi || !cible.contact) return m;
+  // La personne choisie à l'écran (« Qui a décroché ? », 24 nov. 2026) : une ligne = un contact. La ligne trouvée par le
+  // standard ou l'agence est la sienne si elle porte son nom (ou un nom provisoire, qui se complète) ; sinon sa ligne à
+  // elle dans l'agence, sinon une nouvelle ligne, plutôt que d'écrire sur celle d'un collègue.
+  const sienne = (l) => memePersonne(l.nom, cible.contact) || nomProvisoire(l.nom, l.entreprise || cible.agence);
+  if (m.etat === 'trouvee') {
+    const l = lignes.find((x) => x.id === m.ligne.id);
+    if (!l || sienne(l)) return m;
+  }
+  if (m.etat === 'nouvelle') return m;
+  const a = R.norm(cible.agence);
+  const v = R.norm(cible.ville);
+  const siennes = lignes.filter((l) => memePersonne(l.nom, cible.contact) && ((a && R.norm(l.entreprise) === a) || (m.candidates || []).some((c) => c.id === l.id) || (!a && v && R.norm(l.ville) === v)));
+  if (siennes.length === 1) return { etat: 'trouvee', ligne: resume(siennes[0]), par: 'nom choisi' };
+  if (siennes.length > 1) return { etat: 'doute', par: 'nom choisi', candidates: siennes.slice(0, 4).map(resume) };
+  const provisoires = m.etat === 'doute' ? (m.candidates || []).filter((c) => nomProvisoire(c.nom, c.entreprise || cible.agence)) : [];
+  if (provisoires.length === 1) return { etat: 'trouvee', ligne: provisoires[0], par: 'ligne à compléter' };
+  return { etat: 'nouvelle', par: 'nom choisi' };
+}
+
+/**
+ * Pure : deux noms pour la même personne. Même nom, ou même prénom quand l'un des deux n'a que le prénom ou l'initiale
+ * du nom (« Sophie L. », « Sophie »).
+ */
+export function memePersonne(x, y) {
+  const mots = (n) => nomNorm(n).replace(/[^\p{L}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+  const a = mots(x);
+  const b = mots(y);
+  if (!a.length || !b.length) return false;
+  if (a.join(' ') === b.join(' ')) return true;
+  if (a[0] !== b[0]) return false;
+  if (a.length === 1 || b.length === 1) return true;
+  return a[1][0] === b[1][0] && (a[1].length === 1 || b[1].length === 1);
+}
+
+function trouverLigne0(lignes, { telephones = [], emails = [], agence = null, ville = null, contact = null } = {}) {
   const contactN = contact ? nomNorm(contact) : '';
   const parContact = (l) => contactN && nomNorm(l.nom) === contactN;
   const trancher = (trouvees, par) => {

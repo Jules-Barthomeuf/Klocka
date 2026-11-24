@@ -20,6 +20,7 @@ import { J } from "@/design/jetons";
 import MarcheProjet from "./MarcheProjet";
 import StreetViewRue from "./StreetViewRue";
 import { EnTeteOnglet, Carte } from "./Cartes";
+import { documentsParGroupe } from "@/lib/groupes-documents";
 import BienProjet from "./BienProjet";
 import LocataireProjet from "./LocataireProjet";
 
@@ -559,7 +560,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="marche">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <MarcheProjet project={project} isPublic={isPublic} prixM2Revient={prixM2Revient} loyerM2={loyerM2} />
+              <MarcheProjet project={project} isPublic={isPublic} prixM2Revient={prixM2Revient} loyerM2={loyerM2} equipe={isAdmin && !showAsClient && !isPublic} />
 
               <Bloc id="marche-notes" titre="Notes du marché"><NotesBlock notes={[...(project.notes_secteur || []), ...(project.notes_marche || [])]} /></Bloc>
 
@@ -733,26 +734,35 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {/* En édition, la liste est celle de l'éditeur (avec le retrait) : elle ne se montre pas deux fois. */}
               {modeEdition && editeurDocuments ? null : project.fichiers_projet && project.fichiers_projet.length > 0 ? (
                 // Au dessin des autres onglets (10 nov. 2026, Jules) : une carte titrée, comme le PV d'AG ou les résolutions,
-                // et des lignes à filets dedans, au texte des autres cartes.
-                <Bloc id="documents-liste" titre="Documents">
-                <Carte className="mb-5 p-7 max-md:p-5">
-                  <ul className="m-0 list-none border-b border-trait p-0">
-                    {project.fichiers_projet.map((fichier, idx) => (
-                      <li key={idx} className="border-t border-trait">
-                        <a href={fichier.url} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between gap-4 py-3.5">
-                          <span className="flex min-w-0 items-center gap-3">
-                            <FileText className="h-4 w-4 flex-shrink-0 text-ardoise" />
-                            <span className="truncate text-[15px] text-craie transition-colors group-hover:text-encre">{fichier.nom}</span>
-                          </span>
-                          <span className="flex flex-shrink-0 items-center gap-1.5 text-[13.5px] text-ardoise transition-colors group-hover:text-encre">
-                            Télécharger <Download className="h-3.5 w-3.5" />
-                          </span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </Carte>
-                </Bloc>
+                // et des lignes à filets dedans, au texte des autres cartes. Une carte par partie (24 nov. 2026, Jules :
+                // « un truc quittances, un truc PV d'AG ») ; les parties vides ne se montrent pas. Sans aucune partie
+                // (projet d'avant), la carte unique « Documents » d'avant.
+                (() => {
+                  const parties = documentsParGroupe(project).filter((p) => p.fichiers.length);
+                  const seule = parties.length === 1 && parties[0].autres;
+                  return parties.map((p) => (
+                    <Bloc key={p.nom} id={seule ? "documents-liste" : `documents-${p.nom}`} titre={seule ? "Documents" : p.nom}>
+                    <Carte className="mb-5 p-7 max-md:p-5">
+                      {!seule && <SectionLabel className="!mb-0">{p.nom}</SectionLabel>}
+                      <ul className={`m-0 list-none border-b border-trait p-0 ${seule ? "" : "[&>li:first-child]:border-t-0"}`}>
+                        {p.fichiers.map((fichier) => (
+                          <li key={fichier.idx} className="border-t border-trait">
+                            <a href={fichier.url} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between gap-4 py-3.5">
+                              <span className="flex min-w-0 items-center gap-3">
+                                <FileText className="h-4 w-4 flex-shrink-0 text-ardoise" />
+                                <span className="truncate text-[15px] text-craie transition-colors group-hover:text-encre">{fichier.nom}</span>
+                              </span>
+                              <span className="flex flex-shrink-0 items-center gap-1.5 text-[13.5px] text-ardoise transition-colors group-hover:text-encre">
+                                Télécharger <Download className="h-3.5 w-3.5" />
+                              </span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </Carte>
+                    </Bloc>
+                  ));
+                })()
               ) : (
                 <EmptyTab text="Aucun document disponible pour ce projet." />
               )}

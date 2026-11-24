@@ -823,17 +823,26 @@ async function outilPrix(e) {
 }
 
 /**
+ * Pure : les locaux vides ou incertains de la rue, placés, pour la carte de l'Emplacement (24 nov. 2026, Jules : « les
+ * locaux vides » dans un onglet de la carte) : adresse, état, dernier occupant, pourquoi.
+ */
+export function videsPlaces(locaux = []) {
+  return (locaux || []).filter((l) => (l.etat === 'vacant' || l.etat === 'incertain') && Number.isFinite(l.lat) && Number.isFinite(l.lon)).slice(0, 80)
+    .map((l) => ({ adresse: l.adresse || l.cle, etat: l.etat, confiance: l.confiance || null, dernier: l.dernier?.nom || null, ferme_le: l.dernier?.ferme_le || null, raison: l.raison || null, lat: l.lat, lon: l.lon }));
+}
+
+/**
  * Pure : la ligne Vacance d'après l'outil Vacance (tauxDeLaRue) : le taux de la rue entière, locaux vides sur locaux
  * tranchés ; « à voir » sous le seuil de locaux de l'outil. `r` : sa réponse, ou { error }.
  */
 export function pointVacance(r) {
   const S = "Outil Vacance (registre, OpenStreetMap, Google Maps)";
-  if (!r?.ok || r.statut !== 200) return vide('vacance', 'Vacance', r?.etat === 'chargement' ? "Les commerces de la commune sont encore en cours de recensement (une grande ville prend plusieurs minutes la première fois)." : r?.error || "L'outil Vacance n'a pas répondu.", S);
+  if (!r?.ok || r.statut !== 200) return vide('vacance', 'Signal de vacance', r?.etat === 'chargement' ? "Les commerces de la commune sont encore en cours de recensement (une grande ville prend plusieurs minutes la première fois)." : r?.error || "L'outil Vacance n'a pas répondu.", S);
   const t = r.taux || {};
-  if (t.taux == null) return vide('vacance', 'Vacance', `Aucun local tranché sur la rue (${t.locaux || 0} recensé${(t.locaux || 0) > 1 ? 's' : ''}).`, S);
+  if (t.taux == null) return vide('vacance', 'Signal de vacance', `Aucun local tranché sur la rue (${t.locaux || 0} recensé${(t.locaux || 0) > 1 ? 's' : ''}).`, S);
   const detail = `${t.vacants} vide${t.vacants > 1 ? 's' : ''} sur ${t.tranches} locaux${t.incertains ? `, ${t.incertains} incertain${t.incertains > 1 ? 's' : ''}` : ''}`;
-  if (!t.fiable) return point('vacance', 'Vacance', 'a_voir', `${String(t.taux).replace('.', ',')} % sur la rue (${detail}) : trop peu de locaux pour un taux sûr`, S, { taux: t });
-  return point('vacance', 'Vacance', t.taux < 10 ? 'ok' : t.taux < 20 ? 'a_voir' : 'alerte', `${String(t.taux).replace('.', ',')} % sur la rue (${detail})`, S, { taux: t, troncons: r.troncons || [] });
+  if (!t.fiable) return point('vacance', 'Signal de vacance', 'a_voir', `${String(t.taux).replace('.', ',')} % sur la rue (${detail}) : trop peu de locaux pour un taux sûr`, S, { taux: t, vides: videsPlaces(r.locaux) });
+  return point('vacance', 'Signal de vacance', t.taux < 10 ? 'ok' : t.taux < 20 ? 'a_voir' : 'alerte', `${String(t.taux).replace('.', ',')} % sur la rue (${detail})`, S, { taux: t, troncons: r.troncons || [], vides: videsPlaces(r.locaux) });
 }
 
 /** Le taux de vacance de la rue par l'outil Vacance ; la première fois, la commune se recense (une à deux minutes). */
@@ -852,7 +861,7 @@ async function vacanceDeLaRue(adresse, { attente = 15 * 60000 } = {}) {
 }
 
 async function outilEmplacement(e, { partiel = null } = {}) {
-  const P = [['passage', 'Passage'], ['rotation', 'Rotation du local'], ['vacance', 'Vacance'], ['enseignes', 'Enseignes nationales']];
+  const P = [['passage', 'Passage'], ['rotation', 'Rotation du local'], ['vacance', 'Signal de vacance'], ['enseignes', 'Enseignes nationales']];
   if (!e.adresse) return { points: P.map(([k, l]) => vide(k, l, "Pas d'adresse dans le dossier.")) };
   const { analyserRue } = await import('./rue.js');
   // La vacance part en même temps que la rue (13 nov. 2026, Jules : « beaucoup trop long ») : elle n'a besoin que de la
@@ -886,7 +895,7 @@ async function outilEmplacement(e, { partiel = null } = {}) {
     ],
   });
 
-  partiel?.(resultat(vide('vacance', 'Vacance', 'Lecture en cours…', 'Outil Vacance (registre, OpenStreetMap, Google Maps)')));
+  partiel?.(resultat(vide('vacance', 'Signal de vacance', 'Lecture en cours…', 'Outil Vacance (registre, OpenStreetMap, Google Maps)')));
   const vac = await (memeVoie ? enAvance : vacanceDeLaRue(x.adresse));
   const pointVac = pointVacance(vac);
   // Le loyer de la rue arrive souvent après elle : le Loyer lit Equimmox pendant que la rue se lit. La vacance montrée,

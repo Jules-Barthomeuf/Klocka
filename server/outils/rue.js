@@ -26,7 +26,7 @@ import { signauxPassage, noteDuPassage, modeleActif, avisAutour, referenceDeLaCo
 
 export const ENTITE = 'AnalyseRue';
 // v2 (13 nov. 2026) : la note de passage v2 (passage.js) ; v3 le même jour : la densité des commerces entre au classement.
-export const VERSION = 'v6 du 13 nov. 2026'; // v4 : passage sans Google ; v5 : un exploitant par commerce ; v6 : passage sans photo, loyer et vacance recalés.
+export const VERSION = 'v7 du 24 nov. 2026'; // v4 : passage sans Google ; v5 : un exploitant par commerce ; v6 : passage sans photo, loyer et vacance recalés ; v7 : les arrêts placés pour la carte.
 const ANS = 10;
 const CACHE_JOURS = 7;
 const VITRINES = PARAMETRES_TAUX.vitrines;
@@ -359,22 +359,33 @@ export async function interrogerOverpass(requete, { lire = fetch, serveurs = SER
   throw new Error(`OpenStreetMap ne répond pas (${erreurs.join(', ')})`);
 }
 
-/** Pure : les transports d'après les arrêts OpenStreetMap à 300 m : genres, lourd (métro, tram, gare), arrêts de bus. */
+/**
+ * Pure : les transports d'après les arrêts OpenStreetMap à 300 m : genres, lourd (métro, tram, gare), arrêts de bus, et
+ * chaque arrêt placé (`arrets` : genre, nom, point), pour la carte de l'Emplacement (24 nov. 2026, Jules).
+ */
 export function transportsDesArrets(elements) {
   const genres = new Set(); let lourd = false; let bus = 0;
+  const arrets = [];
+  const vus = new Set();
   for (const x of elements || []) {
     const t = x.tags || {};
-    if (t.railway === 'station' || t.railway === 'halt') { genres.add(t.station === 'subway' ? 'métro' : t.station === 'light_rail' ? 'tramway' : 'gare'); lourd = true; }
-    else if (t.station === 'subway' || t.railway === 'subway_entrance') { genres.add('métro'); lourd = true; }
-    else if (t.railway === 'tram_stop' || t.station === 'light_rail') { genres.add('tramway'); lourd = true; }
-    else if (t.highway === 'bus_stop') { genres.add('bus'); bus += 1; }
+    let genre = null;
+    if (t.railway === 'station' || t.railway === 'halt') { genre = t.station === 'subway' ? 'métro' : t.station === 'light_rail' ? 'tramway' : 'gare'; lourd = true; }
+    else if (t.station === 'subway' || t.railway === 'subway_entrance') { genre = 'métro'; lourd = true; }
+    else if (t.railway === 'tram_stop' || t.station === 'light_rail') { genre = 'tramway'; lourd = true; }
+    else if (t.highway === 'bus_stop') { genre = 'bus'; bus += 1; }
+    if (!genre) continue;
+    genres.add(genre);
+    // Un arrêt par nom et par genre (les deux quais d'un même arrêt de bus font un seul point).
+    const cle = `${genre}|${String(t.name || '').toLowerCase() || `${x.lat},${x.lon}`}`;
+    if (Number.isFinite(x.lat) && Number.isFinite(x.lon) && !vus.has(cle) && arrets.length < 60) { vus.add(cle); arrets.push({ genre, nom: t.name || null, lat: x.lat, lon: x.lon }); }
   }
-  return { genres: [...genres], lourd, arrets_bus: bus, source: 'OpenStreetMap' };
+  return { genres: [...genres], lourd, arrets_bus: bus, arrets, source: 'OpenStreetMap' };
 }
 
 async function transportsOsm(lat, lon) {
   const a = `around:300,${lat},${lon}`;
-  return transportsDesArrets(await interrogerOverpass(`[out:json][timeout:20];(node(${a})[highway=bus_stop];node(${a})[railway~"^(station|halt|tram_stop|subway_entrance)$"];node(${a})[station~"^(subway|light_rail)$"];);out tags;`));
+  return transportsDesArrets(await interrogerOverpass(`[out:json][timeout:20];(node(${a})[highway=bus_stop];node(${a})[railway~"^(station|halt|tram_stop|subway_entrance)$"];node(${a})[station~"^(subway|light_rail)$"];);out body;`));
 }
 
 /**

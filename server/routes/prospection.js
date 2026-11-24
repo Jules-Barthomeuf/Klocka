@@ -440,6 +440,23 @@ export function monterProspection(app) {
     if (!r.ok) return refus(res, r);
     ok(res, r);
   }));
+  // « Supprimer », avec son pourquoi (24 nov. 2026, Jules) : la carte sort pour tous, le pourquoi peut écarter les
+  // cartes du même genre (server/prospection/ecarter-agences.js) ; « Annuler » rend la carte et éteint la règle née ici.
+  app.post('/api/prospection/mode-appel/supprimer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await MA()).supprimer(req.body?.agence_id, String(req.body?.pourquoi || ''), user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/mode-appel/supprimer/annuler', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const { annulerSuppression } = await import('../prospection/ecarter-agences.js');
+    const r = annulerSuppression(req.body?.agence_id, req.body?.regle_id || null, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
   // L'agent qui rappelle : retrouvé par son nom ou son numéro.
   app.get('/api/prospection/mode-appel/chercher', wrap(async (req, res) => {
     if (!admin(req, res)) return;
@@ -633,7 +650,7 @@ export function monterProspection(app) {
       relance_le: b.relance_le || null, relance2_le: b.relance2_le || null, monday_ligne: b.monday_ligne || null, monday_cases: b.monday_cases && typeof b.monday_cases === 'object' ? b.monday_cases : null, sans_twenty: b.sans_twenty === true, note: String(b.note || '').slice(0, 2000),
       cle: b.cle ? String(b.cle).slice(0, 80) : null, session_id: b.session_id || null, issue: b.issue || null,
       depuisFenetre: !!b.depuis_fenetre, etapesVues: Array.isArray(b.etapes_vues) ? b.etapes_vues.slice(0, 30) : null,
-      corrections: Array.isArray(b.corrections) ? b.corrections : [], passe: b.passe != null ? String(b.passe).slice(0, 300) : null, user,
+      corrections: Array.isArray(b.corrections) ? b.corrections : [], contact_choisi: b.contact_choisi === true, passe: b.passe != null ? String(b.passe).slice(0, 300) : null, user,
     });
     if (!r.ok) return refus(res, r);
     ok(res, r);

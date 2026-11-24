@@ -8,7 +8,7 @@ import { Anneau, Barres, Calendrier, ClassementVacance, Fourchettes, Frise, Jaug
 import { SOURCE_REPERES, lignesVacance, phraseVacance } from "@/lib/vacance-reperes";
 import { cleOutilsDossier, marquerVu, useOutilsDossier } from "@/components/analyse/ControlesHorsDocuments";
 import { MOT, montants, sansCode, suiteCourte, teteEtSuite, teteProcedure } from "@/lib/marche-texte";
-import CarteTransactions from "@/components/marche/CarteTransactions";
+import CarteEmplacement from "@/components/marche/CarteEmplacement";
 import { VERRE } from "@/lib/verre";
 import GraphesSante from "@/components/outils/SanteLocataire";
 
@@ -29,7 +29,6 @@ const pct = (n, d = 1) => (n == null ? "—" : `${Number(n).toLocaleString("fr-F
 const nombre = (n) => (n == null ? "—" : Number(n).toLocaleString("fr-FR"));
 const euros = (n) => montants(`${Math.round(Number(n)).toLocaleString("fr-FR")} €`);
 const eurosM2 = (n) => (Number.isFinite(Number(n)) && n !== null ? `${Math.round(Number(n)).toLocaleString("fr-FR")} €/m²` : "—");
-const PARTS = [["troncon", "Commerces du tronçon", 3.5], ["enseignes", "Enseignes nationales", 2], ["transports", "Transports à 300 m", 1.5], ["voie", "Type de voie", 1], ["vues", "Photos Street View", 2]];
 
 // Les filets entre les parties d'une carte (12 nov. 2026, Jules) : au téléphone, un filet entre deux parties empilées ; à
 // partir de 1024 px, un filet vertical entre deux colonnes et un filet horizontal entre deux rangées. Les classes sont
@@ -425,56 +424,30 @@ function PartieEmplacement({ p, chiffre, a_cote = null, sous = null, lien, sourc
 
 // Exporté pour la page projet, qui reprend l'Emplacement du dossier (13 nov. 2026, Jules), puis Ville, Prix, Loyer et
 // Locataire (14 nov. 2026, Jules).
-// `simple` (page projet, 13 nov. 2026, Jules : « juste Passage, la note et un petit paragraphe pourquoi ») : la note
-// seule, puis ce qui l'a faite en phrases, sans barres, sans « provisoire » ni critères non lus.
+// `simple` (page projet) : la Vacance d'abord, puis la Rotation. Le Passage n'est plus montré (24 nov. 2026, Jules) :
+// la carte de l'Emplacement (transports, enseignes, locaux vides) a pris sa place.
 // `partie(id, titre, element)` (page projet, 13 nov. 2026, Jules : « on doit pouvoir masquer chaque truc ») : enveloppe
 // chaque partie dans le bloc masquable de l'éditeur ; l'Analyse n'en passe pas.
-export function BlocEmplacement({ pts, rue, simple = false, partie = null }) {
+export function BlocEmplacement({ pts, rue, simple = false, partie = null, transactions = null }) {
   const enveloppe = (id, titre, el) => (partie ? partie(id, titre, el) : el);
-  // La note v2 (13 nov. 2026) dit ses critères chacun sur 10 face aux autres rues de la ville ; une lecture d'avant garde
-  // ses cinq parties à leur barème.
-  const signaux = rue?.passage?.signaux || null;
-  const parts = signaux ? null : rue?.passage?.parts || null;
-  const lignesPassage = signaux ? signaux.map((x) => ({ nom: x.nom, valeur: x.valeur != null ? Math.round(x.valeur * 20) / 2 : null, max: 10 }))
-    : parts ? PARTS.map(([k, nom, max]) => ({ nom, valeur: parts[k] != null ? parts[k] : null, max })) : null;
   const t = pts.vacance?.detail?.taux;
   const part = rue?.rue?.part_enseignes_pct;
   const historique = [...(rue?.local?.historique || [])].sort((a, b) => String(b.ouvert || "").localeCompare(String(a.ouvert || ""))).slice(0, 6);
-  // Le passage : « Voir source » ouvre la photo Street View que l'IA a lue le long de la rue (server/outils/rue.js).
-  const photo = rue?.street_view?.photos?.rue || null;
-  const sourcePassage = `Indice Klocka, pas un comptage : chaque critère est jugé face aux autres rues de la ville. Sources : commerces et enseignes du registre SIRENE, avis Google des commerces à 100 m, loyer de la rue par Equimmox, transports à 300 m et type de voie par OpenStreetMap${photo ? `, photo ${rue.street_view.source || "Street View"} lue par l'IA${rue.street_view.date ? ` (prise de vue de ${rue.street_view.date})` : ""}` : ""}.`;
-  // Les phrases du serveur, redites pour l'image : « 10 / 10 (provisoire : …) », « 6 exploitants en dix ans pour 4
-  // cellules : local stable », « 9,3 % sur la rue (4 vides sur 43 locaux) : … ».
-  const passage = String(pts.passage?.resultat || "");
-  const note = passage.match(/^(\d+(?:,\d+)?)\s*\/\s*10/)?.[1];
-  const lus = signaux ? rue.passage.lus : parts ? PARTS.filter(([k]) => parts[k] != null).length : null;
-  const sur = signaux ? rue.passage.sur : PARTS.length;
+  // Les phrases du serveur, redites pour l'image : « 6 exploitants en dix ans pour 4 cellules : local stable »,
+  // « 9,3 % sur la rue (4 vides sur 43 locaux) : … ».
   const rotation = String(pts.rotation?.resultat || "").match(/^(\d+ exploitants?)\s+(.*)$/);
   const vacance = String(pts.vacance?.resultat || "");
   const vides = vacance.match(/\((\d+) vides? sur (\d+) locaux\)/);
   const reserve = vacance.split(" : ").slice(1).join(" : ");
   const cotes = (rue?.rue?.cellules || []).reduce((acc, c) => { const k = Number(c.numero) % 2 === 0 ? "pair" : "impair"; const n = Number(c.numero); if (Number.isFinite(n)) acc[k] = [Math.min(acc[k]?.[0] ?? n, n), Math.max(acc[k]?.[1] ?? n, n)]; return acc; }, {});
   const noms = rue?.rue?.noms_enseignes || [];
-  const pourquoi = (rue?.passage?.pourquoi || []).map((x) => String(x).trim().replace(/[.\s]+$/, "")).filter(Boolean);
-  const paragraphe = pourquoi.length ? `${pourquoi.map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(". ")}.` : null;
-  // Page projet (13 nov. 2026, Jules) : la Vacance prend la place du Passage, qui descend à la sienne.
-  const celPassage = enveloppe("emplacement-passage", "Passage", (
-      <div className={CELLULE}>
-        {simple ? (
-          <PartieEmplacement p={pts.passage} lien={photo} source={sourcePassage} chiffre={note ? `${note}/10` : teteEtSuite(passage)[0]}>
-            {paragraphe && <p className="m-0 text-[13px] leading-[1.55] text-ardoise">{paragraphe}</p>}
-          </PartieEmplacement>
-        ) : <PartieEmplacement p={pts.passage} lien={photo} source={sourcePassage} chiffre={note ? `${note}/10` : teteEtSuite(passage)[0]}
-          a_cote={<>{/provisoire/.test(passage) && <span className="rounded-full border border-menthe/50 px-1.5 text-[11px] text-menthe">provisoire</span>}{lus != null && <span className="text-[13px] text-ardoise">{lus} critère{lus > 1 ? "s" : ""} lu{lus > 1 ? "s" : ""} sur {sur}</span>}</>}>
-          {lignesPassage && <div className="pt-2"><Barres largeurLibelle="minmax(0,190px)" lignes={lignesPassage} max={signaux ? 10 : 3.5} format={(v, l) => `${String(v).replace(".", ",")} / ${String(l.max).replace(".", ",")}`} /></div>}
-        </PartieEmplacement>}
-      </div>
-  ));
   // La Vacance rangée parmi les repères nationaux (13 nov. 2026, Jules, variante B de la planche : « la B de loin »).
   const phraseVac = t?.taux != null ? phraseVacance(t.taux) : null;
-  const celVacance = enveloppe("emplacement-vacance", "Vacance", (
+  // « Signal de vacance » plutôt que « Taux de vacance » (24 nov. 2026, Jules) ; les lectures d'avant disaient « Vacance ».
+  const pVacance = pts.vacance ? { ...pts.vacance, libelle: "Signal de vacance" } : null;
+  const celVacance = enveloppe("emplacement-vacance", "Signal de vacance", (
       <div className={CELLULE}>
-        <PartieEmplacement p={pts.vacance} chiffre={t?.taux != null ? `${String(t.taux).replace(".", ",")} %` : teteEtSuite(vacance)[0]}
+        <PartieEmplacement p={pVacance} chiffre={t?.taux != null ? `${String(t.taux).replace(".", ",")} %` : teteEtSuite(vacance)[0]}
           source={pts.vacance ? [sourceDe(pts.vacance), SOURCE_REPERES].filter(Boolean).join(" ") : undefined}
           sous={vides ? `${vides[1]} ${Number(vides[1]) > 1 ? "locaux vides" : "local vide"} sur ${vides[2]} dans la rue${phraseVac ? ` · ${phraseVac}` : ""}${reserve ? ` · ${reserve}` : ""}` : phraseVac}>
           {t?.taux != null && <div className="mt-auto pt-4"><ClassementVacance lignes={lignesVacance(t.taux)} /></div>}
@@ -482,18 +455,14 @@ export function BlocEmplacement({ pts, rue, simple = false, partie = null }) {
         </PartieEmplacement>
       </div>
   ));
-  return (
-    <div className={GRILLE[2]}>
-      {simple ? celVacance : celPassage}
-      {enveloppe("emplacement-rotation", "Rotation du local", (
+  const celRotation = enveloppe("emplacement-rotation", "Rotation du local", (
       <div className={CELLULE}>
         <PartieEmplacement p={pts.rotation} chiffre={rotation ? rotation[1] : teteEtSuite(pts.rotation?.resultat)[0]} sous={rotation ? rotation[2].replace(" : ", " · ") : null}>
           {historique.length > 0 && <Frise lignes={historique.map((h) => ({ nom: h.nom, de: h.ouvert, a: h.ferme || null, actif: !h.ferme }))} />}
         </PartieEmplacement>
       </div>
-      ))}
-      {simple ? celPassage : celVacance}
-      {enveloppe("emplacement-enseignes", "Enseignes nationales", (
+      ));
+  const celEnseignes = enveloppe("emplacement-enseignes", "Enseignes nationales", (
       <div className={CELLULE}>
         <PartieEmplacement p={pts.enseignes} chiffre={null}>
           {part != null && (
@@ -506,8 +475,18 @@ export function BlocEmplacement({ pts, rue, simple = false, partie = null }) {
           {noms.length > 0 && <div className="mt-auto flex flex-wrap gap-2 pt-2">{noms.slice(0, 8).map((n) => <span key={n} className="rounded-full border border-trait px-2.5 py-0.5 text-[12.5px] text-craie">{n}</span>)}{noms.length > 8 && <span className="self-center px-1 text-[12.5px] text-brume">+{noms.length - 8}</span>}</div>}
         </PartieEmplacement>
       </div>
-      ))}
-    </div>
+      ));
+  // Le Marché de l'Analyse et celui du projet (24 nov. 2026, Jules : « à la place de Passage, une carte avec les
+  // transports autour, des onglets ») : la carte en tête, sur toute la largeur, puis les trois parties côte à côte. Le
+  // Passage n'est plus montré ; le serveur le calcule encore.
+  const celCarte = rue?.adresse ? enveloppe("emplacement-carte", "Carte", (
+    <div className="border-b border-trait p-3"><CarteEmplacement rue={rue} vides={pts.vacance?.detail ? pts.vacance.detail.vides || [] : null} transactions={transactions} /></div>
+  )) : null;
+  return (
+    <>
+      {celCarte}
+      <div className={GRILLE[3]}>{simple ? <>{celVacance}{celRotation}</> : <>{celRotation}{celVacance}</>}{celEnseignes}</div>
+    </>
   );
 }
 
@@ -533,19 +512,6 @@ export function BlocVille({ pts }) {
 }
 
 const BLOCS = { locataire: BlocLocataire, loyer: BlocLoyer, prix: BlocPrix, emplacement: BlocEmplacement, ville: BlocVille };
-
-/**
- * La carte des transactions autour du commerce (17 nov. 2026, Jules), sous le Prix : les ventes de murs et les cessions de
- * fonds à 500 m, sur le dessin des autres parties (titre en 20 px, bloc de verre).
- */
-function TransactionsAutour({ adresse }) {
-  return (
-    <section id="outil-transactions" className="flex scroll-mt-6 flex-col gap-3">
-      <h2 className="m-0 text-[20px] font-normal text-encre">Transactions autour</h2>
-      <div className={VERRE}><div className="p-3"><CarteTransactions adresse={adresse} hauteur={440} /></div></div>
-    </section>
-  );
-}
 
 export default function MarcheAffine({ dealId, index = 0, apercu = false }) {
   const queryClient = useQueryClient();
@@ -596,11 +562,11 @@ export default function MarcheAffine({ dealId, index = 0, apercu = false }) {
               <Entete o={o} apercu={apercu} onRelancer={(c) => lancer.mutate(c)} onVerifier={(id, v) => verifier.mutate({ id, verifie: v })} relance={lancer.isPending} />
               {/* Les blocs sur du verre (12 nov. 2026, Jules : essayé sur le Loyer, puis « pareil dans les autres parties »). */}
               <div className={VERRE}>
-                {points.length ? <Bloc pts={pts} rue={l.resultat.rue} onSiren={apercu ? null : (v) => siren.mutate(v)} /> : <p className="m-0 p-5 text-[13.5px] text-brume max-md:p-4">{l?.statut === "en_cours" ? "Lecture en cours ; les autres outils s'affichent déjà." : l?.statut === "echec" ? `Échec : ${l.erreur || "la lecture n'a pas abouti"}` : "Pas encore lancé."}</p>}
+                {points.length ? <Bloc pts={pts} rue={l.resultat.rue} onSiren={apercu ? null : (v) => siren.mutate(v)} transactions={o.cle === "emplacement" && entrees.adresse && !apercu ? { adresse: entrees.adresse, avecMurs: true } : null} /> : <p className="m-0 p-5 text-[13.5px] text-brume max-md:p-4">{l?.statut === "en_cours" ? "Lecture en cours ; les autres outils s'affichent déjà." : l?.statut === "echec" ? `Échec : ${l.erreur || "la lecture n'a pas abouti"}` : "Pas encore lancé."}</p>}
               </div>
             </section>
           );
-        }).flatMap((el, i) => (outils[i]?.cle === "prix" && entrees.adresse && !apercu ? [el, <TransactionsAutour key="transactions" adresse={entrees.adresse} />] : [el]))}
+        })}
       </div>
       {!apercu && <button type="button" onClick={() => lancer.mutate(null)} disabled={lancer.isPending} className="mt-6 inline-flex h-8 items-center gap-1.5 self-start rounded-full border border-trait px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
         {lancer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}Tout relancer

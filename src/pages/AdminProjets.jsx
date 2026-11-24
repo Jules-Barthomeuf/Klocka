@@ -578,6 +578,8 @@ export default function AdminProjets() {
       marche_commercial_prix_m2: project.marche_commercial_prix_m2 || "",
       marche_loyer_autour: project.marche_loyer_autour || "",
       fichiers_projet: project.fichiers_projet || [],
+      // Les parties de l'onglet Documents (24 nov. 2026) : absentes, celles par défaut (src/lib/groupes-documents.js).
+      ...(Array.isArray(project.groupes_documents) ? { groupes_documents: project.groupes_documents } : {}),
       docs_checklist: project.docs_checklist || {},
 
       swot_liens: project.swot_liens || [], swot_data: project.swot_data || null,
@@ -1355,7 +1357,7 @@ export default function AdminProjets() {
   useEffect(() => {
     if (isDialogOpen && editingProject) rafraichirApercu(formData);
     // Seules ces trois listes déclenchent ; le reste passe par modifierChamp.
-  }, [formData.photos, formData.fichiers_projet, formData.docs_checklist]);
+  }, [formData.photos, formData.fichiers_projet, formData.groupes_documents, formData.docs_checklist]);
 
   // `source` : instantané complet du formulaire. Les modifications faites sur la
   // page passent le leur, sinon on fusionnerait sur un état déjà périmé et
@@ -1905,6 +1907,15 @@ export default function AdminProjets() {
           <TitrePage titre="Projets" className="min-w-0 md:!pr-0" dansLigne />
           <Recherche value={searchTerm} onChange={setSearchTerm} placeholder="Rechercher un projet" className="w-full" />
           <div className="flex items-center justify-end gap-2">
+            {/* Les archivés à part (24 nov. 2026, Jules : « qu'on puisse voir les projets archivés ») : un clic montre
+                seulement eux, un second revient aux projets en cours. */}
+            {(nbArchives > 0 || showArchived) && (
+              <button type="button" onClick={() => setShowArchived((x) => !x)} aria-pressed={showArchived}
+                className={`inline-flex h-9 items-center gap-2 rounded-full border px-4 text-[13.5px] transition-colors ${showArchived ? "border-menthe/50 bg-menthe/10 text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`}
+                style={showArchived ? undefined : { background: "transparent" }}>
+                <Archive className="h-4 w-4" strokeWidth={1.8} />Archivés<span className="tabular-nums text-ardoise">{nbArchives}</span>
+              </button>
+            )}
             <BoutonPrincipal onClick={() => { resetForm(); setIsDialogOpen(true); }}><Plus className="w-4 h-4" strokeWidth={1.8} /> Nouveau projet</BoutonPrincipal>
           </div>
         </LigneTitre>

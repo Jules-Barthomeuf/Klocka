@@ -24,7 +24,7 @@ const FUSION_MS = 15 * 60000;
 const FENETRE_JOURS = 90;
 
 // Ce qui n'est pas une correction de contenu : l'ordre, les listes, les dates techniques, ce que l'agent tient à jour.
-const IGNORES = new Set(['updated_date', 'created_date', 'created_by', 'sources_champs', 'champs_masques', 'photos', 'fichiers_projet', 'documents', 'docs_checklist', 'questions_ouverture', 'client_emails', 'admins', 'ordre_blocs', 'blocs_ajoutes', 'secteur', 'rentre_par_agent_le', 'statut', 'historique', 'versions', 'deal_id', 'lot_index', 'id']);
+const IGNORES = new Set(['updated_date', 'created_date', 'created_by', 'sources_champs', 'champs_masques', 'photos', 'fichiers_projet', 'groupes_documents', 'documents', 'docs_checklist', 'questions_ouverture', 'client_emails', 'admins', 'ordre_blocs', 'blocs_ajoutes', 'secteur', 'rentre_par_agent_le', 'statut', 'historique', 'versions', 'deal_id', 'lot_index', 'id']);
 
 const LIBELLES = {
   titre: 'Titre', adresse_complete: 'Adresse', activite_locataire: 'Activité du locataire', nom_locataire: 'Nom du locataire',

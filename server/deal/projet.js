@@ -568,8 +568,10 @@ export function champsCompletsDeLAnalyse(analyse, deal = null) {
 }
 
 // Les pièces de la Data Room, rangées par l'Analyse, dans l'onglet Documents du projet, et les cases cochées avec.
-// Ni la fiche de l'agent ni les pièces sans type : l'onglet est montré aux clients.
+// Ni la fiche de l'agent ni les pièces sans type : l'onglet est montré aux clients. Chaque pièce arrive dans sa partie
+// de l'onglet (24 nov. 2026, Jules), aux noms de src/lib/groupes-documents.js ; les avenants avec le bail.
 const PIECES_DU_PROJET = ['bail', 'avenants', 'quittances', 'pv_ag', 'rcp', 'diagnostics', 'taxe_fonciere', 'kbis'];
+const PARTIE_DU_TYPE = { bail: 'Bail', avenants: 'Bail', quittances: 'Quittances', pv_ag: "PV d'AG", rcp: 'Règlement de copropriété', diagnostics: 'Diagnostics', taxe_fonciere: 'Taxe foncière', kbis: 'Kbis du locataire' };
 const CASES_DOCUMENTS = ['bail', 'pv_ag', 'diagnostics', 'quittances', 'rcp'];
 export function piecesDuProjet(analyse) {
   const fichiers_projet = [];
@@ -577,7 +579,7 @@ export function piecesDuProjet(analyse) {
   for (const e of analyse?.emplacements || []) {
     if (!PIECES_DU_PROJET.includes(e.id)) continue;
     const pieces = (e.documents || []).filter((d) => d.url);
-    fichiers_projet.push(...pieces.map((d) => ({ nom: d.titre || d.nom || e.titre, url: d.url })));
+    fichiers_projet.push(...pieces.map((d) => ({ nom: d.titre || d.nom || e.titre, url: d.url, groupe: PARTIE_DU_TYPE[e.id] })));
     if (pieces.length && CASES_DOCUMENTS.includes(e.id)) docs_checklist[e.id] = true;
   }
   return { fichiers_projet, docs_checklist };

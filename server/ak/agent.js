@@ -701,12 +701,14 @@ const OUTILS_AK = [
   },
   {
     name: 'noter_appel',
-    description: "Ce qu'un agent a dit, raconté à l'Assistant Klocka : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et l'écran de l'appel s'ouvre sur les actions à cocher (fiche agent, Twenty CRM, relance, Intelligence) ; rien ne part sans validation. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; aucun : l'écran s'ouvre sur l'identification.",
+    description: "Ce qu'un agent a dit, raconté à l'Assistant Klocka : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et les actions à cocher (contact Twenty CRM, mail « Suite à notre échange », relance) s'affichent dans le chat sous ta réponse ; rien ne part sans Valider. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; personne : demande son agence et sa ville, ou son numéro. N'appelle pas preparer_mail pour cet échange : le mail est dans les actions.",
     input_schema: {
       type: 'object',
       properties: {
-        agent: { type: 'string', description: "le nom, l'agence ou le numéro, tel que dit" },
+        agent: { type: 'string', description: "le nom de la personne (ou son numéro), tel que dit" },
+        agence: { type: 'string', description: "son agence, si elle est dite" },
         agent_id: { type: 'string', description: "l'identifiant rendu par un appel précédent, quand on a précisé lequel" },
+        agence_id: { type: 'string', description: "l'identifiant d'agence rendu par un appel précédent, quand on a précisé laquelle" },
         recit: { type: 'string', description: "ce qui s'est passé pendant l'appel, avec les mots de la personne" },
       },
       required: ['recit'],
@@ -980,19 +982,45 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     };
   }
   if (name === 'noter_appel') {
-    // Le même chemin qu'un rappel ou un appel rapide (19 oct. 2026, Jules) : un échange raconté, identifié, puis l'écran de l'appel.
+    // Le même chemin qu'un appel (19 oct. 2026) ; dans le chat même depuis le 24 nov. 2026 (Jules : « on prend des notes
+    // dans l'assistant, x m'a rappelé, il veut un mail, voici son adresse, et ça propose des actions pareil ou ça pose des
+    // questions si ce n'est pas clair ») : l'agent retrouvé (carnet, puis agences des listes), le récit lu comme un appel,
+    // et les actions (Twenty CRM, mail, relance) sous la réponse, à valider. Pas d'agent sûr : une question, rien de noté.
     const P = await import('../prospection/index.js');
-    let id = input.agent_id || null;
-    if (!id && input.agent) {
-      const trouves = P.trouver(P.agents(), input.agent);
-      if (trouves.length > 1) return { ok: false, plusieurs: true, candidats: trouves.slice(0, 5).map((a) => ({ agent_id: a.id, nom: a.nom, agence: a.agence, ville: a.ville, telephone: a.telephones?.[0] || null })) };
-      if (trouves.length === 1) id = trouves[0].id;
-    }
     const RP = await import('../prospection/rappels.js');
+    let id = input.agent_id || null;
+    let agenceId = input.agence_id || null;
+    const qui = [input.agent, input.agence].filter(Boolean).join(' ').trim();
+    if (!id && !agenceId) {
+      if (!qui) return { ok: false, a_preciser: true, note: "Qui a appelé ? Demande-le en une question (son nom et son agence), sans rien noter d'autre." };
+      const trouves = input.agent ? P.trouver(P.agents(), input.agent) : [];
+      if (trouves.length > 1) return { ok: false, plusieurs: true, candidats: trouves.slice(0, 5).map((a) => ({ agent_id: a.id, nom: a.nom, agence: a.agence, ville: a.ville, telephone: a.telephones?.[0] || null })), note: 'Plusieurs agents correspondent : demande lequel en une question (nom, agence, ville), puis rappelle noter_appel avec son agent_id.' };
+      if (trouves.length === 1) id = trouves[0].id;
+      else {
+        // Pas au carnet : les agences des listes (nom, numéro), et leurs agents par leur nom.
+        const vus = new Map();
+        for (const q of [input.agence, input.agent, qui].filter(Boolean)) for (const x of RP.chercher(q)) if (!vus.has(x.cle)) vus.set(x.cle, x);
+        const parNom = input.agent ? Records.list('AgenceProspect').filter((g) => (g.agents || []).some((x) => x.nom && P.trouver([{ id: 'x', nom: x.nom }], input.agent).length)) : [];
+        for (const g of parNom) if (!vus.has(g.carnet_id || `ag:${g.id}`)) vus.set(g.carnet_id || `ag:${g.id}`, { cle: g.carnet_id || `ag:${g.id}`, agent_id: g.carnet_id || null, agence_id: g.id, nom: input.agent, agence: g.nom, ville: g.ville || null, telephone: g.telephone || null });
+        const c = [...vus.values()];
+        if (c.length > 1) return { ok: false, plusieurs: true, candidats: c.slice(0, 5).map((x) => ({ agent_id: x.agent_id, agence_id: x.agence_id, nom: x.nom, agence: x.agence, ville: x.ville, telephone: x.telephone })), note: 'Plusieurs agents ou agences correspondent : demande lequel en une question, puis rappelle noter_appel avec son agent_id ou son agence_id.' };
+        if (c.length === 1) { id = c[0].agent_id; agenceId = c[0].agence_id; }
+        else return { ok: false, inconnu: true, note: `Ni le carnet ni les listes ne connaissent « ${qui} » : demande en une question son agence et sa ville, ou son numéro. Ou propose de l'ajouter au carnet comme nouveau contact, et attends sa réponse : n'appelle ni ajouter_prospect ni preparer_mail avant. Une fois ajouté (ajouter_prospect), rappelle noter_appel avec le même récit.` };
+      }
+    }
     const r = await RP.raconter(input.recit, user);
     if (!r.ok) return r;
-    if (id) { const i = await RP.identifier(r.rappel.id, { agent_id: id }, user); if (!i.ok) return i; }
-    return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que l'Assistant Klocka a compris et les actions à cocher (fiche agent, Twenty CRM, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
+    const i = await RP.identifier(r.rappel.id, { agent_id: id, agence_id: agenceId }, user);
+    if (!i.ok) return i;
+    const a = await RP.analyser(r.rappel.id, {}, user);
+    if (!a.ok) return a;
+    const agent = i.rappel.agent?.nom || input.agent || null;
+    if (a.rien_de_nouveau) return { ok: true, echange_id: r.rappel.id, agent, rien_de_nouveau: true, note: "Rien d'exploitable dans le récit : demande ce qui s'est dit, en une question." };
+    return {
+      ok: true, echange_id: r.rappel.id, agent, agence: i.rappel.agent?.agence || i.rappel.agence?.nom || null, compris: a.appel?.resume || null,
+      avertissements: (i.rappel.avertissements || []).map((x) => x.texte),
+      note: "Les actions de cet échange (contact Twenty CRM, mail « Suite à notre échange », relance) s'affichent sous ta réponse, à cocher puis valider : ne prépare aucun mail toi-même et ne donne pas de lien. Dis en une ou deux phrases ce que tu as compris, et pose une question seulement si un point manque (adresse mail, date).",
+    };
   }
   if (name === 'noter_bien') {
     if (user?.role !== 'admin') return { ok: false, error: 'Les notes des biens sont réservées à l\'équipe.' };
@@ -1791,9 +1819,9 @@ LE MARCHÉ, DATA-B ET K-DATA
 
 LA PROSPECTION ET L'OFF-MARKET (ALX)
 - Une note d'appel dictée ou collée dans le chat (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi ») : note_d_appel avec la note telle quelle ; elle met la fiche Twenty CRM de l'agent à jour. Une ligne pour dire ce qui est fait.
-- Un agent qui a rappelé, raconté ou dicté (« Martin de chez Foncia m'a rappelé, il a deux murs à Antibes ») : noter_appel, comme un appel sortant ; c'est le même chemin que le bouton « Il me rappelle ».
+- Un agent qui a rappelé, raconté ou dicté (« Martin de chez Foncia m'a rappelé, il a deux murs à Antibes, il veut un mail, voici son adresse ») : noter_appel, comme un appel sortant ; ses actions (Twenty CRM, mail, relance) s'affichent sous ta réponse, à valider. Pas de preparer_mail pour cet échange. Appelle noter_appel d'abord, même pour un nom inconnu : s'il ne reconnaît pas l'agent ou en trouve plusieurs, pose la question qu'il te donne, sans ajouter l'agent au carnet avant la réponse.
 - Ce qu'on sait d'un bien précis et qui n'entre pas dans l'analyse (ce que l'agent en a dit, l'historique de la vente, une info du vendeur ou du locataire) : trouver_bien, puis noter_bien sur le dossier, ou le projet s'il n'a pas de dossier ; dans le chat d'un dossier, sur ce dossier. Une ligne pour dire où c'est noté. Les notes d'un bien reviennent dans son état (notes_equipe) : sers-t'en pour répondre sur ce bien.
-- « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Ce qu'un agent a dit, raconté (« j'ai eu Rosario, pas de murs, mandat fin octobre », ou un échange sans téléphone : « Martin m'a écrit que… ») : noter_appel avec le récit dans ses mots et le nom de l'agent ; c'est le même chemin qu'un rappel ou un appel rapide, l'écran de l'appel s'ouvre sur les actions ; donne le lien d'ouverture en une ligne. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
+- « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Ce qu'un agent a dit, raconté (« j'ai eu Rosario, pas de murs, mandat fin octobre », ou un échange sans téléphone : « Martin m'a écrit que… ») : noter_appel avec le récit dans ses mots, le nom de l'agent et son agence ; les actions s'affichent sous ta réponse, sans lien à donner. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
 - « Prospecte Cannes » : lancer_alx ; le code poste les points d'étape et le bilan. « Qui détient le plus de murs ? », « les SCI de la rue X » : alx_societes, une ligne par société (nom, murs, gérant, mail ou pas). « Montre-moi les messages », « le suivant », « celui de la SCI X » : alx_message, le message est posté par le code ; une retouche : alx_message avec objet et corps réécrits. Il part sur le « envoie » de la personne. Un appel au gérant raconté : alx_appel.
 
 LES TÂCHES DE FOND

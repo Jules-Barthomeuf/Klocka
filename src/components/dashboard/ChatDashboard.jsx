@@ -44,6 +44,7 @@ import { ouvrirFiche } from "@/lib/fiche-dossier";
 import { kEuros } from "@/lib/clients-commerces";
 import VillesCotees from "@/components/clients/VillesCotees";
 import { entreeEnvoie } from "@/lib/entree-envoie";
+import ActionsDuRecit from "@/components/prospection/ActionsDuRecit";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -790,7 +791,7 @@ export function cartesDe(r) {
   const fil = r?.fil_bien ? [{ titre: "Rangé dans le fil du bien", detail: null, etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
   return [...fil, ...fichiers, ...taches, ...(r?.actions || [])
     // Une étape à confirmer n'est pas faite : elle n'a pas de carte, seulement son bouton « Confirmer » (25 oct. 2026).
-    .filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_vente" && a.type !== "confirmer_import" && !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
+    .filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_vente" && a.type !== "confirmer_import" && !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon", "noter_appel"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
     .map((a) => ({
       titre: a.titre || (a.name === "creer_drive_dossier" && a.resultat?.deja_cree ? "Dossier Drive complété" : ACTIONS_FAITES[a.name]),
       detail: a.pour || a.resultat?.message || a.resultat?.titre || null,
@@ -1745,7 +1746,9 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
       if (repondre) { pousser({ role: "assistant", contenu: r.reponse }); onReponse?.(r); return; }
       rafraichir();
       // La mémoire des outils (ce qu'AK a lu ou fait) part avec le message : au tour suivant, il s'en souvient (13 oct. 2026).
-      const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r), ...(r.memoire ? { memoire: r.memoire } : {}) };
+      // Un échange raconté (noter_appel, 24 nov. 2026) : ses actions s'affichent sous la réponse, à valider ici.
+      const recits = (r.actions || []).filter((a) => a.name === "noter_appel" && a.resultat?.ok && a.resultat?.echange_id && !a.resultat?.rien_de_nouveau).map((a) => a.resultat.echange_id);
+      const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r), ...(r.memoire ? { memoire: r.memoire } : {}), ...(recits.length ? { recits } : {}) };
       if (estimation) {
         pousser({
           role: "assistant",
@@ -2866,6 +2869,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
                   {m.cartes?.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).length > 0 && (
                     <div className="mt-4 space-y-1">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} kp={mandataire} />)}</div>
                   )}
+                  {m.recits?.map((id) => <ActionsDuRecit key={id} rappelId={id} />)}
                 </div>
               </motion.div>
             ),

@@ -318,3 +318,25 @@ test('16 nov. : comptes en k€ remis en euros, chiffres de la recherche invrais
   const r = chiffresPlausibles([{ exercice: '2025', chiffre_affaires: 57500000, resultat_net: 61600000 }, { exercice: '2020', chiffre_affaires: 500000000, resultat_net: 30000000 }], ref);
   assert.deepEqual(r.map((x) => x.exercice), ['2020']);
 });
+
+test('la carte de l’Emplacement : les locaux vides placés, le libellé « Signal de vacance », les arrêts placés (24 nov. 2026)', async () => {
+  const { videsPlaces } = await import('./lancements.js');
+  const { transportsDesArrets } = await import('./rue.js');
+  const locaux = [
+    { cle: '3 RUE X', adresse: '3 rue X', etat: 'vacant', confiance: 'forte', dernier: { nom: 'Boulangerie', ferme_le: '2025-03-01' }, lat: 45.7, lon: 4.8 },
+    { cle: '5 RUE X', etat: 'incertain', lat: 45.7001, lon: 4.8001 },
+    { cle: '7 RUE X', etat: 'occupe', lat: 45.7002, lon: 4.8002 },
+    { cle: '9 RUE X', etat: 'vacant', lat: null, lon: null },
+  ];
+  assert.deepEqual(videsPlaces(locaux).map((v) => [v.adresse, v.etat, v.dernier]), [['3 rue X', 'vacant', 'Boulangerie'], ['5 RUE X', 'incertain', null]]);
+  const p = pointVacance({ ok: true, statut: 200, taux: { taux: 10, vacants: 1, tranches: 10, incertains: 1, locaux: 11, fiable: true }, locaux });
+  assert.equal(p.libelle, 'Signal de vacance');
+  assert.equal(p.detail.vides.length, 2);
+  const t = transportsDesArrets([
+    { lat: 45.7, lon: 4.8, tags: { highway: 'bus_stop', name: 'Bellecour' } },
+    { lat: 45.7001, lon: 4.8001, tags: { highway: 'bus_stop', name: 'Bellecour' } },
+    { lat: 45.71, lon: 4.81, tags: { railway: 'station', station: 'subway', name: 'Bellecour' } },
+  ]);
+  assert.deepEqual(t.arrets.map((a) => [a.genre, a.nom]), [['bus', 'Bellecour'], ['métro', 'Bellecour']], 'les deux quais du bus font un arrêt');
+  assert.equal(t.arrets_bus, 2);
+});

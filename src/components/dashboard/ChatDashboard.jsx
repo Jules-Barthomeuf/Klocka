@@ -1248,6 +1248,10 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   const [titreSauve, setTitreSauve] = useState(null);
   const [titreEdite, setTitreEdite] = useState(null);
   const sauvegarde = useRef(null);
+  // Une LOI rédigée depuis un autre chat que celui d'Offres (24 nov. 2026, Jules : « on arrive directement dans la
+  // conversation de l'offre, le chat à gauche et l'offre à droite ») : une fois la conversation enregistrée, la lettre s'y
+  // relie et la page Offres s'ouvre dessus.
+  const loiAOuvrir = useRef(null);
   useEffect(() => {
     // Un enregistrement se garde aussi sans rien tapé : il revient dans l'historique comme une conversation.
     if (repondre || !fil.some((m) => m.role === "user" || (m.role === "bloc" && m.type === "enregistrement"))) return undefined;
@@ -1258,6 +1262,11 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
         .then((r) => {
           if (r?.id && r.id !== conversationId) setConversationId(r.id);
           if (r?.titre) setTitreSauve(r.titre);
+          const loi = loiAOuvrir.current;
+          if (loi && r?.id) {
+            loiAOuvrir.current = null;
+            base44.request("PATCH", `/api/offres/${loi}`, { body: { conversation_id: r.id } }).catch(() => {}).finally(() => navigate(`/Offres?loi=${loi}`));
+          }
           queryClient.invalidateQueries({ queryKey: ["assistant-conversations", E.api, qs] });
         })
         .catch(() => { /* l'historique attendra le prochain échange */ });
@@ -1747,6 +1756,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
       rafraichir();
       // La mémoire des outils (ce qu'AK a lu ou fait) part avec le message : au tour suivant, il s'en souvient (13 oct. 2026).
       // Un échange raconté (noter_appel, 24 nov. 2026) : ses actions s'affichent sous la réponse, à valider ici.
+      const loiNeuve = (r.actions || []).find((a) => a.name === "rediger_loi" && a.resultat?.nouvelle && a.resultat?.loi_id)?.resultat.loi_id;
+      if (loiNeuve && !/^\/(Offres|Dossiers)/i.test(window.location.pathname)) loiAOuvrir.current = loiNeuve;
       const recits = (r.actions || []).filter((a) => a.name === "noter_appel" && a.resultat?.ok && a.resultat?.echange_id && !a.resultat?.rien_de_nouveau).map((a) => a.resultat.echange_id);
       const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r), ...(r.memoire ? { memoire: r.memoire } : {}), ...(recits.length ? { recits } : {}) };
       if (estimation) {

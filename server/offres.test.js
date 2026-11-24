@@ -35,15 +35,14 @@ test('il manque le prix : AK le demande, rien ne se crée', async () => {
   assert.equal(Records.list(O.ENTITE).length, 0);
 });
 
-test("depuis l'application : la LOI est gardée, et « Votre LOI est prête » mène à la relire", async () => {
+test("depuis l'application : la LOI est gardée, et l'écran s'ouvre sur Offres, sans notification ni lien (24 nov. 2026)", async () => {
   const r = await executerOutil({ name: 'rediger_loi', input: OFFRE }, JULES, APP);
   assert.equal(r.ok, true, r.error);
   id = r.loi_id;
-  assert.equal(r.lien, `/Offres?loi=${id}`);
-  const n = Records.list('Notification').find((x) => x.pour === JULES.email && x.titre === 'Votre LOI est prête');
-  assert.ok(n, 'la notification est là');
-  assert.equal(n.lien, `/Offres?loi=${id}`);
-  assert.equal(n.action, 'Relire');
+  assert.equal(r.nouvelle, true);
+  assert.equal(r.lien, undefined);
+  assert.match(r.note, /s'ouvre tout seul sur la page Offres/);
+  assert.equal(Records.list('Notification').find((x) => x.pour === JULES.email && x.titre === 'Votre LOI est prête'), undefined);
   assert.equal(O.listerLettres()[0].acquereur, 'Olivier LUCCIONI · FONCIERE ANGULARIS');
   const d = await O.lireLettre(id);
   assert.match(d.blocs.find((b) => b.cle === 'offre-liste').texte, /\*\*200[\s\u202f]000 € \(deux cent mille euros\)\*\*/);

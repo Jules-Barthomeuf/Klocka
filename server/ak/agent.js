@@ -433,6 +433,11 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { nombre: { type: 'integer', minimum: 0, maximum: 50 }, pas_une_fiche: { type: 'boolean' }, remarque: { type: 'string', description: 'ce que la personne a dit, tel quel' }, objet: { type: 'string', description: "un mot de l'objet du transfert ou une ville, s'il ne s'agit pas du dernier" } }, required: ['remarque'] },
   },
   {
+    name: 'repondre_portefeuille',
+    description: "Répond à la question de l'assistant sur un portefeuille transféré à sourcing@ (« Cette fiche porte un portefeuille de 3 commerces loués… Je les pré-analyse séparément, un dossier par commerce, ou en un seul lot ? »), quand la personne répond « séparément », « un dossier par commerce », « en un seul lot », « ensemble ». separement : true pour un dossier par commerce, false pour un seul dossier. Sans objet : son dernier portefeuille en attente. La pré-analyse part en fond, la suite arrive dans le même fil : réponds en une phrase.",
+    input_schema: { type: 'object', properties: { separement: { type: 'boolean' }, objet: { type: 'string', description: "un mot de l'objet du transfert ou une ville, s'il ne s'agit pas du dernier" } }, required: ['separement'] },
+  },
+  {
     name: 'ouvrir_fiche',
     description: "Ouvre À L'ÉCRAN la fiche Klocka d'une personne ou d'un bien (un client, un agent, un dossier) : celle que remplissent les notes, les appels et les groupes WhatsApp importés (résumé, avancement, historique, personnes). À utiliser dès qu'on dit « ouvre / montre / affiche la fiche de X », avant tout autre outil. La fiche s'ouvre d'elle-même à côté du chat : réponds en une phrase (« Voici la fiche de Rachel Peyrabout. »), sans recopier son contenu ni ce que dit Twenty CRM. Plusieurs fiches possibles : nomme-les et demande laquelle. Aucune : dis-le, sans chercher ailleurs.",
     input_schema: { type: 'object', properties: { nom: { type: 'string', description: 'le nom tel que dit : une personne, une agence, un bien (« Rachel Peyrabout », « MACSF Lorient »)' }, genre: { type: 'string', enum: ['client', 'agent', 'bien'], description: 'si la demande le dit' } }, required: ['nom'] },
@@ -1145,9 +1150,9 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
       if (message?.page === 'offres') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), ...(attention ? { a_l_attention_de: attention } : {}), note: "La LOI est ouverte à droite, éditable." };
       // Depuis l'étape Offre d'un dossier, de même : elle s'affiche à droite (28 oct. 2026).
       if (message?.page === 'dossiers') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), ...(attention ? { a_l_attention_de: attention } : {}), note: "La LOI est ouverte à droite, dans l'étape Offre du dossier, éditable." };
-      const { notifier } = await import('../notifications.js');
-      notifier({ pour: user?.email, titre: 'Votre LOI est prête', texte: [champs.adresse_bien, champs.acquereur_nom].filter(Boolean).join(' · '), lien: lien(l.id), action: 'Relire', genre: 'tache', cle: `loi:${l.id}` });
-      return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), ...(attention ? { a_l_attention_de: attention } : {}), note: "La LOI est prête dans la page Offres, éditable, avec Word et PDF ; une notification « Relire » y mène. Dis-le en une ligne, sans recopier la lettre." };
+      // Depuis un autre chat (24 nov. 2026, Jules) : l'écran part tout seul sur Offres, cette conversation à gauche et la
+      // lettre à droite ; plus de notification « Relire », ni de lien à donner.
+      return { ok: true, nouvelle: true, loi_id: l.id, ...(attention ? { a_l_attention_de: attention } : {}), note: "La LOI est prête : l'écran s'ouvre tout seul sur la page Offres, cette conversation à gauche et la lettre à droite, éditable, avec Word et PDF. Dis-le en une ligne, sans lien ni adresse de page." };
     }
     fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, format: input.format === 'pdf' ? 'pdf' : 'docx', deal_id: dealId });
     return { ok: true, loi_id: l.id, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
@@ -1241,6 +1246,11 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   if (name === 'corriger_transfert') {
     const { corrigerTransfert } = await import('../haka/compte-rendu-transfert.js');
     return corrigerTransfert(input || {}, user);
+  }
+  // « Séparément » ou « en un seul lot » à la question d'un portefeuille transféré (24 nov. 2026, Jules).
+  if (name === 'repondre_portefeuille') {
+    const { repondrePortefeuille } = await import('../haka/compte-rendu-transfert.js');
+    return repondrePortefeuille(input || {}, user);
   }
   if (name === 'ouvrir_fiche') {
     const { ficheAOuvrir } = await import('../fiche-dossier/ouvrir.js');

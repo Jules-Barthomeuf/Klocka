@@ -12,9 +12,9 @@ import { base44 } from "@/api/base44Client";
 
 const ICONES = { grille_dossier: FileSearch, loi: FileSignature, dossier_bancaire: Landmark, page_plateforme: Building2, presentation: Landmark, mail: Mail, dossier: FolderOpen };
 const REPLI = [
-  { cle: "pre-analyse-fiche", nom: "Pré-analyser", format: "grille_dossier" },
+  { cle: "pre-analyse-fiche", nom: "Pré-analyser une fiche", format: "grille_dossier" },
   { cle: "data-room", nom: "Analyser une data room", format: "dossier" },
-  { cle: "loi", nom: "Préparer une LOI", format: "loi" },
+  { cle: "loi", nom: "Préparer une offre", format: "loi" },
   { cle: "presentation-bancaire", nom: "Dossier bancaire", format: "presentation" },
 ];
 const D_ABORD = ["pre-analyse-fiche", "data-room", "loi", "presentation-bancaire"];
@@ -25,6 +25,9 @@ const D_ABORD = ["pre-analyse-fiche", "data-room", "loi", "presentation-bancaire
 const GESTES = [
   { cle: "geste:mail", nom: "Drafter un email", icone: Mail, outils: [] },
 ];
+// Les mots des raccourcis (25 nov. 2026, Jules : « mets Préparer une offre, Pré-analyser une fiche ») : ils l'emportent
+// sur le nom de la compétence publiée.
+const NOMS = { "loi": "Préparer une offre", "pre-analyse-fiche": "Pré-analyser une fiche" };
 const rang = (cle) => { const i = D_ABORD.indexOf(cle); return i < 0 ? D_ABORD.length : i; };
 const PILULE = "inline-flex h-9 min-w-0 items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 text-[13.5px] max-md:h-11 max-md:w-11 max-md:justify-center max-md:px-0 text-encre transition-[border-color,transform] duration-300 hover:border-bord-vif";
 
@@ -33,7 +36,7 @@ export default function RaccourcisHaka({ choisie = null, onChoisir, sourcesOuver
   const q = useQuery({ queryKey: ["haka-competences", "chat"], queryFn: () => base44.request("GET", "/api/haka/competences?declencheur=chat"), staleTime: 5 * 60_000, retry: false });
   const actives = q.data?.competences || [];
   // Les plus utilisées d'abord, à égalité l'ordre des raccourcis d'origine.
-  const liste = [...(actives.length ? [...actives].sort((a, b) => (b.usage || 0) - (a.usage || 0) || rang(a.cle) - rang(b.cle)) : REPLI).slice(0, 4), ...GESTES];
+  const liste = [...(actives.length ? [...actives].sort((a, b) => (b.usage || 0) - (a.usage || 0) || rang(a.cle) - rang(b.cle)) : REPLI).slice(0, 4), ...GESTES].map((c) => (NOMS[c.cle] ? { ...c, nom: NOMS[c.cle] } : c));
   return (
     <nav aria-label="Raccourcis" className={`flex flex-wrap justify-center gap-2 ${className}`}>
       {liste.map((c) => {

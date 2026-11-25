@@ -224,7 +224,7 @@ export default function AdminDashboardView() {
             apresChat={(
               <>
                 {/* Les raccourcis remplacent « Connecter un skill » ; les cartes « Ce que Haka sait faire » sont retirées de la page (17 oct. 2026, Jules). */}
-                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (c.cle === "loi" ? navigate("/Offres") : competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[820px]" />
+                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (c.cle === "loi" ? navigate("/Offres") : competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} className="mx-auto mt-5 max-w-[820px]" />
                 <Depliant ouvert={!!competence && (competence.outils || []).length > 0} className="mx-auto max-w-[900px]">
                   <div className="flex flex-col items-center gap-2.5 pt-5">
                     <div className="flex flex-wrap justify-center gap-2">
@@ -234,7 +234,8 @@ export default function AdminDashboardView() {
                     </div>
                   </div>
                 </Depliant>
-                <Depliant ouvert={sourcesOuvert} className="mx-auto max-w-[900px]"><div className="pt-6">{panneauSources}</div></Depliant>
+                {/* Plus de rond Sources sous les raccourcis (25 nov. 2026, Jules : « quand on clique sur + on les a de toute
+                    façon, et ça s'affiche en deux fois ») : les sources s'ouvrent par le « + » de la saisie, une seule fois. */}
                 {/* Plus d'« Aujourd'hui » ni de « Dans les sept jours » sous l'assistant (20 nov. 2026, Jules : « ça dénature le
                     but du dashboard ») : les actions datées restent dans chaque fiche, onglet Prochaine action. */}
               </>

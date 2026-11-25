@@ -2639,7 +2639,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
               {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
               {/* Le mode, à la place de Sources (20 nov. 2026, Jules) : Normal ou Enregistrement ; Sources suit. */}
               {lienNote && <BoutonMode mode={modeRdv} onChange={setModeRdv} verrouille={rdv.etat !== "repos"} versLeHaut={!!(conversation || menusVersLeHaut)} />}
-              {reglages?.onOuvrirSources && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
+              {/* Sur l'Assistant, le « + » des sources est à droite des raccourcis (25 nov. 2026, Jules) : pas d'icône dans la saisie. */}
+              {reglages?.onOuvrirSources && !reglages.sourcesSousRaccourcis && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
               {!epure && !E.modesAGauche && !reglages && (
               <div className="relative">
                 <button

@@ -87,7 +87,7 @@ export default function AdminDashboardView() {
   }, []);
   // Plus de bascule Répondre / Produire dans la saisie (19 nov. 2026, Jules) : l'icône lien prend sa place ; une
   // compétence choisie passe toujours en « produire ».
-  const reglages = useMemo(() => ({ sources, sortie, sourcesOuvert, onOuvrirSources: () => setSourcesOuvert((o) => !o), panneau: panneauSources, competence, eteintes, choisirCompetence }),
+  const reglages = useMemo(() => ({ sources, sortie, sourcesOuvert, onOuvrirSources: () => setSourcesOuvert((o) => !o), sourcesSousRaccourcis: true, panneau: panneauSources, competence, eteintes, choisirCompetence }),
     // Le panneau se redessine avec les sources : elles suffisent à le suivre.
     [sources, sortie, sourcesOuvert, competence, eteintes, choisirCompetence]);
   // Une conversation qui commence repart d'un panneau vide ; qui se ferme, l'Accueil revient.
@@ -224,7 +224,7 @@ export default function AdminDashboardView() {
             apresChat={(
               <>
                 {/* Les raccourcis remplacent « Connecter un skill » ; les cartes « Ce que Haka sait faire » sont retirées de la page (17 oct. 2026, Jules). */}
-                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (c.cle === "loi" ? navigate("/Offres") : competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} className="mx-auto mt-5 max-w-[820px]" />
+                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (c.cle === "loi" ? navigate("/Offres") : competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[820px]" />
                 <Depliant ouvert={!!competence && (competence.outils || []).length > 0} className="mx-auto max-w-[900px]">
                   <div className="flex flex-col items-center gap-2.5 pt-5">
                     <div className="flex flex-wrap justify-center gap-2">
@@ -234,8 +234,8 @@ export default function AdminDashboardView() {
                     </div>
                   </div>
                 </Depliant>
-                {/* Plus de rond Sources sous les raccourcis (25 nov. 2026, Jules : « quand on clique sur + on les a de toute
-                    façon, et ça s'affiche en deux fois ») : les sources s'ouvrent par le « + » de la saisie, une seule fois. */}
+                {/* Les sources s'ouvrent une seule fois, sous la saisie (25 nov. 2026, Jules : « ça s'affiche en deux fois ») ; leur
+                    « + » est à droite de « Drafter un email », plus d'icône dans la saisie. */}
                 {/* Plus d'« Aujourd'hui » ni de « Dans les sept jours » sous l'assistant (20 nov. 2026, Jules : « ça dénature le
                     but du dashboard ») : les actions datées restent dans chaque fiche, onglet Prochaine action. */}
               </>

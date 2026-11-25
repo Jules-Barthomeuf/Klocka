@@ -60,9 +60,8 @@ export function entreesDuMenu({ user, vue }) {
  * dessous un champ de texte qu'on remplit ») : la même entité que la page Feedback (Suggestion), rien d'automatique ;
  * Jules lit et change l'état à la main.
  */
-function ChampFeedback({ user, onEnvoye }) {
+function ChampFeedback({ user, texte, setTexte, onEnvoye }) {
   const qc = useQueryClient();
-  const [texte, setTexte] = useState("");
   const envoyer = useMutation({
     mutationFn: () => base44.entities.Suggestion.create({
       contenu: texte.trim(), statut: "nouveau",
@@ -97,7 +96,13 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
   const { prefs, changer } = usePersonnalisation();
   const [ouvert, setOuvert] = useState(false);
   const [feedback, setFeedback] = useState(false);
+  // Le brouillon reste si la carte se ferme (un clic ailleurs) : on le retrouve en revenant sur Feedback.
+  const [brouillon, setBrouillon] = useState("");
   useEffect(() => { if (!ouvert) setFeedback(false); }, [ouvert]);
+  // Champ ouvert, la carte ne se ferme plus quand la souris s'en va (25 nov. 2026, Jules : « lorsqu'on part avec la
+  // souris, ça referme le champ ») : seulement à l'envoi, à Échap, ou d'un clic ailleurs.
+  const garder = useRef(false);
+  garder.current = feedback;
   const fermer = useRef(null);
   const boite = useRef(null);
   const navigate = useNavigate();
@@ -114,7 +119,7 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
   if (!user) return null;
   // Le survol ouvre ; la souris qui sort referme après un court instant, le temps de descendre dans le menu.
   const entrer = () => { clearTimeout(fermer.current); setOuvert(true); };
-  const sortir = () => { clearTimeout(fermer.current); fermer.current = setTimeout(() => setOuvert(false), 180); };
+  const sortir = () => { clearTimeout(fermer.current); if (garder.current) return; fermer.current = setTimeout(() => setOuvert(false), 180); };
   const aller = (page, section) => {
     setOuvert(false);
     navigate(`${createPageUrl(page)}${section ? `#${section}` : ""}`);
@@ -154,7 +159,7 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
                     <button type="button" role="menuitem" onClick={() => setFeedback(true)} aria-expanded={feedback} className={`${ligne} ${feedback ? "!text-encre" : ""}`} style={{ background: "transparent" }}>
                       <Icone className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />{mot}
                     </button>
-                    {feedback && <ChampFeedback user={user} onEnvoye={() => setOuvert(false)} />}
+                    {feedback && <ChampFeedback user={user} texte={brouillon} setTexte={setBrouillon} onEnvoye={() => setOuvert(false)} />}
                   </div>
                 );
                 return (

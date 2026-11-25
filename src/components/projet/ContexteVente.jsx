@@ -74,7 +74,8 @@ export function ChatContexte({ url, texte, onTexte }) {
   };
   const pret = saisie.trim().length > 0 && !rediger.isPending && !dictee.finalisation;
   return (
-    <div className="mt-6 flex flex-col gap-3 border-t border-trait pt-4">
+    // Sans filet ni cadre autour (25 nov. 2026, Jules : « enlève les lignes autour ») : le chat suit le texte.
+    <div className={`${texte ? "mt-6" : ""} flex flex-col gap-3`}>
       {echanges.length > 0 && (
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {echanges.map((e, i) => (
@@ -124,7 +125,7 @@ export default function ContexteVente({ project }) {
         <div className="mb-5 border-b border-trait pb-3">
           <span className="text-[16px] font-medium text-encre">Contexte de la vente</span>
         </div>
-        {texte ? <TexteContexte texte={texte} /> : <p className="m-0 text-[14px] text-brume">Rien d'écrit encore : dictez-le ci-dessous, il se met en forme pour les clients.</p>}
+        {texte && <TexteContexte texte={texte} />}
         {enEdition && <ChatContexte url={`/api/projets/${project.id}/contexte-vente`} texte={texte} onTexte={(t) => edition.onChamp("contexte_vente", t, true)} />}
       </Carte>
     </Bloc>
@@ -141,8 +142,9 @@ export function ContexteVenteDossier({ dossier, apercu = false }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="m-0 text-[20px] font-normal text-encre">Contexte de la vente</h2>
-      <div className="rounded-[12px] border border-trait p-5 max-md:p-4">
-        {texte ? <TexteContexte texte={texte} /> : <p className="m-0 text-[14px] text-brume">Rien d'écrit encore : dictez-le ci-dessous, il se met en forme pour les clients et passe sur la page projet.</p>}
+      {/* Ni phrase d'attente ni cadre (25 nov. 2026, Jules) : le texte, puis la saisie. */}
+      <div>
+        {texte && <TexteContexte texte={texte} />}
         {!apercu && <ChatContexte url={`/api/preanalyse/dossiers/${encodeURIComponent(dossier.deal_id)}/contexte-vente`} texte={texte} onTexte={setTexte} />}
       </div>
     </section>

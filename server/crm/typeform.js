@@ -14,7 +14,8 @@ import { valeurOption } from './correspondance.js';
 
 export const OBJET = { nameSingular: 'prospects', namePlural: 'prospectsListe' };
 const CIBLE_NOTE = 'targetProspectsId';
-export const SOURCES = { site: 'SITE WEB', vsl: 'VSL' };
+// Les webinaires (25 nov. 2026, Jules : « oui, avec la Source WEBI qui existe déjà »).
+export const SOURCES = { site: 'SITE WEB', vsl: 'VSL', webi: 'WEBI' };
 const STATUT_NOUVEAU = 'A_RELANCER';
 const STATUT_CALL = 'R1_VISIO';
 
@@ -156,7 +157,7 @@ export async function assurerOptions() {
   if (!f) throw new Error('La colonne Source des Prospects est introuvable dans Twenty CRM.');
   const manquantes = Object.values(SOURCES).filter((l) => !(f.options || []).some((op) => op.value === valeurOption(l)));
   if (manquantes.length) {
-    const options = [...(f.options || []), ...manquantes.map((label, i) => ({ value: valeurOption(label), label, color: label === 'VSL' ? 'purple' : 'sky', position: (f.options || []).length + i }))];
+    const options = [...(f.options || []), ...manquantes.map((label, i) => ({ value: valeurOption(label), label, color: label === 'VSL' ? 'purple' : label === 'WEBI' ? 'green' : 'sky', position: (f.options || []).length + i }))];
     await T.modifierChamp(f.id, { options });
   }
   optionVue = true;
@@ -175,7 +176,7 @@ export async function trouverProspect({ email, telephone }) {
 
 /** Un envoi Typeform reçu : la ligne des Prospects créée ou complétée, et une note avec toutes les réponses. */
 export async function recevoirTypeform(corps, source) {
-  if (!SOURCES[source]) return { ok: false, error: 'Source inconnue : ?source=site ou ?source=vsl.' };
+  if (!SOURCES[source]) return { ok: false, error: 'Source inconnue : ?source=site, vsl ou webi.' };
   // Les réponses partielles (déclencheur « complètes et partielles » du webhook) entrent aussi : on peut relancer.
   if (corps?.event_type && !['form_response', 'form_response_partial'].includes(corps.event_type)) return { ok: true, ignore: 'type' };
   const lu = { ...lireEnvoi(corps?.form_response), partielle: corps?.event_type === 'form_response_partial' };
@@ -219,7 +220,7 @@ export async function callCalendly(evenement) {
  * et compter. Une ligne déjà là est complétée, jamais doublée.
  */
 export async function importerTypeform(formId, source, { essai = true, depuis = null, jeton = process.env.TYPEFORM_TOKEN } = {}) {
-  if (!SOURCES[source]) return { ok: false, error: 'Source inconnue : site ou vsl.' };
+  if (!SOURCES[source]) return { ok: false, error: 'Source inconnue : site, vsl ou webi.' };
   if (!jeton) return { ok: false, error: 'TYPEFORM_TOKEN manque.' };
   const api = async (chemin) => {
     const r = await fetch(`https://api.typeform.com${chemin}`, { headers: { Authorization: `Bearer ${jeton}` } });

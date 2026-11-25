@@ -61,7 +61,7 @@ export function montant(t) {
  */
 export function lireEnvoi(formResponse) {
   const champs = new Map((formResponse?.definition?.fields || []).map((f) => [f.id, f]));
-  const out = { prenom: null, nom: null, email: null, telephone: null, patrimoine: null, revenu: null, fondsPropre: null, reponses: [], le: formResponse?.submitted_at || formResponse?.landed_at || null, formulaire: formResponse?.form_id || null, titre: formResponse?.definition?.title || null, reponse_id: formResponse?.token || formResponse?.response_id || null, partielle: false };
+  const out = { prenom: null, nom: null, email: null, telephone: null, patrimoine: null, fonction: null, tranche_revenus: null, revenu: null, fondsPropre: null, reponses: [], le: formResponse?.submitted_at || formResponse?.landed_at || null, formulaire: formResponse?.form_id || null, titre: formResponse?.definition?.title || null, reponse_id: formResponse?.token || formResponse?.response_id || null, partielle: false };
   for (const r of formResponse?.answers || []) {
     const q = champs.get(r.field?.id) || r.field || {};
     const titre = String(q.title || q.ref || '').replace(/\*|\{\{[^}]*\}\}/g, '').trim();
@@ -73,8 +73,11 @@ export function lireEnvoi(formResponse) {
     else if (r.type === 'phone_number' && !out.telephone) out.telephone = t;
     else if (/pre-?nom|first ?name/.test(n) && !out.prenom) out.prenom = t;
     else if (/(^|\b)(nom|last ?name)\b/.test(n) && !/pre-?nom/.test(n) && !out.nom) out.nom = t;
-    else if (/patrimoine/.test(n) && !out.patrimoine) out.patrimoine = t;
-    else if (/revenu/.test(n) && out.revenu == null) out.revenu = montant(t);
+    // « Avez-vous déjà investi dans l'immobilier ? » dit le patrimoine ; la situation professionnelle va dans Fonction.
+    else if (/patrimoine|deja investi/.test(n) && !out.patrimoine) out.patrimoine = t;
+    else if (/situation professionnelle|profession|metier/.test(n) && !out.fonction) out.fonction = t;
+    // Une tranche (« Inférieur à 40 K€ », « entre 40 K€ et 100 K€ ») n'est pas un montant : elle reste en texte.
+    else if (/revenu/.test(n) && out.revenu == null) { if (/inferieur|superieur|entre|moins|plus|[<>]/.test(norm(t))) out.tranche_revenus = t; else out.revenu = montant(t); }
     else if (/apport|fonds? propres?|epargne|capacite/.test(n) && out.fondsPropre == null) out.fondsPropre = montant(t);
   }
   // Les champs cachés (hidden fields) et le contact d'un bloc « Contact info ».
@@ -130,9 +133,13 @@ export function valeursProspect(lu, source, existante = null) {
   if (lu.email && (!existante || !existante.email?.primaryEmail)) v.email = { primaryEmail: lu.email, additionalEmails: existante?.email?.additionalEmails || [] };
   if (lu.telephone && (!existante || !existante.numero?.primaryPhoneNumber)) v.numero = telephoneTwenty(lu.telephone);
   if (lu.patrimoine && vide('patrimoine')) v.patrimoine = lu.patrimoine;
+  if (lu.fonction && vide('fonction')) v.fonction = lu.fonction;
+  if (lu.tranche_revenus && vide('texte')) v.texte = `Revenus : ${lu.tranche_revenus}`;
   if (lu.revenu != null && vide('revenu')) v.revenu = lu.revenu;
   if (lu.fondsPropre != null && vide('fondsPropre')) v.fondsPropre = lu.fondsPropre;
-  v.source9 = valeurOption(SOURCES[source]);
+  // La Source d'une ligne qui en a déjà une (LINKEDIN, PARRAIN…) reste : seule une case vide ou « A DEFINIR » prend
+  // SITE WEB ou VSL.
+  if (!existante?.source9 || existante.source9 === 'A_DEFINIR') v.source9 = valeurOption(SOURCES[source]);
   v.information = informationAvec(existante?.information, lu, source);
   if (!existante) { v.statut = STATUT_NOUVEAU; v.date = String(lu.le || new Date().toISOString()).slice(0, 10); v.groupe = 'PROSPECTS'; }
   return v;

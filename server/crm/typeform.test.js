@@ -11,11 +11,13 @@ const envoi = {
     { id: 'c', title: 'Votre e-mail', type: 'email' }, { id: 'd', title: 'Téléphone', type: 'phone_number' },
     { id: 'e', title: 'Votre patrimoine immobilier', type: 'multiple_choice' }, { id: 'f', title: 'Revenus annuels du foyer', type: 'short_text' },
     { id: 'g', title: 'Apport disponible', type: 'short_text' }, { id: 'h', title: 'Votre objectif', type: 'long_text' },
+    { id: 'i', title: '2/5 - Quelle est votre situation professionnelle ?', type: 'multiple_choice' }, { id: 'j', title: '4/5 - Quels sont vos revenus bruts annuels du conjoint ?', type: 'multiple_choice' },
   ] },
   answers: [
     { field: { id: 'a', type: 'short_text' }, type: 'text', text: 'Claire' }, { field: { id: 'b', type: 'short_text' }, type: 'text', text: 'Martin' },
     { field: { id: 'c', type: 'email' }, type: 'email', email: 'Claire.Martin@exemple.fr' }, { field: { id: 'd', type: 'phone_number' }, type: 'phone_number', phone_number: '+33612345678' },
     { field: { id: 'e', type: 'multiple_choice' }, type: 'choice', choice: { label: 'Entre 500 k€ et 1 M€' } }, { field: { id: 'f', type: 'short_text' }, type: 'text', text: '120 000 €' },
+    { field: { id: 'i', type: 'multiple_choice' }, type: 'choice', choice: { label: 'Entrepreneur' } }, { field: { id: 'j', type: 'multiple_choice' }, type: 'choice', choice: { label: 'Inférieur à 40 K€ brut annuel' } },
     { field: { id: 'g', type: 'short_text' }, type: 'text', text: '1,2 M€' }, { field: { id: 'h', type: 'long_text' }, type: 'text', text: 'Des murs loués, rendement 7 %' },
   ],
 };
@@ -37,7 +39,9 @@ test("un envoi se lit : nom, mail, téléphone, patrimoine, montants, et toutes 
   assert.equal(lu.patrimoine, 'Entre 500 k€ et 1 M€');
   assert.equal(lu.revenu, 120000);
   assert.equal(lu.fondsPropre, 1200000);
-  assert.equal(lu.reponses.length, 8);
+  assert.equal(lu.reponses.length, 10);
+  assert.equal(lu.fonction, 'Entrepreneur');
+  assert.equal(lu.tranche_revenus, null); // la première question de revenus a déjà donné un montant
   assert.equal(montant('500k'), 500000);
 });
 
@@ -68,4 +72,18 @@ test("une réponse partielle puis complète, ou un import refait, remplace son b
   assert.doesNotMatch(deux, /incomplet/);
   assert.match(deux, /^Rencontrée au salon\n\nTypeform SITE WEB/);
   assert.equal(informationAvec(deux, complete, 'site'), deux);
+});
+
+test("des revenus en tranche restent en texte, jamais un faux montant", () => {
+  const lu = lireEnvoi({ definition: { fields: [{ id: 'r', title: '4/5 - Quels sont approximativement vos revenus bruts annuel ?' }, { id: 'm', title: 'Email' }] },
+    answers: [{ field: { id: 'r' }, type: 'choice', choice: { label: 'Inférieur à 40 K€ brut annuel' } }, { field: { id: 'm' }, type: 'email', email: 'a@b.fr' }] });
+  assert.equal(lu.revenu, null);
+  assert.equal(lu.tranche_revenus, 'Inférieur à 40 K€ brut annuel');
+  assert.equal(valeursProspect(lu, 'site').texte, 'Revenus : Inférieur à 40 K€ brut annuel');
+});
+
+test("une ligne qui a déjà une Source la garde ; vide ou A DEFINIR, elle prend celle du formulaire", () => {
+  const lu = lireEnvoi(envoi);
+  assert.equal(valeursProspect(lu, 'site', { id: 'x', source9: 'LINKEDIN' }).source9, undefined);
+  assert.equal(valeursProspect(lu, 'vsl', { id: 'x', source9: 'A_DEFINIR' }).source9, 'VSL');
 });

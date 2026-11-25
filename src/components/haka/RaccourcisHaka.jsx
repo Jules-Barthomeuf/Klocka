@@ -20,10 +20,10 @@ const REPLI = [
 const D_ABORD = ["pre-analyse-fiche", "data-room", "loi", "presentation-bancaire"];
 // Trois gestes fixes après les compétences (19 oct. 2026, Jules) : ce ne sont pas des compétences publiées, Haka
 // reçoit le geste choisi (« geste:… ») et sait quel outil prendre (server/ak/cadre-demande.js).
+// « Créer un projet » et « Créer un dossier Drive » retirés le 25 nov. 2026 (Jules) : il reste « Drafter un email ».
+// Le chat sait toujours les faire si on le lui demande.
 const GESTES = [
-  { cle: "geste:creer-projet", nom: "Créer un projet", icone: Building2, outils: [] },
   { cle: "geste:mail", nom: "Drafter un email", icone: Mail, outils: [] },
-  { cle: "geste:drive", nom: "Créer un dossier Drive", icone: FolderOpen, outils: [] },
 ];
 const rang = (cle) => { const i = D_ABORD.indexOf(cle); return i < 0 ? D_ABORD.length : i; };
 const PILULE = "inline-flex h-9 min-w-0 items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 text-[13.5px] max-md:h-11 max-md:w-11 max-md:justify-center max-md:px-0 text-encre transition-[border-color,transform] duration-300 hover:border-bord-vif";

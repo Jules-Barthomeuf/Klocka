@@ -228,7 +228,22 @@ export function monterEmailing(app) {
     const Nm = await N();
     const cle = (process.env.CALENDLY_WEBHOOK_SIGNING_KEY || '').trim();
     if (!Nm.signatureCalendly({ entete: req.headers['calendly-webhook-signature'], corps: req.corpsBrut, cle })) return res.status(401).json({ error: 'Signature invalide.' });
-    ok(res, await Nm.rendezVousCalendly(req.body));
+    const r = await Nm.rendezVousCalendly(req.body);
+    // Le call pris passe aussi la ligne des Prospects de Twenty CRM en « R1 Visio » (25 nov. 2026, Typeform → Prospects).
+    const prospects = await (await import('../crm/typeform.js')).callCalendly(req.body).catch((e) => ({ ok: false, error: e?.message || String(e) }));
+    ok(res, { ...r, prospects });
+  }));
+
+  // Les réponses Typeform (25 nov. 2026, Jules) : le formulaire du site (?source=site) et celui de la VSL des publicités
+  // (?source=vsl) remplissent les Prospects de Twenty CRM. Vérifié par le secret du webhook (TYPEFORM_WEBHOOK_SECRET) ;
+  // sans lui, refusé.
+  app.post('/api/typeform/webhook', wrap(async (req, res) => {
+    const Tf = await import('../crm/typeform.js');
+    const cle = (process.env.TYPEFORM_WEBHOOK_SECRET || '').trim();
+    if (!Tf.signatureTypeform({ entete: req.headers['typeform-signature'], corps: req.corpsBrut, cle })) return res.status(401).json({ error: 'Signature invalide.' });
+    const r = await Tf.recevoirTypeform(req.body, String(req.query.source || '').toLowerCase());
+    if (!r.ok) console.warn(`[typeform] ${r.error}`);
+    res.status(r.ok ? 200 : 400).json(r);
   }));
 
   // --- Le webhook de Resend : public, vérifié par sa signature Svix ---

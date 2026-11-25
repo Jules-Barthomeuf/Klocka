@@ -236,7 +236,7 @@ app.use((req, res, next) => {
 app.use(siteMiddleware(path.join(__dirname, '..', 'dist', 'klocka.immo')));
 app.use(siteKpartnersMiddleware(path.join(__dirname, '..', 'dist', 'kpartners')));
 // Le webhook de Resend se vérifie sur le corps brut : on le garde, pour lui seul.
-app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook') || req.url.startsWith('/api/emailing/calendly') || req.url.startsWith('/api/whatsapp/webhook')) req.corpsBrut = buf.toString('utf8'); } }));
+app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook') || req.url.startsWith('/api/emailing/calendly') || req.url.startsWith('/api/typeform/webhook') || req.url.startsWith('/api/whatsapp/webhook')) req.corpsBrut = buf.toString('utf8'); } }));
 
 // Les pages fermées par Jules à un admin ferment aussi leur API (acces-pages.js).
 app.use('/api', (req, res, next) => {

@@ -99,10 +99,9 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
   // Le brouillon reste si la carte se ferme (un clic ailleurs) : on le retrouve en revenant sur Feedback.
   const [brouillon, setBrouillon] = useState("");
   useEffect(() => { if (!ouvert) setFeedback(false); }, [ouvert]);
-  // Champ ouvert, la carte ne se ferme plus quand la souris s'en va (25 nov. 2026, Jules : « lorsqu'on part avec la
-  // souris, ça referme le champ ») : seulement à l'envoi, à Échap, ou d'un clic ailleurs.
-  const garder = useRef(false);
-  garder.current = feedback;
+  // Le champ suit la souris (25 nov. 2026, Jules : « on passe la souris ça ouvre le feedback, on bouge la souris autre
+  // part ça ferme le champ de texte ») : il se replie dès qu'elle quitte l'entrée Feedback et son champ.
+  const replier = useRef(null);
   const fermer = useRef(null);
   const boite = useRef(null);
   const navigate = useNavigate();
@@ -119,7 +118,7 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
   if (!user) return null;
   // Le survol ouvre ; la souris qui sort referme après un court instant, le temps de descendre dans le menu.
   const entrer = () => { clearTimeout(fermer.current); setOuvert(true); };
-  const sortir = () => { clearTimeout(fermer.current); if (garder.current) return; fermer.current = setTimeout(() => setOuvert(false), 180); };
+  const sortir = () => { clearTimeout(fermer.current); fermer.current = setTimeout(() => setOuvert(false), 180); };
   const aller = (page, section) => {
     setOuvert(false);
     navigate(`${createPageUrl(page)}${section ? `#${section}` : ""}`);
@@ -154,8 +153,10 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
               {compte.map(([k, mot, page, section]) => {
                 const Icone = ICONES[k] || CircleUser;
                 // Feedback : le survol ouvre le champ juste dessous ; le clic aussi (au doigt), sans quitter la page.
+                // La souris qui s'en va le replie, après un court instant pour ne pas clignoter sur un bord.
                 if (k === "feedback") return (
-                  <div key={k} onMouseEnter={() => setFeedback(true)}>
+                  <div key={k} onMouseEnter={() => { clearTimeout(replier.current); setFeedback(true); }}
+                    onMouseLeave={() => { clearTimeout(replier.current); replier.current = setTimeout(() => setFeedback(false), 120); }}>
                     <button type="button" role="menuitem" onClick={() => setFeedback(true)} aria-expanded={feedback} className={`${ligne} ${feedback ? "!text-encre" : ""}`} style={{ background: "transparent" }}>
                       <Icone className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />{mot}
                     </button>

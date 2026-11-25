@@ -1,4 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowUp, Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { toast } from "@/components/ui/avis";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChartColumn, CircleUser, Lightbulb, LogOut, Mail, MapPin, Settings, ShieldCheck, TrendingUp } from "lucide-react";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
@@ -38,7 +42,8 @@ export function entreesDuMenu({ user, vue }) {
     // Statistiques, sortie de la barre de gauche, et le Feedback (25 nov. 2026, Jules : « mets feedback dans la carte compte »).
     equipe && !fermees.includes("Statistiques") && ["statistiques", "Statistiques", "Statistiques", null],
     equipe && !fermees.includes("Monitoring") && ["suivi", "Suivi", "Monitoring", null],
-    equipe ? !fermees.includes("AdminSuggestions") && ["feedback", "Feedback", "AdminSuggestions", null] : ["feedback", "Feedback", "Feedback", null],
+    // Toujours là : le champ s'ouvre dans la carte et envoie la remarque, sans passer par la page des remarques.
+    ["feedback", "Feedback", equipe ? "AdminSuggestions" : "Feedback", null],
   ].filter(Boolean);
   const gestion = equipe && user?.gere_les_acces ? [
     ["acces", "Accès de l'équipe", "Personnalisation", "acces"],
@@ -51,11 +56,48 @@ export function entreesDuMenu({ user, vue }) {
 }
 
 /**
+ * Le Feedback dans la carte (25 nov. 2026, Jules : « le feedback dans la carte compte ; on passe dessus et ça ouvre juste
+ * dessous un champ de texte qu'on remplit ») : la même entité que la page Feedback (Suggestion), rien d'automatique ;
+ * Jules lit et change l'état à la main.
+ */
+function ChampFeedback({ user, onEnvoye }) {
+  const qc = useQueryClient();
+  const [texte, setTexte] = useState("");
+  const envoyer = useMutation({
+    mutationFn: () => base44.entities.Suggestion.create({
+      contenu: texte.trim(), statut: "nouveau",
+      page: typeof window !== "undefined" ? window.location.pathname + window.location.search : null,
+      client_email: user?.email || null, client_name: user?.full_name || user?.email || null,
+    }),
+    onSuccess: () => { setTexte(""); qc.invalidateQueries({ queryKey: ["all-suggestions"] }); toast.success("Remarque envoyée"); onEnvoye?.(); },
+    onError: (e) => toast.error(e?.message || "Envoi impossible"),
+  });
+  const pret = texte.trim().length > 0 && !envoyer.isPending;
+  return (
+    <div className="px-2.5 pb-2 pt-1 duration-150 animate-in fade-in slide-in-from-top-1">
+      <div className="rounded-[12px] border border-trait px-3 pb-1.5 pt-2 transition-colors focus-within:border-bord-vif">
+        <textarea autoFocus value={texte} onChange={(e) => setTexte(e.target.value)} rows={3} placeholder="Une remarque, un bug, une idée…" aria-label="Votre remarque"
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (pret) envoyer.mutate(); } }}
+          className="block w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-[1.45] text-encre outline-none placeholder:text-brume" style={{ background: "transparent" }} />
+        <div className="flex justify-end">
+          <button type="button" onClick={() => envoyer.mutate()} disabled={!pret} aria-label="Envoyer la remarque" title="Envoyer"
+            className="grid h-7 w-7 place-items-center rounded-full text-encre transition-colors hover:text-menthe disabled:opacity-30" style={{ background: "transparent" }}>
+            {envoyer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * `vue` : la vue que montre l'appli (admin, client, mandataire) ; elle choisit les entrées du Compte.
  */
 export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }) {
   const { prefs, changer } = usePersonnalisation();
   const [ouvert, setOuvert] = useState(false);
+  const [feedback, setFeedback] = useState(false);
+  useEffect(() => { if (!ouvert) setFeedback(false); }, [ouvert]);
   const fermer = useRef(null);
   const boite = useRef(null);
   const navigate = useNavigate();
@@ -106,6 +148,15 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
             <div className="border-t border-trait py-1">
               {compte.map(([k, mot, page, section]) => {
                 const Icone = ICONES[k] || CircleUser;
+                // Feedback : le survol ouvre le champ juste dessous ; le clic aussi (au doigt), sans quitter la page.
+                if (k === "feedback") return (
+                  <div key={k} onMouseEnter={() => setFeedback(true)}>
+                    <button type="button" role="menuitem" onClick={() => setFeedback(true)} aria-expanded={feedback} className={`${ligne} ${feedback ? "!text-encre" : ""}`} style={{ background: "transparent" }}>
+                      <Icone className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />{mot}
+                    </button>
+                    {feedback && <ChampFeedback user={user} onEnvoye={() => setOuvert(false)} />}
+                  </div>
+                );
                 return (
                   <button key={k} type="button" role="menuitem" onClick={() => aller(page, section)} className={ligne} style={{ background: "transparent" }}>
                     <Icone className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />{k === "profil" ? "Mon profil" : mot}

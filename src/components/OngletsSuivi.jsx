@@ -12,10 +12,9 @@ import { prechargerAuSurvol } from "@/lib/precharger";
 const PAGES = [
   { to: "/Suivi", page: "Monitoring", mot: "Usage" },
   { to: "/SuiviAppels", page: "SuiviAppels", mot: "Appels" },
-  // Enregistrer une réunion, qui nourrit l'Intelligence (14 oct. 2026).
-  { to: "/SuiviReunion", page: "SuiviReunion", mot: "Réunion" },
-  // Ce que l'équipe corrige sur les projets rentrés, et les règles qu'on en tire (13 nov. 2026, Jules).
-  { to: "/SuiviCorrections", page: "SuiviCorrections", mot: "Corrections" },
+  // Réunion et Corrections retirées le 25 nov. 2026 (Jules : « dans Suivi, enlève Corrections ; Réunion, je veux qu'elle
+  // soit dans le mode Enregistrement de l'assistant ») : la Réunion s'ouvre depuis « Mode » dans le chat de l'Assistant ;
+  // les deux pages restent à leur adresse.
   // Mandataires, Chat et Assistant KPartners retirés des onglets le 6 nov. 2026 (Jules), comme Coûts IA et Agent testeur
   // le 16 oct. ; leurs pages restent à leur adresse.
 ];

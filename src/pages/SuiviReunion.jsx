@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Copy, Loader2, Mic, Square, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import OngletsSuivi from "@/components/OngletsSuivi";
 import { TitrePage } from "@/components/mandataire/elements";
 import MicroEcoute from "@/components/prospection/MicroEcoute";
 import { versWav } from "@/lib/dictee";
@@ -235,7 +234,6 @@ export default function SuiviReunion() {
     <div className="min-h-screen text-encre">
       <div className="mx-auto max-w-[1300px] px-5 py-[22px] md:px-8">
         <TitrePage titre="Réunion" className="mb-3" />
-        <OngletsSuivi className="mb-4" />
         <p className="m-0 max-w-[720px] text-[13.5px] text-ardoise">Enregistrez une réunion, aussi longue qu'elle soit : elle se transcrit pendant qu'on parle, puis entre dans l'Intelligence, où ses décisions, informations et engagements attendent votre validation. L'audio n'est pas gardé.</p>
 
         <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">

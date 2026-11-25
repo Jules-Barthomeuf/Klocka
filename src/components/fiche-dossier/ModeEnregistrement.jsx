@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { enPhrases } from "@/lib/transcription-directe";
 import { RubansAppel } from "@/components/prospection/TranscriptionParVoix";
-import { Check, ChevronDown, MessageSquare, Phone, PhoneOff, Radio, Square, X } from "lucide-react";
+import { Check, ChevronDown, MessageSquare, Phone, PhoneOff, Radio, Square, Users, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 // Le mode Enregistrement de l'assistant (20 nov. 2026, Jules : « un mode normal et un mode enregistrement ; dans le
 // chat, juste "Enregistrement en cours" avec une petite animation ; les fiches se mettent à jour à droite, au fur et à
@@ -17,11 +19,16 @@ const mm = (s) => {
 const MODES = [
   { cle: "normal", nom: "Normal", aide: "Tu écris ou dictes à l'assistant", Icone: MessageSquare },
   { cle: "enregistrement", nom: "Enregistrement", aide: "Il écoute un rendez-vous ou un appel et met les fiches à jour pendant qu'il se déroule", Icone: Radio },
+  // Enregistrer une réunion (25 nov. 2026, Jules : « la Réunion, je veux qu'elle soit dans le mode enregistrement de
+  // l'assistant, ça sert à la même chose ; on choisit Enregistrer une réunion et on arrive sur la page ») : un choix qui
+  // ouvre la page Réunion, pas un mode du chat.
+  { cle: "reunion", nom: "Enregistrer une réunion", aide: "Une réunion d'équipe, transcrite, qui nourrit l'Intelligence", Icone: Users, page: "SuiviReunion" },
 ];
 
 /** La pastille « Mode : Normal », un menu à deux choix ; verrouillée pendant un enregistrement. */
 export function BoutonMode({ mode, onChange, verrouille = false, versLeHaut = true }) {
   const [ouvert, setOuvert] = useState(false);
+  const navigate = useNavigate();
   const actuel = MODES.find((m) => m.cle === mode) || MODES[0];
   // Le menu passe par-dessus tout (20 nov. 2026, Jules : « ça passe derrière ») : posé sur la page, pas dans la saisie
   // (qui fait sa propre couche), calé à droite du bouton, au-dessus quand la saisie est en bas.
@@ -57,7 +64,7 @@ export function BoutonMode({ mode, onChange, verrouille = false, versLeHaut = tr
           <div className="fixed inset-0 z-[90]" onClick={() => setOuvert(false)} />
           <div role="menu" style={place} className={`animate-in fade-in fixed z-[91] rounded-[14px] border border-trait bg-barre p-1.5 shadow-[0_20px_50px_rgb(0_0_0/0.16)] duration-150 ${place.bottom != null ? "slide-in-from-bottom-1" : "slide-in-from-top-1"}`}>
             {MODES.map((m) => (
-              <button key={m.cle} type="button" role="menuitemradio" aria-checked={mode === m.cle} onClick={() => { onChange(m.cle); setOuvert(false); }}
+              <button key={m.cle} type="button" role="menuitemradio" aria-checked={mode === m.cle} onClick={() => { setOuvert(false); if (m.page) navigate(createPageUrl(m.page)); else onChange(m.cle); }}
                 className="flex w-full items-start gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors hover:bg-relief" style={{ background: "transparent" }}>
                 <m.Icone className={`mt-0.5 h-4 w-4 flex-none ${m.cle === "enregistrement" ? "text-menthe" : "text-ardoise"}`} strokeWidth={1.8} />
                 <span className="min-w-0 flex-1">

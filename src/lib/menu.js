@@ -164,7 +164,7 @@ const HORS_MENU_MANDATAIRE = ["Personnalisation", "MandataireOffMarket", "Mandat
 export const GROUPE_PARAMETRES = { groupe: "Paramètres", cle: "Parametres", label: "Paramètres", entrees: [
   { cle: "Personnalisation", label: "Paramètres" },
   { cle: "AdminModeles", label: "Modèles" },
-  { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion", "SuiviCorrections"] },
+  { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviMandataires", "SuiviTesteur", "SuiviChat"] },
   { cle: "Cerveau", label: "Intelligence" },
   { cle: "Automatismes", label: "Automatismes" },
 ] };

@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { CarteLot } from "@/components/preanalyse/DealResultat";
 import { cleOutilsDossier, useOutilsDossier } from "@/components/analyse/ControlesHorsDocuments";
+import { ContexteVenteDossier } from "@/components/projet/ContexteVente";
 
 // L'onglet Fiche de l'Analyse (13 nov. 2026, Jules : « on est obligé d'aller en pré-analyse remplir une adresse
 // valable, puis revenir ») : la fiche du bien de la Pré-analyse, la même, modifiable ici. Ce qu'on y change est la
@@ -58,6 +59,8 @@ export default function FicheAnalyse({ dossier, onSaisie, onRefresh, enCours, ap
       {dossier.lots.map((l) => (
         <CarteLot key={l.index} sansSimulateur sansCarte lot={l} dossier={dossier} onSaisie={(saisie) => onSaisie?.(l.index, saisie)} onRefresh={onRefresh} enCours={enCours} apercu={apercu} />
       ))}
+      {/* Le contexte de la vente, dicté et mis en forme pour les clients (25 nov. 2026, Jules). */}
+      <div className="pt-4"><ContexteVenteDossier key={dossier.deal_id} dossier={dossier} apercu={apercu} /></div>
     </div>
   );
 }

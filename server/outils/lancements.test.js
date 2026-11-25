@@ -340,3 +340,21 @@ test('la carte de l’Emplacement : les locaux vides placés, le libellé « Sig
   assert.deepEqual(t.arrets.map((a) => [a.genre, a.nom]), [['bus', 'Bellecour'], ['métro', 'Bellecour']], 'les deux quais du bus font un arrêt');
   assert.equal(t.arrets_bus, 2);
 });
+
+test('les arrêts : Overpass en panne, l’API principale d’OpenStreetMap les donne, à 300 m seulement (24 nov. 2026)', async () => {
+  const { arretsAutour } = await import('./rue.js');
+  const vus = [];
+  const lire = async (url) => {
+    vus.push(url);
+    if (/interpreter/.test(url)) return { ok: false, status: 504 };
+    return { ok: true, json: async () => ({ elements: [
+      { type: 'node', lat: 0.0011, lon: 0.0011, tags: { highway: 'bus_stop', name: 'Liberté' } },
+      { type: 'node', lat: 0.0111, lon: 0.0011, tags: { highway: 'bus_stop', name: 'Trop loin' } },
+      { type: 'node', lat: 0.0012, lon: 0.0012, tags: { amenity: 'bench' } },
+    ] }) };
+  };
+  // Rien de gardé : ce fichier écrit dans la base locale (un point au large, au cas où).
+  const t = await arretsAutour(0.001, 0.001, { lire, garder: false });
+  assert.ok(vus.some((u) => /api\.openstreetmap\.org\/api\/0\.6\/map\.json\?bbox=/.test(u)));
+  assert.deepEqual(t.arrets.map((a) => a.nom), ['Liberté']);
+});

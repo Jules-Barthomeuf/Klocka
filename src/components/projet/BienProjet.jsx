@@ -4,6 +4,7 @@ import { useEdition, ValeurEditable, Bloc } from "./EditionEnPlace";
 import { InfoDot } from "./SecteurChiffres";
 import { Carte } from "./Cartes";
 import ChronologieBien from "./ChronologieBien";
+import ContexteVente from "./ContexteVente";
 
 // L'onglet Bien : la chronologie en tête, puis le local en cartes, une par
 // information (activité, détenu depuis, surface, dernière vente), au registre
@@ -51,6 +52,8 @@ export default function BienProjet({ project, friseLue = null }) {
   return (
     <div className="flex flex-col gap-5">
       <Bloc id="bien-chronologie" titre="Chronologie"><ChronologieBien project={project} friseLue={friseLue} /></Bloc>
+      {/* Le contexte de la vente, dicté et mis en forme pour les clients (25 nov. 2026, Jules). */}
+      <ContexteVente project={project} />
       {infos.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {infos.map((l) => <CarteInfo key={l.id} {...l} />)}

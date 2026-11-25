@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Info, Loader2, RotateCw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -422,6 +422,74 @@ function PartieEmplacement({ p, chiffre, a_cote = null, sous = null, lien, sourc
   );
 }
 
+/**
+ * Les indicateurs de l'Emplacement (24 nov. 2026, Jules : « sous les trois trucs sous la carte, les indicateurs :
+ * Commercialité, et mets les autres aussi ») : chacun sa note sur 10, sa barre, sa phrase et sa source ; lus par le
+ * serveur (server/outils/indicateurs.js) sur la lecture de la rue déjà faite. Un indicateur non lu le dit.
+ */
+function useIndicateurs(adresse, vacance) {
+  const v = vacance?.taux != null ? `&taux=${vacance.taux}&vacants=${vacance.vacants ?? ""}&tranches=${vacance.tranches ?? ""}` : "";
+  return useQuery({
+    queryKey: ["emplacement-indicateurs", adresse, vacance?.taux ?? null],
+    queryFn: () => base44.request("GET", `/api/emplacement/indicateurs?adresse=${encodeURIComponent(adresse)}${v}`),
+    enabled: !!adresse,
+    staleTime: 10 * 60_000,
+    retry: 1,
+  });
+}
+
+/** Un indicateur : son nom, sa note sur 10 et sa barre, sa phrase, sa source dans le « i ». `dessous` : un second, rangé dedans. */
+function TuileIndicateur({ x, dessous = null }) {
+  return (
+    <div className={CELLULE}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="m-0 text-[12.5px] text-brume">{x.nom}{x.provisoire && <span className="ml-2 rounded-full border border-menthe/50 px-1.5 text-[11px] text-menthe" title="Barème provisoire, à régler sur les notes de l'équipe">provisoire</span>}</p>
+        <Source texte={x.source} enBas={false} />
+      </div>
+      {x.note != null ? (
+        <>
+          <p className="m-0 text-[20px] leading-[1.2] tabular-nums text-encre">{String(x.note).replace(".", ",")}<span className="text-[14px] text-ardoise"> / 10</span></p>
+          <div className="h-1.5 overflow-hidden rounded-full bg-relief" aria-hidden><div className="h-full rounded-full bg-menthe" style={{ width: `${x.note * 10}%` }} /></div>
+        </>
+      ) : <p className="m-0 text-[14.5px] text-brume">Pas de note</p>}
+      <p className="m-0 text-[13.5px] leading-[1.5] text-encre">{x.texte}</p>
+      {dessous && <SousIndicateur x={dessous} />}
+    </div>
+  );
+}
+
+/**
+ * Un indicateur rangé dans un autre (24 nov. 2026, Jules : « Loyer de la rue, mets-le dans Commercialité provisoire ») :
+ * sous un filet, son nom et sa note sur une ligne, sa barre, sa phrase.
+ */
+function SousIndicateur({ x }) {
+  return (
+    <div className="mt-1 flex flex-col gap-2 border-t border-trait pt-3">
+      {/* La note sous le nom, comme celle de la Commercialité (25 nov. 2026, Jules : « mets la note sous Loyer de la rue »). */}
+      <div className="flex items-start justify-between gap-2">
+        <p className="m-0 text-[12.5px] text-brume">{x.nom}</p>
+        <Source texte={x.source} enBas={false} />
+      </div>
+      {x.note != null ? (
+        <>
+          <p className="m-0 text-[20px] leading-[1.2] tabular-nums text-encre">{String(x.note).replace(".", ",")}<span className="text-[14px] text-ardoise"> / 10</span></p>
+          <div className="h-1.5 overflow-hidden rounded-full bg-relief" aria-hidden><div className="h-full rounded-full bg-menthe" style={{ width: `${x.note * 10}%` }} /></div>
+        </>
+      ) : <p className="m-0 text-[14.5px] text-brume">Pas de note</p>}
+      <p className="m-0 text-[13.5px] leading-[1.5] text-encre">{x.texte}</p>
+    </div>
+  );
+}
+
+/** La place d'un indicateur pendant le calcul, ou son erreur. */
+const TuileAttente = ({ q, nom }) => (
+  <div className={CELLULE}>
+    <p className="m-0 text-[12.5px] text-brume">{nom}</p>
+    {q.isError ? <p className="m-0 text-[13px] text-brume">{q.error?.message || "Pas calculé."}</p>
+      : <p className="m-0 flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin" />Je calcule (la première fois, quelques secondes)</p>}
+  </div>
+);
+
 // Exporté pour la page projet, qui reprend l'Emplacement du dossier (13 nov. 2026, Jules), puis Ville, Prix, Loyer et
 // Locataire (14 nov. 2026, Jules).
 // `simple` (page projet) : la Vacance d'abord, puis la Rotation. Le Passage n'est plus montré (24 nov. 2026, Jules) :
@@ -472,7 +540,13 @@ export function BlocEmplacement({ pts, rue, simple = false, partie = null, trans
               <p className="m-0 min-w-0 flex-1 text-[13px] leading-[1.5] text-ardoise">des commerces ouverts de la rue sont des <span className="text-encre">enseignes nationales</span>.</p>
             </div>
           )}
-          {noms.length > 0 && <div className="mt-auto flex flex-wrap gap-2 pt-2">{noms.slice(0, 8).map((n) => <span key={n} className="rounded-full border border-trait px-2.5 py-0.5 text-[12.5px] text-craie">{n}</span>)}{noms.length > 8 && <span className="self-center px-1 text-[12.5px] text-brume">+{noms.length - 8}</span>}</div>}
+          {/* Les enseignes en liste à tirets (24 nov. 2026, Jules : « comme tel : - KFC, - x, - y »), sur deux colonnes (même jour). */}
+          {noms.length > 0 && (
+            <ul className="m-0 mt-auto grid list-none grid-cols-2 gap-x-4 gap-y-1 p-0 pt-2 text-[13.5px] leading-[1.45] text-encre [&>li]:min-w-0 [&>li]:truncate">
+              {noms.slice(0, 12).map((n) => <li key={n}>- {n}</li>)}
+              {noms.length > 12 && <li className="col-span-2 text-ardoise">et {noms.length - 12} autre{noms.length - 12 > 1 ? "s" : ""}</li>}
+            </ul>
+          )}
         </PartieEmplacement>
       </div>
       ));
@@ -482,10 +556,34 @@ export function BlocEmplacement({ pts, rue, simple = false, partie = null, trans
   const celCarte = rue?.adresse ? enveloppe("emplacement-carte", "Carte", (
     <div className="border-b border-trait p-3"><CarteEmplacement rue={rue} vides={pts.vacance?.detail ? pts.vacance.detail.vides || [] : null} transactions={transactions} /></div>
   )) : null;
+  // Les indicateurs sur 10 (24 nov. 2026, Jules), pas sur le lien public. La Commercialité prend la place du Signal de
+  // vacance dans la rangée du haut, qui descend dans celle des indicateurs (même jour : « échange commercialité et vacance »).
+  const avecIndicateurs = !!(rue?.adresse?.label && transactions);
+  const q = useIndicateurs(avecIndicateurs ? rue.adresse.label : null, t);
+  const liste = q.data?.indicateurs || [];
+  const commercial = liste.find((x) => x.cle === "commercialite");
+  // Le Loyer de la rue dans la tuile Commercialité (24 nov. 2026, Jules) ; le Signal de vacance s'élargit à sa place.
+  const loyerRue = liste.find((x) => x.cle === "loyer") || null;
+  const autres = liste.filter((x) => x.cle !== "commercialite" && x.cle !== "loyer");
+  if (!avecIndicateurs) {
+    return (
+      <>
+        {celCarte}
+        <div className={GRILLE[3]}>{simple ? <>{celVacance}{celRotation}</> : <>{celRotation}{celVacance}</>}{celEnseignes}</div>
+      </>
+    );
+  }
+  const celCommercial = enveloppe("emplacement-commercialite", "Commercialité", commercial ? <TuileIndicateur x={commercial} dessous={loyerRue} /> : <TuileAttente q={q} nom="Commercialité · Loyer de la rue" />);
+  const tuilesAutres = autres.length
+    ? autres.map((x) => <React.Fragment key={x.cle}>{enveloppe(`emplacement-${x.cle}`, x.nom, <TuileIndicateur x={x} />)}</React.Fragment>)
+    : q.data ? [] : [<React.Fragment key="attente">{enveloppe("emplacement-indicateurs", "Indicateurs", <TuileAttente q={q} nom="Transports" />)}</React.Fragment>];
+  // Le Signal de vacance prend toute la place que les autres indicateurs laissent dans la rangée (deux colonnes sur trois).
+  const largeur = ["lg:col-span-3", "lg:col-span-2", ""][Math.min(2, tuilesAutres.length)];
   return (
     <>
       {celCarte}
-      <div className={GRILLE[3]}>{simple ? <>{celVacance}{celRotation}</> : <>{celRotation}{celVacance}</>}{celEnseignes}</div>
+      <div className={GRILLE[3]}>{simple ? <>{celCommercial}{celRotation}</> : <>{celRotation}{celCommercial}</>}{celEnseignes}</div>
+      <div className={`${GRILLE[3]} border-t border-trait`}><div className={`min-w-0 ${largeur}`}>{celVacance}</div>{tuilesAutres}</div>
     </>
   );
 }

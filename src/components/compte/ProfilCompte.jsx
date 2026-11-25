@@ -208,20 +208,12 @@ export default function ProfilCompte({ user, partie = "tout" }) {
 function Disponibilite({ user }) {
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["agenda-etat"], queryFn: () => base44.request("GET", "/api/auth/agenda/etat") });
-  const [date, setDate] = useState("");
   const rafraichir = () => { queryClient.invalidateQueries({ queryKey: ["agenda-etat"] }); queryClient.invalidateQueries({ queryKey: ["current-user"] }); };
-  const absenter = useMutation({
-    mutationFn: (jusqu) => base44.auth.updateMe({ absent_jusqu_au: jusqu }),
-    onSuccess: () => { rafraichir(); toast.success("C'est noté"); },
-    onError: (e) => toast.error(e?.message || "Impossible"),
-  });
   const deconnecter = useMutation({
     mutationFn: () => base44.request("POST", "/api/auth/agenda/deconnecter"),
     onSuccess: rafraichir,
   });
   if (!data?.analyste) return null;
-  const absence = data.absence;
-  const jour = (d) => new Date(d).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
   return (
     <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
       <p className={`${etiq} pt-4`}>Disponibilité</p>
@@ -236,23 +228,7 @@ function Disponibilite({ user }) {
           <a href="/api/auth/google/agenda" className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[13px] text-sur-menthe hover:bg-menthe-survol">Connecter mon agenda</a>
         )}
       </Ligne>
-      <Ligne titre="En ce moment">
-        <p className="m-0 text-[14px] text-craie">
-          {absence ? `Absent jusqu'au ${jour(absence.jusqu_au)} (${absence.source === "agenda" ? "d'après votre agenda" : "déclaré ici"})` : "Présent"}
-        </p>
-      </Ligne>
-      <Ligne titre="Déclarer une absence" note="Si l'agenda ne le dit pas : vos dossiers passent la main jusqu'à cette date.">
-        {user?.absent_jusqu_au && Date.parse(user.absent_jusqu_au) > Date.now() ? (
-          <button type="button" onClick={() => absenter.mutate(null)} className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3.5 py-1.5 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>Je suis de retour</button>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)}
-              className="rounded-[10px] border border-trait bg-surface-pleine px-3 py-2 text-[14px] max-md:text-[16px] text-encre outline-none focus:border-bord-vif" />
-            <button type="button" disabled={!date || absenter.isPending} onClick={() => absenter.mutate(new Date(`${date}T20:00:00`).toISOString())}
-              className="rounded-full bg-menthe px-3.5 py-1.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">Absent jusqu'à cette date</button>
-          </div>
-        )}
-      </Ligne>
+      {/* « En ce moment » et « Déclarer une absence » retirés (25 nov. 2026, Jules) : l'agenda Google seul dit l'absence. */}
     </section>
   );
 }

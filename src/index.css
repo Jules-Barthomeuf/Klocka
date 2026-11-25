@@ -343,6 +343,20 @@ button.k-verre-photo:hover { background: rgb(0 0 0 / .4); }
 :root[data-theme="clair"] .k-verre { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 8px 24px rgb(16 20 24 / .07); }
 :root[data-theme="clair"] .k-verre .k-verre { box-shadow: none; }
 
+/* La carte du compte, en haut à droite (25 nov. 2026, Jules : « mets le fond de la card compte en glass ») : un verre
+   plus franc que .k-verre, la page se devine derrière ; le flou et la saturation gardent le texte lisible, un liseré
+   clair en haut fait l'arête du verre. */
+.k-verre-menu {
+    background-color: rgb(var(--k-surface-pleine-rgb) / .58);
+    -webkit-backdrop-filter: blur(28px) saturate(1.7);
+    backdrop-filter: blur(28px) saturate(1.7);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .08), 0 24px 60px rgb(0 0 0 / .35);
+}
+:root[data-theme="clair"] .k-verre-menu {
+    background-color: rgb(var(--k-surface-pleine-rgb) / .62);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .7), 0 1px 2px rgb(16 20 24 / .05), 0 16px 40px rgb(16 20 24 / .12);
+}
+
 /* Le simulateur tout en verre (13 nov. 2026, Jules : « dans le simulateur, je veux que tout soit en glassmorphism ») :
    dans le simulateur d'un dossier (SimulateurDossier), puis sur les pages Simulateur et le simulateur public (même jour,
    « mets le simulateur en glassmorphism »), classe k-sim-verre, chaque carte (indicateurs, budget,
@@ -1674,8 +1688,8 @@ html.k-cadre-dossier .k-barre-nue, html.k-cadre-crm .k-barre-nue, html.k-cadre-o
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
-.k-couv-arr-g { transform: translate(-56px, 16px) rotate(-10deg); }
-.k-couv-arr-d { transform: translate(56px, 16px) rotate(10deg); }
+.k-couv-arr-g { transform: translate(-60px, 14px) rotate(-8deg); }
+.k-couv-arr-d { transform: translate(60px, 14px) rotate(8deg); }
 .k-couv-avant {
   border-radius: 14px;
   border: 1px solid rgb(var(--k-encre-rgb) / .2);
@@ -1685,8 +1699,18 @@ html.k-cadre-dossier .k-barre-nue, html.k-cadre-crm .k-barre-nue, html.k-cadre-o
   backdrop-filter: blur(16px);
   transition: translate .3s cubic-bezier(.22, 1, .36, 1), filter .3s;
 }
+/* En clair (24 nov. 2026, Jules, capture « voici comment je veux les preview des dossiers ») : des pages pleines et
+   blanches, un trait fin, une ombre douce ; plus de verre. */
 :root[data-theme="clair"] .k-couv-arr,
-:root[data-theme="clair"] .k-couv-avant { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 12px 28px rgb(16 20 24 / .1); }
+:root[data-theme="clair"] .k-couv-avant {
+  background: rgb(var(--k-surface-pleine-rgb));
+  border-color: rgb(var(--k-encre-rgb) / .09);
+  box-shadow: 0 1px 2px rgb(16 20 24 / .04), 0 10px 24px rgb(16 20 24 / .07);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-theme="clair"] .k-couv-avant { border-radius: 16px; }
+:root[data-theme="clair"] .k-couv:hover .k-couv-avant { filter: none; box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 16px 32px rgb(16 20 24 / .1); }
 .k-couv:hover .k-couv-avant, .k-couv:focus-within .k-couv-avant { translate: 0 -4px; filter: brightness(1.12); }
 .k-couv-balai {
   position: absolute;

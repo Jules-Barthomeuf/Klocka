@@ -59,6 +59,7 @@ import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
 import FondHalo from "@/components/projet/FondHalo";
 import LogoKlocka from "@/components/marque/LogoKlocka";
+import MenuProfil from "@/components/MenuProfil";
 
 const globalTooltipStyles = `
   [role="tooltip"],
@@ -487,10 +488,12 @@ function LayoutContent({ children, currentPageName }) {
     })();
     // Au téléphone, 40 px : la taille d'un doigt.
     const bouton = "grid h-8 w-8 place-items-center rounded-[8px] text-ardoise transition-colors hover:bg-rail-actif hover:text-encre max-md:h-10 max-md:w-10";
+    const sansBande = !isMobile && vue !== "mandataire" && !(["CrmTwenty", "Emailing"].includes(currentPageName) || cadreOutils);
     return (
       <div className="flex h-full flex-col">
-        {/* La marque, et le repli. */}
-        <div className={`k-barre-marque flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
+        {/* La marque, et le repli. Côté équipe, sur ordinateur, plus de logo ni de bande : les icônes remontent (25 nov. 2026,
+            Jules : « enlève le logo Klocka en haut à gauche », puis « remonte les icônes »). */}
+        {!sansBande && <div className={`k-barre-marque flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
           {["CrmTwenty", "Emailing"].includes(currentPageName) || cadreOutils ? (
             // Sur la page du CRM, la marque laisse la place au logo « crm_ », posé par la page au-dessus de la barre (5 nov. 2026).
             <span aria-hidden="true" className="h-6" />
@@ -500,36 +503,22 @@ function LayoutContent({ children, currentPageName }) {
               <LogoKP fond="theme" className={replie ? "text-[22px]" : "text-[26px]"} />
             </Link>
           ) : (
-          // Le haut du logo à 16 px du bord, sur celui des pilules de l'accueil (Fiches, Agenda, les boîtes), au lieu
-          // d'être centré dans la bande de 56 px (19 nov. 2026, Jules).
-          <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className={`flex items-center gap-2.5 ${barreNue ? "mt-4 self-start" : ""}`} title="Klocka OS">
-            {/* La marque de Klocka OS (18 oct. 2026, Jules) : trois losanges, à gauche du nom. Sur la barre nue de la page
-                Projets, le K de Klocka, détouré, sa jambe à la couleur d'accent (14 nov. 2026, Jules). */}
-            {barreNue ? (
-              <span className="grid h-10 w-10 flex-none place-items-center rounded-[13px] bg-rail-actif"><LogoKlocka className="k-logo-barre h-[19px] w-[19px]" /></span>
-            ) : <MarqueKlocka className="h-[22px] w-[22px]" />}
-            {!replie && (
-              <span className="flex items-center gap-2">
-                <span className="text-[18px] font-normal tracking-[-0.02em] text-encre">Klocka</span>
-                {/* « OS » dans un cadre arrondi (18 oct. 2026, Jules, deux maquettes). */}
-                <span className="inline-flex h-[22px] items-center rounded-[7px] border border-encre px-1.5 text-[11.5px] font-semibold leading-none tracking-[.02em] text-encre" aria-label="OS">OS</span>
-              </span>
-            )}
-          </Link>
+            // Plus de logo Klocka (25 nov. 2026, Jules) ; il reste dans le code (MarqueKlocka, LogoKlocka).
+            <span aria-hidden="true" className="h-6" />
           )}
           {isMobile && (
             <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-ardoise hover:text-encre">
               <X className="w-5 h-5" />
             </Button>
           )}
-        </div>
+        </div>}
 
         {/* Plus de bascule Klocka | Outils (9 nov. 2026, Jules) : Outils est une entrée du menu. Avec elle, les lignes de la
             barre gardaient deux hauteurs, repliée et ouverte, et la souris tombait sur une autre page à l'ouverture. */}
         {/* « Nouveau chat » retiré de la barre le 17 oct. 2026 (Jules). */}
 
         {/* Les pages. */}
-        <div className={`mt-7 flex-1 overflow-y-auto pb-4 ${empile ? "px-1" : "px-3"}`}>
+        <div className={`${sansBande ? "mt-4" : "mt-7"} flex-1 overflow-y-auto pb-4 ${empile ? "px-1" : "px-3"}`}>
           <div className={`flex flex-col ${empile ? "gap-2.5" : "gap-0.5"}`}>
             {entrees.map((e) => {
               // Un groupe (Relations, Administration) : une seule entrée, vers sa première page ; actif sur toutes ses pages.
@@ -771,7 +760,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), et l'icône Rappel, seule, dans la marge du coin, pour ne jamais couvrir le bouton d'un en-tête. */}
       {vueAdmin && !hideNavbar && !modoKData && (
         <>
-          <div id="k-haut-droite" className={`k-flottant-haut fixed right-4 top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
+          {/* Les pilules qu'une page pose dans le coin s'arrêtent à gauche de la photo de profil (25 nov. 2026). */}
+          <div id="k-haut-droite" className={`k-flottant-haut fixed right-[76px] top-4 z-40 flex items-start gap-3 empty:hidden max-md:hidden`} />
           {/* L'agent testeur (10 oct. 2026), à gauche du rappel : un clic, et l'IA audite la page ouverte dans un bac à sable. */}
           {testeurVisible && <div className={`k-flottant-haut fixed ${boutonRappel ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
           {boutonRappel && <div className="k-flottant-haut fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
@@ -782,6 +772,14 @@ function LayoutContent({ children, currentPageName }) {
           {/* Le record de l'équipe (22 nov. 2026, Jules) : aux admins, une fois par semaine à la première ouverture. */}
           <RecordEquipe />
         </>
+      )}
+      {/* La photo de profil en haut à droite, sur ordinateur (25 nov. 2026, Jules) : au survol, les Paramètres, la vue et la
+          déconnexion (src/components/MenuProfil.jsx) ; depuis, une rangée en verre des entrées du Compte et « Voir plus ».
+          Son haut sur celui de « À faire » et des pilules du coin (16 px). */}
+      {(vueAdmin || vue === "mandataire") && !hideNavbar && !modoKData && (
+        <div className="k-flottant-haut fixed right-4 top-4 z-40 max-md:hidden">
+          <MenuProfil user={user} vue={vue} onDeconnexion={() => base44.auth.logout(window.location.origin + '/Connexion')} />
+        </div>
       )}
       {/* Au téléphone, le hamburger à droite de la cloche ouvre le menu (27 oct. 2026, Jules : plus d'onglets en bas). */}
       {vue === "mandataire" && !hideNavbar && (

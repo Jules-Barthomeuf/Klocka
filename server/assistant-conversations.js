@@ -147,6 +147,19 @@ export function ouvrirConversationAssistant(user, { titre, messages = [], espace
   return { ok: true, id: c.id };
 }
 
+/**
+ * Un message de l'assistant ajouté à une conversation existante, sans attendre la personne (24 nov. 2026 : la suite d'un
+ * transfert, les dossiers d'un portefeuille pré-analysés après sa réponse). Rend false si la conversation n'existe plus.
+ */
+export function ajouterMessageAssistant(id, message) {
+  const c = id ? Conversations.get(id) : null;
+  if (!c) return false;
+  const propres = serialisables([{ role: 'assistant', ...message }]);
+  if (!propres.length) return false;
+  Conversations.setMessages(c.id, [...(c.messages || []), ...propres].slice(-MAX_MESSAGES));
+  return true;
+}
+
 export function supprimerConversation(user, id, { espace = null } = {}) {
   const c = Conversations.get(id);
   if (!c || c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user)) return { ok: false, error: 'Conversation introuvable.' };

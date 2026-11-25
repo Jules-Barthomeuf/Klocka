@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 // « Tout préparé » (8 oct. 2026, environ trois secondes), en fenêtre par-dessus
 // l'écran dès que tout est envoyé : le titre gris, traversé d'un reflet blanc
@@ -25,10 +25,10 @@ export default function ToutPrepare({ phrase, lignes = [], onSuivant, libelle = 
             {lignes.map((l, i) => (
               <div key={l.nom} className="grid grid-cols-[28px_minmax(0,170px)_minmax(0,1fr)] items-center gap-3 border-b border-trait py-4 max-md:grid-cols-[28px_minmax(0,1fr)]">
                 <span className="relative grid h-6 w-6 place-items-center rounded-full border border-encre/25">
-                  <span className="k-coche absolute inset-[-1px] grid place-items-center rounded-full bg-encre text-fond" style={{ animationDelay: `${1.8 + i * 0.3}s` }}><Check className="h-3.5 w-3.5" strokeWidth={2.6} /></span>
+                  <span className={`k-coche absolute inset-[-1px] grid place-items-center rounded-full text-fond ${l.echec ? "bg-alerte" : "bg-encre"}`} style={{ animationDelay: `${1.8 + i * 0.3}s` }}>{l.echec ? <X className="h-3.5 w-3.5" strokeWidth={2.6} /> : <Check className="h-3.5 w-3.5" strokeWidth={2.6} />}</span>
                 </span>
                 <span className="k-blanchit text-[16px]" style={{ animationDelay: `${1.8 + i * 0.3}s` }}>{l.nom}</span>
-                <span className="min-w-0 truncate text-[15px] text-ardoise max-md:col-start-2">{l.resultat}</span>
+                <span className={`min-w-0 truncate text-[15px] max-md:col-start-2 ${l.echec ? "text-alerte" : "text-ardoise"}`}>{l.resultat}</span>
               </div>
             ))}
           </div>
@@ -46,7 +46,8 @@ export function lignesDuRecu(r, { issue = null, dateRelance = null, jourLong = (
   return [
     r.monday?.etat === "ok" && { nom: "Contact Twenty CRM", resultat: /cré/i.test(r.monday.texte || "") ? "Ligne créée" : "Ligne mise à jour" },
     r.mail?.etat === "ok" && { nom: "Email", resultat: `Envoyé à ${r.mail.detail?.a || "l'agent"}` },
-    r.mail && r.mail.etat !== "ok" && { nom: "Email", resultat: r.mail.etat === "info" ? "Brouillon ouvert" : r.mail.etat === "attente" && /part dans/.test(r.mail.texte || "") ? "En cours d'envoi" : "À vérifier" },
+    // Un mail qui n'est pas parti le dit (24 nov. 2026, Jules : « il faut que ça mette échec »).
+    r.mail && r.mail.etat !== "ok" && { nom: "Email", echec: r.mail.etat === "echec", resultat: r.mail.etat === "echec" ? `Échec : non envoyé${r.mail.texte ? ` (${String(r.mail.texte).replace(/^Mail non parti : /, "")})` : ""}` : r.mail.etat === "info" ? "Brouillon ouvert" : r.mail.etat === "brouillon" ? "Brouillon à envoyer" : "Pas confirmé : vérifiez vos envoyés" },
     r.diffusion?.etat === "ok" && { nom: "Liste de diffusion", resultat: "Ajouté" },
     dateRelance && issue !== "pas_interesse" && { nom: "Relance", resultat: String(jourLong(dateRelance)).replace(/^./, (x) => x.toUpperCase()) },
     issue === "pas_interesse" && { nom: "Ne plus appeler", resultat: "Noté" },

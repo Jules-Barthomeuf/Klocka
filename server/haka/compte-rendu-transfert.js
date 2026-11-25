@@ -52,6 +52,42 @@ export function sansHistorique(texte = '') {
   return t.split('\n').filter((l) => !/^\s*>/.test(l)).join('\n').trim();
 }
 
+const m2 = (n) => `${Math.round(n).toLocaleString('fr-FR')} m²`;
+/** Pure : un commerce d'un portefeuille, en quelques mots : « Nocibé (251 m², loyer 46 k€ par an) ». */
+const ligneCommerce = (c) => {
+  const details = [c.surface_m2 ? m2(c.surface_m2) : null, c.loyer_annuel ? `loyer ${k(c.loyer_annuel)} par an` : null].filter(Boolean);
+  return `- ${c.locataire}${details.length ? ` (${details.join(', ')})` : ''}`;
+};
+
+/**
+ * Pure : la question du portefeuille (24 nov. 2026, Jules : « ça devrait poser la question : veux-tu préanalyser
+ * séparément ou en un seul lot ? »), avec ses commerces loués et ses cellules vacantes.
+ */
+export function questionDuPortefeuille(portefeuilles = []) {
+  const loues = portefeuilles.flatMap((x) => (x.commerces || []).filter((c) => !c.vacant && c.locataire));
+  const vides = portefeuilles.flatMap((x) => (x.commerces || []).filter((c) => c.vacant));
+  const vacantes = vides.length ? `\n\n${vides.length > 1 ? `Et ${vides.length} cellules vacantes` : `Et une cellule vacante${vides[0].surface_m2 ? ` de ${m2(vides[0].surface_m2)}` : ''}`}, qui n'aura pas de dossier à elle.` : '';
+  return `${portefeuilles.length > 1 ? 'Ces fiches portent' : 'Cette fiche porte'} un portefeuille de ${loues.length} commerces loués :\n\n${loues.map(ligneCommerce).join('\n')}${vacantes}\n\nJe les pré-analyse séparément, un dossier par commerce, ou en un seul lot ? Rien n'est pré-analysé avant votre réponse.`;
+}
+
+/** Les deux réponses en un tap sous la question du portefeuille. */
+export const BOUTONS_PORTEFEUILLE = [
+  { libelle: 'Séparément', texte: 'Séparément, un dossier par commerce', principal: true },
+  { libelle: 'En un seul lot', texte: 'En un seul lot' },
+];
+
+/** Pure : la suite d'un transfert dans son fil, une fois la réponse donnée (les dossiers sont pré-analysés). */
+export function texteDeLaSuite(r = {}) {
+  if (r.fait !== 'fiche' && r.fait !== 'rejoint') return `${r.fait === 'erreur' ? "La pré-analyse n'a pas abouti" : "Je n'ai pas pu pré-analyser"}${r.erreur ? ` : ${r.erreur}` : '.'}`;
+  if (r.fait === 'rejoint') return `Ce bien était déjà suivi : je l'ai rattaché au dossier « ${r.nom || r.deal_id} », sans en créer un second.`;
+  const s = r.separement;
+  if (s?.commerces) {
+    const vac = s.vacantes ? ` ${s.vacantes > 1 ? `Les ${s.vacantes} cellules vacantes n'ont` : "La cellule vacante n'a"} pas de dossier.` : '';
+    return `C'est fait : ${s.commerces} dossier${s.commerces > 1 ? 's' : ''} pré-analysé${s.commerces > 1 ? 's' : ''}, un par commerce :\n\n${s.noms.map((n) => `- ${n}`).join('\n')}${vac ? `\n\n${vac.trim()}` : ''}${r.n_dossiers > s.commerces ? `\n\nLes autres fiches du mail ont aussi leur dossier (${r.n_dossiers - s.commerces}).` : ''}`;
+  }
+  return r.n_dossiers > 1 ? `C'est fait : ${r.n_dossiers} dossiers créés et pré-analysés.` : `C'est fait : le dossier « ${r.nom || 'nouveau bien'} » est créé et pré-analysé, en un seul lot${r.verdict ? ` (verdict : ${r.verdict})` : ''}.`;
+}
+
 /** Pure : une ligne de liste par bien : où, combien. */
 const ligneBien = (b) => `- ${b.nom || 'adresse non lue'}${b.prix ? ` : ${k(b.prix)}` : ''}${b.loyer ? `${b.prix ? ',' : ' :'} loyer ${k(b.loyer)} par an` : ''}`;
 const listeOu = (noms) => (noms.length > 1 ? `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}` : noms[0] || '');
@@ -72,9 +108,10 @@ export function texteDuCompteRendu({ objet = '', r = {}, liens = [] } = {}) {
   else if (deja.length) paragraphes.push(`${debut} ${deja.length > 1 ? 'Ces biens étaient' : 'Ce bien était'} déjà dans la Mémoire : c'est un renvoi.`);
   else if (r.fait === 'bien') paragraphes.push(`${debut} « ${r.nom || 'Le bien'} » ${r.complete ? 'était déjà dans vos biens : je l\'ai complété' : 'est dans vos biens'}${r.pieces ? `, avec ${r.pieces} pièce${r.pieces > 1 ? 's' : ''}` : ''}.`);
   else if (r.fait === 'plusieurs') paragraphes.push(`${debut} Il parle de plusieurs biens : envoyez-les un par un pour que chacun entre dans vos biens.`);
-  else if (!['fiche', 'documents', 'nouveau', 'rejoint'].includes(r.fait)) paragraphes.push(`${debut} Je n'y ai repéré aucun bien.`);
+  else if (!['fiche', 'documents', 'nouveau', 'rejoint', 'question_lot'].includes(r.fait)) paragraphes.push(`${debut} Je n'y ai repéré aucun bien.`);
   else paragraphes.push(debut);
   if (biens.length && deja.length) paragraphes.push(`Déjà dans la Mémoire, c'est un renvoi : ${listeOu(deja.map((b) => b.nom).filter(Boolean)) || `${deja.length} bien${deja.length > 1 ? 's' : ''}`}.`);
+  if (r.fait === 'question_lot') paragraphes.push(questionDuPortefeuille(r.portefeuilles || []));
   if (r.fait === 'fiche') paragraphes.push(r.n_dossiers > 1 ? `Comme demandé, ${r.n_dossiers} dossiers sont créés et pré-analysés.` : `Comme demandé, le dossier « ${r.nom || 'nouveau bien'} » est créé et pré-analysé.`);
   if (r.fait === 'documents' && r.deposes?.length) paragraphes.push(`Les pièces sont rangées dans la Data Room de « ${r.nom} » : ${listeOu(r.deposes)}.`);
   if (r.fait === 'nouveau') paragraphes.push(`J'ai créé le dossier « ${r.nom} » avec ses pièces.`);
@@ -83,7 +120,7 @@ export function texteDuCompteRendu({ objet = '', r = {}, liens = [] } = {}) {
   const nonLus = [...(memoire?.erreurs || []), ...(r.erreurs && r !== memoire ? r.erreurs : [])].filter((x) => !(liens.length && /^Aucune fiche à lire/.test(x)));
   if (nonLus.length) paragraphes.push(nonLus.length > 1 ? `Je n'ai pas pu lire :\n\n${nonLus.map((x) => `- ${x}`).join('\n')}` : `Je n'ai pas pu lire ${nonLus[0].replace(/^([^:]+) : /, '« $1 » : ')}.`);
   if (liens.length) paragraphes.push(`Je n'ouvre pas les liens de partage (${listeOu([...new Set(liens.map((l) => l.service))])}) : joignez le fichier au mail pour qu'il soit lu.`);
-  paragraphes.push("C'est juste ? Sinon, dites-le-moi ici, par exemple « c'était 5 », « il manque celui de Nice » ou « ce n'est pas une fiche ».");
+  if (r.fait !== 'question_lot') paragraphes.push("C'est juste ? Sinon, dites-le-moi ici, par exemple « c'était 5 », « il manque celui de Nice » ou « ce n'est pas une fiche ».");
   return paragraphes.join('\n\n');
 }
 
@@ -101,7 +138,7 @@ export function resumeDuCompteRendu(r = {}, liens = []) {
   const deja = (memoire?.deja_biens || []).length;
   const nonLus = (memoire?.erreurs || []).filter((x) => !(liens.length && /^Aucune fiche à lire/.test(x))).length;
   return [
-    n ? `${n} bien${n > 1 ? 's' : ''} repéré${n > 1 ? 's' : ''}` : deja ? 'déjà en Mémoire' : r.fait === 'fiche' ? 'dossier pré-analysé' : r.fait === 'documents' ? 'pièces rangées' : 'aucun bien repéré',
+    r.fait === 'question_lot' ? 'un portefeuille : séparément ou en un seul lot ?' : n ? `${n} bien${n > 1 ? 's' : ''} repéré${n > 1 ? 's' : ''}` : deja ? 'déjà en Mémoire' : r.fait === 'fiche' ? 'dossier pré-analysé' : r.fait === 'documents' ? 'pièces rangées' : 'aucun bien repéré',
     nonLus ? `${nonLus} pièce${nonLus > 1 ? 's' : ''} non lue${nonLus > 1 ? 's' : ''}` : null,
     liens.length ? `${liens.length > 1 ? 'des liens' : 'un lien'} non ouvert${liens.length > 1 ? 's' : ''}` : null,
   ].filter(Boolean).join(' · ');
@@ -111,8 +148,20 @@ export function resumeDuCompteRendu(r = {}, liens = []) {
 export function poserCompteRendu(mail, { pour, r, lu = {} }) {
   if (!mail?.id || !pour) return null;
   const liens = liensNonLus(mail.texte);
+  const avant = Records.get('MailRecu', mail.id)?.compte_rendu || null;
+  const le = new Date().toISOString();
+  // La suite d'un transfert qui a posé une question (le portefeuille, 24 nov. 2026) : un message de plus dans le même
+  // fil, et la pop-up qui l'annonce ouvre ce fil.
+  if (avant?.question && avant.conversation_id && avant.pour === min(pour)) {
+    const texte = texteDeLaSuite(r);
+    // Import différé : le module des conversations n'est chargé que pour une suite.
+    import('../assistant-conversations.js').then(({ ajouterMessageAssistant }) => ajouterMessageAssistant(avant.conversation_id, { contenu: texte, le })).catch((e) => console.warn('[transfert] suite du fil :', e?.message || e));
+    Records.update('MailRecu', mail.id, { compte_rendu: { ...avant, texte, resume: r.separement?.commerces ? `${r.separement.commerces} dossiers pré-analysés` : 'dossier pré-analysé', question: false, le, vu_le: null, ouvert_le: null, a_faire: false } });
+    return texte;
+  }
   const texte = texteDuCompteRendu({ objet: lu.objet_origine || mail.objet, r, liens });
-  Records.update('MailRecu', mail.id, { compte_rendu: { texte, resume: resumeDuCompteRendu(r, liens), pour: min(pour), le: new Date().toISOString(), vu_le: null } });
+  const question = r.fait === 'question_lot';
+  Records.update('MailRecu', mail.id, { compte_rendu: { texte, resume: resumeDuCompteRendu(r, liens), pour: min(pour), le, vu_le: null, ...(question ? { question: true, boutons: BOUTONS_PORTEFEUILLE } : {}) } });
   return texte;
 }
 
@@ -169,7 +218,7 @@ export async function conversationsDesComptesRendus(user) {
       // Le fil commence par le transfert, comme un message envoyé, puis l'assistant répond (23 nov. 2026, Jules).
       const r = ouvrirConversationAssistant(user, { titre: `Transfert · ${sujet || 'sans objet'}`, messages: [
         { role: 'user', contenu: messageDuTransfert(m), le: m?.date || c.le },
-        { role: 'assistant', contenu: c.texte, le: c.le },
+        { role: 'assistant', contenu: c.texte, le: c.le, ...(m?.compte_rendu?.boutons ? { boutons: m.compte_rendu.boutons } : {}) },
       ] });
       if (!r?.ok || !r.id) continue;
       id = r.id;
@@ -222,6 +271,32 @@ export async function corrigerTransfert({ nombre = null, pas_une_fiche = false, 
     transfert: String(mail.objet || '').replace(/^\s*((tr|fwd?|re)\s*:\s*)+/i, '').trim(),
     retenu: pas_une_fiche ? 'pas une fiche' : corps.biens != null ? `${corps.biens} fiche${corps.biens > 1 ? 's' : ''}` : 'remarque gardée',
     consigne: 'Confirme en une phrase ce qui est corrigé, sans plus.',
+  };
+}
+
+/**
+ * L'outil de l'assistant : la réponse à la question du portefeuille (24 nov. 2026, Jules : « préanalyse séparément ou en
+ * un seul lot ? »). Le dernier portefeuille qui attend la réponse de cette personne, ou celui que l'objet désigne ; la
+ * tâche du transfert repart en fond, la suite arrive dans le même fil.
+ */
+export async function repondrePortefeuille({ separement = null, objet = '' } = {}, user) {
+  const e = min(user?.email);
+  if (!e) return { ok: false, error: 'Personne connectée.' };
+  if (typeof separement !== 'boolean') return { ok: false, a_preciser: true, note: 'Demande en une question : séparément, un dossier par commerce, ou en un seul lot ?' };
+  const attente = Records.list('MailRecu')
+    .filter((m) => m.portefeuille_en_attente?.pour === e && m.portefeuille_en_attente.proposition_id)
+    .sort((a, b) => String(b.portefeuille_en_attente.le).localeCompare(String(a.portefeuille_en_attente.le)));
+  if (!attente.length) return { ok: false, error: "Aucun portefeuille transféré n'attend votre réponse." };
+  const cherche = sansAccent(objet).split(/[^a-z0-9]+/).filter((x) => x.length >= 3);
+  const mail = cherche.length ? attente.find((m) => cherche.every((x) => sansAccent(`${m.objet} ${m.compte_rendu?.texte || ''}`).includes(x))) || null : attente[0];
+  if (!mail) return { ok: false, error: `Aucun portefeuille en attente ne parle de « ${objet} ».`, en_attente: attente.slice(0, 5).map(sujetDe) };
+  const n = mail.portefeuille_en_attente.commerces || null;
+  const { valider } = await import('./file.js');
+  const r = await valider(mail.portefeuille_en_attente.proposition_id, user, { choix: separement ? 'separement' : 'lot' });
+  if (!r.ok) return { ok: false, error: r.error };
+  return {
+    ok: true, transfert: sujetDe(mail), choix: separement ? `séparément, ${n ? `${n} dossiers` : 'un dossier par commerce'}` : 'un seul dossier', en_cours: true,
+    consigne: "Dis en une phrase que la pré-analyse est lancée comme choisi et que le résultat arrivera dans ce fil dans quelques minutes. Rien d'autre.",
   };
 }
 

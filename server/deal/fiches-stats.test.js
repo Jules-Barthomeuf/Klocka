@@ -3,7 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { etapeDuDossier, listerFiches, statsParSemaine, recordDeFiches, semaineDe, expediteurDOrigine, agentDeLaFiche } from './fiches-stats.js';
+import { biensDe, etapeDuDossier, listerFiches, statsParSemaine, recordDeFiches, semaineDe, expediteurDOrigine, agentDeLaFiche } from './fiches-stats.js';
 
 const lot = { lot: { adresse: { valeur: { ville: 'Paris' } } }, evaluation: { verdict: 'GO' } };
 const equipe = (e) => /@klocka\.immo$/.test(e) || e === 'jules.btmf@gmail.com';
@@ -172,4 +172,12 @@ test('des fiches reçues ailleurs, ajoutées à la main : comptées à leur nomb
   assert.equal(par['main:x1'].biens, 6);
   assert.equal(par['main:x1'].compte.analyste, 'maxime.p@klocka.immo');
   assert.equal(par['main:x2'].biens, 0);
+});
+
+test('24 nov. 2026 : un portefeuille compte ses commerces loués, pas ses cellules vacantes', () => {
+  const commerces = [{ locataire: 'Jules' }, { locataire: 'Nocibé' }, { locataire: 'Orange' }, { locataire: null, vacant: true }];
+  assert.equal(biensDe({ lots: [{ lot: { commerces } }] }), 3);
+  assert.equal(biensDe({ lots: [{ lot: {} }, { lot: { commerces } }] }), 4);
+  assert.equal(biensDe({ lots: [{ lot: { commerces } }], fiche_compte: { biens: 1 } }), 1, 'la correction à la main l\'emporte');
+  assert.equal(biensDe({}), 1);
 });

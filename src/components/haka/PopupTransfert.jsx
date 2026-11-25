@@ -40,8 +40,10 @@ export default function PopupTransfert() {
 
   useEffect(() => {
     for (const c of data?.comptes_rendus || []) {
-      if (!c.conversation_id || dits.current.has(c.id)) continue;
-      dits.current.add(c.id);
+      // Par compte rendu et par moment : la suite d'un transfert (le portefeuille pré-analysé) se dit aussi.
+      const cle = `${c.id}:${c.le}`;
+      if (!c.conversation_id || dits.current.has(cle)) continue;
+      dits.current.add(cle);
       let ouvert = false;
       const rafraichir = () => { qc.invalidateQueries({ queryKey: ["fiche-dossier-mes-actions"] }); qc.invalidateQueries({ queryKey: ["assistant-conversations"] }); };
       const ouvrir = () => { ouvert = true; ouvrirCompteRendu(c.id, navigate, c.conversation_id).then(rafraichir); };

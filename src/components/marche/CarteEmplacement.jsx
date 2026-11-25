@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MapContainer, TileLayer, Circle, Marker, Tooltip } from "react-leaflet";
+import { MapContainer, TileLayer, Circle, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import jetons from "@/design/jetons.json";
@@ -92,6 +92,37 @@ function Suivre({ point, carte }) {
 }
 
 /**
+ * La bulle du repère allumé (24 nov. 2026, Jules, sur une capture : « ça coupe ; mets la pop-up comme le design du reste
+ * de l'application ») : l'infobulle de l'appli (surface, bord, texte craie, 280 px), posée au-dessus du repère, ou dessous
+ * quand il est près du haut, et rentrée dans la carte sur les côtés : elle ne sort jamais du cadre. Elle suit le
+ * déplacement et le zoom de la carte ; elle s'ouvre aussi depuis une ligne de la liste.
+ */
+function Bulle({ x }) {
+  const map = useMap();
+  const boite = useRef(null);
+  const [haut, setHaut] = useState(0);
+  const [, redessiner] = useState(0);
+  useMapEvents({ move: () => redessiner((n) => n + 1), zoom: () => redessiner((n) => n + 1) });
+  // Sa hauteur réelle, pour choisir où elle tient entière (au-dessus, sinon dessous, sinon collée en haut).
+  useLayoutEffect(() => { if (boite.current) setHaut(boite.current.offsetHeight); }, [x?.id]);
+  if (!x) return null;
+  const p = map.latLngToContainerPoint([x.lat, x.lon]);
+  const taille = map.getSize();
+  const LARGEUR = 280; const ECART = 22; const MARGE = 8;
+  const gauche = Math.round(Math.min(Math.max(p.x - LARGEUR / 2, MARGE), Math.max(MARGE, taille.x - LARGEUR - MARGE)));
+  const h = haut || 120;
+  const top = p.y - ECART - h >= MARGE ? p.y - ECART - h : p.y + ECART + h <= taille.y - MARGE ? p.y + ECART : MARGE;
+  return (
+    <div ref={boite} className="pointer-events-none absolute z-[1000] rounded-[10px] border border-bord bg-surface-pleine px-3 py-2 text-[12.5px] leading-[1.45] text-craie shadow-lg" style={{ left: gauche, top: Math.round(top), width: LARGEUR, visibility: haut ? "visible" : "hidden" }}>
+      <p className="m-0 text-[13.5px] text-encre">{x.titre}</p>
+      {x.valeur && <p className="m-0 tabular-nums text-encre">{x.valeur}{x.sous_valeur ? <span className="text-ardoise"> · {x.sous_valeur}</span> : null}</p>}
+      {x.detail && <p className="m-0 text-ardoise">{x.detail}</p>}
+      {x.bulle.map((t) => <p key={t} className="m-0 mt-1 line-clamp-3">{t}</p>)}
+    </div>
+  );
+}
+
+/**
  * `rue` : la lecture de l'outil Rue (adresse, cellules, transports) ; `vides` : les locaux vides placés (point Signal de
  * vacance, `detail.vides`) ; `transactions` : `{ adresse, avecMurs }` pour l'onglet Transactions, ou null (lien public).
  */
@@ -107,6 +138,16 @@ export default function CarteEmplacement({ rue, vides = null, transactions = nul
     retry: 1,
   });
   const [onglet, setOnglet] = useState(adresseTx ? "transactions" : "transports");
+  // Les arrêts qu'une lecture ancienne n'a pas placés : demandés au serveur (OpenStreetMap), sauf sur le lien public.
+  const sansArrets = !rue?.transports?.arrets && Number.isFinite(rue?.adresse?.lat) && transactions != null;
+  const arretsLus = useQuery({
+    queryKey: ["emplacement-arrets", rue?.adresse?.lat, rue?.adresse?.lon],
+    queryFn: () => base44.request("GET", `/api/emplacement/arrets?lat=${rue.adresse.lat}&lon=${rue.adresse.lon}`),
+    enabled: sansArrets,
+    staleTime: 60 * 60_000,
+    retry: 1,
+  });
+  const lesArrets = rue?.transports?.arrets || arretsLus.data?.arrets || null;
   const [masquees, setMasquees] = useState(() => new Set());
   const [allume, setAllume] = useState(null);
   const carte = useRef(null);
@@ -128,11 +169,11 @@ export default function CarteEmplacement({ rue, vides = null, transactions = nul
         valeur: p.prix ? prixCourt(p.prix) : null, sous_valeur: f.cle === "murs" && p.prix_m2 ? `${euros(p.prix_m2)}/m²` : null,
         bulle: [f.cle === "murs" && p.surface ? `${p.surface} m²` : null, f.cle === "fonds" ? p.enseigne : null, p.activite].filter(Boolean),
       })))),
-      transports: ranger((rue?.transports?.arrets || []).map((p) => ({ genre: "transports", lat: p.lat, lon: p.lon, titre: p.nom || "Arrêt sans nom", detail: p.genre, bulle: [] }))),
+      transports: ranger((lesArrets || []).map((p) => ({ genre: "transports", lat: p.lat, lon: p.lon, titre: p.nom || "Arrêt sans nom", type: p.genre, bulle: [] }))).map((x) => ({ ...x, detail: [x.type, metres(x.dist)].filter(Boolean).join(" · ") })),
       enseignes: ranger((rue?.rue?.cellules || []).filter((c) => c.enseigne_nationale).map((c) => ({ genre: "enseignes", lat: c.lat, lon: c.lon, titre: c.enseigne_nationale, detail: c.adresse, bulle: [] }))),
       vides: ranger((vides || []).map((v) => ({ genre: v.etat === "vacant" ? "vacant" : "incertain", lat: v.lat, lon: v.lon, titre: v.etat === "vacant" ? "Local vide" : "Peut-être vide", detail: v.adresse, valeur: null, bulle: [v.dernier ? `Dernier : ${v.dernier}${date(v.ferme_le) ? `, fermé en ${date(v.ferme_le)}` : ""}` : null].filter(Boolean) }))),
     };
-  }, [tx.data, rue, vides, bien?.lat, bien?.lon]);
+  }, [tx.data, rue, vides, lesArrets, bien?.lat, bien?.lon]);
 
   const ici = (lignes[onglet] || []).filter((x) => !masquees.has(x.genre));
   const point = ici.find((x) => x.id === allume) || null;
@@ -143,17 +184,18 @@ export default function CarteEmplacement({ rue, vides = null, transactions = nul
   }, [allume]);
 
   if (!bien) return <p className="m-0 p-5 text-[13.5px] text-brume">L'adresse n'est pas placée : la carte s'affichera après la lecture de l'Emplacement.</p>;
-  const arrets = rue?.transports?.arrets || null;
-  const genres = rue?.transports?.genres || [];
+  const arrets = lesArrets;
+  const genres = rue?.transports?.genres || arretsLus.data?.genres || [];
   const onglets = [
     ...(adresseTx ? [{ cle: "transactions", nom: "Transactions", n: tx.data ? lignes.transactions.length : null }] : []),
     { cle: "transports", nom: "Transports", n: arrets ? lignes.transports.length : null },
     { cle: "enseignes", nom: "Enseignes nationales", n: lignes.enseignes.length },
-    { cle: "vides", nom: "Locaux vides", n: lignes.vides.filter((x) => x.genre === "vacant").length },
+    // Plus d'onglet Locaux vides (24 nov. 2026, Jules : « enlève le truc Locaux vides ») : le Signal de vacance reste sous la carte.
   ];
   // Ce qui manque à l'onglet ouvert, dit à la place de la liste plutôt qu'une carte muette.
-  const manque = onglet === "transports" && !arrets
-    ? (genres.length ? `À 300 m : ${genres.join(", ")}. Relancez l'Emplacement pour placer les arrêts.` : "Transports non lus : relancez l'Emplacement.")
+  const manque = onglet === "transports" && !arrets && arretsLus.isFetching ? "Je relève les arrêts autour (OpenStreetMap, quelques secondes)."
+    : onglet === "transports" && !arrets
+    ? (arretsLus.isError ? `${arretsLus.error?.message || "OpenStreetMap ne répond pas."} Réessayez dans quelques minutes.` : genres.length ? `À 300 m : ${genres.join(", ")}.` : "Transports non lus.")
     : onglet === "transports" && !lignes.transports.length ? "Aucun arrêt de transport en commun à 300 m (OpenStreetMap)."
       : onglet === "enseignes" && !lignes.enseignes.length ? "Aucune enseigne nationale dans la rue (registre SIRENE)."
         : onglet === "vides" && vides == null ? "Les locaux vides se lisent encore, ou l'outil Vacance n'a pas répondu."
@@ -166,39 +208,30 @@ export default function CarteEmplacement({ rue, vides = null, transactions = nul
   const choisir = (cle) => { setOnglet(cle); setAllume(null); };
   const basculer = (cle) => setMasquees((s) => { const n = new Set(s); if (n.has(cle)) n.delete(cle); else n.add(cle); return n; });
 
+  // La légende de l'onglet ouvert (24 nov. 2026, Jules : « les trois pills en haut et les deux à droite, on comprend
+  // pas ») : les onglets choisissent ce que montre la carte, en pilule segmentée ; ce qui se coche (fonds, murs) quitte
+  // le haut pour la légende, au-dessus de la liste, avec le dessin exact de son repère.
+  const legende = onglet === "transactions"
+    ? familles.map((f) => ({ cle: f.cle, nom: f.nom, n: tx.data[f.cle].length, trait: AU_TRAIT.has(f.cle), cochable: familles.length > 1 }))
+    : onglet === "transports" ? [{ cle: "transports", nom: "Arrêts de transport en commun", trait: false }]
+      : onglet === "enseignes" ? [{ cle: "enseignes", nom: "Enseignes nationales de la rue", trait: false }] : [];
+  const rayon = onglet === "transports" ? "300 m" : onglet === "transactions" ? `${tx.data?.rayon || 500} m` : null;
+  const toutCache = onglet === "transactions" && familles.length > 1 && familles.every((f) => masquees.has(f.cle));
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {/* Les onglets au-dessus de la carte, hors d'elle : un seul ouvert à la fois, son nombre à côté. */}
-        <div role="tablist" aria-label="Ce que montre la carte" className="flex flex-wrap gap-1.5">
-          {onglets.map((o) => {
-            const on = onglet === o.cle;
-            return (
-              <button key={o.cle} type="button" role="tab" aria-selected={on} onClick={() => choisir(o.cle)}
-                className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-[13px] transition-colors ${on ? "border-bord-vif bg-relief text-encre" : "border-trait text-craie hover:border-bord-vif hover:text-encre"}`} style={on ? undefined : { background: "transparent" }}>
-                <span className="h-2.5 w-2.5 rounded-full bg-menthe" style={{ opacity: on ? 1 : 0.55 }} />
-                {o.nom}
-                {o.n != null && <span className="tabular-nums text-ardoise">{o.n}</span>}
-              </button>
-            );
-          })}
-        </div>
-        {/* Fonds et murs se montrent ou se cachent chacun. */}
-        {onglet === "transactions" && familles.length > 1 && (
-          <div className="flex flex-wrap gap-1.5">
-            {familles.map((f) => {
-              const on = !masquees.has(f.cle);
-              return (
-                <button key={f.cle} type="button" aria-pressed={on} onClick={() => basculer(f.cle)}
-                  className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-[13px] transition-colors ${on ? "border-bord-doux text-encre" : "border-trait text-brume"}`} style={{ background: "transparent" }}>
-                  <span className={`h-2.5 w-2.5 rounded-full ${AU_TRAIT.has(f.cle) ? "border-2 border-menthe" : "bg-menthe"}`} style={{ opacity: on ? 1 : 0.35 }} />
-                  {f.nom}
-                  <span className="tabular-nums text-ardoise">{tx.data[f.cle].length}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+      {/* Ce que montre la carte : une pilule segmentée (design-system, Onglets), un seul onglet ouvert, son nombre à côté. */}
+      <div role="tablist" aria-label="Ce que montre la carte" className="inline-flex max-w-full flex-wrap gap-0.5 self-start rounded-full bg-rail-actif p-1">
+        {onglets.map((o) => {
+          const on = onglet === o.cle;
+          return (
+            <button key={o.cle} type="button" role="tab" aria-selected={on} onClick={() => choisir(o.cle)}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[13px] transition-colors ${on ? "bg-surface-pleine text-encre shadow-[0_1px_2px_rgb(0_0_0/0.12)]" : "text-ardoise hover:text-encre"}`} style={on ? undefined : { background: "transparent" }}>
+              {o.nom}
+              {o.n != null && <span className={`tabular-nums ${on ? "text-ardoise" : "text-brume"}`}>{o.n}</span>}
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -210,24 +243,57 @@ export default function CarteEmplacement({ rue, vides = null, transactions = nul
             )}
             {ici.map((x) => (
               <Marker key={x.id} position={[x.lat, x.lon]} icon={icone(x.n, AU_TRAIT.has(x.genre), x.id === allume)} zIndexOffset={x.id === allume ? 900 : -x.n}
-                eventHandlers={{ mouseover: () => setAllume(x.id), mouseout: () => setAllume((v) => (v === x.id ? null : v)), click: () => setAllume(x.id) }}>
-                <Tooltip direction="top" offset={[0, -12]} opacity={1}>
-                  <span className="block text-[13px] font-medium">{x.titre}</span>
-                  {x.valeur && <span className="block text-[12.5px]">{x.valeur}{x.sous_valeur ? ` · ${x.sous_valeur}` : ""}</span>}
-                  {x.detail && <span className="block max-w-[280px] whitespace-normal text-[12px] opacity-75">{x.detail}</span>}
-                  {x.bulle.map((t) => <span key={t} className="block max-w-[280px] whitespace-normal text-[12px] opacity-75">{t}</span>)}
-                </Tooltip>
-              </Marker>
+                eventHandlers={{ mouseover: () => setAllume(x.id), mouseout: () => setAllume((v) => (v === x.id ? null : v)), click: () => setAllume(x.id) }} />
             ))}
             <Marker position={[bien.lat, bien.lon]} icon={BIEN} zIndexOffset={1000} interactive={false} keyboard={false} />
             <Suivre point={point} carte={carte} />
+            <Bulle x={point} />
           </MapContainer>
           <span className="absolute bottom-1.5 right-2 z-[500] text-[10.5px] text-brume">{fond.attribution} · {source}</span>
         </div>
 
-        {/* La liste, liée à la carte ; au téléphone, sous elle. */}
+        {/* La liste, liée à la carte ; au téléphone, sous elle. En tête, la légende : chaque repère de la carte, et ce qui se coche. */}
         <div ref={liste} className="min-w-0 overflow-y-auto rounded-[12px] border border-trait max-lg:max-h-[360px]" style={{ maxHeight: hauteur }}>
-          {manque ? <p className="m-0 px-4 py-4 text-[13px] leading-[1.5] text-ardoise">{manque}</p> : (
+          <div className="sticky top-0 z-[1] border-b border-trait bg-surface-pleine px-3 py-2.5">
+            <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label="Légende de la carte">
+              <li className="flex h-7 items-center gap-2.5 px-1 text-[12.5px] text-craie">
+                <span className="grid w-[26px] flex-none place-items-center"><span className="h-3 w-3 rounded-full bg-encre shadow-[0_0_0_2px_rgb(var(--k-surface-pleine-rgb)),0_0_0_3px_rgb(var(--k-encre-rgb)/0.25)]" /></span>
+                Le bien
+              </li>
+              {legende.map((l) => {
+                const on = !masquees.has(l.cle);
+                const repere = <span className={`grid h-[22px] w-[22px] place-items-center rounded-full text-[10.5px] font-semibold ${l.trait ? "border-2 border-menthe text-menthe" : "bg-menthe text-sur-menthe"}`} style={{ opacity: on ? 1 : 0.35 }}>1</span>;
+                const contenu = (
+                  <>
+                    <span className="grid w-[26px] flex-none place-items-center">{repere}</span>
+                    <span className={`min-w-0 flex-1 truncate ${on ? "text-craie" : "text-brume line-through"}`}>{l.nom}</span>
+                    {l.n != null && <span className="tabular-nums text-ardoise">{l.n}</span>}
+                  </>
+                );
+                return (
+                  <li key={l.cle}>
+                    {l.cochable ? (
+                      <button type="button" role="switch" aria-checked={on} onClick={() => basculer(l.cle)} title={on ? "Cacher de la carte" : "Montrer sur la carte"}
+                        className="flex h-7 w-full items-center gap-2.5 rounded-[6px] px-1 text-left text-[12.5px] transition-colors hover:bg-relief" style={{ background: "transparent" }}>
+                        {contenu}
+                        <span aria-hidden="true" className={`grid h-4 w-4 flex-none place-items-center rounded-[4px] border ${on ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif"}`}>
+                          {on && <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.5 6.2 5 8.5l4.5-5" /></svg>}
+                        </span>
+                      </button>
+                    ) : <span className="flex h-7 items-center gap-2.5 px-1 text-[12.5px]">{contenu}</span>}
+                  </li>
+                );
+              })}
+              {rayon && (
+                <li className="flex h-7 items-center gap-2.5 px-1 text-[12.5px] text-craie">
+                  <span className="grid w-[26px] flex-none place-items-center"><span className="h-4 w-4 rounded-full border border-dashed border-encre/50" /></span>
+                  À {rayon} du bien
+                </li>
+              )}
+            </ul>
+          </div>
+          {toutCache ? <p className="m-0 px-4 py-4 text-[13px] leading-[1.5] text-ardoise">Rien sur la carte : cochez les fonds ou les murs dans la légende.</p>
+            : manque ? <p className="m-0 px-4 py-4 text-[13px] leading-[1.5] text-ardoise">{manque}</p> : (
             <ul className="m-0 list-none divide-y divide-trait p-0">
               {ici.map((x) => (
                 <li key={x.id} data-id={x.id}>

@@ -134,7 +134,9 @@ export async function supprimerAgence(agenceId, pourquoi, user, { toutes = [], s
     const appeler = lire || (async (prompt) => {
       const { invokeLLM } = await import('../llm.js');
       const { mesurer } = await import('../llm-couts.js');
-      return mesurer({ operation: 'agence supprimée', sur: `agence:${a.id}` }, () => invokeLLM({ prompt, response_json_schema: SCHEMA, modele: MODELE_RAPIDE, max_tokens: 400 }));
+      // mesurer rend { resultat, consommation } : la réponse du modèle est dans resultat (corrigé le 25 nov. 2026 : la règle
+      // n'était jamais lue, toute suppression passait pour un cas isolé).
+      return (await mesurer({ operation: 'agence supprimée', sur: `agence:${a.id}` }, () => invokeLLM({ prompt, response_json_schema: SCHEMA, modele: MODELE_RAPIDE, max_tokens: 400 }))).resultat;
     });
     proposee = await appeler(consigne({ pourquoi: motif, agence: a, specialite, regles: existantes.filter((r) => r.active) }));
   } catch (e) {

@@ -1657,6 +1657,17 @@ if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
   setTimeout(() => import('./memoire/twenty.js').then((m) => m.reposerKlocka()).catch((e) => console.warn('[mémoire] Propriétés Klocka :', e?.message || e)), 6 * 60_000).unref?.();
 }
 
+// Ce qui remplit le disque (24 nov. 2026, Jules : « database or disk is full » ; « qu'est-ce qui remplit le disque ? ») :
+// 45 s après le démarrage puis toutes les six heures, une ligne « [disque] » au journal ; rien n'est écrit sur le disque.
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
+  const disque = () => import('./disque.js').then(async (m) => {
+    const { DATA_DIR, CHEMIN_UPLOADS } = await import('./db.js');
+    console.log(m.ligneDuDisque(await m.mesurerDisque([DATA_DIR, CHEMIN_UPLOADS])));
+  }).catch((e) => console.warn('[disque] :', e?.message || e));
+  setTimeout(disque, 45_000).unref?.();
+  setInterval(disque, 6 * 3600_000).unref?.();
+}
+
 // Le record de fiches reçues, compté dans la Mémoire (24 nov. 2026, Jules : « chaque dimanche, ça calcule si le record a
 // été battu ») : deux minutes après le démarrage (la dernière semaine finie, si elle n'est pas vérifiée), puis chaque
 // heure ; il ne compte vraiment que le dimanche soir à partir de 22 h et une fois par semaine (server/memoire/record-memoire.js).

@@ -162,6 +162,17 @@ test("Pas de bien : nouvelle ligne Twenty CRM complète et relue, mail Présenta
   assert.equal(MA.recu(r.appel.id).recu.mail.etat, 'ok', 'le reçu relu le dit aussi');
 });
 
+test('un envoi qui plante se dit « échec » sur le reçu, jamais « parti » (24 nov. 2026, Jules)', async () => {
+  const faux = fauxMonday(); MON.brancherPourTests(faux); modeEnvoi = 'gmail'; avecBoite();
+  const { r, v } = await appeler(agence(), 'pas_de_murs');
+  assert.equal(v.recu.mail.etat, 'attente');
+  const d = await MA.envoyerMailDiffere(r.appel.id, { envoyer: async () => { throw new Error('database or disk is full'); } });
+  assert.equal(d.ok, false);
+  assert.equal(d.mail.etat, 'echec');
+  assert.match(d.mail.texte, /Mail non parti : database or disk is full/);
+  assert.equal(MA.recu(r.appel.id).recu.mail.etat, 'echec', 'le reçu relu le dit');
+});
+
 test("A un bien : la ligne existante est retrouvée par le téléphone et mise à jour sans rien écraser ; mail fiche commerciale ; relance J+3 ouvrés", async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); modeEnvoi = 'gmail'; avecBoite();
   const ag = agence();

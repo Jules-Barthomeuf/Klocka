@@ -15,6 +15,7 @@
 
 import { Records, Meta } from '../db.js';
 import { ENTITE, jourIso, estAnnonce } from './memoire.js';
+import { commercesLoues } from '../deal/commerces.js';
 
 const CLE = 'record.memoire';
 const min = (e) => String(e || '').trim().toLowerCase();
@@ -80,7 +81,11 @@ export function lignesFiches(biens = [], ctx = {}) {
     const envoi = b.mail_recu_id || b.envoi_id || (b.deal_id ? `deal:${b.deal_id}` : `id:${b.id}`);
     if (vus.has(sig) && vus.get(sig) !== envoi) continue;
     if (!vus.has(sig)) vus.set(sig, envoi);
-    lignes.push({ id: b.id, jour, semaine, qui: quiDuBien(b, ctx) || 'personne' });
+    // Un portefeuille compte ses commerces loués (24 nov. 2026, Jules : « ça compte comme trois fiches car trois
+    // commerces ») ; une cellule vacante n'en est pas un.
+    const qui = quiDuBien(b, ctx) || 'personne';
+    const n = Math.max(1, commercesLoues(b).length);
+    for (let i = 0; i < n; i += 1) lignes.push({ id: i ? `${b.id}#${i}` : b.id, jour, semaine, qui });
   }
   return lignes;
 }

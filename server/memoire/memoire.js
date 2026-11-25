@@ -47,6 +47,8 @@ export function bienDepuisLot(lotBrut, agent = null, meta = {}) {
     bail_type: texte(l.bail_type),
     bail_echeance: texte(l.bail_echeance),
     type_actif: texte(l.type_actif),
+    // Les cellules d'un portefeuille (24 nov. 2026, Jules : « ça compte comme trois fiches car trois commerces »).
+    commerces: Array.isArray(l.commerces) && l.commerces.length >= 2 ? l.commerces : null,
     agent: { nom: texte(ag.nom) || texte(meta.agent_nom), email: agentEmail, telephone: texte(ag.telephone) || texte(meta.agent_telephone), agence: texte(ag.agence) || texte(meta.agence) },
     agent_email: agentEmail,
     recu_le: (meta.recu_le && /^\d{4}-\d{2}-\d{2}/.test(String(meta.recu_le)) ? meta.recu_le : jourIso(meta.recu_le)) || new Date().toISOString(),
@@ -138,8 +140,10 @@ export function memoriser(deal, { origine = 'dossier', par = null } = {}) {
   if (!deal || deal.test) return { ok: false, raison: 'dossier de test' };
   const bien = bienDepuisDeal(deal, { origine });
   if (!bien.cle_adresse && !bien.prix && !bien.loyer_annuel) return { ok: false, raison: 'rien à retenir' };
+  // La ligne du mail reprise par son dossier, pas celle d'un autre dossier né du même mail (24 nov. 2026 : un portefeuille
+  // découpé en trois dossiers écrasait trois fois la même ligne).
   const existant = Records.findBy(ENTITE, 'deal_id', deal.deal_id)
-    || (bien.gmail_message_id ? Records.findBy(ENTITE, 'gmail_message_id', bien.gmail_message_id) : null);
+    || (bien.gmail_message_id ? Records.filter(ENTITE, { gmail_message_id: bien.gmail_message_id }).find((b) => !b.deal_id || b.deal_id === deal.deal_id) : null);
   // La fiche se copie une fois : si la ligne l'a déjà, on la garde.
   const fiche = existant?.fiche || copierFiche(deal);
   const patch = { ...bien, fiche, maj_le: new Date().toISOString(), ...(par?.email ? { par: par.email } : {}) };

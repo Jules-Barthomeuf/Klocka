@@ -19,6 +19,9 @@
 //                  17 nov. 2026 (Jules) : une fiche transférée SANS consigne va en Mémoire seulement, plus de dossier
 //                  d'office. « Préanalyse » : toutes les fiches du mail sont pré-analysées (et en Mémoire) ; « préanalyse
 //                  juste la fiche X » : X seule est pré-analysée, les autres vont en Mémoire.
+//                  Un portefeuille (24 nov. 2026, Jules : « un PDF de trois commerces, ça devrait poser la question :
+//                  préanalyse séparément ou en un seul lot ? ») : avant la pré-analyse, la question part dans le fil du
+//                  compte rendu ; « séparément » fait un dossier par commerce loué, « un seul lot » un dossier.
 //   5. repondre    une notification au collègue seul : ce qui a été fait, avec le lien du dossier. Plus de mail
 //                  depuis sourcing@ (2 nov. 2026, Jules : « je ne veux pas qu'il réponde à l'analyste par mail »).
 //
@@ -40,8 +43,11 @@ import { piecesFiche, parleDUnBien } from '../../deal/fiches-auto.js';
 import { estTableur } from '../../deal/lire-bureautique.js';
 import { sansHistorique, liensNonLus, poserCompteRendu } from '../compte-rendu-transfert.js';
 import { estMandataire } from '../../mandataire-espace.js';
+import { commercesLoues, cellulesVacantes } from '../../deal/commerces.js';
 
 export const COMPETENCE = 'transfert';
+// Les lectures remplacées dans les tests (le modèle n'y est pas branché) : la fiche lue, le dossier pré-analysé.
+export const pourLesTests = { extraire: null, analyser: null };
 export const VERSION = '1';
 const norm = (e) => String(e || '').trim().toLowerCase();
 const sansAccents = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -322,7 +328,7 @@ async function preanalyser(mail, { membre, lu, uploadDir, seulement = null }) {
   let dossier;
   if (locale || SIMULER) {
     if (!locale) throw new Error("Simulation : le mail n'a pas de pièce locale à lire.");
-    const { analyserFiche } = await import('../../deal/index.js');
+    const analyserFiche = pourLesTests.analyser || (await import('../../deal/index.js')).analyserFiche;
     dossier = await analyserFiche({ buffer: fs.readFileSync(String(locale.piece_id).slice('local:'.length)), filename: locale.nom, mimetype: locale.mime || undefined, contactEmail: contact }, { user: membre, uploadDir, automatique: true });
     Records.update('MailRecu', mail.id, { deal_id: dossier.deal_id });
   } else {
@@ -338,6 +344,43 @@ async function preanalyser(mail, { membre, lu, uploadDir, seulement = null }) {
   const d = Records.findBy('Deal', 'deal_id', dossier.deal_id);
   const n = rejoint ? 0 : (dossier.dossiers || [dossier]).length;
   return { fait: rejoint ? 'rejoint' : 'fiche', deal_id: dossier.deal_id, nom: d?.nom || null, verdict: d?.lots?.[0]?.evaluation?.verdict || null, crm: d?.memoire_crm || null, n_dossiers: n };
+}
+
+/**
+ * Un portefeuille pré-analysé séparément (24 nov. 2026, Jules) : un dossier par commerce loué, chacun lu sur la même
+ * fiche avec sa cellule pour cible (deal/extract.js, consigneCible) ; les cellules vacantes n'en font pas. Les autres
+ * fiches du mail sont pré-analysées comme d'habitude, avant.
+ */
+export async function preanalyserSeparement(mail, { membre, lu, uploadDir, portefeuilles, seulement = null, analyser = null }) {
+  const contact = lu.origine?.email && !membreDeLEquipe(lu.origine.email) ? lu.origine.email : null;
+  const ids = portefeuilles.map((x) => x.piece_id);
+  const autres = piecesFiche(mail).filter((p) => p?.piece_id && !ids.includes(p.piece_id) && (!seulement || seulement.includes(p.piece_id))).map((p) => p.piece_id);
+  const avant = autres.length ? await preanalyser(mail, { membre, lu, uploadDir, seulement: autres }) : null;
+  const lire = analyser || pourLesTests.analyser || (await import('../../deal/index.js')).analyserFiche;
+  const crees = [];
+  const vacantes = [];
+  for (const pf of portefeuilles) {
+    const piece = piecesUtiles(mail).find((p) => p.piece_id === pf.piece_id) || { nom: pf.piece_nom, piece_id: pf.piece_id };
+    const buffer = await telecharger(mail.compte, mail.gmail_message_id, pf.piece_id);
+    const loues = commercesLoues(pf);
+    vacantes.push(...cellulesVacantes(pf));
+    for (const c of loues) {
+      const d = await lire({ buffer, filename: piece.nom, mimetype: piece.mime || undefined, contactEmail: contact }, { user: membre, uploadDir, automatique: true, cible: { locataire: c.locataire, surface_m2: c.surface_m2 || null, n: loues.length } });
+      const deal = Records.findBy('Deal', 'deal_id', d.deal_id);
+      if (!deal) continue;
+      Records.update('Deal', deal.id, { source_mail: { mail_recu_id: mail.id, de: mail.de, objet: mail.objet, date: mail.date, piece: piece.nom } });
+      await finirDossier(Records.get('Deal', deal.id), { mail, membre, lu });
+      crees.push(d.deal_id);
+    }
+  }
+  const frais = Records.get('MailRecu', mail.id) || {};
+  const tous = [...new Set([...(avant ? [frais.deal_id, ...(frais.deal_ids || [])] : []), ...crees].filter(Boolean))];
+  if (tous.length) Records.update('MailRecu', mail.id, { deal_id: tous[0], deal_ids: tous });
+  const premier = Records.findBy('Deal', 'deal_id', crees[0] || tous[0]);
+  return {
+    fait: 'fiche', deal_id: premier?.deal_id || null, nom: premier?.nom || null, verdict: premier?.lots?.[0]?.evaluation?.verdict || null, crm: premier?.memoire_crm || null,
+    n_dossiers: crees.length + (avant?.n_dossiers || 0), separement: { commerces: crees.length, vacantes: vacantes.length, noms: crees.map((id) => Records.findBy('Deal', 'deal_id', id)?.nom).filter(Boolean) },
+  };
 }
 
 /** Un dossier né du transfert : son nom, son responsable, d'où il vient, puis sa fiche en Mémoire et dans Twenty. */
@@ -452,7 +495,7 @@ export async function enMemoireSeulement(mail, { membre, lu, extraire = null, po
         // Entre fiches reconnues, deux lignes à la même adresse restent deux fiches ; une pièce en plus ne double pas un bien lu.
         // Un PDF peut porter plusieurs fiches (20 nov. 2026, Jules : « un seul PDF, et il y avait 4 fiches dedans ») : chacune.
         for (const b of await fichesEnMemoire(mail, piece, { membre, lu, extraire, pousser, deja: i === 0 ? [] : lues })) {
-          biens.push(b); if (b.cle_adresse) lues.push(b.cle_adresse);
+          biens.push({ ...b, piece_id: piece.piece_id || null, piece_nom: piece.nom || null }); if (b.cle_adresse) lues.push(b.cle_adresse);
         }
       } catch (e) {
         // Une pièce en plus qui n'est pas une fiche (un bail sans adresse, une photo) ne se dit pas en erreur.
@@ -463,9 +506,25 @@ export async function enMemoireSeulement(mail, { membre, lu, extraire = null, po
   if (!biens.length) throw new Error(erreurs[0] || "Aucune pièce du mail ne donne d'adresse, de prix ou de loyer.");
   const premier = biens[0];
   // `biens` et `deja_biens` : la liste du compte rendu dans le chat (haka/compte-rendu-transfert.js).
-  const vu = (b) => ({ nom: b.nom || null, prix: b.prix || null, loyer: b.loyer || null });
+  const vu = (b) => ({ nom: b.nom || null, prix: b.prix || null, loyer: b.loyer || null, ...(commercesLoues(b).length >= 2 ? { commerces: b.commerces } : {}) });
   return { fait: 'memoire', n: biens.length, deja: biens.every((b) => b.deja), nom: premier.nom, noms: biens.map((b) => b.nom).filter(Boolean), twenty: biens.some((b) => b.twenty), erreurs,
-    biens: biens.filter((b) => !b.deja).map(vu), deja_biens: biens.filter((b) => b.deja).map(vu) };
+    biens: biens.filter((b) => !b.deja).map(vu), deja_biens: biens.filter((b) => b.deja).map(vu), portefeuilles: portefeuillesDe(biens) };
+}
+
+/**
+ * Pure : les portefeuilles lus dans un transfert (24 nov. 2026) : un bien à deux commerces loués et plus, dans une
+ * pièce jointe qu'on sait relire (pas le texte du mail, pas une fiche dans un ZIP), une entrée par pièce.
+ */
+export function portefeuillesDe(biens = []) {
+  const vus = new Set();
+  const sortie = [];
+  for (const b of biens) {
+    const id = String(b?.piece_id || '');
+    if (commercesLoues(b).length < 2 || !id || id.startsWith('corps:') || id.includes('#') || vus.has(id)) continue;
+    vus.add(id);
+    sortie.push({ piece_id: id, piece_nom: b.piece_nom || null, nom: b.nom || null, prix: b.prix || null, commerces: b.commerces });
+  }
+  return sortie;
 }
 
 /** Pure : la fiche écrite dans le corps d'un transfert sans pièce, quand le texte parle d'un bien et donne un montant. */
@@ -495,10 +554,10 @@ async function fichesEnMemoire(mail, piece, { membre, lu, extraire = null, pouss
     const m = Records.get('MailRecu', mail.id);
     Records.update('MailRecu', mail.id, { memoire_deja_ids: [...new Set([...(m?.memoire_deja_ids || []), ...dejaLus.map((d) => d.id)])] });
     const sortie = [];
-    for (const d of dejaLus) sortie.push({ deja: true, cle_adresse: d.cle_adresse || null, nom: [d.adresse?.rue, d.ville].filter(Boolean).join(', ') || null, prix: d.prix || null, loyer: d.loyer_annuel || null, ...(await versTwenty(d, pousser)) });
+    for (const d of dejaLus) sortie.push({ deja: true, cle_adresse: d.cle_adresse || null, nom: [d.adresse?.rue, d.ville].filter(Boolean).join(', ') || null, prix: d.prix || null, loyer: d.loyer_annuel || null, commerces: d.commerces || null, ...(await versTwenty(d, pousser)) });
     return sortie;
   }
-  const lire = extraire || (await import('../../deal/extraire-faits.js')).extraireFaits;
+  const lire = extraire || pourLesTests.extraire || (await import('../../deal/extraire-faits.js')).extraireFaits;
   const faits = await lire({ buffer, filename: piece.nom, mimetype: piece.mime }, { par: membre.email });
   const origine = lu.origine?.email && !membreDeLEquipe(lu.origine.email) ? lu.origine : null;
   const agentFiche = faits.agent || {};
@@ -524,7 +583,7 @@ async function fichesEnMemoire(mail, piece, { membre, lu, extraire = null, pouss
     const m = Records.get('MailRecu', mail.id);
     Records.update('MailRecu', mail.id, { memoire_id: m?.memoire_id || cree.id, memoire_ids: [...(m?.memoire_ids || []), cree.id] });
     const ou = [bien.adresse?.rue, bien.ville].filter(Boolean).join(', ');
-    sortie.push({ nom: ou || null, cle_adresse: bien.cle_adresse || null, prix: bien.prix || null, loyer: bien.loyer_annuel || null, ...(await versTwenty(cree, pousser)) });
+    sortie.push({ nom: ou || null, cle_adresse: bien.cle_adresse || null, prix: bien.prix || null, loyer: bien.loyer_annuel || null, commerces: bien.commerces || null, ...(await versTwenty(cree, pousser)) });
   }
   // Ce que la lecture a vu, gardé sur le mail pour le compte des fiches reçues (deal/fiches-stats.js) : les biens lus, le
   // nombre que la pièce annonce (« 4 actifs »), et si c'est un tableur (une liste de biens, comptée à part).
@@ -710,6 +769,39 @@ taches.enregistrer(COMPETENCE, {
       },
     },
     {
+      // Un portefeuille dans une fiche à pré-analyser (24 nov. 2026, Jules) : la fiche va en Mémoire, puis la question
+      // part dans le fil du compte rendu : séparément, un dossier par commerce, ou en un seul lot ? Rien n'est
+      // pré-analysé avant la réponse (outil de l'assistant `repondre_portefeuille`).
+      nom: 'demander_lot',
+      async run({ tache, resultats, charge }) {
+        const c = resultats.comprendre;
+        if (!(c.intention === 'fiche' || resultats.choisir?.choix === 'fiche')) return { sauter: ['choisir_lot'] };
+        const mail = Records.get('MailRecu', charge.mail_id);
+        const membre = expediteurDuTransfert(mail.de_email);
+        const dabord = await memoireDabord(mail, { membre, lu: c.lu });
+        const portefeuilles = (dabord?.portefeuilles || []).filter((x) => !c.seulement || c.seulement.includes(x.piece_id));
+        if (!portefeuilles.length) return { dabord, sauter: ['choisir_lot'] };
+        const n = portefeuilles.reduce((t, x) => t + commercesLoues(x).length, 0);
+        const p = await file.proposer({
+          type: 'transfert_lot', titre: `Votre transfert « ${String(c.lu.objet_origine || mail.objet || '').slice(0, 60)} » : ${n} commerces, séparément ou en un seul lot ?`,
+          charge: { mail_id: mail.id }, sources: [sourceMail(mail)], pour: c.pour, competence: COMPETENCE, version: VERSION, tache_id: tache.id, etape: 'choisir_lot',
+          cle: `transfert-lot:${mail.id}`, actions: ['choisir'], genre: 'question_haka',
+          choix: [{ cle: 'separement', libelle: 'Séparément, un dossier par commerce' }, { cle: 'lot', libelle: 'En un seul lot' }],
+        });
+        Records.update('MailRecu', mail.id, { portefeuille_en_attente: { proposition_id: p.id, pour: c.pour, commerces: n, le: new Date().toISOString() } });
+        poserCompteRendu(mail, { pour: membre.email, r: { fait: 'question_lot', memoire_dabord: dabord, portefeuilles }, lu: c.lu || {} });
+        return { dabord, portefeuilles, attendre: 'validation', proposition_id: p.id };
+      },
+    },
+    {
+      nom: 'choisir_lot', externe: true,
+      async run({ charge }) {
+        if (!['separement', 'lot'].includes(charge.choix)) throw new Error('Répondez « séparément » ou « en un seul lot ».');
+        Records.update('MailRecu', charge.mail_id, { portefeuille_en_attente: null, portefeuille_choix: charge.choix });
+        return { choix: charge.choix, enFond: true };
+      },
+    },
+    {
       nom: 'agir',
       async run({ resultats, charge }) {
         const c = resultats.comprendre;
@@ -722,8 +814,13 @@ taches.enregistrer(COMPETENCE, {
         const enPlus = async (r0) => (autres.length ? { ...r0, memoire_autres: await enMemoireSeulement(mail, { membre, lu: c.lu, pieces: autres }).catch((e) => ({ erreur: e?.message || String(e) })) } : r0);
         // Une fiche transférée va d'abord en Mémoire, quoi que dise le message (23 nov. 2026, Jules : « quand on transfère
         // une fiche, ça va de toute façon en mémoire en premier ») ; la pré-analyse ou le rangement viennent ensuite.
-        const dabord = c.intention === 'memoire' ? null : await memoireDabord(mail, { membre, lu: c.lu });
-        const r = c.intention === 'fiche' || choix === 'fiche'
+        // Déjà lue par « demander_lot » quand une pré-analyse est demandée : pas une seconde lecture.
+        const dl = resultats.demander_lot;
+        const dabord = c.intention === 'memoire' ? null : dl && 'dabord' in dl ? dl.dabord : await memoireDabord(mail, { membre, lu: c.lu });
+        const separement = resultats.choisir_lot?.choix === 'separement' && (dl?.portefeuilles || []).length;
+        const r = separement
+          ? await enPlus(await preanalyserSeparement(mail, { membre, lu: c.lu, uploadDir, portefeuilles: dl.portefeuilles, seulement: c.seulement || null }))
+          : c.intention === 'fiche' || choix === 'fiche'
           ? await enPlus(await preanalyser(mail, { membre, lu: c.lu, uploadDir, seulement: c.seulement || null }))
           : c.intention === 'memoire'
             ? await enMemoireSeulement(mail, { membre, lu: c.lu }).catch((e) => ({ fait: 'memoire', n: 0, biens: [], deja_biens: [], erreurs: [e?.message || String(e)] }))

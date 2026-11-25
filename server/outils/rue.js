@@ -383,9 +383,45 @@ export function transportsDesArrets(elements) {
   return { genres: [...genres], lourd, arrets_bus: bus, arrets, source: 'OpenStreetMap' };
 }
 
+const distanceArret = (lat1, lon1, lat2, lon2) => {
+  const r = Math.PI / 180;
+  const x = Math.sin(((lat2 - lat1) * r) / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lon2 - lon1) * r) / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+};
+
+/**
+ * Les arrêts à `rayon` mètres (24 nov. 2026, Jules : « dans Transports, on ne voit rien ») : Overpass d'abord ; s'il ne
+ * répond pas (souvent : délais, 502), l'API principale d'OpenStreetMap, lue sur le carré autour du point (comme l'outil
+ * Vacance). Gardé soixante jours. `lire` : fetch, remplacé dans les tests.
+ */
+export async function arretsAutour(lat, lon, { rayon = 300, lire = fetch, garder = true } = {}) {
+  const a = `around:${rayon},${lat},${lon}`;
+  try {
+    // Douze secondes au plus : trois serveurs Overpass l'un après l'autre attendaient jusqu'à 75 s avant le secours.
+    const overpass = interrogerOverpass(`[out:json][timeout:20];(node(${a})[highway=bus_stop];node(${a})[railway~"^(station|halt|tram_stop|subway_entrance)$"];node(${a})[station~"^(subway|light_rail)$"];);out body;`, { lire, garder });
+    overpass.catch(() => {});
+    return transportsDesArrets(await Promise.race([overpass, new Promise((_, non) => setTimeout(() => non(new Error('Overpass trop lent')), 12000))]));
+  } catch (e) {
+    const cle = `api|arrets|${lat.toFixed(4)}|${lon.toFixed(4)}|${rayon}`;
+    const garde = garder ? Records.filter('LectureOsm', { cle }).filter((x) => Date.now() - Date.parse(x.le) < OSM_JOURS * 86400000)[0] : null;
+    if (garde) return transportsDesArrets(garde.elements);
+    const dLat = rayon / 111320;
+    const dLon = rayon / (111320 * Math.cos((lat * Math.PI) / 180));
+    const bbox = [lon - dLon, lat - dLat, lon + dLon, lat + dLat].map((x) => x.toFixed(6)).join(',');
+    const r = await lire(`https://api.openstreetmap.org/api/0.6/map.json?bbox=${bbox}`, { headers: { 'user-agent': 'Klocka/1.0' }, signal: AbortSignal.timeout(30000) })
+      .catch((err) => ({ ok: false, status: err?.message }));
+    if (!r.ok) throw new Error(`${e.message} ; api.openstreetmap.org ${r.status}`);
+    const elements = ((await r.json().catch(() => ({}))).elements || [])
+      .filter((x) => x.type === 'node' && x.tags && Number.isFinite(x.lat) && distanceArret(lat, lon, x.lat, x.lon) <= rayon)
+      .filter((x) => x.tags.highway === 'bus_stop' || /^(station|halt|tram_stop|subway_entrance)$/.test(x.tags.railway || '') || /^(subway|light_rail)$/.test(x.tags.station || ''))
+      .map(({ lat: la, lon: lo, tags }) => ({ lat: la, lon: lo, tags }));
+    if (garder) Records.create('LectureOsm', { cle, elements, le: new Date().toISOString() });
+    return transportsDesArrets(elements);
+  }
+}
+
 async function transportsOsm(lat, lon) {
-  const a = `around:300,${lat},${lon}`;
-  return transportsDesArrets(await interrogerOverpass(`[out:json][timeout:20];(node(${a})[highway=bus_stop];node(${a})[railway~"^(station|halt|tram_stop|subway_entrance)$"];node(${a})[station~"^(subway|light_rail)$"];);out body;`));
+  return arretsAutour(lat, lon);
 }
 
 /**

@@ -191,6 +191,19 @@ export function monterMarche(app) {
     ok(res, r);
   }));
 
+  // Le contexte de la vente, dicté puis mis en forme pour les clients (25 nov. 2026, Jules) : server/contexte-vente.js.
+  // Le texte revient à l'éditeur, qui l'enregistre comme tout champ du projet.
+  app.post('/api/projets/:id/contexte-vente', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable.' });
+    const historique = Array.isArray(req.body?.historique) ? req.body.historique.slice(-10) : [];
+    const r = await (await import('../contexte-vente.js')).redigerContexte({ projet, actuel: String(req.body?.actuel ?? projet.contexte_vente ?? ''), demande: req.body?.demande, historique });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // Le mode Sources de l'éditeur : d'où vient chaque chiffre de la page.
   app.get('/api/projets/:id/sources', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
@@ -245,6 +258,30 @@ export function monterMarche(app) {
     const user = currentUser(req);
     const r = await carteTransactions(adresse, { user, avecMurs: user.role === 'admin' && req.query.murs === '1' });
     if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
+  // Les arrêts autour d'un bien, pour l'onglet Transports de la carte de l'Emplacement quand sa lecture ne les a pas placés
+  // (24 nov. 2026, Jules : « dans Transports, on ne voit rien ») : server/outils/rue.js, arretsAutour.
+  app.get('/api/emplacement/arrets', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
+    const lat = Number(req.query.lat); const lon = Number(req.query.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return res.status(400).json({ error: 'Point manquant.' });
+    const { arretsAutour } = await import('../outils/rue.js');
+    try { ok(res, await arretsAutour(lat, lon)); } catch (e) { res.status(503).json({ error: e?.message || 'OpenStreetMap ne répond pas.' }); }
+  }));
+
+  // Les indicateurs de l'Emplacement, chacun sur 10 (24 nov. 2026, Jules) : la commercialité (pieds d'immeubles
+  // commerçants), les locaux vides, les enseignes, le loyer de la rue, les transports. server/outils/indicateurs.js.
+  app.get('/api/emplacement/indicateurs', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
+    const adresse = String(req.query.adresse || '').trim();
+    if (!adresse) return res.status(400).json({ error: 'Adresse manquante.' });
+    const n = (v) => (v === undefined || v === '' ? null : Number(v));
+    const taux = n(req.query.taux);
+    const { indicateursDeLAdresse } = await import('../outils/indicateurs.js');
+    const r = await indicateursDeLAdresse(adresse, { vacance: Number.isFinite(taux) ? { taux, vacants: n(req.query.vacants), tranches: n(req.query.tranches) } : null });
+    if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
   }));
 

@@ -426,3 +426,118 @@ test("23 nov. 2026 : un transfert qui ne porte qu'un lien WeTransfer va en Mémo
   assert.equal(X.comprendre({ transfert: true, note: '' }, { pieces: [], fiches: [], vises: [], liens: true }).intention, 'memoire');
   assert.equal(X.comprendre({ transfert: true, note: 'tu peux regarder ?' }, { pieces: [], fiches: [], vises: [], liens: true }).intention, 'demande');
 });
+
+// 24 nov. 2026 (Jules : « on a reçu un portefeuille, Nora a dit préanalyse et ça n'a pas mis trois préanalyses
+// indépendantes ; ça devrait poser la question : séparément ou en un seul lot ? Ça compte comme trois fiches car trois
+// commerces ») : le cas d'Oyonnax, trois locataires et une cellule vacante dans un PDF.
+const OYONNAX = { adresse: { valeur: { rue: 'Rue Anatole France', code_postal: '01100', ville: 'Oyonnax' } }, loyer_annuel_ht_hc: { valeur: 116351 }, surface_m2: { valeur: 747 },
+  commerces: [
+    { locataire: 'Jules', surface_m2: 155, loyer_annuel: 40135, vacant: false },
+    { locataire: 'Nocibé', surface_m2: 251, loyer_annuel: 46216, vacant: false },
+    { locataire: 'Orange', surface_m2: 250, loyer_annuel: 30000, vacant: false },
+    { locataire: null, surface_m2: 91, loyer_annuel: null, vacant: true },
+  ] };
+const transfertOyonnax = () => transfert({ objet: 'TR: Oyonnax - Kairos', texte: "Préanalyse\n\n---------- Forwarded message ---------\nDe : Benjamin Lucas <b.lucas@kairos-realestate.com>\nObjet : Oyonnax - Kairos\n", pieces_jointes: [piece(`Oyonnax-${n}.pdf`)] });
+const { lignesFiches } = await import('../memoire/record-memoire.js');
+
+test('24 nov. 2026 : un portefeuille à pré-analyser pose la question, et « séparément » fait un dossier par commerce loué', async () => {
+  X.pourLesTests.extraire = async () => ({ lots: [{ lot: OYONNAX }], agent: null });
+  const analyses = [];
+  X.pourLesTests.analyser = async (entree, ctx) => {
+    analyses.push(ctx.cible);
+    const deal_id = `deal-oyo-${analyses.length}`;
+    Records.create('Deal', { deal_id, lots: [{ lot: { adresse: OYONNAX.adresse, locataire_nom: { valeur: ctx.cible.locataire, absent: false } } }], portefeuille: { commerce: ctx.cible.locataire } });
+    return { deal_id };
+  };
+  try {
+    const m = transfertOyonnax();
+    X.surTransfert(m, { lancer: false, uploadDir: dir });
+    await T.tourner();
+    // La question, avant toute pré-analyse ; la fiche est déjà en Mémoire et compte trois fiches.
+    assert.equal(analyses.length, 0, 'rien de pré-analysé avant la réponse');
+    const p = Records.list('HakaProposition').find((x) => x.type === 'transfert_lot' && x.charge?.mail_id === m.id);
+    assert.ok(p, 'la question est posée');
+    assert.deepEqual(p.choix.map((c) => c.cle), ['separement', 'lot']);
+    const cr = Records.get('MailRecu', m.id).compte_rendu;
+    assert.match(cr.texte, /un portefeuille de 3 commerces loués/);
+    assert.match(cr.texte, /- Nocibé \(251 m², loyer 46 k€ par an\)/);
+    assert.match(cr.texte, /Et une cellule vacante de 91 m²/);
+    assert.match(cr.texte, /séparément, un dossier par commerce, ou en un seul lot \?/);
+    assert.doesNotMatch(cr.texte, /C'est juste \?/);
+    assert.equal(cr.question, true);
+    assert.deepEqual(cr.boutons.map((b) => b.libelle), ['Séparément', 'En un seul lot']);
+    const biens = Records.filter('BienMemoire', { mail_recu_id: m.id });
+    assert.equal(biens.length, 1);
+    assert.equal(lignesFiches(biens).length, 3, 'trois commerces, trois fiches');
+    // Le fil existe (la pop-up l'a ouvert) ; Nora répond « séparément » dans le chat.
+    const C = await import('../haka/compte-rendu-transfert.js');
+    const fil = (await C.conversationsDesComptesRendus(nora)).find((x) => x.id === m.id);
+    assert.ok(fil?.conversation_id);
+    assert.deepEqual((await C.repondrePortefeuille({ separement: true }, { email: 'maxime@klocka.immo', role: 'admin' })).ok, false, "la question n'est pas à Maxime");
+    const rep = await C.repondrePortefeuille({ separement: true }, nora);
+    assert.equal(rep.ok, true);
+    await T.tourner();
+    assert.deepEqual(analyses.map((c) => c.locataire), ['Jules', 'Nocibé', 'Orange'], 'un dossier par commerce loué, pas pour la cellule vacante');
+    const mail = Records.get('MailRecu', m.id);
+    assert.deepEqual(mail.deal_ids, ['deal-oyo-1', 'deal-oyo-2', 'deal-oyo-3']);
+    assert.equal(mail.portefeuille_en_attente, null);
+    for (const id of mail.deal_ids) assert.equal(Records.findBy('Deal', 'deal_id', id).responsable_email, 'nora@klocka.immo');
+    // La suite arrive dans le même fil, et la pop-up la redit.
+    assert.equal(mail.compte_rendu.conversation_id, fil.conversation_id);
+    assert.match(mail.compte_rendu.texte, /^C'est fait : 3 dossiers pré-analysés, un par commerce/);
+    assert.match(mail.compte_rendu.texte, /La cellule vacante n'a pas de dossier\./);
+    assert.equal(mail.compte_rendu.vu_le, null);
+    await new Promise((r) => setTimeout(r, 50));
+    const { Conversations } = await import('../db.js');
+    assert.match(Conversations.get(fil.conversation_id).messages.at(-1).contenu, /3 dossiers pré-analysés/);
+    // Les trois dossiers et la ligne du transfert comptent trois fiches, pas six ni une.
+    assert.equal(lignesFiches(Records.filter('BienMemoire', { mail_recu_id: m.id })).length, 3);
+  } finally {
+    X.pourLesTests.extraire = null;
+    X.pourLesTests.analyser = null;
+  }
+});
+
+test('24 nov. 2026 : « en un seul lot » pré-analyse le portefeuille en un dossier ; une fiche à un locataire ne pose pas la question', async () => {
+  X.pourLesTests.extraire = async () => ({ lots: [{ lot: OYONNAX }], agent: null });
+  const cibles = [];
+  X.pourLesTests.analyser = async (entree, ctx) => {
+    cibles.push(ctx.cible || null);
+    const deal_id = `deal-oyo-lot-${cibles.length}`;
+    Records.create('Deal', { deal_id, lots: [{ lot: OYONNAX }] });
+    return { deal_id };
+  };
+  try {
+    const m = transfertOyonnax();
+    X.surTransfert(m, { lancer: false, uploadDir: dir });
+    await T.tourner();
+    const C = await import('../haka/compte-rendu-transfert.js');
+    await C.conversationsDesComptesRendus(nora);
+    const avant = Records.list('Deal').length;
+    assert.equal((await C.repondrePortefeuille({ separement: false }, nora)).ok, true);
+    await T.tourner();
+    const mail = Records.get('MailRecu', m.id);
+    assert.ok(mail.deal_id, 'un dossier');
+    assert.equal(Records.list('Deal').length, avant + 1);
+    assert.deepEqual(cibles, [null], 'lu en entier, sans cellule pour cible');
+    assert.match(mail.compte_rendu.texte, /en un seul lot/);
+    // Une fiche à un seul locataire : pas de question, la pré-analyse part.
+    X.pourLesTests.extraire = async () => ({ lots: [{ lot: { adresse: OYONNAX.adresse, loyer_annuel_ht_hc: { valeur: 40000 } } }], agent: null });
+    const m2 = transfertOyonnax();
+    X.surTransfert(m2, { lancer: false, uploadDir: dir });
+    await T.tourner();
+    assert.equal(Records.list('HakaProposition').filter((x) => x.type === 'transfert_lot' && x.charge?.mail_id === m2.id).length, 0);
+    assert.ok(Records.get('MailRecu', m2.id).deal_id);
+  } finally {
+    X.pourLesTests.extraire = null;
+    X.pourLesTests.analyser = null;
+  }
+});
+
+test('24 nov. 2026 : les portefeuilles lus : deux commerces loués au moins, dans une pièce qu’on sait relire', () => {
+  const c = OYONNAX.commerces;
+  assert.deepEqual(X.portefeuillesDe([{ piece_id: 'local:a', commerces: c }, { piece_id: 'local:a', commerces: c }]).length, 1, 'une entrée par pièce');
+  assert.equal(X.portefeuillesDe([{ piece_id: 'corps:1', commerces: c }]).length, 0, 'le texte du mail ne se relit pas');
+  assert.equal(X.portefeuillesDe([{ piece_id: 'zip#a.pdf', commerces: c }]).length, 0);
+  assert.equal(X.portefeuillesDe([{ piece_id: 'local:b', commerces: [c[0], c[3]] }]).length, 0, 'un locataire et une vacante : pas un portefeuille');
+});

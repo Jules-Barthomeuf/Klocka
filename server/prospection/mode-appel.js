@@ -1399,15 +1399,24 @@ async function ajouterALaDiffusion({ email, nom, agence, ville, par }) {
 }
 
 /** Le mail différé part, s'il n'a pas été annulé ; le reçu dit s'il est retrouvé dans les envoyés. */
-export async function envoyerMailDiffere(appelId) {
+export async function envoyerMailDiffere(appelId, { envoyer = null } = {}) {
   const appel = Records.get(APPEL, appelId);
   const mailId = appel?.recu?.mail?.mail_id;
   const m = mailId ? Records.get('ProspectionMail', mailId) : null;
   if (!m || m.etat !== 'differe') return { ok: false, error: 'Rien à envoyer.' };
-  Records.update('ProspectionMail', m.id, { etat: 'pret' });
-  const user = Records.filter('User', { email: appel.par })[0] || { email: appel.par };
-  const { envoyerMails } = await import('./mails.js');
-  const envoi = await envoyerMails([m.id], user);
+  // Un envoi qui plante (base pleine, réseau, boîte) se dit « échec » sur le reçu (24 nov. 2026, Jules : « quand un mail
+  // ne part pas, il faut que ça mette échec, sinon on croit que ça a bien envoyé ») ; avant, l'erreur était avalée et le
+  // reçu restait sur « le mail part ».
+  let envoi;
+  try {
+    Records.update('ProspectionMail', m.id, { etat: 'pret' });
+    const user = Records.filter('User', { email: appel.par })[0] || { email: appel.par };
+    const envoyerMails = envoyer || (await import('./mails.js')).envoyerMails;
+    envoi = await envoyerMails([m.id], user);
+  } catch (e) {
+    envoi = { resultats: [{ ok: false, error: e?.message || String(e) }] };
+    try { Records.update('ProspectionMail', m.id, { etat: 'echec', erreur: String(e?.message || e).slice(0, 300) }); } catch { /* la base elle-même refuse : le reçu le dira s'il le peut */ }
+  }
   const mail = etatDuMail(envoi?.resultats?.[0], m, appel.recu.mail);
   const a2 = Records.get(APPEL, appelId);
   Records.update(APPEL, appelId, { recu: { ...a2.recu, mail, annulable_jusqu: a2.recu.annulable_jusqu } });

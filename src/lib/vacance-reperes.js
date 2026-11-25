@@ -19,13 +19,15 @@ const virgule = (v) => String(v).replace(".", ",");
 /** Pure : le mot des seuils de Jules. */
 export const motVacance = (t) => (t < SEUILS_VACANCE.beaucoup ? "ça va" : t < SEUILS_VACANCE.trop ? "ça commence à faire beaucoup" : "c'est trop");
 
-/** Pure : la phrase de la rue face aux centres-villes de France (« ça va, un peu sous la moyenne … (11,7 %) »). */
+/** Pure : la phrase de la rue face aux centres-villes de France (« un peu sous la moyenne … (11,7 %) »). */
 export function phraseVacance(taux) {
   if (taux == null || !Number.isFinite(Number(taux))) return null;
   const ref = REPERES_VACANCE.find((r) => r.reference);
   const ecart = Number(taux) - ref.taux;
   const face = Math.abs(ecart) < 0.5 ? "dans la moyenne" : `${Math.abs(ecart) < 3 ? "un peu " : ""}${ecart < 0 ? "sous" : "au-dessus de"} la moyenne`;
-  return `${motVacance(Number(taux))}, ${face} des centres-villes de France (${virgule(ref.taux)} %)`;
+  // Plus de « ça va » devant (25 nov. 2026, Jules : « supprime ça va ») : sous 10 %, la comparaison seule ; au-dessus, l'alerte reste.
+  const mot = Number(taux) < SEUILS_VACANCE.beaucoup ? null : motVacance(Number(taux));
+  return mot ? `${mot}, ${face} des centres-villes de France (${virgule(ref.taux)} %)` : `${face} des centres-villes de France (${virgule(ref.taux)} %)`;
 }
 
 /** Pure : les lignes du classement, la rue rangée parmi les repères, du plus bas au plus haut. */

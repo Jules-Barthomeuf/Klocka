@@ -9,7 +9,7 @@ test('les seuils de Jules : 10 % beaucoup, 20 % trop', () => {
 });
 
 test('la rue face aux centres-villes de France', () => {
-  assert.equal(phraseVacance(9.3), 'ça va, un peu sous la moyenne des centres-villes de France (11,7 %)');
+  assert.equal(phraseVacance(9.3), 'un peu sous la moyenne des centres-villes de France (11,7 %)', 'plus de « ça va » (25 nov. 2026)');
   assert.equal(phraseVacance(11.5), 'ça commence à faire beaucoup, dans la moyenne des centres-villes de France (11,7 %)');
   assert.equal(phraseVacance(22), "c'est trop, au-dessus de la moyenne des centres-villes de France (11,7 %)");
   assert.equal(phraseVacance(null), null);

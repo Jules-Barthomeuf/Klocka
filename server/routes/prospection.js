@@ -564,6 +564,15 @@ export function monterProspection(app) {
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
+  // Les biens des collaborateurs de la carte d'appel (25 nov. 2026, Jules : « voir leurs biens pour cibler celui qu'on
+  // appelle ») : l'écran envoie ses personnes, la Mémoire rend les annonces Equimmox et les fiches reçues de chacune.
+  app.post('/api/prospection/mode-appel/agences/:id/biens', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const contacts = Array.isArray(req.body?.contacts) ? req.body.contacts.slice(0, 80) : [];
+    const r = (await import('../prospection/biens-collaborateurs.js')).biensDeLAgenceProspect(req.params.id, contacts);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/prospection/mode-appel/appels/:id/raison', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const r = (await import('../prospection/appels-v2.js')).noterRaison(req.params.id, req.body?.cle, req.body?.raison);

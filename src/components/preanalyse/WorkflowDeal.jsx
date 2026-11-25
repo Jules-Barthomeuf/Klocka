@@ -58,7 +58,7 @@ const GRILLES_ANALYSE = [
   // Ce que les pièces ne disent pas (11 nov. 2026, Jules : « un seul onglet Marché ») : locataire, loyer, prix,
   // emplacement, ville, lancés seuls à la création du dossier (analyse/ControlesHorsDocuments.jsx).
   // La fiche du bien de la Pré-analyse, modifiable ici, avant le Marché qui la lit (13 nov. 2026, Jules).
-  { id: "fiche", titre: "Fiche", grilles: null },
+  { id: "fiche", titre: "Bien/Contexte", grilles: null },
   { id: "marche", titre: "Marché", grilles: null },
   { id: "simulateur", titre: "Simulateur", grilles: null },
 ];
@@ -417,7 +417,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
     queryFn: () => base44.request("GET", `/api/kdata/analyses?deal_id=${encodeURIComponent(dossier.deal_id)}`),
     enabled: !!dossier?.deal_id && !apercu,
   });
-  const analysesKData = (kdata?.analyses || []).filter((a) => a.lien);
+  // Pas de page Valeur locative dans l'Analyse (25 nov. 2026, Jules : « enlève Valeur locative, on ne doit pas avoir cette page »).
+  const analysesKData = (kdata?.analyses || []).filter((a) => a.lien && !/valeur locative/i.test(a.nom_outil || ""));
   const [analyseKData, setAnalyseKData] = useState(null);
   // Deux analyses du même outil dans la même affaire se distinguent par un rang.
   const ongletsKData = analysesKData.map((a, i, tous) => {
@@ -716,7 +717,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 ne sort pas de cette rangée ; elle descend donc jusqu'au bout du défilement, par-dessus les 32 px du bas de
                 la page (py-8 d'Analyse.jsx), rendus au contenu. Pas sous le Simulateur : sa décision suit. */}
             <div className={`flex items-stretch gap-8 lg:pr-14 ${grilleAnalyse !== "simulateur" ? "lg:-mb-8" : ""}`}>
-            <div className="hidden w-[232px] flex-none border-r border-trait pr-4 lg:block">
+            <div className="hidden w-[184px] flex-none border-r border-trait pr-3 lg:block">
             {/* Dans l'écran scindé, le panneau prend la hauteur visible : « Voir le projet » se pose en bas (12 nov. 2026, Jules). */}
             <nav aria-label="Parties du dossier" className={`sticky top-0 flex flex-col pt-7 ${bande ? "h-[calc(100dvh-48px)] pb-6" : ""}`}>
               {!bande && <div className="mb-5 flex flex-wrap items-center gap-1.5">{blocTitre}</div>}

@@ -75,6 +75,20 @@ const SCHEMA_REPONSE = {
           occupe: { $ref: '#/$defs/champ_booleen' },
           rendement_annonce: { $ref: '#/$defs/champ_nombre' },
           type_actif: { $ref: '#/$defs/champ_texte' },
+          commerces: {
+            type: 'array',
+            description: "Quand ce lot est un ensemble de plusieurs cellules commerciales louées à des locataires différents (un portefeuille : « 3 locataires, 4 cellules »), une entrée par cellule, telle que l'état locatif ou la fiche la décrit. Vide pour un local à un seul locataire.",
+            items: {
+              type: 'object',
+              properties: {
+                locataire: { type: 'string', description: "L'enseigne ou le nom du locataire, tel qu'écrit. Vide pour une cellule vacante." },
+                activite: { type: 'string' },
+                surface_m2: { type: 'number' },
+                loyer_annuel: { type: 'number', description: 'Le loyer annuel HT HC de la cellule, tel qu\'écrit.' },
+                vacant: { type: 'boolean', description: 'true seulement si la fiche dit la cellule vacante ou libre.' },
+              },
+            },
+          },
         },
       },
     },
@@ -149,7 +163,12 @@ RÈGLES IMPÉRATIVES :
 7. Si la fiche décrit PLUSIEURS LOTS, renvoie un élément par lot dans "lots", chacun avec ses propres valeurs et citations. Ne fusionne jamais deux lots. Ne répartis pas un prix global entre les lots : si un prix est global, il est absent au niveau du lot. Un lot est un bien qu'on peut vendre : un immeuble ou un local loué à plusieurs locataires reste UN lot (ses locataires ne sont pas des lots), sauf si le document les vend séparément. Une liste ou un tableau de biens à vendre donne un lot par ligne.
 8. N'ajoute aucun champ hors du schéma.
 9. agent : la personne de l'agence qui présente ou envoie le bien (signature d'un mail, pied de fiche, « votre contact »), avec son nom, son adresse mail, son téléphone et le nom de son agence, recopiés tels qu'écrits. Jamais le locataire, le vendeur, le syndic, un notaire ni l'équipe Klocka (@klocka.immo). Ce qui n'est pas écrit reste vide.
-10. biens_annonces : le nombre de biens que le document dit lui-même porter (« 4 actifs », « 6 murs commerciaux »), recopié ; 0 s'il ne donne aucun nombre. Tu ne comptes pas toi-même.`;
+10. biens_annonces : le nombre de biens que le document dit lui-même porter (« 4 actifs », « 6 murs commerciaux »), recopié ; 0 s'il ne donne aucun nombre. Tu ne comptes pas toi-même.
+11. commerces : un lot loué à plusieurs locataires (un portefeuille de cellules commerciales vendu ensemble) reste UN lot (règle 7), mais chacune de ses cellules a son entrée dans "commerces" : le locataire tel qu'écrit, l'activité, la surface, le loyer annuel, et vacant à true pour une cellule vide. Recopie l'état locatif, ne calcule rien. Un local à un seul locataire n'a pas de "commerces".`;
+
+// La cellule à lire seule (24 nov. 2026, Jules : « un portefeuille, préanalyser séparément ou en un seul lot ? ») : le
+// portefeuille est découpé en un dossier par commerce, chacun lu sur le même document.
+export const consigneCible = (cible) => `CONSIGNE PARTICULIÈRE : le document décrit plusieurs cellules commerciales. Ne relève QUE la cellule louée à « ${String(cible?.locataire || '').slice(0, 80)} »${cible?.surface_m2 ? ` (${cible.surface_m2} m²)` : ''} : un seul lot, avec son locataire, son activité, sa surface, son loyer annuel, son bail et l'adresse de l'immeuble. Un prix ou un rendement donné pour l'ensemble reste absent. "commerces" reste vide, biens_annonces à 0.`;
 
 // --- Garde-fou -------------------------------------------------------------
 
@@ -249,7 +268,36 @@ export function verifierLot(lotBrut, texteSource) {
   }
 
   lot.intitule_lot = typeof lotBrut?.intitule_lot === 'string' ? lotBrut.intitule_lot.trim() : '';
+  const commerces = verifierCommerces(lotBrut?.commerces, texteSource);
+  if (commerces.length) lot.commerces = commerces;
   return { lot, incidents };
+}
+
+/**
+ * Pure : les cellules d'un portefeuille (24 nov. 2026, Jules : « ça compte comme trois fiches car trois commerces »).
+ * Une cellule louée garde son locataire seulement s'il figure dans le document ; une cellule sans locataire lisible
+ * n'est gardée que vacante. Moins de deux cellules : rien (un local à un locataire n'est pas un portefeuille).
+ */
+export function verifierCommerces(brut, texteSource) {
+  if (!Array.isArray(brut)) return [];
+  const sortie = [];
+  for (const c of brut.slice(0, 40)) {
+    if (!c || typeof c !== 'object') continue;
+    const nom = typeof c.locataire === 'string' ? c.locataire.trim() : '';
+    const lu = nom.length >= 2 && citationPresente(nom, texteSource);
+    const vacant = c.vacant === true || (!nom && /\b(vacant|vacante|libre)\b/i.test(texteSource));
+    if (!lu && !vacant) continue;
+    const surface = enNombre(c.surface_m2);
+    const loyer = enNombre(c.loyer_annuel);
+    sortie.push({
+      locataire: lu && !vacant ? nom : null,
+      activite: typeof c.activite === 'string' && c.activite.trim() ? c.activite.trim().slice(0, 80) : null,
+      surface_m2: surface && surface > 0 ? surface : null,
+      loyer_annuel: loyer && loyer > 0 && !vacant ? loyer : null,
+      vacant: !!vacant,
+    });
+  }
+  return sortie.length >= 2 ? sortie : [];
 }
 
 const chiffres = (t) => String(t ?? '').replace(/\D/g, '');
@@ -280,7 +328,7 @@ export function verifierAgent(brut, texteSource) {
  * @param {string} texteSource
  * @returns {Promise<{lots: object[], incidents: object[], ia: boolean}>}
  */
-export async function extraire(texteSource) {
+export async function extraire(texteSource, { cible = null } = {}) {
   if (!texteSource || !texteSource.trim()) {
     return { lots: [lotVide()], incidents: [], ia: false };
   }
@@ -291,11 +339,13 @@ export async function extraire(texteSource) {
   }
 
   const brut = await invokeLLM({
-    prompt: `${CONSIGNES}\n\n--- DOCUMENT ---\n${texteSource}\n--- FIN DU DOCUMENT ---`,
+    prompt: `${CONSIGNES}${cible ? `\n\n${consigneCible(cible)}` : ''}\n\n--- DOCUMENT ---\n${texteSource}\n--- FIN DU DOCUMENT ---`,
     response_json_schema: SCHEMA_REPONSE,
   });
 
-  const lotsBruts = Array.isArray(brut?.lots) && brut.lots.length ? brut.lots : [brut];
+  // Une cellule lue seule : un lot, sans ses voisines.
+  const tous = Array.isArray(brut?.lots) && brut.lots.length ? brut.lots : [brut];
+  const lotsBruts = cible ? [{ ...tous[0], commerces: [] }] : tous;
 
   const lots = [];
   const incidents = [];
@@ -315,5 +365,5 @@ export async function extraire(texteSource) {
   // Le nombre de biens que le document annonce (22 nov. 2026, Jules : « 4 fiches dans un PDF ») : le compte des fiches
   // reçues le compare aux biens lus, et un écart se met « à vérifier » (deal/fiches-stats.js).
   const annonce = Number(brut?.biens_annonces);
-  return { lots, incidents, ia: true, agent: verifierAgent(brut?.agent, texteSource), biens_annonces: Number.isInteger(annonce) && annonce > 0 && annonce <= 200 ? annonce : null };
+  return { lots, incidents, ia: true, agent: verifierAgent(brut?.agent, texteSource), biens_annonces: !cible && Number.isInteger(annonce) && annonce > 0 && annonce <= 200 ? annonce : null };
 }

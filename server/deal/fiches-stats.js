@@ -23,6 +23,7 @@ import { piecesFiche, porteUneFiche, parleDUnBien } from './fiches-auto.js';
 import { zipsDuMail } from './zip-fiches.js';
 import { normaliserAdresse } from '../haka/doublons.js';
 import { estTableur } from './lire-bureautique.js';
+import { commercesLoues } from './commerces.js';
 
 // La même adresse reçue deux fois en six mois : une seule fiche.
 const DOUBLON_JOURS = 180;
@@ -88,8 +89,17 @@ export function transfereePar(mail, estInterne = () => false) {
 export function biensDe(record) {
   const corrige = Number(record?.fiche_compte?.biens);
   if (Number.isFinite(corrige) && corrige >= 0) return corrige;
-  return Math.max(1, record?.lots?.length || 0);
+  return Math.max(1, biensDesLots(record?.lots));
 }
+
+/** Pure : les biens des lots d'un dossier, un portefeuille comptant ses commerces loués (24 nov. 2026, Jules). */
+export const biensDesLots = (lots = []) => (lots || []).reduce((n, l) => n + Math.max(1, commercesLoues(l?.lot ?? l).length), 0);
+
+/** Pure : la clé d'adresse de chaque bien des lots, répétée pour chaque commerce d'un portefeuille. */
+const clesDesLots = (lots = [], suffixe = '') => (lots || []).flatMap((l) => {
+  const k = cleDuLot(l);
+  return Array.from({ length: Math.max(1, commercesLoues(l?.lot ?? l).length) }, () => (k && suffixe ? `${k}#${suffixe}` : k));
+});
 
 /**
  * Pure : la marque d'une pièce jointe (nom et taille). Un transfert garde la pièce telle quelle : la fiche reçue dans une
@@ -191,8 +201,9 @@ export function listerFiches({ deals = [], mails = [], projets = [], biensMemoir
     const agent = agentDeLaFiche({ corrige: d.fiche_agent, mail, contact: d.contact_agent_email }, estInterne);
     const le = mail?.date || d.created_date || null;
     const corrige = Number.isFinite(Number(d.fiche_compte?.biens)) && Number(d.fiche_compte?.biens) >= 0;
-    const lus = Math.max(1, d.lots?.length || 0);
-    const cles = (d.lots || []).map((l) => cleDuLot(l));
+    const lus = Math.max(1, biensDesLots(d.lots));
+    // Un dossier par commerce d'un portefeuille : trois dossiers à la même adresse restent trois fiches.
+    const cles = clesDesLots(d.lots, d.portefeuille?.commerce ? String(d.portefeuille.commerce).toLowerCase() : '');
     const uniques = nouveauxBiens(cles, le, lus);
     if (!corrige && uniques === 0 && lus > 0 && cles.some(Boolean)) continue;
     const tableur = d.source?.type === 'tableur' || estTableur(d.source?.nom_fichier || '');
@@ -258,14 +269,15 @@ export function listerFiches({ deals = [], mails = [], projets = [], biensMemoir
     let extra = {};
     if (aCorrige) biens = corrige;
     else if (rentres.length) {
-      const cles = rentres.map((id) => memoireParId.get(id)?.cle_adresse || null);
-      const uniques = nouveauxBiens(cles, m.date, rentres.length);
+      // Un portefeuille rentré en une ligne compte ses commerces loués (24 nov. 2026).
+      const cles = rentres.flatMap((id) => { const b = memoireParId.get(id); return Array.from({ length: Math.max(1, commercesLoues(b).length) }, () => b?.cle_adresse || null); });
+      const uniques = nouveauxBiens(cles, m.date, cles.length);
       if (uniques === 0) continue;
       const annonce = lectures.length && lectures.every((x) => x.annonce) ? lectures.reduce((n, x) => n + x.annonce, 0) : null;
       const tableur = lectures.filter((x) => x.tableur).reduce((n, x) => n + (x.biens || 0), 0);
       const liste = enListe(tableur > 0, tableur, false);
       biens = liste ? uniques - Math.min(uniques, tableur) : uniques;
-      extra = { ...(liste ? { liste: tableur } : {}), ...(uniques < rentres.length ? { doublons: rentres.length - uniques } : {}), ...controle(rentres.length, annonce, false) };
+      extra = { ...(liste ? { liste: tableur } : {}), ...(uniques < cles.length ? { doublons: cles.length - uniques } : {}), ...controle(cles.length, annonce, false) };
     } else {
       biens = Math.max(1, m.lots?.length || 0, attendues.n);
       extra = { a_verifier: 'Pas encore lue : le nombre de fiches est estimé d\'après les pièces jointes.' };

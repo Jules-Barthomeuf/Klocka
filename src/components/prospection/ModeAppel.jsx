@@ -597,7 +597,43 @@ function initiales(nom) {
   return ((mots[0]?.[0] || "") + (mots.length > 1 ? mots[1][0] : "")).toUpperCase() || "?";
 }
 
-function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic }) {
+// Les biens d'un collaborateur (25 nov. 2026, Jules : « voir leurs biens directement, pour cibler celui qu'on appelle ») :
+// ses annonces de commerce Equimmox et les fiches qu'il nous a envoyées, lues dans la Mémoire
+// (server/prospection/biens-collaborateurs.js). Une ligne par bien : où, ce que c'est, le montant.
+const kEuros = (n) => (n >= 1e6 ? `${(n / 1e6).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} M€` : `${Math.round(n / 1000).toLocaleString("fr-FR")} k€`);
+const moisAnnee = (j) => { const d = j ? new Date(`${j}T12:00:00Z`) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("fr-FR", { month: "short", year: "numeric" }) : null; };
+
+function ListeBiens({ biens }) {
+  return (
+    <ul className="m-0 list-none divide-y divide-trait border-y border-trait p-0">
+      {biens.map((b) => {
+        const montant = b.prix ? kEuros(b.prix) : b.loyer ? `${kEuros(b.loyer)} / an` : null;
+        const quoi = [b.genre === "annonce" ? `Annonce ${b.transaction === "location" ? "à louer" : "à vendre"}` : "Fiche envoyée", b.activite, b.surface ? `${Math.round(b.surface)} m²` : null, b.rendement ? `${String(b.rendement).replace(".", ",")} %` : null, moisAnnee(b.le)].filter(Boolean).join(" · ");
+        const ligne = (
+          <>
+            <span className="flex min-w-0 flex-col">
+              <span className={`truncate text-[13.5px] ${b.retiree ? "text-ardoise" : "text-encre"}`}>{b.titre}</span>
+              <span className="truncate text-[12px] text-ardoise">{quoi}{b.retiree && " · retirée"}</span>
+            </span>
+            <span className={`flex flex-none items-center gap-1.5 text-[13.5px] tabular-nums ${b.retiree ? "text-ardoise" : "text-encre"}`}>
+              {montant || <span className="text-brume">—</span>}
+              {b.lien && <ExternalLink className="h-3.5 w-3.5 text-ardoise" strokeWidth={1.8} />}
+            </span>
+          </>
+        );
+        return (
+          <li key={b.id}>
+            {b.lien
+              ? <a href={b.lien} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="Voir l'annonce sur Equimmox" className="flex items-center justify-between gap-3 py-2 transition-colors hover:bg-relief/60">{ligne}</a>
+              : <span className="flex items-center justify-between gap-3 py-2">{ligne}</span>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic, biens = null }) {
   const tel = x.telephone || standard;
   // Le mail de chacun (18 nov. 2026, Jules : « à chaque fois ») : le connu, sinon celui déduit du format de l'agence.
   const mail = x.email || x.email_deduit || null;
@@ -613,7 +649,11 @@ function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic }) {
           {tete}
         </span>
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-[15px] text-encre">{nomLisible(x.nom)}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-[15px] text-encre">{nomLisible(x.nom)}</span>
+            {/* Le nombre de ses biens, pour savoir qui demander d'un coup d'œil. */}
+            {biens?.length > 0 && <span className="flex-none rounded-full bg-menthe/15 px-2 py-px text-[11.5px] tabular-nums text-menthe" title="Ses annonces de commerce et les fiches qu'il nous a envoyées">{biens.length} bien{biens.length > 1 ? "s" : ""}</span>}
+          </span>
           {x.fonction && <span className="truncate text-[13px] text-ardoise">{x.fonction}</span>}
         </span>
       </span>
@@ -644,6 +684,12 @@ function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic }) {
           <span className="select-all break-all text-[13.5px] text-encre">{mail || <span className="text-craie">Mail non trouvé</span>}</span>
           {x.source && x.source !== "Apollo" && <span className="pt-0.5 text-[12px] text-brume">{x.source}</span>}
         </span>
+        {biens?.length > 0 && (
+          <div className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
+            <p className="m-0 pb-1.5 text-[12.5px] text-ardoise">Ses biens · {biens.length}</p>
+            <ListeBiens biens={biens} />
+          </div>
+        )}
       </div>
     )}
     </div>
@@ -665,10 +711,19 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
     // site vient d'être lu, la clé change ; l'ancien texte reste jusqu'au nouveau, jamais celui d'une autre agence.
     placeholderData: (avant, q) => (q?.queryKey?.[2] === a.id ? avant : undefined),
   });
+  // Les biens de chacun, lus dans la Mémoire (25 nov. 2026) ; sans réponse, la carte reste telle quelle.
+  const personnes = contacts.filter((x) => !x.standard).map((x) => ({ id: x.id, nom: x.nom, email: x.email || null, email_deduit: x.email_deduit || null, telephone: x.telephone || null }));
+  const biens = useQuery({
+    queryKey: ["mode-appel-biens", a.id, personnes.map((x) => `${x.id}:${x.nom}:${x.email || x.email_deduit || ""}`).join("|")],
+    queryFn: () => base44.request("POST", `/api/prospection/mode-appel/agences/${encodeURIComponent(a.id)}/biens`, { body: { contacts: personnes } }),
+    enabled: !!a.id && !essai, staleTime: 5 * 60000, retry: false,
+  });
+  const [autresOuverts, setAutresOuverts] = useState(false);
+  const autresBiens = biens.data?.agence || [];
   const dernier = histo[0];
   // La personne ouverte en grand : aucune à l'arrivée sur l'agence.
   const [ouvertId, setOuvertId] = useState(null);
-  useEffect(() => { setOuvertId(null); }, [a.id]);
+  useEffect(() => { setOuvertId(null); setAutresOuverts(false); }, [a.id]);
   const liens = [[lienWeb(a.site), "Site de l'agence", Link2], [lienWeb(a.linkedin), "LinkedIn de l'agence", Briefcase]].filter(([u]) => u);
   const faits = [
     ["Dernier appel", dernier ? [dernier.quoi, dernier.quand].filter(Boolean).join(" · ") : "Jamais appelée"],
@@ -744,10 +799,22 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
                   <span className="text-right">Contact</span>
                   <span className="text-center max-md:hidden">Lien</span>
                 </div>
-                {contacts.map((x) => <LigneCollaborateur key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} standard={standard} agence={a.nom}
+                {contacts.map((x) => <LigneCollaborateur key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} standard={standard} agence={a.nom} biens={biens.data?.par_contact?.[x.id] || null}
                   onClic={() => { if (choisi?.id === x.id) setOuvertId((o) => (o === x.id ? null : x.id)); else { onChoisir(x.id); setOuvertId(x.id); } }} />)}
               </div>
-            ) : (
+            ) : null}
+            {/* Les biens de l'agence qui ne sont à personne de la liste (une annonce au standard, un agent pas encore connu). */}
+            {autresBiens.length > 0 && (
+              <div className="border-t border-trait">
+                <button type="button" onClick={() => setAutresOuverts((o) => !o)} aria-expanded={autresOuverts}
+                  className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left text-[13.5px] text-craie transition-colors hover:bg-relief/50 hover:text-encre max-md:px-4" style={{ background: "transparent" }}>
+                  <span>Autres biens de l'agence, sans agent connu · <span className="tabular-nums">{autresBiens.length}</span></span>
+                  <ChevronDown className={`h-4 w-4 flex-none transition-transform ${autresOuverts ? "rotate-180" : ""}`} strokeWidth={1.8} />
+                </button>
+                {autresOuverts && <div className="px-5 pb-3 max-md:px-4"><ListeBiens biens={autresBiens} /></div>}
+              </div>
+            )}
+            {!contacts.length && (
               <p className="m-0 border-t border-trait px-5 py-4 text-[14px] text-ardoise max-md:px-4">
                 Personne de connu : demandez le responsable commerce{standard && <> · <span className="select-all tabular-nums text-encre">{standard}</span></>}
               </p>
@@ -1697,11 +1764,13 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     refetchInterval: 2500,
   });
   const r = recuFrais.data?.recu || recu;
-  const aFaire = r && (r.mail?.etat === "brouillon" || r.monday?.etat === "doute");
+  // Un mail en échec retient le reçu à l'écran, en rouge : on ne passe pas à « Tout est préparé » (24 nov. 2026, Jules).
+  const aFaire = r && (r.mail?.etat === "brouillon" || r.mail?.etat === "echec" || r.monday?.etat === "doute");
   // Le mail part juste après les dix secondes : on attend de savoir s'il est retrouvé dans les envoyés.
   // On ne retient pas l'analyste plus de six secondes après la fenêtre d'annulation (16 oct. 2026) : le mail finit de partir seul.
   const [envoiLong, setEnvoiLong] = useState(false);
-  useEffect(() => { setEnvoiLong(false); if (annulerDans > 0 || !recu) return undefined; const t = setTimeout(() => setEnvoiLong(true), 6000); return () => clearTimeout(t); }, [annulerDans > 0, !!recu]);
+  // Vingt secondes pour savoir s'il est parti (six avant le 24 nov. 2026 : on passait à la suite sans le savoir).
+  useEffect(() => { setEnvoiLong(false); if (annulerDans > 0 || !recu) return undefined; const t = setTimeout(() => setEnvoiLong(true), 20000); return () => clearTimeout(t); }, [annulerDans > 0, !!recu]);
   const mailEnRoute = r?.mail?.etat === "attente" && /part dans/.test(r.mail.texte || "") && !envoiLong;
   // Dix secondes, puis « Tout est préparé ! » (8 oct. 2026), puis la suivante ; un brouillon à ouvrir ou une ligne à choisir attendent un geste.
   const [bilan, setBilan] = useState("");

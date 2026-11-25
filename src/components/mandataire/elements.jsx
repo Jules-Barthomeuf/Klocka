@@ -49,7 +49,8 @@ export function useLigneSurLogo(ref) {
 export function LigneTitre({ className = "", children }) {
   const ref = useRef(null);
   useLigneSurLogo(ref);
-  return <div ref={ref} className={className}>{children}</div>;
+  // La place de la photo de profil, en haut à droite (25 nov. 2026) : 72 px réservés à droite, sur ordinateur.
+  return <div ref={ref} className={`${className} md:pr-[72px]`}>{children}</div>;
 }
 
 export function TitrePage({ titre, nombre = null, actions = null, className = "", dansLigne = false }) {
@@ -57,7 +58,7 @@ export function TitrePage({ titre, nombre = null, actions = null, className = ""
   // Dans une LigneTitre, c'est la ligne qui se cale, pas le titre.
   useLigneSurLogo(dansLigne ? { current: null } : ref);
   return (
-    <div ref={ref} className={`flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2 md:pr-[52px] ${className}`}>
+    <div ref={ref} className={`flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2 ${dansLigne ? "" : "md:pr-[72px]"} ${className}`}>
       <h1 className="m-0 min-w-0 truncate text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre max-md:pr-12">
         {titre}{nombre != null && <span className="ml-2 text-[14px] tabular-nums tracking-normal text-ardoise">{nombre}</span>}
       </h1>

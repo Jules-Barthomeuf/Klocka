@@ -50,7 +50,8 @@ export async function analyserFiche(entree, ctx = {}) {
   }
 
   // --- [2] Extraction ------------------------------------------------------
-  const { lots: lotsExtraits, incidents, ia: extractionIA, agent: agentExtrait = null, biens_annonces: biensAnnonces = null } = await extraire(ingestion.texte);
+  // `ctx.cible` : une cellule d'un portefeuille lue seule (24 nov. 2026, un dossier par commerce).
+  const { lots: lotsExtraits, incidents, ia: extractionIA, agent: agentExtrait = null, biens_annonces: biensAnnonces = null } = await extraire(ingestion.texte, ctx.cible ? { cible: ctx.cible } : {});
 
   // --- [3] + [4] par lot, en parallèle -------------------------------------
   // Les lots sont indépendants entre eux, et dans un lot la synthèse et le
@@ -124,6 +125,7 @@ export async function analyserFiche(entree, ctx = {}) {
       texte_source: ingestion.texte,
     },
     extraction: { ia: extractionIA, incidents, biens_annonces: biensAnnonces },
+    ...(ctx.cible ? { portefeuille: { commerce: ctx.cible.locataire || null, ...(ctx.cible.n ? { sur: ctx.cible.n } : {}) } } : {}),
     multi_lots: lots.length > 1,
     lots,
     duree_ms: Date.now() - debut,

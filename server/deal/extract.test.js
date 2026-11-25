@@ -4,7 +4,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { citationPresente, verifierLot, enNombre } from './extract.js';
+import { citationPresente, verifierLot, enNombre, verifierCommerces, consigneCible } from './extract.js';
 
 const TEXTE = 'Prix d’acquisition total 488 050 €\nPRIX DE VENTE\n430 000 € NV — honoraires en sus';
 
@@ -30,4 +30,27 @@ test('enNombre : virgule décimale, pourcent, euro', () => {
   assert.equal(enNombre('8,72 %'), 8.72);
   assert.equal(enNombre(430000), 430000);
   assert.equal(enNombre(''), null);
+});
+
+// 24 nov. 2026 (Jules) : un portefeuille, trois locataires et une cellule vacante, reste un lot mais garde ses cellules.
+const ETAT_LOCATIF = 'Etat Locatif\nJules 155 01/07/2016 40 135€\nNocibé France 251 01/10/2021 46 216€\nOrange Store 250 18/06/2025 30 000€\nVacant 91 - - -\nTotal 747 116 351€';
+
+test('les cellules d\'un portefeuille : un locataire lu dans le document, une vacante dite vacante, rien en dessous de deux', () => {
+  const c = verifierCommerces([
+    { locataire: 'Jules', surface_m2: 155, loyer_annuel: '40 135 €' },
+    { locataire: 'Nocibé France', surface_m2: 251, loyer_annuel: 46216 },
+    { locataire: 'Orange Store', surface_m2: 250, loyer_annuel: 30000 },
+    { locataire: '', surface_m2: 91, vacant: true },
+    { locataire: 'Sephora', surface_m2: 80, loyer_annuel: 20000 },
+  ], ETAT_LOCATIF);
+  assert.deepEqual(c.map((x) => x.locataire), ['Jules', 'Nocibé France', 'Orange Store', null], 'Sephora n\'est pas dans le document');
+  assert.equal(c[0].loyer_annuel, 40135);
+  assert.equal(c[3].vacant, true);
+  assert.equal(c[3].loyer_annuel, null);
+  assert.deepEqual(verifierCommerces([{ locataire: 'Jules', surface_m2: 155 }], ETAT_LOCATIF), [], 'un seul locataire : pas un portefeuille');
+  assert.deepEqual(verifierCommerces(null, ETAT_LOCATIF), []);
+  const { lot } = verifierLot({ commerces: [{ locataire: 'Jules' }, { locataire: 'Orange Store' }] }, ETAT_LOCATIF);
+  assert.equal(lot.commerces.length, 2);
+  assert.equal(verifierLot({}, ETAT_LOCATIF).lot.commerces, undefined);
+  assert.match(consigneCible({ locataire: 'Nocibé France', surface_m2: 251 }), /louée à « Nocibé France » \(251 m²\)/);
 });

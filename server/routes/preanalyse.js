@@ -121,6 +121,16 @@ export function monterPreanalyse(app) {
     ok(res, leger);
   }));
 
+  // Le contexte de la vente, dicté dans l'onglet Bien/Contexte de l'Analyse (25 nov. 2026, Jules) : mis en forme pour les
+  // clients, gardé sur le dossier et recopié sur son projet (server/contexte-vente.js).
+  app.post('/api/preanalyse/dossiers/:dealId/contexte-vente', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const historique = Array.isArray(req.body?.historique) ? req.body.historique.slice(-10) : [];
+    const r = await (await import('../contexte-vente.js')).contexteDuDossier(req.params.dealId, { demande: req.body?.demande, historique });
+    if (!r.ok) return res.status(r.error === 'Dossier introuvable.' ? 404 : 400).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // Le verdict choisi par l'équipe (9 nov. 2026, Jules) : un choix posé à la main, rien ne s'y branche ; null le retire.
   app.post('/api/preanalyse/dossiers/:dealId/verdict', wrap((req, res) => {
     const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);

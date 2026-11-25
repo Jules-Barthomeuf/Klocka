@@ -347,9 +347,7 @@ export default function Personnalisation() {
             <ChoixAccent prefs={prefs} changer={changer} theme={theme} />
           </Reglage>
         )}
-        <Reglage titre="Taille de l'interface" note="Tout grossit ou rétrécit d'un bloc, texte et espacements.">
-          <Pilules valeur={prefs.taille} options={OPTIONS.taille} onChoisir={(v) => changer({ taille: v })} />
-        </Reglage>
+        {/* « Taille de l'interface » retirée (25 nov. 2026, Jules) : chacun garde la taille qu'il avait. */}
       </section>
       )}
 

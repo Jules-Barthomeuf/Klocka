@@ -8,7 +8,7 @@ import LivrableAccueil, { usePropositionsNees } from "@/components/haka/Livrable
 import { Depliant, PanneauSources, PastilleSource } from "@/components/haka/ReglagesDemande";
 import { useCompteHaka } from "@/components/haka/useFileHaka";
 import PastilleAFaire from "@/components/dashboard/PastilleAFaire";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { sourceDe } from "@/lib/sources";
 import { base44 } from "@/api/base44Client";
 import { PanneauFlottant, PanneauNote, usePanneau } from "@/components/fiche-dossier/FicheDossier";
@@ -77,6 +77,9 @@ export default function AdminDashboardView() {
   // La compétence choisie (carte ou raccourci) : une pastille dans la saisie, « Produire », et ses sources dessous (17 oct. 2026).
   const [competence, setCompetence] = useState(null);
   const [eteintes, setEteintes] = useState([]);
+  // « Rédiger une LOI » mène tout droit à Offres (25 nov. 2026, Jules : « quand on clique sur rédiger une LOI, ça
+  // redirige direct vers la page Offres ») : son chat à gauche rédige la lettre, qui s'ouvre à droite.
+  const navigate = useNavigate();
   const choisirCompetence = useCallback((c, eteintesDepart = []) => {
     setCompetence(c || null);
     setEteintes(c ? eteintesDepart : []);
@@ -221,7 +224,7 @@ export default function AdminDashboardView() {
             apresChat={(
               <>
                 {/* Les raccourcis remplacent « Connecter un skill » ; les cartes « Ce que Haka sait faire » sont retirées de la page (17 oct. 2026, Jules). */}
-                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[820px]" />
+                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (c.cle === "loi" ? navigate("/Offres") : competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[820px]" />
                 <Depliant ouvert={!!competence && (competence.outils || []).length > 0} className="mx-auto max-w-[900px]">
                   <div className="flex flex-col items-center gap-2.5 pt-5">
                     <div className="flex flex-wrap justify-center gap-2">

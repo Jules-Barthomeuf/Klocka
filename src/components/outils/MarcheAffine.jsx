@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Info, Loader2, RotateCw } from "lucide-react";
+import { Check, Info, Loader2, RotateCw, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -438,22 +438,75 @@ function useIndicateurs(adresse, vacance) {
   });
 }
 
-/** Un indicateur : son nom, sa note sur 10 et sa barre, sa phrase, sa source dans le « i ». `dessous` : un second, rangé dedans. */
-function TuileIndicateur({ x, dessous = null }) {
+/**
+ * Cinq étoiles, les demies comprises (25 nov. 2026, Jules : « Commercialité, plus de notes mais des étoiles sur 5 ») : la
+ * note sur 10 du serveur, ramenée à la demi-étoile près.
+ */
+function EtoilesSur5({ note }) {
+  const n = Math.round(Number(note)) / 2;
+  return (
+    <span className="inline-flex items-center gap-1" role="img" aria-label={`${String(n).replace(".", ",")} étoile${n > 1 ? "s" : ""} sur 5`} title={`${String(n).replace(".", ",")} sur 5`}>
+      {[0, 1, 2, 3, 4].map((i) => {
+        const part = Math.max(0, Math.min(1, n - i));
+        return (
+          <span key={i} className="relative inline-block h-[18px] w-[18px]">
+            <Star strokeWidth={1.5} className="absolute inset-0 h-[18px] w-[18px] text-encre/20" />
+            {part > 0 && <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${part * 100}%` }}><Star strokeWidth={1.5} className="h-[18px] w-[18px] fill-current text-menthe" /></span>}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** La note d'un indicateur : des étoiles (`etoiles`), sinon le chiffre sur 10 et sa barre. */
+function NoteIndicateur({ note, etoiles = false }) {
+  if (note == null) return <p className="m-0 text-[14.5px] text-brume">Pas de note</p>;
+  if (etoiles) return <p className="m-0 flex h-[24px] items-center"><EtoilesSur5 note={note} /></p>;
+  return (
+    <>
+      <p className="m-0 text-[20px] leading-[1.2] tabular-nums text-encre">{String(note).replace(".", ",")}<span className="text-[14px] text-ardoise"> / 10</span></p>
+      <div className="h-1.5 overflow-hidden rounded-full bg-relief" aria-hidden><div className="h-full rounded-full bg-menthe" style={{ width: `${note * 10}%` }} /></div>
+    </>
+  );
+}
+
+/** Un indicateur : son nom, sa note (étoiles pour la Commercialité), sa phrase, sa source dans le « i ». `dessous` : un second, rangé dedans. */
+function TuileIndicateur({ x, dessous = null, etoiles = false }) {
   return (
     <div className={CELLULE}>
       <div className="flex items-start justify-between gap-2">
         <p className="m-0 text-[12.5px] text-brume">{x.nom}{x.provisoire && <span className="ml-2 rounded-full border border-menthe/50 px-1.5 text-[11px] text-menthe" title="Barème provisoire, à régler sur les notes de l'équipe">provisoire</span>}</p>
         <Source texte={x.source} enBas={false} />
       </div>
-      {x.note != null ? (
-        <>
-          <p className="m-0 text-[20px] leading-[1.2] tabular-nums text-encre">{String(x.note).replace(".", ",")}<span className="text-[14px] text-ardoise"> / 10</span></p>
-          <div className="h-1.5 overflow-hidden rounded-full bg-relief" aria-hidden><div className="h-full rounded-full bg-menthe" style={{ width: `${x.note * 10}%` }} /></div>
-        </>
-      ) : <p className="m-0 text-[14.5px] text-brume">Pas de note</p>}
+      <NoteIndicateur note={x.note} etoiles={etoiles} />
       <p className="m-0 text-[13.5px] leading-[1.5] text-encre">{x.texte}</p>
-      {dessous && <SousIndicateur x={dessous} />}
+      {dessous && <SousIndicateur x={dessous} etoiles={etoiles} />}
+    </div>
+  );
+}
+
+/**
+ * Les Transports sans note (25 nov. 2026, Jules : « juste Tramways, Bus etc, et s'il y a des parkings ; à droite le
+ * nombre autour du bien ») : une ligne par genre d'arrêt à 300 m, puis les parkings, le compte à droite.
+ */
+function TuileTransports({ x }) {
+  const lignes = x.lignes || [];
+  return (
+    <div className={CELLULE}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="m-0 text-[12.5px] text-brume">{x.nom} · à 300 m</p>
+        <Source texte={x.source} enBas={false} />
+      </div>
+      <ul className="m-0 flex list-none flex-col divide-y divide-trait p-0">
+        {lignes.map((l) => (
+          <li key={l.cle} className="flex items-baseline justify-between gap-4 py-2 first:pt-0 last:pb-0">
+            <span className="text-[14.5px] text-encre">{l.nom}</span>
+            <span className={`text-[14.5px] tabular-nums ${l.nombre ? "text-encre" : "text-brume"}`}>{l.nombre == null ? "pas lu" : l.nombre}</span>
+          </li>
+        ))}
+      </ul>
+      {x.texte && <p className="m-0 text-[13px] leading-[1.5] text-ardoise">{x.texte}</p>}
     </div>
   );
 }
@@ -462,7 +515,7 @@ function TuileIndicateur({ x, dessous = null }) {
  * Un indicateur rangé dans un autre (24 nov. 2026, Jules : « Loyer de la rue, mets-le dans Commercialité provisoire ») :
  * sous un filet, son nom et sa note sur une ligne, sa barre, sa phrase.
  */
-function SousIndicateur({ x }) {
+function SousIndicateur({ x, etoiles = false }) {
   return (
     <div className="mt-1 flex flex-col gap-2 border-t border-trait pt-3">
       {/* La note sous le nom, comme celle de la Commercialité (25 nov. 2026, Jules : « mets la note sous Loyer de la rue »). */}
@@ -470,12 +523,7 @@ function SousIndicateur({ x }) {
         <p className="m-0 text-[12.5px] text-brume">{x.nom}</p>
         <Source texte={x.source} enBas={false} />
       </div>
-      {x.note != null ? (
-        <>
-          <p className="m-0 text-[20px] leading-[1.2] tabular-nums text-encre">{String(x.note).replace(".", ",")}<span className="text-[14px] text-ardoise"> / 10</span></p>
-          <div className="h-1.5 overflow-hidden rounded-full bg-relief" aria-hidden><div className="h-full rounded-full bg-menthe" style={{ width: `${x.note * 10}%` }} /></div>
-        </>
-      ) : <p className="m-0 text-[14.5px] text-brume">Pas de note</p>}
+      <NoteIndicateur note={x.note} etoiles={etoiles} />
       <p className="m-0 text-[13.5px] leading-[1.5] text-encre">{x.texte}</p>
     </div>
   );
@@ -492,11 +540,12 @@ const TuileAttente = ({ q, nom }) => (
 
 // Exporté pour la page projet, qui reprend l'Emplacement du dossier (13 nov. 2026, Jules), puis Ville, Prix, Loyer et
 // Locataire (14 nov. 2026, Jules).
-// `simple` (page projet) : la Vacance d'abord, puis la Rotation. Le Passage n'est plus montré (24 nov. 2026, Jules) :
+// `simple` (page projet) : la Vacance d'abord ; la Rotation du local reste dans l'Analyse, jamais dans le projet (25 nov.
+// 2026, Jules). Le Passage n'est plus montré (24 nov. 2026, Jules) :
 // la carte de l'Emplacement (transports, enseignes, locaux vides) a pris sa place.
 // `partie(id, titre, element)` (page projet, 13 nov. 2026, Jules : « on doit pouvoir masquer chaque truc ») : enveloppe
 // chaque partie dans le bloc masquable de l'éditeur ; l'Analyse n'en passe pas.
-export function BlocEmplacement({ pts, rue, simple = false, partie = null, transactions = null }) {
+export function BlocEmplacement({ pts, rue, simple = false, partie = null, transactions = null, masque = null }) {
   const enveloppe = (id, titre, el) => (partie ? partie(id, titre, el) : el);
   const t = pts.vacance?.detail?.taux;
   const part = rue?.rue?.part_enseignes_pct;
@@ -511,14 +560,37 @@ export function BlocEmplacement({ pts, rue, simple = false, partie = null, trans
   const noms = rue?.rue?.noms_enseignes || [];
   // La Vacance rangée parmi les repères nationaux (13 nov. 2026, Jules, variante B de la planche : « la B de loin »).
   const phraseVac = t?.taux != null ? phraseVacance(t.taux) : null;
+  const echelleVac = Math.max(30, Math.ceil((Number(t?.taux) || 0) / 10) * 10);
   // « Signal de vacance » plutôt que « Taux de vacance » (24 nov. 2026, Jules) ; les lectures d'avant disaient « Vacance ».
   const pVacance = pts.vacance ? { ...pts.vacance, libelle: "Signal de vacance" } : null;
   const celVacance = enveloppe("emplacement-vacance", "Signal de vacance", (
       <div className={CELLULE}>
         <PartieEmplacement p={pVacance} chiffre={t?.taux != null ? `${String(t.taux).replace(".", ",")} %` : teteEtSuite(vacance)[0]}
           source={pts.vacance ? [sourceDe(pts.vacance), SOURCE_REPERES].filter(Boolean).join(" ") : undefined}
-          sous={vides ? `${vides[1]} ${Number(vides[1]) > 1 ? "locaux vides" : "local vide"} sur ${vides[2]} dans la rue${phraseVac ? ` · ${phraseVac}` : ""}${reserve ? ` · ${reserve}` : ""}` : phraseVac}>
-          {t?.taux != null && <div className="mt-auto pt-4"><ClassementVacance lignes={lignesVacance(t.taux)} /></div>}
+          sous={vides ? `${vides[1]} ${Number(vides[1]) > 1 ? "locaux vides" : "local vide"} sur ${vides[2]} dans la rue${reserve ? ` · ${reserve}` : ""}` : null}>
+          {/* La rue seule et sa comparaison, puis les moyennes françaises dans un encadré à part, un pointillé y reporte la
+              rue (25 nov. 2026, Jules : « sinon on croit que c'est dans la même zone » ; variante B de /PlancheVacance).
+              Une même échelle pour les deux. */}
+          {t?.taux != null && (
+            <div className="mt-auto flex flex-col gap-3 pt-4">
+              <ClassementVacance lignes={[{ nom: "La rue", taux: Number(t.taux), rue: true }]} max={echelleVac} axe={false} />
+              {phraseVac && <p className="m-0 text-[12.5px] leading-[1.5] text-ardoise">{phraseVac.charAt(0).toUpperCase() + phraseVac.slice(1)}</p>}
+              <div className="rounded-champ bg-relief p-4">
+                <div className="mb-3 flex items-baseline justify-between gap-3">
+                  <p className="m-0 text-[12.5px] text-encre">En France, en moyenne</p>
+                  <p className="m-0 text-[11.5px] text-brume">Codata, 2025</p>
+                </div>
+                <div className="relative">
+                  <ClassementVacance lignes={lignesVacance(null)} max={echelleVac} />
+                  {/* La colonne des barres commence après le nom (170 px, 120 au téléphone) et l'écart de 12 px. */}
+                  <div className="pointer-events-none absolute inset-y-0 left-[182px] right-[64px] max-md:left-[132px] max-md:right-[60px]" aria-hidden>
+                    <span className="absolute -top-1 bottom-5 border-l border-dashed border-menthe" style={{ left: `${Math.min(100, (Number(t.taux) / echelleVac) * 100)}%` }} />
+                    <span className="absolute -top-4 -translate-x-1/2 whitespace-nowrap text-[11px] text-menthe" style={{ left: `${Math.min(100, (Number(t.taux) / echelleVac) * 100)}%` }}>la rue</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {(cotes.impair || cotes.pair) && <p className="m-0 pt-2 text-[12.5px] text-ardoise">{[cotes.impair && `Côté impair n° ${cotes.impair[0]} à ${cotes.impair[1]}`, cotes.pair && `côté pair n° ${cotes.pair[0]} à ${cotes.pair[1]}`].filter(Boolean).join(" · ")}</p>}
         </PartieEmplacement>
       </div>
@@ -569,20 +641,38 @@ export function BlocEmplacement({ pts, rue, simple = false, partie = null, trans
     return (
       <>
         {celCarte}
-        <div className={GRILLE[3]}>{simple ? <>{celVacance}{celRotation}</> : <>{celRotation}{celVacance}</>}{celEnseignes}</div>
+        {simple ? <div className={GRILLE[2]}>{pts.vacance && celVacance}{pts.enseignes && celEnseignes}</div> : <div className={GRILLE[3]}>{celRotation}{celVacance}{celEnseignes}</div>}
       </>
     );
   }
-  const celCommercial = enveloppe("emplacement-commercialite", "Commercialité", commercial ? <TuileIndicateur x={commercial} dessous={loyerRue} /> : <TuileAttente q={q} nom="Commercialité · Loyer de la rue" />);
+  const celCommercial = enveloppe("emplacement-commercialite", "Commercialité", commercial ? <TuileIndicateur x={commercial} dessous={loyerRue} etoiles /> : <TuileAttente q={q} nom="Commercialité · Loyer de la rue" />);
   const tuilesAutres = autres.length
-    ? autres.map((x) => <React.Fragment key={x.cle}>{enveloppe(`emplacement-${x.cle}`, x.nom, <TuileIndicateur x={x} />)}</React.Fragment>)
+    ? autres.map((x) => <React.Fragment key={x.cle}>{enveloppe(`emplacement-${x.cle}`, x.nom, x.cle === "transports" && x.lignes ? <TuileTransports x={x} /> : <TuileIndicateur x={x} />)}</React.Fragment>)
     : q.data ? [] : [<React.Fragment key="attente">{enveloppe("emplacement-indicateurs", "Indicateurs", <TuileAttente q={q} nom="Transports" />)}</React.Fragment>];
   // Le Signal de vacance prend toute la place que les autres indicateurs laissent dans la rangée (deux colonnes sur trois).
   const largeur = ["lg:col-span-3", "lg:col-span-2", ""][Math.min(2, tuilesAutres.length)];
+  // Le projet (25 nov. 2026) : sans Rotation, les parties lues seulement, rangées deux par deux (trois sur une rangée) ;
+  // une partie que le dossier n'a pas lue ne laisse pas de case vide.
+  if (simple) {
+    // `masque(id)` : une partie masquée pour le client ne compte pas dans la grille.
+    const vue = (id) => !masque?.(id);
+    const cellules = [
+      vue("emplacement-commercialite") && celCommercial,
+      pts.enseignes && vue("emplacement-enseignes") && celEnseignes,
+      pts.vacance && vue("emplacement-vacance") && celVacance,
+      ...(autres.length ? autres.filter((x) => vue(`emplacement-${x.cle}`)).map((x) => tuilesAutres[autres.indexOf(x)]) : tuilesAutres),
+    ].filter(Boolean);
+    return (
+      <>
+        {celCarte}
+        <div className={cellules.length === 3 ? GRILLE[3] : GRILLE[2]}>{cellules.map((el, i) => <React.Fragment key={i}>{el}</React.Fragment>)}</div>
+      </>
+    );
+  }
   return (
     <>
       {celCarte}
-      <div className={GRILLE[3]}>{simple ? <>{celCommercial}{celRotation}</> : <>{celRotation}{celCommercial}</>}{celEnseignes}</div>
+      <div className={GRILLE[3]}>{celRotation}{celCommercial}{celEnseignes}</div>
       <div className={`${GRILLE[3]} border-t border-trait`}><div className={`min-w-0 ${largeur}`}>{celVacance}</div>{tuilesAutres}</div>
     </>
   );

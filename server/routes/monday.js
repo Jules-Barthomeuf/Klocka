@@ -90,6 +90,38 @@ export function monterMonday(app) {
     if (u?.role !== 'admin') { res.status(403).json({ error: 'Réservé aux administrateurs.' }); return null; }
     return u;
   };
+  // La sauvegarde de Monday dans la plateforme (25 nov. 2026, Jules : « une sauvegarde de chaque page, pour couper Monday
+  // une fois pour toutes ») : l'équipe seule la lit, la télécharge et la refait (server/crm/sauvegarde-monday.js).
+  const sauvegarde = () => import('../crm/sauvegarde-monday.js');
+  app.get('/api/crm/sauvegarde-monday', wrap(async (req, res) => { if (adminCrm(req, res)) ok(res, (await sauvegarde()).listeSauvegarde()); }));
+  app.post('/api/crm/sauvegarde-monday/lancer', wrap(async (req, res) => {
+    if (!adminCrm(req, res)) return;
+    const r = (await sauvegarde()).lancerSauvegarde();
+    if (!r.ok) return res.status(409).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.get('/api/crm/sauvegarde-monday/tableaux/:id', wrap(async (req, res) => {
+    if (!adminCrm(req, res)) return;
+    const t = (await sauvegarde()).tableauSauvegarde(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Tableau absent de la sauvegarde.' });
+    ok(res, t);
+  }));
+  app.get('/api/crm/sauvegarde-monday/tableaux/:id/csv', wrap(async (req, res) => {
+    if (!adminCrm(req, res)) return;
+    const S = await sauvegarde();
+    const t = S.tableauSauvegarde(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Tableau absent de la sauvegarde.' });
+    const nom = `Monday - ${t.espace} - ${t.nom}`.replace(/[^\w\- àâäéèêëîïôöùûüç·]+/gi, ' ').trim();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(`${nom}.csv`)}`);
+    res.send(S.csvDuTableau(t));
+  }));
+  app.get('/api/crm/sauvegarde-monday/fichiers/:nom', wrap(async (req, res) => {
+    if (!adminCrm(req, res)) return;
+    const p = (await sauvegarde()).cheminFichier(req.params.nom);
+    if (!p) return res.status(404).json({ error: 'Fichier absent de la sauvegarde.' });
+    res.download(p, req.params.nom.replace(/^\d+-/, ''));
+  }));
   // Les pages du CRM de chacun (11 nov. 2026) : Jules seul, comme les accès de l'équipe.
   const jules = async (req, res) => {
     const u = currentUser(req);

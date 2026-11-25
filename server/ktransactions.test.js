@@ -15,6 +15,10 @@ test('le prix se lit dans la phrase, quelle que soit la tournure du greffe', () 
   assert.equal(prixDuFonds('Fonds artisanal acquis par achat au prix stipulé de 30000.00 euros'), 30000);
   assert.equal(prixDuFonds('cédé moyennant le prix de 145 000,00 euros'), 145000);
   assert.equal(prixDuFonds('au prix de 62500 euros'), 62500);
+  // Le BODACC écrit « EUR » (25 nov. 2026) : « Etablissement principal acquis par achat au prix stipulé de 75000 EUR ».
+  assert.equal(prixDuFonds('Etablissement principal acquis par achat au prix stipulé de 75000 EUR'), 75000);
+  assert.equal(prixDuFonds('au prix de 1 100 000 €'), 1100000);
+  assert.equal(prixDuFonds('au prix de 5000 europe'), null);
   // Sans prix, on ne devine pas : une fusion ou un apport n'en porte pas.
   assert.equal(prixDuFonds("apport d'un fonds de commerce"), null);
   assert.equal(prixDuFonds(''), null);

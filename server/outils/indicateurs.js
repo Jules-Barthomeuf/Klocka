@@ -1,4 +1,4 @@
-// Les indicateurs de l'Emplacement, chacun sur 10 et lu seul (24 nov. 2026, Jules : « des indicateurs indépendants,
+// Les indicateurs de l'Emplacement, chacun sur 10 et lu seul (les Transports sans note depuis le 25 nov. 2026) (24 nov. 2026, Jules : « des indicateurs indépendants,
 // notés sur 10 ; Commercialité : les commerces en pied d'immeuble, plus il y en a, meilleure est la commercialité ; un
 // commerce tous les deux immeubles, moins bien ; et mets les autres aussi »). Pas de moyenne : chacun dit sa note, sa
 // phrase et sa source, ou qu'il n'a pas pu se lire.
@@ -115,10 +115,18 @@ export function commercialiteCercle({ numeros = [], commercants = new Map(), poi
 /** Pure : la note de la vacance d'après le taux de l'outil Vacance : 5 % ou moins, 10 ; 30 % ou plus, 0. */
 export const noteVacance = (taux) => (Number.isFinite(taux) ? demi(10 - (taux - 5) * 0.4) : null);
 
-/** Pure : la note des transports d'après les arrêts à 300 m : un métro, un tram ou une gare, 5 ; un point par arrêt, 5 au plus. */
-export function noteTransports(arrets = []) {
-  const lourd = arrets.some((a) => a.genre !== 'bus');
-  return demi((lourd ? 5 : 0) + Math.min(5, arrets.length));
+/**
+ * Pure : les transports sans note (25 nov. 2026, Jules : « pas de notes, juste Tramways, Bus etc, et s'il y a des
+ * parkings, le nombre autour du bien à droite ») : une ligne par genre d'arrêt présent, puis les parkings. `parkings` :
+ * null quand OpenStreetMap n'a pas répondu, la ligne le dit.
+ */
+const GENRES_TRANSPORT = [['métro', 'Métro'], ['tramway', 'Tramway'], ['gare', 'Gare'], ['bus', 'Bus']];
+export function lignesTransports(arrets = [], parkings = null) {
+  // Tramway et Bus toujours, même à zéro (25 nov. 2026, Jules : « mets les trucs de tramways aussi ») ; Métro et Gare
+  // seulement quand il y en a.
+  const lignes = GENRES_TRANSPORT.map(([genre, nom]) => ({ cle: genre, nom, nombre: arrets.filter((a) => a.genre === genre).length })).filter((l) => l.nombre > 0 || l.cle === 'tramway' || l.cle === 'bus');
+  lignes.push({ cle: 'parking', nom: 'Parkings', nombre: Array.isArray(parkings) ? parkings.length : null });
+  return lignes;
 }
 
 /**
@@ -142,7 +150,7 @@ export function noteLoyer(loyer) {
   };
 }
 
-export function indicateurs({ commercial = null, passage = null, vacance = null, arrets = null, rue = null, loyer = null }) {
+export function indicateurs({ commercial = null, passage = null, vacance = null, arrets = null, rue = null, loyer = null, parkings = null }) {
   const sig = Object.fromEntries((passage?.signaux || []).map((s) => [s.cle, s]));
   const depuis = (cle, nom, source) => (sig[cle]?.valeur != null ? { cle, nom, note: demi(sig[cle].valeur * 10), texte: sig[cle].texte, source } : { cle, nom, note: null, texte: 'Pas lu pour cette adresse.', source });
   const liste = [
@@ -162,9 +170,7 @@ export function indicateurs({ commercial = null, passage = null, vacance = null,
     noteLoyer(loyer)
       ? { cle: 'loyer', nom: 'Loyer de la rue', ...noteLoyer(loyer), provisoire: true, source: 'Equimmox : la moyenne des loyers de la rue face à celle du kilomètre autour. Barème provisoire : au même prix, 5 ; 20 % plus cher, 10 ; 20 % moins cher, 0.' }
       : { ...depuis('loyer', 'Loyer de la rue', 'Equimmox : le loyer de la rue face au kilomètre autour. Barème provisoire : au même prix, 5 ; 20 % plus cher, 10 ; 20 % moins cher, 0.'), provisoire: true },
-    arrets
-      ? { cle: 'transports', nom: 'Transports', note: noteTransports(arrets), texte: arrets.length ? `${arrets.length} arrêt${arrets.length > 1 ? 's' : ''} à 300 m (${[...new Set(arrets.map((a) => a.genre))].join(', ')}).` : 'Aucun arrêt de transport en commun à 300 m.', source: 'OpenStreetMap, à 300 m. Un métro, un tram ou une gare, 5 ; un point par arrêt, 5 au plus.' }
-      : depuis('transports', 'Transports', 'OpenStreetMap, à 300 m.'),
+    { cle: 'transports', nom: 'Transports', note: null, lignes: lignesTransports(arrets || [], parkings), texte: arrets ? (arrets.length ? null : 'Aucun arrêt de transport en commun à 300 m.') : 'Arrêts pas lus pour cette adresse.', source: 'OpenStreetMap : les arrêts de transport en commun et les parkings ouverts au public à 300 m du bien.' },
   ];
   // Trois indicateurs montrés (24 nov. 2026, Jules : « enlève Locaux vides, on a déjà Signal de vacance ; Enseignes
   // nationales aussi ; enlève Fréquentation ») : la vacance et les enseignes ont déjà leur partie au-dessus.
@@ -255,6 +261,11 @@ export async function indicateursDeLAdresse(label, { vacance = null } = {}) {
     arrets = (await arretsAutour(point.lat, point.lon).catch(() => null))?.arrets || null;
   }
   const { loyerDeLaRue } = await import('./passage.js');
-  const loyer = await loyerDeLaRue(label).catch(() => null);
-  return { ok: true, indicateurs: indicateurs({ commercial, passage: x.passage, vacance, arrets, rue: x.rue, loyer }), commercialite: commercial };
+  const { parkingsAutour } = await import('./rue.js');
+  // Les parkings en même temps que le loyer : la lecture ne s'allonge pas.
+  const [loyer, parkings] = await Promise.all([
+    loyerDeLaRue(label).catch(() => null),
+    point ? parkingsAutour(point.lat, point.lon).then((r) => r.parkings).catch(() => null) : null,
+  ]);
+  return { ok: true, indicateurs: indicateurs({ commercial, passage: x.passage, vacance, arrets, rue: x.rue, loyer, parkings }), commercialite: commercial };
 }

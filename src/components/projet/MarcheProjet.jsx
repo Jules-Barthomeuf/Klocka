@@ -6,7 +6,7 @@ import { GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pat
 import { TooltipProvider } from "@/components/ui/tooltip";
 import CarteTransactions from "@/components/marche/CarteTransactions";
 import { BlocEmplacement, BlocLoyer, BlocPrix, BlocVille } from "@/components/outils/MarcheAffine";
-import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce, useEdition } from "./EditionEnPlace";
+import { Bloc, ValeurEditable, ValeurForcee, blocMasque, forcee, nombreForce, useEdition } from "./EditionEnPlace";
 
 // L'onglet Marché (maquette « Projet Detail 1b ») : trois cartes (habitants,
 // revenus, prix résidentiel), puis deux : la courbe du résidentiel, et le
@@ -283,13 +283,16 @@ function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null, enEdition 
  * vont jusqu'au bord de la carte : la grille rattrape le retrait du corps.
  */
 function Emplacement({ e, transactions = null }) {
+  const edition = useEdition();
+  // Une partie masquée ne se voit que dans l'éditeur ; pour le client, elle ne laisse pas de case vide.
+  const masque = (id) => !edition?.onChamp && blocMasque(edition, id);
   const pts = Object.fromEntries(e.points.map((p) => [p.cle, p]));
   const le = e.le ? new Date(e.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : null;
   return (
     <CarteMarche id="marche-emplacement" titre="Emplacement" grille={false} className="w-full">
       <EnTeteCarte libelle="Emplacement" precision={le ? `lu le ${le}` : null} />
       <div className="-mx-5 -mb-5 max-md:-mx-4 max-md:-mb-4">
-        <TooltipProvider delayDuration={100}><BlocEmplacement pts={pts} rue={e.rue} simple transactions={transactions} partie={(id, titre, el) => <Bloc key={id} id={id} titre={titre}>{el}</Bloc>} /></TooltipProvider>
+        <TooltipProvider delayDuration={100}><BlocEmplacement pts={pts} rue={e.rue} simple transactions={transactions} masque={masque} partie={(id, titre, el) => <Bloc key={id} id={id} titre={titre}>{el}</Bloc>} /></TooltipProvider>
       </div>
     </CarteMarche>
   );

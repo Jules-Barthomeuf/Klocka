@@ -11,6 +11,7 @@ import { useDictee } from "@/lib/dictee";
 import { demanderNotifications } from "@/lib/notifications";
 import SkillsChat from "@/components/dashboard/SkillsChat";
 import ChoixDossier from "@/components/haka/ChoixDossier";
+import LierProjet from "@/components/presentations/LierProjet";
 import LienNote, { PastilleLien } from "@/components/fiche-dossier/LienNote";
 import CarteNote from "@/components/fiche-dossier/CarteNote";
 import FicheAppelChat from "@/components/fiche-dossier/FicheAppelChat";
@@ -1090,11 +1091,13 @@ function LigneDefilante({ actif, children }) {
   return <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:flex-none">{children}</div>;
 }
 
-export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAura = false, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, lienNote = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null, finFil = null, repondre = null, annonce = null, debutFil = null, auDessusSaisie = null, propositions = null }) {
+export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAura = false, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, lienNote = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null, avantRetour = null, ouverture = null, onOuverture = null, reprendre = false, onReprise = null, enTeteFil = null, finBarre = null, finFil = null, repondre = null, annonce = null, debutFil = null, auDessusSaisie = null, propositions = null, lierProjet = false }) {
   const E = ESPACES[espace] || ESPACES.admin;
   // Le chat d'une fiche du mandataire garde ses conversations à elle (31 oct. 2026) ; depuis le 1er nov. 2026 (Jules : « un
   // fil par bien »), l'Avis de valeur et le Mandat d'un bien aussi : un seul fil, seul le moteur qui répond change.
   const qs = ["mandataire", "estimation", "mandat"].includes(espace) && proprietaireId ? `?espace=fiche&fiche=${encodeURIComponent(proprietaireId)}` : (E.qs || "");
+  // « Lier » un projet dans la saisie (Présentations, 25 nov. 2026, Jules) : la demande part avec lui.
+  const [projetLie, setProjetLie] = useState(null);
   const prospection = espace === "prospection";
   const estimation = espace === "estimation";
   const mandatEspace = espace === "mandat";
@@ -2135,7 +2138,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     let ecran = null;
     try { ecran = lireEcran?.() || null; } catch { ecran = null; }
     const r = reglagesRef.current;
-    return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(r ? { sortie: r.sortie, sources: (r.sources || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })), ...(r.competence ? { competence: r.competence.cle, sources_eteintes: (r.eteintes || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })) } : {}) } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}), haka: { longueur: prefsHaka.haka_longueur, tableaux: prefsHaka.haka_tableaux } };
+    return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(lierProjet && projetLie ? { projet_lie: projetLie } : {}), ...(r ? { sortie: r.sortie, sources: (r.sources || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })), ...(r.competence ? { competence: r.competence.cle, sources_eteintes: (r.eteintes || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })) } : {}) } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}), haka: { longueur: prefsHaka.haka_longueur, tableaux: prefsHaka.haka_tableaux } };
   };
   // Un début de fil posé par la page (les actions d'après l'appel, 15 nov. 2026) ouvre aussi la conversation.
   // Une conversation rouverte qui n'a que des blocs (un enregistrement, 20 nov. 2026, Jules : « je vois encore Bonjour
@@ -2522,16 +2525,16 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
           // Écrire se voit (26 oct. 2026, Jules : « on clique, on a rien ») : un clic n'importe où dans le cadre (hors boutons)
           // met le curseur dans le champ, et le cadre s'éclaire tant qu'on écrit.
           onMouseDown={(e) => { if (!e.target.closest("button, a, input, select, textarea, [role=menu], [role=listbox]")) { e.preventDefault(); champRef.current?.focus(); } }}
-          className={`${aura ? "k-aura-filet relative " : ""}k-saisie-chat cursor-text rounded-[20px] border ${contour || "border-trait"} ${E.saisieTransparente ? "bg-transparent" : "bg-barre"} px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${choixDossier && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
+          className={`${aura ? "k-aura-filet relative " : ""}k-saisie-chat cursor-text rounded-[20px] border ${contour || "border-trait"} ${E.saisieTransparente ? "bg-transparent" : "bg-barre"} px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${(choixDossier || lierProjet) && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
           style={glisse ? { boxShadow: `0 0 0 1px ${J["menthe"]}` } : undefined}
         >
           <textarea
             ref={champRef}
-            rows={choixDossier && !conversation ? 3 : 2}
+            rows={(choixDossier || lierProjet) && !conversation ? 3 : 2}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (entreeEnvoie(e) && (texte.trim() || jointes.length || reglages?.competence) && !enCours) { e.preventDefault(); lancer(); } }}
-            placeholder={lienNote && modeRdv === "enregistrement" ? (rdv.etat === "ecoute" ? "Une note pendant la conversation (« hésite sur le prix »)…" : "Lie le bien, les clients, l'agent avec « Lier », puis démarre l'enregistrement.") : ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? placeholderAttente || placeholderFil || "Répondre ou ajouter une précision…" : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
+            placeholder={lienNote && modeRdv === "enregistrement" ? (rdv.etat === "ecoute" ? "Une note pendant la conversation (« hésite sur le prix »)…" : "Lie le bien, les clients, l'agent avec « Lier », puis démarre l'enregistrement.") : ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? placeholderAttente || placeholderFil || "Répondre ou ajouter une précision…" : lierProjet && projetLie ? `« Commence la présentation » : elle se construit sur ${projetLie.titre}.` : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
             className="block max-h-[45dvh] w-full resize-none overflow-y-auto border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
           />
@@ -2556,6 +2559,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
             >
               <Plus className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </button>}
+            {lierProjet && <LierProjet valeur={projetLie} onChoisir={setProjetLie} versLeHaut={conversation || menusVersLeHaut} />}
             {lienNote && <LienNote sansPastilles liens={liensNote} onChange={changerLiens} versLeHaut={conversation || menusVersLeHaut} indices={{ texte, noms: conversationWa?.participants || [] }} />}
             {/* Avec le lien (page de l'assistant, 21 nov. 2026, Jules) : les pastilles tiennent sur une ligne, jusqu'au
                 mode, et défilent de côté ; la dernière est coupée plutôt que de passer à la ligne. */}

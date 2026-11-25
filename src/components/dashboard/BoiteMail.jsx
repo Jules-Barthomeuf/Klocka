@@ -4,6 +4,7 @@ import { Check, ChevronDown, Loader2, Plus, TriangleAlert, X } from "lucide-reac
 import { base44 } from "@/api/base44Client";
 import { useConnexionGmail } from "@/components/mails/ConnexionGmail";
 import { toast } from "@/components/ui/avis";
+import { VERRE } from "@/lib/verre";
 
 // La boîte mail, en haut du plan de travail.
 //
@@ -99,6 +100,7 @@ export default function BoiteMail({ enLigne = false }) {
     if (window.confirm(`Déconnecter ${email} ? Les mails ne partiront plus de cette adresse.`)) retirer.mutate(email);
   };
   const n = comptes.length;
+  const px = enLigne ? "px-5" : "px-4";
   // Le point de la pilule : vert quand tout envoie, ambre s'il faut reconnecter, rouge sans boîte.
   const teinte = !n ? "bg-alerte" : aReconnecter.length ? "bg-ambre" : "bg-vert";
   const mot = !n ? "Aucune boîte connectée" : `${n} boîte${n > 1 ? "s" : ""} connectée${n > 1 ? "s" : ""}`;
@@ -125,13 +127,13 @@ export default function BoiteMail({ enLigne = false }) {
           {/* Le panneau (maquette) : les boîtes, la coche sur celle qui envoie,
               un clic sur une autre en fait la boîte par défaut ; puis ajouter
               une boîte Google et l'historique des envois. */}
-          <div className={enLigne ? "max-w-[520px] rounded-[12px] border border-trait py-2" : "animate-in fade-in slide-in-from-top-1 duration-150 absolute right-0 top-[calc(100%+8px)] z-40 w-[340px] max-w-[calc(100vw-32px)] rounded-[16px] border border-trait bg-surface-pleine py-2 shadow-[0_18px_48px_rgb(0_0_0/0.14)]"}>
-            <p className="m-0 px-4 pb-1.5 pt-2 text-[13px] text-craie">Boîtes mail connectées</p>
+          <div className={enLigne ? `${VERRE} overflow-hidden py-1.5` : "animate-in fade-in slide-in-from-top-1 duration-150 absolute right-0 top-[calc(100%+8px)] z-40 w-[340px] max-w-[calc(100vw-32px)] rounded-[16px] border border-trait bg-surface-pleine py-2 shadow-[0_18px_48px_rgb(0_0_0/0.14)]"}>
+            {!enLigne && <p className="m-0 px-4 pb-1.5 pt-2 text-[13px] text-craie">Boîtes mail connectées</p>}
             {aReconnecter.length > 0 && (
-              <p className="m-0 flex items-start gap-2 px-4 pb-1.5 text-[12px] leading-[1.45] text-ambre"><TriangleAlert className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />{aReconnecter.map((c) => c.email).join(", ")} demande une reconnexion.</p>
+              <p className={`m-0 flex items-start gap-2 ${px} pb-1.5 text-[12px] leading-[1.45] text-ambre`}><TriangleAlert className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />{aReconnecter.map((c) => c.email).join(", ")} demande une reconnexion.</p>
             )}
             {!n && (
-              <p className="m-0 px-4 py-1.5 text-[12.5px] leading-[1.5] text-ardoise">
+              <p className={`m-0 ${px} py-2 text-[13px] leading-[1.5] text-ardoise`}>
                 {googleConfigure ? "Aucune boîte : les mails de la plateforme sont simulés et n'arrivent à personne." : "La connexion Google n'est pas configurée sur ce serveur."}
               </p>
             )}
@@ -145,7 +147,7 @@ export default function BoiteMail({ enLigne = false }) {
                       disabled={occupe || c.par_defaut}
                       onClick={() => defaut.mutate(c.email)}
                       title={c.par_defaut ? "Les mails partent de cette boîte" : "Envoyer depuis cette boîte"}
-                      className="flex min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-relief disabled:cursor-default disabled:hover:bg-transparent"
+                      className={`flex min-w-0 flex-1 items-center gap-3 ${px} py-2.5 text-left transition-colors hover:bg-relief disabled:cursor-default disabled:hover:bg-transparent`}
                       style={{ background: "transparent" }}
                     >
                       <span className="flex w-4 flex-none justify-center">
@@ -164,18 +166,18 @@ export default function BoiteMail({ enLigne = false }) {
             </ul>
             <div className="my-1.5 border-t border-trait" />
             {googleConfigure && (
-              <button type="button" onClick={connecter} disabled={enConnexion} className="flex w-full items-center gap-3 px-4 py-2 text-left text-[14px] text-menthe transition-colors hover:bg-relief disabled:opacity-60" style={{ background: "transparent" }}>
+              <button type="button" onClick={connecter} disabled={enConnexion} className={`flex w-full items-center gap-3 ${px} py-2.5 text-left text-[14px] text-menthe transition-colors hover:bg-relief disabled:opacity-60`} style={{ background: "transparent" }}>
                 <span className="flex w-4 flex-none justify-center">{enConnexion ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" strokeWidth={1.8} />}</span>
                 {enConnexion ? "Connexion en cours…" : aReconnecter.length ? "Reconnecter une boîte Google" : "Ajouter une boîte Google"}
               </button>
             )}
             {n > 0 && (
-              <button type="button" onClick={() => setHistorique((v) => !v)} aria-expanded={historique} className="flex w-full items-center gap-3 px-4 py-2 text-left text-[14px] text-encre transition-colors hover:bg-relief" style={{ background: "transparent" }}>
+              <button type="button" onClick={() => setHistorique((v) => !v)} aria-expanded={historique} className={`flex w-full items-center gap-3 ${px} py-2.5 text-left text-[14px] text-encre transition-colors hover:bg-relief`} style={{ background: "transparent" }}>
                 <span className="w-4 flex-none" />
                 {historique ? "Masquer l'historique des envois" : "Voir l'historique des envois"}
               </button>
             )}
-            {historique && <div className="mx-4 mt-1 max-h-[40vh] overflow-y-auto border-t border-trait pt-1"><Historique /></div>}
+            {historique && <div className="mx-4 mb-1 mt-1 max-h-[40vh] overflow-y-auto border-t border-trait pt-1"><Historique /></div>}
           </div>
         </>
       )}

@@ -5,6 +5,8 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import SequenceActions from "@/components/prospection/SequenceActions";
 import { lignesDuRecu } from "@/components/prospection/ToutPrepare";
+import { ListeFiches } from "@/components/fiche-dossier/CarteNote";
+import { ouvrirFiche } from "@/lib/fiche-dossier";
 
 // Un échange raconté à l'assistant (24 nov. 2026, Jules : « on prend des notes, par dictée ou par écrit dans
 // l'assistant : x m'a rappelé, il a des fiches à m'envoyer, il veut un mail, voici son adresse ; et ça propose des
@@ -80,11 +82,19 @@ export default function ActionsDuRecit({ rappelId }) {
   if (rappel.etat === "remplace") return <p className="m-0 mt-4 text-[13px] text-ardoise">Note refaite plus bas avec la précision.</p>;
   if (rappel.rien_de_nouveau) return null;
   if (!appel) return null;
+  // La fiche de la personne, sous les actions (25 nov. 2026, Jules : « on a actions et fiches, normal »).
+  const agent = rappel.agent?.id ? { cle: `agent:${rappel.agent.id}`, genre: "agent", nom: rappel.agent.nom || "L'agent", detail: rappel.agent.agence || null } : null;
+  const fiches = agent ? (
+    <div className="mt-5">
+      <p className="m-0 mb-2 px-1 text-[13.5px] text-ardoise">Fiches</p>
+      <ListeFiches fiches={[agent]} onVoir={(f) => ouvrirFiche(f.cle, { nom: f.nom })} />
+    </div>
+  ) : null;
   return (
     <div className="mt-4">
       <SequenceActions sobre appel={appel} agence={{ nom: rappel.agent?.agence || rappel.agence?.nom || appel.agence }} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
         relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
-        edits={edits} setEdits={setEdits} onLancer={() => valider.mutate()} envoi={valider.isPending} />
+        edits={edits} setEdits={setEdits} onLancer={() => valider.mutate()} envoi={valider.isPending} fiches={fiches} />
     </div>
   );
 }

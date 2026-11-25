@@ -174,6 +174,21 @@ export async function trouverProspect({ email, telephone }) {
   return null;
 }
 
+/**
+ * La fiche de la personne dans Clients, par son mail puis son numéro (25 nov. 2026 : la reprise de l'historique avait
+ * fait 72 prospects de clients déjà signés). Un client qui remplit un Typeform reste un client : sa réponse va en note
+ * sur sa fiche, aucune ligne de Prospects ne naît.
+ */
+export async function trouverClient({ email, telephone }) {
+  if (email) {
+    const x = await T.trouver('clientsListe', { 'eMail.primaryEmail': email });
+    if (x) return x;
+  }
+  const tel = telephoneTwenty(telephone)?.primaryPhoneNumber;
+  if (tel) return T.trouver('clientsListe', { 'telephone.primaryPhoneNumber': tel });
+  return null;
+}
+
 /** Un envoi Typeform reçu : la ligne des Prospects créée ou complétée, et une note avec toutes les réponses. */
 export async function recevoirTypeform(corps, source) {
   if (!SOURCES[source]) return { ok: false, error: 'Source inconnue : ?source=site, vsl ou webi.' };
@@ -189,6 +204,13 @@ export async function ecrireEnvoi(lu, source, { note = !lu.partielle } = {}) {
   if (!T.twentyConfigure()) return { ok: false, error: 'Twenty CRM n\'est pas configuré.' };
   await assurerOptions();
   const existante = await trouverProspect(lu);
+  if (!existante) {
+    const client = await trouverClient(lu).catch(() => null);
+    if (client) {
+      if (note) await T.noter('targetClientsId', client.id, `Typeform ${SOURCES[source]}`, texteDesReponses(lu, source)).catch((e) => console.warn(`[typeform] note client : ${e?.message || e}`));
+      return { ok: true, id: client.id, client: true, cree: false };
+    }
+  }
   const valeurs = valeursProspect(lu, source, existante);
   const ligne = existante ? await T.modifier(OBJET.namePlural, existante.id, valeurs) : await T.creer(OBJET.namePlural, valeurs);
   const id = existante?.id || ligne?.id;
@@ -205,7 +227,12 @@ export async function callCalendly(evenement) {
   const email = String(evenement?.payload?.email || '').trim().toLowerCase();
   if (!email) return { ok: true, ignore: 'sans mail' };
   const x = await trouverProspect({ email });
-  if (!x) return { ok: true, ignore: 'pas dans Prospects' };
+  if (!x) {
+    // Un client qui reprend un call : la note sur sa fiche client, rien d'autre.
+    const client = await trouverClient({ email }).catch(() => null);
+    if (client) await T.noter('targetClientsId', client.id, 'Call Calendly pris', `${evenement?.payload?.name || email} a pris un call.`).catch(() => {});
+    return { ok: true, ignore: client ? 'client' : 'pas dans Prospects' };
+  }
   const debut = evenement?.payload?.scheduled_event?.start_time || null;
   const quand = debut ? new Date(debut).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'long', timeStyle: 'short' }) : null;
   if (!x.statut || x.statut === STATUT_NOUVEAU) await T.modifier(OBJET.namePlural, x.id, { statut: STATUT_CALL, ...(debut ? { date: debut.slice(0, 10) } : {}) });
@@ -244,11 +271,11 @@ export async function importerTypeform(formId, source, { essai = true, depuis = 
   const lus = items.map((x) => ({ ...lireEnvoi({ ...x, definition, form_id: formId }), reponse_id: x.token || x.response_id || null }));
   const joignables = lus.filter((lu) => lu.email || lu.telephone);
   if (essai) return { ok: true, essai: true, formulaire: formulaire.title, reponses: items.length, joignables: joignables.length, exemples: joignables.slice(0, 5).map((lu) => ({ nom: [lu.prenom, lu.nom].filter(Boolean).join(' '), email: lu.email, le: lu.le })) };
-  let crees = 0; let completes = 0; const erreurs = [];
+  let crees = 0; let completes = 0; let clients = 0; const erreurs = [];
   for (const lu of joignables) {
-    try { const r = await ecrireEnvoi(lu, source, { note: false }); if (r.cree) crees += 1; else if (r.ok) completes += 1; } catch (e) { erreurs.push(`${lu.email || lu.telephone} : ${e?.message || e}`); }
+    try { const r = await ecrireEnvoi(lu, source, { note: false }); if (r.client) clients += 1; else if (r.cree) crees += 1; else if (r.ok) completes += 1; } catch (e) { erreurs.push(`${lu.email || lu.telephone} : ${e?.message || e}`); }
   }
-  return { ok: true, formulaire: formulaire.title, reponses: items.length, crees, completes, erreurs };
+  return { ok: true, formulaire: formulaire.title, reponses: items.length, crees, completes, deja_clients: clients, erreurs };
 }
 
 /** Pure : les questions d'un formulaire, celles des groupes comprises. */

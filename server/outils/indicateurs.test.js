@@ -67,10 +67,12 @@ test('les autres indicateurs : vacance, transports, et ceux du passage repris su
   assert.equal(I.noteVacance(5), 10);
   assert.equal(I.noteVacance(30), 0);
   assert.equal(I.noteVacance(17.5), 5);
-  assert.equal(I.noteTransports([{ genre: 'bus' }, { genre: 'bus' }, { genre: 'bus' }]), 3);
-  assert.equal(I.noteTransports([{ genre: 'métro' }, ...Array(6).fill({ genre: 'bus' })]), 10);
+  // Les transports sans note (25 nov. 2026, Jules) : une ligne par genre présent, puis les parkings.
+  assert.deepEqual(I.lignesTransports([{ genre: 'bus' }, { genre: 'tramway' }, { genre: 'bus' }], [{}, {}]).map((x) => [x.nom, x.nombre]), [['Tramway', 1], ['Bus', 2], ['Parkings', 2]]);
+  assert.deepEqual(I.lignesTransports([], null).map((x) => [x.nom, x.nombre]), [['Tramway', 0], ['Bus', 0], ['Parkings', null]], 'parkings pas lus ; tramway et bus toujours');
+  assert.deepEqual(I.lignesTransports([{ genre: 'gare' }], []).map((x) => x.nom), ['Tramway', 'Gare', 'Bus', 'Parkings']);
   const l = I.indicateurs({ commercial: { note: 7, texte: 'x' }, passage: { signaux: [{ cle: 'enseignes', valeur: 0.83, texte: 'e' }, { cle: 'loyer', valeur: null }] }, vacance: { taux: 10, vacants: 2, tranches: 20 }, arrets: [] });
-  assert.deepEqual(l.map((x) => [x.cle, x.note]), [['commercialite', 7], ['loyer', null], ['transports', 0]], 'la vacance et les enseignes ont leur partie au-dessus');
+  assert.deepEqual(l.map((x) => [x.cle, x.note]), [['commercialite', 7], ['loyer', null], ['transports', null]], 'la vacance et les enseignes ont leur partie au-dessus');
 });
 
 test('le loyer de la rue, écrit comme la commercialité : les deux loyers, l’écart, la note', () => {
@@ -89,4 +91,33 @@ test('les numéros d’une voie : lus une fois dans la Base Adresse, gardés', a
   await I.numerosDeLaVoie('56121_5430', { lire });
   assert.equal(appels, 1);
   assert.equal(await I.numerosDeLaVoie('pas une voie', { lire }), null);
+});
+
+test('les parkings autour : publics seulement, un par nom, le centre des surfaces', async () => {
+  const { parkingsDesElements } = await import('./rue.js');
+  const { parkings } = parkingsDesElements([
+    { type: 'node', lat: 43.7, lon: 7.26, tags: { amenity: 'parking', name: 'Parking Masséna', parking: 'underground', capacity: '400' } },
+    { type: 'way', center: { lat: 43.7001, lon: 7.2601 }, tags: { amenity: 'parking', name: 'Parking Masséna' } },
+    { type: 'way', center: { lat: 43.701, lon: 7.261 }, tags: { amenity: 'parking' } },
+    { type: 'way', center: { lat: 43.702, lon: 7.262 }, tags: { amenity: 'parking', access: 'private' } },
+    { type: 'node', lat: 43.703, lon: 7.263, tags: { highway: 'bus_stop' } },
+  ]);
+  assert.equal(parkings.length, 2);
+  assert.deepEqual(parkings[0], { nom: 'Parking Masséna', lat: 43.7, lon: 7.26, places: 400, ouvrage: true });
+});
+
+test('les parkings lus sur la carte d’OpenStreetMap quand Overpass ne répond pas : points et surfaces à 300 m', async () => {
+  const { parkingsDeLaCarte } = await import('./rue.js');
+  const el = [
+    { type: 'node', id: 1, lat: 47.7500, lon: -3.3650 },
+    { type: 'node', id: 2, lat: 47.7502, lon: -3.3650 },
+    { type: 'node', id: 3, lat: 47.7502, lon: -3.3646 },
+    { type: 'way', id: 10, nodes: [1, 2, 3, 1], tags: { amenity: 'parking' } },
+    { type: 'node', id: 4, lat: 47.7499, lon: -3.3660, tags: { amenity: 'parking', name: 'P Libération' } },
+    { type: 'node', id: 5, lat: 47.7600, lon: -3.3660, tags: { amenity: 'parking' } },
+    { type: 'node', id: 6, lat: 47.7498, lon: -3.3655, tags: { amenity: 'parking', parking: 'street_side' } },
+  ];
+  const { parkings } = parkingsDeLaCarte(el, 47.7497, -3.3657, 300);
+  assert.equal(parkings.length, 2, 'le parking à 1 km et les places le long du trottoir sont écartés');
+  assert.ok(parkings.some((p) => p.nom === 'P Libération'));
 });

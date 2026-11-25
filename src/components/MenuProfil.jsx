@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChartColumn, CircleUser, LogOut, Mail, MapPin, Settings, ShieldCheck } from "lucide-react";
+import { ChartColumn, CircleUser, Lightbulb, LogOut, Mail, MapPin, Settings, ShieldCheck, TrendingUp } from "lucide-react";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { VERRE } from "@/lib/verre";
 import { createPageUrl } from "@/utils";
@@ -12,7 +12,7 @@ import { GROUPE_PARAMETRES, masquesDe } from "@/lib/menu";
 // #apparence…) ; depuis le même jour, une rangée des seules entrées du Compte, et « Voir plus » vers les Paramètres. Les
 // sections suivent celles de la page, telles que la session des Paramètres les a posées le même jour.
 
-const ICONES = { profil: CircleUser, mails: Mail, agent: MapPin, habilitations: ShieldCheck, suivi: ChartColumn };
+const ICONES = { profil: CircleUser, mails: Mail, agent: MapPin, habilitations: ShieldCheck, suivi: ChartColumn, statistiques: TrendingUp, feedback: Lightbulb };
 
 const initiales = (nom) => String(nom || "").trim().split(/[\s.@_-]+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join("") || "?";
 
@@ -35,7 +35,10 @@ export function entreesDuMenu({ user, vue }) {
     equipe && ["mails", "Mails", "Personnalisation", "mails"],
     ["apparence", "Apparence", "Personnalisation", "apparence"],
     mandataire && ["habilitations", "Habilitations", "Personnalisation", "habilitations"],
+    // Statistiques, sortie de la barre de gauche, et le Feedback (25 nov. 2026, Jules : « mets feedback dans la carte compte »).
+    equipe && !fermees.includes("Statistiques") && ["statistiques", "Statistiques", "Statistiques", null],
     equipe && !fermees.includes("Monitoring") && ["suivi", "Suivi", "Monitoring", null],
+    equipe ? !fermees.includes("AdminSuggestions") && ["feedback", "Feedback", "AdminSuggestions", null] : ["feedback", "Feedback", "Feedback", null],
   ].filter(Boolean);
   const gestion = equipe && user?.gere_les_acces ? [
     ["acces", "Accès de l'équipe", "Personnalisation", "acces"],

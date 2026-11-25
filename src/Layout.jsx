@@ -35,7 +35,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Globe,
-  Mic, Compass, Smartphone, Lock, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, LibraryBig, ChartColumn, FileSpreadsheet } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, LibraryBig, ChartColumn, FileSpreadsheet, Archive } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { PAGES_KDATA } from "@/lib/kdata-modules";
@@ -429,6 +429,7 @@ function LayoutContent({ children, currentPageName }) {
     // Modèles (26 oct. 2026) : les documents de Klocka et de K Partners, remplis avec un exemple.
     AdminModeles: { to: createPageUrl("AdminModeles"), icon: LayoutTemplate, actif: isActivePage("AdminModeles") },
     AdminAccesCrm: { to: createPageUrl("AdminAccesCrm"), icon: Lock, actif: isActivePage("AdminAccesCrm") },
+    SauvegardeMonday: { to: createPageUrl("SauvegardeMonday"), icon: Archive, actif: isActivePage("SauvegardeMonday") },
     Agents: { to: createPageUrl("Agents"), icon: Contact, actif: isActivePage("Agents") },
     // Offres : les lettres d'intention d'achat, rédigées au chat.
     Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },

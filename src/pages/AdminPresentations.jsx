@@ -119,7 +119,7 @@ export default function AdminPresentations() {
   const affichees = toutes ? presentations : presentations.slice(0, LIMITE);
   const liste = (
     // Sur le fond de la page, comme Offres (28 oct. 2026, le modèle de la page éditeur : aucune partie d'une autre couleur).
-    <div className={scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[790px]"}>
+    <div className={scinde ? "mt-8" : "mx-auto mt-10 max-w-[820px]"}>
       <div className="flex items-center justify-between gap-3 pb-[14px]">
         <div className="flex items-baseline gap-[10px]">
           <h2 className="m-0 text-[19px] font-medium tracking-[-0.01em] text-encre">Vos présentations</h2>
@@ -133,7 +133,7 @@ export default function AdminPresentations() {
         <Chargement />
       ) : !presentations.length ? (
         <p className="py-12 text-center text-[14px] text-brume">
-          Aucune présentation encore : nommez un projet au chat, ou{" "}
+          Aucune présentation encore : liez un projet en bas à gauche de la saisie, ou{" "}
           <button type="button" onClick={() => setChoixProjet(true)} className="text-craie underline underline-offset-2 hover:text-encre" style={{ background: "transparent" }}>partez de la liste des projets</button>.
         </p>
       ) : (
@@ -165,16 +165,16 @@ export default function AdminPresentations() {
       <div className={scinde ? `relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : ""} style={scinde ? { gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` } : undefined}>
         <div className={scinde ? (conversation ? "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-y-auto px-5 pb-8") : conversation ? "px-5 md:px-8" : "px-5 py-6 md:px-10 md:py-9"}>
           <div className={`mx-auto ${scinde ? "max-w-none" : conversation ? "max-w-[1100px]" : "max-w-[1400px]"}`}>
-            <header className={conversation ? "flex flex-col" : `flex flex-col items-center text-center ${scinde ? "pt-10" : "pt-[6vh] max-md:pt-4"}`}>
+            {/* Le même accueil que la page Assistant (25 nov. 2026, Jules : « le chat à la même place que la page Assistant, le
+                même design, juste avec les trucs dessous ») : le titre seul, la saisie de 820 px à la même hauteur (le
+                calcul suit le centrage de l'Assistant), puis la liste des présentations là où l'Assistant a ses raccourcis. */}
+            <header className={conversation ? "flex flex-col" : `flex flex-col items-center text-center ${scinde ? "pt-10" : "pt-[max(24px,calc(53vh-192px))] max-md:pt-8"}`}>
               {!conversation && (
-                <>
-                  <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>Quelle présentation préparez-vous ?</h1>
-                  <p className="m-0 mt-2 max-w-[56ch] text-[14px] text-ardoise">Nommez le projet : la présentation bancaire se construit depuis ses données, puis se retouche sur place ou en parlant.</p>
-                </>
+                <h1 className="k-balayage relative m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>Quelle présentation préparez-vous ?</h1>
               )}
-              <div className={conversation ? "w-full" : `w-full ${scinde ? "mt-6" : "mt-8 max-w-[660px] max-md:mt-6"}`}>
+              <div className={conversation ? "w-full" : `w-full ${scinde ? "mt-6" : "mt-9 max-w-[820px] max-md:mt-6"}`}>
                 {/* « Toutes les présentations » (17 oct. 2026, Jules) : vide le chat, ferme la présentation et rend la page avec la liste. */}
-                <ChatDashboard espace="presentation" libelleAccueil="Toutes les présentations" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse}
+                <ChatDashboard espace="presentation" lierProjet libelleAccueil="Toutes les présentations" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse}
                   barreApercu={scinde && conversation} onTravail={setTravail} contexte={courante ? { presentation_id: courante } : null} onConversationId={setConversationId} />
               </div>
             </header>

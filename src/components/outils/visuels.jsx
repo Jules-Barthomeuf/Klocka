@@ -282,7 +282,7 @@ export function Anneau({ part, taille = 128, epaisseur = 12, texte = null, class
  * une barre par ligne sur une échelle de 0 à 30 %, des traits à 10 % (ça commence à faire beaucoup) et 20 % (trop). La rue
  * à l'accent, les repères gris, plus soutenus au-delà de 10 %, `alerte` au-delà de 20 %. `lignes` : lignesVacance().
  */
-export function ClassementVacance({ lignes = [], max = 30 }) {
+export function ClassementVacance({ lignes = [], max = 30, axe = true }) {
   const haut = Math.max(max, ...lignes.map((l) => Math.ceil(l.taux / 10) * 10));
   const pos = (v) => `${borne((v / haut) * 100)}%`;
   const virgule = (v) => String(v).replace(".", ",");
@@ -300,13 +300,13 @@ export function ClassementVacance({ lignes = [], max = 30 }) {
           <span className={`whitespace-nowrap text-right text-[12.5px] tabular-nums ${l.rue ? "text-encre" : "text-ardoise"}`}>{virgule(l.taux)} %</span>
         </div>
       ))}
-      <div className={COLS}>
+      {axe && <div className={COLS}>
         <span />
         <div className="relative h-4 text-[11px] tabular-nums text-ardoise">
           {[0, 10, 20, haut].map((g, i, t) => <span key={g} className={`absolute whitespace-nowrap ${i === 0 ? "" : i === t.length - 1 ? "-translate-x-full" : "-translate-x-1/2"}`} style={{ left: pos(g) }}>{g} %</span>)}
         </div>
         <span />
-      </div>
+      </div>}
     </div>
   );
 }

@@ -1655,6 +1655,13 @@ if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {
   setTimeout(() => import('./prospection/remplacer-liste.js').then((m) => m.remplacerToutes()).catch((e) => console.warn('[liste] remplacements :', e?.message || e)), 2 * 60_000).unref?.();
   // Toutes les fiches de la Mémoire (hors annonces Equimmox) reposées une fois dans Propriétés Klocka (18 nov. 2026, Jules).
   setTimeout(() => import('./memoire/twenty.js').then((m) => m.reposerKlocka()).catch((e) => console.warn('[mémoire] Propriétés Klocka :', e?.message || e)), 6 * 60_000).unref?.();
+  // La sauvegarde de Monday dans la plateforme (25 nov. 2026, Jules : « fais le maximum ») : une fois, huit minutes après le
+  // démarrage, tant qu'aucune n'a été faite sur ce serveur et que Monday se lit encore ; ensuite, le bouton de la page.
+  setTimeout(() => import('./crm/sauvegarde-monday.js').then((m) => {
+    if (m.etatSauvegarde()?.fin || m.listeSauvegarde().tableaux.length || !m.mondayLisible()) return;
+    const r = m.lancerSauvegarde();
+    console.log(`[monday-sauvegarde] lancée au démarrage : ${r.ok ? 'oui' : r.error}`);
+  }).catch((e) => console.warn('[monday-sauvegarde] démarrage :', e?.message || e)), 8 * 60_000).unref?.();
 }
 
 // Ce qui remplit le disque (24 nov. 2026, Jules : « database or disk is full » ; « qu'est-ce qui remplit le disque ? ») :

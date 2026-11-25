@@ -420,6 +420,75 @@ export async function arretsAutour(lat, lon, { rayon = 300, lire = fetch, garder
   }
 }
 
+/**
+ * Pure : les parkings ouverts au public d'après OpenStreetMap (25 nov. 2026, Jules : « s'il y a des parkings, le nombre
+ * autour du bien ») : un point, ou le centre d'une surface ; un par nom, sinon un par point. Les parkings privés sont
+ * écartés.
+ */
+export function parkingsDesElements(elements) {
+  const vus = new Set();
+  const parkings = [];
+  for (const x of elements || []) {
+    const t = x.tags || {};
+    // Les places le long du trottoir (« street_side », « lane ») ne sont pas des parkings : 17 comptés au lieu de 6 à
+    // Lorient, place de la Libération (25 nov. 2026).
+    if (t.amenity !== 'parking' || ['private', 'no'].includes(t.access) || ['street_side', 'lane', 'on_kerb', 'half_on_kerb', 'layby'].includes(t.parking)) continue;
+    const lat = x.lat ?? x.center?.lat; const lon = x.lon ?? x.center?.lon;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const cle = t.name ? `nom|${t.name.toLowerCase()}` : `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    if (vus.has(cle)) continue;
+    vus.add(cle);
+    parkings.push({ nom: t.name || null, lat, lon, places: Number(t.capacity) || null, ouvrage: ['underground', 'multi-storey'].includes(t.parking) });
+  }
+  return { parkings, source: 'OpenStreetMap' };
+}
+
+/**
+ * Pure : les parkings d'une lecture de l'API principale d'OpenStreetMap (`map.json`, un carré) : les points, et les
+ * surfaces ramenées au centre de leurs nœuds ; seuls ceux à `rayon` mètres du bien restent.
+ */
+export function parkingsDeLaCarte(elements, lat, lon, rayon = 300) {
+  const noeuds = new Map((elements || []).filter((x) => x.type === 'node').map((x) => [x.id, x]));
+  const parkings = [];
+  for (const x of elements || []) {
+    if (x.tags?.amenity !== 'parking') continue;
+    let p = null;
+    if (x.type === 'node') p = { lat: x.lat, lon: x.lon };
+    else if (x.type === 'way') {
+      const pts = (x.nodes || []).map((id) => noeuds.get(id)).filter((n) => Number.isFinite(n?.lat));
+      if (pts.length) p = { lat: pts.reduce((s, n) => s + n.lat, 0) / pts.length, lon: pts.reduce((s, n) => s + n.lon, 0) / pts.length };
+    }
+    if (p && distanceArret(lat, lon, p.lat, p.lon) <= rayon) parkings.push({ type: x.type, lat: x.type === 'node' ? p.lat : undefined, lon: x.type === 'node' ? p.lon : undefined, center: p, tags: x.tags });
+  }
+  return parkingsDesElements(parkings);
+}
+
+/**
+ * Les parkings à `rayon` mètres (25 nov. 2026, Jules : « il faut que ça lise les parkings ») : Overpass d'abord, six
+ * secondes au plus ; s'il ne répond pas (502 souvent), l'API principale d'OpenStreetMap sur le carré autour du bien,
+ * comme les arrêts. Gardé soixante jours.
+ */
+export async function parkingsAutour(lat, lon, { rayon = 300, lire = fetch, garder = true } = {}) {
+  try {
+    const overpass = interrogerOverpass(`[out:json][timeout:20];nwr(around:${rayon},${lat},${lon})[amenity=parking];out center;`, { lire, garder });
+    overpass.catch(() => {});
+    return parkingsDesElements(await Promise.race([overpass, new Promise((_, non) => setTimeout(() => non(new Error('Overpass trop lent')), 6000))]));
+  } catch (e) {
+    const cle = `api|parkings-sans-trottoir|${lat.toFixed(4)}|${lon.toFixed(4)}|${rayon}`;
+    const garde = garder ? Records.filter('LectureOsm', { cle }).filter((x) => Date.now() - Date.parse(x.le) < OSM_JOURS * 86400000)[0] : null;
+    if (garde) return { parkings: garde.parkings, source: 'OpenStreetMap' };
+    const dLat = rayon / 111320;
+    const dLon = rayon / (111320 * Math.cos((lat * Math.PI) / 180));
+    const bbox = [lon - dLon, lat - dLat, lon + dLon, lat + dLat].map((x) => x.toFixed(6)).join(',');
+    const r = await lire(`https://api.openstreetmap.org/api/0.6/map.json?bbox=${bbox}`, { headers: { 'user-agent': 'Klocka/1.0' }, signal: AbortSignal.timeout(20000) })
+      .catch((err) => ({ ok: false, status: err?.message }));
+    if (!r.ok) throw new Error(`${e.message} ; api.openstreetmap.org ${r.status}`);
+    const res = parkingsDeLaCarte((await r.json().catch(() => ({}))).elements || [], lat, lon, rayon);
+    if (garder) Records.create('LectureOsm', { cle, parkings: res.parkings, le: new Date().toISOString() });
+    return res;
+  }
+}
+
 async function transportsOsm(lat, lon) {
   return arretsAutour(lat, lon);
 }

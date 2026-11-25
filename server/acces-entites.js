@@ -20,6 +20,8 @@ export const ENTITES_INTERDITES = new Set([
   'AgendaAnalyste',
   // Les analyses Tokimo (6 nov. 2026) : par /api/tokimo seulement, qui se ferme avec la page.
   'AnalyseTokimo',
+  // La sauvegarde de Monday (25 nov. 2026) : clients, prospects, leurs coordonnées ; par /api/crm/sauvegarde-monday seulement.
+  'SauvegardeMonday',
 ]);
 
 /**

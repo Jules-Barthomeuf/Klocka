@@ -103,7 +103,11 @@ export default function CarteNote({ donnees }) {
     );
   }
 
-  const fichesTouchees = (p.fiches || []).filter((f) => f.elements?.length || f.etape);
+  // Les fiches de la note : celles que l'assistant modifie, puis les autres fiches liées, telles quelles (25 nov. 2026,
+  // Jules, sur « relancer Duranson par mail demain » : « je voudrais voir aussi la fiche de la personne »).
+  const modifiees = (p.fiches || []).filter((f) => f.elements?.length || f.etape);
+  const fichesTouchees = [...modifiees, ...(note.liens || []).filter((l) => l.cle && !modifiees.some((f) => f.cle === l.cle))
+    .map((l) => ({ id: `lien-${l.cle}`, cle: l.cle, nom: l.nom, genre: l.genre, telle: true }))];
   const retraits = p.retraits || [];
   // Les retraits, par fiche : « Retirer de la fiche d'Alexis Petit ».
   const retraitsPar = [...new Set(retraits.map((r) => r.de))].map((de) => ({ de, nom: retraits.find((r) => r.de === de)?.de_nom, liste: retraits.filter((r) => r.de === de) }));
@@ -112,15 +116,16 @@ export default function CarteNote({ donnees }) {
   const aProgrammer = actions.filter((a) => n.garde.has(a.id) && !a.echeance).length;
   const etape = etat === "proposee" || !etat ? prochaineEtape(n) : null;
   const repondues = (p.questions || []).filter((q) => q?.id && String(n.reponses?.[q.id] || "").trim());
-  const onglets = [
-    actions.length || faites.length ? ["actions", `Actions · ${actions.length + faites.length}`] : null,
-    fichesTouchees.length ? ["fiches", `Fiches · ${fichesTouchees.length}`] : null,
-  ].filter(Boolean);
+  // Toujours les deux onglets, Actions et Fiches (25 nov. 2026, Jules : « on a actions et fiches, normal »), dès que la
+  // note propose quelque chose ; un onglet vide le dit.
+  const onglets = actions.length || faites.length || fichesTouchees.length
+    ? [["actions", `Actions · ${actions.length + faites.length}`], ["fiches", `Fiches · ${fichesTouchees.length}`]]
+    : [];
   const vu = onglets.some(([k]) => k === onglet) ? onglet : onglets[0]?.[0];
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-      <p className="m-0 text-[17px] leading-[1.5] text-encre">{onglets.length || retraits.length ? "Voici ce que je propose." : "Je n'y vois rien à ranger sur ces fiches : la note sera gardée telle quelle si tu valides."}</p>
+      <p className="m-0 text-[17px] leading-[1.5] text-encre">{actions.length || faites.length || modifiees.length || retraits.length ? "Voici ce que je propose." : "Je n'y vois rien à ranger sur ces fiches : la note sera gardée telle quelle si tu valides."}</p>
 
       {onglets.length > 1 && (
         <div role="tablist" aria-label="Ce que je propose" className="mt-4 inline-flex rounded-[14px] bg-relief p-1">
@@ -141,30 +146,18 @@ export default function CarteNote({ donnees }) {
       <div className="grid">
       {onglets.some(([k]) => k === "actions") && (
         <div aria-hidden={vu !== "actions"} className={`[grid-area:1/1] ${vu === "actions" ? "k-entree" : "invisible pointer-events-none"}`}>
-          <Actions actions={actions} faites={faites} garde={n.garde} noteId={noteId} onVoir={voirAction} />
+          {actions.length || faites.length
+            ? <Actions actions={actions} faites={faites} garde={n.garde} noteId={noteId} onVoir={voirAction} />
+            : <p className="m-0 mt-5 text-[14.5px] text-ardoise">Aucune action proposée.</p>}
         </div>
       )}
 
       {/* Les fiches modifiées : le détail s'ouvre à droite. */}
       {onglets.some(([k]) => k === "fiches") && (
         <div aria-hidden={vu !== "fiches"} className={`[grid-area:1/1] ${vu === "fiches" ? "k-entree" : "invisible pointer-events-none"}`}>
-        <Cadre className="mt-5">
-          {fichesTouchees.map((f) => {
-            const I = ICONE_GENRE[f.genre] || Building2;
-            return (
-              <li key={f.id} className="border-t border-trait first:border-t-0">
-                <button type="button" onClick={() => voirFiche(f.cle)} className="flex w-full items-center gap-3.5 px-5 py-4 text-left hover:bg-relief" style={{ background: "transparent" }}>
-                  <Pastille><I className="h-4 w-4" /></Pastille>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] leading-[1.45] text-encre">{f.nom}</span>
-                    <span className="mt-0.5 block truncate text-[13px] text-ardoise">{resumeDeFiche(f, n.garde) || "Rien de gardé"}</span>
-                  </span>
-                  <span className="inline-flex flex-none items-center gap-1 text-[13px] text-menthe">Voir la fiche<ChevronRight className="h-3.5 w-3.5" /></span>
-                </button>
-              </li>
-            );
-          })}
-        </Cadre>
+        {fichesTouchees.length
+          ? <ListeFiches className="mt-5" fiches={fichesTouchees.map((f) => ({ ...f, detail: f.telle ? "Rien de changé" : resumeDeFiche(f, n.garde) || "Rien de gardé" }))} onVoir={(f) => voirFiche(f.cle)} />
+          : <p className="m-0 mt-5 text-[14.5px] text-ardoise">Aucune fiche liée à cette note.</p>}
         </div>
       )}
 
@@ -258,6 +251,29 @@ export default function CarteNote({ donnees }) {
 // le verre en sombre, le fond de la saisie en clair (.k-fiche-fond).
 const Cadre = ({ className = "", children }) => <ul className={`k-fiche-fond m-0 list-none overflow-hidden rounded-[14px] border border-bord-doux p-0 ${className}`}>{children}</ul>;
 const Pastille = ({ children }) => <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-relief text-craie">{children}</span>;
+
+/** Les fiches d'une proposition, une ligne chacune, « Voir la fiche » à droite : la note liée, les actions d'un rappel. */
+export function ListeFiches({ fiches, onVoir, className = "" }) {
+  return (
+    <Cadre className={className}>
+      {fiches.map((f) => {
+        const I = ICONE_GENRE[f.genre] || Building2;
+        return (
+          <li key={f.id || f.cle} className="border-t border-trait first:border-t-0">
+            <button type="button" onClick={() => onVoir(f)} className="flex w-full items-center gap-3.5 px-5 py-4 text-left hover:bg-relief" style={{ background: "transparent" }}>
+              <Pastille><I className="h-4 w-4" /></Pastille>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] leading-[1.45] text-encre">{f.nom}</span>
+                {f.detail && <span className="mt-0.5 block truncate text-[13px] text-ardoise">{f.detail}</span>}
+              </span>
+              <span className="inline-flex flex-none items-center gap-1 text-[13px] text-menthe">Voir la fiche<ChevronRight className="h-3.5 w-3.5" /></span>
+            </button>
+          </li>
+        );
+      })}
+    </Cadre>
+  );
+}
 
 /** Les groupes d'actions, dans l'ordre : ce que tu fais, ce que l'assistant a préparé, ce qui revient à un collègue. */
 function groupes(actions) {

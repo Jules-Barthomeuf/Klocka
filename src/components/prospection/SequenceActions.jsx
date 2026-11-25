@@ -414,7 +414,7 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
 /**
  * @param {{appel, agence, issue, coches: Set, setCoches, mail, setMail, relanceLe, setRelanceLe, ligneMonday, setLigneMonday, onLancer, envoi}} props
  */
-export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null, lancement = 0, onLancementRefuse = null, sobre = false, onResume = null, personnes = null, choisiAvant = null, entendu = null }) {
+export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null, lancement = 0, onLancementRefuse = null, sobre = false, onResume = null, personnes = null, choisiAvant = null, entendu = null, fiches = null }) {
   // L'équipe, pour choisir le SPOC de la ligne Twenty CRM (15 nov. 2026).
   const equipe = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/equipe"), staleTime: 5 * 60_000 }).data?.equipe || null;
   // Relances (8 oct. 2026) : « Agent prévenu » s'ajoute aux issues pour un bien retenu ou refusé.
@@ -868,6 +868,8 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         </p>
       )}
       {doute && <p className="m-0 mt-4 px-1 text-[14px] text-ambre">Twenty CRM a plusieurs contacts possibles : ouvrez « Contact Twenty CRM » et choisissez le bon.</p>}
+      {/* Les fiches sous les actions (25 nov. 2026, Jules : « on a actions et fiches, normal ») : celle de la personne. */}
+      {sobre && fiches}
       {sobre ? (
         <div className="mt-3 flex justify-end">
           <button type="button" onClick={() => onLancer({ vues: [...vues.current] })} disabled={envoi || !n || doute}

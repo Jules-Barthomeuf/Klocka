@@ -28,7 +28,7 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
 test("le menu de l'équipe : ses pages, sans Administration (14 nov. 2026) ; Autre : Offres, Dossier bancaire, Feedback (26 oct.)", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
-  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Assistant', 'Projets', 'Dossiers', 'Appels', 'Statistiques', 'Simulateur', 'Outils', 'Twenty CRM']);
+  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Assistant', 'Projets', 'Dossiers', 'Appels', 'Simulateur', 'Outils', 'Twenty CRM']);
   // Le CRM (27 oct. 2026), toujours là ; dans Klocka depuis le 5 nov. 2026 (page /CRM), plus une entrée externe.
   assert.ok(principal.find((x) => x.cle === 'CRM') && !principal.find((x) => x.cle === 'CRM').externe);
   assert.ok(menuAdmin(['CRM']).principal.some((x) => x.cle === 'CRM'));
@@ -41,16 +41,16 @@ test("le menu de l'équipe : ses pages, sans Administration (14 nov. 2026) ; Aut
   // CRM) ; Intelligence et Automatismes cachés pour Jules seul.
   for (const hors of ['AdminMandataires', 'AdminUtilisateurs', 'AdminClients', 'AdminAccesCrm']) assert.ok(![...principal, ...autre].some((x) => x.cle === hors || x.entrees?.some((e) => e.cle === hors)), hors);
     for (const hors of ['Semaine', 'Monitoring', 'Personnalisation', 'Dashboard', 'Agents']) assert.ok(!cles.includes(hors), hors);
-  assert.deepEqual(cles, ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque', 'Tokimo', 'Emailing'], 'Feedback en tête ; Offres, les Présentations bancaires et le Dossier bancaire reviennent (26 oct.) ; Tokimo (6 nov.) ; Emailing de retour (8 nov.) ; Lead magnets… restent hors du menu');
+  assert.deepEqual(cles, ['Tokimo', 'Emailing'], 'Feedback en tête ; Offres, les Présentations bancaires et le Dossier bancaire reviennent (26 oct.) ; Tokimo (6 nov.) ; Emailing de retour (8 nov.) ; Lead magnets… restent hors du menu');
   // Autre ignore les masques (26 oct.) : d'anciens réglages de Paramètres cachaient Feedback, Offres et Présentations.
-  assert.deepEqual(menuAdmin(['AdminSuggestions', 'Offres', 'AdminPresentations', 'AdminBanque']).autre.map((e) => e.cle), ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque', 'Tokimo', 'Emailing']);
+  assert.deepEqual(menuAdmin(['AdminSuggestions', 'Offres', 'AdminPresentations', 'AdminBanque']).autre.map((e) => e.cle), ['Tokimo', 'Emailing']);
 });
 
 test('une page sait son groupe : ce qui était Administration est sous Paramètres (14 nov. 2026)', async () => {
   const { groupeDe } = await import('../src/lib/menu.js');
   assert.equal(groupeDe('Agents'), null, 'Relations quitte le menu (6 nov. 2026)');
   for (const page of ['Personnalisation', 'AdminModeles', 'Monitoring', 'SuiviAppels', 'Cerveau', 'Automatismes']) assert.equal(groupeDe(page).groupe, 'Paramètres', page);
-  assert.deepEqual(groupeDe('Monitoring').entrees.map((e) => e.label), ['Paramètres', 'Modèles', 'Suivi', 'Intelligence', 'Automatismes']);
+  assert.deepEqual(groupeDe('Monitoring').entrees.map((e) => e.label), ['Paramètres', 'Modèles', 'Suivi', 'Intelligence', 'Automatismes', 'Monday'], 'Monday : la sauvegarde (25 nov. 2026)');
   assert.equal(groupeDe('Dashboard'), null);
 });
 
@@ -62,7 +62,7 @@ test('le menu des mandataires : la structure de l’équipe, Biens en une entré
   assert.ok(!principal.some((x) => x.cle === 'MandataireProjets') && !autre.some((e) => e.cle === 'MandataireProjets'));
   // Biens, une seule entrée (24 oct. 2026) : les étapes sont dans la page, plus d'onglets en tête.
   assert.equal(principal.find((x) => x.label === 'Mes biens').cle, 'MandataireBiens');
-  assert.deepEqual(autre.map((e) => e.cle), ['Feedback']);
+  assert.deepEqual(autre.map((e) => e.cle), [], 'Feedback quitte la barre (25 nov. 2026) : il est dans la carte du compte');
   assert.equal(groupeDe('MandataireMandat', 'mandataire'), null);
   // L'Off-market est dans la Prospection (23 oct. 2026) : plus d'entrée à part, ni dans « Autre ».
   assert.ok(!principal.some((x) => x.cle === 'MandataireOffMarket' || (x.entrees || []).some((e) => e.cle === 'MandataireOffMarket')));

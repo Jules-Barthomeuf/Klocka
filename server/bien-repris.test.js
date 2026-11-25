@@ -6,6 +6,9 @@ import os from 'os';
 import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-bien-repris-'));
+// Jamais le vrai Monday (25 nov. 2026 : ce test y créait « SCI Quai », « m. achat » et « 20 quai Est, Lyon » à chaque
+// lancement, 3 400 prospects et 2 100 propriétés K Partners en trois semaines).
+process.env.MONDAY_TOKEN = '';
 const { Records } = await import('./db.js');
 const R = await import('./bien-repris.js');
 const D = await import('./documents-du-bien.js');

@@ -41,11 +41,13 @@ const RECHERCHE = 'RechercheTransactions';
  */
 export function prixDuFonds(texte) {
   const t = String(texte || '');
+  // « 75000 EUR » autant que « 75 000 euros » ou « 75 000 € » (25 nov. 2026 : le BODACC écrit « EUR » ; seul « euros »
+  // était lu, aucun prix de fonds ne sortait, 0 sur 85 cessions à Lorient).
   const motifs = [
-    /prix\s+stipul[ée]\s+de\s+([\d\s.,]+)\s*euros/i,
-    /moyennant\s+le\s+prix\s+de\s+([\d\s.,]+)\s*euros/i,
-    /au\s+prix\s+de\s+([\d\s.,]+)\s*euros/i,
-    /prix\s*:\s*([\d\s.,]+)\s*euros/i,
+    /prix\s+stipul[ée]\s+de\s+([\d\s.,]+)\s*(?:euros?\b|eur\b|€)/i,
+    /moyennant\s+le\s+prix\s+de\s+([\d\s.,]+)\s*(?:euros?\b|eur\b|€)/i,
+    /au\s+prix\s+de\s+([\d\s.,]+)\s*(?:euros?\b|eur\b|€)/i,
+    /prix\s*:\s*([\d\s.,]+)\s*(?:euros?\b|eur\b|€)/i,
   ];
   for (const m of motifs) {
     const trouve = t.match(m);
@@ -201,7 +203,8 @@ async function lireBodacc(params) {
 
 /** Les cessions de fonds d'une commune, sur les dernières années. */
 export async function cessionsDeLaCommune(codePostal, ville, { annees = ANNEES_DEFAUT, forcer = false } = {}) {
-  const cle = `${codePostal}|${annees}`;
+  // « |p2 » : les cessions gardées avant la lecture des prix en « EUR » (25 nov. 2026) sont relues une fois.
+  const cle = `${codePostal}|${annees}|p2`;
   const garde = Records.filter(CACHE, { cle })[0];
   if (garde && !forcer && Date.now() - Date.parse(garde.le) < CACHE_JOURS * 86400000) {
     return { ok: true, cessions: garde.cessions, du_cache: true, le: garde.le };

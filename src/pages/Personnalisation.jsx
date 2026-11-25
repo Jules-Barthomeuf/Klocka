@@ -3,10 +3,12 @@ import BoiteMail from "@/components/dashboard/BoiteMail";
 import ImportFiches from "@/components/fiche-dossier/ImportFiches";
 import { vueDe } from "@/lib/vue";
 import { Check, Maximize2, Smartphone } from "lucide-react";
+import jetons from "@/design/jetons.json";
+import { Groupe, Interrupteur, Rangee } from "@/components/compte/Reglages";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
-import { CLAIR, OPTIONS, PERSONNAGES_HAKA, accentHex, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
+import { CLAIR, SOMBRE, OPTIONS, PERSONNAGES_HAKA, accentHex, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
 import { GROUPE_PARAMETRES, masquesDe } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
 import Competences from "@/components/haka/Competences";
@@ -62,59 +64,39 @@ function Pilules({ valeur, valeurs = null, options, onChoisir, rendre }) {
   });
 }
 
-/** Les pastilles d'accent : la couleur elle-même, dans le thème affiché. */
-function Accents({ valeur, theme, onChoisir }) {
-  return OPTIONS.accent.map(([cle, nom]) => {
-    const actif = cle === valeur;
-    const couleur = accentHex(cle, theme);
-    return (
-      <button
-        key={cle}
-        type="button"
-        onClick={() => onChoisir(cle)}
-        aria-pressed={actif}
-        title={nom}
-        className={`inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[13px] transition-colors ${actif ? "border-menthe text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`}
-        style={{ background: "transparent" }}
-      >
-        <span className="grid h-6 w-6 place-items-center rounded-full" style={{ background: couleur }}>
-          {actif && <Check className="h-3.5 w-3.5" style={{ color: theme === CLAIR ? "rgb(255 255 255)" : "rgb(0 0 0 / .7)" }} strokeWidth={3} />}
-        </span>
-        {nom}
-      </button>
-    );
-  });
+/** Une pastille de couleur ronde ; la choisie est cerclée et cochée. */
+function Pastille({ couleur, actif, nom, onClick, theme, fond = null }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={actif} aria-label={nom} title={nom}
+      className={`grid h-8 w-8 flex-none place-items-center rounded-full transition-transform hover:scale-110 ${actif ? "outline outline-2 outline-offset-2 outline-encre/70" : ""}`}
+      style={{ background: fond || couleur }}>
+      {actif && <Check className="h-4 w-4" style={{ color: theme === CLAIR ? "rgb(255 255 255)" : "rgb(0 0 0 / .7)" }} strokeWidth={3} />}
+    </button>
+  );
 }
 
 /**
- * La couleur d'accent (9 oct. 2026) : les teintes proposées, la couleur
- * enregistrée (« Ma couleur »), et « Personnaliser » : le sélecteur, un
- * aperçu sur un bouton, puis « Enregistrer la couleur ».
+ * La couleur d'accent (9 oct. 2026 ; en pastilles rondes depuis la refonte du 25 nov.) : les teintes proposées, la
+ * couleur enregistrée (« Ma couleur »), et la roue qui ouvre le sélecteur, un aperçu, puis « Enregistrer la couleur ».
  */
 function ChoixAccent({ prefs, changer, theme }) {
   const [ouvert, setOuvert] = useState(false);
   const [brouillon, setBrouillon] = useState(() => prefs.accent_perso || accentHex(prefs.accent, theme));
   const perso = /^#/.test(String(prefs.accent || ""));
-  const pastille = (couleur, actif) => (
-    <span className="grid h-6 w-6 place-items-center rounded-full" style={{ background: couleur }}>
-      {actif && <Check className="h-3.5 w-3.5" style={{ color: theme === CLAIR ? "rgb(255 255 255)" : "rgb(0 0 0 / .7)" }} strokeWidth={3} />}
-    </span>
-  );
-  const pilule = (actif) => `inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[13px] transition-colors ${actif ? "border-menthe text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`;
+  const nomActif = perso ? "Ma couleur" : (OPTIONS.accent.find(([c]) => c === prefs.accent)?.[1] || "");
   return (
-    <>
-      <Accents valeur={prefs.accent} theme={theme} onChoisir={(v) => { changer({ accent: v }); setOuvert(false); }} />
-      {prefs.accent_perso && (
-        <button type="button" onClick={() => { changer({ accent: prefs.accent_perso }); setOuvert(false); }} aria-pressed={perso} title="Votre couleur enregistrée" className={pilule(perso)} style={{ background: "transparent" }}>
-          {pastille(prefs.accent_perso, perso)}Ma couleur
-        </button>
-      )}
-      <button type="button" onClick={() => { setBrouillon(prefs.accent_perso || accentHex(prefs.accent, theme)); setOuvert((x) => !x); }} aria-expanded={ouvert} className={pilule(ouvert)} style={{ background: "transparent" }}>
-        <span className="h-6 w-6 rounded-full" style={{ background: "conic-gradient(from 0deg, hsl(0 85% 60%), hsl(60 85% 60%), hsl(120 85% 55%), hsl(180 85% 55%), hsl(240 85% 65%), hsl(300 85% 62%), hsl(360 85% 60%))" }} />
-        Personnaliser
-      </button>
+    <Rangee titre="Couleur d'accent" note={`${nomActif} · boutons, liens, états actifs et pastilles.`} pile>
+      <div className="flex flex-wrap items-center gap-3">
+        {OPTIONS.accent.map(([cle, nom]) => (
+          <Pastille key={cle} nom={nom} couleur={accentHex(cle, theme)} actif={cle === prefs.accent} theme={theme} onClick={() => { changer({ accent: cle }); setOuvert(false); }} />
+        ))}
+        {prefs.accent_perso && <Pastille nom="Ma couleur" couleur={prefs.accent_perso} actif={perso} theme={theme} onClick={() => { changer({ accent: prefs.accent_perso }); setOuvert(false); }} />}
+        <span className="mx-1 h-6 w-px bg-trait" aria-hidden="true" />
+        <Pastille nom="Personnaliser" actif={false} theme={theme} onClick={() => { setBrouillon(prefs.accent_perso || accentHex(prefs.accent, theme)); setOuvert((x) => !x); }}
+          fond="conic-gradient(from 0deg, hsl(0 85% 60%), hsl(60 85% 60%), hsl(120 85% 55%), hsl(180 85% 55%), hsl(240 85% 65%), hsl(300 85% 62%), hsl(360 85% 60%))" />
+      </div>
       {ouvert && (
-        <div className="mt-2 flex w-full flex-wrap items-start gap-6 rounded-[14px] border border-trait p-4">
+        <div className="mt-4 flex w-full flex-wrap items-start gap-6 rounded-[14px] border border-trait p-4 duration-200 animate-in fade-in-0">
           <SelecteurCouleur valeur={brouillon} onChoisir={setBrouillon} />
           <div className="flex flex-col gap-3">
             <span className="text-[12px] text-brume">Aperçu</span>
@@ -127,7 +109,47 @@ function ChoixAccent({ prefs, changer, theme }) {
           </div>
         </div>
       )}
-    </>
+    </Rangee>
+  );
+}
+
+/** Le dessin d'un thème, en miniature : la barre, deux lignes de texte, un bouton à l'accent. */
+function Miniature({ c, accent }) {
+  return (
+    <span className="flex h-full w-full gap-1.5 p-2" style={{ background: c.fond }}>
+      <span className="w-[20%] rounded-[5px]" style={{ background: c.rail }} />
+      <span className="flex flex-1 flex-col gap-1.5 rounded-[6px] p-2" style={{ background: c["surface-pleine"] }}>
+        <span className="h-1.5 w-3/5 rounded-full" style={{ background: c.encre }} />
+        <span className="h-1.5 w-2/5 rounded-full" style={{ background: c.ardoise }} />
+        <span className="mt-auto h-3 w-2/5 rounded-full" style={{ background: accent }} />
+      </span>
+    </span>
+  );
+}
+
+/** Le mode : trois vignettes, chacune le dessin du thème qu'elle allume ; « Comme l'appareil » montre les deux. */
+function ChoixMode({ prefs, changer }) {
+  const sombre = jetons.couleurs;
+  const clair = jetons.couleurs_clair;
+  const acS = accentHex(prefs.accent, SOMBRE);
+  const acC = accentHex(prefs.accent, CLAIR);
+  return (
+    <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
+      {OPTIONS.mode.map(([v, mot]) => {
+        const actif = prefs.mode === v;
+        return (
+          <button key={v} type="button" onClick={() => changer({ mode: v })} aria-pressed={actif} className="group flex flex-col gap-2 text-left" style={{ background: "transparent" }}>
+            <span className={`relative block aspect-[16/10] w-full overflow-hidden rounded-[12px] border transition-colors ${actif ? "border-menthe outline outline-1 outline-menthe" : "border-trait group-hover:border-bord-vif"}`}>
+              {v === "clair" ? <Miniature c={clair} accent={acC} /> : <Miniature c={sombre} accent={acS} />}
+              {v === "appareil" && <span className="absolute inset-0" style={{ clipPath: "polygon(50% 0, 100% 0, 100% 100%, 50% 100%)" }}><Miniature c={clair} accent={acC} /></span>}
+            </span>
+            <span className={`flex items-center gap-1.5 px-0.5 text-[13.5px] ${actif ? "text-encre" : "text-craie"}`}>
+              {actif && <Check className="h-3.5 w-3.5 text-menthe" strokeWidth={2.4} />}{mot}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -186,21 +208,27 @@ function SelecteurCouleur({ valeur, onChoisir }) {
   );
 }
 
-/** La bannière en bas des mails (8 oct. 2026) : celle de son adresse Klocka, telle qu'elle part. */
+/** La bannière en bas des mails (8 oct. 2026) : celle de son adresse Klocka, telle qu'elle part. Dans Mails depuis le 25 nov. */
 function SignatureMails({ email }) {
   const [absente, setAbsente] = useState(false);
   const local = String(email || "").toLowerCase().endsWith("@klocka.immo") ? String(email).toLowerCase().split("@")[0] : null;
   return (
-    <section className="mt-5 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-      <p className={`${etiq} pt-4`}>Mails</p>
-      <Reglage titre="Signature des mails" note="En bas de chaque mail parti de votre boîte Klocka, à la place de la signature en texte.">
-        {local && !absente
-          ? <img src={`/signatures/${local}.jpg`} alt="Votre bannière de signature" onError={() => setAbsente(true)} className="block w-full max-w-[500px] rounded-[8px]" />
-          : <p className="m-0 text-[13.5px] text-ardoise">Pas encore de bannière pour {email || "cette adresse"} : demandez-la à Jules.</p>}
-      </Reglage>
-    </section>
+    <Groupe titre="Signature" note="En bas de chaque mail parti de votre boîte Klocka, à la place de la signature en texte.">
+      {local && !absente
+        ? <div className="p-4"><img src={`/signatures/${local}.jpg`} alt="Votre bannière de signature" onError={() => setAbsente(true)} className="block w-full max-w-[520px] rounded-[8px]" /></div>
+        : <p className="m-0 px-5 py-4 text-[13.5px] text-ardoise">Pas encore de bannière pour cette adresse : demandez-la à Jules.</p>}
+    </Groupe>
   );
 }
+
+/** Les pages du Suivi, une ligne chacune (25 nov. 2026, refonte des Paramètres) : l'onglet les montre au lieu d'emmener ailleurs. */
+const PAGES_SUIVI = [
+  ["Statistiques", "Statistiques", "Les fiches reçues, pour l'équipe et par analyste, semaine après semaine."],
+  ["Monitoring", "Usage", "Qui se sert de quoi sur la plateforme, et ce que coûte chaque geste d'IA."],
+  ["SuiviAppels", "Appels", "La Prospection, les relances et les rappels, par personne et par mode."],
+  ["SuiviReunion", "Réunion", "Enregistrer une réunion d'équipe, qui nourrit l'Intelligence."],
+  ["SuiviCorrections", "Corrections", "Ce que l'équipe corrige sur les projets rentrés, et les règles qui en sont tirées."],
+];
 
 export default function Personnalisation() {
   const user = useUser();
@@ -255,10 +283,9 @@ export default function Personnalisation() {
     window.addEventListener("hashchange", suivre);
     return () => window.removeEventListener("hashchange", suivre);
   }, []);
-  const section = [...sections, ...outils].some(([k]) => k === sectionBrute && k !== "suivi") ? sectionBrute : "profil";
-  // Suivi ouvre sa page (Usage, Appels, Réunion, Corrections) ; les autres onglets restent ici.
+  const section = [...sections, ...outils].some(([k]) => k === sectionBrute) ? sectionBrute : "profil";
+  // Suivi montre ses pages dans l'onglet, une ligne chacune (25 nov. 2026) ; avant, il ouvrait l'Usage tout de suite.
   const choisir = (k) => {
-    if (k === "suivi") { navigate(createPageUrl("Monitoring")); return; }
     setSection(k);
     try { localStorage.setItem("compte.section", k); } catch { /* navigation privée */ }
   };
@@ -267,7 +294,7 @@ export default function Personnalisation() {
 
   return (
     // L'équipe et les mandataires (9 nov. 2026, Jules) : la largeur des autres pages, chaque bloc dans un cadre à 12 px, le fond de la page dedans.
-    <div className={`mx-auto w-full px-5 ${large ? "max-w-[1500px] py-[22px] md:px-8 [&_section]:!rounded-[12px] [&_section]:!border [&_section]:!border-trait [&_section]:!bg-transparent [&_section]:!bg-none [&_section.k-grid]:before:!hidden [&_section.k-grid]:after:!hidden md:[&_input:not([type=checkbox]):not([type=color]):not([type=range]):not([type=file])]:!h-8 md:[&_input]:!text-[13.5px]" : `py-8 md:px-6 md:py-10 ${large ? "max-w-[1100px]" : "max-w-[980px]"}`}`}>
+    <div className={`mx-auto w-full px-5 ${large ? `max-w-[1500px] py-[22px] md:px-8 [&_section]:!rounded-[12px] [&_section]:!border [&_section]:!border-trait [&_section]:!bg-transparent [&_section]:!bg-none [&_section.k-grid]:before:!hidden [&_section.k-grid]:after:!hidden${sections.some(([k]) => k === section) ? "" : " md:[&_input:not([type=checkbox]):not([type=color]):not([type=range]):not([type=file])]:!h-8 md:[&_input]:!text-[13.5px]"}` : `py-8 md:px-6 md:py-10 ${large ? "max-w-[1100px]" : "max-w-[980px]"}`}`}>
       {large ? (
         <TitrePage titre="Paramètres" className="mb-3.5 md:!pr-[112px]" actions={<span className={`text-[13px] ${etat === "erreur" ? "text-alerte" : "text-ardoise"}`}>{etatMot}</span>} />
       ) : (
@@ -320,48 +347,64 @@ export default function Personnalisation() {
 
       <div key={section} className="duration-300 animate-in fade-in-0">
       {/* Qui vous êtes : photo, nom, mot de passe ; pour un mandataire, ses documents. */}
+      {/* Les sections de la personne dans une colonne de lecture (25 nov. 2026, refonte : « je ne l'aime pas ») ; les outils
+          de qui gère les accès gardent toute la largeur. */}
+      <div className={!sections.some(([k]) => k === section) ? "" : `mx-auto mt-6 flex w-full flex-col gap-8 ${section === "mails" || section === "profil" ? "max-w-[1200px]" : "max-w-[760px]"}`}>
       {section === "profil" && <ProfilCompte user={user} partie={vueMandataire ? "haut" : "tout"} />}
-      {section === "profil" && admin && !vueClient && <SignatureMails email={user?.email} />}
 
       {/* Jules seul : qui, parmi les admins, ouvre quelles pages. */}
       {section === "acces" && <AccesAdmins />}
 
       {/* Le mandataire : ses villes (6 nov. 2026, Jules), les mêmes que la pilule Villes de la Prospection. */}
       {section === "agent" && (
-        <section id="agent" className="scroll-mt-6 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-          <p className={`${etiq} pt-4`}>Mes villes</p>
-          <Reglage titre="Où vous prospectez" note="Vos clients qui cherchent dans ces villes s'affichent dans la Prospection. Une ville ajoutée se prépare en fond.">
-            <ListeVilles vide="Aucune ville encore." />
-          </Reglage>
-        </section>
+        <div id="agent" className="scroll-mt-6">
+          <Groupe titre="Où vous prospectez" note="Vos clients qui cherchent dans ces villes s'affichent dans la Prospection. Une ville ajoutée se prépare en fond.">
+            <div className="px-5 py-4"><ListeVilles vide="Aucune ville encore." /></div>
+          </Groupe>
+        </div>
       )}
 
       {section === "apparence" && (
-      <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-        <Reglage titre="Mode" note="Sombre, clair, ou celui de l'appareil, qui change avec lui.">
-          <Pilules valeur={prefs.mode} options={OPTIONS.mode} onChoisir={(v) => changer({ mode: v })} />
-        </Reglage>
-        {/* Côté mandataire, l'accent est celui de K Partners : rien à choisir (31 oct. 2026, Jules). */}
-        {!vueMandataire && (
-          <Reglage titre="Couleur d'accent" note="Boutons, liens, états actifs et pastilles. En clair, la teinte descend d'un cran pour rester lisible.">
-            <ChoixAccent prefs={prefs} changer={changer} theme={theme} />
-          </Reglage>
-        )}
-        {/* « Taille de l'interface » retirée (25 nov. 2026, Jules) : chacun garde la taille qu'il avait. */}
-      </section>
+        <>
+          <Groupe titre="Thème" note="Il s'applique tout de suite et vous suit d'un appareil à l'autre.">
+            <div className="p-4"><ChoixMode prefs={prefs} changer={changer} /></div>
+          </Groupe>
+          <Groupe titre="Couleurs">
+            {/* Côté mandataire, l'accent est celui de K Partners : rien à choisir (31 oct. 2026, Jules). */}
+            {!vueMandataire && <ChoixAccent prefs={prefs} changer={changer} theme={theme} />}
+            {/* Le halo, réglé ici comme dans la carte du compte (25 nov. 2026). */}
+            <Rangee titre="Halo" note="Une lueur douce derrière les pages, en mode sombre.">
+              <Interrupteur actif={!!prefs.halo} onChange={(v) => changer({ halo: v })} label={prefs.halo ? "Retirer le halo" : "Mettre le halo"} />
+            </Rangee>
+          </Groupe>
+          {/* « Taille de l'interface » retirée (25 nov. 2026, Jules) : chacun garde la taille qu'il avait. */}
+        </>
       )}
 
-      {/* Mails : la boîte qui envoie, puis ses modèles de mails après un appel (25 nov. 2026, réunis). */}
+      {/* Mails : la boîte qui envoie, la signature (venue du Profil), puis les mails après un appel, repliés (25 nov. 2026). */}
       {section === "mails" && (
-        <section className="mb-5 rounded-[12px] border border-trait p-5">
-          <p className="m-0 mb-1 text-[15px] text-encre">Boîtes mail connectées</p>
-          <p className="m-0 mb-4 text-[13px] text-ardoise">Les mails de la plateforme partent de la boîte cochée. Un clic sur une autre en fait la boîte par défaut.</p>
-          <BoiteMail enLigne />
-        </section>
+        <>
+          {/* Sur deux colonnes (25 nov. 2026, Jules : « pas tout sur une seule colonne ») : la boîte et la signature côte à
+              côte, puis les mails après un appel, la liste à gauche et l'éditeur à droite. */}
+          <div className="grid items-start gap-8 lg:grid-cols-2">
+            <Groupe nu titre="Boîte d'envoi" note="Les mails partent de la boîte cochée ; un clic sur une autre en fait celle par défaut.">
+              <BoiteMail enLigne />
+            </Groupe>
+            <SignatureMails email={user?.email} />
+          </div>
+          <MesMails />
+        </>
       )}
-      {section === "mails" && <MesMails />}
+      {section === "suivi" && (
+        <Groupe titre="Suivi de la plateforme" note="Réservé aux admins : les statistiques, l'usage, les appels, les réunions et les corrections de l'équipe.">
+          {PAGES_SUIVI.map(([page, mot, note]) => (
+            <Rangee key={page} titre={mot} note={note} onClick={() => navigate(createPageUrl(page))} />
+          ))}
+        </Groupe>
+      )}
       {section === "import" && <ImportFiches />}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
+      </div>
       {section === "haka" && (
       <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
         <Reglage titre="Personnage de l'Assistant Klocka" note="Son portrait dans les chats.">

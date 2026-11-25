@@ -6,6 +6,8 @@ import { toast } from "@/components/ui/avis";
 import { vueDe } from "@/lib/vue";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { VERRE } from "@/lib/verre";
+import { BOUTON_LIGNE, Groupe, Rangee } from "./Reglages";
 
 // Le haut de la page Compte : qui vous êtes. Pour tout le monde, la photo
 // (l'avatar en bas à gauche), le nom, le téléphone, le mot de passe. Pour un
@@ -13,22 +15,8 @@ import { createPageUrl } from "@/utils";
 // et téléphone pro, ville de signature, signature), et, en lecture, ce que
 // Klocka tient pour lui (RSAC, carte, assurances) — ça engage l'agence.
 
-const etiq = "m-0 text-[11.5px] uppercase tracking-[.12em] text-brume";
-
-function Ligne({ titre, note = null, compacte = false, children }) {
-  return (
-    <div className={`grid border-t border-trait py-4 first:border-t-0 ${compacte ? "gap-1" : "gap-3 md:grid-cols-[220px_minmax(0,1fr)] md:items-center"}`}>
-      <div>
-        <p className="m-0 text-[14px] text-encre">{titre}</p>
-        {note && <p className="m-0 mt-0.5 text-[12.5px] leading-[1.5] text-brume">{note}</p>}
-      </div>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
-
-/** Un champ texte qui s'enregistre en quittant le champ (ou sur Entrée). */
-function Champ({ valeur, onEnregistrer, placeholder = "", type = "text" }) {
+/** Un champ texte qui s'enregistre en quittant le champ (ou sur Entrée). `grand` : le nom, en tête, qui se lit comme un titre. */
+function Champ({ valeur, onEnregistrer, placeholder = "", type = "text", grand = false, label = undefined }) {
   const [v, setV] = useState(valeur || "");
   const [fait, setFait] = useState(false);
   useEffect(() => { setV(valeur || ""); }, [valeur]);
@@ -37,10 +25,13 @@ function Champ({ valeur, onEnregistrer, placeholder = "", type = "text" }) {
     try { await onEnregistrer(v.trim()); setFait(true); setTimeout(() => setFait(false), 1600); } catch { setV(valeur || ""); }
   };
   return (
-    <div className="flex items-center gap-2">
-      <input type={type} value={v} placeholder={placeholder} onChange={(e) => setV(e.target.value)} onBlur={enregistrer}
+    <div className={`flex items-center gap-2 ${grand ? "" : "md:justify-end"}`}>
+      <input type={type} value={v} placeholder={placeholder} aria-label={label} onChange={(e) => setV(e.target.value)} onBlur={enregistrer}
         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-        className="w-full max-w-[420px] rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] max-md:text-[16px] text-encre outline-none placeholder:text-brume focus:border-bord-vif" />
+        className={grand
+          ? "-ml-2 w-full max-w-[360px] rounded-champ border border-transparent bg-transparent px-2 py-1 text-[20px] text-encre outline-none transition-colors placeholder:text-brume hover:border-trait focus:border-bord-vif max-md:text-[18px]"
+          : "h-9 w-[300px] rounded-champ border border-trait bg-transparent px-3 text-[14px] text-encre outline-none transition-colors placeholder:text-brume focus:border-bord-vif max-md:w-full max-md:text-[16px]"}
+        style={{ background: "transparent" }} />
       {fait && <Check className="h-4 w-4 flex-none text-menthe" aria-label="Enregistré" />}
     </div>
   );
@@ -97,104 +88,106 @@ export default function ProfilCompte({ user, partie = "tout" }) {
 
   const haut = partie !== "habilitations";
   const droite = partie !== "haut";
+  const champMdp = "h-9 rounded-champ border border-trait bg-transparent px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-bord-vif max-md:text-[16px]";
   return (
-    <div className="space-y-5">
+    // Deux colonnes, comme Mails (25 nov. 2026, Jules : « Mon profil, comme dans Mails en termes de layout ») : les groupes
+    // se rangent deux par deux, chacun avec son titre pour que les deux colonnes partent à la même hauteur.
+    <div className={partie === "habilitations" ? "flex flex-col gap-8" : "grid items-start gap-8 lg:grid-cols-2"}>
       {haut && (
-      <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-        <p className={`${etiq} pt-4`}>Profil</p>
-        <Ligne titre="Photo" note={mandataire ? "Votre portrait : en bas à gauche de l'application, et en première page de vos avis de valeur." : "En bas à gauche de l'application."}>
-          <div className="flex items-center gap-4">
-            <span className="grid h-16 w-16 flex-none place-items-center overflow-hidden rounded-full bg-menthe text-[22px] font-medium text-sur-menthe">
-              {user?.picture ? <img src={user.picture} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initiale}
-            </span>
+        <>
+          {/* Qui vous êtes : la photo (un clic la change), le nom qui s'écrit sur place, l'adresse de connexion. */}
+          <Groupe nu titre="Identité" note="Votre photo et votre nom, tels que l'équipe les voit.">
+          <div className={`${VERRE} flex items-center gap-5 px-5 py-5 max-md:gap-4`}>
             <input ref={fichierPhoto} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) photo.mutate(f); e.target.value = ""; }} />
-            <button type="button" onClick={() => fichierPhoto.current?.click()} disabled={photo.isPending}
-              className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3.5 py-1.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-              {photo.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-              {user?.picture ? "Changer la photo" : "Ajouter une photo"}
+            <button type="button" onClick={() => fichierPhoto.current?.click()} disabled={photo.isPending} aria-label={user?.picture ? "Changer la photo" : "Ajouter une photo"} title={user?.picture ? "Changer la photo" : "Ajouter une photo"}
+              className="group relative h-[72px] w-[72px] flex-none rounded-full" style={{ background: "transparent" }}>
+              <span className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-rail-actif text-[24px] text-encre">
+                {user?.picture ? <img src={user.picture} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initiale}
+              </span>
+              <span className="absolute inset-0 grid place-items-center rounded-full bg-fond/55 text-encre opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                {photo.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" strokeWidth={1.7} />}
+              </span>
+              <span className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full border border-trait bg-surface-pleine text-craie">
+                <Camera className="h-3 w-3" strokeWidth={2} />
+              </span>
             </button>
+            <div className="min-w-0 flex-1">
+              <Champ grand label="Votre nom" valeur={user?.full_name} placeholder="Prénom Nom" onEnregistrer={(v) => poserProfil({ full_name: v })} />
+              <p className="m-0 mt-0.5 truncate text-[13.5px] text-ardoise">{user?.email}</p>
+              <p className="m-0 mt-0.5 text-[12.5px] text-brume">{mandataire ? "Votre photo figure aussi en première page de vos avis de valeur." : "L'adresse de connexion ne se change pas ici."}</p>
+            </div>
           </div>
-        </Ligne>
-        <Ligne titre="Nom">
-          <Champ valeur={user?.full_name} placeholder="Prénom Nom" onEnregistrer={(v) => poserProfil({ full_name: v })} />
-        </Ligne>
-        <Ligne titre="Adresse e-mail" note="Celle de la connexion : elle ne se change pas ici.">
-          <p className="m-0 text-[14px] text-craie break-all">{user?.email}</p>
-        </Ligne>
-        <Ligne titre="Mot de passe">
-          {mdp ? (
-            <form className="flex max-w-[420px] flex-col gap-2" onSubmit={(e) => { e.preventDefault(); changerMdp.mutate(mdp); }}>
-              <input type="password" autoComplete="current-password" placeholder="Mot de passe actuel" value={mdp.ancien} onChange={(e) => setMdp((x) => ({ ...x, ancien: e.target.value }))}
-                className="rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] max-md:text-[16px] text-encre outline-none focus:border-bord-vif" />
-              <input type="password" autoComplete="new-password" placeholder="Nouveau mot de passe" value={mdp.nouveau} onChange={(e) => setMdp((x) => ({ ...x, nouveau: e.target.value }))}
-                className="rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] max-md:text-[16px] text-encre outline-none focus:border-bord-vif" />
-              <div className="flex gap-2">
-                <button type="submit" disabled={changerMdp.isPending} className="rounded-full bg-menthe px-4 py-2 text-[13px] text-sur-menthe hover:bg-menthe-survol">Changer</button>
-                <button type="button" onClick={() => setMdp(null)} className="rounded-full border border-bord-doux px-4 py-2 text-[13px] text-craie" style={{ background: "transparent" }}>Annuler</button>
-              </div>
-            </form>
-          ) : (
-            <button type="button" onClick={() => setMdp({ ancien: "", nouveau: "" })}
-              className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3.5 py-1.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-              <KeyRound className="h-3.5 w-3.5" /> Changer le mot de passe
-            </button>
-          )}
-        </Ligne>
-      </section>
+          </Groupe>
+
+          <Groupe titre="Connexion" note="Le mot de passe de votre compte Klocka.">
+            <Rangee titre="Mot de passe" note={mdp ? null : "Pour vous connecter avec votre adresse."} pile={!!mdp}>
+              {mdp ? (
+                <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); changerMdp.mutate(mdp); }}>
+                  <input type="password" autoComplete="current-password" placeholder="Mot de passe actuel" value={mdp.ancien} onChange={(e) => setMdp((x) => ({ ...x, ancien: e.target.value }))} className={`${champMdp} w-[220px] max-md:w-full`} style={{ background: "transparent" }} />
+                  <input type="password" autoComplete="new-password" placeholder="Nouveau mot de passe" value={mdp.nouveau} onChange={(e) => setMdp((x) => ({ ...x, nouveau: e.target.value }))} className={`${champMdp} w-[220px] max-md:w-full`} style={{ background: "transparent" }} />
+                  <button type="submit" disabled={changerMdp.isPending || !mdp.ancien || !mdp.nouveau} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+                    {changerMdp.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Changer
+                  </button>
+                  <button type="button" onClick={() => setMdp(null)} className="h-9 px-2 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+                </form>
+              ) : (
+                <button type="button" onClick={() => setMdp({ ancien: "", nouveau: "" })} className={BOUTON_LIGNE} style={{ background: "transparent" }}>
+                  <KeyRound className="h-3.5 w-3.5" />Changer
+                </button>
+              )}
+            </Rangee>
+          </Groupe>
+        </>
       )}
 
       {haut && !mandataire && user?.role === "admin" && <Disponibilite user={user} />}
 
       {haut && mandataire && (
-        <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-          <p className={`${etiq} pt-4`}>Sur vos documents</p>
-          <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-brume">Ce qui figure sur vos avis de valeur et vos mandats, sous votre nom.</p>
-          <Ligne titre="Nom affiché" note="Si vide : votre nom de profil.">
+        <Groupe titre="Sur vos documents" note="Ce qui figure sur vos avis de valeur et vos mandats, sous votre nom.">
+          <Rangee titre="Nom affiché" note="Si vide : votre nom de profil.">
             <Champ valeur={m.nom_avis} placeholder={user?.full_name || "Prénom Nom"} onEnregistrer={(v) => poserPro({ nom_avis: v })} />
-          </Ligne>
-          <Ligne titre="Téléphone professionnel">
+          </Rangee>
+          <Rangee titre="Téléphone professionnel">
             <Champ valeur={m.telephone} placeholder="06 12 34 56 78" type="tel" onEnregistrer={(v) => poserPro({ telephone: v })} />
-          </Ligne>
-          <Ligne titre="E-mail professionnel" note="Si vide : l'adresse de connexion.">
+          </Rangee>
+          <Rangee titre="E-mail professionnel" note="Si vide : l'adresse de connexion.">
             <Champ valeur={m.email_avis} placeholder={user?.email} type="email" onEnregistrer={(v) => poserPro({ email_avis: v })} />
-          </Ligne>
-          <Ligne titre="Ville de signature" note="« Fait à … » en bas de vos avis.">
+          </Rangee>
+          <Rangee titre="Ville de signature" note="« Fait à … » en bas de vos avis.">
             <Champ valeur={m.ville_signature} placeholder="Mâcon" onEnregistrer={(v) => poserPro({ ville_signature: v })} />
-          </Ligne>
-          <Ligne titre="Signature" note="Une photo ou un scan de votre signature, sur fond blanc.">
-            <div className="flex items-center gap-4">
-              {m.signature_url && <img src={m.signature_url} alt="Votre signature" className="h-12 max-w-[180px] rounded-[6px] bg-white object-contain p-1" />}
-              <input ref={fichierSignature} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) signature.mutate(f); e.target.value = ""; }} />
-              <button type="button" onClick={() => fichierSignature.current?.click()} disabled={signature.isPending}
-                className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3.5 py-1.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-                {signature.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PenLine className="h-3.5 w-3.5" />}
-                {m.signature_url ? "Changer la signature" : "Ajouter la signature"}
-              </button>
-            </div>
-          </Ligne>
-        </section>
+          </Rangee>
+          <Rangee titre="Signature" note="Une photo ou un scan de votre signature, sur fond blanc.">
+            {m.signature_url && <img src={m.signature_url} alt="Votre signature" className="h-10 max-w-[160px] rounded-[6px] bg-white object-contain p-1" />}
+            <input ref={fichierSignature} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) signature.mutate(f); e.target.value = ""; }} />
+            <button type="button" onClick={() => fichierSignature.current?.click()} disabled={signature.isPending} className={BOUTON_LIGNE} style={{ background: "transparent" }}>
+              {signature.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PenLine className="h-3.5 w-3.5" />}
+              {m.signature_url ? "Changer" : "Ajouter"}
+            </button>
+          </Rangee>
+        </Groupe>
       )}
 
       {droite && mandataire && (
-        <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-          <p className={`${etiq} pt-4`}>Vos habilitations</p>
-          {adminEnVue ? (
-            <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-brume">
-              Tenues par Klocka. Vous êtes admin : dans{" "}
+        <Groupe titre="Vos habilitations" note={adminEnVue ? null : "Tenues par Klocka : elles engagent l'agence. Une erreur ou un renouvellement ? Dites-le à l'équipe."}>
+          {adminEnVue && (
+            <p className="m-0 px-5 py-3.5 text-[13px] leading-[1.55] text-ardoise">
+              Vous êtes admin : dans{" "}
               <Link to={createPageUrl("AdminMandataires")} className="text-menthe underline-offset-2 hover:underline">Mandataires</Link>, « Être aussi mandataire » vous inscrit parmi eux ; votre secteur et vos mentions s'y règlent comme pour les autres.
             </p>
-          ) : (
-            <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-brume">Tenues par Klocka : elles engagent l'agence. Une erreur ou un renouvellement ? Dites-le à l'équipe.</p>
           )}
           {(compte?.alertes || []).length > 0 && (
-            <p className="m-0 mt-3 rounded-[10px] bg-ambre/15 px-3.5 py-2.5 text-[13px] text-ambre">{compte.alertes.join(" · ")}</p>
+            <p className="m-0 bg-ambre/10 px-5 py-3 text-[13px] text-ambre">{compte.alertes.join(" · ")}</p>
           )}
-          <Ligne compacte={partie === "habilitations"} titre="Statut"><p className="m-0 text-[14px] text-craie">{k.qualite_avis}</p></Ligne>
-          <Ligne compacte={partie === "habilitations"} titre="RSAC"><p className="m-0 text-[14px] text-craie">{k.rsac ? `${k.rsac}${k.ville_rsac ? ` · ${k.ville_rsac}` : ""}` : "Pas encore renseigné"}</p></Ligne>
-          <Ligne compacte={partie === "habilitations"} titre="Attestation d'habilitation"><p className="m-0 text-[14px] text-craie">{k.carte_t || "Pas encore renseignée"}{k.attestation_expire_le ? ` · jusqu'au ${dateFr(k.attestation_expire_le)}` : ""}</p></Ligne>
-          <Ligne compacte={partie === "habilitations"} titre="RC professionnelle"><p className="m-0 text-[14px] text-craie">{k.rc_pro_expire_le ? `Jusqu'au ${dateFr(k.rc_pro_expire_le)}` : "Pas encore renseignée"}</p></Ligne>
-          <Ligne compacte={partie === "habilitations"} titre="Secteur"><p className="m-0 text-[14px] text-craie">{k.secteur || "Pas encore attribué"}</p></Ligne>
-        </section>
+          {[
+            ["Statut", k.qualite_avis || "Pas encore renseigné"],
+            ["RSAC", k.rsac ? `${k.rsac}${k.ville_rsac ? ` · ${k.ville_rsac}` : ""}` : "Pas encore renseigné"],
+            ["Attestation d'habilitation", `${k.carte_t || "Pas encore renseignée"}${k.attestation_expire_le ? ` · jusqu'au ${dateFr(k.attestation_expire_le)}` : ""}`],
+            ["RC professionnelle", k.rc_pro_expire_le ? `Jusqu'au ${dateFr(k.rc_pro_expire_le)}` : "Pas encore renseignée"],
+            ["Secteur", k.secteur || "Pas encore attribué"],
+          ].map(([t, v]) => (
+            <Rangee key={t} titre={t}><span className="text-right text-[14px] text-craie max-md:text-left">{v}</span></Rangee>
+          ))}
+        </Groupe>
       )}
     </div>
   );
@@ -215,20 +208,15 @@ function Disponibilite({ user }) {
   });
   if (!data?.analyste) return null;
   return (
-    <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-      <p className={`${etiq} pt-4`}>Disponibilité</p>
-      <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-brume">Absent, vos dossiers mandataires passent à un collègue présent, avec un briefing ; ils vous reviennent à votre retour.</p>
-      <Ligne titre="Agenda Google" note="Lu seulement pour vos « Absent du bureau » et vos congés.">
+    <Groupe titre="Disponibilité" note="Absent, vos dossiers mandataires passent à un collègue présent, avec un briefing ; ils vous reviennent à votre retour.">
+      <Rangee titre="Agenda Google" note={data.agenda ? `Connecté · ${data.agenda.email}` : "Lu seulement pour vos « Absent du bureau » et vos congés."}>
         {data.agenda ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-[14px] text-craie">Connecté · {data.agenda.email}</span>
-            <button type="button" onClick={() => deconnecter.mutate()} className="text-[12.5px] text-brume hover:text-alerte" style={{ background: "transparent" }}>Déconnecter</button>
-          </div>
+          <button type="button" onClick={() => deconnecter.mutate()} disabled={deconnecter.isPending} className={`${BOUTON_LIGNE} hover:!border-alerte/60 hover:!text-alerte`} style={{ background: "transparent" }}>Déconnecter</button>
         ) : (
-          <a href="/api/auth/google/agenda" className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[13px] text-sur-menthe hover:bg-menthe-survol">Connecter mon agenda</a>
+          <a href="/api/auth/google/agenda" className="inline-flex h-8 items-center rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol">Connecter</a>
         )}
-      </Ligne>
+      </Rangee>
       {/* « En ce moment » et « Déclarer une absence » retirés (25 nov. 2026, Jules) : l'agenda Google seul dit l'absence. */}
-    </section>
+    </Groupe>
   );
 }

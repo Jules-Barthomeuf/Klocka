@@ -111,8 +111,8 @@ export const MENU_ADMIN = [
   { cle: "Analyse", label: "Dossiers" },
   // À valider quitte le menu (26 oct. 2026, Jules) : la page reste ouverte par la cloche et les dossiers.
   { cle: "Prospection", label: "Appels" },
-  // Statistiques (20 nov. 2026, Jules) : une entrée du menu, sous Appels ; les fiches reçues, global et par analyste.
-  { cle: "Statistiques", label: "Statistiques" },
+  // Statistiques quitte la barre (25 nov. 2026, Jules : « je veux que ce soit visible, mais c'est en trop dans la barre de
+  // navigation ») : elle s'ouvre depuis la carte du compte en haut à droite et l'onglet Suivi des Paramètres.
   // Le Simulateur dans le menu de gauche (18 oct. 2026, Jules) : toujours là, même masqué dans d'anciennes préférences.
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
   // Outils dans le menu (9 nov. 2026, Jules), à la place de la bascule Klocka | Outils en haut de la barre.
@@ -153,7 +153,7 @@ export const MENU_MANDATAIRE = [
 // Les quatre pages d'étape restent ouvertes par leur adresse (notifications, liens) ; elles vivent dans Biens.
 // Projets aussi (31 oct. 2026) : l'adresse mène à Biens, l'entrée ne passe pas dans « Autre ».
 // La Bibliothèque aussi (4 nov. 2026, Jules) : ni au menu, ni dans « Autre ».
-const HORS_MENU_MANDATAIRE = ["Personnalisation", "MandataireOffMarket", "MandataireEstimation", "MandataireMandat", "MandataireDossier", "MandataireMarche", "MandataireProjets", "MandataireDocuments"];
+const HORS_MENU_MANDATAIRE = ["Feedback", "Personnalisation", "MandataireOffMarket", "MandataireEstimation", "MandataireMandat", "MandataireDossier", "MandataireMarche", "MandataireProjets", "MandataireDocuments"];
 
 /** Pure : le groupe du menu (équipe ou mandataires) auquel une page appartient, ou null. */
 /**
@@ -167,6 +167,8 @@ export const GROUPE_PARAMETRES = { groupe: "Paramètres", cle: "Parametres", lab
   { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviMandataires", "SuiviTesteur", "SuiviChat"] },
   { cle: "Cerveau", label: "Intelligence" },
   { cle: "Automatismes", label: "Automatismes" },
+  // La sauvegarde de Monday (25 nov. 2026, Jules : « pour couper Monday une fois pour toutes ») : chaque tableau gardé.
+  { cle: "SauvegardeMonday", label: "Monday" },
 ] };
 
 export const groupeDe = (page, vue = "admin") => (vue === "mandataire" ? MENU_MANDATAIRE : [...MENU_ADMIN, GROUPE_PARAMETRES])
@@ -196,7 +198,13 @@ const HORS_MENU_ADMIN = ["Semaine", "Personnalisation", ...GROUPE_PARAMETRES.ent
 // Feedback en tête, les Présentations et Offres dessous (26 oct. 2026, Jules).
 // Tokimo y entre le 6 nov. 2026 (Jules).
 // L'Emailing y revient le 8 nov. 2026 (Jules), devenu un module entier.
-const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions", "AdminPresentations", "Offres", "AdminBanque", "Tokimo", "Emailing"];
+// Feedback quitte la barre (25 nov. 2026, Jules : « enlève la page Feedback de la barre de navigation ») : il s'ouvre depuis la
+// carte du compte en haut à droite, pour l'équipe comme pour les mandataires.
+// Offres et le Dossier bancaire quittent la barre (25 nov. 2026, Jules : « tout le monde y a accès, mais on ne doit pas les
+// voir dans la barre, même si j'autorise l'accès ») : ils s'ouvrent depuis les raccourcis de l'Assistant (« Préparer une
+// LOI », « Dossier bancaire ») et par leur adresse ; l'accès ne change pas.
+// Les Présentations bancaires aussi (même jour) : le raccourci « Dossier bancaire » de l'Assistant y mène.
+const AUTRE_VISIBLE_ADMIN = ["Tokimo", "Emailing"];
 
 /**
  * Pure : le menu de l'équipe, ses groupes, et « Autre » (Feedback seulement).

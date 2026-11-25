@@ -50,6 +50,7 @@ export function ChatContexte({ url, texte, onTexte }) {
   const [echanges, setEchanges] = useState([]);
   const [saisie, setSaisie] = useState("");
   const base = useRef("");
+  const champ = useRef(null);
   const dictee = useDictee({ onTexte: (t) => setSaisie(`${base.current}${t}`), onFin: (t) => setSaisie(`${base.current}${t}`) });
   const rediger = useMutation({
     mutationFn: (demande) => base44.request("POST", url, { body: { demande, actuel: texte, historique: echanges } }),
@@ -82,22 +83,31 @@ export function ChatContexte({ url, texte, onTexte }) {
         </ul>
       )}
       {rediger.isPending && <p className="m-0 flex items-center gap-2 text-[13.5px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin" />J'écris le contexte pour les clients…</p>}
-      <div className="flex items-end gap-2 rounded-[16px] border border-bord-doux px-3 py-2 transition-colors focus-within:border-bord-vif">
-        <textarea value={saisie} onChange={(e) => setSaisie(e.target.value)} rows={2}
-          placeholder={dictee.ecoute ? "Je t'écoute…" : texte ? "Une correction, un ajout : « enlève la partie sur le prix »…" : "Dicte le contexte : pourquoi le propriétaire vend, depuis quand, ce qu'un acheteur doit savoir…"}
+      {/* La saisie de la page Assistant (25 nov. 2026, Jules : « dans Contexte de la vente, un chat comme dans la page
+          Assistant pour dicter ») : le champ en haut du cadre, le micro et l'envoi en bas à droite ; un clic dans le cadre
+          met le curseur dans le champ. */}
+      <div onMouseDown={(e) => { if (!e.target.closest("button, textarea")) { e.preventDefault(); champ.current?.focus(); } }}
+        className="k-saisie-chat cursor-text rounded-[20px] border border-trait bg-barre px-5 pb-3 pt-4 shadow-[0_12px_32px_rgb(0_0_0/0.07)] transition-colors focus-within:border-bord-vif max-md:px-4">
+        <textarea ref={champ} value={saisie} onChange={(e) => setSaisie(e.target.value)} rows={2}
+          placeholder={dictee.ecoute ? "Je vous écoute…" : texte ? "Une correction, un ajout : « enlève la partie sur le prix »…" : "Dictez le contexte : pourquoi le propriétaire vend, depuis quand, ce qu'un acheteur doit savoir…"}
           aria-label="Dicter ou écrire le contexte de la vente"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer(); } }}
-          className="min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume max-md:text-[16px]" style={{ background: "transparent" }} />
-        {dictee.supporte && (
-          <button type="button" onClick={micro} aria-label={dictee.ecoute ? "Arrêter la dictée" : "Dicter"} aria-pressed={dictee.ecoute}
-            className={`grid h-9 w-9 flex-none place-items-center rounded-full transition-colors ${dictee.ecoute ? "k-anneau text-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={{ background: "transparent" }}>
-            {dictee.finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />}
+          className="block w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume max-md:text-[16px]" style={{ background: "transparent" }} />
+        <div className="mt-2 flex items-center justify-end gap-1.5">
+          {dictee.supporte && (
+            <button type="button" onClick={micro} disabled={rediger.isPending || dictee.finalisation} aria-pressed={dictee.ecoute}
+              aria-label={dictee.finalisation ? "Texte dicté en cours d'écriture" : dictee.ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
+              title={dictee.ecoute ? "Arrêter la dictée" : "Dicter"}
+              className={`grid h-8 w-8 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief ${dictee.ecoute || dictee.finalisation ? "bg-menthe/20 text-menthe" : "text-craie"} ${dictee.finalisation ? "" : "disabled:opacity-40"}`}
+              style={dictee.ecoute || dictee.finalisation ? undefined : { background: "transparent" }}>
+              {dictee.finalisation ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.7} /> : <Mic className="h-4 w-4" strokeWidth={1.7} />}
+            </button>
+          )}
+          <button type="button" onClick={envoyer} disabled={!pret} aria-label="Envoyer" title="Envoyer"
+            className="grid h-9 w-9 flex-none place-items-center rounded-full text-encre transition-colors hover:text-menthe disabled:cursor-default disabled:opacity-30" style={{ background: "transparent" }}>
+            <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />
           </button>
-        )}
-        <button type="button" onClick={envoyer} disabled={!pret} aria-label="Envoyer"
-          className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-40">
-          <ArrowUp className="h-4 w-4" strokeWidth={2} />
-        </button>
+        </div>
       </div>
     </div>
   );

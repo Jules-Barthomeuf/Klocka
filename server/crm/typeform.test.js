@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import { lireEnvoi, montant, signatureTypeform, valeursProspect } from './typeform.js';
+import { informationAvec, lireEnvoi, montant, signatureTypeform, valeursProspect } from './typeform.js';
 
 const envoi = {
   form_id: 'GD7sREFs', submitted_at: '2026-11-25T10:12:00Z',
@@ -56,4 +56,16 @@ test('une nouvelle ligne : Source VSL ou SITE WEB, A Relancer ; une ligne exista
   assert.equal(site.revenu, undefined);
   assert.equal(site.email, undefined);
   assert.match(site.information, /^Rencontrée au salon\n\nTypeform SITE WEB/);
+});
+
+test("une réponse partielle puis complète, ou un import refait, remplace son bloc au lieu de le recopier", () => {
+  const partielle = { ...lireEnvoi({ ...envoi, token: 'abc' }), partielle: true };
+  const complete = { ...lireEnvoi({ ...envoi, token: 'abc' }), partielle: false };
+  const une = informationAvec('Rencontrée au salon', partielle, 'site');
+  assert.match(une, /\(incomplet\) · réponse abc/);
+  const deux = informationAvec(une, complete, 'site');
+  assert.equal((deux.match(/réponse abc/g) || []).length, 1);
+  assert.doesNotMatch(deux, /incomplet/);
+  assert.match(deux, /^Rencontrée au salon\n\nTypeform SITE WEB/);
+  assert.equal(informationAvec(deux, complete, 'site'), deux);
 });

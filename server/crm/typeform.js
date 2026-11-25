@@ -61,7 +61,7 @@ export function montant(t) {
  */
 export function lireEnvoi(formResponse) {
   const champs = new Map((formResponse?.definition?.fields || []).map((f) => [f.id, f]));
-  const out = { prenom: null, nom: null, email: null, telephone: null, patrimoine: null, revenu: null, fondsPropre: null, reponses: [], le: formResponse?.submitted_at || null, formulaire: formResponse?.form_id || null, titre: formResponse?.definition?.title || null };
+  const out = { prenom: null, nom: null, email: null, telephone: null, patrimoine: null, revenu: null, fondsPropre: null, reponses: [], le: formResponse?.submitted_at || formResponse?.landed_at || null, formulaire: formResponse?.form_id || null, titre: formResponse?.definition?.title || null, reponse_id: formResponse?.token || formResponse?.response_id || null, partielle: false };
   for (const r of formResponse?.answers || []) {
     const q = champs.get(r.field?.id) || r.field || {};
     const titre = String(q.title || q.ref || '').replace(/\*|\{\{[^}]*\}\}/g, '').trim();
@@ -92,8 +92,24 @@ export function lireEnvoi(formResponse) {
   return out;
 }
 
+/** Pure : l'en-tête d'un envoi, qui le reconnaît dans la case Information (sa réponse Typeform). */
+const enTete = (lu, source) => `Typeform ${SOURCES[source] || source}${lu.le ? ` du ${new Date(lu.le).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}` : ''}${lu.partielle ? ' (incomplet)' : ''}${lu.reponse_id ? ` · réponse ${lu.reponse_id}` : ''}`;
+
 /** Pure : le texte des réponses, pour la case Information et la note. */
-export const texteDesReponses = (lu, source) => [`Typeform ${SOURCES[source] || source}${lu.le ? ` du ${new Date(lu.le).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}` : ''}`, ...lu.reponses.map((x) => `${x.question} : ${x.reponse}`)].join('\n');
+export const texteDesReponses = (lu, source) => [enTete(lu, source), ...lu.reponses.map((x) => `${x.question} : ${x.reponse}`)].join('\n');
+
+/**
+ * Pure : la case Information avec cet envoi. Un envoi déjà là (même réponse Typeform : une réponse partielle puis
+ * complète, un import refait) est remplacé, pas recopié ; un autre s'ajoute après ce qui est écrit.
+ */
+export function informationAvec(actuelle, lu, source) {
+  const texte = texteDesReponses(lu, source);
+  const blocs = String(actuelle || '').split(/\n\n+/).filter((b) => b.trim());
+  const meme = lu.reponse_id ? blocs.findIndex((b) => b.split('\n')[0].endsWith(`· réponse ${lu.reponse_id}`)) : -1;
+  if (meme >= 0) { blocs[meme] = texte; return blocs.join('\n\n'); }
+  if (blocs.includes(texte)) return blocs.join('\n\n');
+  return [...blocs, texte].join('\n\n');
+}
 
 const telephoneTwenty = (t) => {
   const chiffres = String(t || '').replace(/[^\d+]/g, '');
@@ -117,8 +133,7 @@ export function valeursProspect(lu, source, existante = null) {
   if (lu.revenu != null && vide('revenu')) v.revenu = lu.revenu;
   if (lu.fondsPropre != null && vide('fondsPropre')) v.fondsPropre = lu.fondsPropre;
   v.source9 = valeurOption(SOURCES[source]);
-  const texte = texteDesReponses(lu, source);
-  v.information = existante?.information && !String(existante.information).includes(texte) ? `${existante.information}\n\n${texte}` : texte;
+  v.information = informationAvec(existante?.information, lu, source);
   if (!existante) { v.statut = STATUT_NOUVEAU; v.date = String(lu.le || new Date().toISOString()).slice(0, 10); v.groupe = 'PROSPECTS'; }
   return v;
 }
@@ -154,8 +169,14 @@ export async function trouverProspect({ email, telephone }) {
 /** Un envoi Typeform reçu : la ligne des Prospects créée ou complétée, et une note avec toutes les réponses. */
 export async function recevoirTypeform(corps, source) {
   if (!SOURCES[source]) return { ok: false, error: 'Source inconnue : ?source=site ou ?source=vsl.' };
-  if (corps?.event_type && corps.event_type !== 'form_response') return { ok: true, ignore: 'type' };
-  const lu = lireEnvoi(corps?.form_response);
+  // Les réponses partielles (déclencheur « complètes et partielles » du webhook) entrent aussi : on peut relancer.
+  if (corps?.event_type && !['form_response', 'form_response_partial'].includes(corps.event_type)) return { ok: true, ignore: 'type' };
+  const lu = { ...lireEnvoi(corps?.form_response), partielle: corps?.event_type === 'form_response_partial' };
+  return ecrireEnvoi(lu, source);
+}
+
+/** Un envoi lu, écrit dans Prospects : la ligne créée ou complétée ; une note pour un envoi complet. */
+export async function ecrireEnvoi(lu, source, { note = !lu.partielle } = {}) {
   if (!lu.email && !lu.telephone) return { ok: true, ignore: 'ni mail ni téléphone' };
   if (!T.twentyConfigure()) return { ok: false, error: 'Twenty CRM n\'est pas configuré.' };
   await assurerOptions();
@@ -163,7 +184,7 @@ export async function recevoirTypeform(corps, source) {
   const valeurs = valeursProspect(lu, source, existante);
   const ligne = existante ? await T.modifier(OBJET.namePlural, existante.id, valeurs) : await T.creer(OBJET.namePlural, valeurs);
   const id = existante?.id || ligne?.id;
-  if (id) await T.noter(CIBLE_NOTE, id, `Typeform ${SOURCES[source]}`, texteDesReponses(lu, source)).catch((e) => console.warn(`[typeform] note : ${e?.message || e}`));
+  if (id && note) await T.noter(CIBLE_NOTE, id, `Typeform ${SOURCES[source]}`, texteDesReponses(lu, source)).catch((e) => console.warn(`[typeform] note : ${e?.message || e}`));
   return { ok: true, id, cree: !existante };
 }
 
@@ -182,4 +203,47 @@ export async function callCalendly(evenement) {
   if (!x.statut || x.statut === STATUT_NOUVEAU) await T.modifier(OBJET.namePlural, x.id, { statut: STATUT_CALL, ...(debut ? { date: debut.slice(0, 10) } : {}) });
   await T.noter(CIBLE_NOTE, x.id, 'Call Calendly pris', `${evenement?.payload?.name || email} a pris un call${quand ? ` pour le ${quand}` : ''}.`).catch(() => {});
   return { ok: true, id: x.id };
+}
+
+/**
+ * Les réponses déjà dans Typeform (25 nov. 2026, Jules : « ceux qui ont rempli toutes les questions, je veux aussi
+ * qu'ils entrent dans Prospects, pour les relancer ») : lues par l'API Typeform (TYPEFORM_TOKEN, un jeton personnel
+ * avec les droits forms:read et responses:read), puis écrites comme un envoi reçu, sans note. `essai` ne fait que lire
+ * et compter. Une ligne déjà là est complétée, jamais doublée.
+ */
+export async function importerTypeform(formId, source, { essai = true, depuis = null, jeton = process.env.TYPEFORM_TOKEN } = {}) {
+  if (!SOURCES[source]) return { ok: false, error: 'Source inconnue : site ou vsl.' };
+  if (!jeton) return { ok: false, error: 'TYPEFORM_TOKEN manque.' };
+  const api = async (chemin) => {
+    const r = await fetch(`https://api.typeform.com${chemin}`, { headers: { Authorization: `Bearer ${jeton}` } });
+    if (!r.ok) throw new Error(`Typeform ${r.status} : ${(await r.text()).slice(0, 200)}`);
+    return r.json();
+  };
+  const formulaire = await api(`/forms/${encodeURIComponent(formId)}`);
+  const definition = { title: formulaire.title, fields: aplatir(formulaire.fields || []) };
+  const items = [];
+  let avant = null;
+  for (;;) {
+    const q = new URLSearchParams({ page_size: '1000', response_type: 'completed' });
+    if (avant) q.set('before', avant);
+    if (depuis) q.set('since', depuis);
+    const page = await api(`/forms/${encodeURIComponent(formId)}/responses?${q}`);
+    const lot = page.items || [];
+    items.push(...lot);
+    if (lot.length < 1000) break;
+    avant = lot.at(-1).token;
+  }
+  const lus = items.map((x) => ({ ...lireEnvoi({ ...x, definition, form_id: formId }), reponse_id: x.token || x.response_id || null }));
+  const joignables = lus.filter((lu) => lu.email || lu.telephone);
+  if (essai) return { ok: true, essai: true, formulaire: formulaire.title, reponses: items.length, joignables: joignables.length, exemples: joignables.slice(0, 5).map((lu) => ({ nom: [lu.prenom, lu.nom].filter(Boolean).join(' '), email: lu.email, le: lu.le })) };
+  let crees = 0; let completes = 0; const erreurs = [];
+  for (const lu of joignables) {
+    try { const r = await ecrireEnvoi(lu, source, { note: false }); if (r.cree) crees += 1; else if (r.ok) completes += 1; } catch (e) { erreurs.push(`${lu.email || lu.telephone} : ${e?.message || e}`); }
+  }
+  return { ok: true, formulaire: formulaire.title, reponses: items.length, crees, completes, erreurs };
+}
+
+/** Pure : les questions d'un formulaire, celles des groupes comprises. */
+function aplatir(champs) {
+  return champs.flatMap((f) => [f, ...aplatir(f.properties?.fields || [])]);
 }

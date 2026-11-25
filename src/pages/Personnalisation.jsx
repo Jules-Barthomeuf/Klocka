@@ -2,14 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import BoiteMail from "@/components/dashboard/BoiteMail";
 import ImportFiches from "@/components/fiche-dossier/ImportFiches";
 import { vueDe } from "@/lib/vue";
-import { Check, Eye, EyeOff, Grip, Maximize2, Pipette, RotateCcw, Smartphone } from "lucide-react";
+import { Check, Maximize2, Smartphone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
-import { CLAIR, OPTIONS, PERSONNAGES_HAKA, POLICES, accentHex, barreHex, barreLisible, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
-import jetons from "@/design/jetons.json";
-import { TEINTE_DEPART, barreDepuisTeinte, degradeIntensite, degradeTeintes, teinteDeBarre } from "@/lib/teinte-barre";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, GROUPE_PARAMETRES, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, masquesDe, repartir } from "@/lib/menu";
+import { CLAIR, OPTIONS, PERSONNAGES_HAKA, accentHex, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
+import { GROUPE_PARAMETRES, masquesDe } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
 import Competences from "@/components/haka/Competences";
 import Sources from "@/components/socle/Sources";
@@ -17,10 +15,14 @@ import AccesAdmins from "@/components/compte/AccesAdmins";
 import MesMails from "@/components/compte/MesMails";
 import { ListeVilles } from "@/components/mandataire/VillesMandataire";
 import { estApercuTelephone } from "@/components/ApercuTelephone";
-import { BoutonOutil, Filtres, TitrePage } from "@/components/mandataire/elements";
+import { Filtres, TitrePage } from "@/components/mandataire/elements";
 import { createPageUrl } from "@/utils";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { prechargerAuSurvol } from "@/lib/precharger";
+
+// L'onglet Assistant (portrait, longueur des réponses, tableaux), caché le 25 nov. 2026 (Jules : « tu peux cacher
+// Assistant, si c'est demandé je le remettrai ») : true le remet.
+const HAKA_VISIBLE = false;
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
 // s'applique à l'instant, sur la page elle-même : c'est l'aperçu. Les
@@ -184,167 +186,6 @@ function SelecteurCouleur({ valeur, onChoisir }) {
   );
 }
 
-/** Un curseur horizontal sur un dégradé : la valeur de 0 à `max`, au glisser comme au clavier. */
-function Curseur({ libelle, valeur, max, fond, onChange }) {
-  const zone = useRef(null);
-  const lire = (ev) => { const r = zone.current.getBoundingClientRect(); onChange(Math.round(Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)) * max)); };
-  const prendre = (e) => {
-    const el = zone.current;
-    if (!el) return;
-    el.setPointerCapture?.(e.pointerId);
-    lire(e);
-    const fin = () => { el.removeEventListener("pointermove", lire); el.removeEventListener("pointerup", fin); el.removeEventListener("pointercancel", fin); };
-    el.addEventListener("pointermove", lire);
-    el.addEventListener("pointerup", fin);
-    el.addEventListener("pointercancel", fin);
-  };
-  const clavier = (e) => {
-    const pas = e.shiftKey ? 10 : 1;
-    if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); onChange(Math.min(max, valeur + pas)); }
-    if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); onChange(Math.max(0, valeur - pas)); }
-  };
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[12.5px] text-ardoise">{libelle}</span>
-      <div ref={zone} role="slider" tabIndex={0} aria-label={libelle} aria-valuemin={0} aria-valuemax={max} aria-valuenow={valeur} onPointerDown={prendre} onKeyDown={clavier}
-        className="relative h-4 cursor-pointer touch-none rounded-full border border-bord-doux" style={{ backgroundImage: fond }}>
-        <span className="pointer-events-none absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-encre shadow-sm" style={{ left: `${(valeur / max) * 100}%` }} />
-      </div>
-    </div>
-  );
-}
-
-/** La barre personnalisée : la teinte et l'intensité, la clarté tenue par le mode (src/lib/teinte-barre.js). */
-function TeinteBarre({ valeur, mode, onChoisir }) {
-  const [reglage, setReglage] = useState(() => teinteDeBarre(valeur, mode));
-  const poser = (r) => { setReglage(r); onChoisir(barreDepuisTeinte(r.teinte, r.intensite, mode)); };
-  return (
-    <div className="flex w-full max-w-[340px] flex-col gap-4">
-      <Curseur libelle="Teinte" valeur={reglage.teinte} max={359} fond={degradeTeintes(mode)} onChange={(t) => poser({ ...reglage, teinte: t })} />
-      <Curseur libelle="Intensité" valeur={reglage.intensite} max={100}
-        fond={degradeIntensite(reglage.teinte, mode)} onChange={(i) => poser({ ...reglage, intensite: i })} />
-    </div>
-  );
-}
-
-/**
- * La couleur de la barre latérale pour un mode : les teintes proposées, puis
- * « Personnaliser », qui ouvre le sélecteur. Les panneaux de l'application
- * (listes, mode appel, dossiers, fiches, barre de chat) la reprennent.
- */
-function ChoixBarre({ mode, prefs, changer, theme }) {
-  const cle = `barre_${mode}`;
-  const choix = prefs[cle];
-  const teintes = Object.entries(jetons.barres[mode]);
-  const perso = choix.startsWith("#");
-  const [ouvert, setOuvert] = useState(perso);
-  const hex = barreHex(prefs, mode === "clair" ? CLAIR : "sombre");
-  const pastille = (actif) => `inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[13px] transition-colors ${actif ? "border-menthe text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`;
-  return (
-    <>
-      {teintes.map(([k, t]) => (
-        <button key={k} type="button" onClick={() => { changer({ [cle]: k }); setOuvert(false); }} aria-pressed={choix === k} className={pastille(choix === k)} style={{ background: "transparent" }}>
-          <span className="h-6 w-6 rounded-full border border-bord-vif" style={{ background: t.teinte }} />{t.nom}
-        </button>
-      ))}
-      {/* « Personnaliser » (19 oct. 2026, Jules : « ne marche pas, change-le ») : une teinte visible se pose tout de suite,
-          puis deux curseurs, la teinte et l'intensité ; la clarté reste celle d'une barre lisible dans ce mode. */}
-      <button type="button" onClick={() => { setOuvert(true); if (!perso) changer({ [cle]: barreDepuisTeinte(TEINTE_DEPART.teinte, TEINTE_DEPART.intensite, mode) }); }} aria-pressed={perso} className={pastille(perso)} style={{ background: "transparent" }}>
-        <span className="grid h-6 w-6 place-items-center rounded-full border border-bord-vif" style={{ background: perso ? choix : "conic-gradient(hsl(0 85% 60%), hsl(60 85% 60%), hsl(120 85% 60%), hsl(180 85% 60%), hsl(240 85% 60%), hsl(300 85% 60%), hsl(360 85% 60%))" }}>
-          {!perso && <Pipette className="h-3 w-3" style={{ color: "rgb(255 255 255)" }} />}
-        </span>
-        Personnaliser
-      </button>
-      {perso && ouvert && (
-        <div className="k-monte mt-2 flex w-full flex-wrap items-start gap-5">
-          <TeinteBarre valeur={choix} mode={mode} onChoisir={(v) => changer({ [cle]: v })} />
-          <div className="flex flex-col gap-2 text-[12.5px]">
-            <span className="text-ardoise">Aperçu</span>
-            <span className="flex h-[74px] w-[140px] overflow-hidden rounded-[10px] border border-bord-doux">
-              <span className="w-[36px]" style={{ background: choix }} />
-              <span className="flex-1 bg-fond p-2"><span className="block h-full rounded-[6px]" style={{ background: choix }} /></span>
-            </span>
-            {!barreLisible(choix, mode === "clair" ? CLAIR : "sombre") && <span className="max-w-[220px] text-ambre">Le texte du mode {mode} sera peu lisible sur cette teinte.</span>}
-            {(mode === "clair") !== (theme === CLAIR) && <span className="max-w-[220px] text-brume">Se voit quand le mode {mode} est affiché.</span>}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-/**
- * Le menu en deux listes, le principal et « Autre ». On attrape une entrée
- * et on la pose où l'on veut, dans la même liste ou dans l'autre ; toutes
- * peuvent aller d'un côté comme de l'autre. L'œil la masque (sauf
- * Personnalisation, sans quoi plus moyen de revenir ici).
- */
-function EditeurMenu({ principales, autres, prefs, changer }) {
-  const { principal, autre } = repartir(principales, autres, { ordre: prefs.menu_ordre, masques: [], menuAutre: prefs.menu_autre });
-  const [tenue, setTenue] = React.useState(null); // la clé qu'on déplace
-  const [cible, setCible] = React.useState(null); // { groupe, avant } : où elle tomberait
-
-  const poser = (groupe, avant) => {
-    if (!tenue) return;
-    const listes = { principal: principal.map((e) => e.cle), autre: autre.map((e) => e.cle) };
-    for (const g of Object.keys(listes)) listes[g] = listes[g].filter((c) => c !== tenue);
-    const dest = listes[groupe];
-    const at = avant ? dest.indexOf(avant) : -1;
-    if (at < 0) dest.push(tenue); else dest.splice(at, 0, tenue);
-    changer({ menu_ordre: [...listes.principal, ...listes.autre], menu_autre: listes.autre });
-    setTenue(null); setCible(null);
-  };
-  const basculer = (cle) => {
-    const masques = prefs.menu_masques.includes(cle) ? prefs.menu_masques.filter((c) => c !== cle) : [...prefs.menu_masques, cle];
-    changer({ menu_masques: masques });
-  };
-
-  // Une fonction et non un composant : un composant défini ici serait remonté
-  // à chaque survol, et l'entrée qu'on tient disparaîtrait en plein glisser.
-  const liste = (groupe, titre, entrees) => (
-    <div
-      className={`flex min-h-[120px] flex-col gap-1.5 rounded-[14px] border p-2 transition-colors ${cible?.groupe === groupe ? "border-menthe/60 bg-menthe/[0.05]" : "border-trait"}`}
-      onDragOver={(ev) => { ev.preventDefault(); if (cible?.groupe !== groupe || cible?.avant) setCible({ groupe, avant: null }); }}
-      onDrop={(ev) => { ev.preventDefault(); poser(groupe, null); }}
-    >
-      <p className="m-0 px-2 pt-1 pb-1 text-[13px] text-ardoise">{titre}</p>
-      {entrees.map((e) => {
-        const masquee = prefs.menu_masques.includes(e.cle);
-        const fixe = e.cle === TOUJOURS_VISIBLE;
-        return (
-          <div
-            key={e.cle}
-            draggable
-            onDragStart={(ev) => { setTenue(e.cle); ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/plain", e.cle); }}
-            onDragEnd={() => { setTenue(null); setCible(null); }}
-            onDragOver={(ev) => { ev.preventDefault(); ev.stopPropagation(); if (cible?.avant !== e.cle) setCible({ groupe, avant: e.cle }); }}
-            onDrop={(ev) => { ev.preventDefault(); ev.stopPropagation(); poser(groupe, e.cle); }}
-            className={`flex cursor-grab items-center gap-2 rounded-[10px] border bg-surface-pleine px-2.5 py-1.5 active:cursor-grabbing ${tenue === e.cle ? "opacity-40" : ""} ${cible?.avant === e.cle && tenue !== e.cle ? "border-menthe" : "border-trait"} ${masquee ? "opacity-60" : ""}`}
-          >
-            <span className="grid h-7 w-7 flex-none cursor-grab place-items-center rounded-[8px] text-ardoise hover:bg-relief hover:text-encre active:cursor-grabbing" title="Attraper pour déplacer" aria-label={`Déplacer ${e.label}`}>
-              <Grip className="h-4 w-4" />
-            </span>
-            <span className={`flex-1 text-[13.5px] ${masquee ? "text-brume line-through" : "text-encre"}`}>{e.label}</span>
-            {!fixe && (
-              <button type="button" onClick={() => basculer(e.cle)} aria-label={masquee ? `Montrer ${e.label}` : `Masquer ${e.label}`} title={masquee ? "Masquée : cliquer pour la montrer" : "Visible : cliquer pour la masquer"} className="grid h-7 w-7 place-items-center rounded-full text-craie hover:text-encre" style={{ background: "transparent" }}>
-                {masquee ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            )}
-          </div>
-        );
-      })}
-      {!entrees.length && <p className="m-0 px-2 py-3 text-[12.5px] text-brume">Déposez une entrée ici.</p>}
-    </div>
-  );
-
-  return (
-    <div className="grid w-full gap-3 sm:grid-cols-2">
-      {liste("principal", "Menu principal", principal)}
-      {liste("autre", "Autre", autre)}
-    </div>
-  );
-}
-
 /** La bannière en bas des mails (8 oct. 2026) : celle de son adresse Klocka, telle qu'elle part. */
 function SignatureMails({ email }) {
   const [absente, setAbsente] = useState(false);
@@ -363,7 +204,7 @@ function SignatureMails({ email }) {
 
 export default function Personnalisation() {
   const user = useUser();
-  const { prefs, changer, reinitialiser, etat, connecte } = usePersonnalisation();
+  const { prefs, changer, etat, connecte } = usePersonnalisation();
   const [portraitsGrands, setPortraitsGrands] = useState(false);
   const admin = user?.role === "admin";
   // La vue client (un client, ou un admin qui regarde comme lui) : pas de page
@@ -382,33 +223,45 @@ export default function Personnalisation() {
     return () => clearTimeout(t);
   }, [vueMandataire]);
   const large = !vueClient || vueMandataire;
-  // Les sections de la page, selon qui regarde.
+  // Les sections de la page, selon qui regarde. Simplifiée le 25 nov. 2026 (Jules : « simplifier au maximum ») : à
+  // gauche ce qui est à la personne (Profil, Mails, Apparence, et Suivi pour les admins, « à la place d'Assistant, c'est
+  // important pour les admins ») ; à droite les outils de qui gère les accès. Les réglages retirés (fond, barre, halo,
+  // points, surfaces, transparence, police, boutons, animations, page d'ouverture, menu, bulle, personnage) gardent
+  // la valeur que chacun avait ; l'onglet Assistant est caché, prêt à revenir (HAKA_VISIBLE).
+  const suiviOuvert = admin && !vueClient && !vueMandataire && !(user?.pages_fermees || []).includes("Monitoring");
   const sections = [
     ["profil", "Profil", true],
-    ["acces", "Accès de l'équipe", !vueClient && !!user?.gere_les_acces],
     ["agent", "Mes villes", vueMandataire],
-    ["couleurs", "Couleurs", true],
-    ["affichage", "Affichage", true],
-    // Haka à sa façon (18 oct. 2026, Jules) : son portrait, la longueur de ses réponses, les tableaux.
-    ["haka", "Assistant Klocka", !vueClient],
-    ["navigation", "Navigation", !vueClient],
-    ["signature", "Signature", admin && !vueClient],
-    // Ses mails après un appel (13 oct. 2026) : à partir de ceux de l'équipe.
     ["mails", "Mails", admin && !vueClient],
-    // Les boîtes connectées, quittées de l'accueil (20 nov. 2026, Jules) : la boîte qui envoie, en ajouter, l'historique.
-    ["boites", "Boîtes mail", admin && !vueClient],
+    ["apparence", "Apparence", true],
+    ["haka", "Assistant", HAKA_VISIBLE && !vueClient],
     ["habilitations", "Habilitations", vueMandataire],
-    // Le Suivi, rangé ici le 17 oct. 2026, est passé dans Administration le 18 oct. (Jules).
+    ["suivi", "Suivi", suiviOuvert],
+  ].filter((x) => x[2]);
+  const outils = [
+    ["acces", "Accès de l'équipe", !vueClient && !!user?.gere_les_acces],
     // Les compétences de Haka (17 oct. 2026) : Jules seul les écrit et les publie.
     ["competences", "Compétences", !vueClient && !!user?.gere_les_acces],
     // L'import des fiches (22 nov. 2026, Jules) : remplir les fiches avant que l'équipe s'en serve.
     ["import", "Import des fiches", !vueClient && !vueMandataire && !!user?.gere_les_acces],
     // Les sources de la boîte à outils de Haka (18 oct. 2026, lot 1) : interrupteurs, poids, entrepôt.
-    ["sources", "Sources", admin && !vueClient && !vueMandataire],
+    ["sources", "Sources", !vueClient && !vueMandataire && !!user?.gere_les_acces],
   ].filter((x) => x[2]);
-  const [sectionBrute, setSection] = useState(() => { try { return (typeof window !== "undefined" && window.location.hash === "#agent") ? "agent" : localStorage.getItem("compte.section") || "profil"; } catch { return "profil"; } });
-  const section = sections.some(([k]) => k === sectionBrute) ? sectionBrute : "profil";
-  const choisir = (k) => { setSection(k); try { localStorage.setItem("compte.section", k); } catch { /* navigation privée */ } };
+  const navigate = useNavigate();
+  const [sectionBrute, setSection] = useState(() => { try { const h = typeof window !== "undefined" ? window.location.hash.slice(1) : ""; return h || localStorage.getItem("compte.section") || "profil"; } catch { return "profil"; } });
+  // Une section demandée par l'adresse (#mails, #apparence…, 25 nov. 2026 : le menu du profil en haut à droite y mène).
+  useEffect(() => {
+    const suivre = () => { const h = window.location.hash.slice(1); if (h) setSection(h); };
+    window.addEventListener("hashchange", suivre);
+    return () => window.removeEventListener("hashchange", suivre);
+  }, []);
+  const section = [...sections, ...outils].some(([k]) => k === sectionBrute && k !== "suivi") ? sectionBrute : "profil";
+  // Suivi ouvre sa page (Usage, Appels, Réunion, Corrections) ; les autres onglets restent ici.
+  const choisir = (k) => {
+    if (k === "suivi") { navigate(createPageUrl("Monitoring")); return; }
+    setSection(k);
+    try { localStorage.setItem("compte.section", k); } catch { /* navigation privée */ }
+  };
   const theme = themeEffectif(prefs);
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
 
@@ -416,22 +269,14 @@ export default function Personnalisation() {
     // L'équipe et les mandataires (9 nov. 2026, Jules) : la largeur des autres pages, chaque bloc dans un cadre à 12 px, le fond de la page dedans.
     <div className={`mx-auto w-full px-5 ${large ? "max-w-[1500px] py-[22px] md:px-8 [&_section]:!rounded-[12px] [&_section]:!border [&_section]:!border-trait [&_section]:!bg-transparent [&_section]:!bg-none [&_section.k-grid]:before:!hidden [&_section.k-grid]:after:!hidden md:[&_input:not([type=checkbox]):not([type=color]):not([type=range]):not([type=file])]:!h-8 md:[&_input]:!text-[13.5px]" : `py-8 md:px-6 md:py-10 ${large ? "max-w-[1100px]" : "max-w-[980px]"}`}`}>
       {large ? (
-        <TitrePage titre="Paramètres" className="mb-3.5 md:!pr-[112px]" actions={<>
-          <span className={`text-[13px] ${etat === "erreur" ? "text-alerte" : "text-ardoise"}`}>{etatMot}</span>
-          <BoutonOutil onClick={reinitialiser}><RotateCcw className="h-3.5 w-3.5" />Réglages d'origine</BoutonOutil>
-        </>} />
+        <TitrePage titre="Paramètres" className="mb-3.5 md:!pr-[112px]" actions={<span className={`text-[13px] ${etat === "erreur" ? "text-alerte" : "text-ardoise"}`}>{etatMot}</span>} />
       ) : (
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Paramètres</h1>
           <p className="m-0 mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-craie">Votre profil, puis vos réglages. Tout s'applique tout de suite, et vous suit d'un appareil à l'autre.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className={`text-[12.5px] ${etat === "erreur" ? "text-alerte" : "text-brume"}`}>{etatMot}</span>
-          <button type="button" onClick={reinitialiser} className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-            <RotateCcw className="h-3.5 w-3.5" />Réglages d'origine
-          </button>
-        </div>
+        <span className={`text-[12.5px] ${etat === "erreur" ? "text-alerte" : "text-brume"}`}>{etatMot}</span>
       </header>
       )}
 
@@ -441,13 +286,25 @@ export default function Personnalisation() {
       {large ? (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <Filtres label="Sections du compte" valeur={section} onChange={choisir} options={sections.map(([k, mot]) => [k, mot])} />
-          {admin && !vueClient && !vueMandataire && (
+          {/* À droite, les outils de qui gère les accès : ses sections, puis Modèles, Intelligence, Automatismes et le mode
+              téléphone (25 nov. 2026). */}
+          {(outils.length > 0 || (admin && !vueClient && !vueMandataire && !!user?.gere_les_acces)) && (
             <div className="flex flex-wrap gap-0.5">
-              {GROUPE_PARAMETRES.entrees.filter((e) => e.cle !== "Personnalisation" && !masquesDe(user?.email).includes(e.cle) && !(user?.pages_fermees || []).includes(e.cle))
-                .sort((a, b) => ["AdminModeles", "Monitoring", "Cerveau", "Automatismes"].indexOf(a.cle) - ["AdminModeles", "Monitoring", "Cerveau", "Automatismes"].indexOf(b.cle))
+              {outils.map(([k, mot]) => (
+                <button key={k} type="button" onClick={() => choisir(k)} aria-pressed={section === k}
+                  className={`inline-flex h-8 items-center rounded-full px-3 text-[13px] transition-colors ${section === k ? "bg-rail-actif text-encre" : "text-craie hover:bg-relief hover:text-encre"}`}
+                  style={section === k ? undefined : { background: "transparent" }}>{mot}</button>
+              ))}
+              {admin && !vueClient && !vueMandataire && !!user?.gere_les_acces && GROUPE_PARAMETRES.entrees.filter((e) => !["Personnalisation", "Monitoring"].includes(e.cle) && !masquesDe(user?.email).includes(e.cle) && !(user?.pages_fermees || []).includes(e.cle))
                 .map((e) => (
                   <Link key={e.cle} to={createPageUrl(e.cle)} onMouseEnter={() => prechargerAuSurvol(e.cle)} onFocus={() => prechargerAuSurvol(e.cle)} className="inline-flex h-8 items-center rounded-full px-3 text-[13px] text-craie transition-colors hover:bg-relief hover:text-encre">{e.label}</Link>
                 ))}
+              {!!user?.gere_les_acces && !estApercuTelephone() && (
+                <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("klocka:mode-telephone", { detail: { depart: createPageUrl("Dashboard") } }))} title="L'application comme sur un téléphone, depuis cet ordinateur"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] text-craie transition-colors hover:bg-relief hover:text-encre max-md:hidden" style={{ background: "transparent" }}>
+                  <Smartphone className="h-3.5 w-3.5" />Mode téléphone
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -464,6 +321,7 @@ export default function Personnalisation() {
       <div key={section} className="duration-300 animate-in fade-in-0">
       {/* Qui vous êtes : photo, nom, mot de passe ; pour un mandataire, ses documents. */}
       {section === "profil" && <ProfilCompte user={user} partie={vueMandataire ? "haut" : "tout"} />}
+      {section === "profil" && admin && !vueClient && <SignatureMails email={user?.email} />}
 
       {/* Jules seul : qui, parmi les admins, ouvre quelles pages. */}
       {section === "acces" && <AccesAdmins />}
@@ -478,7 +336,7 @@ export default function Personnalisation() {
         </section>
       )}
 
-      {section === "couleurs" && (
+      {section === "apparence" && (
       <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
         <Reglage titre="Mode" note="Sombre, clair, ou celui de l'appareil, qui change avec lui.">
           <Pilules valeur={prefs.mode} options={OPTIONS.mode} onChoisir={(v) => changer({ mode: v })} />
@@ -489,104 +347,22 @@ export default function Personnalisation() {
             <ChoixAccent prefs={prefs} changer={changer} theme={theme} />
           </Reglage>
         )}
-        <Reglage titre="Fond" note="Le fond de l'application, pour chacun des deux modes.">
-          <span className="w-full text-[12px] text-brume">En sombre</span>
-          <Pilules valeur={prefs.fond_sombre} options={OPTIONS.fond_sombre} onChoisir={(v) => changer({ fond_sombre: v })} />
-          <span className="mt-1 w-full text-[12px] text-brume">En clair</span>
-          <Pilules valeur={prefs.fond_clair} options={OPTIONS.fond_clair} onChoisir={(v) => changer({ fond_clair: v })} />
-        </Reglage>
-        <Reglage titre="Couleur de la barre" note="La barre de gauche, et avec elle le fond des listes, du mode appel, des dossiers, des fiches et de la barre de chat. Une teinte proposée, ou la vôtre : la teinte et son intensité, toujours lisible.">
-          <span className="w-full text-[12px] text-brume">En sombre</span>
-          <ChoixBarre mode="sombre" prefs={prefs} changer={changer} theme={theme} />
-          <span className="mt-1 w-full text-[12px] text-brume">En clair</span>
-          <ChoixBarre mode="clair" prefs={prefs} changer={changer} theme={theme} />
-        </Reglage>
-        <Reglage titre="Halo" note="Les nappes de couleur derrière les pages, en sombre. Le clair n'en a jamais.">
-          <Pilules valeur={prefs.halo} options={OPTIONS.halo} onChoisir={(v) => changer({ halo: v })} />
-        </Reglage>
-      </section>
-      )}
-
-      {section === "affichage" && (
-      <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-        <Reglage titre="Points dans la fenêtre des actions" note="Le fond de la fenêtre qui détaille les actions proposées après un appel.">
-          <Pilules valeur={prefs.points_actions} options={OPTIONS.points_actions} onChoisir={(v) => changer({ points_actions: v })} />
-        </Reglage>
-        <Reglage titre="Grille de points" note="Des points discrets en fond, là où vous les voulez. « Listes et mode appel » : les listes et le mode appel de la Prospection et des Relances. Plusieurs choix possibles ; aucun, pas de points.">
-          <Pilules valeurs={prefs.grille} options={OPTIONS.grille}
-            onChoisir={(v) => changer({ grille: prefs.grille.includes(v) ? prefs.grille.filter((z) => z !== v) : [...prefs.grille, v] })} />
-          <label className="mt-2 flex w-full max-w-[420px] items-center gap-3">
-            <span className="flex-none text-[12px] text-brume">Intensité</span>
-            <input type="range" min={10} max={100} step={5} value={prefs.grille_intensite} disabled={!prefs.grille.length}
-              onChange={(e) => changer({ grille_intensite: Number(e.target.value) })} aria-label="Intensité des points" className="min-w-0 flex-1 disabled:opacity-40" />
-            <span className="w-10 flex-none text-right text-[12px] tabular-nums text-brume">{prefs.grille_intensite} %</span>
-          </label>
-        </Reglage>
-        <Reglage titre="Surfaces" note="Les blocs et les cartes : du verre qui laisse voir le fond, ou des aplats.">
-          <Pilules valeur={prefs.surfaces} options={OPTIONS.surfaces} onChoisir={(v) => changer({ surfaces: v })} />
-        </Reglage>
-        <Reglage titre="Transparence des cartes" note="Les cartes de la page Dossiers : pleines à 100 %, de plus en plus transparentes en descendant ; le fond se devine à travers.">
-          <label className="flex w-full max-w-[420px] items-center gap-3">
-            <span className="flex-none text-[12px] text-brume">Opacité</span>
-            <input type="range" min={10} max={100} step={5} value={prefs.cartes_opacite}
-              onChange={(e) => changer({ cartes_opacite: Number(e.target.value) })} aria-label="Opacité des cartes" className="min-w-0 flex-1" />
-            <span className="w-10 flex-none text-right text-[12px] tabular-nums text-brume">{prefs.cartes_opacite} %</span>
-          </label>
-        </Reglage>
-        <Reglage titre="Police" note="Partout, ALX compris.">
-          <Pilules valeur={prefs.police} options={OPTIONS.police} onChoisir={(v) => changer({ police: v })} rendre={(v, mot) => <span style={{ fontFamily: POLICES[v] }}>{mot}</span>} />
-        </Reglage>
-        <Reglage titre="Forme des boutons" note="Les pilules sont la forme de l'action chez Klocka. Les autres formes valent pour tous les boutons.">
-          <Pilules valeur={prefs.boutons} options={OPTIONS.boutons} onChoisir={(v) => changer({ boutons: v })} rendre={(v, mot) => (
-            <span className="inline-flex items-center gap-2"><span className="inline-block h-3.5 w-6 border border-current" style={{ borderRadius: v === "pilule" ? 999 : v === "arrondi" ? 5 : 1 }} />{mot}</span>
-          )} />
-        </Reglage>
         <Reglage titre="Taille de l'interface" note="Tout grossit ou rétrécit d'un bloc, texte et espacements.">
           <Pilules valeur={prefs.taille} options={OPTIONS.taille} onChoisir={(v) => changer({ taille: v })} />
         </Reglage>
-        <Reglage titre="Animations" note="Réduites : les transitions et les mouvements s'effacent.">
-          <Pilules valeur={prefs.animations} options={OPTIONS.animations} onChoisir={(v) => changer({ animations: v })} />
-        </Reglage>
-        {/* Le mode téléphone (24 oct. 2026, Jules) : l'application dans un cadre de téléphone, depuis l'ordinateur. Pas
-            dans le cadre lui-même, ni sur un vrai téléphone. */}
-        {!estApercuTelephone() && (
-          <div className="max-md:hidden">
-            <Reglage titre="Mode téléphone" note="L'application comme sur un téléphone, depuis cet ordinateur : iPhone, petit Android ou grand iPhone, on y navigue normalement, connecté.">
-              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("klocka:mode-telephone", { detail: { depart: createPageUrl("Dashboard") } }))}
-                className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>
-                <Smartphone className="h-4 w-4" /> Voir en mode téléphone
-              </button>
-            </Reglage>
-          </div>
-        )}
       </section>
       )}
 
-      {section === "navigation" && (
-      <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-        <Reglage titre="Page d'ouverture" note="La page qui s'ouvre quand vous arrivez sur Klocka.">
-          <Pilules valeur={prefs.accueil} options={admin ? PAGES_OUVERTURE_ADMIN : PAGES_OUVERTURE_CLIENT} onChoisir={(v) => changer({ accueil: v })} />
-        </Reglage>
-        <Reglage titre="Entrées du menu" note="Glissez une entrée pour la déplacer, dans sa liste ou dans l'autre : tout peut aller dans le menu principal ou dans « Autre ». L'œil masque une entrée.">
-          <EditeurMenu principales={admin ? ENTREES_ADMIN : ENTREES_CLIENT} autres={admin ? ENTREES_AUTRE : []} prefs={prefs} changer={changer} />
-        </Reglage>
-        <Reglage titre="Bulle de l'assistant" note="La pilule qui ouvre AK sur les pages de travail.">
-          <Pilules valeur={prefs.assistant} options={OPTIONS.assistant} onChoisir={(v) => changer({ assistant: v })} />
-        </Reglage>
-        {/* L'agent testeur retiré de l'écran le 16 oct. 2026 (Jules) : plus de bouton, donc plus de réglage. */}
-      </section>
-      )}
-
-      {section === "signature" && <SignatureMails email={user?.email} />}
-      {section === "mails" && <MesMails />}
-      {section === "import" && <ImportFiches />}
-      {section === "boites" && (
-        <section className="rounded-[12px] border border-trait p-5">
+      {/* Mails : la boîte qui envoie, puis ses modèles de mails après un appel (25 nov. 2026, réunis). */}
+      {section === "mails" && (
+        <section className="mb-5 rounded-[12px] border border-trait p-5">
           <p className="m-0 mb-1 text-[15px] text-encre">Boîtes mail connectées</p>
           <p className="m-0 mb-4 text-[13px] text-ardoise">Les mails de la plateforme partent de la boîte cochée. Un clic sur une autre en fait la boîte par défaut.</p>
           <BoiteMail enLigne />
         </section>
       )}
+      {section === "mails" && <MesMails />}
+      {section === "import" && <ImportFiches />}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
       {section === "haka" && (
       <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">

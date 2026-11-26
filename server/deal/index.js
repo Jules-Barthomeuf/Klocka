@@ -577,7 +577,8 @@ function lireListeDossiers() {
   // d'après.
   const nosVilles = photosDesProjets();
   const ordre = Records.list('Deal', { sort: '-created_date' }).filter((d) => !d.cache_equipe);
-  const choisies = ordre.map((d) => photoDuProjet(d));
+  // Une photo choisie à la main (26 nov. 2026, Jules) passe devant tout et ne cède jamais sa place à une voisine.
+  const choisies = ordre.map((d) => d.photo_choisie || photoDuProjet(d));
   const prises = new Map();
   for (const p of choisies) if (p) prises.set(p, (prises.get(p) || 0) + 1);
   ordre.forEach((d, i) => {
@@ -625,7 +626,8 @@ function lireListeDossiers() {
     // L'image de la carte : celle du projet né du dossier, sinon une photo du mandataire.
     photo: photos.get(d.id) || null,
     // La photo de ville, en recours quand la liste se range autrement (par ouverture) et qu'une voisine a la même.
-    photo_secours: d.projet_id ? null : d.photo_ville || null,
+    photo_secours: d.projet_id || d.photo_choisie ? null : d.photo_ville || null,
+    photo_choisie: !!d.photo_choisie,
     // Les aperçus de la page Dossiers (14 nov. 2026, Jules) : la fiche commerciale reçue, et deux pièces de la
     // Data Room à poser derrière. Des adresses seulement : la vignette se dessine dans le navigateur (MiniaturePiece).
     ...apercusDe(d),

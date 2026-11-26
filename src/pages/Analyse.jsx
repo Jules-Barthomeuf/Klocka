@@ -6,7 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Loader2, Plus, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight, PanelLeftClose, PanelLeftOpen, Library, FileSignature } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, MoreHorizontal, Pencil, ImagePlus, ImageOff, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight, PanelLeftClose, PanelLeftOpen, Library, FileSignature } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
 import { VERDICTS } from "@/components/preanalyse/DealResultat";
@@ -118,6 +118,21 @@ export default function Analyse() {
     mutationFn: ({ id, nom }) => base44.request("POST", `/api/preanalyse/dossiers/${id}/renommer`, { body: { nom } }),
     onSuccess: () => { rafraichirListes(); toast.success("Dossier renommé"); },
     onError: (e) => toast.error(e?.message || "Renommage impossible"),
+  });
+
+  // La photo d'un dossier, choisie à la main par le menu ⋯ (26 nov. 2026, Jules) : un seul champ de fichier pour la page,
+  // le menu se refermant avant que le fichier soit choisi.
+  const champPhoto = useRef(null);
+  const photoPour = useRef(null);
+  const changerPhoto = useMutation({
+    mutationFn: ({ id, fichier }) => { const f = new FormData(); f.append("fichier", fichier); return base44.request("POST", `/api/preanalyse/dossiers/${id}/photo`, { body: f, isForm: true }); },
+    onSuccess: () => { rafraichirListes(); toast.success("Photo du dossier changée"); },
+    onError: (e) => toast.error(e?.message || "La photo n'a pas pu être changée"),
+  });
+  const photoAuto = useMutation({
+    mutationFn: (id) => base44.request("DELETE", `/api/preanalyse/dossiers/${id}/photo`),
+    onSuccess: () => { rafraichirListes(); toast.success("Photo automatique rétablie"); },
+    onError: (e) => toast.error(e?.message || "Impossible pour l'instant"),
   });
 
   const revenirEtape1 = useMutation({
@@ -275,6 +290,20 @@ export default function Analyse() {
         >
           <UserRound className="w-3.5 h-3.5" /> Changer le responsable
         </button>
+        <button
+          onClick={() => { setMenuCarte(null); photoPour.current = d.deal_id; champPhoto.current?.click(); }}
+          className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
+        >
+          <ImagePlus className="w-3.5 h-3.5" /> Changer la photo
+        </button>
+        {d.photo_choisie && (
+          <button
+            onClick={() => { setMenuCarte(null); photoAuto.mutate(d.deal_id); }}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
+          >
+            <ImageOff className="w-3.5 h-3.5" /> Photo automatique
+          </button>
+        )}
         {(d.etape_max || 1) > 1 && (
           <button
             onClick={() => {
@@ -621,6 +650,8 @@ export default function Analyse() {
         )}
 
         {/* Changer les responsables d'un dossier */}
+        <input ref={champPhoto} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; const id = photoPour.current; e.target.value = ""; if (f && id) changerPhoto.mutate({ id, fichier: f }); }} />
         {proprio && (
           <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-fond/60 px-4 backdrop-blur-sm" onClick={() => setProprio(null)}>
             <div className="w-full max-w-md max-h-[calc(100dvh-32px)] overflow-y-auto rounded-[18px] border border-trait bg-surface-pleine p-6 max-md:p-5 shadow-[0_24px_60px_rgb(0_0_0/0.18)]" onClick={(e) => e.stopPropagation()}>

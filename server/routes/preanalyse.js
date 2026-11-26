@@ -326,6 +326,25 @@ export function monterPreanalyse(app) {
     ok(res, { nom });
   }));
 
+  // La photo d'un dossier, choisie à la main (26 nov. 2026, Jules : « changer les photos des dossiers comme on veut, par
+  // les trois petits points ») : elle passe devant celle du projet et de la ville ; DELETE rend la photo automatique.
+  app.post('/api/preanalyse/dossiers/:dealId/photo', upload.single('fichier'), wrap((req, res) => {
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+    if (!req.file) return res.status(400).json({ error: 'Aucune photo reçue.' });
+    if (!/^image\/(jpeg|png|webp|gif|heic|heif)$/.test(req.file.mimetype || '')) return res.status(400).json({ error: 'Une photo : JPEG, PNG ou WebP.' });
+    const photo = `/uploads/${req.file.filename}`;
+    Records.update('Deal', brut.id, { photo_choisie: photo });
+    ajouterSuiviDeal(Records.get('Deal', brut.id), { type: 'photo', detail: 'Photo du dossier changée' }, currentUser(req));
+    ok(res, { photo });
+  }));
+  app.delete('/api/preanalyse/dossiers/:dealId/photo', wrap((req, res) => {
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+    Records.update('Deal', brut.id, { photo_choisie: null });
+    ok(res, { photo: null });
+  }));
+
   // Les étapes du dossier validées à la main (21 oct. 2026, Jules) : valider l'étape n valide aussi celles d'avant.
   app.post('/api/preanalyse/dossiers/:dealId/frise', wrap((req, res) => {
     const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);

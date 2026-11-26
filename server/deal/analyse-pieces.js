@@ -113,7 +113,10 @@ export const CRITERES_PV = [
     },
   },
 ];
-const CRITERES_EN_PLUS = { pv_ag: CRITERES_PV };
+// La date d'un avenant (26 nov. 2026, Jules : « un bail et son avenant, l'analyse a pris la clause du bail alors qu'elle
+// avait été modifiée dans l'avenant ») : entre deux avenants, le plus récent l'emporte.
+const CRITERES_AVENANT = [{ id: 'date_avenant', libelle: "Date de l'avenant", format: "JJ/MM/AAAA : la date de signature de l'avenant, sinon celle de sa prise d'effet." }];
+const CRITERES_EN_PLUS = { pv_ag: CRITERES_PV, avenants: CRITERES_AVENANT };
 
 /** Tout ce qu'une pièce lit : les critères de sa grille, ce que l'onglet Bien attend d'elle, puis ce qu'elle lit en plus. */
 export const criteresLus = (type) => [...(grilleDe(TYPES.find((t) => t.id === type)?.grille)?.criteres || []), ...(CRITERES_BIEN[type] || []), ...(CRITERES_EN_PLUS[type] || [])];
@@ -557,12 +560,25 @@ export function nomLisible(d, x) {
   return TYPES.find((t) => t.id === x?.type)?.titre || 'Pièce';
 }
 
+const isoDeDate = (t) => { const m = String(t || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : ''; };
+const dateAvenant = (d, etat) => isoDeDate(etat.docs?.[d.id]?.valeurs?.date_avenant?.valeur) || String(d.ajoute_le || '').slice(0, 10);
+/** Pure : l'ordre des pièces du bail, les avenants devant le bail, le plus récent d'abord. */
+export function ordreBail(a, b, etat = {}) {
+  const avA = a.type === 'avenants';
+  const avB = b.type === 'avenants';
+  if (avA !== avB) return avA ? -1 : 1;
+  if (avA && avB) return dateAvenant(b, etat).localeCompare(dateAvenant(a, etat));
+  return 0;
+}
+
 /** Une grille, case par case : la valeur montrée, son état, ses sources, l'alerte de la règle. */
 function lireGrille(gid, brut, docs, ctx) {
   const grille = grilleDe(gid);
   const etat = brut.analyse_pieces || {};
   const types = TYPES.filter((t) => t.grille === gid).map((t) => t.id);
-  const pieces = docs.filter((d) => types.includes(d.type)).sort((a, b) => types.indexOf(a.type) - types.indexOf(b.type));
+  // Sur le bail, un avenant modifie ce qu'il touche : il passe devant le bail, le plus récent d'abord (26 nov. 2026, Jules).
+  // Ce qu'il ne dit pas reste lu dans le bail. Ailleurs, l'ordre des types.
+  const pieces = docs.filter((d) => types.includes(d.type)).sort((a, b) => (gid === 'bail' ? ordreBail(a, b, etat) : 0) || types.indexOf(a.type) - types.indexOf(b.type));
   const enLecture = pieces.some((d) => ['en_attente', 'en_cours'].includes(d.extraction?.statut));
   const lignes = grille.criteres.map((c) => {
     const cle = `${gid}.${c.id}`;

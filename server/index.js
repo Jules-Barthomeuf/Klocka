@@ -387,6 +387,12 @@ app.post('/api/auth/photo', (req, res, next) => (currentUser(req) ? next() : res
     const { poserFicheMandataire } = await import('./mandataire-espace.js');
     poserFicheMandataire(user.email, { photo_url: url }, user);
   }
+  // La même photo dans Twenty, sur le membre de la même adresse (26 nov. 2026, Jules : « ça change partout ») ; en fond,
+  // jamais bloquant (server/crm/photo-membre.js).
+  import('./crm/photo-membre.js')
+    .then(({ photoVersTwenty }) => photoVersTwenty(user.email, req.file.path, { mime: req.file.mimetype, nom: req.file.originalname || req.file.filename }))
+    .then((r) => { if (r && !r.ok && r.raison !== 'hors de Render') console.warn(`[photo] Twenty : ${r.raison}`); })
+    .catch((e) => console.warn(`[photo] Twenty : ${e?.message || e}`));
   ok(res, sansSecret(maj));
 }));
 

@@ -400,12 +400,25 @@ export default function Analyse() {
     if (!l.prix) return `À quel prix est l'offre de ${l.acquereur} ?`;
     return "La lettre d'intention est à droite. Que veux-tu y changer ?";
   })();
-  // La bande du haut (titre, icônes, flèches) part avec la page (26 nov. 2026, Jules : « quand on descend, KFC Lyon
-  // descend aussi ; dès qu'on scrolle, on ne doit plus le voir ») : elle remonte d'autant que le dossier défile.
+  // La bande du haut (titre, icônes, flèches) part avec la page à l'étape Projet seulement (26 nov. 2026, Jules : « quand
+  // on descend, KFC Lyon descend aussi ; dès qu'on scrolle, on ne doit plus le voir ») : elle remonte d'autant que le
+  // projet défile. Partout ailleurs, elle reste en haut et seul le tableau défile dessous (même jour, Jules, sur le Bail :
+  // « lorsqu'on scrolle, on doit voir le haut avec KFC Lyon, les flèches et le menu ; seul le tableau disparaît »).
   const bandeRef = useRef(null);
+  const remettreBande = () => { const h = bandeRef.current; if (h) { h.style.transform = ""; h.style.opacity = ""; h.style.pointerEvents = ""; } };
+  useEffect(remettreBande, [vueDossier, dealId]);
   const suivreDefilement = (e) => {
     const h = bandeRef.current;
     if (!h) return;
+    if (vueDossier !== "projet") {
+      if (h.style.transform) remettreBande();
+      // La bande est posée par-dessus la page (k-cadre-l) : le contenu qui défile s'efface sous elle au lieu de passer
+      // derrière le titre et les flèches ; au repos, rien n'est masqué.
+      const el = e.currentTarget;
+      const masque = el.scrollTop > 0 ? "linear-gradient(to bottom, transparent 0, transparent 72px, #000 92px)" : "";
+      if (el.style.maskImage !== masque) { el.style.maskImage = masque; el.style.webkitMaskImage = masque; }
+      return;
+    }
     const y = Math.min(e.currentTarget.scrollTop, 80);
     h.style.transform = y ? `translateY(${-y}px)` : "";
     h.style.opacity = y ? String(Math.max(0, 1 - y / 60)) : "";

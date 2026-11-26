@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { ChevronDown, Loader2, Minus, Plus, X } from "lucide-react";
+import { ChevronDown, Loader2, Maximize2, Minus, Plus, X } from "lucide-react";
 import DocumentsDossier from "./DocumentsDossier";
 import SimulateurAnalyse from "./SimulateurAnalyse";
 import DonneesExtraites from "./DonneesExtraites";
@@ -480,6 +480,17 @@ function ImageSurlignee({ url, citation = null }) {
   );
 }
 
+/**
+ * Le nom d'une pièce tel qu'on le dit (26 nov. 2026, Jules, sur « 1795166698417-b78a78fa-Copie_de_Bail_11_RUE_SAINT_ROME ») :
+ * sans l'horodatage ni l'empreinte du dépôt, sans extension, les « _ » en espaces.
+ */
+export const nomLisible = (nom) => String(nom || "")
+  .replace(/^\d{10,}-[0-9a-f]{6,}-/i, "")
+  .replace(/\.[a-z0-9]{2,4}$/i, "")
+  .replace(/[_]+/g, " ")
+  .replace(/\s+/g, " ")
+  .trim() || "Pièce";
+
 // `enTeteCarte` : l'en-tête à la taille d'un titre de carte, à côté d'une carte (26 nov. 2026, Jules : « de la même
 // taille que La clause »).
 export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteur = null, enTeteCarte = false }) {
@@ -515,7 +526,9 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
 
   return (
     <div className={`bg-surface border border-trait rounded-md overflow-hidden flex flex-col ${hauteur || "h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] max-md:[.panneau-source_&]:h-[calc(100dvh-32px)] [.panneau-source_&]:static"}`}>
-      <div className={`flex items-center gap-3 border-b border-bord flex-shrink-0 ${enTeteCarte ? "px-7 pb-4 pt-6 max-md:px-5" : "px-4 py-2.5"}`}>
+      {/* L'en-tête retravaillé (26 nov. 2026, Jules : « le layout, la taille, ça ne va pas ») : le nom lisible en 15 px, la
+          clause et la page en 12,5 px, la bascule en pastilles de 32 px, « Plein écran » en icône. */}
+      <div className={`flex items-center gap-3 border-b border-bord flex-shrink-0 ${enTeteCarte ? "px-7 pb-4 pt-6 max-md:px-5" : "px-5 py-3.5 max-md:px-4"}`}>
         {/* La croix à gauche du nom (26 nov. 2026, Jules) : en haut à droite, la photo de profil la couvrait. */}
         {onFermer && (
           <button onClick={onFermer} className="-ml-1.5 grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-ardoise transition-colors hover:bg-relief hover:text-encre max-md:h-10 max-md:w-10" style={{ background: "transparent" }} title="Fermer (Échap)" aria-label="Fermer">
@@ -523,15 +536,15 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <p className={`m-0 truncate text-encre ${enTeteCarte ? "text-[16px] font-medium" : "text-[12.5px]"}`}>{extraction.document_nom}</p>
-          <p className={`m-0 truncate ${enTeteCarte ? "mt-0.5 text-[13.5px] text-ardoise" : "text-[11px] text-brume"}`}>
+          <p className={`m-0 truncate text-encre font-medium ${enTeteCarte ? "text-[16px]" : "text-[15px]"}`} title={extraction.document_nom}>{nomLisible(extraction.document_nom)}</p>
+          <p className={`m-0 mt-0.5 truncate ${enTeteCarte ? "text-[13.5px] text-ardoise" : "text-[12.5px] text-brume"}`}>
             {ligne?.element}{page ? ` · page ${page}` : ""}
           </p>
         </div>
         {peutSurligner && (
           <span className="inline-flex items-center rounded-full border border-bord-doux p-0.5 flex-shrink-0">
             {[["document", "Document"], ["passage", "Texte"]].map(([id, mot]) => (
-              <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11px] transition-colors ${vue === id ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+              <button key={id} onClick={() => setVue(id)} className={`h-7 px-3 rounded-full text-[12.5px] transition-colors ${vue === id ? "bg-menthe text-sur-menthe font-medium" : "text-ardoise hover:text-encre"}`} style={vue === id ? undefined : { background: "transparent" }}>{mot}</button>
             ))}
           </span>
         )}
@@ -540,9 +553,11 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-menthe-clair hover:text-encre transition-colors flex-shrink-0"
+            className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-ardoise transition-colors hover:bg-relief hover:text-encre"
+            title="Plein écran"
+            aria-label="Plein écran"
           >
-            Plein écran
+            <Maximize2 className="h-4 w-4" />
           </a>
         )}
       </div>

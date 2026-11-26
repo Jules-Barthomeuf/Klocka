@@ -7,7 +7,7 @@ import Chargement from "@/components/ui/Chargement";
 import { ChevronLeft, ChevronRight, FileText, Loader2, Plus, RefreshCw, Redo2, Undo2, X } from "lucide-react";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
-import { SourceSeule, Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
+import { SourceSeule, Visionneuse, nomLisible } from "@/components/preanalyse/AnalyseDocuments";
 import ResolutionsAG from "@/components/preanalyse/ResolutionsAG";
 import { VERRE, VERRE_LG } from "@/lib/verre";
 
@@ -444,7 +444,7 @@ function EditeurCase({ dealId, grille, l, docOuvert, onSource, onFermer }) {
               <li key={s.document_id} className={`flex items-start gap-3 border-t border-trait py-2 first:border-t-0 ${docOuvert === s.document_id ? "" : "opacity-90"}`}>
                 <button type="button" onClick={() => onSource(s)} className="min-w-0 flex-1 text-left" style={{ background: "transparent" }}>
                   <span className="block text-[12.5px] text-brume">
-                    {s.document_nom}{s.page ? ` · page ${s.page}` : ""}
+                    {nomLisible(s.document_nom)}{s.page ? ` · page ${s.page}` : ""}
                     {s.verifiee === true && <span className="text-menthe"> · passage retrouvé</span>}
                     {s.verifiee === false && <span className="text-ambre"> · passage non retrouvé mot pour mot</span>}
                   </span>

@@ -6,7 +6,7 @@ import { toast } from "@/components/ui/avis";
 import { Filtres, Statut } from "@/components/mandataire/elements";
 import { CADRE_GRILLE, CELLULES, COLONNES, ENTETE_GRILLE, LIGNE_GRILLE, LigneSource, prenom } from "@/components/preanalyse/AnalysePieces";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
-import { SourceSeule } from "@/components/preanalyse/AnalyseDocuments";
+import { SourceSeule, nomLisible } from "@/components/preanalyse/AnalyseDocuments";
 
 // Les PV d'AG, un onglet par assemblée (30 oct. 2026, Jules : « PV d'AG 2023, 2024… un onglet par PV d'AG ») : une ligne
 // par résolution, au dessin de la grille du dessus (Résolution, Issue, Source, Note). La case de la résolution porte
@@ -123,7 +123,7 @@ function ResolutionsEtSource({ dealId, assemblees, onOuvrir, onCacher, onReaffic
         {/* La hauteur est celle du tableau, 480 px au moins : la page du PV défile dedans, elle n'allonge pas le tableau. */}
         <div className="relative min-h-[480px] min-w-0 border-l border-trait max-lg:hidden">
           <div className="absolute inset-0 flex flex-col overflow-hidden">
-          <p className="m-0 flex-none truncate px-2.5 py-2 text-[12.5px] leading-[20px] text-ardoise">Document{montree ? ` · ${montree.page ? `page ${montree.page} · ` : ""}${montree.nom}` : ""}</p>
+          <p className="m-0 flex-none truncate px-2.5 py-2 text-[12.5px] leading-[20px] text-ardoise">Document{montree ? ` · ${montree.page ? `page ${montree.page} · ` : ""}${nomLisible(montree.nom)}` : ""}</p>
           {montree && doc ? (
             <div className="flex min-h-0 flex-1 flex-col border-t border-trait">
               <SourceSeule dealId={dealId} doc={doc} page={montree.page} citation={montree.citation} />

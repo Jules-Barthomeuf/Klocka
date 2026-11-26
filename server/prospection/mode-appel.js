@@ -17,6 +17,17 @@ import { estVilleCotee } from '../villes-cotees.js';
 import { sessionEnCours } from './ma-session.js';
 import { reglesActives, trier, supprimerAgence } from './ecarter-agences.js';
 
+// Une durée qui ne peut pas être celle de l'appel ne s'enregistre pas (26 nov. 2026, Jules : « des répondeur, message
+// laissé de 2 secondes, c'est impossible ») : laisser un message prend au moins dix secondes. Sans durée plutôt qu'une
+// durée fausse : le Suivi juge la qualité des appels sur elle.
+export const DUREE_MIN_MESSAGE_S = 10;
+export function dureePlausible(issue, dureeS) {
+  const d = Number(dureeS);
+  if (!Number.isFinite(d) || d <= 0) return null;
+  if (issue === 'repondeur' && d < DUREE_MIN_MESSAGE_S) return null;
+  return Math.round(d);
+}
+
 const AGENCE = 'AgenceProspect';
 const LISTE = 'ListeAgences';
 const SESSION = 'SessionAppel';
@@ -906,7 +917,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // Ce que le Suivi lit de chaque appel (9 oct. 2026) : d'où il vient, sa durée, s'il a été enregistré, les notes tapées, le temps de lecture d'AK.
   const usage = {
     source: estCommerces(a) ? 'off-market' : essai ? 'essai' : source || (entrant ? 'rappel' : Records.get(SESSION, session_id || '')?.relances ? 'relances' : 'prospection'),
-    duree_s: Number.isFinite(Number(dureeS)) && Number(dureeS) > 0 ? Math.round(Number(dureeS)) : lu.appel.duree_s || null,
+    duree_s: dureePlausible(issue, Number.isFinite(Number(dureeS)) && Number(dureeS) > 0 ? Math.round(Number(dureeS)) : lu.appel.duree_s || null),
     enregistre: !!(String(transcription || '').trim() || audio?.length),
     notes: notes ? String(notes).slice(0, 2000) : null,
     lecture_ms: Date.now() - debutLecture,

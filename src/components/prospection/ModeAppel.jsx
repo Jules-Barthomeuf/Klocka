@@ -1045,6 +1045,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const a = motifEssai ? { ...a0, relance: { motif: { cle: motifEssai, libelle: MOTIFS_ESSAI[motifEssai] }, phrase: `Essai : ${scJoue?.titre || "relance fictive"}.`, dernier: null, bien: null, historique: [] } } : a0;
   // Une nouvelle agence : les actions seules à nouveau.
   useEffect(() => { setAnnonce(null); setVoirTranscription(false); }, [a?.id]);
+  // Une autre agence : le chrono repart de zéro, la durée de l'appel d'avant ne la suit pas (26 nov. 2026).
+  useEffect(() => { clearInterval(chrono.current); setSecondes(0); }, [a?.id]);
   const surUnBien = ["bien_retenu", "bien_refuse"].includes(a?.relance?.motif?.cle);
   const c = file.data?.chiffres;
   const recherches = file.data?.recherches || [];
@@ -1512,9 +1514,11 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const sansConversation = (is) => {
     if (!prise || prise.agence_id !== a.id) prendre.mutate(a.id);
     finAppel.current = Date.now();
+    clearInterval(chrono.current);
+    setSecondes(0);
     setNotes(false);
-    if (is === "repondeur") { setIssue("repondeur"); setEcran("analyse"); noter.mutate({ issue: "repondeur", simple: false }); return; }
-    choisirIssue(is, true);
+    if (is === "repondeur") { setIssue("repondeur"); setEcran("analyse"); noter.mutate({ issue: "repondeur", simple: false, duree: null }); return; }
+    choisirIssue(is, true, { duree: null });
   };
   // Pas de réponse (16 nov. 2026, maquette de Jules : « Rappeler plus tard ») : l'écoute s'efface, la relance se planifie.
   const pasDeReponse = () => {
@@ -1626,11 +1630,13 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     }).catch(() => {});
   };
   const noter = useMutation({
-    mutationFn: async ({ issue: is, simple = false, remplace = null, notes: notesDites = null }) => {
+    mutationFn: async ({ issue: is, simple = false, remplace = null, notes: notesDites = null, duree = undefined }) => {
       const notesAEnvoyer = notesDites ?? notesAppel;
       const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAEnvoyer.trim() || null, monday_essai: session?.essai && mondayEssai ? "1" : null,
         // Le suivi de l'usage (9 oct. 2026) : la durée de l'appel et le mode d'où il part.
-        duree_s: secondes > 0 ? String(secondes) : null, source: session?.essai ? "essai" : relances ? "relances" : "prospection" };
+        // `duree: null` : un appel sans chrono (posé avant l'appel) n'a pas de durée ; sans cela, il reprenait celle de l'appel
+        // d'avant (26 nov. 2026, Jules : trois fois « 4 min 33 », quatre fois « 1 min 39 »).
+        duree_s: duree === null ? null : secondes > 0 ? String(secondes) : null, source: session?.essai ? "essai" : relances ? "relances" : "prospection" };
       let wavs = [];
       if (is === "auto" || remplace) {
         await morceauxPrets();
@@ -1677,11 +1683,11 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     noter.mutate({ issue: "auto", notes: texte });
   };
   // Sans transcription (appel sans notes), l'issue se tape encore.
-  const choisirIssue = (is, simple) => {
+  const choisirIssue = (is, simple, { duree = undefined } = {}) => {
     if (!finAppel.current) finAppel.current = Date.now();
     setIssue(is);
     if (!simple) setEcran("analyse");
-    noter.mutate({ issue: is, simple });
+    noter.mutate({ issue: is, simple, duree });
   };
   // AK s'est trompé d'issue : on la change, les actions se refont sur la même transcription.
   const changerIssue = (is) => { setEcran("analyse"); noter.mutate({ issue: is, remplace: appel.id }); };

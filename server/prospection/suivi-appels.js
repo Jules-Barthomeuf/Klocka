@@ -129,7 +129,7 @@ export function suiviAppels({ jours = 30, source = null, par = null, maintenantD
   const fiches = new Map(Records.list('AgentImmo').map((f) => [f.id, f]));
   // Toute la table lue une fois (15 nov. 2026, Jules : « le temps de chargement de Suivi appels est trop élevé ») :
   // le journal la relisait pour chacune de ses 300 lignes, afin de trouver l'appel qu'elle remplace.
-  const tousLesAppels = Records.list(APPEL);
+  const tousLesAppels = dureesFiables(Records.list(APPEL));
   const remplacants = new Map();
   for (const y of tousLesAppels) if (y.remplace_par && !remplacants.has(y.remplace_par)) remplacants.set(y.remplace_par, y);
   const bruts = tousLesAppels
@@ -256,6 +256,27 @@ export function suiviAppels({ jours = 30, source = null, par = null, maintenantD
   };
 }
 
+// Les durées déjà enregistrées qui ne peuvent pas être celles de l'appel (26 nov. 2026, Jules : « plusieurs appels sans
+// réponse affichent exactement la durée de l'appel précédent ; des répondeurs de 2 secondes ») : jusqu'au correctif du
+// mode appel, un appel posé sans chrono reprenait la durée de l'appel d'avant. Lues comme inconnues, sans toucher aux
+// données : un appel sans conversation qui a exactement la durée de l'appel précédent du même analyste, et un message
+// laissé de moins de dix secondes.
+const SANS_CONVERSATION = new Set(['pas_de_reponse', 'repondeur', 'invalide']);
+export function dureesFiables(appels) {
+  const precedent = new Map();
+  const corrigees = new Map();
+  for (const x of [...appels].sort((a, b) => String(a.le).localeCompare(String(b.le)))) {
+    const d = Number(x.duree_s) || 0;
+    const issue = x.issue_tapee || x.issue;
+    const avant = precedent.get(x.par);
+    const recopiee = d > 0 && SANS_CONVERSATION.has(issue) && avant && Number(avant.duree_s) === d;
+    const impossible = d > 0 && issue === 'repondeur' && d < 10;
+    if (recopiee || impossible) corrigees.set(x.id, true);
+    if (x.par && x.canal !== 'mail') precedent.set(x.par, x);
+  }
+  return corrigees.size ? appels.map((x) => (corrigees.has(x.id) ? { ...x, duree_s: null, duree_ecartee: true } : x)) : appels;
+}
+
 const ETATS_RAPPEL = { enregistrement: 'Rappel en cours', a_identifier: 'Agent à identifier', identifie: 'Identifié, pas validé', abandonne: 'Rappel abandonné' };
 
 /**
@@ -263,9 +284,14 @@ const ETATS_RAPPEL = { enregistrement: 'Rappel en cours', a_identifier: 'Agent �
  * journal. Même forme qu'un appel, avec `rappel: true` : l'écran n'y propose
  * ni validation à la main ni mesure d'AK, qui n'existent pas sans appel.
  */
+// Un rappel abandonné vide (ni agent, ni notes, ni durée, ni transcription) n'est pas un appel : il reste compté dans
+// les rappels abandonnés, mais sort du journal (26 nov. 2026, Jules : des « Agent non identifié / Rappel abandonné » chez
+// Maxime). Un abandonné qui porte un échange reste au journal (13 oct. 2026, Jules : « on doit voir aussi les rappels »).
+const rappelSansRien = (r) => r.etat === 'abandonne' && !r.agent_id && !r.agence_id && !String(r.notes || '').trim() && !(Number(r.duree_s) > 0) && !String(r.transcription || '').trim();
+
 export function lignesDeRappels(rappels, idsAuJournal, agences = new Map(), fiches = new Map()) {
   return rappels
-    .filter((r) => r.etat !== 'valide' && !(r.appel_id && idsAuJournal.has(r.appel_id)))
+    .filter((r) => r.etat !== 'valide' && !rappelSansRien(r) && !(r.appel_id && idsAuJournal.has(r.appel_id)))
     .map((r) => {
       const f = r.agent_id ? fiches.get(r.agent_id) : null;
       const ag = r.agence_id ? agences.get(r.agence_id) : null;

@@ -20,7 +20,8 @@ import { FRAIS_SUIVI_APPELS, cleSuiviAppels, lireSuiviAppels } from "@/lib/suivi
 // validation, corrections d'AK, reçu).
 
 // « Aujourd'hui » (14 oct. 2026, Jules) : la journée en cours, depuis minuit.
-const PERIODES = [[1, "Aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [90, "90 jours"]];
+// « Tout » à la place de « 90 jours » (26 nov. 2026, Jules) : le serveur va jusqu'à un an et part du début des mesures.
+const PERIODES = [[1, "Aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [365, "Tout"]];
 // « Retours » (16 oct. 2026, Jules) : les réponses des analystes aux questions d'AK sur leurs appels (hors de la Prospection : Jules seul).
 // « Fiches reçues » (15 nov. 2026, Jules) : les biens reçus par analyste, dans le Suivi seulement, jamais dans la Prospection.
 // Le 20 nov. 2026 (Jules), « Fiches reçues » part dans le menu Statistiques (src/pages/Statistiques.jsx).

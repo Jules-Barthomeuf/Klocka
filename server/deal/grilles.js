@@ -94,8 +94,10 @@ export const GRILLES = {
       { id: 'quote_part', libelle: 'Quote-part & tantièmes', champs: ['quote_part', 'tantiemes'], format: '« XX,X % » (la part du bailleur dans la copropriété) + les tantièmes, ex. « 8,97 % (910/10 150) ».', regle: 'Warning si supérieure à 20 %.' },
     ],
     schema: {
-      activites_autorisees: { type: 'object', properties: { texte: { type: 'string' } } },
-      activites_interdites: { type: 'object', properties: { texte: { type: 'string' }, presentes: { type: 'boolean' } } },
+      // `liste` : les activités en quelques mots, une par tiret dans le projet (26 nov. 2026, Jules : « vraiment sous forme
+      // de tiret, vraiment court ») ; `texte` garde les mots du règlement pour l'Analyse.
+      activites_autorisees: { type: 'object', properties: { texte: { type: 'string' }, liste: { type: 'array', items: { type: 'string' }, description: "chaque activité en 2 à 6 mots, sans phrase, ex. « Commerce de détail », « Restauration, avec extraction en toiture »" } } },
+      activites_interdites: { type: 'object', properties: { texte: { type: 'string' }, presentes: { type: 'boolean' }, liste: { type: 'array', items: { type: 'string' }, description: "chaque activité interdite en 2 à 5 mots, sans phrase, ex. « Discothèque », « Commerce érotique »" } } },
       quote_part: { type: 'object', properties: { texte: { type: 'string' }, pct: { type: 'number' } } },
     },
   },

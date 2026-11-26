@@ -106,6 +106,9 @@ const LIGNES_BIEN = [
   { id: "emplacement", element: "Adresse et emplacement", champs: ["emplacement"] },
   // Ce que « Corriger la fiche » portait seul, désormais modifiable dans le tableau (18 oct. 2026, Jules) : sans critère, la ligne est une information.
   { id: "surface", element: "Surface", info: true },
+  // Les équipements du local (extraction, terrasse, cave…), lus sur la fiche ou écrits ici : l'onglet Bien du projet les
+  // reprend (25 nov. 2026, Jules).
+  { id: "equipements", element: "Équipements", info: true },
   // Plus de ligne Occupé (11 nov. 2026, Jules) : le verdict calculé la juge toujours, d'après la fiche.
   // Le nom du locataire a sa ligne, au-dessus de l'activité (10 nov. 2026, Jules) : le projet le reprend.
   { id: "nom_locataire", element: "Nom du locataire", info: true },
@@ -407,6 +410,7 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
           </div>
         );
       case "surface": return champ("surface_m2");
+      case "equipements": return <ChampFiche champ="equipements" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />;
       // Le bail en texte libre (11 nov. 2026, Jules : « 12 ans ferme ») : l'IA le lit et le projet prend ce qu'elle en tire.
       // Tant que rien n'est écrit, la case montre ce que la fiche disait (type, échéance).
       case "bail": {

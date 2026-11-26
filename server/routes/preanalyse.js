@@ -121,12 +121,12 @@ export function monterPreanalyse(app) {
     ok(res, leger);
   }));
 
-  // Le contexte de la vente, dicté dans l'onglet Bien/Contexte de l'Analyse (25 nov. 2026, Jules) : mis en forme pour les
-  // clients, gardé sur le dossier et recopié sur son projet (server/contexte-vente.js).
+  // Le contexte de la vente, dans l'onglet Bien/Contexte de l'Analyse (25 nov. 2026, Jules) : une zone de texte gardée sur
+  // le dossier et recopiée sur son projet, réécrite par l'IA d'un clic (server/contexte-vente.js).
   app.post('/api/preanalyse/dossiers/:dealId/contexte-vente', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
-    const historique = Array.isArray(req.body?.historique) ? req.body.historique.slice(-10) : [];
-    const r = await (await import('../contexte-vente.js')).contexteDuDossier(req.params.dealId, { demande: req.body?.demande, historique });
+    // `texte` s'enregistre tel quel ; `reecrire` le fait d'abord réécrire au propre par l'IA (25 nov. 2026, Jules).
+    const r = await (await import('../contexte-vente.js')).contexteDuDossier(req.params.dealId, { texte: typeof req.body?.texte === 'string' ? req.body.texte : '', reecrire: req.body?.reecrire === true });
     if (!r.ok) return res.status(r.error === 'Dossier introuvable.' ? 404 : 400).json({ error: r.error });
     ok(res, r);
   }));
@@ -566,11 +566,23 @@ export function monterPreanalyse(app) {
     let total = null;
     if (page) {
       const t = String(req.query?.q || '').trim().toLowerCase();
+      // Les dossiers ouverts le plus récemment par l'équipe d'abord (26 nov. 2026, Jules), puis les autres, les plus
+      // récemment modifiés d'abord (deal/recents.js note chaque ouverture).
+      const { ouvertures } = await import('../deal/recents.js');
+      const ouverts = ouvertures();
       const gardes = dossiers
         .filter((d) => !d.archived && (!t || `${d.titre || ''} ${d.nom_fichier || ''} ${d.ville || ''} ${(d.lots || []).map((l) => l.ville || '').join(' ')} ${d.responsable || ''}`.toLowerCase().includes(t)))
-        .sort((a, b) => String(b.maj_le || '').localeCompare(String(a.maj_le || '')));
+        .sort((a, b) => String(ouverts.get(b.deal_id) || '').localeCompare(String(ouverts.get(a.deal_id) || '')) || String(b.maj_le || '').localeCompare(String(a.maj_le || '')));
       total = gardes.length;
       dossiers = gardes.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
+      // Dans cet ordre-ci, jamais la photo d'une des quatre cartes d'avant (26 nov. 2026, Jules) : la photo de ville en recours.
+      const vues = [];
+      dossiers = dossiers.map((d) => {
+        let photo = d.photo;
+        if (photo && vues.slice(-4).includes(photo) && d.photo_secours && !vues.slice(-4).includes(d.photo_secours)) photo = d.photo_secours;
+        vues.push(photo);
+        return photo === d.photo ? d : { ...d, photo };
+      });
     }
     // Un dossier partagé par un mandataire : son nom, et ses messages non lus.
     if (dossiers.some((d) => d.dossier_mandataire_id)) {
@@ -1307,6 +1319,17 @@ export function monterPreanalyse(app) {
   // Remettre le projet à jour depuis le dossier (30 oct. 2026, Jules) : chiffres du lot et cases tranchées de l'Analyse.
   app.post('/api/preanalyse/dossiers/:dealId/projet/maj', wrap(async (req, res) => {
     const r = await (await import('../deal/projet.js')).mettreAJourProjetDepuisDeal(req.params.dealId, currentUser(req));
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
+  // L'étape Projet du dossier (26 nov. 2026, Jules) : les cases du projet modifiées à la main qui s'écartent de
+  // l'analyse, et « Revenir à l'analyse » pour l'une d'elles.
+  app.get('/api/preanalyse/dossiers/:dealId/projet/ecarts', wrap(async (req, res) => {
+    ok(res, await (await import('../deal/projet.js')).ecartsAvecLeDossier(req.params.dealId));
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/projet/revenir', wrap(async (req, res) => {
+    const r = await (await import('../deal/projet.js')).revenirAuDossier(req.params.dealId, req.body?.champ, currentUser(req));
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));

@@ -687,3 +687,54 @@ test('Une étoile se pose sur un agent du CRM sans fiche de Klocka, et se retire
   assert.deepEqual(P.basculerPrefere(qui, 'twenty:agentImmobilier:322d7040-c63c-4af8-83cd-f393a1a0f2c4'), { ok: true, etoile: false });
   assert.equal(P.basculerPrefere(qui, 'twenty:clients:abc').ok, false);
 });
+
+test('Une seule fiche par chose (25 nov. 2026) : la demande de Rachel et sa ligne du CRM ouvrent la même fiche, rien n\'est perdu', async () => {
+  const U = await import('./une-cle.js');
+  const d = Records.create('DemandeClient', { client_nom: 'Rachel UNIQUE', twenty_id: 'rachel-tw' });
+  const crm = 'twenty:clients:rachel-tw';
+  assert.equal(U.cleUnique(`client:${d.id}`), crm);
+  // Une fiche née sous la demande (le CRM l'ouvrait), une autre sous la ligne du CRM (l'assistant) : elles se fondent.
+  Records.create('FicheDossier', { cle: `client:${d.id}`, genre: 'client', nom: 'Rachel UNIQUE', etape: null, resume: null, comment_parler: 'Par WhatsApp.', liees: [{ cle: 'deal:d-unique', genre: 'bien', nom: 'Dieppe' }] });
+  Records.create('FicheDossier', { cle: crm, genre: 'client', nom: 'Rachel UNIQUE', resume: 'Cliente, compromis à Dieppe.', liees: [] });
+  Records.create('EntreeDossier', { fiche_cle: `client:${d.id}`, genre: 'ressenti', texte: 'Prudente.', le: '2026-11-20T10:00:00Z' });
+  const note = Records.create('NoteDossier', { texte: 'Rachel a reçu son offre', liens: [{ cle: `client:${d.id}`, genre: 'client', nom: 'Rachel' }, { cle: crm, genre: 'client', nom: 'Rachel' }] });
+  const v1 = M.ficheVue(`client:${d.id}`);
+  const v2 = M.ficheVue(crm);
+  assert.equal(v1.cle, crm);
+  assert.deepEqual(v1, v2, 'la même fiche, des deux côtés');
+  assert.equal(v2.resume, 'Cliente, compromis à Dieppe.', 'la fiche qui fait foi garde ce qu\'elle avait');
+  assert.equal(v2.comment_parler, 'Par WhatsApp.', 'et reçoit ce que l\'autre avait en plus');
+  assert.ok(v2.notes.some((n) => n.texte === 'Prudente.'));
+  assert.ok(v2.liees.some((l) => l.cle === 'deal:d-unique'));
+  assert.deepEqual(Records.get('NoteDossier', note.id).liens.map((l) => l.cle), [crm], 'un seul lien vers Rachel');
+  const ancienne = Records.findBy('FicheDossier', 'cle', `fondue:client:${d.id}`);
+  assert.equal(ancienne?.fondue_dans, crm, 'l\'ancienne fiche est gardée, marquée fondue');
+  assert.equal(M.lienPropre({ cle: `client:${d.id}`, nom: 'Rachel' }).cle, crm, 'un lien posé sur la demande va sur la fiche du CRM');
+});
+
+test('Une seule fiche par chose : un agent du CRM rejoint l\'agent de Klocka, un projet rejoint son dossier', async () => {
+  const U = await import('./une-cle.js');
+  const a = Records.create('AgentImmo', { nom: 'Agent UNIQUE', twenty_id: 'agent-tw' });
+  assert.equal(U.cleUnique('twenty:agentImmobilier:agent-tw'), `agent:${a.id}`);
+  assert.equal(U.cleUnique('twenty:agentImmobilier:inconnu'), 'twenty:agentImmobilier:inconnu', 'sans agent de Klocka, sa ligne du CRM reste sa fiche');
+  Records.create('FicheDossier', { cle: 'twenty:agentImmobilier:agent-tw', genre: 'agent', nom: 'Agent UNIQUE', resume: 'Réactif.', liees: [] });
+  assert.equal(M.ficheVue(`agent:${a.id}`).resume, 'Réactif.', 'ouverte par sa clé de Klocka, la fiche du CRM y est');
+  Records.create('Deal', { deal_id: 'd-unique-p', statut: 'analyse', lots: [] });
+  const p = Records.create('Project', { titre: 'Local UNIQUE', deal_id: 'd-unique-p' });
+  assert.equal(U.cleUnique(`projet:${p.id}`), 'deal:d-unique-p');
+  const sans = Records.create('Project', { titre: 'Sans dossier' });
+  assert.equal(U.cleUnique(`projet:${sans.id}`), `projet:${sans.id}`);
+  assert.equal(U.fondre('deal:jamais-ecrit', 'deal:autre'), 0, 'une clé écrite nulle part ne fait rien relire');
+});
+
+test('une action cochée entre dans l\'historique au passé, datée (25 nov. 2026, Jules)', async () => {
+  const { ligneFaite } = await import('./modele.js');
+  const le = '2026-11-25T10:00:00Z';
+  assert.equal(ligneFaite('Relancer Sébastien Robic', le), 'Relancé Sébastien Robic, le 25 novembre');
+  assert.equal(ligneFaite('Écrire un mail à Arthur Duranson.', le), 'Écrit un mail à Arthur Duranson, le 25 novembre');
+  assert.equal(ligneFaite('Vérifier le bail', le), 'Vérifié le bail, le 25 novembre');
+  // Un premier mot qui n'est pas un verbe d'action : pas de faux participe (« Dossié »).
+  assert.equal(ligneFaite('Dossier Nice à boucler', le), 'Fait : Dossier Nice à boucler, le 25 novembre');
+  // Minuit à Paris : la date est celle de Paris, pas celle de Londres.
+  assert.equal(ligneFaite('Appeler Paul', '2026-11-25T23:30:00Z'), 'Appelé Paul, le 26 novembre');
+});

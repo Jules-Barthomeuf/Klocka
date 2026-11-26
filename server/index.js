@@ -1700,6 +1700,10 @@ if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
     .catch((e) => console.warn('[crm] noms de Twenty :', e?.message || e));
   setTimeout(nommer, 5 * 60_000).unref?.();
   setInterval(nommer, 24 * 3600_000).unref?.();
+  // Une seule fiche par chose (25 nov. 2026, Jules : « une fiche pour Rachel, la même dans l'assistant et le CRM ») :
+  // les fiches nées sous une autre clé (sa demande, sa ligne du CRM, le projet d'un dossier) rejoignent la bonne.
+  setTimeout(() => import('./fiche-dossier/une-cle.js').then((m) => { const f = m.fondreTout(); if (f.length) console.log(`[fiches] ${f.length} clé(s) fondue(s) dans leur fiche : ${f.map(([a, b]) => `${a} → ${b}`).join(', ')}`); })
+    .catch((e) => console.warn('[fiches] une seule fiche par chose :', e?.message || e)), 90_000).unref?.();
 }
 
 // Le tableau Agences de Twenty (16 nov. 2026, Jules : « il n'y a que Nice et Rennes alors qu'on en a fait beaucoup

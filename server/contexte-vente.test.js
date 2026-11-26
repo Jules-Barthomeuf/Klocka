@@ -11,12 +11,12 @@ test('le contexte de la vente : la consigne porte le texte actuel, les échanges
   assert.match(c, /« enlève la partie sur le prix »/);
 });
 
-test('le texte rendu est nettoyé : titres « ## », puces « - », sans tiret long', () => {
-  assert.equal(nettoyer('# Pourquoi\n* Retraite — après 30 ans\n\n\n\nFin'), '## Pourquoi\n- Retraite, après 30 ans\n\nFin');
+test('le texte rendu est nettoyé : titres sans « # » ni gras, puces « - », sans tiret long', () => {
+  assert.equal(nettoyer('## Pourquoi\n* Retraite — après **30 ans**\n\n\n\nFin'), 'Pourquoi\n- Retraite, après 30 ans\n\nFin');
 });
 
 test('rédiger : sans message, rien ; avec, le texte du modèle et sa réponse', async () => {
   assert.equal((await redigerContexte({ projet: {}, demande: '  ' })).ok, false);
   const r = await redigerContexte({ projet: { id: 'p1' }, demande: 'retraite' }, { lire: async (prompt) => { assert.match(prompt, /retraite/); return { texte: '## Pourquoi le propriétaire vend\nIl part à la retraite.', reponse: 'Écrit en une partie.' }; } });
-  assert.deepEqual(r, { ok: true, texte: '## Pourquoi le propriétaire vend\nIl part à la retraite.', reponse: 'Écrit en une partie.' });
+  assert.deepEqual(r, { ok: true, texte: 'Pourquoi le propriétaire vend\nIl part à la retraite.', reponse: 'Écrit en une partie.' });
 });

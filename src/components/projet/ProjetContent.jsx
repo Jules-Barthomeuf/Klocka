@@ -14,7 +14,9 @@ import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
 import { useCasesProjet, PanneauPiece, VueBail, BandesCases, TableauAG, dateFr } from "./CasesProjet";
+import { DocumentsLecture } from "./DocumentsProjet";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
+import AssembleesDuDossier from "./AssembleesDuDossier";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import { J } from "@/design/jetons";
 import MarcheProjet from "./MarcheProjet";
@@ -27,7 +29,7 @@ import LocataireProjet from "./LocataireProjet";
 // Primitives partagées par les onglets, au registre de la maquette du 28
 // septembre (voir Cartes.jsx) : des cartes bordées, des titres à 16 px.
 function SectionLabel({ children, className = "" }) {
-  return <div className={`text-[16px] font-medium text-encre mb-4 border-b border-trait pb-3 ${className}`}>{children}</div>;
+  return <div className={`text-[16px] font-medium text-encre mb-4 ${className}`}>{children}</div>;
 }
 
 // Le chapô (`right`) passe sous le titre : titre → sous-titre → chapô → chiffres.
@@ -134,6 +136,19 @@ function EmptyTab({ text = "Aucune information dans cette partie" }) {
   return <Carte className="p-7 max-md:p-5"><p className="text-ardoise text-[14px] mb-0">{text}</p></Carte>;
 }
 
+// Une activité par tiret (26 nov. 2026, Jules : « vraiment sous forme de tiret, vraiment court ») : une ligne ou un
+// point-virgule fait un tiret, le point final tombe.
+function ListeTirets({ texte }) {
+  const lignes = String(texte || "").split(/;|\n/).map((a) => a.trim().replace(/^[-–•]\s*/, "").replace(/\.$/, "")).filter(Boolean);
+  return (
+    <ul className="mb-0 list-none space-y-2 pl-0">
+      {lignes.map((a, idx) => (
+        <li key={idx} className="flex gap-2.5 text-[15px] leading-[1.5] text-craie"><span aria-hidden="true" className="text-ardoise">–</span><span>{a}</span></li>
+      ))}
+    </ul>
+  );
+}
+
 function NotesBlock({ notes }) {
   if (!notes || notes.length === 0) return null;
   return (
@@ -161,7 +176,8 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, panneauSimulateur = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null, onIA = null, iaOuverte = false }) {
+// `ongletsCollants` : la rangée d'onglets reste en haut au défilement ; pas dans l'étape Projet d'un dossier (26 nov. 2026).
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, panneauSimulateur = null, ongletsCollants = true, modeEdition = false, onChamp = null, ongletsSupplementaires = [], simulateurDansLaPage = false, ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null, onIA = null, iaOuverte = false }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -180,6 +196,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   // La pièce ouverte à droite quand on clique une case.
   const [piece, setPiece] = useState(null);
   const cases = useCasesProjet(project, isPublic);
+  const avecAssemblees = !!cases?.assemblees?.length;
   const enPlace = cases?.locataire?.find((c) => c.id === "en_place");
   const [ongletChoisi, setOngletActif] = useState("marche");
   // Le panneau d'édition choisit la section : la page la suit.
@@ -516,7 +533,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           // Page publique : pas de barre du haut au téléphone, la barre colle en haut.
           // Au téléphone, une seule rangée : les onglets défilent, le
           // simulateur garde sa place à droite sous un nom court.
-          <div className={`sticky top-0 ${isPublic ? "" : "max-md:top-[var(--k-haut-mobile,3.5rem)]"} z-30 -mx-2 mb-10 max-md:mb-7 flex flex-wrap max-md:flex-nowrap items-center justify-between gap-4 max-md:gap-2 px-2 py-3`}>
+          <div className={`${ongletsCollants ? `sticky top-0 ${isPublic ? "" : "max-md:top-[var(--k-haut-mobile,3.5rem)]"}` : "relative"} z-30 -mx-2 mb-10 max-md:mb-7 flex flex-wrap max-md:flex-nowrap items-center justify-between gap-4 max-md:gap-2 px-2 py-3`}>
           <TabsList className="h-auto max-w-full max-md:min-w-0 max-md:flex-shrink inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               ...ongletsVisibles,
@@ -576,7 +593,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <TabsContent value="bien">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader title="Bien" />
-              <BienProjet project={project} friseLue={cases?.frise} />
+              <BienProjet project={project} isPublic={isPublic} />
             </motion.div>
           </TabsContent>
 
@@ -586,11 +603,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 title="Locataire"
               />
 
-              <LocataireProjet project={project} friseLue={cases?.frise} />
-
-              <Bloc id="locataire-liens" titre="Liens du locataire" className="mt-5">
-                <LocataireLiensSociaux liens={project.liens_locataire} />
-              </Bloc>
+              <LocataireProjet project={project} friseLue={cases?.frise}
+                entre={<LocataireLiensSociaux partie="fiches" project={project} siren={cases?.siren_locataire} isPublic={isPublic} />}
+                aDroite={<LocataireLiensSociaux project={project} siren={cases?.siren_locataire} isPublic={isPublic} />} />
 
               {project.bilans_locataire && project.bilans_locataire.length > 0 && (
                 <Bloc id="locataire-bilans" titre="Santé financière"><DataTable
@@ -625,7 +640,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 title="Copropriété"
               />
 
-              {(modeEdition || (cases?.copropriete || []).some((c) => c.valeur)
+
+              {/* Avec les assemblées de l'Analyse, ni les points du PV ni les résolutions en texte : le tableau seul (26 nov. 2026,
+                  Jules : « ne mets pas les points, ne mets pas synthèse, juste le tableau »). */}
+              {!avecAssemblees && (modeEdition || (cases?.copropriete || []).some((c) => c.valeur)
                 || Object.entries(project?.cases_forcees || {}).some(([cle, f]) => cle.startsWith("copropriete.") && f?.valeur)) && (
               <Bloc id="copro-pv" titre="PV d'assemblée générale">
               <Carte className="mb-5 p-7 max-md:p-5">
@@ -642,7 +660,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <Bloc id="copro-chiffres" titre="Chiffres de la copropriété">
               <KpiStrip zone="copro-chiffres" project={project} items={[
                 // En édition, chaque case est là même vide, pour être remplie (14 oct. 2026, Jules : « chaque chiffre modifiable »).
-                (modeEdition || project.quote_part_lot > 0) && { value: project.quote_part_lot > 0 ? `${project.quote_part_lot} %` : '—', label: 'Quote-part du lot', champ: 'quote_part_lot' },
+                (modeEdition || project.quote_part_lot > 0) && { value: project.quote_part_lot > 0 ? `${Number(project.quote_part_lot).toLocaleString('fr-FR')} %` : '—', label: 'Quote-part du lot', champ: 'quote_part_lot' },
                 (modeEdition || project.charges_copropriete > 0) && { value: project.charges_copropriete > 0 ? `${fmtNum(project.charges_copropriete)} €` : '—', label: 'Charges annuelles', champ: 'charges_copropriete' },
                 (modeEdition || project.provision_charges > 0) && { value: project.provision_charges > 0 ? `${fmtNum(project.provision_charges)} €` : '—', label: 'Provision pour charges', champ: 'provision_charges' },
                 (modeEdition || project.taxe_fonciere_an > 0) && { value: project.taxe_fonciere_an > 0 ? `${fmtNum(project.taxe_fonciere_an)} €` : '—', label: 'Taxe foncière /an', accent: 'text-menthe', champ: 'taxe_fonciere_an' },
@@ -657,11 +675,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     <Carte className="p-7 max-md:p-5 h-full">
                       <SectionLabel>Activités autorisées</SectionLabel>
                       <TexteEditable champ="activites_autorisees">
-                      <ul className="space-y-2.5 list-none pl-0 mb-0">
-                        {project.activites_autorisees.split(',').map((a, idx) => (
-                          <li key={idx} className="text-[15px] text-craie">{a.trim()}</li>
-                        ))}
-                      </ul>
+                      <ListeTirets texte={project.activites_autorisees} />
                       </TexteEditable>
                     </Carte>
                     </Bloc>
@@ -671,11 +685,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     <Carte className="p-7 max-md:p-5 h-full">
                       <SectionLabel>Activités interdites</SectionLabel>
                       <TexteEditable champ="activites_interdites">
-                      <ul className="space-y-2.5 list-none pl-0 mb-0">
-                        {project.activites_interdites.split(',').map((a, idx) => (
-                          <li key={idx} className="text-[15px] text-craie">{a.trim()}</li>
-                        ))}
-                      </ul>
+                      <ListeTirets texte={project.activites_interdites} />
                       </TexteEditable>
                     </Carte>
                     </Bloc>
@@ -692,7 +702,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 </Bloc>
               )}
 
-              {(project.resolutions_votees || project.resolutions_refusees) && (
+              {!avecAssemblees && (project.resolutions_votees || project.resolutions_refusees) && (
                 <div className="grid md:grid-cols-2 gap-5 mb-5">
                   {project.resolutions_votees && (
                     <Bloc id="copro-votees" titre="Résolutions votées">
@@ -713,13 +723,17 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 </div>
               )}
 
-              <Bloc id="copro-ag" titre="Assemblées générales"><AssembleesGeneralesSection project={project} isAdmin={isAdmin && !showAsClient} showAsClient={showAsClient} /></Bloc>
+              {/* Les assemblées de l'Analyse (les PV d'AG lus, leurs résolutions gardées, leurs notes), à la place de la synthèse
+                  des assemblées générales (26 nov. 2026, Jules) ; sans dossier lu, la synthèse écrite à la main d'avant. */}
+              {cases?.assemblees?.length
+                ? <Bloc id="copro-ag-analyse" titre="Assemblées générales"><AssembleesDuDossier assemblees={cases.assemblees} onSource={isPublic ? null : setPiece} apercu={!isPublic} dealId={project.deal_id || null} projectId={project.id} editable={enEditionPage} /></Bloc>
+                : <Bloc id="copro-ag" titre="Assemblées générales"><AssembleesGeneralesSection project={project} isAdmin={isAdmin && !showAsClient} showAsClient={showAsClient} /></Bloc>}
               <Bloc id="copro-notes" titre="Notes de la copropriété"><NotesBlock notes={project.notes_libres} /></Bloc>
 
               {project.charges_copropriete <= 0 && !project.type_construction && project.taxe_fonciere_an <= 0
                 && project.provision_charges <= 0 && project.quote_part_lot <= 0
                 && !project.activites_autorisees && !project.activites_interdites
-                && !project.synthese_assemblee_generale && !modeEdition && <EmptyTab />}
+                && !project.synthese_assemblee_generale && !avecAssemblees && !modeEdition && <EmptyTab />}
               <ChampsPersonnalises zone="copropriete" project={project} />
             </motion.div>
           </TabsContent>
@@ -732,37 +746,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {modeEdition && editeurDocuments}
 
               {/* En édition, la liste est celle de l'éditeur (avec le retrait) : elle ne se montre pas deux fois. */}
+              {/* En vue client, plus de carte à points (26 nov. 2026, Jules) : les parties de l'éditeur, en lecture, les pièces en
+                  vignettes qui s'ouvrent au clic (DocumentsProjet.jsx). */}
               {modeEdition && editeurDocuments ? null : project.fichiers_projet && project.fichiers_projet.length > 0 ? (
-                // Au dessin des autres onglets (10 nov. 2026, Jules) : une carte titrée, comme le PV d'AG ou les résolutions,
-                // et des lignes à filets dedans, au texte des autres cartes. Une carte par partie (24 nov. 2026, Jules :
-                // « un truc quittances, un truc PV d'AG ») ; les parties vides ne se montrent pas. Sans aucune partie
-                // (projet d'avant), la carte unique « Documents » d'avant.
-                (() => {
-                  const parties = documentsParGroupe(project).filter((p) => p.fichiers.length);
-                  const seule = parties.length === 1 && parties[0].autres;
-                  return parties.map((p) => (
-                    <Bloc key={p.nom} id={seule ? "documents-liste" : `documents-${p.nom}`} titre={seule ? "Documents" : p.nom}>
-                    <Carte className="mb-5 p-7 max-md:p-5">
-                      {!seule && <SectionLabel className="!mb-0">{p.nom}</SectionLabel>}
-                      <ul className={`m-0 list-none border-b border-trait p-0 ${seule ? "" : "[&>li:first-child]:border-t-0"}`}>
-                        {p.fichiers.map((fichier) => (
-                          <li key={fichier.idx} className="border-t border-trait">
-                            <a href={fichier.url} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between gap-4 py-3.5">
-                              <span className="flex min-w-0 items-center gap-3">
-                                <FileText className="h-4 w-4 flex-shrink-0 text-ardoise" />
-                                <span className="truncate text-[15px] text-craie transition-colors group-hover:text-encre">{fichier.nom}</span>
-                              </span>
-                              <span className="flex flex-shrink-0 items-center gap-1.5 text-[13.5px] text-ardoise transition-colors group-hover:text-encre">
-                                Télécharger <Download className="h-3.5 w-3.5" />
-                              </span>
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </Carte>
-                    </Bloc>
-                  ));
-                })()
+                <DocumentsLecture project={project} isPublic={isPublic} />
               ) : (
                 <EmptyTab text="Aucun document disponible pour ce projet." />
               )}

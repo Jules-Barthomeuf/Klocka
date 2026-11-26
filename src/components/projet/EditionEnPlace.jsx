@@ -146,11 +146,14 @@ export function Bloc({ id, titre, className = "", children }) {
     );
   }
   if (!enEdition) return className ? <div className={className}>{children}</div> : children;
+  // Chaque élément se masque seul (26 nov. 2026, Jules : « masquer juste le BODACC, juste la durée du bail, juste le
+  // loyer annuel ») : des blocs dans des blocs ; le bouton d'un bloc ne s'allume qu'au survol de ce bloc-là (son enfant
+  // direct), pas de tous les blocs qu'il contient.
   return (
-    <div className={`group/bloc relative ${className}`}>
+    <div className={`relative [&:hover>.k-masquer]:inline-flex ${className}`}>
       {children}
       <button type="button" onClick={basculer} aria-label={`Masquer ${titre}`} title={`Masquer « ${titre} » pour le client`}
-        className="absolute right-3 top-3 z-20 hidden h-7 items-center gap-1.5 rounded-full border border-trait bg-surface-pleine px-2.5 text-[12px] text-ardoise shadow-sm transition-colors hover:border-bord-vif hover:text-encre group-hover/bloc:inline-flex max-md:inline-flex">
+        className="k-masquer absolute right-3 top-3 z-20 hidden h-7 items-center gap-1.5 rounded-full border border-trait bg-surface-pleine px-2.5 text-[12px] text-ardoise shadow-sm transition-colors hover:border-bord-vif hover:text-encre max-md:inline-flex">
         <EyeOff className="h-3.5 w-3.5" /> Masquer
       </button>
     </div>

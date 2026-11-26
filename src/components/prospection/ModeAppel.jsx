@@ -1037,14 +1037,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const enTete = agences[0] || null;
   useEffect(() => { if (ecran === "fiche") setFigee(null); else if (enTete) setFigee((f) => f || enTete.id); }, [ecran, enTete?.id]);
   const a0 = rappel || (figee && (file.data?.file || []).find((x) => x.id === figee)) || enTete;
-  // La file reprend après mon dernier appel de cette liste (12 oct. 2026) : on le dit une fois, à l'ouverture.
-  const repriseDite = useRef(null);
-  useEffect(() => {
-    const r = file.data?.reprise;
-    if (!r || relances || repriseDite.current === session?.liste_id) return;
-    repriseDite.current = session?.liste_id;
-    toast(`Reprise après « ${r.apres} »`, { description: "Votre dernier appel de cette liste : la file repart à la ligne suivante." });
-  }, [file.data, relances, session?.liste_id]);
+  // La file reprend après mon dernier appel de cette liste (12 oct. 2026), sans plus le dire : la notification « Reprise
+  // après … » est retirée (25 nov. 2026, Jules : « enlève les notifications reprise après »).
   // En essai, un cas joué comme une relance (ou l'essai de la page Relances) : la fiche porte son motif, comme une vraie relance.
   const scJoue = session?.essai ? scenarioEssai(scenario) : null;
   const motifEssai = session?.essai && a0 && !a0.relance ? (scJoue?.motif || (essaiSeul ? "point_mensuel" : null)) : null;

@@ -16,6 +16,21 @@ export default function TexteEnPlace({ valeur = "", placeholder = "", onEnregist
     el.style.height = "0px";
     el.style.height = `${el.scrollHeight}px`;
   }, [texte]);
+  // La case change de largeur (une pièce ouverte à droite resserre le tableau, 26 nov. 2026 ; la fenêtre) : la hauteur
+  // suit, sinon le texte passé à la ligne est coupé.
+  useEffect(() => {
+    const el = zone.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    let largeur = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth === largeur) return;
+      largeur = el.clientWidth;
+      el.style.height = "0px";
+      el.style.height = `${el.scrollHeight}px`;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => { if (autoFocus) zone.current?.focus(); }, [autoFocus]);
   const quitter = () => {
     setActif(false);

@@ -22,6 +22,8 @@ export const ENTITES_INTERDITES = new Set([
   'AnalyseTokimo',
   // La sauvegarde de Monday (25 nov. 2026) : clients, prospects, leurs coordonnées ; par /api/crm/sauvegarde-monday seulement.
   'SauvegardeMonday',
+  // Les clés des liens publics des projets (25 nov. 2026) : par /api/projets/:id/lien-public seulement.
+  'LienPublic',
 ]);
 
 /**

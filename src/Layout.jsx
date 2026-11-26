@@ -406,7 +406,7 @@ function LayoutContent({ children, currentPageName }) {
     Semaine: { to: createPageUrl("Semaine"), icon: CalendarDays, actif: isActivePage("Semaine") },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     AValider: { to: createPageUrl("AValider"), icon: ClipboardCheck, actif: isActivePage("AValider"), badge: hakaAValider || null, badgeColor: "bg-menthe text-sur-menthe" },
-    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") ||isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires") || isActivePage("MemoireKlocka"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
+    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("AdminProjets") || isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires") || isActivePage("MemoireKlocka"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau") },
@@ -583,8 +583,10 @@ function LayoutContent({ children, currentPageName }) {
             })()}
           </div>
         )}
-        {/* Paramètres, en bas de la barre (17 oct. 2026, Jules) : l'ancien « Compte », avec le Suivi dedans. */}
-        {menuEquipe && !empile && (
+        {/* Paramètres, en bas de la barre (17 oct. 2026, Jules) : l'ancien « Compte », avec le Suivi dedans. Retiré sur
+            ordinateur le 25 nov. 2026 (Jules : « enlève le truc Paramètres en bas à gauche ») : la carte profil en haut à
+            droite y mène ; il reste au téléphone, qui n'a pas cette carte. */}
+        {menuEquipe && !empile && isMobile && (
           <div className={`flex-shrink-0 pb-2 ${replie ? "" : "px-3"}`}>
             <LienRail details={DETAILS} replie={replie} empile={empile} onNaviguer={isMobile ? closeMobile : undefined} e={{ cle: "Personnalisation", label: "Paramètres" }} icon={Settings} />
           </div>
@@ -596,7 +598,8 @@ function LayoutContent({ children, currentPageName }) {
           {isMobile && <span className="min-w-0 flex-1" />}
           {/* La roue des Paramètres, juste au-dessus du bouton qui ouvre la barre repliée (14 nov. 2026, Jules) ; ouverte, la
               barre montre « Paramètres » en entier, plus haut. */}
-          {empile && (
+          {/* Retirée avec « Paramètres » le 25 nov. 2026 : la carte profil y mène. */}
+          {empile && isMobile && (
             <Link to={DETAILS.Personnalisation?.to || createPageUrl("Personnalisation")} aria-label="Paramètres" title="Paramètres"
               className={`${bouton} ${DETAILS.Personnalisation?.actif ? "bg-rail-actif !text-encre" : ""}`}>
               <Settings className="h-4 w-4" strokeWidth={1.7} />
@@ -779,7 +782,9 @@ function LayoutContent({ children, currentPageName }) {
           Son haut sur celui de « À faire » et des pilules du coin (16 px). */}
       {(vueAdmin || vue === "mandataire") && !hideNavbar && !modoKData && (
         <div className="k-flottant-haut fixed right-4 top-4 z-40 max-md:hidden">
-          <MenuProfil user={user} vue={vue} onDeconnexion={() => base44.auth.logout(window.location.origin + '/Connexion')} />
+          {/* Le micro de la carte (25 nov. 2026, Jules : « que ça ouvre un truc comme quand on rappelle un agent, dans le
+              chat ») : l'équipe seule ; il ouvre l'assistant sur la carte « Appel enregistré » (?appel=<heure du clic>, ChatDashboard). */}
+          <MenuProfil user={user} vue={vue} onMicro={vueAdmin && !pagesFermees.includes("Dashboard") ? () => navigate(`${createPageUrl("Dashboard")}?appel=${Date.now()}`) : null} onDeconnexion={() => base44.auth.logout(window.location.origin + '/Connexion')} />
         </div>
       )}
       {/* Au téléphone, le hamburger à droite de la cloche ouvre le menu (27 oct. 2026, Jules : plus d'onglets en bas). */}

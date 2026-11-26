@@ -413,6 +413,7 @@ function donneesDuLot(lot) {
     bien_champ1: val(lot.lot.type_actif) || 'Local commercial',
     bien_champ2: val(lot.lot.surface_m2) ? `${val(lot.lot.surface_m2)} m²` : '',
     bien_champ3: '',
+    equipements: val(lot.lot.equipements) || '',
     secteur_revenu_median: lot.enrichissement?.revenu_median ?? null,
     // Le point de marché reste sur le dossier, avec ses sources : ce sont ses
     // chiffres qui entrent dans la fiche, pas ses douze phrases.
@@ -526,13 +527,24 @@ export function champsCompletsDeLAnalyse(analyse, deal = null) {
   const provision = lue('quittances', 'provision');
   if (provision) sortie.provision_charges = Number(provision.donnees.montant) || premierNombre(provision.texte);
 
+  // Les activités en tirets courts quand la lecture en a fait la liste (26 nov. 2026, Jules : « vraiment court »), sinon
+  // les mots du règlement ; une ligne par activité.
+  const enListe = (l) => {
+    const courtes = (Array.isArray(l?.donnees?.liste) ? l.donnees.liste : []).map((x) => String(x || '').trim()).filter(Boolean);
+    return courtes.length ? courtes.join('\n') : l?.texte;
+  };
   const autorisees = lue('rcp', 'activites_autorisees') || lue('bail', 'destination');
-  if (autorisees) sortie.activites_autorisees = autorisees.texte;
+  if (autorisees) sortie.activites_autorisees = enListe(autorisees);
   const interdites = lue('rcp', 'activites_interdites');
-  if (interdites) sortie.activites_interdites = interdites.texte;
+  if (interdites) sortie.activites_interdites = enListe(interdites);
   // La case de la page attend un pourcentage ; des tantièmes seuls restent dans l'analyse de la copropriété.
   const quotePart = lue('rcp', 'quote_part')?.texte.match(/(\d+(?:[.,]\d+)?)\s*%/);
   if (quotePart) sortie.quote_part_lot = Number(quotePart[1].replace(',', '.'));
+  // Les charges annuelles du lot : le dernier budget prévisionnel voté, à la quote-part du lot (26 nov. 2026, Jules :
+  // « quote-part du lot, charges annuelles, provision pour charges » en tête de la Copropriété).
+  const budget = (analyse?.assemblees || []).filter((ag) => ag.annee).sort((a, b) => b.annee - a.annee)
+    .flatMap((ag) => ag.resolutions || []).find((r) => r.issue === 'adoptee' && Number(r.montant) > 0 && /budget pr[ée]visionnel/i.test(r.nom || ''));
+  if (budget && sortie.quote_part_lot > 0) sortie.charges_copropriete = Math.round(Number(budget.montant) * sortie.quote_part_lot / 100);
 
   // Les résolutions lues, assemblée par assemblée ; celles qu'on a cachées dans l'Analyse restent cachées.
   const issues = (ag, issue) => ag.resolutions.filter((r) => r.issue === issue && !r.cachee).map((r) => r.nom).filter(Boolean).join('\n');
@@ -579,7 +591,7 @@ export function piecesDuProjet(analyse) {
   for (const e of analyse?.emplacements || []) {
     if (!PIECES_DU_PROJET.includes(e.id)) continue;
     const pieces = (e.documents || []).filter((d) => d.url);
-    fichiers_projet.push(...pieces.map((d) => ({ nom: d.titre || d.nom || e.titre, url: d.url, groupe: PARTIE_DU_TYPE[e.id] })));
+    fichiers_projet.push(...pieces.map((d) => ({ nom: d.titre || d.nom || e.titre, url: d.url, groupe: PARTIE_DU_TYPE[e.id], ...(d.id ? { piece_id: d.id } : {}) })));
     if (pieces.length && CASES_DOCUMENTS.includes(e.id)) docs_checklist[e.id] = true;
   }
   return { fichiers_projet, docs_checklist };
@@ -623,6 +635,14 @@ export function photosDeLaDataRoom(deal) {
   const types = deal?.analyse_pieces?.docs || {};
   return (deal?.documents_espace || []).filter((d) => types[d.id]?.type === 'photos' && d.url && estImage(d)).map((d) => ({ id: d.id, url: d.url }));
 }
+
+/** Les plans rangés dans la Data Room de l'Analyse (emplacement « Plans du local »), pour l'onglet Bien du projet. */
+export function plansDeLaDataRoom(deal) {
+  const types = deal?.analyse_pieces?.docs || {};
+  return (deal?.documents_espace || []).filter((d) => types[d.id]?.type === 'plans' && d.url)
+    .map((d) => ({ id: d.id, url: d.url, nom: String(d.nom || '').trim() || 'Plan' }));
+}
+const enPiecePlan = (p) => ({ nom: p.nom, url: p.url, groupe: 'Plans' });
 
 /** L'adresse du lot, en une ligne, pour la Base Adresse Nationale. */
 export function adresseDuLot(lot) {
@@ -764,9 +784,11 @@ const PREANALYSE_VERS_PROJET = {
   occupe: ['statut_bail'],
   // Le bail libre : le type, l'échéance, le début et la période ferme qu'en tire l'IA, vides s'il ne les dit pas.
   bail_texte: ['type_bail', 'echeance_bail', 'bail_date_echeance', 'bail_date_debut', 'bail_duree_ferme_ans'],
+  equipements: ['equipements'],
 };
 
-export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides = true, forcer = [] } = {}) {
+// `essai` : rien n'est écrit ; rend ce que le dossier donnerait, cases modifiées à la main comprises (les écarts).
+export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides = true, forcer = [], essai = false } = {}) {
   const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return { ok: false, error: 'Dossier introuvable' };
   const projet = deal.projet_id ? Records.get('Project', deal.projet_id) : null;
@@ -791,6 +813,11 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
     for (const [champ, v] of Object.entries(champsDeLAnalyse(analyse))) {
       if (!(champ in patch) && !plein(projet[champ])) patch[champ] = v;
     }
+    // La copropriété, le bail en détail, les diagnostics lus remplissent aussi un projet déjà créé (26 nov. 2026, Jules :
+    // « comme si j'avais mis les PV d'AG dans Ajouter une pièce et fait mon analyse ») : seulement les cases vides.
+    for (const [champ, v] of Object.entries(champsCompletsDeLAnalyse(analyse, deal))) {
+      if (!(champ in patch) && !plein(projet[champ]) && !(Array.isArray(projet[champ]) && projet[champ].length)) patch[champ] = v;
+    }
   }
   const { patch: pieces } = patchDepuisExtractions(deal, { ...projet, ...patch });
   Object.assign(patch, pieces);
@@ -810,6 +837,7 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
     const lignes = (projet.bail_admin_fields || []).filter((l) => l.label !== 'Type de bail');
     patch.bail_admin_fields = [{ label: 'Type de bail', value: patch.type_bail }, ...lignes];
   }
+  if (essai) return { ok: true, project_id: projet.id, patch: { ...patch } };
   // Une case modifiée à la main dans le projet ne bouge plus (10 nov. 2026, Jules) : le dossier ne l'écrase jamais, sauf
   // le champ qu'on vient de corriger dans la Pré-analyse.
   const aLaMain = (projet.champs_a_la_main || []).filter((k) => !forces.has(k));
@@ -833,8 +861,64 @@ export async function mettreAJourProjetDepuisDeal(dealId, user, { completerVides
     patch.photos = [...(projet.photos || []), ...nouvelles.map((p) => p.url)];
     patch.photos_data_room = [...vues, ...nouvelles.map((p) => p.id)];
   }
+  // Un plan rangé dans la Data Room s'ajoute aux documents du projet (partie « Plans »), une fois, comme les images.
+  const plansVus = new Set(projet.plans_data_room || []);
+  const plansNouveaux = plansDeLaDataRoom(deal).filter((p) => !plansVus.has(p.id));
+  if (plansNouveaux.length) {
+    patch.fichiers_projet = [...(projet.fichiers_projet || []), ...plansNouveaux.map(enPiecePlan)];
+    patch.plans_data_room = [...plansVus, ...plansNouveaux.map((p) => p.id)];
+  }
+  // Une pièce rangée par l'Analyse (bail, PV d'AG, règlement…) arrive dans sa partie des documents, une fois : retirée du
+  // projet, elle n'y revient pas ; une pièce déjà là (même adresse) n'est pas doublée.
+  const piecesVues = new Set(projet.pieces_data_room || []);
+  const dejaLa = new Set([...(projet.fichiers_projet || []), ...(patch.fichiers_projet || [])].map((f) => f?.url).filter(Boolean));
+  const piecesNouvelles = piecesDuProjet(analyse).fichiers_projet.filter((f) => f.piece_id && !piecesVues.has(f.piece_id));
+  if (piecesNouvelles.length) {
+    const ajout = piecesNouvelles.filter((f) => !dejaLa.has(f.url));
+    if (ajout.length) patch.fichiers_projet = [...(patch.fichiers_projet || projet.fichiers_projet || []), ...ajout];
+    patch.pieces_data_room = [...piecesVues, ...piecesNouvelles.map((f) => f.piece_id)];
+  }
+  // Le contexte de la vente est celui de l'Analyse (onglet Bien/Contexte) : le projet montre son texte, tel quel.
+  if (String(deal.contexte_vente || '').trim() && deal.contexte_vente !== projet.contexte_vente) patch.contexte_vente = deal.contexte_vente;
   Records.update('Project', projet.id, { ...patch, maj_depuis_dossier_le: new Date().toISOString(), maj_depuis_dossier_par: user?.email || null });
   return { ok: true, project_id: projet.id, champs: Object.keys(patch).length };
+}
+
+const memeValeur = (a, b) => {
+  const na = Number(a);
+  const nb = Number(b);
+  if (a !== '' && b !== '' && a != null && b != null && Number.isFinite(na) && Number.isFinite(nb)) return na === nb;
+  return String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
+};
+
+/**
+ * Les cases du projet modifiées à la main qui ne disent plus ce que dit le dossier (26 nov. 2026, Jules : un seul
+ * endroit, l'étape Projet du dossier) : le libellé, la valeur du projet, celle de l'analyse. Une valeur que le dossier
+ * ne donne pas (un texte écrit pour le client, une photo) n'est pas un écart.
+ */
+export async function ecartsAvecLeDossier(dealId) {
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  const projet = deal?.projet_id ? Records.get('Project', deal.projet_id) : null;
+  if (!projet) return { ok: true, ecarts: [] };
+  const r = await mettreAJourProjetDepuisDeal(dealId, null, { essai: true });
+  if (!r.ok) return { ok: true, ecarts: [] };
+  const { libelleChamp } = await import('../corrections-projet.js');
+  const simple = (v) => v == null || ['string', 'number', 'boolean'].includes(typeof v);
+  const ecarts = [...new Set(projet.champs_a_la_main || [])]
+    .filter((k) => k in r.patch && simple(r.patch[k]) && simple(projet[k]) && !memeValeur(r.patch[k], projet[k]))
+    .map((k) => ({ champ: k, libelle: libelleChamp(k), projet: projet[k] ?? null, dossier: r.patch[k] }));
+  return { ok: true, ecarts };
+}
+
+/** « Revenir à l'analyse » : la case quitte les cases modifiées à la main et reprend la valeur du dossier. */
+export async function revenirAuDossier(dealId, champ, user) {
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  const projet = deal?.projet_id ? Records.get('Project', deal.projet_id) : null;
+  if (!projet) return { ok: false, error: "Ce dossier n'a pas de projet." };
+  const c = String(champ || '');
+  if (!(projet.champs_a_la_main || []).includes(c)) return { ok: false, error: "Cette case suit déjà l'analyse." };
+  Records.update('Project', projet.id, { champs_a_la_main: (projet.champs_a_la_main || []).filter((k) => k !== c) });
+  return mettreAJourProjetDepuisDeal(dealId, user, { completerVides: true });
 }
 
 /**
@@ -925,6 +1009,15 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user, { analyse = null, 
     documents: [],
     ...piecesDuProjet(analyse),
   };
+  projet.pieces_data_room = (projet.fichiers_projet || []).map((f) => f.piece_id).filter(Boolean);
+  // Les plans de la Data Room, dans la partie « Plans » des documents : l'onglet Bien les montre (25 nov. 2026, Jules).
+  const plans = plansDeLaDataRoom(deal);
+  if (plans.length) {
+    projet.fichiers_projet = [...(projet.fichiers_projet || []), ...plans.map(enPiecePlan)];
+    projet.plans_data_room = plans.map((p) => p.id);
+  }
+  // Le contexte de la vente déjà écrit dans l'Analyse (onglet Bien/Contexte) naît avec le projet.
+  if (String(deal.contexte_vente || '').trim()) projet.contexte_vente = deal.contexte_vente;
 
   // L'extraction des documents complète la fiche : bail, copropriété,
   // diagnostics, TVA. Il ne réécrit jamais ce que la préanalyse a déjà posé.

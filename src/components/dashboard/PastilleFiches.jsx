@@ -39,9 +39,8 @@ export default function PastilleFiches({ droite = false }) {
     <div ref={boite} className="relative" onMouseEnter={entrer} onMouseLeave={sortir}>
       <button type="button" onClick={entrer} aria-expanded={ouvert} aria-haspopup="menu"
         className="inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 py-2 text-[13.5px] text-encre transition-colors hover:border-bord-doux">
-        <FileText className="h-3.5 w-3.5 text-ardoise" strokeWidth={1.7} />
+        {/* Ni icône ni nombre (25 nov. 2026, Jules : « Fiches, pas besoin de mettre un chiffre ») : le mot seul. */}
         Fiches
-        {aRelire.length > 0 && <span className="rounded-full bg-menthe/15 px-1.5 text-[12px] tabular-nums text-menthe">{aRelire.length}</span>}
         <ChevronDown className={`h-3 w-3 text-ardoise transition-transform duration-200 ${ouvert ? "rotate-180" : ""}`} />
       </button>
       {ouvert && (

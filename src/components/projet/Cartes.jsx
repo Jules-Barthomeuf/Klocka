@@ -26,7 +26,7 @@ export function Carte({ children, className = "", grille = true }) {
 /** Le titre d'une carte, et sa ligne d'explication en dessous. */
 export function TitreCarte({ titre, sous = null, droite = null }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-trait pb-3">
+    <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-1">
         <span className="text-[16px] font-medium text-encre">{titre}</span>
         {sous && <span className="text-[13px] text-ardoise">{sous}</span>}

@@ -13,7 +13,9 @@ import { titreDuLot } from './titre-dossier.js';
 import { rendementNetMoyen } from '../video/indicateurs.js';
 import { prixFai as prixFaiDuLot } from './prix.js';
 import { randomUUID } from 'crypto';
-import { Records } from '../db.js';
+import { Records, CHEMIN_UPLOADS } from '../db.js';
+import fs from 'fs';
+import path from 'path';
 import { ingerer, archiverSource } from './ingest.js';
 import { extraire, lotVide } from './extract.js';
 import { enrichir } from './enrich.js';
@@ -23,6 +25,7 @@ import { redigerSynthese, redigerMailAgent } from './redact.js';
 import { statutDe, aRelancer } from './lifecycle.js';
 import { etapeMax } from './etapes.js';
 import { contexteMarcheLocal } from './contexte-marche.js';
+import { trouverVille } from '../../src/data/villes.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 
@@ -267,6 +270,8 @@ const CHAMPS_SAISISSABLES = {
   bail_echeance: { libelle: 'Échéance du bail', type: 'texte' },
   // Le bail en texte libre (11 nov. 2026, Jules) : « 12 ans ferme », « 3/6/9 signé en 2019 »… lu par l'IA (bail-libre.js).
   bail_texte: { libelle: 'Bail', type: 'long' },
+  // Les équipements du local (extraction, terrasse, cave…), lus sur la fiche ou écrits à la main (25 nov. 2026, Jules).
+  equipements: { libelle: 'Équipements', type: 'long' },
   adresse: { libelle: 'Adresse', type: 'adresse' },
 };
 
@@ -467,10 +472,124 @@ export function listerDossiers(limit = 50) {
     listeGardee = { signature, le: Date.now(), lignes: lireListeDossiers() };
   }
   // Un dossier de vente de mandataire pas encore mis en vente (`cache_equipe`) reste hors de la liste de l'équipe.
-  return listeGardee.lignes.slice(0, limit).filter((x) => !x.cache).map((x) => x.d);
+  const lignes = listeGardee.lignes.slice(0, limit).filter((x) => !x.cache).map((x) => x.d);
+  chercherPhotosVille(lignes);
+  return lignes;
+}
+
+// La photo de la ville des dossiers qui n'en ont pas : quelques-uns à chaque ouverture de la liste, l'un après l'autre,
+// une seule tentative par dossier ; jamais pendant les tests.
+let photosEnCours = false;
+// Version 4 : une photo par dossier, choisie parmi celles de la ville (bâtiments et lieux, pas d objets), 26 nov. 2026.
+const VERSION_PHOTO_VILLE = 4;
+const photosParVille = new Map();
+/** La ville d'un dossier : celle de sa fiche, sinon celle que nomme le dossier (« Chimni - Toulouse »). */
+function villeDe(d) {
+  const lot = d?.lots?.[0] || {};
+  const commune = lot.enrichissement?.commune || {};
+  return { nom: commune.nom || lot.lot?.adresse?.valeur?.ville || trouverVille(`${d?.nom || ''} ${d?.titre || ''}`)?.nom || '', departement: commune.departement || null };
+}
+// « Paris 8e », « Marseille 6e », « Quimper (29) » : la ville seule, sans arrondissement ni département.
+const cleVille = (nom) => String(nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s*\(?\d.*$/, '').replace(/[^a-z]+/g, ' ').trim();
+
+/**
+ * Pure : la ville d'un projet. Le nom après le code postal (« 56100 Lorient »), sinon le dernier morceau de l'adresse
+ * (« 1 rue d'Orléans, Rennes »), sinon le champ « ville » s'il nomme une ville (pas « Centre-Ville » ni « Bon secteur »),
+ * sinon la liste des villes connues.
+ */
+export function villeDuProjet(p) {
+  const adresse = String(p?.adresse_complete || '').replace(/,?\s*france\s*$/i, '').trim();
+  const apresCp = adresse.match(/\b\d{5}\s+([^,\d]+)$/);
+  if (apresCp) return apresCp[1].trim();
+  const morceaux = adresse.split(',').map((x) => x.trim()).filter(Boolean);
+  if (morceaux.length > 1 && !/\d/.test(morceaux[morceaux.length - 1])) return morceaux[morceaux.length - 1];
+  const champ = String(p?.ville_secteur_champ1 || '').trim();
+  if (champ && champ.length <= 30 && !/centre|ville|secteur|quartier|densit|proximit|commune|agglom|\bbon\b|hyper|ultra|touristique|plage|lisi[eè]re|aisance|basilic|huriya|boucle|disponible|^null$/i.test(champ)) return champ;
+  return trouverVille(adresse)?.nom || '';
+}
+
+/**
+ * Les photos de nos projets, par ville (26 nov. 2026, Jules : « prends les photos qu'on a choisies ; pour un dossier à
+ * Paris, une photo d'un projet qu'on a mis à Paris ; une ville où on n'a rien, celle que tu veux ») : la couverture de
+ * chaque projet (sa première photo), rangée sous la ville du projet. Relue avec la liste des dossiers.
+ */
+// Le fichier est bien sur le disque (un projet peut citer une image restée sur un autre serveur).
+const fichierPresent = (url) => {
+  try { return fs.existsSync(path.join(CHEMIN_UPLOADS, decodeURIComponent(url.replace(/^\/uploads\//, '').split('?')[0]))); } catch { return false; }
+};
+
+function photosDesProjets() {
+  const parVille = new Map();
+  for (const p of Records.list('Project')) {
+    // Une photo gardée chez nous (/uploads) : celles du Drive ou de l'ancien hébergement ne se chargent plus toujours.
+    const photo = (p.photos || []).map((x) => (typeof x === 'string' ? x : x?.url))
+      .find((u) => u && u.startsWith('/uploads/') && fichierPresent(u));
+    const cle = cleVille(villeDuProjet(p));
+    if (!photo || !cle) continue;
+    if (!parVille.has(cle)) parVille.set(cle, []);
+    if (!parVille.get(cle).includes(photo)) parVille.get(cle).push(photo);
+  }
+  return parVille;
+}
+
+function chercherPhotosVille(lignes) {
+  if (photosEnCours || process.env.NODE_TEST_CONTEXT || process.env.KLOCKA_SANS_RESEAU) return;
+  // Version 2 (26 nov. 2026, Jules : « des collages, c'est trop bizarre ») : la photo de Wikidata, jamais un montage ;
+  // les photos de ville d'avant sont cherchées de nouveau. Une même ville reprend la photo déjà trouvée.
+  // Pour tous les dossiers sans projet : la photo de ville sert aussi de recours quand les photos de nos projets de la
+  // ville sont déjà prises par les cartes voisines.
+  const sans = lignes.filter((x) => x && !x.projet_id).map((x) => Records.findBy('Deal', 'deal_id', x.deal_id))
+    .filter((d) => d && d.photo_ville_v !== VERSION_PHOTO_VILLE).slice(0, 6);
+  if (!sans.length) return;
+  photosEnCours = true;
+  (async () => {
+    const { photosDeLaVille, telechargerDeCommons } = await import('./photos-auto.js');
+    const { CHEMIN_UPLOADS } = await import('../db.js');
+    const tous = Records.list('Deal').filter((x) => !x.projet_id);
+    const ordre = (x) => String(x.cree_le || x.created_date || x.id || '');
+    for (const d of sans) {
+      const v = villeDe(d);
+      const cle = v.nom.toLowerCase();
+      let url = null;
+      if (v.nom) {
+        if (!photosParVille.has(cle)) photosParVille.set(cle, photosDeLaVille(v.nom, { departement: v.departement }).catch(() => []));
+        const fichiers = await photosParVille.get(cle);
+        if (!fichiers.length) photosParVille.delete(cle);
+        // Chaque dossier d'une même ville a sa photo (26 nov. 2026, Jules : « tout le temps la même photo pour une même
+        // ville ») : celle de son rang parmi les dossiers de la ville, la même à chaque fois.
+        const rang = Math.max(0, tous.filter((x) => villeDe(x).nom.toLowerCase() === cle).sort((a, b) => ordre(a).localeCompare(ordre(b))).findIndex((x) => x.id === d.id));
+        for (let k = 0; k < Math.min(3, fichiers.length) && !url; k += 1) url = await telechargerDeCommons(fichiers[(rang + k) % fichiers.length], CHEMIN_UPLOADS).catch(() => null);
+        await new Promise((ok) => setTimeout(ok, 600));
+      }
+      // Une ville connue sans photo trouvée (réseau, limite d'appels) : réessayée aux ouvertures suivantes, trois fois au plus.
+      const essais = (Number(d.photo_ville_essais) || 0) + 1;
+      const fini = !!url || !v.nom || essais >= 3;
+      Records.update('Deal', d.id, { ...(url || fini ? { photo_ville: url || null } : {}), ...(fini ? { photo_ville_v: VERSION_PHOTO_VILLE, photo_ville_essais: 0 } : { photo_ville_essais: essais }), photo_ville_essai: new Date().toISOString() });
+    }
+  })().catch(() => {}).finally(() => { photosEnCours = false; });
 }
 
 function lireListeDossiers() {
+  // La photo de chaque carte (26 nov. 2026, Jules : « deux dossiers de Lyon collés ne doivent pas avoir la même photo ») :
+  // un dossier qui a son projet, la photo du projet ; sinon la couverture la moins prise de nos projets de sa ville, sinon
+  // sa photo de ville ; jamais une photo des quatre cartes d'avant (sa voisine, celle du dessus), dans l'ordre de la liste.
+  // Les photos des projets d'abord, à leur place ; puis chaque autre carte évite celles des quatre cartes d'avant et
+  // d'après.
+  const nosVilles = photosDesProjets();
+  const ordre = Records.list('Deal', { sort: '-created_date' }).filter((d) => !d.cache_equipe);
+  const choisies = ordre.map((d) => photoDuProjet(d));
+  const prises = new Map();
+  for (const p of choisies) if (p) prises.set(p, (prises.get(p) || 0) + 1);
+  ordre.forEach((d, i) => {
+    if (choisies[i]) return;
+    const candidates = [...new Set([...(nosVilles.get(cleVille(villeDe(d).nom)) || []), d.photo_ville].filter(Boolean))];
+    const voisines = new Set(choisies.slice(Math.max(0, i - 4), i + 5).filter(Boolean));
+    const libres = candidates.filter((c) => !voisines.has(c));
+    const photo = (libres.length ? libres : candidates).sort((x, y) => (prises.get(x) || 0) - (prises.get(y) || 0))[0] || null;
+    choisies[i] = photo;
+    if (photo) prises.set(photo, (prises.get(photo) || 0) + 1);
+  });
+  const photos = new Map(ordre.map((d, i) => [d.id, choisies[i]]));
   // Les lettres d'intention par dossier : l'étape « Offre » de la frise (17 oct. 2026).
   const offresParDeal = {};
   for (const l of Records.list('LettreIntention')) if (l.deal_id) offresParDeal[l.deal_id] = (offresParDeal[l.deal_id] || 0) + 1;
@@ -504,7 +623,9 @@ function lireListeDossiers() {
     dossier_mandataire_id: d.dossier_mandataire_id || null,
     dernier_suivi: (d.suivi || [])[d.suivi?.length - 1] || null,
     // L'image de la carte : celle du projet né du dossier, sinon une photo du mandataire.
-    photo: photoDe(d),
+    photo: photos.get(d.id) || null,
+    // La photo de ville, en recours quand la liste se range autrement (par ouverture) et qu'une voisine a la même.
+    photo_secours: d.projet_id ? null : d.photo_ville || null,
     // Les aperçus de la page Dossiers (14 nov. 2026, Jules) : la fiche commerciale reçue, et deux pièces de la
     // Data Room à poser derrière. Des adresses seulement : la vignette se dessine dans le navigateur (MiniaturePiece).
     ...apercusDe(d),
@@ -538,13 +659,10 @@ export function apercusDe(d) {
   return { fiche, fiche_texte: texte || null, pieces, nb_pieces: docs.length };
 }
 
-function photoDe(d) {
-  const url = (x) => (typeof x === 'string' ? x : x?.url || null);
-  const projet = d.projet_id ? Records.get('Project', d.projet_id) : null;
-  const depuisProjet = url((projet?.photos || [])[0]);
-  if (depuisProjet) return depuisProjet;
-  const dm = d.dossier_mandataire_id ? Records.get('DossierMandataire', d.dossier_mandataire_id) : null;
-  return url((dm?.photos || [])[0]);
+/** La photo du projet d'un dossier : sa première, celle de sa carte et de sa page ; null sans projet. */
+function photoDuProjet(d) {
+  const projet = d?.projet_id ? Records.get('Project', d.projet_id) : null;
+  return (projet?.photos || []).map((x) => (typeof x === 'string' ? x : x?.url || null)).find(Boolean) || null;
 }
 
 /**

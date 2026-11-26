@@ -88,10 +88,10 @@ export function monterFicheDossier(app) {
   app.post('/api/fiche-dossier/agents-preferes', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
     const P = await import('../fiche-dossier/preferes.js');
-    const r = P.basculerPrefere(user, req.body?.cle);
+    const r = P.basculerPrefere(user, (await import('../fiche-dossier/une-cle.js')).cleUnique(req.body?.cle));
     if (!r.ok) return refus(res, r);
     // Un agent mis en préféré a sa photo (22 nov. 2026, Jules) : cherchée d'elle-même s'il n'en a pas.
-    if (r.etoile) (await import('../photos-fiches.js')).photoAuto(req.body?.cle);
+    if (r.etoile) (await import('../photos-fiches.js')).photoAuto((await import('../fiche-dossier/une-cle.js')).cleUnique(req.body?.cle));
     ok(res, { ...r, ...P.etoiles(user) });
   }));
 
@@ -100,11 +100,11 @@ export function monterFicheDossier(app) {
     const user = equipe(req, res); if (!user) return;
     const P = await import('../photos-fiches.js');
     // Une fiche : toutes ses photos (plusieurs personnes, 23 nov. 2026) ; sinon la première de chaque fiche.
-    ok(res, req.query.cle ? { photos: P.photosDe(String(req.query.cle)) } : P.toutesLesPhotos());
+    ok(res, req.query.cle ? { photos: P.photosDe((await import('../fiche-dossier/une-cle.js')).cleUnique(req.query.cle)) } : P.toutesLesPhotos());
   }));
   app.delete('/api/fiche-dossier/photo/:id', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
-    const r = (await import('../photos-fiches.js')).retirerPhoto(String(req.query.cle || ''), req.params.id);
+    const r = (await import('../photos-fiches.js')).retirerPhoto((await import('../fiche-dossier/une-cle.js')).cleUnique(req.query.cle), req.params.id);
     if (!r.ok) return refus(res, r);
     ok(res, r);
   }));
@@ -112,7 +112,7 @@ export function monterFicheDossier(app) {
     const user = equipe(req, res); if (!user) return;
     if (!req.file) return res.status(400).json({ error: 'Aucune photo reçue.' });
     if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(req.file.mimetype || '')) { fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Une photo : JPEG, PNG ou WebP.' }); }
-    const r = (await import('../photos-fiches.js')).poserPhoto(req.body?.cle, `/uploads/${req.file.filename}`, { par: user.email, id: req.body?.id || null, ajouter: req.body?.ajouter === '1' });
+    const r = (await import('../photos-fiches.js')).poserPhoto((await import('../fiche-dossier/une-cle.js')).cleUnique(req.body?.cle), `/uploads/${req.file.filename}`, { par: user.email, id: req.body?.id || null, ajouter: req.body?.ajouter === '1' });
     if (!r.ok) { fs.unlink(req.file.path, () => {}); return refus(res, r); }
     ok(res, r);
   }));
@@ -213,7 +213,8 @@ export function monterFicheDossier(app) {
   app.get('/api/fiche-dossier/fiche', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
     const m = await M();
-    const cle = String(req.query.cle || '');
+    // La clé qui fait foi (25 nov. 2026, Jules : « une seule fiche par bien, la même dans l'assistant et le CRM »).
+    const cle = (await import('../fiche-dossier/une-cle.js')).cleUnique(req.query.cle);
     // Une fiche du CRM ouverte d'un clic sur son nom (22 nov. 2026, Jules) : sa fiche de Klocka prend ce nom, au même format.
     const nom = String(req.query.nom || '').trim().slice(0, 120);
     if (nom && /^twenty:(agentImmobilier|clients):/.test(cle)) {

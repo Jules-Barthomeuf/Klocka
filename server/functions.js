@@ -10,6 +10,8 @@ import { changerStatut, repousserRelance, ajouterSuivi, statutDe } from './deal/
 import { alimenterBaseMarche } from './deal/marche.js';
 import { lireCases } from './projet-cases.js';
 import { secteurGarde } from './projet-secteur.js';
+import { projetDeLaCle, projetPourLePublic } from './lien-public.js';
+import { parcelleGardee } from './parcelle-projet.js';
 
 // Fait avancer le cycle de vie d'un deal après l'envoi d'un mail d'intention :
 // trace l'envoi dans `suivi`, applique la transition de statut correspondante
@@ -156,14 +158,22 @@ export const functions = {
     return { projects, count: projects.length, total_accessible: total };
   },
 
-  getPublicProject({ id } = {}) {
-    if (!id) return { success: false, error: 'Missing project id' };
-    const project = Records.get('Project', id);
+  // Le lien public : une clé créée depuis le projet, qu'on peut couper (server/lien-public.js, 25 nov. 2026). Les liens
+  // d'avant, faits avec l'identifiant du projet, s'ouvrent encore : ils ont déjà été envoyés.
+  async getPublicProject({ id, cle } = {}) {
+    if (!id && !cle) return { success: false, error: 'Missing project id' };
+    const project = cle ? projetDeLaCle(cle) : Records.get('Project', id);
     if (!project) return { success: false, error: 'Project not found' };
     // Le lien public montre les cases, sans les pièces : /uploads exige un compte.
     // Le secteur gardé aussi (le loyer Equimmox de l'onglet Marché), sans
     // relancer de recherche pour un visiteur.
-    return { success: true, project: { ...project, cases: lireCases(project, { sansSources: true }), secteur: secteurGarde(project.id) } };
+    // La parcelle déjà lue pour l'onglet Bien : le visiteur ne lance pas le cadastre.
+    const cases = lireCases(project, { sansSources: true });
+    // La fiche de la société déjà lue (aperçu Pappers de l'onglet Locataire) : le visiteur ne lance pas l'annuaire.
+    const { ficheGardee, liensTrouvesGardes, avisGoogleGarde } = await import('./liens-locataire.js');
+    const societe_locataire = await ficheGardee(cases?.siren_locataire).catch(() => null);
+    const liens_trouves = liensTrouvesGardes(project)?.liens || [];
+    return { success: true, project: { ...projetPourLePublic(project), cases, secteur: secteurGarde(project.id), parcelle_cadastre: parcelleGardee(project), societe_locataire, liens_trouves, avis_google: avisGoogleGarde(project) } };
   },
 
   searchProjects({ searchTerm } = {}, { user }) {

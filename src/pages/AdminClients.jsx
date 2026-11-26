@@ -39,14 +39,14 @@ const avatarDe = (d) => {
 // le visage dessiné. Dans sa fiche, un clic sur la tête en importe une (PhotoFiche).
 const Avatar = ({ d, taille = "h-[38px] w-[38px]" }) => {
   const { data: photos } = usePhotosFiches();
-  const photo = photos?.[`client:${d.id}`];
+  const photo = photos?.[d.cle_fiche || `client:${d.id}`];
   return <img src={photo || avatarDe(d)} alt="" aria-hidden="true" className={`block flex-none rounded-full object-cover ${taille}`} />;
 };
 
 /** La tête du client dans sa fiche : un clic importe sa photo. */
 function PhotoClient({ d }) {
   const { data: photos } = usePhotosFiches();
-  return <PhotosFiche cle={`client:${d.id}`} nom={d.nom} photo={photos?.[`client:${d.id}`] || null} defaut={avatarDe(d)} taille={48} className="justify-start" />;
+  return <PhotosFiche cle={d.cle_fiche || `client:${d.id}`} nom={d.nom} photo={photos?.[d.cle_fiche || `client:${d.id}`] || null} defaut={avatarDe(d)} taille={48} className="justify-start" />;
 }
 
 function PastilleReseau({ d }) {

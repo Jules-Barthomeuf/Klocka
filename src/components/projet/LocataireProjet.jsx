@@ -69,12 +69,12 @@ const moisAnnee = (iso) => {
 /** Le profil en pastilles : « Indépendant, SARL · 2 associés » en devient deux. */
 export const pastillesProfil = (texte) => String(texte || "").split(/\s*[,;|\n]\s*/).map((p) => p.trim()).filter(Boolean);
 
-function Anneau({ part, texte, children = null }) {
+function Anneau({ part, texte, children = null, aGauche = false }) {
   const r = 46;
   const c = 2 * Math.PI * r;
   const visible = part == null ? 0 : part;
   return (
-    <div className="relative w-[220px] h-[220px] max-md:w-[180px] max-md:h-[180px] mx-auto">
+    <div className={`relative w-[220px] h-[220px] max-md:w-[180px] max-md:h-[180px] ${aGauche ? "md:mx-0 mx-auto" : "mx-auto"}`}>
       <svg viewBox="0 0 110 110" className="w-full h-full -rotate-90">
         <circle cx="55" cy="55" r={r} fill="none" strokeWidth="5" className="stroke-relief" />
         <circle cx="55" cy="55" r={r} fill="none" strokeWidth="5" strokeLinecap="round" className="stroke-menthe transition-[stroke-dashoffset] duration-700"
@@ -104,7 +104,7 @@ function Case({ valeur, label, info, champ = null, type = "number", force = null
 
 // `friseLue` : les dates que le serveur a lues dans le bail, pour qu'une
 // arrivée non saisie se déduise de la prise d'effet.
-export default function LocataireProjet({ project, friseLue = null }) {
+export default function LocataireProjet({ project, friseLue = null, aDroite = null, entre = null }) {
   const edition = useEdition();
   const valeurs = valeursLocataire(project, friseLue);
   const arrivee = arriveeDuLocataire(project, friseLue);
@@ -124,52 +124,65 @@ export default function LocataireProjet({ project, friseLue = null }) {
   ].filter(Boolean);
   const anneau = visible("loc.restant");
   const exploite = visible("loc.nom") || visible("loc.profil");
-  if (!bail.length && !anneau && !exploite) return null;
+  if (!bail.length && !anneau && !exploite && !aDroite && !entre) return null;
+  const nom = visible("loc.nom") && (
+    <div>
+      <div className={`text-[26px] max-md:text-[20px] font-medium tracking-[-0.01em] leading-tight ${valeurs["loc.nom"] ? "text-encre" : "text-brume"}`}><ValeurEditable champ="nom_locataire" type="text">{valeurs["loc.nom"] || "—"}</ValeurEditable></div>
+      <div className="text-[14px] text-ardoise mt-1.5">Nom du locataire</div>
+    </div>
+  );
+  // Le profil en texte suivi, plus en pastilles (10 nov. 2026, Jules : « enlève le truc de bulles ») : une phrase coupée à
+  // chaque virgule faisait des bulles illisibles.
+  const profil = visible("loc.profil") && (
+    <div className={`text-[14px] leading-[1.55] ${project.profil_locataire ? "text-craie" : "text-brume"} ${visible("loc.nom") ? "mt-5" : ""}`}>
+      <ValeurEditable champ="profil_locataire" type="text">{String(project.profil_locataire || "").trim() || "Profil —"}</ValeurEditable>
+    </div>
+  );
 
+  // À gauche, le bail en place, puis une carte : qui exploite, et la durée du bail à sa droite ; à droite, en haut, la
+  // présence en ligne (26 nov. 2026, Jules : « durée du bail à droite de qui exploite, sur la même carte ; présence en
+  // ligne, tu peux remonter »).
   return (
-    <div className={`grid gap-5 ${anneau ? "md:grid-cols-[300px_minmax(0,1fr)]" : ""}`}>
-      {anneau && (
-        <Bloc id="locataire-duree" titre="Durée du bail">
-        <Carte className="flex h-full flex-col gap-4 p-7 max-md:p-5">
-          <TitreCarte titre="Durée du bail" sous="La part qui reste à courir" />
-          <div className="flex flex-1 items-center">
-            <Anneau part={partRestante(project, new Date(), friseLue)} texte={restant}><ValeurForcee cle="loc_restant" type="text">{restant || "—"}</ValeurForcee></Anneau>
-          </div>
-        </Carte>
-        </Bloc>
-      )}
-      <div className="min-w-0 flex flex-col gap-5">
+    <div className={`grid items-start gap-5 ${aDroite ? "lg:grid-cols-3" : ""}`}>
+      <div className={`flex min-w-0 flex-col gap-5 ${aDroite ? "lg:col-span-2" : ""}`}>
         {bail.length > 0 && (
           <Bloc id="locataire-bail" titre="Le bail en place">
           <Carte className="p-7 max-md:p-5">
             <TitreCarte titre="Le bail en place" />
             <div className="grid grid-cols-2 gap-x-10 max-md:gap-x-6 gap-y-8 max-md:gap-y-6 pt-6">
-              {bail.map((c) => <Case key={c.label} {...c} />)}
+              {/* Chaque chiffre se masque seul (26 nov. 2026, Jules : « juste le loyer annuel »). */}
+              {bail.map((c) => <Bloc key={c.label} id={`locataire-${c.champ || c.force}`} titre={c.label}><Case {...c} /></Bloc>)}
             </div>
           </Carte>
           </Bloc>
         )}
-        {exploite && (
-          <Bloc id="locataire-exploite" titre="Qui exploite">
+        {/* Entre le bail en place et qui exploite, les fiches de la société (Pappers, BODACC) (26 nov. 2026, Jules). */}
+        {entre}
+        {(exploite || anneau) && (
+          <Bloc id="locataire-exploite-duree" titre="Qui exploite et durée du bail">
           <Carte className="p-7 max-md:p-5">
-            <div className="mb-4"><TitreCarte titre="Qui exploite" /></div>
-            {visible("loc.nom") && (
-              <div>
-                <div className={`text-[26px] max-md:text-[20px] font-medium tracking-[-0.01em] leading-tight ${valeurs["loc.nom"] ? "text-encre" : "text-brume"}`}><ValeurEditable champ="nom_locataire" type="text">{valeurs["loc.nom"] || "—"}</ValeurEditable></div>
-                <div className="text-[14px] text-ardoise mt-1.5">Nom du locataire</div>
-              </div>
-            )}
-            {visible("loc.profil") && (
-              // Le profil en texte suivi, plus en pastilles (10 nov. 2026, Jules : « enlève le truc de bulles ») : une phrase
-              // coupée à chaque virgule faisait des bulles illisibles.
-              <div className={`text-[14px] leading-[1.55] ${project.profil_locataire ? "text-craie" : "text-brume"} ${visible("loc.nom") ? "mt-5" : ""}`}>
-                <ValeurEditable champ="profil_locataire" type="text">{String(project.profil_locataire || "").trim() || "Profil —"}</ValeurEditable>
-              </div>
-            )}
+            {/* Les deux colonnes du bail en place (même grille, même écart) : la durée du bail commence là où commencent
+                « En place depuis » et « Soit par mois » (26 nov. 2026, Jules : « aligne durée du bail avec avril 2024 »). */}
+            <div className={`grid gap-8 ${exploite && anneau ? "md:grid-cols-2 md:gap-x-10" : ""}`}>
+              {exploite && (
+                <Bloc id="locataire-exploite" titre="Qui exploite" className="min-w-0">
+                  <div className="mb-4"><TitreCarte titre="Qui exploite" /></div>
+                  {nom}
+                  {profil}
+                </Bloc>
+              )}
+              {anneau && (
+                <Bloc id="locataire-duree" titre="Durée du bail" className="flex min-w-0 flex-col gap-4">
+                  <TitreCarte titre="Durée du bail" sous="La part qui reste à courir" />
+                  <Anneau aGauche part={partRestante(project, new Date(), friseLue)} texte={restant}><ValeurForcee cle="loc_restant" type="text">{restant || "—"}</ValeurForcee></Anneau>
+                </Bloc>
+              )}
+            </div>
           </Carte>
           </Bloc>
         )}
       </div>
+      {aDroite && <div className="flex min-w-0 flex-col gap-5">{aDroite}</div>}
     </div>
   );
 }

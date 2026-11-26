@@ -84,7 +84,7 @@ function TextePage({ dealId, documentId, page, citation }) {
   const ref = useRef(null);
   const texte = data?.texte || "";
   const passage = useMemo(() => trouverPassage(texte, citation), [texte, citation]);
-  useEffect(() => { ref.current?.scrollIntoView({ block: "center" }); }, [passage]);
+  useEffect(() => { amenerDansLeCadre(ref.current); }, [passage]);
 
   if (isLoading) return <p className="m-0 px-4 py-3 text-[12.5px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Lecture de la page…</p>;
   if (isError || !texte) return <p className="m-0 px-4 py-3 text-[12.5px] text-brume">Pas de couche texte sur cette page : le passage se lit dans le PDF, à la page {page || 1}.</p>;
@@ -110,6 +110,22 @@ function TextePage({ dealId, documentId, page, citation }) {
 // surligné »). pdf.js dessine la page et lit sa couche texte ; les morceaux de texte qui portent la citation reçoivent
 // un aplat ambre. La citation absente de la page dite est cherchée dans les autres. Un scan n'a pas de couche texte :
 // la page s'affiche, la citation reste au-dessus.
+/**
+ * Amène un passage au milieu de la pièce sans bouger la page (26 nov. 2026, Jules : « ça bouge à chaque fois que je
+ * défile dans les clauses du bail, la page monte et descend ») : `scrollIntoView` faisait défiler tous les parents,
+ * la page comprise. Seul le cadre qui défile autour du passage bouge ; sans cadre, rien ne bouge.
+ */
+export function amenerDansLeCadre(el, bloc = "center") {
+  if (!el || typeof window === "undefined") return;
+  let cadre = el.parentElement;
+  while (cadre && cadre !== document.body && !(cadre.scrollHeight > cadre.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(cadre).overflowY))) cadre = cadre.parentElement;
+  if (!cadre || cadre === document.body || cadre === document.documentElement) return;
+  const r = el.getBoundingClientRect();
+  const c = cadre.getBoundingClientRect();
+  const haut = r.top - c.top + cadre.scrollTop;
+  cadre.scrollTop = Math.max(0, bloc === "start" ? haut : haut - (cadre.clientHeight - r.height) / 2);
+}
+
 export async function pdfjs() {
   const lib = await import("pdfjs-dist");
   const { default: worker } = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
@@ -276,8 +292,8 @@ export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }
     if (amene.current === cle) return;
     amene.current = cle;
     requestAnimationFrame(() => {
-      if (premiere.current) premiere.current.scrollIntoView({ block: "center" });
-      else pages.current[cible.page - 1]?.scrollIntoView({ block: "start" });
+      if (premiere.current) amenerDansLeCadre(premiere.current);
+      else amenerDansLeCadre(pages.current[cible.page - 1], "start");
     });
   }, [doc, cible, largeurCadre]);
   useEffect(() => { amene.current = null; }, [url, pageDite, citation]);
@@ -412,7 +428,7 @@ function WordSurligne({ url, citation = null }) {
     if (!el || !etat.html || !citation) return;
     const debut = sansAccents(citation).slice(0, 48);
     const bloc = [...el.querySelectorAll("p, li, td, h1, h2, h3")].find((b) => sansAccents(b.textContent).includes(debut));
-    if (bloc) { bloc.classList.add("k-passage-cite"); bloc.scrollIntoView({ block: "center" }); }
+    if (bloc) { bloc.classList.add("k-passage-cite"); amenerDansLeCadre(bloc); }
   }, [etat.html, citation]);
   if (etat.erreur) return <PasAffichable />;
   if (!etat.html) return <div className="grid flex-1 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>;
@@ -448,7 +464,7 @@ function ImageSurlignee({ url, citation = null }) {
     } catch { /* l'image reste, sans surlignage */ }
     setLecture(false);
   };
-  useEffect(() => { premiere.current?.scrollIntoView({ block: "center" }); }, [marques]);
+  useEffect(() => { amenerDansLeCadre(premiere.current); }, [marques]);
   if (erreur) return <PasAffichable />;
   return (
     <div className="flex-1 overflow-y-auto bg-fond">
@@ -464,7 +480,9 @@ function ImageSurlignee({ url, citation = null }) {
   );
 }
 
-export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteur = null }) {
+// `enTeteCarte` : l'en-tête à la taille d'un titre de carte, à côté d'une carte (26 nov. 2026, Jules : « de la même
+// taille que La clause »).
+export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteur = null, enTeteCarte = false }) {
   const page = ligne?.page || null;
   // Le document est rapporté par le client authentifié, puis affiché depuis la
   // mémoire du navigateur. Un <iframe src="/uploads/…"> n'emporte ni le jeton
@@ -481,8 +499,9 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
     gcTime: 15 * 60 * 1000,
     retry: false,
   });
-  // L'objet créé pour le cadre doit être rendu, sinon la mémoire le garde.
-  useEffect(() => () => { if (local?.url) URL.revokeObjectURL(local.url); }, [local?.url]);
+  // L'adresse du fichier n'est plus rendue au démontage (26 nov. 2026) : elle vit dans le cache partagé (10 min, avec
+  // SourceSeule), et la Visionneuse remontée d'une clause à l'autre recevait une adresse déjà rendue, « Cette pièce ne
+  // s'affiche pas ici ». Une adresse par pièce et par chargement : la mémoire reste bornée.
 
   const url = local?.url ? (page && /pdf/i.test(local.type || extraction.document_url || "") ? `${local.url}#page=${page}` : local.url) : lienSource(extraction.document_url, page);
   const affichable = lisibleEnCadre(extraction.document_url, local?.type || extraction.document_mime);
@@ -496,10 +515,16 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
 
   return (
     <div className={`bg-surface border border-trait rounded-md overflow-hidden flex flex-col ${hauteur || "h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] max-md:[.panneau-source_&]:h-[calc(100dvh-32px)] [.panneau-source_&]:static"}`}>
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-bord flex-shrink-0">
+      <div className={`flex items-center gap-3 border-b border-bord flex-shrink-0 ${enTeteCarte ? "px-7 pb-4 pt-6 max-md:px-5" : "px-4 py-2.5"}`}>
+        {/* La croix à gauche du nom (26 nov. 2026, Jules) : en haut à droite, la photo de profil la couvrait. */}
+        {onFermer && (
+          <button onClick={onFermer} className="-ml-1.5 grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-ardoise transition-colors hover:bg-relief hover:text-encre max-md:h-10 max-md:w-10" style={{ background: "transparent" }} title="Fermer (Échap)" aria-label="Fermer">
+            <X className="w-4 h-4" />
+          </button>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="m-0 text-[12.5px] text-encre truncate">{extraction.document_nom}</p>
-          <p className="m-0 text-[11px] text-brume truncate">
+          <p className={`m-0 truncate text-encre ${enTeteCarte ? "text-[16px] font-medium" : "text-[12.5px]"}`}>{extraction.document_nom}</p>
+          <p className={`m-0 truncate ${enTeteCarte ? "mt-0.5 text-[13.5px] text-ardoise" : "text-[11px] text-brume"}`}>
             {ligne?.element}{page ? ` · page ${page}` : ""}
           </p>
         </div>
@@ -520,9 +545,6 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
             Plein écran
           </a>
         )}
-        <button onClick={onFermer} className="text-brume hover:text-encre transition-colors flex-shrink-0 max-md:-m-2 max-md:p-2" title="Fermer" aria-label="Fermer">
-          <X className="w-4 h-4" />
-        </button>
       </div>
 
       {vue === "passage" && peutSurligner ? (

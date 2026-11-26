@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import LienPublic from "@/components/projet/LienPublic";
 import Pages from "@/components/ui/Pages";
 import { Onglets } from "@/components/ui/kit";
 import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
@@ -14,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Map as MapIcon, Search, Building2, Plus, Upload, X, CheckCircle2, MoreHorizontal, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, History, UserPlus, Save, ChevronDown, PanelLeftOpen, PanelLeftClose } from "lucide-react";
+import { Map as MapIcon, Search, Building2, Plus, Upload, X, CheckCircle2, MoreHorizontal, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Pencil, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, History, UserPlus, Save, ChevronDown, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import CarteKlocka from "@/components/carte/CarteKlocka";
 import { toast } from "@/components/ui/avis";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
@@ -52,6 +53,10 @@ import { FField, FInput, FTextarea } from "../components/admin/FormField";
 
 import { travauxDuProjet, travauxParDefautListe } from "@/components/simulator/CalculFinancier";
 import { BoutonOutil, BoutonPrincipal, Filtres, Recherche, TitrePage, LigneTitre } from "@/components/mandataire/elements";
+import TitreDossiersProjets from "@/components/preanalyse/TitreDossiersProjets";
+import { Ecarts } from "@/components/preanalyse/EtapeProjet";
+import { MenuEtapesDroite } from "@/components/preanalyse/EtapesDossier";
+import { ETAPES_MENU } from "@/lib/dossiers-architecture";
 import { ETAPES_PROJET, statutLabels } from "@/components/projet/CarteProjet";
 import Chargement from "@/components/ui/Chargement";
 // Au téléphone (moins de 768 px), l'éditeur s'ouvre en plein écran.
@@ -1449,18 +1454,19 @@ export default function AdminProjets() {
       <>
         <button type="button" onClick={annulerDerniereModification} disabled={!historique.length} aria-label="Annuler" title="Annuler (⌘Z), une retouche d'AK comprise" className={ICONE} style={{ background: "transparent" }}><Annuler className="h-4 w-4" /></button>
         <button type="button" onClick={refaireDerniereModification} disabled={!refaits.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className={ICONE} style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
-        <button type="button" onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")} aria-label="Ouvrir la page du client" title="Ouvrir la page telle que le client la verra" className={ICONE} style={{ background: "transparent" }}><Eye className="h-4 w-4" /></button>
+        {/* L'œil a laissé sa place à « Voir comme un client », à droite de « Tous les projets » (26 nov. 2026, Jules). */}
+        {/* Le lien public, qui s'ouvre sans connexion : le créer, le copier, le couper (25 nov. 2026, Jules). */}
+        <LienPublic projectId={editingProject.id} />
         {/* Plus de bouton Enregistrer (11 nov. 2026, Jules : « à quoi ça sert s'il est enregistré automatiquement ») : le projet
             s'enregistre seul, l'état le dit ; garder une version passe dans le « … ». */}
         <div ref={zoneMenuProjet} className="relative">
-          <button type="button" onClick={() => setMenuProjet((x) => !x)} aria-expanded={menuProjet} aria-label="Plus d'actions" title="Assigner, les versions"
+          <button type="button" onClick={() => setMenuProjet((x) => !x)} aria-expanded={menuProjet} aria-label="Plus d'actions" title="Les versions, le dossier"
             className="grid h-9 w-9 place-items-center rounded-full border border-trait text-ardoise hover:text-encre" style={{ background: "transparent" }}>
             <MoreHorizontal className="h-4 w-4" />
           </button>
           {menuProjet && (
             <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[230px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
               {[
-                [UserPlus, "Assigner à un client", () => { setMenuProjet(false); setAssignerOuvert(true); }],
                 [Save, enregistrement ? "Version en cours…" : "Garder une version", () => { setMenuProjet(false); enregistrerVersion(); }],
                 [History, "Historique des versions", ouvrirVersions],
                 ...(dossierLie ? [[FolderSearch, "Ouvrir le dossier", () => { setMenuProjet(false); navigate(`${createPageUrl("Analyse")}?deal_id=${dossierLie}`); }]] : []),
@@ -1475,7 +1481,9 @@ export default function AdminProjets() {
       </>
     );
     const barreHautProjet = (
-      <BarreEditeur titre={formData.titre || "Projet"} statut={statutAuto || ""} mode={vueProjet} onMode={setVueProjet} actions={actionsProjet}
+      // Plus d'Éditeur / Lecture dans la barre (26 nov. 2026, Jules : « tu mets juste voir comme un client ») : la bascule
+      // est sur la ligne de « Tous les projets ».
+      <BarreEditeur centre titre={formData.titre || "Projet"} statut={statutAuto || ""} actions={actionsProjet}
         debut={scindeProjet ? (
           <button type="button" onClick={() => setChatReduit((r) => !r)} aria-label={chatReduit ? "Ouvrir l'assistant" : "Fermer l'assistant"} title={chatReduit ? "Ouvrir l'assistant" : "Fermer l'assistant"}
             className="relative grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-rail-actif hover:text-encre" style={{ background: "transparent" }}>
@@ -1490,14 +1498,48 @@ export default function AdminProjets() {
     );
     const pageAvecOnglets = ongletPage !== "images" && !!projetAffiche;
     const barreProjet = (
-      <div className="pb-2">
-        {/* Le retour reste ici : la barre du chat n'apparaît qu'une fois la conversation lancée. */}
-        <button type="button" onClick={goToProjectsList} className="flex flex-none items-center gap-1.5 text-xs text-ardoise transition-colors hover:text-encre max-md:min-h-[36px]" style={{ background: "transparent" }}>
-          <ArrowLeft className="h-3.5 w-3.5" /> Tous les projets
-        </button>
+      <div>
+        {/* Le retour reste ici : la barre du chat n'apparaît qu'une fois la conversation lancée. À droite, sur la même ligne,
+            « Voir comme un client » (26 nov. 2026, Jules) : un clic bascule la page en lecture, sans nouvelle fenêtre ;
+            Cmd (ou Ctrl) + clic l'ouvre dans un nouvel onglet ; en lecture, « Revenir à l'édition ». En pilule, un peu en retrait
+            du bord droit (Jules, même jour). */}
+        <div className="flex items-center justify-between gap-3">
+          <button type="button" onClick={goToProjectsList} className="flex flex-none items-center gap-1.5 text-xs text-ardoise transition-colors hover:text-encre max-md:min-h-[36px]" style={{ background: "transparent" }}>
+            <ArrowLeft className="h-3.5 w-3.5" /> Tous les projets
+          </button>
+          {editingProject?.id && (
+          <div className="mr-6 flex flex-none items-center gap-2 max-md:mr-0">
+          {/* « Assigner à un client », à gauche de « Voir comme un client » (26 nov. 2026, Jules) : il a quitté le « … ». */}
+          {vueProjet !== "lecture" && (
+            <button type="button" onClick={() => setAssignerOuvert(true)} className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full border border-trait px-3.5 text-[13px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+              <UserPlus className="h-3.5 w-3.5" /> Assigner à un client
+            </button>
+          )}
+          {vueProjet === "lecture" ? (
+            <button type="button" onClick={() => setVueProjet("edition")} className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full border border-trait px-3.5 text-[13px] text-craie no-underline transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+              <Pencil className="h-3.5 w-3.5" /> Revenir à l'édition
+            </button>
+          ) : (
+            <a href={`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`} target="_blank" rel="noopener noreferrer"
+              onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; e.preventDefault(); setVueProjet("lecture"); }}
+              title="Voir la page telle que le client la verra (Cmd + clic : dans un nouvel onglet)"
+              className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full border border-trait px-3.5 text-[13px] text-craie no-underline transition-colors hover:border-bord-vif hover:text-encre">
+              <Eye className="h-3.5 w-3.5" /> Voir comme un client
+            </a>
+          )}
+          </div>
+          )}
+        </div>
         {/* Sur la page du projet, les onglets passent sous « Simulateur complet » (30 oct. 2026, Jules) ; ailleurs
             (photos), ils restent ici. */}
         {!pageAvecOnglets && ongletsProjet("mt-5")}
+        {/* Ce qui a été changé pour le client et ne dit plus ce que dit l'analyse du dossier (26 nov. 2026) : l'éditeur est
+            l'étape Projet du dossier ; « Revenir à l'analyse » relit le projet. */}
+        {editingProject?.deal_id && (
+          <div className="mt-4">
+            <Ecarts dealId={editingProject.deal_id} onRevenu={() => base44.entities.Project.get(editingProject.id).then((p) => { if (p) handleEdit(p); }).catch(() => {})} />
+          </div>
+        )}
       </div>
     );
     // Le panneau de l'élément cliqué en Éditeur : son design, gardé sur le projet (styles[nom du champ]).
@@ -1618,12 +1660,19 @@ export default function AdminProjets() {
         <div className={`flex min-h-0 min-w-0 ${champsOuverts ? "max-md:hidden" : ""}`}>
         <div ref={zoneApercu} onPointerDownCapture={noterDesigne} className="relative min-h-0 min-w-0 flex-1">
         <div className="h-full min-h-0 overflow-y-auto max-lg:overflow-visible" onScroll={() => survolSource && setSurvolSource(null)}>
-          {scindeProjet && <div className="px-8 pt-5">{barreProjet}</div>}
+          {/* Le même écart sous la ligne de la barre et au-dessus de la photo (26 nov. 2026, Jules : « égal entre la petite
+              ligne et la photo »). */}
+          {/* Remontée (26 nov. 2026, Jules : « trop d'espace entre le titre et Tous les projets, l'image ») : la ligne colle au
+              haut de la zone qui défile, 26 px sous le titre ; plus haut, la zone coupait le haut des boutons
+              (« Revenir à l'édition », même jour). */}
+          {scindeProjet && <div className="px-8">{barreProjet}</div>}
           {ongletPage === "images" ? (
             <GaleriePhotos photos={formData.photos || []} />
           ) : projetAffiche ? (
-            <div className={scindeProjet ? "px-8 pt-6" : ""}>
+            <div className={scindeProjet ? "px-8" : ""}>
             <ProjetContent
+              // Les onglets partent avec la page au défilement (26 nov. 2026, Jules) : l'éditeur est l'étape Projet du dossier.
+              ongletsCollants={false}
               sansBarreOnglets={scindeProjet}
               project={projetAffiche}
               isAdmin={false}
@@ -1847,6 +1896,20 @@ export default function AdminProjets() {
         document.body,
       );
     }
+    // Les étapes du dossier, à droite, comme dans l'Analyse (26 nov. 2026, Jules : « dans la modification du projet, la
+    // barre de navigation comme dans l'analyse, avec Pré-analyse, Analyse, Projet ») : Projet est l'étape ouverte ; une
+    // autre rouvre le dossier sur elle (l'étape et la vue que le dossier relit en arrivant).
+    const dealDuProjet = editingProject?.deal_id || null;
+    const allerAEtape = (id) => {
+      if (id === "projet" || !dealDuProjet) return;
+      envoyerRef.current?.();
+      try { sessionStorage.setItem(`klocka_vue_${dealDuProjet}`, id); } catch { /* sans mémoire : le dossier s'ouvre sur son étape */ }
+      navigate(`/Dossiers?deal_id=${encodeURIComponent(dealDuProjet)}`);
+    };
+    const etapesDossier = dealDuProjet ? (
+      // Le projet existe : la Pré-analyse et l'Analyse sont faites (26 nov. 2026).
+      <MenuEtapesDroite items={ETAPES_MENU.map((e, i) => ({ cle: e.id, titre: e.label, n: e.n, faite: i < ETAPES_MENU.findIndex((x) => x.id === "projet") }))} valeur="projet" onChange={allerAEtape} />
+    ) : null;
     if (scindeProjet) {
       return (
         <div className={`k-page-presentation k-dossier-ia relative grid h-[100dvh] w-full overflow-hidden text-encre ${tireChat ? "select-none" : ""}`}
@@ -1880,10 +1943,11 @@ export default function AdminProjets() {
             className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
             <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tireChat ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
           </div>}
+          {etapesDossier}
         </div>
       );
     }
-    return editeur;
+    return <>{editeur}{etapesDossier}</>;
   }
 
   // --- Rendu de la liste : filtres appliqués une seule fois, réutilisés par le
@@ -1904,7 +1968,7 @@ export default function AdminProjets() {
             avec les cartes ») : le titre à gauche sans son nombre, la recherche au milieu, « Nouveau projet » à droite au bord
             des cartes. Plus de filtres par étape ni de carte ; les archivés masqués. */}
         <LigneTitre className="k-entree mb-5 grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_minmax(0,360px)_1fr]">
-          <TitrePage titre="Projets" className="min-w-0 md:!pr-0" dansLigne />
+          <TitreDossiersProjets actif="AdminProjets" />
           <Recherche value={searchTerm} onChange={setSearchTerm} placeholder="Rechercher un projet" className="w-full" />
           <div className="flex items-center justify-end gap-2">
             {/* Les archivés à part (24 nov. 2026, Jules : « qu'on puisse voir les projets archivés ») : un clic montre

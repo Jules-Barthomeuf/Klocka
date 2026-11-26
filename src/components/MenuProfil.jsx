@@ -4,7 +4,7 @@ import { ArrowUp, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChartColumn, CircleUser, Lightbulb, LogOut, Mail, MapPin, Settings, ShieldCheck, TrendingUp } from "lucide-react";
+import { ChartColumn, CircleUser, Lightbulb, LogOut, Mail, MapPin, Mic, Settings, ShieldCheck, TrendingUp } from "lucide-react";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { VERRE } from "@/lib/verre";
 import { createPageUrl } from "@/utils";
@@ -91,8 +91,11 @@ function ChampFeedback({ user, texte, setTexte, onEnvoye }) {
 
 /**
  * `vue` : la vue que montre l'appli (admin, client, mandataire) ; elle choisit les entrées du Compte.
+ * `onMicro` : le micro de la carte (25 nov. 2026, Jules : « un bouton micro, on clique ça enregistre, on a la
+ * calculatrice, les prochaines actions, comme dans un appel ; ensuite on lie un agent ») ; il ouvre l'assistant sur la
+ * carte « Appel enregistré » (ChatDashboard, ?appel=<heure du clic>). Absent, pas de micro.
  */
-export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }) {
+export default function MenuProfil({ user, vue = "admin", onDeconnexion = null, onMicro = null }) {
   const { prefs, changer } = usePersonnalisation();
   const [ouvert, setOuvert] = useState(false);
   const [feedback, setFeedback] = useState(false);
@@ -142,22 +145,29 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
         const compte = (groupes.find(([titre]) => titre === "Compte")?.[1] || []).filter(([k]) => k !== "apparence");
         return (
           <div role="menu" className={`${VERRE} absolute right-0 top-[calc(100%+8px)] z-50 k-verre-menu w-[320px] max-w-[calc(100vw-32px)] p-2`}>
-            <div className="flex items-center gap-3 px-2 pb-3 pt-1.5">
-              <Avatar user={user} taille={40} />
-              <div className="min-w-0">
+            {/* Plus la photo dans la carte (26 nov. 2026, Jules : « je ne veux pas revoir ma tête ») : le nom et l'espace seuls. */}
+            <div className="flex items-center gap-3 px-2.5 pb-3 pt-1.5">
+              <div className="min-w-0 flex-1">
                 <p className="m-0 truncate text-[15px] font-semibold text-encre">{user.full_name || user.email}</p>
                 <p className="m-0 truncate text-[13px] text-ardoise">{vue === "mandataire" ? "K Partners · Mandataire" : "Klocka · Équipe"}</p>
               </div>
+              {/* Le micro démarre l'enregistrement dans le clic même (le navigateur ne donne le micro qu'à un geste). */}
+              {onMicro && (
+                <button type="button" role="menuitem" onClick={() => { setOuvert(false); onMicro(); }} aria-label="Enregistrer un appel" title="Enregistrer un appel dans l'assistant, puis lier l'agent"
+                  className="grid h-10 w-10 flex-none place-items-center rounded-full border border-trait text-menthe transition-colors hover:border-menthe hover:bg-menthe/10" style={{ background: "transparent" }}>
+                  <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                </button>
+              )}
             </div>
             <div className="border-t border-trait py-1">
               {compte.map(([k, mot, page, section]) => {
                 const Icone = ICONES[k] || CircleUser;
-                // Feedback : le survol ouvre le champ juste dessous ; le clic aussi (au doigt), sans quitter la page.
-                // La souris qui s'en va le replie, après un court instant pour ne pas clignoter sur un bord.
+                // Feedback : le survol ouvre le champ juste dessous ; la souris qui s'en va le replie, après un court
+                // instant pour ne pas clignoter sur un bord. Le clic mène à la page Feedback (25 nov. 2026, Jules).
                 if (k === "feedback") return (
                   <div key={k} onMouseEnter={() => { clearTimeout(replier.current); setFeedback(true); }}
                     onMouseLeave={() => { clearTimeout(replier.current); replier.current = setTimeout(() => setFeedback(false), 120); }}>
-                    <button type="button" role="menuitem" onClick={() => setFeedback(true)} aria-expanded={feedback} className={`${ligne} ${feedback ? "!text-encre" : ""}`} style={{ background: "transparent" }}>
+                    <button type="button" role="menuitem" onClick={() => aller(page, section)} aria-expanded={feedback} className={`${ligne} ${feedback ? "!text-encre" : ""}`} style={{ background: "transparent" }}>
                       <Icone className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />{mot}
                     </button>
                     {feedback && <ChampFeedback user={user} texte={brouillon} setTexte={setBrouillon} onEnvoye={() => setOuvert(false)} />}
@@ -176,10 +186,12 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
             {/* L'apparence, réglée sur place : elle s'applique et s'enregistre comme dans les Paramètres. */}
             <div className="flex items-center justify-between gap-3 border-t border-trait px-2.5 py-2.5">
               <span className="text-[14px] text-craie">Apparence</span>
-              <div className="flex rounded-[10px] border border-trait p-0.5">
+              {/* Lisibles sur le fond de la page (26 nov. 2026, Jules : « sur fond noir, on ne voit pas le fond du sélecteur ») :
+                  un fond et un bord marqués, l'option choisie plus claire. */}
+              <div className="flex rounded-[10px] border border-bord-vif bg-encre/[0.08] p-0.5">
                 {[["sombre", "Sombre"], ["clair", "Clair"], ["appareil", "Auto"]].map(([v, mot]) => (
                   <button key={v} type="button" onClick={() => changer({ mode: v })} aria-pressed={prefs.mode === v}
-                    className={`h-7 rounded-[8px] px-2.5 text-[13px] transition-colors ${prefs.mode === v ? "bg-relief text-encre" : "text-ardoise hover:text-encre"}`} style={prefs.mode === v ? undefined : { background: "transparent" }}>{mot}</button>
+                    className={`h-7 rounded-[8px] px-2.5 text-[13px] transition-colors ${prefs.mode === v ? "bg-encre/[0.2] text-encre" : "text-ardoise hover:text-encre"}`} style={prefs.mode === v ? undefined : { background: "transparent" }}>{mot}</button>
                 ))}
               </div>
             </div>
@@ -187,7 +199,7 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null }
             <div className="flex items-center justify-between gap-3 border-t border-trait px-2.5 py-2.5">
               <span className="text-[14px] text-craie">Halo</span>
               <button type="button" role="switch" aria-checked={!!prefs.halo} aria-label={prefs.halo ? "Retirer le halo" : "Mettre le halo"} onClick={() => changer({ halo: !prefs.halo })}
-                className={`relative h-6 w-10 flex-none rounded-full transition-colors ${prefs.halo ? "bg-menthe" : "bg-relief"}`}>
+                className={`relative h-6 w-10 flex-none rounded-full transition-colors ${prefs.halo ? "bg-menthe" : "bg-encre/[0.26]"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-encre shadow transition-all ${prefs.halo ? "left-[18px]" : "left-0.5"}`} />
               </button>
             </div>

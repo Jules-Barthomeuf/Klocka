@@ -20,9 +20,14 @@ import { ICONE_ACTION } from "@/components/fiche-dossier/ActionApercu";
 const pluriel = (n, un, plusieurs = `${un}s`) => `${n} ${n > 1 ? plusieurs : un}`;
 const QUI = { moi: "À toi", assistant: "Préparé par l'assistant" };
 
-function resumeDeFiche(f, garde) {
-  const n = f.elements.filter((e) => garde.has(e.id)).length;
-  return [n ? pluriel(n, "ajout") : null, f.etape && garde.has(`${f.id}-etape`) ? `étape ${f.etape}` : null, f.resume ? "résumé mis à jour" : null].filter(Boolean).join(" · ");
+// Ce que le OK écrira sur une fiche (25 nov. 2026, Jules, sur « envoyer les documents sur le cabinet dentaire » : la carte
+// disait « Rien de changé » alors que l'action et la note y vont) : les ajouts, l'étape, le résumé, les actions gardées
+// qui la visent, les réponses rangées en précision ; à défaut, la note entre dans son historique.
+function resumeDeFiche(f, garde, { actions = [], precisions = 0 } = {}) {
+  const n = (f.elements || []).filter((e) => garde.has(e.id)).length;
+  const a = actions.filter((x) => garde.has(x.id) && (x.fiches || []).includes(f.cle)).length;
+  return [n ? pluriel(n, "ajout") : null, f.etape && garde.has(`${f.id}-etape`) ? `étape ${f.etape}` : null, f.resume && n ? "résumé mis à jour" : null,
+    a ? pluriel(a, "action à faire", "actions à faire") : null, precisions ? pluriel(precisions, "précision") : null].filter(Boolean).join(" · ") || "La note dans son historique";
 }
 
 export default function CarteNote({ donnees }) {
@@ -116,6 +121,10 @@ export default function CarteNote({ donnees }) {
   const aProgrammer = actions.filter((a) => n.garde.has(a.id) && !a.echeance).length;
   const etape = etat === "proposee" || !etat ? prochaineEtape(n) : null;
   const repondues = (p.questions || []).filter((q) => q?.id && String(n.reponses?.[q.id] || "").trim());
+  // Où le OK range chaque réponse (comme rangerNote, server/fiche-dossier/modele.js) : la fiche visée, sinon les biens liés.
+  const liensNote = note.liens || [];
+  const biensLies = liensNote.filter((l) => l.genre === "bien");
+  const precisionsSur = (cle) => repondues.filter((q) => !q.maj_projet && (q.fiche && liensNote.some((l) => l.cle === q.fiche) ? q.fiche === cle : (biensLies.length ? biensLies : liensNote).some((l) => l.cle === cle))).length;
   // Toujours les deux onglets, Actions et Fiches (25 nov. 2026, Jules : « on a actions et fiches, normal »), dès que la
   // note propose quelque chose ; un onglet vide le dit.
   const onglets = actions.length || faites.length || fichesTouchees.length
@@ -156,7 +165,7 @@ export default function CarteNote({ donnees }) {
       {onglets.some(([k]) => k === "fiches") && (
         <div aria-hidden={vu !== "fiches"} className={`[grid-area:1/1] ${vu === "fiches" ? "k-entree" : "invisible pointer-events-none"}`}>
         {fichesTouchees.length
-          ? <ListeFiches className="mt-5" fiches={fichesTouchees.map((f) => ({ ...f, detail: f.telle ? "Rien de changé" : resumeDeFiche(f, n.garde) || "Rien de gardé" }))} onVoir={(f) => voirFiche(f.cle)} />
+          ? <ListeFiches className="mt-5" fiches={fichesTouchees.map((f) => ({ ...f, detail: resumeDeFiche(f, n.garde, { actions: p.actions || [], precisions: precisionsSur(f.cle) }) }))} onVoir={(f) => voirFiche(f.cle)} />
           : <p className="m-0 mt-5 text-[14.5px] text-ardoise">Aucune fiche liée à cette note.</p>}
         </div>
       )}

@@ -283,7 +283,8 @@ export async function annulerAppelClient(id, { user, monday = undefined } = {}) 
 export function ligneClient(d, appels = []) {
   const siens = appels.filter((a) => a.client_id === d.id && !a.annule_le);
   return {
-    id: d.id, nom: d.client_nom || 'Client sans nom', email: d.client_email || null, telephone: d.telephone || null,
+    // La clé de sa fiche, la même que dans l'assistant et le CRM (25 nov. 2026) : sa ligne de Twenty quand il y est.
+    id: d.id, cle_fiche: d.twenty_id ? `twenty:clients:${d.twenty_id}` : `client:${d.id}`, nom: d.client_nom || 'Client sans nom', email: d.client_email || null, telephone: d.telephone || null,
     profil: d.profil || 'Investisseur privé', objectif: d.objectif || null, statut: d.statut || null,
     type_commerce: d.type_commerce || null, zones: d.zones?.length ? d.zones : d.zone_libre ? [d.zone_libre] : [],
     budget: d.budget || null, budget_min: d.budget_min ?? null, budget_max: d.budget_max ?? null, apport: d.apport ?? null,

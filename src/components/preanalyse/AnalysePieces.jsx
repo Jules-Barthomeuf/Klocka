@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -161,6 +161,32 @@ export const ETAT = {
 };
 // La colonne Notes, en dernier (29 oct. 2026, Jules : « une nouvelle colonne dans les tableaux », pas un onglet).
 export const COLONNES = "grid-cols-[170px_minmax(0,1fr)_150px_190px]";
+// Le volet de la pièce ouvert, le tableau se range à sa gauche sans la colonne Notes (26 nov. 2026, Jules : « ça cache le
+// tableau ») : la case, sa valeur, ses sources ; les notes reviennent à la fermeture.
+const COLONNES_VOLET = "grid-cols-[150px_minmax(0,1fr)_120px]";
+// La largeur du volet sur ordinateur (sm:w-[clamp(520px,44vw,760px)]) : 760 px sur un grand écran, 44 % en dessous, 520 au moins.
+const largeurVolet = (w) => Math.min(760, Math.max(520, w * 0.44));
+
+/** La marge à droite qui garde le tableau hors du volet ouvert (ordinateur seulement ; au téléphone, le volet couvre tout). */
+function useMargeVolet(ouvert) {
+  const ref = useRef(null);
+  const [marge, setMarge] = useState(0);
+  useLayoutEffect(() => {
+    if (!ouvert) { setMarge(0); return undefined; }
+    const mesurer = () => {
+      const el = ref.current;
+      const w = window.innerWidth;
+      if (!el || w < 1024) { setMarge(0); return; }
+      // Le bord droit sans la marge déjà posée : la mesure ne dépend pas d'elle-même.
+      const droite = el.getBoundingClientRect().right + (parseFloat(el.style.marginRight) || 0);
+      setMarge(Math.max(0, Math.round(droite - (w - largeurVolet(w)) + 24)));
+    };
+    mesurer();
+    window.addEventListener("resize", mesurer);
+    return () => window.removeEventListener("resize", mesurer);
+  }, [ouvert]);
+  return [ref, marge];
+}
 // Des traits verticaux entre les colonnes (29 oct. 2026, Jules) ; au téléphone, une colonne, sans trait.
 // Le remplissage est dans les cellules, pas dans la ligne : les traits courent d'une ligne à l'autre sans coupure.
 // Des traits un peu plus marqués que le filet courant (29 oct. 2026, Jules) : `bord-doux`.
@@ -246,6 +272,9 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
   const geste = useGeste(dealId);
   const [ouverte, setOuverte] = useState(null);
   const notes = useNotesTableaux(dealId);
+  const [refGrilles, marge] = useMargeVolet(!!ouverte);
+  const serre = marge > 0;
+  const colonnes = serre ? COLONNES_VOLET : COLONNES;
 
   if (apercu) return <p className="m-0 py-8 text-[13.5px] text-brume">Les grilles se lisent sur un vrai dossier.</p>;
   if (isLoading) return <Chargement titre="Les grilles" etats={["Les pièces rangées", "Les valeurs relevées", "Les écarts"]} />;
@@ -257,7 +286,7 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
 
   // Plus de filtres Tous, Lu par l'IA, OK ni de consigne au-dessus des cases (16 nov. 2026, Jules : « enlève ça »).
   return (
-    <div className="space-y-5">
+    <div ref={refGrilles} data-garde-volet={serre || undefined} className="space-y-5 transition-[margin] duration-300 ease-out" style={marge ? { marginRight: marge } : undefined}>
       {grilles.map((g) => (
         <React.Fragment key={g.id}>
         <section>
@@ -270,8 +299,8 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
           {/* Au téléphone, où la ligne d'en-tête n'existe pas, le nom reste au-dessus. */}
           <p className="m-0 px-2 pb-3 text-[14px] text-encre lg:hidden">{g.titre}</p>
           <div className={CADRE_GRILLE}>
-          <div className={`grid ${COLONNES} ${CELLULES} ${ENTETE_GRILLE}`}>
-            <span className="text-[13.5px] text-encre">{g.titre}</span><span>Valeur</span><span>Source</span><span>Notes</span>
+          <div className={`grid ${colonnes} ${CELLULES} ${ENTETE_GRILLE}`}>
+            <span className="text-[13.5px] text-encre">{g.titre}</span><span>Valeur</span><span>Source</span>{!serre && <span>Notes</span>}
           </div>
           {/* On écrit dans toutes les cases, même sans pièce ni extraction (9 nov. 2026, Jules). */}
           <div>
@@ -279,7 +308,7 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
             const choisie = ouverte?.case?.grille === g.id && ouverte?.case?.id === l.id;
             return (
               <div key={l.id}
-                className={`group/ligne grid ${COLONNES} ${CELLULES} ${LIGNE_GRILLE} ${choisie ? "bg-menthe/[0.06]" : ""}`}>
+                className={`group/ligne grid ${colonnes} ${CELLULES} ${LIGNE_GRILLE} ${choisie ? "bg-menthe/[0.06]" : ""}`}>
                 {/* Une ligne ajoutée à la main (9 nov. 2026, Jules) : l'intitulé se tape, une croix la retire. Sinon, le libellé ouvre la source et l'état se choisit. */}
                 {l.perso ? (
                   <div className="flex min-w-0 items-center gap-1">
@@ -300,7 +329,7 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
                   onEnregistrer={(t) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: corpsDeLaSaisie(t) })} />
                 <Sources sources={l.sources.slice(0, 3)} retenue={l.retenue}
                   onOuvrir={(s) => setOuverte({ seul: true, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation })} />
-                <div className="min-w-0"><NoteCellule dealId={dealId} tableau={`pieces-${g.id}`} ligne={l.id} note={notes[`pieces-${g.id}.${l.id}`]} noteIA={noteIA(l)} /></div>
+                {!serre && <div className="min-w-0"><NoteCellule dealId={dealId} tableau={`pieces-${g.id}`} ligne={l.id} note={notes[`pieces-${g.id}.${l.id}`]} noteIA={noteIA(l)} /></div>}
               </div>
             );
           })}
@@ -330,11 +359,12 @@ function docDe(data, id) {
 // --- Le panneau de droite : la case, la pièce surlignée, une question libre ---------------------------------
 function PanneauPiece({ dealId, ouverte, caseOuverte = null, onChange, onFermer }) {
   // Échap ferme, et un clic ailleurs dans la page aussi (29 oct. 2026, Jules) ; un clic sur une autre source
-  // ferme celle-ci et ouvre l'autre.
+  // ferme celle-ci et ouvre l'autre. Le tableau rangé à gauche du volet (26 nov. 2026) ne le ferme pas : on y écrit,
+  // on y choisit une autre source, la pièce reste à côté.
   const zone = useRef(null);
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape") onFermer(); };
-    const ailleurs = (e) => { if (zone.current && !zone.current.contains(e.target) && !e.target.closest?.("[role=dialog], [data-sonner-toaster]")) onFermer(); };
+    const ailleurs = (e) => { if (zone.current && !zone.current.contains(e.target) && !e.target.closest?.("[role=dialog], [data-sonner-toaster], [data-garde-volet]")) onFermer(); };
     window.addEventListener("keydown", k);
     document.addEventListener("pointerdown", ailleurs);
     return () => { window.removeEventListener("keydown", k); document.removeEventListener("pointerdown", ailleurs); };
@@ -343,7 +373,7 @@ function PanneauPiece({ dealId, ouverte, caseOuverte = null, onChange, onFermer 
   // Un clic sur une source : la page et son passage surligné, rien d'autre (29 oct. 2026, Jules).
   if (ouverte.seul && doc) {
     return createPortal(
-      <div ref={zone} className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col border-l border-bord bg-fond shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[760px]">
+      <div ref={zone} className="k-volet-droit k-volet-pousse animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col border-l border-bord bg-fond shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[clamp(520px,44vw,760px)]">
         <button type="button" onClick={onFermer} className="absolute right-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-full bg-surface-pleine/90 text-ardoise shadow-[0_6px_18px_rgb(0_0_0/0.18)] hover:text-encre max-md:top-[max(12px,env(safe-area-inset-top))]" aria-label="Fermer" title="Fermer (Échap)"><X className="h-4 w-4" /></button>
         <SourceSeule dealId={dealId} doc={doc} page={ouverte.page} citation={ouverte.citation} />
       </div>,
@@ -351,7 +381,7 @@ function PanneauPiece({ dealId, ouverte, caseOuverte = null, onChange, onFermer 
     );
   }
   return createPortal(
-    <div ref={zone} className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col gap-3 overflow-y-auto overscroll-contain border-l border-bord bg-fond p-4 shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[760px] max-md:p-3 max-md:pt-[max(12px,env(safe-area-inset-top))]">
+    <div ref={zone} className="k-volet-droit k-volet-pousse animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col gap-3 overflow-y-auto overscroll-contain border-l border-bord bg-fond p-4 shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[clamp(520px,44vw,760px)] max-md:p-3 max-md:pt-[max(12px,env(safe-area-inset-top))]">
       {caseOuverte && ouverte.case && <EditeurCase dealId={dealId} grille={ouverte.case} l={caseOuverte} docOuvert={doc?.id} onSource={(s) => onChange({ ...ouverte, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation })} onFermer={onFermer} />}
       {doc ? (
         <>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classer, etapeFrise, phaseDe, estEcarte, aTraiter, estAMoi, FRISE, checklistDataRoom, etapeEnCours } from '../src/lib/dossiers-architecture.js';
+import { classer, etapeFrise, phaseDe, estEcarte, aTraiter, estAMoi, FRISE, checklistDataRoom, etapeEnCours, etapeFaite } from '../src/lib/dossiers-architecture.js';
 
 const d = (o) => ({ deal_id: o.id || 'x', etape_max: 2, statut: 'analyse', responsables: [], lots: [], ...o });
 
@@ -85,13 +85,16 @@ test('la Data Room : par catégorie, sinon par nom ; le reste à part', () => {
   assert.deepEqual(autres.map((d) => d.nom), ['photo.png']);
 });
 
-test("la carte de la liste dit l'étape juste après la dernière validée (16 nov. 2026)", () => {
+test("l'étape en cours se lit sur ce que contient le dossier, sans validation à la main (26 nov. 2026)", () => {
   assert.equal(etapeEnCours({}).label, "Pré-analyse");
-  assert.equal(etapeEnCours({ frise_validee: 2 }).label, "Analyse");
-  // Valider l'Analyse valide la Vidéo avec elle : vient l'Offre.
-  assert.equal(etapeEnCours({ frise_validee: 4 }).label, "Offre");
-  assert.equal(etapeEnCours({ frise_validee: 7 }).label, "Dossier bancaire");
-  assert.equal(etapeEnCours({ frise_validee: 8 }), null);
-  // L'étape atteinte du serveur ne compte pas : seule la validation fait avancer la carte.
-  assert.equal(etapeEnCours({ etape_max: 5, frise_validee: 0 }).label, "Pré-analyse");
+  assert.equal(etapeEnCours({ documents_espace: [{ url: "x.pdf" }] }).label, "Analyse");
+  assert.equal(etapeEnCours({ apercu: { nb_pieces: 2 } }).label, "Analyse");
+  assert.equal(etapeEnCours({ statut: "documents_demandes" }).label, "Analyse");
+  assert.equal(etapeEnCours({ projet_id: "p1", statut: "projet_cree" }).label, "Projet");
+  assert.equal(etapeEnCours({ projet_id: "p1", nb_offres: 1 }).label, "Offre");
+  // Les validations à la main d'avant ne comptent plus.
+  assert.equal(etapeEnCours({ frise_validee: 7 }).label, "Pré-analyse");
+  // Les étapes faites : celles d'avant l'étape en cours.
+  const d = { projet_id: "p1" };
+  assert.deepEqual(["preanalyse", "analyse", "projet", "video"].map((id) => etapeFaite(d, id)), [true, true, false, false]);
 });

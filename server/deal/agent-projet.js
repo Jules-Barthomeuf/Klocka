@@ -328,7 +328,7 @@ const LIGNES_PREANALYSE = {
   adresse: 'Adresse', prix_fai: 'Prix FAI', honoraires_inclus: 'Honoraires inclus', montant_honoraires: 'Honoraires',
   loyer_annuel_ht_hc: 'Loyer annuel HT HC', surface_m2: 'Surface (m²)', locataire_nom: 'Locataire', locataire_activite: 'Activité',
   bail_echeance: 'Échéance du bail', bail_type: 'Type de bail', bail_texte: 'Bail', occupe: 'Occupé', rendement_annonce: 'Rendement annoncé',
-  type_actif: "Type d'actif", intitule_lot: 'Lot',
+  type_actif: "Type d'actif", equipements: 'Équipements', intitule_lot: 'Lot',
 };
 const lisible = (v) => (v && typeof v === 'object' ? [v.rue, [v.code_postal, v.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : v === true ? 'oui' : v === false ? 'non' : String(v ?? ''));
 

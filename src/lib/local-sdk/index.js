@@ -221,7 +221,12 @@ class ErreurHttp extends Error {
     if (config.appId) headers['X-App-Id'] = config.appId;
     // L'ancre (#page=9) ne regarde que le navigateur : on ne l'envoie pas.
     const sansAncre = String(chemin || '').split('#')[0];
-    const resp = await fetch(`${base}${sansAncre}`, { headers, credentials: 'include' });
+    // Un lien complet vers un autre site (les pièces restées sur l'ancien hébergement, 26 nov. 2026) : demandé tel quel,
+    // sans nos en-têtes ni nos cookies ; le préfixer de notre adresse le rendait introuvable.
+    const externe = /^https?:\/\//i.test(sansAncre) && !(typeof window !== 'undefined' && sansAncre.startsWith(`${window.location.origin}/`));
+    const resp = externe
+      ? await fetch(sansAncre, { credentials: 'omit' })
+      : await fetch(`${base}${sansAncre}`, { headers, credentials: 'include' });
     if (!resp.ok) {
       throw new ErreurHttp(
         resp.status === 401 ? 'Votre session a expiré : reconnectez-vous.' : `Le serveur a répondu ${resp.status}`,

@@ -220,6 +220,11 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
       const ctx = await contexteLettre(String(contexte.loi_id));
       if (ctx) cadrePage += `\n${ctx}\nUne correction (« le prix à 190 000 », « enlève la clause de substitution », « ajoute que… ») porte sur CETTE lettre : rediger_loi avec loi_id et seulement ce qui change (champs, ou textes par clé). Une offre pour un autre bien ou un autre acquéreur : une nouvelle lettre, sans loi_id.`;
     }
+    // Un projet sans dossier choisi sur la page Offres (26 nov. 2026, Jules : « on choisit sur quel dossier on fait l'offre »).
+    const choisi = contexte.projet_lie && typeof contexte.projet_lie === 'object' ? contexte.projet_lie : null;
+    if (choisi?.id && !contexte.loi_id) {
+      cadrePage += `\nLE PROJET CHOISI : « ${String(choisi.titre || '').slice(0, 200)} » (projet_id ${String(choisi.id).slice(0, 80)}). L'offre se fait sur ce projet : ni trouver_bien ni question sur le bien. Demande en UNE ligne ce qui manque (l'acheteur, le prix), puis rediger_loi avec ce projet_id.`;
+    }
   }
   // La page Présentations : le chat y crée et retouche les présentations bancaires.
   if (contexte?.page === 'presentations') {

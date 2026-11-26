@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { adresseDuLien, copierLien } from "@/components/projet/LienPublic";
 import { useQueryClient } from "@tanstack/react-query";
 import { Archive, ArchiveRestore, Calculator, Check, ChevronDown, Copy, Eye, FileSearch, Loader2, Pencil, Share2, Trash2 } from "lucide-react";
 import { createPageUrl } from "@/utils";
@@ -55,8 +56,11 @@ export default function LigneProjet({ project, clients = null, chargement = fals
   };
   const lienPublic = async (e) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/ProjetPublic?id=${project.id}`;
-    try { await navigator.clipboard.writeText(url); setCopie(true); toast.success("Lien public copié"); setTimeout(() => setCopie(false), 2000); } catch { window.prompt("Copiez le lien public :", url); }
+    // Le lien à clé, qu'on coupe depuis le projet (25 nov. 2026) : créé au premier clic, le même ensuite.
+    try {
+      const r = await base44.request("POST", `/api/projets/${project.id}/lien-public`);
+      if (await copierLien(adresseDuLien(r.lien.cle))) { setCopie(true); setTimeout(() => setCopie(false), 2000); }
+    } catch (err) { toast.error(err?.message || "Le lien n'a pas été créé."); }
   };
   const icone = "grid h-8 w-8 place-items-center rounded-full border border-trait text-ardoise transition-colors hover:border-bord-vif hover:text-encre";
 

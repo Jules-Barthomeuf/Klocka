@@ -1,11 +1,15 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import DefileCarte from "./DefileCarte";
+import ChronologieBail from "./ChronologieBail";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Plus, X } from "lucide-react";
+import { CircleHelp, Eye, FileText, Plus, X } from "lucide-react";
+import { explicationDe } from "@/lib/explications-bail";
 import { base44 } from "@/api/base44Client";
 import { J, alpha } from "@/design/jetons";
 import { useEdition, ValeurEditable, ValeurForcee, TexteEditable, Bloc, forcee } from "./EditionEnPlace";
 import { InfoDot, nf } from "./SecteurChiffres";
 import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
+import PanneauSource from "@/components/preanalyse/PanneauSource";
 import { ChiffresStrip } from "./SecteurChiffres";
 import { dureeJusque } from "./durees";
 import { friseDuProjet, friseBornee, jalonsDuBail, fermeDuProjet, personnaliserJalons } from "@/lib/frise-bail";
@@ -30,14 +34,17 @@ export function useCasesProjet(project, isPublic) {
 /** Le document cité, dans un volet à droite, ouvert à la page. */
 export function PanneauPiece({ piece, onFermer }) {
   if (!piece) return null;
+  // Sur la page entière, au-dessus de la photo de profil ; un clic à côté le ferme (26 nov. 2026, PanneauSource).
   return (
-    <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] p-4 max-md:pt-[max(16px,env(safe-area-inset-top))] max-md:pb-[max(16px,env(safe-area-inset-bottom))]">
-      <Visionneuse
-        extraction={{ document_id: piece.document_id, document_nom: piece.document_nom, document_url: piece.document_url }}
-        ligne={{ page: piece.page, citation: piece.citation, element: piece.titre }}
-        onFermer={onFermer}
-      />
-    </div>
+    <PanneauSource key={`${piece.document_id}:${piece.page}:${piece.citation}`} onFermer={onFermer} className="p-4 max-md:pt-[max(16px,env(safe-area-inset-top))] max-md:pb-[max(16px,env(safe-area-inset-bottom))]">
+      {(fermer) => (
+        <Visionneuse
+          extraction={{ document_id: piece.document_id, document_nom: piece.document_nom, document_url: piece.document_url }}
+          ligne={{ page: piece.page, citation: piece.citation, element: piece.titre }}
+          onFermer={fermer}
+        />
+      )}
+    </PanneauSource>
   );
 }
 
@@ -253,7 +260,7 @@ export function CarteBail({ frise, lignes, onSource, project = null }) {
  * changent, un point se retire, un autre s'ajoute. Les points calculés (triennales, échéance) restent la base ; ce
  * qu'on en fait est gardé à part sur le projet (`frise_perso`) et « Rétablir » y revient.
  */
-function PointsDeLaFrise({ marques, perso, onChange }) {
+export function PointsDeLaFrise({ marques, perso, onChange }) {
   const p = { retires: [], modifies: {}, ajoutes: [], ...(perso || {}) };
   const isoDe = (d) => (d instanceof Date && !Number.isNaN(d.getTime()) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : "");
   const changer = (j, quoi, v) => {
@@ -437,7 +444,7 @@ function LigneFiscalite({ c, onSource }) {
   // libellé ni sortir de la carte.
   const long = String(c.valeur || "").length > 18;
   const valeur = (
-    <span className={`${long ? "text-[16px] max-md:text-[15px] font-normal leading-[1.45]" : "text-[22px] max-md:text-[18px] font-medium leading-tight"} tracking-[-0.01em] [overflow-wrap:anywhere] ${c.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+    <span className={`${long ? "text-[16px] max-md:text-[15px] font-normal leading-[1.45]" : "text-[16px] font-medium leading-tight"} tracking-[-0.01em] [overflow-wrap:anywhere] ${c.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
       <ValeurEditable champ={enEdition ? cheminCase("bail", c.id, "valeur") : null} type="text">{c.valeur || "—"}</ValeurEditable>
     </span>
   );
@@ -468,10 +475,11 @@ const TitreCarte = ({ children }) => (
 function ChiffreSous({ c, complement }) {
   return (
     <div>
-      <div className={`text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-none ${c?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+      {/* À la taille des dates de la frise (26 nov. 2026, Jules). */}
+      <div className={`text-[16px] font-medium tracking-[-0.01em] leading-tight ${c?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
         <ValeurEditable champ={c ? cheminCase("bail", c.id, "valeur") : null} type="text">{c?.valeur || "—"}</ValeurEditable>
       </div>
-      <div className="text-[14px] text-ardoise mt-2">
+      <div className="text-[13.5px] text-ardoise mt-0.5">
         <ValeurEditable champ={c ? cheminCase("bail", c.id, "titre") : null} type="text">{c?.titre || ""}</ValeurEditable>{complement ? <> · {complement}</> : ""}
       </div>
     </div>
@@ -483,7 +491,7 @@ function ChiffreSous({ c, complement }) {
  * TVA, taxes) à droite. Les huit cases du serveur se répartissent entre les
  * deux ; l'échéance, elle, vit dans la frise.
  */
-export function ResumeBail({ cases, project, onSource }) {
+export function ResumeBail({ cases, project, onSource, colonne = false }) {
   const forcees = project?.cases_forcees || {};
   const lu = (id) => {
     const brut = (cases?.bail || []).find((c) => c.id === id);
@@ -511,16 +519,31 @@ export function ResumeBail({ cases, project, onSource }) {
   if (!loyer?.valeur && !signature?.valeur && !depot?.valeur && !fiscalite.length) return null;
 
   return (
-    <div className="grid lg:grid-cols-2 gap-5 items-start">
+    // Une carte seule prend toute la largeur (26 nov. 2026 : à gauche de la frise verticale, elle laissait un vide).
+    // `colonne` : à gauche de la frise verticale, les cartes l'une sous l'autre.
+    <div className={`grid gap-5 items-start ${colonne ? "" : "lg:grid-cols-2 lg:[&>*:only-child]:col-span-2"}`}>
       <Bloc id="bail-loyer" titre="Le loyer">
       <div className="k-carte p-7 max-md:p-5">
-        <TitreCarte>Le loyer</TitreCarte>
+        {/* L'œil en haut à droite (26 nov. 2026, Jules : « on clique dessus et on voit le document à droite, avec le
+            surlignage ») : le bail ouvert dans le volet, à la page du loyer, le passage surligné. Sans pièce (lien
+            public, dossier sans bail), pas d'œil. */}
+        <div className="flex items-center justify-between gap-3">
+          <TitreCarte>Le loyer</TitreCarte>
+          {onSource && (loyer?.source || signature?.source) && (
+            <button type="button" onClick={() => onSource({ ...(loyer?.source || signature.source), titre: "Le loyer" })}
+              aria-label="Voir le loyer dans le bail" title="Voir dans le bail"
+              className="-my-1.5 grid h-9 w-9 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-encre hover:text-encre" style={{ background: "transparent" }}>
+              <Eye className="h-4 w-4" />
+            </button>
+          )}
+        </div>
         <div className="py-7 max-md:py-5">
           <div className="flex items-baseline gap-3 flex-wrap">
-            <span className={`text-[44px] max-md:text-[30px] font-medium tracking-[-0.01em] leading-none ${loyer?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+            {/* À la taille de « Restant à courir » (26 nov. 2026, Jules : « exactement la même taille que 6 ans 4 mois »). */}
+            <span className={`text-[34px] max-md:text-[26px] font-medium tracking-[-0.01em] leading-tight ${loyer?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
               <ValeurEditable champ="sim_loyer_initial_ht">{loyer?.valeur ? loyer.valeur.replace(/\s*HT\/an$/, "") : "—"}</ValeurEditable>
             </span>
-            {loyer?.valeur && <span className="text-[20px] max-md:text-[16px] text-ardoise">HT/an</span>}
+            {loyer?.valeur && <span className="text-[16px] text-ardoise">HT/an</span>}
           </div>
           <div className="text-[14px] text-ardoise mt-3 flex items-center gap-1.5">
             {loyer?.titre || "Prix du loyer"}{(mois > 0 || moisForce) && <> · soit <ValeurForcee cle="loyer_mensuel" type="text">{moisForce || euros(mois)}</ValeurForcee> HT/mois</>}
@@ -618,20 +641,54 @@ export function chapeauDeClause(id, texte, casesBail) {
  * à droite avec la pièce qui la porte. Le texte vient de la lecture des pièces
  * (projet-cases), corrigé par ce que le dossier porte (bail_analyse).
  */
-function AnalyseBail({ lignes, cases, project, onSource }) {
-  const edition = useEdition();
-  const clauses = clausesDuBail(lignes, project?.bail_analyse || {}, { toutes: !!edition?.onChamp });
-  const [ouverte, setOuverte] = useState(0);
+function AnalyseBail({ clauses, cases, project, choisie = 0, onChoisie }) {
+  // « Qu'est-ce que … ? » sous la clause (26 nov. 2026, Jules) : à droite, l'explication à la place du bail. Le choix
+  // reste d'une clause à l'autre : on lit les explications à la suite, « Voir dans le bail » revient à la pièce.
+  const [explique, setExplique] = useState(false);
   if (!clauses.length) return null;
-  const i = Math.min(ouverte, clauses.length - 1);
-  const c = clauses[i];
+  const i = Math.min(choisie, clauses.length - 1);
+  const setOuverte = onChoisie;
   // Le chapeau est la case du résumé : corrigée à la main (cases_forcees), elle l'est ici aussi (19 oct. 2026, Jules).
   const forcees = project?.cases_forcees || {};
-  const chapeau = chapeauDeClause(c.id, c.texte, (cases?.bail || []).map((x) => fusionner(x, forcees[`bail.${x.id}`])));
+  const casesBail = (cases?.bail || []).map((x) => fusionner(x, forcees[`bail.${x.id}`]));
+  // À droite, les clauses dans la carte qui défile, comme la chronologie du Résumé (26 nov. 2026, Jules : « à droite,
+  // comme dans le résumé avec la chronologie ; voir la source s'ouvre dans la carte ») ; la liste de gauche la pilote
+  // et la suit.
+  const etapes = clauses.map((c) => {
+    const chapeau = chapeauDeClause(c.id, c.texte, casesBail);
+    return {
+      cle: c.id,
+      rail: `${c.numero}. ${c.titre}`,
+      passee: true,
+      entete: <span className="tabular-nums">Clause {c.numero}</span>,
+      titre: c.titre,
+      corps: (
+        <>
+          {chapeau && <div className="text-[20px] font-medium tracking-[-0.01em] text-menthe">{chapeau}</div>}
+          <TexteEditable champ={`bail_analyse.${c.id}`} initial={c.texte} masquable={false}>
+            <p className={`m-0 max-w-[58ch] whitespace-pre-line text-[15px] leading-[1.7] max-md:text-[14px] ${c.texte ? "text-craie" : "text-brume"}`}>{c.texte || (c.videe ? "" : "Ce point n'a pas encore été lu dans les pièces.")}</p>
+          </TexteEditable>
+          {explicationDe(c.id) && (
+            <button type="button" aria-pressed={explique} onClick={() => setExplique((v) => !v)}
+              className={`mt-1 inline-flex items-center gap-1.5 self-start border-b pb-px text-[13.5px] transition-colors hover:border-menthe hover:text-menthe ${explique ? "border-menthe text-menthe" : "border-bord-doux text-craie"}`} style={{ background: "transparent" }}>
+              <CircleHelp className="h-3.5 w-3.5" />{explicationDe(c.id).question}
+            </button>
+          )}
+        </>
+      ),
+      // La pièce est déjà ouverte à droite : pas de « Voir la source » dans la carte.
+      source: null,
+    };
+  });
+  const c = clauses[i];
+  const explication = explique ? explicationDe(c?.id) : null;
 
   return (
-    <div className="grid lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] gap-6 max-md:gap-4 items-start">
-      <ol className="list-none m-0 p-2 k-carte lg:max-h-[620px] lg:overflow-y-auto">
+    // Trois colonnes (26 nov. 2026, Jules : « la carte de clause pas aussi large ; de la taille de la liste ; et le
+    // document à droite, dans la carte, qu'on voie direct ») : la liste, la clause qui défile, la pièce ouverte à sa page.
+    <div className="grid items-stretch gap-5 max-md:gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,1.15fr)]">
+      {/* Sans points derrière, comme la carte de droite (26 nov. 2026, Jules). */}
+      <ol className="list-none m-0 p-2 k-carte sans-grille lg:h-[640px] lg:overflow-y-auto">
         {clauses.map((x, k) => (
           <li key={x.id}>
             <button type="button" onClick={() => setOuverte(k)}
@@ -643,69 +700,91 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
           </li>
         ))}
       </ol>
-
-      <div className="k-carte px-8 max-md:px-5 py-7 max-md:py-6 lg:sticky lg:top-4 min-h-[380px] flex flex-col">
-        <div className="flex items-start justify-between gap-4">
-          <div className="text-[13px] text-ardoise pt-1.5 min-w-0">Cadre juridique · Clause {c.numero}</div>
-          {c.source && (
-            <button type="button" onClick={() => onSource({ ...c.source, titre: c.titre })}
-              className="group flex-shrink-0 px-4 py-1.5 rounded-full border border-bord-doux hover:border-menthe/60 transition-colors">
-              <RenvoiPiece source={c.source} />
-            </button>
-          )}
-        </div>
-
-        <h3 className="text-[30px] max-md:text-[22px] font-medium tracking-[-0.01em] leading-tight text-encre mt-5 mb-0">{c.titre}</h3>
-        {chapeau && <div className="text-[24px] max-md:text-[18px] font-medium tracking-[-0.01em] text-menthe mt-2.5">{chapeau}</div>}
-
-        <div className="border-t border-trait mt-6 pt-6">
-          <TexteEditable champ={`bail_analyse.${c.id}`} initial={c.texte} masquable={false}>
-            <p className={`m-0 text-[15px] max-md:text-[14px] leading-[1.8] ${c.texte ? "text-craie" : "text-brume"}`}>{c.texte || (c.videe ? "" : "Ce point n'a pas encore été lu dans les pièces.")}</p>
-          </TexteEditable>
-        </div>
-
-        <div className="flex items-center justify-between gap-4 mt-auto pt-8">
-          <button type="button" onClick={() => setOuverte(i - 1)} disabled={i === 0}
-            className="px-5 py-2 rounded-full border border-bord-doux text-[13px] text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-40 disabled:hover:text-craie disabled:hover:border-bord-doux disabled:cursor-default">
-            ‹ Précédente
-          </button>
-          <button type="button" onClick={() => setOuverte(i + 1)} disabled={i === clauses.length - 1}
-            className="px-5 py-2 rounded-full border border-bord-doux text-[13px] text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-40 disabled:hover:text-craie disabled:hover:border-bord-doux disabled:cursor-default">
-            Suivante ›
-          </button>
-        </div>
+      <DefileCarte titre="La clause" etapes={etapes} courante={i} onCourante={setOuverte} dealId={project?.deal_id || null} tailleTitre="text-[24px] max-md:text-[22px]" sansRail hauteur={560} />
+      {/* La pièce du bail, ouverte à la page de la clause choisie, le passage surligné. */}
+      <div className="min-w-0 lg:col-span-2 xl:col-span-1">
+        {explication ? (
+          <ExplicationClause explication={explication} avecBail={!!c?.source?.document_url} onBail={() => setExplique(false)} />
+        ) : c?.source?.document_url ? (
+          <Visionneuse key={`${c.source.document_id}-${c.source.page}-${c.id}`} extraction={{ document_id: c.source.document_id, document_nom: c.source.document_nom, document_url: c.source.document_url }}
+            ligne={{ page: c.source.page, citation: c.source.citation, element: c.titre }} dealId={project?.deal_id || null} hauteur="h-[640px]" enTeteCarte />
+        ) : (
+          <div className="k-carte sans-grille flex h-[640px] flex-col items-center justify-center gap-2 px-8 text-center max-md:h-auto max-md:py-10">
+            <FileText className="h-5 w-5 text-brume" />
+            <p className="m-0 text-[14px] text-ardoise">Pas de pièce pour cette clause.</p>
+            <p className="m-0 max-w-[36ch] text-[13px] text-brume">Elle s'ouvre ici, à la bonne page, quand le bail est déposé et lu dans l'Analyse.</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 
+/**
+ * Ce que veut dire une clause, en mots simples, à la place de la pièce (26 nov. 2026, Jules : « ça explique aux clients
+ * exactement ce que c'est, s'ils ne connaissent pas ») : « Définition » à l'accent, à la taille de « La clause », puis
+ * le texte à la taille de la clause. Textes dans src/lib/explications-bail.js.
+ */
+function ExplicationClause({ explication, avecBail, onBail }) {
+  return (
+    <div className="k-carte sans-grille flex h-[640px] flex-col overflow-hidden max-md:h-auto">
+      <div className="flex flex-shrink-0 items-center gap-3 border-b border-bord px-7 pb-4 pt-6 max-md:px-5">
+        <p className="m-0 min-w-0 flex-1 truncate text-[16px] font-medium text-menthe">Définition</p>
+        {avecBail && (
+          <button type="button" onClick={onBail}
+            className="inline-flex h-9 flex-shrink-0 items-center gap-1.5 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-encre hover:text-encre" style={{ background: "transparent" }}>
+            <FileText className="h-3.5 w-3.5" />Voir dans le bail
+          </button>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto px-7 py-6 max-md:px-5">
+        {explication.texte.map((t, k) => (
+          <p key={k} className="m-0 mb-4 max-w-[60ch] text-[15px] leading-[1.7] text-craie max-md:text-[14px]">{t}</p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** L'onglet Analyse du bail : le titre et sa bascule, la carte, puis la vue. */
 export function VueBail({ cases, project, onSource, titre = "Analyse du bail" }) {
-  const [vue, setVue] = useState("resume");
+  const edition = useEdition();
+  // Une seule page, plus de bascule Résumé / Analyse du bail (26 nov. 2026, Jules, après avis : « on ne voit pas assez
+  // l'analyse du bail ») : le Résumé en haut, puis les clauses, et des renvois de la chronologie vers elles.
+  const clauses = clausesDuBail(cases?.analyse, project?.bail_analyse || {}, { toutes: !!edition?.onChamp });
+  const [clause, setClause] = useState(0);
+  const section = useRef(null);
+  const ouvrirClause = (id) => {
+    const k = clauses.findIndex((c) => c.id === id);
+    if (k < 0) return;
+    setClause(k);
+    section.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   return (
     <>
-      <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
-        <h2 className="m-0 text-[28px] max-md:text-[24px] font-medium tracking-[-0.01em] text-encre">{titre}</h2>
-        <div className="inline-flex gap-1 rounded-full border border-trait bg-surface-pleine p-[5px]">
-          {[["resume", "Résumé"], ["analyse", "Analyse du bail"]].map(([id, mot]) => (
-            <button key={id} type="button" onClick={() => setVue(id)}
-              className={`h-9 px-4 rounded-full text-[14px] transition-colors ${vue === id ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}>
-              {mot}
-            </button>
-          ))}
-        </div>
+      <h2 className="m-0 mb-5 text-[28px] max-md:text-[24px] font-medium tracking-[-0.01em] text-encre">{titre}</h2>
+
+      {/* Le Résumé en deux colonnes : les chiffres à gauche, la chronologie à droite, moitié-moitié. */}
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <div className="min-w-0"><ResumeBail colonne cases={cases} project={project} onSource={onSource} /></div>
+        <Bloc id="bail-frise" titre="Chronologie" className="min-w-0">
+          {/* La chronologie une étape à la fois, la source dans l'étape (26 nov. 2026, Jules, sur son prototype). */}
+          <ChronologieBail frise={friseDuProjet(project, cases?.frise)} lignes={cases?.analyse} project={project} dealId={project?.deal_id || null}
+            loyerSignature={project?.cases_forcees?.["bail.loyer_signature"]?.valeur || (cases?.bail || []).find((c) => c.id === "loyer_signature")?.valeur || null}
+            clauses={clauses} onClause={ouvrirClause} />
+        </Bloc>
       </div>
 
-      <Bloc id="bail-frise" titre="Restant à courir et frise du bail">
-        <CarteBail frise={friseDuProjet(project, cases?.frise)} lignes={cases?.analyse} onSource={onSource} project={project} />
-      </Bloc>
-
-      <div className="mt-5">
-        {vue === "resume"
-          ? <ResumeBail cases={cases} project={project} onSource={onSource} />
-          : <Bloc id="bail-analyse" titre="Analyse clause par clause"><AnalyseBail lignes={cases?.analyse} cases={cases} project={project} onSource={onSource} /></Bloc>}
-      </div>
+      {clauses.length > 0 && (
+        <section ref={section} className="mt-10 scroll-mt-6">
+          <div className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h3 className="m-0 text-[22px] font-medium tracking-[-0.01em] text-encre">Le bail, clause par clause</h3>
+            <span className="text-[13.5px] text-ardoise">{clauses.filter((c) => c.texte).length} clause{clauses.filter((c) => c.texte).length > 1 ? "s" : ""} lue{clauses.filter((c) => c.texte).length > 1 ? "s" : ""}</span>
+          </div>
+          <Bloc id="bail-analyse" titre="Le bail, clause par clause"><AnalyseBail clauses={clauses} cases={cases} project={project} choisie={clause} onChoisie={setClause} /></Bloc>
+        </section>
+      )}
     </>
   );
 }

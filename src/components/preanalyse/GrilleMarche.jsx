@@ -343,7 +343,7 @@ function PanneauSource({ vue, lot, analyse, onChoisir, onFermer }) {
     )
     : <Vide />;
   return createPortal(
-    <div ref={zone} className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col overflow-y-auto overscroll-contain border-l border-bord bg-fond p-6 shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[760px] max-md:p-4 max-md:pt-[max(16px,env(safe-area-inset-top))]">
+    <div ref={zone} className="k-volet-droit animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[60] flex w-full flex-col overflow-y-auto overscroll-contain border-l border-bord bg-fond p-6 shadow-[-24px_0_60px_rgba(0,0,0,.6)] sm:w-[760px] max-md:p-4 max-md:pt-[max(16px,env(safe-area-inset-top))]">
       <button type="button" onClick={onFermer} className="absolute right-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-full bg-surface-pleine/90 text-ardoise shadow-[0_6px_18px_rgb(0_0_0/0.18)] hover:text-encre" aria-label="Fermer" title="Fermer (Échap)"><X className="h-4 w-4" /></button>
       {contenu}
     </div>,

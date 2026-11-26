@@ -196,7 +196,17 @@ export async function uniteLegale(siren) {
     annee_creation: (u.dateCreationUniteLegale || '').slice(0, 4),
     categorie: u.categorieEntreprise || null,
     effectif_societe: u.trancheEffectifsUniteLegale || null,
+    // L'activité et la date de création entière, pour l'aperçu de la société du locataire (26 nov. 2026).
+    activite_code: p.activitePrincipaleUniteLegale || null,
+    creation: u.dateCreationUniteLegale ? u.dateCreationUniteLegale.split('-').reverse().join('/') : null,
   };
+}
+
+/** L'établissement siège d'un SIREN (son adresse), ou null. */
+export async function siegeDuSiren(siren) {
+  if (!/^\d{9}$/.test(String(siren || ''))) return null;
+  const d = await appeler({ q: `siren:${siren} AND etablissementSiege:true`, nombre: '1' });
+  return lireEtablissement((d.etablissements || [])[0]);
 }
 
 /**

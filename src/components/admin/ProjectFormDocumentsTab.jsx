@@ -5,6 +5,7 @@ import { useAjoutFichier } from "@/components/ui/ajout-fichier";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import { FileText, Loader2, Plus, X } from "lucide-react";
 import { AUTRES_DOCUMENTS, documentsParGroupe, groupesDuProjet } from "@/lib/groupes-documents";
+import { PileDocuments, typeDePartie, useLecteurDocument } from "@/components/projet/DocumentsProjet";
 
 // L'onglet Documents d'un projet, en édition. Une zone par partie (24 nov. 2026, Jules : « des parties comme dans
 // l'analyse, un truc quittances, un truc PV d'AG, des groupes de documents qu'on peut nommer »), au dessin de la Data
@@ -46,6 +47,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData, avecLis
     if (ajoutes.length) poser((f) => ({ ...f, fichiers_projet: [...(f.fichiers_projet || []), ...ajoutes] }));
   };
   const ajout = useAjoutFichier({ onOrdinateur: () => choix.current?.click(), onFichiers: (fichiers) => ajouter(fichiers) });
+  const lecteur = useLecteurDocument();
   const ouvrir = (nom, ev) => { cible.current = nom; ajout.ouvrir(ev); };
 
   const retirer = (idx) => setFormData((f) => ({ ...f, fichiers_projet: (f.fichiers_projet || []).filter((_, i) => i !== idx) }));
@@ -80,9 +82,10 @@ export default function ProjectFormDocumentsTab({ formData, setFormData, avecLis
     <div className="mb-5">
       <input ref={choix} type="file" multiple className="hidden" onChange={(e) => { ajouter(e.target.files); e.target.value = ""; }} />
       {ajout.rendu}
+      {lecteur.rendu}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {parties.map((p) => (
-          <Partie key={p.nom} partie={p} avecListe={avecListe} occupe={(envoi[p.nom] || 0) > 0}
+          <Partie key={p.nom} partie={p} avecListe={avecListe} occupe={(envoi[p.nom] || 0) > 0} onVoir={lecteur.ouvrir}
             onOuvrir={(ev) => ouvrir(p.nom, ev)} onFichiers={(fichiers) => ajouter(fichiers, p.nom)} onRanger={(idx) => ranger(idx, p.nom)}
             onRenommer={(nom) => renommer(p.nom, nom)} onRetirerPartie={() => retirerPartie(p.nom)} onRetirer={retirer} />
         ))}
@@ -92,7 +95,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData, avecLis
   );
 }
 
-function Partie({ partie, avecListe, occupe, onOuvrir, onFichiers, onRanger, onRenommer, onRetirerPartie, onRetirer }) {
+function Partie({ partie, avecListe, occupe, onOuvrir, onFichiers, onRanger, onRenommer, onRetirerPartie, onRetirer, onVoir }) {
   const [survol, setSurvol] = useState(false);
   const n = partie.fichiers.length;
   const deposer = (ev) => {
@@ -107,7 +110,7 @@ function Partie({ partie, avecListe, occupe, onOuvrir, onFichiers, onRanger, onR
       onClick={(ev) => !occupe && onOuvrir(ev)}
       onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); onOuvrir(ev); } }}
       onDragOver={(ev) => { ev.preventDefault(); setSurvol(true); }} onDragLeave={() => setSurvol(false)} onDrop={deposer}
-      className={`cursor-pointer ${cadre(survol)}`}>
+      className={`group cursor-pointer ${cadre(survol)}`}>
       <div className="flex items-baseline justify-between gap-3">
         {partie.autres
           ? <p className="m-0 text-[15px] text-encre">{partie.nom}</p>
@@ -123,22 +126,32 @@ function Partie({ partie, avecListe, occupe, onOuvrir, onFichiers, onRanger, onR
           )}
         </span>
       </div>
+      {/* Les pièces en vignettes de leur première page (26 nov. 2026, Jules) : un clic l'ouvre, on la glisse dans une autre
+          partie pour l'y ranger, la croix au survol la retire. */}
       {avecListe && n > 0 && (
-        <ul className="m-0 mt-2 list-none space-y-1.5 p-0">
-          {partie.fichiers.map((f) => (
-            <li key={f.idx} draggable onDragStart={(ev) => { ev.dataTransfer.setData(PIECE, String(f.idx)); ev.dataTransfer.effectAllowed = "move"; }}
-              onClick={arreter} title="Glissez-la dans une autre partie pour l'y ranger"
-              className="group flex cursor-grab items-center gap-2.5 text-[13px] active:cursor-grabbing">
-              <FileText className="h-4 w-4 flex-none text-ardoise" />
-              <span className="min-w-0 flex-1 truncate text-craie">{f.nom}</span>
-              <button type="button" onClick={(ev) => { arreter(ev); onRetirer(f.idx); }}
-                className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-encre group-hover:opacity-100 focus:opacity-100 max-md:opacity-100"
-                style={{ background: "transparent" }} aria-label={`Retirer ${f.nom}`} title="Retirer">
-                <X className="h-3 w-3" />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* La pile de la partie, comme en vue client (26 nov. 2026, Jules) : un clic sur une page l'ouvre. */}
+          <div className="relative mt-3 h-[150px] text-black" onClick={arreter}>
+            <div className="absolute inset-0 overflow-hidden rounded-[12px] bg-menthe" />
+            <p className="absolute left-4 top-1/2 z-10 m-0 -translate-y-1/2 text-[14px] font-medium">{n} document{n > 1 ? "s" : ""}</p>
+            <PileDocuments fichiers={partie.fichiers} onOuvrir={onVoir} type={typeDePartie(partie.nom)} largeur={92} droite={22} bas={-30} />
+          </div>
+          {/* Les noms : glisser dans une autre partie pour ranger, la croix pour retirer. */}
+          <ul className="m-0 mt-3 list-none space-y-1 p-0">
+            {partie.fichiers.map((f) => (
+              <li key={f.idx} draggable onDragStart={(ev) => { ev.dataTransfer.setData(PIECE, String(f.idx)); ev.dataTransfer.effectAllowed = "move"; }}
+                onClick={(ev) => { arreter(ev); onVoir(f); }} title="Ouvrir ; glissez-la dans une autre partie pour l'y ranger"
+                className="group/ligne flex cursor-pointer items-center gap-2 text-[13px] active:cursor-grabbing">
+                <span className="min-w-0 flex-1 truncate text-craie group-hover/ligne:text-encre">{f.nom}</span>
+                <button type="button" onClick={(ev) => { arreter(ev); onRetirer(f.idx); }}
+                  className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-encre group-hover/ligne:opacity-100 focus:opacity-100 max-md:opacity-100"
+                  style={{ background: "transparent" }} aria-label={`Retirer ${f.nom}`} title="Retirer">
+                  <X className="h-3 w-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       <p className="m-0 mt-auto flex items-center justify-center gap-1.5 pt-4 text-[12.5px] text-brume">
         {occupe && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

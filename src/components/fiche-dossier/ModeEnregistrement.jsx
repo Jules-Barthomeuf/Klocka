@@ -97,7 +97,10 @@ export function Onde({ vive = true, className = "" }) {
  * Ce que la saisie montre en mode Enregistrement : avant (Démarrer, et un enregistrement resté ouvert à reprendre),
  * pendant, une ligne d'aide (la durée et Terminer sont sur la carte du chat).
  */
-export function BarreEnregistrement({ etat, erreur, ouvert, appel = false, onDemarrer, onReprendre, onFinirOuvert }) {
+export function BarreEnregistrement({ etat, erreur, ouvert, onDemarrer, onReprendre, onFinirOuvert }) {
+  // Pendant l'enregistrement, rien sous la saisie (25 nov. 2026, Jules : la ligne « Ce que tu tapes ici s'ajoute… »
+  // retirée) : tout est sur la carte du chat ; seule une erreur s'y dit.
+  if (etat !== "repos" && !erreur) return null;
   const bouton = "inline-flex h-9 items-center gap-2 rounded-full px-4 text-[13.5px] transition-colors disabled:opacity-50";
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2.5 border-t border-trait pt-3">
@@ -117,11 +120,6 @@ export function BarreEnregistrement({ etat, erreur, ouvert, appel = false, onDem
       )}
       {/* Pendant l'enregistrement, Terminer est sur la carte du chat (20 nov. 2026, Jules, version C du prototype). */}
       {/* Ni onde ni durée sous la saisie (20 nov. 2026, Jules) : la durée est sur la carte, les rubans sous la transcription. */}
-      {etat === "ecoute" && (
-        <>
-          <span className="min-w-0 flex-1 text-[13px] leading-[1.45] text-ardoise">Ce que tu tapes ici s'ajoute à l'enregistrement ; « {appel ? "Raccrocher" : "Terminer"} » est sur la carte.</span>
-        </>
-      )}
       {erreur && <p className="m-0 w-full text-[12.5px] text-alerte">{erreur}</p>}
     </div>
   );
@@ -138,7 +136,9 @@ const motsDe = (t) => (String(t || "").trim() ? String(t).trim().split(/\s+/).le
  * pour abandonner ; la transcription en direct ; en pied, les mots transcrits et les fiches mises à jour à droite. Un
  * appel raccroché demande son issue sur la carte ; fini, la carte tient en une ligne et garde « Voir la transcription ».
  */
-export function BlocEnregistrement({ donnees, enCours, secondes, direct = "", etatDirect = "attente", voix = null, onTerminer, onAbandonner, onIssue }) {
+// `lier` : le bouton « Lier » posé à droite de Raccrocher (l'appel du micro de la carte profil, sans personne au départ) ;
+// `notes`, `onNotes` : les notes prises dans la carte, qui partent avec l'enregistrement (25 nov. 2026, Jules).
+export function BlocEnregistrement({ donnees, enCours, secondes, direct = "", etatDirect = "attente", voix = null, onTerminer, onAbandonner, onIssue, lier = null, notes = "", onNotes = null }) {
   const d = donnees || {};
   const [voir, setVoir] = useState(false);
   const appel = !!d.appel;
@@ -190,6 +190,7 @@ export function BlocEnregistrement({ donnees, enCours, secondes, direct = "", et
                 {appel ? <PhoneOff className="h-4 w-4" strokeWidth={1.8} /> : <Square className="h-3 w-3 fill-current" strokeWidth={0} />}
                 <span className="max-sm:hidden">{appel ? "Raccrocher" : "Terminer"}</span>
               </button>
+              {lier}
               <button type="button" onClick={onAbandonner} aria-label="Abandonner l'enregistrement" title="Abandonner : rien ne sera rangé"
                 className="grid h-10 w-10 place-items-center rounded-full text-ardoise transition-colors hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
                 <X className="h-4 w-4" strokeWidth={1.8} />
@@ -206,6 +207,14 @@ export function BlocEnregistrement({ donnees, enCours, secondes, direct = "", et
           {/* Sous la transcription, les rubans du mode appel, qui ondulent avec la voix (20 nov. 2026, Jules). */}
           {voix && <div className="mt-3"><RubansAppel voix={voix} /></div>}
           {d.attente && <p className="m-0 mt-2.5 text-[13px] text-ambre">Dis un nom ou lie une fiche : je mets à jour dès que je sais de qui on parle.</p>}
+          {/* Les notes de l'appel, dans la carte (25 nov. 2026, Jules : « dans la carte on doit pouvoir prendre des notes »). */}
+          {onNotes && (
+            <div className="mt-4">
+              <p className="m-0 mb-2 text-[13px] text-ardoise">Notes</p>
+              <textarea value={notes} onChange={(e) => onNotes(e.target.value)} rows={3} placeholder="Ce qu'il faut retenir : un prix, une surface, une date…" aria-label="Notes de l'appel"
+                className="block w-full resize-y rounded-[12px] border border-trait px-3 py-2.5 text-[14.5px] leading-[1.5] text-encre outline-none transition-colors placeholder:text-brume focus:border-bord-vif" style={{ background: "transparent" }} />
+            </div>
+          )}
         </div>
       ) : (
         // Un appel raccroché : son issue, sur la carte.
@@ -222,7 +231,8 @@ export function BlocEnregistrement({ donnees, enCours, secondes, direct = "", et
       )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-trait px-5 py-3 text-[12.5px] text-ardoise max-md:px-4">
         <span className="inline-flex items-center gap-1.5">{appel ? <Phone className="h-3.5 w-3.5" strokeWidth={1.8} /> : <Radio className="h-3.5 w-3.5" strokeWidth={1.8} />}{appel ? "Appel enregistré" : "Enregistrement"} · {motsDe(enCours ? direct : d.transcription)} mots transcrits</span>
-        <span className="min-w-0 flex-1 truncate text-right max-md:text-left">{majFiches || "Les fiches se mettront à jour à droite au fil de la conversation."}</span>
+        {/* L'appel du micro n'affiche pas de fiches à droite (25 nov. 2026, Jules) : rien à en dire en pied. */}
+        {!d.appel?.libre && <span className="min-w-0 flex-1 truncate text-right max-md:text-left">{majFiches || "Les fiches se mettront à jour à droite au fil de la conversation."}</span>}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React from "react";
+import { adresseDuLien, copierLien } from "@/components/projet/LienPublic";
 import { Pencil, Copy, Trash2, Eye, Archive, ArchiveRestore, FileSearch, Calculator, Share2, MoreHorizontal } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
@@ -41,17 +42,14 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
   };
   const [copied, setCopied] = React.useState(false);
 
-  const publicUrl = `${window.location.origin}/ProjetPublic?id=${project.id}`;
-
+  // Le lien à clé, qu'on coupe depuis le projet (25 nov. 2026) : créé au premier clic, le même ensuite.
   const handleSharePublic = async (e) => {
     e.stopPropagation();
     try {
-      await navigator.clipboard.writeText(publicUrl);
-      setCopied(true);
-      toast.success("Lien public copié", { description: "Partageable même avec un non-client" });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (_) {
-      window.prompt("Copiez le lien public :", publicUrl);
+      const r = await base44.request("POST", `/api/projets/${project.id}/lien-public`);
+      if (await copierLien(adresseDuLien(r.lien.cle))) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    } catch (err) {
+      toast.error(err?.message || "Le lien n'a pas été créé.");
     }
   };
 

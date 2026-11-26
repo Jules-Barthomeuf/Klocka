@@ -30,15 +30,34 @@ export const FRISE = [
 export const ETAPES_MENU = (() => {
   const l = FRISE.filter((e) => !["reception", "documents", "plateforme", "clients"].includes(e.id)).map((e) => ({ ...e, vrai: e.n }));
   l.splice(l.findIndex((e) => e.id === "analyse") + 1, 0, { id: "video", label: "Vidéo", sous: "Vidéo filmée", vrai: FRISE.find((e) => e.id === "analyse").n });
+  // Le Projet, étape du dossier juste après l'Analyse, avant la Vidéo (26 nov. 2026, Jules : « projets et dossiers dans
+  // le même truc ; le projet, c'est une étape après notre analyse » ; « Pré-analyse, Analyse, Projet, Vidéo, puis les
+  // autres ») : la page du client ; il valide l'ancienne Plateforme.
+  l.splice(l.findIndex((e) => e.id === "analyse") + 1, 0, { id: "projet", label: "Projet", sous: "La page du client", vrai: FRISE.find((e) => e.id === "plateforme").n });
   return l.map((e, i) => ({ ...e, n: i + 1 }));
 })();
 
+const ANALYSE_COMMENCEE = new Set(["documents_demandes", "documents_recus", "depouille"]);
+
 /**
- * L'étape où en est le dossier pour la liste : celle juste après la dernière validée à la main (16 nov. 2026, Jules :
- * « ça met Dossier bancaire et les autres dossiers, ça doit afficher l'étape à laquelle on est »). Rien de validé :
- * la Pré-analyse. Tout validé : null.
+ * L'étape où en est vraiment le dossier, d'après ce qu'il contient (26 nov. 2026, Jules : « les étapes passées
+ * automatiquement, et celle en cours ; pas besoin de valider à la main, personne ne le fait ») : une lettre
+ * d'intention, l'Offre ; un projet, le Projet ; des pièces ou une analyse commencée, l'Analyse ; sinon la Pré-analyse.
+ * Rend l'id d'une étape du menu. Les étapes validées à la main (`frise_validee`) ne comptent plus.
  */
-export const etapeEnCours = (d) => ETAPES_MENU.find((e) => e.vrai > (Number(d?.frise_validee) || 0)) || null;
+export function etapeAuto(d) {
+  if (Number(d?.nb_offres) > 0) return "offre";
+  if (d?.projet_id) return "projet";
+  const pieces = (Array.isArray(d?.documents_espace) ? d.documents_espace.length : 0) + (Number(d?.nb_pieces) || Number(d?.apercu?.nb_pieces) || 0);
+  if (pieces > 0 || ANALYSE_COMMENCEE.has(d?.statut) || Number(d?.etape_max) >= 3) return "analyse";
+  return "preanalyse";
+}
+
+/** Pure : une étape du menu est-elle faite ? Celles d'avant l'étape en cours. */
+export const etapeFaite = (d, id) => ETAPES_MENU.findIndex((e) => e.id === id) < ETAPES_MENU.findIndex((e) => e.id === etapeAuto(d));
+
+/** L'étape où en est le dossier, pour la carte de la liste. */
+export const etapeEnCours = (d) => ETAPES_MENU.find((e) => e.id === etapeAuto(d)) || null;
 
 /** Les quatre phases du pipeline. */
 export const PHASES = [

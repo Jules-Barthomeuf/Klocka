@@ -7,12 +7,15 @@ export default function ProjetPublic() {
   const [status, setStatus] = useState("loading"); // loading | ok | error
 
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("id");
-    if (!id) {
+    // La clé du lien créé dans le projet (25 nov. 2026) ; l'identifiant des liens d'avant s'ouvre encore.
+    const params = new URLSearchParams(window.location.search);
+    const cle = params.get("cle");
+    const id = params.get("id");
+    if (!cle && !id) {
       setStatus("error");
       return;
     }
-    getPublicProject({ id })
+    getPublicProject(cle ? { cle } : { id })
       .then((res) => {
         if (res?.data?.success && res.data.project) {
           setProject(res.data.project);

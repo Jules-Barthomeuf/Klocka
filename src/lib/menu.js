@@ -107,7 +107,8 @@ export const ENTREES_MANDATAIRE = [
 export const MENU_ADMIN = [
   { cle: "Dashboard", label: "Assistant" },
   // Le tableau de bord quitte le menu de l'équipe (3 nov. 2026, Jules) ; sa page reste, et celui des mandataires aussi.
-  { cle: "AdminProjets", label: "Projets" },
+  // Projets quitte la barre (26 nov. 2026, Jules : « projets et dossiers dans le même truc ») : « Dossiers » mène aux
+  // deux listes (le titre bascule de l'une à l'autre), et un projet est l'étape Projet de son dossier.
   { cle: "Analyse", label: "Dossiers" },
   // À valider quitte le menu (26 oct. 2026, Jules) : la page reste ouverte par la cloche et les dossiers.
   { cle: "Prospection", label: "Appels" },

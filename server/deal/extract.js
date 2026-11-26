@@ -23,6 +23,9 @@ export const CHAMPS = [
   'occupe',
   'rendement_annonce',
   'type_actif',
+  // Les équipements du local que la fiche nomme (25 nov. 2026, Jules : « la surface, le plan si on a et les équipements,
+  // extraction etc. ») : ils passent à l'onglet Bien du projet.
+  'equipements',
 ];
 
 // L'adresse est le seul champ composite : ses sous-champs portent la valeur,
@@ -75,6 +78,7 @@ const SCHEMA_REPONSE = {
           occupe: { $ref: '#/$defs/champ_booleen' },
           rendement_annonce: { $ref: '#/$defs/champ_nombre' },
           type_actif: { $ref: '#/$defs/champ_texte' },
+          equipements: { $ref: '#/$defs/champ_texte' },
           commerces: {
             type: 'array',
             description: "Quand ce lot est un ensemble de plusieurs cellules commerciales louées à des locataires différents (un portefeuille : « 3 locataires, 4 cellules »), une entrée par cellule, telle que l'état locatif ou la fiche la décrit. Vide pour un local à un seul locataire.",
@@ -164,7 +168,8 @@ RÈGLES IMPÉRATIVES :
 8. N'ajoute aucun champ hors du schéma.
 9. agent : la personne de l'agence qui présente ou envoie le bien (signature d'un mail, pied de fiche, « votre contact »), avec son nom, son adresse mail, son téléphone et le nom de son agence, recopiés tels qu'écrits. Jamais le locataire, le vendeur, le syndic, un notaire ni l'équipe Klocka (@klocka.immo). Ce qui n'est pas écrit reste vide.
 10. biens_annonces : le nombre de biens que le document dit lui-même porter (« 4 actifs », « 6 murs commerciaux »), recopié ; 0 s'il ne donne aucun nombre. Tu ne comptes pas toi-même.
-11. commerces : un lot loué à plusieurs locataires (un portefeuille de cellules commerciales vendu ensemble) reste UN lot (règle 7), mais chacune de ses cellules a son entrée dans "commerces" : le locataire tel qu'écrit, l'activité, la surface, le loyer annuel, et vacant à true pour une cellule vide. Recopie l'état locatif, ne calcule rien. Un local à un seul locataire n'a pas de "commerces".`;
+11. commerces : un lot loué à plusieurs locataires (un portefeuille de cellules commerciales vendu ensemble) reste UN lot (règle 7), mais chacune de ses cellules a son entrée dans "commerces" : le locataire tel qu'écrit, l'activité, la surface, le loyer annuel, et vacant à true pour une cellule vide. Recopie l'état locatif, ne calcule rien. Un local à un seul locataire n'a pas de "commerces".
+12. equipements : les équipements du local que la fiche nomme, en mots courts séparés par des virgules (« extraction, terrasse de 20 m², cave, climatisation, vitrine double, licence IV »). Seulement ce qui est écrit ; la citation est l'extrait qui en nomme le plus. Absent si la fiche n'en nomme aucun.`;
 
 // La cellule à lire seule (24 nov. 2026, Jules : « un portefeuille, préanalyser séparément ou en un seul lot ? ») : le
 // portefeuille est découpé en un dossier par commerce, chacun lu sur le même document.

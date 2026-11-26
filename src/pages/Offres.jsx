@@ -2,7 +2,7 @@ import FlechesHistorique from "@/components/ui/fleches-historique";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileText, MoreHorizontal, Search, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -14,6 +14,7 @@ import { PoigneeEditeur, useLargeurChat } from "@/components/editeur/Editeur";
 import { apercuAdmin } from "@/lib/vue";
 import { PanneauSources } from "@/components/haka/ReglagesDemande";
 import Chargement from "@/components/ui/Chargement";
+import ChoixDossierOffre, { ouvrirOffreDuDossier } from "@/components/offres/ChoixDossierOffre";
 
 // Offres — les lettres d'intention d'achat (LOI) de l'équipe. Comme
 // l'Estimation des mandataires : le chat à gauche, la lettre à droite. On
@@ -31,6 +32,9 @@ export default function Offres() {
   const [conversation, setConversation] = useState(false);
   const [historique, setHistorique] = useState(false);
   const [courante, setCourante] = useState(null);
+  // Un projet sans dossier choisi dans « Sur quel dossier ? » : son offre se prépare ici, dans le chat (26 nov. 2026).
+  const [projetChoisi, setProjetChoisi] = useState(null);
+  const navigate = useNavigate();
   // En vue mandataire, une lettre naît aux couleurs de K Partners (28 oct. 2026, Jules).
   const marqueVue = apercuAdmin() === "mandataire" ? "kp" : null;
   // Le modèle de la page éditeur (28 oct. 2026, Jules) : le chat a ses sources et « + » pour joindre, comme le dossier.
@@ -61,10 +65,12 @@ export default function Offres() {
   // ou d'un collègue) part d'un message de reprise ; elle se relie à la
   // conversation au premier échange.
   const ouvrirOffre = useCallback((o) => {
+    // Une offre faite sur un dossier se rouvre dans son étape Offre, la même page que depuis le dossier (26 nov. 2026).
+    if (o.deal_id) { ouvrirOffreDuDossier(navigate, o.deal_id); return; }
     setCourante(o.id);
     const reprise = { role: "assistant", reprise: true, contenu: `La LOI ${o.adresse ? `du ${o.adresse}` : ""} est ouverte à droite. Éditez-la directement, ou dites-moi ci-dessous ce qu'il faut changer.`.replace(/\s+/g, " ") };
     window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: o.conversation_id || null, api: "/api/assistant", qs: "", secours: [reprise] } }));
-  }, []);
+  }, [navigate]);
 
   // La notification « Relire » arrive par l'adresse : la lettre et sa conversation s'ouvrent.
   // Le chat repart à zéro quand l'adresse change : on ouvre une fois l'adresse nettoyée.
@@ -112,12 +118,13 @@ export default function Offres() {
   // chargement, la lettre demandée par « Relire » reste ouverte.
   const ouverteAvant = useRef(false);
   const surConversation = useCallback((ouverte) => {
-    if (!ouverte && ouverteAvant.current) setCourante(null);
+    if (!ouverte && ouverteAvant.current) { setCourante(null); setProjetChoisi(null); }
     ouverteAvant.current = ouverte;
     setConversation(ouverte);
   }, []);
 
   const scinde = large && (conversation || !!courante);
+  const choixDuDossier = !conversation && !courante && !projetChoisi;
   // La mise en page d'un dossier ouvert (26 oct. 2026, Jules) : la barre de navigation reste, repliée en rail,
   // le chat à gauche, la lettre à droite derrière un fin filet.
   useEffect(() => {
@@ -159,7 +166,7 @@ export default function Offres() {
       {isLoading ? (
         <Chargement />
       ) : !offres.length ? (
-        <p className="py-12 text-center text-[14px] text-brume">{recherche ? "Aucune offre ne correspond." : "Aucune offre encore : décrivez la situation au chat, il rédige la lettre."}</p>
+        <p className="py-12 text-center text-[14px] text-brume">{recherche ? "Aucune offre ne correspond." : "Aucune offre encore : choisissez un dossier ci-dessus."}</p>
       ) : (
         <div className="border-y border-trait">
           <EnTeteListe />
@@ -181,17 +188,22 @@ export default function Offres() {
         <div className={scinde ? "k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5" : conversation ? "px-5 md:px-8" : "px-5 py-6 md:px-10 md:py-9"}>
           <div className={scinde ? "flex min-h-0 w-full flex-1 flex-col" : `mx-auto ${conversation ? "max-w-[1100px]" : "max-w-[1400px]"}`}>
             <header className={scinde ? "flex min-h-0 flex-1 flex-col" : conversation ? "flex flex-col" : "flex flex-col items-center text-center pt-[6vh] max-md:pt-4"}>
+              {/* « Sur quel dossier ? » à l'accueil (26 nov. 2026, Jules) : plus de chat qui cherche le bien ; un dossier choisi
+                  ouvre son étape Offre, un projet sans dossier ouvre le chat ici. */}
+              {choixDuDossier && <ChoixDossierOffre onProjet={setProjetChoisi} />}
               {/* Scindée, la question au centre et le chat en bas, comme un dossier ouvert. */}
-              {!conversation && (
+              {!conversation && !choixDuDossier && (
                 <div className={scinde ? "flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-y-auto py-6 text-center" : "flex flex-col items-center"}>
                   <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: scinde ? "clamp(22px, 2.1vw, 28px)" : "clamp(22px, 2.1vw, 30px)" }}>Quelle offre préparez-vous ?</h1>
                   <p className="m-0 mt-2 max-w-[56ch] text-[14px] text-ardoise">Décrivez la situation : l'acquéreur, le bien ou son dossier, le vendeur, le prix et l'apport. Ce qui manque vous est demandé.</p>
                 </div>
               )}
-              <div className={scinde ? (conversation ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5") : conversation ? "w-full" : "w-full mt-8 max-w-[660px] max-md:mt-6"}>
+              {!choixDuDossier && <div className={scinde ? (conversation ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5") : conversation ? "w-full" : "w-full mt-8 max-w-[660px] max-md:mt-6"}>
                 <ChatDashboard espace="offre" libelleAccueil="Toutes les offres" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse} reglages={reglagesChat}
-                  barreApercu={scinde && conversation} onTravail={setTravail} contexte={courante ? { loi_id: courante } : null} onConversationId={setConversationId} avantRetour={<FlechesHistorique />} />
-              </div>
+                  barreApercu={scinde && conversation} onTravail={setTravail} onConversationId={setConversationId} avantRetour={<FlechesHistorique />}
+                  contexte={courante ? { loi_id: courante } : projetChoisi ? { projet_lie: { id: projetChoisi.id, titre: projetChoisi.titre || projetChoisi.adresse_complete || "" } } : null}
+                  ouverture={projetChoisi ? `Lettre d'intention sur « ${projetChoisi.titre || projetChoisi.adresse_complete || "ce projet"} ». Qui est l'acheteur, et à quel prix ?` : null} />
+              </div>}
             </header>
           </div>
           {!conversation && !scinde && (historique ? (

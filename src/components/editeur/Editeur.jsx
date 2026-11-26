@@ -91,7 +91,20 @@ export function ModesEditeur({ mode, onMode, modes = MODES_EDITEUR }) {
  * sur la même ligne, les actions à droite. Sans fond : celui de la page.
  */
 // `debut` : un geste avant le nom (l'icône qui ouvre et ferme le chat, 13 nov. 2026).
-export function BarreEditeur({ titre, statut = "", mode = null, onMode = null, actions = null, debut = null }) {
+export function BarreEditeur({ titre, statut = "", mode = null, onMode = null, actions = null, debut = null, centre = false }) {
+  // `centre` : l'en-tête des pages de dossier (26 nov. 2026, Jules : « le titre au milieu, comme les autres, sans petite
+  // ligne ») : 80 px de haut, sans filet, le nom au milieu en 24 px, le début à gauche et les gestes à droite.
+  if (centre) {
+    return (
+      <div className="relative flex h-20 flex-none items-center justify-center px-5 max-md:h-14 max-md:justify-start max-md:px-3" style={{ background: "transparent" }}>
+        {debut ? <div className="absolute left-5 flex items-center max-md:static max-md:mr-2">{debut}</div> : null}
+        <h1 className="m-0 min-w-0 max-w-[50%] truncate text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre max-md:max-w-none max-md:flex-1 max-md:text-[18px]" title={statut || undefined}>
+          <span className="k-balayage">{titre}</span>
+        </h1>
+        {actions ? <div className="absolute right-[120px] flex items-center gap-1.5 max-md:static max-md:ml-2 max-md:gap-1">{actions}</div> : null}
+      </div>
+    );
+  }
   return (
     <div className="flex h-14 flex-none items-center gap-3 border-b border-trait px-5 md:pr-[120px] max-md:gap-2 max-md:px-3" style={{ background: "transparent" }}>
       {debut ? <div className="-ml-2 flex flex-none items-center">{debut}</div> : null}

@@ -6,6 +6,7 @@
 // les cases qu'elle ajoute (champs_personnalises) se posent par-dessus, côté
 // page : ici, on ne dit que ce que le dossier sait.
 
+import { sirenDuLocataire } from './liens-locataire.js';
 import { Records } from './db.js';
 import { lireFiche } from './deal/matrice.js';
 import { lireAnalyse as lireAnalyseDuDeal } from './deal/analyse-pieces.js';
@@ -277,6 +278,18 @@ export function phraseSimple(t, n = 200) {
   return premiere.length > n ? `${premiere.slice(0, n - 1).trim()}…` : premiere;
 }
 
+/**
+ * Une clause en entier, telle que la case de l'Analyse l'écrit (25 nov. 2026, Jules : « dans Analyse du bail, ça prend
+ * que les premières lignes mais pas tout le texte de la case ; la Destination, alors que dans le tableau du bail c'est
+ * écrit complètement ») : les retours à la ligne gardés, les espaces resserrés, une ligne redite une seule fois.
+ */
+export function clauseEntiere(t) {
+  const lignes = texte(t).replace(/\r/g, '').split('\n').map((l) => l.replace(/[ \t\u00a0]+/g, ' ').trim());
+  const vues = new Set();
+  const sortie = lignes.filter((l) => { if (!l) return true; const k = l.toLowerCase(); if (vues.has(k)) return false; vues.add(k); return true; });
+  return sortie.join('\n').replace(/\n{3,}/g, '\n\n').trim() || null;
+}
+
 /** Ce que disent les PV d'AG, en un mot : Oui, Aucun, PV absent, À vérifier. */
 export function pvCourt(id, t) {
   const s = texte(t);
@@ -368,7 +381,7 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
     cas('charges_refacturees', 'Charges refacturées', chargesRefacturees(v('charges'), v('charges_copro')), [v('charges'), v('charges_copro')].filter(Boolean).join(' '), ['charges', 'charges_copro']),
     cas('taxe_refacturee', 'Taxes refacturées', ouiNon(taxeFonciereCourte(v('taxe_fonciere'), v('charges')), 'Refacturée', 'Non refacturée'), v('taxe_fonciere') || v('charges'), ['taxe_fonciere', 'charges']),
   ];
-  const analyse = ANALYSE_BAIL.filter(([id]) => v(id)).map(([id, titre]) => ({ id, titre, texte: phraseSimple(v(id)), source: source(id) }));
+  const analyse = ANALYSE_BAIL.filter(([id]) => v(id)).map(([id, titre]) => ({ id, titre, texte: clauseEntiere(v(id)), source: source(id) }));
   // Le type de bail de la Pré-analyse passe devant celui lu dans les pièces, qui reste dessous en détail (10 nov. 2026,
   // Jules : « reprend pas le type de bail mis dans la préanalyse »).
   const typeBail = texte(projet.type_bail) || (lot?.bail_type?.absent === false ? texte(lot.bail_type.valeur) : '');
@@ -442,5 +455,36 @@ export function lireCases(projet, { sansSources = false, analyse = undefined } =
   try { fiche = deal ? lireFiche(deal.deal_id) : null; } catch { fiche = null; }
   let lue = analyse;
   if (lue === undefined) { try { lue = deal ? lireAnalyseDuDeal(deal.deal_id) : null; } catch { lue = null; } }
-  return casesDuProjet(projet, { fiche: ficheAvecAnalyse(fiche, lue), lot: deal?.lots?.[0]?.lot || null, sansSources });
+  const cases = casesDuProjet(projet, { fiche: ficheAvecAnalyse(fiche, lue), lot: deal?.lots?.[0]?.lot || null, sansSources });
+  // Le SIREN du locataire, pour son lien Pappers dans l'onglet Locataire (25 nov. 2026, Jules) : server/liens-locataire.js.
+  let siren = null;
+  try { siren = sirenDuLocataire(projet, { deal, analyse: lue }); } catch { siren = null; }
+  return { ...cases, siren_locataire: siren, assemblees: assembleesDuProjet(lue, deal, { sansSources }) };
+}
+
+/**
+ * Les assemblées générales de l'Analyse, pour l'onglet Copropriété du projet (26 nov. 2026, Jules : « les tableaux qui
+ * restent dans l'analyse, on les met dans la copropriété ; on navigue entre les assemblées, on voit les résolutions, le
+ * document, les notes »). Lues à chaque ouverture : une résolution cachée dans l'Analyse n'apparaît pas, une note écrite
+ * dans l'Analyse s'affiche. Une assemblée sans résolution visible n'apparaît pas. Sans sources (lien public), ni pièce
+ * ni citation.
+ */
+export function assembleesDuProjet(analyse, deal, { sansSources = false } = {}) {
+  const notes = deal?.grilles_notes || {};
+  return (analyse?.assemblees || []).map((a) => ({
+    document_id: sansSources ? null : a.document_id || null,
+    document_nom: sansSources ? null : a.document_nom || null,
+    document_titre: a.document_titre || null,
+    document_url: sansSources ? null : a.document_url || null,
+    date: a.date || null,
+    annee: a.annee || null,
+    // Combien sont cachées : l'éditeur du projet peut les réafficher (26 nov. 2026, Jules).
+    cachees: (a.resolutions || []).filter((r) => r.cachee).length,
+    resolutions: (a.resolutions || []).filter((r) => !r.cachee).map((r) => ({
+      cle: r.cle, numero: r.numero || null, nom: r.nom || null, issue: r.issue || null, majorite: r.majorite || null,
+      tantiemes: r.tantiemes || null, montant: r.montant ?? null, page: r.page || null,
+      citation: sansSources ? null : r.citation || null,
+      note: String(notes[`resolutions.${r.cle}`]?.texte || '').trim() || null,
+    })),
+  })).filter((a) => a.resolutions.length);
 }

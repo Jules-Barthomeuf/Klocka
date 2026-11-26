@@ -23,6 +23,7 @@ import { ETAPES, donneesDuBien } from './dossier.js';
 import { photoDe, photosDe } from '../photos-fiches.js';
 import { nomAgent } from '../nom-agent.js';
 import { envoisDeLAgent } from './fiches-envoyees.js';
+import { cleUnique, rassembler } from './une-cle.js';
 
 export { ETAPES };
 // `profil`, `ecart`, `message` (22 nov. 2026) : comment parler à la personne, deux sources qui se contredisent, un message
@@ -108,15 +109,21 @@ export function objetDe(cle) {
     // twenty:<objet>:<id> : la fiche du CRM ; son nom est celui qu'on a reçu au moment du lien.
     const [objet] = reste;
     const f = Records.findBy('FicheDossier', 'cle', cle);
-    return { cle, genre: objet === 'agentImmobilier' ? 'agent' : 'client', nom: f?.nom || 'Fiche du CRM', crm: { objet, id: reste.slice(1).join(':') } };
+    const crm = { objet, id: reste.slice(1).join(':') };
+    // Un client du CRM qui a sa demande dans Klocka : le nom de Twenty qu'elle garde fait foi (23 nov.), et son profil.
+    const d = objet === 'clients' && crm.id ? Records.findBy('DemandeClient', 'twenty_id', crm.id) : null;
+    if (d) return { cle, genre: 'client', nom: d.nom_crm || f?.nom || d.client_nom || 'Client', nom_crm: !!d.nom_crm, detail: d.profil || null, crm };
+    return { cle, genre: objet === 'agentImmobilier' ? 'agent' : 'client', nom: f?.nom || 'Fiche du CRM', crm };
   }
   return null;
 }
 
 /** Un lien venu de l'écran, réduit à ce que la plateforme connaît : { cle, genre, nom }. */
 export function lienPropre(l) {
-  const cle = propre(l?.cle, 200);
-  if (!/^(deal|projet|agent|client|twenty):/.test(cle)) return null;
+  const brute = propre(l?.cle, 200);
+  if (!/^(deal|projet|agent|client|twenty):/.test(brute)) return null;
+  // La clé qui fait foi (25 nov. 2026) : un lien posé sur la demande de Rachel va sur sa fiche du CRM (une-cle.js).
+  const cle = cleUnique(brute);
   const o = objetDe(cle);
   if (!o && !cle.startsWith('twenty:')) return null;
   const genre = o?.genre || (/:agentImmobilier:/.test(cle) ? 'agent' : 'client');
@@ -128,7 +135,8 @@ export function lienPropre(l) {
 // ---------------------------------------------------------------------------
 
 /** La fiche d'une clé, créée vide au premier besoin. */
-export function fiche(cle, { nom = null, genre = null } = {}) {
+export function fiche(cleRecue, { nom = null, genre = null } = {}) {
+  const cle = cleUnique(cleRecue);
   const f = Records.findBy('FicheDossier', 'cle', cle);
   if (f) return f;
   const o = objetDe(cle);
@@ -172,7 +180,7 @@ const lier = (a, b) => {
  * nomme l'agent) est écarté, pour ne pas revenir. Rend ce qu'il faut pour le relier (Annuler).
  */
 export function delier(de, vers) {
-  const a = String(de || ''), b = String(vers || '');
+  const a = cleUnique(de), b = cleUnique(vers);
   if (!a || !b || a === b) return { ok: false, error: 'Rien à délier.' };
   const avant = [];
   for (const [x, y] of [[a, b], [b, a]]) {
@@ -368,6 +376,28 @@ export function annulerNote(note, user = null) {
 // ---------------------------------------------------------------------------
 
 /** Faite ou rouverte ; une action faite laisse une ligne au journal de ses fiches. */
+// Les verbes qui ne font pas leur participe en « -é » (« écrire » → « écrit ») ; les autres en « -er » le font.
+// Les verbes en « -er » d'une action (une liste, pas une règle : « dossier », « loyer » ne sont pas des verbes).
+const VERBES_ER = new Set(['relancer', 'rappeler', 'appeler', 'envoyer', 'renvoyer', 'contacter', 'recontacter', 'demander', 'redemander', 'verifier', 'confirmer', 'programmer', 'planifier', 'preparer', 'organiser', 'transferer', 'presenter', 'proposer', 'valider', 'signer', 'visiter', 'passer', 'repasser', 'chercher', 'rechercher', 'trouver', 'recuperer', 'noter', 'caler', 'fixer', 'reserver', 'rencontrer', 'discuter', 'negocier', 'estimer', 'analyser', 'completer', 'finaliser', 'modifier', 'ajouter', 'retirer', 'lancer', 'poster', 'publier', 'partager', 'informer', 'consulter', 'creer', 'enregistrer', 'telephoner', 'expliquer', 'remercier', 'saluer', 'inviter', 'accompagner', 'boucler', 'cloturer', 'chiffrer', 'calculer', 'comparer', 'classer', 'deposer', 'imprimer', 'scanner', 'telecharger', 'importer', 'exporter', 'monter', 'demarcher', 'prospecter', 'qualifier', 'facturer', 'payer', 'regler', 'annuler', 'decaler', 'reporter', 'checker', 'pinger', 'briefer', 'debriefer', 'rediger', 'corriger']);
+const PARTICIPES = { ecrire: 'écrit', faire: 'fait', refaire: 'refait', prendre: 'pris', reprendre: 'repris', mettre: 'mis', remettre: 'remis', transmettre: 'transmis', voir: 'vu', revoir: 'revu', lire: 'lu', relire: 'relu', dire: 'dit', joindre: 'joint', rejoindre: 'rejoint', obtenir: 'obtenu', recevoir: 'reçu', rendre: 'rendu', attendre: 'attendu', finir: 'fini', choisir: 'choisi', reunir: 'réuni', remplir: 'rempli', definir: 'défini', fournir: 'fourni', produire: 'produit', construire: 'construit', inscrire: 'inscrit', decrire: 'décrit' };
+
+/**
+ * Une action cochée, au passé et datée, pour l'historique de la fiche (25 nov. 2026, Jules : « relancer Sébastien Robic,
+ * on coche, ça met dans l'historique relancé le x novembre ») : « Relancé Sébastien Robic, le 25 novembre ». Un premier
+ * mot qui n'est pas un verbe connu garde « Fait : … ».
+ */
+export function ligneFaite(titre, le = new Date()) {
+  const t = String(titre || '').trim();
+  const jour = new Date(le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+  const m = t.match(/^(\S+)(.*)$/s);
+  if (!m) return `Fait, le ${jour}`;
+  const verbe = m[1].toLowerCase();
+  const cle = sansAccent(verbe);
+  const passe = PARTICIPES[cle] || (VERBES_ER.has(cle) ? `${verbe.slice(0, -2)}é` : null);
+  if (!passe) return `Fait : ${t}, le ${jour}`;
+  return `${passe.charAt(0).toUpperCase()}${passe.slice(1)}${m[2].replace(/[\s.]+$/, '')}, le ${jour}`;
+}
+
 export function changerAction(id, { statut = null, echeance, titre = null, brouillon = null, journal = true } = {}, user = null, { maintenant = () => new Date() } = {}) {
   const a = Records.get('ActionDossier', String(id));
   if (!a) return { ok: false, error: 'Action introuvable.' };
@@ -381,7 +411,7 @@ export function changerAction(id, { statut = null, echeance, titre = null, broui
       // Un message envoyé entre dans l'historique avec ce qu'il dit (22 nov. 2026, Jules : « chaque message envoyé est un
       // fait à garder : ce qu'on a dit au client ») ; et le style de l'auteur s'apprend de ce qu'il a envoyé.
       const envoye = a.brouillon && ['whatsapp', 'mail'].includes(a.genre) ? String((brouillon != null ? brouillon : a.brouillon.texte) || '').trim() : '';
-      const ligne = envoye ? `${a.genre === 'mail' ? 'Mail' : 'Message WhatsApp'} envoyé${a.pour ? ` à ${a.pour}` : ''} : « ${propre(envoye, 1500)} »` : `Fait : ${a.titre}`;
+      const ligne = envoye ? `${a.genre === 'mail' ? 'Mail' : 'Message WhatsApp'} envoyé${a.pour ? ` à ${a.pour}` : ''} : « ${propre(envoye, 1500)} »` : ligneFaite(a.titre, patch.faite_le);
       patch.entrees = journal || envoye ? (a.fiches || []).map((c) => Records.create('EntreeDossier', { fiche_cle: c, genre: envoye ? 'message' : 'action_faite', texte: ligne, note_id: a.note_id || null, action_id: a.id, par: user?.email || null, le: patch.faite_le }).id) : [];
       if (envoye) {
         patch.envoye = envoye;
@@ -436,7 +466,7 @@ export function relecteurDe(cle) {
 
 /** La fiche relue : ses lignes importées deviennent les siennes, l'étiquette tombe (22 nov. 2026). */
 export function validerFiche(cle, user, { maintenant = new Date() } = {}) {
-  const f = Records.findBy('FicheDossier', 'cle', String(cle || ''));
+  const f = Records.findBy('FicheDossier', 'cle', cleUnique(cle));
   if (!f) return { ok: false, error: 'Fiche introuvable.' };
   const le = maintenant.toISOString();
   let n = 0;
@@ -645,13 +675,17 @@ function lieesBrutes(cle, f, o) {
 }
 
 /** Les fiches liées à `cle`, comme sa fiche les montre : [{ cle, genre, nom, plateforme? }]. */
-export function lieesDe(cle) {
+export function lieesDe(cleRecue) {
+  const cle = cleUnique(cleRecue);
   const f = Records.findBy('FicheDossier', 'cle', cle);
   const o = objetDe(cle);
   return f || o ? lieesBrutes(cle, f, o) : [];
 }
 
-export function ficheVue(cle) {
+export function ficheVue(cleRecue) {
+  // Une seule fiche par chose (25 nov. 2026, Jules) : la clé qui fait foi, et ce qui était rangé sous une autre y est fondu.
+  const cle = cleUnique(cleRecue);
+  rassembler(cle);
   const f = Records.findBy('FicheDossier', 'cle', cle);
   const o = objetDe(cle);
   if (!f && !o) return null;
@@ -818,7 +852,7 @@ export function noteEtRangement(id) {
  * Sébastien ROBIC ») : gardée telle quelle, sans passer par l'assistant ; celles qu'il a rangées le disent.
  */
 export function noterSurLaFiche(cle, texte, user, { maintenant = new Date() } = {}) {
-  const c = String(cle || '');
+  const c = cleUnique(cle);
   const t = propre(texte);
   if (!t) return { ok: false, error: 'La note est vide.' };
   if (!Records.findBy('FicheDossier', 'cle', c) && !objetDe(c)) return { ok: false, error: 'Fiche introuvable.' };

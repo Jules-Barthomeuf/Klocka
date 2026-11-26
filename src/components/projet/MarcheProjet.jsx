@@ -5,7 +5,7 @@ import { EnTeteOnglet } from "./Cartes";
 import { GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import CarteTransactions from "@/components/marche/CarteTransactions";
-import { BlocEmplacement, BlocLoyer, BlocPrix, BlocVille } from "@/components/outils/MarcheAffine";
+import { BlocEmplacement, BlocVille } from "@/components/outils/MarcheAffine";
 import { Bloc, ValeurEditable, ValeurForcee, blocMasque, forcee, nombreForce, useEdition } from "./EditionEnPlace";
 
 // L'onglet Marché (maquette « Projet Detail 1b ») : trois cartes (habitants,
@@ -83,7 +83,7 @@ function CarteMarche({ id, titre, grille = true, className = "", children }) {
 /** L'en-tête d'une carte : le libellé à gauche, la précision à droite, un filet dessous. */
 function EnTeteCarte({ libelle, precision = null }) {
   return (
-    <div className="mb-5 flex items-center justify-between gap-3 border-b border-trait pb-3">
+    <div className="mb-5 flex items-center justify-between gap-3">
       <span className="min-w-0 truncate text-[16px] font-medium text-encre">{libelle}</span>
       {precision && <span className="flex-none text-[12.5px] text-ardoise">{precision}</span>}
     </div>
@@ -298,12 +298,14 @@ function Emplacement({ e, transactions = null }) {
   );
 }
 
-const BLOCS_DOSSIER = { ville: ["Ville", BlocVille], prix: ["Prix", BlocPrix], loyer: ["Loyer", BlocLoyer] };
+// Prix et Loyer restent dans l'Analyse, plus sur le projet (25 nov. 2026, Jules : « dans le projet, partie Marché, je ne
+// veux plus voir prix et loyer ; on garde tout en partie Analyse »).
+const BLOCS_DOSSIER = { ville: ["Ville", BlocVille] };
 
 /**
  * Une partie du Marché du dossier sur la page du projet (14 nov. 2026, Jules : « les trucs qu'on a faits dans les parties
  * du Marché de l'analyse, dans les sous-parties du projet », « il faut vraiment que ça se mette à jour
- * automatiquement ») : le dessin de l'Analyse (Ville, Prix, Loyer ; le Locataire retiré le 22 nov. 2026), sa dernière lecture, relue par le serveur
+ * automatiquement ») : le dessin de l'Analyse (Ville ; le Locataire retiré le 22 nov. 2026, Prix et Loyer le 25 nov.), sa dernière lecture, relue par le serveur
  * à chaque ouverture (marcheDuProjet) ; masquable pour le client comme l'Emplacement. Rien sans dossier ni lecture.
  */
 export function PartieDuDossier({ outil, donnees }) {
@@ -364,7 +366,7 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0, e
   // un projet qu'on vient de créer montre sa page, pas un vide.
   const enEdition = !!useEdition()?.onChamp;
   const rienDuTout = !habitants && !revenu && !prixResidentiel && !loyerAutour && !loyerProjet;
-  const duDossierLu = !!donnees?.emplacement?.points?.length || ["ville", "prix", "loyer"].some((o) => donnees?.marche?.[o]?.points?.length);
+  const duDossierLu = !!donnees?.emplacement?.points?.length || !!donnees?.marche?.ville?.points?.length;
   if (rienDuTout && !enEdition && !duDossierLu) return <div className="mb-5">{entete}</div>;
 
   return (
@@ -386,9 +388,8 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0, e
       <PartieDuDossier outil="ville" donnees={donnees} />
       {/* Une seule carte (24 nov. 2026, Jules) : les transactions sont un onglet de la carte de l'Emplacement. */}
       {donnees?.emplacement?.points?.length > 0 && <Emplacement e={donnees.emplacement} transactions={!isPublic && project.adresse_complete ? { adresse: project.adresse_complete, avecMurs: equipe } : null} />}
-      <PartieDuDossier outil="prix" donnees={donnees} />
       {/* Les transactions autour du commerce (17 nov. 2026, Jules : « cette carte se voit aussi dans le projet ») : sous le
-          Prix, comme dans l'Analyse ; un bloc qu'on masque dans l'éditeur. Pas sur le lien public, qui n'interroge pas le serveur. */}
+          Prix dans l'Analyse ; un bloc qu'on masque dans l'éditeur. Pas sur le lien public, qui n'interroge pas le serveur. */}
       {!isPublic && project.adresse_complete && !(donnees?.emplacement?.points?.length > 0 && donnees.emplacement.rue?.adresse) && (
         <CarteMarche id="marche-transactions" titre="Transactions autour" grille={false} className="w-full">
           {/* Les ventes de murs pour l'équipe seulement, jamais dans la vue client (24 nov. 2026, Jules). */}
@@ -396,7 +397,6 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0, e
           <CarteTransactions adresse={project.adresse_complete} hauteur={440} avecMurs={equipe} />
         </CarteMarche>
       )}
-      <PartieDuDossier outil="loyer" donnees={donnees} />
     </div>
   );
 }

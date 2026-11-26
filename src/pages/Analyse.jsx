@@ -22,7 +22,9 @@ import { CLAIR, themeEffectif } from "@/lib/personnalisation";
 import PenseeIA from "@/components/PenseeIA";
 import Chargement from "@/components/ui/Chargement";
 import { estEcarte, etapeEnCours } from "@/lib/dossiers-architecture";
-import { BoutonPrincipal, Recherche, Statut, TitrePage, LigneTitre } from "@/components/mandataire/elements";
+import { useLettres } from "@/components/preanalyse/ArchitectureDossier";
+import { BoutonPrincipal, Recherche, Statut, LigneTitre } from "@/components/mandataire/elements";
+import TitreDossiersProjets from "@/components/preanalyse/TitreDossiersProjets";
 import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
 import { VERRE } from "@/lib/verre";
 
@@ -358,6 +360,28 @@ export default function Analyse() {
   const { prefs } = usePersonnalisation();
   const avecHalo = !!prefs?.halo && themeEffectif(prefs) !== CLAIR;
   const glisse = useRef(false);
+  // À l'étape Offre, le chat commence la lettre (26 nov. 2026, Jules : « pas une question sur ce dossier : des questions
+  // pour compléter la LOI ») : ce qui manque d'abord, l'acheteur et le prix ; une lettre déjà remplie, ce qu'on y change.
+  const lettresDossier = useLettres(vueDossier === "offre" ? dealId : null);
+  const ouvertureOffre = (() => {
+    if (vueDossier !== "offre" || lettresDossier.isLoading) return null;
+    const l = (lettresDossier.data || [])[0];
+    if (!l?.acquereur && !l?.prix) return "Préparons la lettre d'intention. Qui est l'acheteur, et à quel prix ?";
+    if (!l.acquereur) return "Qui est l'acheteur ?";
+    if (!l.prix) return `À quel prix est l'offre de ${l.acquereur} ?`;
+    return "La lettre d'intention est à droite. Que veux-tu y changer ?";
+  })();
+  // La bande du haut (titre, icônes, flèches) part avec la page (26 nov. 2026, Jules : « quand on descend, KFC Lyon
+  // descend aussi ; dès qu'on scrolle, on ne doit plus le voir ») : elle remonte d'autant que le dossier défile.
+  const bandeRef = useRef(null);
+  const suivreDefilement = (e) => {
+    const h = bandeRef.current;
+    if (!h) return;
+    const y = Math.min(e.currentTarget.scrollTop, 80);
+    h.style.transform = y ? `translateY(${-y}px)` : "";
+    h.style.opacity = y ? String(Math.max(0, 1 - y / 60)) : "";
+    h.style.pointerEvents = y > 40 ? "none" : "";
+  };
   const scinde = ecranLarge && !!dealId && !vueConversation && modeIA;
   // La largeur du chat, celle de l'Éditeur (components/editeur) : la ligne se tire, un double-clic la remet.
   const poignee = useLargeurChat("klocka.dossiers.largeur-chat");
@@ -369,9 +393,10 @@ export default function Analyse() {
     const fin = setTimeout(() => { glisse.current = false; }, 900);
     // Sans « k-sobre » : le fond « Halo » reste, le même que sur Projets (18 oct. 2026, Jules).
     // Sans « k-sans-barre » : la barre de navigation reste à gauche du chat, repliée en rail (18 oct. 2026, Jules).
-    document.documentElement.classList.add("k-sans-defilement", "k-sans-ak", "k-cadre-dossier");
+    // Plus de « k-cadre-dossier » (26 nov. 2026, Jules : « comme dans la page Assistant ») : la barre garde son dessin.
+    document.documentElement.classList.add("k-sans-defilement", "k-sans-ak");
     window.scrollTo(0, 0);
-    return () => { clearTimeout(fin); document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak", "k-cadre-dossier"); };
+    return () => { clearTimeout(fin); document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak"); };
   }, [scinde]);
 
   // Le dossier s'affiche ici avec sa propre ligne de titre (le retour y est).
@@ -466,22 +491,33 @@ export default function Analyse() {
       // halo compris, reste dans le cadre.
       // La bande en verre (13 nov. 2026, Jules) : `k-cadre-l` (index.css) la pose par-dessus le dossier et le chat, qui
       // montent dessous et s'en écartent de 48 px eux-mêmes ; le filet et le coin rond sont dessinés par le cadre.
-      <div className="k-cadre-l flex h-[100dvh] flex-col overflow-hidden bg-rail text-encre">
-      <header className="k-verre-barre relative flex h-12 flex-none items-center justify-center px-4">
+      // Plus de cadre (26 nov. 2026, Jules : « comme dans la page Assistant : le fond va sur toute la page, les menus à
+      // gauche, c'est tout ») : ni bande en verre, ni filet en L, ni coin rond ; le titre et les gestes restent en haut,
+      // posés sur le fond de la page (`k-cadre-sans-l`, index.css).
+      <div className="k-cadre-l k-cadre-sans-l flex h-[100dvh] flex-col overflow-hidden text-encre">
+      {/* 80 px de haut (26 nov. 2026, Jules) : les icônes et le titre au milieu, à 40 px, la hauteur de l'icône Assistant de la barre. */}
+      {/* Une seule ligne (26 nov. 2026, Jules, capture : le titre passait sous « Ranger les documents dans le Drive ») : les
+          icônes au bord gauche du dossier, le titre au milieu de la place qui reste, coupé par « … » s'il est trop long,
+          les gestes et les flèches à droite. */}
+      {/* La bande ne prend les clics que sur ce qu'elle porte : la barre du chat, dessous à gauche, reste cliquable. */}
+      <header ref={bandeRef} className="pointer-events-none relative flex h-20 flex-none items-center gap-4 pr-[88px] [&>*]:pointer-events-auto"
+        style={{ paddingLeft: (reduit ? 0 : largeurChat) + 32, transition: tire ? undefined : "padding-left 520ms cubic-bezier(0.22, 1, 0.36, 1)" }}>
         {/* Les deux icônes (assistant, tous les dossiers) au-dessus du panneau des parties : le bord gauche du dossier. */}
-        <div id="bande-dossier-gauche" className="absolute flex items-center gap-1" style={{ left: (reduit ? 0 : largeurChat) + 32, transition: tire ? undefined : "left 520ms cubic-bezier(0.22, 1, 0.36, 1)" }} />
-        <div id="bande-dossier-titre" className="flex min-w-0 items-center gap-1.5" />
+        <div id="bande-dossier-gauche" className="flex flex-none items-center gap-1" />
+        <div id="bande-dossier-titre" className="flex min-w-0 flex-1 items-center justify-center gap-1.5" />
         {/* Les flèches au bord droit des tableaux (12 nov. 2026, Jules) : la marge du dossier (32 px) et celle de la colonne des étapes (56 px). */}
-        <div id="bande-dossier-droite" className="absolute right-[88px] flex items-center gap-2" />
+        <div id="bande-dossier-droite" className="flex flex-none items-center gap-2" />
       </header>
-      <div className={`k-page-presentation k-dossier-ia k-crm-contenu relative grid min-h-0 flex-1 overflow-hidden rounded-tl-[16px] ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${reduit ? 0 : largeurChat}px minmax(0,1fr)`, transition: tire ? undefined : "grid-template-columns 520ms cubic-bezier(0.22, 1, 0.36, 1)", transform: "translateZ(0)" }}>
+      <div className={`k-page-presentation k-dossier-ia k-crm-contenu relative grid min-h-0 flex-1 overflow-hidden ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${reduit ? 0 : largeurChat}px minmax(0,1fr)`, transition: tire ? undefined : "grid-template-columns 520ms cubic-bezier(0.22, 1, 0.36, 1)", transform: "translateZ(0)" }}>
         {/* Le halo n'est plus redessiné dans ce cadre (15 nov. 2026, Jules : « le fond doit aussi passer derrière la nav
             barre ») : calé sur le cadre, il était décalé de la largeur de la barre par rapport à celui de la page, posé sur
             tout l'écran par le Layout ; c'est celui-là qui passe derrière la barre, la bande et le dossier, d'un seul tenant.
             Sans halo, le fond uni choisi reste peint ici. */}
-        {!avecHalo && <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 bg-fond" />}
+        {/* Plus de fond uni peint ici (26 nov. 2026) : retenu par le cadre, il s'arrêtait au bord de la barre et couvrait le
+            grain de la page ; sans cadre, le fond de la page passe partout, comme sur l'Assistant. */}
         {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
-        <motion.div className="k-colonne-chat relative z-10 flex h-full min-h-0 min-w-0 flex-col overflow-hidden pt-12"
+        {/* La barre du chat (« Tous les dossiers », « Historique ») sur la ligne de la bande, à 40 px (26 nov. 2026, Jules). */}
+        <motion.div className="k-colonne-chat relative z-10 flex h-full min-h-0 min-w-0 flex-col overflow-hidden pt-3"
           initial={glisse.current ? { opacity: 0, x: -40 } : { opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: glisse.current ? 0.45 : 0, ease: [0.22, 1, 0.36, 1] }}>
           {/* Ouvrir le chat (2 nov. 2026, Jules : « pas du haut en bas, juste que ça apparaisse de droite à gauche, plus
@@ -500,6 +536,7 @@ export default function Analyse() {
           <div className={chatOuvert ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>
             {!chatOuvert && <Depliant ouvert={sourcesOuvert}><div className="pb-4"><PanneauSources sources={sourcesChat} onChange={setSourcesChat} /></div></Depliant>}
             <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert} reglages={reglagesChat}
+              ouverture={ouvertureOffre}
               retour={{ libelle: "Tous les dossiers", onClick: () => montrerDeal(null) }}
               contexte={{ deal_id: dealId, etape: vueDossier, ...(vueDossier !== "offre" ? { onglet: vueDossier === "analyse" ? ongletAnalyse : vueDossier === "documents" ? "data_room" : null } : {}) }}
               onReponse={() => { recharger(); rafraichirListes(); if (vueDossier === "offre") { queryClient.invalidateQueries({ queryKey: ["offres"] }); queryClient.invalidateQueries({ queryKey: ["offre"] }); } }} />
@@ -507,7 +544,8 @@ export default function Analyse() {
           </motion.div>
         </motion.div>
         {/* Le dossier comme en mode normal, à droite, séparé du chat par une fine ligne : plus de carte posée sur la page (18 oct. 2026, Jules). */}
-        <motion.div className={`relative z-10 h-full min-h-0 min-w-0 ${enEditeur ? "overflow-hidden pt-12" : `overflow-y-auto px-8 pb-8 ${vueDossier === "analyse" ? "pt-12" : "pt-20"}`}`}
+        <motion.div className={`relative z-10 h-full min-h-0 min-w-0 ${enEditeur ? "overflow-hidden pt-20" : `overflow-y-auto px-8 pb-8 ${vueDossier === "analyse" ? "pt-12" : "pt-[72px]"}`}`}
+          onScroll={suivreDefilement}
           initial={glisse.current ? { x: -largeurChat } : { opacity: 0 }} animate={{ x: 0, opacity: 1 }}
           transition={{ duration: glisse.current ? 0.7 : 0.5, ease: [0.65, 0, 0.35, 1] }}>
           {contenuDossier}
@@ -543,7 +581,7 @@ export default function Analyse() {
                 petites icônes et « Nouveau dossier », au bord droit des cartes et de « Suivante ». Plus de flèches, de
                 compte des relances ni de phrase sur la fiche à glisser (le glisser marche toujours). */}
             <LigneTitre className="k-entree mb-5 grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_minmax(0,360px)_1fr]">
-              <TitrePage titre="Dossiers" className="min-w-0 md:!pr-0" dansLigne />
+              <TitreDossiersProjets actif="Analyse" />
               <Recherche value={recherche} onChange={setRecherche} placeholder="Adresse, agent, ville" className="w-full" />
               <div className="flex items-center justify-end gap-2">
                 <LienMandats />
@@ -716,7 +754,12 @@ function CarteCouverture({ d, qui, onOuvrir, onSurvol, menu, ecarte = false }) {
       <PageEsquisse cote="d" />
       <div className="k-couv-avant absolute left-1/2 top-[28px] -ml-[110px] flex h-[234px] w-[220px] flex-col overflow-hidden px-4 pb-1.5 pt-4">
         <span className="k-couv-balai" aria-hidden="true" />
-        <div className="mb-3 flex min-h-[20px] items-center justify-between gap-2">
+        {/* La photo en haut de la carte, le nom dessous (26 nov. 2026, Jules) : celle du projet, d'une image de la Data Room
+            ou de la ville ; sans photo, la place reste, unie. */}
+        <div className="-mx-4 -mt-4 mb-3 h-[96px] flex-none overflow-hidden bg-encre/[0.05]">
+          {d.photo && <img src={d.photo} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
+        </div>
+        <div className="mb-1.5 flex min-h-[20px] items-center justify-between gap-2">
           {ecarte ? <span /> : (
             <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ardoise">
               <span aria-hidden="true" className="h-1.5 w-1.5 flex-none rounded-full bg-brume" />
@@ -725,7 +768,7 @@ function CarteCouverture({ d, qui, onOuvrir, onSurvol, menu, ecarte = false }) {
           )}
           {ecarte ? <Statut couleur="corail" className="flex-none !px-[7px] !text-[10.5px]">{d.statut === "abandonne" ? "Abandonné" : "Non conforme"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none !px-[7px] !text-[10.5px]">{verdict.libelle}</Statut>}
         </div>
-        <p className="m-0 line-clamp-4 text-[15px] font-medium leading-[1.35] text-encre" title={d.titre}>
+        <p className="m-0 line-clamp-2 text-[15px] font-medium leading-[1.35] text-encre" title={d.titre}>
           {d.titre || d.nom_fichier || d.deal_id}
           {(d.fil_non_lus || 0) > 0 && <span className="ml-1.5 inline-block align-middle"><PointNouveau n={d.fil_non_lus} /></span>}
         </p>

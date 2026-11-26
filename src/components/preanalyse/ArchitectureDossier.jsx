@@ -20,7 +20,8 @@ import { apercuAdmin } from "@/lib/vue";
 // documents, analyse, plateforme, dossier bancaire) gardent leurs écrans.
 
 /** La porte du serveur (etape_max, 1 à 5) qu'une étape de la frise demande. */
-export const PORTE = { reception: 1, preanalyse: 2, documents: 3, analyse: 3, video: 3, plateforme: 4, clients: 4, offre: 4, bancaire: 5 };
+// Le Projet s'ouvre dès la Pré-analyse (26 nov. 2026) : un collègue qui ne fait pas l'analyse le crée de là.
+export const PORTE = { reception: 1, preanalyse: 2, documents: 3, analyse: 3, video: 3, projet: 2, plateforme: 4, clients: 4, offre: 4, bancaire: 5 };
 
 const VUE_PAR_PORTE = { 1: "reception", 2: "preanalyse", 3: "analyse", 4: "plateforme", 5: "bancaire" };
 
@@ -38,7 +39,7 @@ const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "n
 
 export { FriseDossier } from "@/components/preanalyse/EtapesDossier";
 
-function useLettres(dealId) {
+export function useLettres(dealId) {
   return useQuery({ queryKey: ["offres"], queryFn: () => base44.request("GET", "/api/offres"), enabled: !!dealId, select: (d) => (d.offres || []).filter((o) => o.deal_id === dealId) });
 }
 
@@ -170,7 +171,7 @@ export function VueOffre({ dossier, apercu = false }) {
   return (
     <div data-zone="listes" className="h-[100dvh] min-h-0">
       <EditeurLoi key={id || "vierge"} id={id} dealId={dossier.deal_id} titre={dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || "Offre"}
-        onCree={setChoisie} surFond entete={choix} marque={apercuAdmin() === "mandataire" ? "kp" : null} />
+        onCree={setChoisie} surFond entete={choix} marque={apercuAdmin() === "mandataire" ? "kp" : null} dansDossier />
     </div>
   );
 }

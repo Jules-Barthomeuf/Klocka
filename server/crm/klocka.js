@@ -6,6 +6,7 @@
 
 import fs from 'node:fs';
 import { Records } from '../db.js';
+import { fondre } from '../fiche-dossier/une-cle.js';
 
 const AGENTS = 'agentImmobilierListe';
 const CLIENTS = 'clientsListe';
@@ -98,7 +99,14 @@ function retenirNomCrm(entite, r, t) {
   const patch = {};
   if (n && n !== r.nom_crm) patch.nom_crm = n;
   if (entite === 'AgentImmo' && t?.id && t.id !== r.twenty_id) patch.twenty_id = t.id;
+  // Une demande retrouvée par son ancien id Monday apprend son id de Twenty : sa fiche est celle de sa ligne du CRM.
+  if (entite === 'DemandeClient' && t?.id && !r.twenty_id) patch.twenty_id = t.id;
   if (Object.keys(patch).length) Records.update(entite, r.id, patch);
+  // Une seule fiche par personne (25 nov. 2026, Jules) : ce qui était rangé sous l'autre clé rejoint celle qui fait foi.
+  if (t?.id) {
+    if (entite === 'AgentImmo') fondre(`twenty:agentImmobilier:${t.id}`, `agent:${r.id}`);
+    else if (entite === 'DemandeClient' && (r.twenty_id || patch.twenty_id) === t.id) fondre(`client:${r.id}`, `twenty:clients:${t.id}`);
+  }
 }
 
 /**

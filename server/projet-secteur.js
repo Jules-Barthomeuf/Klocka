@@ -238,13 +238,14 @@ function sansPersonne(p) {
 /**
  * Tout le Marché du dossier, pour la page du projet (14 nov. 2026, Jules : « les trucs qu'on a faits dans les parties du
  * Marché de l'analyse, dans les sous-parties du projet ; il faut vraiment que ça se mette à jour automatiquement ») :
- * Ville, Prix et Loyer comme l'Emplacement (le Locataire retiré le 22 nov. 2026, Jules), la dernière lecture finie de chaque outil, relue à chaque
+ * Ville comme l'Emplacement (le Locataire retiré le 22 nov. 2026, Prix et Loyer le 25 nov. 2026, Jules : « dans le projet,
+ * je ne veux plus voir prix et loyer ; on garde tout en partie Analyse »), la dernière lecture finie de chaque outil, relue à chaque
  * ouverture du projet : relancer un outil dans l'Analyse suffit. Seulement les parties lues ; un outil sans partie lue
  * ne se montre pas. Un entrepreneur individuel n'est pas nommé.
  */
 export function marcheDuProjet(projet, { dealDe = (id) => Records.findBy('Deal', 'deal_id', id) } = {}) {
   const marche = { emplacement: emplacementDuProjet(projet, { dealDe }) };
-  for (const outil of ['ville', 'prix', 'loyer']) {
+  for (const outil of ['ville']) {
     const l = dernierLancement(projet, outil, dealDe);
     const points = (l?.resultat?.points || []).filter((p) => p.statut !== 'vide').map(sansPersonne);
     marche[outil] = points.length ? { points, le: l.fini_le || null } : null;

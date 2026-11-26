@@ -43,7 +43,8 @@ export function DocumentClassique({ taille = 40, className = "" }) {
   return <File className={`flex-none text-craie ${className}`} style={{ width: taille, height: Math.round(taille * 1.3) }} strokeWidth={1.1} aria-hidden="true" />;
 }
 
-export default function MiniaturePiece({ url, largeur = 28, className = "" }) {
+// `repli` : ce qui remplace l'icône quand la pièce ne se dessine pas (la page dessinée de la pile des Documents, 26 nov. 2026).
+export default function MiniaturePiece({ url, largeur = 28, className = "", repli = null }) {
   // undefined : en cours ; null : la pièce ne se dessine pas ; sinon l'image de sa première page.
   const [src, setSrc] = useState(undefined);
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function MiniaturePiece({ url, largeur = 28, className = "" }) {
     return () => { fini = true; };
   }, [url, largeur]);
   const hauteur = Math.round(largeur * 1.3);
-  if (src === null) return <DocumentClassique taille={largeur} className={className} />;
+  if (src === null) return repli || <DocumentClassique taille={largeur} className={className} />;
   return (
     <span className={`relative block flex-none overflow-hidden rounded-[3px] border border-bord-doux bg-white shadow-[0_2px_6px_rgb(0_0_0/0.25)] ${className}`} style={{ width: largeur, height: hauteur }}>
       {src && <img src={src} alt="" onError={() => setSrc(null)} className="h-full w-full object-cover object-top" draggable={false} />}

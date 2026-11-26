@@ -7,10 +7,19 @@
 // compatibilité, EQUIMMOX_CDP_URL) un navigateur distant chez un hébergeur qui
 // ne peut pas faire tourner Chromium.
 
+import fs from 'fs';
 import { poserChemin } from '../chromium.js';
 import { ErreurSource } from './erreurs.js';
 
-const CHROMIUM = (process.env.CHROMIUM_PATH || '').trim() || undefined;
+// Un CHROMIUM_PATH qui ne mène à rien (26 nov. 2026 : .env désignait Google Chrome, désinstallé de la machine) est
+// ignoré : le navigateur de Playwright, déjà installé, prend le relais au lieu d'un « le serveur n'en a pas ».
+const CHROMIUM = (() => {
+  const c = (process.env.CHROMIUM_PATH || '').trim();
+  if (!c) return undefined;
+  if (fs.existsSync(c)) return c;
+  console.warn(`[navigateur] CHROMIUM_PATH ne mène à rien (${c}) : le navigateur de Playwright est pris à la place.`);
+  return undefined;
+})();
 const CDP = (process.env.NAVIGATEUR_CDP_URL || process.env.EQUIMMOX_CDP_URL || '').trim();
 
 let navigateur = null;

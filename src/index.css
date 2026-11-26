@@ -129,6 +129,8 @@ button:focus-visible {
     --k-ambre-rgb: 224 164 94;
     --k-vert-rgb: 127 209 168;
     --k-jaune-rgb: 227 207 92;
+    /* Le doré des étoiles et des barres d'avis (26 nov. 2026, Jules : « le jaune tire vers le vert, plus doré »). */
+    --k-or-rgb: 232 180 72;
     /* Une ligne lue par l'IA, pas encore vérifiée (30 oct. 2026, Jules) : le sable #E0CEA9. */
     --k-lu-ia-rgb: 224 206 169;
     /* La seconde nappe du fond (14 nov. 2026, Jules) : toujours ce rose, quel que soit l'accent choisi. */
@@ -201,6 +203,7 @@ button:focus-visible {
     --k-ambre-rgb: 169 100 28;
     --k-vert-rgb: 47 122 85;
     --k-jaune-rgb: 150 120 10;
+    --k-or-rgb: 168 116 15;
     --k-lu-ia-rgb: 224 206 169;
     --k-bleu-rgb: 91 111 168;
     --k-pervenche-rgb: 166 171 242;
@@ -346,14 +349,16 @@ button.k-verre-photo:hover { background: rgb(0 0 0 / .4); }
 /* La carte du compte, en haut à droite (25 nov. 2026, Jules : « mets le fond de la card compte en glass ») : un verre
    plus franc que .k-verre, la page se devine derrière ; le flou et la saturation gardent le texte lisible, un liseré
    clair en haut fait l'arête du verre. */
+/* Puis le fond de la page, plein (26 nov. 2026, Jules : « la card du profil avec la couleur de fond système ») : plus de
+   verre ; l'ombre et le liseré la détachent de la page. */
 .k-verre-menu {
-    background-color: rgb(var(--k-surface-pleine-rgb) / .58);
-    -webkit-backdrop-filter: blur(28px) saturate(1.7);
-    backdrop-filter: blur(28px) saturate(1.7);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / .08), 0 24px 60px rgb(0 0 0 / .35);
+    background-color: rgb(var(--k-fond-rgb));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .06), 0 24px 60px rgb(0 0 0 / .35);
 }
 :root[data-theme="clair"] .k-verre-menu {
-    background-color: rgb(var(--k-surface-pleine-rgb) / .62);
+    background-color: rgb(var(--k-fond-rgb));
     box-shadow: inset 0 1px 0 rgb(255 255 255 / .7), 0 1px 2px rgb(16 20 24 / .05), 0 16px 40px rgb(16 20 24 / .12);
 }
 
@@ -388,6 +393,17 @@ button.k-verre-photo:hover { background: rgb(0 0 0 / .4); }
 }
 .k-carte::before,
 .k-carte::after { content: ""; position: absolute; inset: 12px; z-index: -1; pointer-events: none; }
+
+/* Dans la page projet, plus de filets qui ne servent à rien dans les cartes à points (26 nov. 2026, Jules : « partout dans
+   le projet, enlève les lignes qui servent à rien dans les cards avec les points ») : les séparations fines (`trait`, et
+   le filet `encre/12` des chiffres du secteur) deviennent invisibles ; l'espace sépare. Les badges, repères de graphique,
+   boutons et pastilles gardent leur contour (ils n'utilisent pas `trait`). Seulement là où il y a des points : une carte
+   sans points (`.sans-grille` : Emplacement, Ville, Évolution du prix…) garde ses lignes (Jules, même jour). */
+.projet-editorial .k-carte:not(.sans-grille) .border-trait,
+.projet-editorial .k-carte:not(.sans-grille) .divide-trait > :not([hidden]) ~ :not([hidden]),
+.projet-editorial .k-carte:not(.sans-grille) [class*="border-trait"],
+.projet-editorial .k-carte:not(.sans-grille) [class*="border-encre/[0.12]"],
+.projet-editorial .k-carte:not(.sans-grille) [class*=":border-trait"] > * { border-color: transparent; }
 }
 .k-carte::before {
     background-image: theme("backgroundImage.grid-pattern"); background-size: 30px 30px; background-repeat: repeat;
@@ -924,6 +940,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
     --k-ambre-rgb: 169 100 28;
     --k-vert-rgb: 47 122 85;
     --k-jaune-rgb: 150 120 10;
+    --k-or-rgb: 168 116 15;
     --k-lu-ia-rgb: 224 206 169;
     --k-bleu-rgb: 91 111 168;
     --k-pervenche-rgb: 166 171 242;
@@ -1055,6 +1072,14 @@ html.k-cadre-crm .k-barre-laterale::before { border-radius: 0 !important; }
    case de l'espace (Jules, même jour). */
 /* Ni cloche ni mode appel en haut à droite de la page du CRM (Jules, même jour) : la bande du haut reste libre. */
 html.k-cadre-crm .k-flottant-haut { display: none !important; }
+/* Un volet de pièce ouvert à droite (26 nov. 2026, Jules : « on ne peut plus le fermer, il y a la tête du profil ») :
+   la photo de profil et les pilules du coin s'effacent tant qu'il est là ; sa croix n'est jamais couverte. */
+body:has(.panneau-source, .k-volet-droit) .k-flottant-haut { display: none !important; }
+/* Une pièce ouverte à droite de l'Analyse pousse le tableau au lieu de le couvrir (26 nov. 2026, Jules : « ça cache le
+   tableau ») ; sous 1700 px, le menu des parties s'efface le temps de la lecture pour lui laisser la place. */
+@media (min-width: 1024px) and (max-width: 1699px) {
+  body:has(.k-volet-pousse) .k-parties-dossier { display: none !important; }
+}
 /* Le dossier dans le cadre des Outils (12 nov. 2026, Jules) : la barre et la bande du haut soudées comme au CRM, mais
    le fond reste celui que chacun a choisi (pas de blanc forcé en clair, contrairement à k-cadre-crm). */
 html.k-cadre-dossier .k-barre-laterale { border-color: transparent !important; border-radius: 0 !important; }
@@ -1176,6 +1201,9 @@ html.k-cadre-dossier[data-halo="1"]:not([data-theme="clair"]), html.k-cadre-list
     border-top: 1px solid var(--k-trait); border-left: 1px solid var(--k-trait); border-top-left-radius: 16px;
   }
 }
+/* Le dossier sans cadre (26 nov. 2026, Jules : « comme dans la page Assistant ») : la bande reste par-dessus (le dossier
+   monte dessous et s'en écarte de 48 px), mais ni le quart de verre du coin ni le filet en L ne se dessinent. */
+.k-cadre-l.k-cadre-sans-l::before, .k-cadre-l.k-cadre-sans-l::after { display: none; }
 html.k-cadre-crm[data-theme="clair"] {
   --k-crm-tableau: rgb(255 255 255);
   /* La barre de navigation et la bande du haut, sur la capture de Jules (5 nov. 2026) : #F6F7FB. */
@@ -1186,6 +1214,10 @@ html.k-cadre-crm[data-theme="clair"] {
   --k-statut-gris-fond-rgb: 243 243 245;
   --k-relief: rgba(28, 29, 28, 0.04);
 }
+/* La pile des documents d'une partie (26 nov. 2026, Jules) : chaque page a sa pose au repos et sa pose au survol de la carte. */
+.k-pile-page { transform: var(--repos); transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 520ms; }
+.group:hover .k-pile-page { transform: var(--survol); box-shadow: 0 26px 56px rgb(0 0 0 / 0.34); }
+@media (prefers-reduced-motion: reduce) { .k-pile-page { transition: none; } }
 /* Un dossier en mode IA (17 oct. 2026, Jules) : pas d'AK flottant en bas à gauche, le chat du dossier est déjà là. */
 html.k-sans-ak .k-ak-flottant { display: none !important; }
 /* Le fond du contenu passe sous la barre latérale (18 oct. 2026) : le contenu s'en écarte par un padding, plus par une marge,
@@ -1763,3 +1795,15 @@ html[data-vue="mandataire"] .k-verre .k-grid { --k-grid-fond: transparent; }
 @keyframes k-onde { 0%, 100% { height: 4px; } 50% { height: 16px; } }
 .k-onde-barre { height: 4px; animation: k-onde 1.1s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .k-onde-barre { animation: none; height: 8px; } }
+
+/* La chronologie du bail, une étape à la fois (26 nov. 2026, Jules ; src/components/projet/ChronologieBail.jsx) : les
+   bords du défilement s'estompent, l'étape centrée s'allume, ses voisines restent lisibles, assombries. */
+.k-chrono-defile { scrollbar-width: none; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16%, #000 84%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 16%, #000 84%, transparent 100%); }
+.k-chrono-defile::-webkit-scrollbar { display: none; }
+.k-chrono-defile.k-chrono-lecture { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 5%, #000 95%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 5%, #000 95%, transparent 100%); }
+.k-chrono-etape { opacity: .28; filter: saturate(.6); transform: scale(.97); transform-origin: left center; transition: opacity .35s ease, transform .35s ease, filter .35s ease; }
+.k-chrono-etape.is-proche { opacity: .42; }
+.k-chrono-etape.is-active { opacity: 1; filter: none; transform: none; }
+.k-chrono-texte strong { color: rgb(var(--k-encre-rgb)); font-weight: 500; }
+.k-chrono-alerte { color: rgb(var(--k-menthe-rgb)); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .k-chrono-etape { transition: none; } }

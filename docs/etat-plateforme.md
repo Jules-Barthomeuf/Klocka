@@ -1,56 +1,56 @@
 # État de la plateforme
 
-Écrit le 25/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 26/11/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-5 personnes, 4 480 pages ouvertes, 0 demandes à l'assistant, 30 actions exécutées.
+5 personnes, 4 836 pages ouvertes, 0 demandes à l'assistant, 30 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 523 | 0 | 28 | 25/11/2026 |
-| admin.stress@test.local (équipe) | 629 | 0 | 2 | 25/11/2026 |
-| test.mandataire@kpartners.fr | 182 | 0 | 0 | 14/11/2026 |
-| admin@klocka.local (équipe) | 141 | 0 | 0 | 18/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 627 | 0 | 28 | 26/11/2026 |
+| admin.stress@test.local (équipe) | 911 | 0 | 2 | 26/11/2026 |
+| test.mandataire@kpartners.fr | 154 | 0 | 0 | 14/11/2026 |
+| admin@klocka.local (équipe) | 139 | 0 | 0 | 18/11/2026 |
 | jules.btmf@gmail.com (équipe) | 5 | 0 | 0 | 08/11/2026 |
 
 ## Les pages qui comptent
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **MandataireBiens** — 883 (20 %)
-- **Analyse** — 878 (20 %)
-- **Dashboard** — 464 (10 %)
-- **CrmTwenty** — 457 (10 %)
-- **Prospection** — 343 (8 %)
-- **AdminProjets** — 221 (5 %)
-- **MandataireProspection** — 148 (3 %)
-- **Personnalisation** — 142 (3 %)
-- **Home** — 84 (2 %)
+- **Analyse** — 1 032 (21 %)
+- **MandataireBiens** — 775 (16 %)
+- **Dashboard** — 532 (11 %)
+- **CrmTwenty** — 459 (9 %)
+- **AdminProjets** — 356 (7 %)
+- **Prospection** — 350 (7 %)
+- **ProjetDetail** — 159 (3 %)
+- **Personnalisation** — 132 (3 %)
+- **MandataireProspection** — 129 (3 %)
+- **Home** — 87 (2 %)
 - **Statistiques** — 67 (1 %)
-- **MandatsMandataires** — 66 (1 %)
-- **SimulateurRentabilite** — 65 (1 %)
-- Le reste, sous 1 % : Outils, KVacance, Monitoring, PlancheAnalyse, MandataireTableauDeBord, AdminUtilisateurs, Offres, KData, MandataireClients, AdminModeles, KPatrimoine, ProjetDetail, AdminPresentations, MandataireDocuments, Emailing, PlancheVerre, Cerveau, AdminSuggestions, SuiviActivite, SuiviAppels, KTransactions, KZoning, public, AdminBanque, MemoireKlocka, KExpertise, SimulateurPublic, MandataireProjets, KProspective, Tokimo, KFoncier, AccesPages, PlancheMarche, KEstimation, MandataireDossier, AdminClients, AdminMandataires, AdminAccesCrm, tokimo, Semaine, MandataireMarche, MandataireEstimation, PlancheVacance, PlancheLocataire, ValeurLocative, SuiviAudience, DepotVendeur, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, Automatismes, SuiviReunion, PlancheCarte, MandataireOffMarket, SuiviCorrections, SignerBon, klocka.immo, SuiviMandataires, MesProjets, AdminEquipe, Feedback, NotreOffre
+- **SimulateurRentabilite** — 66 (1 %)
+- Le reste, sous 1 % : MandatsMandataires, Outils, KVacance, Monitoring, PlancheAnalyse, MandataireTableauDeBord, AdminUtilisateurs, KData, MandataireClients, KPatrimoine, AdminModeles, MandataireDocuments, Emailing, PlancheVerre, Offres, AdminPresentations, AdminSuggestions, Cerveau, SuiviActivite, SuiviAppels, KTransactions, KZoning, public, PlancheVacance, MemoireKlocka, PlancheChronologie, KExpertise, SimulateurPublic, AdminBanque, KProspective, Tokimo, KFoncier, MandataireProjets, AccesPages, PlancheMarche, KEstimation, MandataireDossier, AdminClients, AdminMandataires, AdminAccesCrm, tokimo, Semaine, MandataireMarche, MandataireEstimation, PlancheLocataire, ValeurLocative, SuiviAudience, DepotVendeur, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, Automatismes, SuiviReunion, PlancheCarte, MandataireOffMarket, SuiviCorrections, SignerBon, klocka.immo, SuiviMandataires, MesProjets, AdminEquipe, Feedback, NotreOffre
 
 ## Ce que l'IA coûte
 
-465,24 € sur la période, 5 507 appels, 231 151 k jetons. 94 % part en tâche de fond, sans que personne clique. 4 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+465,01 € sur la période, 5 498 appels, 231 049 k jetons. 94 % part en tâche de fond, sans que personne clique. 4 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
 | Non attribué (fond) | 0,09 € par appel | 2 441 | 429,49 € | — |
-| Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 360 | 12,72 € | 18 s |
+| Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 338 | 12,00 € | 16 s |
 | Lire le site d'une agence (et le trouver s'il manque) | 0,0061 € par agence | 894 | 6,23 € | 4 s |
 | Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 33 | 3,19 € | 17 s |
-| Lire une pièce rangée | 0,07 € par pièce | 19 | 1,34 € | 37 s |
+| Lire une pièce rangée | 0,06 € par pièce | 23 | 1,46 € | 33 s |
 | Ranger une note sur les fiches | 0,02 € par note | 66 | 1,29 € | 6 s |
 | Extraire un document déposé | 0,02 € par document | 6 | 0,23 € | 17 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
+| Lire un enregistrement (rendez-vous, appel) | 0,02 € par lecture | 10 | 0,21 € | 5 s |
 | Résumer une agence avant l'appel | 0,0012 € par agence | 165 | 0,20 € | 2 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
-| Lire un enregistrement (rendez-vous, appel) | 0,02 € par lecture | 8 | 0,17 € | 6 s |
 | Parler à l'assistant après un appel | 0,0076 € par demande | 19 | 0,15 € | 2 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
@@ -79,7 +79,7 @@ Pour qui : Jules 28 · Admin 2.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **MandataireBiens** : 20 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **Analyse** : 21 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « demander quelque chose à l'assistant (mandataire) » à 0,03 € par demande : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
 - 94 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

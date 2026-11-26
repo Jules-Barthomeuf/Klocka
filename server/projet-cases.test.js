@@ -156,3 +156,32 @@ test("l'Analyse remplit l'analyse du bail et la copropriété du projet, devant 
   assert.ok(!c.analyse.find((x) => x.id === 'destination'), 'une ligne introuvable ne passe pas');
   assert.match(c.copropriete.find((x) => x.id === 'quote_part').valeur, /8,97 %/, 'le règlement de copropriété a ses cases');
 });
+
+test("l'Analyse du bail du projet montre la clause entière, pas sa première phrase (25 nov. 2026)", async () => {
+  const { casesDuProjet, clauseEntiere } = await import('./projet-cases.js');
+  const destination = "Commerce de restauration traditionnelle sur place et à emporter. Toutes activités connexes ou complémentaires.\nLe preneur ne pourra exercer aucune activité de nature à nuire à la tranquillité de l'immeuble ; l'extraction est à sa charge.";
+  const c = casesDuProjet({}, { fiche: { blocs: [{ nom: 'Analyse', champs: [{ id: 'destination', valeur: destination }] }] }, sansSources: true });
+  assert.equal(c.analyse.find((x) => x.id === 'destination').texte, destination);
+  assert.equal(clauseEntiere('A  B\n\n\n\nA  B\nC'), 'A B\n\nC', 'une ligne redite une fois, les vides resserrés');
+});
+
+test("les assemblées de l'Analyse passent au projet : les résolutions visibles, leur note ; sans sources pour le public (26 nov. 2026)", async () => {
+  const { assembleesDuProjet } = await import('./projet-cases.js');
+  const analyse = { assemblees: [
+    { document_id: 'pv1', document_titre: 'PV 2023', document_url: '/u/pv1.pdf', annee: '2023', date: '2023-06-12', resolutions: [
+      { cle: 'pv1:1', numero: '1', nom: 'Approbation des comptes', issue: 'adoptee', page: 2, citation: 'adoptée', cachee: false },
+      { cle: 'pv1:2', numero: '2', nom: 'Désignation du bureau', issue: 'adoptee', cachee: true },
+      { cle: 'pv1:3', numero: '3', nom: 'Ravalement de la façade', issue: 'rejetee', montant: 120000, page: 5 },
+    ] },
+    { document_id: 'pv2', annee: '2024', resolutions: [{ cle: 'pv2:1', nom: 'Tout caché', cachee: true }] },
+  ] };
+  const deal = { grilles_notes: { 'resolutions.pv1:3': { texte: 'Revoté en 2025' } } };
+  const a = assembleesDuProjet(analyse, deal);
+  assert.equal(a.length, 1, 'une assemblée sans résolution visible ne passe pas');
+  assert.deepEqual(a[0].resolutions.map((r) => r.nom), ['Approbation des comptes', 'Ravalement de la façade']);
+  assert.equal(a[0].resolutions[1].note, 'Revoté en 2025');
+  assert.equal(a[0].document_url, '/u/pv1.pdf');
+  const publique = assembleesDuProjet(analyse, deal, { sansSources: true });
+  assert.equal(publique[0].document_url, null);
+  assert.equal(publique[0].resolutions[0].citation, null);
+});

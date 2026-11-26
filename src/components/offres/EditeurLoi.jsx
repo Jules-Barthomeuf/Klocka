@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Download, FileText, LayoutTemplate, Loader2, RotateCcw, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -40,7 +41,10 @@ function versTexte(el) {
 // Sur le canevas de l'Éditeur (components/editeur, 28 oct. 2026, Jules) : la barre (nom, Éditeur / Lecture /
 // Sources, actions), la lettre, et le panneau de l'élément choisi à droite.
 // `marque` : « kp » en vue mandataire (28 oct. 2026, Jules) ; la lettre vierge et sa création la prennent.
-export default function EditeurLoi({ id = null, dealId = null, titre = null, onFermer, onCree = null, travail = null, surFond = false, entete = null, marque = null }) {
+// `dansDossier` (26 nov. 2026, Jules : « Éditeur, Lecture, j'aime pas trop ; revois le layout en haut ») : l'étape Offre d'un
+// dossier. Pas de barre à part : le titre est celui de la bande du dossier, la lettre se modifie à même la page (plus de
+// bascule Éditeur / Lecture), « Changer de modèle », Word et PDF montent à droite de la bande (#bande-dossier-droite).
+export default function EditeurLoi({ id = null, dealId = null, titre = null, onFermer, onCree = null, travail = null, surFond = false, entete = null, marque = null, dansDossier = false }) {
   const queryClient = useQueryClient();
   const vierge = !id;
   const cle = ["offre", id || `vierge:${dealId || ""}:${marque || ""}`];
@@ -151,10 +155,13 @@ export default function EditeurLoi({ id = null, dealId = null, titre = null, onF
       )}
     </>
   );
+  const bande = dansDossier && typeof document !== "undefined" ? document.getElementById("bande-dossier-droite") : null;
   return (
     <div className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden ${surFond ? "" : "bg-rail"}`}>
-      <BarreEditeur titre={titre || data?.lettre?.adresse || (vierge ? "Nouvelle lettre d'intention" : "Lettre d'intention")} statut={statut}
-        mode={modele ? mode : null} onMode={setMode} actions={actions} />
+      {dansDossier
+        ? (bande ? createPortal(actions, bande) : null)
+        : <BarreEditeur titre={titre || data?.lettre?.adresse || (vierge ? "Nouvelle lettre d'intention" : "Lettre d'intention")} statut={statut}
+            mode={modele ? mode : null} onMode={setMode} actions={actions} />}
       {entete}
       <div className="flex min-h-0 flex-1">
         {/* Le cadre ne défile pas : la fiche d'une source s'y pose à côté de l'élément survolé. */}

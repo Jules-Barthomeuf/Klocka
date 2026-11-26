@@ -132,6 +132,8 @@ export const TYPES = [
   { id: 'fiche', titre: 'Fiche du bien', grille: null, attendus: 0, categorie: 'Fiche commerciale' },
   // Les images du projet (30 oct. 2026, Jules) : déposées ici, elles passent dans les photos du projet. Pas lues.
   { id: 'photos', titre: 'Images du projet', grille: null, attendus: 0, categorie: 'Photos' },
+  // Les plans du local (25 nov. 2026, Jules : « le plan si on a ») : déposés ici, ils passent dans l'onglet Bien du projet. Pas lus.
+  { id: 'plans', titre: 'Plans du local', grille: null, attendus: 0, categorie: CATEGORIE_PAR_TYPE.plans },
   { id: 'autre', titre: 'Autre pièce', grille: null, attendus: 0, categorie: CATEGORIE_PAR_TYPE.autre },
 ];
 const TYPE = Object.fromEntries(TYPES.map((t) => [t.id, t]));

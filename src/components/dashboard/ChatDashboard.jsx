@@ -15,7 +15,7 @@ import LierProjet from "@/components/presentations/LierProjet";
 import LienNote, { PastilleLien } from "@/components/fiche-dossier/LienNote";
 import CarteNote from "@/components/fiche-dossier/CarteNote";
 import FicheAppelChat from "@/components/fiche-dossier/FicheAppelChat";
-import { BarreEnregistrement, BlocEnregistrement, BoutonMode } from "@/components/fiche-dossier/ModeEnregistrement";
+import { BarreEnregistrement, BlocEnregistrement } from "@/components/fiche-dossier/ModeEnregistrement";
 import { useEnregistrementRdv } from "@/lib/enregistrement-rdv";
 import { estExport, lireExportWhatsApp } from "@/lib/import-whatsapp";
 // `repondre as repondreNote` : le chat reçoit aussi une option `repondre` (l'assistant d'un appel de prospection), qui
@@ -1310,6 +1310,21 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     return () => { fini = true; };
   }, [adresse.search, lienNote, repondre, embarque]);
 
+  // ?appel=<horodatage> : le micro de la carte profil, depuis n'importe quelle page. Chaque clic porte son heure : le même
+  // `?appel=1` deux fois de suite ne changeait pas l'adresse pour le routeur, et le deuxième clic ne lançait rien
+  // (25 nov. 2026, Jules : « ça marche plus »). Un clic se lance une fois, et pas s'il a plus de 15 s (page rechargée).
+  const appelsLances = useRef(new Set());
+  useEffect(() => {
+    if (!lienNote || repondre || embarque) return;
+    const v = new URLSearchParams(adresse.search).get("appel");
+    if (!v) return;
+    try { window.history.replaceState(window.history.state, "", adresse.pathname); } catch { /* adresse laissée telle quelle */ }
+    const le = Number(v);
+    if (appelsLances.current.has(v) || !(le > 0) || Date.now() - le > 15_000) return;
+    appelsLances.current.add(v);
+    lancerAppelLibre();
+  }, [adresse.search, adresse.key, lienNote, repondre, embarque]);
+
   // Une conversation rouverte depuis l'historique (20 nov. 2026, Jules : « la conversation à gauche, les fiches à droite ») :
   // si elle a rangé une note ou enregistré un rendez-vous, ses fiches reviennent à droite.
   const liensDuFil = (messages) => {
@@ -1426,13 +1441,59 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   const marquerAppel = (actionId, patch) => setFil((f) => f.map((m) => (m.role === "bloc" && m.type === "fiche_appel" && m.donnees?.action?.id === actionId ? { ...m, donnees: { ...m.donnees, ...patch } } : m)));
   const majBlocRdv = (id, patch) => setFil((f) => f.map((m) => (m.role === "bloc" && m.type === "enregistrement" && m.donnees?.id === id ? { ...m, donnees: { ...m.donnees, ...patch } } : m)));
   const personnePrincipale = (liens) => ((liens || []).find((l) => l.genre === "client") || (liens || []).find((l) => l.genre === "agent") || (liens || [])[0])?.cle || null;
-  const demarrerRdv = async (reprise = null) => {
+  // Les notes prises dans la carte de l'enregistrement (25 nov. 2026, Jules) : elles partent avec ce qui est tapé dans la saisie.
+  const [notesCarte, setNotesCarte] = useState("");
+  const noterCarte = (t) => { setNotesCarte(t); if (enr.current) enr.current.notesCarte = t; };
+  const notesDe = (e) => [...(e?.notes || []), e?.notesCarte || ""].filter((x) => String(x).trim()).join("\n");
+  const demarrerRdv = async (reprise = null, { libre = false, provisoire = null } = {}) => {
     const suivi = appelSuivi.current;
     const id = await rdv.demarrer(reprise);
-    if (!id) return;
-    enr.current = { id, derniereNote: null, dernierLu: reprise?.caracteres || 0, dernierLe: Date.now(), notes: [], action_id: suivi?.id || null, enMaj: false, liens: [], cleOuverte: suivi?.cle || null, luDirect: 0, verifie: 0, enVerif: false };
+    if (!id) return null;
+    setNotesCarte("");
+    enr.current = { id, derniereNote: null, dernierLu: reprise?.caracteres || 0, dernierLe: Date.now(), notes: [], action_id: suivi?.id || null, libre, enMaj: false, liens: [], cleOuverte: suivi?.cle || null, luDirect: 0, verifie: 0, enVerif: false };
     if (suivi) marquerAppel(suivi.id, { enregistre: true });
-    pousser({ role: "bloc", type: "enregistrement", donnees: { id, debut: new Date().toISOString(), appel: suivi ? { id: suivi.id } : null, liens: liensNoteRef.current.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })) } });
+    // L'appel du micro a déjà sa carte, posée au clic : elle reçoit son id.
+    if (provisoire) majBlocRdv(provisoire, { id, debut: new Date().toISOString(), demarrage: false });
+    else pousser({ role: "bloc", type: "enregistrement", donnees: { id, debut: new Date().toISOString(), appel: suivi ? { id: suivi.id } : libre ? { libre: true } : null, liens: liensNoteRef.current.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })) } });
+    return id;
+  };
+  // Le micro de la carte profil (25 nov. 2026, Jules : « on clique, ça enregistre, comme dans un appel ; ensuite on lie
+  // un agent », sur la capture de la carte « Appel enregistré ») : une conversation neuve, la carte de l'appel tout de
+  // suite, sans personne liée ; l'assistant la reconnaît au nom dit, ou on la lie avec « Lier », et au Raccrocher il
+  // relit et propose, comme après une fiche d'appel. Pas de question d'issue : on s'est parlé.
+  const appelLibre = useRef(false);
+  // L'état du micro, lu à jour pendant qu'on attend la fin d'un enregistrement précédent.
+  const etatRdvRef = useRef(rdv.etat);
+  etatRdvRef.current = rdv.etat;
+  const lancerAppelLibre = async () => {
+    // Un appel dont la carte est dans le chat : on ne le double pas. Sinon, rien ne bloque (25 nov. 2026, Jules : « un
+    // enregistrement est déjà en cours alors que c'est faux ») : un enregistrement sans carte à l'écran est fermé (son
+    // texte gardé), un appel qui finit sa transcription est attendu, puis le nouvel appel part.
+    const carteVisible = rdv.etat === "ecoute" && fil.some((m) => m.role === "bloc" && m.type === "enregistrement" && !m.donnees?.fin && m.donnees?.id === rdv.id);
+    if (carteVisible) { toast("Un appel est déjà en cours : sa carte est dans le chat."); return; }
+    const fantome = rdv.etat === "ecoute";
+    appelSuivi.current = null;
+    if (fil.length) nouvelleConversation();
+    setLiensNote([]);
+    appelLibre.current = true;
+    // Pas de fiches à droite pendant cet appel (25 nov. 2026, Jules : « ne montre pas de fiches, enlève la fiche de droite »).
+    ouvrirPanneau({ fermer: true });
+    // La carte de l'appel tout de suite, au clic (25 nov. 2026, Jules : on ne doit pas voir passer l'écran du mode
+    // Enregistrement) ; le mode ne se pose qu'une fois le micro ouvert.
+    const provisoire = `appel-${Date.now()}`;
+    pousser({ role: "bloc", type: "enregistrement", donnees: { id: provisoire, demarrage: true, debut: new Date().toISOString(), appel: { libre: true }, liens: [] } });
+    try {
+      if (fantome) { enr.current = null; await rdv.terminer(); }
+      for (const t0 = Date.now(); etatRdvRef.current !== "repos" && Date.now() - t0 < 45_000;) await new Promise((ok) => setTimeout(ok, 250));
+      enr.current = null;
+      const id = await demarrerRdv(null, { libre: true, provisoire });
+      if (!id) {
+        setFil((f) => f.filter((m) => !(m.role === "bloc" && m.donnees?.id === provisoire)));
+        pousser({ role: "assistant", contenu: "Le micro n'a pas démarré : autorise-le dans le navigateur, puis reclique sur le micro de la carte profil." });
+        return;
+      }
+      setModeRdv("enregistrement");
+    } finally { appelLibre.current = false; }
   };
   // Pendant la conversation, l'assistant relit ce qui a été dit et la fiche se met à jour à droite (20 nov. 2026,
   // Jules : « on les voit s'updater au fur et à mesure ») : à chaque fin de sujet (voir `verifierSujet`), pas à heure
@@ -1444,7 +1505,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     const lu = caracteresRef.current;
     const direct = directRef.current;
     try {
-      const r = await base44.request("POST", "/api/fiche-dossier/notes", { body: { texte: e.notes.join("\n"), liens: liensNoteRef.current.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })), enregistrement_id: e.id, ...(direct.trim() ? { direct } : {}), ...(e.derniereNote ? { remplace: e.derniereNote } : {}), ...(e.action_id ? { action_id: e.action_id } : {}) } });
+      const r = await base44.request("POST", "/api/fiche-dossier/notes", { body: { texte: notesDe(e), liens: liensNoteRef.current.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })), enregistrement_id: e.id, ...(direct.trim() ? { direct } : {}), ...(e.derniereNote ? { remplace: e.derniereNote } : {}), ...(e.action_id ? { action_id: e.action_id } : {}) } });
       if (enr.current !== e || !r?.note_id) return;
       e.derniereNote = r.note_id;
       e.liens = r.liens || [];
@@ -1453,7 +1514,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
       majBlocRdv(e.id, { attente: false, fiches: e.liens.map((l) => l.nom), liens: e.liens.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })), maj_le: new Date().toISOString() });
       const cle = e.cleOuverte && e.liens.some((l) => l.cle === e.cleOuverte) ? e.cleOuverte : personnePrincipale(e.liens);
       e.cleOuverte = cle;
-      if (cle) ouvrirPanneau({ note_id: r.note_id, vue: "fiche", cle });
+      if (cle && !e.libre) ouvrirPanneau({ note_id: r.note_id, vue: "fiche", cle });
     } catch (x) {
       if (enr.current === e && /Liez la note/.test(x?.message || "")) majBlocRdv(e.id, { attente: true });
     } finally {
@@ -1470,7 +1531,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     setEnCoursTexte("Je relis tout l'enregistrement…");
     if (!suite) annoncer("ranger");
     envoiEnVol.current = true;
-    rangerNote.mutate({ t: (e.notes || []).join("\n"), liens: liens.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })), enregistrement_id: id, remplace: e.derniereNote || null, action_id: e.action_id || null, ouvrir: e.cleOuverte || personnePrincipale(liens) });
+    rangerNote.mutate({ t: notesDe(e), liens: liens.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })), enregistrement_id: id, remplace: e.derniereNote || null, action_id: e.action_id || null, ouvrir: e.libre ? null : e.cleOuverte || personnePrincipale(liens) });
   };
   // Terminer, sur la carte du chat (version C, 20 nov. 2026) : la carte se ferme tout de suite (« Enregistrement
   // terminé · 7:42 ») et, dessous, le raisonnement de l'assistant prend le relais (20 nov. 2026, Jules : « qu'on ferme
@@ -2070,7 +2131,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     ouvrirPanneau(b ? { vue: "fiche", cle: b.cle, liens: liens.map((l) => ({ cle: l.cle, genre: l.genre, nom: l.nom })) } : { vue: "attente" });
   };
   useEffect(() => {
-    if (!lienNote || modeRdv !== "enregistrement" || rdv.etat !== "repos" || rdv.ouvert || appelSuivi.current) return;
+    if (!lienNote || modeRdv !== "enregistrement" || rdv.etat !== "repos" || rdv.ouvert || appelSuivi.current || appelLibre.current || enr.current?.libre) return;
     // Un nouvel enregistrement, une page neuve (20 nov. 2026, Jules : « je ne devrais pas voir l'enregistrement
     // abandonné d'avant ; dans l'historique, oui ») : la conversation en cours reste dans l'historique.
     if (fil.some((m) => !m.intro_rdv)) nouvelleConversation();
@@ -2085,7 +2146,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   // proposé ; après, ce sont ses mises à jour qui s'y montrent.
   const clesLiees = liensNote.map((l) => l.cle).join("|");
   useEffect(() => {
-    if (!lienNote || modeRdv !== "enregistrement" || enr.current?.derniereNote || appelSuivi.current) return;
+    if (!lienNote || modeRdv !== "enregistrement" || enr.current?.derniereNote || appelSuivi.current || enr.current?.libre || appelLibre.current) return;
     fichesRdv(liensNoteRef.current);
   }, [clesLiees]);
   const questionsNote = useRef(null);
@@ -2183,6 +2244,9 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   useEffect(() => {
     if (location.key === cleLieu.current) return;
     cleLieu.current = location.key;
+    // Le micro de la carte profil ouvre lui-même sa conversation neuve, avec la carte de l'appel : la remettre à zéro
+    // ici, juste après, effaçait la carte pendant que l'enregistrement tournait (25 nov. 2026, Jules : « ça marche pas »).
+    if (new URLSearchParams(location.search).has("appel")) return;
     if (onConversation) nouvelleConversation();
     // Seul le changement de clé compte : la fonction change à chaque rendu.
      
@@ -2544,7 +2608,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
           {/* Pendant la dictée, la barre du mode micro : Annuler, l'onde, le minuteur, Envoyer. */}
           {ecoute && <BarreEcoute niveau={niveau} cadre={cadreAura} onAnnuler={annulerDictee} onEnvoyer={() => lancer()} onTerminer={() => { arreter(); setTimeout(() => champRef.current?.focus(), 30); }} envoi={envoiDemande} />}
           {lienNote && modeRdv === "enregistrement" && (
-            <BarreEnregistrement etat={rdv.etat} secondes={rdv.secondes} erreur={rdv.erreur} ouvert={rdv.ouvert} appel={!!enr.current?.action_id}
+            <BarreEnregistrement etat={rdv.etat} secondes={rdv.secondes} erreur={rdv.erreur} ouvert={rdv.ouvert}
               onDemarrer={() => demarrerRdv()}
               onReprendre={() => demarrerRdv(rdv.ouvert)} onFinirOuvert={finirOuvert} />
           )}
@@ -2642,7 +2706,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
             <div className="ml-auto flex items-center gap-1.5">
               {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
               {/* Le mode, à la place de Sources (20 nov. 2026, Jules) : Normal ou Enregistrement ; Sources suit. */}
-              {lienNote && <BoutonMode mode={modeRdv} onChange={setModeRdv} verrouille={rdv.etat !== "repos"} versLeHaut={!!(conversation || menusVersLeHaut)} />}
+              {/* Plus de pastille « Mode » (25 nov. 2026, Jules : « enlève le mode enregistrement, il n'y aura que le micro en
+                  haut à droite, dans la carte profil ») ; la fiche d'appel et la reprise d'un enregistrement ouvert gardent le mode. */}
               {/* Sur l'Assistant, le « + » des sources est à droite des raccourcis (25 nov. 2026, Jules) : pas d'icône dans la saisie. */}
               {reglages?.onOuvrirSources && !reglages.sourcesSousRaccourcis && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
               {!epure && !E.modesAGauche && !reglages && (
@@ -2846,10 +2911,12 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
               // Sans avatar en face (20 nov. 2026, Jules : « deux têtes d'assistant au plus, pas trois ») : la carte est alignée sur les messages.
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={compact ? "" : "pl-[3.25rem]"}>
                 <div className="min-w-0">
-                  <BlocEnregistrement donnees={m.donnees} enCours={!m.donnees?.fin && rdv.id === m.donnees?.id} secondes={rdv.secondes} direct={rdv.direct} etatDirect={rdv.etatDirect}
-                    voix={rdv.voix} onTerminer={terminerRdv} onAbandonner={abandonnerRdv} onIssue={(issue) => issueAppel(m.donnees.id, issue)} />
+                  <BlocEnregistrement donnees={m.donnees} enCours={!m.donnees?.fin && (rdv.id === m.donnees?.id || !!m.donnees?.demarrage)} secondes={rdv.secondes} direct={rdv.direct} etatDirect={rdv.etatDirect}
+                    voix={rdv.voix} onTerminer={terminerRdv} onAbandonner={abandonnerRdv} onIssue={(issue) => issueAppel(m.donnees.id, issue)}
+                    notes={notesCarte} onNotes={!m.donnees?.fin && rdv.id === m.donnees?.id ? noterCarte : null}
+                    lier={m.donnees?.appel?.libre && !m.donnees?.fin ? <LienNote sansPastilles liens={liensNote} onChange={(l) => { changerLiens(l); majBlocRdv(m.donnees.id, { liens: l.map((x) => ({ cle: x.cle, genre: x.genre, nom: x.nom })) }); }} /> : null} />
                   {m.donnees?.a_ranger && !rangerNote.isPending && (
-                    <button type="button" onClick={() => { majBlocRdv(m.donnees.id, { a_ranger: false }); rangerEnregistrement(m.donnees.id, {}); }} disabled={!liensNote.length}
+                    <button type="button" onClick={() => { majBlocRdv(m.donnees.id, { a_ranger: false }); rangerEnregistrement(m.donnees.id, { notesCarte, libre: !!m.donnees?.appel?.libre }); }} disabled={!liensNote.length}
                       className="mt-2 inline-flex h-9 items-center rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">Ranger l'enregistrement</button>
                   )}
                 </div>

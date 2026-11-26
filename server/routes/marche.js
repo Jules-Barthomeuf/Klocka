@@ -204,6 +204,96 @@ export function monterMarche(app) {
     ok(res, r);
   }));
 
+  // Le lien public du projet, accessible sans connexion (25 nov. 2026, Jules) : le voir, le créer, le couper.
+  const lienPublic = (methode) => wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    if (!Records.get('Project', req.params.id)) return res.status(404).json({ error: 'Projet introuvable.' });
+    const L = await import('../lien-public.js');
+    if (methode === 'delete') { L.couperLien(req.params.id, user); return ok(res, { lien: null }); }
+    if (methode === 'post') { const r = L.creerLien(req.params.id, user); return ok(res, { lien: L.lienPourEcran(r.lien) }); }
+    ok(res, { lien: L.lienPourEcran(L.lienDuProjet(req.params.id)) });
+  });
+  app.get('/api/projets/:id/lien-public', lienPublic('get'));
+  app.post('/api/projets/:id/lien-public', lienPublic('post'));
+  app.delete('/api/projets/:id/lien-public', lienPublic('delete'));
+
+  // La parcelle du bien, pour le plan de l'onglet Bien (25 nov. 2026, Jules) : server/parcelle-projet.js. Même accès que
+  // les cases : l'équipe, et le client du projet.
+  app.get('/api/projets/:id/parcelle', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+    const { projetVisiblePar } = await import('../acces-entites.js');
+    if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
+    const r = await (await import('../parcelle-projet.js')).parcelleDuProjet(projet, { forcer: user.role === 'admin' && req.query.relire === '1' });
+    ok(res, r.ok ? { plan: r.plan } : { plan: null, erreur: r.error });
+  }));
+
+  // La fiche de la société du locataire, pour l'aperçu Pappers de l'onglet Locataire (26 nov. 2026, Jules). Même accès
+  // que les cases : l'équipe, et le client du projet.
+  app.get('/api/projets/:id/societe-locataire', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+    const { projetVisiblePar } = await import('../acces-entites.js');
+    if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
+    const L = await import('../liens-locataire.js');
+    let analyse = null;
+    if (projet.deal_id) { try { analyse = (await import('../deal/analyse-pieces.js')).lireAnalyse(projet.deal_id); } catch { analyse = null; } }
+    const siren = L.sirenDuLocataire(projet, { analyse });
+    if (!siren) return ok(res, { siren: null, fiche: null });
+    const r = await L.ficheSociete(siren);
+    ok(res, { siren, fiche: r.ok ? r.fiche : null, erreur: r.ok ? null : r.error });
+  }));
+
+
+  // Les pages du locataire trouvées d'office (26 nov. 2026, Jules) : la recherche part une fois, à l'ouverture par
+  // l'équipe ; le client lit ce qui est gardé (server/liens-locataire.js).
+  app.get('/api/projets/:id/liens-trouves', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+    const { projetVisiblePar } = await import('../acces-entites.js');
+    if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
+    const r = await (await import('../liens-locataire.js')).liensTrouves(projet, { lancer: user.role === 'admin' });
+    ok(res, { liens: r.liens || [], siren: r.siren || null, erreur: r.ok ? null : r.error });
+  }));
+
+  // Le résumé des avis Google du locataire (26 nov. 2026, Jules) : lu sur sa fiche Google Maps par l'équipe, gardé
+  // sept jours ; le client lit ce qui est gardé (server/liens-locataire.js).
+  app.get('/api/projets/:id/avis-google', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+    const { projetVisiblePar } = await import('../acces-entites.js');
+    if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
+    const r = await (await import('../liens-locataire.js')).avisGoogle(projet, { lancer: user.role === 'admin' });
+    ok(res, { avis: r.ok ? r.avis : null, erreur: r.ok ? null : r.error });
+  }));
+
+  // Le rapport Géorisques d'une adresse, pour la carte Géorisques des diagnostics (26 nov. 2026, Jules).
+  app.get('/api/marche/georisques', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
+    const { lienGeorisques } = await import('../parcelle-projet.js');
+    ok(res, { url: await lienGeorisques(String(req.query.adresse || '').slice(0, 300)) });
+  }));
+
+  // Le site et les réseaux du locataire, cherchés d'un clic dans l'éditeur (25 nov. 2026, Jules) : l'éditeur enregistre
+  // ce qui revient comme ses autres champs (server/liens-locataire.js).
+  app.post('/api/projets/:id/liens-locataire', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable.' });
+    const r = await (await import('../liens-locataire.js')).chercherLiens({ ...projet, ...Object.fromEntries(['nom_locataire', 'activite_locataire', 'adresse_complete'].filter((k) => typeof req.body?.projet?.[k] === 'string').map((k) => [k, req.body.projet[k].slice(0, 300)])) });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // Le mode Sources de l'éditeur : d'où vient chaque chiffre de la page.
   app.get('/api/projets/:id/sources', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
@@ -223,7 +313,7 @@ export function monterMarche(app) {
     const { lireSecteur, marcheDuProjet } = await import('../projet-secteur.js');
     const admin = user.role === 'admin';
     const fiche = lireSecteur(projet, { forcer: admin && req.query.forcer === '1', forcerLoyer: admin && req.query.relancer_loyer === '1' });
-    // Le Marché du dossier (Emplacement, Ville, Prix, Loyer, Locataire), relu à chaque ouverture : il ne vit pas dans
+    // Le Marché du dossier (Emplacement, Ville ; Prix et Loyer restent dans l'Analyse, 25 nov. 2026), relu à chaque ouverture : il ne vit pas dans
     // la fiche gardée du secteur, et un outil relancé dans l'Analyse se voit au prochain passage (14 nov. 2026, Jules).
     const { emplacement, ...marche } = marcheDuProjet(projet);
     ok(res, fiche && typeof fiche === 'object' ? { ...fiche, emplacement, marche } : fiche);

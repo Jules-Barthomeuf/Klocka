@@ -162,23 +162,34 @@ const Faits = ({ lignes }) => (
 export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onOuvrir, onAction, onVue, ongletDepart = null }) {
   const n = useNote(noteId);
   const [onglet, setOnglet] = useState(ongletDepart || "resume");
+  // Ouverte sous une autre clé (la demande d'un client, la ligne du CRM d'un agent), la fiche passe sur celle qui fait foi,
+  // que les gestes rafraîchissent (25 nov. 2026, une seule fiche par chose).
+  const queryClient = useQueryClient();
+  const [cleLue, setCleLue] = useState(cle);
   const { data: f, isLoading, isError, error } = useQuery({
-    queryKey: ["fiche-dossier", cle],
-    queryFn: () => base44.request("GET", `/api/fiche-dossier/fiche?cle=${encodeURIComponent(cle)}${nomDefaut ? `&nom=${encodeURIComponent(nomDefaut)}` : ""}`),
+    queryKey: ["fiche-dossier", cleLue],
+    queryFn: () => base44.request("GET", `/api/fiche-dossier/fiche?cle=${encodeURIComponent(cleLue)}${nomDefaut ? `&nom=${encodeURIComponent(nomDefaut)}` : ""}`),
     staleTime: 15_000,
   });
+  useEffect(() => {
+    if (!f?.cle || f.cle === cleLue) return;
+    queryClient.setQueryData(["fiche-dossier", f.cle], f);
+    setCleLue(f.cle);
+  }, [f, cleLue, queryClient]);
   if (isLoading) return <p className="m-0 px-6 py-6 text-[13.5px] text-brume">Chargement de la fiche…</p>;
   if (isError) return <p className="m-0 px-6 py-6 text-[13.5px] text-alerte">{error?.message || "Cette fiche ne se charge pas."}</p>;
   if (!f) return null;
+  // La clé qui fait foi, renvoyée par le serveur (25 nov. 2026, une seule fiche par chose) : les gestes sur la fiche la suivent.
+  const cleVue = f.cle || cle;
 
   const p = n?.donnees?.proposition;
-  const ajouts = p?.fiches?.find((x) => x.cle === cle) || null;
+  const ajouts = p?.fiches?.find((x) => x.cle === cle || x.cle === cleVue) || null;
   const garde = n?.garde || new Set();
   const gardeEl = ajouts ? ajouts.elements.filter((e) => garde.has(e.id)) : [];
   const etapeNeuve = ajouts?.etape && garde.has(`${ajouts.id}-etape`) ? ajouts.etape : null;
   const blocageNeuf = ajouts && ajouts.blocage !== undefined && garde.has(`${ajouts.id}-blocage`) ? ajouts.blocage : undefined;
   const resumeNeuf = ajouts?.resume && (gardeEl.length || etapeNeuve || blocageNeuf !== undefined) ? ajouts.resume : null;
-  const proposees = (p?.actions || []).filter((a) => a.fiches?.includes(cle) && garde.has(a.id)).map((a) => ({ ...actionVue(n, a), propose: true }));
+  const proposees = (p?.actions || []).filter((a) => (a.fiches?.includes(cle) || a.fiches?.includes(cleVue)) && garde.has(a.id)).map((a) => ({ ...actionVue(n, a), propose: true }));
   const nom = f.nom === "Fiche du CRM" && nomDefaut ? nomDefaut : f.nom;
   const bien = f.genre === "bien";
   const d = f.dossier;
@@ -227,21 +238,15 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
         <div className="k-entree mx-auto flex w-full max-w-[860px] flex-auto shrink-0 flex-col px-8 pb-10 pt-8 max-md:px-4">
           {/* Sa photo quand on l'a (20 nov. 2026, Jules), sinon ses initiales ; un clic en importe une (22 nov. 2026, Jules :
               « chaque agent doit avoir une image ; tous les clients aussi »). Celle d'une page équipe est resserrée sur le visage. */}
-          {!bien && <PhotosFiche cle={cle} nom={nom} photo={f.photo} taille={60} recadrer={!!f.photo && !f.photo_importee} className="mx-auto mb-4" />}
+          {!bien && <PhotosFiche cle={cleVue} nom={nom} photo={f.photo} taille={60} recadrer={!!f.photo && !f.photo_importee} className="mx-auto mb-4" />}
           {/* L'étoile d'un agent, à droite de son nom (20 nov. 2026, Jules) : un de ses cinq agents préférés. */}
           <div className="flex items-center justify-center gap-1">
             {f.genre === "agent" && <span aria-hidden className="w-8 flex-none" />}
             <h2 className="m-0 text-center text-[22px] font-normal leading-[1.25] tracking-[-0.01em] text-encre">{nom}</h2>
-            {f.genre === "agent" && <EtoileAgent cle={cle} />}
+            {f.genre === "agent" && <EtoileAgent cle={cleVue} />}
           </div>
           {sous && <p className="m-0 mt-1 text-center text-[14.5px] text-ardoise">{sous}</p>}
-          {/* Ouverte d'une ligne du CRM (22 nov. 2026) : le retour à sa fiche du CRM (champs, tâches, pièces). */}
-          {(crm || f.crm) && (
-            <p className="m-0 mt-1.5 text-center">
-              <Link to={`/CrmTwenty?t=${(crm || f.crm).objet}&f=${(crm || f.crm).id}`} onClick={() => window.dispatchEvent(new CustomEvent("klocka:panneau-note", { detail: { fermer: true } }))}
-                className="text-[13px] text-craie underline decoration-trait underline-offset-2 hover:text-encre">Fiche du CRM</Link>
-            </p>
-          )}
+          {/* Le lien « Fiche du CRM » sous le nom est retiré (25 nov. 2026, Jules : « enlève Fiche du CRM dans une fiche »). */}
 
           {(() => {
             const vide = (t) => <p className="m-0 text-[13.5px] text-brume">{t}</p>;
@@ -257,7 +262,7 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
             const ici = onglets.some(([o]) => o === onglet) ? onglet : "resume";
             return (
               <>
-                {f.a_relire && <BandeauRelire cle={cle} f={f} />}
+                {f.a_relire && <BandeauRelire cle={cleVue} f={f} />}
                 <OngletsFiche onglets={onglets} actif={ici} onChoisir={setOnglet} />
                 <div key={ici} className={`k-entree pt-5 ${ici === "personnes" ? "flex flex-auto flex-col" : ""}`}>
                   {ici === "resume" && (
@@ -378,11 +383,11 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
                     </>
                   )}
 
-                  {ici === "dossiers" && (f.liees.length ? <Personnes cle={cle} nom={nom} liees={f.liees} onOuvrir={onOuvrir} /> : vide("Aucun dossier encore : lie une note à un bien et à cette fiche."))}
+                  {ici === "dossiers" && (f.liees.length ? <Personnes cle={cleVue} nom={nom} liees={f.liees} onOuvrir={onOuvrir} /> : vide("Aucun dossier encore : lie une note à un bien et à cette fiche."))}
 
                   {ici === "notes" && (
                     <>
-                      <NouvelleNote cle={cle} nom={nom} />
+                      <NouvelleNote cle={cleVue} nom={nom} />
                       {enNotes.length > 0 && <Proposees className="mt-5">{enNotes.map(ajout)}</Proposees>}
                       {f.notes?.length ? (
                         <ul className="k-serie m-0 mt-3 list-none divide-y divide-trait p-0">

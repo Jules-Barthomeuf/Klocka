@@ -4,7 +4,8 @@
 import { Meta, Records } from '../db.js';
 
 const CLE = 'dossiers.recents';
-const MAX = 30;
+// 200 (26 nov. 2026) : la liste des Dossiers s'ordonne aussi dessus, pas seulement les cinq de la barre.
+const MAX = 200;
 
 /** Pure : la liste après l'ouverture d'un dossier (en tête, sans doublon, bornée). */
 export function noterDans(liste = [], { deal_id, par = null, le = new Date().toISOString() }, max = MAX) {
@@ -18,6 +19,11 @@ export function noterOuverture(dealId, user) {
   const liste = noterDans(lire(), { deal_id: String(dealId), par: String(user?.email || '').toLowerCase() || null });
   Meta.set(CLE, JSON.stringify(liste));
   return liste[0];
+}
+
+/** La dernière ouverture de chaque dossier par l'équipe : deal_id → date ISO. */
+export function ouvertures() {
+  return new Map(lire().map((r) => [r.deal_id, r.le]));
 }
 
 /** Les derniers dossiers ouverts qui existent encore (ni archivés, ni de test), avec leur titre ; complétés par les plus récents de la plateforme. */

@@ -4,6 +4,7 @@
 
 import { Records } from '../db.js';
 import { nomAgent } from '../nom-agent.js';
+import { cleUnique } from './une-cle.js';
 
 const sansAccent = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const repond = (texte, q) => {
@@ -67,7 +68,12 @@ function suivies(q, genre, limite) {
     .map((f) => ({ cle: f.cle, genre: f.genre, nom: f.nom, detail: f.etape || (f.cle.startsWith('twenty:') ? 'Twenty CRM' : '') }));
 }
 
-const sansDoublon = (l) => l.filter((x, i) => l.findIndex((y) => y.cle === x.cle) === i);
+// Chaque résultat sous la clé qui fait foi (25 nov. 2026, une seule fiche par chose) : l'agent du CRM et celui de la
+// Prospection, la demande d'un client et sa ligne de Twenty ne font qu'un.
+const sansDoublon = (liste) => {
+  const l = liste.map((x) => ({ ...x, cle: cleUnique(x.cle) }));
+  return l.filter((x, i) => l.findIndex((y) => y.cle === x.cle) === i);
+};
 
 // Une même personne vient souvent de deux sources : Twenty (« Twenty CRM », sans plus) et la Prospection (agence,
 // ville). On n'en montre qu'une (19 nov. 2026, Jules : « pourquoi deux Alexandre LOURENCO ? ») : la première de la

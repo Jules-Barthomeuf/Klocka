@@ -122,6 +122,18 @@ export const upload = multer({
   limits: { fileSize: TAILLE_MAX_FICHIER, files: 20 },
 });
 
+// L'audio d'un appel (26 nov. 2026, Jules : « trop de fichiers, 20 au maximum », l'appel n'a pas été lu) : un appel part
+// en morceaux de 6 s au plus, ceux que la transcription en direct n'a pas lus arrivent en audio au raccrochage. La
+// limite commune de 20 fichiers (un peu plus de 2 minutes) passait devant celle de la route : 400 morceaux, 40 minutes.
+export const MORCEAUX_AUDIO_MAX = 400;
+export const uploadAudio = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`),
+  }),
+  limits: { fileSize: TAILLE_MAX_FICHIER, files: MORCEAUX_AUDIO_MAX },
+});
+
 // La vidéo filmée d'un dossier (29 oct. 2026, Jules) : un seul fichier, une vidéo, 500 Mo au plus (quelques minutes
 // filmées au téléphone). Elle remplace la précédente : le disque n'en garde qu'une par dossier.
 export const TAILLE_MAX_VIDEO = 500 * 1024 * 1024;

@@ -147,6 +147,8 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GE
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Délai conseillé par Google dans une erreur 429 (RetryInfo), sinon null.
+const DELAI_MAX_ATTENTE_MS = 60_000;
+
 function delaiRetryDe(data) {
   const details = data?.error?.details || [];
   for (const d of details) {
@@ -197,6 +199,13 @@ async function geminiGenerate({ systemInstruction, contents, tools, json, tentat
     if (!retryable || tentative === MAX_TENTATIVES) break;
 
     const delai = delaiRetryDe(data) ?? [3000, 12000, 30000][tentative - 1];
+    // Un quota du jour épuisé (26 nov. 2026 : « nouvel essai dans 59926 s ») : Gemini demande d'attendre des heures, la
+    // requête restait suspendue et chaque morceau d'appel avec elle. Au-delà d'une minute, on renonce tout de suite.
+    if (delai > DELAI_MAX_ATTENTE_MS) {
+      derniereErreur = new Error(`Gemini : quota épuisé, de nouveau disponible dans ${Math.round(delai / 3600000)} h environ.`);
+      console.warn(`[llm] Gemini ${resp.status} : quota épuisé (attente demandée ${Math.round(delai / 1000)} s), abandon`);
+      break;
+    }
     console.warn(
       `[llm] Gemini ${resp.status} (tentative ${tentative}/${MAX_TENTATIVES}) — nouvel essai dans ${Math.round(delai / 1000)} s`
     );

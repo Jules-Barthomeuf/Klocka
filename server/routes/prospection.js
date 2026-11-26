@@ -5,7 +5,7 @@
 
 import fs from 'fs';
 import { Records } from '../db.js';
-import { ok, wrap, currentUser, upload } from '../contexte.js';
+import { ok, wrap, currentUser, upload, uploadAudio, MORCEAUX_AUDIO_MAX } from '../contexte.js';
 
 // Les croisements de liste avec le CRM en cours (la file d'appel ne les attend plus).
 const croisementsEnCours = new Set();
@@ -241,7 +241,7 @@ export function monterProspection(app) {
     reponse(res, (await RP()).lire(req.params.id, user));
   }));
   // Stop : les morceaux transcrits pendant l'appel, et ceux qui ne l'étaient pas encore (en audio, à leur place).
-  app.post('/api/prospection/rappels/:id/fin', upload.array('audio', 80), wrap(async (req, res) => {
+  app.post('/api/prospection/rappels/:id/fin', uploadAudio.array('audio', MORCEAUX_AUDIO_MAX), wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
     let morceaux = [];
@@ -607,7 +607,7 @@ export function monterProspection(app) {
   }));
   // La fin de l'appel : la transcription faite en direct ; les morceaux restés
   // sans texte (réseau, transcription ratée) arrivent en audio, dans l'ordre.
-  app.post('/api/prospection/mode-appel/issue', upload.array('audio', 80), wrap(async (req, res) => {
+  app.post('/api/prospection/mode-appel/issue', uploadAudio.array('audio', MORCEAUX_AUDIO_MAX), wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
     // `?flux=1` : chaque étape part au moment où elle se fait (comme le chat), puis le résultat.

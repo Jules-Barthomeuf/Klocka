@@ -143,6 +143,12 @@ function jsonSystemPrompt(schema) {
 // ---------------------------------------------------------------------------
 
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+// Le quota gratuit de Gemini se compte par modèle (26 nov. 2026 : gemini-3.6-flash épuisé pour la journée, gemini-2.5-flash
+// encore libre, Mistral sans budget) : un modèle épuisé passe la main à celui de secours jusqu'à l'heure dite par Google.
+const GEMINI_MODEL_SECOURS = (process.env.GEMINI_MODEL_SECOURS || 'gemini-2.5-flash').trim();
+const urlGemini = (modele) => `https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`;
+const epuiseJusqua = new Map();
+const modeleGeminiLibre = () => (GEMINI_MODEL_SECOURS && (epuiseJusqua.get(GEMINI_MODEL) || 0) > Date.now() ? GEMINI_MODEL_SECOURS : GEMINI_MODEL);
 
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -181,8 +187,9 @@ async function geminiGenerate({ systemInstruction, contents, tools, json, tentat
   const MAX_TENTATIVES = tentatives || 4;
   let derniereErreur = null;
 
+  let modele = modeleGeminiLibre();
   for (let tentative = 1; tentative <= MAX_TENTATIVES; tentative++) {
-    const resp = await fetch(GEMINI_URL, {
+    const resp = await fetch(urlGemini(modele), {
       method: 'POST',
       headers: { 'x-goog-api-key': GEMINI_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -190,7 +197,7 @@ async function geminiGenerate({ systemInstruction, contents, tools, json, tentat
 
     const data = await resp.json().catch(() => ({}));
     if (resp.ok) {
-      compter(GEMINI_MODEL, data?.usageMetadata);
+      compter(modele, data?.usageMetadata);
       return data;
     }
 
@@ -201,6 +208,13 @@ async function geminiGenerate({ systemInstruction, contents, tools, json, tentat
     const delai = delaiRetryDe(data) ?? [3000, 12000, 30000][tentative - 1];
     // Un quota du jour épuisé (26 nov. 2026 : « nouvel essai dans 59926 s ») : Gemini demande d'attendre des heures, la
     // requête restait suspendue et chaque morceau d'appel avec elle. Au-delà d'une minute, on renonce tout de suite.
+    if (delai > DELAI_MAX_ATTENTE_MS && resp.status === 429 && modele !== GEMINI_MODEL_SECOURS && GEMINI_MODEL_SECOURS) {
+      epuiseJusqua.set(modele, Date.now() + delai);
+      console.warn(`[llm] Gemini ${modele} : quota épuisé, ${GEMINI_MODEL_SECOURS} prend le relais`);
+      modele = GEMINI_MODEL_SECOURS;
+      tentative -= 1;
+      continue;
+    }
     if (delai > DELAI_MAX_ATTENTE_MS) {
       derniereErreur = new Error(`Gemini : quota épuisé, de nouveau disponible dans ${Math.round(delai / 3600000)} h environ.`);
       console.warn(`[llm] Gemini ${resp.status} : quota épuisé (attente demandée ${Math.round(delai / 1000)} s), abandon`);
@@ -584,22 +598,28 @@ export async function voxtralLocuteurs({ buffer, mimetype = 'audio/wav' }) {
  *   la dictée en direct préfère rendre la main tout de suite (un seul essai
  *   par service) plutôt qu'attendre un palier de quota.
  */
+// Mistral refuse pour la facturation (402, 26 nov. 2026 : « You need a subscription », aucun budget API) : il est sauté
+// dix minutes, chaque morceau d'appel ne l'essaie plus en vain, et la dictée passe par Gemini.
+let mistralCoupeJusqua = 0;
+const DUREE_COUPURE_MISTRAL_MS = 10 * 60_000;
+
 export async function transcrireAudio({ buffer, mimetype = 'audio/wav', rapide = false } = {}) {
   if (!buffer?.length) return '';
   // Voxtral d'abord. Mistral répond parfois 429 « pas assez de capacité »
   // quelques secondes : on réessaie avant de renoncer.
-  if (MISTRAL_KEY) {
+  if (MISTRAL_KEY && Date.now() > mistralCoupeJusqua) {
     for (const attente of [0, 700, 1800]) {
       if (attente) await new Promise((f) => setTimeout(f, attente));
       try {
         return corrigerKlocka(await voxtralTranscrire({ buffer, mimetype }));
       } catch (e) {
         console.warn(`[voxtral] ${e?.message || e}`);
+        if (e?.statut === 402) { mistralCoupeJusqua = Date.now() + DUREE_COUPURE_MISTRAL_MS; console.warn('[voxtral] facturation Mistral refusée : Gemini seul pendant dix minutes'); break; }
         if (!(e?.statut === 429 || e?.statut >= 500 || e?.name === 'TimeoutError')) break;
       }
     }
-    // La dictée ne passe jamais par Gemini : son quota gratuit tombe vite.
-    if (rapide) throw new Error('La dictée (Mistral) est saturée pour le moment : réessayez dans quelques secondes.');
+    // La dictée ne passe jamais par Gemini : son quota gratuit tombe vite. Sauf Mistral coupé pour la facturation.
+    if (rapide && Date.now() > mistralCoupeJusqua) throw new Error('La dictée (Mistral) est saturée pour le moment : réessayez dans quelques secondes.');
     if (GEMINI_KEY) console.warn('[voxtral] Gemini prend le relais');
   }
   if (!GEMINI_KEY) throw new Error('La transcription demande une clé Voxtral (MISTRAL_API_KEY) ou Gemini (GEMINI_API_KEY).');

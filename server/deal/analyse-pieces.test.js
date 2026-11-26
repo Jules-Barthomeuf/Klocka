@@ -91,7 +91,7 @@ test("une correction ou une vérification de l'analyste survit à la relecture ;
   assert.equal(A.lireAnalyse('AP2').grilles[0].lignes.find((l) => l.id === 'depot').valeur, '6 000 €');
 });
 
-test('bail et avenant qui divergent : la case demande un choix, la ligne déjà remplie ne bouge pas, retenir règle', async () => {
+test("bail et avenant qui divergent : la case demande un choix, l'avenant passe devant, retenir règle", async () => {
   dossier('AP3', [{ id: 'b', nom: 'Bail.pdf' }, { id: 'av', nom: 'Avenant 2023.pdf' }]);
   A.rangerPiece('AP3', 'b', 'bail', null);
   A.rangerPiece('AP3', 'av', 'avenants', null);
@@ -100,11 +100,13 @@ test('bail et avenant qui divergent : la case demande un choix, la ligne déjà 
   await A.lirePiece('AP3', 'av', { uploadDir, lire });
   let l = A.lireAnalyse('AP3').grilles[0].lignes.find((x) => x.id === 'loyer_signature');
   assert.equal(l.a_choisir, true);
-  assert.equal(l.valeur, '20 000 € / an', 'la pièce lue après coup ne change pas la ligne remplie (10 nov. 2026)');
-  A.deciderCase('AP3', 'bail', 'loyer_signature', { action: 'retenir', source: 'av' }, null);
+  // L'avenant modifie le bail : il passe devant pour ce qu'il dit (26 nov. 2026, Jules), et non plus la pièce lue la
+  // première (10 nov. 2026). La case demande toujours un choix.
+  assert.equal(l.valeur, '24 000 € / an', "l'avenant l'emporte sur le bail");
+  A.deciderCase('AP3', 'bail', 'loyer_signature', { action: 'retenir', source: 'b' }, null);
   l = A.lireAnalyse('AP3').grilles[0].lignes.find((x) => x.id === 'loyer_signature');
   assert.equal(l.a_choisir, false);
-  assert.equal(l.valeur, '24 000 € / an');
+  assert.equal(l.valeur, '20 000 € / an', 'retenir le bail à la main reste possible');
 });
 
 test('les écarts : loyer fiche / bail / quittances, TVA, locataire du Kbis ; retenir une valeur le referme', async () => {

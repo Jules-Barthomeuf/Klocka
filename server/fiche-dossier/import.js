@@ -17,6 +17,7 @@ import { cleDuBien, fiche, objetDe, rangerNote } from './modele.js';
 import { identite } from './dossier.js';
 import { proposer } from './ranger.js';
 import { lireConversation } from './whatsapp.js';
+import { ISSUES } from '../prospection/regles.js';
 
 const SOURCE = 'ImportSource';
 const LOT = 'ImportLot';
@@ -129,7 +130,68 @@ export function squelette() {
     if (!existe) compte.agents += 1;
     if (!f.resume) { Records.update('FicheDossier', f.id, { resume: resumeDeLAgent(agent, appel), source: f.source || 'prospection' }); compte.agents_remplis += 1; }
   }
+  compte.appels = historiqueDesAppels();
   return compte;
+}
+
+// ---------------------------------------------------------------------------
+// Les appels sur la fiche de l'agent, sans IA (26 nov. 2026, Jules : « tu peux te servir des appels pour voir quand on a
+// eu un premier contact, ce qu'il s'est passé »). Chaque appel du mode appel a déjà son issue et son résumé : une ligne
+// datée du jour de l'appel, et le premier appel où l'agent a répondu porte « Premier contact ». Les appels qui nomment un
+// bien passent aussi par la lecture d'IA (lancerAppels) pour rejoindre la fiche du bien ; leur ligne sur l'agent vient
+// d'ici, la lecture ne la refait pas (importerTexte, sansEvenementSur).
+// ---------------------------------------------------------------------------
+
+const SANS_CONTACT = new Set(['pas_de_reponse', 'repondeur', 'invalide']);
+const prenomDe = (email) => String(email || '').split('@')[0].split('.')[0].replace(/^./, (x) => x.toUpperCase()) || null;
+
+// Un appel qui n'en est pas un : le résumé du mode appel dit lui-même que l'agent n'a rien dit (un essai de l'outil entre
+// collègues, un enregistrement lancé pour rien ; vu sur les appels d'octobre).
+const APPEL_VIDE = /n'a rien dit|n'appara[iî]t pas dans|d[ée]monstration de l'outil|entre coll[èe]gues|que des consignes internes/i;
+
+/** Pure : les lignes d'historique des appels d'un agent, du plus ancien au plus récent. */
+export function lignesDesAppels(appels, issues = ISSUES) {
+  const tries = (appels || []).filter((a) => a?.le && !a.essai && !APPEL_VIDE.test(String(a.resume || ''))).sort((a, b) => String(a.le).localeCompare(String(b.le)));
+  const premier = tries.find((a) => !SANS_CONTACT.has(a.issue));
+  return tries.map((a) => {
+    const qui = prenomDe(a.par);
+    const issue = issues[a.issue] || null;
+    const resume = SANS_CONTACT.has(a.issue) ? '' : propre(a.resume || a.passe || '', 500);
+    const tete = a === premier ? `Premier contact${qui ? ` (appel de ${qui})` : ''}` : `Appel${qui ? ` de ${qui}` : ''}`;
+    const texte = `${tete}${issue ? ` · ${issue}` : ''}${resume ? ` : ${resume}` : ''}`;
+    return { appel_id: a.id, le: a.le, par: a.par || null, texte, premier: a === premier };
+  });
+}
+
+/**
+ * Écrit les lignes d'appel manquantes sur la fiche de chaque agent appelé (ou du seul `agentId`, à l'ouverture de sa
+ * fiche : un appel d'aujourd'hui y est donc sans relancer l'import) ; relancer n'en double aucune. Rend le compte.
+ */
+export function historiqueDesAppels({ agentId = null } = {}) {
+  const parAgent = new Map();
+  for (const a of agentId ? Records.filter('AppelAgent', { agent_id: agentId }) : Records.list('AppelAgent')) {
+    if (!a.agent_id || a.essai) continue;
+    if (!parAgent.has(a.agent_id)) parAgent.set(a.agent_id, []);
+    parAgent.get(a.agent_id).push(a);
+  }
+  let n = 0;
+  for (const [id, appels] of parAgent) {
+    const agent = Records.get('AgentImmo', id);
+    if (!agent) continue;
+    const cle = `agent:${id}`;
+    if (!Records.findBy('FicheDossier', 'cle', cle)) fiche(cle, { genre: 'agent', nom: agent.nom });
+    for (const l of lignesDesAppels(appels)) {
+      const deja = Records.findBy('EntreeDossier', 'appel_id', l.appel_id);
+      if (deja) {
+        // Le premier contact peut changer (un appel plus ancien arrivé après) : la ligne suit, rien d'autre ne bouge.
+        if (deja.texte !== l.texte && deja.importe) Records.update('EntreeDossier', deja.id, { texte: l.texte });
+        continue;
+      }
+      Records.create('EntreeDossier', { fiche_cle: cle, genre: 'evenement', texte: l.texte, raison: null, note_id: null, par: l.par, le: l.le, ordre: 0, importe: true, source: 'appel', appel_id: l.appel_id });
+      n += 1;
+    }
+  }
+  return n;
 }
 
 /** Les clients de Twenty (en ligne seulement : Twenty est là-bas) ; sans Twenty, rien. */
@@ -156,7 +218,7 @@ export async function clientsDeTwenty() {
  * Une source : un texte (un récap, un compte rendu) ou une conversation WhatsApp exportée. `source` : { genre, de, le,
  * lieu }. `liens` : les fiches qu'on sait déjà (un appel : l'agent) ; sans, elles sont devinées par les noms.
  */
-export async function importerTexte({ texte = '', conversation = null, source, liens = [], cle = null, vous = null }, user, { lire = null } = {}) {
+export async function importerTexte({ texte = '', conversation = null, source, liens = [], cle = null, vous = null, sansEvenementSur = null }, user, { lire = null } = {}) {
   const k = cle || `texte:${empreinte(`${texte}${conversation || ''}`)}`;
   if (dejaImporte(k)) return { ok: true, deja: true };
   let r = await proposer({ texte, liens, conversation, libre: !liens.length, source, vous }, user, { lire });
@@ -169,7 +231,10 @@ export async function importerTexte({ texte = '', conversation = null, source, l
   if (!r.ok) return r;
   const note = Records.get('NoteDossier', r.note_id);
   const fiches = (note?.liens || []).length;
-  const rangee = fiches ? rangerNote(note, {}, user, { maintenant: () => new Date(note.source?.le || note.le) }) : { ok: true, entrees: 0 };
+  // Un appel : sa ligne sur la fiche de l'agent vient déjà de historiqueDesAppels ; la lecture garde le reste (le bien,
+  // le profil de l'agent) sans refaire l'événement.
+  const aRanger = sansEvenementSur && note?.proposition ? { ...note, proposition: { ...note.proposition, fiches: (note.proposition.fiches || []).map((fp) => (fp.cle === sansEvenementSur ? { ...fp, elements: (fp.elements || []).filter((e) => e.genre !== 'evenement') } : fp)) } } : note;
+  const rangee = fiches ? rangerNote(aRanger, {}, user, { maintenant: () => new Date(note.source?.le || note.le) }) : { ok: true, entrees: 0 };
   if (!fiches) Records.update('NoteDossier', note.id, { etat: 'ecartee', ecartee_le: new Date().toISOString() });
   // Les dossiers et les personnes que la source nomme sans qu'on leur trouve de fiche : dits dans le compte rendu du lot,
   // pour les rentrer à la main (un dossier jamais créé dans la plateforme, un agent hors de la Prospection).
@@ -302,7 +367,7 @@ export function lancerAppels(user, { depuis = null } = {}) {
   const taches = appels.map((a) => () => {
     const agent = Records.get('AgentImmo', a.agent_id);
     const texte = [a.resume ? `Résumé de l'appel : ${a.resume}` : null, Array.isArray(a.biens) && a.biens.length ? `Biens évoqués : ${a.biens.join(' ; ')}` : null, typeof a.notes === 'string' ? `Notes : ${a.notes}` : null, typeof a.transcription_gardee === 'string' ? `Transcription : ${a.transcription_gardee}` : typeof a.transcription === 'string' ? `Transcription : ${a.transcription}` : null].filter(Boolean).join('\n\n');
-    return importerTexte({ texte, liens: agent ? [{ cle: `agent:${agent.id}`, genre: 'agent', nom: agent.nom }] : [], source: { genre: 'appel', de: a.par ? String(a.par).split('@')[0] : null, le: a.le, lieu: `appel avec ${a.agent || agent?.nom || "l'agent"}` }, cle: `appel:${a.id}` }, user);
+    return importerTexte({ texte, liens: agent ? [{ cle: `agent:${agent.id}`, genre: 'agent', nom: agent.nom }] : [], sansEvenementSur: agent ? `agent:${agent.id}` : null, source: { genre: 'appel', de: a.par ? String(a.par).split('@')[0] : null, le: a.le, lieu: `appel avec ${a.agent || agent?.nom || "l'agent"}` }, cle: `appel:${a.id}` }, user);
   });
   return lancerLot('appels', `Appels · ${appels.length}`, taches, user);
 }

@@ -223,6 +223,9 @@ export function monterFicheDossier(app) {
       const f = m.fiche(cle, { nom: propre, genre });
       if (!f.nom || ['Fiche du CRM', 'Sans nom'].includes(f.nom)) Records.update('FicheDossier', f.id, { nom: propre });
     }
+    // Les appels du mode appel sur la fiche de l'agent, sans IA (26 nov. 2026, Jules : « quand on a eu un premier contact,
+    // ce qu'il s'est passé ») : ceux d'aujourd'hui compris, sans attendre un import.
+    if (cle.startsWith('agent:')) (await import('../fiche-dossier/import.js')).historiqueDesAppels({ agentId: cle.slice(6) });
     const v = m.ficheVue(cle);
     if (!v) return res.status(404).json({ error: 'Fiche introuvable.' });
     // Une fiche ouverte devient une fiche récente de la personne (la pastille « Fiches » de l'accueil).

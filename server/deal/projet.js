@@ -93,7 +93,9 @@ const FAITS_DU_SIMULATEUR = [
   ['taxeFonciere', ['sim_taxe_fonciere']], ['chargesCopropriete', ['sim_charges_copropriete']], ['loyerSoumisTVA', ['sim_loyer_soumis_tva']],
   ['chargesCoproRefacturables', ['sim_charges_refacturable']], ['taxeFonciereRefacturable', ['sim_taxe_refacturable']],
 ];
-export function simulateurDuDossier(sim = {}) {
+export function simulateurDuDossier(simDonne = {}) {
+  // Un dossier sans simulateur enregistré passe null (26 nov. 2026 : « Créer le projet » cassait en production).
+  const sim = simDonne || {};
   const sortie = { sim_commission_agent_active: true }; // Honoraires toujours comptés dans le simulateur du dossier.
   for (const [cle, champ] of REGLAGES_DU_SIMULATEUR) if (sim[cle] != null) sortie[champ] = sim[cle];
   if (sim.revalorisationActive != null) {
@@ -115,14 +117,15 @@ export function simulateurDuDossier(sim = {}) {
 // Les travaux joués dans le simulateur du dossier, rangés par année comme dans le formulaire du projet (20 ans). Tous à
 // zéro, le montant 1 à 0 dit « retirés » : sans lui, travauxDuProjet reprendrait ceux par défaut.
 export function travauxDuDossier(sim = {}) {
-  if (!Array.isArray(sim.travauxBailleur)) return travauxParDefautDuProjet();
+  if (!Array.isArray(sim?.travauxBailleur)) return travauxParDefautDuProjet();
   const sortie = { sim_travaux_montant1: 0 };
   sim.travauxBailleur.slice(0, 20).forEach((montant, i) => { if (Number(montant) > 0) Object.assign(sortie, { [`sim_travaux_annee${i + 1}`]: i + 1, [`sim_travaux_montant${i + 1}`]: Number(montant) }); });
   return sortie;
 }
 
 // L'apport enregistré, sinon celui que l'écran montre : 15 % du prix de revient, pas du prix FAI.
-function apportDuSimulateur(champs, sim = {}) {
+function apportDuSimulateur(champs, simDonne = {}) {
+  const sim = simDonne || {};
   if (Number(sim.apport) > 0) return Number(sim.apport);
   try {
     const revient = calculerTableauAnnuel({ ...parametresDuProjet(champs), apport: 0 }).prixRevient;

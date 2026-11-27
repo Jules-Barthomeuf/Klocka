@@ -6,6 +6,8 @@
 const GESTES = {
   'geste:creer-projet': { nom: 'Créer un projet', consigne: "Crée le projet de la plateforme depuis le dossier dont elle parle (trouver_bien, puis creer_projet_depuis_dossier) et donne son lien. Sans dossier pour ce bien, dis-le et demande la fiche." },
   'geste:mail': { nom: 'Drafter un email', consigne: "Rédige le mail qu'elle demande : à un agent pour un dossier (mail_agent), sinon un mail libre (mail_libre). C'est un brouillon à relire : rien ne part sans son accord." },
+  // La passation avant une absence (27 nov. 2026, Jules, sur le brief de Nora à Maxime : « ajoute un mode dans le chat »).
+  'geste:passation': { nom: 'Préparer ma passation', consigne: "Elle part, ou elle rentre. Si elle part : appelle preparer_passation (dans suivi : action passation), puis rends ses fiches une par une en deux lignes (où on en est ; ses actions, numérotées), sans recopier les résumés. Demande ensuite, en une seule question : à qui passer, ses dates, et ce qui n'est écrit nulle part (ce qu'un agent a dit, une consigne, un fichier à reprendre). Ce qu'elle répond se range : un fait sur une fiche va dans ajouts (dans ses mots, jamais résumé), une chose à faire qui n'existe pas dans nouvelles. Rien ne passe avant son « ok » : alors passer_a (suivi : action passer_a). Si elle rentre (« je suis rentrée », « qu'est-ce qui a bougé ») : retour_passation (suivi : action retour_passation)." },
   'geste:drive': { nom: 'Créer un dossier Drive', consigne: "Crée le dossier Drive du bien dont elle parle (creer_drive_dossier, après trouver_bien) ; s'il existe déjà, l'outil n'en crée pas un second et y dépose les pièces de la Data Room qui manquent : dis combien sont parties et combien y étaient déjà." },
 };
 

@@ -2433,7 +2433,9 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     }
     // Une note liée : l'assistant la lit pour la ranger. Les liens s'effacent après l'envoi, pour qu'une note suivante
     // sur un autre dossier ne parte pas sur celui-ci.
-    if (lienNote && liensNote.length && !mode) {
+    // La passation (27 nov. 2026) : ce qu'elle ajoute reste dans la conversation, l'assistant le range lui-même au « ok ».
+    const enPassation = reglagesRef.current?.competence?.cle === "geste:passation";
+    if (lienNote && liensNote.length && !mode && !enPassation) {
       pousser({ role: "user", contenu: t, liens: liensNote });
       setTexte("");
       setSuites([]);
@@ -2454,7 +2456,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     // que ce qui en parle et demande quand il ne sait pas ; une vraie demande (une question, « fais la LOI ») repart au chat.
     const lignes = t.split(/\n/).filter((l) => l.trim()).length;
     const ecrire = /^\s*(r[ée]ponds?\b|fais(-lui)? (le|un) (mail|message|whatsapp)|[ée]cris(-lui)? (à|a|un)\b|pr[ée]pare (le|un) (mail|message))/i.test(t);
-    if (lienNote && !mode && !jointes.length && !mandataire && (t.length >= 220 || lignes >= 3 || ecrire)) {
+    if (lienNote && !mode && !enPassation && !jointes.length && !mandataire && (t.length >= 220 || lignes >= 3 || ecrire)) {
       pousser({ role: "user", contenu: t });
       setTexte("");
       setSuites([]);

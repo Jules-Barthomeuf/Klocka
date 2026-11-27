@@ -87,7 +87,8 @@ export default function AdminDashboardView() {
   const choisirCompetence = useCallback((c, eteintesDepart = []) => {
     setCompetence(c || null);
     setEteintes(c ? eteintesDepart : []);
-    if (c) setSortie("produire");
+    // La passation n'est pas un livrable : elle se discute, puis passe au « ok » (27 nov. 2026).
+    if (c) setSortie(c.cle === "geste:passation" ? "repondre" : "produire");
   }, []);
   // Plus de bascule Répondre / Produire dans la saisie (19 nov. 2026, Jules) : l'icône lien prend sa place ; une
   // compétence choisie passe toujours en « produire ».

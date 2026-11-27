@@ -442,6 +442,29 @@ const OUTILS_AK = [
     description: "Ouvre À L'ÉCRAN la fiche Klocka d'une personne ou d'un bien (un client, un agent, un dossier) : celle que remplissent les notes, les appels et les groupes WhatsApp importés (résumé, avancement, historique, personnes). À utiliser dès qu'on dit « ouvre / montre / affiche la fiche de X », avant tout autre outil. La fiche s'ouvre d'elle-même à côté du chat : réponds en une phrase (« Voici la fiche de Rachel Peyrabout. »), sans recopier son contenu ni ce que dit Twenty CRM. Plusieurs fiches possibles : nomme-les et demande laquelle. Aucune : dis-le, sans chercher ailleurs.",
     input_schema: { type: 'object', properties: { nom: { type: 'string', description: 'le nom tel que dit : une personne, une agence, un bien (« Rachel Peyrabout », « MACSF Lorient »)' }, genre: { type: 'string', enum: ['client', 'agent', 'bien'], description: 'si la demande le dit' } }, required: ['nom'] },
   },
+  // La passation avant une absence (27 nov. 2026, Jules : le raccourci « Préparer ma passation » du chat).
+  {
+    name: 'preparer_passation',
+    description: "Avant une absence : les fiches de la personne qui parle (celles qu'elle a touchées ces trois semaines, celles où elle a une action ouverte), chacune avec où on en est, sa dernière ligne d'historique et ses actions ouvertes. À utiliser quand elle dit qu'elle part (« je pars du 2 au 9, passe à Maxime ») ou choisit « Préparer ma passation ». Rends la passation fiche par fiche, courte, ses actions numérotées, puis demande ce qui n'est écrit nulle part et à qui passer ; rien ne passe avant son accord.",
+    input_schema: { type: 'object', properties: { jours: { type: 'integer', minimum: 7, maximum: 60, description: 'combien de jours regarder en arrière (21 par défaut)' } } },
+  },
+  {
+    name: 'passer_a',
+    description: "Fait la passation, après l'accord de la personne : ses actions choisies passent au collègue (actions : leurs identifiants ; toutes : toutes), ce qu'elle a ajouté de vive voix va sur les fiches (ajouts : [{ fiche, texte }], le texte dans ses mots), ce qu'il faudra faire et qui n'existait pas devient une action du collègue (nouvelles : [{ titre, fiche, echeance }]). La passation est gardée pour son retour. Réponds en une phrase : combien d'actions passées à qui.",
+    input_schema: { type: 'object', properties: {
+      vers: { type: 'string', description: 'le prénom du collègue, ou son adresse' },
+      du: { type: 'string', description: "premier jour d'absence, AAAA-MM-JJ" }, au: { type: 'string', description: "dernier jour d'absence, AAAA-MM-JJ" },
+      actions: { type: 'array', items: { type: 'string' } }, toutes: { type: 'boolean' },
+      ajouts: { type: 'array', items: { type: 'object', properties: { fiche: { type: 'string' }, texte: { type: 'string' } }, required: ['texte'] } },
+      nouvelles: { type: 'array', items: { type: 'object', properties: { titre: { type: 'string' }, fiche: { type: 'string' }, echeance: { type: 'string' } }, required: ['titre'] } },
+      mot: { type: 'string', description: 'un mot pour le collègue, facultatif' },
+    }, required: ['vers'] },
+  },
+  {
+    name: 'retour_passation',
+    description: "Au retour d'une absence : ce qui a bougé sur les fiches de sa dernière passation (les lignes écrites par les autres depuis), les actions passées faites et celles encore ouvertes. À utiliser pour « qu'est-ce qui a bougé ? », « je suis rentrée », « fais-moi le point ». Rends-le fiche par fiche, court, ce qui reste à faire en dernier.",
+    input_schema: { type: 'object', properties: {} },
+  },
   {
     name: 'lire_entite',
     description: "Lit une fiche entière de la plateforme, tous ses champs, en lecture seule : un dossier (par deal_id), un projet, une présentation, une LOI, un agent, une agence, une liste d'agences, une prospection, un commerce off-market, une relance, un dossier ou un propriétaire de mandataire. À utiliser quand l'outil métier ne montre pas le champ cherché (une échéance, un champ du simulateur, l'historique d'une fiche), ou pour vérifier avant d'affirmer. Pas pour chercher : il faut l'identifiant (chercher_entites, trouver_bien ou un autre outil le donne). Rend la fiche nettoyée (secrets retirés, textes très longs raccourcis) ; lis-la avec le modèle de données de la consigne.",
@@ -1270,6 +1293,13 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   if (name === 'repondre_portefeuille') {
     const { repondrePortefeuille } = await import('../haka/compte-rendu-transfert.js');
     return repondrePortefeuille(input || {}, user);
+  }
+  if (name === 'preparer_passation' || name === 'passer_a' || name === 'retour_passation') {
+    if (user?.role !== 'admin') return { ok: false, error: "La passation est réservée à l'équipe." };
+    const P = await import('../fiche-dossier/passation.js');
+    if (name === 'preparer_passation') return P.preparer(user, { jours: input?.jours || 21 });
+    if (name === 'passer_a') return P.passer(user, input || {});
+    return P.retour(user);
   }
   if (name === 'ouvrir_fiche') {
     const { ficheAOuvrir } = await import('../fiche-dossier/ouvrir.js');

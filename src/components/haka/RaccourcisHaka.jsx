@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, FileSearch, FileSignature, FolderOpen, Landmark, Mail, Plus, Sparkles } from "lucide-react";
+import { ArrowRightLeft, Building2, FileSearch, FileSignature, FolderOpen, Landmark, Mail, Plus, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 // Les raccourcis sous la saisie de l'Accueil (17 oct. 2026, Jules) : les compétences actives
@@ -24,6 +24,8 @@ const D_ABORD = ["pre-analyse-fiche", "data-room", "loi", "presentation-bancaire
 // Le chat sait toujours les faire si on le lui demande.
 const GESTES = [
   { cle: "geste:mail", nom: "Drafter un email", icone: Mail, outils: [] },
+  // La passation avant une absence (27 nov. 2026, Jules : « ajoute un mode dans le chat »).
+  { cle: "geste:passation", nom: "Préparer ma passation", icone: ArrowRightLeft, outils: [], gabarit: "Je pars du [date] au [date], passe mes dossiers à [prénom]." },
 ];
 // Les mots des raccourcis (25 nov. 2026, Jules : « mets Préparer une offre, Pré-analyser une fiche ») : ils l'emportent
 // sur le nom de la compétence publiée.

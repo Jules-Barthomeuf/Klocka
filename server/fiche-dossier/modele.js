@@ -567,7 +567,7 @@ export function prevuesDes(liens = [], { limite = 12 } = {}) {
 // ---------------------------------------------------------------------------
 
 /** Les actions ouvertes d'une fiche, la plus urgente d'abord (sans date en dernier). */
-const actionsDe = (cle) => Records.list('ActionDossier').filter((a) => (a.fiches || []).includes(cle));
+export const actionsDe = (cle) => Records.list('ActionDossier').filter((a) => (a.fiches || []).includes(cle));
 const parEcheance = (a, b) => String(a.echeance || '9999').localeCompare(String(b.echeance || '9999'));
 
 /**

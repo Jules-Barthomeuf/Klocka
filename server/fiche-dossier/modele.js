@@ -212,6 +212,19 @@ export function relier(avant = []) {
  * Range la note validée. `garde` liste les ids des éléments gardés (tous si absent) ; `modifs` change une action
  * (titre, échéance, qui, texte du message) ; `reponses` sont les réponses aux questions, rangées en précisions.
  */
+/**
+ * Une fiche travaillée à la main : relue (« OK, c'est relu »), touchée par une note rangée avec son OK, ou portant une
+ * note écrite dans son onglet Notes. Un import n'y réécrit plus rien (27 nov. 2026, Jules).
+ */
+export function aLaMain(f) {
+  if (!f) return false;
+  if (f.relue_le || f.maj_humain) return true;
+  // Une note tapée dans l'onglet Notes (sans note d'origine ni source), une passation, une photo posée à la main.
+  if (Records.filter('EntreeDossier', { fiche_cle: f.cle }).some((e) => e.source === 'passation' || (!e.note_id && e.par && !e.source && !e.importe))) return true;
+  if (Records.filter('PhotoFiche', { cle: f.cle }).some((p) => p.par)) return true;
+  return Records.filter('NoteDossier', { etat: 'rangee' }).some((n) => !n.importe && (n.liens || []).some((l) => l?.cle === f.cle));
+}
+
 export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = {}, user = null, { maintenant = () => new Date() } = {}) {
   if (!note || note.etat !== 'proposee') return { ok: false, error: note ? 'Cette note est déjà rangée.' : 'Note introuvable.' };
   const p = note.proposition || {};
@@ -245,6 +258,16 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
       touchee = true;
     }
     const patch = {};
+    // Une fiche déjà travaillée à la main (27 nov. 2026, Jules : « juste rajoute, ne modifie rien de ce que j'ai fait ») :
+    // un import, rangé sans OK, n'y ajoute que des lignes ; son résumé, son étape, « Comment lui parler », son blocage et
+    // son vendeur restent tels quels. Une note dite par quelqu'un, rangée par son OK, les met à jour comme avant.
+    if (note.importe && aLaMain(f)) {
+      if (touchee) {
+        Records.update('FicheDossier', f.id, { a_relire: true, a_relire_par: f.a_relire_par || relecteurDe(lien.cle), maj_le: le, maj_par: par, maj_auto: true });
+        creees.fiches.push(lien.cle);
+      }
+      continue;
+    }
     if (fp.etape && garder(`${fp.id}-etape`) && (fp.etape !== f.etape || (fp.etat || null) !== (f.etat || null))) {
       patch.etape = fp.etape;
       patch.etat = fp.etat || null;
@@ -260,7 +283,7 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
     // de son analyste ; ses lignes portent l'étiquette « importé » jusque-là.
     if (note.importe && (touchee || Object.keys(patch).length)) { patch.a_relire = true; patch.a_relire_par = relecteurDe(lien.cle); }
     if (touchee || Object.keys(patch).length) {
-      Records.update('FicheDossier', f.id, { ...patch, maj_le: le, maj_par: par });
+      Records.update('FicheDossier', f.id, { ...patch, maj_le: le, maj_par: par, ...(note.importe ? { maj_auto: true } : { maj_humain: le }) });
       creees.fiches.push(lien.cle);
     }
   }
@@ -862,6 +885,7 @@ export function noterSurLaFiche(cle, texte, user, { maintenant = new Date() } = 
   if (!t) return { ok: false, error: 'La note est vide.' };
   if (!Records.findBy('FicheDossier', 'cle', c) && !objetDe(c)) return { ok: false, error: 'Fiche introuvable.' };
   const e = Records.create('EntreeDossier', { fiche_cle: c, genre: 'ressenti', texte: t, note_id: null, par: user?.email || null, le: maintenant.toISOString() });
+  { const fm = Records.findBy('FicheDossier', 'cle', c); if (fm) Records.update('FicheDossier', fm.id, { maj_humain: maintenant.toISOString() }); }
   return { ok: true, note: { id: e.id, texte: e.texte, le: e.le, par: prenomDe(e.par), rangee: false } };
 }
 

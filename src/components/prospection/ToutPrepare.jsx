@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Check, X } from "lucide-react";
 
@@ -8,13 +8,32 @@ import { Check, X } from "lucide-react";
 // le récapitulatif, chaque ligne cochée à 0,3 s d'écart (le cercle se
 // remplit, le nom passe du gris au blanc) ; enfin le bouton qui enchaîne.
 // Blanc et gris, sans couleur d'accent.
+// Il enchaîne seul (26 nov. 2026, Jules : « passer direct au lieu de cliquer ») : une fois la dernière ligne cochée,
+// moins d'une seconde pour lire, et l'appel suivant s'ouvre ; le bouton se remplit pendant ce temps et passe tout de
+// suite au clic (ou Entrée). Une ligne en échec attend le clic : elle doit être lue.
+
+/** Pure : dans combien de millisecondes l'écran enchaîne seul, ou null quand une ligne en échec doit être lue. */
+export function delaiEnchainement(lignes = []) {
+  if (lignes.some((l) => l.echec)) return null;
+  return Math.round((Math.max(3.1, 1.8 + lignes.length * 0.3) + 0.9) * 1000);
+}
 
 export default function ToutPrepare({ phrase, lignes = [], onSuivant, libelle = "Appel suivant →" }) {
+  const parti = useRef(false);
+  const suivantRef = useRef(onSuivant);
+  suivantRef.current = onSuivant;
+  const partir = () => { if (parti.current) return; parti.current = true; suivantRef.current?.(); };
+  const delai = delaiEnchainement(lignes);
   useEffect(() => {
-    const f = (e) => { if (e.key === "Enter" || e.key === "Escape") onSuivant(); };
+    const f = (e) => { if (e.key === "Enter" || e.key === "Escape") partir(); };
     window.addEventListener("keydown", f);
     return () => window.removeEventListener("keydown", f);
-  }, [onSuivant]);
+  }, []);
+  useEffect(() => {
+    if (delai == null) return undefined;
+    const t = setTimeout(partir, delai);
+    return () => clearTimeout(t);
+  }, [delai]);
   return createPortal(
     <div className="fixed inset-0 z-[85] flex items-center justify-center bg-fond/70 p-6 backdrop-blur-xl duration-300 animate-in fade-in-0 md:left-[var(--k-barre-largeur,0px)] max-md:p-3" role="dialog" aria-modal="true" aria-label="Tout préparé">
       <div className="flex w-full max-w-[620px] flex-col items-center rounded-[28px] border border-trait bg-fond px-10 pb-9 pt-12 shadow-[0_18px_40px_rgb(0_0_0/0.18)] max-md:px-5">
@@ -33,7 +52,10 @@ export default function ToutPrepare({ phrase, lignes = [], onSuivant, libelle = 
             ))}
           </div>
         )}
-        <button type="button" onClick={onSuivant} autoFocus className="k-monte mt-9 h-14 rounded-full bg-encre px-9 text-[17px] text-fond hover:opacity-90" style={{ animationDelay: "3.1s" }}>{libelle}</button>
+        <button type="button" onClick={partir} autoFocus className="k-monte relative mt-9 h-14 overflow-hidden rounded-full bg-encre px-9 text-[17px] text-fond hover:opacity-90" style={{ animationDelay: "3.1s" }}>
+          {delai != null && <span aria-hidden className="k-remplit absolute inset-y-0 left-0 bg-fond/20" style={{ animationDelay: "3.1s", animationDuration: `${delai - 3100}ms` }} />}
+          <span className="relative">{libelle}</span>
+        </button>
       </div>
     </div>,
     document.body,

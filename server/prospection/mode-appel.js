@@ -1227,7 +1227,8 @@ async function validerUneFois({ appel_id, sans_twenty = false, passe = null, cho
     }
   }
 
-  // Le mail : il part dix secondes après la validation, pour que « Annuler » puisse le retenir.
+  // Le mail part dès la validation (26 nov. 2026, Jules : « pas besoin de faire attendre 10 secondes pour le mail ») ;
+  // avant, il attendait la fin des dix secondes d'« Annuler », qui défait encore Twenty CRM et la liste.
   let mailRecu = null;
   let mailId = null;
   const pm = action('mail');
@@ -1237,11 +1238,11 @@ async function validerUneFois({ appel_id, sans_twenty = false, passe = null, cho
     if (!m.a) mailRecu = { etat: 'echec', texte: "Mail non parti : il manque l'adresse" };
     else {
       const sansBoite = !essai && !(await boiteDEnvoi(moi));
-      const cree = mettreEnAttente({ genre: 'agent', signature_auto: true, sous_genre: pm.modele, agent_id: appel.agent_id, nom: a?.nom, agence: a?.agence, a: m.a, objet: m.objet, corps: m.corps, appel_id, modele: pm.modele, etat: essai ? 'pret' : sansBoite ? 'brouillon' : 'differe', partir_le: new Date(maintenantD.getTime() + DELAI_ANNULER_MS).toISOString(), ...(essai ? { essai: true } : {}) });
+      const cree = mettreEnAttente({ genre: 'agent', signature_auto: true, sous_genre: pm.modele, agent_id: appel.agent_id, nom: a?.nom, agence: a?.agence, a: m.a, objet: m.objet, corps: m.corps, appel_id, modele: pm.modele, etat: essai ? 'pret' : sansBoite ? 'brouillon' : 'differe', partir_le: maintenantD.toISOString(), ...(essai ? { essai: true } : {}) });
       mailId = cree.id;
       if (essai) mailRecu = { etat: 'info', texte: `Essai : le mail à ${m.a} est prêt, il ne part pas`, mail_id: cree.id };
       else if (sansBoite) mailRecu = { etat: 'brouillon', texte: 'Aucune boîte connectée : ouvrez le brouillon pour l\'envoyer', mail_id: cree.id, mailto: mailtoDe(m, user) };
-      else mailRecu = { etat: 'attente', texte: `Mail à ${m.a} : part dans 10 secondes`, mail_id: cree.id };
+      else mailRecu = { etat: 'attente', texte: `Mail à ${m.a} : en cours d'envoi`, mail_id: cree.id };
       if (mailRecu) mailRecu.detail = { a: m.a, objet: m.objet, corps: m.corps };
     }
   }
@@ -1302,7 +1303,7 @@ async function validerUneFois({ appel_id, sans_twenty = false, passe = null, cho
   const relance = a?.prochaine?.le ? { etat: 'ok', texte: `Relance ${jourLong(a.prochaine.le)}${a.prochaine.moment ? `, ${a.prochaine.moment}` : ''}${a.prochaine.si_fiche ? ', si la fiche n\'est pas arrivée' : ''}${suivantes ? ` ; ${suivantes}` : ''}` } : issueTapee === 'pas_interesse' ? { etat: 'ok', texte: 'Ne plus appeler : aucune relance' } : null;
   const recu = { monday, mail: mailRecu, diffusion, relance, extras, le: maintenantD.toISOString(), cle: cle || null, annulable_jusqu: new Date(maintenantD.getTime() + DELAI_ANNULER_MS).toISOString() };
   Records.update(APPEL, appel_id, { recu, validation_cle: cle || null, issue_tapee: issueTapee, annuler: { fiche: ficheAvant, agence: agenceAvant, ecriture, diffusion: diffusion?.annuler || null, mail_id: mailId } });
-  if (mailId && mailRecu?.etat === 'attente') setTimeout(() => { envoyerMailDiffere(appel_id).catch(() => {}); }, DELAI_ANNULER_MS + 300).unref?.();
+  if (mailId && mailRecu?.etat === 'attente') setTimeout(() => { envoyerMailDiffere(appel_id).catch(() => {}); }, 0).unref?.();
   liberer(agenceId, moi);
   noterDansSession(session_id || appel.session_id, { appel_id, agence_id: agenceId, issue: issueTapee, le: maintenant() });
   // L'Intelligence (14 oct. 2026) : la transcription de l'appel validé y entre, sans geste de l'analyste.
@@ -1533,7 +1534,7 @@ export async function reessayerAttentes({ max = 20 } = {}) {
   }
   // Les anciennes attentes (avant le 7 oct.) n'ont pas de quoi se rejouer : elles se ferment.
   for (const x of Records.list(ATTENTE).filter((y) => !y.fait_le && !y.donnees)) Records.update(ATTENTE, x.id, { fait_le: maintenant(), obsolete: true });
-  const tard = new Date(Date.now() - DELAI_ANNULER_MS - 5000).toISOString();
+  const tard = new Date(Date.now() - 15000).toISOString();
   for (const m of Records.list('ProspectionMail').filter((y) => y.etat === 'differe' && String(y.partir_le || '') < tard && y.appel_id)) await envoyerMailDiffere(m.appel_id).catch(() => {});
   return { essayes: enAttente.length, faits };
 }

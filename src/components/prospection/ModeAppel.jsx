@@ -1770,12 +1770,13 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   // On ne retient pas l'analyste plus de six secondes après la fenêtre d'annulation (16 oct. 2026) : le mail finit de partir seul.
   const [envoiLong, setEnvoiLong] = useState(false);
   // Vingt secondes pour savoir s'il est parti (six avant le 24 nov. 2026 : on passait à la suite sans le savoir).
-  useEffect(() => { setEnvoiLong(false); if (annulerDans > 0 || !recu) return undefined; const t = setTimeout(() => setEnvoiLong(true), 20000); return () => clearTimeout(t); }, [annulerDans > 0, !!recu]);
-  const mailEnRoute = r?.mail?.etat === "attente" && /part dans/.test(r.mail.texte || "") && !envoiLong;
-  // Dix secondes, puis « Tout est préparé ! » (8 oct. 2026), puis la suivante ; un brouillon à ouvrir ou une ligne à choisir attendent un geste.
+  // Le mail part dès la validation (26 nov. 2026) : on n'attend plus les dix secondes d'« Annuler », seulement de le savoir parti.
+  useEffect(() => { setEnvoiLong(false); if (!recu) return undefined; const t = setTimeout(() => setEnvoiLong(true), 20000); return () => clearTimeout(t); }, [!!recu]);
+  const mailEnRoute = r?.mail?.etat === "attente" && /part dans|en cours d'envoi/.test(r.mail.texte || "") && !envoiLong;
+  // Le mail parti, « Tout est préparé ! » (8 oct. 2026 ; sans les dix secondes depuis le 26 nov.), puis la suivante ; un brouillon à ouvrir ou une ligne à choisir attendent un geste.
   const [bilan, setBilan] = useState("");
   useEffect(() => {
-    if (!(ecran === "recu" || (ecran === "actions" && recu)) || annulerDans > 0 || !r || aFaire || mailEnRoute || annuler.isPending) return;
+    if (!(ecran === "recu" || (ecran === "actions" && recu)) || !r || aFaire || mailEnRoute || annuler.isPending) return;
     clearInterval(compte.current);
     const ok = [r.monday, r.mail, r.diffusion, r.relance].filter(Boolean);
     setBilan(ok.map((x) => x.texte).join(" · "));

@@ -32,11 +32,14 @@ test("l'activité : connexions dans l'historique une fois chacune, dossiers et s
   assert.equal(a.statut, 'actif');
   assert.match(a.phrase, /^Actif : Dernière connexion il y a 2 jours ; 1 connexion en 30 jours/);
   assert.deepEqual(a.regardes.map((x) => [x.nom, x.temps]), [['KFC Lyon', '8 min'], ['le simulateur', '3 min']]);
-  const lignes = Records.filter('EntreeDossier', { fiche_cle: f.cle }).filter((e) => e.session_cle);
+  const toutes = Records.filter('EntreeDossier', { fiche_cle: f.cle }).filter((e) => e.session_cle);
+  // Le compte créé sur la plateforme, une ligne datée de sa création (27 nov. 2026, Jules : « quand ils ont été rentrés »).
+  assert.deepEqual(toutes.filter((e) => e.session_cle.startsWith('compte:')).map((e) => e.texte), ['Compte créé sur la plateforme']);
+  const lignes = toutes.filter((e) => !e.session_cle.startsWith('compte:'));
   assert.equal(lignes.length, 1);
   assert.match(lignes[0].texte, /^Connecté \d+ min sur la plateforme : le dossier « KFC Lyon » \(8 min\), le simulateur \(3 min\)$/);
   await A.activiteDuClient(Records.get('FicheDossier', f.id), { maintenant });
-  assert.equal(Records.filter('EntreeDossier', { fiche_cle: f.cle }).filter((e) => e.session_cle).length, 1, 'relue, la fiche ne double rien');
+  assert.equal(Records.filter('EntreeDossier', { fiche_cle: f.cle }).filter((e) => e.session_cle).length, 2, 'relue, la fiche ne double rien');
   assert.equal(Records.get('EntreeDossier', deJules.id).texte, 'Pressé, veut signer avant Noël.');
 
   assert.deepEqual(a.presentes.map((p) => [p.nom, p.ouvert]), [['KFC Lyon', true], ['Boulangerie Nîmes', false]]);

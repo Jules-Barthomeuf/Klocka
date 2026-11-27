@@ -46,6 +46,46 @@ export function resumeClient(c) {
 
 /** Une fiche par client de Twenty, son résumé posé si la fiche n'en a pas encore. */
 // Sans date de mise à jour : reprise de Twenty, la fiche n'a pas encore été travaillée et ne passe pas pour récente.
+// Quand le client est entré (27 nov. 2026, Jules : « ajoute dans les fiches quand ils ont été rentrés ») : la date de Monday
+// gardée dans Twenty (mondayCreeLe), sinon sa création dans Twenty ; Twenty a repris tout Monday le 27 oct. 2026, sa date
+// seule le dirait entré ce jour-là. D'où il vient, quand la source est claire, et qui le suit.
+const SOURCES = { WEBI: 'le webinaire', LINKEDIN: 'LinkedIn', PARRAIN: 'un parrainage', 'GROUPE FB': 'le groupe Facebook', MAIL: 'un mail', INSTAGRAM: 'Instagram' };
+
+/** Pure : la ligne d'entrée d'un client de Twenty, ou null sans date. */
+export function entreeDuClient(c) {
+  const le = [c?.mondayCreeLe, c?.createdAt].find((d) => d && !Number.isNaN(Date.parse(d)));
+  if (!le) return null;
+  const venu = SOURCES[String(c.source || '').toUpperCase()] || null;
+  const suivi = typeof c.personnes === 'string' && c.personnes.trim() ? c.personnes.trim() : null;
+  return { le: new Date(le).toISOString(), texte: `Entré dans le CRM${venu ? `, venu par ${venu}` : ''}${suivi ? ` ; suivi par ${suivi}` : ''}` };
+}
+
+/** Écrit la date d'entrée sur la fiche et sa ligne dans l'historique, une fois. Rend true si quelque chose est écrit. */
+export function poserEntree(f, c) {
+  const e = entreeDuClient(c);
+  if (!f || !e) return false;
+  let ecrit = false;
+  if (!f.entre_le) { Records.update('FicheDossier', f.id, { entre_le: e.le }); ecrit = true; }
+  const k = `entree:${f.cle}`;
+  if (!Records.findBy('EntreeDossier', 'entree_cle', k)) {
+    Records.create('EntreeDossier', { fiche_cle: f.cle, genre: 'evenement', texte: e.texte, raison: null, note_id: null, par: null, le: e.le, ordre: 0, source: 'twenty', entree_cle: k });
+    ecrit = true;
+  }
+  return ecrit;
+}
+
+/** À l'ouverture d'une fiche client qui n'a pas encore sa date : relue dans Twenty, une fois par jour au plus. */
+export async function entreeALOuverture(f, { maintenant = new Date() } = {}) {
+  if (!f || f.genre !== 'client' || f.entre_le || process.env.NODE_TEST_CONTEXT) return false;
+  if (!String(f.cle || '').startsWith('twenty:clients:')) return false;
+  if (f.entree_cherchee_le && maintenant.getTime() - Date.parse(f.entree_cherchee_le) < 86400000) return false;
+  const { lire, twentyConfigure } = await import('../twenty.js');
+  if (!twentyConfigure()) return false;
+  Records.update('FicheDossier', f.id, { entree_cherchee_le: maintenant.toISOString() });
+  const c = await lire('clientsListe', f.cle.slice('twenty:clients:'.length));
+  return poserEntree(Records.get('FicheDossier', f.id), c);
+}
+
 export function remplirClients(clients) {
   const compte = { creees: 0, remplies: 0, gardees: 0 };
   for (const c of clients) {
@@ -60,6 +100,7 @@ export function remplirClients(clients) {
       Records.update('FicheDossier', f.id, { resume });
       compte.remplies += 1;
     } else compte.gardees += 1;
+    if (poserEntree(Records.findBy('FicheDossier', 'cle', cle), c)) compte.entrees = (compte.entrees || 0) + 1;
   }
   return compte;
 }

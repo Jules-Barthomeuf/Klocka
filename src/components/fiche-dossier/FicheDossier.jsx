@@ -237,7 +237,9 @@ export function FicheVue({ cle, noteId: noteDuChat = null, nomDefaut = null, crm
   // Une personne : « Agent · 1 dossier en cours » sous son nom, ses initiales au-dessus (20 nov. 2026, Jules, maquette).
   const enCours = f.liees.filter((l) => l.genre === "bien").length;
   const sous = bien ? [id.ville, GENRE_LISIBLE[f.genre]].filter(Boolean).join(" · ")
-    : [f.genre === "agent" ? "Agent" : "Client", f.detail && f.detail !== "Twenty CRM" ? f.detail : f.envois?.contact?.agence || null, enCours ? `${enCours} dossier${enCours > 1 ? "s" : ""} en cours` : null].filter(Boolean).join(" · ");
+    : [f.genre === "agent" ? "Agent" : "Client", f.detail && f.detail !== "Twenty CRM" ? f.detail : f.envois?.contact?.agence || null, enCours ? `${enCours} dossier${enCours > 1 ? "s" : ""} en cours` : null,
+      // Depuis quand il est client (27 nov. 2026, Jules : « quand ils ont été rentrés ») : la date de Monday gardée dans Twenty.
+      f.entre_le ? `client depuis ${new Date(f.entre_le).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "Europe/Paris" })}` : null].filter(Boolean).join(" · ");
 
   return (
     <div className="flex min-h-0 flex-auto flex-col">

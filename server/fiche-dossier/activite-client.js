@@ -142,6 +142,11 @@ export async function activiteDuClient(f, { maintenant = new Date(), twenty = tr
   const { pages, battements } = traces(u.email);
   const sessions = decouperSessions(pages, battements);
   const projets = titresDesProjets();
+  // Son compte créé sur la plateforme (27 nov. 2026, Jules : « quand ils ont été rentrés »), une ligne datée, une fois.
+  const kc = `compte:${bas(u.email)}`;
+  if (u.created_date && !Records.findBy('EntreeDossier', 'session_cle', kc)) {
+    Records.create('EntreeDossier', { fiche_cle: f.cle, genre: 'evenement', texte: 'Compte créé sur la plateforme', raison: null, note_id: null, par: null, le: u.created_date, ordre: 0, source: 'plateforme', session_cle: kc });
+  }
   // Les connexions terminées (plus de 30 minutes sans page) entrent dans l'historique, une fois chacune.
   const finies = sessions.filter((s) => maintenant.getTime() - Date.parse(s.fin) > PAUSE).slice(-60);
   for (const s of finies) {

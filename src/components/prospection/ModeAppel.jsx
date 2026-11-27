@@ -1899,6 +1899,12 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
 
             {/* Chaque écran entre en fondu, avec une légère montée (8 oct. 2026) : la clé change, l'animation rejoue. */}
             <div key={ecran === "analyse" && appel ? "actions" : ecran} className="flex flex-col gap-4 duration-500 ease-out animate-in fade-in-0 slide-in-from-bottom-2">
+            {/* Ma session en haut (27 nov. 2026, Jules : « on arrive, en haut déjà Ma session, la carte on la voit en bas ») :
+                la ligne, Commencer et les records ; les chiffres d'une session en cours restent sous la carte. */}
+            {ecran === "fiche" && !relances && !session.essai && (
+              <MaSession session={session} ville={session.ville} progression={c ? { appelees: c.appelees, agences: c.agences - c.mortes } : null}
+                onNouvelle={(sn) => setSessions((x) => ({ ...x, [onglet]: { id: sn.id, liste_id: sn.liste_id, ville: sn.ville, essai: !!sn.essai, debut: sn.debut } }))} />
+            )}
             {/* La fiche et le panneau d'appel. */}
             {ecran === "fiche" && !a && !relances && !session.essai && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant.</p>}
             {ecran === "fiche" && a && (
@@ -1918,9 +1924,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 {agences.length > 2 && <div className="h-[8px] w-[92%] rounded-b-[16px] border border-t-0 border-bord-doux bg-surface/50" />}
               </div>
             )}
-            {/* Ma session (17 nov. 2026, maquette de Jules) : sous la carte, qui reste toujours visible. */}
+            {/* Les chiffres d'une session en cours (17 nov. 2026, maquette de Jules) : sous la carte, qui reste à portée. */}
             {ecran === "fiche" && !relances && !session.essai && (
-              <MaSession session={session} ville={session.ville} progression={c ? { appelees: c.appelees, agences: c.agences - c.mortes } : null}
+              <MaSession partie="bas" session={session} ville={session.ville} progression={c ? { appelees: c.appelees, agences: c.agences - c.mortes } : null}
                 onNouvelle={(sn) => setSessions((x) => ({ ...x, [onglet]: { id: sn.id, liste_id: sn.liste_id, ville: sn.ville, essai: !!sn.essai, debut: sn.debut } }))} />
             )}
 

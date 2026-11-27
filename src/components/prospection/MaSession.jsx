@@ -5,12 +5,17 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 
 // « Ma session » sous la carte d'appel (17 nov. 2026, maquette de Jules). Une ligne « Ma session » à gauche, les
-// commandes à droite ; dessous, selon l'état : pas commencée (un bloc centré et « Commencer ma session »), en cours ou
+// commandes à droite ; dessous, selon l'état : pas commencée (les records, Commencer sur la ligne), en cours ou
 // en pause (les chiffres), terminée (le bilan). La carte d'appel, au-dessus, reste toujours là.
 // À la couleur du système (17 nov. 2026, Jules) : l'accent du compte (`menthe`), plus la pervenche de la maquette ;
 // le record reste en `ambre`.
 // Les chiffres viennent du serveur (server/prospection/ma-session.js) ; le chronomètre tourne ici, pauses ôtées.
 // Le record, la moyenne et l'équipe se lisent aussi au journal des appels, comme Suivi > Appels (18 nov. 2026, Jules).
+// En deux morceaux (27 nov. 2026, Jules : « on arrive, en haut déjà Ma session, la carte on la voit en bas ; on ne voit
+// pas “Commencer ma session”, juste un bouton Commencer, mais surtout mon record : le record d'appels en une journée,
+// mon record de pourcentage de joints ; le but, c'est de motiver ») : `partie="haut"`, au-dessus de la carte, la ligne
+// Ma session avec Commencer (ou le chrono, Pause, Terminer), les records avant de commencer, le bilan à la fin ;
+// `partie="bas"`, sous la carte, les chiffres pendant la session, pour que la carte reste à portée pendant les appels.
 
 const API = "/api/prospection/mode-appel";
 const SANS_PERSONNE = new Set(["pas_de_reponse", "repondeur"]);
@@ -38,7 +43,7 @@ const BOUTON_ACCENT = "inline-flex h-9 items-center gap-2 rounded-full bg-menthe
  * @param {{ session: {id, liste_id, ville}|null, ville: string|null, progression: {appelees, agences}|null,
  *   onNouvelle: (session) => void }} props
  */
-export default function MaSession({ session, ville, progression, onNouvelle }) {
+export default function MaSession({ session, ville, progression, onNouvelle, partie = "haut" }) {
   const queryClient = useQueryClient();
   const stats = useQuery({
     queryKey: ["ma-session", session?.id],
@@ -87,10 +92,31 @@ export default function MaSession({ session, ville, progression, onNouvelle }) {
   const temps = tempsActif(d, maintenant);
   const occupe = changer.isPending || commencer.isPending || nouvelle.isPending;
 
+  if (partie === "bas") {
+    if (stats.isLoading || !d || (etat !== "en_cours" && etat !== "en_pause")) return null;
+    return (
+      <section aria-label="Les chiffres de ma session" className="grid gap-3 md:grid-cols-2">
+        <CarteAppels d={d} />
+        <div className="flex flex-col gap-3">
+          <CarteTaux d={d} />
+          <CarteVille ville={nomVille} appelees={appelees} total={total} reste={reste} />
+          <CarteEquipe j={d.journal} />
+        </div>
+        <CarteFichesMoi f={d.fiches} />
+        <CarteFichesEquipe f={d.fiches} />
+      </section>
+    );
+  }
+
   return (
     <section aria-label="Ma session" className="flex flex-col gap-3">
       <div className="flex min-h-9 flex-wrap items-center justify-between gap-3 px-1">
         <span className="text-[13px] text-ardoise">Ma session</span>
+        {!stats.isLoading && etat === "pas_commencee" && (
+          <button type="button" className={`${BOUTON_ACCENT} h-10 px-5 text-[14px]`} disabled={occupe} onClick={() => commencer.mutate()}>
+            <Play className="h-3.5 w-3.5" strokeWidth={2} fill="currentColor" />Commencer
+          </button>
+        )}
         {(etat === "en_cours" || etat === "en_pause") && (
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="mr-1 inline-flex items-center gap-2 text-[13px] tabular-nums text-craie">
@@ -107,40 +133,55 @@ export default function MaSession({ session, ville, progression, onNouvelle }) {
         )}
       </div>
 
-      {stats.isLoading && <div className={`${CADRE} h-[180px] animate-pulse`} />}
+      {stats.isLoading && <div className={`${CADRE} h-[132px] animate-pulse`} />}
 
-      {!stats.isLoading && etat === "pas_commencee" && (
-        <div className={`${CADRE} flex flex-col items-center gap-2 px-6 py-9 text-center`}>
-          {nomVille && <span className="text-[13px] tabular-nums text-ardoise">{nomVille}{total ? ` · ${appelees} / ${total} agences` : ""}</span>}
-          <h2 className="m-0 text-[24px] font-normal leading-[1.2] text-encre">Prêt pour une session d'appels ?</h2>
-          <p className="m-0 text-[14px] text-craie">
-            {total ? `${pluriel(reste, "agence")} ${reste > 1 ? "restent" : "reste"} à appeler.` : null}
-            {d?.record ? <> Votre record : <span className="text-ambre">{pluriel(d.record, "appel")}</span>{jourDuRecord(d) ? ` en une journée, le ${jourDuRecord(d).replace(/\.$/, "")}` : " en une session"}.</> : " Votre première session : elle fera votre record."}
-            {d?.journal?.moyenne_jour != null ? ` En moyenne ${String(d.journal.moyenne_jour).replace(".", ",")} appels par jour, ${d.journal.taux_moyen} % décrochés.` : null}
-          </p>
-          <button type="button" className={`${BOUTON_ACCENT} mt-4 h-11 px-6 text-[14.5px]`} disabled={occupe} onClick={() => commencer.mutate()}>
-            <Play className="h-3.5 w-3.5" strokeWidth={2} fill="currentColor" />Commencer ma session
-          </button>
-        </div>
-      )}
-
-      {!stats.isLoading && (etat === "en_cours" || etat === "en_pause") && d && (
-        <div className="grid gap-3 md:grid-cols-2">
-          <CarteAppels d={d} />
-          <div className="flex flex-col gap-3">
-            <CarteTaux d={d} />
-            <CarteVille ville={nomVille} appelees={appelees} total={total} reste={reste} />
-            <CarteEquipe j={d.journal} />
-          </div>
-          <CarteFichesMoi f={d.fiches} />
-          <CarteFichesEquipe f={d.fiches} />
-        </div>
-      )}
+      {!stats.isLoading && etat === "pas_commencee" && d && <Records d={d} />}
 
       {!stats.isLoading && etat === "terminee" && d && (
         <Bilan d={d} temps={temps} ville={nomVille} appelees={appelees} total={total} occupe={occupe} onNouvelle={() => nouvelle.mutate()} />
       )}
     </section>
+  );
+}
+
+/**
+ * Les records avant de commencer : le plus d'appels en une journée et le meilleur taux de décroché d'une journée (cinq
+ * appels au moins), au journal des appels. Le chiffre en héros, « Record, le 12 nov. » en ambre dessous ; sans record,
+ * ce que la première journée fera.
+ */
+function Records({ d }) {
+  const j = d.journal || {};
+  const jour = j.record_jour || (d.record ? { appels: d.record, le: null } : null);
+  const taux = j.taux_record || (d.taux_record != null ? { taux: d.taux_record, le: null } : null);
+  const cases = [
+    {
+      cle: "appels",
+      chiffre: jour ? String(jour.appels) : "–",
+      unite: jour ? (jour.appels > 1 ? "appels" : "appel") : null,
+      dit: "en une journée",
+      record: jour ? `Record${jour.le ? `, le ${jour.le.replace(/\.$/, "")}` : ""}` : "Votre première journée fera le record",
+    },
+    {
+      cle: "taux",
+      chiffre: taux ? String(taux.taux) : "–",
+      unite: taux ? "%" : null,
+      dit: "de décroché sur une journée",
+      record: taux ? `Record${taux.le ? `, le ${taux.le.replace(/\.$/, "")}` : ""}` : "Dès une journée de cinq appels",
+    },
+  ];
+  return (
+    <div className={`${CADRE} grid grid-cols-2`}>
+      {cases.map((c, i) => (
+        <div key={c.cle} className={`flex min-w-0 flex-col gap-1 px-6 py-5 max-md:px-4 max-md:py-4 ${i ? "border-l border-trait" : ""}`}>
+          <span className="flex items-baseline gap-1.5">
+            <span className="text-[44px] font-light leading-none max-md:text-[34px] tracking-[-0.02em] tabular-nums text-encre">{c.chiffre}</span>
+            {c.unite && <span className="text-[17px] text-ardoise">{c.unite}</span>}
+          </span>
+          <span className="text-[14px] text-craie max-md:text-[13px]">{c.dit}</span>
+          <span className="text-[12.5px] text-ambre">{c.record}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 

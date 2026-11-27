@@ -1074,6 +1074,10 @@ html.k-cadre-crm .k-barre-laterale::before { border-radius: 0 !important; }
    case de l'espace (Jules, même jour). */
 /* Ni cloche ni mode appel en haut à droite de la page du CRM (Jules, même jour) : la bande du haut reste libre. */
 html.k-cadre-crm .k-flottant-haut { display: none !important; }
+/* Le contenu du CRM sur le fond choisi par le compte, comme l'Assistant (27 nov. 2026, Jules) ; la barre et la bande du
+   haut gardent le leur (--k-verre-fond plus bas lit --k-fond-rgb sur <html>, que ceci ne touche pas). En clair, le blanc
+   pur du 5 nov. reste (plus bas). */
+html.k-cadre-crm:not([data-theme="clair"]) .k-crm-contenu { --k-fond-rgb: var(--k-fond-perso-rgb); }
 /* Un volet de pièce ouvert à droite (26 nov. 2026, Jules : « on ne peut plus le fermer, il y a la tête du profil ») :
    la photo de profil et les pilules du coin s'effacent tant qu'il est là ; sa croix n'est jamais couverte. */
 body:has(.panneau-source, .k-volet-droit) .k-flottant-haut { display: none !important; }
@@ -1708,58 +1712,27 @@ html.k-cadre-dossier .k-barre-nue, html.k-cadre-crm .k-barre-nue, html.k-cadre-o
 .k-logo-barre .logo-klocka-noir { fill: rgb(var(--k-encre-rgb)); }
 .k-logo-barre .logo-klocka-menthe { fill: rgb(var(--k-menthe-rgb)); }
 
-/* Les dossiers en couvertures de verre (14 nov. 2026, Jules : planche « Couverture de dossier », version Givré, puis
-   « ajoute un balayage ») : la page avant en verre clair qui s'éclaircit vers le haut avec un liseré sur l'arête, deux
-   pages esquissées en éventail derrière. Le verre avant reste du verre (Jules : « la card est noire, je veux que ce soit glass ») :
-   seul son flou cache les pages arrière. Le verre se teinte de l'encre du thème (blanc en sombre). Au survol
-   seulement (même jour, Jules : « uniquement lorsqu'on passe la souris dessus »), un reflet traverse la page avant, une
-   fois par entrée de la souris. */
-.k-couv-arr {
-  border-radius: 12px;
-  border: 1px solid rgb(var(--k-encre-rgb) / .12);
-  background: linear-gradient(160deg, rgb(var(--k-encre-rgb) / .1), rgb(var(--k-encre-rgb) / .025) 70%);
-  box-shadow: 0 24px 48px rgb(0 0 0 / .6), 0 2px 6px rgb(0 0 0 / .4);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-.k-couv-arr-g { transform: translate(-60px, 14px) rotate(-8deg); }
-.k-couv-arr-d { transform: translate(60px, 14px) rotate(8deg); }
-.k-couv-avant {
-  border-radius: 14px;
+/* La page dessinée d'une carte de dossier (27 nov. 2026, Jules, planche « Cartes de dossiers », variante Verre ;
+   components/preanalyse/CarteDossier.jsx) : l'aspect du verre (un voile de l'encre qui s'éclaircit vers le haut, un
+   liseré sur l'arête, le halo de l'accent à 40 % peint dedans), mais opaque (même jour, Jules : « on voit la ligne de la
+   carte passer derrière la page, il faut que ça la cache ») ; ses traits prennent la couleur de --p. En clair, une page
+   pleine et blanche, une ombre douce. */
+.k-page-verre {
+  --p: var(--k-encre-rgb);
   border: 1px solid rgb(var(--k-encre-rgb) / .2);
-  background: linear-gradient(160deg, rgb(var(--k-encre-rgb) / .17), rgb(var(--k-encre-rgb) / .05) 55%, rgb(var(--k-encre-rgb) / .03));
-  box-shadow: 0 24px 48px rgb(0 0 0 / .6), 0 2px 6px rgb(0 0 0 / .4), inset 0 1px 0 rgb(var(--k-encre-rgb) / .4);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  transition: translate .3s cubic-bezier(.22, 1, .36, 1), filter .3s;
+  background:
+    linear-gradient(160deg, rgb(var(--k-encre-rgb) / .14), rgb(var(--k-encre-rgb) / .04) 55%, rgb(var(--k-encre-rgb) / .02)),
+    radial-gradient(circle at 55% 72%, rgb(var(--k-menthe-rgb) / .3), transparent 62%),
+    rgb(var(--k-surface-pleine-rgb));
+  box-shadow: 0 24px 48px rgb(0 0 0 / .45), 0 2px 6px rgb(0 0 0 / .3), inset 0 1px 0 rgb(var(--k-encre-rgb) / .4);
 }
-/* En clair (24 nov. 2026, Jules, capture « voici comment je veux les preview des dossiers ») : des pages pleines et
-   blanches, un trait fin, une ombre douce ; plus de verre. */
-:root[data-theme="clair"] .k-couv-arr,
-:root[data-theme="clair"] .k-couv-avant {
+:root[data-theme="clair"] .k-page-verre {
   background: rgb(var(--k-surface-pleine-rgb));
   border-color: rgb(var(--k-encre-rgb) / .09);
-  box-shadow: 0 1px 2px rgb(16 20 24 / .04), 0 10px 24px rgb(16 20 24 / .07);
+  box-shadow: 0 1px 2px rgb(16 20 24 / .04), 0 10px 24px rgb(16 20 24 / .1);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
-:root[data-theme="clair"] .k-couv-avant { border-radius: 16px; }
-:root[data-theme="clair"] .k-couv:hover .k-couv-avant { filter: none; box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 16px 32px rgb(16 20 24 / .1); }
-.k-couv:hover .k-couv-avant, .k-couv:focus-within .k-couv-avant { translate: 0 -4px; filter: brightness(1.12); }
-.k-couv-balai {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%, rgb(var(--k-encre-rgb) / .24) 47%, transparent 60%);
-  background-size: 260% 100%;
-  background-position: 130% 0;
-}
-.k-couv:hover .k-couv-balai { animation: k-couv-balai 2.2s cubic-bezier(.45, 0, .35, 1) both; }
-@keyframes k-couv-balai {
-  from { background-position: 130% 0; }
-  to { background-position: -30% 0; }
-}
-@media (prefers-reduced-motion: reduce) { .k-couv:hover .k-couv-balai { animation: none; } .k-couv-avant { transition: none; } }
 
 /* L'espace mandataire en verre (14 nov. 2026, Jules : « mets tout l'espace mandataire en glass ») : le halo et les surfaces
    en verre y sont imposés (personnalisation.js, Layout) ; la bande à points d'une carte en verre (les cartes des dossiers)
@@ -1809,3 +1782,4 @@ html[data-vue="mandataire"] .k-verre .k-grid { --k-grid-fond: transparent; }
 .k-chrono-texte strong { color: rgb(var(--k-encre-rgb)); font-weight: 500; }
 .k-chrono-alerte { color: rgb(var(--k-menthe-rgb)); font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { .k-chrono-etape { transition: none; } }
+

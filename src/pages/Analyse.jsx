@@ -25,6 +25,7 @@ import { estEcarte, etapeEnCours } from "@/lib/dossiers-architecture";
 import { useLettres } from "@/components/preanalyse/ArchitectureDossier";
 import { BoutonPrincipal, Recherche, Statut, LigneTitre } from "@/components/mandataire/elements";
 import TitreDossiersProjets from "@/components/preanalyse/TitreDossiersProjets";
+import CarteDossier from "@/components/preanalyse/CarteDossier";
 import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
 import { VERRE } from "@/lib/verre";
 
@@ -650,11 +651,11 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              // Les dossiers en couvertures de verre (14 nov. 2026, Jules : la planche « Couverture de dossier », version Givré,
-              // « voici ce que je veux pour les dossiers, ajoute un balayage ») : la page avant en verre, deux pages esquissées
-              // en éventail derrière, un reflet qui traverse toutes les cartes ensemble.
-              <div className="k-serie k-couv-grille grid gap-x-4 gap-y-2 pt-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(256px, 1fr))" }}>
-                {tous.map((d) => <CarteCouverture key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} onSurvol={() => survolerDossier(d.deal_id)} menu={<MenuDossier d={d} bouton="bottom-[12px] right-2.5 grid h-8 w-8 place-items-center rounded-[8px]" place="" />} />)}
+              // Les dossiers en cartes de verre à page dessinée (27 nov. 2026, Jules, planche « Cartes de dossiers », variante
+              // Verre : components/preanalyse/CarteDossier.jsx). La page sort de la carte par le haut au survol : de l'air
+              // au-dessus de chaque rangée.
+              <div className="k-serie grid gap-x-4 gap-y-6 pt-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(272px, 1fr))" }}>
+                {tous.map((d, i) => <CarteDossier key={d.deal_id} d={d} qui={qui(d)} rang={i} onOuvrir={() => montrerDeal(d.deal_id)} onSurvol={() => survolerDossier(d.deal_id)} menu={<MenuDossier d={d} bouton="right-0 top-2 grid h-7 w-7 place-items-center rounded-[8px]" place="" />} />)}
                 {!tous.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Aucun dossier ne correspond.</p>}
               </div>
             )}
@@ -757,75 +758,7 @@ export default function Analyse() {
   return vuePage;
 }
 
-/** Une page esquissée derrière la couverture : un titre, des lignes, un cadre, comme une fiche vue de loin. */
-function PageEsquisse({ cote }) {
-  const trait = (largeur, fort) => <span className={`block rounded-[2px] ${fort ? "h-1 bg-encre/[0.16]" : "h-[3px] bg-encre/[0.1]"}`} style={{ width: largeur }} />;
-  const cadre = (haut, marge = 0) => <span className="block rounded-[6px] border border-encre/[0.1]" style={{ height: haut, marginTop: marge }} />;
-  return (
-    <div aria-hidden="true" className={`k-couv-arr absolute left-1/2 top-[44px] -ml-[96px] h-[224px] w-[192px] ${cote === "g" ? "k-couv-arr-g" : "k-couv-arr-d"}`}>
-      <div className="flex flex-col gap-[8px] px-4 py-4">
-        {cote === "g"
-          ? <>{trait("55%", true)}{trait("85%")}{trait("70%")}{cadre(56, 8)}{trait("62%")}</>
-          : <>{trait("40%", true)}{cadre(34)}{trait("80%")}{trait("66%")}</>}
-      </div>
-    </div>
-  );
-}
-
-/** Les initiales d'un nom (« Nora Lorinquer » → NL), ou d'une adresse (« nora@… » → N). */
-const initialesDe = (nom) => {
-  const mots = String(nom || "").split("@")[0].split(/[\s._-]+/).filter(Boolean);
-  return (mots.length > 1 ? mots[0][0] + mots[1][0] : (mots[0] || "?").slice(0, 2)).toUpperCase();
-};
-
-/**
- * Un dossier en couverture (14 nov. 2026, Jules, planche « Couverture de dossier », version Givré ; 24 nov. 2026, Jules,
- * capture en mode clair : « voici comment je veux les preview des dossiers ») : la page avant dit l'étape en capitales
- * grises derrière un point, le nom en 15, puis, sous un filet, les initiales et le nom de qui s'en occupe, et le menu ⋯.
- * Deux pages esquissées en éventail derrière. Le verdict choisi (ou Abandonné, Non conforme) en haut à droite, K Partners
- * en « KP » près du nom de qui suit. En clair, la page avant est pleine et blanche ; en sombre, du verre (.k-couv-*,
- * src/index.css). Le reflet du balayage passe sur la page avant au survol.
- */
 const lireDossier = (id) => base44.request("GET", `/api/preanalyse/dossiers/${id}`);
-
-function CarteCouverture({ d, qui, onOuvrir, onSurvol, menu, ecarte = false }) {
-  const etape = etapeEnCours(d);
-  const verdict = d.verdict_choisi ? VERDICTS[d.verdict_choisi] : null;
-  const premier = String(qui || "").split(",")[0].trim();
-  return (
-    <article className="k-couv k-entree group relative h-[310px] cursor-pointer" onClick={onOuvrir} onMouseEnter={onSurvol} onFocus={onSurvol}>
-      <PageEsquisse cote="g" />
-      <PageEsquisse cote="d" />
-      <div className="k-couv-avant absolute left-1/2 top-[28px] -ml-[110px] flex h-[234px] w-[220px] flex-col overflow-hidden px-4 pb-1.5 pt-4">
-        <span className="k-couv-balai" aria-hidden="true" />
-        {/* La photo en haut de la carte, le nom dessous (26 nov. 2026, Jules) : celle du projet, d'une image de la Data Room
-            ou de la ville ; sans photo, la place reste, unie. */}
-        <div className="-mx-4 -mt-4 mb-3 h-[96px] flex-none overflow-hidden bg-encre/[0.05]">
-          {d.photo && <img src={d.photo} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
-        </div>
-        <div className="mb-1.5 flex min-h-[20px] items-center justify-between gap-2">
-          {ecarte ? <span /> : (
-            <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ardoise">
-              <span aria-hidden="true" className="h-1.5 w-1.5 flex-none rounded-full bg-brume" />
-              <span className="truncate">{etape ? etape.label : "Terminé"}</span>
-            </span>
-          )}
-          {ecarte ? <Statut couleur="corail" className="flex-none !px-[7px] !text-[10.5px]">{d.statut === "abandonne" ? "Abandonné" : "Non conforme"}</Statut> : verdict && <Statut couleur={verdict.statut} className="flex-none !px-[7px] !text-[10.5px]">{verdict.libelle}</Statut>}
-        </div>
-        <p className="m-0 line-clamp-2 text-[15px] font-medium leading-[1.35] text-encre" title={d.titre}>
-          {d.titre || d.nom_fichier || d.deal_id}
-          {(d.fil_non_lus || 0) > 0 && <span className="ml-1.5 inline-block align-middle"><PointNouveau n={d.fil_non_lus} /></span>}
-        </p>
-        <div className="mt-auto flex min-w-0 items-center gap-2 border-t border-encre/[0.08] py-2.5 pr-8">
-          <span aria-hidden="true" className="grid h-6 w-6 flex-none place-items-center rounded-full bg-encre/[0.07] text-[10px] font-semibold text-craie">{initialesDe(premier)}</span>
-          <span className="min-w-0 flex-1 truncate text-[12.5px] text-ardoise" title={qui}>{qui}</span>
-          {d.origine === "mandataire" && <span className="flex-none rounded-[6px] bg-statut-lavande-fond px-1.5 text-[10px] text-statut-lavande" title="K Partners">KP</span>}
-        </div>
-        <span onClick={(e) => e.stopPropagation()}>{menu}</span>
-      </div>
-    </article>
-  );
-}
 
 // Mandats et Mémoire en petites icônes rondes (14 nov. 2026, Jules : « juste une petite icône, très sobre ») : le
 // nom au survol, le point des messages non lus des mandataires gardé sur Mandats.

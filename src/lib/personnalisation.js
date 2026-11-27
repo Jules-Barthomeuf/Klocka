@@ -347,6 +347,12 @@ export function appliquerPrefs(brut) {
   const fondDefaut = clair ? choixFond === "perle" : choixFond === "noir";
   poser("--k-fond-rgb", fondDefaut || !fond ? null : triplet(hexVersRgb(fond.fond)));
   poser("--k-fond-halo-rgb", fondDefaut || !fond ? null : triplet(hexVersRgb(fond.halo)));
+  // Le fond choisi par le compte, même là où le reste de la personnalisation ne s'applique pas : le contenu du CRM le
+  // prend (27 nov. 2026, Jules : « dans Twenty, mets le fond de la même couleur que dans la page Assistant ; ne modifie
+  // pas la barre de nav »). La barre et la bande du CRM gardent le fond neutre (index.css, html.k-cadre-crm).
+  const perso = normaliser(pageNeutre() ? DEFAUT : brut);
+  const fondPerso = jetons.fonds[clair ? "clair" : "sombre"][clair ? perso.fond_clair : perso.fond_sombre];
+  poser("--k-fond-perso-rgb", triplet(hexVersRgb(fondPerso?.fond || (clair ? jetons.couleurs_clair : jetons.couleurs).fond)));
   // En anthracite, la barre de chat (et les bulles envoyées, qui partagent son
   // jeton) se confondrait avec le fond : elle prend la teinte de la barre de
   // navigation (décision du 3 oct. 2026).

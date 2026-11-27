@@ -226,8 +226,10 @@ export function monterFicheDossier(app) {
     // Les appels du mode appel sur la fiche de l'agent, sans IA (26 nov. 2026, Jules : « quand on a eu un premier contact,
     // ce qu'il s'est passé ») : ceux d'aujourd'hui compris, sans attendre un import.
     if (cle.startsWith('agent:')) (await import('../fiche-dossier/import.js')).historiqueDesAppels({ agentId: cle.slice(6) });
-    const v = m.ficheVue(cle);
+    let v = m.ficheVue(cle);
     if (!v) return res.status(404).json({ error: 'Fiche introuvable.' });
+    // Les fiches qu'il nous a envoyées, une ligne par mail dans l'historique (27 nov. 2026, Jules) ; rien d'autre ne bouge.
+    if (v.genre === 'agent' && (await import('../fiche-dossier/fiches-envoyees.js')).historiqueDesEnvois(v.cle, { nom: v.nom })) v = m.ficheVue(cle);
     // Une fiche ouverte devient une fiche récente de la personne (la pastille « Fiches » de l'accueil).
     m.noterOuverture(v.cle, user);
     ok(res, v);

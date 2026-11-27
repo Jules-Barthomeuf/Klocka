@@ -85,6 +85,8 @@ export function fichesDeLAgent(biens = [], id, ctx = {}) {
       id: b.id, jour: l.jour, qui: l.qui, titre, ou, ville: b.ville || b.adresse?.ville || null, type: b.type_actif || null,
       prix: montant(b.prix), loyer: b.loyer_annuel ? `${montant(b.loyer_annuel)} de loyer` : null,
       fiche: b.fiche?.url ? { url: b.fiche.url, nom: b.fiche.nom || null } : null, par: venuDe(b, id),
+      // Pour l'historique : l'envoi qui l'a apportée (un mail en porte parfois plusieurs), quand et par où.
+      envoi: b.mail_recu_id || b.envoi_id || (b.deal_id ? `deal:${b.deal_id}` : `id:${b.id}`), recu_le: b.recu_le || b.created_date || null, origine: b.origine || null,
     };
   }).sort((a, b) => b.jour.localeCompare(a.jour));
   // Ses coordonnées, de la fiche la plus récente qui les dit.
@@ -110,7 +112,7 @@ function agentDe(cle) {
  * Les fiches reçues d'un agent, pour sa fiche : `{ lignes, resume, contact }`, ou null s'il n'en a envoyé aucune.
  * `nom` : le nom de la fiche, quand l'agent n'est connu que de Twenty.
  */
-export function envoisDeLAgent(cle, { nom = null, prenomDe = (e) => e } = {}) {
+export function envoisDeLAgent(cle, { nom = null, prenomDe = (e) => e, toutes = false } = {}) {
   const a = agentDe(String(cle || ''));
   if (!a && !nom) return null;
   const id = identiteAgent({ nom: a?.nom_crm || a?.nom || nom, emails: a?.emails || [], telephones: a?.telephones || [], agence: a?.agence || null });
@@ -131,9 +133,61 @@ export function envoisDeLAgent(cle, { nom = null, prenomDe = (e) => e } = {}) {
   };
   const luesSurFiches = ['telephone', 'email', 'agence'].filter((k) => coord[k] && coord[k] === contact[k] && !(k === 'telephone' ? a?.telephones?.length : k === 'email' ? a?.emails?.length : a?.agence));
   return {
-    lignes: lignes.slice(0, 40).map((l) => ({ ...l, qui: l.qui && l.qui !== 'personne' ? prenomDe(l.qui) : null })),
+    lignes: (toutes ? lignes : lignes.slice(0, 40)).map((l) => ({ ...l, qui: l.qui && l.qui !== 'personne' ? prenomDe(l.qui) : null })),
     total: lignes.length,
     resume: resumeDesEnvois(lignes, { prenomDe }),
     contact: { ...coord, lues_sur_fiches: luesSurFiches },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Les envois dans l'historique de l'agent (27 nov. 2026, Jules : « dès qu'il nous envoie des fiches, dans l'historique
+// ça rajoute un échange de mail ; là Maxime l'avait appelé, et ensuite c'était marqué directement fiche reçue »). Une
+// ligne par envoi (un mail qui porte deux fiches fait une ligne), datée de sa réception, à côté des appels. Écrit une
+// fois par envoi (EntreeDossier.envoi_cle) ; rien d'autre n'est touché sur la fiche, ni réécrit, ni effacé.
+// ---------------------------------------------------------------------------
+
+const CANAL = { transfert: 'Mail reçu', scraper: 'Mail reçu', veille: 'Mail reçu', dossier: 'Mail reçu', whatsapp: 'Message WhatsApp reçu', drive: 'Fiche déposée dans le Drive' };
+
+/** Pure : les lignes d'historique des envois d'un agent, une par envoi, de la plus ancienne à la plus récente. */
+export function lignesDesEnvois(lignes = []) {
+  const parEnvoi = new Map();
+  for (const l of lignes) {
+    if (!l.envoi) continue;
+    if (!parEnvoi.has(l.envoi)) parEnvoi.set(l.envoi, []);
+    parEnvoi.get(l.envoi).push(l);
+  }
+  return [...parEnvoi.entries()].map(([envoi, ls]) => {
+    const tries = [...ls].sort((a, b) => String(a.recu_le || a.jour).localeCompare(String(b.recu_le || b.jour)));
+    const l0 = tries[0];
+    const le = l0.recu_le && String(l0.recu_le).slice(0, 10) === l0.jour ? l0.recu_le : `${l0.jour}T12:00:00.000Z`;
+    const quoi = tries.map((l) => {
+      const chiffres = [l.prix, l.loyer].filter(Boolean).join(', ');
+      return `${l.titre}${l.ou ? ` à ${l.ou}` : ''}${chiffres ? ` (${chiffres})` : ''}`;
+    });
+    const n = tries.length;
+    const qui = l0.qui && l0.qui !== 'personne' ? l0.qui : null;
+    const texte = `${CANAL[l0.origine] || 'Fiche reçue'}${qui ? ` par ${qui}` : ''} : ${n > 1 ? `${n} fiches, ` : 'une fiche, '}${quoi.join(' ; ')}`;
+    return { envoi, le, par: qui, texte };
+  }).sort((a, b) => String(a.le).localeCompare(String(b.le)));
+}
+
+/**
+ * Écrit dans l'historique d'une fiche d'agent les envois qui n'y sont pas encore ; la fiche doit exister. Rend le nombre
+ * de lignes écrites.
+ */
+export function historiqueDesEnvois(cle, { nom = null } = {}) {
+  const c = String(cle || '');
+  if (!Records.findBy('FicheDossier', 'cle', c)) return 0;
+  // `qui` reste l'adresse de l'analyste (prenomDe par défaut la rend telle quelle) : `par` de la ligne.
+  const e = envoisDeLAgent(c, { nom, toutes: true });
+  if (!e) return 0;
+  let n = 0;
+  for (const l of lignesDesEnvois(e.lignes)) {
+    const k = `${c}|${l.envoi}`;
+    if (Records.findBy('EntreeDossier', 'envoi_cle', k)) continue;
+    Records.create('EntreeDossier', { fiche_cle: c, genre: 'evenement', texte: l.texte.replace(/ par ([a-z0-9._-]+)@klocka\.immo/i, (_, p) => ` par ${p.split('.')[0].replace(/^./, (x) => x.toUpperCase())}`), raison: null, note_id: null, par: l.par && /@/.test(l.par) ? l.par : null, le: l.le, ordre: 0, source: 'fiches', envoi_cle: k });
+    n += 1;
+  }
+  return n;
 }

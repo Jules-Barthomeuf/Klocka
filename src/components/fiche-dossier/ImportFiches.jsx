@@ -69,7 +69,7 @@ export default function ImportFiches() {
     mutationFn: ({ chemin, body = {} }) => base44.request("POST", `/api/fiche-dossier/import/${chemin}`, { body }),
     onSuccess: (r, { chemin }) => {
       rafraichir();
-      if (chemin === "squelette") toast.success(`Squelette : ${r.biens} dossiers, ${r.agents} agents, ${r.abandons} abandons${r.appels ? `, ${r.appels} appels sur les fiches des agents` : ""}${r.clients?.lus ? `, ${r.clients.lus} clients de Twenty` : ""}.`);
+      if (chemin === "squelette") toast.success(`Squelette : ${r.biens} dossiers, ${r.agents} agents, ${r.abandons} abandons${r.appels ? `, ${r.appels} appels sur les fiches des agents` : ""}${r.envois ? `, ${r.envois} envois de fiches` : ""}${r.clients?.lus ? `, ${r.clients.lus} clients de Twenty` : ""}.`);
       else toast.success(`${r.total ?? 0} source${(r.total ?? 0) > 1 ? "s" : ""} à lire : l'import tourne.`);
     },
     onError: (e) => toast.error(e?.message || "L'import n'a pas démarré."),

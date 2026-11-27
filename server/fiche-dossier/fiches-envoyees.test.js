@@ -50,3 +50,28 @@ test('sur la fiche d’un agent de la Prospection, ses fiches arrivent seules, s
   const vide = Records.create('AgentImmo', { nom: 'Bruno Rey', emails: ['bruno@rey.fr'] });
   assert.equal(M.ficheVue(`agent:${vide.id}`).envois, null, 'aucune fiche : rien à montrer');
 });
+
+// 27 nov. 2026, Jules : « dès qu'il nous envoie des fiches, dans l'historique ça rajoute un échange de mail ».
+test("l'historique : une ligne par mail reçu, datée de sa réception, écrite une fois, rien d'autre touché", () => {
+  const lignes = E.lignesDesEnvois([
+    { envoi: 'm2', jour: '2026-11-16', recu_le: '2026-11-16T15:10:00Z', origine: 'transfert', qui: 'maxime.p@klocka.immo', titre: 'Local commercial', ou: 'LE CRES', prix: '178 k€', loyer: '10 k€ de loyer' },
+    { envoi: 'm2', jour: '2026-11-16', recu_le: '2026-11-16T15:10:00Z', origine: 'transfert', qui: 'maxime.p@klocka.immo', titre: 'Local commercial', ou: null, prix: '225 k€', loyer: null },
+    { envoi: 'm1', jour: '2026-11-02', recu_le: '2026-11-02T09:00:00Z', origine: 'whatsapp', qui: 'personne', titre: 'Boulangerie', ou: 'Nîmes', prix: null, loyer: null },
+  ]);
+  assert.equal(lignes.length, 2);
+  assert.equal(lignes[0].texte, 'Message WhatsApp reçu : une fiche, Boulangerie à Nîmes');
+  assert.equal(lignes[1].texte, 'Mail reçu par maxime.p@klocka.immo : 2 fiches, Local commercial à LE CRES (178 k€, 10 k€ de loyer) ; Local commercial (225 k€)');
+  assert.equal(lignes[1].le, '2026-11-16T15:10:00Z');
+
+  const agent = Records.create('AgentImmo', { nom: 'Laurent Aliaga', emails: ['aliaga.laurent@orange.fr'] });
+  const cle = `agent:${agent.id}`;
+  M.fiche(cle, { genre: 'agent', nom: 'Laurent Aliaga' });
+  const mienne = Records.create('EntreeDossier', { fiche_cle: cle, genre: 'ressenti', texte: 'Fiable, répond vite.', le: '2026-11-20T10:00:00Z' });
+  Records.create('BienMemoire', bien({ id: undefined, agent_email: 'aliaga.laurent@orange.fr', par: 'maxime.p@klocka.immo', ville: 'LE CRES', prix: 178000, loyer_annuel: 10000, type_actif: 'local commercial', mail_recu_id: 'mail-1', recu_le: '2026-11-16T15:10:00Z' }));
+  assert.equal(E.historiqueDesEnvois(cle), 1);
+  assert.equal(E.historiqueDesEnvois(cle), 0, 'relire la fiche ne double rien');
+  const entrees = Records.filter('EntreeDossier', { fiche_cle: cle });
+  assert.equal(entrees.length, 2);
+  assert.match(entrees.find((x) => x.envoi_cle).texte, /^Mail reçu par Maxime : une fiche, Local commercial à LE CRES \(178 k€, 10 k€ de loyer\)$/);
+  assert.equal(Records.get('EntreeDossier', mienne.id).texte, 'Fiable, répond vite.');
+});

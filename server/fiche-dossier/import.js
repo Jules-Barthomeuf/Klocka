@@ -18,6 +18,7 @@ import { identite } from './dossier.js';
 import { proposer } from './ranger.js';
 import { lireConversation } from './whatsapp.js';
 import { ISSUES } from '../prospection/regles.js';
+import { historiqueDesEnvois } from './fiches-envoyees.js';
 
 const SOURCE = 'ImportSource';
 const LOT = 'ImportLot';
@@ -131,6 +132,11 @@ export function squelette() {
     if (!f.resume) { Records.update('FicheDossier', f.id, { resume: resumeDeLAgent(agent, appel), source: f.source || 'prospection' }); compte.agents_remplis += 1; }
   }
   compte.appels = historiqueDesAppels();
+  // Les fiches reçues de chaque agent, une ligne par mail (27 nov. 2026, Jules).
+  compte.envois = 0;
+  for (const f of Records.filter('FicheDossier', { genre: 'agent' })) {
+    try { compte.envois += historiqueDesEnvois(f.cle, { nom: f.nom }); } catch { /* une fiche qui ne se lit pas n'arrête pas les autres */ }
+  }
   return compte;
 }
 

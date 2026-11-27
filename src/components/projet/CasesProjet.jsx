@@ -686,7 +686,7 @@ function AnalyseBail({ clauses, cases, project, choisie = 0, onChoisie }) {
   return (
     // Trois colonnes (26 nov. 2026, Jules : « la carte de clause pas aussi large ; de la taille de la liste ; et le
     // document à droite, dans la carte, qu'on voie direct ») : la liste, la clause qui défile, la pièce ouverte à sa page.
-    <div className="grid items-stretch gap-5 max-md:gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,1.15fr)]">
+    <div className="grid items-stretch gap-5 max-md:gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
       {/* Sans points derrière, comme la carte de droite (26 nov. 2026, Jules). */}
       <ol className="list-none m-0 p-2 k-carte sans-grille lg:h-[640px] lg:overflow-y-auto">
         {clauses.map((x, k) => (
@@ -700,21 +700,25 @@ function AnalyseBail({ clauses, cases, project, choisie = 0, onChoisie }) {
           </li>
         ))}
       </ol>
-      <DefileCarte titre="La clause" etapes={etapes} courante={i} onCourante={setOuverte} dealId={project?.deal_id || null} tailleTitre="text-[24px] max-md:text-[22px]" sansRail hauteur={560} />
+      {/* La clause et sa pièce dans un seul cadre (26 nov. 2026, Jules : « dans le même cadre ») : un trait les sépare ;
+          sous 1280 px, la pièce passe dessous, dans le même cadre. */}
+      <div className="k-carte sans-grille grid min-w-0 overflow-hidden xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <DefileCarte titre="La clause" etapes={etapes} courante={i} onCourante={setOuverte} dealId={project?.deal_id || null} tailleTitre="text-[24px] max-md:text-[22px]" sansRail sansCadre hauteur={560} />
       {/* La pièce du bail, ouverte à la page de la clause choisie, le passage surligné. */}
-      <div className="min-w-0 lg:col-span-2 xl:col-span-1">
+      <div className="min-w-0 border-t border-bord xl:border-l xl:border-t-0">
         {explication ? (
           <ExplicationClause explication={explication} avecBail={!!c?.source?.document_url} onBail={() => setExplique(false)} />
         ) : c?.source?.document_url ? (
           <Visionneuse key={`${c.source.document_id}-${c.source.page}-${c.id}`} extraction={{ document_id: c.source.document_id, document_nom: c.source.document_nom, document_url: c.source.document_url }}
-            ligne={{ page: c.source.page, citation: c.source.citation, element: c.titre }} dealId={project?.deal_id || null} hauteur="h-[640px]" enTeteCarte />
+            ligne={{ page: c.source.page, citation: c.source.citation, element: c.titre }} dealId={project?.deal_id || null} hauteur="h-[640px]" sansCadre sansEnTete unePage />
         ) : (
-          <div className="k-carte sans-grille flex h-[640px] flex-col items-center justify-center gap-2 px-8 text-center max-md:h-auto max-md:py-10">
+          <div className="flex h-[640px] flex-col items-center justify-center gap-2 px-8 text-center max-md:h-auto max-md:py-10">
             <FileText className="h-5 w-5 text-brume" />
             <p className="m-0 text-[14px] text-ardoise">Pas de pièce pour cette clause.</p>
             <p className="m-0 max-w-[36ch] text-[13px] text-brume">Elle s'ouvre ici, à la bonne page, quand le bail est déposé et lu dans l'Analyse.</p>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
@@ -728,7 +732,7 @@ function AnalyseBail({ clauses, cases, project, choisie = 0, onChoisie }) {
  */
 function ExplicationClause({ explication, avecBail, onBail }) {
   return (
-    <div className="k-carte sans-grille flex h-[640px] flex-col overflow-hidden max-md:h-auto">
+    <div className="flex h-[640px] flex-col overflow-hidden max-md:h-auto">
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-bord px-7 pb-4 pt-6 max-md:px-5">
         <p className="m-0 min-w-0 flex-1 truncate text-[16px] font-medium text-menthe">Définition</p>
         {avecBail && (

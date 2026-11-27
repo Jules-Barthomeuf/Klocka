@@ -13,7 +13,7 @@ import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
 // source ({ document_id, document_nom, document_url, page, citation }) | null, libelleSource, passee, accent }].
 // `courante` / `onCourante` : l'étape choisie, pilotée du dehors (la liste des clauses) ; sinon `depart`.
 
-export default function DefileCarte({ titre, etapes, depart = 0, courante: pilotee = null, onCourante = null, dealId = null, apres = null, hauteur = 600, tailleTitre = "text-[34px] max-md:text-[26px]", sansRail = false }) {
+export default function DefileCarte({ titre, etapes, depart = 0, courante: pilotee = null, onCourante = null, dealId = null, apres = null, hauteur = 600, tailleTitre = "text-[34px] max-md:text-[26px]", sansRail = false, sansCadre = false }) {
   const defile = useRef(null);
   const cartes = useRef([]);
   const [courante, setCourante] = useState(-1);
@@ -68,7 +68,7 @@ export default function DefileCarte({ titre, etapes, depart = 0, courante: pilot
 
   return (
     // Sans points derrière (26 nov. 2026, Jules : « mets le fond sans points »).
-    <div className="k-carte sans-grille k-chrono pt-6">
+    <div className={`${sansCadre ? "" : "k-carte sans-grille "}k-chrono pt-6`}>
       <div className="flex items-center gap-1.5 px-7 max-md:px-5">
         <span className="mr-auto text-[16px] font-medium text-encre">{titre}</span>
         <button type="button" onClick={() => aller(courante - 1)} disabled={courante <= 0} aria-label="Étape précédente"

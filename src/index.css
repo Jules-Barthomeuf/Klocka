@@ -771,6 +771,8 @@ body[data-editeur-projet] .assistant-flottant {
 .k-monte { opacity: 0; animation: k-monte .5s ease-out both; }
 .k-blanchit { color: rgb(var(--k-encre-rgb) / 0.4); animation: k-blanchit .35s ease-out both; }
 .k-coche { opacity: 0; animation: k-coche .3s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes k-remplit { from { width: 0; } to { width: 100%; } }
+.k-remplit { width: 0; animation: k-remplit 1s linear both; }
 
 .accueil-composer { position: relative; border: 1px solid var(--k-bord); border-radius: 16px; background: rgb(var(--k-surface-pleine-rgb)); box-shadow: 0 26px 70px rgb(var(--k-fond-rgb) / .35); }
 .accueil-composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent;

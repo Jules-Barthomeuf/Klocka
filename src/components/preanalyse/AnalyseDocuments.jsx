@@ -197,7 +197,9 @@ function PageRendue({ doc, n, largeur, taille, marques, premiere, onRef }) {
   );
 }
 
-export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }) {
+// `unePage` : la page du passage seule, entière dans le cadre (26 nov. 2026, Jules : « on ne doit voir qu'une page, là
+// c'est beaucoup trop long ») ; le zoom reste.
+export function PagePdfSurlignee({ url, page: pageDite = null, citation = null, unePage = false }) {
   const cadre = useRef(null);
   const pages = useRef([]);
   const premiere = useRef(null);
@@ -207,11 +209,12 @@ export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }
   const [erreur, setErreur] = useState(null);
   const [zoom, setZoom] = useState(1);
   const [largeurCadre, setLargeurCadre] = useState(0);
+  const [hauteurCadre, setHauteurCadre] = useState(0);
   const [courante, setCourante] = useState(pageDite || 1);
   useEffect(() => {
     const el = cadre.current;
     if (!el) return undefined;
-    const o = new ResizeObserver(() => setLargeurCadre(el.clientWidth));
+    const o = new ResizeObserver(() => { setLargeurCadre(el.clientWidth); setHauteurCadre(el.clientHeight); });
     o.observe(el);
     return () => o.disconnect();
   }, []);
@@ -282,7 +285,11 @@ export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }
     return () => { fini = true; d?.destroy?.(); };
   }, [url, pageDite, citation]);
 
-  const base = Math.max(280, largeurCadre - 34);
+  const tailleUne = tailles[cible.page - 1];
+  // Une page seule : assez petite pour tenir entière, en largeur comme en hauteur (24 px de marge en haut et en bas).
+  const base = unePage && tailleUne && hauteurCadre
+    ? Math.max(200, Math.min(largeurCadre - 34, ((hauteurCadre - 48) * tailleUne.w) / tailleUne.h))
+    : Math.max(280, largeurCadre - 34);
   const largeur = Math.round(base * zoom);
   // On arrive sur le passage (ou la page dite), une fois la page posée.
   const amene = useRef(null);
@@ -346,7 +353,7 @@ export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }
           <button type="button" onClick={() => zoomer(-1)} disabled={zoom <= ZOOMS[0]} className={boutonZoom} style={{ background: "transparent" }} aria-label="Dézoomer" title="Dézoomer"><Minus className="h-3.5 w-3.5" /></button>
           <button type="button" onClick={() => setZoom(1)} className="min-w-[42px] rounded-full px-1 tabular-nums hover:text-encre" style={{ background: "transparent" }} title="Largeur du panneau">{Math.round(zoom * 100)} %</button>
           <button type="button" onClick={() => zoomer(1)} disabled={zoom >= ZOOMS[ZOOMS.length - 1]} className={boutonZoom} style={{ background: "transparent" }} aria-label="Zoomer" title="Zoomer"><Plus className="h-3.5 w-3.5" /></button>
-          {tailles.length > 1 && <span className="border-l border-trait pl-2 pr-2 tabular-nums">{courante} / {tailles.length}</span>}
+          {tailles.length > 1 && !unePage && <span className="border-l border-trait pl-2 pr-2 tabular-nums">{courante} / {tailles.length}</span>}
         </span>
         {cible.ocr && <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-pleine/90 shadow-[0_6px_18px_rgb(0_0_0/0.18)]" title="Lecture du scan pour retrouver le passage"><Loader2 className="h-4 w-4 animate-spin text-ambre" /></span>}
       </div>
@@ -355,8 +362,8 @@ export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }
       ) : !doc || !largeurCadre ? (
         <div className="grid h-full min-h-[200px] place-items-center"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>
       ) : (
-        <div className="flex w-max min-w-full flex-col items-center gap-3 px-4 pb-6 pt-14">
-          {tailles.map((t, i) => (
+        <div className={`flex w-max min-w-full flex-col items-center gap-3 px-4 ${unePage ? "py-6" : "pb-6 pt-14"}`}>
+          {tailles.map((t, i) => (unePage && i !== cible.page - 1 ? null :
             <PageRendue key={i} doc={doc} n={i + 1} largeur={largeur} taille={t} marques={cible.page === i + 1 ? cible.marques : []}
               premiere={cible.page === i + 1 ? premiere : undefined} onRef={(el) => { pages.current[i] = el; }} />
           ))}
@@ -492,8 +499,9 @@ export const nomLisible = (nom) => String(nom || "")
   .trim() || "Pièce";
 
 // `enTeteCarte` : l'en-tête à la taille d'un titre de carte, à côté d'une carte (26 nov. 2026, Jules : « de la même
-// taille que La clause »).
-export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteur = null, enTeteCarte = false }) {
+// taille que La clause »). `sansCadre` : posée dans la carte d'un autre (la clause et sa pièce dans un seul cadre).
+// `sansEnTete` : la page seule, ni nom, ni page, ni Document / Texte, ni Plein écran (26 nov. 2026, Jules : « enlève tout ça »).
+export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteur = null, enTeteCarte = false, sansCadre = false, sansEnTete = false, unePage = false }) {
   const page = ligne?.page || null;
   // Le document est rapporté par le client authentifié, puis affiché depuis la
   // mémoire du navigateur. Un <iframe src="/uploads/…"> n'emporte ni le jeton
@@ -525,10 +533,10 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
   useEffect(() => { setVue("document"); }, [extraction.document_id, page, ligne?.citation]);
 
   return (
-    <div className={`bg-surface border border-trait rounded-md overflow-hidden flex flex-col ${hauteur || "h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] max-md:[.panneau-source_&]:h-[calc(100dvh-32px)] [.panneau-source_&]:static"}`}>
+    <div className={`${sansCadre ? "" : "bg-surface border border-trait rounded-md "}overflow-hidden flex flex-col ${hauteur || "h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] max-md:[.panneau-source_&]:h-[calc(100dvh-32px)] [.panneau-source_&]:static"}`}>
       {/* L'en-tête retravaillé (26 nov. 2026, Jules : « le layout, la taille, ça ne va pas ») : le nom lisible en 15 px, la
           clause et la page en 12,5 px, la bascule en pastilles de 32 px, « Plein écran » en icône. */}
-      <div className={`flex items-center gap-3 border-b border-bord flex-shrink-0 ${enTeteCarte ? "px-7 pb-4 pt-6 max-md:px-5" : "px-5 py-3.5 max-md:px-4"}`}>
+      {!sansEnTete && <div className={`flex items-center gap-3 border-b border-bord flex-shrink-0 ${enTeteCarte ? "px-7 pb-4 pt-6 max-md:px-5" : "px-5 py-3.5 max-md:px-4"}`}>
         {/* La croix à gauche du nom (26 nov. 2026, Jules) : en haut à droite, la photo de profil la couvrait. */}
         {onFermer && (
           <button onClick={onFermer} className="-ml-1.5 grid h-7 w-7 flex-shrink-0 place-items-center rounded-full text-ardoise transition-colors hover:bg-relief hover:text-encre max-md:h-10 max-md:w-10" style={{ background: "transparent" }} title="Fermer (Échap)" aria-label="Fermer">
@@ -560,7 +568,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
             <Maximize2 className="h-4 w-4" />
           </a>
         )}
-      </div>
+      </div>}
 
       {vue === "passage" && peutSurligner ? (
         <div className="flex-1 overflow-y-auto">
@@ -576,7 +584,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteu
           <p className="m-0 text-[12.5px] text-brume">Il a peut-être été supprimé du dossier, ou votre session a expiré.</p>
         </div>
       ) : estPdf && local?.url ? (
-        <PagePdfSurlignee url={local.url} page={page} citation={ligne?.citation || null} />
+        <PagePdfSurlignee url={local.url} page={page} citation={ligne?.citation || null} unePage={unePage} />
       ) : affichable ? (
         <>
           <iframe

@@ -119,6 +119,9 @@ export default function AdminProjets() {
   const [survolSource, setSurvolSource] = useState(null);
   const zoneApercu = useRef(null);
   const dernierEnvoye = useRef(null);
+  // Un geste qui vaut validation (masquer, afficher, Entrée) part tout de suite, sans la seconde d'attente (26 nov. 2026,
+  // Jules : « je masque plein de trucs, ça n'enregistre pas ») : quitter la page juste après ne le perd plus.
+  const envoiImmediat = useRef(false);
   const avantAK = useRef(null);
   const formDataVif = useRef(null);
   const [largeurChat, setLargeurChat] = useState(() => { try { return Number(localStorage.getItem("klocka.projets.largeur-chat")) || 420; } catch { return 420; } });
@@ -1035,6 +1038,7 @@ export default function AdminProjets() {
     // attendre que l'état du formulaire soit propagé.
     // Un projet existant s'enregistre seul, champ par champ (voir l'effet plus bas).
     if (enregistrer && !editingProject) handleSubmit({}, { source: suivant, discret: true });
+    if (enregistrer && editingProject) envoiImmediat.current = true;
   };
 
   // `source` explicite : après un enregistrement, `formData` de la fermeture est
@@ -1173,9 +1177,19 @@ export default function AdminProjets() {
     try { donnees = construireDonnees(formData); } catch { return undefined; }
     if (dernierEnvoye.current?.id !== id) { dernierEnvoye.current = { id, valeurs: JSON.parse(JSON.stringify(donnees)) }; return undefined; }
     if (!modifieDepuis || !formData.titre) return undefined;
-    const t = setTimeout(() => { envoyerRef.current?.(); }, 900);
+    const t = setTimeout(() => { envoyerRef.current?.(); }, envoiImmediat.current ? 0 : 900);
+    envoiImmediat.current = false;
     return () => clearTimeout(t);
   }, [formData, travauxList, modifieDepuis, isDialogOpen, editingProject?.id]);
+  // Ce qui attend encore part quand on quitte l'éditeur (autre page, onglet fermé, rechargement) : avant, la retouche
+  // de la dernière seconde se perdait.
+  const attendEnvoi = useRef(false);
+  attendEnvoi.current = modifieDepuis;
+  useEffect(() => {
+    const partir = () => { if (attendEnvoi.current) envoyerRef.current?.(); };
+    window.addEventListener("pagehide", partir);
+    return () => { window.removeEventListener("pagehide", partir); partir(); };
+  }, []);
 
   // Le bouton Enregistrer : ce qui attend part tout de suite, puis une version de la fiche entière se pose.
   const enregistrerVersion = async () => {
@@ -1433,7 +1447,7 @@ export default function AdminProjets() {
   const projetAffiche = apercuProjet || editingProject || projetVierge();
 
   if (isDialogOpen) {
-    const goToProjectsList = () => { setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); };
+    const goToProjectsList = () => { envoyerRef.current?.(); setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); };
     const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
     // Le dossier de pré-analyse dont ce projet est issu, s'il y en a un.
     const dossierLie = editingProject?.deal_id || formData.deal_id || null;

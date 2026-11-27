@@ -332,7 +332,20 @@ export function monterFicheDossier(app) {
     const r = m.squelette();
     let clients = null;
     try { clients = await m.clientsDeTwenty(); } catch (e) { clients = { erreur: e?.message || String(e) }; }
-    ok(res, { ...r, clients });
+    // L'activité sur la plateforme et les transactions de Twenty de chaque client, d'habitude écrites à l'ouverture de
+    // sa fiche, passées ici pour toutes (27 nov. 2026, Jules : « que toutes les fiches soient prêtes lundi ») ; en fond,
+    // un client après l'autre : le compte de chacun se cherche dans Twenty.
+    const fichesClients = Records.filter('FicheDossier', { genre: 'client' });
+    if (!process.env.NODE_TEST_CONTEXT) setImmediate(async () => {
+      const [{ activiteDuClient }, { transactionsDuClient }] = await Promise.all([import('../fiche-dossier/activite-client.js'), import('../fiche-dossier/transactions-client.js')]);
+      let actifs = 0; let enTransaction = 0;
+      for (const f of fichesClients) {
+        try { if (await activiteDuClient(f)) actifs += 1; } catch (e) { console.error('[fiche] activité', f.cle, e?.message || e); }
+        try { if (await transactionsDuClient(Records.get('FicheDossier', f.id))) enTransaction += 1; } catch (e) { console.error('[fiche] transactions', f.cle, e?.message || e); }
+      }
+      console.log(`[fiche] squelette clients : ${fichesClients.length} fiches, ${actifs} comptes liés, ${enTransaction} avec transactions`);
+    });
+    ok(res, { ...r, clients, clients_suivis: fichesClients.length });
   }));
   app.get('/api/fiche-dossier/import/chat/espaces', wrap(async (req, res) => {
     if (!(await gerant(req, res))) return;

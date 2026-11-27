@@ -69,7 +69,7 @@ export default function ImportFiches() {
     mutationFn: ({ chemin, body = {} }) => base44.request("POST", `/api/fiche-dossier/import/${chemin}`, { body }),
     onSuccess: (r, { chemin }) => {
       rafraichir();
-      if (chemin === "squelette") toast.success(`Squelette : ${r.biens} dossiers, ${r.agents} agents, ${r.abandons} abandons${r.appels ? `, ${r.appels} appels sur les fiches des agents` : ""}${r.envois ? `, ${r.envois} envois de fiches` : ""}${r.clients?.lus ? `, ${r.clients.lus} clients de Twenty` : ""}.`);
+      if (chemin === "squelette") toast.success(`Squelette : ${r.biens} dossiers, ${r.agents} agents, ${r.abandons} abandons${r.appels ? `, ${r.appels} appels sur les fiches des agents` : ""}${r.envois ? `, ${r.envois} envois de fiches` : ""}${r.clients?.lus ? `, ${r.clients.lus} clients de Twenty` : ""}.${r.clients_suivis ? ` L'activité et les transactions de ${r.clients_suivis} clients arrivent sur leurs fiches dans quelques minutes.` : ""}`);
       else toast.success(`${r.total ?? 0} source${(r.total ?? 0) > 1 ? "s" : ""} à lire : l'import tourne.`);
     },
     onError: (e) => toast.error(e?.message || "L'import n'a pas démarré."),
@@ -101,7 +101,7 @@ export default function ImportFiches() {
         {etat.data ? ` ${etat.data.a_relire} fiche${etat.data.a_relire > 1 ? "s" : ""} à relire, ${etat.data.sources} source${etat.data.sources > 1 ? "s" : ""} déjà lue${etat.data.sources > 1 ? "s" : ""}.` : ""}
       </p>
       <ol className="m-0 mt-2 list-none p-0">
-        <Etape n={1} titre="Le squelette" note="Sans IA : une fiche par dossier actif (identité de la plateforme), par agent appelé (dernier appel, analyste, et chaque appel daté dans son historique, le premier contact en tête) et par client de Twenty ; un dossier abandonné garde sa raison.">
+        <Etape n={1} titre="Le squelette" note="Sans IA : une fiche par dossier actif (identité de la plateforme), par agent appelé (dernier appel, analyste, et chaque appel daté dans son historique, le premier contact en tête) et par client de Twenty (ses connexions à la plateforme et ses transactions de Twenty, en quelques minutes) ; un dossier abandonné garde sa raison.">
           <button type="button" className={plein} disabled={lancer.isPending} onClick={() => lancer.mutate({ chemin: "squelette" })}>{lancer.isPending && lancer.variables?.chemin === "squelette" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}Créer les fiches</button>
         </Etape>
         <Etape n={2} titre="Les récaps de Google Chat" note="Chaque message (ou suite de messages d'une même personne) devient une source datée ; ses consignes passées vont dans l'historique, pas dans « À faire ». Environ 0,01 € par message.">

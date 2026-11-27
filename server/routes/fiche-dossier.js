@@ -345,7 +345,7 @@ export function monterFicheDossier(app) {
   }));
   app.post('/api/fiche-dossier/import/appels', wrap(async (req, res) => {
     const user = await gerant(req, res); if (!user) return;
-    const r = (await I()).lancerAppels(user, { depuis: req.body?.depuis || null });
+    const r = await (await I()).lancerAppels(user);
     if (!r.ok) return refus(res, r);
     ok(res, r);
   }));

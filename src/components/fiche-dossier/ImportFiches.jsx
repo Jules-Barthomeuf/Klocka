@@ -12,7 +12,7 @@ import { dateJournal } from "@/lib/fiche-dossier";
 // appels du mode appel. Tout se range sans OK, marqué « importé » ; chaque analyste relit ensuite ses fiches (la
 // pastille Fiches de l'accueil, « À relire »). Relancer un geste ne double rien.
 
-const ETAT = { en_cours: "en cours", fini: "fini", echec: "échec" };
+const ETAT = { en_cours: "en cours", fini: "fini", echec: "échec", interrompu: "interrompu par un redémarrage, relancez pour reprendre" };
 
 function Etape({ n, titre, note, children, dessous = null }) {
   return (
@@ -167,7 +167,7 @@ export default function ImportFiches() {
             {nouvelles.length ? `Importer ${nouvelles.length > 1 ? `les ${nouvelles.length} nouvelles` : "la nouvelle"}` : "Importer"}
           </button>
         </Etape>
-        <Etape n={4} titre="Les appels du mode appel" note="Les appels qui ont parlé d'un bien : leur résumé, leurs notes et leur transcription, rangés sur l'agent et les dossiers nommés.">
+        <Etape n={4} titre="Les appels du mode appel" note="Une lecture par agent, les plus récemment appelés d'abord : tous ses appels où l'on a parlé (résumé, notes, transcription) refont le résumé de sa fiche et nourrissent les biens cités ; chaque appel a sa ligne datée dans l'historique. Un appel n'est lu qu'une fois ; ensuite, chaque appel validé met la fiche à jour tout seul.">
           <button type="button" className={plein} disabled={lancer.isPending || enCours("appels")} onClick={() => lancer.mutate({ chemin: "appels" })}>Importer</button>
         </Etape>
       </ol>

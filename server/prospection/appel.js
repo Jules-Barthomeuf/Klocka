@@ -554,6 +554,9 @@ export async function validerAppel({ appel_id, choix = [], mail = null, sms = nu
     else if (mail.corps != null && String(mail.corps).trim() !== String(pm.corps || '').trim()) corrections.push({ champ: 'Mail', avant: 'proposé', apres: 'réécrit', le: iso, par });
   }
   Records.update(ENTITE, appel.id, { etat: 'valide', choix: [...pris], valide_le: iso, valide_par: par, corrections, modifie: corrections.length > 0 });
+  // La fiche de l'agent suit l'appel (27 nov. 2026, Jules : « à chaque fois qu'on passe un appel, ça met la fiche à jour ») :
+  // sa ligne d'historique tout de suite, la lecture de l'appel en fond ; jamais bloquant.
+  import('../fiche-dossier/appels-fiche.js').then(({ apresAppel }) => apresAppel(appel.id, user)).catch(() => {});
   liberer(a.id);
   return { ok: true, faits, envoi, mail_id: mailId, sms_id: smsId, agent: agentDe(a.id) };
 }

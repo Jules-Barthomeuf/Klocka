@@ -314,21 +314,27 @@ export async function messagesChat(compteEmail, espace, { depuis = null, max = 3
 const enCours = new Set();
 
 /** Lance un lot en tâche de fond ; rend son identifiant. `taches` : des fonctions qui rangent une source chacune. */
-function lancerLot(genre, titre, taches, user) {
+// `parallele` : combien de lectures à la fois (27 nov. 2026 : le rattrapage des appels, une lecture par agent).
+export function lancerLot(genre, titre, taches, user, { parallele = 1 } = {}) {
   if (enCours.has(genre)) return { ok: false, error: 'Un import de ce genre tourne déjà.' };
   const lot = Records.create(LOT, { genre, titre, par: user?.email || null, etat: 'en_cours', total: taches.length, faits: 0, deja: 0, fiches: 0, entrees: 0, erreurs: [], le: new Date().toISOString() });
   enCours.add(genre);
   (async () => {
     const c = { faits: 0, deja: 0, fiches: new Set(), entrees: 0, erreurs: [], manquants: new Map() };
-    for (const t of taches) {
-      try {
-        const r = await t();
-        if (r?.deja) c.deja += 1;
-        else if (r?.ok === false) c.erreurs.push(propre(r.error, 200));
-        else { c.faits += 1; c.entrees += r?.entrees || 0; for (const f of r?.fiches || []) c.fiches.add(f); for (const m of r?.manquants || []) c.manquants.set(m.toLowerCase(), m); }
-      } catch (e) { c.erreurs.push(propre(e?.message || e, 200)); }
-      Records.update(LOT, lot.id, { faits: c.faits, deja: c.deja, fiches: c.fiches.size, entrees: c.entrees, erreurs: c.erreurs.slice(-20), manquants: [...c.manquants.values()].slice(0, 40) });
-    }
+    const file = [...taches];
+    const ouvrier = async () => {
+      while (file.length) {
+        const t = file.shift();
+        try {
+          const r = await t();
+          if (r?.deja || r?.rien) c.deja += 1;
+          else if (r?.ok === false) c.erreurs.push(propre(r.error, 200));
+          else { c.faits += 1; c.entrees += r?.entrees || 0; for (const f of r?.fiches || []) c.fiches.add(f); for (const m of r?.manquants || []) c.manquants.set(m.toLowerCase(), m); }
+        } catch (e) { c.erreurs.push(propre(e?.message || e, 200)); }
+        Records.update(LOT, lot.id, { faits: c.faits, deja: c.deja, fiches: c.fiches.size, entrees: c.entrees, erreurs: c.erreurs.slice(-20), manquants: [...c.manquants.values()].slice(0, 40), vu_le: new Date().toISOString() });
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(parallele, taches.length || 1)) }, ouvrier));
     Records.update(LOT, lot.id, { etat: 'fini', fini_le: new Date().toISOString() });
   })().catch((e) => Records.update(LOT, lot.id, { etat: 'echec', erreurs: [propre(e?.message || e, 200)] })).finally(() => enCours.delete(genre));
   return { ok: true, lot_id: lot.id, total: taches.length };
@@ -366,7 +372,13 @@ export function lancerTextes(textes, user) {
 }
 
 /** Les appels du mode appel qui ont parlé d'un bien : rangés sur l'agent et les dossiers qu'ils nomment. */
-export function lancerAppels(user, { depuis = null } = {}) {
+export async function lancerAppels(user) {
+  const { lancerRattrapage } = await import('./appels-fiche.js');
+  return lancerRattrapage(user);
+}
+
+/** L'ancien import des appels (un appel à la fois, seulement ceux qui nomment un bien) ; gardé pour mémoire. */
+export function lancerAppelsUnParUn(user, { depuis = null } = {}) {
   const appels = Records.list('AppelAgent').filter((a) => a.agent_id && (!depuis || String(a.le) >= depuis))
     .filter((a) => Array.isArray(a.biens) ? a.biens.length > 0 : !!a.biens)
     .filter((a) => propre([a.notes, a.recit, a.transcription_gardee, a.transcription].filter((x) => typeof x === 'string').join(' ')).length >= 80 || propre(a.resume).length >= 80);
@@ -380,6 +392,10 @@ export function lancerAppels(user, { depuis = null } = {}) {
 
 /** Où en sont les imports : les derniers lots et ce qui attend une relecture. */
 export function etatImport() {
+  // Un lot « en cours » que ce serveur ne fait pas tourner a été coupé par un redémarrage (une mise en ligne) : il le dit,
+  // et ne bloque plus son bouton ; le relancer reprend où il s'était arrêté (27 nov. 2026, Jules : « comment je sais si
+  // c'est encore en cours »).
+  for (const l of Records.filter(LOT, { etat: 'en_cours' })) if (!enCours.has(l.genre)) Records.update(LOT, l.id, { etat: 'interrompu', fini_le: l.vu_le || l.le });
   const lots = Records.list(LOT).sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, 12);
   const aRelire = Records.filter('FicheDossier', { a_relire: true }).length;
   // Les conversations WhatsApp déjà lues, les plus récentes d'abord : leur nom (gardé depuis le 23 nov. ; avant, relu

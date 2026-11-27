@@ -282,6 +282,9 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
                           </>
                         )}
                       </div>
+                      {f.transactions?.en_cours > 0 && <TransactionsClient transactions={f.transactions} seulementEnCours />}
+                      {f.activite && <ActivitePlateforme activite={f.activite} />}
+                      {f.presente_a?.length > 0 && <PresenteA presente={f.presente_a} onOuvrir={onOuvrir} />}
                       {!bien && (f.comment_parler || parlerNeuf || f.profils?.length > 0 || enProfil.length > 0) && (
                         <section className="mt-6 border-t border-trait pt-4">
                           <Titre>Comment lui parler</Titre>
@@ -384,7 +387,13 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
                     </>
                   )}
 
-                  {ici === "dossiers" && (f.liees.length ? <Personnes cle={cleVue} nom={nom} liees={f.liees} onOuvrir={onOuvrir} /> : vide("Aucun dossier encore : lie une note à un bien et à cette fiche."))}
+                  {ici === "dossiers" && (
+                    <>
+                      {f.transactions && <TransactionsClient transactions={f.transactions} />}
+                      {f.activite?.presentes?.length > 0 && <ProjetsPresentes presentes={f.activite.presentes} />}
+                      {f.liees.length ? <Personnes cle={cleVue} nom={nom} liees={f.liees} onOuvrir={onOuvrir} /> : !f.transactions && !f.activite?.presentes?.length ? vide("Aucun dossier encore : lie une note à un bien et à cette fiche.") : null}
+                    </>
+                  )}
 
                   {ici === "notes" && (
                     <>
@@ -441,6 +450,115 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
  * est vide ») : lues dans la Mémoire à chaque ouverture (server/fiche-dossier/fiches-envoyees.js), en lignes ; une
  * ligne ouvre la fiche reçue. Ses coordonnées d'abord, celles lues sur ses fiches dites comme telles.
  */
+/**
+ * L'activité d'un client sur la plateforme (27 nov. 2026, Jules : « montrer que ce client est actif : il a regardé tel
+ * dossier pendant tant, le simulateur ») : la phrase, puis ce qu'il a regardé en 30 jours, avec le temps.
+ */
+const TEINTE_ACTIVITE = { actif: "text-menthe", tiede: "text-ambre", inactif: "text-ardoise", jamais: "text-ardoise" };
+function ActivitePlateforme({ activite: a }) {
+  return (
+    <section className="mt-6 border-t border-trait pt-4">
+      <Titre>Sur la plateforme<span className={`${TEINTE_ACTIVITE[a.statut] || "text-ardoise"}`}> · {{ actif: "actif", tiede: "moins actif", inactif: "inactif", jamais: "jamais connecté" }[a.statut] || a.statut}</span></Titre>
+      <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{a.phrase}</p>
+      {a.regardes?.length > 0 && (
+        <ul className="m-0 mt-2 list-none divide-y divide-trait p-0">
+          {a.regardes.map((x) => {
+            const contenu = (
+              <>
+                <span className="min-w-0 truncate text-[14.5px] text-encre">{x.genre === "dossier" ? x.nom : x.nom.charAt(0).toUpperCase() + x.nom.slice(1)}</span>
+                <span className="flex-none text-right text-[13px] text-ardoise">{x.temps}{x.vues > 1 ? ` · ${x.vues} fois` : ""}{x.dernier ? <span className="block text-brume">{dateJournal(x.dernier)}</span> : null}</span>
+              </>
+            );
+            const classe = "flex w-full items-center justify-between gap-4 py-2.5 text-left";
+            return (
+              <li key={`${x.genre}:${x.nom}`}>
+                {x.lien
+                  ? <Link to={x.lien} onClick={() => window.dispatchEvent(new CustomEvent("klocka:panneau-note", { detail: { fermer: true } }))} className={`${classe} no-underline hover:opacity-80`}>{contenu}</Link>
+                  : <div className={classe}>{contenu}</div>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="m-0 mt-2 text-[12.5px] text-brume">Compte {a.compte}{a.lie_par === "nom" ? " · retrouvé par son nom" : ""} · 30 derniers jours</p>
+    </section>
+  );
+}
+
+/**
+ * Les transactions du client, lues dans Twenty (27 nov. 2026, Jules : « est-ce qu'il négocie, finance, signe le
+ * compromis ») : en cours d'abord, le statut à droite, les jalons datés dessous.
+ */
+const TEINTE_TRANSACTION = (t) => (t.en_cours ? "text-menthe" : t.finie ? "text-encre" : "text-ardoise");
+function TransactionsClient({ transactions, seulementEnCours = false }) {
+  const lignes = seulementEnCours ? transactions.lignes.filter((t) => t.en_cours) : transactions.lignes;
+  if (!lignes.length) return null;
+  return (
+    <section className={seulementEnCours ? "mt-6 border-t border-trait pt-4" : "mb-6"}>
+      <Titre>{seulementEnCours ? "En transaction" : "Transactions"}<span className="text-ardoise"> · {seulementEnCours ? lignes.length : `${transactions.en_cours} en cours, ${transactions.finies} signée${transactions.finies > 1 ? "s" : ""}`}</span></Titre>
+      <ul className="m-0 list-none divide-y divide-trait p-0">
+        {lignes.map((t) => (
+          <li key={t.id}>
+            <Link to={t.lien} onClick={() => window.dispatchEvent(new CustomEvent("klocka:panneau-note", { detail: { fermer: true } }))} className="flex w-full items-start justify-between gap-4 py-2.5 text-left no-underline hover:opacity-80">
+              <span className="min-w-0">
+                <span className="block truncate text-[14.5px] text-encre">{t.bien || t.nom || "Transaction"}</span>
+                <span className="block truncate text-[13px] text-ardoise">{[t.prix, t.jalons.length ? t.jalons.map((j) => `${j.mot} le ${dateJournal(j.le)}`).join(" · ") : null].filter(Boolean).join(" · ") || t.nom}</span>
+              </span>
+              <span className={`flex-none text-right text-[13px] ${TEINTE_TRANSACTION(t)}`}>{t.statut || "Sans statut"}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Les projets présentés au client (assignés à son compte) : ouverts ou non, et le temps passé (27 nov. 2026, Jules). */
+function ProjetsPresentes({ presentes }) {
+  return (
+    <section className="mb-6">
+      <Titre>Projets présentés<span className="text-ardoise"> · {presentes.length}</span></Titre>
+      <ul className="m-0 list-none divide-y divide-trait p-0">
+        {presentes.map((p) => (
+          <li key={p.id}>
+            <Link to={p.lien} onClick={() => window.dispatchEvent(new CustomEvent("klocka:panneau-note", { detail: { fermer: true } }))} className="flex w-full items-center justify-between gap-4 py-2.5 text-left no-underline hover:opacity-80">
+              <span className="min-w-0 truncate text-[14.5px] text-encre">{p.nom}</span>
+              <span className="flex-none text-right text-[13px] text-ardoise">{p.ouvert ? <>{p.temps}<span className="block text-brume">ouvert le {dateJournal(p.premiere)}</span></> : <span className="text-brume">pas encore ouvert</span>}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** À qui le bien a été présenté (les clients assignés à ses projets), et s'ils l'ont ouvert (27 nov. 2026, Jules). */
+function PresenteA({ presente, onOuvrir }) {
+  return (
+    <section className="mt-6 border-t border-trait pt-4">
+      <Titre>Présenté à<span className="text-ardoise"> · {presente.length}</span></Titre>
+      <ul className="m-0 list-none divide-y divide-trait p-0">
+        {presente.map((x) => {
+          const contenu = (
+            <>
+              <span className="min-w-0 truncate text-[14.5px] text-encre">{x.nom}</span>
+              <span className="flex-none text-right text-[13px] text-ardoise">{x.ouvert ? <>{x.temps}<span className="block text-brume">ouvert le {dateJournal(x.premiere)}</span></> : <span className="text-brume">pas encore ouvert</span>}</span>
+            </>
+          );
+          const classe = "flex w-full items-center justify-between gap-4 py-2.5 text-left";
+          return (
+            <li key={x.email}>
+              {x.fiche && onOuvrir
+                ? <button type="button" onClick={() => onOuvrir(x.fiche)} className={`${classe} hover:opacity-80`} style={{ background: "transparent" }}>{contenu}</button>
+                : <div className={classe}>{contenu}</div>}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function FichesEnvoyees({ envois }) {
   const [tout, setTout] = useState(false);
   const c = envois.contact || {};

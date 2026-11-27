@@ -226,8 +226,21 @@ export function monterFicheDossier(app) {
     // Les appels du mode appel sur la fiche de l'agent, sans IA (26 nov. 2026, Jules : « quand on a eu un premier contact,
     // ce qu'il s'est passé ») : ceux d'aujourd'hui compris, sans attendre un import.
     if (cle.startsWith('agent:')) (await import('../fiche-dossier/import.js')).historiqueDesAppels({ agentId: cle.slice(6) });
+    // L'activité d'un client sur la plateforme (27 nov. 2026, Jules) : ses connexions dans l'historique, avant la lecture.
+    let activite = null;
+    const fc = Records.findBy('FicheDossier', 'cle', cle);
+    let transactions = null;
+    if (fc?.genre === 'client') {
+      try { activite = await (await import('../fiche-dossier/activite-client.js')).activiteDuClient(fc); } catch (e) { console.error('[fiche] activité', e?.message || e); }
+      // Ses transactions de Twenty (27 nov. 2026, Jules : « est-ce qu'il négocie, finance, signe le compromis »).
+      try { transactions = await (await import('../fiche-dossier/transactions-client.js')).transactionsDuClient(fc); } catch (e) { console.error('[fiche] transactions', e?.message || e); }
+    }
     let v = m.ficheVue(cle);
     if (!v) return res.status(404).json({ error: 'Fiche introuvable.' });
+    if (activite) v.activite = activite;
+    if (transactions) v.transactions = transactions;
+    // À qui le bien a été présenté (27 nov. 2026, Jules) : les clients assignés à ses projets, et s'ils l'ont ouvert.
+    if (v.genre === 'bien') { try { const p = (await import('../fiche-dossier/activite-client.js')).presenteA(v.cle); if (p.length) v.presente_a = p; } catch (e) { console.error('[fiche] présenté à', e?.message || e); } }
     // Les fiches qu'il nous a envoyées, une ligne par mail dans l'historique (27 nov. 2026, Jules) ; rien d'autre ne bouge.
     if (v.genre === 'agent' && (await import('../fiche-dossier/fiches-envoyees.js')).historiqueDesEnvois(v.cle, { nom: v.nom })) v = m.ficheVue(cle);
     // Une fiche ouverte devient une fiche récente de la personne (la pastille « Fiches » de l'accueil).

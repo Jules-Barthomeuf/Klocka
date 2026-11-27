@@ -219,9 +219,11 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
   const le = maintenant().toISOString();
   const par = user?.email || note.par || null;
   const creees = { entrees: [], actions: [], fiches: [] };
-  const entree = (cle, genre, texte, raison = null) => {
+  // `arrive_le` : le jour où la chose s'est passée, quand la note le dit (« mardi » ; 26 nov. 2026, Jules) ; `le` reste
+  // le jour où on l'a rangée.
+  const entree = (cle, genre, texte, raison = null, arriveLe = null) => {
     if (!GENRES_ENTREE.includes(genre) || !propre(texte)) return;
-    creees.entrees.push(Records.create('EntreeDossier', { fiche_cle: cle, genre, texte: propre(texte), raison: raison ? propre(raison) : null, note_id: note.id, par, le, ordre: creees.entrees.length, ...(note.importe ? { importe: true, source: note.source?.genre || null } : {}) }).id);
+    creees.entrees.push(Records.create('EntreeDossier', { fiche_cle: cle, genre, texte: propre(texte), raison: raison ? propre(raison) : null, note_id: note.id, par, le, ordre: creees.entrees.length, ...(arriveLe && /^\d{4}-\d{2}-\d{2}$/.test(arriveLe) ? { arrive_le: arriveLe } : {}), ...(note.importe ? { importe: true, source: note.source?.genre || null } : {}) }).id);
   };
 
   // Les liens entre les fiches : les personnes d'un bien, les biens d'une personne.
@@ -239,7 +241,7 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
     let touchee = false;
     for (const el of fp.elements || []) {
       if (!garder(el.id)) continue;
-      entree(lien.cle, el.genre, el.texte, el.genre === 'decision' ? el.raison : null);
+      entree(lien.cle, el.genre, el.texte, el.genre === 'decision' ? el.raison : null, el.genre === 'evenement' ? el.arrive_le : null);
       touchee = true;
     }
     const patch = {};
@@ -705,17 +707,20 @@ export function ficheVue(cleRecue) {
     if (vues.has(k)) continue;
     vues.add(k);
     const n = e.note_id ? notes.get(e.note_id) : null;
+    const evenement = entrees.find((x) => (x.note_id || x.id) === k && x.genre === 'evenement');
     journal.push({
       // La ligne de l'historique : ce qui s'est passé, vu de cette fiche (« Appel avec Sébastien Robic à propos de la
       // taxe foncière »), sinon le titre de la note (20 nov. 2026, Jules).
-      id: k, le: n?.le || e.le, par: prenomDe(n?.par || e.par), source: 'note',
-      titre: entrees.find((x) => (x.note_id || x.id) === k && x.genre === 'evenement')?.texte || n?.proposition?.titre || null,
+      // Le jour de ce qui s'est passé quand la note le dit (« mardi »), sinon celui de la note (26 nov. 2026, Jules).
+      id: k, le: evenement?.arrive_le ? `${evenement.arrive_le}T12:00:00.000Z` : n?.le || e.le, par: prenomDe(n?.par || e.par), source: 'note',
+      titre: evenement?.texte || n?.proposition?.titre || null,
       lignes: entrees.filter((x) => (x.note_id || x.id) === k && !['action_faite', 'ressenti', 'evenement', 'profil'].includes(x.genre)).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0)).map((x) => ({ genre: x.genre, texte: x.texte, raison: x.raison || null })),
       brut: n?.importe ? null : n?.texte || null,
       importe: entrees.some((x) => (x.note_id || x.id) === k && x.importe),
       origine: n?.source ? { genre: n.source.genre, de: n.source.de || null, lieu: n.source.lieu || null } : null,
     });
   }
+  journal.sort((a, b) => String(b.le).localeCompare(String(a.le)));
   const derniere = journal[0] || null;
   const genre = f?.genre || o?.genre;
   // Les dossiers d'un agent que la plateforme connaît sans note : ceux dont l'analyse le nomme (19 nov. 2026, Jules :

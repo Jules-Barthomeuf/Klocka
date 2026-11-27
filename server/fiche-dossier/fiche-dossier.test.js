@@ -738,3 +738,17 @@ test('une action cochée entre dans l\'historique au passé, datée (25 nov. 202
   // Minuit à Paris : la date est celle de Paris, pas celle de Londres.
   assert.equal(ligneFaite('Appeler Paul', '2026-11-25T23:30:00Z'), 'Appelé Paul, le 26 novembre');
 });
+
+test('« premier contact mardi » : la ligne de l\'historique est datée du mardi, pas du jour de la note', async () => {
+  // Jeudi 19 nov. : « mardi » est le 17 (26 nov. 2026, Jules : « ça a mis le 26 novembre »).
+  const cleAgent = liens[1].cle;
+  const brutMardi = { nature: 'note', titre: 'Premier contact', fiches: [{ lien: 'L2', elements: [{ genre: 'evenement', texte: 'Premier contact avec Arthur', quand: 'Mardi' }, { genre: 'maj', texte: 'Arthur suit des murs à Lyon.' }] }], actions: [], questions: [], mentions: [] };
+  const n = await proposer({ texte: "J'ai eu un premier contact avec Arthur Mardi", liens }, maxime, { maintenant, lire: async () => brutMardi });
+  const ev = n.proposition.fiches[0].elements.find((e) => e.genre === 'evenement');
+  assert.equal(ev.arrive_le, '2026-11-17');
+  assert.equal(n.proposition.fiches[0].elements.find((e) => e.genre === 'maj').arrive_le, undefined);
+  assert.equal(M.rangerNote(Records.get('NoteDossier', n.note_id), {}, maxime, { maintenant: () => maintenant }).ok, true);
+  const ligne = M.ficheVue(cleAgent).journal.find((j) => j.titre === 'Premier contact avec Arthur');
+  assert.ok(ligne);
+  assert.equal(ligne.le.slice(0, 10), '2026-11-17');
+});

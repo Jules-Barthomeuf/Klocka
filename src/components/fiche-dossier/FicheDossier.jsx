@@ -215,7 +215,8 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
   const ajout = (e) => (
     <Ajout key={e.id} coche={garde.has(e.id)} onClick={() => basculer(noteId, e.id)} libelle={garde.has(e.id) ? `Retirer : ${e.texte}` : `Garder : ${e.texte}`}>
       <p className="m-0 text-[15px] leading-[1.45] text-encre [text-wrap:pretty]">{e.texte}<Propose /></p>
-      <p className="m-0 mt-1 text-[13.5px] leading-[1.45] text-ardoise">{["Proposé par l'assistant", TAG[e.genre]?.[0]].filter(Boolean).join(" · ")}</p>
+      {/* Le jour de ce qui s'est passé, quand la note le dit (« mardi » ; 26 nov. 2026, Jules). */}
+      <p className="m-0 mt-1 text-[13.5px] leading-[1.45] text-ardoise">{["Proposé par l'assistant", TAG[e.genre]?.[0], e.arrive_le ? new Date(`${e.arrive_le}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }) : null].filter(Boolean).join(" · ")}</p>
       {e.raison && <p className="m-0 mt-0.5 text-[13.5px] leading-[1.45] text-ardoise">{raisonLisible(e.raison)}</p>}
     </Ajout>
   );

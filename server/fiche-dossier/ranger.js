@@ -3,6 +3,7 @@
 // s'agit d'écrire à quelqu'un) et questions. Rien n'est rangé ici : la proposition attend le OK de la personne
 // (modele.js, rangerNote). Une demande faite à l'assistant (« fais la LOI ») n'est pas une note : elle repart au chat.
 
+import { dateDuFait } from './date-du-fait.js';
 import { Records } from '../db.js';
 import { invokeLLM } from '../llm.js';
 import { mesurer } from '../llm-couts.js';
@@ -40,7 +41,7 @@ export const SCHEMA = {
     titre: { type: 'string' },
     fiches: { type: 'array', items: { type: 'object', properties: {
       lien: { type: 'string' },
-      elements: { type: 'array', items: { type: 'object', properties: { genre: { type: 'string', enum: GENRES }, texte: { type: 'string' }, raison: { type: 'string' } }, required: ['genre', 'texte'] } },
+      elements: { type: 'array', items: { type: 'object', properties: { genre: { type: 'string', enum: GENRES }, texte: { type: 'string' }, raison: { type: 'string' }, quand: { type: 'string' } }, required: ['genre', 'texte'] } },
       etape: { type: 'string' },
       etat: { type: 'string' },
       position: { type: 'string', enum: POSITIONS },
@@ -169,7 +170,8 @@ Règles :
 - Les fiches ci-dessus sont DEVINÉES par les noms de la note : personne ne les a choisies. Range un morceau sur l'une d'elles seulement si ce morceau en parle vraiment (son nom, son adresse, sa ville, une personne qui y est liée). Un morceau dont rien ne dit de quel dossier ou de quelle personne il parle (des chiffres sans nom de bien juste après un autre dossier, une personne qu'on ne sait pas classer client ou agent) : ne le range nulle part, pose la question (« Le droit d'entrée de 30 k€ et les 318 k€ FAI : c'est quel bien ? », « Sarra Gendre : cliente ou agente ? »). Les variantes d'un même nom (Matis, Matiss) sont la même personne. Un dossier ou une personne nommés qui ne sont pas parmi ces fiches : dans mentions.` : ''}${source ? `
 - Une source passée (l'import) : les consignes qu'elle donne (« relance Sougiron », « tiens Paul informé », « rentre le dossier ») sont passées ; ce ne sont pas des actions : écris-les en evenement ou maj datés (« Le 30 oct., Nora demande de relancer Sougiron, qui a lu sans répondre »). actions : une liste vide. questions : une liste vide ; ce qui est incertain s'écrit sans le détail incertain, ou pas du tout. Ce qui ne touche aucun dossier ni aucune personne (un souci de la plateforme, une plaisanterie, l'organisation de l'équipe) : rien. Un fait qui contredit ce que la fiche sait déjà : garde le plus récent, et ajoute un élément ecart qui dit les deux (« Écart : le récap du 30 oct. dit 280 à 300 k€, la fiche disait 320 k€ »).` : ''}
 - fiches : une entrée par fiche liée touchée par la note (lien = L1, L2…). Dans elements :
-  - evenement : ce qui s'est passé, vu de cette fiche, en une ligne sans date (la date est celle de la note) : c'est la ligne de l'historique de la fiche. « Appel avec Sébastien Robic à propos de la taxe foncière », « Visio de présentation de Comtesse du Barry », « Présentation à Adrien Mina et Claire Dumas », « Demande de documents par la banque », « Thomas Nguyen ne poursuit pas : rendement trop bas », « Annonce d'un local à Vannes par Sébastien Robic », « Visite avec Rachel », « Coralie reprend le dossier », « Dossier mis en stand-by ». Un seul par fiche touchée, sur chaque fiche touchée, dès que la note rapporte un échange qui a eu lieu, une visite faite, une décision ou un changement ; aucun si elle ne rapporte rien qui se soit passé.
+  - evenement : ce qui s'est passé, vu de cette fiche, en une ligne sans date dans le texte : c'est la ligne de l'historique de la fiche. « Appel avec Sébastien Robic à propos de la taxe foncière », « Visio de présentation de Comtesse du Barry », « Présentation à Adrien Mina et Claire Dumas », « Demande de documents par la banque », « Thomas Nguyen ne poursuit pas : rendement trop bas », « Annonce d'un local à Vannes par Sébastien Robic », « Visite avec Rachel », « Coralie reprend le dossier », « Dossier mis en stand-by ». Un seul par fiche touchée, sur chaque fiche touchée, dès que la note rapporte un échange qui a eu lieu, une visite faite, une décision ou un changement ; aucun si elle ne rapporte rien qui se soit passé.
+    quand : les mots de la note qui disent quand c'est arrivé, recopiés tels quels (« mardi », « hier », « le 12 novembre », « ce matin »), si elle le dit ; sinon rien (la ligne prend le jour de la note). Ne calcule pas de date : le code la calcule.
   Une note qui prépare un appel ou un message (des questions à poser, ce qu'on va dire : « est-ce que vos honoraires sont inclus ? », « le loyer HC HT ? ») n'est pas un échange : aucun événement, aucun fait, rien dans l'historique (20 nov. 2026, Jules). Elle donne une action « appel » vers la personne (ou « whatsapp » si elle répond mieux par message), avec en contexte chaque question telle qu'elle sera posée et ce qu'on doit lui dire ; l'avis qu'on a sur un dossier (« crèche intéressante avec négociation ») est un ressenti sur ce dossier s'il est lié, sinon sur la fiche de la personne, et devient aussi un point à dire pendant l'appel (« Lui dire que la crèche nous intéresse, sous réserve de négociation »).
   - maj : un fait appris ou qui change (prix, document reçu, ce qu'a dit quelqu'un, état du bien). Une phrase qui se comprend seule par un collègue absent, chiffres exacts, qui l'a dit s'il est connu et que ce n'est pas l'auteur (« selon Bilel, … »).
   - decision : ce qui a été décidé, et dans raison le pourquoi s'il est dit (sinon pas de raison). C'est ce qui se perd le plus vite : ne le manque pas.
@@ -212,7 +214,7 @@ ${conv ? conv.texte : String(texte || '').slice(0, transcription ? 42000 : 12000
 /** La réponse du modèle, ramenée à ce que l'écran affiche et que le rangement accepte. Les ids sont posés ici. */
 const sansAccents = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-export function normaliser(brut, liens, { auteur = null, connus = [], prevues = [], libre = false, source = null, deja: dejaLies = null } = {}) {
+export function normaliser(brut, liens, { auteur = null, connus = [], prevues = [], libre = false, source = null, deja: dejaLies = null, maintenant = new Date() } = {}) {
   const r = brut && typeof brut === 'object' ? brut : {};
   const lies = dejaLies || (source || libre ? [] : rattaches(liens));
   const cleDe = (x) => {
@@ -232,7 +234,8 @@ export function normaliser(brut, liens, { auteur = null, connus = [], prevues = 
       if (d && !retraits.some((x) => x.de === d.de && x.vers === d.vers)) retraits.push({ id: `t${retraits.length + 1}`, de: d.de, de_nom: d.de_nom, vers: d.vers, genre: d.genre, nom: d.nom });
     }
     const elements = (Array.isArray(f.elements) ? f.elements : [])
-      .map((e) => ({ genre: GENRES.includes(e?.genre) ? e.genre : 'maj', texte: propre(e?.texte, 600), raison: propre(e?.raison, 400) || null }))
+      // Le jour où c'est arrivé, calculé ici depuis les mots relevés (« mardi » → le mardi passé ; 26 nov. 2026, Jules).
+      .map((e) => ({ genre: GENRES.includes(e?.genre) ? e.genre : 'maj', texte: propre(e?.texte, 600), raison: propre(e?.raison, 400) || null, ...(e?.genre === 'evenement' && dateDuFait(e?.quand, maintenant) ? { arrive_le: dateDuFait(e.quand, maintenant) } : {}) }))
       .filter((e) => e.texte)
       // Un ressenti vaut sur un dossier comme sur une personne (19 nov. 2026, Jules : l'onglet Notes de toutes les fiches).
       .map((e) => ({ ...e, raison: e.genre === 'decision' ? e.raison : null }))
@@ -450,7 +453,7 @@ export async function proposer({ texte, liens = [], conversation: importee = nul
   const prompt = consigne(t, lies, user, { maintenant, conversation, ajout: brute ? t || null : null, connus, prevues, suite, transcription: !!transcription && !conversation, libre: devine, source: src, style, deja });
   const appeler = lire || (() => invokeLLM({ prompt, response_json_schema: SCHEMA, effort: 'low', max_tokens: 6000 }));
   const { resultat } = await mesurer({ operation: transcription && !conversation ? 'ranger un enregistrement' : 'ranger une note', par: user?.email || null }, appeler);
-  const proposition = normaliser(resultat, lies, { auteur: user?.email, connus, prevues, libre: devine, source: src, deja });
+  const proposition = normaliser(resultat, lies, { auteur: user?.email, connus, prevues, libre: devine, source: src, deja, maintenant });
   // La note libre ne garde liées que les fiches dont elle parle.
   if (devine) {
     const utiles = new Set(proposition.liens_utiles || []);

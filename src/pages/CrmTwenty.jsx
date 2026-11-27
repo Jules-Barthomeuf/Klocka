@@ -1092,7 +1092,9 @@ export default function CrmTwenty() {
     return d.objets.filter((o) => !o.ferme).map((o, i) => [o, rang.has(o.singulier) ? rang.get(o.singulier) : rang.size + i]).sort((x, y) => x[1] - y[1]).map(([o]) => o);
   }), [barre.data]);
   const objet = objets.find((o) => o.singulier === params.get("t")) || objets[0] || null;
-  const vue = objet?.vues.find((v) => v.id === params.get("v")) || objet?.vues[0] || null;
+  // L'onglet d'arrivée : « Mes agents » quand il y en a un (`defaut`, 27 nov. 2026), sinon le premier.
+  const vueDefaut = objet?.vues.find((v) => v.defaut) || objet?.vues[0] || null;
+  const vue = objet?.vues.find((v) => v.id === params.get("v")) || vueDefaut;
   const ficheId = params.get("f");
   const ficheObjet = objets.find((o) => o.singulier === params.get("ft")) || objet;
   const { prefs, changer: changerPrefs } = usePersonnalisation();
@@ -1508,7 +1510,7 @@ export default function CrmTwenty() {
                   const active = v.id === vue?.id;
                   return (
                     <span key={v.id} className={`-mb-px flex flex-none items-center gap-1 border-b-2 px-1.5 pb-1.5 pt-1.5 ${active ? "border-menthe" : "border-transparent"}`}>
-                      <button type="button" onClick={() => aller({ v: v.id === objet.vues[0].id ? null : v.id, f: null, ft: null })} className={`whitespace-nowrap rounded-[6px] px-1.5 py-1 text-[14px] ${active ? "text-encre" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={{ background: "transparent" }}>
+                      <button type="button" onClick={() => aller({ v: v.id === vueDefaut?.id ? null : v.id, f: null, ft: null })} className={`whitespace-nowrap rounded-[6px] px-1.5 py-1 text-[14px] ${active ? "text-encre" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={{ background: "transparent" }}>
                         {v.nom === "Tout" ? (objet.vues.some((x) => x.klocka) ? "Tout" : "Tableau principal") : v.nom}{v.kanban ? " · Kanban" : ""}
                       </button>
                       {active && plein && <MenuVue objet={objet} vue={v} filtres={filtres} tri={tri} onVue={(id) => { setFiltres([]); setTri(null); aller({ v: id, f: null, ft: null }); }} />}

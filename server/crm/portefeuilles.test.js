@@ -12,18 +12,20 @@ const reglages = {
 };
 const vues = [{ id: 'v-tout', nom: 'Tout', colonnes: ['name', 'spoc'], filtres: [], tri: null }, { id: 'v-relance', nom: 'À relancer', colonnes: ['name'], filtres: [], tri: null }];
 
-test('Maxime arrive sur ses agents, puis ceux des autres, puis Tout, puis les vues de Twenty', () => {
+test('Maxime : Tout à gauche, puis ses agents (où il arrive), ceux des autres, puis les vues de Twenty', () => {
   const v = vuesPortefeuille(vues, 'maxime.p@klocka.immo', equipe, reglages);
-  assert.deepEqual(v.map((x) => x.nom), ['Mes agents', 'Agents de Nora', 'Agents de Coralie', 'Agents de Jules', 'Tout', 'À relancer']);
-  assert.deepEqual(v[0].filtres, [{ champ: 'spoc', op: 'contient', valeur: 'Maxime Pama' }]);
-  assert.deepEqual(v[3].filtres, [{ champ: 'spoc', op: 'contient', valeur: 'JulesB' }]);
-  assert.deepEqual(v[0].colonnes, ['name', 'spoc']);
-  assert.equal(v[4].id, 'v-tout');
+  assert.deepEqual(v.map((x) => x.nom), ['Tout', 'Mes agents', 'Agents de Nora', 'Agents de Coralie', 'Agents de Jules', 'À relancer']);
+  assert.equal(v[0].id, 'v-tout');
+  assert.deepEqual(v.filter((x) => x.defaut).map((x) => x.nom), ['Mes agents']);
+  assert.deepEqual(v[1].filtres, [{ champ: 'spoc', op: 'contient', valeur: 'Maxime Pama' }]);
+  assert.deepEqual(v[4].filtres, [{ champ: 'spoc', op: 'contient', valeur: 'JulesB' }]);
+  assert.deepEqual(v[1].colonnes, ['name', 'spoc']);
 });
 
 test('Paul arrive sur Tout ; ses agents restent à portée, à la fin', () => {
   const v = vuesPortefeuille(vues, 'paul.dz@klocka.immo', equipe, reglages);
   assert.deepEqual(v.map((x) => x.nom), ['Tout', 'Agents de Nora', 'Agents de Maxime', 'Agents de Coralie', 'Agents de Jules', 'Mes agents', 'À relancer']);
+  assert.ok(!v.some((x) => x.defaut));
 });
 
 test("quelqu'un hors de l'équipe des appels arrive sur Tout, sans « Mes agents »", () => {

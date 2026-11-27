@@ -414,8 +414,9 @@ export function vuesPortefeuille(vues, email, equipeNoms, { portefeuilles = [], 
   const miens = nomMonday(moi) ? [vue('klocka-mes-agents', 'Mes agents', moi)] : [];
   const autres = portefeuilles.map(bas).filter((e) => e !== moi && nomMonday(e)).map((e) => vue(`klocka-agents-${e.split('@')[0]}`, `Agents de ${prenom(e)}`, e));
   const reste = vues.filter((v) => v !== tout);
-  const devant = toutDabord.map(bas).includes(moi) || !miens.length ? [tout, ...autres, ...miens] : [...miens, ...autres, tout];
-  return [...devant, ...reste];
+  // « Tout » à gauche de « Mes agents » (27 nov. 2026, Jules) ; on arrive quand même sur « Mes agents » (`defaut`), sauf Paul.
+  if (toutDabord.map(bas).includes(moi) || !miens.length) return [tout, ...autres, ...miens, ...reste];
+  return [tout, { ...miens[0], defaut: true }, ...autres, ...reste];
 }
 
 export async function barre(email) {

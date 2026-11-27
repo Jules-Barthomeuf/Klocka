@@ -2,7 +2,7 @@
 // de Maxime…, puis Tout ; Paul voit Tout d'abord »).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { vuesPortefeuille } from './ecran.js';
+import { PORTEFEUILLES, vuesPortefeuille } from './ecran.js';
 
 const equipe = { JulesB: 'jules.b@klocka.immo', 'Maxime Pama': 'maxime.p@klocka.immo', 'Nora LORINQUER': 'nora.l@klocka.immo', 'Coralie GUILLAUD': 'coralie.g@klocka.immo', 'Paul De Zulueta': 'paul.dz@klocka.immo' };
 const reglages = {
@@ -32,4 +32,11 @@ test("quelqu'un hors de l'équipe des appels arrive sur Tout, sans « Mes agents
   const v = vuesPortefeuille(vues, 'hugo.r@kpartners.immo', equipe, reglages);
   assert.equal(v[0].nom, 'Tout');
   assert.ok(!v.some((x) => x.nom === 'Mes agents'));
+});
+
+test('les Fiches (ex-Propriétés Klocka) : Tout, Mes fiches, Fiches de Nora…, sur leur champ Personnes', () => {
+  const v = vuesPortefeuille(vues, 'nora.l@klocka.immo', equipe, reglages, PORTEFEUILLES.proprietesKlocka);
+  assert.deepEqual(v.map((x) => x.nom), ['Tout', 'Mes fiches', 'Fiches de Maxime', 'Fiches de Coralie', 'Fiches de Jules', 'À relancer']);
+  assert.deepEqual(v[1].filtres, [{ champ: 'personnes', op: 'contient', valeur: 'Nora LORINQUER' }]);
+  assert.equal(PORTEFEUILLES.proprietesKlocka.nom, 'Fiches');
 });

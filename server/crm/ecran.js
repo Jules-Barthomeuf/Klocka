@@ -394,6 +394,13 @@ export const membresDe = (roles) => [...new Map((roles || []).flatMap((r) => r.w
 // leur filtre « SPOC contient <nom Monday> » passe par la même lecture que les filtres tapés. Qui a un portefeuille et qui
 // voit Tout d'abord : crm/equipe.json (_portefeuilles, _tout_d_abord).
 export const NOM_AGENTS = 'Mes agents';
+// Les tableaux en portefeuille : leur nom dans la barre, le champ Personnes qui dit à qui est une ligne, et les mots des
+// onglets. Les Propriétés Klocka deviennent les Fiches (27 nov. 2026, Jules : « à la place de Propriétés, Fiches, et Mes
+// fiches »), sur leur champ Personnes.
+export const PORTEFEUILLES = {
+  agentImmobilier: { nom: NOM_AGENTS, nomUn: 'Agent', champ: 'spoc', mien: 'Mes agents', deQui: 'Agents de', id: 'agents' },
+  proprietesKlocka: { nom: 'Fiches', nomUn: 'Fiche', champ: 'personnes', mien: 'Mes fiches', deQui: 'Fiches de', id: 'fiches' },
+};
 let reglagesLus = null;
 const reglagesEquipe = () => {
   if (!reglagesLus) {
@@ -403,16 +410,16 @@ const reglagesEquipe = () => {
 };
 
 /** Pure : les onglets d'un tableau d'agents pour `email` : Mes agents, les agents de chacun, Tout ; puis les vues de Twenty. */
-export function vuesPortefeuille(vues, email, equipeNoms, { portefeuilles = [], toutDabord = [], spoc = [] } = {}) {
+export function vuesPortefeuille(vues, email, equipeNoms, { portefeuilles = [], toutDabord = [], spoc = [] } = {}, tableau = PORTEFEUILLES.agentImmobilier) {
   const tout = vues.find((v) => v.nom === 'Tout') || vues[0];
   if (!tout) return vues;
   const bas = (e) => String(e || '').toLowerCase();
   const moi = bas(email);
   const nomMonday = (e) => Object.entries(equipeNoms || {}).find(([, x]) => bas(x) === bas(e))?.[0] || null;
   const prenom = (e) => String(spoc.find((p) => bas(p.email) === bas(e))?.nom || nomMonday(e) || e).split(/[\s@.]/)[0];
-  const vue = (id, nom, e) => ({ ...tout, id, nom, klocka: true, filtres: [...(tout.filtres || []), { champ: 'spoc', op: 'contient', valeur: nomMonday(e) }] });
-  const miens = nomMonday(moi) ? [vue('klocka-mes-agents', 'Mes agents', moi)] : [];
-  const autres = portefeuilles.map(bas).filter((e) => e !== moi && nomMonday(e)).map((e) => vue(`klocka-agents-${e.split('@')[0]}`, `Agents de ${prenom(e)}`, e));
+  const vue = (id, nom, e) => ({ ...tout, id, nom, klocka: true, filtres: [...(tout.filtres || []), { champ: tableau.champ, op: 'contient', valeur: nomMonday(e) }] });
+  const miens = nomMonday(moi) ? [vue(`klocka-mes-${tableau.id}`, tableau.mien, moi)] : [];
+  const autres = portefeuilles.map(bas).filter((e) => e !== moi && nomMonday(e)).map((e) => vue(`klocka-${tableau.id}-${e.split('@')[0]}`, `${tableau.deQui} ${prenom(e)}`, e));
   const reste = vues.filter((v) => v !== tout);
   // « Tout » à gauche de « Mes agents » (27 nov. 2026, Jules) ; on arrive quand même sur « Mes agents » (`defaut`), sauf Paul.
   if (toutDabord.map(bas).includes(moi) || !miens.length) return [tout, ...autres, ...miens, ...reste];
@@ -421,13 +428,15 @@ export function vuesPortefeuille(vues, email, equipeNoms, { portefeuilles = [], 
 
 export async function barre(email) {
   const { role, barreVue, s, cachees } = await contexte(email);
-  // « Agent immobilier » devient « Mes agents », avec ses portefeuilles (27 nov. 2026, Jules).
+  // « Agent immobilier » devient « Mes agents », « Propriétés Klocka » devient « Fiches », avec leurs portefeuilles (27 nov. 2026, Jules).
   const qui = typeof email === 'string' ? email : email?.email;
   for (const d of barreVue) {
     for (const o of d.objets || []) {
-      if (o.singulier !== 'agentImmobilier' || !Array.isArray(o.vues) || !(o.champs || []).some((c) => c.nom === 'spoc')) continue;
-      o.nom = NOM_AGENTS;
-      o.vues = vuesPortefeuille(o.vues, qui, equipe(), reglagesEquipe());
+      const t = PORTEFEUILLES[o.singulier];
+      if (!t || !Array.isArray(o.vues) || !(o.champs || []).some((c) => c.nom === t.champ)) continue;
+      o.nom = t.nom;
+      o.nom_un = t.nomUn;
+      o.vues = vuesPortefeuille(o.vues, qui, equipe(), reglagesEquipe(), t);
     }
   }
   const membres = avecAlias(membresDe(s.roles), s.roles, equipe());

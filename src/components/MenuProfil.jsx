@@ -164,9 +164,16 @@ export default function MenuProfil({ user, vue = "admin", onDeconnexion = null, 
                 const Icone = ICONES[k] || CircleUser;
                 // Feedback : le survol ouvre le champ juste dessous ; la souris qui s'en va le replie, après un court
                 // instant pour ne pas clignoter sur un bord. Le clic mène à la page Feedback (25 nov. 2026, Jules).
+                // Sortie par le bas, il reste ouvert (27 nov. 2026, Jules : « dès que la souris descend, ça ne se ferme
+                // pas, comme ça je vais sur Paramètres directement ; si elle monte, ça ferme ») : replié, il remontait
+                // Paramètres sous la souris. Il se replie en repassant dessus puis en sortant par le haut, ou à la fermeture.
                 if (k === "feedback") return (
                   <div key={k} onMouseEnter={() => { clearTimeout(replier.current); setFeedback(true); }}
-                    onMouseLeave={() => { clearTimeout(replier.current); replier.current = setTimeout(() => setFeedback(false), 120); }}>
+                    onMouseLeave={(e) => {
+                      clearTimeout(replier.current);
+                      if (e.clientY >= e.currentTarget.getBoundingClientRect().bottom - 1) return;
+                      replier.current = setTimeout(() => setFeedback(false), 120);
+                    }}>
                     <button type="button" role="menuitem" onClick={() => aller(page, section)} aria-expanded={feedback} className={`${ligne} ${feedback ? "!text-encre" : ""}`} style={{ background: "transparent" }}>
                       <Icone className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />{mot}
                     </button>

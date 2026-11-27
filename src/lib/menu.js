@@ -119,8 +119,8 @@ export const MENU_ADMIN = [
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
   // Outils dans le menu (9 nov. 2026, Jules), à la place de la bascule Klocka | Outils en haut de la barre.
   { cle: "KData", label: "Outils", fixe: true },
-  // Jeux (26 nov. 2026, Jules : « dans le menu, un menu Jeux ») : La rue et Deux actifs, sur des données réelles.
-  { cle: "Jeux", label: "Jeux" },
+  // Jeux quitte la barre (27 nov. 2026, Jules : « garde le truc Jeux mais rien dans la barre de nav à gauche ») : la page
+  // /Jeux reste ouverte, sans entrée.
   // Un groupe est une seule entrée du menu (17 oct. 2026, Jules : « pas un truc déroulant ») : un clic ouvre sa
   // première page, et des onglets en tête de page passent de l'une à l'autre.
   // Relations quitte le menu (6 nov. 2026, Jules) : ses fiches s'ouvrent depuis le CRM (Agent immobilier, Clients) ;

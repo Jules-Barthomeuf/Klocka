@@ -28,8 +28,8 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
 test("le menu de l'équipe : ses pages, sans Administration (14 nov. 2026) ; Autre : Offres, Dossier bancaire, Feedback (26 oct.)", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
-  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Assistant', 'Dossiers', 'Appels', 'Simulateur', 'Outils', 'Jeux', 'Twenty CRM']);
-  // Jeux (26 nov. 2026, Jules) : La rue et Deux actifs.
+  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Assistant', 'Dossiers', 'Appels', 'Simulateur', 'Outils', 'Twenty CRM']);
+  // Jeux quitte la barre (27 nov. 2026, Jules) ; la page /Jeux reste.
   // Projets quitte la barre (26 nov. 2026, Jules) : « Dossiers » mène aux deux listes.
   // Le CRM (27 oct. 2026), toujours là ; dans Klocka depuis le 5 nov. 2026 (page /CRM), plus une entrée externe.
   assert.ok(principal.find((x) => x.cle === 'CRM') && !principal.find((x) => x.cle === 'CRM').externe);

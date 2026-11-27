@@ -3,12 +3,13 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Building2, Check, ChevronDown, Loader2, Mic, Sparkles, X } from "lucide-react";
+import { ArrowRight, ArrowUp, Building2, Check, ChevronDown, Loader2, Mic, Sparkles, X } from "lucide-react";
 import { useDictee } from "@/lib/dictee";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { dateCourte, dateJournal, enRetard } from "@/lib/fiche-dossier";
-import { actionVue, basculer, modifier, useNote } from "@/lib/note-en-cours";
+import { actionVue, basculer, fermerNote, modifier, poserNote, useNote } from "@/lib/note-en-cours";
+import { sonRange } from "@/lib/son";
 import ActionApercu, { ICONE_ACTION } from "@/components/fiche-dossier/ActionApercu";
 import { Depliant } from "@/components/haka/ReglagesDemande";
 import CarteDossier from "@/components/fiche-dossier/CarteDossier";
@@ -64,7 +65,9 @@ function OngletsFiche({ onglets, actif, onChoisir }) {
   );
 }
 
-const Titre = ({ children, className = "" }) => <p className={`m-0 mb-2 text-[15px] text-encre ${className}`}>{children}</p>;
+// Les titres des parties en pervenche, et ce qui les suit sur la ligne aussi (« Sur la plateforme · moins actif ») : 27 nov.
+// 2026, Jules : « les titres en pervenche, Comment lui parler, Avancement ; moins actif pas en ambre, pareil ».
+const Titre = ({ children, className = "" }) => <p className={`m-0 mb-2 text-[15px] text-pervenche ${className}`}>{children}</p>;
 
 function Case({ coche, onClick, libelle, rond = false, enCours = false, grand = false }) {
   return (
@@ -159,7 +162,10 @@ const Faits = ({ lignes }) => (
 );
 
 /** Une fiche, sur la maquette : `noteId` montre ce qu'une note en attente ajoute. */
-export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onOuvrir, onAction, onVue, ongletDepart = null }) {
+export function FicheVue({ cle, noteId: noteDuChat = null, nomDefaut = null, crm = null, onOuvrir, onAction, onVue, ongletDepart = null }) {
+  // La note dite dans la barre de la fiche (ChatFiche) passe devant celle du chat : ses ajouts s'y proposent pareil.
+  const [noteDeLaFiche, setNoteDeLaFiche] = useState(null);
+  const noteId = noteDeLaFiche || noteDuChat;
   const n = useNote(noteId);
   const [onglet, setOnglet] = useState(ongletDepart || "resume");
   // Ouverte sous une autre clé (la demande d'un client, la ligne du CRM d'un agent), la fiche passe sur celle qui fait foi,
@@ -239,14 +245,26 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
         <div className="k-entree mx-auto flex w-full max-w-[860px] flex-auto shrink-0 flex-col px-8 pb-10 pt-8 max-md:px-4">
           {/* Sa photo quand on l'a (20 nov. 2026, Jules), sinon ses initiales ; un clic en importe une (22 nov. 2026, Jules :
               « chaque agent doit avoir une image ; tous les clients aussi »). Celle d'une page équipe est resserrée sur le visage. */}
-          {!bien && <PhotosFiche cle={cleVue} nom={nom} photo={f.photo} taille={60} recadrer={!!f.photo && !f.photo_importee} className="mx-auto mb-4" />}
-          {/* L'étoile d'un agent, à droite de son nom (20 nov. 2026, Jules) : un de ses cinq agents préférés. */}
-          <div className="flex items-center justify-center gap-1">
-            {f.genre === "agent" && <span aria-hidden className="w-8 flex-none" />}
-            <h2 className="m-0 text-center text-[22px] font-normal leading-[1.25] tracking-[-0.01em] text-encre">{nom}</h2>
-            {f.genre === "agent" && <EtoileAgent cle={cleVue} />}
-          </div>
-          {sous && <p className="m-0 mt-1 text-center text-[14.5px] text-ardoise">{sous}</p>}
+          {/* Une personne : sa photo à gauche, plus grande, le nom et sa ligne à droite, sur la même ligne (27 nov. 2026, Jules :
+              « leur tête plus grande, la tête à gauche et le titre à droite »). Un dossier garde son nom centré. */}
+          {bien ? (
+            <>
+              <h2 className="m-0 text-center text-[22px] font-normal leading-[1.25] tracking-[-0.01em] text-encre">{nom}</h2>
+              {sous && <p className="m-0 mt-1 text-center text-[14.5px] text-ardoise">{sous}</p>}
+            </>
+          ) : (
+            <div className="mb-5 flex items-center gap-5 max-md:gap-4">
+              <PhotosFiche cle={cleVue} nom={nom} photo={f.photo} taille={96} recadrer={!!f.photo && !f.photo_importee} className="flex-none" />
+              <div className="min-w-0 flex-auto">
+                {/* L'étoile d'un agent, à droite de son nom (20 nov. 2026, Jules) : un de ses cinq agents préférés. */}
+                <div className="flex items-center gap-1">
+                  <h2 className="m-0 min-w-0 text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre [overflow-wrap:anywhere] max-md:text-[21px]">{nom}</h2>
+                  {f.genre === "agent" && <EtoileAgent cle={cleVue} />}
+                </div>
+                {sous && <p className="m-0 mt-1 text-[14.5px] leading-[1.45] text-ardoise">{sous}</p>}
+              </div>
+            </div>
+          )}
           {/* Le lien « Fiche du CRM » sous le nom est retiré (25 nov. 2026, Jules : « enlève Fiche du CRM dans une fiche »). */}
 
           {(() => {
@@ -272,12 +290,12 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
                         {/* Sans note, le résumé d'un agent dit ses fiches (24 nov. 2026, Jules) : des faits, pas de l'IA. */}
                         {!resumeNeuf && !f.resume && f.envois?.resume ? (
                           <>
-                            <span className="text-[13.5px] text-ardoise">Résumé · d'après ses fiches</span>
+                            <span className="text-[13.5px] text-pervenche">Résumé · d'après ses fiches</span>
                             <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{f.envois.resume}</p>
                           </>
                         ) : (
                           <>
-                            <span className="inline-flex items-center gap-1.5 text-[13.5px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />{!resumeNeuf && f.source === "twenty" && !f.maj_le ? <>Résumé<span className="text-ardoise"> · repris de Twenty</span></> : <>Résumé IA{resumeNeuf && <span className="text-ardoise"> · mis à jour par l'assistant</span>}</>}</span>
+                            <span className="inline-flex items-center gap-1.5 text-[13.5px] text-pervenche"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />{!resumeNeuf && f.source === "twenty" && !f.maj_le ? <>Résumé · repris de Twenty</> : <>Résumé IA{resumeNeuf && " · mis à jour par l'assistant"}</>}</span>
                             <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{resumeNeuf || f.resume || <span className="text-brume">Il s'écrira à la première note liée à cette fiche.</span>}</p>
                           </>
                         )}
@@ -441,6 +459,116 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
 
         </div>
       </div>
+      <ChatFiche cle={cleVue} genre={f.genre} nom={nom} noteId={noteDeLaFiche} onNote={setNoteDeLaFiche} />
+    </div>
+  );
+}
+
+const pluriel = (n, un, plusieurs = `${un}s`) => `${n} ${n > 1 ? plusieurs : un}`;
+
+/**
+ * Le chat en bas de la fiche (27 nov. 2026, Jules : « sur la carte d'un client, pouvoir dire : Kylian Zanchi va revenir
+ * vers nous plus tard, on lui a déjà présenté un truc ; et ça modifie, bien rédigé, le résumé, le dossier, l'historique,
+ * les notes »). C'est une note liée à la fiche, rangée par l'assistant comme celles du chat (server/fiche-dossier/ranger.js) :
+ * ses ajouts se proposent dans les onglets, marqués « proposé » et décochables, puis « Ranger » les écrit. Une précision
+ * tapée pendant que la note attend la relit en entier. Rien n'est écrit sans « Ranger ».
+ */
+function ChatFiche({ cle, genre, nom, noteId, onNote }) {
+  const queryClient = useQueryClient();
+  const n = useNote(noteId);
+  const [texte, setTexte] = useState("");
+  const [dit, setDit] = useState("");
+  const [demande, setDemande] = useState(false);
+  const base = React.useRef("");
+  const dictee = useDictee({ onTexte: (t) => setTexte(`${base.current}${t}`), onFin: (t) => setTexte(`${base.current}${t}`) });
+  const rafraichir = () => { for (const k of [["fiche-dossier"], ["fiche-dossier-jour"], ["fiche-dossier-mes-actions"]]) queryClient.invalidateQueries({ queryKey: k }); };
+  const finir = () => { if (noteId) fermerNote(noteId); onNote(null); setDit(""); };
+  const envoyer = useMutation({
+    mutationFn: (t) => base44.request("POST", "/api/fiche-dossier/notes", { body: { texte: t, liens: [{ cle, genre, nom }], depuis_fiche: true, ...(noteId ? { remplace: noteId } : {}) } }),
+    onSuccess: (r, t) => {
+      if (r?.nature === "demande") { setDemande(true); return; }
+      setDemande(false); setTexte(""); setDit(t);
+      poserNote(r); onNote(r.note_id);
+    },
+    onError: (e) => toast.error(e?.message || "L'assistant n'a pas pu lire la note."),
+  });
+  const ranger = useMutation({
+    mutationFn: () => base44.request("POST", `/api/fiche-dossier/notes/${noteId}/ranger`, { body: { garde: [...n.garde], modifs: n.modifs, reponses: n.reponses } }),
+    onSuccess: () => { sonRange(); finir(); rafraichir(); toast.success(`Rangé sur la fiche de ${nom}`); },
+    onError: (e) => toast.error(e?.message || "La note n'a pas été rangée."),
+  });
+  const ecarter = useMutation({
+    mutationFn: () => base44.request("POST", `/api/fiche-dossier/notes/${noteId}/ecarter`),
+    onSuccess: finir,
+    onError: finir,
+  });
+  const p = n?.donnees?.proposition;
+  const garde = n?.garde || new Set();
+  // Ce que « Ranger » écrira, fiche par fiche : cette fiche d'abord, puis celles que la note nomme.
+  const parFiche = (p?.fiches || []).map((x) => {
+    const k = (x.elements || []).filter((e) => garde.has(e.id)).length + (x.etape && garde.has(`${x.id}-etape`) ? 1 : 0);
+    const a = (p.actions || []).filter((y) => garde.has(y.id) && (y.fiches || []).includes(x.cle)).length;
+    const mots = [k ? pluriel(k, "ajout") : null, x.resume && k ? "résumé réécrit" : null, a ? pluriel(a, "action") : null].filter(Boolean).join(", ");
+    return { cle: x.cle, nom: x.cle === cle ? "cette fiche" : x.nom, mots, ici: x.cle === cle };
+  }).filter((x) => x.mots).sort((a, b) => Number(b.ici) - Number(a.ici));
+  const questions = (p?.questions || []).filter((q) => q?.texte && !q.choix?.length);
+  const enCours = envoyer.isPending || ranger.isPending || ecarter.isPending;
+  const pret = texte.trim().length > 0 && !enCours && !dictee.ecoute && !dictee.finalisation;
+  const partir = () => { if (pret) envoyer.mutate(dit ? `${dit}\n\n${texte.trim()}` : texte.trim()); };
+  const micro = () => {
+    if (dictee.ecoute) { dictee.arreter(); return; }
+    base.current = texte.trim() ? `${texte.trim()} ` : "";
+    dictee.demarrer();
+  };
+  return (
+    <div className="flex-none border-t border-trait">
+      <div className="mx-auto w-full max-w-[860px] px-8 pb-5 pt-3.5 max-md:px-4">
+        {p && (
+          <div className="k-entree mb-3 rounded-[16px] border border-bord-doux px-4 py-3">
+            <div className="flex items-start justify-between gap-4 max-md:flex-col max-md:items-stretch">
+              <div className="min-w-0">
+                <p className="m-0 inline-flex items-center gap-1.5 text-[13.5px] text-menthe"><Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />Proposé par l'assistant</p>
+                {parFiche.length ? (
+                  <ul className="m-0 mt-1 list-none p-0">
+                    {parFiche.map((x) => <li key={x.cle} className="text-[14px] leading-[1.5] text-encre">{x.ici ? "Sur cette fiche" : `Sur ${x.nom}`} : <span className="text-craie">{x.mots}</span></li>)}
+                  </ul>
+                ) : <p className="m-0 mt-1 text-[14px] leading-[1.5] text-craie">La note entrera dans l'historique.</p>}
+                <p className="m-0 mt-1 text-[12.5px] leading-[1.45] text-ardoise">Les ajouts sont marqués « proposé » dans les onglets : décoche ce que tu ne gardes pas.</p>
+              </div>
+              <div className="flex flex-none items-center gap-1">
+                <button type="button" onClick={() => ecarter.mutate()} disabled={enCours} className="h-9 rounded-full px-3.5 text-[14px] text-ardoise transition-colors hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Écarter</button>
+                <button type="button" onClick={() => ranger.mutate()} disabled={enCours} className={`${BOUTON_PLEIN} h-9 disabled:opacity-50`}>
+                  {ranger.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" strokeWidth={2} />}Ranger
+                </button>
+              </div>
+            </div>
+            {questions.length > 0 && (
+              <div className="mt-2.5 border-t border-trait pt-2.5">
+                {questions.map((q) => <p key={q.id} className="m-0 text-[14px] leading-[1.5] text-encre">{q.texte}</p>)}
+                <p className="m-0 mt-1 text-[12.5px] text-ardoise">Réponds dessous : l'assistant relit la note avec ta réponse.</p>
+              </div>
+            )}
+          </div>
+        )}
+        {demande && <p className="m-0 mb-2 text-[13.5px] text-ardoise">C'est une demande (écrire, chercher, préparer) : pose-la à l'assistant. Ici, dis ce qui s'est passé ou ce qu'il faut savoir.</p>}
+        <div className="flex items-end gap-2 rounded-[20px] border border-trait bg-barre px-4 py-2.5 transition-colors focus-within:border-bord-vif">
+          <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={1} disabled={enCours}
+            placeholder={envoyer.isPending ? "L'assistant lit la fiche et la note…" : p ? "Préciser, corriger, répondre…" : genre === "bien" ? "Dire quelque chose sur ce dossier…" : `Dire quelque chose sur ${String(nom || "").split(" ")[0]}…`} aria-label={`Dire quelque chose sur ${nom}`}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); partir(); } }}
+            onInput={(e) => { e.currentTarget.style.height = "auto"; e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 160)}px`; }}
+            className="block max-h-[160px] min-h-[36px] flex-auto resize-none border-0 bg-transparent px-0 py-[7px] text-[15px] leading-[1.45] text-encre outline-none placeholder:text-brume max-md:text-[16px]" style={{ background: "transparent", minHeight: 36, height: 36 }} />
+          {dictee.supporte && (
+            <button type="button" onClick={micro} disabled={enCours} aria-label={dictee.ecoute ? "Arrêter la dictée" : "Dicter"} aria-pressed={dictee.ecoute}
+              className={`grid h-9 w-9 flex-none place-items-center rounded-full transition-colors ${dictee.ecoute ? "k-anneau text-menthe" : "text-ardoise hover:bg-barre-relief hover:text-encre"}`} style={{ background: "transparent" }}>
+              {dictee.finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />}
+            </button>
+          )}
+          <button type="button" onClick={partir} disabled={!pret} aria-label="Envoyer à l'assistant"
+            className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-40">
+            {envoyer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -454,11 +582,10 @@ export function FicheVue({ cle, noteId = null, nomDefaut = null, crm = null, onO
  * L'activité d'un client sur la plateforme (27 nov. 2026, Jules : « montrer que ce client est actif : il a regardé tel
  * dossier pendant tant, le simulateur ») : la phrase, puis ce qu'il a regardé en 30 jours, avec le temps.
  */
-const TEINTE_ACTIVITE = { actif: "text-menthe", tiede: "text-ambre", inactif: "text-ardoise", jamais: "text-ardoise" };
 function ActivitePlateforme({ activite: a }) {
   return (
     <section className="mt-6 border-t border-trait pt-4">
-      <Titre>Sur la plateforme<span className={`${TEINTE_ACTIVITE[a.statut] || "text-ardoise"}`}> · {{ actif: "actif", tiede: "moins actif", inactif: "inactif", jamais: "jamais connecté" }[a.statut] || a.statut}</span></Titre>
+      <Titre>Sur la plateforme<span> · {{ actif: "actif", tiede: "moins actif", inactif: "inactif", jamais: "jamais connecté" }[a.statut] || a.statut}</span></Titre>
       <p className="m-0 text-[15px] leading-[1.6] text-encre [text-wrap:pretty]">{a.phrase}</p>
       {a.regardes?.length > 0 && (
         <ul className="m-0 mt-2 list-none divide-y divide-trait p-0">
@@ -495,7 +622,7 @@ function TransactionsClient({ transactions, seulementEnCours = false }) {
   if (!lignes.length) return null;
   return (
     <section className={seulementEnCours ? "mt-6 border-t border-trait pt-4" : "mb-6"}>
-      <Titre>{seulementEnCours ? "En transaction" : "Transactions"}<span className="text-ardoise"> · {seulementEnCours ? lignes.length : `${transactions.en_cours} en cours, ${transactions.finies} signée${transactions.finies > 1 ? "s" : ""}`}</span></Titre>
+      <Titre>{seulementEnCours ? "En transaction" : "Transactions"}<span> · {seulementEnCours ? lignes.length : `${transactions.en_cours} en cours, ${transactions.finies} signée${transactions.finies > 1 ? "s" : ""}`}</span></Titre>
       <ul className="m-0 list-none divide-y divide-trait p-0">
         {lignes.map((t) => (
           <li key={t.id}>
@@ -517,7 +644,7 @@ function TransactionsClient({ transactions, seulementEnCours = false }) {
 function ProjetsPresentes({ presentes }) {
   return (
     <section className="mb-6">
-      <Titre>Projets présentés<span className="text-ardoise"> · {presentes.length}</span></Titre>
+      <Titre>Projets présentés<span> · {presentes.length}</span></Titre>
       <ul className="m-0 list-none divide-y divide-trait p-0">
         {presentes.map((p) => (
           <li key={p.id}>
@@ -536,7 +663,7 @@ function ProjetsPresentes({ presentes }) {
 function PresenteA({ presente, onOuvrir }) {
   return (
     <section className="mt-6 border-t border-trait pt-4">
-      <Titre>Présenté à<span className="text-ardoise"> · {presente.length}</span></Titre>
+      <Titre>Présenté à<span> · {presente.length}</span></Titre>
       <ul className="m-0 list-none divide-y divide-trait p-0">
         {presente.map((x) => {
           const contenu = (
@@ -567,7 +694,7 @@ function FichesEnvoyees({ envois }) {
   const lignes = tout ? envois.lignes : envois.lignes.slice(0, 6);
   return (
     <section className="mt-6 border-t border-trait pt-4">
-      <Titre>Fiches envoyées<span className="text-ardoise"> · {envois.total}</span></Titre>
+      <Titre>Fiches envoyées<span> · {envois.total}</span></Titre>
       {coord.length > 0 && <p className="m-0 mb-2 text-[14px] leading-[1.5] text-craie [overflow-wrap:anywhere]">{coord.join(" · ")}{lues.length > 0 && <span className="text-ardoise"> · lu sur ses fiches</span>}</p>}
       <ul className="m-0 list-none divide-y divide-trait p-0">
         {lignes.map((l) => {

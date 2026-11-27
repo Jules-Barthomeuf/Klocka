@@ -65,6 +65,17 @@ export function monterFicheDossier(app) {
         liens = [...lies, ...surs.filter((x) => !lies.some((l) => (l?.cle || l) === x.cle)).map((x) => ({ cle: x.cle, genre: x.genre, nom: x.nom }))].slice(0, 8);
       } catch { liens = lies; }
     }
+    // Dite depuis la barre d'une fiche (27 nov. 2026, Jules : « sur la carte d'un client, dire : il va revenir vers nous plus
+    // tard, on lui a déjà présenté un truc ; ça modifie le résumé, le dossier, l'historique, les notes ») : la fiche est
+    // liée, et les fiches que la note nomme sûrement (« le Basic Fit de Lorient ») s'y ajoutent, comme pour un enregistrement.
+    if (req.body?.depuis_fiche && !enrId && Array.isArray(liens) && liens.length && String(texte || '').trim()) {
+      try {
+        const { suggererPourLier } = await import('../fiche-dossier/chercher.js');
+        const { equipe: lEquipe } = await import('../fiche-dossier/modele.js');
+        const { surs } = await suggererPourLier({ texte: String(texte).slice(0, 6000), liens: liens.map((l) => String(l?.cle || l)).slice(0, 8) }, user, { equipe: lEquipe().map((p) => p.prenom) });
+        liens = [...liens, ...surs.filter((x) => !liens.some((l) => (l?.cle || l) === x.cle)).map((x) => ({ cle: x.cle, genre: x.genre, nom: x.nom }))].slice(0, 8);
+      } catch { /* la fiche seule suffit */ }
+    }
     // En flux (?flux=1) : les étapes arrivent une à une, puis le résultat.
     const flux = req.query.flux ? (await import('../flux.js')).ouvrirFlux(res) : null;
     try {

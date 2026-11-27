@@ -864,6 +864,10 @@ function MenuVue({ objet, vue, filtres, tri, onVue, declencheur = "menu" }) {
   });
   const modifie = filtres.length > 0 || !!tri;
   const etat = { colonnes: vue.colonnes, filtres: [...vue.filtres, ...filtres], tri: tri || vue.tri };
+  // Un onglet de portefeuille (Mes agents, Agents de Nora… ; 27 nov. 2026) n'est pas une vue de Twenty : ni enregistré, ni
+  // renommé, ni supprimé ; ses colonnes sont celles de « Tout ».
+  const portefeuille = !!vue.klocka;
+  const idColonnes = portefeuille ? objet.vues.find((x) => x.nom === "Tout" && !x.klocka)?.id || vue.id : vue.id;
   const ligne = (mot, faire, danger = false) => <button type="button" onClick={faire} className={`${ligneMenu} ${danger ? "hover:text-alerte" : ""}`} style={{ background: "transparent" }}>{mot}</button>;
   return (
     <>
@@ -877,14 +881,14 @@ function MenuVue({ objet, vue, filtres, tri, onVue, declencheur = "menu" }) {
           {ouvert === "menu" && (
             <>
               {ligne(<span className="inline-flex items-center gap-2"><Columns3 className="h-3.5 w-3.5" />Colonnes</span>, () => setOuvert("colonnes"))}
-              {modifie && ligne(`Enregistrer dans « ${vue.nom} »`, () => agir.mutate({ methode: "PATCH", chemin: `/${vue.id}`, corps: { filtres: etat.filtres, tri: etat.tri }, message: "Vue enregistrée", ouvrir: "meme", local: { filtres: etat.filtres, tri: etat.tri } }))}
+              {modifie && !portefeuille && ligne(`Enregistrer dans « ${vue.nom} »`, () => agir.mutate({ methode: "PATCH", chemin: `/${vue.id}`, corps: { filtres: etat.filtres, tri: etat.tri }, message: "Vue enregistrée", ouvrir: "meme", local: { filtres: etat.filtres, tri: etat.tri } }))}
               {ligne("Enregistrer comme nouvelle vue", () => { setNom(""); setOuvert("nouvelle"); })}
-              {vue.nom !== "Tout" && ligne("Renommer la vue", () => { setNom(vue.nom); setOuvert("renommer"); })}
-              {vue.nom !== "Tout" && ligne("Supprimer la vue", () => { if (window.confirm(`Supprimer la vue « ${vue.nom} » pour toute l'équipe ?`)) agir.mutate({ methode: "DELETE", chemin: `/${vue.id}`, message: "Vue supprimée", ouvrir: "tout" }); }, true)}
+              {vue.nom !== "Tout" && !portefeuille && ligne("Renommer la vue", () => { setNom(vue.nom); setOuvert("renommer"); })}
+              {vue.nom !== "Tout" && !portefeuille && ligne("Supprimer la vue", () => { if (window.confirm(`Supprimer la vue « ${vue.nom} » pour toute l'équipe ?`)) agir.mutate({ methode: "DELETE", chemin: `/${vue.id}`, message: "Vue supprimée", ouvrir: "tout" }); }, true)}
               <p className="m-0 px-2.5 pb-1 pt-2 text-[12px] text-brume">Les vues sont partagées avec l'équipe, comme dans Twenty.</p>
             </>
           )}
-          {ouvert === "colonnes" && <ReglageColonnes objet={objet} colonnes={vue.colonnes} onValider={(colonnes) => agir.mutate({ methode: "PATCH", chemin: `/${vue.id}`, corps: { colonnes }, message: "Colonnes enregistrées", local: { colonnes } })} />}
+          {ouvert === "colonnes" && <ReglageColonnes objet={objet} colonnes={vue.colonnes} onValider={(colonnes) => agir.mutate({ methode: "PATCH", chemin: `/${idColonnes}`, corps: { colonnes }, message: "Colonnes enregistrées", local: { colonnes } })} />}
           {(ouvert === "nouvelle" || ouvert === "renommer") && (
             <div className="p-1">
               <input autoFocus value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom de la vue"
@@ -1505,7 +1509,7 @@ export default function CrmTwenty() {
                   return (
                     <span key={v.id} className={`-mb-px flex flex-none items-center gap-1 border-b-2 px-1.5 pb-1.5 pt-1.5 ${active ? "border-menthe" : "border-transparent"}`}>
                       <button type="button" onClick={() => aller({ v: v.id === objet.vues[0].id ? null : v.id, f: null, ft: null })} className={`whitespace-nowrap rounded-[6px] px-1.5 py-1 text-[14px] ${active ? "text-encre" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={{ background: "transparent" }}>
-                        {v.nom === "Tout" ? "Tableau principal" : v.nom}{v.kanban ? " · Kanban" : ""}
+                        {v.nom === "Tout" ? (objet.vues.some((x) => x.klocka) ? "Tout" : "Tableau principal") : v.nom}{v.kanban ? " · Kanban" : ""}
                       </button>
                       {active && plein && <MenuVue objet={objet} vue={v} filtres={filtres} tri={tri} onVue={(id) => { setFiltres([]); setTri(null); aller({ v: id, f: null, ft: null }); }} />}
                     </span>

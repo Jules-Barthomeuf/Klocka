@@ -388,8 +388,47 @@ async function nomsLies(o, fiches, dossiers, membresVus = null) {
 /** Pure : les membres de l'espace Twenty (id, nom), depuis les rôles. */
 export const membresDe = (roles) => [...new Map((roles || []).flatMap((r) => r.workspaceMembers || []).map((m) => [m.id, { id: m.id, nom: [m.name?.firstName, m.name?.lastName].filter(Boolean).join(' ') || m.userEmail }])).values()];
 
+// Les portefeuilles d'agents (27 nov. 2026, Jules : « chacun son portefeuille d'agents ; on arrive sur Mes agents, puis les
+// agents de Nora, de Maxime…, puis Tout ; Paul voit Tout d'abord, il n'appelle pas ») : un agent est à ceux que son SPOC
+// nomme (« Alexis PETIT, JulesB » : partagé). Des onglets de Klocka, posés devant les vues de Twenty, qui ne change pas :
+// leur filtre « SPOC contient <nom Monday> » passe par la même lecture que les filtres tapés. Qui a un portefeuille et qui
+// voit Tout d'abord : crm/equipe.json (_portefeuilles, _tout_d_abord).
+export const NOM_AGENTS = 'Mes agents';
+let reglagesLus = null;
+const reglagesEquipe = () => {
+  if (!reglagesLus) {
+    try { const j = JSON.parse(fs.readFileSync(new URL('../../crm/equipe.json', import.meta.url), 'utf8')); reglagesLus = { portefeuilles: j._portefeuilles || [], toutDabord: j._tout_d_abord || [], spoc: j._spoc || [] }; } catch { reglagesLus = { portefeuilles: [], toutDabord: [], spoc: [] }; }
+  }
+  return reglagesLus;
+};
+
+/** Pure : les onglets d'un tableau d'agents pour `email` : Mes agents, les agents de chacun, Tout ; puis les vues de Twenty. */
+export function vuesPortefeuille(vues, email, equipeNoms, { portefeuilles = [], toutDabord = [], spoc = [] } = {}) {
+  const tout = vues.find((v) => v.nom === 'Tout') || vues[0];
+  if (!tout) return vues;
+  const bas = (e) => String(e || '').toLowerCase();
+  const moi = bas(email);
+  const nomMonday = (e) => Object.entries(equipeNoms || {}).find(([, x]) => bas(x) === bas(e))?.[0] || null;
+  const prenom = (e) => String(spoc.find((p) => bas(p.email) === bas(e))?.nom || nomMonday(e) || e).split(/[\s@.]/)[0];
+  const vue = (id, nom, e) => ({ ...tout, id, nom, klocka: true, filtres: [...(tout.filtres || []), { champ: 'spoc', op: 'contient', valeur: nomMonday(e) }] });
+  const miens = nomMonday(moi) ? [vue('klocka-mes-agents', 'Mes agents', moi)] : [];
+  const autres = portefeuilles.map(bas).filter((e) => e !== moi && nomMonday(e)).map((e) => vue(`klocka-agents-${e.split('@')[0]}`, `Agents de ${prenom(e)}`, e));
+  const reste = vues.filter((v) => v !== tout);
+  const devant = toutDabord.map(bas).includes(moi) || !miens.length ? [tout, ...autres, ...miens] : [...miens, ...autres, tout];
+  return [...devant, ...reste];
+}
+
 export async function barre(email) {
   const { role, barreVue, s, cachees } = await contexte(email);
+  // « Agent immobilier » devient « Mes agents », avec ses portefeuilles (27 nov. 2026, Jules).
+  const qui = typeof email === 'string' ? email : email?.email;
+  for (const d of barreVue) {
+    for (const o of d.objets || []) {
+      if (o.singulier !== 'agentImmobilier' || !Array.isArray(o.vues) || !(o.champs || []).some((c) => c.nom === 'spoc')) continue;
+      o.nom = NOM_AGENTS;
+      o.vues = vuesPortefeuille(o.vues, qui, equipe(), reglagesEquipe());
+    }
+  }
   const membres = avecAlias(membresDe(s.roles), s.roles, equipe());
   // Les comptes de Klocka (6 nov. 2026) : un tableau de plus dans l'espace Klocka, pour l'équipe (un admin les garde dans la vue mandataire).
   const klocka = equipeKlocka(email) && barreVue.find((d) => d.nom === 'Klocka' && !d.ferme);

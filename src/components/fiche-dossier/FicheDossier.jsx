@@ -47,17 +47,16 @@ function OngletsFiche({ onglets, actif, onChoisir }) {
     if (r && b && (b.offsetLeft + b.offsetWidth > r.scrollLeft + r.clientWidth || b.offsetLeft < r.scrollLeft)) r.scrollLeft = b.offsetLeft - 8;
   }, []);
   return (
-    // En pastilles (20 nov. 2026, Jules, maquette de la fiche de Sébastien ROBIC) : l'onglet ouvert sur un fond plein, sans
-    // trait dessous.
-    <div ref={rangee} role="tablist" aria-label="Parties de la fiche" className="mt-6 flex items-center gap-0.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+    // Le menu du projet, à l'identique (27 nov. 2026, Jules : « résumé, dossier, historique, notes dans un cadre comme dans
+    // la partie projet ; le même type de menu ») : une pilule cerclée sur verre, l'onglet ouvert plein dans l'accent (la
+    // pervenche), qui passe au blanc sous la souris ; la lumière d'un ajout proposé reste.
+    <div ref={rangee} role="tablist" aria-label="Parties de la fiche"
+      className="mt-6 inline-flex max-w-full items-center justify-start gap-1 self-start overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {onglets.map(([id, libelle, lumiere]) => (
         <button key={id} type="button" role="tab" aria-selected={actif === id} onClick={(e) => { onChoisir(id); e.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" }); }}
-          className={`relative flex h-10 flex-none items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-[14px] transition-colors ${actif === id ? "text-encre" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
-          {/* Un fondu en CSS, plus la forme partagée de framer-motion (`layoutId`) : dans la fiche qui se ferme, elle
-              empêchait le retrait de l'écran, resté invisible par-dessus la page (23 nov. 2026, Jules : « je ne peux plus
-              cliquer sur rien »). */}
-          <span aria-hidden className={`absolute inset-0 rounded-full bg-relief transition-opacity duration-200 ${actif === id ? "opacity-100" : "opacity-0"}`} />
-          {lumiere && <span aria-label="Ajouté par l'assistant" title="Ajouté par l'assistant" className="k-lumiere relative h-[7px] w-[7px] rounded-full bg-menthe" />}
+          className={`relative flex h-9 flex-none items-center gap-2 whitespace-nowrap rounded-full px-4 text-[14px] transition-colors duration-200 ${actif === id ? "bg-menthe text-sur-menthe hover:bg-encre hover:text-fond" : "text-craie hover:text-encre"}`}
+          style={actif === id ? undefined : { background: "transparent" }}>
+          {lumiere && <span aria-label="Ajouté par l'assistant" title="Ajouté par l'assistant" className={`k-lumiere relative h-[7px] w-[7px] rounded-full ${actif === id ? "bg-sur-menthe" : "bg-menthe"}`} />}
           <span className="relative">{libelle}</span>
         </button>
       ))}
@@ -256,7 +255,7 @@ export function FicheVue({ cle, noteId: noteDuChat = null, nomDefaut = null, crm
             </>
           ) : (
             <div className="mb-5 flex items-center gap-5 max-md:gap-4">
-              <PhotosFiche cle={cleVue} nom={nom} photo={f.photo} taille={96} recadrer={!!f.photo && !f.photo_importee} className="flex-none" />
+              <PhotosFiche cle={cleVue} nom={nom} photo={f.photo} taille={96} recadrer={!!f.photo && !f.photo_importee} className="flex-none" plusEnBadge />
               <div className="min-w-0 flex-auto">
                 {/* L'étoile d'un agent, à droite de son nom (20 nov. 2026, Jules) : un de ses cinq agents préférés. */}
                 <div className="flex items-center gap-1">

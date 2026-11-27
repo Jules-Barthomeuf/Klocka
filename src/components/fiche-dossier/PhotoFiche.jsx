@@ -75,7 +75,7 @@ export default function PhotoFiche({ cle, nom = "", photo = null, idPhoto = null
  * `photo` : celle que la fiche montrait jusqu'ici (celle d'un agent trouvée par la Prospection), quand la fiche n'en a
  * pas encore de posée.
  */
-export function PhotosFiche({ cle, nom = "", photo = null, taille = 40, defaut = null, recadrer = false, className = "" }) {
+export function PhotosFiche({ cle, nom = "", photo = null, taille = 40, defaut = null, recadrer = false, className = "", plusEnBadge = false }) {
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["photos-fiche", cle], queryFn: () => base44.request("GET", `/api/fiche-dossier/photos?cle=${encodeURIComponent(cle)}`), enabled: peutPoser(cle), staleTime: 30_000, retry: false });
   const ajout = useRef(null);
@@ -108,7 +108,12 @@ export function PhotosFiche({ cle, nom = "", photo = null, taille = 40, defaut =
           <input ref={ajout} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onClick={(e) => e.stopPropagation()}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) poser.mutate({ fichier: f, ajouter: true }); e.target.value = ""; }} />
           <button type="button" onClick={(e) => { e.stopPropagation(); ajout.current?.click(); }} disabled={poser.isPending} aria-label={`Ajouter une personne sur la fiche de ${nom}`} title="Ajouter une personne"
-            className="absolute left-full top-1/2 ml-2 grid -translate-y-1/2 place-items-center rounded-full border border-dashed border-bord-doux text-brume hover:border-bord-vif hover:text-encre" style={{ width: plus, height: plus, background: "transparent" }}>
+            // La photo à gauche du nom (27 nov. 2026, Jules : « le plus se chevauche avec le titre ») : le « + » se pose sur
+            // le bord bas de la dernière tête, sans déborder sur le nom.
+            className={plusEnBadge
+              ? "absolute bottom-0 right-0 z-20 grid h-7 w-7 place-items-center rounded-full border border-bord-doux bg-surface-pleine text-ardoise shadow-sm hover:border-bord-vif hover:text-encre"
+              : "absolute left-full top-1/2 ml-2 grid -translate-y-1/2 place-items-center rounded-full border border-dashed border-bord-doux text-brume hover:border-bord-vif hover:text-encre"}
+            style={plusEnBadge ? undefined : { width: plus, height: plus, background: "transparent" }}>
             {poser.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
           </button>
         </>

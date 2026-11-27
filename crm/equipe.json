@@ -30,5 +30,15 @@
       "email": "coralie.g@klocka.immo"
     }
   ],
-  "_note_spoc": "Les personnes proposées dans un champ SPOC de l'écran CRM (5 nov. 2026, Jules), dans cet ordre ; la valeur écrite est leur nom Monday ci-dessus."
+  "_note_spoc": "Les personnes proposées dans un champ SPOC de l'écran CRM (5 nov. 2026, Jules), dans cet ordre ; la valeur écrite est leur nom Monday ci-dessus.",
+  "_portefeuilles": [
+    "nora.l@klocka.immo",
+    "maxime.p@klocka.immo",
+    "coralie.g@klocka.immo",
+    "jules.b@klocka.immo"
+  ],
+  "_tout_d_abord": [
+    "paul.dz@klocka.immo"
+  ],
+  "_note_portefeuilles": "Les portefeuilles d'agents de l'écran CRM (27 nov. 2026, Jules) : un onglet « Agents de … » par personne de _portefeuilles, dans cet ordre, filtré sur son nom Monday dans le SPOC ; on arrive sur « Mes agents », sauf les personnes de _tout_d_abord, qui arrivent sur « Tout »."
 }

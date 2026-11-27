@@ -35,7 +35,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Globe,
-  Mic, Compass, Smartphone, Lock, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, LibraryBig, ChartColumn, FileSpreadsheet, Archive } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark, LibraryBig, ChartColumn, FileSpreadsheet, Archive, Gamepad2 } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { PAGES_KDATA } from "@/lib/kdata-modules";
@@ -415,6 +415,7 @@ function LayoutContent({ children, currentPageName }) {
     SuiviActivite: { to: "/SuiviActivite", icon: ChartColumn, actif: isActivePage("SuiviActivite") },
     // Statistiques (20 nov. 2026, Jules) : les fiches reçues, global et par analyste.
     Statistiques: { to: createPageUrl("Statistiques"), icon: ChartColumn, actif: isActivePage("Statistiques") },
+    Jeux: { to: createPageUrl("Jeux"), icon: Gamepad2, actif: isActivePage("Jeux") },
     MandataireTableauDeBord: { to: createPageUrl("MandataireTableauDeBord"), icon: ChartColumn, actif: isActivePage("MandataireTableauDeBord") },
     Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") || isActivePage("SuiviCorrections") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },

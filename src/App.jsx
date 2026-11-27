@@ -74,6 +74,7 @@ const Statistiques = lazy(() => import('@/pages/Statistiques'));
 // La planche de la carte des transactions (24 nov. 2026), pour l'équipe, hors menu.
 const PlancheCarte = lazy(() => import('@/pages/PlancheCarte'));
 const PlancheVacance = lazy(() => import('@/pages/PlancheVacance'));
+const Jeux = lazy(() => import('@/pages/Jeux'));
 const Semaine = lazy(() => import('@/pages/Semaine'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
@@ -177,7 +178,7 @@ const PAGES_PUBLIQUES = {
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, SauvegardeMonday, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviActivite, MandataireTableauDeBord, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, SuiviCorrections, Statistiques, PlancheCarte, PlancheVacance, Semaine, Alexis, AdminPresentations, AdminModeleZone };
+const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminAccesCrm, SauvegardeMonday, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviActivite, MandataireTableauDeBord, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, SuiviCorrections, Statistiques, PlancheCarte, PlancheVacance, Jeux, Semaine, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

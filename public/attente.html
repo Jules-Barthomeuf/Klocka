@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Klocka revient</title>
+<!--
+  L'écran d'attente quand Klocka redémarre, à la place de « 502 Bad Gateway » (26 nov. 2026, Jules : « mets le jeu des
+  loyers de la rue ; rajoute le prix des murs au m², dans le même jeu, ça alterne »). Une page seule : quand elle
+  s'affiche, le serveur ne répond pas. Le service worker (public/sw.js) la garde de côté et la sert à la place d'une
+  erreur 502, 503 ou 504 ; il garde aussi, pendant que tout marche, une partie toute prête (/api/jeux/attente : les
+  manches, leur panorama Street View, la clé de l'Embed Google). Sans partie gardée (un compte hors équipe, un premier
+  passage), l'écran attend sans jeu. Elle relit /api/health toutes les cinq secondes et rend la page demandée dès que
+  Klocka répond. Les couleurs sont celles de src/design/jetons.json, recopiées : rien d'autre n'est chargé.
+-->
+<script>
+  try { document.documentElement.dataset.theme = (JSON.parse(localStorage.getItem('klocka-personnalisation') || '{}').mode) || 'sombre'; } catch (e) { /* sombre */ }
+</script>
+<style>
+  :root {
+    --fond: #121312; --surface: rgba(242, 243, 245, 0.045); --relief: rgba(242, 243, 245, 0.07);
+    --encre: #f2f2f0; --craie: #c9cbc7; --ardoise: #9a9c99; --brume: #808280;
+    --menthe: #96c0b8; --sur-menthe: #08130d; --trait: rgba(242, 243, 245, 0.08); --bord-doux: rgba(242, 243, 245, 0.16);
+    color-scheme: dark;
+  }
+  :root[data-theme="clair"] {
+    --fond: #f0f0ee; --surface: rgba(255, 255, 255, 0.72); --relief: rgba(28, 29, 28, 0.06);
+    --encre: #1c1d1c; --craie: #3e403d; --ardoise: #6f716e; --brume: #7a7c79;
+    --menthe: #3f7466; --sur-menthe: #ffffff; --trait: rgba(28, 29, 28, 0.08); --bord-doux: rgba(28, 29, 28, 0.17);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: light) {
+    :root[data-theme="appareil"] {
+      --fond: #f0f0ee; --surface: rgba(255, 255, 255, 0.72); --relief: rgba(28, 29, 28, 0.06);
+      --encre: #1c1d1c; --craie: #3e403d; --ardoise: #6f716e; --brume: #7a7c79;
+      --menthe: #3f7466; --sur-menthe: #ffffff; --trait: rgba(28, 29, 28, 0.08); --bord-doux: rgba(28, 29, 28, 0.17);
+      color-scheme: light;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body { background: var(--fond); color: var(--encre); font-family: 'Instrument Sans', Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--menthe); outline-offset: 2px; }
+  .page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; gap: 24px; padding: 24px 32px 32px; max-width: 1240px; margin: 0 auto; }
+  .marque { margin: 0; font-size: 15px; letter-spacing: .32em; text-transform: uppercase; color: var(--craie); }
+  .tete { display: grid; gap: 6px; }
+  .etiquette { margin: 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--brume); display: flex; align-items: center; gap: 10px; }
+  .point { width: 6px; height: 6px; border-radius: 50%; background: var(--menthe); animation: pouls 1.6s ease-in-out infinite; }
+  @keyframes pouls { 50% { opacity: .25; } }
+  h1 { margin: 6px 0 0; font-size: clamp(26px, 3vw, 32px); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; }
+  .sous { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ardoise); }
+  .jeu { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 24px; border: 1px solid var(--trait); background: var(--surface); border-radius: 20px; padding: 20px; }
+  .vue { position: relative; min-height: 420px; border-radius: 16px; overflow: hidden; background: var(--relief); }
+  .vue iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .panneau { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .titre-manche { margin: 8px 0 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.01em; }
+  .ville { margin: 4px 0 0; font-size: 13.5px; color: var(--ardoise); }
+  .question { margin: 0; font-size: 15px; color: var(--craie); }
+  .chiffre { margin: 12px 0 0; font-size: 40px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .chiffre small { margin-left: 8px; font-size: 13.5px; letter-spacing: 0; color: var(--brume); }
+  input[type=range] { width: 100%; margin-top: 20px; accent-color: var(--menthe); }
+  .bornes { display: flex; justify-content: space-between; margin-top: 4px; font-size: 12.5px; color: var(--brume); font-variant-numeric: tabular-nums; }
+  .aide { margin: 12px 0 0; font-size: 13.5px; color: var(--ardoise); }
+  .bouton { align-self: flex-start; height: 44px; padding: 0 24px; border-radius: 999px; border: 0; background: var(--encre); color: var(--fond); font-size: 15px; }
+  .reponse { display: grid; gap: 14px; border-top: 1px solid var(--trait); padding-top: 18px; }
+  .reponse .bouton { justify-self: start; }
+  .reponse-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  .vrai { margin: 8px 0 0; font-size: 24px; font-variant-numeric: tabular-nums; }
+  .vrai small { margin-left: 6px; font-size: 13.5px; color: var(--brume); }
+  .ecart { margin: 4px 0 0; font-size: 13.5px; color: var(--ardoise); }
+  .points { margin: 0; text-align: right; }
+  .points b { display: block; font-weight: 400; font-size: 40px; line-height: 1; color: var(--menthe); font-variant-numeric: tabular-nums; }
+  .points span { font-size: 12.5px; color: var(--brume); }
+  .details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .details p.valeur { margin: 4px 0 0; font-size: 13.5px; color: var(--craie); font-variant-numeric: tabular-nums; }
+  .source { margin: 0; font-size: 12.5px; color: var(--brume); }
+  .pied { margin: 0; font-size: 12.5px; color: var(--brume); text-align: center; font-variant-numeric: tabular-nums; }
+  .revenu { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+    display: flex; align-items: center; gap: 16px; padding: 8px 8px 8px 20px; border-radius: 999px; background: var(--encre); color: var(--fond); font-size: 15px;
+    transition: opacity .25s ease-out, transform .25s ease-out; box-shadow: 0 18px 40px rgb(0 0 0 / .18); white-space: nowrap; }
+  .revenu.vu { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .revenu button { height: 40px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--menthe); color: var(--sur-menthe); }
+  [hidden] { display: none !important; }
+  @media (max-width: 860px) {
+    .page { padding: 16px; gap: 20px; }
+    .jeu { grid-template-columns: 1fr; padding: 12px; }
+    .vue { min-height: 280px; }
+    .revenu { left: 16px; right: 16px; transform: translateY(16px); justify-content: space-between; }
+    .revenu.vu { transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .point { animation: none; } .revenu { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="marque">Klocka</p>
+  <div class="tete">
+    <p class="etiquette"><span class="point" aria-hidden="true"></span><span id="etat">Mise à jour en cours</span></p>
+    <h1 id="titre">Klocka redémarre</h1>
+    <p class="sous" id="sous">Une minute environ. La page revient d'elle-même dès que c'est prêt, rien de ce que vous faisiez n'est perdu.</p>
+  </div>
+  <section class="jeu" id="jeu" hidden aria-label="Un jeu en attendant">
+    <div class="vue" id="vue"></div>
+    <div class="panneau" id="panneau"></div>
+  </section>
+  <p class="pied" id="pied"></p>
+</div>
+<div class="revenu" id="revenu" role="status"><span>Klocka est revenu</span><button type="button" id="reprendre">Reprendre</button></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var nf = new Intl.NumberFormat('fr-FR');
+  var eur = function (x) { return nf.format(Math.round(x)) + ' €'; };
+  var keur = function (x) { return x >= 1e6 ? String(Math.round(x / 1e5) / 10).replace('.', ',') + ' M€' : nf.format(Math.round(x / 1000)) + ' k€'; };
+  var mois = function (d) { try { return d ? new Date(d).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : ''; } catch (e) { return ''; } };
+  var lieu = function (m) { return m.adresse ? String(m.adresse).replace(/\s*\d{5}.*$/, '') : 'Adresse non donnée'; };
+  var echelle = function (bas, haut, pas) { return { val: function (t) { return Math.round(bas * Math.pow(haut / bas, t) / pas) * pas; }, cur: function (v) { return Math.log(v / bas) / Math.log(haut / bas); } }; };
+  var points = function (e, v) { if (!(e > 0) || !(v > 0)) return 0; var d = Math.abs(Math.log(e / v)), a = Math.log(1.1), b = Math.log(1.6); return d <= a ? 100 : d >= b ? 0 : Math.round(100 * (1 - (d - a) / (b - a))); };
+  // Les deux sortes de manches, en alternance : le loyer d'une boutique, le prix des murs au m² (comme la page Jeux).
+  var SORTES = {
+    loyer: { nom: 'Loyer', question: 'Combien se loue une boutique ici ?', unite: '€ / m² / an', bornes: [60, 2000], depart: 300, e: echelle(60, 2000, 5),
+      aide: function (v) { return 'Pour une boutique de 80 m², ' + eur(v * 80) + ' de loyer par an.'; },
+      vrai: function (m) { return m.loyer.milieu; }, titre: function (m) { return m.rue || lieu(m); },
+      reponse: function (m) { return { etiquette: 'Les baux autour, selon Equimmox', chiffre: eur(m.loyer.milieu), suite: 'en moyenne',
+        details: [['Fourchette', nf.format(m.loyer.basse) + ' à ' + nf.format(m.loyer.haute) + ' €'], ['Lu sur', 'Baux de commerces à ' + String(m.rayon || '500m').replace('m', ' m')]], source: m.adresse || '' }; } },
+    prix: { nom: 'Prix des murs', question: 'Combien valent les murs ici, au m² ?', unite: '€ / m²', bornes: [800, 20000], depart: 3000, e: echelle(800, 20000, 50),
+      aide: function (v) { return 'Pour un local de 80 m², ' + keur(v * 80) + '.'; },
+      vrai: function (m) { return m.prix_m2; }, titre: lieu,
+      reponse: function (m) { return { etiquette: 'Le prix demandé de l’annonce', chiffre: eur(m.prix_m2), suite: 'le m²',
+        details: [['L’annonce', nf.format(m.surface) + ' m²'], ['Le local', m.loue ? 'Vendu loué' : 'Vendu libre']], source: 'Annonce Equimmox' + (m.publie_le ? ' publiée en ' + mois(m.publie_le) : '') }; } },
+  };
+
+  // ---- Le retour de Klocka ----------------------------------------------------------------------------------------
+  var enPartie = false, revenu = false;
+  // Ouverte à sa propre adresse (/attente.html), elle mène à l'accueil ; servie à la place d'une page, elle la recharge.
+  function reprendre() { if (/\/attente\.html$/.test(location.pathname)) location.href = '/'; else location.reload(); }
+  function estRevenu() {
+    if (revenu) return;
+    revenu = true;
+    $('etat').textContent = 'Klocka est revenu';
+    $('titre').textContent = 'C’est prêt';
+    $('sous').textContent = 'Vous reprenez là où vous en étiez.';
+    $('pied').textContent = '';
+    if (enPartie) $('revenu').classList.add('vu'); else setTimeout(reprendre, 600);
+  }
+  $('reprendre').addEventListener('click', reprendre);
+  function sonder() {
+    fetch('/api/health', { cache: 'no-store' }).then(function (r) { if (r.ok) estRevenu(); else attendre(); }).catch(attendre);
+  }
+  function attendre() {
+    var reste = 5;
+    if (!navigator.onLine) { $('etat').textContent = 'Pas de réseau'; $('titre').textContent = 'Vous êtes hors ligne'; $('sous').textContent = 'La page revient d’elle-même dès que le réseau est là.'; }
+    var t = setInterval(function () {
+      reste -= 1;
+      $('pied').textContent = reste > 0 ? 'Nouvel essai dans ' + reste + ' s' : 'Essai en cours';
+      if (reste <= 0) { clearInterval(t); sonder(); }
+    }, 1000);
+  }
+  $('pied').textContent = 'Essai en cours';
+  sonder();
+
+  // ---- La partie gardée par le service worker ---------------------------------------------------------------------
+  fetch('/api/jeux/attente', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) { if (d && d.manches && d.manches.length && d.cle_maps) jouer(d); })
+    .catch(function () { /* pas de partie gardée : l'écran attend sans jeu */ });
+
+  function jouer(d) {
+    var manches = d.manches, i = 0, total = 0;
+    $('jeu').hidden = false;
+    function vue(m) {
+      var v = m.vue || {}, q = v.pano ? 'pano=' + encodeURIComponent(v.pano) + '&heading=' + (v.cap || 0) + '&pitch=0' : 'location=' + v.lat + ',' + v.lon;
+      $('vue').innerHTML = '<iframe title="Street View" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps/embed/v1/streetview?key=' + encodeURIComponent(d.cle_maps) + '&' + q + '&fov=90"></iframe>';
+    }
+    function texte(el, t) { el.textContent = t; return el; }
+    function manche() {
+      var m = manches[i % manches.length], s = SORTES[m.type];
+      if (!s) { i += 1; return manche(); }
+      vue(m);
+      var p = $('panneau');
+      p.innerHTML = '<div><p class="etiquette" id="m-etiquette"></p><p class="titre-manche" id="m-titre"></p><p class="ville" id="m-ville"></p></div>'
+        + '<div><p class="question" id="m-question"></p><p class="chiffre"><span id="v"></span><small id="m-unite"></small></p>'
+        + '<input id="curseur" type="range" min="0" max="1" step="0.001">'
+        + '<div class="bornes"><span id="m-bas"></span><span id="m-haut"></span></div><p class="aide" id="aide"></p></div>'
+        + '<button type="button" class="bouton" id="valider">Valider</button><div id="rep"></div>';
+      texte($('m-etiquette'), s.nom + ' · manche ' + (i + 1) + ' · ' + total + ' points');
+      texte($('m-titre'), s.titre(m));
+      texte($('m-ville'), m.ville || '');
+      texte($('m-question'), s.question);
+      texte($('m-unite'), s.unite);
+      texte($('m-bas'), nf.format(s.bornes[0]) + ' €');
+      texte($('m-haut'), nf.format(s.bornes[1]) + ' €');
+      var c = $('curseur');
+      c.setAttribute('aria-label', s.question);
+      c.value = s.e.cur(s.depart);
+      var maj = function () { var v = s.e.val(Number(c.value)); $('v').textContent = nf.format(v); $('aide').textContent = s.aide(v); return v; };
+      c.addEventListener('input', function () { enPartie = true; maj(); });
+      maj();
+      $('valider').addEventListener('click', function () {
+        enPartie = true;
+        var est = maj(), vrai = s.vrai(m), pts = points(est, vrai), ec = Math.round((est - vrai) / vrai * 100), r = s.reponse(m);
+        total += pts; c.disabled = true; $('valider').hidden = true;
+        var rep = $('rep');
+        rep.className = 'reponse';
+        rep.innerHTML = '<div class="reponse-tete"><div><p class="etiquette" id="r-etiquette"></p><p class="vrai"><span id="r-chiffre"></span><small id="r-suite"></small></p><p class="ecart" id="r-ecart"></p></div>'
+          + '<p class="points"><b id="r-points"></b><span>points</span></p></div><div class="details" id="r-details"></div><p class="source" id="r-source"></p>'
+          + '<button type="button" class="bouton" id="suivante">Manche suivante</button>';
+        texte($('r-etiquette'), r.etiquette);
+        texte($('r-chiffre'), r.chiffre);
+        texte($('r-suite'), r.suite);
+        texte($('r-ecart'), 'Vous étiez ' + (ec === 0 ? 'pile dessus' : (ec > 0 ? 'au-dessus' : 'en dessous') + ' de ' + Math.abs(ec) + ' %'));
+        texte($('r-points'), String(pts));
+        r.details.forEach(function (x) {
+          var b = document.createElement('div');
+          b.appendChild(texte(Object.assign(document.createElement('p'), { className: 'etiquette' }), x[0]));
+          b.appendChild(texte(Object.assign(document.createElement('p'), { className: 'valeur' }), x[1]));
+          $('r-details').appendChild(b);
+        });
+        texte($('r-source'), r.source);
+        $('suivante').addEventListener('click', function () { i += 1; manche(); });
+        if (revenu) $('revenu').classList.add('vu');
+      });
+    }
+    manche();
+  }
+})();
+</script>
+</body>
+</html>

@@ -27,6 +27,70 @@ export function monterMarche(app) {
     ok(res, { panorama: await panoramaDeLaRue({ lat, lon, rue: req.query.rue ? String(req.query.rue).slice(0, 120) : null }) });
   }));
 
+  // Les jeux immobiliers de la planche (26 nov. 2026) : des rues et des actifs vrais, à l'équipe seule pour l'instant.
+  app.get('/api/jeux/:jeu', wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (!u) return res.status(401).json({ error: 'Not authenticated' });
+    if (u.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+    const J = await import('../jeux-immo.js');
+    const rues = J.ruesJouables();
+    if (req.params.jeu === 'rue') {
+      // Loyer d'une boutique et prix des murs au m², en alternance (26 nov. 2026, Jules).
+      const n = Math.min(12, Math.max(1, Number(req.query.n) || 10));
+      const annonces = await J.annoncesPrixM2();
+      return ok(res, { manches: J.manchesAlternees(rues, annonces, n), total: rues.length + annonces.length });
+    }
+    if (req.params.jeu === 'attente') {
+      // La partie que le service worker garde pour l'écran d'attente, avec la clé de l'Embed Google (publique, bornée
+      // aux domaines de Klocka) : quand l'écran s'affiche, Klocka ne peut plus la donner.
+      res.set('Cache-Control', 'no-store');
+      return ok(res, { le: new Date().toISOString(), cle_maps: process.env.VITE_GOOGLE_MAPS_API_KEY || '', manches: await J.partiePourAttente(12) });
+    }
+    if (req.params.jeu === 'classer') return ok(res, { rues: J.quatreRues(rues) });
+    if (req.params.jeu === 'rendement') {
+      const annonces = await J.annoncesRendement();
+      const n = Math.min(12, Math.max(1, Number(req.query.n) || 8));
+      return ok(res, { annonces: annonces.map((a) => [Math.random(), a]).sort((x, y) => x[0] - y[0]).slice(0, n).map((x) => x[1]), total: annonces.length });
+    }
+    if (req.params.jeu === 'duel') {
+      const actifs = J.actifsJouables({ rues });
+      const verdicts = Records.list(J.VERDICT);
+      const valides = verdicts.filter((v) => v.etat === 'valide').length;
+      const aVerifier = J.pairesAVerifier(actifs, verdicts);
+      // À vérifier : la paire la plus serrée pas encore tranchée, avec la proposition de la règle.
+      if (req.query.mode === 'verifier') return ok(res, { actifs: aVerifier[0] || [], reste: aVerifier.length, valides, total: actifs.length });
+      // Jouer : seulement une paire tranchée par l'équipe ; sa réponse est le choix de l'équipe.
+      const p = J.pairePourJouer(actifs, verdicts);
+      return ok(res, { actifs: p?.actifs || [], verdict: p?.verdict || null, reste: aVerifier.length, valides, total: actifs.length });
+    }
+    if (req.params.jeu === 'verdicts') {
+      const par = new Map(J.actifsJouables({ rues }).map((a) => [String(a.id), a]));
+      const nom = (id) => par.get(String(id))?.titre || 'Dossier retiré';
+      return ok(res, { verdicts: Records.list(J.VERDICT).sort((a, b) => String(b.le).localeCompare(String(a.le))).map((v) => ({ ...v, a_nom: nom(v.a_id), b_nom: nom(v.b_id), choix_nom: v.choix ? nom(v.choix) : null })) });
+    }
+    res.status(404).json({ error: 'Jeu inconnu.' });
+  }));
+
+  // Le verdict de l'équipe sur une paire d'actifs (ou l'écarter), et le retirer.
+  app.post('/api/jeux/duel/verdict', wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (!u) return res.status(401).json({ error: 'Not authenticated' });
+    if (u.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+    const J = await import('../jeux-immo.js');
+    const r = J.trancherPaire(req.body || {}, u.email);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.delete('/api/jeux/duel/verdict/:id', wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (!u) return res.status(401).json({ error: 'Not authenticated' });
+    if (u.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+    const J = await import('../jeux-immo.js');
+    if (!Records.get(J.VERDICT, req.params.id)) return res.status(404).json({ error: 'Verdict introuvable.' });
+    Records.delete(J.VERDICT, req.params.id);
+    ok(res, { ok: true });
+  }));
+
   // La photo d'un commerce, celle de sa fiche Google, en tête des fiches (31 oct. 2026, à la place de Street View).
   app.get('/api/commerce/photo', wrap(async (req, res) => {
     if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });

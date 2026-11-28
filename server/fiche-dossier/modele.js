@@ -536,7 +536,7 @@ export function aRelire(user, { limite = 60 } = {}) {
   const toutes = Records.filter('FicheDossier', { a_relire: true });
   const rang = (f) => (f.a_relire_par === moi ? 0 : !f.a_relire_par ? 1 : 2);
   return toutes.filter((f) => rang(f) < 2).sort((a, b) => rang(a) - rang(b) || String(a.nom).localeCompare(String(b.nom))).slice(0, limite)
-    .map((f) => ({ cle: f.cle, nom: f.nom, genre: f.genre, a_moi: f.a_relire_par === moi, lignes: Records.filter('EntreeDossier', { fiche_cle: f.cle }).filter((e) => e.importe).length }));
+    .map((f) => ({ cle: f.cle, nom: f.nom, genre: f.genre, photo: teteDe(f.cle, f.genre), a_moi: f.a_relire_par === moi, lignes: Records.filter('EntreeDossier', { fiche_cle: f.cle }).filter((e) => e.importe).length }));
 }
 
 /**
@@ -927,13 +927,23 @@ export function noterOuverture(cle, user, { maintenant = new Date() } = {}) {
   else Records.create('FicheOuverte', { par, cle, le: maintenant.toISOString() });
 }
 
-const GENRE_COURT = { bien: 'Dossier', agent: 'Agent', client: 'Client' };
+const GENRE_COURT = { bien: 'Dossier', agent: 'Agent', client: 'Client', agence: 'Agence' };
 
 /**
  * Les fiches qu'une personne a ouvertes, la plus récente en haut : sa liste à elle (19 nov. 2026, Jules : « nos fiches
  * individuelles qu'on a ouvertes récemment »). La fiche, elle, est la même pour tous : une note de l'un la met à jour
  * pour chacun.
  */
+/**
+ * La tête d'une personne dans les listes de fiches (28 nov. 2026, Jules : « Sébastien Robic, j'ai importé sa tête : au
+ * lieu de la petite figure, sa tête ; Capi Courbevoie, tu gardes les petits bâtiments ») : la photo posée sur sa fiche
+ * (importée ou trouvée), sinon celle de l'agent ou de la page équipe ; rien pour un dossier.
+ */
+function teteDe(cle, genre, o = null) {
+  if (genre === 'bien') return null;
+  return photoDe(cle)?.url || (o || objetDe(cle))?.photo || null;
+}
+
 export function fichesRecentesDe(user, { limite = 10 } = {}) {
   const par = String(user?.email || '').toLowerCase();
   const quand = new Map();
@@ -948,7 +958,7 @@ export function fichesRecentesDe(user, { limite = 10 } = {}) {
       const nom = f?.nom || o?.nom;
       // Un dossier dit où il en est : l'étape notée, sinon celle que la plateforme voit (« Offre », « Projet »).
       const etape = genre === 'bien' ? f?.etape || donneesDuBien(cle, { entrees: Records.filter('EntreeDossier', { fiche_cle: cle }) })?.avancement?.etapes?.find((e) => e.courante)?.nom || null : null;
-      return { cle, genre, nom, sous: [GENRE_COURT[genre], etape ? `${etape}${f?.etat ? ` · ${f.etat}` : ''}` : o?.detail || null].filter(Boolean).join(' · '), le };
+      return { cle, genre, nom, photo: teteDe(cle, genre, o), sous: [GENRE_COURT[genre], etape ? `${etape}${f?.etat ? ` · ${f.etat}` : ''}` : o?.detail || null].filter(Boolean).join(' · '), le };
     })
     .filter(Boolean)
     .slice(0, limite);

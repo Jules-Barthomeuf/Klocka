@@ -10,7 +10,14 @@ import { dateJournal, ouvrirFiche } from "@/lib/fiche-dossier";
 // récentes, on clique et ça ouvre la fiche ») : les dix fiches qu'on a ouvertes le plus récemment, les siennes (la fiche
 // est la même pour tous) ; un clic l'ouvre à droite.
 
-const ICONE = { bien: Building2, agent: User, client: User };
+const ICONE = { bien: Building2, agence: Building2, agent: User, client: User };
+// Sa tête quand on l'a (28 nov. 2026, Jules : « dès qu'on a les photos, il faut les mettre ») ; un dossier garde son
+// bâtiment, une personne sans photo sa petite figure.
+const Tete = ({ f }) => {
+  if (f.photo && f.genre !== "bien") return <img src={f.photo} alt="" loading="lazy" className="h-7 w-7 flex-none rounded-full bg-relief object-cover object-[50%_25%]" />;
+  const I = ICONE[f.genre] || FileText;
+  return <span className="grid h-7 w-7 flex-none place-items-center"><I className="h-4 w-4 text-ardoise" strokeWidth={1.7} /></span>;
+};
 
 // Depuis le 28 nov. 2026 (Jules : « Brouillon, Fiches et À faire marchent pareil ») : un panneau épinglé à droite du chat
 // (voir CadreEpingle.jsx), plus un survol ; les fiches à relire, puis les dix dernières ouvertes.
@@ -30,11 +37,10 @@ export default function ListeFiches() {
           <h3 className="m-0 px-6 pb-1 pt-5 text-[12px] font-medium uppercase tracking-[0.08em] text-brume">À relire · {aRelire.length}</h3>
           <ul className="m-0 list-none p-0">
             {aRelire.slice(0, 5).map((f) => {
-              const I = ICONE[f.genre] || FileText;
               return (
                 <li key={f.cle}>
                   <button type="button" onClick={() => ouvrir(f.cle)} className="flex w-full items-center gap-3 px-6 py-2 text-left transition-colors hover:bg-relief" style={{ background: "transparent" }}>
-                    <I className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />
+                    <Tete f={f} />
                     <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{f.nom}</span>
                     <span className="flex-none text-[12px] tabular-nums text-brume">{f.lignes} ligne{f.lignes > 1 ? "s" : ""}{f.a_moi ? "" : " · équipe"}</span>
                   </button>
@@ -50,11 +56,10 @@ export default function ListeFiches() {
           : (
             <ul className="m-0 list-none p-0 pb-2">
               {fiches.map((f) => {
-                const I = ICONE[f.genre] || FileText;
                 return (
                   <li key={f.cle}>
                     <button type="button" onClick={() => ouvrir(f.cle)} className="flex w-full items-center gap-3 px-6 py-2 text-left transition-colors hover:bg-relief" style={{ background: "transparent" }}>
-                      <I className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />
+                      <Tete f={f} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[14px] text-encre">{f.nom}</span>
                         {f.sous && <span className="block truncate text-[12.5px] text-ardoise">{f.sous}</span>}

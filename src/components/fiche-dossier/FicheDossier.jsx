@@ -1045,7 +1045,7 @@ export function PanneauFlottant({ vue, setVue }) {
           <div aria-hidden className="k-points pointer-events-none absolute inset-0" data-zone="fond" style={{ "--k-grid-marge": "0px" }} />
           <motion.aside role="dialog" aria-label="Fiche" onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, y: 14, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.985 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="k-fiche-fond relative z-10 flex h-full w-full flex-col overflow-hidden max-md:!bg-barre max-md:pt-[env(safe-area-inset-top)] md:h-[calc(100dvh-48px)] md:w-[clamp(460px,42vw,640px)] md:rounded-[16px] md:border md:border-trait">
+            className="k-fiche-fond relative z-10 flex h-full w-full flex-col overflow-hidden max-md:!bg-barre max-md:pt-[env(safe-area-inset-top)] md:h-[calc(100dvh-48px)] md:w-[clamp(460px,42vw,640px)] md:rounded-[16px] md:border md:border-bord">
             <PanneauNote vue={vue} onVue={setVue} onFermer={() => setVue(null)} />
           </motion.aside>
         </motion.div>
@@ -1066,7 +1066,7 @@ export function PanneauDroite({ vue, setVue }) {
         <motion.div key="droite" data-crm-dehors className="fixed inset-0 z-[84]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
           <div aria-hidden className="absolute inset-0 bg-fond/40" onClick={() => setVue(null)} />
           <motion.aside role="dialog" aria-label="Fiche" initial={{ x: 32, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 24, opacity: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="k-fiche-fond absolute inset-y-0 right-0 flex w-full flex-col overflow-hidden border-l border-trait shadow-[0_0_40px_-12px_rgb(0_0_0/0.5)] max-md:!bg-barre max-md:pt-[env(safe-area-inset-top)] md:w-[clamp(440px,38vw,600px)]">
+            className="k-fiche-fond absolute inset-y-0 right-0 flex w-full flex-col overflow-hidden border-l border-bord shadow-[0_0_40px_-12px_rgb(0_0_0/0.5)] max-md:!bg-barre max-md:pt-[env(safe-area-inset-top)] md:w-[clamp(440px,38vw,600px)]">
             <PanneauNote vue={vue} onVue={setVue} onFermer={() => setVue(null)} />
           </motion.aside>
         </motion.div>

@@ -1676,8 +1676,14 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* La fiche, une carte posée sur l'écran (28 nov. 2026, Jules, sur sa capture : « on doit voir une séparation, comme
    avant ») : le verre du thème, un cran plus clair que le fond, et son bord. Au CRM, l'écran qui l'entoure (posé hors de
    la page, en portail) prend le fond choisi par le compte, celui du tableau. */
-.k-fiche-fond { background-color: var(--k-surface); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
-:root[data-theme="clair"] .k-fiche-fond { background-color: rgb(var(--k-barre-rgb)); }
+/* La fiche ouverte, « Rail » (28 nov. 2026, Jules, planche de la fiche, variante F) : la carte à la teinte de la barre de
+   navigation, un bord à 11 % (`bord`) et une ombre ; dedans, les filets, le contour des onglets et les séparations des
+   listes passent de 8 % (`trait`) à 11 % (`bord`), pour se lire. */
+.k-fiche-fond { background-color: rgb(var(--k-rail-rgb)); box-shadow: 0 24px 60px -18px rgb(0 0 0 / 0.6); }
+:root[data-theme="clair"] .k-fiche-fond { box-shadow: 0 24px 60px -18px rgb(0 0 0 / 0.18); }
+.k-fiche-fond .border-trait { border-color: var(--k-bord); }
+.k-fiche-fond .divide-trait > :not([hidden]) ~ :not([hidden]) { border-color: var(--k-bord); }
+.k-fiche-fond .bg-trait { background-color: var(--k-bord); }
 html.k-cadre-crm:not([data-theme="clair"]) [data-crm-dehors] { --k-fond-rgb: var(--k-fond-perso-rgb); }
 
 /* L'écran de chargement d'une page (14 nov. 2026, Jules, sur une maquette) : fond noir, le nom au centre en gris clair,

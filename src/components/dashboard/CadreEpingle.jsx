@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 
@@ -71,6 +71,21 @@ const ENTREE = [0.22, 1, 0.36, 1];
 export function Colonne({ children }) {
   const [largeur, changerLargeur] = useLargeurEpingle();
   const [tire, setTire] = useState(false);
+  // Un clic hors de la colonne la referme (28 nov. 2026, Jules : « on clique n'importe où dans le chat, ça ferme la
+  // colonne de droite ; à droite de "À relire", dans la colonne, ça ne ferme pas »). Pas un clic sur le sélecteur (il
+  // change de panneau), ni dans une fiche ouverte depuis la colonne, une fenêtre ou un menu.
+  const [, choisir] = usePanneauEpingle();
+  const cadre = useRef(null);
+  useEffect(() => {
+    const dehors = (e) => {
+      const t = e.target;
+      if (!(t instanceof Element) || cadre.current?.contains(t)) return;
+      if (t.closest('[aria-label="Panneau à droite"], [data-crm-dehors], [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper], [data-sonner-toaster]')) return;
+      choisir(null);
+    };
+    document.addEventListener("pointerdown", dehors);
+    return () => document.removeEventListener("pointerdown", dehors);
+  }, [choisir]);
   const tirer = (e) => {
     e.preventDefault();
     const x0 = e.clientX;
@@ -90,7 +105,7 @@ export function Colonne({ children }) {
     window.addEventListener("pointerup", lacher);
   };
   return (
-    <motion.aside aria-label="Colonne de droite" style={{ "--k-largeur-colonne": `${largeur}px` }}
+    <motion.aside ref={cadre} aria-label="Colonne de droite" style={{ "--k-largeur-colonne": `${largeur}px` }}
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.32, ease: ENTREE }}
       className={`fixed bottom-0 right-0 top-0 z-30 flex flex-col border-l border-bord-vif bg-fond pt-[60px] md:w-[var(--k-largeur-colonne)] md:bg-transparent max-md:left-0 max-md:top-[56px] max-md:z-50 max-md:border-l-0 max-md:pt-0 ${tire ? "select-none" : ""}`}>
       {/* La poignée : le filet lui-même, plus large à attraper, à l'accent au survol et pendant qu'on tire. */}

@@ -8,9 +8,8 @@ import RaccourcisHaka from "@/components/haka/RaccourcisHaka";
 import LivrableAccueil, { usePropositionsNees } from "@/components/haka/LivrableAccueil";
 import { Depliant, PanneauSources, PastilleSource } from "@/components/haka/ReglagesDemande";
 import { useCompteHaka } from "@/components/haka/useFileHaka";
-import PastilleAFaire from "@/components/dashboard/PastilleAFaire";
-import PastilleFiches from "@/components/dashboard/PastilleFiches";
-import PastilleBrouillon from "@/components/dashboard/PastilleBrouillon";
+import { ChoixEpingle, PanneauEpingle } from "@/components/dashboard/ChoixEpingle";
+import { useLargeurEpingle, usePanneauEpingle } from "@/components/dashboard/CadreEpingle";
 import { useLocation, useNavigate } from "react-router-dom";
 import { sourceDe } from "@/lib/sources";
 import { base44 } from "@/api/base44Client";
@@ -136,6 +135,24 @@ export default function AdminDashboardView() {
     return () => window.removeEventListener("keydown", echap);
   }, [panneau, setPanneau]);
   const scinde = enConversation && (livrables.length > 0 || nees.length > 0 || !!panneau);
+  // Un clic ailleurs dans la page referme la fiche de la colonne de droite (28 nov. 2026, Jules : « si on clique ailleurs
+  // dans la page que dans la colonne, ça doit fermer ») ; pas un clic dans une fenêtre, un menu ou la poignée du chat.
+  const colonneFiche = useRef(null);
+  useEffect(() => {
+    if (!panneau || !enConversation) return undefined;
+    const dehors = (e) => {
+      if (colonneFiche.current?.contains(e.target)) return;
+      if (e.target.closest?.('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [role="separator"], [data-radix-popper-content-wrapper], [data-sonner-toaster]')) return;
+      setPanneau(null);
+    };
+    document.addEventListener("pointerdown", dehors);
+    return () => document.removeEventListener("pointerdown", dehors);
+  }, [panneau, enConversation, setPanneau]);
+  // La liste épinglée (28 nov. 2026, Jules) : 300 px à droite du chat, sur l'accueil comme en conversation ; l'écran
+  // scindé (une fiche, un livrable à droite) la retire, la page lui fait place sinon.
+  const [epingle] = usePanneauEpingle();
+  const liste = !!epingle && !scinde;
+  const [largeurListe] = useLargeurEpingle();
   // Une conversation fermée emporte son panneau.
   useEffect(() => { if (!conversation) setPanneau(null); }, [conversation, setPanneau]);
   useEffect(() => {
@@ -199,12 +216,15 @@ export default function AdminDashboardView() {
   };
 
   return (
-    <div ref={pageRef} className={enConversation ? `k-page-presentation k-accueil-ia relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : "relative min-h-screen md:h-[100dvh] md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
-      style={enConversation ? { gridTemplateColumns: scinde ? `${largeurVue}px minmax(0,1fr)` : "minmax(0,1fr)" } : undefined}>
+    <div ref={pageRef} className={`transition-[padding-right] duration-300 ease-out [html[data-k-tire]_&]:transition-none ${enConversation ? `k-page-presentation k-accueil-ia relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : "relative min-h-screen md:h-[100dvh] md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}`}
+      style={{ ...(enConversation ? { gridTemplateColumns: scinde ? `${largeurVue}px minmax(0,1fr)` : "minmax(0,1fr)" } : {}), paddingRight: liste && large ? largeurListe : 0 }}>
       {/* « Fiches », tout à gauche de la page, à la place de l'Agenda (19 nov. 2026, Jules) : les fiches récentes au
           survol. L'Agenda rejoint les boîtes, en haut à droite. */}
       {/* Le haut de la pilule à 16 px, sur celui des pilules de droite et du logo de la barre (19 nov. 2026, Jules). */}
       {/* 22 nov. 2026, Jules : « Fiches » rejoint « À faire », à sa gauche, en haut à droite ; plus rien en haut à gauche. */}
+      <PanneauEpingle choisi={liste ? epingle : null} />
+      {/* Le sélecteur reste dans le coin en conversation, pour retirer ou changer le panneau ; pas sur l'écran scindé. */}
+      {coin && !scinde && createPortal(<ChoixEpingle />, coin)}
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
       <div className={scinde ? "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : enConversation ? "k-colonne-chat mx-auto h-[100dvh] min-h-0 w-full max-w-[860px] overflow-hidden px-5" : `mx-auto max-w-[1100px] px-5 md:px-8 ${conversation ? "" : "pt-4 max-md:pb-14"}`}>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -215,13 +235,12 @@ export default function AdminDashboardView() {
                 {/* « À faire » à la place de l'Agenda et des boîtes mail, passées dans les Paramètres (20 nov. 2026, Jules). */}
                 {/* « Fiches » retirée le 23 nov., remise à gauche d'« À faire » le 25 nov. 2026 (Jules). */}
                 <div className={`flex items-center gap-2 ${coin ? "md:hidden" : ""}`}>
-                  {/* Le Brouillon (27 nov. 2026, Jules, en test) : à gauche de Fiches. */}
-                  <PastilleBrouillon />
-                  <PastilleFiches droite />
-                  <PastilleAFaire />
+                  {/* Le Brouillon (27 nov. 2026, Jules, en test) : à gauche de Fiches. Les trois réunies en un sélecteur au
+                      dessin d'Apparence, chacune épingle son panneau à droite (28 nov. 2026, Jules). */}
+                  <ChoixEpingle />
                 </div>
               </div>
-              {coin && createPortal(<><PastilleBrouillon /><PastilleFiches droite /><PastilleAFaire /></>, coin)}
+              
             </>
           )}
           <PlanDeTravail
@@ -255,12 +274,12 @@ export default function AdminDashboardView() {
       {/* Le livrable, un écran dans l'écran : une carte posée sur le fond, comme la lettre à côté du chat. */}
       {scinde && (
         <motion.div className="h-[100dvh] min-h-0 min-w-0 pr-2 pt-2" style={{ paddingBottom: basChat }}
-          initial={{ opacity: 0, x: 48, scale: 0.985 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}>
+          initial={{ opacity: 0, x: 16, scale: 0.995 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}>
           {panneau ? (
             // La fiche prend toute la partie droite ; le chat et la navigation à gauche (19 nov. 2026, Jules). La carte
             // arrondie, sur le fond de la fiche d'appel du chat en sombre (le verre), celui de la saisie du chat en
             // clair (20 nov. 2026, Jules, après l'essai d'un panneau droit collé au bord).
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-trait k-fiche-fond">
+            <div ref={colonneFiche} className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] border border-trait k-fiche-fond">
               <PanneauNote vue={panneau} onVue={setPanneau} onFermer={() => setPanneau(null)} />
             </div>
           ) : (

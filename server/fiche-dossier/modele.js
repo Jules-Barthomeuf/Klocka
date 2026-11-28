@@ -958,6 +958,16 @@ export function fichesRecentesDe(user, { limite = 10 } = {}) {
  * Les choses à faire d'une personne (20 nov. 2026, Jules : la pilule « À faire » de l'accueil) : ses actions ouvertes,
  * le retard et le jour d'abord, puis les dates à venir, puis ce qui n'a pas de date.
  */
+/** Ses actions cochées aujourd'hui (28 nov. 2026, Jules : la liste épinglée les garde barrées, « 1 tâche faite aujourd'hui »). */
+export function faitesDuJour(user, { maintenant = new Date() } = {}) {
+  const moi = String(user?.email || '').toLowerCase();
+  const auj = jour(maintenant);
+  return Records.filter('ActionDossier', { statut: 'faite' })
+    .filter((a) => a.faite_le && jour(a.faite_le) === auj && String(a.faite_par || a.responsable || '').toLowerCase() === moi)
+    .sort((a, b) => String(a.faite_le).localeCompare(String(b.faite_le)))
+    .map((a) => actionLisible(a));
+}
+
 export function mesActions(user, { maintenant = new Date() } = {}) {
   const moi = String(user?.email || '').toLowerCase();
   const auj = jour(maintenant);

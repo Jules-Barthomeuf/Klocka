@@ -328,7 +328,7 @@ export function monterFicheDossier(app) {
     const { comptesRendusAFaire } = await import('../haka/compte-rendu-transfert.js');
     // Et les notifications gardées qu'on a fermées sans les ouvrir (23 nov. 2026, Jules).
     const { aFaire } = await import('../notifications.js');
-    ok(res, { actions: [...comptesRendusAFaire(user.email), ...aFaire(user), ...actions], dues: actions.filter((a) => a.du).length });
+    ok(res, { actions: [...comptesRendusAFaire(user.email), ...aFaire(user), ...actions], dues: actions.filter((a) => a.du).length, faites: (await M()).faitesDuJour(user) });
   }));
   app.get('/api/fiche-dossier/actions/:id/conversation', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;

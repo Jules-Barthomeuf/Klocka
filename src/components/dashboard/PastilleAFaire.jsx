@@ -1,60 +1,60 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
+import { CadreEpingle } from "@/components/dashboard/CadreEpingle";
 import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
-import { dateCourte, enRetard } from "@/lib/fiche-dossier";
 import { ICONE_ACTION } from "@/components/fiche-dossier/ActionApercu";
 import { useNavigate } from "react-router-dom";
 import { ouvrirCompteRendu } from "@/lib/compte-rendu-transfert";
 
-// « À faire », en haut à droite de l'accueil, à la place de l'Agenda et des boîtes mail (20 nov. 2026, Jules : « on
-// passe la souris dessus, on a les choses à faire, on clique et on revient à la conversation, la fiche avec les
-// questions à droite, le chat à gauche »). Même pilule que celle des boîtes : un point (ambre s'il y a du dû, menthe
-// sinon), le nombre ; au survol, ses actions ouvertes, le retard et le jour d'abord. Un clic envoie l'action au chat,
-// qui rouvre sa conversation et pose l'action à droite.
+// « À faire », en haut à droite de l'accueil (20 nov. 2026, Jules). Depuis le 28 nov. 2026, un panneau épinglé à droite
+// du chat (voir CadreEpingle.jsx), au dessin de la capture de Jules (cases carrées, parties, la date à droite), avec
+// « N tâches faites aujourd'hui » en bas. Un clic sur une action l'envoie au chat, qui rouvre sa
+// conversation et pose l'action à droite ; le tic la ferme et l'écrit, datée, sur ses fiches.
 
-export default function PastilleAFaire() {
-  const [ouvert, setOuvert] = useState(false);
-  const fermer = useRef(null);
-  const boite = useRef(null);
-  const { data, refetch } = useQuery({ queryKey: ["fiche-dossier-mes-actions"], queryFn: () => base44.request("GET", "/api/fiche-dossier/mes-actions"), staleTime: 20_000, retry: false });
+const useMesActions = () => useQuery({ queryKey: ["fiche-dossier-mes-actions"], queryFn: () => base44.request("GET", "/api/fiche-dossier/mes-actions"), staleTime: 20_000, refetchInterval: 120_000, retry: false });
+
+const isoJour = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const majuscule = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+/** La date à droite (capture de Jules du 28 nov.) : Aujourd'hui, Demain, « Ven. » dans la semaine, « Lun. 7 » plus loin. */
+function quand(iso) {
+  if (!iso) return "";
+  const auj = isoJour();
+  if (iso === auj) return "Aujourd'hui";
+  if (iso === isoJour(new Date(Date.now() + 864e5))) return "Demain";
+  const d = new Date(`${iso}T12:00:00`);
+  const ecart = Math.round((d - new Date(`${auj}T12:00:00`)) / 864e5);
+  const jourSem = majuscule(d.toLocaleDateString("fr-FR", { weekday: "short" }));
+  if (ecart < 0) return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  return ecart < 7 ? jourSem : `${jourSem} ${d.getDate()}`;
+}
+
+/** Le panneau « À faire », épinglé à droite du chat (voir CadreEpingle.jsx). */
+export default function ListeAFaire() {
+  const { data, refetch } = useMesActions();
   const actions = data?.actions || [];
-  const dues = data?.dues || 0;
-  const entrer = () => { clearTimeout(fermer.current); if (!ouvert) refetch(); setOuvert(true); };
-  const sortir = () => { clearTimeout(fermer.current); fermer.current = setTimeout(() => setOuvert(false), 180); };
-  useEffect(() => {
-    if (!ouvert) return undefined;
-    const dehors = (e) => { if (!boite.current?.contains(e.target)) setOuvert(false); };
-    document.addEventListener("pointerdown", dehors);
-    return () => document.removeEventListener("pointerdown", dehors);
-  }, [ouvert]);
+  const faites = data?.faites || [];
   const navigate = useNavigate();
-  // Cocher une action (25 nov. 2026, Jules : « on coche, ça enlève l'action, et ça met dans l'historique relancé le x
-  // novembre ») : la ligne se coche, puis sort de la liste ; le serveur la ferme et l'écrit, datée, sur ses fiches.
   const queryClient = useQueryClient();
-  const [cochees, setCochees] = useState(() => new Set());
   const rafraichirFiches = () => { for (const k of [["fiche-dossier"], ["fiche-dossier-jour"]]) queryClient.invalidateQueries({ queryKey: k }); };
-  const cocher = async (a) => {
-    if (cochees.has(a.id)) return;
-    setCochees((c) => new Set(c).add(a.id));
+  // Cocher (25 nov. 2026, Jules : « on coche, ça enlève l'action, et ça met dans l'historique relancé le x novembre ») ;
+  // depuis le 28 nov., la tâche cochée reste barrée jusqu'au soir, et un second clic la rouvre.
+  const basculer = async (a, faite) => {
+    queryClient.setQueryData(["fiche-dossier-mes-actions"], (d) => {
+      if (!d) return d;
+      const sans = (l) => (l || []).filter((x) => x.id !== a.id);
+      return faite ? { ...d, actions: sans(d.actions), faites: [...sans(d.faites), { ...a, statut: "faite" }] } : { ...d, actions: [...sans(d.actions), { ...a, statut: "ouverte" }], faites: sans(d.faites) };
+    });
     try {
-      await base44.request("PATCH", `/api/fiche-dossier/actions/${a.id}`, { body: { statut: "faite" } });
+      await base44.request("PATCH", `/api/fiche-dossier/actions/${a.id}`, { body: { statut: faite ? "faite" : "ouverte" } });
     } catch (e) {
-      setCochees((c) => { const n = new Set(c); n.delete(a.id); return n; });
-      toast.error(e?.message || "L'action n'a pas été fermée.");
-      return;
+      toast.error(e?.message || "L'action n'a pas changé.");
     }
-    setTimeout(() => {
-      queryClient.setQueryData(["fiche-dossier-mes-actions"], (d) => (d ? { ...d, actions: (d.actions || []).filter((x) => x.id !== a.id), dues: Math.max(0, (d.dues || 0) - (a.du ? 1 : 0)) } : d));
-      setCochees((c) => { const n = new Set(c); n.delete(a.id); return n; });
-    }, 500);
-    // Sans avis (25 nov. 2026, Jules : « ne mets pas de notifications ») : la ligne cochée qui s'en va suffit.
+    refetch();
     rafraichirFiches();
   };
-  // Un compte rendu de transfert fermé sans être ouvert (23 nov. 2026) : un clic ouvre sa conversation.
   const reprendre = (a) => {
-    setOuvert(false);
     if (a.genre === "transfert") { ouvrirCompteRendu(a.cr, navigate, a.conversation_id).then(() => refetch()); return; }
     if (a.genre === "notification") {
       base44.request("POST", `/api/notifications/${encodeURIComponent(a.notification)}/lue`).catch(() => {}).then(() => refetch());
@@ -64,54 +64,56 @@ export default function PastilleAFaire() {
     window.dispatchEvent(new CustomEvent("klocka:reprendre-action", { detail: { action: a } }));
   };
 
+  // Les parties, dans l'ordre du travail : à lire (comptes rendus, notifications), en retard, aujourd'hui (les faites du
+  // jour y restent barrées), à venir, sans date.
+  const auj = isoJour();
+  const aLire = actions.filter((a) => a.genre === "transfert" || a.genre === "notification");
+  const taches = actions.filter((a) => !aLire.includes(a));
+  const parties = [
+    ["À lire", aLire],
+    ["En retard", taches.filter((a) => a.echeance && a.echeance < auj)],
+    ["Aujourd'hui", [...taches.filter((a) => a.echeance === auj), ...faites]],
+    ["À venir", taches.filter((a) => a.echeance && a.echeance > auj)],
+    ["Sans date", taches.filter((a) => !a.echeance)],
+  ].filter(([, l]) => l.length);
+  const n = faites.length;
+
   return (
-    <div ref={boite} className="relative" onMouseEnter={entrer} onMouseLeave={sortir}>
-      <button type="button" onClick={entrer} aria-expanded={ouvert} aria-haspopup="menu"
-        className="inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 py-2 text-[13.5px] text-encre transition-colors hover:border-bord-doux">
-        {/* Plus de point devant (25 nov. 2026, Jules) : le nombre seul, à l'accent, comme sur « Fiches ». */}
-        À faire{actions.length ? <span className="tabular-nums text-menthe">{actions.length}</span> : null}
-        <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform duration-200 ${ouvert ? "rotate-180" : ""}`} />
-      </button>
-      {ouvert && (
-        <div role="menu" aria-label="Choses à faire"
-          className="animate-in fade-in slide-in-from-top-1 absolute right-0 top-[calc(100%+8px)] z-40 w-[420px] max-w-[calc(100vw-32px)] rounded-[16px] border border-trait bg-surface-pleine py-2 shadow-[0_18px_48px_rgb(0_0_0/0.14)] duration-150">
-          <p className="m-0 px-4 pb-1.5 pt-2 text-[13px] text-craie">À faire{dues ? <span className="text-ambre"> · {dues} pour aujourd'hui</span> : null}</p>
-          <div className="max-h-[min(520px,70vh)] overflow-y-auto">
-            {!actions.length ? <p className="m-0 px-4 py-2 text-[13px] leading-[1.5] text-ardoise">Rien à faire : les actions de tes notes viendront ici.</p> : (
+    <CadreEpingle titre="À faire"
+      pied={<p className="m-0 border-t border-trait px-6 py-4 text-[13.5px] text-ardoise">{n ? `${n} tâche${n > 1 ? "s" : ""} faite${n > 1 ? "s" : ""} aujourd'hui` : "Aucune tâche faite aujourd'hui"}</p>}>
+      {!parties.length ? <p className="m-0 px-6 py-3 text-[14px] leading-[1.5] text-ardoise">Rien à faire : les actions de tes notes viendront ici.</p> : (
+        <div className="px-6 pb-4">
+          {parties.map(([titre, liste]) => (
+            <section key={titre} className="pt-3">
+              <h3 className="m-0 pb-1 pt-2 text-[12px] font-medium uppercase tracking-[0.08em] text-brume">{titre}</h3>
               <ul className="m-0 list-none p-0">
-                {actions.map((a) => {
+                {liste.map((a) => {
+                  const fait = a.statut === "faite";
+                  const lire = titre === "À lire";
                   const I = ICONE_ACTION[a.genre] || ICONE_ACTION.tache;
-                  const retard = enRetard(a.echeance);
-                  // Seules les actions des notes se cochent ; un compte rendu ou une notification s'ouvrent.
-                  const cochable = a.genre !== "transfert" && a.genre !== "notification";
-                  const fait = cochees.has(a.id);
+                  const date = lire ? "" : quand(a.echeance);
+                  const fiches = (a.fiches || []).map((f) => f.nom).filter(Boolean).join(", ");
                   return (
-                    <li key={a.id} className={`flex items-start transition-opacity duration-300 hover:bg-relief ${fait ? "opacity-50" : ""}`}>
-                      {cochable && (
-                        // Un tic, pas un rond (25 nov. 2026, Jules) : gris, à l'accent au survol et une fois fait.
-                        <button type="button" role="checkbox" aria-checked={fait} onClick={() => cocher(a)} aria-label={`Fait : ${a.titre}`} title="C'est fait"
-                          className={`ml-3 mt-[9px] grid h-6 w-6 flex-none place-items-center rounded-[7px] transition-colors ${fait ? "text-menthe" : "text-ardoise hover:bg-menthe/10 hover:text-menthe"}`} style={{ background: fait ? undefined : "transparent" }}>
-                          <Check className="h-4 w-4" strokeWidth={fait ? 3 : 2.2} />
+                    <li key={a.id} className="flex items-start gap-3 py-[7px]">
+                      {lire ? <I className="mt-px h-[22px] w-[22px] flex-none p-0.5 text-ardoise" strokeWidth={1.7} /> : (
+                        <button type="button" role="checkbox" aria-checked={fait} onClick={() => basculer(a, !fait)} aria-label={fait ? `Rouvrir : ${a.titre}` : `Fait : ${a.titre}`}
+                          className={`mt-px grid h-[22px] w-[22px] flex-none place-items-center rounded-[6px] border-[1.5px] transition-colors ${fait ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif text-transparent hover:border-menthe"}`} style={fait ? undefined : { background: "transparent" }}>
+                          <Check className="h-3.5 w-3.5" strokeWidth={3} />
                         </button>
                       )}
-                      <button type="button" role="menuitem" onClick={() => reprendre(a)} className={`flex min-w-0 flex-1 items-start gap-3 py-2.5 pr-4 text-left ${cochable ? "pl-3" : "pl-4"}`} style={{ background: "transparent" }}>
-                        {/* Une tâche cochable n'a pas d'icône : sa case cochée doublait le tic. */}
-                        {!(cochable && (!a.genre || a.genre === "tache")) && <I className={`mt-0.5 h-4 w-4 flex-none ${a.du ? "text-ambre" : "text-ardoise"}`} strokeWidth={1.7} />}
-                        <span className="min-w-0 flex-1">
-                          <span className={`block text-[14px] leading-[1.4] ${fait ? "text-ardoise line-through decoration-trait" : "text-encre"}`}>{a.titre}</span>
-                          <span className="mt-0.5 block truncate text-[12.5px] text-ardoise">
-                            {a.genre === "transfert" ? (a.resume || "Compte rendu à lire") : a.genre === "notification" ? (a.resume || "Notification à relire") : [a.echeance ? (retard ? `en retard, prévu ${dateCourte(a.echeance)}` : dateCourte(a.echeance)) : "sans date", a.contexte?.length ? `${a.contexte.length} question${a.contexte.length > 1 ? "s" : ""}` : null, (a.fiches || []).map((f) => f.nom).filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
-                          </span>
-                        </span>
+                      <button type="button" onClick={() => reprendre(a)} title={[a.resume, fiches].filter(Boolean).join(" · ") || undefined}
+                        className={`min-w-0 flex-1 break-words pt-px text-left text-[15px] leading-[1.4] ${fait ? "text-ardoise line-through decoration-ardoise" : "text-encre hover:text-menthe"}`} style={{ background: "transparent" }}>
+                        {a.titre}
                       </button>
+                      {date && <span className={`flex-none pt-[2px] text-[13.5px] tabular-nums ${!fait && a.echeance < auj ? "text-ambre" : "text-ardoise"}`}>{date}</span>}
                     </li>
                   );
                 })}
               </ul>
-            )}
-          </div>
+            </section>
+          ))}
         </div>
       )}
-    </div>
+    </CadreEpingle>
   );
 }

@@ -46,6 +46,20 @@ export function monterMarche(app) {
       res.set('Cache-Control', 'no-store');
       return ok(res, { le: new Date().toISOString(), cle_maps: process.env.VITE_GOOGLE_MAPS_API_KEY || '', manches: await J.partiePourAttente(12) });
     }
+    if (req.params.jeu === 'classement') {
+      // Le classement de La rue (27 nov. 2026, Jules) : les dix meilleures parties, et celle qu'on vient de finir
+      // (?partie=) même plus bas. Chaque partie a sa ligne : une personne peut y être deux fois.
+      const { prenomDe, photoDe } = await import('../prospection/agent-ia.js');
+      const tout = J.classement(Records.list(J.SCORE).filter((s) => s.jeu === 'rue'));
+      const qui = new Map();
+      const ligne = (s) => {
+        if (!qui.has(s.par)) qui.set(s.par, { prenom: prenomDe(s.par), photo: photoDe(Records.findBy('User', 'email', s.par) || { email: s.par }) });
+        return { id: s.id, rang: s.rang, points: s.points, sur: s.sur, le: s.le, moi: s.par === String(u.email).toLowerCase(), ...qui.get(s.par) };
+      };
+      const haut = tout.slice(0, 10);
+      const partie = req.query.partie ? tout.find((s) => s.id === String(req.query.partie)) : null;
+      return ok(res, { lignes: haut.map(ligne), partie: partie && partie.rang > 10 ? ligne(partie) : null, total: tout.length });
+    }
     if (req.params.jeu === 'classer') return ok(res, { rues: J.quatreRues(rues) });
     if (req.params.jeu === 'rendement') {
       const annonces = await J.annoncesRendement();
@@ -69,6 +83,17 @@ export function monterMarche(app) {
       return ok(res, { verdicts: Records.list(J.VERDICT).sort((a, b) => String(b.le).localeCompare(String(a.le))).map((v) => ({ ...v, a_nom: nom(v.a_id), b_nom: nom(v.b_id), choix_nom: v.choix ? nom(v.choix) : null })) });
     }
     res.status(404).json({ error: 'Jeu inconnu.' });
+  }));
+
+  // Une partie de La rue terminée, pour le classement (27 nov. 2026).
+  app.post('/api/jeux/score', wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (!u) return res.status(401).json({ error: 'Not authenticated' });
+    if (u.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+    const J = await import('../jeux-immo.js');
+    const r = J.garderScore(req.body || {}, u.email);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, { id: r.score.id });
   }));
 
   // Le verdict de l'équipe sur une paire d'actifs (ou l'écarter), et le retirer.

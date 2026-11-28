@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-6 personnes, 4 977 pages ouvertes, 0 demandes à l'assistant, 32 actions exécutées.
+6 personnes, 5 144 pages ouvertes, 0 demandes à l'assistant, 32 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 3 681 | 0 | 29 | 27/11/2026 |
+| jules.b@klocka.immo (équipe) | 3 848 | 0 | 29 | 27/11/2026 |
 | admin.stress@test.local (équipe) | 1 002 | 0 | 2 | 27/11/2026 |
 | admin@klocka.local (équipe) | 156 | 0 | 0 | 27/11/2026 |
 | test.mandataire@kpartners.fr | 133 | 0 | 0 | 14/11/2026 |
@@ -21,42 +21,42 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 1 122 (23 %)
-- **MandataireBiens** — 726 (15 %)
-- **Dashboard** — 540 (11 %)
-- **CrmTwenty** — 467 (9 %)
-- **AdminProjets** — 405 (8 %)
-- **Prospection** — 353 (7 %)
-- **ProjetDetail** — 171 (3 %)
-- **Personnalisation** — 132 (3 %)
-- **MandataireProspection** — 118 (2 %)
-- **Home** — 88 (2 %)
+- **Analyse** — 1 180 (23 %)
+- **MandataireBiens** — 707 (14 %)
+- **Dashboard** — 575 (11 %)
+- **CrmTwenty** — 485 (9 %)
+- **AdminProjets** — 418 (8 %)
+- **Prospection** — 376 (7 %)
+- **ProjetDetail** — 177 (3 %)
+- **Personnalisation** — 139 (3 %)
+- **MandataireProspection** — 113 (2 %)
+- **Home** — 90 (2 %)
+- **Statistiques** — 73 (1 %)
 - **SimulateurRentabilite** — 67 (1 %)
-- **Statistiques** — 67 (1 %)
-- Le reste, sous 1 % : MandatsMandataires, Outils, KVacance, Monitoring, PlancheAnalyse, MandataireTableauDeBord, AdminUtilisateurs, KData, MandataireClients, KPatrimoine, PlancheDossiers, AdminModeles, MandataireDocuments, Emailing, PlancheVerre, Jeux, Offres, AdminPresentations, AdminSuggestions, Cerveau, SuiviActivite, SuiviAppels, KTransactions, PlancheJeux, KZoning, public, PlancheVacance, MemoireKlocka, PlancheChronologie, KExpertise, SimulateurPublic, AdminBanque, KProspective, Tokimo, KFoncier, MandataireProjets, AccesPages, PlancheMarche, KEstimation, Nouveautes, PlancheAttente, MandataireDossier, AdminClients, AdminMandataires, AdminAccesCrm, tokimo, Semaine, MandataireMarche, MandataireEstimation, PlancheLocataire, ValeurLocative, SuiviAudience, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, Automatismes, SuiviReunion, PlancheCarte, MandataireOffMarket, SuiviCorrections, SignerBon, klocka.immo, SuiviMandataires, MesProjets, AdminEquipe, Feedback, NotreOffre
+- Le reste, sous 1 % : Monitoring, MandatsMandataires, Outils, KVacance, PlancheAnalyse, MandataireTableauDeBord, AdminUtilisateurs, KData, MandataireClients, KPatrimoine, PlancheDossiers, AdminSuggestions, AdminModeles, Jeux, MandataireDocuments, SuiviAppels, Emailing, PlancheVerre, AdminPresentations, Cerveau, Offres, SuiviActivite, KTransactions, PlancheJeux, KZoning, public, PlancheVacance, MemoireKlocka, PlancheChronologie, KExpertise, SimulateurPublic, AdminBanque, KProspective, Tokimo, KFoncier, MandataireProjets, AccesPages, PlancheMarche, KEstimation, Nouveautes, PlancheAttente, MandataireDossier, AdminClients, AdminMandataires, AdminAccesCrm, tokimo, Semaine, MandataireMarche, MandataireEstimation, PlancheLocataire, ValeurLocative, SuiviAudience, PlancheApresAppel, MandataireMandat, PlancheProjets, Agents, Automatismes, ALX, SuiviReunion, PlancheCarte, MandataireOffMarket, SuiviCorrections, SignerBon, klocka.immo, SuiviMandataires, MesProjets, AdminEquipe, Feedback, NotreOffre
 
 ## Ce que l'IA coûte
 
-466,10 € sur la période, 5 556 appels, 231 688 k jetons. 94 % part en tâche de fond, sans que personne clique. 4 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+466,22 € sur la période, 5 570 appels, 231 731 k jetons. 94 % part en tâche de fond, sans que personne clique. 4 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,09 € par appel | 2 445 | 429,46 € | — |
+| Non attribué (fond) | 0,09 € par appel | 2 447 | 429,47 € | — |
 | Demander quelque chose à l'assistant (mandataire) | 0,03 € par demande | 332 | 11,85 € | 17 s |
 | Lire le site d'une agence (et le trouver s'il manque) | 0,0061 € par agence | 894 | 6,23 € | 4 s |
 | Trier ce qu’on colle dans la boîte | 0,12 € par dépôt | 34 | 3,30 € | 17 s |
-| Ranger une note sur les fiches | 0,02 € par note | 137 | 2,87 € | 5 s |
+| Ranger une note sur les fiches | 0,02 € par note | 140 | 2,94 € | 5 s |
 | Lire une pièce rangée | 0,04 € par pièce | 19 | 1,08 € | 30 s |
 | Extraire un document déposé | 0,02 € par document | 6 | 0,23 € | 17 s |
 | Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
 | Lire un enregistrement (rendez-vous, appel) | 0,02 € par lecture | 10 | 0,21 € | 5 s |
-| Résumer une agence avant l'appel | 0,0012 € par agence | 165 | 0,20 € | 2 s |
+| Résumer une agence avant l'appel | 0,0012 € par agence | 168 | 0,20 € | 2 s |
 | Faire le point de marché (fond) | 0,09 € par ville | 2 | 0,17 € | 1 min |
-| Parler à l'assistant après un appel | 0,0076 € par demande | 19 | 0,15 € | 2 s |
+| Analyser une fiche commerciale | 0,0092 € par fiche | 16 | 0,16 € | 15 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : GET /api/prospection/agents/:id/page (4,14 €) · pages équipe (1,66 €) · POST /api/prospection/mode-appel/pre-lecture (1,17 €) · POST /api/prospection/mode-appel/issue (1,06 €) · lire le passage sur Street View (0,55 €) · fil dossier (0,32 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : GET /api/prospection/agents/:id/page (4,14 €) · pages équipe (1,66 €) · POST /api/prospection/mode-appel/pre-lecture (1,17 €) · POST /api/prospection/mode-appel/issue (1,06 €) · lire le passage sur Street View (0,57 €) · fil dossier (0,32 €).
 
 ## Les leviers sur la dépense
 

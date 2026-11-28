@@ -1645,6 +1645,14 @@ if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT && String(process.env.M
   setInterval(importer, 6 * 3600_000).unref?.();
 }
 
+// Les prix écrits hors taxe (27 nov. 2026, Jules : « FAI hors taxe : le signaler et recalculer ») : les dossiers déjà lus
+// sur le prix HT se recalculent une fois sur le TTC, deux minutes après le démarrage (server/deal/prix.js).
+if (!process.env.NODE_TEST_CONTEXT) {
+  setTimeout(() => Promise.all([import('./deal/prix.js'), import('./deal/index.js')])
+    .then(([P, D]) => P.recalculerPrixHorsTaxe({ Records, reevaluerLot: D.reevaluerLot }))
+    .catch((e) => console.warn('[prix HT] :', e?.message || e)), 2 * 60_000).unref?.();
+}
+
 // La reprise des transferts du 16 nov. (17 nov. 2026, Jules : « 7 mails avec 8 fiches », 2 traitées) : une fois, trois
 // minutes après le démarrage, sur Render ; les fiches transférées sans consigne vont en Mémoire (haka/competences/transfert.js).
 if (process.env.RENDER && !process.env.NODE_TEST_CONTEXT) {

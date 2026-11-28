@@ -64,14 +64,10 @@ export function consignerRequete({ question, reponse, outils, actions, user, dur
   }
 }
 
-// Le journal ne grossit pas indéfiniment : les plus anciennes lignes partent.
+// Le journal ne grossit pas indéfiniment : les plus anciennes lignes partent. Le compte se lit dans l'index (27 nov.
+// 2026) : relire les 20 000 visites à chaque page ouverte prenait plus d'un quart du temps du serveur.
 function elaguer(entite, plafond) {
-  const tout = Records.list(entite);
-  if (tout.length <= plafond) return;
-  const trop = tout
-    .sort((a, b) => String(a.le || '').localeCompare(String(b.le || '')))
-    .slice(0, tout.length - plafond);
-  for (const l of trop) Records.delete(entite, l.id);
+  Records.elaguer(entite, plafond);
 }
 
 const jourDe = (iso) => (iso || '').slice(0, 10);

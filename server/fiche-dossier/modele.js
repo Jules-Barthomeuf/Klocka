@@ -362,6 +362,11 @@ export function rangerNote(note, { garde = null, modifs = {}, reponses = {} } = 
       cree_par: par,
       cree_le: le,
     }).id);
+    // Un message du Brouillon déjà envoyé (27 nov. 2026) : fermé tout de suite comme envoyé ; il entre dans
+    // l'historique de ses fiches avec ce qu'il dit, et le style de l'auteur s'en nourrit.
+    if ((note.envoye || a.deja_envoye) && brouillon?.de_l_auteur && ['whatsapp', 'mail'].includes(a.genre || brouillon.canal)) {
+      changerAction(creees.actions[creees.actions.length - 1], { statut: 'faite' }, user || { email: par }, { maintenant });
+    }
   }
 
   // L'assistant relit les notes d'un bien quand on l'interroge : la note brute y va aussi.
@@ -385,7 +390,13 @@ export function annulerNote(note, user = null) {
   if (!note || note.etat !== 'rangee') return { ok: false, error: 'Rien à annuler.' };
   const c = note.creees || {};
   for (const id of c.entrees || []) Records.delete('EntreeDossier', id);
-  for (const id of c.actions || []) Records.delete('ActionDossier', id);
+  for (const id of c.actions || []) {
+    // Un message fermé comme envoyé à l'accord (le Brouillon) : sa ligne d'historique et son message envoyé partent aussi.
+    const a = Records.get('ActionDossier', id);
+    for (const e of a?.entrees || []) Records.delete('EntreeDossier', e);
+    for (const m of Records.filter('MessageEnvoye', { action_id: id })) Records.delete('MessageEnvoye', m.id);
+    Records.delete('ActionDossier', id);
+  }
   for (const id of c.faites || []) changerAction(id, { statut: 'ouverte' }, user);
   relier(c.retraits || []);
   for (const n of c.notes_equipe || []) {

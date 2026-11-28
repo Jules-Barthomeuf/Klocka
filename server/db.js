@@ -190,6 +190,9 @@ function matchesQuery(record, query) {
   });
 }
 
+// Les champs que findBy cherche par leur index d'expression (idx_records_token, idx_records_email, idx_records_deal_id).
+const INDEX_FIND_BY = { Session: 'token', User: 'email', Deal: 'deal_id' };
+
 // L'index partiel de Records.enAttente, par entité (16 nov. 2026).
 const INDEX_EN_ATTENTE = { CommerceSimple: 'idx_records_commerces_a_chercher' };
 
@@ -222,8 +225,36 @@ async function lireParLots(entity, chemins, { lot = 2000, ou = null, valeurs = [
   }
 }
 
+// Les entités relues entières à chaque ouverture de la Prospection, gardées décodées (27 nov. 2026, Jules : « le moins
+// de temps de chargement possible ») : les 7 000 agences étaient décodées par chaque route de la page (relances, file
+// d'une ville, listes, session), 45 ms ici et plusieurs centaines sur Render, cinq ou six fois par ouverture. La copie
+// gardée est jetée à chaque écriture de l'entité par Records (create, update, delete, elaguer) et par oublierLectures
+// pour une écriture directe en SQL (restauration d'une sauvegarde). Chaque lecture rend des copies de surface : changer
+// un champ d'une fiche lue ne touche pas la copie gardée. Une liste imbriquée (agents, pour…) reste partagée et ne se
+// modifie pas en place (vérifié dans les modules qui lisent les agences, 27 nov. 2026).
+const GARDEES = new Set(['AgenceProspect']);
+const gardees = new Map(); // entité → enregistrements décodés, triés par -created_date
+const oublier = (entity) => { if (GARDEES.has(entity)) gardees.delete(entity); };
+/** Jette les copies gardées : à appeler après une écriture qui ne passe pas par Records. */
+export function oublierLectures() { gardees.clear(); }
+function lireGardee(entity) {
+  let l = gardees.get(entity);
+  if (!l) {
+    l = applySort(db.prepare('SELECT * FROM records WHERE entity = ?').all(entity).map(rowToRecord), '-created_date');
+    gardees.set(entity, l);
+  }
+  return l;
+}
+
 export const Records = {
   list(entity, { sort, limit, skip } = {}) {
+    if (GARDEES.has(entity)) {
+      let records = lireGardee(entity);
+      if (sort && sort !== '-created_date') records = applySort(records, sort);
+      if (skip) records = records.slice(skip);
+      if (limit != null) records = records.slice(0, limit);
+      return records.map((r) => ({ ...r }));
+    }
     const rows = db.prepare('SELECT * FROM records WHERE entity = ?').all(entity);
     let records = rows.map(rowToRecord);
     records = applySort(records, sort || '-created_date');
@@ -233,6 +264,12 @@ export const Records = {
   },
 
   filter(entity, query, { sort, limit } = {}) {
+    if (GARDEES.has(entity)) {
+      let records = lireGardee(entity).filter((r) => matchesQuery(r, query));
+      if (sort && sort !== '-created_date') records = applySort(records, sort);
+      if (limit != null) records = records.slice(0, limit);
+      return records.map((r) => ({ ...r }));
+    }
     // Les égalités sur une chaîne descendent dans la base : SQLite écarte les
     // lignes avant qu'on les désérialise. Le filtre JavaScript reste derrière,
     // seul juge (null, booléens, tableaux ne se comparent pas pareil en SQL).
@@ -259,7 +296,8 @@ export const Records = {
    * @returns {object[]}  une ligne par enregistrement : id, puis une clé par chemin
    */
   champs(entity, chemins) {
-    const valides = chemins.filter((c) => /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(c));
+    // « journal[#-1] » : le dernier élément d'une liste, sans relire la liste (27 nov. 2026).
+    const valides = chemins.filter((c) => /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*(\[#-1\])?$/.test(c));
     // json_extract rend un objet ou une liste en texte JSON : ils sont relus (31 oct. 2026 : la géographie d'une ville
     // arrivait en texte, et aucun client cherchant par département ou par région n'avait de ville).
     const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}, json_type(data, '$.${c}') AS t${i}`).join(', ');
@@ -374,13 +412,35 @@ export const Records = {
    */
   findBy(entity, champ, valeur) {
     if (valeur == null) return null;
+    // Le chemin écrit en clair pour les champs indexés (27 nov. 2026) : passé en paramètre (`'$.' || ?`), SQLite ne
+    // reconnaissait pas l'expression de l'index et relisait les 570 sessions à chaque requête, deux ou trois fois par
+    // requête (jeton, puis compte). Les autres champs gardent la requête d'avant : sans index propre, le chemin en
+    // clair pourrait faire choisir à SQLite un autre index et changer la ligne rendue la première.
+    if (INDEX_FIND_BY[entity] === champ) {
+      return rowToRecord(db.prepare(`SELECT * FROM records WHERE entity = '${entity}' AND json_extract(data, '$.${champ}') = ? LIMIT 1`).get(valeur));
+    }
     const row = db
       .prepare("SELECT * FROM records WHERE entity = ? AND json_extract(data, '$.' || ?) = ? LIMIT 1")
       .get(entity, champ, valeur);
     return rowToRecord(row);
   },
 
+  /**
+   * Ne garde que les `plafond` lignes les plus récentes d'un journal (au champ `le`), en une requête, sans rien
+   * désérialiser (27 nov. 2026). Les journaux relisaient leur table entière à chaque écriture pour savoir s'ils
+   * débordaient : 20 000 visites décodées à chaque page ouverte. Le compte se lit dans l'index ; passé le plafond, on
+   * redescend à 95 % pour ne pas recommencer à l'écriture suivante.
+   */
+  elaguer(entity, plafond) {
+    const n = this.count(entity);
+    if (n <= plafond) return 0;
+    const trop = n - Math.floor(plafond * 0.95);
+    oublier(entity);
+    return db.prepare(`DELETE FROM records WHERE id IN (SELECT id FROM records WHERE entity = ? ORDER BY json_extract(data, '$.le') ASC LIMIT ?)`).run(entity, trop).changes;
+  },
+
   create(entity, data, createdBy) {
+    oublier(entity);
     const id = data.id || randomUUID();
     const ts = nowIso();
     db.prepare(
@@ -397,6 +457,7 @@ export const Records = {
   update(entity, id, patch, { garderDate = false } = {}) {
     const existing = this.get(entity, id);
     if (!existing) return null;
+    oublier(entity);
     const merged = { ...stripMeta(existing), ...stripMeta(patch) };
     db.prepare('UPDATE records SET data = ?, updated_date = ? WHERE entity = ? AND id = ?').run(
       JSON.stringify(merged),
@@ -408,6 +469,7 @@ export const Records = {
   },
 
   delete(entity, id) {
+    oublier(entity);
     db.prepare('DELETE FROM records WHERE entity = ? AND id = ?').run(entity, id);
     return { success: true };
   },

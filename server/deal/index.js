@@ -11,7 +11,7 @@
 import { notesDuLot } from './notes-bien.js';
 import { titreDuLot } from './titre-dossier.js';
 import { rendementNetMoyen } from '../video/indicateurs.js';
-import { prixFai as prixFaiDuLot } from './prix.js';
+import { prixFai as prixFaiDuLot, prixDeLaFiche } from './prix.js';
 import { randomUUID } from 'crypto';
 import { Records, CHEMIN_UPLOADS } from '../db.js';
 import fs from 'fs';
@@ -260,6 +260,7 @@ const CHAMPS_SAISISSABLES = {
   montant_honoraires: { libelle: 'Honoraires', type: 'nombre' },
   rendement_annonce: { libelle: 'Rendement', type: 'decimal' },
   honoraires_inclus: { libelle: 'Honoraires inclus', type: 'booleen' },
+  prix_ht: { libelle: 'Prix hors taxe', type: 'booleen' },
   occupe: { libelle: 'Occupé', type: 'booleen' },
   type_actif: { libelle: "Type d'actif", type: 'texte' },
   locataire_nom: { libelle: 'Locataire', type: 'texte' },
@@ -598,7 +599,7 @@ function lireListeDossiers() {
     nb_offres: offresParDeal[d.deal_id] || 0,
     id: d.id,
     deal_id: d.deal_id,
-    cree_le: d.cree_le,
+    cree_le: d.cree_le || d.created_date || null,
     nom_fichier: d.source?.nom_fichier,
     multi_lots: d.multi_lots,
     // Les deals antérieurs au cycle de vie n'ont pas de statut : ils sont
@@ -640,7 +641,7 @@ function lireListeDossiers() {
       titre: l.synthese?.titre,
       ville: l.enrichissement?.commune?.nom || l.lot?.adresse?.valeur?.ville || null,
       adresse: l.lot?.adresse?.valeur?.rue || null,
-      prix_fai: l.lot?.prix_fai?.absent === false ? l.lot.prix_fai.valeur : null,
+      prix_fai: prixFaiDuLot(l.lot),
       loyer_annuel: l.lot?.loyer_annuel_ht_hc?.absent === false ? l.lot.loyer_annuel_ht_hc.valeur : null,
       surface_m2: l.lot?.surface_m2?.absent === false ? l.lot.surface_m2.valeur : null,
     })),
@@ -780,6 +781,12 @@ export async function enregistrerSimulateur(dealId, indexLot, parametres = {}, u
   for (const [cleSim, champ] of paires) {
     const v = Number(parametres?.[cleSim]);
     if (!isFinite(v) || v <= 0) continue;
+    // Le prix du simulateur est celui du calcul (honoraires en sus et TVA d'un prix hors taxe compris) : on le compare à
+    // ce même prix, et la fiche garde le chiffre qu'elle écrit (27 nov. 2026).
+    if (champ === 'prix_fai') {
+      if (Math.round(v) !== Math.round(Number(prixFaiDuLot(entree.lot)) || 0)) faits.prix_fai = prixDeLaFiche(entree.lot, v);
+      continue;
+    }
     if (Math.round(v) !== Math.round(Number(val(entree.lot?.[champ])) || 0)) faits[champ] = v;
   }
   const propres = {};

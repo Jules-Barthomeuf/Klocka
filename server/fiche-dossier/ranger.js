@@ -119,6 +119,9 @@ export function dejaDit(liens) {
  * que ce qui en parle. `source` : une source passée importée en lot ({ genre, de, le, lieu }), rangée sans OK, datée
  * de son jour. `style` : les derniers messages envoyés par l'auteur, et ce qu'il a changé dans les brouillons.
  */
+// La mention qui précède un message du Brouillon déjà envoyé (27 nov. 2026).
+export const DEJA_ENVOYE = '[Message déjà envoyé par moi]';
+
 export function consigne(texte, liens, user, { maintenant = new Date(), conversation = null, ajout = null, connus = [], prevues = [], suite = null, transcription = false, libre = false, source = null, style = null, deja: dejaLies = null } = {}) {
   const lies = dejaLies || (source || libre ? [] : rattaches(liens));
   const auteur = prenomDe(user?.email) || 'la personne';
@@ -193,6 +196,7 @@ Règles :
   - liens : les fiches concernées (L1…) : le bien ET la personne de l'action (« rappeler Paul pour le local de Nice » : le bien et Paul) ; une liste vide si l'action parle d'un dossier qui n'est pas lié (il va alors dans mentions).
 - Les messages (22 nov. 2026, Jules : « que Maxime écrive ou demande, on arrive au même endroit »), trois cas, sans demander lequel :
   - un message écrit par ${auteur} à quelqu'un (« Bonjour à tous, voici un point sur… », une réponse à un client) : une action whatsapp ou mail ; brouillon.texte = son message MOT POUR MOT, de_l_auteur = vrai ; qui = moi ; pour = le destinataire si on le sait. Il n'entre dans l'historique qu'une fois envoyé : aucun evenement pour lui. Les faits qu'il apprend (« l'ensemble des travaux a été réalisé, mainlevée de l'arrêté ») vont en maj sur la fiche.
+  - un texte qui commence par « ${DEJA_ENVOYE} » : ce message est DÉJÀ PARTI ; c'est le cas ci-dessus (action whatsapp ou mail, brouillon.texte = le message mot pour mot SANS cette mention, de_l_auteur = vrai), il sera fermé comme envoyé à l'accord ; aucune autre action pour lui.
   - une demande d'écrire (« réponds à Étienne sur la fissure de Montauban », « fais le mail à l'agent pour les PV d'AG ») : une action whatsapp ou mail, avec le brouillon que tu rédiges à partir de ce que les fiches savent, dans le style de ${auteur}${style?.envoyes?.length ? ' (ses messages ci-dessous)' : ''} ; qui = assistant. Rien dans l'historique.
   - un message reçu collé (la question d'un client, d'un agent), avec ou sans « réponds » : ce que la personne demande ou dit est un evenement ou une maj sur sa fiche (« Adrien Mina demande pourquoi les frais de notaire passent de 9 200 à 10 400 € ») ; si la note demande de répondre, le brouillon de la réponse en action.
 - avant : une action qui doit être faite avant une étape (« avant de faire signer Tony et sa femme, rappeler Matis pour les PV d'AG ») : avant = l'étape qu'elle conditionne, en quelques mots (« la signature de la LOI de Tony Pitiot ») ; et sur la fiche du bien, blocage = « Avant la signature de la LOI : rappeler Matis pour les PV d'AG ».
@@ -406,8 +410,9 @@ export async function fichesDevinees(texte, user, { noms = [], limite = 12 } = {
   return toutes.map(lienPropre).filter(Boolean).filter((l, i, a) => a.findIndex((x) => x.cle === l.cle) === i).slice(0, limite);
 }
 
-export async function proposer({ texte, liens = [], conversation: importee = null, action_id: suite = null, transcription = false, libre = false, source = null, vous = null }, user, { maintenant = new Date(), lire = null, surEtape = () => {} } = {}) {
-  const t = String(texte || '').trim();
+export async function proposer({ texte, liens = [], conversation: importee = null, action_id: suite = null, transcription = false, libre = false, source = null, vous = null, envoye = false }, user, { maintenant = new Date(), lire = null, surEtape = () => {} } = {}) {
+  // Un message du Brouillon dit envoyé (27 nov. 2026) : le modèle le lit comme un message écrit par l'auteur, déjà parti.
+  const t = envoye && String(texte || '').trim() ? `${DEJA_ENVOYE}\n${String(texte).trim()}` : String(texte || '').trim();
   const brute = String(importee || '').trim();
   if (!t && !brute) return { ok: false, error: 'La note est vide.' };
   // « Vous » dans un export : la personne qui l'a exporté (celle qui importe, sauf si l'import dit qui).
@@ -454,6 +459,8 @@ export async function proposer({ texte, liens = [], conversation: importee = nul
   const appeler = lire || (() => invokeLLM({ prompt, response_json_schema: SCHEMA, effort: 'low', max_tokens: 6000 }));
   const { resultat } = await mesurer({ operation: transcription && !conversation ? 'ranger un enregistrement' : 'ranger une note', par: user?.email || null }, appeler);
   const proposition = normaliser(resultat, lies, { auteur: user?.email, connus, prevues, libre: devine, source: src, deja, maintenant });
+  // Le message du Brouillon déjà envoyé (27 nov. 2026) : son action le dit, pour qu'on ne lui demande pas de date.
+  if (envoye) for (const a of proposition.actions || []) if (a.brouillon?.de_l_auteur && ['whatsapp', 'mail'].includes(a.genre)) a.deja_envoye = true;
   // La note libre ne garde liées que les fiches dont elle parle.
   if (devine) {
     const utiles = new Set(proposition.liens_utiles || []);
@@ -478,7 +485,7 @@ export async function proposer({ texte, liens = [], conversation: importee = nul
   proposition.mentions = await candidats(proposition.mentions, user);
   if (proposition.questions.length) surEtape(`Il me manque ${proposition.questions.length} précision${proposition.questions.length > 1 ? 's' : ''}`);
   const resumeImport = brute ? `Conversation WhatsApp importée : ${conversation.messages.length} messages, du ${j(conversation.du)} au ${j(conversation.au)}.` : null;
-  const note = Records.create('NoteDossier', { texte: brute ? [t, resumeImport].filter(Boolean).join('\n\n') : conversation ? t.slice(-20000) : t.slice(0, transcription ? 60000 : 20000), ...(brute ? { conversation: brute.slice(-200000) } : {}), par: user?.email || null, le: maintenant.toISOString(), liens: lies, etat: 'proposee', proposition, ...(suite ? { action_id: String(suite) } : {}), ...(transcription ? { transcription: true } : {}), ...(devine ? { libre: true } : {}), ...(src ? { source: src, importe: true } : {}) });
+  const note = Records.create('NoteDossier', { texte: brute ? [t, resumeImport].filter(Boolean).join('\n\n') : conversation ? t.slice(-20000) : t.slice(0, transcription ? 60000 : 20000), ...(brute ? { conversation: brute.slice(-200000) } : {}), par: user?.email || null, le: maintenant.toISOString(), liens: lies, etat: 'proposee', proposition, ...(suite ? { action_id: String(suite) } : {}), ...(transcription ? { transcription: true } : {}), ...(devine ? { libre: true } : {}), ...(src ? { source: src, importe: true } : {}), ...(envoye ? { envoye: true } : {}) });
   return { ok: true, nature: 'note', note_id: note.id, liens: lies, proposition };
 }
 

@@ -13,6 +13,9 @@ export const CHAMPS = [
   'adresse',
   'prix_fai',
   'honoraires_inclus',
+  // Un prix écrit hors taxe (27 nov. 2026, Jules : « une fiche reçue, c'était FAI hors taxe ; il faut le signaler et
+  // recalculer ») : la TVA s'y ajoute, server/deal/prix.js.
+  'prix_ht',
   'montant_honoraires',
   'loyer_annuel_ht_hc',
   'surface_m2',
@@ -68,6 +71,7 @@ const SCHEMA_REPONSE = {
           },
           prix_fai: { $ref: '#/$defs/champ_nombre' },
           honoraires_inclus: { $ref: '#/$defs/champ_booleen' },
+          prix_ht: { $ref: '#/$defs/champ_booleen' },
           montant_honoraires: { $ref: '#/$defs/champ_nombre' },
           loyer_annuel_ht_hc: { $ref: '#/$defs/champ_nombre' },
           surface_m2: { $ref: '#/$defs/champ_nombre' },
@@ -163,7 +167,7 @@ RÈGLES IMPÉRATIVES :
 3. Loyer : si le montant est mensuel, convertis-le en annuel dans "valeur" ; la citation reste l'extrait mensuel littéral, sans annotation ni conversion. Si la périodicité est ambiguë, mets confiance "basse".
 4. bail_type : "ferme" UNIQUEMENT si le document emploie ce terme, ou mentionne une période d'engagement sans faculté de résiliation. Sinon "3-6-9", ou absent si rien n'est dit.
 5. occupe : false UNIQUEMENT si la vacance est explicite ("vacant", "libre de tout occupant"). Un bien présenté sans mention de locataire est ABSENT, pas vacant.
-6. prix_fai : le prix de vente affiché, quel que soit son libellé — « prix de vente », « prix net vendeur », « NV », « FAI », « HAI » — hors frais de notaire et hors prix d'acquisition total. Relève le montant écrit, sans rien y ajouter ni en retrancher. Un prix net vendeur avec honoraires en sus va DANS prix_fai, tel quel. honoraires_inclus : true si le prix est donné honoraires inclus (FAI, HAI), false s'il est net vendeur ou que les honoraires sont « en sus » ; absent si rien ne le dit. montant_honoraires : le montant des honoraires en euros s'il est écrit quelque part dans le document ; un simple pourcentage ne suffit pas (tu ne calcules rien).
+6. prix_fai : le prix de vente affiché, quel que soit son libellé — « prix de vente », « prix net vendeur », « NV », « FAI », « HAI » — hors frais de notaire et hors prix d'acquisition total. Relève le montant écrit, sans rien y ajouter ni en retrancher. Un prix net vendeur avec honoraires en sus va DANS prix_fai, tel quel. honoraires_inclus : true si le prix est donné honoraires inclus (FAI, HAI), false s'il est net vendeur ou que les honoraires sont « en sus » ; absent si rien ne le dit. montant_honoraires : le montant des honoraires en euros s'il est écrit quelque part dans le document ; un simple pourcentage ne suffit pas (tu ne calcules rien). prix_ht : true si le prix de vente est écrit hors taxe (« HT », « H.T. », « hors taxes », « TVA en sus »), par exemple « 450 000 € FAI HT » ; false s'il est écrit TTC ; absent si rien ne le dit. Un loyer HT ne dit rien du prix.
 7. Si la fiche décrit PLUSIEURS LOTS, renvoie un élément par lot dans "lots", chacun avec ses propres valeurs et citations. Ne fusionne jamais deux lots. Ne répartis pas un prix global entre les lots : si un prix est global, il est absent au niveau du lot. Un lot est un bien qu'on peut vendre : un immeuble ou un local loué à plusieurs locataires reste UN lot (ses locataires ne sont pas des lots), sauf si le document les vend séparément. Une liste ou un tableau de biens à vendre donne un lot par ligne.
 8. N'ajoute aucun champ hors du schéma.
 9. agent : la personne de l'agence qui présente ou envoie le bien (signature d'un mail, pied de fiche, « votre contact »), avec son nom, son adresse mail, son téléphone et le nom de son agence, recopiés tels qu'écrits. Jamais le locataire, le vendeur, le syndic, un notaire ni l'équipe Klocka (@klocka.immo). Ce qui n'est pas écrit reste vide.

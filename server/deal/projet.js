@@ -783,6 +783,7 @@ const PREANALYSE_VERS_PROJET = {
   surface_m2: ['surface_m2', 'bien_champ2'],
   loyer_annuel_ht_hc: ['loyer_annuel_ht', 'sim_loyer_initial_ht'],
   prix_fai: ['prix_acquisition'],
+  prix_ht: ['prix_acquisition'],
   adresse: ['adresse_complete'],
   occupe: ['statut_bail'],
   // Le bail libre : le type, l'échéance, le début et la période ferme qu'en tire l'IA, vides s'il ne les dit pas.

@@ -167,13 +167,8 @@ const PLAFOND = 10000;
 function ecrire(ligne) {
   try {
     Records.create('CoutIA', { ...ligne, le: new Date().toISOString() });
-    const tout = Records.list('CoutIA');
-    if (tout.length > PLAFOND) {
-      const trop = tout
-        .sort((a, b) => String(a.le || '').localeCompare(String(b.le || '')))
-        .slice(0, tout.length - PLAFOND);
-      for (const l of trop) Records.delete('CoutIA', l.id);
-    }
+    // Le compte dans l'index (27 nov. 2026) : chaque appel au modèle relisait les 10 000 lignes du journal.
+    Records.elaguer('CoutIA', PLAFOND);
   } catch (e) {
     console.warn('[couts] ligne non écrite :', e?.message || e);
   }
@@ -321,6 +316,7 @@ const ACTIONS = [
   { cle: 'mail', libelle: 'Rédiger un mail', unite: 'par mail', parAppel: false, operations: ['mail du dossier', 'mails', 'rédaction'], ou: 'Étape Mail, décision Oui/Non, relance' },
   { cle: 'boite', libelle: 'Trier ce qu’on colle dans la boîte', unite: 'par dépôt', parAppel: false, operations: ['boîte', 'boîte : tri'], ou: 'Chat du tableau de bord' },
   { cle: 'fiche_dossier', libelle: 'Ranger une note sur les fiches', unite: 'par note', parAppel: false, operations: ['ranger une note'], ou: "Page de l'assistant : une note liée à un bien, un agent ou un client, lue avant le OK" },
+  { cle: 'recap_semaine', libelle: 'Mettre en forme un récap de semaine', unite: 'par mise en forme', parAppel: true, operations: ['mettre en forme un récap de semaine'], ou: "Page de l'assistant, mode Récap : le vocal de la semaine mis en forme, et chaque correction demandée" },
   { cle: 'fiche_dossier_enregistrement', libelle: 'Lire un enregistrement (rendez-vous, appel)', unite: 'par lecture', parAppel: false, operations: ['ranger un enregistrement'], ou: "Page de l'assistant, mode Enregistrement : relu à chaque fin de sujet pendant la conversation, puis à la fin" },
   { cle: 'fiche_dossier_sujet', libelle: "Repérer la fin d'un sujet pendant un enregistrement", unite: 'par lecture', parAppel: false, operations: ['suivre un enregistrement'], ou: "Page de l'assistant, mode Enregistrement : à chaque pause ou question, un modèle rapide dit si un point vient de se clore" },
   { cle: 'note_appel', libelle: 'Transformer une note d’appel en fiche', unite: 'par note', parAppel: false, operations: ["note d'appel"], ou: 'Chat du tableau de bord, dictée' },

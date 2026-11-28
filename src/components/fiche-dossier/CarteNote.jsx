@@ -341,7 +341,7 @@ function Actions({ actions, faites = [], garde, noteId, onVoir }) {
                       <Pastille><I className="h-4 w-4" /></Pastille>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[15px] leading-[1.45] text-encre">{a.titre}</span>
-                        <span className="mt-0.5 block truncate text-[13px] text-ardoise">{QUI[a.qui] || `Pour ${a.qui}`} · {a.echeance ? `pour ${dateCourte(a.echeance)}` : "à programmer"}{a.reprises ? ` · ${pluriel(a.reprises, "question reprise", "questions reprises")}` : ""}</span>
+                        <span className="mt-0.5 block truncate text-[13px] text-ardoise">{a.deja_envoye ? "Déjà envoyé · va dans l'historique de sa fiche" : <>{QUI[a.qui] || `Pour ${a.qui}`} · {a.echeance ? `pour ${dateCourte(a.echeance)}` : "à programmer"}</>}{a.reprises ? ` · ${pluriel(a.reprises, "question reprise", "questions reprises")}` : ""}</span>
                       </span>
                       {/* Plus de flèche sur une action (19 nov. 2026, Jules : « au clic il n'y a rien de plus ») ; les fiches la gardent. */}
                     </button>

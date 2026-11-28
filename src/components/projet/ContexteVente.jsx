@@ -139,7 +139,7 @@ export function ContexteVenteDossier({ dossier, apercu = false }) {
         <div ref={cadreAura} className={dictee.ecoute ? "relative isolate" : "relative"}>
           {dictee.ecoute && <div className="k-aura-halo" aria-hidden />}
           {dictee.ecoute && <div className="k-aura-horizon" aria-hidden />}
-          <div className={`${dictee.ecoute ? "k-aura-filet " : ""}k-saisie-chat relative rounded-[20px] border border-trait bg-barre px-5 pb-3 pt-4 max-md:px-4`}>
+          <div className={`${dictee.ecoute ? "k-aura-filet " : ""}k-saisie-chat k-verre-plein relative rounded-[16px] px-5 pb-3 pt-4 max-md:px-4`}>
             <textarea ref={champ} value={texte} onChange={(e) => setTexte(e.target.value)} disabled={occupe}
               placeholder={dictee.ecoute ? "Je vous écoute…" : "Pourquoi le propriétaire vend, depuis quand, ce qu'un acheteur doit savoir… Dictez avec le micro ou écrivez."}
               aria-label="Le contexte de la vente"

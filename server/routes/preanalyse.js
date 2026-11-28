@@ -589,9 +589,12 @@ export function monterPreanalyse(app) {
       // récemment modifiés d'abord (deal/recents.js note chaque ouverture).
       const { ouvertures } = await import('../deal/recents.js');
       const ouverts = ouvertures();
+      // Un dossier qui vient d'être créé compte comme ouvert à sa création (27 nov. 2026, Jules : « une fiche extraite, le
+      // dossier n'est pas en haut de la liste, j'ai dû le chercher ») : il passe devant, jusqu'à ce qu'on en ouvre un autre.
+      const cle = (d) => [String(ouverts.get(d.deal_id) || ''), String(d.cree_le || '')].sort().at(-1);
       const gardes = dossiers
         .filter((d) => !d.archived && (!t || `${d.titre || ''} ${d.nom_fichier || ''} ${d.ville || ''} ${(d.lots || []).map((l) => l.ville || '').join(' ')} ${d.responsable || ''}`.toLowerCase().includes(t)))
-        .sort((a, b) => String(ouverts.get(b.deal_id) || '').localeCompare(String(ouverts.get(a.deal_id) || '')) || String(b.maj_le || '').localeCompare(String(a.maj_le || '')));
+        .sort((a, b) => cle(b).localeCompare(cle(a)) || String(b.maj_le || '').localeCompare(String(a.maj_le || '')));
       total = gardes.length;
       dossiers = gardes.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
       // Dans cet ordre-ci, jamais la photo d'une des quatre cartes d'avant (26 nov. 2026, Jules) : la photo de ville en recours.

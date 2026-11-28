@@ -34,8 +34,10 @@ const Poignee = ({ onPointerDown, cote }) => (
   <span role="separator" aria-orientation="vertical" title="Tirer pour ajuster la colonne" onPointerDown={onPointerDown}
     className={`absolute inset-y-0 ${cote}-0 z-10 w-2 cursor-col-resize ${cote === "right" ? "translate-x-1/2" : "-translate-x-1/2"} hover:bg-menthe/30`} />
 );
-const CELLULES_FICHE = "px-2 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:divide-x lg:divide-trait lg:[&>*]:px-2.5";
-import React, { useEffect, useState } from "react";
+// Au dessin du tableau du simulateur (27 nov. 2026, Jules : « plus comme le simulateur du bas ») : un seul filet, après la
+// première colonne, et 16 px de marge comme ses lignes.
+const CELLULES_FICHE = "px-4 max-lg:gap-y-1.5 lg:px-0 lg:py-0 lg:[&>*]:px-4 lg:[&>*:first-child]:border-r lg:[&>*:first-child]:border-trait";
+import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import TexteEnPlace from "@/components/ui/texte-en-place";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,10 +50,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Loader2, MapPin, Pencil, Quote, Send, Trash2, X,
+  AlertTriangle, Archive, Calculator, Check, ChevronDown, ChevronUp, FileText, Loader2, MapPin, Pencil, Quote, Send, Trash2, X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { prixFai as prixFaiCalcul, prixEtTva } from "../../../server/deal/prix.js";
+import { resteDuBail } from "../../../server/deal/reste-du-bail.js";
+import { FenetreCalculatrice } from "@/components/prospection/EcranEnLigne";
 import { toast } from "@/components/ui/avis";
-import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
+import SimulateurDossier, { indicateursSimulateur } from "@/components/preanalyse/SimulateurDossier";
 import CarteGoogle from "@/components/CarteGoogle";
 import StreetViewRue from "@/components/projet/StreetViewRue";
 import FicheSource, { boutonFicheSource } from "@/components/preanalyse/FicheSource";
@@ -322,7 +328,55 @@ function notesMarche(m, marche) {
   return notes;
 }
 
-function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "", verdictTexte = "", onSaisieDirecte = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
+/**
+ * Ce qu'il reste de bail, en clair sous la ligne Bail (27 nov. 2026, Jules : « oui » à « on écrit l'échéance sans dire
+ * que le bail est échu ») : échu, c'est un risque, en ambre ; moins de trois ans, en ambre aussi.
+ */
+function ResteDuBail({ echeance }) {
+  const r = resteDuBail(echeance);
+  if (!r) return null;
+  return <span className={`mt-1 block text-[12.5px] ${r.echu || r.court ? "text-ambre" : "text-ardoise"}`}>{r.texte}</span>;
+}
+
+/**
+ * Les chiffres du bien en tuiles, au dessin des « Indicateurs clés » du simulateur (27 nov. 2026, Jules : « redesign le
+ * tableau, plus comme le simulateur du bas ») : le prix de calcul, le loyer, le rendement brut, les prix au m².
+ */
+function ChiffresCles({ fai, tva, loyer, surface, simulateur = null }) {
+  // Le rendement net du simulateur (27 nov. 2026, Jules : « remplace le rendement brut par le rendement net, comme
+  // l'indicateur clé du simulateur ») : le même calcul, sur les chiffres enregistrés du dossier.
+  // C'est la moyenne des rendements nets de chaque année jusqu'à la revente, loyer indexé : elle peut passer le brut de
+  // la première année, d'où « moyenne sur 20 ans » dessous.
+  const ind = useMemo(() => indicateursSimulateur(simulateur), [simulateur]);
+  const net = Number(ind?.rendementLocatifGlobalNet);
+  const pc = (x) => `${x.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+  const tuiles = [
+    { label: tva ? "Prix FAI TTC" : "Prix FAI", valeur: fai ? euros(fai) : "—", sous: tva ? `${euros(tva.ht)} HT sur la fiche` : null },
+    { label: "Loyer annuel HT HC", valeur: loyer ? euros(loyer) : "—" },
+    { label: "Rendement net", valeur: Number.isFinite(net) && net > 0 ? `${net.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %` : "—", sous: [ind?.nbAnnees ? `moyenne sur ${ind.nbAnnees} ans` : null, fai && loyer ? `brut ${pc((loyer / fai) * 100)}` : null].filter(Boolean).join(" · ") || null, sousNeutre: true },
+    { label: "Prix au m²", valeur: fai && surface ? euros(fai / surface) : "—" },
+    { label: "Loyer au m² par an", valeur: loyer && surface ? euros(loyer / surface) : "—" },
+  ];
+  return (
+    <div className={`mb-4 overflow-hidden ${VERRE}`}>
+      <div className="flex h-10 items-center justify-between gap-3 border-b border-trait px-4">
+        <p className="m-0 text-[13.5px] text-encre">Chiffres clés</p>
+        {surface ? <p className="m-0 text-[12.5px] text-ardoise">{String(surface).replace(".", ",")} m²</p> : null}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 [&>div]:border-trait max-sm:[&>div:nth-child(n+3)]:border-t max-sm:[&>div:nth-child(2n)]:border-l sm:max-lg:[&>div:nth-child(n+4)]:border-t sm:max-lg:[&>div:not(:nth-child(3n+1))]:border-l lg:[&>div:not(:first-child)]:border-l">
+        {tuiles.map((t) => (
+          <div key={t.label} className="min-w-0 px-4 py-3.5 transition-colors duration-300 hover:bg-encre/[0.03]">
+            <p className="m-0 text-[13.5px] leading-snug text-ardoise">{t.label}</p>
+            <p className="m-0 mt-1.5 whitespace-nowrap text-[20px] font-normal leading-tight tracking-[-0.01em] tabular-nums text-encre">{t.valeur}</p>
+            {t.sous && <p className={`m-0 mt-1 text-[12.5px] ${t.sousNeutre ? "text-brume" : "text-ambre"}`}>{t.sous}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TableauBien({ lot, emplacement = null, outils = null, dealId = null, verdictChoisi = "", verdictTexte = "", onSaisieDirecte = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
   // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
   const { data: marche, isLoading: marcheEnLecture } = useQuery({
     queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2), texteBrut("adresse", lot.lot?.adresse)],
@@ -342,7 +396,7 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
   const enr = lot.enrichissement || {};
   const [source, setSource] = useState(null); // "prix" | "loyer"
   const loyerFiche = valChamp(lot.lot?.loyer_annuel_ht_hc);
-  const { hors, fai } = prixDuLot(lot);
+  const { hors, fai, tva } = prixDuLot(lot);
   // La fiche ne l'écrit pas toujours : le loyer sur le prix FAI en tient lieu.
   const annonce = valChamp(lot.lot?.rendement_annonce) ?? (fai && loyerFiche ? (loyerFiche / fai) * 100 : null);
   const reel = ctx.rendement_net_moyen ?? lot.evaluation?.aem?.rendement_aem ?? null;
@@ -360,7 +414,19 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
         // honoraires s'y ajoutent, et c'est le net qui se corrige.
         return (
           <div>
-            {hors ? (
+            {tva ? (
+              // Un prix écrit hors taxe (27 nov. 2026, Jules : « il faut le signaler et recalculer ») : le TTC, sur lequel
+              // tout se calcule, puis le HT de la fiche, qui se corrige ; « Pas hors taxe » si la lecture s'est trompée.
+              <>
+                <span className="text-[13.5px] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{euros(fai)} TTC</span>
+                <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[11.5px] text-ambre">
+                  {hors ? <>net vendeur {champ("prix_fai")} HT + {champ("montant_honoraires")} d'honoraires</> : <>{champ("prix_fai")} HT sur la fiche</>}, + 20 % de TVA
+                  {!apercu && direct && (
+                    <button type="button" onClick={() => direct({ prix_ht: false })} className="text-brume underline-offset-2 hover:text-encre hover:underline" style={{ background: "transparent" }}>Pas hors taxe</button>
+                  )}
+                </span>
+              </>
+            ) : hors ? (
               <>
                 <span className="text-[13.5px] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{euros(fai)}</span>
                 <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[11.5px] text-brume">net vendeur {champ("prix_fai")} + {champ("montant_honoraires")} d'honoraires</span>
@@ -391,7 +457,14 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
         );
       case "occupe": return champ("occupe");
       // Le nom et l'activité s'enregistrent tout de suite (10 nov. 2026, Jules : « ne s'enregistrent pas » dans le brouillon).
-      case "nom_locataire": return <ChampFiche champ="locataire_nom" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />;
+      // Qui est le locataire, d'un clic (27 nov. 2026, Jules : « dès qu'on a la fiche, direct, on veut voir qui est le
+      // locataire ; mettre des liens ») : des recherches sur son nom et sa ville, rien d'enregistré.
+      case "nom_locataire": return (
+        <div>
+          <ChampFiche champ="locataire_nom" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />
+          <LiensLocataire nom={valChamp(lot.lot?.locataire_nom)} adresse={valChamp(lot.lot?.adresse)} />
+        </div>
+      );
       case "activite": return <ChampFiche champ="locataire_activite" lot={lot} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />;
       // Qualité de l'enseigne écrite à la main (10 nov. 2026, Jules) ; sans saisie, la signature calculée s'y lit.
       case "enseigne": {
@@ -424,6 +497,7 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
           <div>
             <ChampFiche champ="bail_texte" lot={vu} onSaisie={direct} enCours={enCours || enDirect} apercu={apercu} sansNote aGauche crayonADroite taille="text-[13.5px]" />
             {lu && <span className="mt-1 block text-[12.5px] text-brume">Pour le projet : {lu.type_bail}{compris.length ? ` · ${compris.join(" · ")}` : " · sans date"}</span>}
+            <ResteDuBail echeance={lu?.date_echeance || valChamp(lot.lot?.bail_echeance)} />
           </div>
         );
       }
@@ -472,7 +546,10 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
   // case du critère, toute colorée. Deux états seulement, comme l'Analyse (5 nov. 2026, Jules : « la couleur du design et
   // l'autre, comme dans l'analyse ») : vérifié en menthe (l'accent), le reste en sable « lu par l'IA » ; un clic passe
   // de l'un à l'autre. Une ligne sans valeur reste neutre et ne se clique pas. Plus de légende des couleurs.
-  const FOND_ETAT = { ok: "bg-menthe/15 hover:bg-menthe/25", a_verifier: "bg-lu-ia/25 hover:bg-lu-ia/35", warning: "bg-lu-ia/25 hover:bg-lu-ia/35", no_go: "bg-lu-ia/25 hover:bg-lu-ia/35" };
+  // Le 27 nov. 2026 (Jules : « plus comme le simulateur ») : l'état n'est plus la case colorée, mais un point devant le nom de la
+  // ligne, menthe une fois vérifiée, sable tant que l'IA seule l'a lue ; toujours un clic pour passer de l'un à l'autre.
+  const POINT_ETAT = { ok: "bg-menthe", a_verifier: "bg-lu-ia", warning: "bg-lu-ia", no_go: "bg-lu-ia" };
+  const aVerifier = lignes.filter((l) => l.st !== "ok" && l.st in POINT_ETAT).length;
   return (
     <section>
       {(sousTitre || actions) && (
@@ -485,10 +562,22 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
         <p className="m-0 text-[14px] text-encre">{titre}</p>
       </div>
       {/* L'emplacement à part, au-dessus du tableau (11 nov. 2026, Jules : « pas dans le tableau, séparé ») : sa propre carte. */}
-      {emplacement && <div className={`mb-4 overflow-hidden ${VERRE}`}>{emplacement}</div>}
-      <div className={`relative overflow-hidden ${VERRE_LG}`} style={colonnes.style}>
-        <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-3 text-[12.5px] text-ardoise max-lg:hidden lg:border-t-0 lg:[&>*]:py-2`}>
-          <span className="relative text-[13.5px] text-encre">{titre}<Poignee cote="right" onPointerDown={colonnes.tirer("critere", 1)} /></span><span>Valeur</span><span className="relative">Notes<Poignee cote="left" onPointerDown={colonnes.tirer("notes", -1)} /></span>
+      {emplacement ? (
+        <div className={`mb-4 overflow-hidden ${VERRE}`}>
+          {outils && <div className="flex flex-wrap items-center gap-2 border-b border-trait px-4 py-3">{outils}</div>}
+          {emplacement}
+        </div>
+      ) : outils && <div className="flex flex-wrap items-center gap-2 pb-4">{outils}</div>}
+      {/* Les chiffres en tête, comme les indicateurs clés du simulateur (27 nov. 2026, Jules). */}
+      <ChiffresCles fai={fai} tva={tva} loyer={loyerFiche} surface={valChamp(lot.lot?.surface_m2)} simulateur={lot.simulateur || null} />
+      <div className={`relative overflow-hidden ${VERRE}`} style={colonnes.style}>
+        {/* L'en-tête de la carte, comme « Tableau annuel détaillé » : le nom, et ce qui reste à vérifier. */}
+        <div className="flex h-10 items-center justify-between gap-3 border-b border-trait px-4">
+          <p className="m-0 text-[13.5px] text-encre">{titre}</p>
+          {aVerifier > 0 && <p className="m-0 flex items-center gap-1.5 text-[12.5px] text-ardoise"><span className="h-1.5 w-1.5 rounded-full bg-lu-ia" />{aVerifier} à vérifier</p>}
+        </div>
+        <div className={`grid h-[35px] items-center ${COLONNES_FICHE} ${CELLULES_FICHE} text-[12.5px] text-ardoise max-lg:hidden lg:[&>*]:flex lg:[&>*]:h-full lg:[&>*]:items-center`}>
+          <span className="relative">Ligne<Poignee cote="right" onPointerDown={colonnes.tirer("critere", 1)} /></span><span>Valeur</span><span className="relative">Notes<Poignee cote="left" onPointerDown={colonnes.tirer("notes", -1)} /></span>
         </div>
         <div className="k-cascade">
           {lignes.map(({ id, element, c, cMarche, st, decision, avecMarche: cleMarche }) => {
@@ -498,13 +587,16 @@ function TableauBien({ lot, emplacement = null, dealId = null, verdictChoisi = "
             const aide = [c?.critere ? `${c.critere}${c.groupe ? ` · ${c.groupe}` : ""}` : null, etat].filter(Boolean).join("\n");
             return (
               <React.Fragment key={id}>
-                <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-2.5 transition-colors hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-[7px]`}>
+                <div className={`grid ${COLONNES_FICHE} ${CELLULES_FICHE} border-t border-trait py-2.5 transition-colors hover:bg-encre/[0.03] max-lg:grid-cols-1 max-lg:gap-y-1.5 lg:[&>*]:py-2.5`}>
                   {/* Un clic sur la case fait tourner le statut : OK, À vérifier, Bloquant (18 oct. 2026, Jules). */}
                   <button type="button" disabled={!modifiable || enChangement} title={aide || undefined}
                     onClick={() => { if (!modifiable) return; const suivant = st === "ok" ? "a_verifier" : "ok"; onVerifier(cleLigne(c), suivant); if (cMarche) onVerifier(cleLigne(cMarche), suivant); }}
-                    className={`m-0 flex select-none items-start justify-between gap-2 text-left text-[13.5px] leading-[1.4] text-encre transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 disabled:cursor-default ${FOND_ETAT[st] || ""}`}
-                    style={FOND_ETAT[st] ? undefined : { background: "transparent" }}>
-                    <span>{element}</span>
+                    className="group/etat m-0 flex select-none items-start justify-between gap-2 text-left text-[13.5px] font-normal leading-[1.4] text-encre transition-colors disabled:cursor-default"
+                    style={{ background: "transparent" }}>
+                    <span className="flex items-start gap-2.5">
+                      <span aria-hidden className={`mt-[6px] h-2 w-2 flex-none rounded-full transition-transform ${POINT_ETAT[st] || "border border-bord-doux"} ${modifiable ? "group-hover/etat:scale-125" : ""}`} />
+                      {element}
+                    </span>
                     {enChangement && <Loader2 className="mt-1 h-3.5 w-3.5 flex-none animate-spin" aria-label="Changement en cours" />}
                   </button>
                   {/* Pas de crayon : le texte se clique pour le modifier (11 nov. 2026, Jules). Le repère group/val sert au mot du marché. */}
@@ -604,8 +696,8 @@ const valChamp = (c) => (c && c.absent === false ? c.valeur : null);
 
 /**
  * Le prix FAI du lot, et le net vendeur quand la fiche annonce un prix hors
- * honoraires. Même règle que server/deal/prix.js : le chiffre de la fiche est
- * alors le net vendeur, et le FAI vaut ce prix plus les honoraires.
+ * honoraires. La règle est celle de server/deal/prix.js, importée telle quelle : le chiffre de la fiche est alors le
+ * net vendeur, le FAI vaut ce prix plus les honoraires, et un prix écrit hors taxe prend sa TVA (27 nov. 2026).
  */
 export function prixDuLot(entree) {
   // Les champs de la fiche vivent sous `lot.lot` quand on reçoit l'entrée du
@@ -615,7 +707,7 @@ export function prixDuLot(entree) {
   const prix = valChamp(lot?.prix_fai);
   const honoraires = valChamp(lot?.montant_honoraires);
   const hors = valChamp(lot?.honoraires_inclus) === false && honoraires > 0;
-  return { prix, honoraires, hors, fai: prix == null ? null : hors ? prix + honoraires : prix };
+  return { prix, honoraires, hors, tva: prixEtTva(lot), fai: prix == null ? null : prixFaiCalcul(lot) };
 }
 
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
@@ -1238,7 +1330,11 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
     onMutate: ({ cle, statut }) => setStatutsLocaux((x) => ({ ...x, [cle]: { statut, par: null, le: new Date().toISOString() } })),
     onError: (e, { cle }) => { setStatutsLocaux((x) => { const n = { ...x }; delete n[cle]; return n; }); toast.error(e?.message || "Impossible"); },
   });
-  const [modeFiche, setModeFiche] = useState("tableau");
+  // « Voir la fiche » à la place de l'interrupteur Fiche / Tableau (27 nov. 2026, Jules) : la fiche s'ouvre à droite, le
+  // tableau reste à côté ; la calculatrice à côté, avec le prix et le loyer du dossier.
+  const [ficheOuverte, setFicheOuverte] = useState(false);
+  const [calculatrice, setCalculatrice] = useState(false);
+  const [calculSaisi, setCalculSaisi] = useState({});
   const lotVu = Object.keys(statutsLocaux).length ? { ...lot, verifications: { ...(lot.verifications || {}), ...statutsLocaux } } : lot;
   // Réécrire la note d'une ligne, ou la vider pour revenir à la note calculée.
   const noter = useMutation({
@@ -1262,29 +1358,43 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
           {/* La fiche du bien : un tableau au dessin des grilles du bail. */}
           <section className="pb-8">
             <BandeauRecalcul actif={enCours} />
-            {/* Mode Fiche ou Tableau, en haut à gauche, à la place du bouton « Fiche commerciale » (5 nov. 2026, Jules). */}
-            {/* « Rentrer le projet » à droite des deux modes (5 nov. 2026, Jules). */}
-            {/* La bascule toujours là, la pilule Projet à sa droite (11 nov. 2026, Jules). */}
-            <div className="flex flex-wrap items-center gap-3 pb-4">
-              <BasculeFiche tableau={modeFiche === "tableau"} onChange={(oui) => setModeFiche(oui ? "tableau" : "fiche")} />
-              {apresModes}
-            </div>
-            {modeFiche === "fiche" ? (boutonFicheSource(dossier) ? <FicheSource dossier={dossier} /> : <p className={`m-0 ${VERRE} px-5 py-8 text-center text-[13.5px] text-ardoise`}>Ce dossier n'a pas de fiche commerciale : il a été créé sans pièce.</p>) : (
-              <TableauBien
-                lot={lotVu}
-                emplacement={sansCarte ? null : <CarteEmplacement lot={lotVu} dealId={dossier?.deal_id || null} apercu={apercu} />}
-                onSaisie={onSaisie}
-                enCours={enCours}
-                apercu={apercu}
-                onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })}
-                titre="Fiche du bien"
-                dealId={dossier?.deal_id || null}
-                verdictChoisi={dossier?.verdict_choisi?.valeur || ""}
-                verdictTexte={dossier?.verdict_texte?.texte || ""}
-                onSaisieDirecte={enregistrerTout}
-                onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
-                enNote={noter.isPending ? noter.variables?.ligne : null}
-              />
+            <TableauBien
+              outils={(
+                // « Voir la fiche » et « Calculatrice » en haut de la carte de Street View et du plan (27 nov. 2026, Jules :
+                // « mets Voir la fiche et tout dans la même carte que les trucs Maps ; Calculatrice écrit, pas juste l'icône »),
+                // à la place de l'interrupteur Fiche / Tableau ; la pilule Projet à leur droite (11 nov. 2026).
+                <>
+                  {boutonFicheSource(dossier) && (
+                    <button type="button" onClick={() => setFicheOuverte(true)} aria-expanded={ficheOuverte}
+                      className="k-verre-plein inline-flex h-9 w-fit items-center gap-2 rounded-full px-4 text-[13.5px] text-encre hover:!border-bord-vif">
+                      <FileText className="h-4 w-4 text-ardoise" /> Voir la fiche
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setCalculatrice((x) => !x)} aria-pressed={calculatrice}
+                    className={`k-verre-plein inline-flex h-9 w-fit items-center gap-2 rounded-full px-4 text-[13.5px] transition-colors ${calculatrice ? "!border-menthe/60 text-menthe" : "text-encre hover:!border-bord-vif"}`}>
+                    <Calculator className={`h-4 w-4 ${calculatrice ? "" : "text-ardoise"}`} /> Calculatrice
+                  </button>
+                  {apresModes}
+                </>
+              )}
+              lot={lotVu}
+              emplacement={sansCarte ? null : <CarteEmplacement lot={lotVu} dealId={dossier?.deal_id || null} apercu={apercu} />}
+              onSaisie={onSaisie}
+              enCours={enCours}
+              apercu={apercu}
+              onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })}
+              titre="Fiche du bien"
+              dealId={dossier?.deal_id || null}
+              verdictChoisi={dossier?.verdict_choisi?.valeur || ""}
+              verdictTexte={dossier?.verdict_texte?.texte || ""}
+              onSaisieDirecte={enregistrerTout}
+              onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
+              enNote={noter.isPending ? noter.variables?.ligne : null}
+            />
+            {ficheOuverte && <PanneauFiche dossier={dossier} onFermer={() => setFicheOuverte(false)} />}
+            {calculatrice && (
+              <FenetreCalculatrice lu={{ prix: prixDuLot(lot).fai, loyer_an: valChamp(lot.lot?.loyer_annuel_ht_hc) }}
+                saisi={calculSaisi} setSaisi={setCalculSaisi} onFermer={() => setCalculatrice(false)} />
             )}
           </section>
 
@@ -1314,20 +1424,49 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
   );
 }
 
-/**
- * L'interrupteur Mode Fiche / Mode Tableau (5 nov. 2026, Jules : « comme le mode Libre / mode Clients de la Prospection
- * du mandataire, à la taille de son contenu ») : le dessin de BasculeMode (ProspecterClients.jsx).
- */
-function BasculeFiche({ tableau, onChange }) {
+/** Les recherches sur le locataire : Google, sa fiche Google Maps, Pappers et l'Annuaire des entreprises. */
+function LiensLocataire({ nom, adresse }) {
+  const n = String(nom || "").trim();
+  if (!n) return null;
+  const ville = adresse && typeof adresse === "object" ? adresse.ville || "" : "";
+  const lieu = adresse && typeof adresse === "object" ? [adresse.rue, adresse.code_postal, adresse.ville].filter(Boolean).join(" ") : "";
+  const q = (t) => encodeURIComponent(t.trim());
+  const liens = [
+    ["Google", `https://www.google.com/search?q=${q(`${n} ${ville}`)}`],
+    ["Google Maps", `https://www.google.com/maps/search/${q(`${n} ${lieu || ville}`)}`],
+    ["Pappers", `https://www.pappers.fr/recherche?q=${q(n)}`],
+    ["Annuaire des entreprises", `https://annuaire-entreprises.data.gouv.fr/rechercher?terme=${q(n)}`],
+  ];
   return (
-    <button type="button" role="switch" aria-checked={tableau} onClick={() => onChange(!tableau)}
-      className="inline-flex h-10 w-fit items-center gap-3 rounded-full border border-bord-doux bg-rail px-4 text-[14px] hover:border-bord-vif">
-      <span className={`transition-colors duration-300 ${tableau ? "text-ardoise" : "text-encre"}`}>Fiche</span>
-      <span aria-hidden className={`relative h-[20px] w-[36px] flex-none rounded-full transition-colors duration-300 ${tableau ? "bg-menthe" : "bg-relief"}`}>
-        <span className={`absolute top-[2px] h-[16px] w-[16px] rounded-full bg-fond shadow-sm transition-all duration-300 ease-out ${tableau ? "left-[18px]" : "left-[2px]"}`} />
-      </span>
-      <span className={`transition-colors duration-300 ${tableau ? "text-encre" : "text-ardoise"}`}>Tableau</span>
-    </button>
+    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+      {liens.map(([libelle, url]) => (
+        <a key={libelle} href={url} target="_blank" rel="noopener noreferrer" className="text-[12.5px] text-ardoise no-underline hover:text-encre">{libelle} ↗</a>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * La fiche commerciale à droite de l'écran (27 nov. 2026, Jules : « à la place du toggle Fiche / Tableau, Voir la
+ * fiche ») : le tableau reste visible à gauche pour comparer ; Échap ou la croix la ferment. Au téléphone, plein écran.
+ */
+function PanneauFiche({ dossier, onFermer }) {
+  useEffect(() => {
+    const echap = (e) => { if (e.key === "Escape") onFermer(); };
+    window.addEventListener("keydown", echap);
+    return () => window.removeEventListener("keydown", echap);
+  }, [onFermer]);
+  return createPortal(
+    <div role="dialog" aria-label="Fiche commerciale"
+      className="fixed inset-y-0 right-0 z-[70] flex w-[min(760px,52vw)] flex-col border-l border-trait bg-fond shadow-[0_0_60px_rgb(0_0_0/0.35)] duration-300 animate-in slide-in-from-right-4 max-md:w-full">
+      <div className="flex items-center justify-between gap-4 px-5 py-4">
+        <p className="m-0 text-[15px] text-encre">Fiche commerciale</p>
+        <button type="button" onClick={onFermer} aria-label="Fermer la fiche"
+          className="grid h-9 w-9 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4"><FicheSource dossier={dossier} /></div>
+    </div>,
+    document.body,
   );
 }
 

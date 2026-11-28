@@ -322,7 +322,7 @@ export async function creerAgentMonday({ nom, email, telephone, ville, entrepris
     cle: { colonne: 'email', valeur: email },
   });
   // La liste des agents est en cache : elle doit repartir de zéro.
-  cache.delete('agents');
+  oublierCache('agents');
   return { ...r, entreprise_ignoree: entrepriseIgnoree };
 }
 
@@ -359,7 +359,7 @@ export async function creerClientMonday({ nom, email, telephone, budget, apport,
     colonnes,
     cle: mail ? { colonne: COL_CLIENT.email, valeur: mail } : { colonne: 'name', valeur: nom },
   });
-  cache.delete('investisseurs');
+  oublierCache('investisseurs');
   return { ...r, statut_ignore: statutIgnore };
 }
 
@@ -446,7 +446,7 @@ export async function noterAppelAgent({ prenom, nom, email, telephone, ville, en
     itemId: existante?.id || null,
     cle: adresse && !existante ? { colonne: 'email', valeur: adresse } : null,
   });
-  cache.delete('agents');
+  oublierCache('agents');
   return { ...r, cree: !existante, entreprise_ignoree: entrepriseIgnoree, nom: existante?.nom || nomComplet };
 }
 
@@ -505,11 +505,30 @@ export async function relancesAgents({ pour = null } = {}) {
 /** Oublier une lecture en cache — après avoir écrit, on veut relire vrai. */
 export function oublierCache(cle) {
   cache.delete(cle);
+  relectures.delete(cle);
 }
+
+// Les relectures en cours, une par tableau : deux pages ouvertes ensemble n'en lancent qu'une.
+const relectures = new Map();
 
 async function lireAvecCache(boardId, cle) {
   const vu = cache.get(cle);
   if (vu && Date.now() - vu.le < DUREE_CACHE) return vu.lignes;
+  // Périmée, la dernière lecture sert tout de suite et la suivante se fait en fond (27 nov. 2026) : la page Projets
+  // attendait le CRM, 1,5 à 3,5 s, chaque fois que les cinq minutes du cache étaient passées. Une écriture vide le
+  // cache (oublierCache) : la lecture d'après, elle, attend la vraie.
+  if (vu) {
+    if (!relectures.has(cle)) {
+      const jeton = {};
+      relectures.set(cle, jeton);
+      // Une écriture survenue pendant la relecture l'emporte : oublierCache retire le jeton, la lecture n'est pas gardée.
+      lireTableau(boardId)
+        .then((lignes) => { if (relectures.get(cle) === jeton) cache.set(cle, { le: Date.now(), lignes }); })
+        .catch((e) => console.warn(`[monday] ${cle} : relecture impossible (${e?.message || e}).`))
+        .finally(() => { if (relectures.get(cle) === jeton) relectures.delete(cle); });
+    }
+    return vu.lignes;
+  }
   let lignes;
   try {
     lignes = await lireTableau(boardId);

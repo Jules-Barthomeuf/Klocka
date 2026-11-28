@@ -140,7 +140,9 @@ export default function VeilleAlx() {
   // Un tableau vide stable : un `= []` par défaut serait un tableau neuf à
   // chaque rendu, et l'effet qui dépend des villes tournerait sans fin.
   const { data: villesLues } = useQuery({
-    queryKey: ["alx-villes"],
+    // Une clé à elle (27 nov. 2026) : sous ["alx-villes"], la liste allégée écrasait la liste entière des pages d'ALX,
+    // qui partageaient la clé. Les invalidations de ["alx-villes"] la touchent toujours.
+    queryKey: ["alx-villes", "veille"],
     // La liste allégée : l'avancement et les trois comptes. La liste entière
     // pèse près de trois mégaoctets, et la veille interroge depuis toutes les
     // pages, toutes les trente secondes.

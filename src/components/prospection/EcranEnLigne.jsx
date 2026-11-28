@@ -179,7 +179,7 @@ export function FenetreFlottante({ titre, cle, depart, onFermer, children }) {
   const lacher = () => { tire.current = null; };
   return createPortal(
     <div ref={ref} role="dialog" aria-label={titre}
-      className="k-verre fixed z-[60] flex flex-col overflow-hidden !rounded-[20px] shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-200 animate-in fade-in-0 zoom-in-95"
+      className="k-verre k-verre-plein fixed z-[60] flex flex-col overflow-hidden !rounded-[20px] shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-200 animate-in fade-in-0 zoom-in-95"
       style={{ left: cadre.x, top: cadre.y, width: cadre.l, height: cadre.h, minWidth: MIN_L, minHeight: MIN_H, resize: "both" }}>
       {/* La barre : la poignée à gauche, le titre au milieu dans la fonte des titres de page, la croix à droite. */}
       <div onPointerDown={prendre} onPointerMove={tirer} onPointerUp={lacher} onPointerCancel={lacher}
@@ -196,7 +196,7 @@ export function FenetreFlottante({ titre, cle, depart, onFermer, children }) {
   );
 }
 
-function FenetreCalculatrice({ lu, saisi, setSaisi, onFermer }) {
+export function FenetreCalculatrice({ lu, saisi, setSaisi, onFermer }) {
   const loyer = saisi.loyer_an != null ? lireNombre(saisi.loyer_an) : lu.loyer_an;
   // Le prix FAI : tapé, sinon celui entendu ; dit net vendeur, il passe en FAI par les honoraires dits, sinon 5 %.
   const deux = prixDesDeux({ prix: lu.prix, base: lu.prix_base, honorairesPct: lu.honoraires_pct, honoraires: lu.honoraires });

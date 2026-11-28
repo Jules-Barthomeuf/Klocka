@@ -681,7 +681,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       <div className={enPanneau ? "lg:!mt-0" : undefined}>
       <div>
       {/* La Pré-analyse en pleine largeur (11 nov. 2026, Jules) : la colonne de droite (À valider, fil) passe dessous. */}
-      <div className={dossier && !pleineLargeur ? `grid items-start gap-4 ${vue === "preanalyse" ? "lg:pr-14" : etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_400px]" : "lg:grid-cols-[minmax(0,1fr)_400px]"}` : ""}>
+      <div className={dossier && !pleineLargeur ? `grid items-start gap-4 ${vue === "preanalyse" ? "" : etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_400px]" : "lg:grid-cols-[minmax(0,1fr)_400px]"}` : ""}>
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
       {/* La Data Room : une zone de dépôt par type de pièce, rien d'autre (29 oct. 2026, Jules). */}

@@ -6,7 +6,7 @@
 // seules répondraient, la ligne le dit.
 
 import { Records } from '../db.js';
-import { prixFai } from './prix.js';
+import { prixFai, prixEtTva } from './prix.js';
 
 const val = (c) => (c && c.absent === false ? c.valeur : null);
 const sans = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -86,9 +86,12 @@ export function lignesBien({ lot = {}, lignes = [], retenues = {} }) {
   // Prix FAI et honoraires.
   const prix = prixFai(lot);
   const hon = Number(val(lot.montant_honoraires)) || null;
+  // Un prix écrit hors taxe se signale, et se compte TTC (27 nov. 2026, Jules).
+  const tva = prixEtTva(lot);
   ligne('prix', 'Prix FAI et honoraires', {
-    valeur: prix ? `${eur(prix)} FAI · ${hon ? `dont ${eur(hon)} d'honoraires` : 'honoraires non précisés'}` : 'Non trouvé',
-    sources: prix ? [FICHE] : [], statut: prix ? 'info' : 'non_trouve',
+    valeur: prix ? `${eur(prix)} FAI${tva ? ' TTC' : ''} · ${hon ? `dont ${eur(hon)} d'honoraires` : 'honoraires non précisés'}` : 'Non trouvé',
+    sources: prix ? [FICHE] : [], statut: !prix ? 'non_trouve' : tva ? 'signale' : 'info',
+    motif: tva ? `Prix écrit hors taxe sur la fiche : ${eur(tva.ht)} HT, plus ${eur(tva.tva)} de TVA (20 %).` : null,
   });
 
   // Rendement brut : calculé ; sous 5 %, bloquant.

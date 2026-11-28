@@ -8,6 +8,7 @@
 // qui le déduit des ventes DVF — et le dit.
 
 import { Records } from '../db.js';
+import { prixFai } from './prix.js';
 
 const val = (c) => (c && typeof c === 'object' && 'valeur' in c ? (c.absent === false || c.absent === undefined ? c.valeur : null) : c);
 const RAYON = 300;
@@ -19,13 +20,8 @@ const JOURS_GARDE = 7;
 // Au-delà de 15 % d'écart, on le dit ; en deçà, c'est le bruit du marché.
 const SEUIL = 15;
 
-/** Pure : le prix FAI du lot — le prix de la fiche, plus les honoraires quand elle les exclut. */
-export function prixFaiDuLot(lot) {
-  const prix = Number(val(lot?.prix_fai)) || null;
-  const honoraires = Number(val(lot?.montant_honoraires)) || 0;
-  const hors = val(lot?.honoraires_inclus) === false && honoraires > 0;
-  return prix == null ? null : hors ? prix + honoraires : prix;
-}
+/** Pure : le prix FAI du lot, la règle de server/deal/prix.js (honoraires en sus, TVA d'un prix hors taxe). */
+export const prixFaiDuLot = (lot) => Number(prixFai(lot)) || null;
 
 /** Pure : où se situe une valeur face au marché. */
 export function jugement(valeur, marche) {

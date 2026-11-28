@@ -6,6 +6,7 @@
 // pour que la base s'affine deal après deal.
 
 import { Records } from '../db.js';
+import { prixFai as prixDuLot } from './prix.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 
@@ -32,7 +33,7 @@ export function alimenterBaseMarche(deal, lot, user) {
 
     const surface = val(lot.lot?.surface_m2);
     const loyer = val(lot.lot?.loyer_annuel_ht_hc);
-    const prixFai = val(lot.lot?.prix_fai);
+    const prixFai = prixDuLot(lot.lot);
     const loyerM2 = surface > 0 && loyer > 0 ? loyer / surface : null;
     const prixM2 = surface > 0 && prixFai > 0 ? prixFai / surface : null;
     if (loyerM2 == null && prixM2 == null) return null;

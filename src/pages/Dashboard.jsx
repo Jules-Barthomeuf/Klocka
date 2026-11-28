@@ -21,6 +21,9 @@ const etapes = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const user = useUser();
+  // Les lectures de la vue client ne partent que pour elle (27 nov. 2026) : l'équipe et les mandataires téléchargeaient
+  // tous les projets (2,4 Mo), les ressources et les stratégies sans jamais les afficher.
+  const vueClient = !!user && vueDe(user) !== "mandataire" && !(user.role === "admin" && localStorage.getItem('previewClientMode') !== 'true');
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects', user?.email, user?.projet_selectionne_id, user?.compte_maitre_email],
@@ -48,26 +51,28 @@ export default function Dashboard() {
         p.client_email === user.email || p.client_emails?.includes(user.email)
       );
     },
-    enabled: !!user,
+    enabled: vueClient,
     initialData: []
   });
 
   const { data: resources = [] } = useQuery({
     queryKey: ['resources'],
     queryFn: () => base44.entities.Resource.list("-created_date", 3),
+    enabled: vueClient,
     initialData: []
   });
 
   const { data: strategies = [] } = useQuery({
     queryKey: ['strategy', user?.email],
     queryFn: () => user ? base44.entities.Strategy.filter({ client_email: adresseDuDossier(user) }) : [],
-    enabled: !!user,
+    enabled: vueClient,
     initialData: []
   });
 
   const { data: appSettings = [] } = useQuery({
     queryKey: ['app-settings'],
     queryFn: () => base44.entities.AppSettings.list(),
+    enabled: vueClient,
     initialData: []
   });
 

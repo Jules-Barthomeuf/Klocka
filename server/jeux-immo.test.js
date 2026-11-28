@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pointsEstimation, finDeBail, rueEtVille, actifDeProjet, quatreRues, rueDeLecture, ruesJouables, decouperAdresse } from './jeux-immo.js';
+import { scoreValide, classement, pointsEstimation, finDeBail, rueEtVille, actifDeProjet, quatreRues, rueDeLecture, ruesJouables, decouperAdresse } from './jeux-immo.js';
 
 test('jeux : les points d\'une estimation de loyer', () => {
   assert.equal(pointsEstimation(500, 500), 100);
@@ -90,4 +90,22 @@ test('jeux : la rue alterne le loyer d\'une boutique et le prix des murs au m²'
   const m = manchesAlternees(rues, annonces, 5, () => 0.5);
   assert.deepEqual(m.map((x) => x.type), ['loyer', 'prix', 'loyer', 'prix', 'loyer']);
   assert.deepEqual(manchesAlternees(rues, [], 2, () => 0.5).map((x) => x.type), ['loyer', 'loyer']);
+});
+
+test('jeux : une partie de La rue se garde si elle tient debout', () => {
+  assert.deepEqual(scoreValide({ points: 452, manches: 6 }), { ok: true, score: { jeu: 'rue', points: 452, sur: 600, manches: 6 } });
+  assert.equal(scoreValide({ points: 601, manches: 6 }).ok, false);
+  assert.equal(scoreValide({ points: -1, manches: 6 }).ok, false);
+  assert.equal(scoreValide({ points: 10, manches: 0 }).ok, false);
+  assert.equal(scoreValide({ jeu: 'duel', points: 10, manches: 1 }).ok, false);
+});
+
+test('jeux : le classement garde chaque partie, une personne peut y être deux fois', () => {
+  const c = classement([
+    { id: 'a', par: 'nora.l@klocka.immo', points: 300, le: '2026-11-27T10:00:00Z' },
+    { id: 'b', par: 'jules.b@klocka.immo', points: 520, le: '2026-11-27T11:00:00Z' },
+    { id: 'c', par: 'jules.b@klocka.immo', points: 480, le: '2026-11-27T12:00:00Z' },
+    { id: 'd', par: 'maxime.p@klocka.immo', points: 300, le: '2026-11-27T09:00:00Z' },
+  ]);
+  assert.deepEqual(c.map((s) => [s.id, s.rang]), [['b', 1], ['c', 2], ['d', 3], ['a', 4]]);
 });

@@ -178,7 +178,8 @@ export function monterMonday(app) {
     if (!mondayConfigure()) return ok(res, { configure: false, par_projet: {} });
 
     const { investisseursPourProjet } = await import('../deal/monday-sync.js');
-    const projets = Records.list('Project').filter((p) => !p.archived);
+    // Les cinq champs que lit investisseursPourProjet, sans décoder les projets entiers (2,4 Mo, 27 nov. 2026).
+    const projets = Records.champs('Project', ['archived', 'prix_acquisition', 'sim_prix_bien_negocie', 'sim_prix_bien_fai', 'ville_secteur_champ1']).filter((p) => !p.archived);
 
     const parProjet = {};
     for (const projet of projets) {

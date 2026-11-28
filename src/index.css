@@ -343,6 +343,14 @@ button.k-verre-photo:hover { background: rgb(0 0 0 / .4); }
 }
 .k-verre .k-verre { border-radius: 12px; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+/* Le verre rendu opaque (27 nov. 2026, Jules : « la calculatrice pas transparente, du même style que Chiffres clés ; le fond
+   de la couleur du fond ») : la même teinte que .k-verre posée sur le fond de la page, mais pleine, sans rien derrière qui
+   transparaisse. Pour ce qui flotte au-dessus de la page (la calculatrice) et ce qui doit avoir le fond exact des cartes
+   (Voir la fiche, Calculatrice, le contexte de la vente). */
+.k-verre-plein {
+    border: 1px solid var(--k-bord-doux);
+    background: linear-gradient(var(--k-surface), var(--k-surface)), rgb(var(--k-fond-rgb));
+}
 :root[data-theme="clair"] .k-verre { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 8px 24px rgb(16 20 24 / .07); }
 :root[data-theme="clair"] .k-verre .k-verre { box-shadow: none; }
 

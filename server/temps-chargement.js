@@ -28,11 +28,8 @@ export function consignerChargement({ page, ms, premier, user }) {
   if (!page || !Number.isFinite(duree) || duree < 0 || duree > 120_000) return null;
   try {
     const l = Records.create('ChargementPage', { page: String(page).slice(0, 80), ms: duree, premier: !!premier, par: user?.email || null, role: user?.role || null, le: new Date().toISOString() });
-    // Élaguer relit toute la table : une fois toutes les 200 écritures suffit.
-    if (++ecritures % 200 === 0) {
-      const tout = Records.list('ChargementPage', { sort: 'le' });
-      for (const x of tout.slice(0, Math.max(0, tout.length - PLAFOND))) Records.delete('ChargementPage', x.id);
-    }
+    // Élaguer se fait dans la base, sans relire la table (27 nov. 2026) ; une fois toutes les 200 écritures suffit.
+    if (++ecritures % 200 === 0) Records.elaguer('ChargementPage', PLAFOND);
     return l;
   } catch (e) {
     console.warn('[chargement] non consigné :', e?.message || e);

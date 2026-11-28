@@ -12,7 +12,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee } from "@/lib/dictee";
 import { useOreille } from "@/lib/oreille";
-import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
+import { sansMarkdown } from "@/lib/sans-markdown";
 import { AvisReponse } from "@/components/MessageIA";
 import { J } from "@/design/jetons";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";

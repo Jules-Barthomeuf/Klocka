@@ -28,6 +28,10 @@ import { ouvrirTranscriptionDirecte, enPhrases } from "@/lib/transcription-direc
 import { objectionEntendue } from "@/lib/objections";
 import TranscriptionParVoix from "@/components/prospection/TranscriptionParVoix";
 import MaSession from "@/components/prospection/MaSession";
+
+// Ma session cachée du mode appel (27 nov. 2026, Jules : « pour l'instant on cache, juste la carte d'appel normale ;
+// je vais revoir ça ») : le composant et le serveur restent, il suffit de repasser à true.
+const MA_SESSION_VISIBLE = false;
 import { niveauEntre, phrasesEtTours, seuilDeuxVoix, texteNormal, voixDe, voixParLesMots } from "@/lib/qui-parle";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
@@ -1901,7 +1905,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             <div key={ecran === "analyse" && appel ? "actions" : ecran} className="flex flex-col gap-4 duration-500 ease-out animate-in fade-in-0 slide-in-from-bottom-2">
             {/* Ma session en haut (27 nov. 2026, Jules : « on arrive, en haut déjà Ma session, la carte on la voit en bas ») :
                 la ligne, Commencer et les records ; les chiffres d'une session en cours restent sous la carte. */}
-            {ecran === "fiche" && !relances && !session.essai && (
+            {MA_SESSION_VISIBLE && ecran === "fiche" && !relances && !session.essai && (
               <MaSession session={session} ville={session.ville} progression={c ? { appelees: c.appelees, agences: c.agences - c.mortes } : null}
                 onNouvelle={(sn) => setSessions((x) => ({ ...x, [onglet]: { id: sn.id, liste_id: sn.liste_id, ville: sn.ville, essai: !!sn.essai, debut: sn.debut } }))} />
             )}
@@ -1925,7 +1929,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
               </div>
             )}
             {/* Les chiffres d'une session en cours (17 nov. 2026, maquette de Jules) : sous la carte, qui reste à portée. */}
-            {ecran === "fiche" && !relances && !session.essai && (
+            {MA_SESSION_VISIBLE && ecran === "fiche" && !relances && !session.essai && (
               <MaSession partie="bas" session={session} ville={session.ville} progression={c ? { appelees: c.appelees, agences: c.agences - c.mortes } : null}
                 onNouvelle={(sn) => setSessions((x) => ({ ...x, [onglet]: { id: sn.id, liste_id: sn.liste_id, ville: sn.ville, essai: !!sn.essai, debut: sn.debut } }))} />
             )}

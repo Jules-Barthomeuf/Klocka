@@ -10,6 +10,7 @@ import { Depliant, PanneauSources, PastilleSource } from "@/components/haka/Regl
 import { useCompteHaka } from "@/components/haka/useFileHaka";
 import PastilleAFaire from "@/components/dashboard/PastilleAFaire";
 import PastilleFiches from "@/components/dashboard/PastilleFiches";
+import PastilleBrouillon from "@/components/dashboard/PastilleBrouillon";
 import { useLocation, useNavigate } from "react-router-dom";
 import { sourceDe } from "@/lib/sources";
 import { base44 } from "@/api/base44Client";
@@ -214,11 +215,13 @@ export default function AdminDashboardView() {
                 {/* « À faire » à la place de l'Agenda et des boîtes mail, passées dans les Paramètres (20 nov. 2026, Jules). */}
                 {/* « Fiches » retirée le 23 nov., remise à gauche d'« À faire » le 25 nov. 2026 (Jules). */}
                 <div className={`flex items-center gap-2 ${coin ? "md:hidden" : ""}`}>
+                  {/* Le Brouillon (27 nov. 2026, Jules, en test) : à gauche de Fiches. */}
+                  <PastilleBrouillon />
                   <PastilleFiches droite />
                   <PastilleAFaire />
                 </div>
               </div>
-              {coin && createPortal(<><PastilleFiches droite /><PastilleAFaire /></>, coin)}
+              {coin && createPortal(<><PastilleBrouillon /><PastilleFiches droite /><PastilleAFaire /></>, coin)}
             </>
           )}
           <PlanDeTravail
@@ -230,7 +233,7 @@ export default function AdminDashboardView() {
             apresChat={(
               <>
                 {/* Les raccourcis remplacent « Connecter un skill » ; les cartes « Ce que Haka sait faire » sont retirées de la page (17 oct. 2026, Jules). */}
-                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (c.cle === "loi" ? navigate("/Offres") : c.cle === "presentation-bancaire" ? navigate(createPageUrl("AdminPresentations")) : competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[820px]" />
+                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (c.cle === "geste:recap" ? window.dispatchEvent(new CustomEvent("klocka:recap")) : c.cle === "loi" ? navigate("/Offres") : c.cle === "presentation-bancaire" ? navigate(createPageUrl("AdminPresentations")) : competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[820px]" />
                 <Depliant ouvert={!!competence && (competence.outils || []).length > 0} className="mx-auto max-w-[900px]">
                   <div className="flex flex-col items-center gap-2.5 pt-5">
                     <div className="flex flex-wrap justify-center gap-2">

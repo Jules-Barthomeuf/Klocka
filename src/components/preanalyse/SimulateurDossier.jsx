@@ -92,6 +92,20 @@ const LIBELLES_ANALYSE = {
   taxeFonciereRefacturable: "taxe foncière refacturée", taxeFonciere: "taxe foncière", surface: "surface",
 };
 
+/**
+ * Les indicateurs du simulateur pour des chiffres enregistrés, sans l'afficher (27 nov. 2026, Jules : « remplace le
+ * rendement brut par le rendement net du simulateur dans les Chiffres clés ») : le même calcul que le composant ci-dessous
+ * à son ouverture (apport à 15 % du prix de revient s'il n'a pas été posé), donc le même chiffre que sa tuile.
+ */
+export function indicateursSimulateur(duLot, depuisAnalyse = null) {
+  if (!duLot) return null;
+  const parametres = avecAnalyse(duLot, depuisAnalyse);
+  const base = { ...etatInitial(parametres), vacancesLocatives: vacancesDe(parametres), travauxBailleur: travauxDe(parametres), commissionAgentActive: true };
+  if (!(Number(base.prixBienNegocie) > 0)) return null;
+  const apport = parametres.apport != null ? parametres.apport : Math.round(calculerTableauAnnuel({ ...base, apport: 0 }).prixRevient * 0.15);
+  return calculerTableauAnnuel({ ...base, apport }).indicateurs;
+}
+
 const ONGLETS = [
   { id: "graphiques", label: "Graphiques" },
   { id: "revente", label: "Revente" },

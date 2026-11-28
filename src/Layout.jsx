@@ -2,7 +2,7 @@ import PopupFicheRecue from "@/components/haka/PopupFicheRecue";
 import { prechargerAuSurvol } from "@/lib/precharger";
 import MarqueKlocka from "@/components/MarqueKlocka";
 import LogoKP from "@/components/mandataire/LogoKP";
-import React, { useState, useEffect, useRef } from "react";
+import React, { Suspense, lazy, useState, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -54,8 +54,12 @@ import AgentProjet from "@/components/projet/AgentProjet";
 import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackSurvol from "@/components/FeedbackSurvol";
 import RecordEquipe from "@/components/RecordEquipe";
+import RecapsRecus from "@/components/dashboard/RecapsRecus";
 import PopupTransfert from "@/components/haka/PopupTransfert";
-import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
+import { BoutonRappel } from "@/components/BoutonRappel";
+// L'écran « Il me rappelle » emmène le mode appel, l'écran d'après l'appel et le chat (27 nov. 2026) : chargé après le
+// premier affichage, il sortait de l'entrée du site près de 500 Ko. Un geste fait avant son arrivée l'attend.
+const RappelEntrant = lazy(() => import("@/components/RappelEntrant"));
 import { BoutonTesteur } from "@/components/AgentTesteur";
 import FondHalo from "@/components/projet/FondHalo";
 import LogoKlocka from "@/components/marque/LogoKlocka";
@@ -776,6 +780,8 @@ function LayoutContent({ children, currentPageName }) {
           <PopupTransfert />
           {/* Le record de l'équipe (22 nov. 2026, Jules) : aux admins, une fois par semaine à la première ouverture. */}
           <RecordEquipe />
+          {/* Les récaps de la semaine reçus (27 nov. 2026, Jules) : à l'ouverture, à partir du lundi qui suit leur envoi. */}
+          <RecapsRecus />
         </>
       )}
       {/* La photo de profil en haut à droite, sur ordinateur (25 nov. 2026, Jules) : au survol, les Paramètres, la vue et la
@@ -805,7 +811,7 @@ function LayoutContent({ children, currentPageName }) {
           <LogoKP fond="theme" className="text-[24px]" />
         </Link>
       )}
-      {rappelOuvert && !hideNavbar && <RappelEntrant />}
+      {rappelOuvert && !hideNavbar && <Suspense fallback={null}><RappelEntrant /></Suspense>}
       {/* Plus de fenêtre « Klocka arrive sur vos téléphones » (8 nov. 2026, Jules) : on arrive direct sur la plateforme. */}
       {/* Plus d'accueil « Où cherche votre agent » (6 nov. 2026, Jules) : ses villes se posent dans la Prospection. */}
 

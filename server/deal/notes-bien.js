@@ -7,6 +7,8 @@
 // honoraires « à la charge du preneur » sans montant. Le prix affiché comme
 // FAI est alors trop bas, le rendement trop haut, et rien ne le disait.
 
+import { prixEtTva } from './prix.js';
+
 const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? x.valeur : x);
 const citation = (x) => (x && typeof x === 'object' ? x.citation : null) || null;
 const euros = (n) => `${Math.round(n).toLocaleString('fr-FR')} €`;
@@ -54,6 +56,14 @@ export function notesDuLot(lot) {
     ajouter('rendement', 'Calculé sur le prix net vendeur : une fois les honoraires ajoutés, le rendement réel sera plus bas.', true);
   } else if (nv?.chiffres) {
     ajouter('prix', `Prix net vendeur de ${euros(nv.prix)} plus ${euros(nv.montant)} d'honoraires : ${euros(nv.prix + nv.montant)} FAI.`);
+  }
+
+  // Un prix écrit hors taxe (27 nov. 2026, Jules) : signalé, et le calcul se fait sur le TTC.
+  const tva = prixEtTva(l);
+  if (tva) {
+    const cit = citation(l.prix_ht) || citation(l.prix_fai);
+    ajouter('prix', `Prix écrit hors taxe${cit && cit !== 'Saisi à la main.' ? ` (« ${cit} »)` : ''} : ${euros(tva.ht)} HT, plus ${euros(tva.tva)} de TVA, soit ${euros(tva.ttc)} TTC. Les calculs se font sur le TTC.`, true);
+    ajouter('rendement', `Calculé sur le prix TTC de ${euros(tva.ttc)}, pas sur les ${euros(tva.ht)} HT de la fiche.`);
   }
 
   for (const [ligne, champs] of Object.entries(CHAMPS)) {

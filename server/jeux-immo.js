@@ -359,3 +359,36 @@ export async function partiePourAttente(n = 12) {
   }
   return out;
 }
+
+// --- Le classement de La rue -----------------------------------------------------------------------------------------
+// Jules (27 nov. 2026) : « un leaderboard entre les admins dans le jeu du loyer ; à la fin, on arrive, on a un
+// leaderboard ; quelqu'un peut marquer deux scores : s'il est premier et deuxième, il est premier et deuxième ». Une ligne
+// par partie terminée, jamais la meilleure par personne ; aux admins seuls (routes de /api/jeux).
+
+export const SCORE = 'JeuScore';
+
+/** Pure : une partie terminée lisible, ou une erreur. Les points sont ceux de l'écran (100 au plus par manche). */
+export function scoreValide({ jeu = 'rue', points, manches } = {}) {
+  const n = Math.round(Number(manches));
+  const p = Math.round(Number(points));
+  if (jeu !== 'rue') return { ok: false, error: 'Jeu inconnu.' };
+  if (!(n >= 1 && n <= 12)) return { ok: false, error: 'Nombre de manches invalide.' };
+  if (!(p >= 0 && p <= n * 100)) return { ok: false, error: 'Score invalide.' };
+  return { ok: true, score: { jeu, points: p, sur: n * 100, manches: n } };
+}
+
+/** Pure : le classement, du meilleur score au moins bon ; à égalité, la partie la plus ancienne devant. */
+export function classement(scores) {
+  return scores
+    .slice()
+    .sort((a, b) => b.points - a.points || String(a.le).localeCompare(String(b.le)))
+    .map((s, i) => ({ ...s, rang: i + 1 }));
+}
+
+/** Garde une partie terminée. */
+export function garderScore(corps, email) {
+  const v = scoreValide(corps);
+  if (!v.ok) return v;
+  const s = Records.create(SCORE, { ...v.score, par: String(email || '').toLowerCase(), le: new Date().toISOString() });
+  return { ok: true, score: s };
+}

@@ -9,7 +9,7 @@
 // Les fichiers déposés (documents, photos) ne voyagent pas ici : seul le
 // disque persistant les garde.
 
-import db from './db.js';
+import db, { oublierLectures } from './db.js';
 
 export function exporterTout() {
   return {
@@ -47,6 +47,8 @@ export function restaurerTout(dump) {
     for (const m of dump.meta || []) poserMeta.run(m);
   });
   tout();
+  // Les lectures gardées décodées (db.js) ne voient pas ces écritures directes.
+  oublierLectures();
   const n = {
     records: dump.records.length,
     conversations: (dump.conversations || []).length,

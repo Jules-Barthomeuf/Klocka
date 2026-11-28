@@ -78,6 +78,7 @@ export function prochaineEtape(n) {
   const p = n.donnees?.proposition || {};
   const q = (p.questions || []).find((x) => x?.id && x.texte && !String(n.reponses?.[x.id] || "").trim());
   if (q) return { genre: "question", q };
-  const sansDate = (p.actions || []).map((a) => actionVue(n, a)).filter((a) => n.garde.has(a.id) && !a.echeance);
+  // Un message du Brouillon déjà envoyé (27 nov. 2026) n'a pas de date à prendre : il va à l'historique au OK.
+  const sansDate = (p.actions || []).map((a) => actionVue(n, a)).filter((a) => n.garde.has(a.id) && !a.echeance && !a.deja_envoye);
   return sansDate.length ? { genre: "date", a: sansDate[0], plusieurs: (p.actions || []).length > 1 } : null;
 }

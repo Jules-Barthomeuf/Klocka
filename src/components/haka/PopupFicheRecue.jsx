@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useCompteHaka, usePropositions } from "@/components/haka/useFileHaka";
-import ApercuFicheRecue from "@/components/haka/ApercuFicheRecue";
+// Chargé seulement quand une fiche arrive (27 nov. 2026) : l'aperçu emmène framer-motion, 320 Ko de l'entrée du site.
+const ApercuFicheRecue = lazy(() => import("@/components/haka/ApercuFicheRecue"));
 
 // La fenêtre qui s'ouvre d'elle-même quand une fiche commerciale arrive (20 oct. 2026, Jules : « je veux plus qu'on
 // rentre une fiche automatiquement, ça met une pop-up, nouvelle fiche, la rentrer ? OUI NON »). Une fiche à la fois,
@@ -53,5 +54,5 @@ export default function PopupFicheRecue() {
       setEnCours(false);
     }
   };
-  return <ApercuFicheRecue key={p.id} proposition={p} popup enCours={enCours} onFermer={reporter} onTrancher={trancher} />;
+  return <Suspense fallback={null}><ApercuFicheRecue key={p.id} proposition={p} popup enCours={enCours} onFermer={reporter} onTrancher={trancher} /></Suspense>;
 }

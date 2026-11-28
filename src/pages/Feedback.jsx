@@ -87,6 +87,8 @@ export default function Feedback() {
 
         <BordureEcoute actif={ecoute} radius="20px">
         <BoiteSaisie
+          sobre
+          compact
           conteneur={{
             onPaste: (e) => { const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith("image/")); if (f) { e.preventDefault(); choisirCapture(f); } },
             onDragOver: (e) => e.preventDefault(),

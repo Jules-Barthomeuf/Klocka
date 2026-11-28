@@ -41,7 +41,8 @@ export function monterFicheDossier(app) {
     // `conversation` : un export WhatsApp importé (le .txt, ou celui du .zip), lu à part du texte tapé.
     // `action_id` : la note prise depuis la fiche d'appel d'une relance ; `transcription` : l'appel enregistré (20 nov. 2026).
     // `libre` (22 nov. 2026) : une note collée sans « Lier » ; l'assistant devine les fiches et n'y range que ce qui en parle.
-    const { remplace, conversation, action_id: actionId, enregistrement_id: enrId, libre } = req.body || {};
+    // `envoye` (27 nov. 2026) : un message du Brouillon copié puis dit « envoyé » ; il entre dans l'historique au OK.
+    const { remplace, conversation, action_id: actionId, enregistrement_id: enrId, libre, envoye } = req.body || {};
     let { texte, transcription, liens } = req.body || {};
     // Le mode Enregistrement : ce qui a été dit (gardé ici, morceau par morceau), puis les notes tapées pendant.
     if (enrId) {
@@ -79,7 +80,7 @@ export function monterFicheDossier(app) {
     // En flux (?flux=1) : les étapes arrivent une à une, puis le résultat.
     const flux = req.query.flux ? (await import('../flux.js')).ouvrirFlux(res) : null;
     try {
-      const r = await (await import('../fiche-dossier/ranger.js')).proposer({ texte, liens, conversation, action_id: actionId ? String(actionId) : null, transcription: !!transcription, libre: !!libre }, user, { surEtape: (t) => flux?.etape(t) });
+      const r = await (await import('../fiche-dossier/ranger.js')).proposer({ texte, liens, conversation, action_id: actionId ? String(actionId) : null, transcription: !!transcription, libre: !!libre, envoye: !!envoye }, user, { surEtape: (t) => flux?.etape(t) });
       if (!r.ok) return flux ? flux.erreur(new Error(r.error)) : refus(res, r);
       if (remplace) {
         const avant = Records.get('NoteDossier', String(remplace));
@@ -90,6 +91,44 @@ export function monterFicheDossier(app) {
       if (flux) return flux.erreur(e);
       throw e;
     }
+  }));
+  // Le récap de la semaine (27 nov. 2026) : mis en forme, relu, envoyé ; vu par chacun à partir du lundi suivant.
+  app.get('/api/recap-semaine/destinataires', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    ok(res, { personnes: (await import('../fiche-dossier/recap-semaine.js')).destinatairesPossibles(user) });
+  }));
+  app.post('/api/recap-semaine/structurer', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = await (await import('../fiche-dossier/recap-semaine.js')).structurer({ texte: req.body?.texte, avant: req.body?.avant || null }, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/recap-semaine', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = (await import('../fiche-dossier/recap-semaine.js')).envoyer(req.body || {}, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.get('/api/recap-semaine/recus', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    ok(res, { recaps: (await import('../fiche-dossier/recap-semaine.js')).recus(user) });
+  }));
+  app.post('/api/recap-semaine/:id/lu', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = (await import('../fiche-dossier/recap-semaine.js')).marquerLu(req.params.id, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // Le Brouillon (27 nov. 2026) : la page de texte libre de la personne, lue et écrite telle quelle.
+  app.get('/api/fiche-dossier/brouillon', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    ok(res, (await import('../fiche-dossier/brouillon.js')).lire(user));
+  }));
+  app.put('/api/fiche-dossier/brouillon', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = (await import('../fiche-dossier/brouillon.js')).ecrire(user, req.body || {});
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
   }));
   // Les agents préférés (20 nov. 2026) : les étoiles de l'équipe, et l'étoile de la personne à mettre ou retirer.
   app.get('/api/fiche-dossier/agents-preferes', wrap(async (req, res) => {

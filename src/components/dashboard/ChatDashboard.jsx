@@ -16,6 +16,7 @@ import LienNote, { PastilleLien } from "@/components/fiche-dossier/LienNote";
 import CarteNote from "@/components/fiche-dossier/CarteNote";
 import FicheAppelChat from "@/components/fiche-dossier/FicheAppelChat";
 import { BarreEnregistrement, BlocEnregistrement } from "@/components/fiche-dossier/ModeEnregistrement";
+import BlocRecap from "@/components/fiche-dossier/BlocRecap";
 import { useEnregistrementRdv } from "@/lib/enregistrement-rdv";
 import { estExport, lireExportWhatsApp } from "@/lib/import-whatsapp";
 // `repondre as repondreNote` : le chat reçoit aussi une option `repondre` (l'assistant d'un appel de prospection), qui
@@ -1116,6 +1117,10 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   // Le mode Enregistrement (20 nov. 2026, Jules : « mode normal et mode enregistrement ») : un rendez-vous, un appel ;
   // les fiches se mettent à jour à droite pendant la conversation, le chat dit seulement « Enregistrement en cours ».
   const [modeRdv, setModeRdv] = useState("normal");
+  // Le récap de la semaine en cours d'écriture : le récit cumulé et le dernier récap proposé ; null hors du mode Récap.
+  const [recap, setRecap] = useState(null);
+  const recapRef = useRef(null);
+  recapRef.current = recap;
   const rdv = useEnregistrementRdv();
   const enr = useRef(null);
   const liensNoteRef = useRef([]);
@@ -1402,6 +1407,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
     questionsNote.current = null;
     setTitreSauve(null); setTitreEdite(null);
     setSuites([]); setBrouillon(null); setFiche(null);
+    setRecap(null);
     setHistoriqueOuvert(false);
     onHistorique?.(false);
     setTimeout(() => champRef.current?.focus(), 30);
@@ -2059,8 +2065,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   // Une note liée (19 nov. 2026) : lue par l'assistant, rendue en « Ce que j'en retiens » ; une demande repart au chat.
   const rangerNote = useMutation({
     // En flux (19 nov. 2026, Jules : « on ne voit pas le raisonnement ») : chaque étape s'affiche quand elle se fait.
-    mutationFn: async ({ t, liens, conversation = null, action_id: actionId = null, transcription = false, enregistrement_id: enrId = null, remplace = null, libre = false }) => {
-      const r = await base44.flux("/api/fiche-dossier/notes?flux=1", { body: { texte: t, liens, ...(libre ? { libre: true } : {}), ...(conversation ? { conversation } : {}), ...(actionId ? { action_id: actionId } : {}), ...(transcription ? { transcription: true } : {}), ...(enrId ? { enregistrement_id: enrId } : {}), ...(remplace ? { remplace } : {}) }, surEtape });
+    mutationFn: async ({ t, liens, conversation = null, action_id: actionId = null, transcription = false, enregistrement_id: enrId = null, remplace = null, libre = false, envoye = false }) => {
+      const r = await base44.flux("/api/fiche-dossier/notes?flux=1", { body: { texte: t, liens, ...(libre ? { libre: true } : {}), ...(envoye ? { envoye: true } : {}), ...(conversation ? { conversation } : {}), ...(actionId ? { action_id: actionId } : {}), ...(transcription ? { transcription: true } : {}), ...(enrId ? { enregistrement_id: enrId } : {}), ...(remplace ? { remplace } : {}) }, surEtape });
       await vider();
       return r;
     },
@@ -2082,7 +2088,35 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
       pousser({ role: "assistant", contenu: e?.message || "Je n'ai pas pu lire cette note." });
     },
   });
-  const enCours = boite.isPending || analyser.isPending || rangerNote.isPending;
+  // Le mode Récap (27 nov. 2026, Jules : « on clique, on arrive dans un chat : faites-moi un vocal pour me raconter votre
+  // semaine, et je l'envoie à qui vous le souhaitez ») : le récit part à la mise en forme ; une phrase de plus le corrige ;
+  // la carte demande « C'est bon pour vous ? », puis à qui l'envoyer (BlocRecap).
+  const structurerRecap = useMutation({
+    mutationFn: ({ texte: t, avant }) => base44.request("POST", "/api/recap-semaine/structurer", { body: { texte: t, avant } }),
+    onSuccess: (r, v) => {
+      setRecap((x) => (x ? { ...x, recap: r.recap, texte: v.cumul } : x));
+      pousser({ role: "bloc", type: "recap", donnees: { recap: r.recap, texte: v.cumul, etape: "relire" } });
+    },
+    onError: (e) => pousser({ role: "assistant", contenu: e?.message || "Je n'ai pas pu mettre le récap en forme." }),
+  });
+  const enCours = boite.isPending || analyser.isPending || rangerNote.isPending || structurerRecap.isPending;
+  // Ce qu'on range depuis le Brouillon (27 nov. 2026, Jules) : une note libre, comme un texte collé dans la saisie ; un
+  // message copié puis dit envoyé entre dans l'historique de sa fiche à l'accord.
+  useEffect(() => {
+    const surBrouillon = (e) => {
+      const t = String(e.detail?.texte || "").trim();
+      if (!t || rangerNote.isPending) return;
+      const envoye = !!e.detail?.envoye;
+      pousser({ role: "user", contenu: envoye ? `Message envoyé :\n${t}` : t });
+      setSuites([]);
+      setEnCoursTexte(envoye ? "Je range le message envoyé…" : "Je range le brouillon…");
+      annoncer("ranger");
+      envoiEnVol.current = true;
+      rangerNote.mutate({ t, liens: [], libre: true, envoye });
+    };
+    window.addEventListener("klocka:ranger-brouillon", surBrouillon);
+    return () => window.removeEventListener("klocka:ranger-brouillon", surBrouillon);
+  });
   // Le rangement d'une note ou d'un enregistrement envoie ses étapes une à une : elles s'affichent comme le raisonnement.
   const fluxVif = enFlux || rangerNote.isPending || cloture;
   useEffect(() => { if (rangerNote.isPending) setCloture(false); }, [rangerNote.isPending]);
@@ -2307,7 +2341,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   const ouvrirLienExterne = (brut) => { const lien = versCrm(brut); return /^(https?:|\/api\/)/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien); };
 
   const envoiEnVol = useRef(false);
-  useEffect(() => { if (!boite.isPending && !analyser.isPending && !rappeler.isPending && !rangerNote.isPending) envoiEnVol.current = false; }, [boite.isPending, analyser.isPending, rappeler.isPending, rangerNote.isPending]);
+  useEffect(() => { if (!boite.isPending && !analyser.isPending && !rappeler.isPending && !rangerNote.isPending && !structurerRecap.isPending) envoiEnVol.current = false; }, [boite.isPending, analyser.isPending, rappeler.isPending, rangerNote.isPending, structurerRecap.isPending]);
   const lancer = (contenu, type = null) => {
     // Une compétence choisie se lance sans texte : sa phrase part, avec le dossier s'il y en a un.
     const parDefaut = reglagesRef.current?.competence ? `${reglagesRef.current.competence.nom}${dossierChoisi ? ` du dossier « ${dossierChoisi.titre} »` : ""}.` : "";
@@ -2337,6 +2371,17 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
       return;
     }
     if (ecoute || finalisation) { envoiFait.current = true; if (ecoute) arreter(); }
+    // Le mode Récap : le récit (ou sa correction) part à la mise en forme, pas au chat.
+    if (recapRef.current && t && !jointes.length) {
+      pousser({ role: "user", contenu: t });
+      setTexte("");
+      const avant = recapRef.current.recap;
+      const cumul = avant ? `${recapRef.current.texte}\n\nCorrection : ${t}` : t;
+      setEnCoursTexte(avant ? "Je corrige le récap…" : "Je mets ta semaine en forme…");
+      envoiEnVol.current = true;
+      structurerRecap.mutate({ texte: t, avant, cumul });
+      return;
+    }
     // Une conversation WhatsApp importée : elle part à l'assistant avec ce qui est écrit, liée comme une note.
     if (lienNote && conversationWa) {
       if (!liensNote.length) { toast.warning("Lie la conversation à la personne (ou au dossier) avant de l'envoyer."); return; }
@@ -2571,6 +2616,25 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
   ecouteRef.current = ecoute;
   const dicterRef = useRef(dicter);
   dicterRef.current = dicter;
+  // Entrer dans le mode Récap (27 nov. 2026, Jules) : une conversation neuve, la question, et le micro qui s'ouvre.
+  const commencerRecap = () => {
+    if (recapRef.current) { setRecap(null); return; }
+    if (fil.length) nouvelleConversation();
+    setRecap({ texte: "", recap: null });
+    setTimeout(() => {
+      pousser({ role: "assistant", contenu: "Faites-moi un vocal pour me raconter un peu votre semaine : ce qui a avancé, ce qui bloque, ce qui vient. Je le mets en forme, vous relisez, puis je l'envoie à qui vous le souhaitez ; ils le verront en ouvrant Klocka lundi prochain." });
+      // Le micro s'ouvre de lui-même là où la dictée existe ; ailleurs, on écrit, sans message d'erreur.
+      if (supporte && !ecouteRef.current) dicterRef.current?.();
+    }, 60);
+  };
+  // Le raccourci « Préparer mon récap » (27 nov. 2026, Jules) demande le mode Récap.
+  const commencerRecapRef = useRef(null);
+  commencerRecapRef.current = () => { if (!recapRef.current) commencerRecap(); };
+  useEffect(() => {
+    const surRecap = () => commencerRecapRef.current?.();
+    window.addEventListener("klocka:recap", surRecap);
+    return () => window.removeEventListener("klocka:recap", surRecap);
+  }, []);
   useEffect(() => {
     const ecouterDemande = () => { if (!ecouteRef.current) dicterRef.current(); };
     window.addEventListener("klocka:dicter", ecouterDemande);
@@ -2600,7 +2664,7 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (entreeEnvoie(e) && (texte.trim() || jointes.length || reglages?.competence) && !enCours) { e.preventDefault(); lancer(); } }}
-            placeholder={lienNote && modeRdv === "enregistrement" ? (rdv.etat === "ecoute" ? "Une note pendant la conversation (« hésite sur le prix »)…" : "Lie le bien, les clients, l'agent avec « Lier », puis démarre l'enregistrement.") : ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? placeholderAttente || placeholderFil || "Répondre ou ajouter une précision…" : lierProjet && projetLie ? `« Commence la présentation » : elle se construit sur ${projetLie.titre}.` : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
+            placeholder={recap ? (recap.recap ? "Ce qu'il faut changer dans le récap…" : ecoute ? "Je vous écoute…" : "Racontez votre semaine, au micro ou par écrit…") : lienNote && modeRdv === "enregistrement" ? (rdv.etat === "ecoute" ? "Une note pendant la conversation (« hésite sur le prix »)…" : "Lie le bien, les clients, l'agent avec « Lier », puis démarre l'enregistrement.") : ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? placeholderAttente || placeholderFil || "Répondre ou ajouter une précision…" : lierProjet && projetLie ? `« Commence la présentation » : elle se construit sur ${projetLie.titre}.` : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
             className="block max-h-[45dvh] w-full resize-none overflow-y-auto border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
           />
@@ -2706,6 +2770,8 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
             )}
 
             <div className="ml-auto flex items-center gap-1.5">
+              {/* Le bouton Récap de la saisie (27 nov. 2026) a laissé la place au raccourci « Préparer mon récap » (le même jour, Jules) ;
+                  le mode, actif, se quitte par une nouvelle conversation. */}
               {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
               {/* Le mode, à la place de Sources (20 nov. 2026, Jules) : Normal ou Enregistrement ; Sources suit. */}
               {/* Plus de pastille « Mode » (25 nov. 2026, Jules : « enlève le mode enregistrement, il n'y aura que le micro en
@@ -2927,6 +2993,15 @@ export default function ChatDashboard({ dansLeFil = false, lueur = true, sansAur
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={compact ? "" : "pl-[3.25rem]"}>
                 <FicheAppelChat action={m.donnees.action} fait={m.donnees.fait || null} enregistre={!!m.donnees.enregistre && rdv.etat !== "repos"}
                   onEnregistrer={() => { if (rdv.etat !== "repos") return; lierA(m.donnees.action); setModeRdv("enregistrement"); demarrerRdv(); }} />
+              </motion.div>
+            ) : m.role === "bloc" && m.type === "recap" ? (
+              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex gap-4">
+                {!compact && <AvatarAK />}
+                <div className={`min-w-0 flex-1 ${compact ? "" : "pt-1.5"}`}>
+                  <BlocRecap donnees={m.donnees} actif={!!recap && i === fil.map((x) => x.role === "bloc" && x.type === "recap").lastIndexOf(true)}
+                    onEtape={(etape) => setFil((f) => f.map((x, k) => (k === i ? { ...x, donnees: { ...x.donnees, etape } } : x)))}
+                    onEnvoye={(envoi) => { setFil((f) => f.map((x, k) => (k === i ? { ...x, donnees: { ...x.donnees, etape: "envoye", envoi } } : x))); setRecap(null); }} />
+                </div>
               </motion.div>
             ) : m.role === "bloc" && m.type === "note_dossier" ? (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex gap-4">

@@ -28,6 +28,9 @@ export default function BoiteSaisie({
   // lumiere : une lueur discrète fait lentement le tour du cadre — le chat IA
   // du dossier et du dashboard la portent, pas les boîtes utilitaires.
   lumiere = false,
+  // sobre : sans halo, filet ni ombre, au fond et aux coins des cartes (k-verre-plein), comme le contexte de la vente
+  // (27 nov. 2026, Jules : « le chat de feedback comme le contexte ; enlève aussi l'effet »).
+  sobre = false,
 }) {
   const { className: classeConteneur = "", ...propsConteneur } = conteneur;
   // Même cadre que la connexion : la couche du dessous peint un filet constant
@@ -37,10 +40,10 @@ export default function BoiteSaisie({
   return (
     <div
       {...propsConteneur}
-      className={`relative isolate rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,.45)] ${lumiere ? "p-px overflow-hidden bg-encre/[0.12] [.glisse_&]:bg-menthe" : ""} ${classeConteneur}`}
+      className={`relative isolate ${sobre ? "rounded-[16px]" : "rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,.45)]"} ${lumiere ? "p-px overflow-hidden bg-encre/[0.12] [.glisse_&]:bg-menthe" : ""} ${classeConteneur}`}
     >
       {/* L'aura des chats de Haka (26 oct. 2026, Jules : « dans tous les chats ») : le halo qui tourne et son filet (index.css). */}
-      {!lumiere && <div className="k-aura-halo" aria-hidden />}
+      {!lumiere && !sobre && <div className="k-aura-halo" aria-hidden />}
       {lumiere && (
         <div
           aria-hidden="true"
@@ -49,7 +52,7 @@ export default function BoiteSaisie({
         />
       )}
     <div
-      className={`${lumiere ? "" : "k-aura-filet "}relative transition-colors ${lumiere ? "bg-fond rounded-[19px]" : "bg-barre border border-trait rounded-[20px] focus-within:border-bord-vif [.glisse_&]:border-menthe"} ${className}`}
+      className={`${lumiere || sobre ? "" : "k-aura-filet "}relative transition-colors ${lumiere ? "bg-fond rounded-[19px]" : sobre ? "k-saisie-chat k-verre-plein rounded-[16px]" : "bg-barre border border-trait rounded-[20px] focus-within:border-bord-vif [.glisse_&]:border-menthe"} ${className}`}
     >
       <div className={compact ? "px-5 pt-3" : "px-7 max-md:px-5 pt-6"}>
         <textarea

@@ -91,11 +91,18 @@ export function listerVillesLeger() {
   // 175 Mo, à chaque passage de la veille.
   const piles = comptesDesPiles();
   const rues = Records.longueurs('Ville', 'rues');
-  const lire = (x) => { if (x == null || typeof x !== 'string') return x ?? null; try { return JSON.parse(x); } catch { return x; } };
-  return Records.champs('Ville', ['nom', 'cachee', 'created_date', 'parcours'])
+  // Le parcours sans ses listes (27 nov. 2026) : la veille lit l'état, la phase, quelques comptes et la dernière ligne
+  // du journal. Le journal entier et les listes de rues faisaient 550 Ko des 577 Ko de la liste, relue toutes les
+  // trente secondes depuis toutes les pages de l'équipe ; la base ne rend plus que ces champs.
+  const CHAMPS = ['etat', 'phase', 'mode', 'brouillons', 'rue_en_cours', 'commerce_en_cours', 'rues_total', 'rues_faites', 'cibles_creees', 'proprietaires_trouves', 'demarre_le', 'fini_le', 'maj_le'];
+  return Records.champs('Ville', ['nom', 'cachee', 'created_date', 'parcours.journal[#-1]', ...CHAMPS.map((c) => `parcours.${c}`)])
     .filter((v) => !v.cachee)
     .sort((a, b) => String(b.created_date || '').localeCompare(String(a.created_date || '')))
-    .map((v) => ({ id: v.id, nom: v.nom, parcours: lire(v.parcours), cibles: piles.get(v.id) || pilesVides(), rues_nb: rues.get(v.id) || 0 }));
+    .map((v) => {
+      const parcours = v['parcours.etat'] == null && v['parcours.phase'] == null ? null
+        : { ...Object.fromEntries(CHAMPS.map((c) => [c, v[`parcours.${c}`] ?? null])), journal: v['parcours.journal[#-1]'] ? [v['parcours.journal[#-1]']] : [] };
+      return { id: v.id, nom: v.nom, parcours, cibles: piles.get(v.id) || pilesVides(), rues_nb: rues.get(v.id) || 0 };
+    });
 }
 
 const pilesVides = () => ({ ...Object.fromEntries(PILES.map((p) => [p, 0])), total: 0 });

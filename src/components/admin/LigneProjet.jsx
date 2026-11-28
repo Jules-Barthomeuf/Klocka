@@ -72,7 +72,7 @@ export default function LigneProjet({ project, clients = null, chargement = fals
     >
       <div role="button" tabIndex={0} onClick={() => onEdit(project)} onKeyDown={(e) => { if (e.key === "Enter") onEdit(project); }} className="flex cursor-pointer items-center gap-5 px-6 py-5 max-md:gap-3 max-md:px-4">
         <div className="h-[56px] w-[78px] flex-none overflow-hidden rounded-[10px] max-md:h-[46px] max-md:w-[60px]">
-          {photo ? <img src={photo} alt="" onError={() => setPhotoKo(true)} className="h-full w-full object-cover" /> : <TramePhoto mot="" />}
+          {photo ? <img src={photo} alt="" loading="lazy" decoding="async" onError={() => setPhotoKo(true)} className="h-full w-full object-cover" /> : <TramePhoto mot="" />}
         </div>
         <div className="min-w-0 flex-1">
           <p className="m-0 truncate text-[15.5px] text-encre">{project.titre}</p>

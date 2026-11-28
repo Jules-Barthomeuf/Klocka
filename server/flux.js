@@ -22,6 +22,8 @@ export function ouvrirFlux(res) {
     // Le texte du modèle au fil de l'eau (12 oct. 2026) : un morceau, et le tour de la boucle où il est écrit.
     texte: (morceau, tour = 0) => { if (morceau) ecrire({ texte: String(morceau), tour }); },
     fin: (resultat) => { ecrire({ resultat }); res.end(); },
+    // Une ligne libre (28 nov. 2026) : un outil demandé à l'extension du navigateur.
+    brut: ecrire,
     // Plus de crédit chez Anthropic : une phrase, pas le JSON de l'API (16 oct. 2026, Jules).
     erreur: (e) => { ecrire({ erreur: e ? messagePourLaPersonne(e) : 'Erreur' }); res.end(); },
   };

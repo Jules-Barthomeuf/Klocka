@@ -169,7 +169,9 @@ export function cadreEcran(ecran) {
   return `\n\nL'ÉCRAN AU MOMENT DE LA QUESTION${ou ? ` (${ou})` : ''}. C'est ce que la personne regarde, avec les unités et les chiffres que la page calcule (rendement, prix de revient, loyer au m², simulateur, frise) : ils font foi. Ne les recalcule pas avec d'autres hypothèses ; si la base dit autre chose que l'écran, dis l'écart au lieu de choisir. Cite toujours l'unité d'un montant (€/an ou €/mois, HT HC ou charges comprises, €/m²/an) et la surface dont tu parles (utile, pondérée, du bail).${designe}${attente}${texte ? `\n<<<ÉCRAN\n${texte}\nÉCRAN>>>` : ''}`;
 }
 
-export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null, surTexte = null }) {
+// `surOutilNavigateur` (28 nov. 2026) : l'extension du navigateur ; ses trois outils (lire une autre conversation
+// WhatsApp, poser un brouillon, ranger la conversation) sont exécutés par elle, à qui cette fonction les demande.
+export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null, surTexte = null, surOutilNavigateur = null }) {
   const { consigneStable, consigneApprise, OUTILS, executerOutil, MODELE, effortDuChat } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
   const { libelleOutil } = await import('../etapes-libelles.js');
@@ -321,6 +323,9 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
       }
     }
   }
+  // L'extension du navigateur (28 nov. 2026) : la conversation ou le mail ouvert, et ce qu'elle sait faire.
+  const N = surOutilNavigateur ? await import('./extension.js') : null;
+  if (N && contexte?.page === 'extension') cadrePage = N.cadreExtension(contexte);
   cadrePage += await cadreLayer(texte, user);
   cadrePage += cadreEcran(contexte?.ecran);
   // Les réglages de l'Accueil (17 oct. 2026) : sources choisies, répondre ou produire.
@@ -359,13 +364,21 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
       ? [{ texte: v2.consigne, cache: true }, { texte: consigneApprise(), cache: true }, { texte: nomsV2(cadrePage, v2.groupes) + preferences }]
       : [{ texte: consigneStable() + CADRE_APP + MODELE_DONNEES, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage + preferences }],
     messages,
-    tools: v2 ? v2.outils : OUTILS,
+    tools: [...(v2 ? v2.outils : OUTILS), ...(N ? N.OUTILS_NAVIGATEUR : [])],
     serveurs: v2 ? v2.serveurs : [OUTIL_CODE],
     model: MODELE,
     cache: true,
     onTool: tracer(async (appelRecu) => {
       // Stop : plus rien ne s'exécute, le modèle est prié de conclure sur ce qui est fait.
       if (estAnnule?.()) return { ok: false, error: "La personne a arrêté la demande : ne fais plus rien, dis en une ligne ce qui a déjà été fait." };
+      // Un outil du navigateur : l'extension le fait, et répond par le flux.
+      if (N?.estOutilNavigateur(appelRecu.name)) {
+        outils.push(appelRecu.name);
+        surEtape?.(N.LIBELLES_NAVIGATEUR[appelRecu.name](appelRecu.input));
+        const r = await surOutilNavigateur(appelRecu);
+        souvenirs.push({ outil: appelRecu.name, args: appelRecu.input, resultat: r });
+        return r;
+      }
       // En v2, une fiche métier se lit directement ; un outil regroupé redevient l'ancien outil, qui s'exécute tel quel.
       if (v2 && appelRecu.name === 'lire_procedure') return v2.lireProcedure(appelRecu.input);
       const traduit = v2 ? v2.versAncien(appelRecu) : null;

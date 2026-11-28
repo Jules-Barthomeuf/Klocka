@@ -92,6 +92,57 @@ export function monterFicheDossier(app) {
       throw e;
     }
   }));
+  // L'extension Klocka (28 nov. 2026) : un brouillon de réponse au fil ouvert dans Gmail ou WhatsApp Web, rien n'est envoyé.
+  app.post('/api/extension/repondre', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const { canal, titre, fil, demande, participants } = req.body || {};
+    const r = await (await import('../fiche-dossier/repondre.js')).brouillonDeReponse({ canal: String(canal || ''), titre, fil: String(fil || '').slice(0, 60000), demande, participants }, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // L'assistant de l'extension (28 nov. 2026) : le moteur du chat de la plateforme, la conversation ouverte en contexte, et
+  // trois outils que le navigateur exécute (demandés par le flux, rendus par /api/extension/outil).
+  app.post('/api/extension/assistant', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const texte = String(req.body?.texte || '').trim().slice(0, 4000);
+    if (!texte) return refus(res, { error: 'Le message est vide.' });
+    const c = req.body?.contexte && typeof req.body.contexte === 'object' ? req.body.contexte : {};
+    const contexte = { page: 'extension', moi: String(user.full_name || user.email || ''), canal: c.canal === 'mail' ? 'mail' : 'whatsapp', titre: String(c.titre || '').slice(0, 200), fil: String(c.fil || '').slice(0, 60000), conversations: Array.isArray(c.conversations) ? c.conversations.slice(0, 60).map(String) : [] };
+    // Sa façon d'écrire (ses messages envoyés et ses retouches), pour les messages que l'assistant pose dans la case.
+    try { contexte.style = (await import('../fiche-dossier/modele.js')).styleDe(user.email); } catch { contexte.style = null; }
+    const { ouvrirFlux } = await import('../flux.js');
+    const { mesurer } = await import('../llm-couts.js');
+    const { repondreApp } = await import('../ak/app.js');
+    const { demanderAuNavigateur } = await import('../ak/extension.js');
+    const flux = ouvrirFlux(res);
+    let coupe = false;
+    const arret = new AbortController();
+    res.on('close', () => { if (!res.writableEnded) { coupe = true; arret.abort(); } });
+    try {
+      const { resultat } = await mesurer({ operation: "assistant de l'extension", par: user.email }, () => repondreApp({
+        texte, historique: Array.isArray(req.body?.historique) ? req.body.historique : [], user, contexte, surEtape: flux.etape, estAnnule: () => coupe, signal: arret.signal,
+        surOutilNavigateur: (appel) => demanderAuNavigateur(appel, user.email, flux.brut),
+      }));
+      // `memoire` : ce que ses outils ont lu, qui revient avec l'historique au message suivant (comme dans la plateforme).
+      flux.fin({ texte: resultat.texte, outils: resultat.outils, memoire: resultat.memoire || null });
+    } catch (e) {
+      flux.erreur(e);
+    }
+  }));
+  // Un message envoyé après un brouillon de l'extension : appris pour le style, rien d'autre.
+  app.post('/api/extension/envoye', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const { canal, pour, texte, initial } = req.body || {};
+    const r = (await import('../fiche-dossier/repondre.js')).enregistrerEnvoi({ canal: String(canal || ''), pour, texte, initial }, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/extension/outil', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const { reponseDuNavigateur } = await import('../ak/extension.js');
+    if (!reponseDuNavigateur(req.body?.id, user.email, req.body?.resultat)) return res.status(404).json({ error: 'Plus rien n\'attend cette réponse.' });
+    ok(res, { ok: true });
+  }));
   // Le récap de la semaine (27 nov. 2026) : mis en forme, relu, envoyé ; vu par chacun à partir du lundi suivant.
   app.get('/api/recap-semaine/destinataires', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;

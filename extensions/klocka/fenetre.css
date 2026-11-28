@@ -1,0 +1,123 @@
+/* La fenêtre de l'extension : les éléments de la maquette de Jules (28 nov. 2026 : fond noir, « Klocka » au centre avec
+   la croix, la conversation et son point vert, l'interrupteur pervenche, le rond
+   portrait de l'assistant de Klocka) aux tailles compactes de la première version du chat (même jour, Jules : « tout est beaucoup trop gros,
+   remets les tailles d'avant ») : texte en 14 px, pilules de 30 px en ligne, saisie fine. Teintes de
+   src/design/jetons.json (fonds profond, barre, barre-relief, encre, craie, ardoise, brume, trait, bord-doux ;
+   accents.pervenche ; whatsapp.vert). */
+:root {
+  color-scheme: dark;
+  --fond: #000000; --barre: #1c1e1d; --barre-relief: #2a2c2b; --encre: #f2f2f0; --craie: #c9cbc7; --ardoise: #9a9c99;
+  --brume: #808280; --trait: rgba(242, 243, 245, 0.08); --bord-doux: rgba(242, 243, 245, 0.16); --bord-vif: rgba(242, 243, 245, 0.24);
+  --relief: rgba(242, 243, 245, 0.07); --pervenche: #a6abf2; --pervenche-fonce: #1d1f3d; --vert: #21c063; --alerte: #e8746a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  width: 400px; height: 580px; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--fond); color: var(--encre);
+  font: 14px/1.55 "Instrument Sans", Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; cursor: pointer; color: inherit; background: transparent; border: 0; padding: 0; }
+[hidden] { display: none !important; }
+
+/* L'en-tête : la barre, puis la conversation. */
+.entete { flex: none; border-bottom: 1px solid var(--trait); }
+.barre { position: relative; display: flex; align-items: center; justify-content: flex-end; height: 44px; padding: 0 8px; }
+.marque { position: absolute; left: 50%; transform: translateX(-50%); font-size: 15px; font-weight: 500; }
+.outils { display: flex; gap: 2px; }
+.roue { position: absolute; left: 8px; top: 7px; }
+/* Le menu de la roue : la taille du texte, la fenêtre à part. */
+.menu { position: absolute; left: 8px; top: 40px; z-index: 5; width: 260px; border-radius: 14px; border: 1px solid var(--trait); background: var(--barre); padding: 6px; box-shadow: 0 18px 40px rgb(0 0 0 / 0.35); }
+.menu-ligne { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; color: var(--encre); }
+.zoom { display: inline-flex; align-items: center; gap: 6px; }
+.zoom button { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--bord-doux); color: var(--craie); font-size: 15px; line-height: 1; }
+.zoom button:hover { border-color: var(--ardoise); color: var(--encre); }
+.zoom button:disabled { opacity: .4; cursor: default; }
+#taux { min-width: 42px; text-align: center; font-size: 13px; color: var(--craie); font-variant-numeric: tabular-nums; }
+.menu-action { display: block; width: 100%; text-align: left; padding: 8px; border-radius: 10px; color: var(--encre); }
+.menu-action:hover { background: var(--relief); }
+.menu .note { padding: 0 8px 6px; }
+/* La fenêtre à part : elle prend toute la place qu'on lui donne. */
+body.seule { width: auto; height: auto; }
+.outil { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: var(--brume); transition: background .15s, color .15s; }
+.outil:hover, .outil[aria-pressed="true"] { background: var(--relief); color: var(--encre); }
+.lieu { display: flex; align-items: center; gap: 10px; padding: 0 14px 10px; }
+.lieu:empty { display: none; }
+.lieu .quoi { flex: 1; min-width: 0; }
+.lieu .nom { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lieu .etat { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ardoise); }
+.lieu .point { width: 6px; height: 6px; border-radius: 50%; background: var(--brume); flex: none; }
+.lieu .point.lue { background: var(--vert); }
+
+/* L'interrupteur, pervenche quand il est allumé. */
+.interrupteur { position: relative; display: inline-block; width: 36px; height: 20px; flex: none; }
+.interrupteur input { position: absolute; opacity: 0; width: 0; height: 0; }
+.interrupteur span { position: absolute; inset: 0; border-radius: 999px; background: var(--barre-relief); transition: background .15s; cursor: pointer; }
+.interrupteur span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--ardoise); transition: transform .15s, background .15s; }
+.interrupteur input:checked + span { background: var(--pervenche); }
+.interrupteur input:checked + span::after { transform: translateX(16px); background: var(--pervenche-fonce); }
+.interrupteur input:focus-visible + span { outline: 2px solid var(--pervenche); outline-offset: 2px; }
+
+/* Le fil. */
+.fil { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.ligne { display: flex; gap: 10px; align-items: flex-start; animation: monte .25s ease-out both; }
+.ligne .corps { flex: 1; min-width: 0; padding-top: 3px; }
+.rond { width: 28px; height: 28px; border-radius: 50%; flex: none; object-fit: cover; user-select: none; }
+.message { margin: 0; white-space: pre-wrap; color: var(--encre); }
+.erreur .message { color: var(--alerte); }
+.envoye { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; animation: monte .25s ease-out both; }
+.bulle { max-width: 85%; white-space: pre-wrap; border-radius: 18px; background: var(--barre); padding: 8px 14px; color: var(--encre); }
+@keyframes monte { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Les pilules : en ligne, bordées, sans fond. */
+.pilules { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.pilule { height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--bord-doux); font-size: 13px; color: var(--craie); transition: border-color .15s, color .15s; }
+.pilule:hover { border-color: var(--ardoise); color: var(--encre); }
+.pilule:disabled { cursor: default; opacity: .45; }
+.pilule.principale { background: var(--pervenche); border-color: var(--pervenche); color: var(--pervenche-fonce); font-weight: 500; }
+
+/* La frise de raisonnement. */
+.etapes { margin-bottom: 8px; }
+.etape { display: flex; align-items: stretch; gap: 10px; font-size: 13.5px; }
+.etape .rail { display: flex; flex-direction: column; align-items: center; width: 16px; flex: none; }
+.etape .point-etape { display: grid; place-items: center; width: 16px; height: 18px; flex: none; }
+.etape .coche { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--encre); color: var(--fond); }
+.etape .lien-rail { width: 1px; flex: 1; min-height: 10px; margin: 3px 0; background: var(--bord-vif); }
+.etape .libelle { padding-bottom: 8px; line-height: 18px; color: var(--encre); }
+.etape.ici .libelle { color: transparent; background-image: linear-gradient(100deg, var(--brume) 35%, var(--encre) 50%, var(--brume) 65%); background-size: 260% 100%; background-position: 100% 0; -webkit-background-clip: text; background-clip: text; animation: raisonne 2s linear infinite; }
+@keyframes raisonne { from { background-position: 100% 0; } to { background-position: -60% 0; } }
+.replie, .replier { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 6px; font-size: 12.5px; color: var(--brume); }
+.replie:hover, .replier:hover { color: var(--craie); }
+
+/* Une action faite, le brouillon quand la case manque, « Ce que j'en retiens ». */
+.fait { display: flex; align-items: flex-start; gap: 8px; color: var(--craie); }
+.fait svg { flex: none; margin-top: 3px; color: var(--vert); }
+.fait .detail { color: var(--brume); }
+.fait + .message, .brouillon + .message { margin-top: 6px; }
+.lien-action { color: var(--pervenche); }
+.note { margin: 0; font-size: 12.5px; color: var(--brume); }
+.brouillon { margin-top: 6px; border-radius: 14px; border: 1px solid var(--trait); padding: 10px 12px; white-space: pre-wrap; color: var(--craie); background: var(--barre); }
+.carte { margin-top: 8px; border: 1px solid var(--trait); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--barre); }
+.carte.fermee { opacity: .6; }
+.carte .section { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--brume); margin-top: 2px; }
+.case { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--craie); }
+.case input { margin-top: 4px; accent-color: var(--pervenche); }
+.case .detail { font-size: 12.5px; color: var(--brume); }
+.carte input[type="text"] { width: 100%; border: 1px solid var(--bord-doux); border-radius: 10px; background: var(--relief); color: var(--encre); padding: 6px 10px; font: inherit; font-size: 13px; outline: none; }
+.carte .choix { display: flex; gap: 6px; }
+.carte .choix button { height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--bord-doux); font-size: 12.5px; color: var(--craie); }
+.carte .choix button[aria-pressed="true"] { border-color: var(--pervenche); color: var(--pervenche); }
+
+/* La saisie. */
+/* La flèche d'envoi en bas à droite, sous le texte (28 nov. 2026, Jules), comme dans le chat de la plateforme. */
+.saisie { flex: none; margin: 0 12px 10px; border-radius: 22px; border: 1px solid var(--trait); background: var(--barre); padding: 10px 8px 8px 14px; cursor: text; }
+.saisie textarea { display: block; width: 100%; max-height: 120px; resize: none; overflow-y: auto; border: 0; outline: none; background: transparent; color: var(--encre); font: inherit; padding: 2px 6px 2px 0; }
+.saisie textarea::placeholder { color: var(--brume); }
+.saisie textarea:disabled { opacity: .5; }
+.envoyer { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--barre-relief); color: var(--encre); transition: opacity .15s; }
+.envoyer:disabled { opacity: .4; cursor: default; }
+.ligne-saisie { display: flex; justify-content: flex-end; margin-top: 4px; }
+.saisie.cachee { display: none; }
+
+@media (prefers-reduced-motion: reduce) { .ligne, .envoye { animation: none; } .etape.ici .libelle { animation: none; color: var(--brume); background-image: none; } }

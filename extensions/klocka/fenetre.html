@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="fenetre.css">
+</head>
+<body>
+  <header class="entete">
+    <div class="barre">
+      <button id="roue" class="outil roue" title="Réglages de la fenêtre" aria-label="Réglages de la fenêtre" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <div id="menu" class="menu" hidden>
+        <div class="menu-ligne">
+          <span>Taille du texte</span>
+          <span class="zoom">
+            <button id="moins" type="button" aria-label="Plus petit">−</button>
+            <span id="taux">100 %</span>
+            <button id="plus" type="button" aria-label="Plus grand">+</button>
+          </span>
+        </div>
+        <button id="detacher" type="button" class="menu-action">Ouvrir dans une fenêtre à part</button>
+        <p class="note" id="aide-detacher">Une fenêtre que tu déplaces et agrandis comme tu veux ; elle garde sa taille et sa place.</p>
+      </div>
+      <span class="marque">Klocka</span>
+      <div class="outils">
+        <button id="fermer" class="outil" title="Fermer" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="lieu" class="lieu"></div>
+  </header>
+  <main id="fil" class="fil"></main>
+  <form id="saisie" class="saisie">
+    <textarea id="texte" rows="1" placeholder="Dis-moi quoi faire, ex. plus court"></textarea>
+    <div class="ligne-saisie">
+      <button id="envoyer" type="submit" class="envoyer" aria-label="Envoyer" title="Envoyer">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+      </button>
+    </div>
+  </form>
+  <script type="module" src="fenetre.js"></script>
+</body>
+</html>

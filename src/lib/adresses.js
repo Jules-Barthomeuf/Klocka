@@ -29,6 +29,7 @@ export const ADRESSES = {
   SuiviCorrections: "SuiviCorrections",
   Statistiques: "Statistiques",
   Jeux: "Jeux",
+  Productivite: "Productivite",
   // La page Semaine s'appelle Agenda depuis le 16 oct. 2026 (Jules) ; /Semaine y mène.
   Semaine: "Agenda",
   ImpressionPresentation: "ImpressionPresentation",

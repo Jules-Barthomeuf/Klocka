@@ -216,9 +216,14 @@ const AUTRE_VISIBLE_ADMIN = ["Tokimo", "Emailing"];
  */
 // Des raccourcis propres à une personne, ajoutés en bas du menu principal (30 oct. 2026, Jules : Utilisateurs pour Paul).
 // La page reste aussi dans son groupe ; le raccourci n'ouvre aucun accès de plus.
+// Productivité (28 nov. 2026, Jules : « un autre onglet juste pour moi ») : retirée de la barre de navigation le même
+// jour (Jules : « ne mets pas le menu Productivité dans la barre de navigation ») ; la page reste à son adresse,
+// /Productivite, et son entrée ci-dessous sert si on la remet.
 const RACCOURCIS_PAR_PERSONNE = {
   "paul.dz@klocka.immo": ["AdminUtilisateurs"],
 };
+// Les pages d'une seule personne : hors des accès de l'équipe et de Personnalisation, elles n'ont que leur raccourci.
+const ENTREES_PERSONNELLES = [{ cle: "Productivite", label: "Productivité" }];
 // Des pages qu'une personne ne voit plus dans son menu (6 nov. 2026, Jules : Intelligence et Automatismes, pour lui seul).
 // Leur adresse reste ouverte ; les autres membres de l'équipe les gardent.
 const MASQUES_PAR_PERSONNE = {
@@ -245,7 +250,7 @@ export function menuAdmin(masques = [], { email = null, gereAcces = false, ferme
     .sort((x, y) => AUTRE_VISIBLE_ADMIN.indexOf(x.cle) - AUTRE_VISIBLE_ADMIN.indexOf(y.cle));
   const raccourcis = (RACCOURCIS_PAR_PERSONNE[String(email || "").toLowerCase()] || [])
     .filter((cle) => !fermees.includes(cle))
-    .map((cle) => [...ENTREES_ADMIN, ...ENTREES_AUTRE].find((e) => e.cle === cle))
+    .map((cle) => [...ENTREES_ADMIN, ...ENTREES_AUTRE, ...ENTREES_PERSONNELLES].find((e) => e.cle === cle))
     .filter((e) => e && !principal.some((x) => x.cle === e.cle));
   return { principal: [...principal, ...raccourcis], autre };
 }

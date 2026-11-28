@@ -1679,7 +1679,9 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* La fiche ouverte, « Rail » (28 nov. 2026, Jules, planche de la fiche, variante F) : la carte à la teinte de la barre de
    navigation, un bord à 11 % (`bord`) et une ombre ; dedans, les filets, le contour des onglets et les séparations des
    listes passent de 8 % (`trait`) à 11 % (`bord`), pour se lire. */
-.k-fiche-fond { background-color: rgb(var(--k-rail-rgb)); box-shadow: 0 24px 60px -18px rgb(0 0 0 / 0.6); }
+/* Même jour, Jules : « tout le fond de la fiche de la même couleur que derrière Résumé, Dossiers, Historique, Notes » :
+   la surface pleine, celle de la pastille des onglets. */
+.k-fiche-fond { background-color: rgb(var(--k-surface-pleine-rgb)); box-shadow: 0 24px 60px -18px rgb(0 0 0 / 0.6); }
 :root[data-theme="clair"] .k-fiche-fond { box-shadow: 0 24px 60px -18px rgb(0 0 0 / 0.18); }
 .k-fiche-fond .border-trait { border-color: var(--k-bord); }
 .k-fiche-fond .divide-trait > :not([hidden]) ~ :not([hidden]) { border-color: var(--k-bord); }

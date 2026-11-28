@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, ArrowUp, Building2, Check, ChevronDown, Loader2, Mic, Sparkles, X } from "lucide-react";
 import { useDictee } from "@/lib/dictee";
@@ -1032,7 +1032,26 @@ export function usePanneau() {
  * tout, fait du seul fond de la page (la base, le halo s'il est allumé, les points), et la fiche au milieu, au format
  * de celle d'à côté du chat ; un clic ailleurs la referme (20 nov. 2026, Jules). Au téléphone, plein écran sur `barre`.
  */
+// Les mouvements de la fiche, plus doux (28 nov. 2026, Jules : « les transitions, trop dur, dès qu'on ouvre, dès qu'on
+// ferme ; plus élégant ») : l'écran se fond en 0,45 s, la fiche arrive juste après (60 ms), de 8 px et à peine plus
+// petite, sur une courbe qui ralentit longuement ; à la fermeture, la fiche s'efface d'abord (0,26 s), puis l'écran.
+// Rien ne bouge si l'appareil demande moins de mouvement.
+const DOUX = [0.16, 1, 0.3, 1];
+const SORTIE = [0.4, 0, 0.6, 1];
+function mouvements(reduit) {
+  if (reduit) {
+    const fondu = { initial: { opacity: 0 }, animate: { opacity: 1, transition: { duration: 0.15 } }, exit: { opacity: 0, transition: { duration: 0.12 } } };
+    return { ecran: fondu, carte: fondu, droite: fondu };
+  }
+  return {
+    ecran: { initial: { opacity: 0 }, animate: { opacity: 1, transition: { duration: 0.45, ease: [0.4, 0, 0.2, 1] } }, exit: { opacity: 0, transition: { duration: 0.34, ease: SORTIE, delay: 0.08 } } },
+    carte: { initial: { opacity: 0, y: 8, scale: 0.992 }, animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.55, ease: DOUX, delay: 0.06 } }, exit: { opacity: 0, y: 4, scale: 0.996, transition: { duration: 0.26, ease: SORTIE } } },
+    droite: { initial: { opacity: 0, x: 16 }, animate: { opacity: 1, x: 0, transition: { duration: 0.5, ease: DOUX, delay: 0.04 } }, exit: { opacity: 0, x: 10, transition: { duration: 0.26, ease: SORTIE } } },
+  };
+}
+
 export function PanneauFlottant({ vue, setVue }) {
+  const m = mouvements(useReducedMotion());
   // Le halo de la page (Layout, FondHalo) : repris seulement s'il est posé, sinon le fond uni du thème.
   const [halo, setHalo] = useState(false);
   useEffect(() => { if (vue) setHalo(!!document.querySelector(".k-fond-halo")); }, [vue]);
@@ -1040,11 +1059,11 @@ export function PanneauFlottant({ vue, setVue }) {
     <AnimatePresence>
       {vue && (
         <motion.div key="ecran" data-crm-dehors className="fixed inset-0 z-[84] flex items-center justify-center bg-fond"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }} onClick={() => setVue(null)}>
+          {...m.ecran} onClick={() => setVue(null)}>
           {halo && <FondHalo />}
           <div aria-hidden className="k-points pointer-events-none absolute inset-0" data-zone="fond" style={{ "--k-grid-marge": "0px" }} />
           <motion.aside role="dialog" aria-label="Fiche" onClick={(e) => e.stopPropagation()}
-            initial={{ opacity: 0, y: 14, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.985 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            {...m.carte}
             className="k-fiche-fond relative z-10 flex h-full w-full flex-col overflow-hidden max-md:!bg-barre max-md:pt-[env(safe-area-inset-top)] md:h-[calc(100dvh-48px)] md:w-[clamp(460px,42vw,640px)] md:rounded-[16px] md:border md:border-bord">
             <PanneauNote vue={vue} onVue={setVue} onFermer={() => setVue(null)} />
           </motion.aside>
@@ -1060,12 +1079,13 @@ export function PanneauFlottant({ vue, setVue }) {
  * l'agent ») : la page reste visible à gauche ; un clic à côté, Échap ou la croix la ferment.
  */
 export function PanneauDroite({ vue, setVue }) {
+  const m = mouvements(useReducedMotion());
   return createPortal(
     <AnimatePresence>
       {vue && (
-        <motion.div key="droite" data-crm-dehors className="fixed inset-0 z-[84]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+        <motion.div key="droite" data-crm-dehors className="fixed inset-0 z-[84]" {...m.ecran}>
           <div aria-hidden className="absolute inset-0 bg-fond/40" onClick={() => setVue(null)} />
-          <motion.aside role="dialog" aria-label="Fiche" initial={{ x: 32, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 24, opacity: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          <motion.aside role="dialog" aria-label="Fiche" {...m.droite}
             className="k-fiche-fond absolute inset-y-0 right-0 flex w-full flex-col overflow-hidden border-l border-bord shadow-[0_0_40px_-12px_rgb(0_0_0/0.5)] max-md:!bg-barre max-md:pt-[env(safe-area-inset-top)] md:w-[clamp(440px,38vw,600px)]">
             <PanneauNote vue={vue} onVue={setVue} onFermer={() => setVue(null)} />
           </motion.aside>

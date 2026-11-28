@@ -1651,7 +1651,8 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
    bien visible, et le cadre qui s'éclaire quand le champ a la main. */
 .k-saisie-chat textarea { caret-color: #ffffff; }
 :root[data-theme="clair"] .k-saisie-chat textarea { caret-color: rgb(var(--k-encre-rgb)); }
-.k-saisie-chat:focus-within { border-color: rgb(var(--k-encre-rgb) / 0.45) !important; box-shadow: 0 0 0 1px rgb(var(--k-encre-rgb) / 0.18), 0 12px 32px rgb(0 0 0 / 0.07); }
+/* La saisie de l'assistant garde son bord au clic (28 nov. 2026, Jules : « je ne veux pas que le bord devienne gris ») : k-saisie-calme. */
+.k-saisie-chat:not(.k-saisie-calme):focus-within { border-color: rgb(var(--k-encre-rgb) / 0.45) !important; box-shadow: 0 0 0 1px rgb(var(--k-encre-rgb) / 0.18), 0 12px 32px rgb(0 0 0 / 0.07); }
 
 /* Le violet de K Partners, pour son animation de chargement (28 oct. 2026). */
 :root { --kp-accent: #8b7cf6; --kp-accent-ombre: rgb(139 124 246 / 0.6); }
@@ -1672,8 +1673,11 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* La carte de la fiche dans l'écran scindé de l'assistant (20 nov. 2026, Jules) : en sombre, le fond de la fiche
    d'appel du chat (le verre : surface et flou) ; en clair, le fond de la saisie du chat (« Répondre ou ajouter une
    précision »). */
-.k-fiche-fond { background-color: var(--k-surface); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
-:root[data-theme="clair"] .k-fiche-fond { background-color: rgb(var(--k-barre-rgb)); }
+/* La fiche sur le fond de l'écran (28 nov. 2026, Jules : « la fiche tout le temps pareil que ce qui est sur l'écran, noir,
+   ou clair en mode clair ») : plus de verre gris par-dessus ; le bord de la fiche la détache. Au CRM, le fond choisi par
+   le compte (celui du tableau), y compris pour l'écran qui entoure la fiche, posé hors de la page (portail). */
+.k-fiche-fond { background-color: rgb(var(--k-fond-rgb)); }
+html.k-cadre-crm:not([data-theme="clair"]) [data-crm-dehors] { --k-fond-rgb: var(--k-fond-perso-rgb); }
 
 /* L'écran de chargement d'une page (14 nov. 2026, Jules, sur une maquette) : fond noir, le nom au centre en gris clair,
    une bande de lumière blanche qui le traverse en boucle (1,8 s). Gris au repos : sur un titre déjà blanc, la bande ne se

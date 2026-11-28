@@ -16,6 +16,7 @@ export default function ChampLien({ agenceId, nom = null, libelle, onLu = null }
       setUrl("");
       queryClient.invalidateQueries({ queryKey: ["mode-appel-file"] });
       queryClient.invalidateQueries({ queryKey: ["crm-fiche"] });
+      queryClient.invalidateQueries({ queryKey: ["fiche-dossier"] });
       if (nom) {
         const p = r?.personne || {};
         const trouve = [p.telephone && "le numéro", p.email && "le mail", p.note && "la note", p.biens?.length && `${p.biens.length} bien${p.biens.length > 1 ? "s" : ""}`].filter(Boolean);

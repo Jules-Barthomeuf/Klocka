@@ -18,6 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import db, { Records } from '../db.js';
+import { agenceDeLaLigne, personneDeLAgence } from './coordonnees.js';
 import { noterSurLeBien } from '../deal/notes-equipe.js';
 import { ETAPES, donneesDuBien } from './dossier.js';
 import { photoDe, photosDe } from '../photos-fiches.js';
@@ -105,16 +106,33 @@ export function objetDe(cle) {
     const c = Records.get('DemandeClient', id);
     return c ? { cle, genre: 'client', nom: c.nom_crm || c.client_nom || 'Client', nom_crm: !!c.nom_crm, detail: c.profil || null } : null;
   }
+  if (type === 'personne') {
+    // personne:<agence>:<nom> : un collaborateur d'une agence de la liste (28 nov. 2026, une fiche par agent).
+    const [agenceId, n] = reste;
+    const a = Records.get('AgenceProspect', agenceId);
+    const x = a ? personneDeLAgence(a, n) : null;
+    const f = Records.findBy('FicheDossier', 'cle', cle);
+    if (!a && !f) return null;
+    // Sa photo de la page équipe (photos-equipe.js la range par nom : minuscules, sans accents, mots séparés d'une espace).
+    const cleNom = String(x?.nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]+/g, ' ').trim();
+    return { cle, genre: 'agent', nom: f?.nom || x?.nom || 'Collaborateur', detail: [x?.fonction, a?.nom].filter(Boolean).join(' · ') || null, photo: a?.photos_equipe?.par_nom?.[cleNom] || null };
+  }
   if (type === 'twenty') {
     // twenty:<objet>:<id> : la fiche du CRM ; son nom est celui qu'on a reçu au moment du lien.
     const [objet] = reste;
     const f = Records.findBy('FicheDossier', 'cle', cle);
     const crm = { objet, id: reste.slice(1).join(':') };
+    // Une ligne du tableau Agences (28 nov. 2026) : une agence, ou un mandataire (une personne, donc un agent).
+    if (objet === 'agence') {
+      const a = agenceDeLaLigne(crm.id);
+      const genre = a ? (a.genre === 'mandataire' ? 'agent' : 'agence') : f?.genre || 'agence';
+      return { cle, genre, nom: f?.nom || a?.nom || 'Fiche du CRM', detail: [a?.genre === 'mandataire' ? a?.reseau_nom : null, a?.ville].filter(Boolean).join(' · ') || null, crm };
+    }
     // Un client du CRM qui a sa demande dans Klocka : le nom de Twenty qu'elle garde fait foi (23 nov.), et son profil.
     const d = objet === 'clients' && crm.id ? Records.findBy('DemandeClient', 'twenty_id', crm.id) : null;
     if (d) return { cle, genre: 'client', nom: d.nom_crm || f?.nom || d.client_nom || 'Client', nom_crm: !!d.nom_crm, detail: d.profil || null, crm };
     // Un mandataire du tableau Agences (twenty:agence:<id>, 28 nov. 2026) est un agent, comme ceux d'Agent immobilier.
-    return { cle, genre: objet === 'agentImmobilier' || objet === 'agence' ? 'agent' : 'client', nom: f?.nom || 'Fiche du CRM', crm };
+    return { cle, genre: objet === 'agentImmobilier' ? 'agent' : 'client', nom: f?.nom || 'Fiche du CRM', crm };
   }
   return null;
 }
@@ -122,12 +140,12 @@ export function objetDe(cle) {
 /** Un lien venu de l'écran, réduit à ce que la plateforme connaît : { cle, genre, nom }. */
 export function lienPropre(l) {
   const brute = propre(l?.cle, 200);
-  if (!/^(deal|projet|agent|client|twenty):/.test(brute)) return null;
+  if (!/^(deal|projet|agent|client|twenty|personne):/.test(brute)) return null;
   // La clé qui fait foi (25 nov. 2026) : un lien posé sur la demande de Rachel va sur sa fiche du CRM (une-cle.js).
   const cle = cleUnique(brute);
   const o = objetDe(cle);
   if (!o && !cle.startsWith('twenty:')) return null;
-  const genre = o?.genre || (/:(agentImmobilier|agence):/.test(cle) ? 'agent' : 'client');
+  const genre = o?.genre || (/:agentImmobilier:/.test(cle) || cle.startsWith('personne:') ? 'agent' : /:agence:/.test(cle) ? 'agence' : 'client');
   return { cle, genre, nom: propre(cle.startsWith('twenty:') ? (l?.nom || o?.nom) : (o?.nom || l?.nom), 160) || 'Sans nom', ...((l?.detail || o?.detail) ? { detail: propre(l?.detail || o.detail, 160) } : {}) };
 }
 

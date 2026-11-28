@@ -267,9 +267,13 @@ export function monterFicheDossier(app) {
     const cle = (await import('../fiche-dossier/une-cle.js')).cleUnique(req.query.cle);
     // Une fiche du CRM ouverte d'un clic sur son nom (22 nov. 2026, Jules) : sa fiche de Klocka prend ce nom, au même format.
     const nom = String(req.query.nom || '').trim().slice(0, 120);
-    // Un mandataire du tableau Agences (twenty:agence:, 28 nov. 2026) est nommé comme un agent.
+    // Une ligne du tableau Agences (twenty:agence:, 28 nov. 2026) : une agence, ou un mandataire nommé comme un agent ;
+    // sans l'agence dans Klocka, le genre que l'écran a lu sur la ligne (`genre`).
     if (nom && /^twenty:(agentImmobilier|clients|agence):/.test(cle)) {
-      const genre = cle.startsWith('twenty:clients:') ? 'client' : 'agent';
+      const ligne = cle.startsWith('twenty:agence:') ? (await import('../fiche-dossier/coordonnees.js')).agenceDeLaLigne(cle.split(':').slice(2).join(':')) : null;
+      const genre = cle.startsWith('twenty:clients:') ? 'client'
+        : !cle.startsWith('twenty:agence:') ? 'agent'
+          : ligne ? (ligne.genre === 'mandataire' ? 'agent' : 'agence') : req.query.genre === 'agent' ? 'agent' : 'agence';
       const propre = genre === 'agent' ? (await import('../nom-agent.js')).nomAgent(nom) || nom : nom;
       const f = m.fiche(cle, { nom: propre, genre });
       if (!f.nom || ['Fiche du CRM', 'Sans nom'].includes(f.nom)) Records.update('FicheDossier', f.id, { nom: propre });
@@ -294,6 +298,13 @@ export function monterFicheDossier(app) {
     const entre = Records.findBy('FicheDossier', 'cle', v.cle)?.entre_le;
     if (entre) v.entre_le = entre;
     if (transactions) v.transactions = transactions;
+    // Les coordonnées en haut de chaque fiche, et les collaborateurs d'une agence (28 nov. 2026, Jules : « la même carte
+    // pour toutes les agences et tous les agents »).
+    if (v.genre !== 'bien') {
+      const C = await import('../fiche-dossier/coordonnees.js');
+      try { const c = await C.coordonnees(v.cle); if (c && Object.keys(c).length) v.coordonnees = c; } catch (e) { console.error('[fiche] coordonnées', e?.message || e); }
+      if (v.genre === 'agence') { try { v.collaborateurs = (await C.collaborateurs(v.cle)) || []; } catch (e) { console.error('[fiche] collaborateurs', e?.message || e); } }
+    }
     // À qui le bien a été présenté (27 nov. 2026, Jules) : les clients assignés à ses projets, et s'ils l'ont ouvert.
     if (v.genre === 'bien') { try { const p = (await import('../fiche-dossier/activite-client.js')).presenteA(v.cle); if (p.length) v.presente_a = p; } catch (e) { console.error('[fiche] présenté à', e?.message || e); } }
     // Les fiches qu'il nous a envoyées, une ligne par mail dans l'historique (27 nov. 2026, Jules) ; rien d'autre ne bouge.

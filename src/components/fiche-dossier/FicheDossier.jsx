@@ -16,6 +16,7 @@ import CarteDossier from "@/components/fiche-dossier/CarteDossier";
 import MesNotes from "@/components/fiche-dossier/MesNotes";
 import { EtoileAgent } from "@/components/fiche-dossier/EtoileAgent";
 import { PhotosFiche } from "@/components/fiche-dossier/PhotoFiche";
+import { Coordonnees, CollaborateursAgence } from "@/components/fiche-dossier/Coordonnees";
 import FondHalo from "@/components/projet/FondHalo";
 
 // La fiche du dossier (19 nov. 2026, Jules, maquette « Murs de pharmacie ») : trois onglets soulignés, Dossier, Client,
@@ -25,8 +26,9 @@ import FondHalo from "@/components/projet/FondHalo";
 // son OK, ce qu'elle ajoute se range dans son onglet, une petite lumière à gauche du nom de l'onglet ; chaque ajout se
 // décoche.
 
-const GENRE_LISIBLE = { bien: "dossier", agent: "agent", client: "client" };
-const ONGLETS = [["bien", "Dossier"], ["client", "Client"], ["agent", "Agent"]];
+const GENRE_LISIBLE = { bien: "dossier", agent: "agent", client: "client", agence: "agence" };
+// « Agence » ne s'affiche que si une agence est liée (28 nov. 2026 : la fiche d'un collaborateur et celle de son agence).
+const ONGLETS = [["bien", "Dossier"], ["client", "Client"], ["agent", "Agent"], ["agence", "Agence"]];
 const initiales = (n) => String(n || "?").replace(/^\(test\)\s*/i, "").split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join("").toUpperCase();
 const raisonLisible = (r) => `Parce que ${r.charAt(0).toLowerCase()}${r.slice(1)}`;
 const TAG = { evenement: ["Historique", "text-ardoise"], decision: ["Décision", "text-menthe"], negociation: ["Négociation", "text-menthe"], ressenti: ["Ressenti", "text-brume"], profil: ["Comment lui parler", "text-menthe"], ecart: ["Écart entre deux sources", "text-craie"] };
@@ -173,7 +175,7 @@ export function FicheVue({ cle, noteId: noteDuChat = null, nomDefaut = null, crm
   const [cleLue, setCleLue] = useState(cle);
   const { data: f, isLoading, isError, error } = useQuery({
     queryKey: ["fiche-dossier", cleLue],
-    queryFn: () => base44.request("GET", `/api/fiche-dossier/fiche?cle=${encodeURIComponent(cleLue)}${nomDefaut ? `&nom=${encodeURIComponent(nomDefaut)}` : ""}`),
+    queryFn: () => base44.request("GET", `/api/fiche-dossier/fiche?cle=${encodeURIComponent(cleLue)}${nomDefaut ? `&nom=${encodeURIComponent(nomDefaut)}` : ""}${crm?.genre ? `&genre=${encodeURIComponent(crm.genre)}` : ""}`),
     staleTime: 15_000,
   });
   useEffect(() => {
@@ -236,7 +238,7 @@ export function FicheVue({ cle, noteId: noteDuChat = null, nomDefaut = null, crm
   // Une personne : « Agent · 1 dossier en cours » sous son nom, ses initiales au-dessus (20 nov. 2026, Jules, maquette).
   const enCours = f.liees.filter((l) => l.genre === "bien").length;
   const sous = bien ? [id.ville, GENRE_LISIBLE[f.genre]].filter(Boolean).join(" · ")
-    : [f.genre === "agent" ? "Agent" : "Client", f.detail && f.detail !== "Twenty CRM" ? f.detail : f.envois?.contact?.agence || null, enCours ? `${enCours} dossier${enCours > 1 ? "s" : ""} en cours` : null,
+    : [f.genre === "agent" ? "Agent" : f.genre === "agence" ? "Agence" : "Client", f.detail && f.detail !== "Twenty CRM" ? f.detail : f.envois?.contact?.agence || null, enCours ? `${enCours} dossier${enCours > 1 ? "s" : ""} en cours` : null,
       // Depuis quand il est client (27 nov. 2026, Jules : « quand ils ont été rentrés ») : la date de Monday gardée dans Twenty.
       f.entre_le ? `client depuis ${new Date(f.entre_le).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "Europe/Paris" })}` : null].filter(Boolean).join(" · ");
 
@@ -260,18 +262,22 @@ export function FicheVue({ cle, noteId: noteDuChat = null, nomDefaut = null, crm
                 {/* L'étoile d'un agent, à droite de son nom (20 nov. 2026, Jules) : un de ses cinq agents préférés. */}
                 <div className="flex items-center gap-1">
                   <h2 className="m-0 min-w-0 text-[24px] font-normal leading-[1.2] tracking-[-0.01em] text-encre [overflow-wrap:anywhere] max-md:text-[21px]">{nom}</h2>
-                  {f.genre === "agent" && <EtoileAgent cle={cleVue} />}
+                  {/* L'étoile va aux agents de la Prospection et d'Agent immobilier, pas à un collaborateur ni à un mandataire de la liste. */}
+                  {f.genre === "agent" && /^(agent:|twenty:agentImmobilier:)/.test(cleVue) && <EtoileAgent cle={cleVue} />}
                 </div>
                 {sous && <p className="m-0 mt-1 text-[14.5px] leading-[1.45] text-ardoise">{sous}</p>}
               </div>
             </div>
           )}
           {/* Le lien « Fiche du CRM » sous le nom est retiré (25 nov. 2026, Jules : « enlève Fiche du CRM dans une fiche »). */}
+          {/* Ses coordonnées, sous le nom, sur toute fiche d'agence, d'agent ou de client (28 nov. 2026, Jules). */}
+          {!bien && <Coordonnees c={f.coordonnees} onOuvrir={onOuvrir} />}
 
           {(() => {
             const vide = (t) => <p className="m-0 text-[13.5px] text-brume">{t}</p>;
             const onglets = [
               ["resume", "Résumé", !!resumeNeuf || !!ajouts?.etape || enNego.length > 0 || enProfil.length > 0],
+              ...(f.genre === "agence" ? [["collaborateurs", `Collaborateurs${f.collaborateurs?.length ? ` · ${f.collaborateurs.length}` : ""}`, false]] : []),
               ...(bien || aFaire.length > 0 ? [["action", "Prochaine action", proposees.length > 0]] : []),
               ...(bien && d ? [["identite", "Identité", false]] : []),
               ...(!bien ? [["dossiers", "Dossiers", false]] : []),
@@ -406,6 +412,7 @@ export function FicheVue({ cle, noteId: noteDuChat = null, nomDefaut = null, crm
                     </>
                   )}
 
+                  {ici === "collaborateurs" && <CollaborateursAgence gens={f.collaborateurs || []} pageEquipe={f.coordonnees?.page_equipe || null} onOuvrir={onOuvrir} />}
                   {ici === "dossiers" && (
                     <>
                       {f.transactions && <TransactionsClient transactions={f.transactions} />}
@@ -963,6 +970,7 @@ function PanneauFiche({ vue, onVue, onFermer }) {
         <div role="tablist" aria-label="Fiches" className="flex items-end gap-6">
           {ONGLETS.map(([g, libelle]) => {
             const nb = liens.filter((l) => l.genre === g).length;
+            if (g === "agence" && !nb) return null;
             const actif = genreActif === g;
             return (
               <button key={g} type="button" role="tab" aria-selected={actif} disabled={!nb} onClick={() => ouvrirGenre(g)}

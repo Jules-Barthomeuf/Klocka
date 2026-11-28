@@ -1199,17 +1199,17 @@ export default function CrmTwenty() {
   // Jules : « lorsqu'on clique sur un nom dans agent immobilier ou autres, on doit voir à droite la fiche de l'agent »).
   // Celle de Klocka quand il y en a une (agent de la Prospection, client de l'équipe), sinon celle de sa ligne du CRM.
   // Les autres tableaux gardent leur fiche du CRM, déjà à droite.
-  // Un mandataire du tableau Agences (28 nov. 2026, Jules : « une fiche comme nos fiches, pas comme une agence ») : la
-  // fiche commune aussi ; une agence garde sa fiche du CRM (collaborateurs, détails).
+  // Le tableau Agences aussi (28 nov. 2026, Jules : « toutes les agences et agents ont la même carte ») : une agence ou un
+  // mandataire ouvre la fiche commune (coordonnées, collaborateurs, résumé, historique) ; le genre lu sur la ligne la
+  // nomme quand Klocka ne connaît pas encore l'agence.
   const ouvrirLigne = async (singulier, id, nom = null, ligne = null) => {
-    const mandataire = singulier === "agence" && ligne?.genre === "MANDATAIRE";
-    if (!equipe || !(AVEC_FICHE_KLOCKA.has(singulier) || mandataire)) { ouvrir(singulier, id); return; }
+    if (!equipe || !(AVEC_FICHE_KLOCKA.has(singulier) || singulier === "agence")) { ouvrir(singulier, id); return; }
     let cle = `twenty:${singulier}:${id}`;
     try {
       const r = await queryClient.fetchQuery({ queryKey: ["crm-klocka", singulier, id], queryFn: () => req("GET", `/api/crm/klocka/${singulier}/${id}`), staleTime: 5 * 60_000 });
       if (r?.fiche?.type && r.fiche.id) cle = `${r.fiche.type}:${r.fiche.id}`;
     } catch { /* la fiche de sa ligne du CRM */ }
-    ouvrirFiche(cle, { nom, crm: { objet: singulier, id } });
+    ouvrirFiche(cle, { nom, crm: { objet: singulier, id, ...(singulier === "agence" ? { genre: ligne?.genre === "MANDATAIRE" ? "agent" : "agence" } : {}) } });
   };
   const versCrm = () => { const k = klocka; setKlocka(null); if (k) aller({ t: k.singulier, v: null, f: k.twenty, ft: null }); };
   const kanban = vue?.kanban || null;
@@ -1627,7 +1627,7 @@ export default function CrmTwenty() {
                   </div>
                 )}
               </div>
-              <FicheDossierHote cote="droite" />
+              <FicheDossierHote cote="centre" />
               <AnimatePresence>
                 {ficheId && ficheObjet && <Fiche key={`${ficheObjet.singulier}-${ficheId}`} objet={ficheObjet} objets={objets} id={ficheId} onFermer={() => aller({ f: null, ft: null })} onOuvrir={ouvrir} onMail={setEnvoi} />}
               </AnimatePresence>

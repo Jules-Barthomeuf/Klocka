@@ -72,9 +72,11 @@ export function ceQueLaPageEcrit(html) {
 
 /** Pure : le texte de la page, numéros et mails des liens gardés, sans scripts ni balises. */
 export function texteDe(html) {
-  return String(html || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>|<svg[\s\S]*?<\/svg>/gi, ' ')
-    .replace(/<a[^>]+href="(?:tel|mailto):([^"]+)"[^>]*>/gi, ' $1 ').replace(/<br\s*\/?>|<\/(p|div|li|h\d|tr|section|article)>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#0?39;|&rsquo;/g, "'").replace(/&euro;/g, '€').replace(/&[a-z]+;/g, ' ')
+  // Une balise entière, même quand ses attributs contiennent « > » (le code des sites en Alpine ou Vue : « () => … »).
+  const BALISE = /<[a-zA-Z/!](?:"[^"]*"|'[^']*'|[^'">])*>/g;
+  return String(html || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>|<svg[\s\S]*?<\/svg>|<template[\s\S]*?<\/template>/gi, ' ')
+    .replace(/<a\s(?:"[^"]*"|'[^']*'|[^'">])*?href="(?:tel|mailto):([^"]+)"(?:"[^"]*"|'[^']*'|[^'">])*>/gi, ' $1 ').replace(/<br\s*\/?>|<\/(p|div|li|h\d|tr|section|article)>/gi, '\n')
+    .replace(BALISE, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#0?39;|&rsquo;/g, "'").replace(/&euro;/g, '€').replace(/&[a-z]+;/g, ' ')
     .replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 }
 
@@ -227,6 +229,21 @@ export function rangerDansLesAgents(agents, p, { source, nomDonne = null }) {
   return out;
 }
 
+/**
+ * Pure : la partie du texte que lit le modèle (au plus 30 000 caractères). Une page équipe met souvent ses noms loin
+ * après l'accueil, les services et le quartier (28 nov. 2026 : Century 21 Indarra, l'équipe au 18 000e caractère) : la
+ * lecture part du titre de l'équipe ; la page d'une personne, de son nom.
+ */
+export function fenetre(texte, nom = null, max = 30000) {
+  const t = String(texte || '');
+  if (t.length <= max) return t;
+  const bas = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const nomFamille = String(nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter((m) => m.length >= 3).pop();
+  const i = nom && nomFamille ? bas.indexOf(nomFamille) : bas.search(/notre equipe|nos equipes|l'equipe|equipe de l'agence|nos conseillers|nos collaborateurs|nos agents|notre team|our team|team\b/);
+  const debut = i > 0 ? Math.max(0, i - 800) : 0;
+  return t.slice(debut, debut + max);
+}
+
 const EN_COURS = new Map();
 
 /**
@@ -255,13 +272,13 @@ export function lirePageDonnee(agenceId, { url, nom = null, lire = fetch, lireMo
     const ecrit = ceQueLaPageEcrit(html);
     ecrit.texte = texteDe(ecrit.html);
     if (ecrit.texte.length < 200) return { ok: false, error: 'La page est vide sans navigateur : elle ne se lit pas ainsi.' };
-    const prompt = consignePage({ nom, agence: a.nom, url: finale, texte: ecrit.texte.slice(0, 14000), liens: liensDe(ecrit.html, finale, nom ? 80 : 150) });
+    const prompt = consignePage({ nom, agence: a.nom, url: finale, texte: fenetre(ecrit.texte, nom), liens: liensDe(ecrit.html, finale, nom ? 80 : 150) });
     let r;
     if (lireModele) r = await lireModele(prompt);
     else {
       const { invokeLLM } = await import('../llm.js');
       const { mesurer } = await import('../llm-couts.js');
-      r = (await mesurer({ operation: 'lire une page donnée (personne ou équipe)', sur: agenceId }, () => invokeLLM({ prompt, response_json_schema: SCHEMA_PERSONNE, modele: MODELE_RAPIDE, max_tokens: 3000 }))).resultat;
+      r = (await mesurer({ operation: 'lire une page donnée (personne ou équipe)', sur: agenceId }, () => invokeLLM({ prompt, response_json_schema: SCHEMA_PERSONNE, modele: MODELE_RAPIDE, max_tokens: 8000 }))).resultat;
     }
     const le = new Date().toISOString();
     const frais = Records.get(AGENCE, agenceId) || a;

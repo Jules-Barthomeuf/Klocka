@@ -113,7 +113,8 @@ export function objetDe(cle) {
     // Un client du CRM qui a sa demande dans Klocka : le nom de Twenty qu'elle garde fait foi (23 nov.), et son profil.
     const d = objet === 'clients' && crm.id ? Records.findBy('DemandeClient', 'twenty_id', crm.id) : null;
     if (d) return { cle, genre: 'client', nom: d.nom_crm || f?.nom || d.client_nom || 'Client', nom_crm: !!d.nom_crm, detail: d.profil || null, crm };
-    return { cle, genre: objet === 'agentImmobilier' ? 'agent' : 'client', nom: f?.nom || 'Fiche du CRM', crm };
+    // Un mandataire du tableau Agences (twenty:agence:<id>, 28 nov. 2026) est un agent, comme ceux d'Agent immobilier.
+    return { cle, genre: objet === 'agentImmobilier' || objet === 'agence' ? 'agent' : 'client', nom: f?.nom || 'Fiche du CRM', crm };
   }
   return null;
 }
@@ -126,7 +127,7 @@ export function lienPropre(l) {
   const cle = cleUnique(brute);
   const o = objetDe(cle);
   if (!o && !cle.startsWith('twenty:')) return null;
-  const genre = o?.genre || (/:agentImmobilier:/.test(cle) ? 'agent' : 'client');
+  const genre = o?.genre || (/:(agentImmobilier|agence):/.test(cle) ? 'agent' : 'client');
   return { cle, genre, nom: propre(cle.startsWith('twenty:') ? (l?.nom || o?.nom) : (o?.nom || l?.nom), 160) || 'Sans nom', ...((l?.detail || o?.detail) ? { detail: propre(l?.detail || o.detail, 160) } : {}) };
 }
 

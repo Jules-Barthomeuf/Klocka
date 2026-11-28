@@ -267,8 +267,9 @@ export function monterFicheDossier(app) {
     const cle = (await import('../fiche-dossier/une-cle.js')).cleUnique(req.query.cle);
     // Une fiche du CRM ouverte d'un clic sur son nom (22 nov. 2026, Jules) : sa fiche de Klocka prend ce nom, au même format.
     const nom = String(req.query.nom || '').trim().slice(0, 120);
-    if (nom && /^twenty:(agentImmobilier|clients):/.test(cle)) {
-      const genre = cle.startsWith('twenty:agentImmobilier:') ? 'agent' : 'client';
+    // Un mandataire du tableau Agences (twenty:agence:, 28 nov. 2026) est nommé comme un agent.
+    if (nom && /^twenty:(agentImmobilier|clients|agence):/.test(cle)) {
+      const genre = cle.startsWith('twenty:clients:') ? 'client' : 'agent';
       const propre = genre === 'agent' ? (await import('../nom-agent.js')).nomAgent(nom) || nom : nom;
       const f = m.fiche(cle, { nom: propre, genre });
       if (!f.nom || ['Fiche du CRM', 'Sans nom'].includes(f.nom)) Records.update('FicheDossier', f.id, { nom: propre });

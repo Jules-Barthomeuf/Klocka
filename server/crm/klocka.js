@@ -70,6 +70,15 @@ export function clientPour(t, demandes = []) {
 
 /** La fiche de Klocka d'une ligne du CRM : `{ type: 'agent' | 'client', id }`, ou null s'il n'y en a pas. */
 export async function ficheKlocka(singulier, id, { lire = null } = {}) {
+  // Un mandataire du tableau Agences (28 nov. 2026, Jules : « Loïc Borges doit s'ouvrir comme nos fiches, pas comme une
+  // agence ») : sa fiche d'agent de la Prospection quand il a déjà été appelé (son agence de la liste porte `carnet_id`).
+  if (singulier === 'agence') {
+    const lectureA = lire || (await import('../twenty.js')).lire;
+    const t = await lectureA('agences', id);
+    const a = t?.klockaId ? Records.get('AgenceProspect', t.klockaId) : null;
+    const agent = a?.carnet_id ? Records.get('AgentImmo', a.carnet_id) : null;
+    return agent && !agent.essai ? { type: 'agent', id: agent.id } : null;
+  }
   const pluriel = singulier === 'agentImmobilier' ? AGENTS : singulier === 'clients' ? CLIENTS : null;
   if (!pluriel) return null;
   const lecture = lire || (await import('../twenty.js')).lire;

@@ -109,3 +109,17 @@ test('lirePageDonnee lit la page, range la personne sur l\'agence, et la carte d
   assert.match(refus.error, /403/);
   assert.equal((await P.lirePageDonnee(a.id, { url: 'pas un lien' })).ok, false);
 });
+
+test('le texte sans code (« > » dans les attributs), et la lecture qui part du titre de l\'équipe', () => {
+  const t = P.texteDe('<div x-init="setTimeout(() => { $el.x = 1 }, 50)" class="a">Bonjour</div><button @click="() => ouvrir()">Menu</button>');
+  assert.equal(t.includes('=>'), false);
+  assert.match(t, /Bonjour/);
+  assert.match(t, /Menu/);
+  const long = `${'Le quartier et ses plages. '.repeat(2000)}Notre équipe à votre service\nThibaut LACOME VALERA\nGérant`;
+  const f = P.fenetre(long);
+  assert.ok(f.length <= 30000);
+  assert.match(f, /LACOME VALERA/);
+  // La page d'une personne : la lecture part de son nom.
+  assert.match(P.fenetre(`${'x '.repeat(20000)}Loïc Borges conseiller`, 'Loic Borges'), /Borges conseiller/);
+  assert.equal(P.fenetre('court'), 'court');
+});

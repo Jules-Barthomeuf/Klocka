@@ -1199,8 +1199,11 @@ export default function CrmTwenty() {
   // Jules : « lorsqu'on clique sur un nom dans agent immobilier ou autres, on doit voir à droite la fiche de l'agent »).
   // Celle de Klocka quand il y en a une (agent de la Prospection, client de l'équipe), sinon celle de sa ligne du CRM.
   // Les autres tableaux gardent leur fiche du CRM, déjà à droite.
-  const ouvrirLigne = async (singulier, id, nom = null) => {
-    if (!equipe || !AVEC_FICHE_KLOCKA.has(singulier)) { ouvrir(singulier, id); return; }
+  // Un mandataire du tableau Agences (28 nov. 2026, Jules : « une fiche comme nos fiches, pas comme une agence ») : la
+  // fiche commune aussi ; une agence garde sa fiche du CRM (collaborateurs, détails).
+  const ouvrirLigne = async (singulier, id, nom = null, ligne = null) => {
+    const mandataire = singulier === "agence" && ligne?.genre === "MANDATAIRE";
+    if (!equipe || !(AVEC_FICHE_KLOCKA.has(singulier) || mandataire)) { ouvrir(singulier, id); return; }
     let cle = `twenty:${singulier}:${id}`;
     try {
       const r = await queryClient.fetchQuery({ queryKey: ["crm-klocka", singulier, id], queryFn: () => req("GET", `/api/crm/klocka/${singulier}/${id}`), staleTime: 5 * 60_000 });
@@ -1384,7 +1387,7 @@ export default function CrmTwenty() {
                     <SaisieEnPlace c={c} valeur={f[c.nom]} onFini={(v) => { setNomEnCours(null); if (v !== undefined) changerCase.mutate({ id: f.id, champ: c.nom, valeur: v }); }} className="px-4" />
                   ) : i === 0 ? (
                     <div className="group/case relative">
-                    <button type="button" onPointerDown={() => { if (!objet.local) queryClient.prefetchQuery({ queryKey: ["crm-fiche", objet.singulier, f.id], queryFn: () => req("GET", `${API}/${objet.singulier}/${f.id}`), staleTime: 30_000 }); }} onClick={() => ouvrirLigne(objet.singulier, f.id, nomDeFiche(f))} className={`block w-full truncate px-4 py-1.5 text-encre hover:text-menthe ${CLASSES_ALIGNEMENT[reglageDe(c).align || "gauche"].split(" ")[1]}`} style={{ background: "transparent" }}>
+                    <button type="button" onPointerDown={() => { if (!objet.local) queryClient.prefetchQuery({ queryKey: ["crm-fiche", objet.singulier, f.id], queryFn: () => req("GET", `${API}/${objet.singulier}/${f.id}`), staleTime: 30_000 }); }} onClick={() => ouvrirLigne(objet.singulier, f.id, nomDeFiche(f), f)} className={`block w-full truncate px-4 py-1.5 text-encre hover:text-menthe ${CLASSES_ALIGNEMENT[reglageDe(c).align || "gauche"].split(" ")[1]}`} style={{ background: "transparent" }}>
                       {/* L'étoile d'un agent préféré de l'équipe, devant son nom (20 nov. 2026, Jules). */}
                       {objet.singulier === "agentImmobilier" && etoilesAgents?.length ? (
                         <span className="inline-flex max-w-full items-center gap-1.5 align-middle"><EtoileCrm nom={[f.prenom, affiche(c, f[c.nom], liensT)].filter(Boolean).join(" ")} etoiles={etoilesAgents} /><span className="truncate">{affiche(c, f[c.nom], liensT) || <span className="text-brume">Sans nom</span>}</span></span>
@@ -1609,7 +1612,7 @@ export default function CrmTwenty() {
               <div className="min-h-0 flex-1 overflow-auto px-10 pb-10 max-md:px-4" style={{ "--k-crm-largeur": `${Math.max(720, largeurMini) + 4}px` }}>
                 {liste.isLoading ? <Chargement /> : liste.isError ? <p className="py-16 text-center text-[14px] text-ardoise">{liste.error?.message || "Twenty ne répond pas."}</p>
                   : !fiches.length ? <p className="py-16 text-center text-[14px] text-brume">{q || tousFiltres.length ? "Rien ne correspond." : "Aucune fiche."}</p>
-                  : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => ouvrirLigne(objet.singulier, id, (() => { const x = fiches.find((y) => y.id === id); return x ? nomDeFiche(x) : null; })())} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />
+                  : kanban ? <Kanban objet={objet} champ={kanban} fiches={fiches} liens={liens} colonnes={vue.colonnes} onOuvrir={(id) => { const x = fiches.find((y) => y.id === id); ouvrirLigne(objet.singulier, id, x ? nomDeFiche(x) : null, x || null); }} onChanger={(id, champ, valeur) => changerCase.mutate({ id, champ, valeur })} />
                   : !champGroupe ? <div className="k-tableau-crm mt-4 rounded-[12px] border border-trait border-l-[3px] border-l-menthe bg-crm-tableau">{tableau(fiches)}</div>
                   // Groupé : chaque groupe lit ses fiches à part, 50 par 50, avec son « Voir plus » (8 nov. 2026, Jules).
                   : groupesDuTableau.map((g) => (

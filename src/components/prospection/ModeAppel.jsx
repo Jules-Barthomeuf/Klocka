@@ -9,6 +9,7 @@ import { useDictee, versWav } from "@/lib/dictee";
 import { garder, enAttente, retirer, erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
 import BoutonPasDeReponse from "@/components/prospection/BoutonPasDeReponse";
+import ChampLien from "@/components/prospection/ChampLien";
 import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
@@ -637,11 +638,42 @@ function ListeBiens({ biens }) {
   );
 }
 
-function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic, biens = null }) {
+// Les biens montrés sur la page de la personne : une ligne chacun (quoi, où, le prix), le lien de l'annonce s'il y est.
+function BiensDeSaPage({ biens }) {
+  return (
+    <ul className="m-0 list-none divide-y divide-trait border-y border-trait p-0">
+      {biens.map((b, i) => {
+        const quoi = [b.type, b.surface ? `${b.surface} m²` : null].filter(Boolean).join(" · ");
+        const ligne = (
+          <>
+            <span className="flex min-w-0 flex-col">
+              <span className={`truncate text-[13.5px] ${b.vendu ? "text-ardoise" : "text-encre"}`}>{quoi || "Bien"}</span>
+              <span className="truncate text-[12px] text-ardoise">{[b.ville, b.vendu ? "vendu" : null].filter(Boolean).join(" · ")}</span>
+            </span>
+            <span className={`flex flex-none items-center gap-1.5 text-[13.5px] tabular-nums ${b.vendu ? "text-ardoise" : "text-encre"}`}>
+              {b.prix ? kEuros(b.prix) : <span className="text-brume">—</span>}
+              {b.lien && <ExternalLink className="h-3.5 w-3.5 text-ardoise" strokeWidth={1.8} />}
+            </span>
+          </>
+        );
+        return (
+          <li key={`${b.lien || b.type}-${i}`}>
+            {b.lien
+              ? <a href={b.lien} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="Voir l'annonce" className="flex items-center justify-between gap-3 py-2 transition-colors hover:bg-relief/60">{ligne}</a>
+              : <span className="flex items-center justify-between gap-3 py-2">{ligne}</span>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function LigneCollaborateur({ x, actif, ouvert, standard, agence, agenceId = null, onClic, biens = null }) {
   const tel = x.telephone || standard;
   // Le mail de chacun (18 nov. 2026, Jules : « à chaque fois ») : le connu, sinon celui déduit du format de l'agence.
   const mail = x.email || x.email_deduit || null;
   const titreMail = x.email ? undefined : "Déduit du format des mails de l'agence, pas vérifié";
+  const nbBiens = (biens?.length || 0) + (x.biens_page?.length || 0);
   const tete = x.photo ? <img src={x.photo} alt="" className="h-full w-full object-cover" loading="lazy" /> : initiales(nomLisible(x.nom));
   return (
     <div className={`border-t border-trait transition-colors ${actif ? "bg-relief/70" : "hover:bg-relief/50"}`}>
@@ -656,7 +688,7 @@ function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic, biens 
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-[15px] text-encre">{nomLisible(x.nom)}</span>
             {/* Le nombre de ses biens, pour savoir qui demander d'un coup d'œil. */}
-            {biens?.length > 0 && <span className="flex-none rounded-full bg-menthe/15 px-2 py-px text-[11.5px] tabular-nums text-menthe" title="Ses annonces de commerce et les fiches qu'il nous a envoyées">{biens.length} bien{biens.length > 1 ? "s" : ""}</span>}
+            {nbBiens > 0 && <span className="flex-none rounded-full bg-menthe/15 px-2 py-px text-[11.5px] tabular-nums text-menthe" title="Ses biens : sur sa page, ses annonces de commerce et les fiches qu'il nous a envoyées">{nbBiens} bien{nbBiens > 1 ? "s" : ""}</span>}
           </span>
           {x.fonction && <span className="truncate text-[13px] text-ardoise">{x.fonction}</span>}
         </span>
@@ -668,7 +700,7 @@ function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic, biens 
       <span className="flex items-center justify-end gap-2 whitespace-nowrap text-[13.5px] tabular-nums text-encre">
         {tel ? <><Phone className="h-3.5 w-3.5 flex-none" strokeWidth={1.8} /><span className="select-all" title={x.telephone ? undefined : "Standard de l'agence"} onClick={(e) => e.stopPropagation()}>{tel}</span></> : <span className="text-brume">Pas de numéro</span>}
       </span>
-      <a href={pageDe(x, agence)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={x.linkedin ? "Son LinkedIn" : "Le chercher sur LinkedIn"}
+      <a href={x.page || pageDe(x, agence)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title={x.page ? "Sa page" : x.linkedin ? "Son LinkedIn" : "Le chercher sur LinkedIn"}
         className="grid h-8 w-8 place-items-center justify-self-center rounded-full text-encre transition-colors hover:bg-relief max-md:hidden">
         <Link2 className="h-4 w-4" strokeWidth={1.8} />
       </a>
@@ -686,12 +718,26 @@ function LigneCollaborateur({ x, actif, ouvert, standard, agence, onClic, biens 
           {x.fonction && <span className="text-[13.5px] text-ardoise">{x.fonction}</span>}
           {tel && <span className="select-all pt-1 text-[14px] tabular-nums text-encre">{tel}{!x.telephone && " · standard"}</span>}
           <span className="select-all break-all text-[13.5px] text-encre">{mail || <span className="text-craie">Mail non trouvé</span>}</span>
+          {/* Ce que dit sa page (28 nov. 2026) : la note, la spécialité, le secteur, et le lien de la page. */}
+          {(x.note || x.specialite || x.secteur) && <span className="pt-1 text-[13.5px] text-encre">{[x.note ? `${String(x.note).replace(".", ",")} / ${x.note > 5 ? 10 : 5}${x.nb_avis ? ` · ${x.nb_avis} avis` : ""}` : null, x.specialite, x.secteur].filter(Boolean).join(" · ")}</span>}
+          {x.page && <a href={x.page} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 pt-0.5 text-[13px] text-menthe hover:underline"><ExternalLink className="h-3.5 w-3.5" strokeWidth={1.8} />Sa page</a>}
           {x.source && x.source !== "Apollo" && <span className="pt-0.5 text-[12px] text-brume">{x.source}</span>}
+          {agenceId && !x.standard && <span className="w-[min(360px,100%)] pt-2"><ChampLien agenceId={agenceId} nom={x.nom} libelle={x.page ? "Un autre lien pour sa page" : "Lien de sa page (site de l'agence, réseau)"} /></span>}
         </span>
-        {biens?.length > 0 && (
-          <div className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
-            <p className="m-0 pb-1.5 text-[12.5px] text-ardoise">Ses biens · {biens.length}</p>
-            <ListeBiens biens={biens} />
+        {(biens?.length > 0 || x.biens_page?.length > 0) && (
+          <div className="flex min-w-0 flex-1 flex-col gap-3" onClick={(e) => e.stopPropagation()}>
+            {x.biens_page?.length > 0 && (
+              <div>
+                <p className="m-0 pb-1.5 text-[12.5px] text-ardoise">Sur sa page · {x.biens_page.length}</p>
+                <BiensDeSaPage biens={x.biens_page} />
+              </div>
+            )}
+            {biens?.length > 0 && (
+              <div>
+                <p className="m-0 pb-1.5 text-[12.5px] text-ardoise">Ses biens · {biens.length}</p>
+                <ListeBiens biens={biens} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -803,7 +849,7 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
                   <span className="text-right">Contact</span>
                   <span className="text-center max-md:hidden">Lien</span>
                 </div>
-                {contacts.map((x) => <LigneCollaborateur key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} standard={standard} agence={a.nom} biens={biens.data?.par_contact?.[x.id] || null}
+                {contacts.map((x) => <LigneCollaborateur key={x.id} x={x} actif={choisi?.id === x.id} ouvert={ouvertId === x.id} standard={standard} agence={a.nom} agenceId={essai ? null : a.id} biens={biens.data?.par_contact?.[x.id] || null}
                   onClic={() => { if (choisi?.id === x.id) setOuvertId((o) => (o === x.id ? null : x.id)); else { onChoisir(x.id); setOuvertId(x.id); } }} />)}
               </div>
             ) : null}
@@ -816,6 +862,12 @@ function CarteAvantAppel({ a, contacts, standard = null, choisi, onChoisir, hist
                   <ChevronDown className={`h-4 w-4 flex-none transition-transform ${autresOuverts ? "rotate-180" : ""}`} strokeWidth={1.8} />
                 </button>
                 {autresOuverts && <div className="px-5 pb-3 max-md:px-4"><ListeBiens biens={autresBiens} /></div>}
+              </div>
+            )}
+            {/* La page équipe donnée par l'équipe (28 nov. 2026) : un lien, et toute l'équipe de la page rejoint la liste. */}
+            {!essai && (
+              <div className="border-t border-trait px-5 py-3 max-md:px-4">
+                <ChampLien agenceId={a.id} libelle="Lien de la page équipe de l'agence" />
               </div>
             )}
             {!contacts.length && (

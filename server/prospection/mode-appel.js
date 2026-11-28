@@ -522,6 +522,9 @@ export async function supprimer(agenceId, pourquoi, user, { lire = null, mainten
  * registre, les agents qui publient, puis le standard. Chacun : nom, source,
  * fonction, numéro (le sien, sinon aucun : on appelle alors le standard).
  */
+// Ce qu'une page lue dit d'une personne, porté jusqu'à la carte d'appel (28 nov. 2026, page-donnee.js).
+const PROFIL = ['page', 'note', 'nb_avis', 'specialite', 'secteur', 'biens_page', 'page_lue_le'];
+
 export function contactsDe(a, fiche = null, place = null) {
   const out = [];
   const ajouter = (x) => {
@@ -535,9 +538,11 @@ export function contactsDe(a, fiche = null, place = null) {
       if (!y.fonction && x.fonction) y.fonction = x.fonction;
       if (!y.email && x.email) y.email = x.email;
       if (!y.linkedin && x.linkedin) y.linkedin = x.linkedin;
+      // Ce que dit la page de la personne, donnée par l'équipe (28 nov. 2026, server/prospection/page-donnee.js).
+      for (const k of PROFIL) if (y[k] == null && x[k] != null) y[k] = x[k];
       return;
     }
-    out.push({ id: `c${out.length}`, nom: nom || 'Standard', source: x.source, fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, linkedin: x.linkedin || null, standard: !!x.standard });
+    out.push({ id: `c${out.length}`, nom: nom || 'Standard', source: x.source, fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, linkedin: x.linkedin || null, standard: !!x.standard, ...Object.fromEntries(PROFIL.filter((k) => x[k] != null).map((k) => [k, x[k]])) });
   };
   if (place === 0 && a.prioritaire?.nom) ajouter({ nom: a.prioritaire.nom, source: 'Contact donné', telephone: a.prioritaire.telephone });
   if (a.monday_connu?.nom) ajouter({ nom: a.monday_connu.nom, source: 'Contact Twenty CRM', telephone: a.monday_connu.telephone || null });
@@ -549,7 +554,7 @@ export function contactsDe(a, fiche = null, place = null) {
   for (const g of (a.gerants || []).slice(0, 2)) ajouter({ nom: g.nom, source: 'Registre du commerce', fonction: g.qualite || null });
   // Les personnes des pages équipe (15 nov. 2026) gardent leur fonction (« Co-fondateur », « Conseillère en immobilier »).
   // Toute l'équipe (17 nov. 2026, Jules : « je veux tous les gens »), chacun avec son numéro perso quand le site le donne.
-  for (const x of (a.agents || []).filter((y) => y.nom)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : x.source === 'page équipe du site' ? 'Site de l\'agence' : 'Agent', fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, linkedin: x.linkedin || null });
+  for (const x of (a.agents || []).filter((y) => y.nom)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : x.source === 'page équipe du site' ? 'Site de l\'agence' : x.source === 'page du conseiller' ? 'Sa page' : 'Agent', fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, linkedin: x.linkedin || null, ...Object.fromEntries(PROFIL.filter((k) => x[k] != null).map((k) => [k, x[k]])) });
   // Le standard : le numéro de l'agence, sinon un numéro sans nom ; jamais le portable d'une personne.
   // (17 nov. 2026 : le portable d'un agent nommé n'est plus pris pour le standard, Nice Homes montrait celui de Simon Crann.)
   const standard = a.telephone || (a.agents || []).find((x) => x.telephone && !x.nom)?.telephone || null;

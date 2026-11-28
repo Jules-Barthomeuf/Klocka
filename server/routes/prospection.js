@@ -573,6 +573,17 @@ export function monterProspection(app) {
     if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
   }));
+  // La page donnée par l'équipe (28 nov. 2026, Jules : « je te donne juste les liens ») : la page d'une personne (`nom`)
+  // ou la page équipe de l'agence (sans nom), lue sans recherche web, rangée dans ses collaborateurs.
+  app.post('/api/prospection/mode-appel/agences/:id/page', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const url = String(req.body?.url || '').trim().slice(0, 600);
+    const nom = String(req.body?.nom || '').trim().slice(0, 80) || null;
+    if (!url) return res.status(400).json({ error: 'Collez le lien de la page.' });
+    const r = await (await import('../prospection/page-donnee.js')).lirePageDonnee(req.params.id, { url, nom });
+    if (!r.ok) return res.status(r.error === 'Agence introuvable.' ? 404 : 400).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/prospection/mode-appel/appels/:id/raison', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const r = (await import('../prospection/appels-v2.js')).noterRaison(req.params.id, req.body?.cle, req.body?.raison);

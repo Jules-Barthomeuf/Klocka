@@ -1086,6 +1086,9 @@ html.k-cadre-crm .k-flottant-haut { display: none !important; }
    haut gardent le leur (--k-verre-fond plus bas lit --k-fond-rgb sur <html>, que ceci ne touche pas). En clair, le blanc
    pur du 5 nov. reste (plus bas). */
 html.k-cadre-crm:not([data-theme="clair"]) .k-crm-contenu { --k-fond-rgb: var(--k-fond-perso-rgb); }
+/* La fiche ouverte au clic sur le même fond que le CRM (28 nov. 2026, Jules : « j'ai mis noir, le fond doit être noir
+   aussi ») ; au téléphone elle sort de la page (portail), d'où sa propre règle. */
+html.k-cadre-crm:not([data-theme="clair"]) .k-fiche-crm { --k-fond-rgb: var(--k-fond-perso-rgb); }
 /* Un volet de pièce ouvert à droite (26 nov. 2026, Jules : « on ne peut plus le fermer, il y a la tête du profil ») :
    la photo de profil et les pilules du coin s'effacent tant qu'il est là ; sa croix n'est jamais couverte. */
 body:has(.panneau-source, .k-volet-droit) .k-flottant-haut { display: none !important; }

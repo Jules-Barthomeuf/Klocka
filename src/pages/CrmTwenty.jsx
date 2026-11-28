@@ -27,6 +27,7 @@ import { barreGardee, cleBarreCrm, espaceCrm, garderBarre, lireBarreCrm } from "
 const TiroirAgent = lazy(() => import("@/pages/Agents").then((m) => ({ default: m.TiroirAgent })));
 // Inviter et Familles, en haut à droite d'Utilisateurs et de Clients, comme sur l'ancienne page (10 nov. 2026, Jules).
 const ActionsComptes = lazy(() => import("@/components/crm/ActionsComptes"));
+const ChampLien = lazy(() => import("@/components/prospection/ChampLien"));
 // Les pages du CRM d'une personne de l'équipe ou d'un mandataire, dans sa fiche (11 nov. 2026, Jules : « cliquer sur un
 // utilisateur et sélectionner quelle page il peut voir ») ; Jules seul.
 const PagesCrm = lazy(() => import("@/components/compte/PagesCrm"));
@@ -401,6 +402,7 @@ function Collaborateurs({ gens }) {
                     {x.photo ? <img src={x.photo} alt="" className="h-full w-full object-cover" loading="lazy" /> : initialesDe(x.nom)}
                   </span>
                   <span className="min-w-0 truncate text-[14px] text-encre" title={x.nom}>{x.nom}</span>
+                  {x.page && <a href={x.page} target="_blank" rel="noreferrer" aria-label="Sa page" title={[x.note ? `${String(x.note).replace(".", ",")}${x.nb_avis ? ` · ${x.nb_avis} avis` : ""}` : null, x.biens_page?.length ? `${x.biens_page.length} biens sur sa page` : null].filter(Boolean).join(" · ") || "Sa page"} className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise hover:text-menthe"><ExternalLink className="h-3.5 w-3.5" /></a>}
                 </span>
               </td>
               <td className="truncate px-3 py-2.5 text-[13px] text-ardoise" title={x.fonction || ""}>{x.fonction || ""}</td>
@@ -512,7 +514,7 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
   const lieu = f ? ["ville", "adresse", "city"].map((k) => objet.champs.find((c) => c.nom === k)).filter(Boolean).map((c) => affiche(c, f[c.nom], data?.liens)).find(Boolean) : null;
   const panneau = (
     <motion.aside ref={cadre} initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 28 }} transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-      className={`flex flex-col overflow-hidden bg-rail shadow-[0_12px_40px_rgb(0_0_0/0.3)] max-md:fixed max-md:inset-0 max-md:z-[80] max-md:pt-[env(safe-area-inset-top)] md:absolute md:inset-y-0 md:right-0 md:z-20 md:border-l md:border-trait ${grand ? "md:w-full" : "md:w-[max(900px,74%)] md:max-w-full"}`}>
+      className={`k-fiche-crm flex flex-col overflow-hidden bg-fond shadow-[0_12px_40px_rgb(0_0_0/0.3)] max-md:fixed max-md:inset-0 max-md:z-[80] max-md:pt-[env(safe-area-inset-top)] md:absolute md:inset-y-0 md:right-0 md:z-20 md:border-l md:border-trait ${grand ? "md:w-full" : "md:w-[max(900px,74%)] md:max-w-full"}`}>
       <div className="flex items-start justify-between gap-4 border-b border-trait px-6 py-4">
         <div className="flex min-w-0 items-center gap-3.5">
           <span className="grid h-11 w-11 flex-none place-items-center rounded-[10px] bg-relief text-[14px] font-medium text-craie">{initialesDe(nom) || "?"}</span>
@@ -567,6 +569,8 @@ function Fiche({ objet, objets, id, onFermer, onOuvrir, onMail }) {
               {data.collaborateurs && (
                 <Partie titre="Collaborateurs" nombre={data.collaborateurs.length} ouverte={ouverte("collaborateurs", true)} onBasculer={() => basculer("collaborateurs", true)}>
                   <Collaborateurs gens={data.collaborateurs} />
+                  {/* La page équipe donnée par l'équipe (28 nov. 2026) : un lien, et l'équipe de la page rejoint la liste. */}
+                  {f?.klockaId && <div className="mt-4"><Suspense fallback={null}><ChampLien agenceId={f.klockaId} libelle="Lien de la page équipe de l'agence" /></Suspense></div>}
                 </Partie>
               )}
               {/* Les dossiers auxquels des notes l'ont lié (19 nov. 2026) : la fiche tournée autour de l'agent ou du client. */}

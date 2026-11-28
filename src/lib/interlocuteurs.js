@@ -35,7 +35,8 @@ const rangContact = (x) => {
   return HORS_SUJET.test(x.fonction) && !MALGRE_TOUT.test(x.fonction) ? null : RANGS.length;
 };
 
-const CONNUS = new Set(['Contact donné', 'Contact Twenty CRM', 'Dernier interlocuteur']);
+// « Sa page » : une personne dont l'équipe a donné la page (28 nov. 2026), choisie exprès.
+const CONNUS = new Set(['Contact donné', 'Contact Twenty CRM', 'Dernier interlocuteur', 'Sa page']);
 
 /**
  * Pure : les interlocuteurs de la carte, dans l'ordre où les demander. D'abord ceux qu'on connaît déjà (contact donné,

@@ -639,7 +639,7 @@ export async function collaborateursDe(f) {
     const fiche = a.carnet_id ? Records.get('AgentImmo', a.carnet_id) : null;
     // Pas les faux noms lus sur un site (« Equipe Immobilier », « Contact »).
     const gens = contactsDe(a, fiche, null).filter((x) => !x.standard && !/^(equipe|équipe|team|contact|accueil|agence|service)\b/i.test(String(x.nom || '').trim()));
-    if (gens.length) return gens.map((x) => ({ nom: x.nom, fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, photo: x.photo || null, source: x.source || null }));
+    if (gens.length) return gens.map((x) => ({ nom: x.nom, fonction: x.fonction || null, telephone: x.telephone || null, email: x.email || null, photo: x.photo || null, source: x.source || null, page: x.page || null, note: x.note || null, nb_avis: x.nb_avis || null, biens_page: x.biens_page || null }));
   }
   // Les colonnes Interlocuteurs et « Agents en contact » (les agents d'Agent immobilier rattachés), une personne par ligne.
   const vus = new Set();

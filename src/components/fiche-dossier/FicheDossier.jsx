@@ -1032,21 +1032,21 @@ export function usePanneau() {
  * tout, fait du seul fond de la page (la base, le halo s'il est allumé, les points), et la fiche au milieu, au format
  * de celle d'à côté du chat ; un clic ailleurs la referme (20 nov. 2026, Jules). Au téléphone, plein écran sur `barre`.
  */
-// Les mouvements de la fiche, plus doux (28 nov. 2026, Jules : « les transitions, trop dur, dès qu'on ouvre, dès qu'on
-// ferme ; plus élégant ») : l'écran se fond en 0,45 s, la fiche arrive juste après (60 ms), de 8 px et à peine plus
-// petite, sur une courbe qui ralentit longuement ; à la fermeture, la fiche s'efface d'abord (0,26 s), puis l'écran.
-// Rien ne bouge si l'appareil demande moins de mouvement.
-const DOUX = [0.16, 1, 0.3, 1];
-const SORTIE = [0.4, 0, 0.6, 1];
+// Les mouvements de la fiche, doux (28 nov. 2026, Jules : « les transitions, trop dur, dès qu'on ouvre, dès qu'on
+// ferme ; plus élégant », puis « beaucoup plus douce ») : l'écran se fond en 0,8 s, la fiche arrive après (0,15 s) en
+// 1 s, de 4 px et presque sans changer de taille, sur une courbe qui ralentit longuement ; à la fermeture, la fiche
+// s'efface d'abord (0,5 s), puis l'écran (0,7 s). Un simple fondu si l'appareil demande moins de mouvement.
+const DOUX = [0.22, 1, 0.36, 1];
+const SORTIE = [0.45, 0, 0.55, 1];
 function mouvements(reduit) {
   if (reduit) {
     const fondu = { initial: { opacity: 0 }, animate: { opacity: 1, transition: { duration: 0.15 } }, exit: { opacity: 0, transition: { duration: 0.12 } } };
     return { ecran: fondu, carte: fondu, droite: fondu };
   }
   return {
-    ecran: { initial: { opacity: 0 }, animate: { opacity: 1, transition: { duration: 0.45, ease: [0.4, 0, 0.2, 1] } }, exit: { opacity: 0, transition: { duration: 0.34, ease: SORTIE, delay: 0.08 } } },
-    carte: { initial: { opacity: 0, y: 8, scale: 0.992 }, animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.55, ease: DOUX, delay: 0.06 } }, exit: { opacity: 0, y: 4, scale: 0.996, transition: { duration: 0.26, ease: SORTIE } } },
-    droite: { initial: { opacity: 0, x: 16 }, animate: { opacity: 1, x: 0, transition: { duration: 0.5, ease: DOUX, delay: 0.04 } }, exit: { opacity: 0, x: 10, transition: { duration: 0.26, ease: SORTIE } } },
+    ecran: { initial: { opacity: 0 }, animate: { opacity: 1, transition: { duration: 0.8, ease: [0.33, 0, 0.2, 1] } }, exit: { opacity: 0, transition: { duration: 0.7, ease: SORTIE, delay: 0.15 } } },
+    carte: { initial: { opacity: 0, y: 4, scale: 0.996 }, animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 1, ease: DOUX, delay: 0.15 } }, exit: { opacity: 0, y: 2, scale: 0.998, transition: { duration: 0.5, ease: SORTIE } } },
+    droite: { initial: { opacity: 0, x: 8 }, animate: { opacity: 1, x: 0, transition: { duration: 0.9, ease: DOUX, delay: 0.1 } }, exit: { opacity: 0, x: 4, transition: { duration: 0.5, ease: SORTIE } } },
   };
 }
 

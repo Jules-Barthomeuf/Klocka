@@ -1579,6 +1579,11 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 .k-fiche-fond .k-entree { animation: k-entree-doux .7s cubic-bezier(.22, 1, .36, 1) both; animation-delay: var(--k-delai, 0s); }
 /* Le fil du chat rouvert depuis « À faire », du même fondu (28 nov. 2026). */
 .k-fil-doux { animation: k-entree-doux .8s cubic-bezier(.22, 1, .36, 1) both; }
+/* Une tâche cochée dans « À faire » (28 nov. 2026, Jules : « ça disparaît, avec un trait ») : barrée un instant, puis la
+   ligne s'efface et la liste se resserre. */
+@keyframes k-tache-part { 0%, 50% { opacity: 1; max-height: 160px; } 100% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; } }
+.k-tache-part { overflow: hidden; animation: k-tache-part 1.1s cubic-bezier(.45, 0, .55, 1) forwards; }
+.k-tache-part button { transition: color .3s, text-decoration-color .3s; }
 @media (prefers-reduced-motion: reduce) { .k-fil-doux { animation: none; } }
 :root[data-animations="reduites"] .k-fil-doux { animation: none; }
 .k-glisse { animation: k-glisse .6s cubic-bezier(.22, 1, .36, 1) both; animation-delay: var(--k-delai, 0s); }

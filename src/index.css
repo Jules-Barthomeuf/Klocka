@@ -1673,10 +1673,11 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* La carte de la fiche dans l'écran scindé de l'assistant (20 nov. 2026, Jules) : en sombre, le fond de la fiche
    d'appel du chat (le verre : surface et flou) ; en clair, le fond de la saisie du chat (« Répondre ou ajouter une
    précision »). */
-/* La fiche sur le fond de l'écran (28 nov. 2026, Jules : « la fiche tout le temps pareil que ce qui est sur l'écran, noir,
-   ou clair en mode clair ») : plus de verre gris par-dessus ; le bord de la fiche la détache. Au CRM, le fond choisi par
-   le compte (celui du tableau), y compris pour l'écran qui entoure la fiche, posé hors de la page (portail). */
-.k-fiche-fond { background-color: rgb(var(--k-fond-rgb)); }
+/* La fiche, une carte posée sur l'écran (28 nov. 2026, Jules, sur sa capture : « on doit voir une séparation, comme
+   avant ») : le verre du thème, un cran plus clair que le fond, et son bord. Au CRM, l'écran qui l'entoure (posé hors de
+   la page, en portail) prend le fond choisi par le compte, celui du tableau. */
+.k-fiche-fond { background-color: var(--k-surface); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+:root[data-theme="clair"] .k-fiche-fond { background-color: rgb(var(--k-barre-rgb)); }
 html.k-cadre-crm:not([data-theme="clair"]) [data-crm-dehors] { --k-fond-rgb: var(--k-fond-perso-rgb); }
 
 /* L'écran de chargement d'une page (14 nov. 2026, Jules, sur une maquette) : fond noir, le nom au centre en gris clair,
